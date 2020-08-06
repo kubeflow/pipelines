@@ -141,7 +141,7 @@ class TransformComponentTestCase(unittest.TestCase):
                     "JoinSource": "Input",
                 },
                 "Tags": [{"Key": "fake_key", "Value": "fake_value"}],
-            }
+            },
         )
 
     def test_get_job_status(self):

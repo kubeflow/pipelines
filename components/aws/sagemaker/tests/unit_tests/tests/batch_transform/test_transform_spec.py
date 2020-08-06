@@ -14,7 +14,7 @@ class TransformSpecTestCase(unittest.TestCase):
         "--output_location",
         "s3://fake-bucket/output",
         "--instance_type",
-        "ml.c5.18xlarge"
+        "ml.c5.18xlarge",
     ]
 
     def test_minimum_required_args(self):

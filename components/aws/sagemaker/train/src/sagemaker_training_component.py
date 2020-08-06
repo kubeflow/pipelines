@@ -96,7 +96,9 @@ class SageMakerTrainingComponent(SageMakerComponent):
         outputs: SageMakerTrainingOutputs,
     ):
         outputs.job_name = self._training_job_name
-        outputs.model_artifact_url = self._get_model_artifacts_from_job(self._training_job_name)
+        outputs.model_artifact_url = self._get_model_artifacts_from_job(
+            self._training_job_name
+        )
         outputs.training_image = self._get_image_from_job(self._training_job_name)
 
     def _on_job_terminated(self):

@@ -107,7 +107,9 @@ class CreateModelComponentTestCase(unittest.TestCase):
         model_package_spec = SageMakerCreateModelSpec(
             arguments + ["--model_package", "fake-package"]
         )
-        self.component._create_job_request(model_package_spec.inputs, model_package_spec.outputs)
+        self.component._create_job_request(
+            model_package_spec.inputs, model_package_spec.outputs
+        )
 
         with self.assertRaises(Exception):
             bad_spec = SageMakerCreateModelSpec(arguments)

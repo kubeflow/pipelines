@@ -337,12 +337,18 @@ class SageMakerComponentTestCase(unittest.TestCase):
 
 
 class ComponentFeatureTestCase(unittest.TestCase):
-    class CommonInputsSpec(SageMakerComponentSpec[SageMakerComponentCommonInputs, SageMakerComponentBaseOutputs]):
+    class CommonInputsSpec(
+        SageMakerComponentSpec[
+            SageMakerComponentCommonInputs, SageMakerComponentBaseOutputs
+        ]
+    ):
         INPUTS = COMMON_INPUTS
         OUTPUTS = {}
 
         def __init__(self, arguments):
-            super().__init__(arguments, SageMakerComponentCommonInputs, SageMakerComponentBaseOutputs)
+            super().__init__(
+                arguments, SageMakerComponentCommonInputs, SageMakerComponentBaseOutputs
+            )
 
     class SpotInstanceSpec(
         SageMakerComponentSpec[SpotInstanceInputs, SageMakerComponentBaseOutputs]
@@ -481,7 +487,9 @@ class ComponentFeatureTestCase(unittest.TestCase):
             "ModelArtifacts": {"S3ModelArtifacts": "s3://path/"}
         }
 
-        self.assertEqual(component._get_model_artifacts_from_job("job-name"), "s3://path/")
+        self.assertEqual(
+            component._get_model_artifacts_from_job("job-name"), "s3://path/"
+        )
 
     def test_get_image_from_defined_job(self):
         component = self.CommonInputsComponent()
@@ -490,7 +498,9 @@ class ComponentFeatureTestCase(unittest.TestCase):
             "AlgorithmSpecification": {"TrainingImage": "training-image-url"}
         }
 
-        self.assertEqual(component._get_image_from_job("job-name"), "training-image-url")
+        self.assertEqual(
+            component._get_image_from_job("job-name"), "training-image-url"
+        )
 
     def test_get_image_from_algorithm_job(self):
         component = self.CommonInputsComponent()
@@ -502,4 +512,6 @@ class ComponentFeatureTestCase(unittest.TestCase):
             "TrainingSpecification": {"TrainingImage": "training-image-url"}
         }
 
-        self.assertEqual(component._get_image_from_job("job-name"), "training-image-url")
+        self.assertEqual(
+            component._get_image_from_job("job-name"), "training-image-url"
+        )

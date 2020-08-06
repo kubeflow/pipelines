@@ -362,7 +362,9 @@ class SageMakerComponent(object):
         return hyperparam_args
 
     @staticmethod
-    def _enable_tag_support(request: Dict, inputs: SageMakerComponentCommonInputs) -> Dict:
+    def _enable_tag_support(
+        request: Dict, inputs: SageMakerComponentCommonInputs
+    ) -> Dict:
         """Modifies a request object to add support for tag fields.
 
         Args:
@@ -514,16 +516,12 @@ class SageMakerComponent(object):
             logging.error(e)
 
     def _get_model_artifacts_from_job(self, job_name):
-        info = self._sm_client.describe_training_job(
-            TrainingJobName=job_name
-        )
+        info = self._sm_client.describe_training_job(TrainingJobName=job_name)
         model_artifact_url = info["ModelArtifacts"]["S3ModelArtifacts"]
         return model_artifact_url
 
     def _get_image_from_job(self, job_name):
-        info = self._sm_client.describe_training_job(
-            TrainingJobName=job_name
-        )
+        info = self._sm_client.describe_training_job(TrainingJobName=job_name)
         if "TrainingImage" in info["AlgorithmSpecification"]:
             image = info["AlgorithmSpecification"]["TrainingImage"]
         else:

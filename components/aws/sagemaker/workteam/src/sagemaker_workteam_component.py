@@ -60,7 +60,9 @@ class SageMakerWorkteamComponent(SageMakerComponent):
         request["Description"] = inputs.description
 
         if inputs.sns_topic:
-            request["NotificationConfiguration"]["NotificationTopicArn"] = inputs.sns_topic
+            request["NotificationConfiguration"][
+                "NotificationTopicArn"
+            ] = inputs.sns_topic
         else:
             request.pop("NotificationConfiguration")
 
@@ -98,9 +100,9 @@ class SageMakerWorkteamComponent(SageMakerComponent):
         Returns:
             str: The portal domain URL.
         """
-        return self._sm_client.describe_workteam(WorkteamName=self._workteam_name)["Workteam"][
-            "SubDomain"
-        ]
+        return self._sm_client.describe_workteam(WorkteamName=self._workteam_name)[
+            "Workteam"
+        ]["SubDomain"]
 
 
 if __name__ == "__main__":

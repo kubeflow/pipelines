@@ -38,7 +38,8 @@ class SageMakerTransformComponent(SageMakerComponent):
         self._transform_job_name = (
             spec.inputs.job_name
             if spec.inputs.job_name
-            else "BatchTransform" + spec.inputs.model_name[spec.inputs.model_name.index("-") :]
+            else "BatchTransform"
+            + spec.inputs.model_name[spec.inputs.model_name.index("-") :]
         )
         super().Do(spec.inputs, spec.outputs, spec.output_paths)
 
@@ -98,9 +99,13 @@ class SageMakerTransformComponent(SageMakerComponent):
         request["Environment"] = inputs.environment
 
         if inputs.data_type:
-            request["TransformInput"]["DataSource"]["S3DataSource"]["S3DataType"] = inputs.data_type
+            request["TransformInput"]["DataSource"]["S3DataSource"][
+                "S3DataType"
+            ] = inputs.data_type
 
-        request["TransformInput"]["DataSource"]["S3DataSource"]["S3Uri"] = inputs.input_location
+        request["TransformInput"]["DataSource"]["S3DataSource"][
+            "S3Uri"
+        ] = inputs.input_location
         request["TransformInput"]["ContentType"] = inputs.content_type
 
         if inputs.compression_type:

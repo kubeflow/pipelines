@@ -21,7 +21,7 @@ class TrainingSpecTestCase(unittest.TestCase):
         "--max_run_time",
         "3600",
         "--model_artifact_path",
-        "test-path"
+        "test-path",
     ]
 
     def test_minimum_required_args(self):
