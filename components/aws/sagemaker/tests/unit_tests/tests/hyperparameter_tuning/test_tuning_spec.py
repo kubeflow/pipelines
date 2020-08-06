@@ -22,17 +22,7 @@ class TuningSpecTestCase(unittest.TestCase):
         "--max_num_jobs",
         "5",
         "--max_parallel_jobs",
-        "2",
-        "--hpo_job_name_output_path",
-        "/tmp/hpo_job_name_output_path",
-        "--model_artifact_url_output_path",
-        "/tmp/model_artifact_url_output_path",
-        "--best_job_name_output_path",
-        "/tmp/best_job_name_output_path",
-        "--best_hyperparameters_output_path",
-        "/tmp/best_hyperparameters_output_path",
-        "--training_image_output_path",
-        "/tmp/training_image_output_path",
+        "2"
     ]
 
     def test_minimum_required_args(self):

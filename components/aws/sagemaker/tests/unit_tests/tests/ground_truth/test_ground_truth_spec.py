@@ -26,11 +26,7 @@ class GroundTruthSpecTestCase(unittest.TestCase):
         "--num_workers_per_object",
         "1",
         "--time_limit",
-        "180",
-        "--output_manifest_location_output_path",
-        "/tmp/manifest-output",
-        "--active_learning_model_arn_output_path",
-        "/tmp/model-output",
+        "180"
     ]
 
     def test_minimum_required_args(self):

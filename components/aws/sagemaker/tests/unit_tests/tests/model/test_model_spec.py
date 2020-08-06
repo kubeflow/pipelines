@@ -14,9 +14,7 @@ class CreateModelSpecTestCase(unittest.TestCase):
         "--image",
         "test-image",
         "--model_artifact_url",
-        "s3://fake-bucket/model_artifact",
-        "--model_name_output_path",
-        "/tmp/output",
+        "s3://fake-bucket/model_artifact"
     ]
 
     def test_minimum_required_args(self):
