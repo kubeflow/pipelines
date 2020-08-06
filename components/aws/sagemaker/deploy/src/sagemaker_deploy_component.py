@@ -15,8 +15,6 @@ from dataclasses import dataclass
 import logging
 from typing import Dict
 
-from typing_extensions import TypedDict
-
 from deploy.src.sagemaker_deploy_spec import (
     SageMakerDeploySpec,
     SageMakerDeployInputs,
