@@ -26,6 +26,8 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 // These are valid conditions of a ScheduledWorkflow.
@@ -35,6 +37,19 @@ const (
 	DescriptionQueryStringKey = "description"
 	// Pipeline Id in the query string specifies a pipeline when creating versions.
 	PipelineKey = "pipelineid"
+)
+
+// Metric variables. Please prefix the metric names with pipeline_upload_ or pipeline_version_upload_.
+var (
+	uploadPipelineRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "pipeline_upload_requests",
+		Help: "The number of pipeline upload requests",
+	})
+
+	uploadPipelineVersionRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "pipeline_version_upload_requests",
+		Help: "The number of pipeline version upload requests",
+	})
 )
 
 type PipelineUploadServer struct {
@@ -87,6 +102,8 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating pipeline"))
 		return
 	}
+
+	uploadPipelineRequests.Inc()
 }
 
 // HTTP multipart endpoint for uploading pipeline version file.
@@ -154,6 +171,8 @@ func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *h
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating pipeline version"))
 		return
 	}
+
+	uploadPipelineVersionRequests.Inc()
 }
 
 func (s *PipelineUploadServer) writeErrorToResponse(w http.ResponseWriter, code int, err error) {
