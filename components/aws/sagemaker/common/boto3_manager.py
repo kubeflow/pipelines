@@ -49,7 +49,7 @@ class Boto3Manager(object):
         """
 
         # By default return a basic session
-        if role_arn is None:
+        if not role_arn:
             return Session(region_name=region)
 
         # The following assume role example was taken from
