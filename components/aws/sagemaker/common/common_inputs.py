@@ -89,6 +89,7 @@ class SageMakerComponentCommonInputs(SageMakerComponentBaseInputs):
 
     region: SageMakerComponentInput
     endpoint_url: SageMakerComponentInput
+    assume_role: SageMakerComponentInput
     tags: SageMakerComponentInput
 
 
@@ -102,6 +103,11 @@ COMMON_INPUTS = SageMakerComponentCommonInputs(
         input_type=SpecValidators.nullable_string_argument,
         required=False,
         description="The URL to use when communicating with the SageMaker service.",
+    ),
+    assume_role=SageMakerComponentInputValidator(
+        input_type=str,
+        required=False,
+        description="The ARN of an IAM role to assume when connecting to SageMaker."
     ),
     tags=SageMakerComponentInputValidator(
         input_type=SpecValidators.yaml_or_json_dict,

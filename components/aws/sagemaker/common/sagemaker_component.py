@@ -126,8 +126,11 @@ class SageMakerComponent(object):
                 self._get_component_version(),
                 inputs.region,
                 endpoint_url=inputs.endpoint_url,
+                assume_role_arn=inputs.assume_role,
             )
-            self._cw_client = Boto3Manager.get_cloudwatch_client(inputs.region)
+            self._cw_client = Boto3Manager.get_cloudwatch_client(
+                inputs.region, assume_role_arn=inputs.assume_role
+            )
 
             # Successful execution
             if not self._do(inputs, outputs, output_paths):
