@@ -74,7 +74,7 @@ class SageMakerProcessComponent(SageMakerComponent):
         outputs.output_artifacts = self._get_job_outputs()
 
     def _on_job_terminated(self):
-        self._sm_client.stop_process_job(ProcessJobName=self._processing_job_name)
+        self._sm_client.stop_processing_job(ProcessingJobName=self._processing_job_name)
 
     def _create_job_request(
         self, inputs: SageMakerProcessInputs, outputs: SageMakerProcessOutputs,
