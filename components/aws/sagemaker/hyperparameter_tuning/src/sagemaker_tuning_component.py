@@ -116,7 +116,7 @@ class SageMakerTuningComponent(SageMakerComponent):
         request["HyperParameterTuningJobConfig"]["ParameterRanges"][
             "CategoricalParameterRanges"
         ] = inputs.categorical_parameters
-        request["HyperParameterTuningJobConfig"]["TrainingJobEarlyStoppingType"] = "early_stopping_type"
+        request["HyperParameterTuningJobConfig"]["TrainingJobEarlyStoppingType"] = inputs.early_stopping_type
 
         request["TrainingJobDefinition"]["StaticHyperParameters"] = self._create_hyperparameters(
             inputs.static_parameters
@@ -184,8 +184,8 @@ class SageMakerTuningComponent(SageMakerComponent):
 
         ### Update or pop VPC configs
         if inputs.vpc_security_group_ids and inputs.vpc_subnets:
-            request["TrainingJobDefinition"]["VpcConfig"]["SecurityGroupIds"] = "vpc_security_group_ids"
-            request["TrainingJobDefinition"]["VpcConfig"]["Subnets"] = "vpc_subnets"
+            request["TrainingJobDefinition"]["VpcConfig"]["SecurityGroupIds"] = inputs.vpc_security_group_ids.split(",")
+            request["TrainingJobDefinition"]["VpcConfig"]["Subnets"] = inputs.vpc_subnets.split(",")
         else:
             request["TrainingJobDefinition"].pop("VpcConfig")
 
@@ -196,20 +196,20 @@ class SageMakerTuningComponent(SageMakerComponent):
             logging.error("Must specify at least one input channel.")
             raise Exception("Could not make job request")
 
-        request["TrainingJobDefinition"]["OutputDataConfig"]["S3OutputPath"] = "output_location"
-        request["TrainingJobDefinition"]["OutputDataConfig"]["KmsKeyId"] = "output_encryption_key"
-        request["TrainingJobDefinition"]["ResourceConfig"]["InstanceType"] = "instance_type"
-        request["TrainingJobDefinition"]["ResourceConfig"]["VolumeKmsKeyId"] = "resource_encryption_key"
-        request["TrainingJobDefinition"]["EnableNetworkIsolation"] = "network_isolation"
-        request["TrainingJobDefinition"]["EnableInterContainerTrafficEncryption"] = "traffic_encryption"
+        request["TrainingJobDefinition"]["OutputDataConfig"]["S3OutputPath"] = inputs.output_location
+        request["TrainingJobDefinition"]["OutputDataConfig"]["KmsKeyId"] = inputs.output_encryption_key
+        request["TrainingJobDefinition"]["ResourceConfig"]["InstanceType"] = inputs.instance_type
+        request["TrainingJobDefinition"]["ResourceConfig"]["VolumeKmsKeyId"] = inputs.resource_encryption_key
+        request["TrainingJobDefinition"]["EnableNetworkIsolation"] = inputs.network_isolation
+        request["TrainingJobDefinition"]["EnableInterContainerTrafficEncryption"] = inputs.traffic_encryption
         request["TrainingJobDefinition"]["RoleArn"] = inputs.role
 
         ### Update InstanceCount, VolumeSizeInGB, and MaxRuntimeInSeconds if input is non-empty and > 0, otherwise use default values
         if inputs.instance_count:
-            request["TrainingJobDefinition"]["ResourceConfig"]["InstanceCount"] = "instance_count"
+            request["TrainingJobDefinition"]["ResourceConfig"]["InstanceCount"] = inputs.instance_count
 
         if inputs.volume_size:
-            request["TrainingJobDefinition"]["ResourceConfig"]["VolumeSizeInGB"] = "volume_size"
+            request["TrainingJobDefinition"]["ResourceConfig"]["VolumeSizeInGB"] = inputs.volume_size
 
         if inputs.max_run_time:
             request["TrainingJobDefinition"]["StoppingCondition"][
@@ -237,7 +237,7 @@ class SageMakerTuningComponent(SageMakerComponent):
                 raise Exception("Could not make job request")
             request.pop("WarmStartConfig")
 
-        self._enable_spot_instance_support(request, inputs)
+        self._enable_spot_instance_support(request["TrainingJobDefinition"], inputs)
         self._enable_tag_support(request, inputs)
 
         return request
