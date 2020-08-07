@@ -1,15 +1,11 @@
 #!/usr/bin/env python3
 
-# Uncomment the apply(use_aws_secret()) below if you are not using OIDC
-# more info : https://github.com/kubeflow/pipelines/tree/master/samples/contrib/aws-samples/README.md
-
 import kfp
 import json
 import os
 import copy
 from kfp import components
 from kfp import dsl
-from kfp.aws import use_aws_secret
 
 sagemaker_train_op = components.load_component_from_file(
     "../../../../components/aws/sagemaker/train/component.yaml"
@@ -57,7 +53,7 @@ collections = {
         'save_interval': '5'
     },
     'metrics': {
-        'save_interval': '5'
+        'save_interval': '3'
     }
 }
 
