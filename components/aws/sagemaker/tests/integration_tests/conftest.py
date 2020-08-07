@@ -19,6 +19,11 @@ def pytest_addoption(parser):
         "--role-arn", required=True, help="SageMaker execution IAM role ARN",
     )
     parser.addoption(
+        "--assume-role-arn",
+        required=True,
+        help="The ARN of a role which the assume role tests will assume to access SageMaker.",
+    )
+    parser.addoption(
         "--s3-data-bucket",
         required=True,
         help="Regional S3 bucket name in which test data is hosted",
@@ -59,6 +64,12 @@ def pytest_addoption(parser):
 def region(request):
     os.environ["AWS_REGION"] = request.config.getoption("--region")
     return request.config.getoption("--region")
+
+
+@pytest.fixture(scope="session", autouse=True)
+def assume_role_arn(request):
+    os.environ["ASSUME_ROLE_ARN"] = request.config.getoption("--assume-role-arn")
+    return request.config.getoption("--assume-role-arn")
 
 
 @pytest.fixture(scope="session", autouse=True)

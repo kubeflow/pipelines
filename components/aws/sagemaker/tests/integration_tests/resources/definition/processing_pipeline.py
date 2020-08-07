@@ -23,6 +23,7 @@ def processing_pipeline(
     output_config={},
     network_isolation=False,
     role="",
+    assume_role="",
 ):
     sagemaker_process_op(
         region=region,
@@ -39,6 +40,7 @@ def processing_pipeline(
         output_config=output_config,
         network_isolation=network_isolation,
         role=role,
+        assume_role=assume_role,
     )
 
 

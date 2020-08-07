@@ -28,7 +28,7 @@ WEBHOOK_SECRET_NAME=webhook-server-tls
 
 # This should fail if there are connectivity problems
 # Gotcha: Listing all objects requires list permission,
-# but when listing a single oblect kubecttl will fail if it's not found
+# but when listing a single oblect kubectl will fail if it's not found
 # unless --ignore-not-found is specified.
 kubectl get mutatingwebhookconfigurations "${MUTATING_WEBHOOK_CONFIGURATION_NAME}" --namespace "${NAMESPACE}" --ignore-not-found >webhooks.txt
 kubectl get secrets "${WEBHOOK_SECRET_NAME}" --namespace "${NAMESPACE}" --ignore-not-found >cache_secret.txt
@@ -50,12 +50,12 @@ fi
 
 if [ "$webhook_config_exists" == "true" ]; then
     echo "Warning: Webhook config exists, but the secret does not exist. Reinstalling."
-    kubectl delete mutatingwebhookconfigurations "${MUTATING_WEBHOOK_CONFIGURATION_NAME}" --namespace "${NAMESPACE}" || true
+    kubectl delete mutatingwebhookconfigurations "${MUTATING_WEBHOOK_CONFIGURATION_NAME}" --namespace "${NAMESPACE}"
 fi
 
 if [ "$webhook_secret_exists" == "true" ]; then
     echo "Warning: Webhook secret exists, but the config does not exist. Reinstalling."
-    kubectl delete secrets "${WEBHOOK_SECRET_NAME}" --namespace "${NAMESPACE}" || true
+    kubectl delete secrets "${WEBHOOK_SECRET_NAME}" --namespace "${NAMESPACE}"
 fi
 
 

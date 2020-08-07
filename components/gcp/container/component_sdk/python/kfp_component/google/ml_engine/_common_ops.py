@@ -68,7 +68,11 @@ def wait_for_operation_done(ml_client, operation_name, action, wait_interval):
         ))
     return operation
 
-def wait_for_job_done(ml_client, project_id, job_id, wait_interval, show_tensorboard=True):
+def wait_for_job_done(ml_client, project_id, job_id, wait_interval, show_tensorboard=True,
+    job_object_output_path='/tmp/kfp/output/ml_engine/job.json',
+    job_id_output_path='/tmp/kfp/output/ml_engine/job_id.txt',
+    job_dir_output_path='/tmp/kfp/output/ml_engine/job_dir.txt',
+):
     """Waits for a CMLE job done.
 
     Args:
@@ -98,7 +102,12 @@ def wait_for_job_done(ml_client, project_id, job_id, wait_interval, show_tensorb
             job.get('state', None), wait_interval))
         time.sleep(wait_interval)
 
-    _dump_job(job)
+    _dump_job(
+        job=job,
+        job_object_output_path=job_object_output_path,
+        job_id_output_path=job_id_output_path,
+        job_dir_output_path=job_dir_output_path,
+    )
 
     if job['state'] != 'SUCCEEDED':
         raise RuntimeError('Job failed with state {}. Error: {}'.format(
@@ -120,15 +129,19 @@ def _dump_job_metadata(project_id, job_id, job, show_tensorboard=True):
         display.display(display.Tensorboard(
             job['trainingInput']['jobDir']))
 
-def _dump_job(job):
+def _dump_job(
+    job,
+    job_object_output_path,
+    job_id_output_path,
+    job_dir_output_path,
+):
     logging.info('Dumping job: {}'.format(job))
-    gcp_common.dump_file('/tmp/kfp/output/ml_engine/job.json', json.dumps(job))
-    gcp_common.dump_file('/tmp/kfp/output/ml_engine/job_id.txt', job['jobId'])
+    gcp_common.dump_file(job_object_output_path, json.dumps(job))
+    gcp_common.dump_file(job_id_output_path, job['jobId'])
     job_dir = ''
     if 'trainingInput' in job and 'jobDir' in job['trainingInput']:
         job_dir = job['trainingInput']['jobDir']
-    gcp_common.dump_file('/tmp/kfp/output/ml_engine/job_dir.txt', 
-        job_dir)
+    gcp_common.dump_file(job_dir_output_path, job_dir)
 
 def cancel_job(ml_client, project_id, job_id):
     """Cancels a CMLE job.

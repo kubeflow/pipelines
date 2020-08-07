@@ -80,6 +80,10 @@ inputs:
     description: 'The endpoint URL for the private link VPC endpoint.'
     default: ''
     type: String
+  - name: assume_role
+    description: 'The ARN of an IAM role to assume when connecting to SageMaker.'
+    default: ''
+    type: String
   - name: tags
     description: 'Key-value pairs, to categorize AWS resources.'
     default: '{}'
@@ -89,12 +93,13 @@ outputs:
   - {name: output_artifacts,      description: 'A dictionary containing the output S3 artifacts'}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:0.6.0
+    image: amazon/aws-sagemaker-kfp-components:0.7.0
     command: ['python3']
     args: [
       process.py,
       --region, {inputValue: region},
       --endpoint_url, {inputValue: endpoint_url},
+      --assume_role, {inputValue: assume_role},
       --job_name, {inputValue: job_name},
       --role, {inputValue: role},
       --image, {inputValue: image},

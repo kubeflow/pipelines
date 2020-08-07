@@ -14,12 +14,16 @@
 import fetch from 'node-fetch';
 import { AWSConfigs, HttpConfigs, MinioConfigs, ProcessEnv } from '../configs';
 import { Client as MinioClient } from 'minio';
-import { PreviewStream } from '../utils';
+import { PreviewStream, findFileOnPodVolume } from '../utils';
 import { createMinioClient, getObjectStream } from '../minio-helper';
+import * as serverInfo from '../helpers/server-info';
 import { Handler, Request, Response } from 'express';
 import { Storage } from '@google-cloud/storage';
 import proxy from 'http-proxy-middleware';
 import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts';
+
+import * as fs from 'fs';
+import { V1Container } from '@kubernetes/client-node/dist/api';
 
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs
@@ -27,7 +31,7 @@ import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts';
  */
 interface ArtifactsQueryStrings {
   /** artifact source. */
-  source: 'minio' | 's3' | 'gcs' | 'http' | 'https';
+  source: 'minio' | 's3' | 'gcs' | 'http' | 'https' | 'volume';
   /** bucket name. */
   bucket: string;
   /** artifact key/path that is uri encoded.  */
@@ -97,6 +101,16 @@ export function getArtifactsHandler(artifactsConfigs: {
         getHttpArtifactsHandler(
           getHttpUrl(source, http.baseUrl || '', bucket, key),
           http.auth,
+          peek,
+        )(req, res);
+        break;
+
+      case 'volume':
+        await getVolumeArtifactsHandler(
+          {
+            bucket,
+            key,
+          },
           peek,
         )(req, res);
         break;
@@ -236,6 +250,53 @@ function getGCSArtifactHandler(options: { key: string; bucket: string }, peek: n
       });
     } catch (err) {
       res.status(500).send('Failed to download GCS file(s). Error: ' + err);
+    }
+  };
+}
+
+function getVolumeArtifactsHandler(options: { bucket: string; key: string }, peek: number = 0) {
+  const { key, bucket } = options;
+  return async (req: Request, res: Response) => {
+    try {
+      const [pod, err] = await serverInfo.getHostPod();
+      if (err) {
+        res.status(500).send(err);
+        return;
+      }
+
+      if (!pod) {
+        res.status(500).send('Could not get server pod');
+        return;
+      }
+
+      // ml-pipeline-ui server container name also be called 'ml-pipeline-ui-artifact' in KFP multi user mode.
+      // https://github.com/kubeflow/manifests/blob/master/pipeline/installs/multi-user/pipelines-profile-controller/sync.py#L212
+      const [filePath, parseError] = findFileOnPodVolume(pod, {
+        containerNames: ['ml-pipeline-ui', 'ml-pipeline-ui-artifact'],
+        volumeMountName: bucket,
+        filePathInVolume: key,
+      });
+      if (parseError) {
+        res.status(404).send(`Failed to open volume://${bucket}/${key}, ${parseError}`);
+        return;
+      }
+
+      // TODO: support directory and support filePath include wildcards '*'
+      const stat = await fs.promises.stat(filePath);
+      if (stat.isDirectory()) {
+        res
+          .status(400)
+          .send(
+            `Failed to open volume://${bucket}/${key}, file ${filePath} is directory, does not support now`,
+          );
+        return;
+      }
+
+      fs.createReadStream(filePath)
+        .pipe(new PreviewStream({ peek }))
+        .pipe(res);
+    } catch (err) {
+      res.status(500).send(`Failed to open volume://${bucket}/${key}: ${err}`);
     }
   };
 }

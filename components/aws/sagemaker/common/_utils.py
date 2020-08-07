@@ -24,8 +24,18 @@ import json
 from pathlib2 import Path
 
 import boto3
-import botocore
+from boto3.session import Session
+
+from botocore.config import Config
+from botocore.credentials import (
+    AssumeRoleCredentialFetcher,
+    CredentialResolver,
+    DeferredRefreshableCredentials,
+    JSONFileCache
+)
 from botocore.exceptions import ClientError
+from botocore.session import Session as BotocoreSession
+
 from sagemaker.amazon.amazon_estimator import get_image_uri
 
 import logging
@@ -71,6 +81,7 @@ def nullable_string_argument(value):
 def add_default_client_arguments(parser):
     parser.add_argument('--region', type=str, required=True, help='The region where the training job launches.')
     parser.add_argument('--endpoint_url', type=nullable_string_argument, required=False, help='The URL to use when communicating with the SageMaker service.')
+    parser.add_argument('--assume_role', type=nullable_string_argument, required=False, help='The ARN of an IAM role to assume when connecting to SageMaker.')
 
 
 def get_component_version():
@@ -113,17 +124,59 @@ def print_logs_for_job(cw_client, log_grp, job_name):
         logging.error(e)
 
 
-def get_sagemaker_client(region, endpoint_url=None):
+class AssumeRoleProvider(object):
+    METHOD = 'assume-role'
+
+    def __init__(self, fetcher):
+        self._fetcher = fetcher
+
+    def load(self):
+        return DeferredRefreshableCredentials(
+            self._fetcher.fetch_credentials,
+            self.METHOD
+        )
+
+def get_boto3_session(region, role_arn=None):
+    """Creates a boto3 session, optionally assuming a role"""
+
+    # By default return a basic session
+    if role_arn is None:
+        return Session(region_name=region)
+
+    # The following assume role example was taken from
+    # https://github.com/boto/botocore/issues/761#issuecomment-426037853
+
+    # Create a session used to assume role
+    assume_session = BotocoreSession()
+    fetcher = AssumeRoleCredentialFetcher(
+        assume_session.create_client,
+        assume_session.get_credentials(),
+        role_arn,
+        extra_args={
+            'DurationSeconds': 3600, # 1 hour assume assume by default
+        },
+        cache=JSONFileCache()
+    )
+    role_session = BotocoreSession()
+    role_session.register_component(
+        'credential_provider',
+        CredentialResolver([AssumeRoleProvider(fetcher)])
+    )
+    return Session(region_name=region, botocore_session=role_session)
+
+def get_sagemaker_client(region, endpoint_url=None, assume_role_arn=None):
     """Builds a client to the AWS SageMaker API."""
-    session_config = botocore.config.Config(
+    session = get_boto3_session(region, assume_role_arn)
+    session_config = Config(
         user_agent='sagemaker-on-kubeflow-pipelines-v{}'.format(get_component_version())
     )
-    client = boto3.client('sagemaker', region_name=region, endpoint_url=endpoint_url, config=session_config)
+    client = session.client('sagemaker', endpoint_url=endpoint_url, config=session_config)
     return client
 
 
-def get_cloudwatch_client(region):
-    client = boto3.client('logs', region_name=region)
+def get_cloudwatch_client(region, assume_role_arn=None):
+    session = get_boto3_session(region, assume_role_arn)
+    client = session.client('logs')
     return client
 
 

@@ -105,7 +105,32 @@ func (j *Job) GetModelName() string {
 	return "jobs"
 }
 
+func (j *Job) GetField(name string) (string, bool) {
+	if field, ok := jobAPIToModelFieldMap[name]; ok {
+		return field, true
+	}
+	return "", false
+}
+
 func (j *Job) GetFieldValue(name string) interface{} {
-	// TODO(jingzhang36): follow the example of GetFieldValue in run.go
-	return nil
+	switch name {
+	case "UUID":
+		return j.UUID
+	case "DisplayName":
+		return j.DisplayName
+	case "CreatedAtInSec":
+		return j.CreatedAtInSec
+	case "PipelineId":
+		return j.PipelineId
+	default:
+		return nil
+	}
+}
+
+func (j *Job) GetSortByFieldPrefix(name string) string {
+	return "jobs."
+}
+
+func (j *Job) GetKeyFieldPrefix() string {
+	return "jobs."
 }
