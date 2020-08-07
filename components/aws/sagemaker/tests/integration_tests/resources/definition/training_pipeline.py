@@ -20,8 +20,6 @@ def training_pipeline(
     max_run_time="",
     model_artifact_path="",
     output_encryption_key="",
-    vpc_security_group_ids="",
-    vpc_subnets="",
     network_isolation="",
     traffic_encryption="",
     spot_instance="",
@@ -30,6 +28,9 @@ def training_pipeline(
     debug_hook_config="",
     debug_rule_config="",
     tensorboard_output_config="",
+    vpc_security_group_ids="",
+    vpc_subnets="",
+    assume_role="",
     role="",
 ):
     sagemaker_train_op(
@@ -46,8 +47,6 @@ def training_pipeline(
         max_run_time=max_run_time,
         model_artifact_path=model_artifact_path,
         output_encryption_key=output_encryption_key,
-        vpc_security_group_ids=vpc_security_group_ids,
-        vpc_subnets=vpc_subnets,
         network_isolation=network_isolation,
         traffic_encryption=traffic_encryption,
         spot_instance=spot_instance,
@@ -56,6 +55,9 @@ def training_pipeline(
         debug_hook_config=debug_hook_config,
         debug_rule_config=debug_rule_config,
         tensorboard_output_config=tensorboard_output_config,
+        vpc_security_group_ids=vpc_security_group_ids,
+        vpc_subnets=vpc_subnets,
+        assume_role=assume_role,
         role=role,
     )
 

@@ -88,8 +88,7 @@ implementation:
       --pig_job, {inputValue: pig_job},
       --job, {inputValue: job},
       --wait_interval, {inputValue: wait_interval},
+      --job_id_output_path, {outputPath: job_id},
     ]
     env:
       KFP_POD_NAME: "{{pod.name}}"
-    fileOutputs:
-      job_id: /tmp/kfp/output/dataproc/job_id.txt

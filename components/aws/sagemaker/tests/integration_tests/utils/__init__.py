@@ -47,6 +47,10 @@ def get_algorithm_image_registry(region, algorithm, repo_version=1):
     return get_image_uri(region, algorithm, repo_version).split(".")[0]
 
 
+def get_assume_role_arn():
+    return os.environ.get("ASSUME_ROLE_ARN")
+
+
 def run_command(cmd, *popenargs, **kwargs):
     if isinstance(cmd, str):
         cmd = cmd.split(" ")
@@ -87,6 +91,7 @@ def replace_placeholders(input_filename, output_filename):
         "((FSX_ID))": get_fsx_id(),
         "((FSX_SUBNET))": get_fsx_subnet(),
         "((FSX_SECURITY_GROUP))": get_fsx_security_group(),
+        "((ASSUME_ROLE_ARN))": get_assume_role_arn()
     }
 
     filedata = ""

@@ -110,10 +110,9 @@ implementation:
       --replace_existing_version, {inputValue: replace_existing_version},
       --set_default, {inputValue: set_default},
       --wait_interval, {inputValue: wait_interval},
+      --model_uri_output_path, {outputPath: model_uri},
+      --model_name_output_path, {outputPath: model_name},
+      --version_name_output_path, {outputPath: version_name},
     ]
     env:
       KFP_POD_NAME: "{{pod.name}}"
-    fileOutputs:
-      model_uri: /tmp/kfp/output/ml_engine/model_uri.txt
-      model_name: /tmp/kfp/output/ml_engine/model_name.txt
-      version_name: /tmp/kfp/output/ml_engine/version_name.txt

@@ -12,7 +12,8 @@ For model training using AWS SageMaker.
 Argument        | Description                 | Optional   | Data type  | Accepted values | Default    |
 :---            | :----------                 | :----------| :----------| :----------     | :----------|
 region | The region where the cluster launches | No | String | | |
-endpoint_url | The endpoint URL for the private link VPC endpoint. | Yes | String | | |
+endpoint_url | The endpoint URL for the private link VPC endpoint | Yes | String | | |
+assume_role | The ARN of an IAM role to assume when connecting to SageMaker | Yes | String | | |
 job_name | The name of the Ground Truth job. Must be unique within the same AWS account and AWS region | Yes | String | | LabelingJob-[datetime]-[random id]|
 role | The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf | No | String | | |
 image | The registry path of the Docker image that contains the training algorithm | Yes | String | | |

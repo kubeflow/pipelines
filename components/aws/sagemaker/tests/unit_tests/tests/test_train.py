@@ -57,6 +57,22 @@ class TrainTestCase(unittest.TestCase):
       call('/tmp/training_image_output_path', 'training-image')
     ])
 
+  def test_main_assumes_role(self):
+    # Mock out all of utils except parser
+    train._utils = MagicMock()
+    train._utils.add_default_client_arguments = _utils.add_default_client_arguments
+
+    # Set some static returns
+    train._utils.create_training_job.return_value = 'job-name'
+    train._utils.get_image_from_job.return_value = 'training-image'
+    train._utils.get_model_artifacts_from_job.return_value = 'model-artifacts'
+
+    assume_role_args = required_args + ['--assume_role', 'my-role']
+
+    train.main(assume_role_args)
+
+    train._utils.get_sagemaker_client.assert_called_once_with('us-west-2', None, assume_role_arn='my-role')
+
   def test_create_training_job(self):
     mock_client = MagicMock()
     mock_args = self.parser.parse_args(required_args + ['--job_name', 'test-job'])

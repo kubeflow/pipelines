@@ -142,7 +142,7 @@ def pipeline(
     version_id = '',
     runtime_version = '1.10',
     python_version = '',
-    version = '',
+    version = {},
     replace_existing_version = 'False',
     set_default = 'True',
     wait_interval = '30'):
