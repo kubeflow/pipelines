@@ -10,6 +10,7 @@ def training_pipeline(
     region="",
     endpoint_url="",
     image="",
+    job_name="",
     training_input_mode="",
     hyperparameters="",
     channels="",
@@ -26,12 +27,14 @@ def training_pipeline(
     checkpoint_config="{}",
     vpc_security_group_ids="",
     vpc_subnets="",
+    assume_role="",
     role="",
 ):
     sagemaker_train_op(
         region=region,
         endpoint_url=endpoint_url,
         image=image,
+        job_name=job_name,
         training_input_mode=training_input_mode,
         hyperparameters=hyperparameters,
         channels=channels,
@@ -48,6 +51,7 @@ def training_pipeline(
         checkpoint_config=checkpoint_config,
         vpc_security_group_ids=vpc_security_group_ids,
         vpc_subnets=vpc_subnets,
+        assume_role=assume_role,
         role=role,
     )
 

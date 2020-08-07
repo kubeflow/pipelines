@@ -1,6 +1,8 @@
 import unittest
+import os
+import signal
 
-from unittest.mock import patch, call, Mock, MagicMock, mock_open
+from unittest.mock import patch, call, Mock, MagicMock, mock_open, ANY
 from botocore.exceptions import ClientError
 
 from train.src import train
@@ -55,6 +57,22 @@ class TrainTestCase(unittest.TestCase):
       call('/tmp/training_image_output_path', 'training-image')
     ])
 
+  def test_main_assumes_role(self):
+    # Mock out all of utils except parser
+    train._utils = MagicMock()
+    train._utils.add_default_client_arguments = _utils.add_default_client_arguments
+
+    # Set some static returns
+    train._utils.create_training_job.return_value = 'job-name'
+    train._utils.get_image_from_job.return_value = 'training-image'
+    train._utils.get_model_artifacts_from_job.return_value = 'model-artifacts'
+
+    assume_role_args = required_args + ['--assume_role', 'my-role']
+
+    train.main(assume_role_args)
+
+    train._utils.get_sagemaker_client.assert_called_once_with('us-west-2', None, assume_role_arn='my-role')
+
   def test_create_training_job(self):
     mock_client = MagicMock()
     mock_args = self.parser.parse_args(required_args + ['--job_name', 'test-job'])
@@ -81,6 +99,27 @@ class TrainTestCase(unittest.TestCase):
       TrainingJobName='test-job'
     )
     self.assertEqual(response, 'test-job')
+
+  def test_main_stop_training_job(self):
+    train._utils = MagicMock()
+    train._utils.create_training_job.return_value = 'job-name'
+
+    try:
+      os.kill(os.getpid(), signal.SIGTERM)
+    finally:
+      train._utils.stop_training_job.assert_called_once_with(ANY, 'job-name')
+      train._utils.get_image_from_job.assert_not_called()
+
+  def test_utils_stop_training_job(self):
+    mock_sm_client = MagicMock()
+    mock_sm_client.stop_training_job.return_value = None
+
+    response = _utils.stop_training_job(mock_sm_client, 'FakeJobName')
+
+    mock_sm_client.stop_training_job.assert_called_once_with(
+        TrainingJobName='FakeJobName'
+    )
+    self.assertEqual(response, None)
 
   def test_sagemaker_exception_in_create_training_job(self):
     mock_client = MagicMock()

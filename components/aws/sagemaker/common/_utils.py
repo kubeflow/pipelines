@@ -24,12 +24,25 @@ import json
 from pathlib2 import Path
 
 import boto3
-import botocore
+from boto3.session import Session
+
+from botocore.config import Config
+from botocore.credentials import (
+    AssumeRoleCredentialFetcher,
+    CredentialResolver,
+    DeferredRefreshableCredentials,
+    JSONFileCache
+)
 from botocore.exceptions import ClientError
+from botocore.session import Session as BotocoreSession
+
 from sagemaker.amazon.amazon_estimator import get_image_uri
 
 import logging
 logging.getLogger().setLevel(logging.INFO)
+
+# this error message is used in integration tests
+CW_ERROR_MESSAGE = 'Error in fetching CloudWatch logs for SageMaker job'
 
 # Mappings are extracted from the first table in https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-algo-docker-registry-paths.html
 built_in_algos = {
@@ -68,6 +81,7 @@ def nullable_string_argument(value):
 def add_default_client_arguments(parser):
     parser.add_argument('--region', type=str, required=True, help='The region where the training job launches.')
     parser.add_argument('--endpoint_url', type=nullable_string_argument, required=False, help='The URL to use when communicating with the SageMaker service.')
+    parser.add_argument('--assume_role', type=nullable_string_argument, required=False, help='The ARN of an IAM role to assume when connecting to SageMaker.')
 
 
 def get_component_version():
@@ -106,20 +120,63 @@ def print_logs_for_job(cw_client, log_grp, job_name):
 
         logging.info('\n******************** End of CloudWatch logs for {} {} ********************\n'.format(log_grp, job_name))
     except Exception as e:
+        logging.error(CW_ERROR_MESSAGE)
         logging.error(e)
 
 
-def get_sagemaker_client(region, endpoint_url=None):
+class AssumeRoleProvider(object):
+    METHOD = 'assume-role'
+
+    def __init__(self, fetcher):
+        self._fetcher = fetcher
+
+    def load(self):
+        return DeferredRefreshableCredentials(
+            self._fetcher.fetch_credentials,
+            self.METHOD
+        )
+
+def get_boto3_session(region, role_arn=None):
+    """Creates a boto3 session, optionally assuming a role"""
+
+    # By default return a basic session
+    if role_arn is None:
+        return Session(region_name=region)
+
+    # The following assume role example was taken from
+    # https://github.com/boto/botocore/issues/761#issuecomment-426037853
+
+    # Create a session used to assume role
+    assume_session = BotocoreSession()
+    fetcher = AssumeRoleCredentialFetcher(
+        assume_session.create_client,
+        assume_session.get_credentials(),
+        role_arn,
+        extra_args={
+            'DurationSeconds': 3600, # 1 hour assume assume by default
+        },
+        cache=JSONFileCache()
+    )
+    role_session = BotocoreSession()
+    role_session.register_component(
+        'credential_provider',
+        CredentialResolver([AssumeRoleProvider(fetcher)])
+    )
+    return Session(region_name=region, botocore_session=role_session)
+
+def get_sagemaker_client(region, endpoint_url=None, assume_role_arn=None):
     """Builds a client to the AWS SageMaker API."""
-    session_config = botocore.config.Config(
+    session = get_boto3_session(region, assume_role_arn)
+    session_config = Config(
         user_agent='sagemaker-on-kubeflow-pipelines-v{}'.format(get_component_version())
     )
-    client = boto3.client('sagemaker', region_name=region, endpoint_url=endpoint_url, config=session_config)
+    client = session.client('sagemaker', endpoint_url=endpoint_url, config=session_config)
     return client
 
 
-def get_cloudwatch_client(region):
-    client = boto3.client('logs', region_name=region)
+def get_cloudwatch_client(region, assume_role_arn=None):
+    session = get_boto3_session(region, assume_role_arn)
+    client = session.client('logs')
     return client
 
 
@@ -254,6 +311,13 @@ def get_image_from_job(client, job_name):
         image = client.describe_algorithm(AlgorithmName=algorithm_name)['TrainingSpecification']['TrainingImage']
 
     return image
+
+
+def stop_training_job(client, job_name):
+    try:
+        client.stop_training_job(TrainingJobName=job_name)
+    except ClientError as e:
+        raise Exception(e.response['Error']['Message'])
 
 
 def create_model(client, args):
@@ -505,6 +569,13 @@ def wait_for_transform_job(client, batch_job_name, poll_interval=30):
     time.sleep(poll_interval)
 
 
+def stop_transform_job(client, job_name):
+    try:
+        client.stop_transform_job(TransformJobName=job_name)
+    except ClientError as e:
+        raise Exception(e.response['Error']['Message'])
+
+
 def create_hyperparameter_tuning_job_request(args):
     ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_hyper_parameter_tuning_job
     with open(os.path.join(__cwd__, 'hpo.template.yaml'), 'r') as f:
@@ -621,7 +692,7 @@ def create_hyperparameter_tuning_job(client, args):
     try:
         client.create_hyper_parameter_tuning_job(**request)
         hpo_job_name = request['HyperParameterTuningJobName']
-        logging.info("Created Hyperparameter Training Job with name: " + hpo_job_name)
+        logging.info("Created Hyperparameter Tuning Job with name: " + hpo_job_name)
         logging.info("HPO job in SageMaker: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/hyper-tuning-jobs/{}"
             .format(args['region'], args['region'], hpo_job_name))
         logging.info("CloudWatch logs: https://{}.console.aws.amazon.com/cloudwatch/home?region={}#logStream:group=/aws/sagemaker/TrainingJobs;prefix={};streamFilter=typeLogStreamPrefix"
@@ -655,6 +726,13 @@ def get_best_training_job_and_hyperparameters(client, hpo_job_name):
     train_hyperparameters = training_info['HyperParameters']
     train_hyperparameters.pop('_tuning_objective_metric')
     return best_job, train_hyperparameters
+
+
+def stop_hyperparameter_tuning_job(client, job_name):
+    try:
+        client.stop_hyper_parameter_tuning_job(HyperParameterTuningJobName=job_name)
+    except ClientError as e:
+        raise Exception(e.response['Error']['Message'])
 
 
 def create_workteam(client, args):
@@ -876,6 +954,14 @@ def get_labeling_job_outputs(client, labeling_job_name, auto_labeling):
         active_learning_model_arn = ' '
     return output_manifest, active_learning_model_arn
 
+
+def stop_labeling_job(client, job_name):
+    try:
+        client.stop_labeling_job(LabelingJobName=job_name)
+    except ClientError as e:
+        raise Exception(e.response['Error']['Message'])
+
+
 def create_hyperparameters(hyperparam_args):
     # Validate all values are strings
     for key, value in hyperparam_args.items():
@@ -1012,6 +1098,13 @@ def get_processing_job_outputs(client, processing_job_name):
         outputs[output['OutputName']] = output['S3Output']['S3Uri']
 
     return outputs
+
+
+def stop_processing_job(client, job_name):
+    try:
+        client.stop_processing_job(ProcessingJobName=job_name)
+    except ClientError as e:
+        raise Exception(e.response['Error']['Message'])
 
 
 def id_generator(size=4, chars=string.ascii_uppercase + string.digits):

@@ -29,6 +29,22 @@ class VolumeSnapshotOp(ResourceOp):
     At the time that this feature is written, VolumeSnapshots are an Alpha
     feature in Kubernetes. You should check with your Kubernetes Cluster admin
     if they have it enabled.
+
+
+    Args:
+        resource_name: A desired name for the VolumeSnapshot which will be created
+        pvc: The name of the PVC which will be snapshotted
+        snapshot_class: The snapshot class to use for the dynamically created VolumeSnapshot
+        annotations: Annotations to be patched in the VolumeSnapshot
+        volume: An instance of V1Volume
+        kwargs: See :py:class:`kfp.dsl.ResourceOp`
+
+    Raises:
+        ValueError: if k8s_resource is provided along with other arguments
+                    if k8s_resource is not a VolumeSnapshot
+                    if pvc and volume are None
+                    if pvc and volume are not None
+                    if volume does not reference a PVC
     """
 
     def __init__(self,
@@ -38,24 +54,6 @@ class VolumeSnapshotOp(ResourceOp):
                  annotations: Dict[str, str] = None,
                  volume: V1Volume = None,
                  **kwargs):
-        """Create a new instance of VolumeSnapshotOp.
-
-        Args:
-            resource_name: A desired name for the VolumeSnapshot which will be
-                created
-            pvc: The name of the PVC which will be snapshotted
-            snapshot_class: The snapshot class to use for the dynamically
-                created VolumeSnapshot
-            annotations: Annotations to be patched in the VolumeSnapshot
-            volume: An instance of V1Volume
-            kwargs: See ResourceOp definition
-        Raises:
-            ValueError: if k8s_resource is provided along with other arguments
-                        if k8s_resource is not a VolumeSnapshot
-                        if pvc and volume are None
-                        if pvc and volume are not None
-                        if volume does not reference a PVC
-        """
         # Add size to output params
         self.attribute_outputs = {"size": "{.status.restoreSize}"}
         # Add default success_condition if None provided

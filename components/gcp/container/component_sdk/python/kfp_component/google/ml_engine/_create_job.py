@@ -26,8 +26,16 @@ from kfp_component.core import KfpExecutionContext
 from ._client import MLEngineClient
 from .. import common as gcp_common
 
-def create_job(project_id, job, job_id_prefix=None, job_id=None,
-    wait_interval=30):
+def create_job(
+    project_id,
+    job,
+    job_id_prefix=None,
+    job_id=None,
+    wait_interval=30,
+    job_object_output_path='/tmp/kfp/output/ml_engine/job.json',
+    job_id_output_path='/tmp/kfp/output/ml_engine/job_id.txt',
+    job_dir_output_path='/tmp/kfp/output/ml_engine/job_dir.txt',
+):
     """Creates a MLEngine job.
 
     Args:
@@ -39,30 +47,47 @@ def create_job(project_id, job, job_id_prefix=None, job_id=None,
             id if set.
         wait_interval: optional wait interval between calls
             to get job status. Defaults to 30.
-
-    Outputs:
-        /tmp/kfp/output/ml_engine/job.json: The json payload of the create job.
-        /tmp/kfp/output/ml_engine/job_id.txt: The ID of the created job.
-        /tmp/kfp/output/ml_engine/job_dir.txt: The `jobDir` of the training job.
+        job_object_output_path: Path for the json payload of the create job.
+        job_id_output_path: Path for the ID of the created job.
+        job_dir_output_path: Path for the `jobDir` of the training job.
     """
-    return CreateJobOp(project_id, job, job_id_prefix, job_id, wait_interval
-        ).execute_and_wait()
+    return CreateJobOp(
+        project_id=project_id,
+        job=job,
+        job_id_prefix=job_id_prefix,
+        job_id=job_id,
+        wait_interval=wait_interval,
+        job_object_output_path=job_object_output_path,
+        job_id_output_path=job_id_output_path,
+        job_dir_output_path=job_dir_output_path,
+    ).execute_and_wait()
 
 class CreateJobOp:
     def __init__(self,project_id, job, job_id_prefix=None, job_id=None,
-        wait_interval=30):
+        wait_interval=30,
+        job_object_output_path=None,
+        job_id_output_path=None,
+        job_dir_output_path=None,
+    ):
         self._ml = MLEngineClient()
         self._project_id = project_id
         self._job_id_prefix = job_id_prefix
         self._job_id = job_id
         self._job = job
         self._wait_interval = wait_interval
+        self._job_object_output_path = job_object_output_path
+        self._job_id_output_path = job_id_output_path
+        self._job_dir_output_path = job_dir_output_path
     
     def execute_and_wait(self):
         with KfpExecutionContext(on_cancel=lambda: cancel_job(self._ml, self._project_id, self._job_id)) as ctx:
             self._set_job_id(ctx.context_id())
             self._create_job()
-            return wait_for_job_done(self._ml, self._project_id, self._job_id, self._wait_interval)
+            return wait_for_job_done(self._ml, self._project_id, self._job_id, self._wait_interval,
+                job_object_output_path=self._job_object_output_path,
+                job_id_output_path=self._job_id_output_path,
+                job_dir_output_path=self._job_dir_output_path,
+            )
 
     def _set_job_id(self, context_id):
         if self._job_id:

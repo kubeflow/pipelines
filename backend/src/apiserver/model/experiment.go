@@ -46,3 +46,37 @@ func (e *Experiment) APIToModelFieldMap() map[string]string {
 func (e *Experiment) GetModelName() string {
 	return "experiments"
 }
+
+func (e *Experiment) GetField(name string) (string, bool) {
+	if field, ok := experimentAPIToModelFieldMap[name]; ok {
+		return field, true
+	}
+	return "", false
+}
+
+func (e *Experiment) GetFieldValue(name string) interface{} {
+	switch name {
+	case "UUID":
+		return e.UUID
+	case "Name":
+		return e.Name
+	case "CreatedAtInSec":
+		return e.CreatedAtInSec
+	case "Description":
+		return e.Description
+	case "Namespace":
+		return e.Namespace
+	case "StorageState":
+		return e.StorageState
+	default:
+		return nil
+	}
+}
+
+func (e *Experiment) GetSortByFieldPrefix(name string) string {
+	return "experiments."
+}
+
+func (e *Experiment) GetKeyFieldPrefix() string {
+	return "experiments."
+}

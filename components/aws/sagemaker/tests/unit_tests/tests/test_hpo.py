@@ -1,6 +1,8 @@
 import unittest
+import os
+import signal
 
-from unittest.mock import patch, call, Mock, MagicMock, mock_open
+from unittest.mock import patch, call, Mock, MagicMock, mock_open, ANY
 from botocore.exceptions import ClientError
 
 from hyperparameter_tuning.src import hyperparameter_tuning as hpo
@@ -85,6 +87,21 @@ class HyperparameterTestCase(unittest.TestCase):
       call('/tmp/best_hyperparameters_output_path', {"key_1": "best_hp_1"}, json_encode=True),
       call('/tmp/training_image_output_path', 'training-image')
     ])
+
+  def test_main_assumes_role(self):
+    # Mock out all of utils except parser
+    hpo._utils = MagicMock()
+    hpo._utils.add_default_client_arguments = _utils.add_default_client_arguments
+
+    # Set some static returns
+    hpo._utils.create_hyperparameter_tuning_job.return_value = 'job-name'
+    hpo._utils.get_best_training_job_and_hyperparameters.return_value = 'best_job', {"key_1": "best_hp_1"}
+
+    assume_role_args = required_args + ['--assume_role', 'my-role']
+
+    hpo.main(assume_role_args)
+
+    hpo._utils.get_sagemaker_client.assert_called_once_with('us-west-2', None, assume_role_arn='my-role')
   
   def test_create_hyperparameter_tuning_job(self):
     mock_client = MagicMock()
@@ -120,7 +137,27 @@ class HyperparameterTestCase(unittest.TestCase):
     )
 
     self.assertEqual(response, 'test-job')
-  
+
+  def test_main_stop_hyperparameter_tuning_job(self):
+    hpo._utils = MagicMock()
+    hpo._utils.create_hyperparameter_tuning_job.return_value = 'job-name'
+
+    try:
+      os.kill(os.getpid(), signal.SIGTERM)
+    finally:
+      hpo._utils.stop_hyperparameter_tuning_job.assert_called_once_with(ANY, 'job-name')
+      hpo._utils.get_best_training_job_and_hyperparameters.assert_not_called()
+
+  def test_utils_stop_hyper_parameter_tuning_job(self):
+    mock_sm_client = MagicMock()
+    mock_sm_client.stop_hyper_parameter_tuning_job.return_value = None
+
+    response = _utils.stop_hyperparameter_tuning_job(mock_sm_client, 'FakeJobName')
+
+    mock_sm_client.stop_hyper_parameter_tuning_job.assert_called_once_with(
+        HyperParameterTuningJobName='FakeJobName'
+    )
+    self.assertEqual(response, None)
 
   def test_sagemaker_exception_in_create_hyperparameter_tuning_job(self):
     mock_client = MagicMock()

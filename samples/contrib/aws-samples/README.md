@@ -118,20 +118,8 @@ There are two ways you can give them access to SageMaker.
 
 ## Inputs to the pipeline
 
-### Sample MNIST dataset
-
-The following commands will copy the data extraction pre-processing script to an S3 bucket which we will use to store artifacts for the pipeline.
-
-1. [Create a bucket](https://docs.aws.amazon.com/AmazonS3/latest/gsg/CreatingABucket.html) in `us-east-1` region if you don't have one already. 
-For the purposes of this demonstration, all resources will be created in the us-east-1 region.
-
-2. Upload the `mnist-kmeans-sagemaker/kmeans_preprocessing.py` file to your bucket with the prefix `mnist_kmeans_example/processing_code/kmeans_preprocessing.py`.
-This can be done with the following command, replacing `<bucket-name>` with the name of the bucket you previously created in `us-east-1`:
-    ```
-    aws s3 cp mnist-kmeans-sagemaker/kmeans_preprocessing.py s3://<bucket-name>/mnist_kmeans_example/processing_code/kmeans_preprocessing.py
-    ```
-
 ### Role Input
+**Note:** Ignore this section if you plan to run [titanic-survival-prediction](https://github.com/kubeflow/pipelines/tree/master/samples/contrib/aws-samples/titanic-survival-prediction) example
 
 This role is used by SageMaker jobs created by the KFP to access the S3 buckets and other AWS resources.
 Run these commands to create the sagemaker-execution-role.   
