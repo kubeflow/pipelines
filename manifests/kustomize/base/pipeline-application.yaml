@@ -40,8 +40,6 @@ spec:
     - group: v1
       kind: Service
     - group: v1
-      kind: PersistentVolumeClaim
-    - group: v1
       kind: ConfigMap
     - group: v1
       kind: Secret
