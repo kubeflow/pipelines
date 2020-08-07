@@ -191,9 +191,8 @@ def train(args):
     training_details = client.training.get_details(run_uid)
     print("training_details", training_details)
  
-    training_uid = training_details['entity']['results_reference']['location']['training']
     Path(args.output_training_uid_path).parent.mkdir(parents=True, exist_ok=True)
-    Path(args.output_training_uid_path).write_text(training_uid)
+    Path(args.output_training_uid_path).write_text(run_uid)
 
 if __name__ == "__main__":
     import argparse
