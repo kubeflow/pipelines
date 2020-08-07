@@ -51,6 +51,13 @@ Its storage is based on CloudSQL & GCS. It's better than others for production u
 
 Please following [sample](sample/README.md) for a customized installation.
 
+### Option-4 Install it to AWS with S3 and RDS MySQL
+Its storage is based on S3 & AWS RDS. It's more natural for AWS users to use this option.
+
+Please following [AWS Instructions](env/aws/README.md) for installation.
+
+Note: Community maintains a repo [here](https://github.com/e2fyi/kubeflow-aws/tree/master/pipelines) for AWS.
+
 ## Uninstall
 
 If the installation is based on CloudSQL/GCS, after the uninstall, the data is still there,
