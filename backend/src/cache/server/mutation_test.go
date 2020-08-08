@@ -108,7 +108,7 @@ func TestMutatePodIfCachedWithDecodeError(t *testing.T) {
 }
 
 func TestMutatePodIfCachedWithCacheDisabledPod(t *testing.T) {
-	cacheDisabledPod := *fakePod
+	cacheDisabledPod := *fakePod.DeepCopy()
 	cacheDisabledPod.ObjectMeta.Labels[KFPCacheEnabledLabelKey] = "false"
 	patchOperation, err := MutatePodIfCached(GetFakeRequestFromPod(&cacheDisabledPod), fakeClientManager)
 	assert.Nil(t, patchOperation)
@@ -116,7 +116,7 @@ func TestMutatePodIfCachedWithCacheDisabledPod(t *testing.T) {
 }
 
 func TestMutatePodIfCachedWithTFXPod(t *testing.T) {
-	tfxPod := *fakePod
+	tfxPod := *fakePod.DeepCopy()
 	mainContainerCommand := append(tfxPod.Spec.Containers[0].Command, "/tfx-src/"+TFXPodSuffix)
 	tfxPod.Spec.Containers[0].Command = mainContainerCommand
 	patchOperation, err := MutatePodIfCached(GetFakeRequestFromPod(&tfxPod), fakeClientManager)
