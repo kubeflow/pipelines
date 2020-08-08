@@ -169,6 +169,8 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 	return patches, nil
 }
 
+// intersectStructureWithSkeleton recursively intersects two maps
+// nil values in the skeleton map mean that the whole value (which can also be a map) should be kept.
 func intersectStructureWithSkeleton(src map[string]interface{}, skeleton map[string]interface{}) map[string]interface{} {
 	result := make(map[string]interface{})
 	for key, skeletonValue := range skeleton {
