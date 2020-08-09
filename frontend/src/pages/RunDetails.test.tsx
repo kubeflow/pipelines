@@ -619,6 +619,16 @@ describe('RunDetails', () => {
     expect(tree).toMatchSnapshot();
   });
 
+  it('shows a one-node compressed workflow graph', async () => {
+    testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+      status: { compressedNodes: "H4sIAAAAAAACE6tWystPSTVUslKoVspMAVJQfm0tAEBEv1kaAAAA" },
+    });
+    tree = shallow(<RunDetails {...generateProps()} />);
+    await getRunSpy;
+    await TestUtils.flushPromises();
+    expect(tree).toMatchSnapshot();
+  });
+
   it('opens side panel when graph node is clicked', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       status: { nodes: { node1: { id: 'node1' } } },
