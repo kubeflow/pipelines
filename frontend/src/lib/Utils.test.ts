@@ -16,6 +16,7 @@
 
 import { NodePhase } from './StatusUtils';
 import {
+  decodeCompressedNodes,
   enabledDisplayString,
   formatDateString,
   generateMinioArtifactUrl,
@@ -260,6 +261,14 @@ describe('Utils', () => {
       expect(generateS3ArtifactUrl('s3://my-bucket/a/b/c')).toBe(
         'artifacts/get?source=s3&bucket=my-bucket&key=a%2Fb%2Fc',
       );
+    });
+  });
+
+  describe('decodeCompressedNodes', () => {
+    it('decompress encoded gzipped json', async () => {
+      await expect(decodeCompressedNodes('H4sIAAAAAAACE6tWystPSS1WslKIrlbKS8xNBbLAQoZKOgpKmSlArmFtbC0A+U7xAicAAAA='))
+      .resolves
+      .toEqual({'nodes': [{'name': 'node1', 'id': 1}]});
     });
   });
 });

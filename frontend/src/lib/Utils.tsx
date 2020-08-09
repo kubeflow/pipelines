@@ -16,6 +16,7 @@
 
 import * as React from 'react';
 import * as zlib from 'zlib';
+import { TextDecoder } from 'util';
 import { ApiRun } from '../apis/run';
 import { ApiTrigger } from '../apis/job';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
@@ -375,6 +376,6 @@ export async function decodeCompressedNodes(compressedNodes: string) {
     return JSON.parse(decodedNodes);
   } catch (err) {
     logger.error('Error decoding compressedNodes!', err);
-    return {};
+    reject(err);
   }
 }
