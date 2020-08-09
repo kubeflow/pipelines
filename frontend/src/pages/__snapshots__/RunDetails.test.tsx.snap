@@ -1138,6 +1138,12 @@ exports[`RunDetails renders an empty run 1`] = `
 </div>
 `;
 
+exports[`RunDetails shows a one-node compressed workflow graph 1`] = `
+<div
+  className="page"
+/>
+`;
+
 exports[`RunDetails shows a one-node graph 1`] = `
 <div
   className="page"
