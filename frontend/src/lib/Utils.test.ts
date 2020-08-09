@@ -266,9 +266,11 @@ describe('Utils', () => {
 
   describe('decodeCompressedNodes', () => {
     it('decompress encoded gzipped json', async () => {
-      await expect(decodeCompressedNodes('H4sIAAAAAAACE6tWystPSS1WslKIrlbKS8xNBbLAQoZKOgpKmSlArmFtbC0A+U7xAicAAAA='))
-      .resolves
-      .toEqual({'nodes': [{'name': 'node1', 'id': 1}]});
+      await expect(
+        decodeCompressedNodes(
+          'H4sIAAAAAAACE6tWystPSS1WslKIrlbKS8xNBbLAQoZKOgpKmSlArmFtbC0A+U7xAicAAAA=',
+        ),
+      ).resolves.toEqual({ nodes: [{ name: 'node1', id: 1 }] });
     });
   });
 });
