@@ -25,9 +25,6 @@ import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts';
 import * as fs from 'fs';
 import { V1Container } from '@kubernetes/client-node/dist/api';
 
-import * as fs from 'fs';
-import { V1Container } from '@kubernetes/client-node/dist/api';
-
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs
  * in the artifact request object.
