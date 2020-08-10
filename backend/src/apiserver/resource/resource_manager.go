@@ -52,7 +52,7 @@ var (
 	// Count the removed workflows due to garbage collection.
 	workflowGCCounter = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "resource_manager_workflow_gc",
-		Help: "The",
+		Help: "The number of gabarage-collected workflows",
 	})
 )
 

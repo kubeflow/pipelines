@@ -33,22 +33,58 @@ import (
 // Metric variables. Please prefix the metric names with pipeline_server_.
 var (
 	// Used to calculate the request rate.
-	creationRequests = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "pipeline_server_creation_requests",
+	createPipelineRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "pipeline_server_create_requests",
 		Help: "The total number of CreatePipeline requests",
 	})
 
-	currentPipelineCount = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "pipeline_server_current_pipeline_count",
-		Help: "The current number of pipelines in Kubeflow Pipelines instance",
+	getPipelineRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "pipeline_server_get_requests",
+		Help: "The total number of GetPipeline requests",
 	})
 
-	// TODO(jingzhang36): other metrics for pipeline deletion, pipeline version creation/deletion.
+	listPipelineRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "pipeline_server_list_requests",
+		Help: "The total number of ListPipelines requests",
+	})
+
+	deletePipelineRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "pipeline_server_delete_requests",
+		Help: "The total number of DeletePipeline requests",
+	})
+
+	createPipelineVersionRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "pipeline_server_create_version_requests",
+		Help: "The total number of CreatePipelineVersion requests",
+	})
+
+	getPipelineVersionRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "pipeline_server_get_version_requests",
+		Help: "The total number of GetPipelineVersion requests",
+	})
+
+	listPipelineVersionRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "pipeline_server_list_version_requests",
+		Help: "The total number of ListPipelineVersions requests",
+	})
+
+	deletePipelineVersionRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "pipeline_server_delete_version_requests",
+		Help: "The total number of DeletePipelineVersion requests",
+	})
+
+	// TODO(jingzhang36): error count and success count.
+
+	pipelineCount = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "pipeline_server_pipeline_count",
+		Help: "The current number of pipelines in Kubeflow Pipelines instance",
+	})
 )
 
 type PipelineServerOptions struct {
-	CollectMetricsForPrometheus bool
+	CollectMetrics bool
 }
+
 type PipelineServer struct {
 	resourceManager *resource.ResourceManager
 	httpClient      *http.Client
@@ -56,6 +92,10 @@ type PipelineServer struct {
 }
 
 func (s *PipelineServer) CreatePipeline(ctx context.Context, request *api.CreatePipelineRequest) (*api.Pipeline, error) {
+	if s.options.CollectMetrics {
+		createPipelineRequests.Inc()
+	}
+
 	if err := ValidateCreatePipelineRequest(request); err != nil {
 		return nil, err
 	}
@@ -81,15 +121,18 @@ func (s *PipelineServer) CreatePipeline(ctx context.Context, request *api.Create
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed.")
 	}
-	if s.options.CollectMetricsForPrometheus {
-		creationRequests.Inc()
-		currentPipelineCount.Inc()
+	if s.options.CollectMetrics {
+		pipelineCount.Inc()
 	}
 
 	return ToApiPipeline(pipeline), nil
 }
 
 func (s *PipelineServer) GetPipeline(ctx context.Context, request *api.GetPipelineRequest) (*api.Pipeline, error) {
+	if s.options.CollectMetrics {
+		getPipelineRequests.Inc()
+	}
+
 	pipeline, err := s.resourceManager.GetPipeline(request.Id)
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline failed.")
@@ -98,6 +141,10 @@ func (s *PipelineServer) GetPipeline(ctx context.Context, request *api.GetPipeli
 }
 
 func (s *PipelineServer) ListPipelines(ctx context.Context, request *api.ListPipelinesRequest) (*api.ListPipelinesResponse, error) {
+	if s.options.CollectMetrics {
+		listPipelineRequests.Inc()
+	}
+
 	opts, err := validatedListOptions(&model.Pipeline{}, request.PageToken, int(request.PageSize), request.SortBy, request.Filter)
 
 	if err != nil {
@@ -113,12 +160,16 @@ func (s *PipelineServer) ListPipelines(ctx context.Context, request *api.ListPip
 }
 
 func (s *PipelineServer) DeletePipeline(ctx context.Context, request *api.DeletePipelineRequest) (*empty.Empty, error) {
+	if s.options.CollectMetrics {
+		deletePipelineRequests.Inc()
+	}
+
 	err := s.resourceManager.DeletePipeline(request.Id)
 	if err != nil {
 		return nil, util.Wrap(err, "Delete pipelines failed.")
 	}
-	if s.options.CollectMetricsForPrometheus {
-		currentPipelineCount.Dec()
+	if s.options.CollectMetrics {
+		pipelineCount.Dec()
 	}
 
 	return &empty.Empty{}, nil
@@ -150,6 +201,10 @@ func NewPipelineServer(resourceManager *resource.ResourceManager, options *Pipel
 }
 
 func (s *PipelineServer) CreatePipelineVersion(ctx context.Context, request *api.CreatePipelineVersionRequest) (*api.PipelineVersion, error) {
+	if s.options.CollectMetrics {
+		createPipelineVersionRequests.Inc()
+	}
+
 	// Read pipeline file.
 	if request.Version == nil || request.Version.PackageUrl == nil ||
 		len(request.Version.PackageUrl.PipelineUrl) == 0 {
@@ -177,6 +232,10 @@ func (s *PipelineServer) CreatePipelineVersion(ctx context.Context, request *api
 }
 
 func (s *PipelineServer) GetPipelineVersion(ctx context.Context, request *api.GetPipelineVersionRequest) (*api.PipelineVersion, error) {
+	if s.options.CollectMetrics {
+		getPipelineVersionRequests.Inc()
+	}
+
 	version, err := s.resourceManager.GetPipelineVersion(request.VersionId)
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline version failed.")
@@ -185,6 +244,10 @@ func (s *PipelineServer) GetPipelineVersion(ctx context.Context, request *api.Ge
 }
 
 func (s *PipelineServer) ListPipelineVersions(ctx context.Context, request *api.ListPipelineVersionsRequest) (*api.ListPipelineVersionsResponse, error) {
+	if s.options.CollectMetrics {
+		listPipelineVersionRequests.Inc()
+	}
+
 	opts, err := validatedListOptions(
 		&model.PipelineVersion{},
 		request.PageToken,
@@ -215,6 +278,10 @@ func (s *PipelineServer) ListPipelineVersions(ctx context.Context, request *api.
 }
 
 func (s *PipelineServer) DeletePipelineVersion(ctx context.Context, request *api.DeletePipelineVersionRequest) (*empty.Empty, error) {
+	if s.options.CollectMetrics {
+		deletePipelineVersionRequests.Inc()
+	}
+
 	err := s.resourceManager.DeletePipelineVersion(request.VersionId)
 	if err != nil {
 		return nil, util.Wrap(err, "Delete pipeline versions failed.")
