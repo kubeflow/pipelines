@@ -737,12 +737,12 @@ implementation:
         )
 
     def test_edit_component_loaded_from_url(self):
-        component_path = Path(__file__).parent / 'test_data' / 'python_add.component.yaml'
+        component_path = str(Path(__file__).parent / 'test_data' / 'python_add.component.yaml')
         component_url = 'https://raw.githubusercontent.com/some/repo/components/component_group/python_add/component.yaml'
-        component_text = component_path.read_text()
+        component_text = Path(component_path).read_text()
 
         op = self._load_component_from_url_using_mock(
-            component_path=str(component_path), component_url=component_url,
+            component_path=component_path, component_url=component_url,
         )
 
         editing_code = op.edit()
