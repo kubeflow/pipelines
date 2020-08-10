@@ -67,7 +67,3 @@
                                     maxRetries: integer
                                 cachingStrategy: #CachingStrategySpec
                                     maxCacheStaleness: string
-                                kubernetesOptions: #KubernetesExecutionOptionsSpec
-                                    metadata: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-                                    mainContainer: io.k8s.api.core.v1.Container
-                                    podSpec: io.k8s.api.core.v1.PodSpec

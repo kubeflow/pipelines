@@ -64,11 +64,12 @@ def _generate_dockerfile_text(context_dir: str, dockerfile_path: str, base_image
 
 
 def build_image_from_working_dir(image_name: str = None, working_dir: str = None, file_filter_re: str = r'.*\.py',  timeout: int = 1000, base_image: str = None, builder: ContainerBuilder = None) -> str:
-    '''build_image_from_working_dir builds and pushes a new container image that captures the current python working directory.
+    '''Builds and pushes a new container image that captures the current python working directory.
 
     This function recursively scans the working directory and captures the following files in the container image context:
-    * requirements.txt files
-    * all python files (can be overridden by passing a different `file_filter_re` argument)
+
+    * :code:`requirements.txt` files
+    * All python files (can be overridden by passing a different `file_filter_re` argument)
 
     The function generates Dockerfile that starts from a python container image, install packages from requirements.txt (if present) and copies all the captured python files to the container image.
     The Dockerfile can be overridden by placing a custom Dockerfile in the root of the working directory.
@@ -79,17 +80,19 @@ def build_image_from_working_dir(image_name: str = None, working_dir: str = None
         file_filter_re: Optional. A regular expression that will be used to decide which files to include in the container building context.
         timeout: Optional. The image building timeout in seconds.
         base_image: Optional. The container image to use as the base for the new image. If not set, the Google Deep Learning Tensorflow CPU image will be used.
-        builder: Optional. An instance of ContainerBuilder or compatible class that will be used to build the image.
+        builder: Optional. An instance of :py:class:`kfp.containers.ContainerBuilder` or compatible class that will be used to build the image.
           The default builder uses "kubeflow-pipelines-container-builder" service account in "kubeflow" namespace. It works with Kubeflow Pipelines clusters installed in "kubeflow" namespace using Google Cloud Marketplace or Standalone with version > 0.4.0.
-          If your Kubeflow Pipelines is installed in a different namespace, you should use ContainerBuilder(namespace='<your-kfp-namespace>', ...).
-          Depending on how you installed Kubeflow Pipelines, you need to configure your ContainerBuilder instance's namespace and service_account:
-          For clusters installed with Kubeflow >= 0.7, use ContainerBuidler(namespace='<your-user-namespace>', service_account='default-editor', ...). You can omit the namespace if you use kfp sdk from in-cluster notebook, it uses notebook namespace by default.
-          For clusters installed with Kubeflow < 0.7, use ContainerBuilder(service_account='default', ...).
-          For clusters installed using Google Cloud Marketplace or Standalone with version <= 0.4.0, use ContainerBuilder(namespace='<your-kfp-namespace>' service_account='default')
-          You may refer to https://www.kubeflow.org/docs/pipelines/installation/overview/ for more details about different installation options.
+          If your Kubeflow Pipelines is installed in a different namespace, you should use :code:`ContainerBuilder(namespace='<your-kfp-namespace>', ...)`.
+
+          Depending on how you installed Kubeflow Pipelines, you need to configure your :code:`ContainerBuilder` instance's namespace and service_account:
+
+          * For clusters installed with Kubeflow >= 0.7, use :code:`ContainerBuilder(namespace='<your-user-namespace>', service_account='default-editor', ...)`. You can omit the namespace if you use kfp sdk from in-cluster notebook, it uses notebook namespace by default.
+          * For clusters installed with Kubeflow < 0.7, use :code:`ContainerBuilder(service_account='default', ...)`.
+          * For clusters installed using Google Cloud Marketplace or Standalone with version <= 0.4.0, use :code:`ContainerBuilder(namespace='<your-kfp-namespace>' service_account='default')`
+            You may refer to `installation guide <https://www.kubeflow.org/docs/pipelines/installation/overview/>`_ for more details about different installation options.
 
     Returns:
-        The full name of the container image including the hash digest. E.g. gcr.io/my-org/my-image@sha256:86c1...793c.
+        The full name of the container image including the hash digest. E.g. :code:`gcr.io/my-org/my-image@sha256:86c1...793c`.
     '''
     current_dir = working_dir or os.getcwd()
     with tempfile.TemporaryDirectory() as context_dir:

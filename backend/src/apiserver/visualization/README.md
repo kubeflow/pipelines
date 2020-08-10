@@ -171,3 +171,8 @@ within your cluster.
 		grpc.WithInsecure(),
 	}
     ```
+
+## Update python dependencies
+1. Edit `requirements.in` with additional changes.
+1. Run `./update_requirements.sh` to re-resolve dependencies.
+1. Pinned dependencies are in `requirements.txt`.

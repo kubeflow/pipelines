@@ -20,6 +20,10 @@ import * as serverInfo from '../helpers/server-info';
 import { Handler, Request, Response } from 'express';
 import { Storage } from '@google-cloud/storage';
 import proxy from 'http-proxy-middleware';
+import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts';
+
+import * as fs from 'fs';
+import { V1Container } from '@kubernetes/client-node/dist/api';
 
 import * as fs from 'fs';
 import { V1Container } from '@kubernetes/client-node/dist/api';
@@ -360,6 +364,7 @@ export function getArtifactsProxyHandler({
         return namespacedServiceGetter(namespace);
       },
       target: '/artifacts/get',
+      headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
     },
   );
 }
