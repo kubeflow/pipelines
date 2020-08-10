@@ -51,7 +51,7 @@ func TestReportMetrics_NoCompletedNode_NoOP(t *testing.T) {
 	assert.Nil(t, pipelineFake.GetReportedMetricsRequest())
 }
 
-func TestReportMetrics_NoArtifact_NoOP(t *testing.T) {
+func TestReportMetrics_NoRunID_NoOP(t *testing.T) {
 	pipelineFake := client.NewPipelineClientFake()
 
 	reporter := NewMetricsReporter(pipelineFake)
@@ -73,6 +73,64 @@ func TestReportMetrics_NoArtifact_NoOP(t *testing.T) {
 	})
 	err := reporter.ReportMetrics(workflow)
 	assert.Nil(t, err)
+	assert.Nil(t, pipelineFake.GetReadArtifactRequest())
+	assert.Nil(t, pipelineFake.GetReportedMetricsRequest())
+}
+
+func TestReportMetrics_NoArtifact_NoOP(t *testing.T) {
+	pipelineFake := client.NewPipelineClientFake()
+
+	reporter := NewMetricsReporter(pipelineFake)
+
+	workflow := util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "MY_NAMESPACE",
+			Name:      "MY_NAME",
+			UID:       types.UID("run-1"),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "run-1"},
+		},
+		Status: workflowapi.WorkflowStatus{
+			Nodes: map[string]workflowapi.NodeStatus{
+				"node-1": workflowapi.NodeStatus{
+					ID:    "node-1",
+					Phase: workflowapi.NodeSucceeded,
+				},
+			},
+		},
+	})
+	err := reporter.ReportMetrics(workflow)
+	assert.Nil(t, err)
+	assert.Nil(t, pipelineFake.GetReadArtifactRequest())
+	assert.Nil(t, pipelineFake.GetReportedMetricsRequest())
+}
+
+func TestReportMetrics_NoMetricsArtifact_NoOP(t *testing.T) {
+	pipelineFake := client.NewPipelineClientFake()
+
+	reporter := NewMetricsReporter(pipelineFake)
+
+	workflow := util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "MY_NAMESPACE",
+			Name:      "MY_NAME",
+			UID:       types.UID("run-1"),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "run-1"},
+		},
+		Status: workflowapi.WorkflowStatus{
+			Nodes: map[string]workflowapi.NodeStatus{
+				"node-1": workflowapi.NodeStatus{
+					ID:    "node-1",
+					Phase: workflowapi.NodeSucceeded,
+					Outputs: &workflowapi.Outputs{
+						Artifacts: []workflowapi.Artifact{{Name: "mlpipeline-ui-metadata"}},
+					},
+				},
+			},
+		},
+	})
+	err := reporter.ReportMetrics(workflow)
+	assert.Nil(t, err)
+	assert.Nil(t, pipelineFake.GetReadArtifactRequest())
 	assert.Nil(t, pipelineFake.GetReportedMetricsRequest())
 }
 
@@ -91,6 +149,9 @@ func TestReportMetrics_Succeed(t *testing.T) {
 				"node-1": workflowapi.NodeStatus{
 					ID:    "node-1",
 					Phase: workflowapi.NodeSucceeded,
+					Outputs: &workflowapi.Outputs{
+						Artifacts: []workflowapi.Artifact{{Name: "mlpipeline-metrics"}},
+					},
 				},
 			},
 		},
@@ -146,6 +207,9 @@ func TestReportMetrics_EmptyArchive_Fail(t *testing.T) {
 				"node-1": workflowapi.NodeStatus{
 					ID:    "node-1",
 					Phase: workflowapi.NodeSucceeded,
+					Outputs: &workflowapi.Outputs{
+						Artifacts: []workflowapi.Artifact{{Name: "mlpipeline-metrics"}},
+					},
 				},
 			},
 		},
@@ -184,6 +248,9 @@ func TestReportMetrics_MultipleFilesInArchive_Fail(t *testing.T) {
 				"node-1": workflowapi.NodeStatus{
 					ID:    "node-1",
 					Phase: workflowapi.NodeSucceeded,
+					Outputs: &workflowapi.Outputs{
+						Artifacts: []workflowapi.Artifact{{Name: "mlpipeline-metrics"}},
+					},
 				},
 			},
 		},
@@ -224,6 +291,9 @@ func TestReportMetrics_InvalidMetricsJSON_Fail(t *testing.T) {
 				"node-1": workflowapi.NodeStatus{
 					ID:    "node-1",
 					Phase: workflowapi.NodeSucceeded,
+					Outputs: &workflowapi.Outputs{
+						Artifacts: []workflowapi.Artifact{{Name: "mlpipeline-metrics"}},
+					},
 				},
 			},
 		},
@@ -263,10 +333,16 @@ func TestReportMetrics_InvalidMetricsJSON_PartialFail(t *testing.T) {
 				"node-1": workflowapi.NodeStatus{
 					ID:    "node-1",
 					Phase: workflowapi.NodeSucceeded,
+					Outputs: &workflowapi.Outputs{
+						Artifacts: []workflowapi.Artifact{{Name: "mlpipeline-metrics"}},
+					},
 				},
 				"node-2": workflowapi.NodeStatus{
 					ID:    "node-2",
 					Phase: workflowapi.NodeSucceeded,
+					Outputs: &workflowapi.Outputs{
+						Artifacts: []workflowapi.Artifact{{Name: "mlpipeline-metrics"}},
+					},
 				},
 			},
 		},
@@ -333,6 +409,9 @@ func TestReportMetrics_CorruptedArchiveFile_Fail(t *testing.T) {
 				"node-1": workflowapi.NodeStatus{
 					ID:    "node-1",
 					Phase: workflowapi.NodeSucceeded,
+					Outputs: &workflowapi.Outputs{
+						Artifacts: []workflowapi.Artifact{{Name: "mlpipeline-metrics"}},
+					},
 				},
 			},
 		},
@@ -370,12 +449,15 @@ func TestReportMetrics_MultiplMetricErrors_TransientErrowWin(t *testing.T) {
 				"node-1": workflowapi.NodeStatus{
 					ID:    "node-1",
 					Phase: workflowapi.NodeSucceeded,
+					Outputs: &workflowapi.Outputs{
+						Artifacts: []workflowapi.Artifact{{Name: "mlpipeline-metrics"}},
+					},
 				},
 			},
 		},
 	})
 	metricsJSON :=
-			`{"metrics": [{"name": "accuracy", "numberValue": 0.77}, {"name": "log loss", "numberValue": 1.2}, {"name": "accuracy", "numberValue": 1.2}]}`
+		`{"metrics": [{"name": "accuracy", "numberValue": 0.77}, {"name": "log loss", "numberValue": 1.2}, {"name": "accuracy", "numberValue": 1.2}]}`
 	artifactData, _ := util.ArchiveTgz(map[string]string{"file": metricsJSON})
 	pipelineFake.StubArtifact(
 		&api.ReadArtifactRequest{
