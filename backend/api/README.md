@@ -7,6 +7,3 @@ This directory contains API definitions. They are used to generate [the API refe
 - Use the above generated html to replace the html section, which is below the title section, in the file [kubeflow-pipeline-api-spec.html](https://github.com/kubeflow/website/blob/master/content/en/docs/pipelines/reference/api/kubeflow-pipeline-api-spec.html)
 
 Note: whenever the API definition changes (i.e., the file [kfp_api_single_file.swagger.json](https://github.com/kubeflow/pipelines/blob/master/backend/api/swagger/kfp_api_single_file.swagger.json) changes), the API reference needs to be updated.
-
-
-
