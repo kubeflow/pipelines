@@ -26,8 +26,23 @@ def get_client(region=None):
     client = boto3.client('emr', region_name=region)
     return client
 
-def create_cluster(client, cluster_name, log_s3_uri, release_label, instance_type, instance_count):
+def create_cluster(client, cluster_name, log_s3_uri, release_label, instance_type, instance_count, ec2SubnetId=None, ec2KeyName=None):
   """Create a EMR cluster."""
+
+  instances = {
+      'MasterInstanceType': instance_type,
+      'SlaveInstanceType': instance_type,
+      'InstanceCount': instance_count,
+      'KeepJobFlowAliveWhenNoSteps':True,
+      'TerminationProtected':False
+  }
+
+  if ec2SubnetId is not None:
+    instances['Ec2SubnetId'] = ec2SubnetId
+
+  if ec2KeyName is not None:
+    instances['Ec2KeyName'] = ec2KeyName
+
   response = client.run_job_flow(
     Name=cluster_name,
     LogUri=log_s3_uri,
@@ -45,14 +60,7 @@ def create_cluster(client, cluster_name, log_s3_uri, release_label, instance_typ
         }
       },
     ],
-    Instances= {
-        'MasterInstanceType': instance_type,
-        'SlaveInstanceType': instance_type,
-        'InstanceCount': instance_count,
-        'KeepJobFlowAliveWhenNoSteps':True,
-        'TerminationProtected':False,
-
-    },
+    Instances= instances,
     VisibleToAllUsers=True,
     JobFlowRole='EMR_EC2_DefaultRole',
     ServiceRole='EMR_DefaultRole'
@@ -142,6 +150,5 @@ def wait_for_job(client, jobflow_id, step_id):
 def submit_pyspark_job(client, jobflow_id, job_name, py_file, extra_args):
   """Submits single spark job to a running cluster"""
 
-  pyspark_args = ['spark-submit', py_file]
-  pyspark_args.extend(extra_args)
-  return submit_spark_job(client, jobflow_id, job_name, 'command-runner.jar', '', pyspark_args)
+  pyspark_args = [py_file, extra_args]
+  return submit_spark_job(client, jobflow_id, job_name, '', '', pyspark_args)
