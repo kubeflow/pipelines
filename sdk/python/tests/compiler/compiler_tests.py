@@ -705,7 +705,7 @@ implementation:
       dsl.get_pipeline_conf().set_pod_disruption_budget("100%")
 
     workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
-    self.assertEqual(workflow_dict['spec']['poddisruptionbudget']['min_available'], "100%")
+    self.assertEqual(workflow_dict['spec']["poddisruptionbudget"]['minavailable'], "100%")
 
   def test_op_transformers(self):
     def some_op():
