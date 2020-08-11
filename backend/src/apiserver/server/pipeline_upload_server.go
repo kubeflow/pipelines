@@ -50,10 +50,17 @@ var (
 		Name: "pipeline_version_upload_requests",
 		Help: "The number of pipeline version upload requests",
 	})
+
+	// TODO(jingzhang36): error count and success count.
 )
+
+type PipelineUploadServerOptions struct {
+	CollectMetrics bool
+}
 
 type PipelineUploadServer struct {
 	resourceManager *resource.ResourceManager
+	options         *PipelineUploadServerOptions
 }
 
 // HTTP multipart endpoint for uploading pipeline file.
@@ -63,6 +70,10 @@ type PipelineUploadServer struct {
 // See https://github.com/grpc-ecosystem/grpc-gateway/issues/500
 // Thus we create the HTTP endpoint directly and using swagger to auto generate the HTTP client.
 func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Request) {
+	if s.options.CollectMetrics {
+		uploadPipelineRequests.Inc()
+	}
+
 	glog.Infof("Upload pipeline called")
 	file, header, err := r.FormFile(FormFileKey)
 	if err != nil {
@@ -102,8 +113,6 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating pipeline"))
 		return
 	}
-
-	uploadPipelineRequests.Inc()
 }
 
 // HTTP multipart endpoint for uploading pipeline version file.
@@ -113,6 +122,10 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 // See https://github.com/grpc-ecosystem/grpc-gateway/issues/500
 // Thus we create the HTTP endpoint directly and using swagger to auto generate the HTTP client.
 func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *http.Request) {
+	if s.options.CollectMetrics {
+		uploadPipelineVersionRequests.Inc()
+	}
+
 	glog.Infof("Upload pipeline version called")
 	file, header, err := r.FormFile(FormFileKey)
 	if err != nil {
@@ -172,7 +185,9 @@ func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *h
 		return
 	}
 
-	uploadPipelineVersionRequests.Inc()
+	if s.options.CollectMetrics {
+		pipelineCount.Inc()
+	}
 }
 
 func (s *PipelineUploadServer) writeErrorToResponse(w http.ResponseWriter, code int, err error) {
@@ -186,6 +201,6 @@ func (s *PipelineUploadServer) writeErrorToResponse(w http.ResponseWriter, code 
 	w.Write(errBytes)
 }
 
-func NewPipelineUploadServer(resourceManager *resource.ResourceManager) *PipelineUploadServer {
-	return &PipelineUploadServer{resourceManager: resourceManager}
+func NewPipelineUploadServer(resourceManager *resource.ResourceManager, options *PipelineUploadServerOptions) *PipelineUploadServer {
+	return &PipelineUploadServer{resourceManager: resourceManager, options: options}
 }
