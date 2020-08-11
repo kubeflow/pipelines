@@ -711,6 +711,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 		if err != nil {
 			return util.NewInternalServerError(err, "Failed to delete the completed workflow for run %s", runId)
 		}
+		// TODO(jingzhang36): find a proper way to pass collectMetricsFlag here.
 		workflowGCCounter.Inc()
 	}
 
