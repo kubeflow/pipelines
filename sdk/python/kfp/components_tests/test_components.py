@@ -721,10 +721,10 @@ implementation:
         )
 
     def test_edit_component_loaded_from_local_yaml_file(self):
-        component_path = Path(__file__).parent / 'test_data' / 'python_add.component.yaml'
-        op = components.load_component_from_file(str(component_path))
+        component_path = str(Path(__file__).parent / 'test_data' / 'python_add.component.yaml')
+        op = components.load_component_from_file(component_path)
         editing_code = op.edit()
-        component_text = component_path.read_text()
+        component_text = Path(component_path).read_text()
 
         self.assertIn('python_add.component.yaml', editing_code)
         self.assertIn(component_text, editing_code.replace('\r\n', '\n'))
