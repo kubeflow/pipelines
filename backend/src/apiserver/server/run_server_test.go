@@ -487,7 +487,7 @@ func TestReportRunMetrics_RunNotFound(t *testing.T) {
 
 	clientManager, resourceManager, _ := initWithOneTimeRun(t)
 	defer clientManager.Close()
-	runServer := RunServer{resourceManager: resourceManager}
+	runServer := RunServer{resourceManager: resourceManager, options: &RunServerOptions{CollectMetrics: false}}
 
 	_, err := runServer.ReportRunMetrics(context.Background(), &api.ReportRunMetricsRequest{
 		RunId: "1",
@@ -502,7 +502,7 @@ func TestReportRunMetrics_Succeed(t *testing.T) {
 
 	clientManager, resourceManager, runDetails := initWithOneTimeRun(t)
 	defer clientManager.Close()
-	runServer := RunServer{resourceManager: resourceManager}
+	runServer := RunServer{resourceManager: resourceManager, options: &RunServerOptions{CollectMetrics: false}}
 
 	metric := &api.RunMetric{
 		Name:   "metric-1",
@@ -542,7 +542,7 @@ func TestReportRunMetrics_PartialFailures(t *testing.T) {
 
 	clientManager, resourceManager, runDetail := initWithOneTimeRun(t)
 	defer clientManager.Close()
-	runServer := RunServer{resourceManager: resourceManager}
+	runServer := RunServer{resourceManager: resourceManager, options: &RunServerOptions{CollectMetrics: false}}
 
 	validMetric := &api.RunMetric{
 		Name:   "metric-1",
@@ -596,7 +596,7 @@ func TestCanAccessRun_Unauthorized(t *testing.T) {
 
 	clients, manager, experiment := initWithExperiment_KFAM_Unauthorized(t)
 	defer clients.Close()
-	runServer := RunServer{resourceManager: manager}
+	runServer := RunServer{resourceManager: manager, options: &RunServerOptions{CollectMetrics: false}}
 
 	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
@@ -633,7 +633,7 @@ func TestCanAccessRun_Authorized(t *testing.T) {
 
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
-	runServer := RunServer{resourceManager: manager}
+	runServer := RunServer{resourceManager: manager, options: &RunServerOptions{CollectMetrics: false}}
 
 	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
