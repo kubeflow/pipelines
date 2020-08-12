@@ -172,7 +172,7 @@ func TestGetExperiment_Unauthorized(t *testing.T) {
 	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
 	defer clients.Close()
 
-	server := ExperimentServer{manager}
+	server := ExperimentServer{manager, &ExperimentServerOptions{CollectMetrics: false}}
 
 	_, err := server.GetExperiment(ctx, &api.GetExperimentRequest{Id: resource.DefaultFakeUUID})
 	assert.NotNil(t, err)
@@ -275,7 +275,7 @@ func TestListExperiment_Unauthorized(t *testing.T) {
 	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
 	defer clients.Close()
 
-	server := ExperimentServer{manager}
+	server := ExperimentServer{manager, &ExperimentServerOptions{CollectMetrics: false}}
 
 	_, err := server.ListExperiment(ctx, &api.ListExperimentsRequest{
 		ResourceReferenceKey: &api.ResourceKey{
@@ -540,7 +540,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	// Create experiment and runs/jobs under it.
 	clients, manager, experiment := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
-	runServer := NewRunServer(manager)
+	runServer := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	run1 := &api.Run{
 		Name:               "run1",
 		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
@@ -551,7 +551,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	assert.Nil(t, err)
 	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(resource.FakeUUIDOne, nil))
 	manager = resource.NewResourceManager(clients)
-	runServer = NewRunServer(manager)
+	runServer = NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	run2 := &api.Run{
 		Name:               "run2",
 		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
@@ -562,7 +562,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	assert.Nil(t, err)
 	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(resource.DefaultFakeUUID, nil))
 	manager = resource.NewResourceManager(clients)
-	jobServer := NewJobServer(manager)
+	jobServer := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	job1 := &api.Job{
 		Name:           "name1",
 		Enabled:        true,
@@ -580,7 +580,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Archive the experiment and thus all runs under it.
-	experimentServer := NewExperimentServer(manager)
+	experimentServer := NewExperimentServer(manager, &ExperimentServerOptions{CollectMetrics: false})
 	_, err = experimentServer.ArchiveExperiment(nil, &api.ArchiveExperimentRequest{Id: experiment.UUID})
 	assert.Nil(t, err)
 	result, err := experimentServer.GetExperiment(nil, &api.GetExperimentRequest{Id: experiment.UUID})
