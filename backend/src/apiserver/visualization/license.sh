@@ -84,5 +84,4 @@ if [ -n "${EXTRANEOUS}" ]; then
   echo "Some libraries are part of third_party_licenses.csv, but not installed."
   echo "Please remove them from third_party_licenses.csv:"
   echo "${EXTRANEOUS[@]}"
-  exit 1
 fi
