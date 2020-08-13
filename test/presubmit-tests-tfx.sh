@@ -43,6 +43,7 @@ chmod +x bazel_installer.sh
 cd $source_root
 git clone https://github.com/tensorflow/tfx.git
 cd $source_root/tfx
+git checkout v0.22.1
 #pip3 install --upgrade pip
 #pip3 install --upgrade 'numpy>=1.16,<1.17'
 #set -x
