@@ -376,6 +376,6 @@ export async function decodeCompressedNodes(compressedNodes: string) {
     return JSON.parse(decodedNodes);
   } catch (err) {
     logger.error('Error decoding compressedNodes!', err);
-    reject(err);
+    throw err;
   }
 }
