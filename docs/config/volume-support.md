@@ -1,5 +1,9 @@
 # volume-support
 
+> Beta
+>
+> This kubeflow pipeline volume support has **beta** status 
+
 Now you can use volume and volume mount to support [tensorboard viewer and other visualize results](https://www.kubeflow.org/docs/pipelines/sdk/output-viewer). following steps is the detail information to do this.
 
 
@@ -75,7 +79,7 @@ metadata = {
 with open('/mlpipeline-ui-metadata.json', 'w') as f:
    json.dump(metadata, f)
 ```
-**Note: **`source` must be specified with volume schema which starts with `volume://` and following with `your_volume_name`, and source path `your/tensorboard/logdir` is the path in volume. 
+**Note:** `source` must be specified with volume schema which starts with `volume://` and following with `your_volume_name`, and source path `your/tensorboard/logdir` is the path in volume. 
 
 
 Above example mount volume `your_volume_name` to` /your/mount/path`, so the finally path in viewer pod is `/your/mount/path/your/tensorboard/logdir`
@@ -122,7 +126,7 @@ The purpose of this patch is to add volumes `your_volume_name` and volume mounts
   with file_io.FileIO('/mlpipeline-ui-metadata.json', 'w') as f:
     json.dump(metadata, f)
 ```
-**Note: **`source` must be specified with volume schema which starts with `volume://` and following with `your_volume_name`, and source path `your/confusion/matrix/path` is the path in volume. 
+**Note:** `source` must be specified with volume schema which starts with `volume://` and following with `your_volume_name`, and source path `your/confusion/matrix/path` is the path in volume. 
 
 
 Above example mount volume `your_volume_name` to` /your/mount/path`, so the finally path is `/your/mount/path/your/confusion/matrix/path`
