@@ -1,0 +1,332 @@
+syntax = "proto3";
+
+package kfp.api;
+
+import "google/protobuf/any.proto";
+
+// The spec of a pipeline.
+message PipelineSpec {
+  // The metadata of the pipeline.
+  PipelineInfo pipeline_info = 1;
+
+  // A list of pipeline tasks, which form a DAG.
+  repeated PipelineTaskSpec tasks = 2;
+
+  // The deployment config of the pipeline.
+  // The deployment config can be extended to provide platform specific configs.
+  // The supported config is [PipelineDeploymentConifg]().
+  google.protobuf.Any deployment_config = 3;
+
+  // The version of the sdk, which compiles the spec.
+  string sdk_version = 4;
+
+  // The version of the schema.
+  string schema_version = 5;
+
+  // The definition of the runtime parameter.
+  message RuntimeParameter {
+    // The type of the parameter.
+    enum Type {
+      TYPE_UNSPECIFIED = 0;
+      INT = 1;
+      DOUBLE = 2;
+      STRING = 3;
+    }
+    // Required field. The type of the runtime parameter.
+    Type type = 1;
+    // Optional field. Default value of the runtime parameter. If not set and
+    // the runtime parameter value is not provided during runtime, an error will
+    // be raised.
+    Value default_value = 2;
+  }
+  // The runtime parameters of the pipeline. Keyed by parameter name.
+  map<string, RuntimeParameter> runtime_parameters = 6;
+}
+
+// The spec of a pipeline task.
+message PipelineTaskSpec {
+  // Basic info of a pipeline task.
+  PipelineTaskInfo task_info = 1;
+
+  // The specification of a task input.
+  message InputSpec {
+    // The name of the producer task.
+    string producer_task = 1;
+
+    // The key of the output.
+    string output_key = 2;
+  }
+
+  // Specification for task inputs which connect to the outputs from
+  // upstream tasks. Keyed by input name.
+  map<string, InputSpec> inputs = 2;
+
+  // The specification of a task output.
+  message OutputSpec {
+    // The type of the artifact.
+    PipelineTypeSchema artifact_type = 1;
+
+    // The properties of the artifact.
+    map<string, PipelineValueOrRuntimeParameter> properties = 2;
+
+    // The custom properties of the artifact.
+    map<string, PipelineValueOrRuntimeParameter> custom_properties = 3;
+  }
+
+  // Specification for task outputs. Keyed by output name.
+  map<string, OutputSpec> outputs = 3;
+
+  // Specification for task parameters, which contains the values provided by
+  // the pipeline users or from runtime parameters. Keyed by parameter name.
+  map<string, PipelineValueOrRuntimeParameter> parameters = 4;
+
+  // Label for the executor of the task.
+  // The specification will be specified in the deployment config.
+  // For example:
+  // ```
+  // tasks:
+  // - task_info:
+  //     name: trainer
+  //   executor_label: trainer
+  // deployment_config:
+  //   @type: cloud.ml.pipelines.v1alpha3.proto.PipelineDeploymentConfig
+  //   executors:
+  //     trainer:
+  //       container:
+  //         image: gcr.io/tfx:latest
+  //         args: []
+  // ```
+  string executor_label = 5;
+
+  // Names of the upstream tasks of the current task. The current task will
+  // start until all upstream tasks are finished. [PipelineTaskSpec.inputs]()
+  // defines the data dependency of the task, which will also imply a task
+  // dependency on the producer task. There is no need to define two depdencies
+  // to the same upstream task in this case.
+  repeated string upstream_tasks = 6;
+
+  message CachingOptions {
+    // Whether or not to enable cache for this task.
+    bool enable_cache = 1;
+  }
+  CachingOptions caching_options = 7;
+}
+
+// Basic info of a pipeline.
+message PipelineInfo {
+  // Required field. The name of the pipeline.
+  // The name will be used to create or find pipeline context in MLMD.
+  string name = 1;
+}
+
+// The definition of a type in MLMD.
+message PipelineTypeSchema {
+  oneof kind {
+    // The name of the type. The format of the title must be:
+    // `<namespace>.<title>.<version>`.
+    // Examples:
+    //  - `aiplatform.Model.v1`
+    //  - `acme.CustomModel.v2`
+    // When this field is set, the type must be pre-registered in the MLMD
+    // store.
+    string schema_title = 1;
+
+    // Points to a YAML file stored on Google Cloud Storage describing the
+    // format.
+    string schema_uri = 2;
+
+    // Contains a raw YAML string, describing the format of
+    // the properties of the type.
+    string instance_schema = 3;
+  }
+}
+
+// The basic info of a task.
+message PipelineTaskInfo {
+  // The type of the execution. This will be used when logging execution of
+  // the task in MLMD.
+  PipelineTypeSchema execution_type = 1;
+
+  // The unique name of the task within the pipeline definition. This name
+  // will be used in downstream tasks to indicate task and data dependencies.
+  string name = 2;
+}
+
+// Definition for a value or reference to a runtime parameter. A
+// PipelineValueOrRuntimeParameter instance can be either a field value that is
+// determined during compilation time, or a runtime parameter which will be
+// determined during runtime.
+message PipelineValueOrRuntimeParameter {
+  oneof value {
+    // An integer value
+    int64 int_value = 1;
+    // A double value
+    double double_value = 2;
+    // A string value
+    string string_value = 3;
+    // Name of the runtime parameter.
+    string runtime_parameter = 4;
+  }
+}
+
+// The definition of the deployment config of the pipeline.
+message PipelineDeploymentConfig {
+  // The specification on a container invocation.
+  // The string fields of the message support string based placeholder contract
+  // defined in [ExecutorInput](). The output of the container follows the
+  // contract of [ExecutorOutput]().
+  message PipelineContainerSpec {
+    // The image uri of the container.
+    string image = 1;
+    // The entrypoint command when invoking the container.
+    repeated string command = 2;
+    // The arguments to pass when invoking the container.
+    repeated string args = 3;
+
+    // The lifecycle hooks of the container.
+    // Each hook follows the same I/O contract as the main container entrypoint.
+    // See [ExecutorInput]() and [ExecutorOutput]() for details.
+    message Lifecycle {
+      // The command and args to execute a program.
+      message Exec {
+        // The command of the exec program.
+        repeated string command = 2;
+        // The args of the exec program.
+        repeated string args = 3;
+      }
+      // This hook is invoked before caching check. It can change the properties
+      // of the execution and output artifacts before they are used to compute
+      // the cache key. The updated metadata will be passed into the main
+      // container entrypoint.
+      Exec pre_cache_check = 1;
+    }
+    // The lifecycle hooks of the container executor.
+    Lifecycle lifecycle = 4;
+  }
+
+  // The specification to import or reimport a new artifact to the pipeline.
+  message ImporterSpec {
+    // The URI of the artifact.
+    string artifact_uri = 1;
+
+    // The type of the artifact.
+    PipelineTypeSchema type_schema = 2;
+
+    // The properties of the artifact.
+    map<string, PipelineValueOrRuntimeParameter> properties = 3;
+
+    // The custom properties of the artifact.
+    map<string, PipelineValueOrRuntimeParameter> custom_properties = 4;
+
+    // Whether or not import an artifact regardless it has been imported before.
+    bool reimport = 5;
+  }
+
+  // ResolverConfig is subject to change. Currently we only use enum to
+  // represent two of the currently available policies. We plan to introduce a
+  // flexible config to enable more sophisticated policies in the future.
+  // TODO(b/152230663): Support more flexibility for resolution logic.
+  message ResolverSpec {
+    enum ResolverPolicy {
+      RESOLVER_POLICY_UNSPECIFIED = 0;
+      // Within the models associated with the same pipeline context, always
+      // select the model with largest `last_update_time_since_epoch`.
+      LATEST_MODEL = 1;
+      // Within the models associated with the same pipeline context,
+      // select the latest Model that is blessed (represented by having a
+      // corresponding ModelBlessing artifact. The result will be consumed by
+      // components that need the latest model that is blessed such as
+      // Evaluator.
+      LATEST_BLESSED_MODEL = 2;
+    }
+    // TODO(b/152230663): Make this one of special resolver policies or generic
+    // ResolverConfig.
+    ResolverPolicy resolver_policy = 1;
+  }
+
+  // The specification of the executor.
+  message ExecutorSpec {
+    oneof spec {
+      // Starts a container.
+      PipelineContainerSpec container = 1;
+      // Import an artifact.
+      ImporterSpec importer = 2;
+      // Resolves an existing artifact.
+      ResolverSpec resolver = 3;
+    }
+  }
+  // Map from executor label to executor spec.
+  map<string, ExecutorSpec> executors = 1;
+}
+
+// Value is the value of the field.
+message Value {
+  oneof value {
+    // An integer value
+    int64 int_value = 1;
+    // A double value
+    double double_value = 2;
+    // A string value
+    string string_value = 3;
+  }
+}
+
+// The definition of a runtime artifact.
+message RuntimeArtifact {
+  // The name of an artifact.
+  string name = 1;
+
+  // The URI of the artifact.
+  string uri = 2;
+
+  // The properties of the artifact.
+  map<string, Value> properties = 3;
+}
+
+// The input of an executor, which includes all the data that
+// can be passed into the executor spec by a string based placeholder.
+//
+// The string based placeholder uses a JSON path to reference to the data
+// in the [ExecutionInput]().
+//
+// `{{$}}`: prints the full [ExecutorInput]() as a JSON string.
+// `{{$.inputs['<input name>'].uri`: prints the URI of an input artifact.
+// `{{$.inputs['<input name>'].properties['<property name>']`: prints the
+//   property of an input artifact.
+// `{{$.inputs['<input name>'].value`: prints the value of an input artifact.
+// `{{$.outputs['<output name>'].uri}}: prints the URI of an output artifact.
+// `{{$.outputs['<input name>'].properties['<property name>']`: prints the
+//   property of an output artifact.
+// `{{$.execution_properties['<property name>']`: prints the property of the
+//   execution.
+// `{{$.output_metadata_uri}}`: prints the URI of the output metadata file which
+//   is used to send output metadata from executor to orchestrator. The contract
+//   of the output metadate is [ExecutorOutput]().
+message ExecutorInput {
+  // Message that represents a list of artifacts.
+  message ArtifactList {
+    // A list of parameters.
+    repeated RuntimeArtifact artifacts = 1;
+  }
+
+  // The runtime input artifacts of the task invocation.
+  map<string, ArtifactList> inputs = 1;
+
+  // The runtime output artifacts of the task invocation.
+  map<string, ArtifactList> outputs = 2;
+
+  // The execution properties of the task invocation.
+  map<string, Value> execution_properties = 3;
+
+  // The URI of the output metadata.
+  string output_metadata_uri = 4;
+}
+
+// The schema of the output metadata of an execution. It will be used to parse
+// the output metadata file from user's GCS bucket.
+message ExecutorOutput {
+  // The updated metadata for output artifact.
+  map<string, RuntimeArtifact> output_artifacts = 1;
+  // The updated execution properties.
+  map<string, Value> execution_properties = 2;
+}
