@@ -936,13 +936,13 @@ class ContainerOp(BaseOp):
             At pipeline run time, the value of the artifact argument is saved to a local file with specified path.
             This parameter is only needed when the input file paths are hard-coded in the program.
             Otherwise it's better to pass input artifact placement paths by including artifact arguments in the command-line using the InputArgumentPath class instances.
-        file_outputs: Maps output labels to local file paths. At pipeline run time,
-            the value of a PipelineParam is saved to its corresponding local file. It's
-            one way for outside world to receive outputs of the container.
-        output_artifact_paths: Maps output artifact labels to local artifact file paths.
-            It has the following default artifact paths during compile time.
-            {'mlpipeline-ui-metadata': '/mlpipeline-ui-metadata.json',
-            'mlpipeline-metrics': '/mlpipeline-metrics.json'}
+        file_outputs: Maps output names to container local output file paths.
+            The system will take the data from those files and will make it available for passing to downstream tasks.
+            For each output in the file_outputs map there will be a corresponding output reference available in the task.outputs dictionary.
+            These output references can be passed to the other tasks as arguments.
+            The following output names are handled specially by the frontend and backend: "mlpipeline-ui-metadata" and "mlpipeline-metrics".
+        output_artifact_paths: Deprecated. Maps output artifact labels to local artifact file paths. Deprecated: Use file_outputs instead. It now supports big data outputs.
+
         is_exit_handler: Deprecated. This is no longer needed.
         pvolumes: Dictionary for the user to match a path on the op's fs with a
             V1Volume or it inherited type.
@@ -1088,6 +1088,9 @@ class ContainerOp(BaseOp):
         self.artifact_arguments = artifact_arguments
         self.file_outputs = file_outputs
         self.output_artifact_paths = output_artifact_paths or {}
+        if output_artifact_paths:
+            file_outputs.update(output_artifact_paths)
+            warnings.warn('The output_artifact_paths parameter is deprecated since SDK v0.1.32. Use the file_outputs parameter instead. file_outputs now supports outputting big data.', DeprecationWarning)
 
         self._metadata = None
 

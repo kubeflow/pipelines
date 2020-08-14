@@ -25,6 +25,7 @@ type PipelineClientFake struct {
 	scheduledWorkflows        map[string]*util.ScheduledWorkflow
 	err                       error
 	artifacts                 map[string]*api.ReadArtifactResponse
+	readArtifactRequest       *api.ReadArtifactRequest
 	reportedMetricsRequest    *api.ReportRunMetricsRequest
 	reportMetricsResponseStub *api.ReportRunMetricsResponse
 	reportMetricsErrorStub    error
@@ -57,6 +58,7 @@ func (p *PipelineClientFake) ReportScheduledWorkflow(swf *util.ScheduledWorkflow
 }
 
 func (p *PipelineClientFake) ReadArtifact(request *api.ReadArtifactRequest) (*api.ReadArtifactResponse, error) {
+	p.readArtifactRequest = request
 	return p.artifacts[request.String()], nil
 }
 
@@ -79,6 +81,10 @@ func (p *PipelineClientFake) GetScheduledWorkflow(namespace string, name string)
 
 func (p *PipelineClientFake) StubArtifact(request *api.ReadArtifactRequest, response *api.ReadArtifactResponse) {
 	p.artifacts[request.String()] = response
+}
+
+func (p *PipelineClientFake) GetReadArtifactRequest() *api.ReadArtifactRequest {
+	return p.readArtifactRequest
 }
 
 func (p *PipelineClientFake) StubReportRunMetrics(response *api.ReportRunMetricsResponse, err error) {
