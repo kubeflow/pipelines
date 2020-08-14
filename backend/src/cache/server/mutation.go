@@ -47,7 +47,6 @@ const (
 	SpecContainersPath        string = "/spec/containers"
 	SpecInitContainersPath    string = "/spec/initContainers"
 	TFXPodSuffix              string = "tfx/orchestration/kubeflow/container_entrypoint.py"
-	ArchiveLocationKey        string = "archiveLocation"
 )
 
 var (
@@ -170,6 +169,22 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 	return patches, nil
 }
 
+// intersectStructureWithSkeleton recursively intersects two maps
+// nil values in the skeleton map mean that the whole value (which can also be a map) should be kept.
+func intersectStructureWithSkeleton(src map[string]interface{}, skeleton map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+	for key, skeletonValue := range skeleton {
+		if value, ok := src[key]; ok {
+			if skeletonValue == nil {
+				result[key] = value
+			} else {
+				result[key] = intersectStructureWithSkeleton(value.(map[string]interface{}), skeletonValue.(map[string]interface{}))
+			}
+		}
+	}
+	return result
+}
+
 func generateCacheKeyFromTemplate(template string) (string, error) {
 	var templateMap map[string]interface{}
 	b := []byte(template)
@@ -178,14 +193,23 @@ func generateCacheKeyFromTemplate(template string) (string, error) {
 		return "", err
 	}
 
-	// template[archiveLocation] needs to be removed when calculating cache key.
-	// Because archiveLocation.key is different in every single run.
-	_, exists := templateMap[ArchiveLocationKey]
-	if exists {
-		log.Println("ArchiveLocation exists in template.")
-		delete(templateMap, ArchiveLocationKey)
+	// Selectively copying parts of the template that should affect the cache
+	templateSkeleton := map[string]interface{}{
+		"container": map[string]interface{}{
+			"image":        nil,
+			"command":      nil,
+			"args":         nil,
+			"env":          nil,
+			"volumeMounts": nil,
+		},
+		"inputs":         nil,
+		"volumes":        nil,
+		"initContainers": nil,
+		"sidecars":       nil,
 	}
-	b, err = json.Marshal(templateMap)
+	cacheKeyMap := intersectStructureWithSkeleton(templateMap, templateSkeleton)
+
+	b, err = json.Marshal(cacheKeyMap)
 	if err != nil {
 		return "", err
 	}

@@ -1,0 +1,184 @@
+name: Split table into folds
+description: |-
+  Splits the data table into the specified number of folds.
+
+      The data is split into the specified number of folds k (default: 5).
+      Each testing subsample has 1/k fraction of samples. The testing subsamples do not overlap.
+      Each training subsample has (k-1)/k fraction of samples.
+      The train_i subsample is produced by excluding test_i subsample form all samples.
+
+      Inputs:
+          table: The data to split by rows
+          number_of_folds: Number of folds to split data into
+          random_seed: Random seed for reproducible splitting
+
+      Outputs:
+          train_i: The i-th training subsample
+          test_i: The i-th testing subsample
+
+      Annotations:
+          author: Alexey Volkov <alexey.volkov@ark-kun.com>
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+inputs:
+- {name: table, type: CSV}
+- {name: number_of_folds, type: Integer, default: '5', optional: true}
+- {name: random_seed, type: Integer, default: '0', optional: true}
+outputs:
+- {name: train_1, type: CSV}
+- {name: train_2, type: CSV}
+- {name: train_3, type: CSV}
+- {name: train_4, type: CSV}
+- {name: train_5, type: CSV}
+- {name: test_1, type: CSV}
+- {name: test_2, type: CSV}
+- {name: test_3, type: CSV}
+- {name: test_4, type: CSV}
+- {name: test_5, type: CSV}
+implementation:
+  container:
+    image: python:3.7
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'scikit-learn==0.23.1' 'pandas==1.0.5' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3
+      -m pip install --quiet --no-warn-script-location 'scikit-learn==0.23.1' 'pandas==1.0.5'
+      --user) && "$0" "$@"
+    - python3
+    - -u
+    - -c
+    - |
+      def _make_parent_dirs_and_return_path(file_path: str):
+          import os
+          os.makedirs(os.path.dirname(file_path), exist_ok=True)
+          return file_path
+
+      def split_table_into_folds(
+          table_path,
+
+          train_1_path,
+          train_2_path,
+          train_3_path,
+          train_4_path,
+          train_5_path,
+
+          test_1_path,
+          test_2_path,
+          test_3_path,
+          test_4_path,
+          test_5_path,
+
+          number_of_folds = 5,
+          random_seed = 0,
+      ):
+          """Splits the data table into the specified number of folds.
+
+          The data is split into the specified number of folds k (default: 5).
+          Each testing subsample has 1/k fraction of samples. The testing subsamples do not overlap.
+          Each training subsample has (k-1)/k fraction of samples.
+          The train_i subsample is produced by excluding test_i subsample form all samples.
+
+          Inputs:
+              table: The data to split by rows
+              number_of_folds: Number of folds to split data into
+              random_seed: Random seed for reproducible splitting
+
+          Outputs:
+              train_i: The i-th training subsample
+              test_i: The i-th testing subsample
+
+          Annotations:
+              author: Alexey Volkov <alexey.volkov@ark-kun.com>
+
+          """
+          import pandas
+          from sklearn import model_selection
+
+          max_number_of_folds = 5
+
+          if number_of_folds < 1 or number_of_folds > max_number_of_folds:
+              raise ValueError('Number of folds must be between 1 and {}.'.format(max_number_of_folds))
+
+          df = pandas.read_csv(
+              table_path,
+          )
+          splitter = model_selection.KFold(
+              n_splits=number_of_folds,
+              shuffle=True,
+              random_state=random_seed,
+          )
+          folds = list(splitter.split(df))
+
+          fold_paths = [
+              (train_1_path, test_1_path),
+              (train_2_path, test_2_path),
+              (train_3_path, test_3_path),
+              (train_4_path, test_4_path),
+              (train_5_path, test_5_path),
+          ]
+
+          for i in range(max_number_of_folds):
+              (train_path, test_path) = fold_paths[i]
+              if i < len(folds):
+                  (train_indices, test_indices) = folds[i]
+                  train_fold = df.iloc[train_indices]
+                  test_fold = df.iloc[test_indices]
+              else:
+                  train_fold = df.iloc[0:0]
+                  test_fold = df.iloc[0:0]
+              train_fold.to_csv(train_path, index=False)
+              test_fold.to_csv(test_path, index=False)
+
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Split table into folds', description='Splits the data table into the specified number of folds.\n\n    The data is split into the specified number of folds k (default: 5).\n    Each testing subsample has 1/k fraction of samples. The testing subsamples do not overlap.\n    Each training subsample has (k-1)/k fraction of samples.\n    The train_i subsample is produced by excluding test_i subsample form all samples.\n\n    Inputs:\n        table: The data to split by rows\n        number_of_folds: Number of folds to split data into\n        random_seed: Random seed for reproducible splitting\n\n    Outputs:\n        train_i: The i-th training subsample\n        test_i: The i-th testing subsample\n\n    Annotations:\n        author: Alexey Volkov <alexey.volkov@ark-kun.com>')
+      _parser.add_argument("--table", dest="table_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--number-of-folds", dest="number_of_folds", type=int, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--random-seed", dest="random_seed", type=int, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--train-1", dest="train_1_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--train-2", dest="train_2_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--train-3", dest="train_3_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--train-4", dest="train_4_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--train-5", dest="train_5_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--test-1", dest="test_1_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--test-2", dest="test_2_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--test-3", dest="test_3_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--test-4", dest="test_4_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--test-5", dest="test_5_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parsed_args = vars(_parser.parse_args())
+
+      _outputs = split_table_into_folds(**_parsed_args)
+    args:
+    - --table
+    - {inputPath: table}
+    - if:
+        cond: {isPresent: number_of_folds}
+        then:
+        - --number-of-folds
+        - {inputValue: number_of_folds}
+    - if:
+        cond: {isPresent: random_seed}
+        then:
+        - --random-seed
+        - {inputValue: random_seed}
+    - --train-1
+    - {outputPath: train_1}
+    - --train-2
+    - {outputPath: train_2}
+    - --train-3
+    - {outputPath: train_3}
+    - --train-4
+    - {outputPath: train_4}
+    - --train-5
+    - {outputPath: train_5}
+    - --test-1
+    - {outputPath: test_1}
+    - --test-2
+    - {outputPath: test_2}
+    - --test-3
+    - {outputPath: test_3}
+    - --test-4
+    - {outputPath: test_4}
+    - --test-5
+    - {outputPath: test_5}

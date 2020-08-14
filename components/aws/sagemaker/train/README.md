@@ -14,12 +14,12 @@ Argument        | Description                 | Optional   | Data type  | Accept
 region | The region where the cluster launches | No | String | | |
 endpoint_url | The endpoint URL for the private link VPC endpoint | Yes | String | | |
 assume_role | The ARN of an IAM role to assume when connecting to SageMaker | Yes | String | | |
-job_name | The name of the Ground Truth job. Must be unique within the same AWS account and AWS region | Yes | String | | LabelingJob-[datetime]-[random id]|
+job_name | The name of the training job. Must be unique within the same AWS account and AWS region | Yes | String | | TrainingJob-[datetime]-[random id]|
 role | The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf | No | String | | |
 image | The registry path of the Docker image that contains the training algorithm | Yes | String | | |
 algorithm_name | The name of the algorithm resource to use for the hyperparameter tuning job; only specify this parameter if training image is not specified | Yes | String | | |
 metric_definitions | The dictionary of name-regex pairs specify the metrics that the algorithm emits | Yes | Dict | | {} |
-put_mode | The input mode that the algorithm supports | No | String | File, Pipe | File |
+training_input_mode | The input mode that the algorithm supports | No | String | File, Pipe | File |
 hyperparameters  | Hyperparameters for the selected algorithm | No | Dict | [Depends on Algo](https://docs.aws.amazon.com/sagemaker/latest/dg/k-means-api-config.html)| |
 channels | A list of dicts specifying the input channels (at least one); refer to [documentation](https://github.com/awsdocs/amazon-sagemaker-developer-guide/blob/master/doc_source/API_Channel.md) for parameters | No | List of Dicts | | |
 instance_type | The ML compute instance type | Yes | String | ml.m4.xlarge, ml.m4.2xlarge, ml.m4.4xlarge, ml.m4.10xlarge, ml.m4.16xlarge, ml.m5.large, ml.m5.xlarge, ml.m5.2xlarge, ml.m5.4xlarge, ml.m5.12xlarge, ml.m5.24xlarge, ml.c4.xlarge, ml.c4.2xlarge, ml.c4.4xlarge, ml.c4.8xlarge, ml.p2.xlarge, ml.p2.8xlarge, ml.p2.16xlarge, ml.p3.2xlarge, ml.p3.8xlarge, ml.p3.16xlarge, ml.c5.xlarge, ml.c5.2xlarge, ml.c5.4xlarge, ml.c5.9xlarge, ml.c5.18xlarge [and many more](https://aws.amazon.com/sagemaker/pricing/instance-types/) | ml.m4.xlarge |
