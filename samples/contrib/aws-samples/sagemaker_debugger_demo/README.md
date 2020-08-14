@@ -1,14 +1,14 @@
-# Simple Pipeline for Training Component with Debugger
+# Sample Pipeline for Training Component with Debugger
 
-The `debugger-component-demo.py` sample creates a pipeline consisting of only a training component. In that component we are using the XGBoost algorithm but with poor hyperparameter choices. By enabling debugger rules and hooks, we can quickly learn that the model produced has issues.
+The `sagemaker-debugger-demo.py` sample creates a pipeline consisting of only a training component. In that component we are using the XGBoost algorithm but with poor hyperparameter choices. By enabling debugger rules and hooks, we can quickly learn that the model produced has issues.
 
 ## Prerequisites
 
-This pipeline uses the exact same setup as [simple_training_pipeline](https://github.com/kubeflow/pipelines/tree/master/samples/contrib/aws-samples/simple_train_pipeline).
+This pipeline uses the exact same setup as [simple_training_pipeline](https://github.com/kubeflow/pipelines/tree/master/samples/contrib/aws-samples/simple_train_pipeline). For the purposes of this demonstration, all resources will be created in the `us-east-1` region.
 
 ## Steps
 1. Compile the pipeline:
-   `dsl-compile --py debugger-component-demo.py --output debugger-component-demo.tar.gz`
+   `dsl-compile --py sagemaker-debugger-demo.py --output sagemaker-debugger-demo.tar.gz`
 2. In the Kubeflow UI, upload this compiled pipeline specification (the .tar.gz file), fill in the necessary run parameters, and click create run.
 3. Once the pipeline has finished running, you can view the results of each debugger rule under 'Logs'.
 
