@@ -121,6 +121,33 @@ class TrainTestCase(unittest.TestCase):
     )
     self.assertEqual(response, None)
 
+  def test_utils_stop_debug_rules(self):
+    mock_sm_client = MagicMock()
+    mock_sm_client.stop_debug_rules.return_value = ["Trainingjob-20200999991943-rule-1-2223bb"]
+
+    mock_sm_client.describe_training_job.side_effect = [
+        {
+        "DebugRuleEvaluationStatuses": [
+            {
+                "RuleConfigurationName": "shouldnotbestopped",
+                "RuleEvaluationJobArn": "arn:aws:sagemaker:us-east-1:169544234969:processing-job/trainingjob-20200999909123-shouldnotbestopped-2223bb",
+                "RuleEvaluationStatus": "NoIssuesFound"
+            }, {
+                "RuleConfigurationName": "rule-1",
+                "RuleEvaluationJobArn": "arn:aws:sagemaker:us-east-1:169544234969:processing-job/trainingjob-20200999991943-rule-1-2223bb",
+                "RuleEvaluationStatus": "InProgress"
+            }
+        ]}
+    ]
+
+    response = _utils.stop_debug_rules(mock_sm_client, 'fake-job')
+
+    mock_sm_client.stop_processing_job.assert_called_once_with(
+        ProcessingJobName='Trainingjob-20200999991943-rule-1-2223bb'
+    )
+    self.assertEqual(response, ["Trainingjob-20200999991943-rule-1-2223bb"])
+
+
   def test_sagemaker_exception_in_create_training_job(self):
     mock_client = MagicMock()
     mock_exception = ClientError({"Error": {"Message": "SageMaker broke"}}, "create_training_job")
@@ -255,13 +282,13 @@ class TrainTestCase(unittest.TestCase):
 
     parsed_args = self.parser.parse_args(known_algorithm_args)
 
-    # Patch get_image_uri
-    _utils.get_image_uri = MagicMock()
-    _utils.get_image_uri.return_value = "seq2seq-url"
+    # Patch retrieve
+    _utils.retrieve = MagicMock()
+    _utils.retrieve.return_value = "seq2seq-url"
 
     response = _utils.create_training_job_request(vars(parsed_args))
 
-    _utils.get_image_uri.assert_called_with('us-west-2', 'seq2seq')
+    _utils.retrieve.assert_called_with('seq2seq', 'us-west-2')
     self.assertEqual(response['AlgorithmSpecification']['TrainingImage'], "seq2seq-url")
 
   def test_known_algorithm_value(self):
@@ -273,13 +300,13 @@ class TrainTestCase(unittest.TestCase):
 
     parsed_args = self.parser.parse_args(known_algorithm_args)
 
-    # Patch get_image_uri
-    _utils.get_image_uri = MagicMock()
-    _utils.get_image_uri.return_value = "seq2seq-url"
+    # Patch retrieve
+    _utils.retrieve = MagicMock()
+    _utils.retrieve.return_value = "seq2seq-url"
 
     response = _utils.create_training_job_request(vars(parsed_args))
 
-    _utils.get_image_uri.assert_called_with('us-west-2', 'seq2seq')
+    _utils.retrieve.assert_called_with('seq2seq', 'us-west-2')
     self.assertEqual(response['AlgorithmSpecification']['TrainingImage'], "seq2seq-url")
 
   def test_unknown_algorithm(self):
@@ -290,14 +317,14 @@ class TrainTestCase(unittest.TestCase):
 
     parsed_args = self.parser.parse_args(known_algorithm_args)
 
-    # Patch get_image_uri
-    _utils.get_image_uri = MagicMock()
-    _utils.get_image_uri.return_value = "unknown-url"
+    # Patch retrieve
+    _utils.retrieve = MagicMock()
+    _utils.retrieve.return_value = "unknown-url"
 
     response = _utils.create_training_job_request(vars(parsed_args))
 
     # Should just place the algorithm name in regardless
-    _utils.get_image_uri.assert_not_called()
+    _utils.retrieve.assert_not_called()
     self.assertEqual(response['AlgorithmSpecification']['AlgorithmName'], "unknown algorithm")
 
   def test_no_channels(self):

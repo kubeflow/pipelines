@@ -37,7 +37,7 @@ from botocore.credentials import (
 from botocore.exceptions import ClientError
 from botocore.session import Session as BotocoreSession
 
-from sagemaker.amazon.amazon_estimator import get_image_uri
+from sagemaker.image_uris import retrieve
 
 import logging
 logging.getLogger().setLevel(logging.INFO)
@@ -210,12 +210,12 @@ def create_training_job_request(args):
         # TODO: Adjust this implementation to account for custom algorithm resources names that are the same as built-in algorithm names
         algo_name = args['algorithm_name'].lower().strip()
         if algo_name in built_in_algos.keys():
-            request['AlgorithmSpecification']['TrainingImage'] = get_image_uri(args['region'], built_in_algos[algo_name])
+            request['AlgorithmSpecification']['TrainingImage'] = retrieve(built_in_algos[algo_name], args['region'])
             request['AlgorithmSpecification'].pop('AlgorithmName')
             logging.warning('Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm.')
         # Just to give the user more leeway for built-in algorithm name inputs
         elif algo_name in built_in_algos.values():
-            request['AlgorithmSpecification']['TrainingImage'] = get_image_uri(args['region'], algo_name)
+            request['AlgorithmSpecification']['TrainingImage'] = retrieve(algo_name, args['region'])
             request['AlgorithmSpecification'].pop('AlgorithmName')
             logging.warning('Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm.')
         else:
@@ -272,11 +272,6 @@ def create_training_job_request(args):
         request['DebugRuleConfigurations'] = args['debug_rule_config']
     else:
         request.pop('DebugRuleConfigurations')
-
-    if args['tensorboard_output_config']:
-        request['TensorBoardOutputConfig'] = args['tensorboard_output_config']
-    else:
-        request.pop('TensorBoardOutputConfig')
 
     ### Update tags
     for key, val in args['tags'].items():
@@ -354,6 +349,18 @@ class DebugRulesStatus(Enum):
 
 def print_debug_rule_status(response, last_print=False):
     """
+    Example of DebugRuleEvaluationStatuses:
+    response['DebugRuleEvaluationStatuses'] =
+        [{
+            "RuleConfigurationName": "LossNotDecreasing",
+            "RuleEvaluationStatus": "InProgress",
+            "StatusDetails": ""
+        }, {
+            "RuleConfigurationName": "VanishingGradient",
+            "RuleEvaluationStatus": "IssuesFound",
+            "StatusDetails": "There was an issue."
+        }]
+
     If last_print is False:
     INFO:root: - LossNotDecreasing: InProgress
     INFO:root: - Overtraining: NoIssuesFound
@@ -407,11 +414,39 @@ def get_image_from_job(client, job_name):
     return image
 
 
+def stop_debug_rules(client, job_name):
+    response = client.describe_training_job(TrainingJobName=job_name)
+    logging.info(response)
+    rules_stopped = []
+    for rule in response["DebugRuleEvaluationStatuses"]:
+        if rule["RuleEvaluationStatus"] == "InProgress" and "RuleEvaluationJobArn" in rule:
+            rule_job_name = convert_rule_arn_to_job_name(rule["RuleEvaluationJobArn"], rule["RuleConfigurationName"])
+            rules_stopped.append(rule_job_name)
+            stop_processing_job(client, rule_job_name)
+    return rules_stopped
+
+
+def convert_rule_arn_to_job_name(rule_evaluation_job_arn, rule_name):
+    """
+
+    Sample inputs and output
+    :param rule_evaluation_job_arn: "arn:aws:sagemaker:us-east-1:123456789000:processing-job/trainingjob-1234567890-rulename-a1112312"
+    :rule_name RuleName
+
+    :output Trainingjob-1234567890-RuleName-a1112312
+    """
+    job_name = rule_evaluation_job_arn.split("/")[1].split("-")
+    return f"Trainingjob-{job_name[1]}-{rule_name}-{job_name[-1]}"
+
+
 def stop_training_job(client, job_name):
-    try:
-        client.stop_training_job(TrainingJobName=job_name)
-    except ClientError as e:
-        raise Exception(e.response['Error']['Message'])
+    response = client.describe_training_job(TrainingJobName=job_name)
+    if response["TrainingJobStatus"] == "InProgress":
+        try:
+            client.stop_training_job(TrainingJobName=job_name)
+            return job_name
+        except ClientError as e:
+            raise Exception(e.response['Error']['Message'])
 
 
 def create_model(client, args):
@@ -705,12 +740,12 @@ def create_hyperparameter_tuning_job_request(args):
         # TODO: Adjust this implementation to account for custom algorithm resources names that are the same as built-in algorithm names
         algo_name = args['algorithm_name'].lower().strip()
         if algo_name in built_in_algos.keys():
-            request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingImage'] = get_image_uri(args['region'], built_in_algos[algo_name])
+            request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingImage'] = retrieve(built_in_algos[algo_name], args['region'])
             request['TrainingJobDefinition']['AlgorithmSpecification'].pop('AlgorithmName')
             logging.warning('Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm.')
         # To give the user more leeway for built-in algorithm name inputs
         elif algo_name in built_in_algos.values():
-            request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingImage'] = get_image_uri(args['region'], algo_name)
+            request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingImage'] = retrieve(algo_name, args['region'])
             request['TrainingJobDefinition']['AlgorithmSpecification'].pop('AlgorithmName')
             logging.warning('Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm.')
         else:

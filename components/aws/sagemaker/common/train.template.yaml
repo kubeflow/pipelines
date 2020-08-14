@@ -23,7 +23,6 @@ StoppingCondition:
   MaxWaitTimeInSeconds: 86400
 DebugHookConfig: {}
 DebugRuleConfigurations: []
-TensorBoardOutputConfig: {}
 CheckpointConfig:
   S3Uri: ''
   LocalPath: ''

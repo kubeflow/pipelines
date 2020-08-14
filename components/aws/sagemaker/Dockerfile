@@ -24,7 +24,7 @@ RUN yum update -y \
 
 RUN pip3 install \
     boto3==1.13.19 \
-    sagemaker==1.54.0 \
+    sagemaker==2.1.0 \
     pathlib2==2.3.5 \
     pyyaml==3.12
 

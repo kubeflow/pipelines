@@ -42,7 +42,6 @@ def create_parser():
   parser.add_argument('--traffic_encryption', type=_utils.str_to_bool, required=False, help='Encrypts all communications between ML compute instances in distributed training.', default=False)
   parser.add_argument('--debug_hook_config', type=_utils.yaml_or_json_str, required=False, help='Configuration information for the debug hook parameters, collection configuration, and storage paths.', default={})
   parser.add_argument('--debug_rule_config', type=_utils.yaml_or_json_str, required=False, help='Configuration information for debugging rules.', default=[])
-  parser.add_argument('--tensorboard_output_config', type=_utils.yaml_or_json_str, required=False, help='Configuration of storage locations for TensorBoard output.', default={})
 
   ### Start spot instance support
   parser.add_argument('--spot_instance', type=_utils.str_to_bool, required=False, help='Use managed spot training.', default=False)
@@ -71,8 +70,12 @@ def main(argv=None):
   job_name = _utils.create_training_job(client, vars(args))
 
   def signal_term_handler(signalNumber, frame):
-    _utils.stop_training_job(client, job_name)
-    logging.info(f"Training Job: {job_name} request submitted to Stop")
+    job_stopped = _utils.stop_training_job(client, job_name)
+    if job_stopped:
+        logging.info(f"Training Job: {job_stopped} request submitted to Stop")
+    rules_stopped = _utils.stop_debug_rules(client, job_name)
+    for rule_name in rules_stopped:
+        logging.info(f"Processing Job: {rule_name} request submitted to Stop")
   signal.signal(signal.SIGTERM, signal_term_handler)
 
   logging.info('Job request submitted. Waiting for completion...')
