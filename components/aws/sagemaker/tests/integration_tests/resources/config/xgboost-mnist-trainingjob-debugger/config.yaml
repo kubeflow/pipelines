@@ -1,6 +1,6 @@
 PipelineDefinition: resources/definition/training_pipeline.py
 TestName: xgboost-mnist-trainingjob-debugger
-Timeout: 86400
+Timeout: 3600
 ExpectedTrainingImage: ((XGBOOST_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/sagemaker-xgboost:1.0-1-cpu-py3
 Arguments:
   region: ((REGION))
@@ -27,21 +27,21 @@ Arguments:
   instance_count: 1
   volume_size: 5
   max_run_time: 3600
-  model_artifact_path: s3://((DATA_BUCKET))/xgboost-debugger/output
+  model_artifact_path: s3://((DATA_BUCKET))/mnist_kmeans_example/output
   network_isolation: "True"
   traffic_encryption: "False"
   spot_instance: "False"
   max_wait_time: 3600
   checkpoint_config: "{}"
   debug_hook_config:
-    S3OutputPath: s3://((DATA_BUCKET))/xgboost-debugger/hookconfig
+    S3OutputPath: s3://((DATA_BUCKET))/mnist_kmeans_example/hookconfig
     CollectionConfigurations:
       - CollectionName: "feature_importance"
         CollectionParameters:
           save_interval: "5"
       - CollectionName: "losses"
         CollectionParameters:
-          save_interval: "500"
+          save_interval: "10"
       - CollectionName: "average_shap"
         CollectionParameters:
           save_interval: "5"
