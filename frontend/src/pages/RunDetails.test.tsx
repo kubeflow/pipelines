@@ -621,7 +621,7 @@ describe('RunDetails', () => {
 
   it('shows a one-node compressed workflow graph', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-      status: { compressedNodes: "H4sIAAAAAAACE6tWystPSTVUslKoVspMAVJQfm0tAEBEv1kaAAAA" },
+      status: { compressedNodes: 'H4sIAAAAAAACE6tWystPSTVUslKoVspMAVJQfm0tAEBEv1kaAAAA' },
     });
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
