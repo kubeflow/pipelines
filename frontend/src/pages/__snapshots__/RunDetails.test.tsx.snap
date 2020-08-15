@@ -1144,6 +1144,12 @@ exports[`RunDetails shows a one-node compressed workflow graph 1`] = `
 />
 `;
 
+exports[`RunDetails shows a one-node compressed workflow graph 2`] = `
+<div
+  className="page"
+/>
+`;
+
 exports[`RunDetails shows a one-node graph 1`] = `
 <div
   className="page"
