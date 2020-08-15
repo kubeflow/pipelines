@@ -33,6 +33,8 @@ import (
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -43,6 +45,15 @@ const (
 	HasDefaultBucketEnvVar              = "HAS_DEFAULT_BUCKET"
 	ProjectIDEnvVar                     = "PROJECT_ID"
 	DefaultBucketNameEnvVar             = "BUCKET_NAME"
+)
+
+// Metric variables. Please prefix the metric names with resource_manager_.
+var (
+	// Count the removed workflows due to garbage collection.
+	workflowGCCounter = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "resource_manager_workflow_gc",
+		Help: "The number of gabarage-collected workflows",
+	})
 )
 
 type ClientManagerInterface interface {
@@ -700,6 +711,8 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 		if err != nil {
 			return util.NewInternalServerError(err, "Failed to delete the completed workflow for run %s", runId)
 		}
+		// TODO(jingzhang36): find a proper way to pass collectMetricsFlag here.
+		workflowGCCounter.Inc()
 	}
 
 	if jobId == "" {
