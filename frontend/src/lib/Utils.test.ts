@@ -266,11 +266,20 @@ describe('Utils', () => {
 
   describe('decodeCompressedNodes', () => {
     it('decompress encoded gzipped json', async () => {
-      await expect(
-        decodeCompressedNodes(
-          'H4sIAAAAAAACE6tWystPSS1WslKIrlbKS8xNBbLAQoZKOgpKmSlArmFtbC0A+U7xAicAAAA=',
-        ),
-      ).resolves.toEqual({ nodes: [{ name: 'node1', id: 1 }] });
+      let compressedNodes =
+        'H4sIAAAAAAACE6tWystPSS1WslKIrlbKS8xNBbLAQoZKOgpKmSlArmFtbC0A+U7xAicAAAA=';
+      expect(decodeCompressedNodes(compressedNodes)).resolves.toEqual({
+        nodes: [{ name: 'node1', id: 1 }],
+      });
+
+      compressedNodes = 'H4sIAAAAAAACE6tWystPSTVUslKoVspMAVJQfm0tAEBEv1kaAAAA';
+      expect(decodeCompressedNodes(compressedNodes)).resolves.toEqual({ node1: { id: 'node1' } });
+    });
+
+    it('return empty object if failed to decompress', async () => {
+      let compressedNodes =
+        'I4sIAAAAAAACE6tWystPSS1WslKIrlbKS8xNBbLAQoZKOgpKmSlArmFtbC0A+U7xAicAAAA=';
+      expect(decodeCompressedNodes(compressedNodes)).resolves.toEqual({});
     });
   });
 });

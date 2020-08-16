@@ -361,21 +361,22 @@ export function buildQuery(queriesMap: { [key: string]: string | number | undefi
   return `?${queryContent}`;
 }
 
-export async function decodeCompressedNodes(compressedNodes: string) {
-  try {
-    const decodedNodes = await new Promise<string>((resolve, reject) => {
-      const compressedBuffer = Buffer.from(compressedNodes, 'base64');
-      zlib.gunzip(compressedBuffer, (error, result: Buffer) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve(new TextDecoder('utf-8').decode(result));
+export async function decodeCompressedNodes(compressedNodes: string): Promise<object> {
+  return new Promise<object>((resolve, reject) => {
+    const compressedBuffer = Buffer.from(compressedNodes, 'base64');
+    zlib.gunzip(compressedBuffer, (error, result: Buffer) => {
+      if (error) {
+        logger.error('failed to gunzip data ', error);
+        resolve({});
+      } else {
+        try {
+          const strNodes = new TextDecoder('utf-8').decode(result);
+          const nodes = JSON.parse(strNodes);
+          resolve(nodes);
+        } catch (err) {
+          resolve({});
         }
-      });
+      }
     });
-    return JSON.parse(decodedNodes);
-  } catch (err) {
-    logger.error('Error decoding compressedNodes!', err);
-    throw err;
-  }
+  });
 }
