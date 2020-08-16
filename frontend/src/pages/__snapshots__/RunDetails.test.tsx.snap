@@ -1141,7 +1141,79 @@ exports[`RunDetails renders an empty run 1`] = `
 exports[`RunDetails shows a one-node compressed workflow graph 1`] = `
 <div
   className="page"
-/>
+>
+  <div
+    className="page"
+  >
+    <MD2Tabs
+      onSwitch={[Function]}
+      selectedTab={0}
+      tabs={
+        Array [
+          "Graph",
+          "Run output",
+          "Config",
+        ]
+      }
+    />
+    <div
+      className="page"
+    >
+      <div
+        className="page graphPane"
+      >
+        <div
+          className="page"
+        >
+          <EnhancedGraph
+            graph={
+              Graph {
+                "_defaultEdgeLabelFn": [Function],
+                "_defaultNodeLabelFn": [Function],
+                "_edgeLabels": Object {},
+                "_edgeObjs": Object {},
+                "_in": Object {},
+                "_isCompound": false,
+                "_isDirected": true,
+                "_isMultigraph": false,
+                "_label": Object {},
+                "_nodes": Object {},
+                "_out": Object {},
+                "_preds": Object {},
+                "_sucs": Object {},
+              }
+            }
+            onClick={[Function]}
+            onError={[Function]}
+            selectedNodeId=""
+          />
+          <SidePanel
+            isBusy={false}
+            isOpen={false}
+            onClose={[Function]}
+            title=""
+          />
+          <div
+            className="footer"
+          >
+            <div
+              className="flex"
+            >
+              <pure(InfoOutlinedIcon)
+                className="infoIcon"
+              />
+              <span
+                className="infoSpan"
+              >
+                Runtime execution graph. Only steps that are currently running or have already completed are shown.
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 `;
 
 exports[`RunDetails shows a one-node graph 1`] = `
