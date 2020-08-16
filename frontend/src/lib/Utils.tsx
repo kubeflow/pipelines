@@ -367,14 +367,14 @@ export async function decodeCompressedNodes(compressedNodes: string): Promise<ob
     zlib.gunzip(compressedBuffer, (error, result: Buffer) => {
       if (error) {
         logger.error('failed to gunzip data ', error);
-        resolve({});
+        resolve(undefined);
       } else {
         try {
           const strNodes = new TextDecoder('utf-8').decode(result);
           const nodes = JSON.parse(strNodes);
           resolve(nodes);
         } catch (err) {
-          resolve({});
+          resolve(undefined);
         }
       }
     });
