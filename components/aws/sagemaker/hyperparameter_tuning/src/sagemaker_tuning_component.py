@@ -127,7 +127,7 @@ class SageMakerTuningComponent(SageMakerComponent):
 
         request["TrainingJobDefinition"][
             "StaticHyperParameters"
-        ] = self._create_hyperparameters(inputs.static_parameters)
+        ] = self._validate_hyperparameters(inputs.static_parameters)
         request["TrainingJobDefinition"]["AlgorithmSpecification"][
             "TrainingInputMode"
         ] = inputs.training_input_mode

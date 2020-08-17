@@ -467,10 +467,10 @@ class ComponentFeatureTestCase(unittest.TestCase):
         invalid_params = {"tag1": 1500}
 
         self.assertEqual(
-            valid_params, SageMakerComponent._create_hyperparameters(valid_params)
+            valid_params, SageMakerComponent._validate_hyperparameters(valid_params)
         )
         with self.assertRaises(Exception):
-            SageMakerComponent._create_hyperparameters(invalid_params)
+            SageMakerComponent._validate_hyperparameters(invalid_params)
 
     def test_tags(self):
         spec = self.CommonInputsSpec(
