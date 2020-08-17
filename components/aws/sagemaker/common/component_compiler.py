@@ -11,8 +11,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict, Type, Union, List, NamedTuple, cast
-from kfp.components.structures import ComponentSpec, InputSpec, OutputSpec, ContainerImplementation, InputValuePlaceholder, OutputPathPlaceholder, ContainerSpec
+from typing import Callable, Dict, Type, Union, List, NamedTuple, cast
+from kfp.components.structures import (
+    ComponentSpec,
+    InputSpec,
+    OutputSpec,
+    ContainerImplementation,
+    InputValuePlaceholder,
+    OutputPathPlaceholder,
+    ContainerSpec,
+)
 
 from .sagemaker_component import SageMakerComponent
 from .sagemaker_component_spec import (
@@ -23,9 +31,7 @@ from .sagemaker_component_spec import (
 from .spec_validators import SpecValidators
 
 CommandlineArgumentType = Union[
-    str,
-    InputValuePlaceholder,
-    OutputPathPlaceholder,
+    str, InputValuePlaceholder, OutputPathPlaceholder,
 ]
 
 
@@ -42,7 +48,7 @@ class SageMakerComponentCompiler(object):
     """Compiles SageMaker components into its associated component.yaml."""
 
     # Maps all Python argument parser types to their associated KFP input types
-    KFP_TYPE_FROM_ARGS: Dict[object, str] = {
+    KFP_TYPE_FROM_ARGS: Dict[Callable, str] = {
         str: "String",
         int: "Integer",
         bool: "Bool",
@@ -99,6 +105,7 @@ class SageMakerComponentCompiler(object):
             input_validator: SageMakerComponentInputValidator = cast(
                 SageMakerComponentInputValidator, _input
             )
+
             # Map from argsparser to KFP component
             input_spec = InputSpec(
                 name=key,

@@ -214,7 +214,7 @@ class SageMakerComponent(object):
         pass
 
     @abstractmethod
-    def _submit_job_request(self, request: Dict) -> object:
+    def _submit_job_request(self, request: Dict) -> Dict:
         """Submits a pre-defined request object to SageMaker.
 
         The `request` argument should be provided as the result of the
@@ -224,7 +224,7 @@ class SageMakerComponent(object):
             request: A request object to execute the component.
 
         Returns:
-            object: The job objected that was created.
+            dict: The job object that was created.
 
         Raises:
             Exception: If SageMaker responded with an error during the request.
@@ -345,7 +345,7 @@ class SageMakerComponent(object):
         return request
 
     @staticmethod
-    def _create_hyperparameters(hyperparam_args: Dict) -> Dict:
+    def _validate_hyperparameters(hyperparam_args: Dict) -> Dict:
         """Validates hyperparameters and returns the dictionary used for a
         request.
 
@@ -353,7 +353,7 @@ class SageMakerComponent(object):
             hyperparam_args: HyperParameters as passed in by the user.
 
         Returns:
-            Dict: A validated set of HyperParameters.
+            dict: A validated set of HyperParameters.
         """
         # Validate all values are strings
         for key, value in hyperparam_args.items():
@@ -518,12 +518,28 @@ class SageMakerComponent(object):
             logging.error(CW_ERROR_MESSAGE)
             logging.error(e)
 
-    def _get_model_artifacts_from_job(self, job_name):
+    def _get_model_artifacts_from_job(self, job_name: str):
+        """Loads training job model artifact results from a completed job.
+
+        Args:
+            job_name: The name of the completed training job.
+
+        Returns:
+            str: The S3 model artifacts of the job.
+        """
         info = self._sm_client.describe_training_job(TrainingJobName=job_name)
         model_artifact_url = info["ModelArtifacts"]["S3ModelArtifacts"]
         return model_artifact_url
 
-    def _get_image_from_job(self, job_name):
+    def _get_image_from_job(self, job_name: str):
+        """Gets the training image URL from a training job.
+
+        Args:
+            job_name: The name of a training job.
+
+        Returns:
+            str: A training image URL.
+        """
         info = self._sm_client.describe_training_job(TrainingJobName=job_name)
         if "TrainingImage" in info["AlgorithmSpecification"]:
             image = info["AlgorithmSpecification"]["TrainingImage"]
