@@ -96,7 +96,7 @@ class SageMakerTrainingComponent(SageMakerComponent):
 
         request["TrainingJobName"] = self._training_job_name
         request["RoleArn"] = inputs.role
-        request["HyperParameters"] = self._create_hyperparameters(
+        request["HyperParameters"] = self._validate_hyperparameters(
             inputs.hyperparameters
         )
         request["AlgorithmSpecification"][

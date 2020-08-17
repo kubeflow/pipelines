@@ -6,7 +6,7 @@ Please read through this document before submitting any issues or pull requests 
 
 ## Coding Style
 
-We follow the [`black`](https://black.readthedocs.io/en/stable/) format for all of our Python code, and require that all contributions are formatted using the `black` formatter before submission. Also, it is encouraged to lint python docstrings by [`docformatter`](https://github.com/myint/docformatter).
+We follow the [`black`](https://black.readthedocs.io/en/stable/) format for all of our Python code, and require that all contributions are formatted using the `black` formatter before submission. Also, it is encouraged to lint Python docstrings by [`docformatter`](https://github.com/myint/docformatter).
 
 ### Automatic Code Formatting
 

@@ -14,6 +14,7 @@
 from dataclasses import dataclass
 
 from typing import (
+    Callable,
     List,
     NewType,
     Optional,
@@ -26,7 +27,7 @@ from .spec_validators import SpecValidators
 class SageMakerComponentInputValidator:
     """Defines the structure of a component input to be used for validation."""
 
-    input_type: object
+    input_type: Callable
     description: str
     required: bool = False
     choices: Optional[List[object]] = None
