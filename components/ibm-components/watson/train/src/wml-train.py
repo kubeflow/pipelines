@@ -28,7 +28,7 @@ def train(args):
     wml_train_code = args.train_code
     wml_execution_command = args.execution_command.strip('\'')
     wml_framework_name = args.framework if args.framework else 'tensorflow'
-    wml_framework_version = args.framework_version if args.framework_version else '1.14'
+    wml_framework_version = args.framework_version if args.framework_version else '1.15'
     wml_runtime_name = args.runtime if args.runtime else 'python'
     wml_runtime_version = args.runtime_version if args.runtime_version else '3.6'
     wml_run_definition = args.run_definition if args.run_definition else 'python-tensorflow-definition'
@@ -191,9 +191,8 @@ def train(args):
     training_details = client.training.get_details(run_uid)
     print("training_details", training_details)
  
-    training_uid = training_details['entity']['results_reference']['location']['training']
     Path(args.output_training_uid_path).parent.mkdir(parents=True, exist_ok=True)
-    Path(args.output_training_uid_path).write_text(training_uid)
+    Path(args.output_training_uid_path).write_text(run_uid)
 
 if __name__ == "__main__":
     import argparse

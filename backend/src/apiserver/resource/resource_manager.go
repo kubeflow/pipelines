@@ -33,6 +33,8 @@ import (
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -43,6 +45,15 @@ const (
 	HasDefaultBucketEnvVar              = "HAS_DEFAULT_BUCKET"
 	ProjectIDEnvVar                     = "PROJECT_ID"
 	DefaultBucketNameEnvVar             = "BUCKET_NAME"
+)
+
+// Metric variables. Please prefix the metric names with resource_manager_.
+var (
+	// Count the removed workflows due to garbage collection.
+	workflowGCCounter = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "resource_manager_workflow_gc",
+		Help: "The number of gabarage-collected workflows",
+	})
 )
 
 type ClientManagerInterface interface {
@@ -327,7 +338,7 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		return nil, util.Wrap(err, "Failed to verify parameters.")
 	}
 
-	r.setDefaultServiceAccount(&workflow)
+	r.setDefaultServiceAccount(&workflow, apiRun.GetServiceAccount())
 
 	// Disable istio sidecar injection
 	workflow.SetAnnotationsToAllTemplates(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
@@ -578,7 +589,7 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 		return nil, util.Wrap(err, "Create job failed")
 	}
 
-	r.setDefaultServiceAccount(&workflow)
+	r.setDefaultServiceAccount(&workflow, apiJob.GetServiceAccount())
 
 	// Disable istio sidecar injection
 	workflow.SetAnnotationsToAllTemplates(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
@@ -700,6 +711,8 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 		if err != nil {
 			return util.NewInternalServerError(err, "Failed to delete the completed workflow for run %s", runId)
 		}
+		// TODO(jingzhang36): find a proper way to pass collectMetricsFlag here.
+		workflowGCCounter.Inc()
 	}
 
 	if jobId == "" {
@@ -1101,7 +1114,11 @@ func (r *ResourceManager) GetNamespaceFromJobID(jobId string) (string, error) {
 	return job.Namespace, nil
 }
 
-func (r *ResourceManager) setDefaultServiceAccount(workflow *util.Workflow) {
+func (r *ResourceManager) setDefaultServiceAccount(workflow *util.Workflow, serviceAccount string) {
+	if len(serviceAccount) > 0 {
+		workflow.SetServiceAccount(serviceAccount)
+		return
+	}
 	workflowServiceAccount := workflow.Spec.ServiceAccountName
 	if len(workflowServiceAccount) == 0 || workflowServiceAccount == defaultPipelineRunnerServiceAccount {
 		// To reserve SDK backward compatibility, the backend only replaces

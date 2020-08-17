@@ -19,6 +19,7 @@ from .._client import Client
 from .run import run
 from .pipeline import pipeline
 from .diagnose_me_cli import diagnose_me
+from .experiment import experiment
 
 @click.group()
 @click.option('--endpoint', help='Endpoint of the KFP API service to connect.')
@@ -40,6 +41,7 @@ def main():
     cli.add_command(run)
     cli.add_command(pipeline)
     cli.add_command(diagnose_me,'diagnose_me')
+    cli.add_command(experiment)
     try:
         cli(obj={}, auto_envvar_prefix='KFP')
     except Exception as e:

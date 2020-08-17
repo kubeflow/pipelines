@@ -208,24 +208,27 @@ describe('OutputArtifactLoader', () => {
       fileToRead = '';
 
       const source = `
-      field1,field1,1
-      field1,field2,2
-      field2,field1,3
-      field2,field2,4
+      label1,label1,1
+      label1,label2,2
+      label2,label1,3
+      label2,label2,4
       `;
       const expectedResult: ConfusionMatrixConfig = {
         axes: ['field1', 'field2'],
         data: [
-          [1, 2],
-          [3, 4],
+          // Note, the data matrix's layout does not match how we show it in UI.
+          // field1 is x-axis, field2 is y-axis
+          [1 /* field1=label1, field2=label1 */, 2 /* field1=label1, field2=label2 */],
+          [3 /* field1=label2, field2=label1 */, 4 /* field1=label2, field2=label2 */],
         ],
-        labels: ['field1', 'field2'],
+        labels: ['label1', 'label2'],
         type: PlotType.CONFUSION_MATRIX,
       };
 
       const result = await OutputArtifactLoader.buildConfusionMatrixConfig(
         {
           ...basicMetadata,
+          labels: ['label1', 'label2'],
           storage: 'inline',
           source,
         } as any,

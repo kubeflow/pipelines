@@ -25,6 +25,7 @@ import {
   getArtifactServiceGetter,
 } from './handlers/artifacts';
 import { getTensorboardHandlers } from './handlers/tensorboard';
+import { getAuthorizeFn } from './helpers/auth';
 import { getPodLogsHandler } from './handlers/pod-logs';
 import { podInfoHandler, podEventsHandler } from './handlers/pod-info';
 import { getClusterNameHandler, getProjectIdHandler } from './handlers/gke-metadata';
@@ -33,6 +34,7 @@ import { getIndexHTMLHandler } from './handlers/index-html';
 
 import proxyMiddleware from './proxy-middleware';
 import { Server } from 'http';
+import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from './consts';
 
 function getRegisterHandler(app: Application, basePath: string) {
   return (
@@ -124,15 +126,15 @@ function createUIServer(options: UIConfigs) {
   );
   registerHandler(app.get, '/artifacts/get', getArtifactsHandler(options.artifacts));
 
+  /** Authorize function */
+  const authorizeFn = getAuthorizeFn(options.auth, { apiServerAddress });
+
   /** Tensorboard viewer */
   const {
     get: tensorboardGetHandler,
     create: tensorboardCreateHandler,
     delete: tensorboardDeleteHandler,
-  } = getTensorboardHandlers(options.viewer.tensorboard, {
-    apiServerAddress,
-    authzEnabled: options.auth.enabled,
-  });
+  } = getTensorboardHandlers(options.viewer.tensorboard, authorizeFn);
   registerHandler(app.get, '/apps/tensorboard', tensorboardGetHandler);
   registerHandler(app.delete, '/apps/tensorboard', tensorboardDeleteHandler);
   registerHandler(app.post, '/apps/tensorboard', tensorboardCreateHandler);
@@ -162,6 +164,7 @@ function createUIServer(options: UIConfigs) {
       onProxyReq: proxyReq => {
         console.log('Metadata proxied request: ', (proxyReq as any).path);
       },
+      headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
       target: envoyServiceAddress,
     }),
   );
@@ -192,6 +195,7 @@ function createUIServer(options: UIConfigs) {
       onProxyReq: proxyReq => {
         console.log('Proxied request: ', proxyReq.path);
       },
+      headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
       target: apiServerAddress,
     }),
   );
@@ -202,6 +206,7 @@ function createUIServer(options: UIConfigs) {
       onProxyReq: proxyReq => {
         console.log('Proxied request: ', proxyReq.path);
       },
+      headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
       pathRewrite: pathStr =>
         pathStr.startsWith(basePath) ? pathStr.substr(basePath.length, pathStr.length) : pathStr,
       target: apiServerAddress,

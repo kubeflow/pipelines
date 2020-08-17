@@ -4,10 +4,64 @@ The version of the AWS SageMaker Components is determined by the docker image ta
 Repository:  https://hub.docker.com/repository/docker/amazon/aws-sagemaker-kfp-components
 
 ---------------------------------------------
+**Change log for version 0.7.0**
+- Add functionality to assume role when sending SageMaker requests
+
+>  Pull requests : [#4212](https://github.com/kubeflow/pipelines/pull/4212)
+
+
+**Change log for version 0.6.0**
+- Add functionality to stop SageMaker jobs on run termination
+
+>  Pull requests : [#4167](https://github.com/kubeflow/pipelines/pull/4167)
+
+
+**Change log for version 0.5.3**
+- Add static error string in case of error fetching logs
+
+>  Pull requests : [#4056](https://github.com/kubeflow/pipelines/pull/4056)
+
+
+**Change log for version 0.5.2**
+- Modified outputs to use newer `outputPath` syntax
+
+> Pull requests : [#4119](https://github.com/kubeflow/pipelines/pull/4119)
+
+
+**Change log for version 0.5.1**
+- Update region support for GroudTruth component
+- Make `label_category_config` an optional parameter in Ground Truth component
+
+> Pull requests : [#3932](https://github.com/kubeflow/pipelines/pull/3932)
+
+
+**Change log for version 0.5.0**
+- Print SageMaker logs in KFP UI for Train, Transform and Process component
+
+> Pull requests : [#3954](https://github.com/kubeflow/pipelines/pull/3954)
+
+
+**Change log for version 0.4.1**
+- Fix breaking bug in HPO component
+
+> Pull requests : [#4010](https://github.com/kubeflow/pipelines/pull/4010)
+
+
+**Change log for version 0.4.0**
+- Add new component for SageMaker Processing Jobs
+
+> Pull requests : [#3944](https://github.com/kubeflow/pipelines/pull/3944)
+
+
+**Change log for version 0.3.1**
+- Explicitly specify component field types
+
+> Pull requests : [#3683](https://github.com/kubeflow/pipelines/pull/3683)
+
 
 **Change log for version 0.3.0**
 - Remove data_location parameters from all components
-	  (Use "channes" parameter instead)
+	  (Use "channels" parameter instead)
 
 > Pull requests : [#3518](https://github.com/kubeflow/pipelines/pull/3518)
 

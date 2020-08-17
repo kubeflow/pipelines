@@ -27,15 +27,20 @@ REQUIRES = [
     'requests_toolbelt>=0.8.0',
     'cloudpickle',
     # Update the upper version whenever a new major version of the
-    # kfp-server-api package is released. Update the lower version when there is
-    # a breaking change in kfp-server-api, or kfp sdk depends on new api changes
-    # in kfp-server-api.
-    'kfp-server-api>=0.2.5, <0.6.0',
+    # kfp-server-api package is released.
+    # Update the lower version when kfp sdk depends on new apis/fields in
+    # kfp-server-api.
+    # Note, please also update ./requirements.in
+    'kfp-server-api>=0.2.5, <2.0.0',
     'jsonschema >= 3.0.1',
     'tabulate',
     'click',
     'Deprecated',
     'strip-hints',
+]
+
+TESTS_REQUIRE = [
+    'mock',
 ]
 
 
@@ -61,6 +66,7 @@ setup(
     description='KubeFlow Pipelines SDK',
     author='google',
     install_requires=REQUIRES,
+    tests_require=TESTS_REQUIRE,
     packages=[
         'kfp',
         'kfp.cli',
@@ -68,7 +74,6 @@ setup(
         'kfp.compiler',
         'kfp.components',
         'kfp.components.structures',
-        'kfp.components.structures.kubernetes',
         'kfp.containers',
         'kfp.dsl',
         'kfp.dsl.extensions',

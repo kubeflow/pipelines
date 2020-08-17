@@ -22,11 +22,12 @@ import DialogContent from '@material-ui/core/DialogContent';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import ErrorIcon from '@material-ui/icons/Error';
 import WarningIcon from '@material-ui/icons/Warning';
+import InfoIcon from '@material-ui/icons/Info';
 import { classes, stylesheet } from 'typestyle';
 
 import { color, commonCss, spacing } from '../Css';
 
-export type Mode = 'error' | 'warning';
+export type Mode = 'error' | 'warning' | 'info';
 
 export const css = stylesheet({
   banner: {
@@ -69,6 +70,7 @@ export interface BannerProps {
   additionalInfo?: string;
   message?: string;
   mode?: Mode;
+  showTroubleshootingGuideLink?: boolean;
   refresh?: () => void;
 }
 
@@ -92,6 +94,8 @@ class Banner extends React.Component<BannerProps, BannerState> {
     });
     let bannerIcon = <ErrorIcon className={css.icon} />;
     let dialogTitle = 'An error occurred';
+    let showTroubleshootingGuideLink = false;
+    let showRefreshButton = true;
 
     switch (this.props.mode) {
       case 'error':
@@ -100,6 +104,7 @@ class Banner extends React.Component<BannerProps, BannerState> {
         });
         bannerIcon = <ErrorIcon className={css.icon} />;
         dialogTitle = 'An error occurred';
+        showTroubleshootingGuideLink = this.props.showTroubleshootingGuideLink || false;
         break;
       case 'warning':
         bannerModeCss = stylesheet({
@@ -107,6 +112,14 @@ class Banner extends React.Component<BannerProps, BannerState> {
         });
         bannerIcon = <WarningIcon className={css.icon} />;
         dialogTitle = 'Warning';
+        break;
+      case 'info':
+        bannerModeCss = stylesheet({
+          mode: { backgroundColor: color.infoBg, color: color.infoText },
+        });
+        bannerIcon = <InfoIcon className={css.icon} />;
+        dialogTitle = 'Info';
+        showRefreshButton = false;
         break;
       default:
         // Already set defaults above.
@@ -120,12 +133,14 @@ class Banner extends React.Component<BannerProps, BannerState> {
           {this.props.message}
         </div>
         <div className={commonCss.flex}>
-          <a
-            className={css.troubleShootingLink}
-            href='https://www.kubeflow.org/docs/pipelines/troubleshooting'
-          >
-            Troubleshooting guide
-          </a>
+          {showTroubleshootingGuideLink && (
+            <a
+              className={css.troubleShootingLink}
+              href='https://www.kubeflow.org/docs/pipelines/troubleshooting'
+            >
+              Troubleshooting guide
+            </a>
+          )}
           {this.props.additionalInfo && (
             <Button
               className={classes(css.button, css.detailsButton)}
@@ -134,7 +149,7 @@ class Banner extends React.Component<BannerProps, BannerState> {
               Details
             </Button>
           )}
-          {this.props.refresh && (
+          {showRefreshButton && this.props.refresh && (
             <Button
               className={classes(css.button, css.refreshButton)}
               onClick={this._refresh.bind(this)}

@@ -28,6 +28,20 @@ export enum PeriodicInterval {
   WEEK = 'Week',
   MONTH = 'Month',
 }
+const INTERVAL_SECONDS = {
+  [PeriodicInterval.MINUTE]: 60,
+  [PeriodicInterval.HOUR]: 60 * 60,
+  [PeriodicInterval.DAY]: 60 * 60 * 24,
+  [PeriodicInterval.WEEK]: 60 * 60 * 24 * 7,
+  [PeriodicInterval.MONTH]: 60 * 60 * 24 * 30,
+};
+const PERIODIC_INTERVAL_DESCENDING = [
+  PeriodicInterval.MONTH,
+  PeriodicInterval.WEEK,
+  PeriodicInterval.DAY,
+  PeriodicInterval.HOUR,
+  PeriodicInterval.MINUTE,
+];
 
 export const triggers = new Map<TriggerType, { displayName: string }>([
   [TriggerType.INTERVALED, { displayName: 'Periodic' }],
@@ -35,27 +49,25 @@ export const triggers = new Map<TriggerType, { displayName: string }>([
 ]);
 
 export function getPeriodInSeconds(interval: PeriodicInterval, count: number): number {
-  let intervalSeconds = 0;
-  switch (interval) {
-    case PeriodicInterval.MINUTE:
-      intervalSeconds = 60;
-      break;
-    case PeriodicInterval.HOUR:
-      intervalSeconds = 60 * 60;
-      break;
-    case PeriodicInterval.DAY:
-      intervalSeconds = 60 * 60 * 24;
-      break;
-    case PeriodicInterval.WEEK:
-      intervalSeconds = 60 * 60 * 24 * 7;
-      break;
-    case PeriodicInterval.MONTH:
-      intervalSeconds = 60 * 60 * 24 * 30;
-      break;
-    default:
-      throw new Error('Invalid interval category: ' + interval);
+  const intervalSeconds = INTERVAL_SECONDS[interval];
+  if (!intervalSeconds) {
+    throw new Error('Invalid interval category: ' + interval);
   }
   return intervalSeconds * count;
+}
+export function parsePeriodFromSeconds(
+  seconds: number,
+): { interval: PeriodicInterval; count: number } {
+  for (const interval of PERIODIC_INTERVAL_DESCENDING) {
+    const intervalSeconds = INTERVAL_SECONDS[interval];
+    if (seconds % intervalSeconds === 0) {
+      return {
+        interval,
+        count: seconds / intervalSeconds,
+      };
+    }
+  }
+  throw new Error('Invalid seconds: ' + seconds);
 }
 
 export function buildCron(
@@ -172,6 +184,66 @@ export function buildTrigger(
   }
 
   return trigger;
+}
+
+export type ParsedTrigger =
+  | {
+      type: TriggerType.INTERVALED;
+      intervalCategory: PeriodicInterval;
+      intervalValue: number;
+      startDateTime?: Date;
+      endDateTime?: Date;
+      cron?: undefined;
+    }
+  | {
+      type: TriggerType.CRON;
+      intervalCategory?: undefined;
+      intervalValue?: undefined;
+      startDateTime?: Date;
+      endDateTime?: Date;
+      cron: string;
+    };
+
+export function parseTrigger(trigger: ApiTrigger): ParsedTrigger {
+  if (trigger.periodic_schedule) {
+    const periodicSchedule = trigger.periodic_schedule;
+    const intervalSeconds = parseInt(periodicSchedule.interval_second || '', 10);
+    if (Number.isNaN(intervalSeconds)) {
+      throw new Error(
+        `Interval seconds is NaN: ${periodicSchedule.interval_second} for ${JSON.stringify(
+          trigger,
+        )}`,
+      );
+    }
+    const { interval: intervalCategory, count: intervalValue } = parsePeriodFromSeconds(
+      intervalSeconds,
+    );
+    return {
+      type: TriggerType.INTERVALED,
+      intervalCategory,
+      intervalValue,
+      // Generated client has a bug the fields will be string here instead, so
+      // we use new Date() to convert them to Date.
+      startDateTime: periodicSchedule.start_time
+        ? new Date(periodicSchedule.start_time as any)
+        : undefined,
+      endDateTime: periodicSchedule.end_time
+        ? new Date(periodicSchedule.end_time as any)
+        : undefined,
+    };
+  }
+  if (trigger.cron_schedule) {
+    const { cron, start_time: startTime, end_time: endTime } = trigger.cron_schedule;
+    return {
+      type: TriggerType.CRON,
+      cron: cron || '',
+      // Generated client has a bug the fields will be string here instead, so
+      // we use new Date() to convert them to Date.
+      startDateTime: startTime ? new Date(startTime as any) : undefined,
+      endDateTime: endTime ? new Date(endTime as any) : undefined,
+    };
+  }
+  throw new Error(`Invalid trigger: ${JSON.stringify(trigger)}`);
 }
 
 export function dateToPickerFormat(d: Date): [string, string] {

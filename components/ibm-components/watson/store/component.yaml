@@ -19,7 +19,7 @@ inputs:
   - {name: run_uid,        description: 'Required. UID for the Watson Machine Learning training-runs'}
   - {name: model_name,     description: 'Required. Model Name to store on Watson Machine Learning'}
   - {name: framework,         description: 'ML/DL Model Framework', default: 'tensorflow'}
-  - {name: framework_version, description: 'Model Framework version', default: '1.14'}
+  - {name: framework_version, description: 'Model Framework version', default: '1.15'}
   - {name: runtime_version,   description: 'Model Code runtime version', default: '3.6'}
 outputs:
   - {name: model_uid,      description: 'UID for the stored model on Watson Machine Learning'}

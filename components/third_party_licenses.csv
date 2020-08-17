@@ -40,7 +40,7 @@ pexpect,https://raw.githubusercontent.com/pexpect/pexpect/ab7d99a670794fc2b03654
 setuptools,https://raw.githubusercontent.com/pypa/setuptools/master/LICENSE,MIT
 tornado,https://raw.githubusercontent.com/tornadoweb/tornado/stable/LICENSE,Apache Software License 2.0
 traitlets,https://raw.githubusercontent.com/ipython/traitlets/master/COPYING.md,BSD
-subprocess32,https://raw.githubusercontent.com/google/python-subprocess32/master/LICENSE,Python Software Foundation License
+subprocess32,https://raw.githubusercontent.com/google/python-subprocess32/main/LICENSE,Python Software Foundation License
 jinja2,https://raw.githubusercontent.com/pallets/jinja/master/LICENSE.rst,BSD
 html5lib,https://raw.githubusercontent.com/html5lib/html5lib-python/master/LICENSE,MIT
 opencv-python,https://raw.githubusercontent.com/skvark/opencv-python/master/LICENSE.txt,MIT
@@ -101,7 +101,7 @@ google-gax,https://raw.githubusercontent.com/googleapis/gax-python/master/LICENS
 googleapis-common-protos,https://raw.githubusercontent.com/googleapis/api-common-protos/master/LICENSE,Apache 2.0
 googledatastore,https://raw.githubusercontent.com/GoogleCloudPlatform/google-cloud-datastore/master/LICENSE,Apache 2.0
 hdfs,https://github.com/mtth/hdfs/blob/master/LICENSE,MIT
-idna,https://raw.githubusercontent.com/kjd/idna/master/LICENSE.rst,BSD-like
+idna,https://raw.githubusercontent.com/kjd/idna/master/LICENSE.md,BSD-3
 Markdown,https://raw.githubusercontent.com/Python-Markdown/markdown/master/LICENSE.md,BSD
 monotonic,https://raw.githubusercontent.com/atdt/monotonic/master/LICENSE,Apache 2.0
 oauth2client,https://raw.githubusercontent.com/google/oauth2client/master/LICENSE,Apache 2.0
@@ -167,7 +167,7 @@ simplegeneric,https://opensource.org/licenses/ZPL-2.0,ZPL 2.1
 singledispatch,https://opensource.org/licenses/MIT,MIT
 tensorflow-model-analysis,https://github.com/tensorflow/model-analysis/blob/master/LICENSE,Apache 2.0
 terminado,https://raw.githubusercontent.com/jupyter/terminado/master/LICENSE,BSD
-wcwidth,https://raw.githubusercontent.com/jquast/wcwidth/master/LICENSE.txt,MIT
+wcwidth,https://raw.githubusercontent.com/jquast/wcwidth/master/LICENSE,MIT
 widgetsnbextension,https://raw.githubusercontent.com/jupyter-widgets/ipywidgets/master/widgetsnbextension/LICENSE,BSD
 pandas,https://raw.githubusercontent.com/pandas-dev/pandas/master/LICENSE,3-Clause BSD
 scikit-learn,https://raw.githubusercontent.com/scikit-learn/scikit-learn/master/COPYING,BSD

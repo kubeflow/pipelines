@@ -9,17 +9,14 @@ spec:
         - name: ml-pipeline-api-server
           env:
             - name: HAS_DEFAULT_BUCKET
-              valueFrom:
-                configMapKeyRef:
-                  name: gcp-default-config
-                  key: "has_default_bucket"
+              value: 'true'
             - name: BUCKET_NAME
               valueFrom:
                 configMapKeyRef:
-                  name: gcp-default-config
-                  key: "bucket_name"
+                  name: pipeline-install-config
+                  key: bucketName
             - name: PROJECT_ID
               valueFrom:
                 configMapKeyRef:
-                  name: gcp-default-config
-                  key: "project_id"
+                  name: pipeline-install-config
+                  key: gcsProjectId

@@ -24,27 +24,27 @@ import subprocess
 diagnose_me_op = components.load_component_from_url(
     'https://raw.githubusercontent.com/kubeflow/pipelines/566dddfdfc0a6a725b6e50ea85e73d8d5578bbb9/components/diagnostics/diagnose_me/component.yaml')
 
-confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/01a23ae8672d3b18e88adf3036071496aca3552d/components/local/confusion_matrix/component.yaml')
+confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/1.0.0/components/local/confusion_matrix/component.yaml')
 
-roc_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/01a23ae8672d3b18e88adf3036071496aca3552d/components/local/roc/component.yaml')
+roc_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/1.0.0/components/local/roc/component.yaml')
 
 dataproc_create_cluster_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/01a23ae8672d3b18e88adf3036071496aca3552d/components/gcp/dataproc/create_cluster/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/1.0.0/components/gcp/dataproc/create_cluster/component.yaml')
 
 dataproc_delete_cluster_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/01a23ae8672d3b18e88adf3036071496aca3552d/components/gcp/dataproc/delete_cluster/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/1.0.0/components/gcp/dataproc/delete_cluster/component.yaml')
 
 dataproc_submit_pyspark_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/01a23ae8672d3b18e88adf3036071496aca3552d/components/gcp/dataproc/submit_pyspark_job/component.yaml'
+    'https://raw.githubusercontent.com/kubeflow/pipelines/1.0.0/components/gcp/dataproc/submit_pyspark_job/component.yaml'
 )
 
 dataproc_submit_spark_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/01a23ae8672d3b18e88adf3036071496aca3552d/components/gcp/dataproc/submit_spark_job/component.yaml'
+    'https://raw.githubusercontent.com/kubeflow/pipelines/1.0.0/components/gcp/dataproc/submit_spark_job/component.yaml'
 )
 
-_PYSRC_PREFIX = 'gs://ml-pipeline-playground/dataproc-example' # Common path to python src.
+_PYSRC_PREFIX = 'gs://ml-pipeline/sample-pipeline/xgboost' # Common path to python src.
 
-_XGBOOST_PKG = 'gs://ml-pipeline-playground/xgboost4j-example-0.8-SNAPSHOT-jar-with-dependencies.jar'
+_XGBOOST_PKG = 'gs://ml-pipeline/sample-pipeline/xgboost/xgboost4j-example-0.8-SNAPSHOT-jar-with-dependencies.jar'
 
 _TRAINER_MAIN_CLS = 'ml.dmlc.xgboost4j.scala.example.spark.XGBoostTrainer'
 
@@ -151,9 +151,9 @@ def dataproc_train_op(
 ):
 
   if is_classification:
-    config='gs://ml-pipeline-playground/trainconfcla.json'
+    config='gs://ml-pipeline/sample-data/xgboost-config/trainconfcla.json'
   else:
-    config='gs://ml-pipeline-playground/trainconfreg.json'
+    config='gs://ml-pipeline/sample-data/xgboost-config/trainconfreg.json'
 
   return dataproc_submit_spark_op(
       project_id=project,
@@ -214,9 +214,9 @@ def xgb_train_pipeline(
     region='us-central1'
     workers=2
     quota_check=[{'region':region,'metric':'CPUS','quota_needed':12.0}]
-    train_data='gs://ml-pipeline-playground/sfpd/train.csv'
-    eval_data='gs://ml-pipeline-playground/sfpd/eval.csv'
-    schema='gs://ml-pipeline-playground/sfpd/schema.json'
+    train_data='gs://ml-pipeline/sample-data/sfpd/train.csv'
+    eval_data='gs://ml-pipeline/sample-data/sfpd/eval.csv'
+    schema='gs://ml-pipeline/sample-data/sfpd/schema.json'
     true_label='ACTION'
     target='resolution'
     required_apis='dataproc.googleapis.com'

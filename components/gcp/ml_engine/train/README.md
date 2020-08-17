@@ -49,6 +49,7 @@ Use this component to submit a training job to AI Platform from a Kubeflow pipel
 | worker_image_uri | The Docker image to run on the worker replica. This image must be in Container Registry. | Yes | GCRPath |-  | None |
 | training_input | The input parameters to create a training job. | Yes | Dict | [TrainingInput](https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs#TrainingInput) | None |
 | job_id_prefix | The prefix of the job ID that is generated. | Yes | String | - | None |
+| job_id | The ID of the job to create, takes precedence over generated job id if set. | Yes | String | - | None |
 | wait_interval | The number of seconds to wait between API calls to get the status of the job. | Yes | Integer | - | 30 |
 
 
@@ -99,7 +100,7 @@ The steps to use the component in a pipeline are:
     ```python
     import kfp.components as comp
 
-    mlengine_train_op = comp.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/01a23ae8672d3b18e88adf3036071496aca3552d/components/gcp/ml_engine/train/component.yaml')
+    mlengine_train_op = comp.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/1.0.0/components/gcp/ml_engine/train/component.yaml')
     help(mlengine_train_op)
     ```
 ### Sample
@@ -179,6 +180,7 @@ def pipeline(
     worker_image_uri = '',
     training_input = '',
     job_id_prefix = '',
+    job_id = '',
     wait_interval = '30'):
     task = mlengine_train_op(
         project_id=project_id, 
@@ -193,6 +195,7 @@ def pipeline(
         worker_image_uri=worker_image_uri, 
         training_input=training_input, 
         job_id_prefix=job_id_prefix, 
+        job_id=job_id,
         wait_interval=wait_interval)
 ```
 

@@ -95,7 +95,7 @@ Follow these steps to use the component in a pipeline:
     import kfp.components as comp
 
     dataproc_submit_spark_job_op = comp.load_component_from_url(
-        'https://raw.githubusercontent.com/kubeflow/pipelines/01a23ae8672d3b18e88adf3036071496aca3552d/components/gcp/dataproc/submit_spark_job/component.yaml')
+        'https://raw.githubusercontent.com/kubeflow/pipelines/1.0.0/components/gcp/dataproc/submit_spark_job/component.yaml')
     help(dataproc_submit_spark_job_op)
     ```
 

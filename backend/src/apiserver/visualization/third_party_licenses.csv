@@ -54,7 +54,7 @@ grpcio-gcp,https://raw.githubusercontent.com/GoogleCloudPlatform/grpc-gcp-python
 h5py,https://raw.githubusercontent.com/h5py/h5py/master/LICENSE,BSD-3
 hdfs,https://raw.githubusercontent.com/mtth/hdfs/master/LICENSE,MIT
 httplib2,https://raw.githubusercontent.com/httplib2/httplib2/master/LICENSE,MIT
-idna,https://raw.githubusercontent.com/kjd/idna/master/LICENSE.rst,BSD-3
+idna,https://raw.githubusercontent.com/kjd/idna/master/LICENSE.md,BSD-3
 importlib-metadata,https://gitlab.com/python-devs/importlib_metadata/master/LICENSE,Apache 2.0
 ipykernel,https://raw.githubusercontent.com/ipython/ipykernel/master/COPYING.md,BSD-3
 ipython,https://raw.githubusercontent.com/ipython/ipython/master/LICENSE,BSD-3
@@ -140,3 +140,8 @@ SecretStorage,https://raw.githubusercontent.com/mitya57/secretstorage/master/LIC
 Mako,https://raw.githubusercontent.com/sqlalchemy/mako/master/LICENSE,MIT
 typing-extensions,https://raw.githubusercontent.com/python/typing/master/typing_extensions/LICENSE,Python Software Foundation License
 QtPy,https://raw.githubusercontent.com/spyder-ide/qtpy/master/LICENSE.txt,MIT
+argon2-cffi,https://raw.githubusercontent.com/hynek/argon2-cffi/master/LICENSE,MIT
+pycparser,https://raw.githubusercontent.com/eliben/pycparser/master/LICENSE,BSD
+cffi,https://raw.githubusercontent.com/cffi/cffi/master/COPYRIGHT,MIT
+astunparse,https://raw.githubusercontent.com/simonpercivall/astunparse/master/LICENSE,PSF
+tensorboard-plugin-wit,https://raw.githubusercontent.com/PAIR-code/what-if-tool/master/LICENSE,Apache 2.0

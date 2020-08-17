@@ -4,6 +4,9 @@ metadata:
   name: mysql
 spec:
   ports:
-  - port: 3306
+  - # We cannot have name: mysql here, because some requests through istio fail with it.
+    port: 3306
+    protocol: TCP
+    targetPort: 3306
   selector:
     app: mysql

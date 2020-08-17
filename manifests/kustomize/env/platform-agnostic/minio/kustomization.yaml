@@ -5,3 +5,10 @@ resources:
 - minio-deployment.yaml
 - minio-pvc.yaml
 - minio-service.yaml
+
+secretGenerator:
+- name: mlpipeline-minio-artifact
+  env: minio-artifact-secret.env
+generatorOptions:
+  # mlpipeline-minio-artifact needs to be referred by exact name
+  disableNameSuffixHash: true

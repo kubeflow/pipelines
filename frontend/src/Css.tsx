@@ -43,6 +43,8 @@ export const color = {
   themeDarker: '#0b59dc',
   warningBg: '#f9f9e1',
   warningText: '#ee8100',
+  infoBg: '#f3f4ff',
+  infoText: '#1a73e8',
   weak: '#9aa0a6',
 };
 
