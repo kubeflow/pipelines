@@ -1,8 +1,8 @@
 # volume-support
 
-> Beta
+> Alpha
 >
-> This kubeflow pipeline volume support has **beta** status 
+> This kubeflow pipeline volume support has **alpha** status 
 
 Now you can use volume and volume mount to support [tensorboard viewer and other visualize results](https://www.kubeflow.org/docs/pipelines/sdk/output-viewer). following steps is the detail information to do this.
 
