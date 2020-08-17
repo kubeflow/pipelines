@@ -11,9 +11,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import yaml
-from typing import Dict, Type, Optional, Union, List, NamedTuple, cast
-from mypy_extensions import TypedDict
+from typing import Dict, Type, Union, List, NamedTuple, cast
+from kfp.components.structures import ComponentSpec, InputSpec, OutputSpec, ContainerImplementation, InputValuePlaceholder, OutputPathPlaceholder, ContainerSpec
 
 from .sagemaker_component import SageMakerComponent
 from .sagemaker_component_spec import (
@@ -23,46 +22,11 @@ from .sagemaker_component_spec import (
 )
 from .spec_validators import SpecValidators
 
-# The following classes are structures defining KFP component.yaml files
-# The root of the structure is `ComponentSpec`
-class InputSpec(TypedDict, total=False):
-    name: str
-    description: str
-    type: str
-    default: Optional[str]
-    required: Optional[bool]
-
-
-class OutputSpec(TypedDict):
-    name: str
-    description: str
-
-
-class ArgumentValueSpec(TypedDict, total=False):
-    inputValue: str
-    outputPath: str
-
-
-class ContainerSpec(TypedDict):
-
-    image: str
-    command: List[str]
-    args: List[Union[str, ArgumentValueSpec]]
-
-
-class ImplementationSpec(TypedDict):
-
-    container: ContainerSpec
-
-
-class ComponentSpec(TypedDict):
-    """Defines the structure of a KFP `component.yaml` file."""
-
-    name: str
-    description: str
-    inputs: List[InputSpec]
-    outputs: List[OutputSpec]
-    implementation: ImplementationSpec
+CommandlineArgumentType = Union[
+    str,
+    InputValuePlaceholder,
+    OutputPathPlaceholder,
+]
 
 
 class IOArgs(NamedTuple):
@@ -71,7 +35,7 @@ class IOArgs(NamedTuple):
 
     inputs: List[InputSpec]
     outputs: List[OutputSpec]
-    args: List[Union[str, ArgumentValueSpec]]
+    args: List[Union[str, CommandlineArgumentType]]
 
 
 class SageMakerComponentCompiler(object):
@@ -146,15 +110,15 @@ class SageMakerComponentCompiler(object):
 
             # Add optional fields
             if input_validator.default is not None:
-                input_spec["default"] = str(input_validator.default)
+                input_spec.__dict__["default"] = str(input_validator.default)
             elif not input_validator.required:
                 # If not required and has no default, add empty string
-                input_spec["default"] = ""
+                input_spec.__dict__["default"] = ""
             inputs.append(input_spec)
 
             # Add arguments to input list
             args.append(f"--{key}")
-            args.append(ArgumentValueSpec(inputValue=key))
+            args.append(InputValuePlaceholder(input_name=key))
 
         for key, _output in spec.OUTPUTS.__dict__.items():
             output_validator: SageMakerComponentOutputValidator = cast(
@@ -166,7 +130,7 @@ class SageMakerComponentCompiler(object):
 
             # Add arguments to input list
             args.append(f"--{key}{SageMakerComponentSpec.OUTPUT_ARGUMENT_SUFFIX}")
-            args.append(ArgumentValueSpec(outputPath=key))
+            args.append(OutputPathPlaceholder(output_name=key))
 
         return IOArgs(inputs=inputs, outputs=outputs, args=args)
 
@@ -197,7 +161,7 @@ class SageMakerComponentCompiler(object):
             description=component_def.COMPONENT_DESCRIPTION,
             inputs=io_args.inputs,
             outputs=io_args.outputs,
-            implementation=ImplementationSpec(
+            implementation=ContainerImplementation(
                 container=ContainerSpec(
                     image=f"{component_image_uri}:{component_image_tag}",
                     command=["python3"],
@@ -214,8 +178,7 @@ class SageMakerComponentCompiler(object):
             component_spec: A `component.yaml` specification object.
             output_path: The path to write the specification.
         """
-        with open(output_path, "w") as stream:
-            yaml.dump(component_spec, stream)
+        component_spec.save(output_path)
 
     @staticmethod
     def compile(
