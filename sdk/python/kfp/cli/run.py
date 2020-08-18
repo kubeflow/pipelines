@@ -34,7 +34,7 @@ def run():
 def list(ctx, experiment_id, max_size):
     """list recent KFP runs"""
     client = ctx.obj['client']
-    response = client.list_runs(experiment_id=experiment_id, page_size=max_size, sort_by='created_at desc')
+    response = client.list_runs(experiment_id=experiment_id, page_size=max_size, sort_by='created_at desc', namespace=ctx.obj['namespace'])
     if response and response.runs:
         _print_runs(response.runs)
     else:
@@ -61,7 +61,7 @@ def submit(ctx, experiment_name, run_name, package_file, pipeline_id, watch, ver
         sys.exit(1)
 
     arg_dict = dict(arg.split('=') for arg in args)
-    experiment = client.create_experiment(experiment_name)
+    experiment = client.create_experiment(experiment_name, namespace=ctx.obj['namespace'])
     run = client.run_pipeline(experiment.id, run_name, package_file, arg_dict, pipeline_id, version_id=version)
     print('Run {} is submitted'.format(run.id))
     _display_run(client, namespace, run.id, watch)

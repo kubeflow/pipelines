@@ -146,6 +146,7 @@ class Client(object):
       config.ssl_ca_cert = ssl_ca_cert
 
     host = host or ''
+    namespace = 'kubeflow'  # TODO AIP-1676 Introduce api-namespace and experiment-namespace contents into KFP CLI/SDK :/
     # Preprocess the host endpoint to prevent some common user mistakes.
     if not client_id:
       # always preserving the protocol (http://localhost requires it)
