@@ -7,10 +7,11 @@ import copy
 from kfp import components
 from kfp import dsl
 
-sagemaker_train_op = components.load_component_from_file(
-    "../../../../components/aws/sagemaker/train/component.yaml"
-)
 
+cur_file_dir = os.path.dirname(__file__)
+components_dir = os.path.join(cur_file_dir, '../../../../components/aws/sagemaker/')
+
+sagemaker_train_op = components.load_component_from_file(components_dir + '/train/component.yaml')
 
 def training_input(input_name, s3_uri, content_type):
     return {

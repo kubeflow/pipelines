@@ -112,14 +112,18 @@ class TrainTestCase(unittest.TestCase):
 
   def test_utils_stop_training_job(self):
     mock_sm_client = MagicMock()
-    mock_sm_client.stop_training_job.return_value = None
+    mock_sm_client.stop_training_job.return_value = 'FakeJobName'
+
+    mock_sm_client.describe_training_job.side_effect = [
+        {"TrainingJobStatus": "InProgress"}
+    ]
 
     response = _utils.stop_training_job(mock_sm_client, 'FakeJobName')
 
     mock_sm_client.stop_training_job.assert_called_once_with(
         TrainingJobName='FakeJobName'
     )
-    self.assertEqual(response, None)
+    self.assertEqual(response, 'FakeJobName')
 
   def test_utils_stop_debug_rules(self):
     mock_sm_client = MagicMock()

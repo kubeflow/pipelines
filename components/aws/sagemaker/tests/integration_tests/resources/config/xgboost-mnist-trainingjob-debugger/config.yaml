@@ -1,59 +1,7 @@
-PipelineDefinition: resources/definition/training_pipeline.py
+PipelineDefinition: ../../../../../samples/contrib/aws-samples/sagemaker_debugger_demo/debugger-training-pipeline.py
 TestName: xgboost-mnist-trainingjob-debugger
 Timeout: 3600
-ExpectedTrainingImage: ((XGBOOST_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/sagemaker-xgboost:1.0-1-cpu-py3
+ExpectedTrainingImage: 683313688378.dkr.ecr.us-east-1.amazonaws.com/sagemaker-xgboost:0.90-2-cpu-py3
 Arguments:
-  region: ((REGION))
-  image: ((XGBOOST_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/sagemaker-xgboost:1.0-1-cpu-py3
-  training_input_mode: File
-  hyperparameters:
-    max_depth: "5"
-    eta: "0.2"
-    gamma: "4"
-    min_child_weight: "6"
-    silent: "0"
-    subsample: "0.7"
-    num_round: "51"
-  channels:
-    - ChannelName: train
-      CompressionType: None
-      ContentType: text/csv
-      DataSource:
-        S3DataSource:
-          S3DataType: S3Prefix
-          S3DataDistributionType: FullyReplicated
-          S3Uri: s3://((DATA_BUCKET))/mnist_kmeans_example/input/valid_data.csv
-  instance_type: ml.m4.xlarge
-  instance_count: 1
-  volume_size: 5
-  max_run_time: 3600
-  model_artifact_path: s3://((DATA_BUCKET))/mnist_kmeans_example/output
-  network_isolation: "True"
-  traffic_encryption: "False"
-  spot_instance: "False"
-  max_wait_time: 3600
-  checkpoint_config: "{}"
-  debug_hook_config:
-    S3OutputPath: s3://((DATA_BUCKET))/mnist_kmeans_example/hookconfig
-    CollectionConfigurations:
-      - CollectionName: "feature_importance"
-        CollectionParameters:
-          save_interval: "5"
-      - CollectionName: "losses"
-        CollectionParameters:
-          save_interval: "10"
-      - CollectionName: "average_shap"
-        CollectionParameters:
-          save_interval: "5"
-      - CollectionName: "metrics"
-        CollectionParameters:
-          save_interval: "5"
-  debug_rule_config:
-    - RuleConfigurationName: LossNotDecreasing
-      RuleEvaluatorImage: ((BUILTIN_RULE_IMAGE))
-      RuleParameters:
-        collection_names: metrics
-        num_steps: "10"
-        rule_to_invoke: LossNotDecreasing
-  role: ((ROLE_ARN))
-
+  bucket_name: ((DATA_BUCKET))
+  role_arn: ((ROLE_ARN))

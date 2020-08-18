@@ -104,7 +104,7 @@ def replace_placeholders(input_filename, output_filename):
     with open(output_filename, "w") as f:
         f.write(filedata)
     return output_filename
-    
+
 
 def load_params(file_name):
     with open(file_name, "r") as f:
