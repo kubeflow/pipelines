@@ -108,6 +108,7 @@ class Client(object):
     cookies: CookieJar object containing cookies that will be passed to the pipelines API.
     proxy: HTTP or HTTPS proxy server
     ssl_ca_cert: Cert for proxy
+    userid: The ID of the user creating the client.
   """
 
   # in-cluster DNS name of the pipeline service
@@ -115,9 +116,10 @@ class Client(object):
   KUBE_PROXY_PATH = 'api/v1/namespaces/{}/services/ml-pipeline:http/proxy/'
 
   LOCAL_KFP_CONTEXT = os.path.expanduser('~/.config/kfp/context.json')
+  KUBEFLOW_USERID_HEADER = 'kubeflow-userid'
 
   # TODO: Wrap the configurations for different authentication methods.
-  def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None, existing_token=None, cookies=None, proxy=None, ssl_ca_cert=None):
+  def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None, existing_token=None, cookies=None, proxy=None, ssl_ca_cert=None, userid=None):
     """Create a new instance of kfp client.
     """
     host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
@@ -127,6 +129,8 @@ class Client(object):
     # needed.
     self._existing_config = config
     api_client = kfp_server_api.api_client.ApiClient(config, cookie=cookies)
+    if userid:
+      api_client.set_default_header(Client.KUBEFLOW_USERID_HEADER, userid)
     _add_generated_apis(self, kfp_server_api, api_client)
     self._job_api = kfp_server_api.api.job_service_api.JobServiceApi(api_client)
     self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
@@ -146,6 +150,7 @@ class Client(object):
       config.ssl_ca_cert = ssl_ca_cert
 
     host = host or ''
+
     # Preprocess the host endpoint to prevent some common user mistakes.
     if not client_id:
       # always preserving the protocol (http://localhost requires it)

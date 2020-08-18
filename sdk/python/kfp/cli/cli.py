@@ -25,16 +25,24 @@ from .experiment import experiment
 @click.option('--endpoint', help='Endpoint of the KFP API service to connect.')
 @click.option('--iap-client-id', help='Client ID for IAP protected endpoint.')
 @click.option('-n', '--namespace', default='kubeflow', help='Kubernetes namespace to run the pipeline within.')
-@click.option('-an', '--api-namespace', default=None, help='Kubernetes namespace to connect to the KFP API.')
+@click.option('-an', '--api-namespace', help='Kubernetes namespace to connect to the KFP API.')
 @click.option('--other-client-id', help='Client ID for IAP protected endpoint to obtain the refresh token.')
 @click.option('--other-client-secret', help='Client ID for IAP protected endpoint to obtain the refresh token.')
+@click.option('--userid', help='Client ID for IAP protected endpoint to obtain the refresh token.')
 @click.pass_context
-def cli(ctx, endpoint, iap_client_id, namespace, api_namespace, other_client_id, other_client_secret):
+def cli(ctx, endpoint, iap_client_id, namespace, api_namespace, other_client_id, other_client_secret, userid):
     """kfp is the command line interface to KFP service."""
     if ctx.invoked_subcommand == 'diagnose_me':
           # Do not create a client for diagnose_me
           return
-    ctx.obj['client'] = Client(endpoint, iap_client_id, api_namespace or namespace, other_client_id, other_client_secret)
+    ctx.obj['client'] = Client(
+        host=endpoint,
+        client_id=iap_client_id,
+        namespace=api_namespace or namespace,
+        other_client_id=other_client_id,
+        other_client_secret=other_client_secret,
+        userid=userid
+    )
     ctx.obj['namespace']= namespace
 
 def main():
