@@ -19,8 +19,9 @@ def experiment():
 def create(ctx, description, name):
     """Create an experiment"""
     client = ctx.obj["client"]
+    namespace = ctx.obj["namespace"]
 
-    response = client.create_experiment(name, description=description)
+    response = client.create_experiment(name, description=description, namespace=namespace)
     logging.info("Experiment {} has been submitted\n".format(name))
     _display_experiment(response)
 
@@ -35,10 +36,12 @@ def create(ctx, description, name):
 def list(ctx, max_size):
     """List experiments"""
     client = ctx.obj['client']
+    namespace = ctx.obj["namespace"]
 
     response = client.experiments.list_experiment(
         page_size=max_size,
-        sort_by="created_at desc"
+        sort_by="created_at desc",
+        namespace=namespace
     )
     if response.experiments:
         _display_experiments(response.experiments)
@@ -52,27 +55,29 @@ def list(ctx, max_size):
 def get(ctx, experiment_id):
     """Get detailed information about an experiment"""
     client = ctx.obj["client"]
+    namespace = ctx.obj["namespace"]
 
-    response = client.get_experiment(experiment_id)
+    response = client.get_experiment(experiment_id, namespace)
     _display_experiment(response)
 
 
-@experiment.command()
-@click.argument("experiment-id")
-@click.pass_context
-def delete(ctx, experiment_id):
-    """Delete an experiment"""
+# TODO Add in client method for deleting experiments.
+# @experiment.command()
+# @click.argument("experiment-id")
+# @click.pass_context
+# def delete(ctx, experiment_id):
+#     """Delete an experiment"""
 
-    confirmation = "Caution. The RunDetails page could have an issue" \
-                   " when it renders a run that has no experiment." \
-                   " Do you want to continue?"
-    if not click.confirm(confirmation):
-        return
+#     confirmation = "Caution. The RunDetails page could have an issue" \
+#                    " when it renders a run that has no experiment." \
+#                    " Do you want to continue?"
+#     if not click.confirm(confirmation):
+#         return
 
-    client = ctx.obj["client"]
+#     client = ctx.obj["client"]
 
-    client.experiments.delete_experiment(id=experiment_id)
-    print("{} is deleted.".format(experiment_id))
+#     client.experiments.delete_experiment(id=experiment_id)
+#     print("{} is deleted.".format(experiment_id))
 
 
 def _display_experiments(experiments):
