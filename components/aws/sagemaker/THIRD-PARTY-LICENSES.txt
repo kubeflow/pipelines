@@ -1,7 +1,7 @@
-** Amazon SageMaker Components for Kubeflow Pipelines; version 0.7.0 --
+** Amazon SageMaker Components for Kubeflow Pipelines; version 0.8.0 --
 https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker
 Copyright 2019-2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-** boto3; version 1.12.33 -- https://github.com/boto/boto3/
+** boto3; version 1.14.12 -- https://github.com/boto/boto3/
 Copyright 2013-2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 ** botocore; version 1.15.33 -- https://github.com/boto/botocore
 Botocore
@@ -12,7 +12,7 @@ https://importlib-metadata.readthedocs.io/en/latest/
 ** s3transfer; version 0.3.3 -- https://github.com/boto/s3transfer/
 s3transfer
 Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-** sagemaker; version 1.54.0 -- https://aws.amazon.com/sagemaker/
+** sagemaker; version 2.1.0 -- https://aws.amazon.com/sagemaker/
 Amazon SageMaker Python SDK
 Copyright 2017-2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 ** smdebug-rulesconfig; version 0.1.2 --

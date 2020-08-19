@@ -287,13 +287,13 @@ class HyperparameterTestCase(unittest.TestCase):
 
     parsed_args = self.parser.parse_args(known_algorithm_args)
 
-    # Patch get_image_uri
-    _utils.get_image_uri = MagicMock()
-    _utils.get_image_uri.return_value = "seq2seq-url"
+    # Patch retrieve
+    _utils.retrieve = MagicMock()
+    _utils.retrieve.return_value = "seq2seq-url"
 
     response = _utils.create_hyperparameter_tuning_job_request(vars(parsed_args))
 
-    _utils.get_image_uri.assert_called_with('us-west-2', 'seq2seq')
+    _utils.retrieve.assert_called_with('seq2seq', 'us-west-2')
     self.assertEqual(response['TrainingJobDefinition']['AlgorithmSpecification']['TrainingImage'], "seq2seq-url")
 
 
@@ -306,13 +306,13 @@ class HyperparameterTestCase(unittest.TestCase):
 
     parsed_args = self.parser.parse_args(known_algorithm_args)
 
-    # Patch get_image_uri
-    _utils.get_image_uri = MagicMock()
-    _utils.get_image_uri.return_value = "seq2seq-url"
+    # Patch retrieve
+    _utils.retrieve = MagicMock()
+    _utils.retrieve.return_value = "seq2seq-url"
 
     response = _utils.create_hyperparameter_tuning_job_request(vars(parsed_args))
 
-    _utils.get_image_uri.assert_called_with('us-west-2', 'seq2seq')
+    _utils.retrieve.assert_called_with('seq2seq', 'us-west-2')
     self.assertEqual(response['TrainingJobDefinition']['AlgorithmSpecification']['TrainingImage'], "seq2seq-url")
 
 
@@ -324,14 +324,14 @@ class HyperparameterTestCase(unittest.TestCase):
 
     parsed_args = self.parser.parse_args(known_algorithm_args)
 
-    # Patch get_image_uri
-    _utils.get_image_uri = MagicMock()
-    _utils.get_image_uri.return_value = "unknown-url"
+    # Patch retrieve
+    _utils.retrieve = MagicMock()
+    _utils.retrieve.return_value = "unknown-url"
 
     response = _utils.create_hyperparameter_tuning_job_request(vars(parsed_args))
 
     # Should just place the algorithm name in regardless
-    _utils.get_image_uri.assert_not_called()
+    _utils.retrieve.assert_not_called()
     self.assertEqual(response['TrainingJobDefinition']['AlgorithmSpecification']['AlgorithmName'], "unknown algorithm")
 
   def test_no_channels(self):
