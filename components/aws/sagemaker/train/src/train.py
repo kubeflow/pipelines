@@ -27,7 +27,7 @@ def create_parser():
   parser.add_argument('--algorithm_name', type=str, required=False, help='The name of the resource algorithm to use for the training job.', default='')
   parser.add_argument('--metric_definitions', type=_utils.yaml_or_json_str, required=False, help='The dictionary of name-regex pairs specify the metrics that the algorithm emits.', default={})
   parser.add_argument('--training_input_mode', choices=['File', 'Pipe'], type=str, help='The input mode that the algorithm supports. File or Pipe.', default='File')
-  parser.add_argument('--hyperparameters', type=_utils.yaml_or_json_str, required=False, help='Dictionary of hyperparameters for the the algorithm.', default={})
+  parser.add_argument('--hyperparameters', type=_utils.yaml_or_json_str, help='Dictionary of hyperparameters for the the algorithm.', default={})
   parser.add_argument('--channels', type=_utils.yaml_or_json_str, required=True, help='A list of dicts specifying the input channels. Must have at least one.')
   parser.add_argument('--instance_type', required=False, type=str, help='The ML compute instance type.', default='ml.m4.xlarge')
   parser.add_argument('--instance_count', required=True, type=int, help='The registry path of the Docker image that contains the training algorithm.', default=1)
@@ -73,9 +73,6 @@ def main(argv=None):
     job_stopped = _utils.stop_training_job(client, job_name)
     if job_stopped:
         logging.info(f"Training Job: {job_stopped} request submitted to Stop")
-    rules_stopped = _utils.stop_debug_rules(client, job_name)
-    for rule_name in rules_stopped:
-        logging.info(f"Processing Job: {rule_name} request submitted to Stop")
   signal.signal(signal.SIGTERM, signal_term_handler)
 
   logging.info('Job request submitted. Waiting for completion...')

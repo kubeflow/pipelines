@@ -125,33 +125,6 @@ class TrainTestCase(unittest.TestCase):
     )
     self.assertEqual(response, 'FakeJobName')
 
-  def test_utils_stop_debug_rules(self):
-    mock_sm_client = MagicMock()
-    mock_sm_client.stop_debug_rules.return_value = ["Trainingjob-20200999991943-rule-1-2223bb"]
-
-    mock_sm_client.describe_training_job.side_effect = [
-        {
-        "DebugRuleEvaluationStatuses": [
-            {
-                "RuleConfigurationName": "shouldnotbestopped",
-                "RuleEvaluationJobArn": "arn:aws:sagemaker:us-east-1:169544234969:processing-job/trainingjob-20200999909123-shouldnotbestopped-2223bb",
-                "RuleEvaluationStatus": "NoIssuesFound"
-            }, {
-                "RuleConfigurationName": "rule-1",
-                "RuleEvaluationJobArn": "arn:aws:sagemaker:us-east-1:169544234969:processing-job/trainingjob-20200999991943-rule-1-2223bb",
-                "RuleEvaluationStatus": "InProgress"
-            }
-        ]}
-    ]
-
-    response = _utils.stop_debug_rules(mock_sm_client, 'fake-job')
-
-    mock_sm_client.stop_processing_job.assert_called_once_with(
-        ProcessingJobName='Trainingjob-20200999991943-rule-1-2223bb'
-    )
-    self.assertEqual(response, ["Trainingjob-20200999991943-rule-1-2223bb"])
-
-
   def test_sagemaker_exception_in_create_training_job(self):
     mock_client = MagicMock()
     mock_exception = ClientError({"Error": {"Message": "SageMaker broke"}}, "create_training_job")

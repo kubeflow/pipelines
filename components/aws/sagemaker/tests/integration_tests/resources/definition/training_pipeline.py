@@ -25,8 +25,6 @@ def training_pipeline(
     spot_instance="",
     max_wait_time="",
     checkpoint_config="",
-    debug_hook_config="",
-    debug_rule_config="",
     vpc_security_group_ids="",
     vpc_subnets="",
     assume_role="",

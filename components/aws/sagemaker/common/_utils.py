@@ -352,10 +352,6 @@ def print_debug_rule_status(response, last_print=False):
     Example of DebugRuleEvaluationStatuses:
     response['DebugRuleEvaluationStatuses'] =
         [{
-            "RuleConfigurationName": "LossNotDecreasing",
-            "RuleEvaluationStatus": "InProgress",
-            "StatusDetails": ""
-        }, {
             "RuleConfigurationName": "VanishingGradient",
             "RuleEvaluationStatus": "IssuesFound",
             "StatusDetails": "There was an issue."
@@ -369,12 +365,6 @@ def print_debug_rule_status(response, last_print=False):
     If last_print is True:
     INFO:root: - LossNotDecreasing: IssuesFound
     INFO:root:   - RuleEvaluationConditionMet: Evaluation of the rule LossNotDecreasing at step 10 resulted in the condition being met
-
-    INFO:root: - Overtraining: NoIssuesFound
-
-    ERROR:root:- CustomGradientRule: Error
-    ERROR:root:  - ClientError: Required key source_s3_uri not found in rule parameters map for rule configuration CustomGradientRule. 
-
     """
     for debug_rule in response['DebugRuleEvaluationStatuses']:
         line_ending = "\n" if last_print else ""
@@ -412,18 +402,6 @@ def get_image_from_job(client, job_name):
         image = client.describe_algorithm(AlgorithmName=algorithm_name)['TrainingSpecification']['TrainingImage']
 
     return image
-
-
-def stop_debug_rules(client, job_name):
-    response = client.describe_training_job(TrainingJobName=job_name)
-    logging.info(response)
-    rules_stopped = []
-    for rule in response["DebugRuleEvaluationStatuses"]:
-        if rule["RuleEvaluationStatus"] == "InProgress" and "RuleEvaluationJobArn" in rule:
-            rule_job_name = convert_rule_arn_to_job_name(rule["RuleEvaluationJobArn"], rule["RuleConfigurationName"])
-            rules_stopped.append(rule_job_name)
-            stop_processing_job(client, rule_job_name)
-    return rules_stopped
 
 
 def convert_rule_arn_to_job_name(rule_evaluation_job_arn, rule_name):
