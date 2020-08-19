@@ -1,6 +1,8 @@
-from datetime import datetime
 import json
-from time import struct_time
+import unittest
+from unittest.mock import patch, call, MagicMock, ANY
+from botocore.exceptions import ClientError
+
 from common.common_inputs import (
     COMMON_INPUTS,
     SPOT_INSTANCE_INPUTS,
@@ -14,31 +16,12 @@ from common.sagemaker_component import (
     SageMakerJobStatus,
 )
 from tests.unit_tests.tests.common.dummy_spec import (
-    DummyInputs,
     DummyOutputs,
     DummySpec,
-    ExtraSpec,
 )
 from tests.unit_tests.tests.common.dummy_component import DummyComponent
-import unittest
-import os
 
-from typing import Type
-
-from unittest.mock import patch, call, Mock, MagicMock, mock_open, ANY
-from botocore.exceptions import ClientError
 from common.sagemaker_component_spec import SageMakerComponentSpec
-
-from common.component_compiler import (
-    ArgumentValueSpec,
-    ComponentSpec,
-    ContainerSpec,
-    IOArgs,
-    ImplementationSpec,
-    InputSpec,
-    OutputSpec,
-    SageMakerComponentCompiler,
-)
 
 
 class SageMakerComponentMetadataTestCase(unittest.TestCase):

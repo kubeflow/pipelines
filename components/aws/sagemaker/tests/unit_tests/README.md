@@ -28,13 +28,13 @@
     ```
 2. Install the pip packages required for testing 
     ```
-    cd pipelines/components/aws/sagemaker/tests/unit_tests/
+    cd pipelines/components/aws/sagemaker/
    
     pip install -r requirements.txt 
     ```
 3. Run all unit tests 
     ```
-    # while in the same directory pipelines/components/aws/sagemaker/tests/unit_tests/
+    cd tests/unit_tests/
    
     ./run_unit_tests.sh
     ```

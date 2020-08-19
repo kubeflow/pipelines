@@ -1,24 +1,22 @@
-from tests.unit_tests.tests.common.dummy_spec import DummySpec, ExtraSpec
-from tests.unit_tests.tests.common.dummy_component import DummyComponent
 import unittest
-import os
-
-from typing import Type
-
-from unittest.mock import patch, call, Mock, MagicMock, mock_open, ANY
-from botocore.exceptions import ClientError
-from common.sagemaker_component_spec import SageMakerComponentSpec
-
-from common.component_compiler import (
-    ArgumentValueSpec,
+from unittest.mock import patch, MagicMock, ANY
+from kfp.components.structures import (
     ComponentSpec,
-    ContainerSpec,
-    IOArgs,
-    ImplementationSpec,
     InputSpec,
     OutputSpec,
+    ContainerImplementation,
+    InputValuePlaceholder,
+    OutputPathPlaceholder,
+    ContainerSpec,
+)
+
+
+from common.component_compiler import (
+    IOArgs,
     SageMakerComponentCompiler,
 )
+from tests.unit_tests.tests.common.dummy_spec import DummySpec, ExtraSpec
+from tests.unit_tests.tests.common.dummy_component import DummyComponent
 
 
 class ComponentCompilerTestCase(unittest.TestCase):
@@ -39,13 +37,13 @@ class ComponentCompilerTestCase(unittest.TestCase):
         ],
         args=[
             "--input1",
-            ArgumentValueSpec(inputValue="input1"),
+            InputValuePlaceholder(input_name="input1"),
             "--input2",
-            ArgumentValueSpec(inputValue="input2"),
+            InputValuePlaceholder(input_name="input2"),
             "--output1_output_path",
-            ArgumentValueSpec(outputPath="output1"),
+            OutputPathPlaceholder(output_name="output1"),
             "--output2_output_path",
-            ArgumentValueSpec(outputPath="output2"),
+            OutputPathPlaceholder(output_name="output2"),
         ],
     )
 
@@ -54,20 +52,20 @@ class ComponentCompilerTestCase(unittest.TestCase):
         description="Dummy description",
         inputs=DUMMY_IO_ARGS.inputs,
         outputs=DUMMY_IO_ARGS.outputs,
-        implementation=ImplementationSpec(
+        implementation=ContainerImplementation(
             container=ContainerSpec(
                 image="my-image:my-tag",
                 command=["python3"],
                 args=[
                     "fake-path",
                     "--input1",
-                    ArgumentValueSpec(inputValue="input1"),
+                    InputValuePlaceholder(input_name="input1"),
                     "--input2",
-                    ArgumentValueSpec(inputValue="input2"),
+                    InputValuePlaceholder(input_name="input2"),
                     "--output1_output_path",
-                    ArgumentValueSpec(outputPath="output1"),
+                    OutputPathPlaceholder(output_name="output1"),
                     "--output2_output_path",
-                    ArgumentValueSpec(outputPath="output2"),
+                    OutputPathPlaceholder(output_name="output2"),
                 ],
             )
         ),
@@ -75,48 +73,40 @@ class ComponentCompilerTestCase(unittest.TestCase):
 
     EXTRA_IO_ARGS = IOArgs(
         inputs=[
-            InputSpec({"name": "inputStr", "description": "str", "type": "String"}),
-            InputSpec({"name": "inputInt", "description": "int", "type": "Integer"}),
-            InputSpec({"name": "inputBool", "description": "bool", "type": "Bool"}),
+            InputSpec(name="inputStr", description="str", type="String"),
+            InputSpec(name="inputInt", description="int", type="Integer"),
+            InputSpec(name="inputBool", description="bool", type="Bool"),
+            InputSpec(name="inputDict", description="dict", type="JsonObject"),
+            InputSpec(name="inputList", description="list", type="JsonArray"),
             InputSpec(
-                {"name": "inputDict", "description": "dict", "type": "JsonObject"}
+                name="inputOptional",
+                description="optional",
+                type="String",
+                default="default-string",
             ),
             InputSpec(
-                {"name": "inputList", "description": "list", "type": "JsonArray"}
-            ),
-            InputSpec(
-                {
-                    "name": "inputOptional",
-                    "description": "optional",
-                    "type": "String",
-                    "default": "default-string",
-                }
-            ),
-            InputSpec(
-                {
-                    "name": "inputOptionalNoDefault",
-                    "description": "optional",
-                    "type": "String",
-                    "default": "",
-                }
+                name="inputOptionalNoDefault",
+                description="optional",
+                type="String",
+                default="",
             ),
         ],
         outputs=[],
         args=[
             "--inputStr",
-            ArgumentValueSpec({"inputValue": "inputStr"}),
+            InputValuePlaceholder(input_name="inputStr"),
             "--inputInt",
-            ArgumentValueSpec({"inputValue": "inputInt"}),
+            InputValuePlaceholder(input_name="inputInt"),
             "--inputBool",
-            ArgumentValueSpec({"inputValue": "inputBool"}),
+            InputValuePlaceholder(input_name="inputBool"),
             "--inputDict",
-            ArgumentValueSpec({"inputValue": "inputDict"}),
+            InputValuePlaceholder(input_name="inputDict"),
             "--inputList",
-            ArgumentValueSpec({"inputValue": "inputList"}),
+            InputValuePlaceholder(input_name="inputList"),
             "--inputOptional",
-            ArgumentValueSpec({"inputValue": "inputOptional"}),
+            InputValuePlaceholder(input_name="inputOptional"),
             "--inputOptionalNoDefault",
-            ArgumentValueSpec({"inputValue": "inputOptionalNoDefault"}),
+            InputValuePlaceholder(input_name="inputOptionalNoDefault"),
         ],
     )
 
@@ -144,20 +134,20 @@ class ComponentCompilerTestCase(unittest.TestCase):
             description="Dummy description",
             inputs=self.DUMMY_IO_ARGS.inputs,
             outputs=self.DUMMY_IO_ARGS.outputs,
-            implementation=ImplementationSpec(
+            implementation=ContainerImplementation(
                 container=ContainerSpec(
                     image="my-image:my-tag",
                     command=["python3"],
                     args=[
                         "fake-path",
                         "--input1",
-                        ArgumentValueSpec(inputValue="input1"),
+                        InputValuePlaceholder(input_name="input1"),
                         "--input2",
-                        ArgumentValueSpec(inputValue="input2"),
+                        InputValuePlaceholder(input_name="input2"),
                         "--output1_output_path",
-                        ArgumentValueSpec(outputPath="output1"),
+                        OutputPathPlaceholder(output_name="output1"),
                         "--output2_output_path",
-                        ArgumentValueSpec(outputPath="output2"),
+                        OutputPathPlaceholder(output_name="output2"),
                     ],
                 )
             ),
@@ -171,18 +161,10 @@ class ComponentCompilerTestCase(unittest.TestCase):
                 DummyComponent, file_path, image_uri, image_tag
             )
 
-        # Break it up so diffs aren't too large
-        self.assertEqual(
-            expected.get("implementation").get("container"),
-            response.get("implementation").get("container"),
-        )
-        self.assertEqual(expected.get("implementation"), response.get("implementation"))
         self.assertEqual(expected, response)
 
-    @patch("common.component_compiler.yaml")
-    @patch("builtins.open")
-    def test_write_component(self, open_mock, yaml_mock):
+    def test_write_component(self):
+        DummyComponent.save = MagicMock()
         SageMakerComponentCompiler._write_component(DummyComponent, "/tmp/fake-path")
 
-        open_mock.assert_called_once_with("/tmp/fake-path", "w")
-        yaml_mock.dump.assert_called_once_with(DummyComponent, ANY)
+        DummyComponent.save.assert_called_once_with("/tmp/fake-path")
