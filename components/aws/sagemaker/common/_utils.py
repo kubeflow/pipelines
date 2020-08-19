@@ -404,19 +404,6 @@ def get_image_from_job(client, job_name):
     return image
 
 
-def convert_rule_arn_to_job_name(rule_evaluation_job_arn, rule_name):
-    """
-
-    Sample inputs and output
-    :param rule_evaluation_job_arn: "arn:aws:sagemaker:us-east-1:123456789000:processing-job/trainingjob-1234567890-rulename-a1112312"
-    :rule_name RuleName
-
-    :output Trainingjob-1234567890-RuleName-a1112312
-    """
-    job_name = rule_evaluation_job_arn.split("/")[1].split("-")
-    return f"Trainingjob-{job_name[1]}-{rule_name}-{job_name[-1]}"
-
-
 def stop_training_job(client, job_name):
     response = client.describe_training_job(TrainingJobName=job_name)
     if response["TrainingJobStatus"] == "InProgress":
