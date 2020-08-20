@@ -24,7 +24,7 @@ def training_pipeline(
     traffic_encryption="",
     spot_instance="",
     max_wait_time="",
-    checkpoint_config="{}",
+    checkpoint_config="",
     vpc_security_group_ids="",
     vpc_subnets="",
     assume_role="",

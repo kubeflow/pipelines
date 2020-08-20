@@ -71,7 +71,7 @@ Run this file with the follow command: `python3 s3_sample_data_creator.py`
 1. Compile the pipeline:  
    `dsl-compile --py training-pipeline.py --output training-pipeline.tar.gz`
 2. In the Kubeflow UI, upload this compiled pipeline specification (the .tar.gz file) and click on create run.
-3. Once the pipeline completes, you can see the outputs under 'Output parameters' in the HPO component's Input/Output section.
+3. Once the pipeline completes, you can see the outputs under 'Output parameters' in the Training component's Input/Output section.
 
 Example inputs to this pipeline :
 ```buildoutcfg
