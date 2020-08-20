@@ -1,32 +1,15 @@
-ARG BAZEL_IMAGE=l.gcr.io/google/bazel:0.24.0
-FROM $BAZEL_IMAGE as builder
-
-RUN apt-get update && \
-  apt-get install -y cmake clang musl-dev openssl
+# 1. Build api server application
+# Use golang:1.13.1-stretch to keep GLIBC at 2.24 https://github.com/gotify/server/issues/225
+FROM golang:1.13.1-stretch as builder
+RUN apt-get update && apt-get install -y cmake clang musl-dev openssl
 WORKDIR /go/src/github.com/kubeflow/pipelines
-
 COPY . .
+RUN go mod vendor
+RUN GO111MODULE=on go build -o /bin/apiserver backend/src/apiserver/*.go
 
-ARG google_application_credentials
-ARG use_remote_build=false
-
-# RUN bazel build -c opt --action_env=PATH --define=grpc_no_ares=true backend/src/apiserver:apiserver
-RUN if [ "$use_remote_build" = "true" ]; then \
-    echo "Using remote build execution ..." && \
-    printf "%s" "$google_application_credentials"  > /credentials.json && \
-    bazel --bazelrc=tools/bazel_builder/bazelrc \
-      build -c opt backend/src/apiserver:apiserver --config=remote \
-      --google_credentials=/credentials.json; \
-  else \
-    echo "Using local build execution..." && \
-    bazel --bazelrc=tools/bazel_builder/bazelrc \
-      build -c opt backend/src/apiserver:apiserver; \
-  fi
-
-# Compile
+# 2. Compile preloaded pipeline samples
 FROM python:3.5 as compiler
-RUN apt-get update -y && \
-    apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev jq
+RUN apt-get update -y && apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev jq
 RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
 COPY backend/requirements.txt .
 RUN python3 -m pip install -r requirements.txt
@@ -55,6 +38,7 @@ RUN set -e; \
         python3 "$pipeline_py"; \
     done
 
+# 3. Start api web server
 FROM debian:stretch
 
 ARG COMMIT_SHA=unknown
@@ -65,17 +49,14 @@ ENV TAG_NAME=${TAG_NAME}
 WORKDIR /bin
 
 COPY third_party/license.txt /bin/license.txt
-COPY --from=builder /go/src/github.com/kubeflow/pipelines/bazel-bin/backend/src/apiserver/  /usr/local/apiserver
-RUN cp /usr/local/apiserver/linux_$(dpkg --print-architecture)_stripped/apiserver /bin/apiserver && \
-    rm -rf /usr/local/apiserver
 COPY backend/src/apiserver/config/ /config
 
+COPY --from=builder /bin/apiserver /bin/apiserver
 COPY --from=compiler /samples/ /samples/
+RUN chmod +x /bin/apiserver
 
-# Adding CA certificate so API server can download pipeline through URL
-RUN apt-get update && apt-get install -y ca-certificates \
-    # wget is used for liveness/readiness probe command
-    wget
+# Adding CA certificate so API server can download pipeline through URL and wget is used for liveness/readiness probe command
+RUN apt-get update && apt-get install -y ca-certificates wget
 
 # Pin sample doc links to the commit that built the backend image
 RUN sed -E "s#/(blob|tree)/master/#/\1/${COMMIT_SHA}/#g" -i /config/sample_config.json && \
@@ -85,4 +66,4 @@ RUN sed -E "s#/(blob|tree)/master/#/\1/${COMMIT_SHA}/#g" -i /config/sample_confi
 EXPOSE 8888
 
 # Start the apiserver
-CMD apiserver --config=/config --sampleconfig=/config/sample_config.json -logtostderr=true
+CMD /bin/apiserver --config=/config --sampleconfig=/config/sample_config.json -logtostderr=true
