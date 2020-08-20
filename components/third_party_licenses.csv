@@ -128,7 +128,7 @@ PyJWT,https://raw.githubusercontent.com/jpadilla/pyjwt/master/LICENSE,MIT
 requests-oauthlib,https://raw.githubusercontent.com/requests/requests-oauthlib/master/LICENSE,BSD
 retrying,https://raw.githubusercontent.com/rholder/retrying/master/LICENSE,Apache 2.0
 websocket-client,https://raw.githubusercontent.com/websocket-client/websocket-client/master/LICENSE,LGPL
-enum34,https://bitbucket.org/stoneleaf/enum34/raw/f24487b45cd041fc9406d67441d2186ac70772b7/enum/LICENSE,BSD
+enum34,https://github.com/jamespharaoh/python-enum34/blob/master/enum/LICENSE,BSD
 futures,https://raw.githubusercontent.com/agronholm/pythonfutures/master/LICENSE,PSF
 backports-abc,https://raw.githubusercontent.com/cython/backports_abc/master/LICENSE,PSF
 backports.shutil-get-terminal-size,https://raw.githubusercontent.com/chrippa/backports.shutil_get_terminal_size/master/LICENSE,MIT
@@ -157,7 +157,7 @@ prometheus-client,https://raw.githubusercontent.com/prometheus/client_python/mas
 proto-google-cloud-datastore-v1,https://raw.githubusercontent.com/googleapis/googleapis/master/LICENSE,Apache 2.0
 ptyprocess,https://raw.githubusercontent.com/pexpect/ptyprocess/master/LICENSE,ISC
 pydot,https://raw.githubusercontent.com/erocarrera/pydot/master/LICENSE,MIT
-Pygments,https://raw.githubusercontent.com/nex3/pygments/master/LICENSE,2-Clause BSD
+Pygments,https://github.com/pygments/pygments/blob/master/LICENSE,2-Clause BSD
 pyparsing,https://raw.githubusercontent.com/pyparsing/pyparsing/master/LICENSE,MIT
 pyzmq,https://raw.githubusercontent.com/zeromq/pyzmq/master/COPYING.BSD,LGPL+BSD
 qtconsole,https://raw.githubusercontent.com/jupyter/qtconsole/master/LICENSE,3-Clause BSD
