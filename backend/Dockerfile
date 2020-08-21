@@ -7,7 +7,7 @@ ENV GOLANG_PROTOBUF_VERSION v1.4.2
 ENV PROTOCOLBUFFERS_PROTOBUF_VERSION v3.11.3
 # protoc compiler version
 # Install protoc.
-RUN apt-get update -y && apt-get install -y protobuf-compiler jq
+RUN apt-get update -y && apt-get install -y protobuf-compiler jq sed
 ENV PROTOCCOMPILER /usr/bin/protoc
 ENV PROTOCINCLUDE /usr/include/google/protobuf
 # Need grpc-gateway source code for -I in protoc command.
@@ -108,6 +108,12 @@ RUN /go/bin/swagger generate client \
     -c visualization_client \
     -m visualization_model \
     -t backend/api/go_http_client
+# Hack to fix an issue with go-swagger
+# See https://github.com/go-swagger/go-swagger/issues/1381 for details.
+RUN sed -i -- 's/MaxConcurrency int64 `json:"max_concurrency,omitempty"`/MaxConcurrency int64 `json:"max_concurrency,omitempty,string"`/g' backend/api/go_http_client/job_model/api_job.go
+RUN sed -i -- 's/IntervalSecond int64 `json:"interval_second,omitempty"`/IntervalSecond int64 `json:"interval_second,omitempty,string"`/g' backend/api/go_http_client/job_model/api_periodic_schedule.go
+RUN sed -i -- 's/MaxConcurrency string `json:"max_concurrency,omitempty"`/MaxConcurrency int64 `json:"max_concurrency,omitempty,string"`/g' backend/api/go_http_client/job_model/api_job.go
+RUN sed -i -- 's/IntervalSecond string `json:"interval_second,omitempty"`/IntervalSecond int64 `json:"interval_second,omitempty,string"`/g' backend/api/go_http_client/job_model/api_periodic_schedule.go
 # Execute the //go:generate directives in the generated code.
 RUN cd backend/api && go generate ./...
 # Add license info to generated files.
