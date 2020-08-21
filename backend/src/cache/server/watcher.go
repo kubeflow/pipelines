@@ -53,11 +53,12 @@ func WatchPods(namespaceToWatch string, clientManager ClientManagerInterface) {
 				continue
 			}
 
-			executionOutput, exists := pod.ObjectMeta.Annotations[ArgoWorkflowOutputs]
-			executionKey := pod.ObjectMeta.Annotations[ExecutionKey]
+			executionKey, exists := pod.ObjectMeta.Annotations[ExecutionKey]
 			if !exists {
 				continue
 			}
+
+			executionOutput, exists := pod.ObjectMeta.Annotations[ArgoWorkflowOutputs]
 
 			executionOutputMap := make(map[string]interface{})
 			executionOutputMap[ArgoWorkflowOutputs] = executionOutput
