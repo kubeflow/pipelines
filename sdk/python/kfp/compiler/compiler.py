@@ -681,11 +681,11 @@ class Compiler(object):
     if pipeline_conf.ttl_seconds_after_finished >= 0:
       workflow['spec']['ttlSecondsAfterFinished'] = pipeline_conf.ttl_seconds_after_finished
 
-    if pipeline_conf.min_available != None:
-      poddisruptionbudget = {"minavailable": pipeline_conf.min_available}
-      if pipeline_conf.selector != None:
-        poddisruptionbudget["selector"] = pipeline_conf.selector
-      workflow['spec']['poddisruptionbudget'] = poddisruptionbudget
+    if pipeline_conf._pod_disruption_budget_min_available:
+      pod_disruption_budget = {"minAvailable": pipeline_conf._pod_disruption_budget_min_available}
+      if pipeline_conf._pod_disruption_budget_selector:
+        pod_disruption_budget["selector"] = pipeline_conf._pod_disruption_budget_selector
+      workflow['spec']['podDisruptionBudget'] = pod_disruption_budget
 
     if len(pipeline_conf.image_pull_secrets) > 0:
       image_pull_secrets = []
