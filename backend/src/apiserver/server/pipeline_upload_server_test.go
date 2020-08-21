@@ -41,7 +41,7 @@ const (
 func TestUploadPipeline_YAML(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
-	server := PipelineUploadServer{resourceManager: resourceManager}
+	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
 	b := &bytes.Buffer{}
 	w := multipart.NewWriter(b)
 	part, _ := w.CreateFormFile("uploadfile", "hello-world.yaml")
@@ -102,7 +102,7 @@ func TestUploadPipeline_YAML(t *testing.T) {
 	// Set the fake uuid generator with a new uuid to avoid generate a same uuid as above.
 	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(fakeVersionUUID, nil))
 	resourceManager = resource.NewResourceManager(clientManager)
-	server = PipelineUploadServer{resourceManager: resourceManager}
+	server = PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
 	req, _ = http.NewRequest("POST", "/apis/v1beta1/pipelines/upload_version?name="+fakeVersionName+"&pipelineid="+resource.DefaultFakeUUID, bytes.NewReader(b.Bytes()))
 	req.Header.Set("Content-Type", w.FormDataContentType())
 	rr = httptest.NewRecorder()
@@ -149,7 +149,7 @@ func TestUploadPipeline_YAML(t *testing.T) {
 func TestUploadPipeline_Tarball(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
-	server := PipelineUploadServer{resourceManager: resourceManager}
+	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
 	b := &bytes.Buffer{}
 	w := multipart.NewWriter(b)
 	part, _ := w.CreateFormFile("uploadfile", "arguments.tar.gz")
@@ -202,7 +202,7 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 	// Set the fake uuid generator with a new uuid to avoid generate a same uuid as above.
 	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(fakeVersionUUID, nil))
 	resourceManager = resource.NewResourceManager(clientManager)
-	server = PipelineUploadServer{resourceManager: resourceManager}
+	server = PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
 	b = &bytes.Buffer{}
 	w = multipart.NewWriter(b)
 	part, _ = w.CreateFormFile("uploadfile", "arguments-version.tar.gz")
@@ -256,7 +256,7 @@ func TestUploadPipeline_GetFormFileError(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
 
-	server := PipelineUploadServer{resourceManager: resourceManager}
+	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
 	var b bytes.Buffer
 	b.WriteString("I am invalid file")
 	w := multipart.NewWriter(&b)
@@ -275,7 +275,7 @@ func TestUploadPipeline_GetFormFileError(t *testing.T) {
 func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
-	server := PipelineUploadServer{resourceManager: resourceManager}
+	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
 	b := &bytes.Buffer{}
 	w := multipart.NewWriter(b)
 	part, _ := w.CreateFormFile("uploadfile", "hello-world.yaml")
@@ -324,7 +324,7 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 func TestUploadPipeline_FileNameTooLong(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
-	server := PipelineUploadServer{resourceManager: resourceManager}
+	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
 	b := &bytes.Buffer{}
 	w := multipart.NewWriter(b)
 	part, _ := w.CreateFormFile("uploadfile", "hello-world.yaml")
@@ -345,7 +345,7 @@ func TestUploadPipeline_FileNameTooLong(t *testing.T) {
 func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
-	server := PipelineUploadServer{resourceManager: resourceManager}
+	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
 	b := &bytes.Buffer{}
 	w := multipart.NewWriter(b)
 	part, _ := w.CreateFormFile("uploadfile", "hello-world.yaml")
@@ -396,7 +396,7 @@ func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
 func TestUploadPipelineVersion_GetFromFileError(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
-	server := PipelineUploadServer{resourceManager: resourceManager}
+	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
 	b := &bytes.Buffer{}
 	w := multipart.NewWriter(b)
 	part, _ := w.CreateFormFile("uploadfile", "hello-world.yaml")
@@ -412,7 +412,7 @@ func TestUploadPipelineVersion_GetFromFileError(t *testing.T) {
 	// Set the fake uuid generator with a new uuid to avoid generate a same uuid as above.
 	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(fakeVersionUUID, nil))
 	resourceManager = resource.NewResourceManager(clientManager)
-	server = PipelineUploadServer{resourceManager: resourceManager}
+	server = PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
 	b = &bytes.Buffer{}
 	b.WriteString("I am invalid file")
 	w = multipart.NewWriter(b)
@@ -431,7 +431,7 @@ func TestUploadPipelineVersion_GetFromFileError(t *testing.T) {
 func TestUploadPipelineVersion_FileNameTooLong(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
-	server := PipelineUploadServer{resourceManager: resourceManager}
+	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
 	b := &bytes.Buffer{}
 	w := multipart.NewWriter(b)
 	part, _ := w.CreateFormFile("uploadfile", "hello-world.yaml")
@@ -448,7 +448,7 @@ func TestUploadPipelineVersion_FileNameTooLong(t *testing.T) {
 	// Set the fake uuid generator with a new uuid to avoid generate a same uuid as above.
 	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(fakeVersionUUID, nil))
 	resourceManager = resource.NewResourceManager(clientManager)
-	server = PipelineUploadServer{resourceManager: resourceManager}
+	server = PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
 	encodedName := url.PathEscape(
 		"this is a loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooog name")
 	req, _ = http.NewRequest("POST", "/apis/v1beta1/pipelines/upload_version?name="+encodedName+"&pipelineid="+resource.DefaultFakeUUID, bytes.NewReader(b.Bytes()))

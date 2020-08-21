@@ -38,6 +38,8 @@ import (
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var (
@@ -45,6 +47,8 @@ var (
 	httpPortFlag     = flag.String("httpPortFlag", ":8888", "Http Proxy Port")
 	configPath       = flag.String("config", "", "Path to JSON file containing config")
 	sampleConfigPath = flag.String("sampleconfig", "", "Path to samples")
+
+	collectMetricsFlag = flag.Bool("collectMetricsFlag", true, "Whether to collect Prometheus metrics in API server.")
 )
 
 type RegisterHttpHandlerFromEndpoint func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) error
@@ -87,10 +91,10 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 		glog.Fatalf("Failed to start RPC server: %v", err)
 	}
 	s := grpc.NewServer(grpc.UnaryInterceptor(apiServerInterceptor), grpc.MaxRecvMsgSize(math.MaxInt32))
-	api.RegisterPipelineServiceServer(s, server.NewPipelineServer(resourceManager))
-	api.RegisterExperimentServiceServer(s, server.NewExperimentServer(resourceManager))
-	api.RegisterRunServiceServer(s, server.NewRunServer(resourceManager))
-	api.RegisterJobServiceServer(s, server.NewJobServer(resourceManager))
+	api.RegisterPipelineServiceServer(s, server.NewPipelineServer(resourceManager, &server.PipelineServerOptions{CollectMetrics: *collectMetricsFlag}))
+	api.RegisterExperimentServiceServer(s, server.NewExperimentServer(resourceManager, &server.ExperimentServerOptions{CollectMetrics: *collectMetricsFlag}))
+	api.RegisterRunServiceServer(s, server.NewRunServer(resourceManager, &server.RunServerOptions{CollectMetrics: *collectMetricsFlag}))
+	api.RegisterJobServiceServer(s, server.NewJobServer(resourceManager, &server.JobServerOptions{CollectMetrics: *collectMetricsFlag}))
 	api.RegisterReportServiceServer(s, server.NewReportServer(resourceManager))
 	api.RegisterVisualizationServiceServer(
 		s,
@@ -132,7 +136,7 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	// multipart upload is only supported in HTTP. In long term, we should have gRPC endpoints that
 	// accept pipeline url for importing.
 	// https://github.com/grpc-ecosystem/grpc-gateway/issues/410
-	pipelineUploadServer := server.NewPipelineUploadServer(resourceManager)
+	pipelineUploadServer := server.NewPipelineUploadServer(resourceManager, &server.PipelineUploadServerOptions{CollectMetrics: *collectMetricsFlag})
 	topMux.HandleFunc("/apis/v1beta1/pipelines/upload", pipelineUploadServer.UploadPipeline)
 	topMux.HandleFunc("/apis/v1beta1/pipelines/upload_version", pipelineUploadServer.UploadPipelineVersion)
 	topMux.HandleFunc("/apis/v1beta1/healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -140,6 +144,9 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	})
 
 	topMux.Handle("/apis/", mux)
+
+	// Register a handler for Prometheus to poll.
+	topMux.Handle("/metrics", promhttp.Handler())
 
 	http.ListenAndServe(*httpPortFlag, topMux)
 	glog.Info("Http Proxy started")

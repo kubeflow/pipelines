@@ -22,6 +22,7 @@ import yaml
 import re
 import json
 from pathlib2 import Path
+from enum import Enum, auto
 
 import boto3
 from boto3.session import Session
@@ -36,7 +37,7 @@ from botocore.credentials import (
 from botocore.exceptions import ClientError
 from botocore.session import Session as BotocoreSession
 
-from sagemaker.amazon.amazon_estimator import get_image_uri
+from sagemaker.image_uris import retrieve
 
 import logging
 logging.getLogger().setLevel(logging.INFO)
@@ -98,6 +99,9 @@ def get_component_version():
 
     return component_version
 
+
+def print_log_header(header_len, title=""):
+    logging.info(f"{title:*^{header_len}}")
 
 def print_logs_for_job(cw_client, log_grp, job_name):
     """Gets the CloudWatch logs for SageMaker jobs"""
@@ -206,12 +210,12 @@ def create_training_job_request(args):
         # TODO: Adjust this implementation to account for custom algorithm resources names that are the same as built-in algorithm names
         algo_name = args['algorithm_name'].lower().strip()
         if algo_name in built_in_algos.keys():
-            request['AlgorithmSpecification']['TrainingImage'] = get_image_uri(args['region'], built_in_algos[algo_name])
+            request['AlgorithmSpecification']['TrainingImage'] = retrieve(built_in_algos[algo_name], args['region'])
             request['AlgorithmSpecification'].pop('AlgorithmName')
             logging.warning('Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm.')
         # Just to give the user more leeway for built-in algorithm name inputs
         elif algo_name in built_in_algos.values():
-            request['AlgorithmSpecification']['TrainingImage'] = get_image_uri(args['region'], algo_name)
+            request['AlgorithmSpecification']['TrainingImage'] = retrieve(algo_name, args['region'])
             request['AlgorithmSpecification'].pop('AlgorithmName')
             logging.warning('Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm.')
         else:
@@ -258,6 +262,17 @@ def create_training_job_request(args):
 
     enable_spot_instance_support(request, args)
 
+    ### Update DebugHookConfig and DebugRuleConfigurations
+    if args['debug_hook_config']:
+        request['DebugHookConfig'] = args['debug_hook_config']
+    else:
+        request.pop('DebugHookConfig')
+
+    if args['debug_rule_config']:
+        request['DebugRuleConfigurations'] = args['debug_rule_config']
+    else:
+        request.pop('DebugRuleConfigurations')
+
     ### Update tags
     for key, val in args['tags'].items():
         request['Tags'].append({'Key': key, 'Value': val})
@@ -282,18 +297,94 @@ def create_training_job(client, args):
 
 
 def wait_for_training_job(client, training_job_name, poll_interval=30):
-  while(True):
-    response = client.describe_training_job(TrainingJobName=training_job_name)
-    status = response['TrainingJobStatus']
-    if status == 'Completed':
-      logging.info("Training job ended with status: " + status)
-      break
-    if status == 'Failed':
-      message = response['FailureReason']
-      logging.info('Training failed with the following error: {}'.format(message))
-      raise Exception('Training job failed')
-    logging.info("Training job is still in status: " + status)
-    time.sleep(poll_interval)
+    while(True):
+        response = client.describe_training_job(TrainingJobName=training_job_name)
+        status = response['TrainingJobStatus']
+        if status == 'Completed':
+            logging.info("Training job ended with status: " + status)
+            break
+        if status == 'Failed':
+            message = response['FailureReason']
+            logging.info(f'Training failed with the following error: {message}')
+            raise Exception('Training job failed')
+        logging.info("Training job is still in status: " + status)
+        time.sleep(poll_interval)
+
+
+def wait_for_debug_rules(client, training_job_name, poll_interval=30):
+    first_poll = True
+    while(True):
+        response = client.describe_training_job(TrainingJobName=training_job_name)
+        if 'DebugRuleEvaluationStatuses' not in response:
+            break
+        if first_poll:
+            logging.info("Polling for status of all debug rules:")
+            first_poll = False
+        if DebugRulesStatus.from_describe(response) != DebugRulesStatus.INPROGRESS:
+            logging.info("Rules have ended with status:\n")
+            print_debug_rule_status(response, True)
+            break
+        print_debug_rule_status(response)
+        time.sleep(poll_interval)
+
+
+class DebugRulesStatus(Enum):
+    COMPLETED = auto()
+    ERRORED = auto()
+    INPROGRESS = auto()
+
+    @classmethod
+    def from_describe(self, response):
+        has_error = False
+        for debug_rule in response['DebugRuleEvaluationStatuses']:
+            if debug_rule['RuleEvaluationStatus'] == "Error":
+                has_error = True
+            if debug_rule['RuleEvaluationStatus'] == "InProgress":
+                return DebugRulesStatus.INPROGRESS
+        if has_error:
+            return DebugRulesStatus.ERRORED
+        else:
+            return DebugRulesStatus.COMPLETED
+
+
+def print_debug_rule_status(response, last_print=False):
+    """
+    Example of DebugRuleEvaluationStatuses:
+    response['DebugRuleEvaluationStatuses'] =
+        [{
+            "RuleConfigurationName": "VanishingGradient",
+            "RuleEvaluationStatus": "IssuesFound",
+            "StatusDetails": "There was an issue."
+        }]
+
+    If last_print is False:
+    INFO:root: - LossNotDecreasing: InProgress
+    INFO:root: - Overtraining: NoIssuesFound
+    ERROR:root:- CustomGradientRule: Error
+
+    If last_print is True:
+    INFO:root: - LossNotDecreasing: IssuesFound
+    INFO:root:   - RuleEvaluationConditionMet: Evaluation of the rule LossNotDecreasing at step 10 resulted in the condition being met
+    """
+    for debug_rule in response['DebugRuleEvaluationStatuses']:
+        line_ending = "\n" if last_print else ""
+        if 'StatusDetails' in debug_rule:
+            status_details = f"- {debug_rule['StatusDetails'].rstrip()}{line_ending}"
+            line_ending = ""
+        else:
+            status_details = ""
+        rule_status = f"- {debug_rule['RuleConfigurationName']}: {debug_rule['RuleEvaluationStatus']}{line_ending}"
+        if debug_rule['RuleEvaluationStatus'] == "Error":
+            log = logging.error
+            status_padding = 1
+        else:
+            log = logging.info
+            status_padding = 2
+
+        log(f"{status_padding * ' '}{rule_status}")
+        if last_print and status_details:
+            log(f"{(status_padding + 2) * ' '}{status_details}")
+    print_log_header(50)
 
 
 def get_model_artifacts_from_job(client, job_name):
@@ -314,10 +405,13 @@ def get_image_from_job(client, job_name):
 
 
 def stop_training_job(client, job_name):
-    try:
-        client.stop_training_job(TrainingJobName=job_name)
-    except ClientError as e:
-        raise Exception(e.response['Error']['Message'])
+    response = client.describe_training_job(TrainingJobName=job_name)
+    if response["TrainingJobStatus"] == "InProgress":
+        try:
+            client.stop_training_job(TrainingJobName=job_name)
+            return job_name
+        except ClientError as e:
+            raise Exception(e.response['Error']['Message'])
 
 
 def create_model(client, args):
@@ -611,12 +705,12 @@ def create_hyperparameter_tuning_job_request(args):
         # TODO: Adjust this implementation to account for custom algorithm resources names that are the same as built-in algorithm names
         algo_name = args['algorithm_name'].lower().strip()
         if algo_name in built_in_algos.keys():
-            request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingImage'] = get_image_uri(args['region'], built_in_algos[algo_name])
+            request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingImage'] = retrieve(built_in_algos[algo_name], args['region'])
             request['TrainingJobDefinition']['AlgorithmSpecification'].pop('AlgorithmName')
             logging.warning('Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm.')
         # To give the user more leeway for built-in algorithm name inputs
         elif algo_name in built_in_algos.values():
-            request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingImage'] = get_image_uri(args['region'], algo_name)
+            request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingImage'] = retrieve(algo_name, args['region'])
             request['TrainingJobDefinition']['AlgorithmSpecification'].pop('AlgorithmName')
             logging.warning('Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm.')
         else:
