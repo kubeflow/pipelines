@@ -41,8 +41,7 @@ chmod +x bazel_installer.sh
 
 # Install TFX from head
 cd $source_root
-git clone https://github.com/tensorflow/tfx.git
-git checkout v0.23.0-rc0
+git clone --branch v0.23.0-rc0 --depth 1 https://github.com/tensorflow/tfx.git
 cd $source_root/tfx
 #pip3 install --upgrade pip
 #pip3 install --upgrade 'numpy>=1.16,<1.17'
