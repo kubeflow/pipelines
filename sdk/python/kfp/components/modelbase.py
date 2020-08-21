@@ -196,7 +196,7 @@ def convert_object_to_struct(obj, serialized_names: Mapping[str, str] = {}):
             result[attr_name] = {k: (v.to_dict() if hasattr(v, 'to_dict') else v) for k, v in value.items()}
         else:
             param = signature.parameters.get(python_name, None)
-            if param is None or param.default == inspect.Parameter.empty or value != param.default:
+            if param is None or param.default == inspect.Parameter.empty or value != param.default or attr_name == 'optional' or attr_name == 'default':
                 result[attr_name] = value
 
     return result

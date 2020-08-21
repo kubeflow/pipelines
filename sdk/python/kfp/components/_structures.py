@@ -90,6 +90,8 @@ class OutputSpec(ModelBase):
         type: Optional[TypeSpecType] = None,
         description: Optional[str] = None,
         annotations: Optional[Dict[str, Any]] = None,
+        default: Optional[str] = None,
+        optional: Optional[bool] = False,
     ):
         super().__init__(locals())
 

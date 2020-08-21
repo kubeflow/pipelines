@@ -40,6 +40,39 @@ def fix_big_data_passing(workflow: dict) -> dict:
     template_input_to_parent_constant_arguments = {} #(task_template_name, task_input_name) -> Set[argument_value] # Unused
     dag_output_to_parent_template_outputs = {} # (dag_template_name, output_name) -> Set[(upstream_template_name, upstream_output_name)]
 
+    containername_inart_upstreamname_optional = [] # (container_name, input_artifact)
+    containername_outart_optional = [] # (container_name, output_artifact)
+    # add "optional" for container template
+    for template in templates:
+        if 'container' in template:
+            str_spec = template['metadata']['annotations']['pipelines.kubeflow.org/component_spec']
+            dict_spec = json.loads(str_spec)
+            if 'inputs' in dict_spec and 'inputs' in template:
+                for input in dict_spec['inputs']:
+                    if input['optional'] == False: continue
+                    if 'artifacts' in template['inputs']:
+                        for artifact_argument in template['inputs']['artifacts']:
+                            if artifact_argument['name'] == input['name'].lower():
+                                artifact_argument['optional'] = True
+                                raw_data = artifact_argument['raw']['data']
+                                input_name = extract_input_parameter_name(raw_data)
+                                containername_inart_upstreamname_optional.append((template['name'], input_name))
+
+            if 'outputs' in dict_spec and 'outputs' in template:
+                for output in dict_spec['outputs']:
+                    if output['optional'] == False: continue
+                    if 'artifacts' in template['outputs']:
+                        for artifact_argument in template['outputs']['artifacts']:
+                            if artifact_argument['name'] == template['name'] + '-' + output['name'].lower():
+                                artifact_argument['optional'] = True
+                                containername_outart_optional.append((template['name'], artifact_argument['name']))
+
+                    if 'parameters' in template['outputs']:
+                        for parameter_argument in template['outputs']['parameters']:
+                            if parameter_argument['name'] == template['name'] + '-' + output['name'].lower():
+                                parameter_argument['optional'] = True
+                                parameter_argument['valueFrom']['default'] = '1'
+
     for template in dag_templates:
         dag_template_name = template['name']
         # Indexing task arguments
@@ -123,7 +156,7 @@ def fix_big_data_passing(workflow: dict) -> dict:
                 inputs_directly_consumed_as_artifacts.add((template_name, input_name))
                 del input_artifact['raw'] # Deleting the "default value based" data passing hack so that it's replaced by the "argument based" way of data passing.
                 input_artifact['name'] = input_name # The input artifact name should be the same as the original input parameter name
-    
+
     # Searching for parameter input consumers in DAG templates (.when, .withParam, etc)
     for template in dag_templates:
         template_name = template['name']
@@ -311,9 +344,54 @@ def fix_big_data_passing(workflow: dict) -> dict:
                 for parameter_argument in task_arguments.get('parameters', [])
                 if (task['template'], parameter_argument['name']) in inputs_consumed_as_parameters
             ]
-    
+
+    # add "optional" for a dag which is not pipeline dag
+    condition_inputs_container_param = []
+    condition_inputs_container_art = []
+    for template in templates:
+        if 'dag' in template and template['name'] != workflow['spec']['entrypoint']:
+            if 'inputs' in template:
+                for artrifact_argument in template['inputs']['artifacts']:
+                    for component in template['dag']['tasks']:
+                        component_name = component['name']
+                        if (component_name, artrifact_argument['name']) in containername_inart_upstreamname_optional:
+                            artrifact_argument['optional'] = True
+                            condition_inputs_container_art.append((template['name'], artrifact_argument['name']))
+
+            if 'outputs' in template:
+                for parameter_argument in template['outputs']['parameters']:
+                    for component in template['dag']['tasks']:
+                        component_name = component['name']
+                        if (component_name, parameter_argument['name']) in containername_outart_optional:
+                            parameter_argument['optional'] = True
+                            parameter_argument['valueFrom'].setdefault('default', str(1))
+
+                for artifact_argument in template['outputs']['artifacts']:
+                    for component in template['dag']['tasks']:
+                        component_name = component['name']
+                        if (component_name, artifact_argument['name']) in containername_outart_optional:
+                            artifact_argument['optional'] = True
+
+    # add "optional" for pipeline dag
+    for template in templates:
+        if 'dag' in template and template['name'] == workflow['spec']['entrypoint']:
+            for component in template['dag']['tasks']:
+                if 'arguments' not in component: continue
+                if component['name'].startswith('condition'):
+                    for parameter_argument in component['arguments']['parameters']:
+                        if (component['name'], parameter_argument['name']) in condition_inputs_container_param:
+                            parameter_argument['optional'] = True
+
+                    for artifact_argument in component['arguments']['artifacts']:
+                        if (component['name'], artifact_argument['name']) in condition_inputs_container_art:
+                            artifact_argument['optional'] = True
+                else:
+                    for artifact_argument in component['arguments']['artifacts']:
+                        if (component['name'], artifact_argument['name']) in containername_inart_upstreamname_optional:
+                            artifact_argument['optional'] = True
+
     # Fix Workflow parameter arguments that are consumed as artifacts downstream
-    # 
+    #
     workflow_spec = workflow['spec']
     entrypoint_template_name = workflow_spec['entrypoint']
     workflow_arguments = workflow_spec['arguments']
