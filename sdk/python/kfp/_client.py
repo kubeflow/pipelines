@@ -108,6 +108,7 @@ class Client(object):
     cookies: CookieJar object containing cookies that will be passed to the pipelines API.
     proxy: HTTP or HTTPS proxy server
     ssl_ca_cert: Cert for proxy
+    context: Context within kubeconfig to use, defaults to current-context.
   """
 
   # in-cluster DNS name of the pipeline service
@@ -117,12 +118,12 @@ class Client(object):
   LOCAL_KFP_CONTEXT = os.path.expanduser('~/.config/kfp/context.json')
 
   # TODO: Wrap the configurations for different authentication methods.
-  def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None, existing_token=None, cookies=None, proxy=None, ssl_ca_cert=None):
+  def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None, existing_token=None, cookies=None, proxy=None, ssl_ca_cert=None, context=None):
     """Create a new instance of kfp client.
     """
     host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
     self._uihost = os.environ.get(KF_PIPELINES_UI_ENDPOINT_ENV, host)
-    config = self._load_config(host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy, ssl_ca_cert)
+    config = self._load_config(host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy, ssl_ca_cert, context)
     # Save the loaded API client configuration, as a reference if update is
     # needed.
     self._existing_config = config
@@ -135,7 +136,7 @@ class Client(object):
     self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
     self._load_context_setting_or_default()
 
-  def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy, ssl_ca_cert):
+  def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy, ssl_ca_cert, context):
     config = kfp_server_api.configuration.Configuration()
 
     if proxy:
@@ -205,7 +206,7 @@ class Client(object):
       return config
 
     try:
-      k8s.config.load_kube_config(client_configuration=config)
+      k8s.config.load_kube_config(client_configuration=config, context=context)
     except:
       print('Failed to load kube config.')
       return config
