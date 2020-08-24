@@ -112,14 +112,18 @@ class TrainTestCase(unittest.TestCase):
 
   def test_utils_stop_training_job(self):
     mock_sm_client = MagicMock()
-    mock_sm_client.stop_training_job.return_value = None
+    mock_sm_client.stop_training_job.return_value = 'FakeJobName'
+
+    mock_sm_client.describe_training_job.side_effect = [
+        {"TrainingJobStatus": "InProgress"}
+    ]
 
     response = _utils.stop_training_job(mock_sm_client, 'FakeJobName')
 
     mock_sm_client.stop_training_job.assert_called_once_with(
         TrainingJobName='FakeJobName'
     )
-    self.assertEqual(response, None)
+    self.assertEqual(response, 'FakeJobName')
 
   def test_sagemaker_exception_in_create_training_job(self):
     mock_client = MagicMock()
@@ -157,6 +161,28 @@ class TrainTestCase(unittest.TestCase):
       _utils.wait_for_training_job(mock_client, 'training-job', 0)
 
     self.assertEqual(mock_client.describe_training_job.call_count, 4)
+ 
+  def test_wait_for_debug_rules(self):
+      mock_client = MagicMock()
+      mock_client.describe_training_job.side_effect = [
+        {"DebugRuleEvaluationStatuses": [{"RuleConfigurationName": "rule1", "RuleEvaluationStatus": "InProgress"}, {"RuleConfigurationName": "rule2", "RuleEvaluationStatus": "InProgress"}]},
+        {"DebugRuleEvaluationStatuses": [{"RuleConfigurationName": "rule1", "RuleEvaluationStatus": "NoIssuesFound"}, {"RuleConfigurationName": "rule2", "RuleEvaluationStatus": "InProgress"}]},
+        {"DebugRuleEvaluationStatuses": [{"RuleConfigurationName": "rule1", "RuleEvaluationStatus": "NoIssuesFound"}, {"RuleConfigurationName": "rule2", "RuleEvaluationStatus": "IssuesFound"}]},
+        {"DebugRuleEvaluationStatuses": [{"RuleConfigurationName": "rule1", "RuleEvaluationStatus": "Should not be called"}, {"RuleConfigurationName": "rule2", "RuleEvaluationStatus": "Should not be called"}]},
+      ]
+      _utils.wait_for_debug_rules(mock_client, 'training-job', 0)
+      self.assertEqual(mock_client.describe_training_job.call_count, 3)
+
+  def test_wait_for_errored_rule(self):
+      mock_client = MagicMock()
+      mock_client.describe_training_job.side_effect = [
+        {"DebugRuleEvaluationStatuses": [{"RuleConfigurationName": "rule1", "RuleEvaluationStatus": "InProgress"}, {"RuleConfigurationName": "rule2", "RuleEvaluationStatus": "InProgress"}]},
+        {"DebugRuleEvaluationStatuses": [{"RuleConfigurationName": "rule1", "RuleEvaluationStatus": "Error"}, {"RuleConfigurationName": "rule2", "RuleEvaluationStatus": "InProgress"}]},
+        {"DebugRuleEvaluationStatuses": [{"RuleConfigurationName": "rule1", "RuleEvaluationStatus": "Error"}, {"RuleConfigurationName": "rule2", "RuleEvaluationStatus": "NoIssuesFound"}]},
+        {"DebugRuleEvaluationStatuses": [{"RuleConfigurationName": "rule1", "RuleEvaluationStatus": "Should not be called"}, {"RuleConfigurationName": "rule2", "RuleEvaluationStatus": "Should not be called"}]},
+      ]
+      _utils.wait_for_debug_rules(mock_client, 'training-job', 0)
+      self.assertEqual(mock_client.describe_training_job.call_count, 3)
 
   def test_get_model_artifacts_from_job(self):
     mock_client = MagicMock()
@@ -233,13 +259,13 @@ class TrainTestCase(unittest.TestCase):
 
     parsed_args = self.parser.parse_args(known_algorithm_args)
 
-    # Patch get_image_uri
-    _utils.get_image_uri = MagicMock()
-    _utils.get_image_uri.return_value = "seq2seq-url"
+    # Patch retrieve
+    _utils.retrieve = MagicMock()
+    _utils.retrieve.return_value = "seq2seq-url"
 
     response = _utils.create_training_job_request(vars(parsed_args))
 
-    _utils.get_image_uri.assert_called_with('us-west-2', 'seq2seq')
+    _utils.retrieve.assert_called_with('seq2seq', 'us-west-2')
     self.assertEqual(response['AlgorithmSpecification']['TrainingImage'], "seq2seq-url")
 
   def test_known_algorithm_value(self):
@@ -251,13 +277,13 @@ class TrainTestCase(unittest.TestCase):
 
     parsed_args = self.parser.parse_args(known_algorithm_args)
 
-    # Patch get_image_uri
-    _utils.get_image_uri = MagicMock()
-    _utils.get_image_uri.return_value = "seq2seq-url"
+    # Patch retrieve
+    _utils.retrieve = MagicMock()
+    _utils.retrieve.return_value = "seq2seq-url"
 
     response = _utils.create_training_job_request(vars(parsed_args))
 
-    _utils.get_image_uri.assert_called_with('us-west-2', 'seq2seq')
+    _utils.retrieve.assert_called_with('seq2seq', 'us-west-2')
     self.assertEqual(response['AlgorithmSpecification']['TrainingImage'], "seq2seq-url")
 
   def test_unknown_algorithm(self):
@@ -268,14 +294,14 @@ class TrainTestCase(unittest.TestCase):
 
     parsed_args = self.parser.parse_args(known_algorithm_args)
 
-    # Patch get_image_uri
-    _utils.get_image_uri = MagicMock()
-    _utils.get_image_uri.return_value = "unknown-url"
+    # Patch retrieve
+    _utils.retrieve = MagicMock()
+    _utils.retrieve.return_value = "unknown-url"
 
     response = _utils.create_training_job_request(vars(parsed_args))
 
     # Should just place the algorithm name in regardless
-    _utils.get_image_uri.assert_not_called()
+    _utils.retrieve.assert_not_called()
     self.assertEqual(response['AlgorithmSpecification']['AlgorithmName'], "unknown algorithm")
 
   def test_no_channels(self):
@@ -341,6 +367,49 @@ class TrainTestCase(unittest.TestCase):
     for arg in [no_max_wait_args, no_checkpoint_args, no_s3_uri_args]:
       with self.assertRaises(Exception):
         _utils.create_training_job_request(vars(arg))
+
+  def test_hook_min_args(self):
+    good_args = self.parser.parse_args(required_args + ['--debug_hook_config', '{"S3OutputPath": "s3://fake-uri/"}'])
+    response = _utils.create_training_job_request(vars(good_args))
+    self.assertEqual(response['DebugHookConfig']['S3OutputPath'], "s3://fake-uri/")
+
+  def test_hook_max_args(self):
+    good_args = self.parser.parse_args(required_args + ['--debug_hook_config', '{"S3OutputPath": "s3://fake-uri/", "LocalPath": "/local/path/", "HookParameters": {"key": "value"}, "CollectionConfigurations": [{"CollectionName": "collection1", "CollectionParameters": {"key1": "value1"}}, {"CollectionName": "collection2", "CollectionParameters": {"key2": "value2", "key3": "value3"}}]}'])
+    response = _utils.create_training_job_request(vars(good_args))
+    self.assertEqual(response['DebugHookConfig']['S3OutputPath'], "s3://fake-uri/")
+    self.assertEqual(response['DebugHookConfig']['LocalPath'], "/local/path/")
+    self.assertEqual(response['DebugHookConfig']['HookParameters'], {"key": "value"})
+    self.assertEqual(response['DebugHookConfig']['CollectionConfigurations'], [
+      {
+        "CollectionName": "collection1",
+        "CollectionParameters": {
+          "key1": "value1"
+        }
+      }, {
+        "CollectionName": "collection2", 
+        "CollectionParameters": {
+          "key2": "value2",
+          "key3": "value3"
+        }
+      }
+    ])
+
+  def test_rule_max_args(self):
+    good_args = self.parser.parse_args(required_args + ['--debug_rule_config', '[{"InstanceType": "ml.m4.xlarge", "LocalPath": "/local/path/", "RuleConfigurationName": "rule_name", "RuleEvaluatorImage": "test-image", "RuleParameters": {"key1": "value1"}, "S3OutputPath": "s3://fake-uri/", "VolumeSizeInGB": 1}]'])
+    response = _utils.create_training_job_request(vars(good_args))
+    self.assertEqual(response['DebugRuleConfigurations'][0]['InstanceType'], 'ml.m4.xlarge')
+    self.assertEqual(response['DebugRuleConfigurations'][0]['LocalPath'], '/local/path/')
+    self.assertEqual(response['DebugRuleConfigurations'][0]['RuleConfigurationName'], 'rule_name')
+    self.assertEqual(response['DebugRuleConfigurations'][0]['RuleEvaluatorImage'], 'test-image')
+    self.assertEqual(response['DebugRuleConfigurations'][0]['RuleParameters'], {"key1": "value1"})
+    self.assertEqual(response['DebugRuleConfigurations'][0]['S3OutputPath'], 's3://fake-uri/')
+    self.assertEqual(response['DebugRuleConfigurations'][0]['VolumeSizeInGB'], 1)
+
+  def test_rule_min_good_args(self):
+    good_args = self.parser.parse_args(required_args + ['--debug_rule_config', '[{"RuleConfigurationName": "rule_name", "RuleEvaluatorImage": "test-image"}]'])
+    response = _utils.create_training_job_request(vars(good_args))
+    self.assertEqual(response['DebugRuleConfigurations'][0]['RuleConfigurationName'], 'rule_name')
+    self.assertEqual(response['DebugRuleConfigurations'][0]['RuleEvaluatorImage'], 'test-image')
 
   def test_spot_lesser_wait_time(self):
     args = self.parser.parse_args(required_args + ['--spot_instance', 'True', '--max_wait_time', '3599', '--checkpoint_config', '{"S3Uri": "s3://fake-uri/", "LocalPath": "local-path"}'])
