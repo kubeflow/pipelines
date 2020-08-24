@@ -234,6 +234,10 @@ func (r *ResourceManager) DeletePipeline(pipelineId string) error {
 	return nil
 }
 
+func (r *ResourceManager) UpdatePipelineDefaultVersion(pipelineId string, versionId string) error {
+    return r.pipelineStore.UpdatePipelineDefaultVersion(pipelineId, versionId)
+}
+
 func (r *ResourceManager) CreatePipeline(name string, description string, pipelineFile []byte) (*model.Pipeline, error) {
 	// Extract the parameter from the pipeline
 	params, err := util.GetParameters(pipelineFile)

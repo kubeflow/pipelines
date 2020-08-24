@@ -128,6 +128,23 @@ func (s *PipelineServer) CreatePipeline(ctx context.Context, request *api.Create
 	return ToApiPipeline(pipeline), nil
 }
 
+func (s *PipelineServer) UpdatePipelineDefaultVersion(ctx context.Context, request *api.UpdatePipelineDefaultVersionRequest) (*empty.Empty, error) {
+	if s.options.CollectMetrics {
+		getPipelineRequests.Inc()
+	}
+
+	err := s.resourceManager.UpdatePipelineDefaultVersion(request.PipelineId, request.VersionId)
+	if err != nil {
+		return nil, util.Wrap(err, "Delete pipelines failed.")
+	}
+	if s.options.CollectMetrics {
+		pipelineCount.Dec()
+	}
+
+	return &empty.Empty{}, nil
+
+}
+
 func (s *PipelineServer) GetPipeline(ctx context.Context, request *api.GetPipelineRequest) (*api.Pipeline, error) {
 	if s.options.CollectMetrics {
 		getPipelineRequests.Inc()
