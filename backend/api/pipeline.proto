@@ -141,7 +141,7 @@ service PipelineService {
     };
   }
 
-  // Returns a YAML template that contains the specified pipeline version's description, parameters and metadata.
+  // Update the default pipeline version of a specific pipeline.
   rpc UpdatePipelineDefaultVersion(UpdatePipelineDefaultVersionRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/pipelines/{pipeline_id}/{version_id}"
