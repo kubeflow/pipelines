@@ -9,6 +9,7 @@ bases:
   # If you don't already have a Prometheus server up, you can use the following configuration files for Prometheus.
   # If you have your own Prometheus server up already or you don't want a Prometheus server for monitoring, you can comment the following line out.
   - ../third-party/prometheus
+  - ../third-party/grafana
 
 # Identifier for application manager to apply ownerReference.
 # The ownerReference ensures the resources get garbage collected
