@@ -54,14 +54,7 @@ spec:
           requests:
             cpu: 100m
             memory: 256Mi
-        # volumeMounts:
-        # - mountPath: /var/lib/grafana
-        #   subPath: grafana
-        #   name: storage
       securityContext:
         fsGroup: 472
         runAsUser: 472
-    #   volumes:
-    #   - name: storage
-    #     persistentVolumeClaim:
-    #       claimName: grafana
+# TODO(jingzhang36): consider adding persistent volume if you would like the created dashboards to persist.
