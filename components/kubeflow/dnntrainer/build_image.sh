@@ -53,7 +53,7 @@ if [ -z "${TAG_NAME}" ]; then
 fi
 
 if [ -z "${TF_BASE_TAG}" ]; then
-  TF_BASE_TAG=0.23.0
+  TF_BASE_TAG=2.3.0
 fi
 
 mkdir -p ./build
