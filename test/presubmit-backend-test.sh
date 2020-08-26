@@ -21,5 +21,4 @@
 apt-get update
 apt-get -y upgrade
 apt-get install -y golang
-pwd
-go test -v -cover ../backend/...
+go test -v -cover ./backend/...
