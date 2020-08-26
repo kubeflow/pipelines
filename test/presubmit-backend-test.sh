@@ -18,8 +18,8 @@
 #        `WATCH=true ./hack/run_unit_tests_backend.sh` to watch code changes and auto rerun tests
 # Note: ibazel can be downloaded from https://github.com/bazelbuild/bazel-watcher
 
-apt-get update
-apt-get -y upgrade
-apt-get install -y golang
+add-apt-repository ppa:longsleep/golang-backports
+apt-get -y update
+apt-get install golang-1.13.1
 go mod vendor
 go test -v -cover ./backend/...
