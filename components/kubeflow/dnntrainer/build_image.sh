@@ -19,7 +19,7 @@ while getopts ":hp:t:i:b:l:" opt; do
         echo "-t: tag name"
         echo "-i: image name. If provided, project name and tag name are not necessary"
         echo "-b: tensorflow base image tag. Optional. The value can be tags listed under \
-        https://hub.docker.com/r/tensorflow/tensorflow/tags. Defaults to '1.6.0'."
+        https://hub.docker.com/r/tensorflow/tensorflow/tags. Defaults to '2.3.0'."
         echo "-l: local image name. Optional. Defaults to 'ml-pipeline-kubeflow-tf-trainer'"
         exit
       ;;
@@ -53,7 +53,7 @@ if [ -z "${TAG_NAME}" ]; then
 fi
 
 if [ -z "${TF_BASE_TAG}" ]; then
-  TF_BASE_TAG=1.6.0
+  TF_BASE_TAG=2.3.0
 fi
 
 mkdir -p ./build

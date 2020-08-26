@@ -26,14 +26,14 @@ class Resource(object):
     which is used to represent the `resource` property in argo's workflow
     template (io.argoproj.workflow.v1alpha1.Template).
     """
-    """
-    Attributes:
-      swagger_types (dict): The key is attribute name
-                            and the value is attribute type.
-      attribute_map (dict): The key is attribute name
-                            and the value is json key in definition.
-    """
     swagger_types = {
+        "action": "str",
+        "merge_strategy": "str",
+        "success_condition": "str",
+        "failure_condition": "str",
+        "manifest": "str"
+    }
+    openapi_types = {
         "action": "str",
         "merge_strategy": "str",
         "success_condition": "str",
@@ -63,7 +63,27 @@ class Resource(object):
 
 
 class ResourceOp(BaseOp):
-    """Represents an op which will be translated into a resource template"""
+    """Represents an op which will be translated into a resource template
+
+    Args:
+        k8s_resource: A k8s resource which will be submitted to the cluster
+        action: One of "create"/"delete"/"apply"/"patch"
+            (default is "create")
+        merge_strategy: The merge strategy for the "apply" action
+        success_condition: The successCondition of the template
+        failure_condition: The failureCondition of the template
+            For more info see:
+            https://github.com/argoproj/argo/blob/master/examples/k8s-jobs.yaml
+        attribute_outputs: Maps output labels to resource's json paths,
+            similarly to file_outputs of ContainerOp
+        kwargs: name, sidecars. See BaseOp definition
+
+    Raises:
+        ValueError: if not inside a pipeline
+            if the name is an invalid string
+            if no k8s_resource is provided
+            if merge_strategy is set without "apply" action
+    """
 
     def __init__(self,
                  k8s_resource=None,
@@ -73,26 +93,6 @@ class ResourceOp(BaseOp):
                  failure_condition: str = None,
                  attribute_outputs: Dict[str, str] = None,
                  **kwargs):
-        """Create a new instance of ResourceOp.
-
-        Args:
-            k8s_resource: A k8s resource which will be submitted to the cluster
-            action: One of "create"/"delete"/"apply"/"patch"
-                (default is "create")
-            merge_strategy: The merge strategy for the "apply" action
-            success_condition: The successCondition of the template
-            failure_condition: The failureCondition of the template
-                For more info see:
-                https://github.com/argoproj/argo/blob/master/examples/k8s-jobs.yaml
-            attribute_outputs: Maps output labels to resource's json paths,
-                similarly to file_outputs of ContainerOp
-            kwargs: name, sidecars. See BaseOp definition
-        Raises:
-        ValueError: if not inside a pipeline
-                    if the name is an invalid string
-                    if no k8s_resource is provided
-                    if merge_strategy is set without "apply" action
-        """
 
         super().__init__(**kwargs)
         self.attrs_with_pipelineparams = list(self.attrs_with_pipelineparams)
@@ -101,14 +101,14 @@ class ResourceOp(BaseOp):
         ])
 
         if k8s_resource is None:
-            ValueError("You need to provide a k8s_resource.")
+            raise ValueError("You need to provide a k8s_resource.")
 
         if merge_strategy and action != "apply":
-            ValueError("You can't set merge_strategy when action != 'apply'")
+            raise ValueError("You can't set merge_strategy when action != 'apply'")
         
         # if action is delete, there should not be any outputs, success_condition, and failure_condition
         if action == "delete" and (success_condition or failure_condition or attribute_outputs):
-            ValueError("You can't set success_condition, failure_condition, or attribute_outputs when action == 'delete'")
+            raise ValueError("You can't set success_condition, failure_condition, or attribute_outputs when action == 'delete'")
 
         init_resource = {
             "action": action,
@@ -158,3 +158,21 @@ class ResourceOp(BaseOp):
         `io.argoproj.workflow.v1alpha1.Template`.
         """
         return self._resource
+
+    def delete(self):
+        """Returns a ResourceOp which deletes the resource."""
+        if self.resource.action == "delete":
+            raise ValueError("This operation is already a resource deletion.")
+
+        k8s_resource = dict()
+        if isinstance(self.k8s_resource, dict):
+            k8s_resource["apiVersion"] = self.k8s_resource["apiVersion"]
+            k8s_resource["kind"] = self.k8s_resource["kind"]
+        else:
+            k8s_resource["apiVersion"] = self.k8s_resource.api_version
+            k8s_resource["kind"] = self.k8s_resource.kind
+        k8s_resource["metadata"] = {"name": self.outputs["name"]}
+
+        return ResourceOp(name="del-%s" % self.name,
+                          action="delete",
+                          k8s_resource=k8s_resource)

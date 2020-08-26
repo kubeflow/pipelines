@@ -1,0 +1,41 @@
+name: Chicago Taxi Trips dataset
+description: |
+  City of Chicago Taxi Trips dataset: https://data.cityofchicago.org/Transportation/Taxi-Trips/wrvz-psew
+
+  The input parameters configure the SQL query to the database.
+  The dataset is pretty big, so limit the number of results using the `Limit` or `Where` parameters.
+  Read [Socrata dev](https://dev.socrata.com/docs/queries/) for the advanced query syntax
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+inputs:
+- {name: Where, type: String, default: 'trip_start_timestamp>="1900-01-01" AND trip_start_timestamp<"2100-01-01"'}
+- {name: Limit, type: Integer, default: '1000', description: 'Number of rows to return. The rows are randomly sampled.'}
+- {name: Select, type: String, default: 'trip_id,taxi_id,trip_start_timestamp,trip_end_timestamp,trip_seconds,trip_miles,pickup_census_tract,dropoff_census_tract,pickup_community_area,dropoff_community_area,fare,tips,tolls,extras,trip_total,payment_type,company,pickup_centroid_latitude,pickup_centroid_longitude,pickup_centroid_location,dropoff_centroid_latitude,dropoff_centroid_longitude,dropoff_centroid_location'}
+- {name: Format, type: String, default: 'csv', description: 'Output data format. Suports csv,tsv,cml,rdf,json'}
+outputs:
+- {name: Table, description: 'Result type depends on format. CSV and TSV have header.'}
+implementation:
+  container:
+    image: curlimages/curl
+    command:
+    - sh
+    - -c
+    - |
+      set -e -x -o pipefail
+      output_path="$0"
+      select="$1"
+      where="$2"
+      limit="$3"
+      format="$4"
+      mkdir -p "$(dirname "$output_path")"
+      curl --get 'https://data.cityofchicago.org/resource/wrvz-psew.'"${format}" \
+          --data-urlencode '$limit='"${limit}" \
+          --data-urlencode '$where='"${where}" \
+          --data-urlencode '$select='"${select}" \
+          | tr -d '"' > "$output_path"  # Removing unneeded quotes around all numbers
+    - {outputPath: Table}
+    - {inputValue: Select}
+    - {inputValue: Where}
+    - {inputValue: Limit}
+    - {inputValue: Format}

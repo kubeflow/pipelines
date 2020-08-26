@@ -1,6 +1,31 @@
 {
-  "extends": "../tslint.json",
+  "extends": ["tslint:recommended", "tslint-config-prettier"],
+  "defaultSeverity": "warn",
+  "linterOptions": {
+    "exclude": [
+      "node_modules/**/*.ts",
+      "node_modules/**/*.tsx",
+      "coverage/lcov-report/*.js",
+      "src/**/*.test.ts"
+    ],
+    "format": "verbose"
+  },
   "rules": {
+    "interface-name": [true, "never-prefix"],
+    "interface-over-type-literal": false,
+    "max-classes-per-file": false,
+    "member-access": false,
+    "ordered-imports": false,
+    "semicolon": [true, "always", "ignore-bound-class-methods"],
+    "no-unused-variable": true,
+    "variable-name": [
+      true,
+      "check-format",
+      "ban-keywords",
+      "allow-pascal-case",
+      "allow-leading-underscore",
+      "allow-trailing-underscore"
+    ],
     "no-console": false,
     "no-default-export": false
   }

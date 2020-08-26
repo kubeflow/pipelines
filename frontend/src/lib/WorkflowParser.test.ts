@@ -18,6 +18,7 @@ import { color } from '../Css';
 import { NodePhase } from '../lib/StatusUtils';
 import { Constants } from './Constants';
 import WorkflowParser, { StorageService } from './WorkflowParser';
+import { Workflow } from 'third_party/argo-ui/argo_template';
 
 describe('WorkflowParser', () => {
   describe('createRuntimeGraph', () => {
@@ -310,15 +311,15 @@ describe('WorkflowParser', () => {
       expect(g.node('exitNode').label).toEqual('onExit - clean');
     });
 
-    it('gives nodes customized labels based on template annotation', () => {
-      const workflow = {
+    function singleNodeWorkflow() {
+      return {
         metadata: { name: 'testWorkflow' },
         spec: {
           templates: [
             {
               metadata: {
                 annotations: {
-                  'pipelines.kubeflow.org/task_display_name': 'Customized name',
+                  // 'pipelines.kubeflow.org/task_display_name': 'Customized name',
                 },
               },
               name: 'some-template',
@@ -337,8 +338,22 @@ describe('WorkflowParser', () => {
           },
         },
       };
-      const g = WorkflowParser.createRuntimeGraph(workflow as any);
+    }
+
+    it('gives nodes customized labels based on template annotation', () => {
+      const workflow1 = singleNodeWorkflow();
+      workflow1.spec.templates[0].metadata.annotations = {
+        'pipelines.kubeflow.org/task_display_name': 'Customized name',
+      };
+      const g = WorkflowParser.createRuntimeGraph(workflow1 as any);
       expect(g.node('node1').label).toEqual('Customized name');
+
+      const workflow2 = singleNodeWorkflow();
+      workflow2.spec.templates[0].metadata.annotations = {
+        'pipelines.kubeflow.org/component_spec': '{"name":"Component Name"}',
+      };
+      const g2 = WorkflowParser.createRuntimeGraph(workflow2 as any);
+      expect(g2.node('node1').label).toEqual('Component Name');
     });
   });
 
@@ -872,7 +887,7 @@ describe('WorkflowParser', () => {
       ]);
     });
 
-    it('returns the right bucket and key for a correct metadata artifact', () => {
+    it('returns the right bucket, key and source eq `minio` for a correct metadata artifact', () => {
       expect(
         WorkflowParser.loadNodeOutputPaths({
           outputs: {
@@ -892,6 +907,31 @@ describe('WorkflowParser', () => {
           bucket: 'test bucket',
           key: 'test key',
           source: 'minio',
+        },
+      ]);
+    });
+
+    it('returns the right bucket, key and source eq `s3` for a correct metadata artifact', () => {
+      expect(
+        WorkflowParser.loadNodeOutputPaths({
+          outputs: {
+            artifacts: [
+              {
+                name: 'mlpipeline-ui-metadata',
+                s3: {
+                  endpoint: 's3.amazonaws.com',
+                  bucket: 'test bucket',
+                  key: 'test key',
+                },
+              },
+            ],
+          },
+        } as any),
+      ).toEqual([
+        {
+          bucket: 'test bucket',
+          key: 'test key',
+          source: 's3',
         },
       ]);
     });
@@ -1066,6 +1106,22 @@ describe('WorkflowParser', () => {
         bucket: 'host:port',
         key: 'path/foo/bar',
         source: StorageService.HTTPS,
+      });
+    });
+
+    it('handles volume file without path', () => {
+      expect(WorkflowParser.parseStoragePath('volume://output')).toEqual({
+        bucket: 'output',
+        key: '',
+        source: StorageService.VOLUME,
+      });
+    });
+
+    it('handles volume file with path', () => {
+      expect(WorkflowParser.parseStoragePath('volume://output/path/foo/bar')).toEqual({
+        bucket: 'output',
+        key: 'path/foo/bar',
+        source: StorageService.VOLUME,
       });
     });
   });

@@ -15,9 +15,10 @@
 package util
 
 import (
-	"github.com/ghodss/yaml"
 	"testing"
+
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	"github.com/ghodss/yaml"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -246,6 +247,40 @@ func TestWorkflow_SetOwnerReferences(t *testing.T) {
 				Controller:         BoolPointer(true),
 				BlockOwnerDeletion: BoolPointer(true),
 			}},
+		},
+	}
+
+	assert.Equal(t, expected, workflow.Get())
+}
+
+func TestWorkflow_SetLabelsToAllTemplates(t *testing.T) {
+	workflow := NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "WORKFLOW_NAME",
+		},
+		Spec: workflowapi.WorkflowSpec{
+			Templates: []workflowapi.Template{
+				workflowapi.Template{
+					Metadata: workflowapi.Metadata{},
+				},
+			},
+		},
+	})
+	workflow.SetLabelsToAllTemplates("key", "value")
+	expected := &workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "WORKFLOW_NAME",
+		},
+		Spec: workflowapi.WorkflowSpec{
+			Templates: []workflowapi.Template{
+				workflowapi.Template{
+					Metadata: workflowapi.Metadata{
+						Labels: map[string]string{
+							"key": "value",
+						},
+					},
+				},
+			},
 		},
 	}
 

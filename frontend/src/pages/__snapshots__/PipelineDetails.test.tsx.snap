@@ -94,6 +94,7 @@ exports[`PipelineDetails closes side panel when close button is clicked 1`] = `
               className="summaryKey"
             >
               <a
+                rel="noopener noreferrer"
                 target="_blank"
               >
                 Version source
@@ -112,7 +113,7 @@ exports[`PipelineDetails closes side panel when close button is clicked 1`] = `
             >
               Description
             </div>
-            <Component
+            <Description
               description="test pipeline description"
             />
           </WithStyles(Paper)>
@@ -368,6 +369,7 @@ exports[`PipelineDetails opens side panel on clicked node, shows message when no
               className="summaryKey"
             >
               <a
+                rel="noopener noreferrer"
                 target="_blank"
               >
                 Version source
@@ -386,7 +388,7 @@ exports[`PipelineDetails opens side panel on clicked node, shows message when no
             >
               Description
             </div>
-            <Component
+            <Description
               description="test pipeline description"
             />
           </WithStyles(Paper)>
@@ -544,6 +546,7 @@ exports[`PipelineDetails shows clicked node info in the side panel if it is in t
               className="summaryKey"
             >
               <a
+                rel="noopener noreferrer"
                 target="_blank"
               >
                 Version source
@@ -562,7 +565,7 @@ exports[`PipelineDetails shows clicked node info in the side panel if it is in t
             >
               Description
             </div>
-            <Component
+            <Description
               description="test pipeline description"
             />
           </WithStyles(Paper)>
@@ -814,6 +817,7 @@ exports[`PipelineDetails shows correct versions in version selector 1`] = `
               className="summaryKey"
             >
               <a
+                rel="noopener noreferrer"
                 target="_blank"
               >
                 Version source
@@ -832,7 +836,7 @@ exports[`PipelineDetails shows correct versions in version selector 1`] = `
             >
               Description
             </div>
-            <Component
+            <Description
               description="test pipeline description"
             />
           </WithStyles(Paper)>
@@ -990,6 +994,7 @@ exports[`PipelineDetails shows empty pipeline details with empty graph 1`] = `
               className="summaryKey"
             >
               <a
+                rel="noopener noreferrer"
                 target="_blank"
               >
                 Version source
@@ -1008,7 +1013,7 @@ exports[`PipelineDetails shows empty pipeline details with empty graph 1`] = `
             >
               Description
             </div>
-            <Component
+            <Description
               description="test pipeline description"
             />
           </WithStyles(Paper)>

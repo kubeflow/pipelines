@@ -35,7 +35,7 @@ spec:
       command:
       - sh
       - -c
-      image: google/cloud-sdk:272.0.0
+      image: google/cloud-sdk:279.0.0
       volumeMounts:
       - mountPath: /data
         name: create-volume

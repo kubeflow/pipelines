@@ -18,12 +18,9 @@ import {
   Api,
   Execution,
   ExecutionType,
-  ExecutionProperties,
-  ExecutionCustomProperties,
   GetExecutionsRequest,
   GetExecutionTypesRequest,
   ListRequest,
-  getResourceProperty,
 } from '@kubeflow/frontend';
 import * as React from 'react';
 import { Link } from 'react-router-dom';
@@ -45,7 +42,8 @@ import {
   CollapsedAndExpandedRows,
   serviceErrorToString,
 } from '../lib/Utils';
-import { RoutePage, RouteParams } from '../components/Router';
+import { RoutePageFactory } from '../components/Router';
+import { ExecutionHelpers } from 'src/lib/MlmdUtils';
 
 interface ExecutionListState {
   executions: Execution[];
@@ -66,8 +64,8 @@ class ExecutionList extends Page<{}, ExecutionListState> {
         {
           customRenderer: this.nameCustomRenderer,
           flex: 2,
-          label: 'Pipeline/Workspace',
-          sortKey: 'pipelineName',
+          label: 'Run ID/Workspace/Pipeline',
+          sortKey: 'workspace',
         },
         {
           customRenderer: this.nameCustomRenderer,
@@ -155,7 +153,8 @@ class ExecutionList extends Page<{}, ExecutionListState> {
       // Code === 5 means no record found in backend. This is a temporary workaround.
       // TODO: remove err.code !== 5 check when backend is fixed.
       if (err.code !== 5) {
-        this.showPageError(serviceErrorToString(err));
+        err.message = 'Failed getting executions: ' + err.message;
+        throw err;
       }
     }
     return [];
@@ -183,13 +182,12 @@ class ExecutionList extends Page<{}, ExecutionListState> {
   private nameCustomRenderer: React.FC<CustomRendererProps<string>> = (
     props: CustomRendererProps<string>,
   ) => {
-    const [executionType, executionId] = props.id.split(':');
-    const link = RoutePage.EXECUTION_DETAILS.replace(
-      `:${RouteParams.EXECUTION_TYPE}+`,
-      executionType,
-    ).replace(`:${RouteParams.ID}`, executionId);
     return (
-      <Link onClick={e => e.stopPropagation()} className={commonCss.link} to={link}>
+      <Link
+        onClick={e => e.stopPropagation()}
+        className={commonCss.link}
+        to={RoutePageFactory.executionDetails(Number(props.id))}
+      >
         {props.value}
       </Link>
     );
@@ -213,14 +211,11 @@ class ExecutionList extends Page<{}, ExecutionListState> {
           const executionType = this.executionTypesMap!.get(execution.getTypeId());
           const type = executionType ? executionType.getName() : execution.getTypeId();
           return {
-            id: `${type}:${execution.getId()}`, // Join with colon so we can build the link
+            id: `${execution.getId()}`,
             otherFields: [
-              getResourceProperty(execution, ExecutionProperties.PIPELINE_NAME) ||
-                getResourceProperty(execution, ExecutionCustomProperties.WORKSPACE, true) ||
-                getResourceProperty(execution, ExecutionCustomProperties.RUN_ID, true),
-              getResourceProperty(execution, ExecutionProperties.COMPONENT_ID) ||
-                getResourceProperty(execution, ExecutionCustomProperties.TASK_ID, true),
-              getResourceProperty(execution, ExecutionProperties.STATE),
+              ExecutionHelpers.getWorkspace(execution),
+              ExecutionHelpers.getName(execution),
+              ExecutionHelpers.getState(execution),
               execution.getId(),
               type,
             ],

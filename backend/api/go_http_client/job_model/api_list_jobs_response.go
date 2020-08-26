@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -35,10 +35,10 @@ type APIListJobsResponse struct {
 	// A list of jobs returned.
 	Jobs []*APIJob `json:"jobs"`
 
-	// next page token
+	// The token to list the next page of jobs.
 	NextPageToken string `json:"next_page_token,omitempty"`
 
-	// total size
+	// The total number of jobs for the given query.
 	TotalSize int32 `json:"total_size,omitempty"`
 }
 

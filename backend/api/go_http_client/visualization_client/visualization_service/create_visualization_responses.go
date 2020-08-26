@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -72,7 +72,7 @@ type CreateVisualizationOK struct {
 }
 
 func (o *CreateVisualizationOK) Error() string {
-	return fmt.Sprintf("[POST /apis/v1beta1/visualizations][%d] createVisualizationOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[POST /apis/v1beta1/visualizations/{namespace}][%d] createVisualizationOK  %+v", 200, o.Payload)
 }
 
 func (o *CreateVisualizationOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -110,7 +110,7 @@ func (o *CreateVisualizationDefault) Code() int {
 }
 
 func (o *CreateVisualizationDefault) Error() string {
-	return fmt.Sprintf("[POST /apis/v1beta1/visualizations][%d] CreateVisualization default  %+v", o._statusCode, o.Payload)
+	return fmt.Sprintf("[POST /apis/v1beta1/visualizations/{namespace}][%d] CreateVisualization default  %+v", o._statusCode, o.Payload)
 }
 
 func (o *CreateVisualizationDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

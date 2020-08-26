@@ -86,10 +86,11 @@ source "${DIR}/test-prep.sh"
 CLOUDBUILD_TIMEOUT_SECONDS=3600
 PULL_CLOUDBUILD_STATUS_MAX_ATTEMPT=$(expr ${CLOUDBUILD_TIMEOUT_SECONDS} / 20 )
 CLOUDBUILD_STARTED=TIMEOUT
+CLOUDBUILD_FILTER="substitutions.COMMIT_SHA:${PULL_BASE_SHA} AND tags:build-each-commit"
 
 for i in $(seq 1 ${PULL_CLOUDBUILD_STATUS_MAX_ATTEMPT})
 do
-  output=`gcloud builds list --project="$CLOUDBUILD_PROJECT" --filter="sourceProvenance.resolvedRepoSource.commitSha:${PULL_BASE_SHA}"`
+  output=`gcloud builds list --project="$CLOUDBUILD_PROJECT" --filter="$CLOUDBUILD_FILTER"`
   if [[ ${output} != "" ]]; then
     CLOUDBUILD_STARTED=True
     break
@@ -106,7 +107,7 @@ fi
 CLOUDBUILD_FINISHED=TIMEOUT
 for i in $(seq 1 ${PULL_CLOUDBUILD_STATUS_MAX_ATTEMPT})
 do
-  output=`gcloud builds list --project="$CLOUDBUILD_PROJECT" --filter="sourceProvenance.resolvedRepoSource.commitSha:${PULL_BASE_SHA}"`
+  output=`gcloud builds list --project="$CLOUDBUILD_PROJECT" --filter="$CLOUDBUILD_FILTER"`
   if [[ ${output} == *"SUCCESS"* ]]; then
     CLOUDBUILD_FINISHED=SUCCESS
     break
@@ -137,24 +138,23 @@ GCR_IMAGE_TAG=${PULL_BASE_SHA}
 if [ ${KFP_DEPLOYMENT} == standalone ]; then
   time source "${DIR}/deploy-pipeline-lite.sh"
   echo "KFP standalone deployed"
+  # Submit the argo job and check the results
+  echo "submitting argo workflow for commit ${PULL_BASE_SHA}..."
+  ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
+  -p image-build-context-gcs-uri="$remote_code_archive_uri" \
+  -p commit-sha="${PULL_BASE_SHA}" \
+  -p component-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
+  -p target-image-prefix="${TARGET_IMAGE_BASE_DIR}/" \
+  -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
+  -n ${NAMESPACE} \
+  --serviceaccount test-runner \
+  -o name
+  `
+  echo "argo workflow submitted successfully"
+  source "${DIR}/check-argo-status.sh"
+  echo "test workflow completed"
 else
-  time source "${DIR}/deploy-pipeline-mkp-cli.sh"
-  echo "KFP mkp deployed"
+  SEM_VERSION="$(cat ${DIR}/../VERSION)"
+  source "${DIR}/deploy-pipeline-mkp-cli.sh" $SEM_VERSION $COMMIT_SHA ${DIR}
+  exit $?
 fi
-
-# Submit the argo job and check the results
-echo "submitting argo workflow for commit ${PULL_BASE_SHA}..."
-ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
--p image-build-context-gcs-uri="$remote_code_archive_uri" \
--p commit-sha="${PULL_BASE_SHA}" \
--p component-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
--p target-image-prefix="${TARGET_IMAGE_BASE_DIR}/" \
--p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
--p cluster-type="${CLUSTER_TYPE}" \
--n ${NAMESPACE} \
---serviceaccount test-runner \
--o name
-`
-echo "argo workflow submitted successfully"
-source "${DIR}/check-argo-status.sh"
-echo "test workflow completed"

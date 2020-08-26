@@ -20,26 +20,31 @@ import {
   ArtifactCustomProperties,
   ArtifactProperties,
   GetArtifactsByIDRequest,
-  LineageView,
   getResourceProperty,
-  titleCase,
   LineageResource,
+  LineageView,
+  titleCase,
+  ArtifactType,
 } from '@kubeflow/frontend';
-import * as React from 'react';
-import { Page } from './Page';
-import { ToolbarProps } from '../components/Toolbar';
-import { RoutePage, RoutePageFactory, RouteParams } from '../components/Router';
-import { classes } from 'typestyle';
-import { commonCss, padding } from '../Css';
 import { CircularProgress } from '@material-ui/core';
-import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
+import * as React from 'react';
+import { Route, Switch } from 'react-router-dom';
+import { classes } from 'typestyle';
 import MD2Tabs from '../atoms/MD2Tabs';
-import { serviceErrorToString } from '../lib/Utils';
+import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
+import { RoutePage, RoutePageFactory, RouteParams } from '../components/Router';
+import { ToolbarProps } from '../components/Toolbar';
+import { commonCss, padding } from '../Css';
+import { logger, serviceErrorToString } from '../lib/Utils';
+import { Page, PageProps } from './Page';
+import { GetArtifactTypesByIDRequest } from '@kubeflow/frontend/src/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
 
 export enum ArtifactDetailsTab {
   OVERVIEW = 0,
   LINEAGE_EXPLORER = 1,
 }
+
+const LINEAGE_PATH = 'lineage';
 
 const TABS = {
   [ArtifactDetailsTab.OVERVIEW]: { name: 'Overview' },
@@ -52,12 +57,12 @@ const TAB_NAMES = [ArtifactDetailsTab.OVERVIEW, ArtifactDetailsTab.LINEAGE_EXPLO
 
 interface ArtifactDetailsState {
   artifact?: Artifact;
-  selectedTab: ArtifactDetailsTab;
+  artifactType?: ArtifactType;
 }
 
-export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
+class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
   private get fullTypeName(): string {
-    return this.props.match.params[RouteParams.ARTIFACT_TYPE] || '';
+    return this.state.artifactType?.getName() || '';
   }
 
   private get properTypeName(): string {
@@ -74,20 +79,19 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
 
   private static buildResourceDetailsPageRoute(
     resource: LineageResource,
-    typeName: string,
+    _: string, // typename is no longer used
   ): string {
-    let route;
-    if (resource instanceof Artifact) {
-      route = RoutePageFactory.artifactDetails(typeName, resource.getId());
+    // HACK: this distinguishes artifact from execution, only artifacts have
+    // the getUri() method.
+    // TODO: switch to use typedResource
+    if (typeof resource['getUri'] === 'function') {
+      return RoutePageFactory.artifactDetails(resource.getId());
     } else {
-      route = RoutePage.EXECUTION_DETAILS.replace(`:${RouteParams.EXECUTION_TYPE}+`, typeName);
+      return RoutePageFactory.executionDetails(resource.getId());
     }
-    return route.replace(`:${RouteParams.ID}`, String(resource.getId()));
   }
 
-  public state: ArtifactDetailsState = {
-    selectedTab: ArtifactDetailsTab.OVERVIEW,
-  };
+  public state: ArtifactDetailsState = {};
 
   private api = Api.getInstance();
 
@@ -97,32 +101,53 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
 
   public render(): JSX.Element {
     if (!this.state.artifact) {
-      return <CircularProgress />;
+      return (
+        <div className={commonCss.page}>
+          <CircularProgress className={commonCss.absoluteCenter} />
+        </div>
+      );
     }
     return (
       <div className={classes(commonCss.page)}>
-        <div className={classes(padding(20, 't'))}>
-          <MD2Tabs
-            tabs={TAB_NAMES}
-            selectedTab={this.state.selectedTab}
-            onSwitch={this.switchTab}
-          />
-        </div>
-        {this.state.selectedTab === ArtifactDetailsTab.OVERVIEW && (
-          <div className={classes(padding(20, 'lr'))}>
-            <ResourceInfo
-              resourceType={ResourceType.ARTIFACT}
-              typeName={this.properTypeName}
-              resource={this.state.artifact}
-            />
-          </div>
-        )}
-        {this.state.selectedTab === ArtifactDetailsTab.LINEAGE_EXPLORER && (
-          <LineageView
-            target={this.state.artifact}
-            buildResourceDetailsPageRoute={ArtifactDetails.buildResourceDetailsPageRoute}
-          />
-        )}
+        <Switch>
+          {/*
+           ** This is react-router's nested route feature.
+           ** reference: https://reacttraining.com/react-router/web/example/nesting
+           */}
+          <Route path={this.props.match.path} exact={true}>
+            <>
+              <div className={classes(padding(20, 't'))}>
+                <MD2Tabs
+                  tabs={TAB_NAMES}
+                  selectedTab={ArtifactDetailsTab.OVERVIEW}
+                  onSwitch={this.switchTab}
+                />
+              </div>
+              <div className={classes(padding(20, 'lr'))}>
+                <ResourceInfo
+                  resourceType={ResourceType.ARTIFACT}
+                  typeName={this.properTypeName}
+                  resource={this.state.artifact}
+                />
+              </div>
+            </>
+          </Route>
+          <Route path={`${this.props.match.path}/${LINEAGE_PATH}`} exact={true}>
+            <>
+              <div className={classes(padding(20, 't'))}>
+                <MD2Tabs
+                  tabs={TAB_NAMES}
+                  selectedTab={ArtifactDetailsTab.LINEAGE_EXPLORER}
+                  onSwitch={this.switchTab}
+                />
+              </div>
+              <LineageView
+                target={this.state.artifact}
+                buildResourceDetailsPageRoute={ArtifactDetails.buildResourceDetailsPageRoute}
+              />
+            </>
+          </Route>
+        </Switch>
       </div>
     );
   }
@@ -131,7 +156,7 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
     return {
       actions: {},
       breadcrumbs: [{ displayName: 'Artifacts', href: RoutePage.ARTIFACTS }],
-      pageTitle: `${this.properTypeName} ${this.id} details`,
+      pageTitle: `Artifact #${this.id} details`,
     };
   }
 
@@ -145,18 +170,19 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
 
     try {
       const response = await this.api.metadataStoreService.getArtifactsByID(request);
-
       if (response.getArtifactsList().length === 0) {
-        this.showPageError(`No ${this.fullTypeName} identified by id: ${this.id}`);
+        this.showPageError(`No artifact identified by id: ${this.id}`);
         return;
       }
-
       if (response.getArtifactsList().length > 1) {
         this.showPageError(`Found multiple artifacts with ID: ${this.id}`);
         return;
       }
-
       const artifact = response.getArtifactsList()[0];
+      const typeRequest = new GetArtifactTypesByIDRequest();
+      typeRequest.setTypeIdsList([artifact.getTypeId()]);
+      const typeResponse = await this.api.metadataStoreService.getArtifactTypesByID(typeRequest);
+      const artifactType = typeResponse.getArtifactTypesList()[0] || undefined;
 
       const artifactName =
         getResourceProperty(artifact, ArtifactProperties.NAME) ||
@@ -169,13 +195,27 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
       this.props.updateToolbar({
         pageTitle: title,
       });
-      this.setState({ artifact });
+      this.setState({ artifact, artifactType });
     } catch (err) {
       this.showPageError(serviceErrorToString(err));
     }
   };
 
   private switchTab = (selectedTab: number) => {
-    this.setState({ selectedTab });
+    switch (selectedTab) {
+      case ArtifactDetailsTab.LINEAGE_EXPLORER:
+        return this.props.history.push(`${this.props.match.url}/${LINEAGE_PATH}`);
+      case ArtifactDetailsTab.OVERVIEW:
+        return this.props.history.push(this.props.match.url);
+      default:
+        logger.error(`Unknown selected tab ${selectedTab}.`);
+    }
   };
 }
+
+// This guarantees that each artifact renders a different <ArtifactDetails /> instance.
+const EnhancedArtifactDetails = (props: PageProps) => {
+  return <ArtifactDetails {...props} key={props.match.params[RouteParams.ID]} />;
+};
+
+export default EnhancedArtifactDetails;

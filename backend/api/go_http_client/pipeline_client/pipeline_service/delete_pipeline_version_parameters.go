@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -75,7 +75,10 @@ for the delete pipeline version operation typically these are written to a http.
 */
 type DeletePipelineVersionParams struct {
 
-	/*VersionID*/
+	/*VersionID
+	  The ID of the pipeline version to be deleted.
+
+	*/
 	VersionID string
 
 	timeout    time.Duration

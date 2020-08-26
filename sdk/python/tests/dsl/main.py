@@ -16,7 +16,6 @@
 import unittest
 import sys
 
-import artifact_location_tests
 import aws_extensions_tests
 import pipeline_tests
 import pipeline_param_tests
@@ -24,6 +23,7 @@ import container_op_tests
 import ops_group_tests
 import type_tests
 import component_tests
+import component_bridge_tests
 import metadata_tests
 import resource_op_tests
 import volume_op_tests
@@ -31,10 +31,8 @@ import pipeline_volume_tests
 import volume_snapshotop_tests
 import extensions.test_kubernetes as test_kubernetes
 
-
 if __name__ == '__main__':
   suite = unittest.TestSuite()
-  suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(artifact_location_tests))
   suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(aws_extensions_tests))
   suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(pipeline_param_tests))
   suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(pipeline_tests))
@@ -42,6 +40,7 @@ if __name__ == '__main__':
   suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(ops_group_tests))
   suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(type_tests))
   suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(component_tests))
+  suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(component_bridge_tests))
   suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(metadata_tests))
   suite.addTests(
     unittest.defaultTestLoader.loadTestsFromModule(resource_op_tests)

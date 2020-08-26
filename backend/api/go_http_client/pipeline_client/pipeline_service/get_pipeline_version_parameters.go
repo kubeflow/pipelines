@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -75,7 +75,10 @@ for the get pipeline version operation typically these are written to a http.Req
 */
 type GetPipelineVersionParams struct {
 
-	/*VersionID*/
+	/*VersionID
+	  The ID of the pipeline version to be retrieved.
+
+	*/
 	VersionID string
 
 	timeout    time.Duration

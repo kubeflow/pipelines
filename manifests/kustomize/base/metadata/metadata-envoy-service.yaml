@@ -2,7 +2,7 @@ kind: Service
 apiVersion: v1
 metadata:
   labels:
-    app: metadata
+    app: metadata-envoy
   name: metadata-envoy-service
 spec:
   selector:

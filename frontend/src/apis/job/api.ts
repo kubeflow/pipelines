@@ -138,11 +138,17 @@ export interface ApiJob {
    */
   pipeline_spec?: ApiPipelineSpec;
   /**
-   * Optional input field. Specify which resource this run belongs to.
+   * Optional input field. Specify which resource this job belongs to.
    * @type {Array<ApiResourceReference>}
    * @memberof ApiJob
    */
   resource_references?: Array<ApiResourceReference>;
+  /**
+   * Optional input field. Specify which Kubernetes service account this job uses.
+   * @type {string}
+   * @memberof ApiJob
+   */
+  service_account?: string;
   /**
    *
    * @type {string}
@@ -191,6 +197,12 @@ export interface ApiJob {
    * @memberof ApiJob
    */
   enabled?: boolean;
+  /**
+   * Optional input field. Whether the job should catch up if behind schedule. If true, the job will only schedule the latest interval if behind schedule. If false, the job will catch up on each past interval.
+   * @type {boolean}
+   * @memberof ApiJob
+   */
+  no_catchup?: boolean;
 }
 
 /**
@@ -558,7 +570,7 @@ export const JobServiceApiFetchParamCreator = function(configuration?: Configura
     },
     /**
      *
-     * @summary Disable a job.
+     * @summary Stops a job and all its associated runs. The job is not deleted.
      * @param {string} id The ID of the job to be disabled
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -606,7 +618,7 @@ export const JobServiceApiFetchParamCreator = function(configuration?: Configura
     },
     /**
      *
-     * @summary Enable a job.
+     * @summary Restarts a job that was previously stopped. All runs associated with the job will continue.
      * @param {string} id The ID of the job to be enabled
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -839,7 +851,7 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
-     * @summary Disable a job.
+     * @summary Stops a job and all its associated runs. The job is not deleted.
      * @param {string} id The ID of the job to be disabled
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -861,7 +873,7 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
-     * @summary Enable a job.
+     * @summary Restarts a job that was previously stopped. All runs associated with the job will continue.
      * @param {string} id The ID of the job to be enabled
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -981,7 +993,7 @@ export const JobServiceApiFactory = function(
     },
     /**
      *
-     * @summary Disable a job.
+     * @summary Stops a job and all its associated runs. The job is not deleted.
      * @param {string} id The ID of the job to be disabled
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -991,7 +1003,7 @@ export const JobServiceApiFactory = function(
     },
     /**
      *
-     * @summary Enable a job.
+     * @summary Restarts a job that was previously stopped. All runs associated with the job will continue.
      * @param {string} id The ID of the job to be enabled
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1082,7 +1094,7 @@ export class JobServiceApi extends BaseAPI {
 
   /**
    *
-   * @summary Disable a job.
+   * @summary Stops a job and all its associated runs. The job is not deleted.
    * @param {string} id The ID of the job to be disabled
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
@@ -1094,7 +1106,7 @@ export class JobServiceApi extends BaseAPI {
 
   /**
    *
-   * @summary Enable a job.
+   * @summary Restarts a job that was previously stopped. All runs associated with the job will continue.
    * @param {string} id The ID of the job to be enabled
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}

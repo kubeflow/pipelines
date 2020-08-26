@@ -1,4 +1,4 @@
-# !/bin/bash
+#!/bin/bash
 #
 # Copyright 2019 Google LLC
 #
@@ -36,7 +36,7 @@ LONGOPTS=use_remote_build,gcp_credentials_file:
 PARSED=$(getopt --longoptions=$LONGOPTS --options=$OPTS --name "$0" -- "$@")
 eval set -- "$PARSED"
 
-USE_REMOTE_BUILD=true
+USE_REMOTE_BUILD=false
 GCP_CREDENTIALS_FILE="gs://ml-pipeline-test-bazel/ml-pipeline-test-bazel-builder-credentials.json"
 MACHINE_ARCH=`uname -m`
 

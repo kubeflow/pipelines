@@ -23,7 +23,7 @@ import {
   ArtifactType,
   getArtifactCreationTime,
   getArtifactTypes,
-  getResourceProperty,
+  getResourcePropertyViaFallBack,
   GetArtifactsRequest,
 } from '@kubeflow/frontend';
 import * as React from 'react';
@@ -55,6 +55,10 @@ interface ArtifactListState {
   expandedRows: Map<number, Row[]>;
   columns: Column[];
 }
+
+const ARTIFACT_PROPERTY_REPOS = [ArtifactProperties, ArtifactCustomProperties];
+const PIPELINE_WORKSPACE_FIELDS = ['RUN_ID', 'PIPELINE_NAME', 'WORKSPACE'];
+const NAME_FIELDS = ['NAME'];
 
 class ArtifactList extends Page<{}, ArtifactListState> {
   private tableRef = React.createRef<CustomTable>();
@@ -152,12 +156,11 @@ class ArtifactList extends Page<{}, ArtifactListState> {
   private nameCustomRenderer: React.FC<CustomRendererProps<string>> = (
     props: CustomRendererProps<string>,
   ) => {
-    const [artifactType, artifactId] = props.id.split(':');
     return (
       <Link
         onClick={e => e.stopPropagation()}
         className={commonCss.link}
-        to={RoutePageFactory.artifactDetails(artifactType, Number(artifactId))}
+        to={RoutePageFactory.artifactDetails(Number(props.id))}
       >
         {props.value}
       </Link>
@@ -217,13 +220,14 @@ class ArtifactList extends Page<{}, ArtifactListState> {
             const artifactType = this.artifactTypesMap!.get(typeId);
             const type = artifactType ? artifactType.getName() : artifact.getTypeId();
             return {
-              id: `${type}:${artifact.getId()}`, // Join with colon so we can build the link
+              id: `${artifact.getId()}`,
               otherFields: [
-                getResourceProperty(artifact, ArtifactProperties.PIPELINE_NAME) ||
-                  getResourceProperty(artifact, ArtifactCustomProperties.WORKSPACE, true) ||
-                  getResourceProperty(artifact, ArtifactCustomProperties.RUN_ID, true),
-                getResourceProperty(artifact, ArtifactProperties.NAME) ||
-                  getResourceProperty(artifact, ArtifactCustomProperties.NAME, true),
+                getResourcePropertyViaFallBack(
+                  artifact,
+                  ARTIFACT_PROPERTY_REPOS,
+                  PIPELINE_WORKSPACE_FIELDS,
+                ),
+                getResourcePropertyViaFallBack(artifact, ARTIFACT_PROPERTY_REPOS, NAME_FIELDS),
                 artifact.getId(),
                 type,
                 artifact.getUri(),

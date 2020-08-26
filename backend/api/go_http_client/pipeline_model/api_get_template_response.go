@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,7 +29,8 @@ import (
 // swagger:model apiGetTemplateResponse
 type APIGetTemplateResponse struct {
 
-	// template
+	// The template of the pipeline specified in a GetTemplate request, or of a
+	// pipeline version specified in a GetPipelinesVersionTemplate request.
 	Template string `json:"template,omitempty"`
 }
 

@@ -17,7 +17,7 @@ exports[`NewExperiment enables the 'Next' button when an experiment name is ente
     >
       Think of an Experiment as a space that contains the history of all pipelines and their associated runs
     </div>
-    <Component
+    <Input
       autoFocus={true}
       id="experimentName"
       inputRef={
@@ -31,7 +31,7 @@ exports[`NewExperiment enables the 'Next' button when an experiment name is ente
       value="experiment name"
       variant="outlined"
     />
-    <Component
+    <Input
       id="experimentDescription"
       label="Description (optional)"
       multiline={true}
@@ -81,7 +81,7 @@ exports[`NewExperiment re-disables the 'Next' button when an experiment name is 
     >
       Think of an Experiment as a space that contains the history of all pipelines and their associated runs
     </div>
-    <Component
+    <Input
       autoFocus={true}
       id="experimentName"
       inputRef={
@@ -95,7 +95,7 @@ exports[`NewExperiment re-disables the 'Next' button when an experiment name is 
       value=""
       variant="outlined"
     />
-    <Component
+    <Input
       id="experimentDescription"
       label="Description (optional)"
       multiline={true}
@@ -147,7 +147,7 @@ exports[`NewExperiment renders the new experiment page 1`] = `
     >
       Think of an Experiment as a space that contains the history of all pipelines and their associated runs
     </div>
-    <Component
+    <Input
       autoFocus={true}
       id="experimentName"
       inputRef={
@@ -161,7 +161,7 @@ exports[`NewExperiment renders the new experiment page 1`] = `
       value=""
       variant="outlined"
     />
-    <Component
+    <Input
       id="experimentDescription"
       label="Description (optional)"
       multiline={true}

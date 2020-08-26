@@ -618,8 +618,14 @@ describe('PipelineDetails', () => {
     info.command = ['test command', 'test command 2'];
     info.condition = 'test condition';
     info.image = 'test image';
-    info.inputs = [['key1', 'val1'], ['key2', 'val2']];
-    info.outputs = [['key3', 'val3'], ['key4', 'val4']];
+    info.inputs = [
+      ['key1', 'val1'],
+      ['key2', 'val2'],
+    ];
+    info.outputs = [
+      ['key3', 'val3'],
+      ['key4', 'val4'],
+    ];
     info.nodeType = 'container';
     g.setNode('node1', { info, label: 'node1' });
     createGraphSpy.mockImplementation(() => g);

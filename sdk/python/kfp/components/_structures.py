@@ -46,6 +46,9 @@ __all__ = [
     'AndPredicate',
     'OrPredicate',
 
+    'RetryStrategySpec',
+    'CachingStrategySpec',
+    'ExecutionOptionsSpec',
     'TaskSpec',
 
     'GraphSpec',
@@ -59,8 +62,6 @@ from collections import OrderedDict
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
 from .modelbase import ModelBase
-
-from .structures.kubernetes import v1
 
 
 PrimitiveTypes = Union[str, int, float, bool]
@@ -77,6 +78,7 @@ class InputSpec(ModelBase):
         description: Optional[str] = None,
         default: Optional[PrimitiveTypes] = None,
         optional: Optional[bool] = False,
+        annotations: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(locals())
 
@@ -87,6 +89,7 @@ class OutputSpec(ModelBase):
         name: str,
         type: Optional[TypeSpecType] = None,
         description: Optional[str] = None,
+        annotations: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(locals())
 
@@ -532,16 +535,13 @@ class RetryStrategySpec(ModelBase):
         super().__init__(locals())
 
 
-class KubernetesExecutionOptionsSpec(ModelBase):
+class CachingStrategySpec(ModelBase):
     _serialized_names = {
-        'main_container': 'mainContainer',
-        'pod_spec': 'podSpec',
+        'max_cache_staleness': 'maxCacheStaleness',
     }
 
     def __init__(self,
-        metadata: Optional[v1.ObjectMetaArgoSubset] = None,
-        main_container: Optional[v1.Container] = None,
-        pod_spec: Optional[v1.PodSpecArgoSubset] = None,
+        max_cache_staleness: Optional[str] = None,  # RFC3339 compliant duration: P30DT1H22M3S
     ):
         super().__init__(locals())
 
@@ -549,12 +549,12 @@ class KubernetesExecutionOptionsSpec(ModelBase):
 class ExecutionOptionsSpec(ModelBase):
     _serialized_names = {
         'retry_strategy': 'retryStrategy',
-        'kubernetes_options': 'kubernetesOptions',
+        'caching_strategy': 'cachingStrategy',
     }
 
     def __init__(self,
         retry_strategy: Optional[RetryStrategySpec] = None,
-        kubernetes_options: Optional[KubernetesExecutionOptionsSpec] = None,
+        caching_strategy: Optional[CachingStrategySpec] = None,
     ):
         super().__init__(locals())
 
@@ -572,6 +572,7 @@ class TaskSpec(ModelBase):
         arguments: Optional[Mapping[str, ArgumentType]] = None,
         is_enabled: Optional[PredicateType] = None,
         execution_options: Optional[ExecutionOptionsSpec] = None,
+        annotations: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(locals())
         #TODO: If component_ref is resolved to component spec, then check that the arguments correspond to the inputs
@@ -591,6 +592,8 @@ class TaskSpec(ModelBase):
             task_outputs[output.name] = task_output_arg
 
         self.outputs = task_outputs
+        if len(task_outputs) == 1:
+            self.output = list(task_outputs.values())[0]
 
 
 class GraphSpec(ModelBase):

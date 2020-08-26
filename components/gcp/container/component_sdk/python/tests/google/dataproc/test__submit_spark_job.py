@@ -24,6 +24,7 @@ class TestSubmitSparkJob(unittest.TestCase):
 
     def test_submit_spark_job_with_expected_payload(self, mock_submit_job):
         submit_spark_job('mock-project', 'mock-region', 'mock-cluster', 
+            job_id_output_path='/tmp/kfp/output/dataproc/job_id.txt',
             main_jar_file_uri='gs://mock/jar/file.jar', 
             args=['arg1', 'arg2'], 
             spark_job={ 'jarFileUris': ['gs://other/jar/file.jar'] },
@@ -39,4 +40,4 @@ class TestSubmitSparkJob(unittest.TestCase):
                 'labels': {
                     'key1': 'value1'
                 }
-            }, 30)
+            }, 30, job_id_output_path='/tmp/kfp/output/dataproc/job_id.txt')

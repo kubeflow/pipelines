@@ -6,6 +6,8 @@ go_library(
         "pipeline_upload_service_client.go",
         "upload_pipeline_parameters.go",
         "upload_pipeline_responses.go",
+        "upload_pipeline_version_parameters.go",
+        "upload_pipeline_version_responses.go",
     ],
     importpath = "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service",
     visibility = ["//visibility:public"],

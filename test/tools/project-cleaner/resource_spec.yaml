@@ -20,4 +20,5 @@ resources:
     name-prefixes:
       - e2e-
       - sample-
-    time-lapse-hours: 24
+      - upgrade-
+    time-lapse-hours: 2

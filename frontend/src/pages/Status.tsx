@@ -20,6 +20,7 @@ import PendingIcon from '@material-ui/icons/Schedule';
 import RunningIcon from '../icons/statusRunning';
 import SkippedIcon from '@material-ui/icons/SkipNext';
 import SuccessIcon from '@material-ui/icons/CheckCircle';
+import CachedIcon from '@material-ui/icons/Cached';
 import TerminatedIcon from '../icons/statusTerminated';
 import Tooltip from '@material-ui/core/Tooltip';
 import UnknownIcon from '@material-ui/icons/Help';
@@ -72,6 +73,11 @@ export function statusToIcon(
       IconComponent = SuccessIcon;
       iconColor = color.success;
       title = 'Executed successfully';
+      break;
+    case NodePhase.CACHED: // This is not argo native, only applies to node.
+      IconComponent = CachedIcon;
+      iconColor = color.success;
+      title = 'Execution was skipped and outputs were taken from cache';
       break;
     case NodePhase.TERMINATED:
       IconComponent = TerminatedIcon;

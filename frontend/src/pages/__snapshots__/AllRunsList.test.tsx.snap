@@ -84,15 +84,7 @@ exports[`AllRunsList renders all runs 1`] = `
         "pageTitle": "Experiments",
       }
     }
-    updateBanner={
-      [MockFunction] {
-        "calls": Array [
-          Array [
-            Object {},
-          ],
-        ],
-      }
-    }
+    updateBanner={[MockFunction]}
     updateDialog={[MockFunction]}
     updateSnackbar={[MockFunction]}
     updateToolbar={[MockFunction]}

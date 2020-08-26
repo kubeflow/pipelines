@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -32,13 +32,13 @@ import (
 // swagger:model apiListPipelinesResponse
 type APIListPipelinesResponse struct {
 
-	// next page token
+	// The token to list the next page of pipelines.
 	NextPageToken string `json:"next_page_token,omitempty"`
 
 	// pipelines
 	Pipelines []*APIPipeline `json:"pipelines"`
 
-	// total size
+	// The total number of pipelines for the given query.
 	TotalSize int32 `json:"total_size,omitempty"`
 }
 

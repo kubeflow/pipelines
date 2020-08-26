@@ -470,6 +470,7 @@ describe('PipelineList', () => {
       .simulate('click');
     deletePipelineSpy.mockImplementation(id => {
       if (id.indexOf(3) === -1 && id.indexOf(2) === -1) {
+        // eslint-disable-next-line no-throw-literal
         throw {
           text: () => Promise.resolve('woops, failed!'),
         };
