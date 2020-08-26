@@ -14,12 +14,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# usage: `./hack/run_unit_tests_backend.sh` to run backend unit tests once
-#        `WATCH=true ./hack/run_unit_tests_backend.sh` to watch code changes and auto rerun tests
-# Note: ibazel can be downloaded from https://github.com/bazelbuild/bazel-watcher
-
-add-apt-repository ppa:longsleep/golang-backports
-apt-get -y update
-apt-get install golang-1.13.1
-go mod vendor
-go test -v -cover ./backend/...
+# The PWD is /home/prow/go/src/github.com/kubeflow/pipelines
+# Navigate to /home/prow/go/
+cd ../../../..
+apt-get update
+apt-get -y upgrade
+wget https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz
+# Go will be installed in /home/prow/go/
+tar -xvf go1.13.3.linux-amd64.tar.gz
+# Naviage to project directory.
+cd src/github.com/kubeflow/pipelines
+../../../../go mod vendor
+../../../../go test -v -cover ./backend/...
