@@ -15,16 +15,9 @@
 ARG TF_TAG
 FROM tensorflow/tensorflow:$TF_TAG
 
-RUN apt-get update -y
-
-RUN apt-get install --no-install-recommends -y -q ca-certificates python-dev python-setuptools \
-                                                  wget unzip git
-
-RUN apt-get install --no-install-recommends -y -q build-essential && \
-    pip install pyyaml==3.12 six==1.11.0 \
+RUN pip install pyyaml==3.12 six==1.11.0 \
         tensorflow-transform==0.23.0 \
-        tensorflow-model-analysis==0.23.0 && \
-    apt-get --purge autoremove -y build-essential
+        tensorflow-model-analysis==0.23.0
 
 ADD build /ml
 
