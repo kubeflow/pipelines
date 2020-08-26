@@ -18,10 +18,4 @@
 #        `WATCH=true ./hack/run_unit_tests_backend.sh` to watch code changes and auto rerun tests
 # Note: ibazel can be downloaded from https://github.com/bazelbuild/bazel-watcher
 
-COMMAND="bazel"
-if [ -n "$WATCH" ]; then
-  COMMAND="ibazel"
-fi
-$COMMAND --host_jvm_args=-Xmx500m --host_jvm_args=-Xms500m test \
-  --noshow_progress --noshow_loading_progress --define=grpc_no_ares=true \
-  --test_output=all //backend/...
+go test -v -cover ../backend/...
