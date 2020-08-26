@@ -83,16 +83,7 @@ class TestResourceOp(unittest.TestCase):
 
         delete_res = res.delete()
 
-        self.assertEqual(delete_res.resource.action, "delete")
-        self.assertEqual(delete_res.attribute_outputs, {})
+        expected_name = str(res.outputs['name'])
+
+        self.assertEqual(delete_res.command, ['kubectl', 'delete', 'CustomResource', expected_name, '--ignore-not-found', '--output', 'name'])
         self.assertEqual(delete_res.outputs, {})
-        self.assertEqual(delete_res.output, None)
-
-        expected_res_name = PipelineParam(name="name", op_name=res.name)
-        expected_res_resource = {"apiVersion": "version",
-                                 "kind": "CustomResource",
-                                 "metadata": {"name": expected_res_name}}
-        self.assertEqual(delete_res.k8s_resource, expected_res_resource)
-
-        with self.assertRaises(ValueError):
-            delete_res.delete()
