@@ -21,4 +21,5 @@
 apt-get update
 apt-get -y upgrade
 apt-get install -y golang
+go mod vendor
 go test -v -cover ./backend/...
