@@ -40,6 +40,14 @@ rules:
   - get
   - list
   - patch
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - signers
+  resourceNames:
+  - kubernetes.io/*
+  verbs:
+  - approve
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
