@@ -14,17 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# The PWD is /home/prow/go/src/github.com/kubeflow/pipelines
-# Navigate to /home/prow/
-cd ../../../../..
+# The current directory is /home/prow/go/src/github.com/kubeflow/pipelines
+# 1. install go in /home/prow/go1.13.3
+cd /home/prow
 mkdir go1.13.3
 cd go1.13.3
-apt-get update
-apt-get -y upgrade
-wget https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz
-# Go will be installed in /home/prow/go1.13.3/
-tar -xvf go1.13.3.linux-amd64.tar.gz
-# Naviage from /home/prow/go1.13.3 to project directory.
-cd ../go/src/github.com/kubeflow/pipelines
-../../../../../go1.13.3/go/bin/go mod vendor
-../../../../../go1.13.3/go/bin/go test -v -cover ./backend/...
+wget --quiet https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz
+tar -xf go1.13.3.linux-amd64.tar.gz
+# 2. run test in project directory
+cd /home/prow/go/src/github.com/kubeflow/pipelines
+/home/prow/go1.13.3/go/bin/go mod vendor
+/home/prow/go1.13.3/go/bin/go test -v -cover ./backend/...
