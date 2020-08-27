@@ -55,7 +55,7 @@ mkdir -p $2/source
 while IFS=, read -r col1 col2 col3
 do
   if [[ " ${INSTALLED_PACKAGES[@]} " =~ " ${col1} " ]]; then
-    wget -O $2/$col1.LICENSE $col2
+    wget -O $2/$col1.LICENSE $col2 || curl -o $2/$col1.LICENSE $col2
     if [[ "${col3}" == *GPL* ]]; then
       pip install -t "$2/source/${col1}" ${col1}
     fi
