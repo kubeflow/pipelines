@@ -355,6 +355,10 @@ class TestCompiler(unittest.TestCase):
     """Test pipeline with multiple pipeline params."""
     self._test_py_compile_yaml('pipelineparams')
 
+  def test_py_compile_with_opsgroups(self):
+    """Test pipeline with multiple opsgroups."""
+    self._test_py_compile_yaml('opsgroups')
+
   def test_py_compile_condition(self):
     """Test a pipeline with conditions."""
     self._test_py_compile_zip('coin')
