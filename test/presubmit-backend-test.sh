@@ -15,14 +15,14 @@
 # limitations under the License.
 
 # The PWD is /home/prow/go/src/github.com/kubeflow/pipelines
-# Navigate to /home/prow/go/
-cd ../../../..
+# Navigate to /home/prow/
+cd ../../../../..
 apt-get update
 apt-get -y upgrade
 wget https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz
 # Go will be installed in /home/prow/go/
 tar -xvf go1.13.3.linux-amd64.tar.gz
-# Naviage to project directory.
-cd src/github.com/kubeflow/pipelines
-../../../../go mod vendor
-../../../../go test -v -cover ./backend/...
+# Naviage from /home/prow/ to project directory.
+cd go/src/github.com/kubeflow/pipelines
+../../../../bin/go mod vendor
+../../../../bin/go test -v -cover ./backend/...
