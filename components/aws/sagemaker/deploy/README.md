@@ -36,6 +36,7 @@ instance_type_[1, 3] | The ML compute instance type | Yes | Yes | String | ml.m4
 initial_instance_count_[1, 3] | Number of instances to launch initially | Yes | Yes | Integer | ≥ 1 | 1 |
 initial_variant_weight_[1, 3] | Determines initial traffic distribution among all of the models that you specify in the endpoint configuration. The traffic to a production variant is determined by the ratio of the VariantWeight to the sum of all VariantWeight values across all ProductionVariants. | Yes | Yes | Float | Minimum value of 0 | |
 accelerator_type_[1, 3] | The size of the Elastic Inference (EI) instance to use for the production variant | Yes | Yes | String| ml.eia1.medium, ml.eia1.large, ml.eia1.xlarge | |
+update_endpoint | Updates the end point if it exists | Yes | Yes | Bool | | False |
 
 Notes:
 * Please use the links in the [Resources section](#Resources) for detailed information on each input parameter and SageMaker APIs used in this component
