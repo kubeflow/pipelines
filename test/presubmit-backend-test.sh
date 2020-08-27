@@ -17,12 +17,14 @@
 # The PWD is /home/prow/go/src/github.com/kubeflow/pipelines
 # Navigate to /home/prow/
 cd ../../../../..
+mkdir go1.13.3
+cd go1.13.3
 apt-get update
 apt-get -y upgrade
 wget https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz
-# Go will be installed in /home/prow/go/
+# Go will be installed in /home/prow/go1.13.3/
 tar -xvf go1.13.3.linux-amd64.tar.gz
-# Naviage from /home/prow/ to project directory.
-cd go/src/github.com/kubeflow/pipelines
-../../../../bin/go mod vendor
-../../../../bin/go test -v -cover ./backend/...
+# Naviage from /home/prow/go1.13.3 to project directory.
+cd ../go/src/github.com/kubeflow/pipelines
+../../../../../go1.13.3/go/bin/go mod vendor
+../../../../../go1.13.3/go/bin/go test -v -cover ./backend/...
