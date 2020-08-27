@@ -12,10 +12,9 @@ A basic way to monitor with Prometheus/Grafana is to deploy a Prometheus/Grafana
 
 We haven't made the Prometheus/Grafana server part of the default deployment process of Kubeflow Pipelines. Instead, we provide a basic configuration file for Prometheus and Grafana respectively in the [third-party](https://github.com/kubeflow/pipelines/tree/master/manifests/kustomize/third-party) folder. If the users want to try monitoring with them, they can
 
-- Use [kustomization.yaml](https://github.com/kubeflow/pipelines/blob/master/manifests/kustomize/sample/kustomization.yaml) located at manifests/kustomize/sample folder. Please pay attention the customization part of this file as shown below.
+- Use [kustomization.yaml](https://github.com/kubeflow/pipelines/blob/master/manifests/kustomize/sample/kustomization.yaml) located at manifests/kustomize/sample folder. Please pay attention to the customization part of this file as shown below.
 
 ![]
-
 
 
 ## example dashboard/basic metrics
