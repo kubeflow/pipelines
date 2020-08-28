@@ -68,7 +68,13 @@ touch ${CA_FILE}
 echo "Signed certificate generated for cache server"
 
 # Patch CA_BUNDLE for MutatingWebhookConfiguration
-NAMESPACE="$NAMESPACE" ./webhook-patch-ca-bundle.sh --cert_input_path "${CA_FILE}" <./cache-configmap.yaml.template >./cache-configmap-ca-bundle.yaml
+# Choosing the correct API version. v1 supports better filtering, but is only available starting with Kubernetes v1.15
+if kubectl api-versions | grep --word-regexp 'admissionregistration.k8s.io/v1'; then
+    cache_webhook_config_template="cache-webhook-config.v1.yaml.template"
+else
+    cache_webhook_config_template="cache-webhook-config.v1beta1.yaml.template"
+fi
+NAMESPACE="$NAMESPACE" ./webhook-patch-ca-bundle.sh --cert_input_path "${CA_FILE}" <./"$cache_webhook_config_template" >./cache-configmap-ca-bundle.yaml
 echo "CA_BUNDLE patched successfully"
 
 # Create MutatingWebhookConfiguration
