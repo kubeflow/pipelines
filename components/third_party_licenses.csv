@@ -216,3 +216,13 @@ pygobject,https://raw.githubusercontent.com/GNOME/pygobject/mainline/COPYING,LGP
 pyxdg,https://cgit.freedesktop.org/xdg/pyxdg/plain/COPYING,LGPL
 SecretStorage,https://raw.githubusercontent.com/mitya57/secretstorage/master/LICENSE,BSD-3
 typing-extensions,https://raw.githubusercontent.com/python/typing/master/typing_extensions/LICENSE,Python Software Foundation License
+
+argon2-cffi,https://raw.githubusercontent.com/hynek/argon2-cffi/master/LICENSE,MIT
+astunparse,https://raw.githubusercontent.com/simonpercivall/astunparse/master/LICENSE,BSD-3 + Python Software Foundation License version 2
+avro-python3,https://raw.githubusercontent.com/apache/avro/master/LICENSE.txt,Apache 2.0
+backcall,https://raw.githubusercontent.com/takluyver/backcall/master/LICENSE,BSD-3
+importlib-metadata,https://gitlab.com/python-devs/importlib_metadata/-/raw/master/LICENSE,Apache 2.0
+packaging,https://raw.githubusercontent.com/pypa/packaging/master/LICENSE.APACHE,Apache 2.0 + BSD-2
+QtPy,https://raw.githubusercontent.com/spyder-ide/qtpy/master/LICENSE.txt,MIT
+tensorboard-plugin-wit,https://raw.githubusercontent.com/PAIR-code/what-if-tool/master/LICENSE,Apache 2.0
+zipp,https://raw.githubusercontent.com/jaraco/zipp/master/LICENSE,MIT
