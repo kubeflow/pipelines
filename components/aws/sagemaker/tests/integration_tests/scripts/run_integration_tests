@@ -82,7 +82,10 @@ function cleanup() {
 
   cleanup_kfp
   delete_assumed_role
-  delete_oidc_role
+  
+  if [[ "${SKIP_OIDC_SETUP}" == "false" ]]; then
+    delete_oidc_role
+  fi
 
   if [[ "${SKIP_FSX_TESTS}" == "false" ]]; then
     delete_fsx_instance

@@ -34,7 +34,7 @@ channelObj = {
 }
 
 channelObj['ChannelName'] = 'train'
-channelObj['DataSource']['S3DataSource']['S3Uri'] = 's3://kubeflow-pipeline-data/mnist_kmeans_example/data'
+channelObj['DataSource']['S3DataSource']['S3Uri'] = 's3://kubeflow-pipeline-data/mnist_kmeans_example/train_data'
 channelObjList.append(copy.deepcopy(channelObj))
 
 
