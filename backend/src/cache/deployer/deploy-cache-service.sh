@@ -68,9 +68,14 @@ touch ${CA_FILE}
 echo "Signed certificate generated for cache server"
 
 # Patch CA_BUNDLE for MutatingWebhookConfiguration
-# Choosing the correct API version. v1 supports better filtering, but is only available starting with Kubernetes v1.15
+# Choosing the correct API version.
+# Kubernetes v1.15+ supports better filtering, but it's not trivial to detect since the API version was only bumped to v1 in v1.16.
+# Kubernetes has broken it's versioning policy here. https://github.com/kubernetes/kubernetes/pull/78505#commitcomment-41870735
+# We still want to support filtering on v1.15, so we need to detect it.
 if kubectl api-versions | grep --word-regexp 'admissionregistration.k8s.io/v1'; then
     cache_webhook_config_template="cache-webhook-config.v1.yaml.template"
+elif kubectl version | grep 'Server Version: version.Info{Major:"1", Minor:"15'; then
+    cache_webhook_config_template="cache-webhook-config.v1beta1.v1.15.yaml.template"
 else
     cache_webhook_config_template="cache-webhook-config.v1beta1.yaml.template"
 fi
