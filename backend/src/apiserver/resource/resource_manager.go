@@ -309,6 +309,12 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 			return nil, util.Wrap(err, "Failed to fetch workflow spec.")
 		}
 	}
+	if len(workflowSpecManifestBytes) == 4 && string(workflowSpecManifestBytes) == "null" {
+		return nil, util.Wrap(
+			util.NewResourceNotFoundError(apiRun.GetId(), fmt.Sprintf("WorkflowSpecManifest[%s]", apiRun.GetName())),
+			"Failed to fetch workflow spec, manifest file might have been deleted.")
+	}
+
 	uuid, err := r.uuid.NewRandom()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to generate run ID.")
