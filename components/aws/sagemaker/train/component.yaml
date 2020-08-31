@@ -94,6 +94,14 @@ inputs:
     description: 'The endpoint URL for the private link VPC endpoint.'
     default: ''
     type: String
+  - name: debug_hook_config
+    description: 'Configuration information for the debug hook parameters, collection configuration, and storage paths.'
+    default: '{}'
+    type: JsonObject
+  - name: debug_rule_config
+    description: 'Configuration information for debugging rules.'
+    default: '[]'
+    type: JsonArray
   - name: assume_role
     description: 'The ARN of an IAM role to assume when connecting to SageMaker.'
     default: ''
@@ -108,7 +116,7 @@ outputs:
   - {name: training_image,        description: 'The registry path of the Docker image that contains the training algorithm'}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:0.7.0
+    image: amazon/aws-sagemaker-kfp-components:0.8.0
     command: ['python3']
     args: [
       train.py,
@@ -134,6 +142,8 @@ implementation:
       --vpc_subnets, {inputValue: vpc_subnets},
       --network_isolation, {inputValue: network_isolation},
       --traffic_encryption, {inputValue: traffic_encryption},
+      --debug_hook_config, {inputValue: debug_hook_config},
+      --debug_rule_config, {inputValue: debug_rule_config},
       --spot_instance, {inputValue: spot_instance},
       --max_wait_time, {inputValue: max_wait_time},
       --checkpoint_config, {inputValue: checkpoint_config},

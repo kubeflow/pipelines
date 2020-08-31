@@ -7,7 +7,7 @@ import random
 import string
 import shutil
 
-from sagemaker.amazon.amazon_estimator import get_image_uri
+from sagemaker.image_uris import retrieve
 
 
 def get_region():
@@ -42,12 +42,12 @@ def get_fsx_id():
     return os.environ.get("FSX_ID")
 
 
+def get_algorithm_image_registry(framework, region, version=None):
+    return retrieve(framework, region, version).split(".")[0]
+
+
 def get_assume_role_arn():
     return os.environ.get("ASSUME_ROLE_ARN")
-
-
-def get_algorithm_image_registry(region, algorithm):
-    return get_image_uri(region, algorithm).split(".")[0]
 
 
 def run_command(cmd, *popenargs, **kwargs):
@@ -84,7 +84,9 @@ def replace_placeholders(input_filename, output_filename):
         "((REGION))": region,
         "((ROLE_ARN))": get_role_arn(),
         "((DATA_BUCKET))": get_s3_data_bucket(),
-        "((KMEANS_REGISTRY))": get_algorithm_image_registry(region, "kmeans"),
+        "((KMEANS_REGISTRY))": get_algorithm_image_registry("kmeans", region, "1"),
+        "((XGBOOST_REGISTRY))": get_algorithm_image_registry("xgboost", region, "1.0-1"),
+        "((BUILTIN_RULE_IMAGE))": get_algorithm_image_registry("debugger", region),
         "((FSX_ID))": get_fsx_id(),
         "((FSX_SUBNET))": get_fsx_subnet(),
         "((FSX_SECURITY_GROUP))": get_fsx_security_group(),

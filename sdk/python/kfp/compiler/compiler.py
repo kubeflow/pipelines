@@ -367,8 +367,8 @@ class Compiler(object):
       for op_name in upstream_op_names:
         if op_name in pipeline.ops:
           upstream_op = pipeline.ops[op_name]
-        elif op_name in opsgroups_groups:
-          upstream_op = opsgroups_groups[op_name]
+        elif op_name in opsgroups:
+          upstream_op = opsgroups[op_name]
         else:
           raise ValueError('compiler cannot find the ' + op_name)
         upstream_groups, downstream_groups = \

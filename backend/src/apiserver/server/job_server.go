@@ -24,14 +24,66 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/robfig/cron"
 )
 
+// Metric variables. Please prefix the metric names with job_server_.
+var (
+	// Used to calculate the request rate.
+	createJobRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "job_server_create_requests",
+		Help: "The total number of CreateJob requests",
+	})
+
+	getJobRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "job_server_get_requests",
+		Help: "The total number of GetJob requests",
+	})
+
+	listJobRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "job_server_list_requests",
+		Help: "The total number of ListJobs requests",
+	})
+
+	deleteJobRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "job_server_delete_requests",
+		Help: "The total number of DeleteJob requests",
+	})
+
+	disableJobRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "job_server_disable_requests",
+		Help: "The total number of DisableJob requests",
+	})
+
+	enableJobRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "job_server_enable_requests",
+		Help: "The total number of EnableJob requests",
+	})
+
+	// TODO(jingzhang36): error count and success count.
+
+	jobCount = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "job_server_job_count",
+		Help: "The current number of jobs in Kubeflow Pipelines instance",
+	})
+)
+
+type JobServerOptions struct {
+	CollectMetrics bool
+}
+
 type JobServer struct {
 	resourceManager *resource.ResourceManager
+	options         *JobServerOptions
 }
 
 func (s *JobServer) CreateJob(ctx context.Context, request *api.CreateJobRequest) (*api.Job, error) {
+	if s.options.CollectMetrics {
+		createJobRequests.Inc()
+	}
+
 	err := s.validateCreateJobRequest(request)
 	if err != nil {
 		return nil, util.Wrap(err, "Validate create job request failed.")
@@ -45,10 +97,18 @@ func (s *JobServer) CreateJob(ctx context.Context, request *api.CreateJobRequest
 	if err != nil {
 		return nil, err
 	}
+
+	if s.options.CollectMetrics {
+		jobCount.Inc()
+	}
 	return ToApiJob(newJob), nil
 }
 
 func (s *JobServer) GetJob(ctx context.Context, request *api.GetJobRequest) (*api.Job, error) {
+	if s.options.CollectMetrics {
+		getJobRequests.Inc()
+	}
+
 	if !common.IsMultiUserSharedReadMode() {
 		err := s.canAccessJob(ctx, request.Id)
 		if err != nil {
@@ -64,6 +124,10 @@ func (s *JobServer) GetJob(ctx context.Context, request *api.GetJobRequest) (*ap
 }
 
 func (s *JobServer) ListJobs(ctx context.Context, request *api.ListJobsRequest) (*api.ListJobsResponse, error) {
+	if s.options.CollectMetrics {
+		listJobRequests.Inc()
+	}
+
 	opts, err := validatedListOptions(&model.Job{}, request.PageToken, int(request.PageSize), request.SortBy, request.Filter)
 
 	if err != nil {
@@ -111,6 +175,10 @@ func (s *JobServer) ListJobs(ctx context.Context, request *api.ListJobsRequest) 
 }
 
 func (s *JobServer) EnableJob(ctx context.Context, request *api.EnableJobRequest) (*empty.Empty, error) {
+	if s.options.CollectMetrics {
+		enableJobRequests.Inc()
+	}
+
 	err := s.canAccessJob(ctx, request.Id)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the request.")
@@ -120,6 +188,10 @@ func (s *JobServer) EnableJob(ctx context.Context, request *api.EnableJobRequest
 }
 
 func (s *JobServer) DisableJob(ctx context.Context, request *api.DisableJobRequest) (*empty.Empty, error) {
+	if s.options.CollectMetrics {
+		disableJobRequests.Inc()
+	}
+
 	err := s.canAccessJob(ctx, request.Id)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the request.")
@@ -129,6 +201,10 @@ func (s *JobServer) DisableJob(ctx context.Context, request *api.DisableJobReque
 }
 
 func (s *JobServer) DeleteJob(ctx context.Context, request *api.DeleteJobRequest) (*empty.Empty, error) {
+	if s.options.CollectMetrics {
+		deleteJobRequests.Inc()
+	}
+
 	err := s.canAccessJob(ctx, request.Id)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the request.")
@@ -137,6 +213,10 @@ func (s *JobServer) DeleteJob(ctx context.Context, request *api.DeleteJobRequest
 	err = s.resourceManager.DeleteJob(request.Id)
 	if err != nil {
 		return nil, err
+	}
+
+	if s.options.CollectMetrics {
+		jobCount.Dec()
 	}
 	return &empty.Empty{}, nil
 }
@@ -170,6 +250,10 @@ func (s *JobServer) validateCreateJobRequest(request *api.CreateJobRequest) erro
 }
 
 func (s *JobServer) enableJob(id string, enabled bool) (*empty.Empty, error) {
+	if s.options.CollectMetrics {
+		enableJobRequests.Inc()
+	}
+
 	err := s.resourceManager.EnableJob(id, enabled)
 	if err != nil {
 		return nil, err
@@ -197,6 +281,6 @@ func (s *JobServer) canAccessJob(ctx context.Context, jobID string) error {
 	return nil
 }
 
-func NewJobServer(resourceManager *resource.ResourceManager) *JobServer {
-	return &JobServer{resourceManager: resourceManager}
+func NewJobServer(resourceManager *resource.ResourceManager, options *JobServerOptions) *JobServer {
+	return &JobServer{resourceManager: resourceManager, options: options}
 }
