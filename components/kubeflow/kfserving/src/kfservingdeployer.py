@@ -18,6 +18,7 @@ import os
 import requests
 import re
 import time
+from distutils.util import strtobool
 
 from kubernetes import client
 
@@ -285,7 +286,7 @@ if __name__ == "__main__":
         default="",
     )
     parser.add_argument(
-        "--istio-sidecar", type=str, help="Whether to inject istio sidecar", default="True"
+        "--istio-sidecar", type=strtobool, help="Whether to inject istio sidecar", default="True"
     )
     parser.add_argument("--output-path", type=str, help="Path to store URI output")
     args = parser.parse_args()
@@ -305,7 +306,7 @@ if __name__ == "__main__":
     kfserving_endpoint = url.sub("", args.kfserving_endpoint)
     autoscaling_target = int(args.autoscaling_target)
     service_account = args.service_account
-    istio_sidecar = args.istio_sidecar.lower() == 'true'
+    istio_sidecar = args.istio_sidecar
 
     if kfserving_endpoint:
         formData = {
