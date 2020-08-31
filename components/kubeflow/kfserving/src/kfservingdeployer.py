@@ -143,13 +143,13 @@ def deploy_model(
     canary_custom_model_spec,
     service_account,
     autoscaling_target=0,
-    istio_sidecar=True
+    enable_istio_sidecar=True
 ):
     # Create annotation
     annotations = {}
     if int(autoscaling_target) != 0:
         annotations["autoscaling.knative.dev/target"] = str(autoscaling_target)
-    if not istio_sidecar:
+    if not enable_istio_sidecar:
         annotations["sidecar.istio.io/inject"] = 'false'
     if not annotations:
         annotations = None
@@ -286,7 +286,7 @@ if __name__ == "__main__":
         default="",
     )
     parser.add_argument(
-        "--istio-sidecar", type=strtobool, help="Whether to inject istio sidecar", default="True"
+        "--enable-istio-sidecar", type=strtobool, help="Whether to inject istio sidecar", default="True"
     )
     parser.add_argument("--output-path", type=str, help="Path to store URI output")
     args = parser.parse_args()
@@ -306,7 +306,7 @@ if __name__ == "__main__":
     kfserving_endpoint = url.sub("", args.kfserving_endpoint)
     autoscaling_target = int(args.autoscaling_target)
     service_account = args.service_account
-    istio_sidecar = args.istio_sidecar
+    enable_istio_sidecar = args.enable_istio_sidecar
 
     if kfserving_endpoint:
         formData = {
@@ -321,7 +321,7 @@ if __name__ == "__main__":
             "canary_custom_model_spec": canary_custom_model_spec,
             "autoscaling_target": autoscaling_target,
             "service_account": service_account,
-            "istio_sidecar": istio_sidecar
+            "enable_istio_sidecar": enable_istio_sidecar
         }
         response = requests.post(
             "http://" + kfserving_endpoint + "/deploy-model", json=formData
@@ -340,7 +340,7 @@ if __name__ == "__main__":
             canary_custom_model_spec=canary_custom_model_spec,
             autoscaling_target=autoscaling_target,
             service_account=service_account,
-            istio_sidecar=istio_sidecar
+            enable_istio_sidecar=enable_istio_sidecar
         )
     print(model_status)
     # Check whether the model is ready
