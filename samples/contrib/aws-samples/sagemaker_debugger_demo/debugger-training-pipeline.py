@@ -74,7 +74,7 @@ bad_hyperparameters = {
     name='XGBoost Training Pipeline with bad hyperparameters',
     description='SageMaker training job test with debugger'
 )
-def training(role_arn="", bucket_name="my-bucket"):
+def training(role_arn="", bucket_name="my-bucket", region='us-east-1', image='683313688378.dkr.ecr.us-east-1.amazonaws.com/sagemaker-xgboost:0.90-2-cpu-py3'):
     train_channels = [
         training_input("train", f"s3://{bucket_name}/mnist_kmeans_example/input/valid_data.csv", 'text/csv')
     ]
@@ -83,8 +83,8 @@ def training(role_arn="", bucket_name="my-bucket"):
         training_debug_rules("Overtraining", {'rule_to_invoke': 'Overtraining', 'patience_train': '10', 'patience_validation': '20'}),
     ]
     training = sagemaker_train_op(
-        region='us-east-1',
-        image='683313688378.dkr.ecr.us-east-1.amazonaws.com/sagemaker-xgboost:0.90-2-cpu-py3',
+        region=region,
+        image=image,
         hyperparameters=bad_hyperparameters,
         channels=train_channels,
         instance_type='ml.m5.2xlarge',
