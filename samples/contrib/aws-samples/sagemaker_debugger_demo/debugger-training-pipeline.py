@@ -73,7 +73,7 @@ def training(
     role_arn="",
     bucket_name="my-bucket",
     region="us-east-1",
-    image=retrieve(framework="xgboost", region=region, version="0.90-2"),
+    image=image_uris.retrieve(framework="xgboost", region=region, version="0.90-2"),
 ):
     train_channels = [
         training_input(
