@@ -109,6 +109,7 @@ def training(
         training_debug_rules(
             "LossNotDecreasing",
             {"rule_to_invoke": "LossNotDecreasing", "tensor_regex": ".*"},
+            region
         ),
         training_debug_rules(
             "Overtraining",
@@ -117,6 +118,7 @@ def training(
                 "patience_train": "10",
                 "patience_validation": "20",
             },
+            region
         ),
     ]
     training = sagemaker_train_op(
