@@ -6,6 +6,11 @@ The `sagemaker-debugger-demo.py` sample creates a pipeline consisting of only a 
 
 This pipeline uses the exact same setup as [simple_training_pipeline](https://github.com/kubeflow/pipelines/tree/master/samples/contrib/aws-samples/simple_train_pipeline). For the purposes of this demonstration, all resources will be created in the `us-east-1` region.
 
+Furthermore, this example uses the [`sagemaker-python-sdk`](https://sagemaker.readthedocs.io/en/stable/) version `2.x` to load debugger rule URLs. To install the SDK, use the following command:
+```
+pip install sagemaker>=2.0
+```
+
 ## Steps
 1. Compile the pipeline:
    `dsl-compile --py debugger-training-pipeline.py --output debugger-training-pipeline.tar.gz`
