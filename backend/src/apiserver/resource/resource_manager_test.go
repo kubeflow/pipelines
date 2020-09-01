@@ -673,7 +673,7 @@ func TestCreateRun_NullWorkflowSpec(t *testing.T) {
 	}
 	_, err := manager.CreateRun(apiRun)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to fetch workflow spec, manifest file might have been deleted.: ResourceNotFoundError:  WorkflowSpecManifest[run1] not found.")
+	assert.Contains(t, err.Error(), "Failed to fetch workflow spec manifest.: ResourceNotFoundError: WorkflowSpecManifest run1 not found.")
 }
 
 func TestCreateRun_OverrideParametersError(t *testing.T) {
