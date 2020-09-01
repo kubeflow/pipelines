@@ -633,7 +633,8 @@ class Client(object):
       arguments: Arguments to the pipeline function provided as a dict.
       run_name: Optional. Name of the run to be shown in the UI.
       experiment_name: Optional. Name of the experiment to add the run to.
-      pipeline_conf: Optional.
+      pipeline_conf: Optional. Pipeline configuration ops that will be applied
+        to all the ops in the pipeline func.
       namespace: Kubernetes namespace where the pipeline runs are created.
         For single user deployment, leave it as None;
         For multi user, input a namespace where the user is authorized
