@@ -5,3 +5,5 @@ ExpectedTrainingImage: ((XGBOOST_0.90_REGISTRY)).dkr.ecr.((REGION)).amazonaws.co
 Arguments:
   bucket_name: ((DATA_BUCKET))
   role_arn: ((ROLE_ARN))
+  region: ((REGION))
+  image: ((XGBOOST_0.90_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/sagemaker-xgboost:0.90-2-cpu-py3
