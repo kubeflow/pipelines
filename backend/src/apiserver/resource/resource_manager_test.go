@@ -663,6 +663,24 @@ func TestCreateRun_InvalidWorkflowSpec(t *testing.T) {
 	assert.Contains(t, err.Error(), "Failed to unmarshal workflow spec manifest")
 }
 
+func TestCreateRun_NullWorkflowSpec(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	apiRun := &api.Run{
+		Name: "run1",
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: "null",  // this situation occurs for real when the manifest file disappears from object store in some way due to retention policy or manual deletion.
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+	}
+	_, err := manager.CreateRun(apiRun)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Failed to fetch workflow spec manifest.: ResourceNotFoundError: WorkflowSpecManifest run1 not found.")
+}
+
 func TestCreateRun_OverrideParametersError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
@@ -1129,6 +1147,25 @@ func TestCreateJob_InvalidWorkflowSpec(t *testing.T) {
 	_, err := manager.CreateJob(job)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to unmarshal workflow spec manifest")
+}
+
+func TestCreateJob_NullWorkflowSpec(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	job := &api.Job{
+		Name:    "pp 1",
+		Enabled: true,
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: string("null"), // this situation occurs for real when the manifest file disappears from object store in some way due to retention policy or manual deletion.
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+	}
+	_, err := manager.CreateJob(job)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Failed to fetch workflow spec manifest.: ResourceNotFoundError: WorkflowSpecManifest pp 1 not found.")
 }
 
 func TestCreateJob_ExtraInputParameterError(t *testing.T) {
