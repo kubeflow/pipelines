@@ -620,10 +620,10 @@ class Client(object):
       self,
       pipeline_func: Callable,
       arguments: Mapping[str, str],
-      run_name=None,
-      experiment_name=None,
+      run_name: Optional[str] = None,
+      experiment_name: Optional[str] = None,
       pipeline_conf: Optional[kfp.dsl.PipelineConf] = None,
-      namespace=None):
+      namespace: Optional[str] = None):
     """Runs pipeline on KFP-enabled Kubernetes cluster.
 
     This command compiles the pipeline function, creates or gets an experiment and submits the pipeline for execution.
