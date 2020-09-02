@@ -22,8 +22,10 @@ from ..common import wait_operation_done
 class MLEngineClient:
     """ Client for calling MLEngine APIs.
     """
-    def __init__(self):
-        self._ml_client = discovery.build('ml', 'v1')
+    def __init__(self, region="asia-east1"):
+        endpoint = 'https://{}-ml.googleapis.com'.format(region)
+        client_options = ClientOptions(api_endpoint=endpoint)
+        self._ml_client = discovery.build('ml', 'v1', client_options=client_options)
 
     def create_job(self, project_id, job):
         """Create a new job.
