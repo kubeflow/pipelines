@@ -746,6 +746,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 		runDetail := &model.RunDetail{
 			Run: model.Run{
 				UUID:             runId,
+				ExperimentUUID:   experimentRef.ReferenceUUID,
 				DisplayName:      workflow.Name,
 				Name:             workflow.Name,
 				StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
