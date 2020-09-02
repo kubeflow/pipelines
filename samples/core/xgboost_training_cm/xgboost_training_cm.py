@@ -333,5 +333,6 @@ def xgb_train_pipeline(
             output_dir=output_template
         ).after(_predict_op)
 
+        
 if __name__ == '__main__':
     kfp.compiler.Compiler().compile(xgb_train_pipeline, __file__ + '.yaml')
