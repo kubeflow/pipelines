@@ -42,6 +42,7 @@ dataproc_submit_spark_op = components.load_component_from_url(
     'https://raw.githubusercontent.com/kubeflow/pipelines/38771da09094640cd2786a4b5130b26ea140f864/components/gcp/dataproc/submit_spark_job/component.yaml'
 )
 
+
 _PYSRC_PREFIX = 'gs://ml-pipeline/sample-pipeline/xgboost' # Common path to python src.
 
 _XGBOOST_PKG = 'gs://ml-pipeline/sample-pipeline/xgboost/xgboost4j-example-0.8-SNAPSHOT-jar-with-dependencies.jar'
