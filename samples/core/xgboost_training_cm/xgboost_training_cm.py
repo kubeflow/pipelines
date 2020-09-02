@@ -53,7 +53,6 @@ _PREDICTOR_MAIN_CLS = 'ml.dmlc.xgboost4j.scala.example.spark.XGBoostPredictor'
 _ESTIMATOR_MAIN_CLS = 'ml.dmlc.xgboost4j.scala.spark.XGBoostEstimator'
 #ml/dmlc/xgboost4j/scala/spark/XGBoostEstimator
 
-
 def delete_directory_from_gcs(dir_path):
   """Delete a GCS dir recursively. Ignore errors."""
   try:
