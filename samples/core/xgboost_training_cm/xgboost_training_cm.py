@@ -50,6 +50,9 @@ _TRAINER_MAIN_CLS = 'ml.dmlc.xgboost4j.scala.example.spark.XGBoostTrainer'
 
 _PREDICTOR_MAIN_CLS = 'ml.dmlc.xgboost4j.scala.example.spark.XGBoostPredictor'
 
+_ESTIMATOR_MAIN_CLS = 'ml.dmlc.xgboost4j.scala.spark.XGBoostEstimator'
+#ml/dmlc/xgboost4j/scala/spark/XGBoostEstimator
+
 
 def delete_directory_from_gcs(dir_path):
   """Delete a GCS dir recursively. Ignore errors."""
@@ -297,6 +300,28 @@ def xgb_train_pipeline(
             output=predict_output
         ).after(_train_op).set_display_name('Predictor')
 
+        _create_cluster_op = dataproc_create_cluster_op(
+            project_id=project,
+            region=region,
+            name=cluster_name,
+            initialization_actions=[
+              os.path.join(_PYSRC_PREFIX,
+                           'initialization_actions.sh'),
+            ],
+            image_version='1.2'
+        ).after(_diagnose_me_op)
+
+        _create_2nd_cluster_op = dataproc_create_cluster_op(
+            project_id=project,
+            region=region,
+            name=cluster_name,
+            initialization_actions=[
+              os.path.join(_PYSRC_PREFIX,
+                           'initialization_actions.sh'),
+            ],
+            image_version='1.2'
+        ).after(_diagnose_me_op).set_display_name('CICD')
+        
         _cm_op = confusion_matrix_op(
             predictions=os.path.join(predict_output, 'part-*.csv'),
             output_dir=output_template
