@@ -149,7 +149,7 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 	var err error
 
 	refKey := filterContext.ReferenceKey
-	if refKey != nil && refKey.Type == "ExperimentUUID" {
+	if refKey != nil && refKey.Type == common.Experiment {
 		// for performance reasons need to special treat experiment ID filter on runs
 		// currently only the run table have experiment UUID column
 		filteredSelectBuilder, err = list.FilterOnExperiment("run_details", runColumns,
