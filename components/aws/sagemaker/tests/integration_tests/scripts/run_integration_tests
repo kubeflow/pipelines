@@ -21,6 +21,8 @@ EKS_CLUSTER_VERSION=${EKS_CLUSTER_VERSION:-"1.15"} # EKS cluster K8s version
 EKS_NODE_COUNT=${EKS_NODE_COUNT:-"1"} # The initial node count of the EKS cluster
 EKS_PUBLIC_SUBNETS=${EKS_PUBLIC_SUBNETS:-""}
 EKS_PRIVATE_SUBNETS=${EKS_PRIVATE_SUBNETS:-""}
+SKIP_KFP_OIDC_SETUP=${SKIP_KFP_OIDC_SETUP:-"false"}
+KFP_VERSION=${KFP_VERSION:-"0.5.1"}
 
 ### Testing parameters
 MINIO_LOCAL_PORT=${MINIO_LOCAL_PORT:-9000}
@@ -81,7 +83,8 @@ function cleanup() {
 
   cleanup_kfp
   delete_assumed_role
-  delete_oidc_role
+  
+  [ "${SKIP_KFP_OIDC_SETUP}" == "false" ] && delete_oidc_role
 
   if [[ "${SKIP_FSX_TESTS}" == "false" ]]; then
     delete_fsx_instance
@@ -120,10 +123,9 @@ function delete_eks() {
 function install_kfp() {
   echo "[Installing KFP] Applying KFP manifests"
 
-  PIPELINE_VERSION=0.5.1
-  kubectl apply -k github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=$PIPELINE_VERSION
+  kubectl apply -k github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=$KFP_VERSION
   kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
-  kubectl apply -k github.com/kubeflow/pipelines/manifests/kustomize/env/dev?ref=$PIPELINE_VERSION
+  kubectl apply -k github.com/kubeflow/pipelines/manifests/kustomize/env/dev?ref=$KFP_VERSION
 
   echo "[Installing KFP] Port-forwarding Minio"
 
@@ -229,11 +231,13 @@ else
   wait
 fi
 
-generate_oidc_role_name
-"$cwd"/generate_iam_role ${EKS_CLUSTER_NAME} ${OIDC_ROLE_NAME} ${REGION} ${KFP_NAMESPACE} ${KFP_SERVICE_ACCOUNT}
-install_kfp
-install_oidc_role
+if [[ "${SKIP_KFP_OIDC_SETUP}" == "false" ]]; then
+  generate_oidc_role_name
+  "$cwd"/generate_iam_role ${EKS_CLUSTER_NAME} ${OIDC_ROLE_NAME} ${REGION} ${KFP_NAMESPACE} ${KFP_SERVICE_ACCOUNT}
+fi
 
+install_kfp
+[ "${SKIP_KFP_OIDC_SETUP}" == "false" ] && install_oidc_role
 generate_assumed_role
 
 pytest_args=( --region "${REGION}" --role-arn "${SAGEMAKER_EXECUTION_ROLE_ARN}" \

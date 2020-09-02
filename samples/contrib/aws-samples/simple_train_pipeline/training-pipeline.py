@@ -34,7 +34,7 @@ channelObj = {
 }
 
 channelObj['ChannelName'] = 'train'
-channelObj['DataSource']['S3DataSource']['S3Uri'] = 's3://kubeflow-pipeline-data/mnist_kmeans_example/data'
+channelObj['DataSource']['S3DataSource']['S3Uri'] = 's3://kubeflow-pipeline-data/mnist_kmeans_example/train_data'
 channelObjList.append(copy.deepcopy(channelObj))
 
 
@@ -53,7 +53,7 @@ def training(
         instance_count=1,
         volume_size=50,
         max_run_time=3600,
-        model_artifact_path='s3://kubeflow-pipeline-data/mnist_kmeans_example/data',
+        model_artifact_path='s3://kubeflow-pipeline-data/mnist_kmeans_example/output',
         output_encryption_key='',
         network_isolation=True,
         traffic_encryption=False,
