@@ -14,14 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# usage: `./hack/run_unit_tests_backend.sh` to run backend unit tests once
-#        `WATCH=true ./hack/run_unit_tests_backend.sh` to watch code changes and auto rerun tests
-# Note: ibazel can be downloaded from https://github.com/bazelbuild/bazel-watcher
-
-COMMAND="bazel"
-if [ -n "$WATCH" ]; then
-  COMMAND="ibazel"
-fi
-$COMMAND --host_jvm_args=-Xmx500m --host_jvm_args=-Xms500m test \
-  --noshow_progress --noshow_loading_progress --define=grpc_no_ares=true \
-  --test_output=all //backend/...
+# The current directory is /home/prow/go/src/github.com/kubeflow/pipelines
+# 1. install go in /home/prow/go1.13.3
+cd /home/prow
+mkdir go1.13.3
+cd go1.13.3
+wget --quiet https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz
+tar -xf go1.13.3.linux-amd64.tar.gz
+# 2. run test in project directory
+cd /home/prow/go/src/github.com/kubeflow/pipelines
+/home/prow/go1.13.3/go/bin/go mod vendor
+/home/prow/go1.13.3/go/bin/go test -v -cover ./backend/...
