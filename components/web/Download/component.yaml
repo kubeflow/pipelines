@@ -1,7 +1,7 @@
 name: Download data
 inputs:
 - {name: Url, type: URI}
-- {name: curl options, type: string, default: '', description: 'Additional options given to the curl bprogram. See https://curl.haxx.se/docs/manpage.html'}
+- {name: curl options, type: string, default: '--location', description: 'Additional options given to the curl bprogram. See https://curl.haxx.se/docs/manpage.html'}
 outputs:
 - {name: Data}
 metadata:
