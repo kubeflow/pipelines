@@ -26,7 +26,7 @@ message PipelineSpec {
   // The definition of the runtime parameter.
   message RuntimeParameter {
     // Required field. The type of the runtime parameter.
-    PrimitiveTypeEnum.PrimitiveType type = 1;
+    PrimitiveType.PrimitiveTypeEnum type = 1;
     // Optional field. Default value of the runtime parameter. If not set and
     // the runtime parameter value is not provided during runtime, an error will
     // be raised.
@@ -70,7 +70,8 @@ message TaskInputsSpec {
     }
   }
 
-  // A map of input parameters.
+  // A map of input parameters which are small values, stored by the system and
+  // can be queriable.
   map<string, InputParameterSpec> parameters = 1;
   // A map of input artifacts.
   map<string, InputArtifactSpec> artifacts = 2;
@@ -83,20 +84,23 @@ message TaskOutputsSpec {
     // The type of the artifact.
     ArtifactTypeSchema artifact_type = 1;
 
-    // The properties of the artifact.
+    // The properties of the artifact, which are determined either at
+    // compile-time, or at pipeline submission time through runtime parameters
     map<string, ValueOrRuntimeParameter> properties = 2;
 
-    // The custom properties of the artifact.
+    // The custom properties of the artifact, which are determined either at
+    // compile-time, or at pipeline submission time through runtime parameters
     map<string, ValueOrRuntimeParameter> custom_properties = 3;
   }
 
   // Specification for output parameters produced by the task.
   message OutputParameterSpec {
     // Required field. The type of the output parameter.
-    PrimitiveTypeEnum.PrimitiveType type = 1;
+    PrimitiveType.PrimitiveTypeEnum type = 1;
   }
 
-  // A map of output parameters.The output key is used
+  // A map of output parameters which are small values, stored by the system and
+  // can be queriable. The output key is used
   // by [TaskInputsSpec.InputParameterSpec][] of the downstream task to specify
   // the data dependency. The same key will also be used by
   // [ExecutorInput.Inputs][] to reference the output parameter.
@@ -108,11 +112,11 @@ message TaskOutputsSpec {
   map<string, OutputArtifactSpec> artifacts = 2;
 }
 
-// Wrapper of PrimitiveType enum. The wrapper is needed to give a namespace of
+// Represent primitive types. The wrapper is needed to give a namespace of
 // enum value so we don't need add `PRIMITIVE_TYPE_` prefix of each enum value.
-message PrimitiveTypeEnum {
-  // The type of the parameter.
-  enum PrimitiveType {
+message PrimitiveType {
+  // The primitive types.
+  enum PrimitiveTypeEnum {
     PRIMITIVE_TYPE_UNSPECIFIED = 0;
     INT = 1;
     DOUBLE = 2;
@@ -341,22 +345,24 @@ message RuntimeArtifact {
 // in the [ExecutionInput]().
 //
 // `{{$}}`: prints the full [ExecutorInput]() as a JSON string.
-// `{{$.inputs.artifacts['<name>'].uri`: prints the URI of an input
+// `{{$.inputs.artifacts['<name>'].uri}}`: prints the URI of an input
 // artifact.
-// `{{$.inputs.artifacts['<name>'].properties['<property name>']`: prints
+// `{{$.inputs.artifacts['<name>'].properties['<property name>']}}`: prints
 // the
 //   property of an input artifact.
-// `{{$.inputs.parameters['<name>']`: prints the value of an input
+// `{{$.inputs.parameters['<name>']}}`: prints the value of an input
 // parameter.
 // `{{$.outputs.artifacts['<name>'].uri}}: prints the URI of an output artifact.
-// `{{$.outputs.artifacts['<name>'].properties['<property name>']`: prints the
+// `{{$.outputs.artifacts['<name>'].properties['<property name>']}}`: prints the
 //   property of an output artifact.
-// `{{$.outputs.parameters['<name>'].output_file`: Returns a local path which
+// `{{$.outputs.parameters['<name>'].output_file}}`: prints a file path which
 // points to a file and container can write to it to return the value of the
 // parameter..
-// `{{$.outputs.output_file}}`: prints the URI of the output metadata file which
-//   is used to send output metadata from executor to orchestrator. The contract
-//   of the output metadata is [ExecutorOutput]().
+// `{{$.outputs.output_file}}`: prints a file path of the output metadata file
+// which is used to send output metadata from executor to orchestrator. The
+// contract of the output metadata is [ExecutorOutput](). When both parameter
+// output file and executor output metadata files are set by the container, the
+// output metadata file will have higher precedence to set output parameters.
 message ExecutorInput {
   // Message that represents a list of artifacts.
   message ArtifactList {
@@ -406,8 +412,9 @@ message ExecutorInput {
 // The schema of the output metadata of an execution. It will be used to parse
 // the output metadata file.
 message ExecutorOutput {
+  // The values for output parameters.
+  map<string, Value> parameters = 1;
+
   // The updated metadata for output artifact.
-  map<string, RuntimeArtifact> artifacts = 1;
-  // The updated execution properties.
-  map<string, Value> parameters = 2;
+  map<string, RuntimeArtifact> artifacts = 2;
 }
