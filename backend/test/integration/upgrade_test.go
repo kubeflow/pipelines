@@ -108,15 +108,16 @@ func (s *UpgradeTests) SetupSuite() {
 
 func (s *UpgradeTests) TearDownSuite() {
 	if *runIntegrationTests {
-		t := s.T()
-
-		// Clean up after the suite to unblock other tests. (Not needed for upgrade
-		// tests because it needs changes in prepare tests to persist and verified
-		// later.)
-		test.DeleteAllExperiments(s.experimentClient, t)
-		test.DeleteAllPipelines(s.pipelineClient, t)
-		test.DeleteAllRuns(s.runClient, t)
-		test.DeleteAllJobs(s.jobClient, t)
+		if !*isDevMode {
+			t := s.T()
+			// Clean up after the suite to unblock other tests. (Not needed for upgrade
+			// tests because it needs changes in prepare tests to persist and verified
+			// later.)
+			test.DeleteAllExperiments(s.experimentClient, t)
+			test.DeleteAllPipelines(s.pipelineClient, t)
+			test.DeleteAllRuns(s.runClient, t)
+			test.DeleteAllJobs(s.jobClient, t)
+		}
 	}
 }
 
