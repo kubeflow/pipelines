@@ -7,27 +7,14 @@ from utils import minio_utils
 
 
 def create_workteamjob(
-    kfp_client, experiment_id, region, sagemaker_client, test_file_dir, download_dir
+    kfp_client, test_params, experiment_id, region, sagemaker_client, download_dir
 ):
-
-    test_params = utils.load_params(
-        utils.replace_placeholders(
-            os.path.join(test_file_dir, "config.yaml"),
-            os.path.join(download_dir, "config.yaml"),
-        )
-    )
-
     # Get the account, region specific user_pool and client_id for the SageMaker Workforce.
     (
         test_params["Arguments"]["user_pool"],
         test_params["Arguments"]["client_id"],
         test_params["Arguments"]["user_groups"],
     ) = sagemaker_utils.get_cognito_member_definitions(sagemaker_client)
-
-    # Generate random prefix for workteam_name to avoid errors if resources with same name exists
-    test_params["Arguments"]["team_name"] = workteam_name = (
-        utils.generate_random_string(5) + "-" + test_params["Arguments"]["team_name"]
-    )
 
     _, _, workflow_json = kfp_client_utils.compile_run_monitor_pipeline(
         kfp_client,
@@ -39,7 +26,7 @@ def create_workteamjob(
         test_params["Timeout"],
     )
 
-    return workteam_name, workflow_json
+    return workflow_json
 
 
 @pytest.mark.parametrize(
@@ -56,13 +43,26 @@ def test_workteamjob(
 ):
 
     download_dir = utils.mkdir(os.path.join(test_file_dir + "/generated"))
-    workteam_name, workflow_json = create_workteamjob(
-        kfp_client, experiment_id, region, sagemaker_client, test_file_dir, download_dir
+
+    test_params = utils.load_params(
+        utils.replace_placeholders(
+            os.path.join(test_file_dir, "config.yaml"),
+            os.path.join(download_dir, "config.yaml"),
+        )
     )
 
-    outputs = {"sagemaker-private-workforce": ["workteam_arn"]}
+    # Generate random prefix for workteam_name to avoid errors if resources with same name exists
+    test_params["Arguments"]["team_name"] = workteam_name = (
+        utils.generate_random_string(5) + "-" + test_params["Arguments"]["team_name"]
+    )
 
     try:
+        workflow_json = create_workteamjob(
+            kfp_client, test_params, experiment_id, region, sagemaker_client, download_dir
+        )
+
+        outputs = {"sagemaker-private-workforce": ["workteam_arn"]}
+
         output_files = minio_utils.artifact_download_iterator(
             workflow_json, outputs, download_dir
         )
@@ -80,8 +80,14 @@ def test_workteamjob(
         assert response["Workteam"]["WorkteamArn"] == workteam_arn
 
     finally:
-        # Cleanup the SageMaker Resources
-        sagemaker_utils.delete_workteam(sagemaker_client, workteam_name)
+        workteams = sagemaker_utils.list_workteams(
+            sagemaker_client
+        )["Workteams"]
+        workteam_names = list(map((lambda x: x["WorkteamName"]), workteams))
+        # Check workteam was successfully created
+        if workteam_name in workteam_names:
+            sagemaker_utils.delete_workteam(sagemaker_client, workteam_name)
+
 
     # Delete generated files only if the test is successful
     utils.remove_dir(download_dir)
