@@ -38,6 +38,7 @@ func initializeRunStore() (*DB, *RunStore) {
 	run1 := &model.RunDetail{
 		Run: model.Run{
 			UUID:             "1",
+			ExperimentUUID:   defaultFakeExpId,
 			Name:             "run1",
 			DisplayName:      "run1",
 			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
@@ -60,6 +61,7 @@ func initializeRunStore() (*DB, *RunStore) {
 	run2 := &model.RunDetail{
 		Run: model.Run{
 			UUID:             "2",
+			ExperimentUUID:   defaultFakeExpId,
 			Name:             "run2",
 			DisplayName:      "run2",
 			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
@@ -82,6 +84,7 @@ func initializeRunStore() (*DB, *RunStore) {
 	run3 := &model.RunDetail{
 		Run: model.Run{
 			UUID:             "3",
+			ExperimentUUID:   defaultFakeExpIdTwo,
 			Name:             "run3",
 			DisplayName:      "run3",
 			Namespace:        "n3",
@@ -114,6 +117,7 @@ func TestListRuns_Pagination(t *testing.T) {
 	expectedFirstPageRuns := []*model.Run{
 		{
 			UUID:             "1",
+			ExperimentUUID:   defaultFakeExpId,
 			Name:             "run1",
 			DisplayName:      "run1",
 			Namespace:        "n1",
@@ -132,6 +136,7 @@ func TestListRuns_Pagination(t *testing.T) {
 	expectedSecondPageRuns := []*model.Run{
 		{
 			UUID:             "2",
+			ExperimentUUID:   defaultFakeExpId,
 			Name:             "run2",
 			DisplayName:      "run2",
 			Namespace:        "n2",
@@ -168,6 +173,111 @@ func TestListRuns_Pagination(t *testing.T) {
 	assert.Empty(t, nextPageToken)
 }
 
+<<<<<<< HEAD
+=======
+func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	expectedFirstPageRuns := []*model.Run{
+		{
+			UUID:             "1",
+			ExperimentUUID:   defaultFakeExpId,
+			Name:             "run1",
+			DisplayName:      "run1",
+			Namespace:        "n1",
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+			Conditions:       "Running",
+			Metrics: []*model.RunMetric{
+				{
+					RunUUID:     "1",
+					NodeID:      "node1",
+					Name:        "dummymetric",
+					NumberValue: 1.0,
+					Format:      "PERCENTAGE",
+				},
+			},
+			ResourceReferences: []*model.ResourceReference{
+				{
+					ResourceUUID: "1", ResourceType: common.Run,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
+				},
+			},
+		}}
+	expectedSecondPageRuns := []*model.Run{
+		{
+			UUID:             "2",
+			ExperimentUUID:   defaultFakeExpId,
+			Name:             "run2",
+			DisplayName:      "run2",
+			Namespace:        "n2",
+			CreatedAtInSec:   2,
+			ScheduledAtInSec: 2,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+			Conditions:       "done",
+			Metrics: []*model.RunMetric{
+				{
+					RunUUID:     "2",
+					NodeID:      "node2",
+					Name:        "dummymetric",
+					NumberValue: 2.0,
+					Format:      "PERCENTAGE",
+				},
+			},
+			ResourceReferences: []*model.ResourceReference{
+				{
+					ResourceUUID: "2", ResourceType: common.Run,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
+				},
+			},
+		}}
+
+	// Sort in asc order
+	opts, err := list.NewOptions(&model.Run{}, 1, "metric:dummymetric", nil)
+	assert.Nil(t, err)
+
+	runs, total_size, nextPageToken, err := runStore.ListRuns(
+		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, total_size)
+	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed.")
+	assert.NotEmpty(t, nextPageToken)
+
+	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
+	assert.Nil(t, err)
+	runs, total_size, nextPageToken, err = runStore.ListRuns(
+		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, total_size)
+	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed.")
+	assert.Empty(t, nextPageToken)
+
+	// Sort in desc order
+	opts, err = list.NewOptions(&model.Run{}, 1, "metric:dummymetric desc", nil)
+	assert.Nil(t, err)
+
+	runs, total_size, nextPageToken, err = runStore.ListRuns(
+		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, total_size)
+	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed.")
+	assert.NotEmpty(t, nextPageToken)
+
+	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
+	assert.Nil(t, err)
+	runs, total_size, nextPageToken, err = runStore.ListRuns(
+		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, total_size)
+	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed.")
+	assert.Empty(t, nextPageToken)
+}
+
+>>>>>>> 32c9c2ac... fix(backend): fix typo in reference key type (#4376)
 func TestListRuns_TotalSizeWithNoFilter(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()
@@ -212,6 +322,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 	expectedFirstPageRuns := []*model.Run{
 		{
 			UUID:             "2",
+			ExperimentUUID:   defaultFakeExpId,
 			Name:             "run2",
 			DisplayName:      "run2",
 			Namespace:        "n2",
@@ -230,6 +341,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 	expectedSecondPageRuns := []*model.Run{
 		{
 			UUID:             "1",
+			ExperimentUUID:   defaultFakeExpId,
 			Name:             "run1",
 			DisplayName:      "run1",
 			Namespace:        "n1",
@@ -273,6 +385,7 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 	expectedRuns := []*model.Run{
 		{
 			UUID:             "1",
+			ExperimentUUID:   defaultFakeExpId,
 			Name:             "run1",
 			DisplayName:      "run1",
 			Namespace:        "n1",
@@ -290,6 +403,7 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 		},
 		{
 			UUID:             "2",
+			ExperimentUUID:   defaultFakeExpId,
 			Name:             "run2",
 			DisplayName:      "run2",
 			Namespace:        "n2",
@@ -334,6 +448,7 @@ func TestGetRun(t *testing.T) {
 	expectedRun := &model.RunDetail{
 		Run: model.Run{
 			UUID:             "1",
+			ExperimentUUID:   defaultFakeExpId,
 			Name:             "run1",
 			DisplayName:      "run1",
 			Namespace:        "n1",
@@ -382,6 +497,7 @@ func TestCreateOrUpdateRun_UpdateSuccess(t *testing.T) {
 	expectedRun := &model.RunDetail{
 		Run: model.Run{
 			UUID:             "1",
+			ExperimentUUID:   defaultFakeExpId,
 			Name:             "run1",
 			DisplayName:      "run1",
 			Namespace:        "n1",
@@ -419,6 +535,7 @@ func TestCreateOrUpdateRun_UpdateSuccess(t *testing.T) {
 	expectedRun = &model.RunDetail{
 		Run: model.Run{
 			UUID:             "1",
+			ExperimentUUID:   defaultFakeExpId,
 			Name:             "run1",
 			DisplayName:      "run1",
 			Namespace:        "n1",
@@ -454,6 +571,7 @@ func TestCreateOrUpdateRun_CreateSuccess(t *testing.T) {
 	runDetail := &model.RunDetail{
 		Run: model.Run{
 			UUID:           "2000",
+			ExperimentUUID: defaultFakeExpId,
 			Name:           "MY_NAME",
 			Namespace:      "MY_NAMESPACE",
 			CreatedAtInSec: 11,
@@ -481,6 +599,7 @@ func TestCreateOrUpdateRun_CreateSuccess(t *testing.T) {
 	expectedRun := &model.RunDetail{
 		Run: model.Run{
 			UUID:           "2000",
+			ExperimentUUID: defaultFakeExpId,
 			Name:           "MY_NAME",
 			Namespace:      "MY_NAMESPACE",
 			CreatedAtInSec: 11,
@@ -553,6 +672,7 @@ func TestCreateOrUpdateRun_BadStorageStateValue(t *testing.T) {
 	runDetail := &model.RunDetail{
 		Run: model.Run{
 			UUID:             "1",
+			ExperimentUUID:   defaultFakeExpId,
 			Name:             "run1",
 			StorageState:     "bad value",
 			Namespace:        "n1",
@@ -596,6 +716,7 @@ func TestTerminateRun(t *testing.T) {
 	expectedRun := &model.RunDetail{
 		Run: model.Run{
 			UUID:             "1",
+			ExperimentUUID:   defaultFakeExpId,
 			Name:             "run1",
 			DisplayName:      "run1",
 			Namespace:        "n1",
@@ -730,6 +851,7 @@ func TestListRuns_WithMetrics(t *testing.T) {
 	expectedRuns := []*model.Run{
 		{
 			UUID:             "1",
+			ExperimentUUID:   defaultFakeExpId,
 			Name:             "run1",
 			DisplayName:      "run1",
 			Namespace:        "n1",
@@ -748,6 +870,7 @@ func TestListRuns_WithMetrics(t *testing.T) {
 		},
 		{
 			UUID:             "2",
+			ExperimentUUID:   defaultFakeExpId,
 			Name:             "run2",
 			DisplayName:      "run2",
 			Namespace:        "n2",
@@ -859,6 +982,7 @@ func TestArchiveRun_IncludedInRunList(t *testing.T) {
 	expectedRuns := []*model.Run{
 		{
 			UUID:             "1",
+			ExperimentUUID:   defaultFakeExpId,
 			Name:             "run1",
 			DisplayName:      "run1",
 			Namespace:        "n1",
