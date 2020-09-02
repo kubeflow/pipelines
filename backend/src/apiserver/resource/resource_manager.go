@@ -331,6 +331,11 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		return nil, util.NewInternalServerError(err,
 			"Failed to unmarshal workflow spec manifest. Workflow bytes: %s", string(workflowSpecManifestBytes))
 	}
+	if workflow.Workflow == nil {
+		return nil, util.Wrap(
+			util.NewResourceNotFoundError("WorkflowSpecManifest", apiRun.GetName()),
+			"Failed to fetch workflow spec manifest.")
+	}
 
 	parameters := toParametersMap(apiRun.GetPipelineSpec().GetParameters())
 	// Verify no additional parameter provided
@@ -581,6 +586,11 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 	if err != nil {
 		return nil, util.NewInternalServerError(err,
 			"Failed to unmarshal workflow spec manifest. Workflow bytes: %s", string(workflowSpecManifestBytes))
+	}
+	if workflow.Workflow == nil {
+		return nil, util.Wrap(
+			util.NewResourceNotFoundError("WorkflowSpecManifest", apiJob.GetName()),
+			"Failed to fetch workflow spec manifest.")
 	}
 
 	// Verify no additional parameter provided
