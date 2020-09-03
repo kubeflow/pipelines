@@ -26,6 +26,7 @@ import json
 import os
 import urlparse
 import pandas as pd
+from pathlib import Path
 from sklearn.metrics import roc_curve, roc_auc_score
 from tensorflow.python.lib.io import file_io
 
@@ -44,6 +45,14 @@ def main(argv=None):
                            'For example, "lambda x: x[\'a\'] and x[\'b\']". If missing, ' +
                            'input must have a "target" column.')
   parser.add_argument('--output', type=str, help='GCS path of the output directory.')
+  parser.add_argument('--ui-metadata-output-path',
+                      type=str,
+                      default='/mlpipeline-ui-metadata.json',
+                      help='Local output path for the file containing UI metadata JSON structure.')
+  parser.add_argument('--metrics-output-path',
+                      type=str,
+                      default='/mlpipeline-metrics.json',
+                      help='Local output path for the file containing metrics JSON structure.')
   args = parser.parse_args()
 
   storage_service_scheme = urlparse.urlparse(args.output).scheme
@@ -91,8 +100,8 @@ def main(argv=None):
       'source': roc_file
     }]
   }
-  with file_io.FileIO('/mlpipeline-ui-metadata.json', 'w') as f:
-    json.dump(metadata, f)
+  Path(args.ui_metadata_output_path).parent.mkdir(parents=True, exist_ok=True)
+  Path(args.ui_metadata_output_path).write_text(json.dumps(metadata))
 
   metrics = {
     'metrics': [{
@@ -100,8 +109,8 @@ def main(argv=None):
       'numberValue':  roc_auc,
     }]
   }
-  with file_io.FileIO('/mlpipeline-metrics.json', 'w') as f:
-    json.dump(metrics, f)
+  Path(args.metrics_output_path).parent.mkdir(parents=True, exist_ok=True)
+  Path(args.metrics_output_path).write_text(json.dumps(metrics))
 
 if __name__== "__main__":
   main()
