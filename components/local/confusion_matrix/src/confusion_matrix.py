@@ -40,11 +40,11 @@ def main(argv=None):
                       help='a lambda function as a string to compute target.' +
                            'For example, "lambda x: x[\'a\'] + x[\'b\']"' +
                            'If not set, the input must include a "target" column.')
-  parser.add_argument('--ui-metadata-output-path',
+  parser.add_argument('--ui_metadata_output_path',
                       type=str,
                       default='/mlpipeline-ui-metadata.json',
                       help='Local output path for the file containing UI metadata JSON structure.')
-  parser.add_argument('--metrics-output-path',
+  parser.add_argument('--metrics_output_path',
                       type=str,
                       default='/mlpipeline-metrics.json',
                       help='Local output path for the file containing metrics JSON structure.')
