@@ -35,16 +35,6 @@ COPY backend/src/apiserver/visualization/requirements.txt /src
 
 RUN pip3 install -r requirements.txt
 
-COPY backend/src/apiserver/visualization/license.sh /src
-COPY backend/src/apiserver/visualization/third_party_licenses.csv /src
-COPY backend/src/apiserver/visualization/third_party_licenses /usr/licenses
-
-# TODO(Bobgy): remove this when #4443 has a permanent solution, this is a
-# temporary workaround.
-ENV SETUPTOOLS_USE_DISTUTILS stdlib
-
-RUN ./license.sh third_party_licenses.csv /usr/licenses
-
 COPY backend/src/apiserver/visualization /src
 
 ENTRYPOINT [ "python3", "server.py" ]
