@@ -50,13 +50,24 @@ if [ -n "$DIFF" ]; then
   exit 1
 fi
 
+# TODO(Bobgy): remove this when #4443 has a permanent solution, this is a
+# temporary workaround.
+export SETUPTOOLS_USE_DISTUTILS=stdlib
+
 # Gather license files for each package. For packages with GPL license we mirror the source code.
 mkdir -p $2/source
 while IFS=, read -r col1 col2 col3
 do
   if [[ " ${INSTALLED_PACKAGES[@]} " =~ " ${col1} " ]]; then
-    wget -O $2/$col1.LICENSE $col2 || curl -o $2/$col1.LICENSE $col2
+    echo "Downloading license for ${col1} from ${col2}"
+    # if wget exists in $PATH
+    if which wget >/dev/null; then
+      wget -O $2/$col1.LICENSE $col2
+    else
+      curl -o $2/$col1.LICENSE $col2
+    fi
     if [[ "${col3}" == *GPL* ]]; then
+      echo "Downloading source for ${col1}, because it has license ${col3}"
       pip install -t "$2/source/${col1}" ${col1}
     fi
   fi
