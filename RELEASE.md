@@ -128,6 +128,28 @@ Do the following things before a release:
         NOTE: if there are merge conflicts for a PR, ask the PR author or area OWNER
         to create a cherry pick PR by themselves following other two options.
     * `git push upstream release-$VERSION` directly to the release branch.
+
+    There's an automated script that can help you do the above:
+    ```
+    cd ~/kubeflow/pipelines
+    git fetch upstream
+    git checkout release-1.0
+    git pull
+    git checkout -b <your-cherry-pick-branch-name>
+    # The following command shows usage info
+    ./hack/cherry-pick.sh
+    # The following command cherry picks PRs #123 #456 #789 for you
+    ./hack/cherry-pick.sh 123 456 789
+    ```
+
+    You can get the list of PRs waiting to be cherrypicked by:
+    1. Open [cherrypick-approved PRs that haven't been cherrypicked sorted by updated order](https://github.com/kubeflow/pipelines/pulls?q=is%3Apr+label%3Acherrypick-approved+-label%3Acherrypicked+is%3Amerged+sort%3Aupdated-asc+).
+    1. Open browser console (usually by pressing F12).
+    1. Paste the following command into the console.
+        ```javascript
+            console.log(Array.from(document.querySelectorAll('[id^="issue_"][id*="_link"]')).map(el => /issue_(.*)_link/.exec(el.id)[1]).join(' '))
+        ```
+
 1. Verify cloudbuild and postsubmit tests are passing.
 
 ### Releasing from release branch
