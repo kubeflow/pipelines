@@ -36,9 +36,6 @@ mkdir -p ./build
 rsync -arvp ./src/ ./build/
 rsync -arvp ../common/ ./build/
 
-cp ../../license.sh ./build
-cp ../../third_party_licenses.csv ./build
-
 LOCAL_LAUNCHER_IMAGE_NAME=ml-pipeline-kubeflow-tfjob
 
 docker build -t ${LOCAL_LAUNCHER_IMAGE_NAME} .
