@@ -22,7 +22,6 @@ fi
 add_label_request_body=$(mktemp)
 echo '{"labels":["cherrypicked"]}' > $add_label_request_body
 
-# git fetch upstream
 for pr in "$@"
 do
   echo "Cherry picking #$pr"
