@@ -25,8 +25,15 @@ echo '{"labels":["cherrypicked"]}' > $add_label_request_body
 for pr in "$@"
 do
   echo "Cherry picking #$pr"
-  if gh api repos/kubeflow/pipelines/issues/$pr/labels | grep cherrypicked >/dev/null; then
-    echo "skiped: PR #$pr has already been cherry picked"
+  LABELS_JSON=$(gh api repos/kubeflow/pipelines/issues/$pr/labels)
+  if echo "$LABELS_JSON" | grep cherrypick-approved >/dev/null; then
+    echo "PR #$pr has cherrypick-approved label"
+  else
+    echo "ERROR: PR #$pr does not have cherrypick-approved label"
+    exit 1
+  fi
+  if echo "$LABELS_JSON" | grep cherrypicked >/dev/null; then
+    echo "SKIPPED: PR #$pr has already been cherry picked"
     continue
   fi
   MERGE_COMMIT_SHA=$(gh api repos/kubeflow/pipelines/pulls/$pr  | jq -r .merge_commit_sha)
