@@ -58,8 +58,6 @@ fi
 
 mkdir -p ./build
 rsync -arvp ./src/ ./build/
-cp ../../license.sh ./build
-cp ../../third_party_licenses.csv ./build
 
 docker build --build-arg TF_TAG=${TF_BASE_TAG} -t ${LOCAL_IMAGE_NAME} .
 if [ -z "${IMAGE_NAME}" ]; then

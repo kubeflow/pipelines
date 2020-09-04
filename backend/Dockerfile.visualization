@@ -20,8 +20,7 @@
 FROM tensorflow/tensorflow:2.2.0
 
 RUN apt-get update \
-  && apt-get install -y wget curl tar \
-  pkg-config libcairo2-dev libgirepository1.0-dev # For the pygobject and pycairo package setup due to licensing
+  && apt-get install -y wget curl tar
 
 RUN curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz > /tmp/google-cloud-sdk.tar.gz
 RUN mkdir -p /usr/local/gcloud
@@ -34,16 +33,6 @@ WORKDIR /src
 COPY backend/src/apiserver/visualization/requirements.txt /src
 
 RUN pip3 install -r requirements.txt
-
-COPY backend/src/apiserver/visualization/license.sh /src
-COPY backend/src/apiserver/visualization/third_party_licenses.csv /src
-COPY backend/src/apiserver/visualization/third_party_licenses /usr/licenses
-
-# TODO(Bobgy): remove this when #4443 has a permanent solution, this is a
-# temporary workaround.
-ENV SETUPTOOLS_USE_DISTUTILS stdlib
-
-RUN ./license.sh third_party_licenses.csv /usr/licenses
 
 COPY backend/src/apiserver/visualization /src
 
