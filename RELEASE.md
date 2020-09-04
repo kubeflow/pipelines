@@ -142,11 +142,18 @@ Do the following things before a release:
     ./hack/cherry-pick.sh
 
     # The following command cherry picks PRs #123 #456 #789 for you.
+    # It runs git cherry-pick for each merged commit, then adds `cherrypicked`
+    # label on the PR.
+    #
     # If there's a merge conflict in the middle, it will stop there waiting for
     # you to resolve. You need to add the `cherrypicked` label by yourself in
     # this case. After the issue resolved, you can rerun the same command and
     # PRs already cherrypicked (with the label `cherrypicked`) will be skipped.
     ./hack/cherry-pick.sh 123 456 789
+
+    # After cherry pickings are done, they are still in your local repo. Push
+    # them to your remote branch to create a PR.
+    git push origin HEAD
     ```
 
     You can get the list of PRs waiting to be cherrypicked by:

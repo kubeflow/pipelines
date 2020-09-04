@@ -26,7 +26,7 @@ for pr in "$@"
 do
   echo "Cherry picking #$pr"
   if gh api repos/kubeflow/pipelines/issues/$pr/labels | grep cherrypicked >/dev/null; then
-    echo "PR #$pr has already been cherry picked, skip it"
+    echo "skiped: PR #$pr has already been cherry picked"
     continue
   fi
   MERGE_COMMIT_SHA=$(gh api repos/kubeflow/pipelines/pulls/$pr  | jq -r .merge_commit_sha)
