@@ -131,14 +131,21 @@ Do the following things before a release:
 
     There's an automated script that can help you do the above:
     ```
+    # Prepare your env
     cd ~/kubeflow/pipelines
     git fetch upstream
     git checkout release-1.0
     git pull
     git checkout -b <your-cherry-pick-branch-name>
+
     # The following command shows usage info
     ./hack/cherry-pick.sh
-    # The following command cherry picks PRs #123 #456 #789 for you
+
+    # The following command cherry picks PRs #123 #456 #789 for you.
+    # If there's a merge conflict in the middle, it will stop there waiting for
+    # you to resolve. You need to add the `cherrypicked` label by yourself in
+    # this case. After the issue resolved, you can rerun the same command and
+    # PRs already cherrypicked (with the label `cherrypicked`) will be skipped.
     ./hack/cherry-pick.sh 123 456 789
     ```
 
