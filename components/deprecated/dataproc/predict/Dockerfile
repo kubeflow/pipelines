@@ -14,7 +14,4 @@
 
 FROM ml-pipeline-dataproc-base
 
-RUN mkdir /usr/licenses && \
-    /ml/license.sh /ml/third_party_licenses.csv /usr/licenses
-
 ENTRYPOINT ["python", "/ml/predict.py"]
