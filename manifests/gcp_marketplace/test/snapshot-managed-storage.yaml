@@ -30,10 +30,10 @@ metadata:
     pipelines.kubeflow.org/comment: |-
       This is a snapshot of install secrets. There's no effect modifying this.
 type: Opaque
+#
 data:
-  # 
   managedStorageDbPassword: 'MTIzNA=='
-  # 
+#
 
 ---
 # Source: kubeflow-pipelines/templates/cache.yaml
