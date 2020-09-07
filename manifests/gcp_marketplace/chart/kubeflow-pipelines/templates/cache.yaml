@@ -186,14 +186,10 @@ metadata:
   labels:
     component: cache-server
 data:
-  {{ if .Values.managedstorage.databaseNamePrefix }}
-  mysql_database: '{{ .Values.managedstorage.databaseNamePrefix }}_cachedb'
-  {{ else }}
-  mysql_database: '{{ .Release.Name | replace "-" "_" | replace "." "_"}}_cachedb'
-  {{ end }}
+  mysql_database: '{{ tpl .Values.managedstorage.databaseNamePrefix . }}_cachedb'
   mysql_driver: "mysql"
   mysql_host: "mysql"
-  mysql_port: "3306" 
+  mysql_port: "3306"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -283,7 +279,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: cache-server
-  labels: 
+  labels:
     app: cache-server
     app.kubernetes.io/name: {{ .Release.Name }}
 spec:
