@@ -616,7 +616,14 @@ class Client(object):
         parameters=api_params)
     return JobConfig(spec=spec, resource_references=resource_references)
 
-  def create_run_from_pipeline_func(self, pipeline_func: Callable, arguments: Mapping[str, str], run_name=None, experiment_name=None, pipeline_conf: kfp.dsl.PipelineConf = None, namespace=None):
+  def create_run_from_pipeline_func(
+      self,
+      pipeline_func: Callable,
+      arguments: Mapping[str, str],
+      run_name: Optional[str] = None,
+      experiment_name: Optional[str] = None,
+      pipeline_conf: Optional[kfp.dsl.PipelineConf] = None,
+      namespace: Optional[str] = None):
     """Runs pipeline on KFP-enabled Kubernetes cluster.
 
     This command compiles the pipeline function, creates or gets an experiment and submits the pipeline for execution.
@@ -626,6 +633,8 @@ class Client(object):
       arguments: Arguments to the pipeline function provided as a dict.
       run_name: Optional. Name of the run to be shown in the UI.
       experiment_name: Optional. Name of the experiment to add the run to.
+      pipeline_conf: Optional. Pipeline configuration ops that will be applied
+        to all the ops in the pipeline func.
       namespace: Kubernetes namespace where the pipeline runs are created.
         For single user deployment, leave it as None;
         For multi user, input a namespace where the user is authorized
@@ -638,10 +647,17 @@ class Client(object):
       compiler.Compiler().compile(pipeline_func, pipeline_package_path, pipeline_conf=pipeline_conf)
       return self.create_run_from_pipeline_package(pipeline_package_path, arguments, run_name, experiment_name, namespace)
 
-  def create_run_from_pipeline_package(self, pipeline_file: str, arguments: Mapping[str, str], run_name=None, experiment_name=None, namespace=None):
+  def create_run_from_pipeline_package(
+      self,
+      pipeline_file: str,
+      arguments: Mapping[str, str],
+      run_name: Optional[str] = None,
+      experiment_name: Optional[str] = None,
+      namespace: Optional[str] = None):
     """Runs pipeline on KFP-enabled Kubernetes cluster.
 
-    This command compiles the pipeline function, creates or gets an experiment and submits the pipeline for execution.
+    This command takes a local pipeline package, creates or gets an experiment
+    and submits the pipeline for execution.
 
     Args:
       pipeline_file: A compiled pipeline package file.
