@@ -28,7 +28,7 @@ require (
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/golang/groupcache v0.0.0-20180513044358-24b0969c4cb7 // indirect
 	github.com/golang/protobuf v1.3.2
-	github.com/google/addlicense v0.0.0-20200622132530-df58acafd6d5 // indirect
+	github.com/google/addlicense v0.0.0-20200906110928-a0294312aa76 // indirect
 	github.com/google/go-cmp v0.3.1
 	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf // indirect
 	github.com/google/uuid v1.0.0
