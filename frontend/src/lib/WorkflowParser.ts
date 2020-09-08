@@ -408,7 +408,10 @@ export default class WorkflowParser {
   // meaningful from a user's perspective.
   public static isVirtual(node: NodeStatus): boolean {
     return (
-      (node.type === 'StepGroup' || node.type === 'DAG' || node.type === 'TaskGroup') &&
+      (node.type === 'StepGroup' ||
+        node.type === 'DAG' ||
+        node.type === 'TaskGroup' ||
+        node.type === 'Retry') &&
       !!node.boundaryID
     );
   }
