@@ -62,7 +62,7 @@ type PipelineStoreInterface interface {
 	UpdatePipelineStatus(string, model.PipelineStatus) error
 	UpdatePipelineDefaultVersion(string, string) error
 
-	CreatePipelineVersion(*model.PipelineVersion, bool updatePipelineVersion) (*model.PipelineVersion, error)
+	CreatePipelineVersion(*model.PipelineVersion, bool) (*model.PipelineVersion, error)
 	GetPipelineVersion(versionId string) (*model.PipelineVersion, error)
 	GetPipelineVersionWithStatus(versionId string, status model.PipelineVersionStatus) (*model.PipelineVersion, error)
 	ListPipelineVersions(pipelineId string, opts *list.Options) ([]*model.PipelineVersion, int, string, error)
