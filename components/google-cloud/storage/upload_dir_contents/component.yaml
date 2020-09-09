@@ -25,7 +25,7 @@ implementation:
               cp "$src" $tmp
               src=$tmp
             fi
-            gsutil -m $flags rsync $rsync_flags -r "$0" "$1"
+            gsutil -m $flags rsync $rsync_flags -r $src "$1"
             mkdir -p "$(dirname "$2")"
             echo "$1" > "$2"
         - inputPath: Data
