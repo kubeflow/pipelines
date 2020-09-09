@@ -18,19 +18,14 @@ import {
   Api,
   Artifact,
   ArtifactType,
-  Context,
   Event,
   Execution,
   GetArtifactsByIDRequest,
   GetArtifactsByIDResponse,
   GetArtifactTypesRequest,
   GetArtifactTypesResponse,
-  GetContextByTypeAndNameRequest,
-  GetContextByTypeAndNameResponse,
   GetEventsByExecutionIDsRequest,
   GetEventsByExecutionIDsResponse,
-  GetExecutionsByContextRequest,
-  GetExecutionsByContextResponse,
 } from '@kubeflow/frontend';
 import { csvParseRows } from 'd3-dsv';
 import { ApiVisualization, ApiVisualizationType } from '../apis/visualization';
@@ -148,9 +143,10 @@ export class OutputArtifactLoader {
     }
 
     const data = Array.from(Array(labels.length), () => new Array(labels.length));
-    csvRows.forEach(([target, predicted, count]) => {
-      const i = labelIndex[target.trim()];
-      const j = labelIndex[predicted.trim()];
+    csvRows.forEach(([labelX, labelY, count]) => {
+      const i = labelIndex[labelX.trim()];
+      const j = labelIndex[labelY.trim()];
+      // Note: data[i][j] means data(i, j) i on x-axis, j on y-axis
       data[i][j] = Number.parseInt(count, 10);
     });
 
@@ -405,82 +401,6 @@ export class OutputArtifactLoader {
       type: PlotType.ROC,
     };
   }
-}
-
-/**
- * @throws error when network error
- * @returns context, returns undefined when context with the pod name not found
- */
-async function getMlmdContext(argoPodName: string): Promise<Context | undefined> {
-  if (argoPodName.split('-').length < 3) {
-    throw new Error('argoPodName has fewer than 3 parts');
-  }
-
-  // argoPodName has the general form "pipelineName-workflowId-executionId".
-  // All components of a pipeline within a single run will have the same
-  // "pipelineName-workflowId" prefix.
-  const pipelineName = argoPodName
-    .split('-')
-    .slice(0, -2)
-    .join('_');
-  const runID = argoPodName
-    .split('-')
-    .slice(0, -1)
-    .join('-');
-  const contextName = pipelineName + '.' + runID;
-
-  const request = new GetContextByTypeAndNameRequest();
-  request.setTypeName('run');
-  request.setContextName(contextName);
-  let res: GetContextByTypeAndNameResponse;
-  try {
-    res = await Api.getInstance().metadataStoreService.getContextByTypeAndName(request);
-  } catch (err) {
-    err.message = 'Failed to getContextsByTypeAndName: ' + err.message;
-    throw err;
-  }
-
-  return res.getContext();
-}
-
-/**
- * @throws error when network error
- * @returns execution, returns undefined when not found or not yet complete
- */
-async function getExecutionInContextWithPodName(
-  argoPodName: string,
-  context: Context,
-): Promise<Execution | undefined> {
-  const contextId = context.getId();
-  if (!contextId) {
-    throw new Error('Context must have an ID');
-  }
-
-  const request = new GetExecutionsByContextRequest();
-  request.setContextId(contextId);
-  let res: GetExecutionsByContextResponse;
-  try {
-    res = await Api.getInstance().metadataStoreService.getExecutionsByContext(request);
-  } catch (err) {
-    err.message = 'Failed to getExecutionsByContext: ' + err.message;
-    throw err;
-  }
-
-  const executionList = res.getExecutionsList();
-  const foundExecution = executionList.find(execution => {
-    const executionPodName = execution.getPropertiesMap().get('kfp_pod_name');
-    return executionPodName && executionPodName.getStringValue() === argoPodName;
-  });
-  if (!foundExecution) {
-    return undefined; // Not found, this is expected to happen normally when there's no mlmd data.
-  }
-  const state = foundExecution.getPropertiesMap().get('state');
-  // Both complete and cached executions are considered valid.
-  if (state && ['complete', 'cached'].includes(state.getStringValue())) {
-    return foundExecution;
-  }
-  // No valid execution found.
-  return undefined;
 }
 
 /**

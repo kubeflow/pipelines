@@ -1,5 +1,221 @@
 # Changelog
 
+## [1.0.0](https://github.com/kubeflow/pipelines/compare/0.5.1...1.0.0) (2020-07-20)
+
+
+### Features
+
+* **deployment:** marketplace - allow specifying gcs bucket directly ([\#4112](https://github.com/kubeflow/pipelines/issues/4112)) ([92a8cfe](https://github.com/kubeflow/pipelines/commit/92a8cfebced775eb816e68622cd4d70bd3b45784))
+* **sdk:** DSL - Added support for volatile components ([\#4104](https://github.com/kubeflow/pipelines/issues/4104)) ([07ebc27](https://github.com/kubeflow/pipelines/commit/07ebc27305495cf3b4f3c71e9a2345bb3d9e65f2))
+* **sdk:** SDK - Components - Added annotations to InputSpec and OutputSpec ([\#4154](https://github.com/kubeflow/pipelines/issues/4154)) ([98fccca](https://github.com/kubeflow/pipelines/commit/98fcccacef2111f45666fb14aa6efc99314b54f2))
+* **sdk:** SDK - Components - Added annotations to TaskSpec ([\#4153](https://github.com/kubeflow/pipelines/issues/4153)) ([c439ec3](https://github.com/kubeflow/pipelines/commit/c439ec33b6d7c7cf0676acfbdb6d58e6d90a8c75))
+* **sdk:** SDK - Deprecation warning when using ContainerOp ([\#4166](https://github.com/kubeflow/pipelines/issues/4166)) ([ebd62ec](https://github.com/kubeflow/pipelines/commit/ebd62ec61c2e99f048e3ea4271519ca3275fa0a4))
+* **sdk/client:** add cookie configuration to kfp client ([\#2679](https://github.com/kubeflow/pipelines/issues/2679)) ([9206b5a](https://github.com/kubeflow/pipelines/commit/9206b5aade23edf77b9f6cdce6b0fd97325ea1a3))
+
+
+### Bug Fixes
+
+* **backend:** allow empty userid header prefix. Fixes [\#4091](https://github.com/kubeflow/pipelines/issues/4091) ([\#4098](https://github.com/kubeflow/pipelines/issues/4098)) ([9e00c79](https://github.com/kubeflow/pipelines/commit/9e00c79a4601f3a79629718c902db60a39792da2))
+* **backend:** fix the google-api-core to 1.16.0 for backend visualization server. ([\#4158](https://github.com/kubeflow/pipelines/issues/4158)) ([8da057d](https://github.com/kubeflow/pipelines/commit/8da057d183bb3a65f52d0e494e985d86b2a89050))
+* **backend:** Metadata Writer - Fixed regression with artifact type retrieval. Fixes [\#3971](https://github.com/kubeflow/pipelines/issues/3971) ([\#4231](https://github.com/kubeflow/pipelines/issues/4231)) ([3ffd55e](https://github.com/kubeflow/pipelines/commit/3ffd55ede27a2166f8389b34661a9c23501a3b39))
+* **cache:** cache-deployer should check both secret and config ([\#4186](https://github.com/kubeflow/pipelines/issues/4186)) ([7b3654b](https://github.com/kubeflow/pipelines/commit/7b3654b6fdfdb27e20d2688bad6bd783fb349468))
+* **cache:** Fix cache deployer not regenerating secrets when secret not present ([\#4171](https://github.com/kubeflow/pipelines/issues/4171)) ([d727c91](https://github.com/kubeflow/pipelines/commit/d727c91bdf3398cd7c26ab7545eaaa096628dc4a))
+* **deployment:** fix database name prefix description ([\#4198](https://github.com/kubeflow/pipelines/issues/4198)) ([2ea1a1f](https://github.com/kubeflow/pipelines/commit/2ea1a1fc2a770827c3805151d785a3948607abb3))
+* **deployment:** gcp managed storage - add service account to minio and cloudsql proxy deployments for workload identity ([\#4188](https://github.com/kubeflow/pipelines/issues/4188)) ([bd7f3c9](https://github.com/kubeflow/pipelines/commit/bd7f3c9cd60144aef953db7aa2a4b17cec1cfa73))
+* **sdk:** fixes the default value for _is_refresh_token. Fixes [\#4189](https://github.com/kubeflow/pipelines/issues/4189) ([\#4195](https://github.com/kubeflow/pipelines/issues/4195)) ([be47d6d](https://github.com/kubeflow/pipelines/commit/be47d6d646961d2ee0f5c855a3cfc1c3d55fc903))
+* increase TFX version from 0.20.2 to 0.22.0. Fixes [\#4084](https://github.com/kubeflow/pipelines/issues/4084), fixes [\#4114](https://github.com/kubeflow/pipelines/issues/4114) ([\#4133](https://github.com/kubeflow/pipelines/issues/4133)) ([5d8a59c](https://github.com/kubeflow/pipelines/commit/5d8a59c359038f13356eb9a4ecbffd961381e426))
+
+
+### Other Pull Requests
+
+* SDK - Components - Temporary removed Kubernetes options from ComponentSpec ([\#4230](https://github.com/kubeflow/pipelines/issues/4230)) ([9c16eff](https://github.com/kubeflow/pipelines/commit/9c16eff256f489744ce9440201872a17b7aad67f))
+* SDK - Compiler - Removed the deprecated dsl-compile --package command ([\#4055](https://github.com/kubeflow/pipelines/issues/4055)) ([6bcb3ef](https://github.com/kubeflow/pipelines/commit/6bcb3efa144a38cda3c2ecf551c9f34a4c35e9de))
+* SDK - Components - Python - Switched the default base image to python 3.7 ([\#4054](https://github.com/kubeflow/pipelines/issues/4054)) ([090fffc](https://github.com/kubeflow/pipelines/commit/090fffc3c48ac4dded562ce76ade21ee0d83ef18))
+* Validate resourcekey to avoid apiserver being panic for invalid inputs ([\#3999](https://github.com/kubeflow/pipelines/issues/3999)) ([6ced6ea](https://github.com/kubeflow/pipelines/commit/6ced6ea6e6da8a5bd121d7dbfc788b05795f425c))
+* [Backend] Bug fix: applying filter in listing versions ([\#4052](https://github.com/kubeflow/pipelines/issues/4052)) ([3243f73](https://github.com/kubeflow/pipelines/commit/3243f73ed73a370b733d05376aeb7ae623a1b282))
+* better native-keras based sample ([\#3900](https://github.com/kubeflow/pipelines/issues/3900)) ([842e8ce](https://github.com/kubeflow/pipelines/commit/842e8ce1ee5fc5559733f99596fa5db401a7fa3b))
+* Metadata Writer - Added timeouts ([\#4037](https://github.com/kubeflow/pipelines/issues/4037)) ([e808795](https://github.com/kubeflow/pipelines/commit/e808795ad6b50f51f981e20587c96518d59af5bf))
+* Fix/log unavailable warning ([\#3848](https://github.com/kubeflow/pipelines/issues/3848)) ([3c6f6db](https://github.com/kubeflow/pipelines/commit/3c6f6db72d9ea7c5ba363285c3419c886f2ef1df))
+* Metadata-Writer: Updates metadata writer to use mlmd 0.22.0 ([\#4027](https://github.com/kubeflow/pipelines/issues/4027)) ([88d6da7](https://github.com/kubeflow/pipelines/commit/88d6da724f501402c1c497d1f3c5b155c97b7e18))
+* Metadata Writer - Stopped using artifact properties ([\#4004](https://github.com/kubeflow/pipelines/issues/4004)) ([4833d1a](https://github.com/kubeflow/pipelines/commit/4833d1a1e708633074481491a736a10c3c10fe3b))
+* update refreshing mechanism ([\#3981](https://github.com/kubeflow/pipelines/issues/3981)) ([efa5f1e](https://github.com/kubeflow/pipelines/commit/efa5f1e239af2705f2ffca48004871e6deaa6d77))
+* enable pagination when expanding experiment in both the home page and the archive page ([\#4012](https://github.com/kubeflow/pipelines/issues/4012)) ([8d34f6d](https://github.com/kubeflow/pipelines/commit/8d34f6d5e7e95caf0367c50dc78d26f4ca0899b3))
+* Updated version to 1.0.0-rc.2 ([0796340](https://github.com/kubeflow/pipelines/commit/079634019eb2cf92a0536f344bde8aebe340bf21))
+* Cache - Deployer should check whether the secret is installed ([\#3992](https://github.com/kubeflow/pipelines/issues/3992)) ([c60a046](https://github.com/kubeflow/pipelines/commit/c60a04606c903650f47c5b01b2c7f91204b7f4fb))
+* [Manifest] Apply kustomize best practices to standalone manifest ([\#3978](https://github.com/kubeflow/pipelines/issues/3978)) ([7339da0](https://github.com/kubeflow/pipelines/commit/7339da08a535048922b1d6b8d3642ed0588badab))
+* Update Dataflow component _client.py to use projects.locations.templates API endpoint ([\#3851](https://github.com/kubeflow/pipelines/issues/3851)) ([0e7c05c](https://github.com/kubeflow/pipelines/commit/0e7c05c1049f20ccd638b077a31da8a0b9e6c960))
+* SDK - Compiler - Made compiler compatible with @wraps ([\#3956](https://github.com/kubeflow/pipelines/issues/3956)) ([8d19aa8](https://github.com/kubeflow/pipelines/commit/8d19aa8a1fa060310a1deec684e1d11152719a6f))
+* [Backend] Filter run on status ([\#3959](https://github.com/kubeflow/pipelines/issues/3959)) ([3d41d5d](https://github.com/kubeflow/pipelines/commit/3d41d5de283f9d8e50eddc424c8c6899eb956d9e))
+* Fix [\#3906](https://github.com/kubeflow/pipelines/issues/3906) - mount_pvc transform should ignore non-ContainerOps ([\#3912](https://github.com/kubeflow/pipelines/issues/3912)) ([e7beae4](https://github.com/kubeflow/pipelines/commit/e7beae496797d9933aba6c3ae2d5949a31c8a175))
+* SDK - Compiler - Using properly serialized pipeline parameter defaults ([\#3832](https://github.com/kubeflow/pipelines/issues/3832)) ([692b244](https://github.com/kubeflow/pipelines/commit/692b244a82374805679f4c558ff8eac1ab633f7a))
+* Bump websocket-extensions from 0.1.3 to 0.1.4 in /frontend ([\#3929](https://github.com/kubeflow/pipelines/issues/3929)) ([c69f097](https://github.com/kubeflow/pipelines/commit/c69f097dfaad705bd23f2c7695c5f7c9112e2653))
+* Only pending or running workflows are considered not-final ([\#3940](https://github.com/kubeflow/pipelines/issues/3940)) ([\#3957](https://github.com/kubeflow/pipelines/issues/3957)) ([b021b7c](https://github.com/kubeflow/pipelines/commit/b021b7c5544b5c317f3039ded4b7f7d820ec082e))
+* Remove version from generated python client header comment ([\#3948](https://github.com/kubeflow/pipelines/issues/3948)) ([19ff1b2](https://github.com/kubeflow/pipelines/commit/19ff1b23d54e36866e27f7ac87f23ff236d42726))
+* Automated cherry pick of [\#3926](https://github.com/kubeflow/pipelines/issues/3926): Add Bobgy to OWNERS ([\#3949](https://github.com/kubeflow/pipelines/issues/3949)) ([f7623db](https://github.com/kubeflow/pipelines/commit/f7623db89b244f29e4889cdc2db258d3ac6f9a6e))
+* fix length ([\#3934](https://github.com/kubeflow/pipelines/issues/3934)) ([\#3946](https://github.com/kubeflow/pipelines/issues/3946)) ([524e162](https://github.com/kubeflow/pipelines/commit/524e162a203922da2d86556bc44f6ee8806419d4))
+* [Release] Fix $(cat VERSION) not in bash script ([\#3924](https://github.com/kubeflow/pipelines/issues/3924)) ([\#3925](https://github.com/kubeflow/pipelines/issues/3925)) ([7d1de12](https://github.com/kubeflow/pipelines/commit/7d1de12188131317fb173f8f736f7d00c67c9d8e))
+* [Release] Fix missing $TAG_NAME in .cloudbuild.yaml ([\#3921](https://github.com/kubeflow/pipelines/issues/3921)) ([f9bcbbb](https://github.com/kubeflow/pipelines/commit/f9bcbbbfb4aaf6aeab0e26816b4b19b9c4317c8d))
+* [Release] Various fixes to release script ([\#3918](https://github.com/kubeflow/pipelines/issues/3918)) ([105d43d](https://github.com/kubeflow/pipelines/commit/105d43da810547127ac35e068a7809383d0fbeb7))
+* Updated version to 1.0.0-rc.1 ([2384d8f](https://github.com/kubeflow/pipelines/commit/2384d8f1c6083b4ec5c144a2fb6e247bcbe33b05))
+* Update VERSION to 1.0.0-rc.1 ([51c349b](https://github.com/kubeflow/pipelines/commit/51c349bb01572942acbf1b53f4a86b4f2ae06387))
+* [Release] Regenerate api clients on release ([\#3910](https://github.com/kubeflow/pipelines/issues/3910)) ([04e23d2](https://github.com/kubeflow/pipelines/commit/04e23d2a058d99704f6e7e377424dadfadee465d))
+* Fix build failure because wcwidth LICENSE url changed ([\#3909](https://github.com/kubeflow/pipelines/issues/3909)) ([8ba895d](https://github.com/kubeflow/pipelines/commit/8ba895d4830a7a7120144ca43856282efcdb744c))
+* Docs - Moved the kfp_server_api documentation to a separate page ([\#3899](https://github.com/kubeflow/pipelines/issues/3899)) ([180f0c5](https://github.com/kubeflow/pipelines/commit/180f0c51c848890bede43a2af2c2cdead35a0c6c))
+* [API] Add license header to python api client files ([\#3897](https://github.com/kubeflow/pipelines/issues/3897)) ([4f34be6](https://github.com/kubeflow/pipelines/commit/4f34be6f0100a4c649347e8bac1b9d0a6f6b4c4e))
+* [Release] Automate release script for all the changes ([\#3777](https://github.com/kubeflow/pipelines/issues/3777)) ([c517fc5](https://github.com/kubeflow/pipelines/commit/c517fc579da11725a54bacb3dac80a71d3dd33be))
+* Regenerate clients after proto description fix ([\#3895](https://github.com/kubeflow/pipelines/issues/3895)) ([7dfb34e](https://github.com/kubeflow/pipelines/commit/7dfb34edc8c5463429b2aca830ef0064a8f7c865))
+* Docs - Added docs for kfp_server_api.models ([\#3898](https://github.com/kubeflow/pipelines/issues/3898)) ([c67bc7b](https://github.com/kubeflow/pipelines/commit/c67bc7baa9a4c50f18c570dbf2d02d552c6d350a))
+* [Python Client] Use openapi generator instead of swagger ([\#3872](https://github.com/kubeflow/pipelines/issues/3872)) ([36eba13](https://github.com/kubeflow/pipelines/commit/36eba13efbc00ab3b932d2c088242be08a4a75c5))
+* fix typo on sort order: 'des' --> 'desc' ([\#3893](https://github.com/kubeflow/pipelines/issues/3893)) ([5d302b6](https://github.com/kubeflow/pipelines/commit/5d302b6edbe379b02c87d17de5ef6af1de64686a))
+* [Samples] Change the data url to point to ml-pipeline instead of ml-pipeline-playground ([\#3890](https://github.com/kubeflow/pipelines/issues/3890)) ([88ee54f](https://github.com/kubeflow/pipelines/commit/88ee54fa324ca33e26510b0ab7897176f5086751))
+* Move the minio artifact download under try block ([\#3889](https://github.com/kubeflow/pipelines/issues/3889)) ([a7be049](https://github.com/kubeflow/pipelines/commit/a7be049b6dc82d77431ef840210c1477c5bf1ea0))
+* Adds job_id parameter. ([\#3850](https://github.com/kubeflow/pipelines/issues/3850)) ([58f1d13](https://github.com/kubeflow/pipelines/commit/58f1d132147dc2796e2ea69880316e98e4d258ae))
+* Fix the missing description in the CreatePipelineAPI ([\#3754](https://github.com/kubeflow/pipelines/issues/3754)) ([b63dd3f](https://github.com/kubeflow/pipelines/commit/b63dd3f53237f74ae7f965441fd97698fafba7c9))
+* SDK - Client - Use temporary directory context for pipeline package ([\#3878](https://github.com/kubeflow/pipelines/issues/3878)) ([cd8a913](https://github.com/kubeflow/pipelines/commit/cd8a913a31572a64bdfc0d77f8db90c68674eedd))
+* Components - Added the pipeline component repository marker file ([\#3883](https://github.com/kubeflow/pipelines/issues/3883)) ([4ce78dd](https://github.com/kubeflow/pipelines/commit/4ce78dd58c7c37329dd3c5bc48b8a6aa92a0d2bb))
+* SDK - Normalize line endings when calculating component hash ([\#3882](https://github.com/kubeflow/pipelines/issues/3882)) ([da5f86e](https://github.com/kubeflow/pipelines/commit/da5f86ee550438c78c062b3f58d4dce3f5befd3e))
+* SDK - Components - Stabilize JSON serialization by sorting keys ([\#3879](https://github.com/kubeflow/pipelines/issues/3879)) ([f773b9c](https://github.com/kubeflow/pipelines/commit/f773b9c263e55120ba0e19d01ef5374d4bc55d1a))
+* [Backend] Fix user identity extraction logic in getUserIdentity() ([\#3842](https://github.com/kubeflow/pipelines/issues/3842)) ([b23e1b4](https://github.com/kubeflow/pipelines/commit/b23e1b499cd26f36e5f479d1abfdad954ac730ae))
+* More documentation on backend API methods ([\#3758](https://github.com/kubeflow/pipelines/issues/3758)) ([2864925](https://github.com/kubeflow/pipelines/commit/286492591b41ae6c8b74d71363547ef827278d6d))
+* Generate clickable artifact url for s3 URI ([\#3531](https://github.com/kubeflow/pipelines/issues/3531)) ([3cae116](https://github.com/kubeflow/pipelines/commit/3cae116992ac87d3dbf7621fd12a07978640ee19))
+* SDK - Tests - Fixed the test_func_to_container_op_with_imported_func2 test case ([\#3837](https://github.com/kubeflow/pipelines/issues/3837)) ([3010e85](https://github.com/kubeflow/pipelines/commit/3010e85bbedacd35bc3035fcbb3fb0f234107748))
+* [AWS SageMaker] Add working FSx setup and test ([\#3831](https://github.com/kubeflow/pipelines/issues/3831)) ([37a6363](https://github.com/kubeflow/pipelines/commit/37a63638c7afa3ac876588984ceb41d8e9ae3831))
+* [SDK] Add first party component label ([\#3861](https://github.com/kubeflow/pipelines/issues/3861)) ([1e2b9d4](https://github.com/kubeflow/pipelines/commit/1e2b9d4e7e22ba3337fd4f0690de46ca21ac8343))
+* SDK - Python Components - Stop generating output saving code if no outputs ([\#3836](https://github.com/kubeflow/pipelines/issues/3836)) ([da4acbb](https://github.com/kubeflow/pipelines/commit/da4acbbd73faaf60708ba10a988fecfd2f794535))
+* re-enable upgrade test since 0.5.2 is cut ([\#3696](https://github.com/kubeflow/pipelines/issues/3696)) ([da1bc69](https://github.com/kubeflow/pipelines/commit/da1bc6978d137b2db9d3c530d7c368f24be5a4e4))
+* fixing case when status is None ([\#3865](https://github.com/kubeflow/pipelines/issues/3865)) ([58ff65f](https://github.com/kubeflow/pipelines/commit/58ff65f330c84388c63a4aeda6331f3e2f99d3e9))
+* Modify docstrings to replace 'InitContainer' to 'UserContainer' ([\#3863](https://github.com/kubeflow/pipelines/issues/3863)) ([699ce93](https://github.com/kubeflow/pipelines/commit/699ce937daf584ffb55bc6d9c673ccdf26260b66))
+* Testing - Fixed SDK Travis tests ([\#3838](https://github.com/kubeflow/pipelines/issues/3838)) ([0e59b68](https://github.com/kubeflow/pipelines/commit/0e59b68775a7cb75c6d636227f0c63d87a543b34))
+* Components - Apache Parquet converters ([\#3834](https://github.com/kubeflow/pipelines/issues/3834)) ([d737c44](https://github.com/kubeflow/pipelines/commit/d737c448723b9f541a3543012b4414c17b2eab5c))
+* Kfserving component service account option ([\#3852](https://github.com/kubeflow/pipelines/issues/3852)) ([8d738ea](https://github.com/kubeflow/pipelines/commit/8d738ea7ddc350e9b78719910982abcd8885f93f))
+* Cleanup - Removed unused code file ([\#3864](https://github.com/kubeflow/pipelines/issues/3864)) ([f7acb71](https://github.com/kubeflow/pipelines/commit/f7acb71a9d97c8858013f8d9fd24f7bbb3715e98))
+* Testing - Using Argo validation in Travis tests ([\#3123](https://github.com/kubeflow/pipelines/issues/3123)) ([7d94de1](https://github.com/kubeflow/pipelines/commit/7d94de1baa20ac8660a8abfa589475de1bd54364))
+* [AWS SageMaker] Add more unit tests ([\#3783](https://github.com/kubeflow/pipelines/issues/3783)) ([b503050](https://github.com/kubeflow/pipelines/commit/b50305069b301baecae1c7fd64bb7d16865c0313))
+* Testing - Handling spaces in paths in the component file loading test ([\#3856](https://github.com/kubeflow/pipelines/issues/3856)) ([695573d](https://github.com/kubeflow/pipelines/commit/695573d6e7d2bdc6c82bf5bd9a7a687cbfd54243))
+* revert the fix in proxy-agent ([\#3845](https://github.com/kubeflow/pipelines/issues/3845)) ([cc46bef](https://github.com/kubeflow/pipelines/commit/cc46bef24679cfa9f113e85522fe6f701e98527e))
+* Components - XGBoost ([\#3843](https://github.com/kubeflow/pipelines/issues/3843)) ([2d26a4c](https://github.com/kubeflow/pipelines/commit/2d26a4c018f2e817182b6c361698f7af8d22bc8a))
+* Datasets - Added Chicago Taxi Trips dataset ([\#3775](https://github.com/kubeflow/pipelines/issues/3775)) ([5e3d9aa](https://github.com/kubeflow/pipelines/commit/5e3d9aa791fe684962d16be4f0f767feed6222b2))
+* Add labels to plots ([\#3811](https://github.com/kubeflow/pipelines/issues/3811)) ([76f7476](https://github.com/kubeflow/pipelines/commit/76f7476c0fef9d61760364df1ea2c1250d13f645))
+* A more accurate grpc error code for duplicate pipeline/pipeline version/experiment names ([\#3846](https://github.com/kubeflow/pipelines/issues/3846)) ([ef73aab](https://github.com/kubeflow/pipelines/commit/ef73aab59f8fc06db19d5e6f0ca35337e98bcf77))
+* Added README for Amazon SageMaker Components for Kubeflow Pipelines ([\#3824](https://github.com/kubeflow/pipelines/issues/3824)) ([3fe9b7e](https://github.com/kubeflow/pipelines/commit/3fe9b7e3aa38aa266791099b388f94a7e399043c))
+* Components - Moved TFX components to deprecated directory ([\#3854](https://github.com/kubeflow/pipelines/issues/3854)) ([5b50de0](https://github.com/kubeflow/pipelines/commit/5b50de0d39257e31e24fd294ce42153952af0ad0))
+* [AWS SageMaker] Integration Test for AWS SageMaker GroundTruth Component ([\#3830](https://github.com/kubeflow/pipelines/issues/3830)) ([fb54953](https://github.com/kubeflow/pipelines/commit/fb549531f1db3d4b3e2de0bba91822a3a9ebb12b))
+* Testing - Pin numpy version to fix TFX installation instability in Travis tests ([\#3833](https://github.com/kubeflow/pipelines/issues/3833)) ([9f1c596](https://github.com/kubeflow/pipelines/commit/9f1c596566094bbac920e6c5a0365bfa338d2607))
+* [UI] Also cloning recurring run schedule, fixes [\#3761](https://github.com/kubeflow/pipelines/issues/3761) ([\#3840](https://github.com/kubeflow/pipelines/issues/3840)) ([508f31a](https://github.com/kubeflow/pipelines/commit/508f31aa0feea5f00d4960207dbe14b535513f99))
+* Client - Allow specifying pipeline description when uploading ([\#3828](https://github.com/kubeflow/pipelines/issues/3828)) ([e52481a](https://github.com/kubeflow/pipelines/commit/e52481a164e8b7d9a1352c592f51f47c46e4a576))
+* Adding HPO unit test ([\#3791](https://github.com/kubeflow/pipelines/issues/3791)) ([bbe598d](https://github.com/kubeflow/pipelines/commit/bbe598db266bb6e2d988e9a87519a3e5d1e7eeb4))
+* Docs - Added kfp.dsl placeholders to docs ([\#3813](https://github.com/kubeflow/pipelines/issues/3813)) ([43ce639](https://github.com/kubeflow/pipelines/commit/43ce6394bfeb655c7bd4b2c20a324547e890d77f))
+* [UI] Fix confusion matrix wrong axes ([\#3817](https://github.com/kubeflow/pipelines/issues/3817)) ([0199de0](https://github.com/kubeflow/pipelines/commit/0199de0cd012b83353fd4ecf61f0d96a2f646bc5))
+* AWS SageMaker : Use IAM Roles for Service Account ([\#3719](https://github.com/kubeflow/pipelines/issues/3719)) ([d18ad7a](https://github.com/kubeflow/pipelines/commit/d18ad7a5634b5bda6c3a04f3230f54e019b2303b))
+* Add the 'kfp experiment' commands ([\#3705](https://github.com/kubeflow/pipelines/issues/3705)) ([291f5b3](https://github.com/kubeflow/pipelines/commit/291f5b3d7a23d906d0f8e82e76dc18ef9be36b24))
+* [AWS SageMaker] Integration tests automation ([\#3768](https://github.com/kubeflow/pipelines/issues/3768)) ([f2a860b](https://github.com/kubeflow/pipelines/commit/f2a860b84c11022a7eef5b73f7049d6d885c97db))
+* Client - Added documentation for the generated members ([\#3787](https://github.com/kubeflow/pipelines/issues/3787)) ([4a961ce](https://github.com/kubeflow/pipelines/commit/4a961ce268ff143b61c7d6766c7429926345b888))
+* Changing the default volume size to 30 ([\#3792](https://github.com/kubeflow/pipelines/issues/3792)) ([6e2a55c](https://github.com/kubeflow/pipelines/commit/6e2a55cf84fe67f1583cb76d8308a6bca023b3df))
+*  Infer artifact store endpoint in metadata writer ([\#3530](https://github.com/kubeflow/pipelines/issues/3530)) ([a764405](https://github.com/kubeflow/pipelines/commit/a764405ebc2c2c393f545c5c8dfb2ed3b5baf4f1))
+* [ScheduledWorkflow] Fix events permission missing ([\#3785](https://github.com/kubeflow/pipelines/issues/3785)) ([53d35dd](https://github.com/kubeflow/pipelines/commit/53d35ddc87f56e42e2c5ed1d312728414c27d68a))
+* Allow PipelineParams in dict keys too. ([\#3565](https://github.com/kubeflow/pipelines/issues/3565)) ([ec9445a](https://github.com/kubeflow/pipelines/commit/ec9445aa01f624130bef258257f6e82d411d9f2b))
+* [Backend] Make user identity header configurable ([\#3772](https://github.com/kubeflow/pipelines/issues/3772)) ([9f8803e](https://github.com/kubeflow/pipelines/commit/9f8803ea178d3a1c85a1715f45dbb81265852707))
+* SDK - Tests - Use relative imports ([\#3784](https://github.com/kubeflow/pipelines/issues/3784)) ([92394f6](https://github.com/kubeflow/pipelines/commit/92394f654263c14c7abbbf175a72aa2d594762a0))
+* [Manifest] Use kustomize native image transformer to override image ([\#3776](https://github.com/kubeflow/pipelines/issues/3776)) ([39805ac](https://github.com/kubeflow/pipelines/commit/39805acc9e070ec00643005c204fd86508c15cad))
+* fix(testing) - Fix "1.14.10-gke.27" is unsupported ([\#3781](https://github.com/kubeflow/pipelines/issues/3781)) ([205ca79](https://github.com/kubeflow/pipelines/commit/205ca79b2de397a8c06268f96612e7c10722540d))
+* SDK - Moved the tests closer to the code ([\#3774](https://github.com/kubeflow/pipelines/issues/3774)) ([1dcea49](https://github.com/kubeflow/pipelines/commit/1dcea49472e725ab681db3d244d51837e291f5ba))
+* SDK - Components - Removed the deprecated _python_op.get_default_base_image and set_default_base_image functions ([\#3773](https://github.com/kubeflow/pipelines/issues/3773)) ([55d41df](https://github.com/kubeflow/pipelines/commit/55d41df83d5f4283d61d21c225b9b57bbaa724a0))
+* Add more approvers in AWS sagemaker components ([\#3740](https://github.com/kubeflow/pipelines/issues/3740)) ([af4e8ef](https://github.com/kubeflow/pipelines/commit/af4e8efa3ee13aff2f98bbd360a1cc8663187437))
+* AWS Sagemaker Components - enhance integration test coverage ([\#3720](https://github.com/kubeflow/pipelines/issues/3720)) ([bff8392](https://github.com/kubeflow/pipelines/commit/bff83921d7926429e676cde84bacdbb442941916))
+* SDK - Moved some data from the component_ref annotation to the component_spec annotation ([\#3751](https://github.com/kubeflow/pipelines/issues/3751)) ([92a0d11](https://github.com/kubeflow/pipelines/commit/92a0d1185355f737b7f3691f45f874f6a7b6caad))
+* manual merge as the change it self is correct ([3d2c6ea](https://github.com/kubeflow/pipelines/commit/3d2c6ea84c5c4e1190a120729edb073c953f552d))
+* Add probes to metadata grpc service ([\#3765](https://github.com/kubeflow/pipelines/issues/3765)) ([61960ef](https://github.com/kubeflow/pipelines/commit/61960efb87ae8ed6e1e7f8a69c7bf54df0ebe151))
+* [Servers] Add liveness and readiness probes ([\#3757](https://github.com/kubeflow/pipelines/issues/3757)) ([f0c8eff](https://github.com/kubeflow/pipelines/commit/f0c8effb3a4284bb2899780eef4a697a79043e4a))
+* Components - Tensorboard visualization ([\#3760](https://github.com/kubeflow/pipelines/issues/3760)) ([0f40372](https://github.com/kubeflow/pipelines/commit/0f4037231fd8a5a163a568d3876d1be0c5da30a6))
+* [AWS SageMaker] Unit tests for Training component ([\#3722](https://github.com/kubeflow/pipelines/issues/3722)) ([ddd1969](https://github.com/kubeflow/pipelines/commit/ddd1969b3453fdeb4c400e7e757a3e15f4acb480))
+* SDK - Components - Improved stability of the input and output renaming ([\#3738](https://github.com/kubeflow/pipelines/issues/3738)) ([d418f57](https://github.com/kubeflow/pipelines/commit/d418f5765472a079b9edf4f13b93801d26f83831))
+* [UI Server] Refactor for configurable auth header ([\#3753](https://github.com/kubeflow/pipelines/issues/3753)) ([5435e87](https://github.com/kubeflow/pipelines/commit/5435e8724fe1b2c6175f219217c82dee33227b4b))
+* Metadata Writer - Preserve all Argo artifact information ([\#3725](https://github.com/kubeflow/pipelines/issues/3725)) ([81dd6a2](https://github.com/kubeflow/pipelines/commit/81dd6a259c175ef63b977f9d1a1cf7b0fd4d33b2))
+* [UI] Show tooltip on long version names ([\#3750](https://github.com/kubeflow/pipelines/issues/3750)) ([bb0c4d9](https://github.com/kubeflow/pipelines/commit/bb0c4d9805d3b9a2791aeb3c1462d56bb039576e))
+* [UI] Fix artifact preview with outdated content ([\#3749](https://github.com/kubeflow/pipelines/issues/3749)) ([06cd029](https://github.com/kubeflow/pipelines/commit/06cd029af9da8a854cf9e710e1df48a9038d3ed3))
+* SDK - Made outputs with original names available in ContainerOp.outputs ([\#3734](https://github.com/kubeflow/pipelines/issues/3734)) ([8ba366b](https://github.com/kubeflow/pipelines/commit/8ba366b03fd9afcb3a86c563f76e468abd1c4e6c))
+* SDK - Components - Calculate component hash digest ([\#3726](https://github.com/kubeflow/pipelines/issues/3726)) ([fe30d54](https://github.com/kubeflow/pipelines/commit/fe30d5462a790a5e89a6ce80d4057c759df3958a))
+* [UI] Wrap parameter/urls on overflow ([\#3747](https://github.com/kubeflow/pipelines/issues/3747)) ([bd4be88](https://github.com/kubeflow/pipelines/commit/bd4be887059e519e0eeb899c36ffb506715e0821))
+* Show version tag in UI ([\#3743](https://github.com/kubeflow/pipelines/issues/3743)) ([e8356bc](https://github.com/kubeflow/pipelines/commit/e8356bc37adf3e3bb5d3a1431047f4cca1c4404c))
+* Fix bug in [\#3707](https://github.com/kubeflow/pipelines/issues/3707) - href should show full artifact content instead of preview ([\#3745](https://github.com/kubeflow/pipelines/issues/3745)) ([e57a619](https://github.com/kubeflow/pipelines/commit/e57a61916c0baaa8524d029910abf3f4885e9417))
+* [Backend] Allow capital letters and underscore in metric names ([\#3741](https://github.com/kubeflow/pipelines/issues/3741)) ([5740535](https://github.com/kubeflow/pipelines/commit/5740535a97636830629c9a61eae3dee55b240270))
+* Upgraded Argo to v2.7.5 ([\#3537](https://github.com/kubeflow/pipelines/issues/3537)) ([e83bd7d](https://github.com/kubeflow/pipelines/commit/e83bd7d78fdec24bfc734d4185132ddc08a08179))
+* [AWS SageMaker] Specify component input types ([\#3683](https://github.com/kubeflow/pipelines/issues/3683)) ([bd8c1dd](https://github.com/kubeflow/pipelines/commit/bd8c1ddd387468ae2871906584c84b98fbb81f66))
+* SDK - Prioritize lib2to3 when stripping type annotations ([\#3724](https://github.com/kubeflow/pipelines/issues/3724)) ([b9aa106](https://github.com/kubeflow/pipelines/commit/b9aa106bb5965ca0691a5452c42725da1b1a4fe9))
+* Travis - Use latest pip version ([\#3732](https://github.com/kubeflow/pipelines/issues/3732)) ([84cd01a](https://github.com/kubeflow/pipelines/commit/84cd01ae2b1a381fa968652537afa3181ccccec0))
+* SDK - Annotate pods with component_ref ([\#3727](https://github.com/kubeflow/pipelines/issues/3727)) ([2279bde](https://github.com/kubeflow/pipelines/commit/2279bde698ea9899db92328f6ce735fa1d82c734))
+* Travis - Made flake8 test optional ([\#3739](https://github.com/kubeflow/pipelines/issues/3739)) ([21e8ef1](https://github.com/kubeflow/pipelines/commit/21e8ef117d8dee50c19dfb42252d148d6a12a4f5))
+* [frontend] Show artifact preview in UI ([\#2172](https://github.com/kubeflow/pipelines/issues/2172)) ([\#3707](https://github.com/kubeflow/pipelines/issues/3707)) ([30345d1](https://github.com/kubeflow/pipelines/commit/30345d1d497fa1dd8fc84e21a66b2a4d5593f1f1))
+* [UI] Make visualization tab easier to understand ([\#3717](https://github.com/kubeflow/pipelines/issues/3717)) ([b1c9976](https://github.com/kubeflow/pipelines/commit/b1c997662784b5d5f3b0f7254d5244c8c071fb50))
+* When patching the {{}} placeholder in parameter, check for possible nil pointer ([\#3714](https://github.com/kubeflow/pipelines/issues/3714)) ([d2c784a](https://github.com/kubeflow/pipelines/commit/d2c784aee45dfd7abe2c30e788945449a40d91e0))
+* remove an accidentally committed debugging log ([\#3716](https://github.com/kubeflow/pipelines/issues/3716)) ([fe01908](https://github.com/kubeflow/pipelines/commit/fe019088e521236a942c6743dc9c7bfa6b9e40f2))
+* Fixed small syntax error in a sample notebook ([\#3721](https://github.com/kubeflow/pipelines/issues/3721)) ([d4cd70d](https://github.com/kubeflow/pipelines/commit/d4cd70d29ba6c8beda323021da6b8a789ce4f98c))
+* [UI] Cleanup, remove types from urls in artifact/execution details page ([\#3715](https://github.com/kubeflow/pipelines/issues/3715)) ([cb41f7a](https://github.com/kubeflow/pipelines/commit/cb41f7ab1231b4f8aabe2875b59d67b2d8dce908))
+* [UI] Hide empty resource op manifest tab in run details page ([\#3713](https://github.com/kubeflow/pipelines/issues/3713)) ([c5ceaf5](https://github.com/kubeflow/pipelines/commit/c5ceaf51a376013c0ffeff2005945f86ad86b0ad))
+* [UI] Improve TFX artifact visualization speed ([\#3712](https://github.com/kubeflow/pipelines/issues/3712)) ([eab5d31](https://github.com/kubeflow/pipelines/commit/eab5d31781fd49986157db3efd6832c2cdfab356))
+* 0.5.1 changelog ([\#3706](https://github.com/kubeflow/pipelines/issues/3706)) ([54c490c](https://github.com/kubeflow/pipelines/commit/54c490c07a51c94c67cef37b0fd4a23472ed74c9))
+* Integration tests for AWS SageMaker Components ([\#3654](https://github.com/kubeflow/pipelines/issues/3654)) ([6beab22](https://github.com/kubeflow/pipelines/commit/6beab2251d1987333671d16f278ae1cfbada7f74))
+* [UI] textbox to select KSA when creating runs/jobs ([\#3651](https://github.com/kubeflow/pipelines/issues/3651)) ([e5bd2df](https://github.com/kubeflow/pipelines/commit/e5bd2df3e8f5e2ef8c663caa9b3fb90f9fa8c7e8))
+
+
+## [1.0.0-rc.5](https://github.com/kubeflow/pipelines/compare/1.0.0-rc.4...1.0.0-rc.5) (2020-07-13)
+
+
+### Features
+
+* **sdk:** SDK - Components - Added annotations to InputSpec and OutputSpec ([\#4154](https://github.com/kubeflow/pipelines/issues/4154)) ([98fccca](https://github.com/kubeflow/pipelines/commit/98fcccacef2111f45666fb14aa6efc99314b54f2))
+* **sdk:** SDK - Components - Added annotations to TaskSpec ([\#4153](https://github.com/kubeflow/pipelines/issues/4153)) ([c439ec3](https://github.com/kubeflow/pipelines/commit/c439ec33b6d7c7cf0676acfbdb6d58e6d90a8c75))
+* **sdk:** SDK - Deprecation warning when using ContainerOp ([\#4166](https://github.com/kubeflow/pipelines/issues/4166)) ([ebd62ec](https://github.com/kubeflow/pipelines/commit/ebd62ec61c2e99f048e3ea4271519ca3275fa0a4))
+
+
+### Bug Fixes
+
+* **cache:** cache-deployer should check both secret and config ([\#4186](https://github.com/kubeflow/pipelines/issues/4186)) ([7b3654b](https://github.com/kubeflow/pipelines/commit/7b3654b6fdfdb27e20d2688bad6bd783fb349468))
+* **cache:** Fix cache deployer not regenerating secrets when secret not present ([\#4171](https://github.com/kubeflow/pipelines/issues/4171)) ([d727c91](https://github.com/kubeflow/pipelines/commit/d727c91bdf3398cd7c26ab7545eaaa096628dc4a))
+* **deployment:** fix database name prefix description ([\#4198](https://github.com/kubeflow/pipelines/issues/4198)) ([2ea1a1f](https://github.com/kubeflow/pipelines/commit/2ea1a1fc2a770827c3805151d785a3948607abb3))
+* **deployment:** gcp managed storage - add service account to minio and cloudsql proxy deployments for workload identity ([\#4188](https://github.com/kubeflow/pipelines/issues/4188)) ([bd7f3c9](https://github.com/kubeflow/pipelines/commit/bd7f3c9cd60144aef953db7aa2a4b17cec1cfa73))
+* **sdk:** fixes the default value for _is_refresh_token. Fixes [\#4189](https://github.com/kubeflow/pipelines/issues/4189) ([\#4195](https://github.com/kubeflow/pipelines/issues/4195)) ([be47d6d](https://github.com/kubeflow/pipelines/commit/be47d6d646961d2ee0f5c855a3cfc1c3d55fc903))
+
+## [1.0.0-rc.4](https://github.com/kubeflow/pipelines/compare/1.0.0-rc.3...1.0.0-rc.4) (2020-07-08)
+
+
+### Features
+
+* **sdk:** DSL - Added support for volatile components ([\#4104](https://github.com/kubeflow/pipelines/issues/4104)) ([07ebc27](https://github.com/kubeflow/pipelines/commit/07ebc27305495cf3b4f3c71e9a2345bb3d9e65f2))
+
+
+### Bug Fixes
+
+* **backend:** fix the google-api-core to 1.16.0 for backend visualization server. ([\#4158](https://github.com/kubeflow/pipelines/issues/4158)) ([8da057d](https://github.com/kubeflow/pipelines/commit/8da057d183bb3a65f52d0e494e985d86b2a89050))
+
+## [1.0.0-rc.3](https://github.com/kubeflow/pipelines/compare/1.0.0-rc.2...1.0.0-rc.3) (2020-07-02)
+
+
+### Features
+
+* **deployment:** marketplace - allow specifying gcs bucket directly ([\#4112](https://github.com/kubeflow/pipelines/issues/4112)) ([92a8cfe](https://github.com/kubeflow/pipelines/commit/92a8cfebced775eb816e68622cd4d70bd3b45784))
+
+
+### Bug Fixes
+
+* increase TFX version from 0.20.2 to 0.22.0. Fixes [\#4084](https://github.com/kubeflow/pipelines/issues/4084), fixes [\#4114](https://github.com/kubeflow/pipelines/issues/4114) ([\#4133](https://github.com/kubeflow/pipelines/issues/4133)) ([5d8a59c](https://github.com/kubeflow/pipelines/commit/5d8a59c359038f13356eb9a4ecbffd961381e426))
+* **backend:** allow empty userid header prefix. Fixes [\#4091](https://github.com/kubeflow/pipelines/issues/4091) ([\#4098](https://github.com/kubeflow/pipelines/issues/4098)) ([9e00c79](https://github.com/kubeflow/pipelines/commit/9e00c79a4601f3a79629718c902db60a39792da2))
+
+
+### Other Pull Requests
+
+* SDK - Compiler - Removed the deprecated dsl-compile --package command ([\#4055](https://github.com/kubeflow/pipelines/issues/4055)) ([6bcb3ef](https://github.com/kubeflow/pipelines/commit/6bcb3efa144a38cda3c2ecf551c9f34a4c35e9de))
+* SDK - Components - Python - Switched the default base image to python 3.7 ([\#4054](https://github.com/kubeflow/pipelines/issues/4054)) ([090fffc](https://github.com/kubeflow/pipelines/commit/090fffc3c48ac4dded562ce76ade21ee0d83ef18))
+* Validate resourcekey to avoid apiserver being panic for invalid inputs ([\#3999](https://github.com/kubeflow/pipelines/issues/3999)) ([6ced6ea](https://github.com/kubeflow/pipelines/commit/6ced6ea6e6da8a5bd121d7dbfc788b05795f425c))
+* [Backend] Bug fix: applying filter in listing versions ([\#4052](https://github.com/kubeflow/pipelines/issues/4052)) ([3243f73](https://github.com/kubeflow/pipelines/commit/3243f73ed73a370b733d05376aeb7ae623a1b282))
+* better native-keras based sample ([\#3900](https://github.com/kubeflow/pipelines/issues/3900)) ([842e8ce](https://github.com/kubeflow/pipelines/commit/842e8ce1ee5fc5559733f99596fa5db401a7fa3b))
+* Metadata Writer - Added timeouts ([\#4037](https://github.com/kubeflow/pipelines/issues/4037)) ([e808795](https://github.com/kubeflow/pipelines/commit/e808795ad6b50f51f981e20587c96518d59af5bf))
+* Fix/log unavailable warning ([\#3848](https://github.com/kubeflow/pipelines/issues/3848)) ([3c6f6db](https://github.com/kubeflow/pipelines/commit/3c6f6db72d9ea7c5ba363285c3419c886f2ef1df))
+* Metadata-Writer: Updates metadata writer to use mlmd 0.22.0 ([\#4027](https://github.com/kubeflow/pipelines/issues/4027)) ([88d6da7](https://github.com/kubeflow/pipelines/commit/88d6da724f501402c1c497d1f3c5b155c97b7e18))
+* Metadata Writer - Stopped using artifact properties ([\#4004](https://github.com/kubeflow/pipelines/issues/4004)) ([4833d1a](https://github.com/kubeflow/pipelines/commit/4833d1a1e708633074481491a736a10c3c10fe3b))
+* update refreshing mechanism ([\#3981](https://github.com/kubeflow/pipelines/issues/3981)) ([efa5f1e](https://github.com/kubeflow/pipelines/commit/efa5f1e239af2705f2ffca48004871e6deaa6d77))
+* enable pagination when expanding experiment in both the home page and the archive page ([\#4012](https://github.com/kubeflow/pipelines/issues/4012)) ([8d34f6d](https://github.com/kubeflow/pipelines/commit/8d34f6d5e7e95caf0367c50dc78d26f4ca0899b3))
+
 ## [0.5.1](https://github.com/kubeflow/pipelines/tree/0.5.1) (2020-05-07)
 
 [Full Changelog](https://github.com/kubeflow/pipelines/compare/0.4.0...0.5.1)

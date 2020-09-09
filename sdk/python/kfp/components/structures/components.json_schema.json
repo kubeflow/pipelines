@@ -317,24 +317,12 @@
       "additionalProperties": false
     },
 
-    "KubernetesExecutionOptionsSpec": {
-      "description": "When running on Kubernetes, KubernetesExecutionOptionsSpec describes changes to the configuration of a Kubernetes Pod that will execute the task.",
-      "type": "object",
-      "properties": {
-        "metadata": {"$ref": "https://kubernetesjsonschema.dev/v1.14.0/_definitions.json#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"},
-        "mainContainer": {"$ref": "https://kubernetesjsonschema.dev/v1.14.0/_definitions.json#/definitions/io.k8s.api.core.v1.Container"},
-        "podSpec": {"$ref": "https://kubernetesjsonschema.dev/v1.14.0/_definitions.json#/definitions/io.k8s.api.core.v1.PodSpec"}
-      },
-      "additionalProperties": false
-    },
-
     "ExecutionOptionsSpec": {
       "description": "Optional configuration that specifies how the task should be executed. Can be used to set some platform-specific options.",
       "type": "object",
       "properties": {
         "retryStrategy": {"$ref": "#/definitions/RetryStrategySpec"},
-        "cachingStrategy": {"$ref": "#/definitions/CachingStrategySpec"},
-        "kubernetesOptions": {"$ref": "#/definitions/KubernetesExecutionOptionsSpec"}
+        "cachingStrategy": {"$ref": "#/definitions/CachingStrategySpec"}
       },
       "additionalProperties": false
     },

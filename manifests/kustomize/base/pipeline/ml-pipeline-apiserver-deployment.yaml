@@ -22,7 +22,10 @@ spec:
         - name: OBJECTSTORECONFIG_SECURE
           value: "false"
         - name: OBJECTSTORECONFIG_BUCKETNAME
-          value: $(BUCKET_NAME)
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: bucketName
         - name: DBCONFIG_USER
           valueFrom:
             secretKeyRef:
@@ -36,24 +39,58 @@ spec:
         - name: DBCONFIG_DBNAME
           valueFrom:
             configMapKeyRef:
-              name: mysql-configmap
-              key: pipeline_db
+              name: pipeline-install-config
+              key: pipelineDb
         - name: DBCONFIG_HOST
           valueFrom:
             configMapKeyRef:
-              name: mysql-configmap
-              key: host
+              name: pipeline-install-config
+              key: dbHost
         - name: DBCONFIG_PORT
           valueFrom:
             configMapKeyRef:
-              name: mysql-configmap
-              key: port
-
-
-        image: $(IMAGE_PREFIX)/api-server:$(IMAGE_TAG)
+              name: pipeline-install-config
+              key: dbPort
+        - name: OBJECTSTORECONFIG_ACCESSKEY
+          valueFrom:
+            secretKeyRef:
+              name: mlpipeline-minio-artifact
+              key: accesskey
+        - name: OBJECTSTORECONFIG_SECRETACCESSKEY
+          valueFrom:
+            secretKeyRef:
+              name: mlpipeline-minio-artifact
+              key: secretkey
+        image: gcr.io/ml-pipeline/api-server:dummy
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-api-server
         ports:
-        - containerPort: 8888
-        - containerPort: 8887
+        - name: http
+          containerPort: 8888
+        - name: grpc
+          containerPort: 8887
+        readinessProbe:
+          exec:
+            command:
+              - wget
+              - -q # quiet
+              - -S # show server response
+              - -O
+              - "-" # Redirect output to stdout
+              - http://localhost:8888/apis/v1beta1/healthz
+          initialDelaySeconds: 3
+          periodSeconds: 5
+          timeoutSeconds: 2
+        livenessProbe:
+          exec:
+            command:
+              - wget
+              - -q # quiet
+              - -S # show server response
+              - -O
+              - "-" # Redirect output to stdout
+              - http://localhost:8888/apis/v1beta1/healthz
+          initialDelaySeconds: 3
+          periodSeconds: 5
+          timeoutSeconds: 2
       serviceAccountName: ml-pipeline

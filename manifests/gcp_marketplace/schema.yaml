@@ -1,12 +1,11 @@
 x-google-marketplace:
   schemaVersion: v2
   applicationApiVersion: v1beta1
-  publishedVersion: '0.5.1'
+  publishedVersion: 1.0.0
   publishedVersionMetadata:
-    releaseNote: >-
-      Based on 0.5.1 version.
+    releaseNote: Based on 1.0.0 version.
     releaseTypes:
-      - Feature
+    - Feature
     recommended: false
   managedUpdates:
     kalmSupported: false
@@ -87,12 +86,12 @@ x-google-marketplace:
           type: FULL
   deployerServiceAccount:
     roles:
-      - type: ClusterRole        # This is a cluster-wide ClusterRole
-        rulesType: CUSTOM        # We specify our own custom RBAC roles
-        rules:
-          - apiGroups: ['apiextensions.k8s.io', 'rbac.authorization.k8s.io']
-            resources: ['customresourcedefinitions', 'clusterroles', 'clusterrolebindings']
-            verbs: ['*']
+    - type: ClusterRole # This is a cluster-wide ClusterRole
+      rulesType: CUSTOM # We specify our own custom RBAC roles
+      rules:
+      - apiGroups: ['apiextensions.k8s.io', 'rbac.authorization.k8s.io']
+        resources: ['customresourcedefinitions', 'clusterroles', 'clusterrolebindings']
+        verbs: ['*']
   clusterConstraints:
     resources:
     - replicas: 3
@@ -105,8 +104,7 @@ x-google-marketplace:
     gcp:
       nodes:
         requiredOauthScopes:
-          - https://www.googleapis.com/auth/cloud-platform
-
+        - https://www.googleapis.com/auth/cloud-platform
 properties:
   name:
     type: string
@@ -120,49 +118,79 @@ properties:
     type: boolean
     title: Use managed storage
     description: |-
-      Use Cloud SQL and GCS for storing the data.
-      Using CloudSQL and GCS provides better reliability and performance,
+      Select this option to store pipeline artifacts and metadata using
+      Cloud SQL and Cloud Storage. Otherwise, pipeline artifacts and metadata
+      are stored on Compute Engine persistent disks.
+
+      Cloud SQL and Cloud Storage provides better reliability and performance,
       as well as features such as data backup and usage monitoring.
-      This is the recommended option especially for production scenarios.
-      If false, the data will be stored in GCE Persistent Disk.
+      Using Cloud SQL and Cloud Storage is recommended for production
+      deployments.
+
+      To configure your cluster to use managed storage, specify your Cloud
+      Storage bucket and Cloud SQL connection details below. To preserve your
+      data while reinstalling Kubeflow Pipelines, you must specify the same
+      managed storage options as your previous instance.
+
+      If upgrading from Kubeflow Pipelines 0.5.1 with managed storage, the
+      Cloud Storage bucket was auto-generated in the same project. This bucket
+      should be named like "<cloudsql instance connection name>-<database prefix or instance name>".
     default: false
+  managedstorage.gcsBucketName:
+    type: string
+    title: Artifact storage Cloud Storage bucket (Managed storage only)
+    description: |-
+      If you are deploying Kubeflow Pipelines with managed storage, specify the
+      Cloud Storage bucket that you would like Kubeflow Pipelines to store
+      pipeline artifacts in. Learn more about creating a new bucket,
+      see https://cloud.google.com/storage/docs/creating-buckets.
+
+      Warning, if the provided bucket doesn't exist, the deployer will
+      automatically create a bucket for you in us-central1, but you won't be
+      able to customize the bucket's parameters.
   managedstorage.cloudsqlInstanceConnectionName:
     type: string
     title: Cloud SQL instance connection name (Managed storage only)
     description: |-
-      This field must be specified if choose to use managed storage.
-      Provide the instance connection name for an existing Cloud SQL for MySQL instance.
-      The instance connection name can be found on the instance detail page in the Cloud SQL console.
-      The instance connection name uses the format project:zone:instance-name, for example,myproject:us-central1:myinstance.
-      For more details on how to create a new instance, see https://cloud.google.com/sql/docs/mysql/quickstart.
+      If you are deploying Kubeflow Pipelines with managed storage, specify the
+      instance connection name for your MySQL instance on Cloud SQL.
+      The instance connection name can be found on the instance detail page in
+      the Cloud SQL console. The instance connection name uses the format
+      "<project>:<region>:<instance-name>", for example: myproject:us-central1:myinstance.
+      Learn more about setting up your Cloud SQL instance, see https://cloud.google.com/sql/docs/mysql/quickstart.
   managedstorage.dbUsername:
     type: string
     title: Database username (Managed storage only)
     description: |-
-      The database username to use when connecting to the Cloud SQL instance.
-      If you leave this field empty, the deployment will use the default 'root' user account to connect.
-      For more details about MySQL users, see https://cloud.google.com/sql/docs/mysql/users.
+      If you are deploying Kubeflow Pipelines with managed storage, specify the
+      database username for Kubeflow Pipelines to use when connecting to your
+      MySQL instance on Cloud SQL. If you leave this field empty, this value
+      defaults to 'root'. Learn more about MySQL users, see https://cloud.google.com/sql/docs/mysql/users.
   managedstorage.dbPassword:
     type: string
     title: Database password (Managed storage only)
     x-google-marketplace:
       type: MASKED_FIELD
     description: |-
-      The database password to use when connecting to the Cloud SQL instance.
-      If you leave this field empty, the deployment will try to connect to the instance without providing a password.
-      This will fail if a password is required for the username you provided.
+      If you are deploying Kubeflow Pipelines with managed storage, specify the
+      database password for Kubeflow Pipelines to use when connecting to your
+      MySQL instance on Cloud SQL. If you leave this field empty, Kubeflow
+      Pipelines connects to your Cloud SQL instance without providing a
+      password. This will fail if a password is required for the username you
+      specified.
   managedstorage.databaseNamePrefix:
     type: string
     title: Database name prefix (Managed storage only)
     description: |-
-      The prefix of the database name. Kubeflow Pipelines will create two databases,
-      [prefix]_pipeline and [prefix]_metadata.
-      Use lowercase letters, numbers, and hyphens. Start with a letter.
-      If the prefix specified is same as an old deployment in the past,
-      the deployment will recover from an old deployment.
-      If this not specified, the app instance name will be used.
+      If you are deploying Kubeflow Pipelines with managed storage, specify the
+      database name prefix. The prefix value must contain only lowercase
+      letters, numbers and underscores. Additionally, the prefix must start with a letter.
 
+      During the deployment process, Kubeflow Pipelines creates two databases,
+      "<prefix>_pipeline" and "<prefix>_metadata". If the prefix specified
+      matches a previous deployment, this deployment will reuse the existing
+      databases. If this value is not specified, the application instance name
+      is used.
 required:
-  - name
-  - namespace
-
+- name
+- namespace

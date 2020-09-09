@@ -663,6 +663,24 @@ func TestCreateRun_InvalidWorkflowSpec(t *testing.T) {
 	assert.Contains(t, err.Error(), "Failed to unmarshal workflow spec manifest")
 }
 
+func TestCreateRun_NullWorkflowSpec(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	apiRun := &api.Run{
+		Name: "run1",
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: "null",  // this situation occurs for real when the manifest file disappears from object store in some way due to retention policy or manual deletion.
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+	}
+	_, err := manager.CreateRun(apiRun)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Failed to fetch workflow spec manifest.: ResourceNotFoundError: WorkflowSpecManifest run1 not found.")
+}
+
 func TestCreateRun_OverrideParametersError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
@@ -1131,6 +1149,25 @@ func TestCreateJob_InvalidWorkflowSpec(t *testing.T) {
 	assert.Contains(t, err.Error(), "Failed to unmarshal workflow spec manifest")
 }
 
+func TestCreateJob_NullWorkflowSpec(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	job := &api.Job{
+		Name:    "pp 1",
+		Enabled: true,
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: string("null"), // this situation occurs for real when the manifest file disappears from object store in some way due to retention policy or manual deletion.
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+	}
+	_, err := manager.CreateJob(job)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Failed to fetch workflow spec manifest.: ResourceNotFoundError: WorkflowSpecManifest pp 1 not found.")
+}
+
 func TestCreateJob_ExtraInputParameterError(t *testing.T) {
 	store, manager, p := initWithPipeline(t)
 	defer store.Close()
@@ -1337,6 +1374,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
 			UUID:             "WORKFLOW_1",
+			ExperimentUUID:   DefaultFakeUUID,
 			DisplayName:      "MY_NAME",
 			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Name:             "MY_NAME",
@@ -1410,6 +1448,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
 			UUID:             "WORKFLOW_1",
+			ExperimentUUID:   DefaultFakeUUID,
 			DisplayName:      "MY_NAME",
 			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Name:             "MY_NAME",
@@ -1443,6 +1482,19 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success
 	}
 
 	assert.Equal(t, expectedRunDetail, runDetail)
+}
+
+func TestReportWorkflowResource_WorkflowMissingRunID(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.Name,
+		},
+	})
+	err := manager.ReportWorkflowResource(workflow)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Workflow[workflow-name] missing the Run ID label")
 }
 
 func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {

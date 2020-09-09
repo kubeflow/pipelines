@@ -24,6 +24,7 @@ class TestSubmitPigJob(unittest.TestCase):
 
     def test_submit_pig_job_with_expected_payload(self, mock_submit_job):
         submit_pig_job('mock-project', 'mock-region', 'mock-cluster', 
+            job_id_output_path='/tmp/kfp/output/dataproc/job_id.txt',
             queries=['select * from mock_table'], 
             script_variables={'var-1': 'value1'}, 
             pig_job={ 'continueOnFailure': True },
@@ -41,4 +42,4 @@ class TestSubmitPigJob(unittest.TestCase):
                 'labels': {
                     'key1': 'value1'
                 }
-            }, 30)
+            }, 30, job_id_output_path='/tmp/kfp/output/dataproc/job_id.txt')

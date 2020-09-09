@@ -35,6 +35,11 @@ describe('Banner', () => {
     expect(tree).toMatchSnapshot();
   });
 
+  it('uses info mode when instructed', () => {
+    const tree = shallow(<Banner message={'Some message'} mode={'info'} />);
+    expect(tree).toMatchSnapshot();
+  });
+
   it('shows "Details" button and has dialog when there is additional info', () => {
     const tree = shallow(<Banner message={'Some message'} additionalInfo={'More info'} />);
     expect(tree).toMatchSnapshot();
@@ -50,6 +55,56 @@ describe('Banner', () => {
       />,
     );
     expect(tree).toMatchSnapshot();
+  });
+
+  it('does not show "Refresh" button if mode is "info"', () => {
+    const tree = shallow(
+      <Banner
+        message={'Some message'}
+        mode={'info'}
+        refresh={() => {
+          /* do nothing */
+        }}
+      />,
+    );
+    expect(tree.findWhere(el => el.text() === 'Refresh').exists()).toEqual(false);
+  });
+
+  it('shows troubleshooting link instructed by prop', () => {
+    const tree = shallow(
+      <Banner message='Some message' mode='error' showTroubleshootingGuideLink={true} />,
+    );
+    expect(tree).toMatchInlineSnapshot(`
+      <div
+        className="flex banner mode"
+      >
+        <div
+          className="message"
+        >
+          <pure(ErrorIcon)
+            className="icon"
+          />
+          Some message
+        </div>
+        <div
+          className="flex"
+        >
+          <a
+            className="troubleShootingLink"
+            href="https://www.kubeflow.org/docs/pipelines/troubleshooting"
+          >
+            Troubleshooting guide
+          </a>
+        </div>
+      </div>
+    `);
+  });
+
+  it('does not show troubleshooting link if warning', () => {
+    const tree = shallow(
+      <Banner message='Some message' mode='warning' showTroubleshootingGuideLink={true} />,
+    );
+    expect(tree.findWhere(el => el.text() === 'Troubleshooting guide').exists()).toEqual(false);
   });
 
   it('opens details dialog when button is clicked', () => {

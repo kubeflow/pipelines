@@ -95,9 +95,19 @@ type ListRunsParams struct {
 
 	*/
 	Filter *string
-	/*PageSize*/
+	/*PageSize
+	  The number of runs to be listed per page. If there are more runs than this
+	number, the response message will contain a nextPageToken field you can use
+	to fetch the next page.
+
+	*/
 	PageSize *int32
-	/*PageToken*/
+	/*PageToken
+	  A page token to request the next page of results. The token is acquried
+	from the nextPageToken field of the response from the previous
+	ListRuns call or can be omitted when fetching the first page.
+
+	*/
 	PageToken *string
 	/*ResourceReferenceKeyID
 	  The ID of the resource that referred to.
@@ -110,8 +120,8 @@ type ListRunsParams struct {
 	*/
 	ResourceReferenceKeyType *string
 	/*SortBy
-	  Can be format of "field_name", "field_name asc" or "field_name des"
-	(Example, "name asc" or "id des"). Ascending by default.
+	  Can be format of "field_name", "field_name asc" or "field_name desc"
+	(Example, "name asc" or "id desc"). Ascending by default.
 
 	*/
 	SortBy *string

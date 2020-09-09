@@ -47,7 +47,13 @@ def upload(ctx, pipeline_name, package_file):
     "-p",
     "--pipeline-id",
     help="ID of the pipeline",
-    required=True
+    required=False
+)
+@click.option(
+    "-n",
+    "--pipeline-name",
+    help="Name of pipeline",
+    required=False
 )
 @click.option(
     "-v",
@@ -57,15 +63,21 @@ def upload(ctx, pipeline_name, package_file):
 )
 @click.argument("package-file")
 @click.pass_context
-def upload_version(ctx, package_file, pipeline_version, pipeline_id):
+def upload_version(ctx, package_file, pipeline_version, pipeline_id=None, pipeline_name=None):
     """Upload a version of the KFP pipeline"""
     client = ctx.obj["client"]
-
+    if bool(pipeline_id) == bool(pipeline_name):
+        raise ValueError("Need to suppy 'pipeline-name' or 'pipeline-id'")
+    if pipeline_name!=None: 
+        pipeline_id = client.get_pipeline_id(name=pipeline_name)
+        if pipeline_id==None: 
+            raise ValueError("Can't find a pipeline with name: %s" % pipeline_name)
+    logging.info("The pipeline id is: %s" % pipeline_id)
     version = client.pipeline_uploads.upload_pipeline_version(
         package_file, name=pipeline_version, pipelineid=pipeline_id)
     logging.info(
-        "The {} version of the pipeline {} has been submitted\n".format(
-            pipeline_version, pipeline_id))
+        "The %s version of the pipeline %s has been submitted\n" %
+            (pipeline_version, pipeline_id))
     _display_pipeline_version(version)
 
 
@@ -89,6 +101,28 @@ def list(ctx, max_size):
     else:
         logging.info("No pipelines found")
 
+
+@pipeline.command()
+@click.argument("pipeline-id")
+@click.option(
+    "--max-size",
+    default=10,
+    help="Max size of the listed pipelines."
+)
+@click.pass_context
+def list_versions(ctx, pipeline_id, max_size):
+    """List versions of an uploaded KFP pipeline"""
+    client = ctx.obj["client"]
+
+    response = client.list_pipeline_versions(
+        pipeline_id=pipeline_id,
+        page_size=max_size,
+        sort_by="created_at desc"
+    )
+    if response.versions:
+        _print_pipeline_versions(response.versions)
+    else:
+        logging.info("No pipeline or version found")
 
 @pipeline.command()
 @click.argument("pipeline-id")
@@ -119,6 +153,16 @@ def _print_pipelines(pipelines):
         pipeline.name,
         pipeline.created_at.isoformat()
     ] for pipeline in pipelines]
+    print(tabulate(data, headers=headers, tablefmt="grid"))
+
+
+def _print_pipeline_versions(versions):
+    headers = ["Version ID", "Version name", "Uploaded at"]
+    data = [[
+        version.id,
+        version.name,
+        version.created_at.isoformat()
+    ] for version in versions]
     print(tabulate(data, headers=headers, tablefmt="grid"))
 
 

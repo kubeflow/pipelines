@@ -14,7 +14,7 @@ spec:
     app.kubernetes.io/name: {{ .Release.Name }}
 ---
 {{ if .Values.managedstorage.enabled }}
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: minio
@@ -43,7 +43,7 @@ spec:
             - name: PROJECT_ID
               valueFrom:
                 configMapKeyRef:
-                  name: {{ .Values.gcpDefaultConfigName}}
+                  name: "{{ .Values.gcpDefaultConfigName }}"
                   key: "project_id"
             - name: MINIO_ACCESS_KEY
               value: minio
@@ -58,14 +58,6 @@ spec:
           name: minio
           ports:
             - containerPort: 9000
-          volumeMounts:
-            - name: gcp-sa-token
-              mountPath: "/etc/credentials"
-              readOnly: true
-      volumes:
-        - name: gcp-sa-token
-          secret:
-            secretName: {{ .Values.gcpSecretName }}
 {{ end }}
 ---
 {{ if not .Values.managedstorage.enabled }}
@@ -82,7 +74,7 @@ spec:
     requests:
       storage: 20Gi
 ---
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: minio

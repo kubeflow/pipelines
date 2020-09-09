@@ -16,7 +16,7 @@ spec:
     app.kubernetes.io/name: {{ .Release.Name }}
 ---
 {{ if .Values.managedstorage.enabled }}
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cloudsqlproxy
@@ -60,14 +60,9 @@ spec:
           volumeMounts:
             - mountPath: /cloudsql
               name: cloudsql
-            - mountPath: /credentials
-              name: gcp-sa-token
       volumes:
         - name: cloudsql
           emptyDir:
-        - name: gcp-sa-token
-          secret:
-            secretName: {{ .Values.gcpSecretName }}
 ---
 apiVersion: v1
 kind: Secret
@@ -94,7 +89,7 @@ spec:
     requests:
       storage: 20Gi
 ---
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mysql

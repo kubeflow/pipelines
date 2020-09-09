@@ -16,6 +16,7 @@
 import argparse
 import json
 import os
+from pathlib import Path
 import tensorflow as tf
 import tensorflow_transform as tft
 import tensorflow_model_analysis as tfma
@@ -80,6 +81,14 @@ def parse_arguments():
                       required=False,
                       help=('GCS path to a python file defining '
                             '"preprocess" and "get_feature_columns" functions.'))
+  parser.add_argument('--exported-model-dir-uri-output-path',
+                      type=str,
+                      default='/output.txt',
+                      help='Local output path for the file containing exported model directory URI.')
+  parser.add_argument('--ui-metadata-output-path',
+                      type=str,
+                      default='/mlpipeline-ui-metadata.json',
+                      help='Local output path for the file containing UI metadata JSON structure.')
 
   args = parser.parse_args()
   args.hidden_layer_size = [int(x.strip()) for x in args.hidden_layer_size.split(',')]
@@ -341,11 +350,11 @@ def main():
       'source': args.job_dir,
     }]
   }
-  with open('/mlpipeline-ui-metadata.json', 'w') as f:
-    json.dump(metadata, f)
+  Path(args.ui_metadata_output_path).parent.mkdir(parents=True, exist_ok=True)
+  Path(args.ui_metadata_output_path).write_text(json.dumps(metadata))
 
-  with open('/output.txt', 'w') as f:
-    f.write(args.job_dir)
+  Path(args.exported_model_dir_uri_output_path).parent.mkdir(parents=True, exist_ok=True)
+  Path(args.exported_model_dir_uri_output_path).write_text(args.job_dir)
 
 if __name__ == '__main__':
   main()

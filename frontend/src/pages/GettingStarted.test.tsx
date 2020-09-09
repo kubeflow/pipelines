@@ -73,9 +73,24 @@ describe('GettingStarted page', () => {
             <p><strong>Demos</strong> - Try an end-to-end demonstration pipeline.</p>
             <ul>
               <li>
-      -         <a href="#/pipelines" class="link">TFX pipeline demo</a>
+      -         <a href="#/pipelines" class="link">TFX pipeline demo with Keras</a>
+      +         <a href="#/pipelines/details/pipeline-id-3?" class="link"
+      +           >TFX pipeline demo with Keras</a
+      +         >
+                <ul>
+                  <li>
+                    Classification pipeline based on Keras.
+                    <a
+                      href="https://github.com/kubeflow/pipelines/tree/master/samples/core/iris"
+      @@ --- --- @@
+                    >
+                  </li>
+                </ul>
+              </li>
+              <li>
+      -         <a href="#/pipelines" class="link">TFX pipeline demo with Estimator</a>
       +         <a href="#/pipelines/details/pipeline-id-2?" class="link"
-      +           >TFX pipeline demo</a
+      +           >TFX pipeline demo with Estimator</a
       +         >
                 <ul>
                   <li>
@@ -104,7 +119,7 @@ describe('GettingStarted page', () => {
             <ul>
               <li>
       -         <a href="#/pipelines" class="link">Data passing in python components</a>
-      +         <a href="#/pipelines/details/pipeline-id-3?" class="link"
+      +         <a href="#/pipelines/details/pipeline-id-4?" class="link"
       +           >Data passing in python components</a
       +         >
                 <ul>
@@ -112,21 +127,6 @@ describe('GettingStarted page', () => {
                     Shows how to pass data between python components.
                     <a
                       href="https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components"
-      @@ --- --- @@
-                    >
-                  </li>
-                </ul>
-              </li>
-              <li>
-      -         <a href="#/pipelines" class="link">DSL - Control structures</a>
-      +         <a href="#/pipelines/details/pipeline-id-4?" class="link"
-      +           >DSL - Control structures</a
-      +         >
-                <ul>
-                  <li>
-                    Shows how to use conditional execution and exit handlers.
-                    <a
-                      href="https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures"
     `);
   });
 
@@ -159,20 +159,20 @@ describe('GettingStarted page', () => {
       + Received
 
       @@ --- --- @@
-                    >
-                  </li>
-                </ul>
-              </li>
+              <strong>Tutorials</strong> - Learn pipeline concepts by following a
+              tutorial.
+            </p>
+            <ul>
               <li>
-      -         <a href="#/pipelines" class="link">DSL - Control structures</a>
+      -         <a href="#/pipelines" class="link">Data passing in python components</a>
       +         <a href="#/pipelines/details/pipeline-id-4?" class="link"
-      +           >DSL - Control structures</a
+      +           >Data passing in python components</a
       +         >
                 <ul>
                   <li>
-                    Shows how to use conditional execution and exit handlers.
+                    Shows how to pass data between python components.
                     <a
-                      href="https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures"
+                      href="https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components"
     `);
   });
 });

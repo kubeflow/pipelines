@@ -43,16 +43,22 @@ type token struct {
 	SortByFieldName string
 	// SortByFieldValue is the value of the sorted field of the next row to be
 	// returned.
-	SortByFieldValue interface{}
+	SortByFieldValue  interface{}
+	SortByFieldPrefix string
+
 	// KeyFieldName is the name of the primary key for the model being queried.
 	KeyFieldName string
 	// KeyFieldValue is the value of the sorted field of the next row to be
 	// returned.
-	KeyFieldValue interface{}
+	KeyFieldValue  interface{}
+	KeyFieldPrefix string
+
 	// IsDesc is true if the sorting order should be descending.
 	IsDesc bool
+
 	// ModelName is the table where ***FieldName belongs to.
 	ModelName string
+
 	// Filter represents the filtering that should be applied in the query.
 	Filter *filter.Filter
 }
@@ -94,7 +100,7 @@ type Options struct {
 // Matches returns trues if the sorting and filtering criteria in o matches that
 // of the one supplied in opts.
 func (o *Options) Matches(opts *Options) bool {
-	return o.SortByFieldName == opts.SortByFieldName &&
+	return o.SortByFieldName == opts.SortByFieldName && o.SortByFieldPrefix == opts.SortByFieldPrefix &&
 		o.IsDesc == opts.IsDesc &&
 		reflect.DeepEqual(o.Filter, opts.Filter)
 }
@@ -141,13 +147,15 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filterProto *api
 
 	token.SortByFieldName = listable.DefaultSortField()
 	if len(queryList) > 0 {
-		var err error
-		n, ok := listable.APIToModelFieldMap()[queryList[0]]
-		if !ok {
-			return nil, util.NewInvalidInputError("Invalid sorting field: %q: %s", queryList[0], err)
+		n, ok := listable.GetField(queryList[0])
+		if ok {
+			token.SortByFieldName = n
+		} else {
+			return nil, util.NewInvalidInputError("Invalid sorting field: %q on listable type %s", queryList[0], reflect.ValueOf(listable).Elem().Type().Name())
 		}
-		token.SortByFieldName = n
 	}
+	token.SortByFieldPrefix = listable.GetSortByFieldPrefix(token.SortByFieldName)
+	token.KeyFieldPrefix = listable.GetKeyFieldPrefix()
 
 	if len(queryList) == 2 {
 		token.IsDesc = queryList[1] == "desc"
@@ -176,28 +184,21 @@ func (o *Options) AddPaginationToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBu
 	return sqlBuilder
 }
 
-// AddPaginationToSelect adds WHERE clauses with the sorting and pagination criteria in the
-// Options o to the supplied SelectBuilder, and returns the new SelectBuilder
-// containing these.
+// AddSortingToSelect adds Order By clause.
 func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
+	// When sorting by a direct field in the listable model (i.e., name in Run or uuid in Pipeline), a sortByFieldPrefix can be specified; when sorting by a field in an array-typed dictionary (i.e., a run metric inside the metrics in Run), a sortByFieldPrefix is not needed.
 	// If next row's value is specified, set those values in the clause.
-	var modelNamePrefix string
-	if len(o.ModelName) == 0 {
-		modelNamePrefix = ""
-	} else {
-		modelNamePrefix = o.ModelName + "."
-	}
 	if o.SortByFieldValue != nil && o.KeyFieldValue != nil {
 		if o.IsDesc {
 			sqlBuilder = sqlBuilder.
-				Where(sq.Or{sq.Lt{modelNamePrefix + o.SortByFieldName: o.SortByFieldValue},
-					sq.And{sq.Eq{modelNamePrefix + o.SortByFieldName: o.SortByFieldValue},
-						sq.LtOrEq{modelNamePrefix + o.KeyFieldName: o.KeyFieldValue}}})
+				Where(sq.Or{sq.Lt{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
+					sq.And{sq.Eq{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
+						sq.LtOrEq{o.KeyFieldPrefix + o.KeyFieldName: o.KeyFieldValue}}})
 		} else {
 			sqlBuilder = sqlBuilder.
-				Where(sq.Or{sq.Gt{modelNamePrefix + o.SortByFieldName: o.SortByFieldValue},
-					sq.And{sq.Eq{modelNamePrefix + o.SortByFieldName: o.SortByFieldValue},
-						sq.GtOrEq{modelNamePrefix + o.KeyFieldName: o.KeyFieldValue}}})
+				Where(sq.Or{sq.Gt{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
+					sq.And{sq.Eq{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
+						sq.GtOrEq{o.KeyFieldPrefix + o.KeyFieldName: o.KeyFieldValue}}})
 		}
 	}
 
@@ -206,8 +207,8 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuild
 		order = "DESC"
 	}
 	sqlBuilder = sqlBuilder.
-		OrderBy(fmt.Sprintf("%v %v", modelNamePrefix+o.SortByFieldName, order)).
-		OrderBy(fmt.Sprintf("%v %v", modelNamePrefix+o.KeyFieldName, order))
+		OrderBy(fmt.Sprintf("%v %v", o.SortByFieldPrefix+o.SortByFieldName, order)).
+		OrderBy(fmt.Sprintf("%v %v", o.KeyFieldPrefix+o.KeyFieldName, order))
 
 	return sqlBuilder
 }
@@ -309,6 +310,14 @@ type Listable interface {
 	APIToModelFieldMap() map[string]string
 	// GetModelName returns table name used as sort field prefix.
 	GetModelName() string
+	// Get the prefix of sorting field.
+	GetSortByFieldPrefix(string) string
+	// Get the prefix of key field.
+	GetKeyFieldPrefix() string
+	// Get a valid field for sorting/filtering in a listable model from the given string.
+	GetField(name string) (string, bool)
+	// Find the value of a given field in a listable object.
+	GetFieldValue(name string) interface{}
 }
 
 // NextPageToken returns a string that can be used to fetch the subsequent set
@@ -326,8 +335,8 @@ func (o *Options) nextPageToken(listable Listable) (*token, error) {
 	elem := reflect.ValueOf(listable).Elem()
 	elemName := elem.Type().Name()
 
-	sortByField := elem.FieldByName(o.SortByFieldName)
-	if !sortByField.IsValid() {
+	var sortByField interface{}
+	if sortByField = listable.GetFieldValue(o.SortByFieldName); sortByField == nil {
 		return nil, util.NewInvalidInputError("cannot sort by field %q on type %q", o.SortByFieldName, elemName)
 	}
 
@@ -337,13 +346,15 @@ func (o *Options) nextPageToken(listable Listable) (*token, error) {
 	}
 
 	return &token{
-		SortByFieldName:  o.SortByFieldName,
-		SortByFieldValue: sortByField.Interface(),
-		KeyFieldName:     listable.PrimaryKeyColumnName(),
-		KeyFieldValue:    keyField.Interface(),
-		IsDesc:           o.IsDesc,
-		Filter:           o.Filter,
-		ModelName:        o.ModelName,
+		SortByFieldName:   o.SortByFieldName,
+		SortByFieldValue:  sortByField,
+		SortByFieldPrefix: listable.GetSortByFieldPrefix(o.SortByFieldName),
+		KeyFieldName:      listable.PrimaryKeyColumnName(),
+		KeyFieldValue:     keyField.Interface(),
+		KeyFieldPrefix:    listable.GetKeyFieldPrefix(),
+		IsDesc:            o.IsDesc,
+		Filter:            o.Filter,
+		ModelName:         o.ModelName,
 	}, nil
 }
 

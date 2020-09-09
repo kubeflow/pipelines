@@ -15,7 +15,7 @@
 # limitations under the License.
 
 # This script is for deploying cache service to an existing cluster.
-# Prerequisite: config kubectl to talk to your cluster. See ref below: 
+# Prerequisite: config kubectl to talk to your cluster. See ref below:
 # https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl
 
 set -ex
@@ -24,16 +24,38 @@ echo "Start deploying cache service to existing cluster:"
 
 NAMESPACE=${NAMESPACE_TO_WATCH:-kubeflow}
 MUTATING_WEBHOOK_CONFIGURATION_NAME="cache-webhook-${NAMESPACE}"
+WEBHOOK_SECRET_NAME=webhook-server-tls
 
 # This should fail if there are connectivity problems
 # Gotcha: Listing all objects requires list permission,
-# but when listing a single oblect kubecttl will fail if it's not found
+# but when listing a single oblect kubectl will fail if it's not found
 # unless --ignore-not-found is specified.
 kubectl get mutatingwebhookconfigurations "${MUTATING_WEBHOOK_CONFIGURATION_NAME}" --namespace "${NAMESPACE}" --ignore-not-found >webhooks.txt
+kubectl get secrets "${WEBHOOK_SECRET_NAME}" --namespace "${NAMESPACE}" --ignore-not-found >cache_secret.txt
 
+webhook_config_exists=false
 if grep "${MUTATING_WEBHOOK_CONFIGURATION_NAME}" -w <webhooks.txt; then
-    echo "Webhook is already installed. Sleeping forever."
+    webhook_config_exists=true
+fi
+
+webhook_secret_exists=false
+if grep "${WEBHOOK_SECRET_NAME}" -w <cache_secret.txt; then
+    webhook_secret_exists=true
+fi
+
+if [ "$webhook_config_exists" == "true" ] && [ "$webhook_secret_exists" == "true" ]; then
+    echo "Webhook config and secret are already installed. Sleeping forever."
     sleep infinity
+fi
+
+if [ "$webhook_config_exists" == "true" ]; then
+    echo "Warning: Webhook config exists, but the secret does not exist. Reinstalling."
+    kubectl delete mutatingwebhookconfigurations "${MUTATING_WEBHOOK_CONFIGURATION_NAME}" --namespace "${NAMESPACE}"
+fi
+
+if [ "$webhook_secret_exists" == "true" ]; then
+    echo "Warning: Webhook secret exists, but the config does not exist. Reinstalling."
+    kubectl delete secrets "${WEBHOOK_SECRET_NAME}" --namespace "${NAMESPACE}"
 fi
 
 
@@ -42,11 +64,22 @@ rm -f ${CA_FILE}
 touch ${CA_FILE}
 
 # Generate signed certificate for cache server.
-./webhook-create-signed-cert.sh --namespace "${NAMESPACE}" --cert_output_path "${CA_FILE}"
+./webhook-create-signed-cert.sh --namespace "${NAMESPACE}" --cert_output_path "${CA_FILE}" --secret "${WEBHOOK_SECRET_NAME}"
 echo "Signed certificate generated for cache server"
 
 # Patch CA_BUNDLE for MutatingWebhookConfiguration
-NAMESPACE="$NAMESPACE" ./webhook-patch-ca-bundle.sh --cert_input_path "${CA_FILE}" <./cache-configmap.yaml.template >./cache-configmap-ca-bundle.yaml
+# Choosing the correct API version.
+# Kubernetes v1.15+ supports better filtering, but it's not trivial to detect since the API version was only bumped to v1 in v1.16.
+# Kubernetes has broken it's versioning policy here. https://github.com/kubernetes/kubernetes/pull/78505#commitcomment-41870735
+# We still want to support filtering on v1.15, so we need to detect it.
+if kubectl api-versions | grep --word-regexp 'admissionregistration.k8s.io/v1'; then
+    cache_webhook_config_template="cache-webhook-config.v1.yaml.template"
+elif kubectl version | grep 'Server Version: version.Info{Major:"1", Minor:"15'; then
+    cache_webhook_config_template="cache-webhook-config.v1beta1.v1.15.yaml.template"
+else
+    cache_webhook_config_template="cache-webhook-config.v1beta1.yaml.template"
+fi
+NAMESPACE="$NAMESPACE" ./webhook-patch-ca-bundle.sh --cert_input_path "${CA_FILE}" <./"$cache_webhook_config_template" >./cache-configmap-ca-bundle.yaml
 echo "CA_BUNDLE patched successfully"
 
 # Create MutatingWebhookConfiguration
@@ -54,8 +87,8 @@ cat ./cache-configmap-ca-bundle.yaml
 kubectl apply -f ./cache-configmap-ca-bundle.yaml --namespace "${NAMESPACE}"
 
 # TODO: Check whether we really need to check for the existence of the webhook
-# Usually the Kubernetes objects appear immediately. 
-while true; do 
+# Usually the Kubernetes objects appear immediately.
+while true; do
     # Should fail if there are connectivity problems
     kubectl get mutatingwebhookconfigurations "${MUTATING_WEBHOOK_CONFIGURATION_NAME}" --namespace "${NAMESPACE}" --ignore-not-found >webhooks.txt
 
@@ -65,5 +98,5 @@ while true; do
     else
         echo "Webhook is not visible yet. Waiting a bit."
         sleep 10s
-    fi    
+    fi
 done

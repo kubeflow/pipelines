@@ -14,10 +14,6 @@
 # limitations under the License.
 """Iris flowers example using TFX. Based on https://github.com/tensorflow/tfx/blob/master/tfx/examples/iris/iris_pipeline_native_keras.py"""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 import kfp
 from typing import Text
@@ -53,17 +49,18 @@ _pipeline_name = 'iris_native_keras'
 # utility function is in iris_utils.py. Feel free to customize as needed.
 _data_root_param = data_types.RuntimeParameter(
     name='data-root',
-    default='gs://ml-pipeline-playground/iris/data',
+    default='gs://ml-pipeline/sample-data/iris/data',
     ptype=Text,
 )
 
 # Python module file to inject customized logic into the TFX components. The
 # Transform and Trainer both require user-defined functions to run successfully.
 # This file is fork from https://github.com/tensorflow/tfx/blob/master/tfx/examples/iris/iris_utils_native_keras.py
+# and baked into the TFX image used in the pipeline.
 _module_file_param = data_types.RuntimeParameter(
     name='module-file',
     default=
-    'gs://ml-pipeline-playground/iris/modules/iris_utils_native_keras.py',
+    '/tfx-src/tfx/examples/iris/iris_utils_native_keras.py',
     ptype=Text,
 )
 
@@ -197,11 +194,11 @@ def _create_pipeline(
 if __name__ == '__main__':
   absl.logging.set_verbosity(absl.logging.INFO)
   # Make sure the version of TFX image used is consistent with the version of
-  # TFX SDK. Here we use tfx:0.21.2 image.
+  # TFX SDK. Here we use tfx:0.22.0 image.
   config = kubeflow_dag_runner.KubeflowDagRunnerConfig(
       kubeflow_metadata_config=kubeflow_dag_runner.
       get_default_kubeflow_metadata_config(),
-      tfx_image='gcr.io/tfx-oss-public/tfx:0.21.2',
+      tfx_image='gcr.io/tfx-oss-public/tfx:0.22.0',
   )
   kfp_runner = kubeflow_dag_runner.KubeflowDagRunner(
       output_filename=__file__ + '.yaml', config=config

@@ -16,7 +16,7 @@ outputs:
   - {name: MLPipeline UI metadata, type: UI metadata}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:ad9bd5648dd0453005225779f25d8cebebc7ca00
+    image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:1.0.0
     command: [python2, -m, trainer.task]
     args: [
       --transformed-data-dir, {inputValue: Transformed data dir},
@@ -29,7 +29,6 @@ implementation:
       --target, {inputValue: Target},
       --preprocessing-module, {inputValue: Preprocessing module},
       --job-dir, {inputValue: Training output dir},
+      --exported-model-dir-uri-output-path, {outputPath: Training output dir},
+      --ui-metadata-output-path, {outputPath: MLPipeline UI metadata},
     ]
-    fileOutputs:
-      Training output dir: /output.txt
-      MLPipeline UI metadata:  /mlpipeline-ui-metadata.json

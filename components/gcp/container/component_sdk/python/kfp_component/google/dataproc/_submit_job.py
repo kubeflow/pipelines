@@ -18,7 +18,10 @@ from ._client import DataprocClient
 from kfp_component.core import KfpExecutionContext, display
 from .. import common as gcp_common
 
-def submit_job(project_id, region, cluster_name, job, wait_interval=30):
+def submit_job(project_id, region, cluster_name, job, wait_interval=30,
+    job_id_output_path='/tmp/kfp/output/dataproc/job_id.txt',
+    job_object_output_path='/tmp/kfp/output/dataproc/job.json',
+):
     """Submits a Cloud Dataproc job.
     
     Args:
@@ -31,12 +34,11 @@ def submit_job(project_id, region, cluster_name, job, wait_interval=30):
             https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs).
         wait_interval (int): The wait seconds between polling the operation. 
             Defaults to 30s.
+        job_id_output_path (str): Path for the ID of the created job
+        job_object_output_path (str): Path for the created job object
 
     Returns:
         The created job payload.
-
-    Output Files:
-        $KFP_OUTPUT_PATH/dataproc/job_id.txt: The ID of the created job.
     """
     if 'reference' not in job:
         job['reference'] = {}
@@ -55,7 +57,9 @@ def submit_job(project_id, region, cluster_name, job, wait_interval=30):
         _dump_metadata(submitted_job, region)
         submitted_job = _wait_for_job_done(client, project_id, region, 
             job_id, wait_interval)
-        return _dump_job(submitted_job)
+        gcp_common.dump_file(job_object_output_path, json.dumps(submitted_job))
+        gcp_common.dump_file(job_id_output_path, submitted_job.get('reference').get('jobId'))
+        return submitted_job
 
 def _wait_for_job_done(client, project_id, region, job_id, wait_interval):
     while True:
@@ -75,10 +79,3 @@ def _dump_metadata(job, region):
             region),
         'Job Details'
     ))
-
-def _dump_job(job):
-    gcp_common.dump_file('/tmp/kfp/output/dataproc/job.json', 
-        json.dumps(job))
-    gcp_common.dump_file('/tmp/kfp/output/dataproc/job_id.txt',
-        job.get('reference').get('jobId'))
-    return job

@@ -30,20 +30,31 @@ const PERIODIC_DEFAULT = {
 };
 const CRON_DEFAULT = { cron: '0 * * * * ?', end_time: undefined, start_time: undefined };
 
+beforeAll(() => {
+  process.env.TZ = 'UTC';
+});
+
 describe('Trigger', () => {
   // tslint:disable-next-line:variable-name
   const RealDate = Date;
 
   function mockDate(isoDate: any): void {
     (global as any).Date = class extends RealDate {
-      constructor() {
+      constructor(...args: any[]) {
         super();
-        return new RealDate(isoDate);
+        if (args.length === 0) {
+          // Use mocked date when calling new Date()
+          return new RealDate(isoDate);
+        } else {
+          // Otherwise, use real Date constructor
+          return new (RealDate as any)(...args);
+        }
       }
     };
   }
-  const testDate = new Date(2018, 11, 21, 7, 53);
-  mockDate(testDate);
+  const now = new Date(2018, 11, 21, 7, 53);
+  mockDate(now);
+  const oneWeekLater = new Date(2018, 11, 28, 7, 53);
 
   it('renders periodic schedule controls for initial render', () => {
     const tree = shallow(<Trigger />);
@@ -113,7 +124,7 @@ describe('Trigger', () => {
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
-          periodic_schedule: { ...PERIODIC_DEFAULT, start_time: testDate },
+          periodic_schedule: { ...PERIODIC_DEFAULT, start_time: now },
         },
       });
     });
@@ -128,7 +139,7 @@ describe('Trigger', () => {
         target: { type: 'checkbox', checked: true },
       });
       (tree.instance() as Trigger).handleChange('startDate')({ target: { value: '2018-11-23' } });
-      (tree.instance() as Trigger).handleChange('endTime')({ target: { value: '08:35' } });
+      (tree.instance() as Trigger).handleChange('startTime')({ target: { value: '08:35' } });
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
@@ -193,7 +204,7 @@ describe('Trigger', () => {
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
-          periodic_schedule: { ...PERIODIC_DEFAULT, end_time: testDate, start_time: testDate },
+          periodic_schedule: { ...PERIODIC_DEFAULT, end_time: oneWeekLater, start_time: now },
         },
       });
     });
@@ -292,6 +303,38 @@ describe('Trigger', () => {
         },
       });
     });
+
+    it('inits with cloned initial props', () => {
+      const spy = jest.fn();
+      const startTime = new Date('2020-01-01T23:53:00.000Z');
+      shallow(
+        <Trigger
+          onChange={spy}
+          initialProps={{
+            maxConcurrentRuns: '3',
+            catchup: false,
+            trigger: {
+              periodic_schedule: {
+                interval_second: '' + 60 * 60 * 3, // 3 hours
+                start_time: startTime.toISOString() as any,
+              },
+            },
+          }}
+        />,
+      );
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy).toHaveBeenLastCalledWith({
+        catchup: false,
+        maxConcurrentRuns: '3',
+        trigger: {
+          periodic_schedule: {
+            end_time: undefined,
+            interval_second: '10800',
+            start_time: startTime,
+          },
+        },
+      });
+    });
   });
 
   describe('cron', () => {
@@ -318,7 +361,7 @@ describe('Trigger', () => {
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
-          cron_schedule: { ...CRON_DEFAULT, start_time: testDate },
+          cron_schedule: { ...CRON_DEFAULT, start_time: new Date('2018-03-23T07:53:00.000Z') },
         },
       });
     });
@@ -336,7 +379,7 @@ describe('Trigger', () => {
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
-          cron_schedule: { ...CRON_DEFAULT, end_time: testDate, cron: '0 0 0 * * ?' },
+          cron_schedule: { ...CRON_DEFAULT, end_time: oneWeekLater, cron: '0 0 0 * * ?' },
         },
       });
     });
@@ -381,6 +424,40 @@ describe('Trigger', () => {
         ...PARAMS_DEFAULT,
         trigger: {
           cron_schedule: { ...CRON_DEFAULT, cron: 'oops this will break!' },
+        },
+      });
+    });
+
+    it('inits with cloned initial props', () => {
+      const spy = jest.fn();
+      const startTime = new Date('2020-01-01T00:00:00.000Z');
+      const endTime = new Date('2020-01-02T01:02:00.000Z');
+      shallow(
+        <Trigger
+          onChange={spy}
+          initialProps={{
+            maxConcurrentRuns: '4',
+            catchup: true,
+            trigger: {
+              cron_schedule: {
+                cron: '0 0 0 ? * 1,5,6',
+                start_time: startTime.toISOString() as any,
+                end_time: endTime.toISOString() as any,
+              },
+            },
+          }}
+        />,
+      );
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy).toHaveBeenLastCalledWith({
+        catchup: true,
+        maxConcurrentRuns: '4',
+        trigger: {
+          cron_schedule: {
+            cron: '0 0 0 ? * 1,5,6',
+            start_time: startTime,
+            end_time: endTime,
+          },
         },
       });
     });

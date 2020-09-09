@@ -14,7 +14,7 @@ export const PodInfo: React.FC<{ name: string; namespace: string }> = ({ name, n
     <PodYaml
       name={name}
       namespace={namespace}
-      errorMessage='Warning: failed to retrieve pod info. Possible reasons include cluster autoscaling, pod preemption or pod cleaned up by time to live configuration'
+      errorMessage='Failed to retrieve pod info. Possible reasons include cluster autoscaling, pod preemption or pod cleaned up by time to live configuration'
       getYaml={getPodYaml}
     />
   );
@@ -32,7 +32,7 @@ export const PodEvents: React.FC<{
     <PodYaml
       name={name}
       namespace={namespace}
-      errorMessage='Warning: failed to retrieve pod events. Possible reasons include cluster autoscaling, pod preemption or pod cleaned up by time to live configuration'
+      errorMessage='Failed to retrieve pod events. Possible reasons include cluster autoscaling, pod preemption or pod cleaned up by time to live configuration'
       getYaml={getPodEventsYaml}
     />
   );

@@ -33,6 +33,8 @@ import (
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -43,6 +45,15 @@ const (
 	HasDefaultBucketEnvVar              = "HAS_DEFAULT_BUCKET"
 	ProjectIDEnvVar                     = "PROJECT_ID"
 	DefaultBucketNameEnvVar             = "BUCKET_NAME"
+)
+
+// Metric variables. Please prefix the metric names with resource_manager_.
+var (
+	// Count the removed workflows due to garbage collection.
+	workflowGCCounter = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "resource_manager_workflow_gc",
+		Help: "The number of gabarage-collected workflows",
+	})
 )
 
 type ClientManagerInterface interface {
@@ -320,6 +331,11 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		return nil, util.NewInternalServerError(err,
 			"Failed to unmarshal workflow spec manifest. Workflow bytes: %s", string(workflowSpecManifestBytes))
 	}
+	if workflow.Workflow == nil {
+		return nil, util.Wrap(
+			util.NewResourceNotFoundError("WorkflowSpecManifest", apiRun.GetName()),
+			"Failed to fetch workflow spec manifest.")
+	}
 
 	parameters := toParametersMap(apiRun.GetPipelineSpec().GetParameters())
 	// Verify no additional parameter provided
@@ -571,6 +587,11 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 		return nil, util.NewInternalServerError(err,
 			"Failed to unmarshal workflow spec manifest. Workflow bytes: %s", string(workflowSpecManifestBytes))
 	}
+	if workflow.Workflow == nil {
+		return nil, util.Wrap(
+			util.NewResourceNotFoundError("WorkflowSpecManifest", apiJob.GetName()),
+			"Failed to fetch workflow spec manifest.")
+	}
 
 	// Verify no additional parameter provided
 	err = workflow.VerifyParameters(toParametersMap(apiJob.GetPipelineSpec().GetParameters()))
@@ -686,7 +707,7 @@ func (r *ResourceManager) DeleteJob(jobID string) error {
 func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error {
 	if _, ok := workflow.ObjectMeta.Labels[util.LabelKeyWorkflowRunId]; !ok {
 		// Skip reporting if the workflow doesn't have the run id label
-		return util.NewInvalidInputError("Workflow missing the Run ID label")
+		return util.NewInvalidInputError("Workflow[%s] missing the Run ID label", workflow.Name)
 	}
 	runId := workflow.ObjectMeta.Labels[util.LabelKeyWorkflowRunId]
 	jobId := workflow.ScheduledWorkflowUUIDAsStringOrEmpty()
@@ -700,6 +721,8 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 		if err != nil {
 			return util.NewInternalServerError(err, "Failed to delete the completed workflow for run %s", runId)
 		}
+		// TODO(jingzhang36): find a proper way to pass collectMetricsFlag here.
+		workflowGCCounter.Inc()
 	}
 
 	if jobId == "" {
@@ -723,6 +746,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 		runDetail := &model.RunDetail{
 			Run: model.Run{
 				UUID:             runId,
+				ExperimentUUID:   experimentRef.ReferenceUUID,
 				DisplayName:      workflow.Name,
 				Name:             workflow.Name,
 				StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),

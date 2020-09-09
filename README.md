@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/kubeflow/pipelines.svg?branch=master)](https://travis-ci.org/kubeflow/pipelines)
+[![Build Status](https://travis-ci.com/kubeflow/pipelines.svg?branch=master)](https://travis-ci.com/kubeflow/pipelines)
 [![Coverage Status](https://coveralls.io/repos/github/kubeflow/pipelines/badge.svg?branch=master)](https://coveralls.io/github/kubeflow/pipelines?branch=master)
 SDK: [![Documentation Status](https://readthedocs.org/projects/kubeflow-pipelines/badge/?version=latest)](https://kubeflow-pipelines.readthedocs.io/en/latest/?badge=latest)
 
@@ -40,6 +40,7 @@ The meeting is happening every other Wed 10-11AM (PST)
 * How to create and deploy a Kubeflow Machine Learning Pipeline (By Lak Lakshmanan)
   * [Part 1: How to create and deploy a Kubeflow Machine Learning Pipeline](https://towardsdatascience.com/how-to-create-and-deploy-a-kubeflow-machine-learning-pipeline-part-1-efea7a4b650f) 
   * [Part 2: How to deploy Jupyter notebooks as components of a Kubeflow ML pipeline](https://towardsdatascience.com/how-to-deploy-jupyter-notebooks-as-components-of-a-kubeflow-ml-pipeline-part-2-b1df77f4e5b3)
+  * [Part 3: How to carry out CI/CD in Machine Learning (“MLOps”) using Kubeflow ML pipelines](https://medium.com/google-cloud/how-to-carry-out-ci-cd-in-machine-learning-mlops-using-kubeflow-ml-pipelines-part-3-bdaf68082112)
 
 ## Acknowledgments
 

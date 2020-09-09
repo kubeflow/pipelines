@@ -68,12 +68,10 @@ else
   SHOULD_CLEANUP_CLUSTER=true
   # Machine type and cluster size is the same as kubeflow deployment to
   # easily compare performance. We can reduce usage later.
-  NODE_POOL_CONFIG_ARG="--num-nodes=2 --machine-type=n1-standard-8 \
+  NODE_POOL_CONFIG_ARG="--num-nodes=2 --machine-type=e2-standard-8 \
     --enable-autoscaling --max-nodes=8 --min-nodes=2"
-  # Use new kubernetes master to improve workload identity stability.
-  KUBERNETES_VERSION_ARG="--cluster-version=1.14.10-gke.27"
   if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
-    WI_ARG="--identity-namespace=$PROJECT.svc.id.goog"
+    WI_ARG="--workload-pool=$PROJECT.svc.id.goog"
     SCOPE_ARG=
   else
     WI_ARG=
@@ -81,7 +79,7 @@ else
     # reference: https://cloud.google.com/compute/docs/access/service-accounts#accesscopesiam
     SCOPE_ARG="--scopes=storage-rw,cloud-platform"
   fi
-  gcloud beta container clusters create ${TEST_CLUSTER} ${SCOPE_ARG} ${NODE_POOL_CONFIG_ARG} ${WI_ARG} ${KUBERNETES_VERSION_ARG}
+  gcloud beta container clusters create ${TEST_CLUSTER} ${SCOPE_ARG} ${NODE_POOL_CONFIG_ARG} ${WI_ARG}
 fi
 
 gcloud container clusters get-credentials ${TEST_CLUSTER}

@@ -75,7 +75,10 @@ for the delete run operation typically these are written to a http.Request
 */
 type DeleteRunParams struct {
 
-	/*ID*/
+	/*ID
+	  The ID of the run to be deleted.
+
+	*/
 	ID string
 
 	timeout    time.Duration

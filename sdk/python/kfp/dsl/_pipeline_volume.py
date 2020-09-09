@@ -38,21 +38,19 @@ class PipelineVolume(V1Volume):
     A PipelineVolume object can be used as an extention of the pipeline
     function's filesystem. It may then be passed between ContainerOps,
     exposing dependencies.
+
+    Args:
+        pvc: The name of an existing PVC
+        volume: Create a deep copy out of a V1Volume or PipelineVolume with no deps
+
+    Raises:
+        ValueError: If volume is not None and kwargs is not None
+                    If pvc is not None and kwargs.pop("name") is not None
     """
     def __init__(self,
                  pvc: str = None,
                  volume: V1Volume = None,
                  **kwargs):
-        """Create a new instance of PipelineVolume.
-
-        Args:
-            pvc: The name of an existing PVC
-            volume: Create a deep copy out of a V1Volume or PipelineVolume
-                with no deps
-        Raises:
-            ValueError: if volume is not None and kwargs is not None
-                        if pvc is not None and kwargs.pop("name") is not None
-        """
         if volume and kwargs:
             raise ValueError("You can't pass a volume along with other "
                              "kwargs.")
@@ -91,6 +89,7 @@ class PipelineVolume(V1Volume):
     def after(self, *ops):
         """Creates a duplicate of self with the required dependecies excluding
         the redundant dependenices.
+
         Args:
             *ops: Pipeline operators to add as dependencies
         """

@@ -15,6 +15,7 @@
 import tempfile
 import textwrap
 import unittest
+import warnings
 import kfp
 from pathlib import Path
 from kfp.components import load_component_from_text, create_component_from_func
@@ -95,6 +96,21 @@ class TestComponentBridge(unittest.TestCase):
         task1 = task_factory1()
         self.assertEqual(task1.pod_annotations['key1'], 'value1')
         self.assertEqual(task1.pod_labels['key1'], 'value1')
+
+    def test_volatile_components(self):
+        component_text = textwrap.dedent('''\
+            metadata:
+                annotations:
+                    volatile_component: "true"
+            implementation:
+                container:
+                    image: busybox
+            '''
+        )
+        task_factory1 = load_component_from_text(text=component_text)
+
+        task1 = task_factory1()
+        self.assertEqual(task1.execution_options.caching_strategy.max_cache_staleness, 'P0D')
 
     def test_type_compatibility_check_not_failing_when_disabled(self):
         component_a = textwrap.dedent('''\
@@ -194,3 +210,36 @@ class TestComponentBridge(unittest.TestCase):
         full_command_line = task.command + task.arguments
         for arg in full_command_line:
             self.assertNotIn('PipelineParam', arg)
+
+    def test_converted_outputs(self):
+        component_text = textwrap.dedent('''\
+            outputs:
+            - name: Output 1
+            implementation:
+                container:
+                    image: busybox
+                    command:
+                    - producer
+                    - {outputPath: Output 1}  # Outputs must be used in the implementation
+            '''
+        )
+        task_factory1 = load_component_from_text(component_text)
+        task1 = task_factory1()
+
+        self.assertSetEqual(set(task1.outputs.keys()), {'Output 1', 'output_1'})
+        self.assertIsNotNone(task1.output)
+
+    def test_reusable_component_warnings(self):
+        op1 = load_component_from_text('''\
+            implementation:
+                container:
+                    image: busybox
+            '''
+        )
+        with warnings.catch_warnings(record=True) as warning_messages:
+            op1()
+            deprecation_messages = list(str(message) for message in warning_messages if message.category == DeprecationWarning)
+            self.assertListEqual(deprecation_messages, [])
+
+        with self.assertWarnsRegex(DeprecationWarning, expected_regex='reusable'):
+            kfp.dsl.ContainerOp(name='name', image='image')

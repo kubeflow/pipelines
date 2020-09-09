@@ -1,0 +1,18 @@
+name: Producer
+outputs:
+- {name: Output 1}
+- {name: Output 2}
+implementation:
+  container:
+    image: alpine
+    command:
+    - sh
+    - -c
+    - |
+      mkdir -p "$(dirname "$0")"
+      mkdir -p "$(dirname "$1")"
+      echo "Data 1" > $0
+      echo "Data 2" > $1
+    args:
+    - {outputPath: Output 1}
+    - {outputPath: Output 2}

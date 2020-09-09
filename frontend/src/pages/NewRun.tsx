@@ -148,10 +148,15 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
   ];
 
   private pipelineVersionSelectorColumns = [
-    { label: 'Version name', flex: 1, sortKey: PipelineVersionSortKeys.NAME },
+    {
+      customRenderer: NameWithTooltip,
+      flex: 2,
+      label: 'Version name',
+      sortKey: PipelineVersionSortKeys.NAME,
+    },
     // TODO(jingzhang36): version doesn't have description field; remove it and
     // fix the rendering.
-    { label: 'Description', flex: 2, customRenderer: descriptionCustomRenderer },
+    { label: 'Description', flex: 1, customRenderer: descriptionCustomRenderer },
     { label: 'Uploaded on', flex: 1, sortKey: PipelineVersionSortKeys.CREATED_AT },
   ];
 
@@ -554,6 +559,11 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
               <div>Choose a method by which new runs will be triggered</div>
 
               <Trigger
+                initialProps={{
+                  trigger: this.state.trigger,
+                  maxConcurrentRuns: this.state.maxConcurrentRuns,
+                  catchup: this.state.catchup,
+                }}
                 onChange={({ trigger, maxConcurrentRuns, catchup }) =>
                   this.setStateSafe(
                     {
@@ -653,10 +663,15 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
     } else if (originalRecurringRunId) {
       // If we are cloning a recurring run, fetch the original
       try {
-        const originalRun = await Apis.jobServiceApi.getJob(originalRecurringRunId);
-        await this._prepareFormFromClone(originalRun);
+        const originalJob = await Apis.jobServiceApi.getJob(originalRecurringRunId);
+        await this._prepareFormFromClone(originalJob);
+        this.setStateSafe({
+          trigger: originalJob.trigger,
+          maxConcurrentRuns: originalJob.max_concurrency,
+          catchup: !originalJob.no_catchup,
+        });
         if (!experimentId) {
-          experimentId = RunUtils.getFirstExperimentReferenceId(originalRun);
+          experimentId = RunUtils.getFirstExperimentReferenceId(originalJob);
         }
       } catch (err) {
         await this.showPageError(

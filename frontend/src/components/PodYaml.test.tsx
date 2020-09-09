@@ -84,7 +84,7 @@ describe('PodInfo', () => {
     const { getByText } = render(<PodInfo name='test-pod' namespace='test-ns' />);
     await act(TestUtils.flushPromises);
     getByText(
-      'Warning: failed to retrieve pod info. Possible reasons include cluster autoscaling, pod preemption or pod cleaned up by time to live configuration',
+      'Failed to retrieve pod info. Possible reasons include cluster autoscaling, pod preemption or pod cleaned up by time to live configuration',
     );
   });
 
@@ -162,7 +162,7 @@ describe('PodEvents', () => {
     const { getByText } = render(<PodEvents name='test-pod' namespace='test-ns' />);
     await act(TestUtils.flushPromises);
     getByText(
-      'Warning: failed to retrieve pod events. Possible reasons include cluster autoscaling, pod preemption or pod cleaned up by time to live configuration',
+      'Failed to retrieve pod events. Possible reasons include cluster autoscaling, pod preemption or pod cleaned up by time to live configuration',
     );
   });
 });

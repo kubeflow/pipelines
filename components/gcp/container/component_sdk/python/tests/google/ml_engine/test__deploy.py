@@ -36,7 +36,11 @@ class TestDeploy(unittest.TestCase):
         }
         mock_create_version.return_value = expected_version
 
-        result = deploy('gs://model/uri', 'mock-project')
+        result = deploy('gs://model/uri', 'mock-project',
+            model_uri_output_path='/tmp/kfp/output/ml_engine/model_uri.txt',
+            model_name_output_path='/tmp/kfp/output/ml_engine/model_name.txt',
+            version_name_output_path='/tmp/kfp/output/ml_engine/version_name.txt',
+        )
 
         self.assertEqual(expected_version, result)
         mock_create_version.assert_called_with(
@@ -47,7 +51,9 @@ class TestDeploy(unittest.TestCase):
             None, # python_version
             None, # version
             False, # replace_existing_version
-            30)
+            30,
+            version_name_output_path='/tmp/kfp/output/ml_engine/version_name.txt',
+        )
 
     def test_deploy_tf_exporter_path(self, mock_set_default_version, mock_create_version, 
         mock_create_model, mock_storage_client):
@@ -65,7 +71,11 @@ class TestDeploy(unittest.TestCase):
         }
         mock_create_version.return_value = expected_version
 
-        result = deploy('gs://model/uri', 'mock-project')
+        result = deploy('gs://model/uri', 'mock-project',
+            model_uri_output_path='/tmp/kfp/output/ml_engine/model_uri.txt',
+            model_name_output_path='/tmp/kfp/output/ml_engine/model_name.txt',
+            version_name_output_path='/tmp/kfp/output/ml_engine/version_name.txt',
+        )
 
         self.assertEqual(expected_version, result)
         mock_create_version.assert_called_with(
@@ -76,7 +86,9 @@ class TestDeploy(unittest.TestCase):
             None, # python_version
             None, # version
             False, # replace_existing_version
-            30)
+            30,
+            version_name_output_path='/tmp/kfp/output/ml_engine/version_name.txt',
+        )
 
     def test_deploy_set_default_version(self, mock_set_default_version, mock_create_version, 
         mock_create_model, mock_storage_client):
@@ -91,7 +103,11 @@ class TestDeploy(unittest.TestCase):
         mock_create_version.return_value = expected_version
         mock_set_default_version.return_value = expected_version
 
-        result = deploy('gs://model/uri', 'mock-project', set_default=True)
+        result = deploy('gs://model/uri', 'mock-project', set_default=True,
+            model_uri_output_path='/tmp/kfp/output/ml_engine/model_uri.txt',
+            model_name_output_path='/tmp/kfp/output/ml_engine/model_name.txt',
+            version_name_output_path='/tmp/kfp/output/ml_engine/version_name.txt',
+        )
 
         self.assertEqual(expected_version, result)
         mock_set_default_version.assert_called_with(
