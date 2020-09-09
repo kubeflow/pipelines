@@ -28,6 +28,7 @@ require (
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/golang/protobuf v1.4.2
 	github.com/google/addlicense v0.0.0-20200422172452-68a83edd47bc // indirect
+	github.com/google/go-cmp v0.4.0
 	github.com/gophercloud/gophercloud v0.7.0 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20181103185306-d547d1d9531e // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.1.0 // indirect
@@ -37,7 +38,7 @@ require (
 	github.com/jcmturner/gofork v1.0.0 // indirect
 	github.com/jinzhu/gorm v1.9.16
 	github.com/klauspost/compress v1.9.7 // indirect
-	github.com/kubeflow/pipelines v0.0.0-00010101000000-000000000000
+	github.com/kubeflow/pipelines v0.0.0-20200908205752-f98252f3d7e0
 	github.com/lib/pq v1.3.0 // indirect
 	github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a // indirect
 	github.com/mattn/go-sqlite3 v1.14.2
@@ -71,7 +72,7 @@ require (
 	k8s.io/apimachinery v0.19.0
 	k8s.io/client-go v0.19.0
 	k8s.io/klog v1.0.0 // indirect
-	k8s.io/kubernetes v1.11.1 // indirect
+	k8s.io/kubernetes v1.11.1
 	k8s.io/utils v0.0.0-20200821003339-5e75c0163111 // indirect
 	sigs.k8s.io/controller-runtime v0.0.0-20181121180216-5558165425ef // indirect
 	sigs.k8s.io/controller-tools v0.3.0 // indirect
@@ -79,8 +80,8 @@ require (
 	upper.io/db.v3 v3.6.3+incompatible // indirect
 )
 
-replace github.com/argoproj/argo => ../../../../../../../pkg/mod/github.com/argoproj/argo@v0.0.0-20200909173032-f930c0296c41
-// Windows ..\..\..\..\..\..\..\pkg\mod\github.com\argoproj\argo@v0.0.0-20200909173032-f930c0296c41
+replace github.com/argoproj/argo => ..\..\..\..\..\..\..\pkg\mod\github.com\argoproj\argo@v0.0.0-20200909173032-f930c0296c41 // Windows
+// ../../../../../../../pkg/mod/github.com/argoproj/argo@v0.0.0-20200909173032-f930c0296c41 // Linux
 
-replace github.com/kubeflow/pipelines => ../../.. 
-// Windows ..\..\..
+replace github.com/kubeflow/pipelines => ..\..\.. // Windows 
+// ../../.. // Linux

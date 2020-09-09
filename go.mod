@@ -2,8 +2,8 @@ module github.com/kubeflow/pipelines
 
 require (
 	cloud.google.com/go v0.44.3 // indirect
-	github.com/Masterminds/squirrel v0.0.0-20190107164353-fa735ea14f09
-	github.com/VividCortex/mysqlerr v0.0.0-20170204212430-6c6b55f8796f
+	github.com/Masterminds/squirrel v0.0.0-20190107164353-fa735ea14f09 // indirect
+	github.com/VividCortex/mysqlerr v0.0.0-20170204212430-6c6b55f8796f // indirect
 	github.com/argoproj/argo v2.3.0+incompatible
 	github.com/cenkalti/backoff v2.0.0+incompatible
 	github.com/denisenkom/go-mssqldb v0.0.0-20181014144952-4e0d7dc8888f // indirect
@@ -11,7 +11,7 @@ require (
 	github.com/elazarl/goproxy v0.0.0-20181111060418-2ce16c963a8a // indirect
 	github.com/emicklei/go-restful v2.8.0+incompatible // indirect
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5 // indirect
-	github.com/fsnotify/fsnotify v1.4.7
+	github.com/fsnotify/fsnotify v1.4.7 // indirect
 	github.com/ghodss/yaml v0.0.0-20180820084758-c7ce16629ff4
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8 // indirect
 	github.com/go-ini/ini v1.38.1 // indirect
@@ -48,7 +48,7 @@ require (
 	github.com/lib/pq v1.0.0 // indirect
 	github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a // indirect
 	github.com/mattn/go-sqlite3 v1.9.0
-	github.com/minio/minio-go v6.0.14+incompatible
+	github.com/minio/minio-go v6.0.14+incompatible // indirect
 	github.com/mitchellh/go-homedir v0.0.0-20180523094522-3864e76763d9 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742 // indirect
@@ -57,12 +57,12 @@ require (
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/peterhellberg/duration v0.0.0-20191119133758-ec6baeebcd10
 	github.com/pkg/errors v0.8.0
-	github.com/prometheus/client_golang v0.9.2
+	github.com/prometheus/client_golang v0.9.2 // indirect
 	github.com/robfig/cron v0.0.0-20180505203441-b41be1df6967
 	github.com/sirupsen/logrus v1.0.6
 	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d // indirect
 	github.com/smartystreets/goconvey v0.0.0-20181108003508-044398e4856c // indirect
-	github.com/spf13/viper v1.3.0
+	github.com/spf13/viper v1.3.0 // indirect
 	github.com/stretchr/testify v1.3.0
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v0.0.0-20170224212429-dcecefd839c4 // indirect
