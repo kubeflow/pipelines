@@ -146,7 +146,7 @@ func initWithExperimentAndPipelineVersion(t *testing.T) (*resource.FakeClientMan
 			},
 		},
 	},
-		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"), true)
 
 	return clientManager, resourceManager, experiment
 }

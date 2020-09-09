@@ -325,7 +325,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 				Relationship: api.Relationship_OWNER,
 			},
 		},
-	}, []byte(testWorkflow.ToStringForStore()))
+	}, []byte(testWorkflow.ToStringForStore()), true)
 	assert.Nil(t, err)
 
 	// The pipeline specified via pipeline id will be converted to this
@@ -515,7 +515,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 				Relationship: api.Relationship_OWNER,
 			},
 		},
-	}, []byte(testWorkflow.ToStringForStore()))
+	}, []byte(testWorkflow.ToStringForStore()), true)
 	assert.Nil(t, err)
 
 	apiRun := &api.Run{
@@ -971,7 +971,7 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 				Relationship: api.Relationship_OWNER,
 			},
 		},
-	}, []byte(testWorkflow.ToStringForStore()))
+	}, []byte(testWorkflow.ToStringForStore()), true)
 	assert.Nil(t, err)
 
 	// The pipeline specified via pipeline id will be converted to this
@@ -1034,7 +1034,7 @@ func TestCreateJob_ThroughPipelineVersion(t *testing.T) {
 				Relationship: api.Relationship_OWNER,
 			},
 		},
-	}, []byte(testWorkflow.ToStringForStore()))
+	}, []byte(testWorkflow.ToStringForStore()), true)
 	assert.Nil(t, err)
 
 	job := &api.Job{
@@ -2094,7 +2094,7 @@ func TestCreatePipelineVersion(t *testing.T) {
 				},
 			},
 		},
-		[]byte(testWorkflow.ToStringForStore()))
+		[]byte(testWorkflow.ToStringForStore()), true)
 	assert.Nil(t, err)
 
 	defer store.Close()
@@ -2135,7 +2135,7 @@ func TestCreatePipelineVersion_ComplexPipelineVersion(t *testing.T) {
 				},
 			},
 		},
-		[]byte(strings.TrimSpace(complexPipeline)))
+		[]byte(strings.TrimSpace(complexPipeline)), true)
 	assert.Nil(t, err)
 
 	_, err = manager.GetPipeline(createdPipeline.UUID)
@@ -2174,7 +2174,7 @@ func TestCreatePipelineVersion_CreatePipelineVersionFileError(t *testing.T) {
 				},
 			},
 		},
-		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"), true)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "bad object store")
 
@@ -2210,7 +2210,7 @@ func TestCreatePipelineVersion_GetParametersError(t *testing.T) {
 				},
 			},
 		},
-		[]byte("I am invalid yaml"))
+		[]byte("I am invalid yaml"), true)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Failed to parse the parameter")
 }
@@ -2249,7 +2249,7 @@ func TestCreatePipelineVersion_StorePipelineVersionMetadataError(t *testing.T) {
 				},
 			},
 		},
-		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"), true)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "database is closed")
 }
@@ -2280,7 +2280,7 @@ func TestDeletePipelineVersion(t *testing.T) {
 				},
 			},
 		},
-		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"), true)
 
 	// Delete the above pipeline_version.
 	err = manager.DeletePipelineVersion(FakeUUIDOne)
@@ -2317,7 +2317,7 @@ func TestDeletePipelineVersion_FileError(t *testing.T) {
 				},
 			},
 		},
-		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"), true)
 
 	// Switch to a bad object store
 	manager.objectStore = &FakeBadObjectStore{}

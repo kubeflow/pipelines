@@ -32,9 +32,10 @@ import (
 
 // These are valid conditions of a ScheduledWorkflow.
 const (
-	FormFileKey               = "uploadfile"
-	NameQueryStringKey        = "name"
-	DescriptionQueryStringKey = "description"
+	FormFileKey                        = "uploadfile"
+	NameQueryStringKey                 = "name"
+	UpdateDefaultVersionQueryStringKey = "updateDefaultVersion"
+	DescriptionQueryStringKey          = "description"
 	// Pipeline Id in the query string specifies a pipeline when creating versions.
 	PipelineKey = "pipelineid"
 )
@@ -139,7 +140,8 @@ func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *h
 		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Error read pipeline version file."))
 		return
 	}
-
+	// HERE HERE HERE
+	// SAME WITH MY OWN PARAMETER
 	versionNameQueryString := r.URL.Query().Get(NameQueryStringKey)
 	// If new version's name is not included in query string, use file name.
 	pipelineVersionName, err := GetPipelineName(versionNameQueryString, header.Filename)
@@ -147,13 +149,18 @@ func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *h
 		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Invalid pipeline version name."))
 		return
 	}
-
 	pipelineId := r.URL.Query().Get(PipelineKey)
 	if len(pipelineId) == 0 {
 		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Please specify a pipeline id when creating versions."))
 		return
 	}
-
+	defaultVersionQueryString := r.URL.Query().Get(UpdateDefaultVersionQueryStringKey)
+	// If new version's name is not included in query string, default to true.
+	updateDefaultVersion, err := GetDefaultVersionUpdate(defaultVersionQueryString)
+	if err != nil {
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Invalid pipeline version name."))
+		return
+	}
 	newPipelineVersion, err := s.resourceManager.CreatePipelineVersion(
 		&api.PipelineVersion{
 			Name: pipelineVersionName,
@@ -166,7 +173,7 @@ func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *h
 					Relationship: api.Relationship_OWNER,
 				},
 			},
-		}, pipelineFile)
+		}, pipelineFile, updateDefaultVersion)
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating pipeline version"))
 		return
