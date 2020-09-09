@@ -56,11 +56,15 @@ def main(argv=None):
   client = _utils.get_sagemaker_client(args.region, args.endpoint_url, assume_role_arn=args.assume_role)
   endpoint_config_name = _utils.get_current_endpoint_config(client, vars(args))
   logging.info('Submitting Endpoint request to SageMaker...')
-  endpoint_name = _utils.deploy_model(client, vars(args))
+  endpoint_name = None
+  if _utils.endpoint_needs_update(client, vars(args)):
+    endpoint_name = _utils.update_deployed_model(client, vars(args))
+  else:
+    endpoint_name = _utils.deploy_model(client, vars(args))
+
   logging.info('Endpoint creation request submitted. Waiting for completion...')
   _utils.wait_for_endpoint_creation(client, endpoint_name)
   _utils.cleanup_endpoint_config(client, endpoint_config_name, vars(args))
-
   _utils.write_output(args.endpoint_name_output_path, endpoint_name)
 
   logging.info('Endpoint creation completed.')

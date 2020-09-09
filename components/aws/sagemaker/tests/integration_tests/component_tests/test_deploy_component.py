@@ -46,7 +46,7 @@ def run_predict_mnist(boto3_session, endpoint_name, download_dir):
     "test_file_dir",
     [
         pytest.param(
-            "resources/config/kmeans-mnist-deploy", marks=pytest.mark.canary_test
+            "resources/config/kmeans-mnist-deploy"
         ),
         pytest.param(
             "resources/config/kmeans-mnist-endpoint", marks=pytest.mark.canary_test
@@ -57,7 +57,6 @@ def test_create_endpoint(
     kfp_client, experiment_id, boto3_session, sagemaker_client, test_file_dir
 ):
 
-    print(f"running tests in:{test_file_dir}")
     download_dir = utils.mkdir(os.path.join(test_file_dir + "/generated"))
     test_params = utils.load_params(
         utils.replace_placeholders(
