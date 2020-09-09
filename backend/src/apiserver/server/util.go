@@ -48,18 +48,19 @@ func GetPipelineName(queryString string, fileName string) (string, error) {
 }
 
 func GetDefaultVersionUpdate(queryString string) (bool, error) {
-	updateDefaultVersionString, err := url.QueryUnescape(updateDefaultVersionQueryString)
+	updateDefaultVersionString, err := url.QueryUnescape(queryString)
 	if err != nil {
-		return "", util.NewInvalidInputErrorWithDetails(err, "Update pipeline version value in the query string has invalid format.")
+		return false, util.NewInvalidInputErrorWithDetails(err, "Update pipeline version value in the query string has invalid format.")
+	}
 	if updateDefaultVersionString == "" {
 		updateDefaultVersionString = "true"
 	}
 	updateDefaultVersion, err := strconv.ParseBool(updateDefaultVersionString)
 	if err != nil {
-		return "", util.NewInvalidInputErrorWithDetails(err, "Update pipeline version value in the query string has invalid value.")
+		return false, util.NewInvalidInputErrorWithDetails(err, "Update pipeline version value in the query string has invalid value.")
 	}
 	return updateDefaultVersion, nil
-
+}
 
 func loadFile(fileReader io.Reader, maxFileLength int) ([]byte, error) {
 	reader := bufio.NewReader(fileReader)

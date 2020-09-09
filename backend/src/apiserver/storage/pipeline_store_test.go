@@ -605,6 +605,59 @@ func TestCreatePipelineVersion(t *testing.T) {
 	assert.Equal(t, pipeline.DefaultVersionId, fakeUUIDTwo, "Got unexpected default version id.")
 }
 
+func TestCreatePipelineVersionNotUpdateDefaultVersion(t *testing.T) {
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(
+		db,
+		util.NewFakeTimeForEpoch(),
+		util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+
+	// Create a pipeline first.
+	pipelineStore.CreatePipeline(
+		&model.Pipeline{
+			Name:       "pipeline_1",
+			Parameters: `[{"Name": "param1"}]`,
+			Status:     model.PipelineReady,
+		})
+
+	// Create a version under the above pipeline.
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDTwo, nil)
+	pipelineVersion := &model.PipelineVersion{
+		Name:          "pipeline_version_1",
+		Parameters:    `[{"Name": "param1"}]`,
+		PipelineId:    fakeUUID,
+		Status:        model.PipelineVersionCreating,
+		CodeSourceUrl: "code_source_url",
+	}
+	pipelineVersionCreated, err := pipelineStore.CreatePipelineVersion(
+		pipelineVersion, false)
+
+	// Check whether created pipeline version is as expected.
+	pipelineVersionExpected := model.PipelineVersion{
+		UUID:           fakeUUIDTwo,
+		CreatedAtInSec: 2,
+		Name:           "pipeline_version_1",
+		Parameters:     `[{"Name": "param1"}]`,
+		Status:         model.PipelineVersionCreating,
+		PipelineId:     fakeUUID,
+		CodeSourceUrl:  "code_source_url",
+	}
+	assert.Nil(t, err)
+	assert.Equal(
+		t,
+		pipelineVersionExpected,
+		*pipelineVersionCreated,
+		"Got unexpected pipeline.")
+
+	// Check whether pipeline has updated default version id.
+	pipeline, err := pipelineStore.GetPipeline(fakeUUID)
+	assert.Nil(t, err)
+	assert.NotEqual(t, pipeline.DefaultVersionId, fakeUUIDTwo, "Got unexpected default version id.")
+	assert.Equal(t, pipeline.DefaultVersionId, fakeUUID, "Got unexpected default version id.")
+
+}
+
 func TestCreatePipelineVersion_DuplicateKey(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
