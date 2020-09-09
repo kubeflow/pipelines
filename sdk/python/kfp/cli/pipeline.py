@@ -63,7 +63,7 @@ def upload(ctx, pipeline_name, package_file):
 )
 @click.argument("package-file")
 @click.pass_context
-def upload_version(ctx, package_file, pipeline_version, pipeline_id=None, pipeline_name=None):
+def upload_version(ctx, package_file, pipeline_version, pipeline_id=None, pipeline_name=None, update_default_version=True):
     """Upload a version of the KFP pipeline"""
     client = ctx.obj["client"]
     if bool(pipeline_id) == bool(pipeline_name):
@@ -74,7 +74,7 @@ def upload_version(ctx, package_file, pipeline_version, pipeline_id=None, pipeli
             raise ValueError("Can't find a pipeline with name: %s" % pipeline_name)
     logging.info("The pipeline id is: %s" % pipeline_id)
     version = client.pipeline_uploads.upload_pipeline_version(
-        package_file, name=pipeline_version, pipelineid=pipeline_id)
+        package_file, name=pipeline_version, pipelineid=pipeline_id, updatedefaultversion=update_default_version)
     logging.info(
         "The %s version of the pipeline %s has been submitted\n" %
             (pipeline_version, pipeline_id))
