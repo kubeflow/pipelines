@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import ExperimentDetails from './ExperimentDetails';
+import EnhancedExperimentDetails, { ExperimentDetails } from './ExperimentDetails';
 import TestUtils from '../TestUtils';
 import { ApiExperiment } from '../apis/experiment';
 import { Apis } from '../lib/Apis';
@@ -26,6 +26,10 @@ import { RunStorageState } from '../apis/run';
 import { ToolbarProps } from '../components/Toolbar';
 import { range } from 'lodash';
 import { ButtonKeys } from '../lib/Buttons';
+import { render } from '@testing-library/react';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
+import { Router } from 'react-router-dom';
+import { createMemoryHistory } from 'history';
 
 describe('ExperimentDetails', () => {
   let tree: ReactWrapper | ShallowWrapper;
@@ -108,7 +112,9 @@ describe('ExperimentDetails', () => {
   afterEach(async () => {
     // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
     // depends on mocks/spies
-    await tree.unmount();
+    if (tree.exists()) {
+      await tree.unmount();
+    }
   });
 
   it('renders a page with no runs or recurring runs', async () => {
@@ -499,5 +505,31 @@ describe('ExperimentDetails', () => {
         .at(i)
         .simulate('click');
     }
+  });
+
+  describe('EnhancedExperimentDetails', () => {
+    it('renders ExperimentDetails initially', () => {
+      render(<EnhancedExperimentDetails {...generateProps()}></EnhancedExperimentDetails>);
+      expect(getExperimentSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('redirects to ExperimentList page if namespace changes', () => {
+      const history = createMemoryHistory();
+      const { rerender } = render(
+        <Router history={history}>
+          <NamespaceContext.Provider value='test-ns-1'>
+            <EnhancedExperimentDetails {...generateProps()} />
+          </NamespaceContext.Provider>
+        </Router>,
+      );
+      rerender(
+        <Router history={history}>
+          <NamespaceContext.Provider value='test-ns-2'>
+            <EnhancedExperimentDetails {...generateProps()} />
+          </NamespaceContext.Provider>
+        </Router>,
+      );
+      expect(history.location.pathname).toEqual(RoutePage.EXPERIMENTS);
+    });
   });
 });

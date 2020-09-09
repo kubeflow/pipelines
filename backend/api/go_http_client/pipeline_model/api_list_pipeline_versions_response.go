@@ -32,10 +32,10 @@ import (
 // swagger:model apiListPipelineVersionsResponse
 type APIListPipelineVersionsResponse struct {
 
-	// next page token
+	// The token to list the next page of pipeline versions.
 	NextPageToken string `json:"next_page_token,omitempty"`
 
-	// total size
+	// The total number of pipeline versions for the given query.
 	TotalSize int32 `json:"total_size,omitempty"`
 
 	// versions

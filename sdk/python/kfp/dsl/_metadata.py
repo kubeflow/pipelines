@@ -20,11 +20,13 @@ from ..components.structures import ComponentSpec, InputSpec, OutputSpec
 
 def _annotation_to_typemeta(annotation):
   '''_annotation_to_type_meta converts an annotation to a type structure
+
   Args:
     annotation(BaseType/str/dict): input/output annotations
       BaseType: registered in kfp.dsl.types
       str: either a string of a dict serialization or a string of the type name
       dict: type name and properties. note that the properties values can be dict.
+
   Returns:
     dict or string representing the type
     '''

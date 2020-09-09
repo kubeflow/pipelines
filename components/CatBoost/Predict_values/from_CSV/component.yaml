@@ -1,0 +1,108 @@
+name: Catboost predict values
+description: |-
+  Predict values with a CatBoost model.
+
+      Args:
+          data_path: Path for the data in CSV format.
+          model_path: Path for the trained model in binary CatBoostModel format.
+          label_column: Column containing the label data.
+          predictions_path: Output path for the predictions.
+
+      Outputs:
+          predictions: Predictions in text format.
+
+      Annotations:
+          author: Alexey Volkov <alexey.volkov@ark-kun.com>
+inputs:
+- {name: data, type: CSV}
+- {name: model, type: CatBoostModel}
+- {name: label_column, type: Integer, optional: true}
+outputs:
+- {name: predictions}
+implementation:
+  container:
+    image: python:3.7
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'catboost==0.23' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet
+      --no-warn-script-location 'catboost==0.23' --user) && "$0" "$@"
+    - python3
+    - -u
+    - -c
+    - |
+      def _make_parent_dirs_and_return_path(file_path: str):
+          import os
+          os.makedirs(os.path.dirname(file_path), exist_ok=True)
+          return file_path
+
+      def catboost_predict_values(
+          data_path,
+          model_path,
+          predictions_path,
+
+          label_column = None,
+      ):
+          '''Predict values with a CatBoost model.
+
+          Args:
+              data_path: Path for the data in CSV format.
+              model_path: Path for the trained model in binary CatBoostModel format.
+              label_column: Column containing the label data.
+              predictions_path: Output path for the predictions.
+
+          Outputs:
+              predictions: Predictions in text format.
+
+          Annotations:
+              author: Alexey Volkov <alexey.volkov@ark-kun.com>
+          '''
+          import tempfile
+
+          from catboost import CatBoost, Pool
+          import numpy
+
+          if label_column:
+              column_descriptions = {label_column: 'Label'}
+              column_description_path = tempfile.NamedTemporaryFile(delete=False).name
+              with open(column_description_path, 'w') as column_description_file:
+                  for idx, kind in column_descriptions.items():
+                      column_description_file.write('{}\t{}\n'.format(idx, kind))
+          else:
+              column_description_path = None
+
+          eval_data = Pool(
+              data_path,
+              column_description=column_description_path,
+              has_header=True,
+              delimiter=',',
+          )
+
+          model = CatBoost()
+          model.load_model(model_path)
+
+          predictions = model.predict(eval_data, prediction_type='RawFormulaVal')
+          numpy.savetxt(predictions_path, predictions)
+
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Catboost predict values', description='Predict values with a CatBoost model.\n\n    Args:\n        data_path: Path for the data in CSV format.\n        model_path: Path for the trained model in binary CatBoostModel format.\n        label_column: Column containing the label data.\n        predictions_path: Output path for the predictions.\n\n    Outputs:\n        predictions: Predictions in text format.\n\n    Annotations:\n        author: Alexey Volkov <alexey.volkov@ark-kun.com>')
+      _parser.add_argument("--data", dest="data_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--model", dest="model_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--label-column", dest="label_column", type=int, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--predictions", dest="predictions_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parsed_args = vars(_parser.parse_args())
+
+      _outputs = catboost_predict_values(**_parsed_args)
+    args:
+    - --data
+    - {inputPath: data}
+    - --model
+    - {inputPath: model}
+    - if:
+        cond: {isPresent: label_column}
+        then:
+        - --label-column
+        - {inputValue: label_column}
+    - --predictions
+    - {outputPath: predictions}

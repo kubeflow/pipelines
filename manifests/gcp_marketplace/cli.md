@@ -38,12 +38,17 @@ Kubeflow Pipelines requires a minimum 3 node cluster with each node having a min
 Create a new cluster from the command line:
 
 ```shell
+# The following parameters can be customized based on your needs.
+
 export CLUSTER=kubeflow-pipelines-cluster
 export ZONE=us-west1-a
 export MACHINE_TYPE=n1-standard-2
+export SCOPES="cloud-platform" # This scope is needed for running some pipeline samples. Read the warning below for its security implications.
+
 
 gcloud config set project <your_project>
-gcloud container clusters create "$CLUSTER" --zone "$ZONE" --machine-type "$MACHINE_TYPE"
+gcloud container clusters create "$CLUSTER" --zone "$ZONE" --machine-type "$MACHINE_TYPE" \
+  --scopes $SCOPES
 ```
 
 Configure `kubectl` to connect to the new cluster:
@@ -51,6 +56,8 @@ Configure `kubectl` to connect to the new cluster:
 ```shell
 gcloud container clusters get-credentials "$CLUSTER" --zone "$ZONE"
 ```
+
+> **Warning**: Using `SCOPES="cloud-platform"` grants all GCP permissions to the cluster. For a more secure cluster setup, refer to [Authenticating Pipelines to GCP](https://www.kubeflow.org/docs/gke/authentication/#authentication-from-kubeflow-pipelines).
 
 ### <a name="install-application-resource-definition"></a>Install the application resource definition
 

@@ -197,9 +197,6 @@ func verifyPipeline(t *testing.T, pipeline *model.APIPipeline) {
 			{Name: "param1", Value: "hello"}, // Default value in the pipeline template
 			{Name: "param2"},                 // No default value in the pipeline
 		},
-		// TODO(jingzhang36): after version API launch, remove the following field.
-		// This is because after the version API launch, we won't have defautl
-		// version produced automatically when creating pipeline.
 		DefaultVersion: &model.APIPipelineVersion{
 			CreatedAt: pipeline.CreatedAt,
 			ID:        pipeline.ID,
@@ -217,8 +214,6 @@ func verifyPipeline(t *testing.T, pipeline *model.APIPipeline) {
 func TestPipelineAPI(t *testing.T) {
 	suite.Run(t, new(PipelineApiTest))
 }
-
-// TODO(jingzhang36): include UploadPipelineVersion in integration test
 
 func (s *PipelineApiTest) TearDownSuite() {
 	if *runIntegrationTests {

@@ -58,10 +58,32 @@ class TestContainerBuild(unittest.TestCase):
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
 
     # check
-    builder = ContainerBuilder(gcs_staging=GCS_BASE, default_image_name=DEFAULT_IMAGE_NAME, namespace='default')
+    builder = ContainerBuilder(gcs_staging=GCS_BASE,
+                               default_image_name=DEFAULT_IMAGE_NAME,
+                               namespace='default')
     generated_yaml = builder._generate_kaniko_spec(docker_filename='dockerfile',
-                                                   context='gs://mlpipeline/kaniko_build.tar.gz', target_image='gcr.io/mlpipeline/kaniko_image:latest')
+                                                   context='gs://mlpipeline/kaniko_build.tar.gz',
+                                                   target_image='gcr.io/mlpipeline/kaniko_image:latest')
     with open(os.path.join(test_data_dir, 'kaniko.basic.yaml'), 'r') as f:
+      golden = yaml.safe_load(f)
+
+    self.assertEqual(golden, generated_yaml)
+
+  def test_generate_kaniko_yaml_kubeflow(self, mock_gcshelper):
+    """ Test generating the kaniko job yaml for Kubeflow deployment """
+
+    # prepare
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+
+    # check
+    builder = ContainerBuilder(gcs_staging=GCS_BASE,
+                               default_image_name=DEFAULT_IMAGE_NAME,
+                               namespace='user',
+                               service_account='default-editor',)
+    generated_yaml = builder._generate_kaniko_spec(docker_filename='dockerfile',
+                                                   context='gs://mlpipeline/kaniko_build.tar.gz',
+                                                   target_image='gcr.io/mlpipeline/kaniko_image:latest',)
+    with open(os.path.join(test_data_dir, 'kaniko.kubeflow.yaml'), 'r') as f:
       golden = yaml.safe_load(f)
 
     self.assertEqual(golden, generated_yaml)

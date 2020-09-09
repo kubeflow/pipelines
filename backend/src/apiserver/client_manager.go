@@ -29,7 +29,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/minio/minio-go"
 )
 
@@ -68,7 +67,7 @@ type ClientManager struct {
 	defaultExperimentStore storage.DefaultExperimentStoreInterface
 	objectStore            storage.ObjectStoreInterface
 	argoClient             client.ArgoClientInterface
-	swfClient              scheduledworkflowclient.ScheduledWorkflowInterface
+	swfClient              client.SwfClientInterface
 	k8sCoreClient          client.KubernetesCoreInterface
 	kfamClient             client.KFAMClientInterface
 	time                   util.TimeInterface
@@ -111,7 +110,7 @@ func (c *ClientManager) ArgoClient() client.ArgoClientInterface {
 	return c.argoClient
 }
 
-func (c *ClientManager) ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface {
+func (c *ClientManager) SwfClient() client.SwfClientInterface {
 	return c.swfClient
 }
 
@@ -152,8 +151,7 @@ func (c *ClientManager) init() {
 
 	c.argoClient = client.NewArgoClientOrFatal(common.GetDurationConfig(initConnectionTimeout))
 
-	c.swfClient = client.CreateScheduledWorkflowClientOrFatal(
-		common.GetPodNamespace(), common.GetDurationConfig(initConnectionTimeout))
+	c.swfClient = client.NewScheduledWorkflowClientOrFatal(common.GetDurationConfig(initConnectionTimeout))
 
 	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout))
 
@@ -214,6 +212,11 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		glog.Fatalf("Failed to initialize the databases.")
 	}
 
+	response = db.Model(&model.Experiment{}).RemoveIndex("Name")
+	if response.Error != nil {
+		glog.Fatalf("Failed to drop unique key on experiment name. Error: %s", response.Error)
+	}
+
 	response = db.Model(&model.ResourceReference{}).ModifyColumn("Payload", "longtext not null")
 	if response.Error != nil {
 		glog.Fatalf("Failed to update the resource reference payload type. Error: %s", response.Error)
@@ -222,6 +225,11 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	response = db.Model(&model.RunDetail{}).AddIndex("experimentuuid_createatinsec", "ExperimentUUID", "CreatedAtInSec")
 	if response.Error != nil {
 		glog.Fatalf("Failed to create index experimentuuid_createatinsec on run_details. Error: %s", response.Error)
+	}
+
+	response = db.Model(&model.RunDetail{}).AddIndex("experimentuuid_conditions_finishedatinsec", "ExperimentUUID", "Conditions", "FinishedAtInSec")
+	if response.Error != nil {
+		glog.Fatalf("Failed to create index experimentuuid_conditions_finishedatinsec on run_details. Error: %s", response.Error)
 	}
 
 	response = db.Model(&model.RunMetric{}).
@@ -287,7 +295,10 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 	}
 	b := backoff.NewExponentialBackOff()
 	b.MaxElapsedTime = initConnectionTimeout
-	err = backoff.Retry(operation, b)
+	//err = backoff.Retry(operation, b)
+	backoff.RetryNotify(operation,b, func(e error, duration time.Duration) {
+		glog.Errorf("%v",e)
+	})
 
 	defer db.Close()
 	util.TerminateIfError(err)
@@ -328,7 +339,7 @@ func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInt
 	accessKey := common.GetStringConfigWithDefault("ObjectStoreConfig.AccessKey", "")
 	secretKey := common.GetStringConfigWithDefault("ObjectStoreConfig.SecretAccessKey", "")
 	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", os.Getenv(pipelineBucketName))
-	pipelinePath := common.GetStringConfigWithDefault("ObjectStoreConfig.PipelineFolder", os.Getenv(pipelinePath))
+	pipelinePath := common.GetStringConfigWithDefault("ObjectStoreConfig.PipelinePath", os.Getenv(pipelinePath))
 	disableMultipart := common.GetBoolConfigWithDefault("ObjectStoreConfig.Multipart.Disable", true)
 
 	minioClient := client.CreateMinioClientOrFatal(minioServiceHost, minioServicePort, accessKey,
@@ -341,6 +352,9 @@ func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInt
 func createMinioBucket(minioClient *minio.Client, bucketName, region string) {
 	// Check to see if we already own this bucket.
 	exists, err := minioClient.BucketExists(bucketName)
+	if err != nil {
+		glog.Fatalf("Failed to check if Minio bucket exists. Error: %v", err)
+	}
 	if exists {
 		glog.Infof("We already own %s\n", bucketName)
 		return

@@ -14,69 +14,85 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-import Banner, { Mode } from '../components/Banner';
-import Buttons, { ButtonKeys } from '../lib/Buttons';
+import { Context, Execution } from '@kubeflow/frontend';
 import CircularProgress from '@material-ui/core/CircularProgress';
-import CompareTable from '../components/CompareTable';
-import CompareUtils from '../lib/CompareUtils';
-import DetailsTable from '../components/DetailsTable';
-import MinioArtifactLink from '../components/MinioArtifactLink';
-import Graph from '../components/Graph';
-import Hr from '../atoms/Hr';
 import InfoIcon from '@material-ui/icons/InfoOutlined';
-import LogViewer from '../components/LogViewer';
-import MD2Tabs from '../atoms/MD2Tabs';
-import PlotCard from '../components/PlotCard';
-import RunUtils from '../lib/RunUtils';
-import Separator from '../atoms/Separator';
-import SidePanel from '../components/SidePanel';
-import WorkflowParser from '../lib/WorkflowParser';
+import { flatten } from 'lodash';
+import * as React from 'react';
+import { Link, Redirect } from 'react-router-dom';
+import { GkeMetadata, GkeMetadataContext } from 'src/lib/GkeMetadata';
+import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
+import {
+  ExecutionHelpers,
+  getExecutionsFromContext,
+  getKfpRunContext,
+  getTfxRunContext,
+} from 'src/lib/MlmdUtils';
+import { classes, stylesheet } from 'typestyle';
+import {
+  NodePhase as ArgoNodePhase,
+  NodeStatus,
+  Workflow,
+} from '../../third_party/argo-ui/argo_template';
 import { ApiExperiment } from '../apis/experiment';
 import { ApiRun, RunStorageState } from '../apis/run';
-import { Apis } from '../lib/Apis';
-import { NodePhase, hasFinished } from '../lib/StatusUtils';
-import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
-import { KeyValue } from '../lib/StaticGraphParser';
-import { Page, PageProps } from './Page';
-import { RoutePage, RouteParams } from '../components/Router';
+import { ApiVisualization, ApiVisualizationType } from '../apis/visualization';
+import Hr from '../atoms/Hr';
+import MD2Tabs from '../atoms/MD2Tabs';
+import Separator from '../atoms/Separator';
+import Banner, { Mode } from '../components/Banner';
+import CompareTable from '../components/CompareTable';
+import DetailsTable from '../components/DetailsTable';
+import Graph from '../components/Graph';
+import LogViewer from '../components/LogViewer';
+import PlotCard from '../components/PlotCard';
+import { PodEvents, PodInfo } from '../components/PodYaml';
+import { RoutePage, RoutePageFactory, RouteParams } from '../components/Router';
+import SidePanel from '../components/SidePanel';
 import { ToolbarProps } from '../components/Toolbar';
-import { ViewerConfig, PlotType } from '../components/viewers/Viewer';
-import {
-  Workflow,
-  NodeStatus,
-  NodePhase as ArgoNodePhase,
-} from '../../third_party/argo-ui/argo_template';
-import { classes, stylesheet } from 'typestyle';
-import { commonCss, padding, color, fonts, fontsize } from '../Css';
+import MinioArtifactPreview from '../components/MinioArtifactPreview';
+import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
+import { PlotType, ViewerConfig } from '../components/viewers/Viewer';
 import { componentMap } from '../components/viewers/ViewerContainer';
-import { flatten } from 'lodash';
-import {
-  formatDateString,
-  getRunDurationFromWorkflow,
-  logger,
-  errorToMessage,
-  serviceErrorToString,
-} from '../lib/Utils';
-import { statusToIcon } from './Status';
 import VisualizationCreator, {
   VisualizationCreatorConfig,
 } from '../components/viewers/VisualizationCreator';
-import { ApiVisualization, ApiVisualizationType } from '../apis/visualization';
-import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
-import { GkeMetadata, GkeMetadataContext } from 'src/lib/GkeMetadata';
+import { color, commonCss, fonts, fontsize, padding } from '../Css';
+import { Apis } from '../lib/Apis';
+import Buttons, { ButtonKeys } from '../lib/Buttons';
+import CompareUtils from '../lib/CompareUtils';
+import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
+import RunUtils from '../lib/RunUtils';
+import { KeyValue } from '../lib/StaticGraphParser';
+import { hasFinished, NodePhase } from '../lib/StatusUtils';
+import {
+  errorToMessage,
+  formatDateString,
+  getRunDurationFromWorkflow,
+  logger,
+  serviceErrorToString,
+} from '../lib/Utils';
+import WorkflowParser from '../lib/WorkflowParser';
+import { ExecutionDetailsContent } from './ExecutionDetails';
+import { Page, PageProps } from './Page';
+import { statusToIcon } from './Status';
+import { ExternalLink } from 'src/atoms/ExternalLink';
 
 enum SidePaneTab {
-  ARTIFACTS,
   INPUT_OUTPUT,
+  VISUALIZATIONS,
+  ML_METADATA,
   VOLUMES,
-  MANIFEST,
   LOGS,
+  POD,
+  EVENTS,
+  MANIFEST,
 }
 
 interface SelectedNodeDetails {
   id: string;
   logs?: string;
+  phase?: string;
   phaseMessage?: string;
 }
 
@@ -112,9 +128,12 @@ interface RunDetailsState {
   runMetadata?: ApiRun;
   selectedTab: number;
   selectedNodeDetails: SelectedNodeDetails | null;
+  sidepanelBannerMode: Mode;
   sidepanelBusy: boolean;
   sidepanelSelectedTab: SidePaneTab;
   workflow?: Workflow;
+  mlmdRunContext?: Context;
+  mlmdExecutions?: Execution[];
 }
 
 export const css = stylesheet({
@@ -147,7 +166,7 @@ export const css = stylesheet({
   },
 });
 
-export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
+class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
   public state: RunDetailsState = {
     allArtifactConfigs: [],
     allowCustomVisualizations: false,
@@ -159,8 +178,11 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     runFinished: false,
     selectedNodeDetails: null,
     selectedTab: 0,
+    sidepanelBannerMode: 'warning',
     sidepanelBusy: false,
-    sidepanelSelectedTab: SidePaneTab.ARTIFACTS,
+    sidepanelSelectedTab: SidePaneTab.INPUT_OUTPUT,
+    mlmdRunContext: undefined,
+    mlmdExecutions: undefined,
   };
 
   private readonly AUTO_REFRESH_INTERVAL = 5000;
@@ -216,12 +238,15 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       runFinished,
       runMetadata,
       selectedTab,
+      sidepanelBannerMode,
       selectedNodeDetails,
       sidepanelSelectedTab,
       workflow,
+      mlmdExecutions,
     } = this.state;
     const { projectId, clusterName } = this.props.gkeMetadata;
-    const selectedNodeId = selectedNodeDetails ? selectedNodeDetails.id : '';
+    const selectedNodeId = selectedNodeDetails?.id || '';
+    const namespace = workflow?.metadata?.namespace;
     let stackdriverK8sLogsUrl = '';
     if (projectId && clusterName && selectedNodeDetails && selectedNodeDetails.id) {
       stackdriverK8sLogsUrl = `https://console.cloud.google.com/logs/viewer?project=${projectId}&interval=NO_LIMIT&advancedFilter=resource.type%3D"k8s_container"%0Aresource.labels.cluster_name:"${clusterName}"%0Aresource.labels.pod_name:"${selectedNodeDetails.id}"`;
@@ -236,14 +261,19 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       workflow,
       selectedNodeId,
     );
+    const selectedExecution = mlmdExecutions?.find(
+      execution => ExecutionHelpers.getKfpPod(execution) === selectedNodeId,
+    );
+    // const selectedExecution = mlmdExecutions && mlmdExecutions.find(execution => execution.getPropertiesMap())
     const hasMetrics = runMetadata && runMetadata.metrics && runMetadata.metrics.length > 0;
     const visualizationCreatorConfig: VisualizationCreatorConfig = {
       allowCustomVisualizations,
       isBusy: isGeneratingVisualization,
       onGenerate: (visualizationArguments: string, source: string, type: ApiVisualizationType) => {
-        this._onGenerate(visualizationArguments, source, type);
+        this._onGenerate(visualizationArguments, source, type, namespace || '');
       },
       type: PlotType.VISUALIZATION_CREATOR,
+      collapsedInitially: true,
     };
 
     return (
@@ -279,11 +309,27 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                         {!!selectedNodeDetails && (
                           <React.Fragment>
                             {!!selectedNodeDetails.phaseMessage && (
-                              <Banner mode='warning' message={selectedNodeDetails.phaseMessage} />
+                              <Banner
+                                mode={sidepanelBannerMode}
+                                message={selectedNodeDetails.phaseMessage}
+                              />
                             )}
                             <div className={commonCss.page}>
                               <MD2Tabs
-                                tabs={['Artifacts', 'Input/Output', 'Volumes', 'Manifest', 'Logs']}
+                                tabs={[
+                                  'Input/Output',
+                                  'Visualizations',
+                                  'ML Metadata',
+                                  'Volumes',
+                                  'Logs',
+                                  'Pod',
+                                  'Events',
+                                  // NOTE: it's only possible to conditionally add a tab at the end
+                                  ...(WorkflowParser.getNodeManifest(workflow, selectedNodeId)
+                                    .length > 0
+                                    ? ['Manifest']
+                                    : []),
+                                ]}
                                 selectedTab={sidepanelSelectedTab}
                                 onSwitch={this._loadSidePaneTab.bind(this)}
                               />
@@ -292,11 +338,12 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                 data-testid='run-details-node-details'
                                 className={commonCss.page}
                               >
-                                {sidepanelSelectedTab === SidePaneTab.ARTIFACTS &&
+                                {sidepanelSelectedTab === SidePaneTab.VISUALIZATIONS &&
                                   this.state.selectedNodeDetails &&
                                   this.state.workflow && (
-                                    <ArtifactsTabContent
-                                      nodeId={this.state.selectedNodeDetails.id}
+                                    <VisualizationsTabContent
+                                      execution={selectedExecution}
+                                      nodeId={selectedNodeId}
                                       nodeStatus={
                                         this.state.workflow && this.state.workflow.status
                                           ? this.state.workflow.status.nodes[
@@ -304,6 +351,7 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                             ]
                                           : undefined
                                       }
+                                      namespace={this.state.workflow?.metadata?.namespace}
                                       visualizationCreatorConfig={visualizationCreatorConfig}
                                       generatedVisualizations={this.state.generatedVisualizations.filter(
                                         visualization =>
@@ -315,21 +363,72 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
 
                                 {sidepanelSelectedTab === SidePaneTab.INPUT_OUTPUT && (
                                   <div className={padding(20)}>
-                                    <DetailsTable title='Input parameters' fields={inputParams} />
+                                    <DetailsTable
+                                      key={`input-parameters-${selectedNodeId}`}
+                                      title='Input parameters'
+                                      fields={inputParams}
+                                    />
 
                                     <DetailsTable
+                                      key={`input-artifacts-${selectedNodeId}`}
                                       title='Input artifacts'
                                       fields={inputArtifacts}
-                                      valueComponent={MinioArtifactLink}
+                                      valueComponent={MinioArtifactPreview}
+                                      valueComponentProps={{
+                                        namespace: this.state.workflow?.metadata?.namespace,
+                                      }}
                                     />
-
-                                    <DetailsTable title='Output parameters' fields={outputParams} />
 
                                     <DetailsTable
+                                      key={`output-parameters-${selectedNodeId}`}
+                                      title='Output parameters'
+                                      fields={outputParams}
+                                    />
+
+                                    <DetailsTable
+                                      key={`output-artifacts-${selectedNodeId}`}
                                       title='Output artifacts'
                                       fields={outputArtifacts}
-                                      valueComponent={MinioArtifactLink}
+                                      valueComponent={MinioArtifactPreview}
+                                      valueComponentProps={{
+                                        namespace: this.state.workflow?.metadata?.namespace,
+                                      }}
                                     />
+                                  </div>
+                                )}
+
+                                {sidepanelSelectedTab === SidePaneTab.ML_METADATA && (
+                                  <div className={padding(20)}>
+                                    {selectedExecution && (
+                                      <>
+                                        <div>
+                                          This step corresponds to execution{' '}
+                                          <Link
+                                            className={commonCss.link}
+                                            to={RoutePageFactory.executionDetails(
+                                              selectedExecution.getId(),
+                                            )}
+                                          >
+                                            "{ExecutionHelpers.getName(selectedExecution)}".
+                                          </Link>
+                                        </div>
+                                        <ExecutionDetailsContent
+                                          key={selectedExecution.getId()}
+                                          id={selectedExecution.getId()}
+                                          onError={
+                                            ((msg: string, ...args: any[]) => {
+                                              // TODO: show a proper error banner and retry button
+                                              console.warn(msg);
+                                            }) as any
+                                          }
+                                          // No title here
+                                          onTitleUpdate={() => null}
+                                        />
+                                      </>
+                                    )}
+                                    {!selectedExecution && (
+                                      <div>Corresponding ML Metadata not found.</div>
+                                    )}
                                   </div>
                                 )}
 
@@ -357,46 +456,66 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                   </div>
                                 )}
 
-                                {sidepanelSelectedTab === SidePaneTab.LOGS && (
-                                  <div className={commonCss.page}>
-                                    {this.state.logsBannerMessage && (
-                                      <React.Fragment>
-                                        <Banner
-                                          message={this.state.logsBannerMessage}
-                                          mode={this.state.logsBannerMode}
-                                          additionalInfo={this.state.logsBannerAdditionalInfo}
-                                          refresh={this._loadSelectedNodeLogs.bind(this)}
-                                        />
-                                      </React.Fragment>
-                                    )}
-                                    {stackdriverK8sLogsUrl && (
-                                      <div className={padding(12)}>
-                                        Logs can also be viewed in{' '}
-                                        <a
-                                          href={stackdriverK8sLogsUrl}
-                                          target='_blank'
-                                          rel='noopener noreferrer'
-                                          className={classes(css.link, commonCss.unstyled)}
-                                        >
-                                          Stackdriver Kubernetes Monitoring
-                                        </a>
-                                        .
-                                      </div>
-                                    )}
-                                    {!this.state.logsBannerMessage &&
-                                      this.state.selectedNodeDetails && (
-                                        // Overflow hidden here, because scroll is handled inside
-                                        // LogViewer.
-                                        <div className={commonCss.pageOverflowHidden}>
-                                          <LogViewer
-                                            logLines={(
-                                              this.state.selectedNodeDetails.logs || ''
-                                            ).split('\n')}
+                                {sidepanelSelectedTab === SidePaneTab.POD &&
+                                  selectedNodeDetails.phase !== NodePhase.SKIPPED && (
+                                    <div className={commonCss.page}>
+                                      {selectedNodeId && namespace && (
+                                        <PodInfo name={selectedNodeId} namespace={namespace} />
+                                      )}
+                                    </div>
+                                  )}
+
+                                {sidepanelSelectedTab === SidePaneTab.EVENTS &&
+                                  selectedNodeDetails.phase !== NodePhase.SKIPPED && (
+                                    <div className={commonCss.page}>
+                                      {selectedNodeId && namespace && (
+                                        <PodEvents name={selectedNodeId} namespace={namespace} />
+                                      )}
+                                    </div>
+                                  )}
+
+                                {sidepanelSelectedTab === SidePaneTab.LOGS &&
+                                  selectedNodeDetails.phase !== NodePhase.SKIPPED && (
+                                    <div className={commonCss.page}>
+                                      {this.state.logsBannerMessage && (
+                                        <React.Fragment>
+                                          <Banner
+                                            message={this.state.logsBannerMessage}
+                                            mode={this.state.logsBannerMode}
+                                            additionalInfo={this.state.logsBannerAdditionalInfo}
+                                            showTroubleshootingGuideLink={false}
+                                            refresh={this._loadSelectedNodeLogs.bind(this)}
                                           />
+                                        </React.Fragment>
+                                      )}
+                                      {stackdriverK8sLogsUrl && (
+                                        <div className={padding(12)}>
+                                          Logs can also be viewed in{' '}
+                                          <a
+                                            href={stackdriverK8sLogsUrl}
+                                            target='_blank'
+                                            rel='noopener noreferrer'
+                                            className={classes(css.link, commonCss.unstyled)}
+                                          >
+                                            Stackdriver Kubernetes Monitoring
+                                          </a>
+                                          .
                                         </div>
                                       )}
-                                  </div>
-                                )}
+                                      {!this.state.logsBannerMessage &&
+                                        this.state.selectedNodeDetails && (
+                                          // Overflow hidden here, because scroll is handled inside
+                                          // LogViewer.
+                                          <div className={commonCss.pageOverflowHidden}>
+                                            <LogViewer
+                                              logLines={(
+                                                this.state.selectedNodeDetails.logs || ''
+                                              ).split('\n')}
+                                            />
+                                          </div>
+                                        )}
+                                    </div>
+                                  )}
                               </div>
                             </div>
                           </React.Fragment>
@@ -572,6 +691,25 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         }
       }
 
+      let mlmdRunContext: Context | undefined;
+      let mlmdExecutions: Execution[] | undefined;
+      // Get data about this workflow from MLMD
+      if (workflow.metadata?.name) {
+        try {
+          try {
+            mlmdRunContext = await getTfxRunContext(workflow.metadata.name);
+          } catch (err) {
+            logger.warn(`Cannot find tfx run context (this is expected for non tfx runs)`, err);
+            mlmdRunContext = await getKfpRunContext(workflow.metadata.name);
+          }
+          mlmdExecutions = await getExecutionsFromContext(mlmdRunContext);
+        } catch (err) {
+          // Data in MLMD may not exist depending on this pipeline is a TFX pipeline.
+          // So we only log the error in console.
+          logger.warn(err);
+        }
+      }
+
       // Build runtime graph
       const graph =
         workflow && workflow.status && workflow.status.nodes
@@ -582,7 +720,7 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       // If this is an archived run, only show Archive in breadcrumbs, otherwise show
       // the full path, including the experiment if any.
       if (runMetadata.storage_state === RunStorageState.ARCHIVED) {
-        breadcrumbs.push({ displayName: 'Archive', href: RoutePage.ARCHIVE });
+        breadcrumbs.push({ displayName: 'Archive', href: RoutePage.ARCHIVED_RUNS });
       } else {
         if (experiment) {
           breadcrumbs.push(
@@ -614,8 +752,8 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       );
       const idGetter = () => (runMetadata ? [runMetadata!.id!] : []);
       runMetadata!.storage_state === RunStorageState.ARCHIVED
-        ? buttons.restore(idGetter, true, () => this.refresh())
-        : buttons.archive(idGetter, true, () => this.refresh());
+        ? buttons.restore('run', idGetter, true, () => this.refresh())
+        : buttons.archive('run', idGetter, true, () => this.refresh());
       const actions = buttons.getToolbarActionMap();
       actions[ButtonKeys.TERMINATE_RUN].disabled =
         (runMetadata.status as NodePhase) === NodePhase.TERMINATING || runFinished;
@@ -635,10 +773,12 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         runFinished,
         runMetadata,
         workflow,
+        mlmdRunContext,
+        mlmdExecutions,
       });
     } catch (err) {
       await this.showPageError(`Error: failed to retrieve run: ${runId}.`, err);
-      logger.error('Error loading run:', runId);
+      logger.error('Error loading run:', runId, err);
     }
 
     // Make sure logs and artifacts in the side panel are refreshed when
@@ -688,7 +828,7 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
 
     const configLists = await Promise.all(
       outputPathsList.map(({ stepName, path }) =>
-        OutputArtifactLoader.load(path).then(configs =>
+        OutputArtifactLoader.load(path, workflow?.metadata?.namespace).then(configs =>
           configs.map(config => ({ config, stepName })),
         ),
       ),
@@ -724,6 +864,9 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
   private async _loadSidePaneTab(tab: SidePaneTab): Promise<void> {
     const workflow = this.state.workflow;
     const selectedNodeDetails = this.state.selectedNodeDetails;
+
+    let sidepanelBannerMode: Mode = 'warning';
+
     if (workflow && workflow.status && workflow.status.nodes && selectedNodeDetails) {
       const node = workflow.status.nodes[selectedNodeDetails.id];
       if (node) {
@@ -731,12 +874,25 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
           node && node.message
             ? `This step is in ${node.phase} state with this message: ` + node.message
             : undefined;
+
+        selectedNodeDetails.phase = node.phase;
+
+        switch (node.phase) {
+          // TODO: make distinction between system and pipelines error clear
+          case NodePhase.ERROR:
+          case NodePhase.FAILED:
+            sidepanelBannerMode = 'error';
+            break;
+          default:
+            sidepanelBannerMode = 'info';
+            break;
+        }
       }
-      this.setStateSafe({ selectedNodeDetails, sidepanelSelectedTab: tab });
+      this.setStateSafe({ selectedNodeDetails, sidepanelSelectedTab: tab, sidepanelBannerMode });
 
       switch (tab) {
         case SidePaneTab.LOGS:
-          if (node.phase !== NodePhase.SKIPPED) {
+          if (node.phase !== NodePhase.PENDING && node.phase !== NodePhase.SKIPPED) {
             await this._loadSelectedNodeLogs();
           } else {
             // Clear logs
@@ -748,37 +904,50 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
 
   private async _loadSelectedNodeLogs(): Promise<void> {
     const selectedNodeDetails = this.state.selectedNodeDetails;
-    if (!selectedNodeDetails) {
+    const namespace = this.state.workflow?.metadata?.namespace;
+    if (!selectedNodeDetails || !namespace) {
       return;
     }
     this.setStateSafe({ sidepanelBusy: true });
+
+    let logsBannerMessage = '';
+    let logsBannerAdditionalInfo = '';
+    let logsBannerMode = '' as Mode;
+
     try {
-      const logs = await Apis.getPodLogs(
-        selectedNodeDetails.id,
-        RunUtils.getNamespaceReferenceName(this.state.runMetadata),
-      );
-      selectedNodeDetails.logs = logs;
-      this.setStateSafe({
-        logsBannerAdditionalInfo: '',
-        logsBannerMessage: '',
-        selectedNodeDetails,
-      });
+      selectedNodeDetails.logs = await Apis.getPodLogs(selectedNodeDetails.id, namespace);
     } catch (err) {
-      this.setStateSafe({
-        logsBannerMessage:
-          'Warning: failed to retrieve pod logs. Possible reasons include cluster autoscaling or pod preemption',
-        logsBannerAdditionalInfo: await errorToMessage(err),
-        logsBannerMode: 'warning',
-      });
-    } finally {
-      this.setStateSafe({ sidepanelBusy: false });
+      let errMsg = await errorToMessage(err);
+      logsBannerMessage = 'Failed to retrieve pod logs.';
+
+      if (errMsg === 'pod not found') {
+        logsBannerMessage += this.props.gkeMetadata.projectId
+          ? ' Use Stackdriver Kubernetes Monitoring to view them.'
+          : '';
+        logsBannerMode = 'info';
+        logsBannerAdditionalInfo =
+          'Possible reasons include pod garbage collection, cluster autoscaling and pod preemption. ';
+      } else {
+        logsBannerMode = 'error';
+      }
+
+      logsBannerAdditionalInfo += 'Error response: ' + errMsg;
     }
+
+    this.setStateSafe({
+      sidepanelBusy: false,
+      logsBannerAdditionalInfo,
+      logsBannerMessage,
+      logsBannerMode,
+      selectedNodeDetails,
+    });
   }
 
   private async _onGenerate(
     visualizationArguments: string,
     source: string,
     type: ApiVisualizationType,
+    namespace: string,
   ): Promise<void> {
     const nodeId = this.state.selectedNodeDetails ? this.state.selectedNodeDetails.id : '';
     if (nodeId.length === 0) {
@@ -802,7 +971,7 @@ export class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       type,
     };
     try {
-      const config = await Apis.buildPythonVisualizationConfig(visualizationData);
+      const config = await Apis.buildPythonVisualizationConfig(visualizationData, namespace);
       const { generatedVisualizations } = this.state;
       const generatedVisualization: GeneratedVisualization = {
         config,
@@ -880,16 +1049,26 @@ const COMPLETED_NODE_PHASES: ArgoNodePhase[] = ['Succeeded', 'Failed', 'Error'];
 
 // TODO: add unit tests for this.
 /**
- * Artifacts tab content component, it handles loading progress state of
- * artifacts and visualize progress as a circular progress icon.
+ * Visualizations tab content component, it handles loading progress state of
+ * visualize progress as a circular progress icon.
  */
-const ArtifactsTabContent: React.FC<{
+const VisualizationsTabContent: React.FC<{
   visualizationCreatorConfig: VisualizationCreatorConfig;
+  execution?: Execution;
   nodeId: string;
   nodeStatus?: NodeStatus;
   generatedVisualizations: GeneratedVisualization[];
+  namespace: string | undefined;
   onError: (error: Error) => void;
-}> = ({ visualizationCreatorConfig, generatedVisualizations, nodeId, nodeStatus, onError }) => {
+}> = ({
+  visualizationCreatorConfig,
+  generatedVisualizations,
+  execution,
+  nodeId,
+  nodeStatus,
+  namespace,
+  onError,
+}) => {
   const [loaded, setLoaded] = React.useState(false);
   // Progress component expects onLoad function identity to stay the same
   const onLoad = React.useCallback(() => setLoaded(true), [setLoaded]);
@@ -900,7 +1079,7 @@ const ArtifactsTabContent: React.FC<{
 
   React.useEffect(() => {
     let aborted = false;
-    async function loadArtifacts() {
+    async function loadVisualizations() {
       if (aborted) {
         return;
       }
@@ -927,11 +1106,17 @@ const ArtifactsTabContent: React.FC<{
       // Load the viewer configurations from the output paths
       const builtConfigs = (
         await Promise.all([
-          OutputArtifactLoader.buildTFXArtifactViewerConfig(nodeId, reportProgress).catch(
-            reportErrorAndReturnEmpty,
-          ),
+          ...(!execution
+            ? []
+            : [
+                OutputArtifactLoader.buildTFXArtifactViewerConfig({
+                  reportProgress,
+                  execution,
+                  namespace: namespace || '',
+                }).catch(reportErrorAndReturnEmpty),
+              ]),
           ...outputPaths.map(path =>
-            OutputArtifactLoader.load(path).catch(reportErrorAndReturnEmpty),
+            OutputArtifactLoader.load(path, namespace).catch(reportErrorAndReturnEmpty),
           ),
         ])
       ).flatMap(configs => configs);
@@ -943,7 +1128,7 @@ const ArtifactsTabContent: React.FC<{
       setProgress(100); // Loaded will be set by Progress onComplete
       return;
     }
-    loadArtifacts();
+    loadVisualizations();
 
     const abort = () => {
       aborted = true;
@@ -955,7 +1140,7 @@ const ArtifactsTabContent: React.FC<{
     // nodeStatus object instance will keep changing after new requests to get
     // workflow status.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodeId, nodeCompleted, onError]);
+  }, [nodeId, execution?.getId(), nodeCompleted, onError, namespace]);
 
   return (
     <div className={commonCss.page}>
@@ -963,6 +1148,9 @@ const ArtifactsTabContent: React.FC<{
         <Progress value={progress} onComplete={onLoad} />
       ) : (
         <>
+          {viewerConfigs.length + generatedVisualizations.length === 0 && (
+            <Banner message='There are no visualizations in this step.' mode='info' />
+          )}
           {[
             ...viewerConfigs,
             ...generatedVisualizations.map(visualization => visualization.config),
@@ -983,6 +1171,15 @@ const ArtifactsTabContent: React.FC<{
             />
             <Hr />
           </div>
+          <div className={padding(20)}>
+            <p>
+              Add visualizations to your own components following instructions in{' '}
+              <ExternalLink href='https://www.kubeflow.org/docs/pipelines/sdk/output-viewer/'>
+                Visualize Results in the Pipelines UI
+              </ExternalLink>
+              .
+            </p>
+          </div>
         </>
       )}
     </div>
@@ -990,8 +1187,17 @@ const ArtifactsTabContent: React.FC<{
 };
 
 const EnhancedRunDetails: React.FC<RunDetailsProps> = props => {
+  const namespaceChanged = useNamespaceChangeEvent();
   const gkeMetadata = React.useContext(GkeMetadataContext);
+  if (namespaceChanged) {
+    // Run details page shows info about a run, when namespace changes, the run
+    // doesn't exist in the new namespace, so we should redirect to experiment
+    // list page.
+    return <Redirect to={RoutePage.EXPERIMENTS} />;
+  }
   return <RunDetails {...props} gkeMetadata={gkeMetadata} />;
 };
 
 export default EnhancedRunDetails;
+
+export const TEST_ONLY = { RunDetails };

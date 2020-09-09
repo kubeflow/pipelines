@@ -104,7 +104,7 @@ KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar
 import kfp.components as comp
 
 mlengine_deploy_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/0ad0b368802eca8ca73b40fe08adb6d97af6a62f/components/gcp/ml_engine/deploy/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/1.0.0/components/gcp/ml_engine/deploy/component.yaml')
 help(mlengine_deploy_op)
 ```
 
@@ -142,7 +142,7 @@ def pipeline(
     version_id = '',
     runtime_version = '1.10',
     python_version = '',
-    version = '',
+    version = {},
     replace_existing_version = 'False',
     set_default = 'True',
     wait_interval = '30'):

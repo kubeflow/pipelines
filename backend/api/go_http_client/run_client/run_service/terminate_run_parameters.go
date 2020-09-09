@@ -75,7 +75,10 @@ for the terminate run operation typically these are written to a http.Request
 */
 type TerminateRunParams struct {
 
-	/*RunID*/
+	/*RunID
+	  The ID of the run to be terminated.
+
+	*/
 	RunID string
 
 	timeout    time.Duration

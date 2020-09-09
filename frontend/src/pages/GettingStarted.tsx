@@ -29,8 +29,9 @@ import { Page } from './Page';
 
 const DEMO_PIPELINES: string[] = SAMPLE_CONFIG.slice(0, 4);
 const DEMO_PIPELINES_ID_MAP = {
-  control: 3,
-  data: 2,
+  control: 4,
+  data: 3,
+  tfxKeras: 2,
   tfx: 1,
   xgboost: 0,
 };
@@ -38,19 +39,22 @@ const DEMO_PIPELINES_ID_MAP = {
 const PAGE_CONTENT_MD = ({
   control,
   data,
+  tfxKeras,
   tfx,
   xgboost,
 }: {
   control: string;
   data: string;
+  tfxKeras: string;
   tfx: string;
   xgboost: string;
 }) => `
 <br/>
 
-## Build your own pipeline
+## Build your own pipeline with
 
-Build an end-to-end ML pipeline with TensorFlow Extended (TFX) [**Start Here!**](https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Ftensorflow%252Ftfx%252Fmaster%252Fdocs%252Ftutorials%252Ftfx%252Ftemplate.ipynb) (Please make sure you pick a Tensorflow 2.1 notebook instance.)
+  * TensorFlow Extended (TFX) [SDK](https://www.tensorflow.org/tfx/guide) with end-to-end ML Pipeline Template ([Open TF 2.1 Notebook](https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Ftensorflow%252Ftfx%252Fmaster%252Fdocs%252Ftutorials%252Ftfx%252Ftemplate.ipynb))
+  * Kubeflow Pipelines [SDK](https://www.kubeflow.org/docs/pipelines/sdk/)
 
 <br/>
 
@@ -59,7 +63,8 @@ This section contains demo and tutorial pipelines.
 
 **Demos** - Try an end-to-end demonstration pipeline.
 
-  * [TFX pipeline demo](${tfx}) - Classification pipeline with model analysis, based on a public BigQuery dataset of taxicab trips. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/parameterized_tfx_oss)
+  * [TFX pipeline demo with Keras](${tfxKeras}) - Classification pipeline based on Keras. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/iris)
+  * [TFX pipeline demo with Estimator](${tfx}) - Classification pipeline with model analysis, based on a public BigQuery dataset of taxicab trips. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/parameterized_tfx_oss)
   * [XGBoost Pipeline demo](${xgboost}) - An example of end-to-end distributed training for an XGBoost model. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost_training_cm)
 
 <br/>
@@ -70,14 +75,6 @@ This section contains demo and tutorial pipelines.
   * [DSL - Control structures](${control}) - Shows how to use conditional execution and exit handlers. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures)
 
 Want to learn more? [Learn from sample and tutorial pipelines.](https://www.kubeflow.org/docs/pipelines/tutorials/)
-
-<br/>
-
-### Additional resources and documentation
-  * [TFX documentation](https://www.tensorflow.org/tfx)
-  * [AI Platform Pipelines documentation](https://cloud.google.com/ai-platform/pipelines/docs/)
-  * [Troubleshooting guide](https://cloud.google.com/ai-platform/pipelines/docs/troubleshooting/)
-  * [Kubeflow Pipelines documentation](https://www.kubeflow.org/docs/pipelines/)
 `;
 
 cssRaw(`
@@ -152,6 +149,7 @@ export class GettingStarted extends Page<{}, { links: string[] }> {
           {PAGE_CONTENT_MD({
             control: this.state.links[DEMO_PIPELINES_ID_MAP.control],
             data: this.state.links[DEMO_PIPELINES_ID_MAP.data],
+            tfxKeras: this.state.links[DEMO_PIPELINES_ID_MAP.tfxKeras],
             tfx: this.state.links[DEMO_PIPELINES_ID_MAP.tfx],
             xgboost: this.state.links[DEMO_PIPELINES_ID_MAP.xgboost],
           })}

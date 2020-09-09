@@ -1,0 +1,22 @@
+Deprecated
+PyYAML
+
+# kfp.components
+cloudpickle
+strip-hints>=0.1.8
+
+# kfp.dsl
+jsonschema>=3.0.1
+kubernetes>=8.0.0, <12.0.0
+
+# kfp.Client
+kfp-server-api>=0.2.5, <2.0.0
+
+# kfp.Client GCP auth
+google-cloud-storage>=1.13.0
+google-auth>=1.6.1
+requests_toolbelt>=0.8.0
+
+# CLI
+tabulate
+click

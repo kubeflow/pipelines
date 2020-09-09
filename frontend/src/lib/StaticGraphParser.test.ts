@@ -143,6 +143,28 @@ describe('StaticGraphParser', () => {
       expect(g.node('/task-1').label).toEqual('TaskDisplayName');
     });
 
+    it("uses task's annotation component_name as node label when present", () => {
+      const workflow = newWorkflow();
+      workflow.spec.templates[1].metadata = {
+        annotations: {
+          'pipelines.kubeflow.org/component_spec': '{"name":"Component Display Name"}',
+        },
+      };
+      const g = createGraph(workflow);
+      expect(g.node('/task-1').label).toEqual('Component Display Name');
+    });
+
+    it("uses task's default node label when component_name is malformed", () => {
+      const workflow = newWorkflow();
+      workflow.spec.templates[1].metadata = {
+        annotations: {
+          'pipelines.kubeflow.org/component_spec': '"name":"Component Display Name"}',
+        },
+      };
+      const g = createGraph(workflow);
+      expect(g.node('/task-1').label).not.toEqual('Component Display Name');
+    });
+
     it('adds an unconnected node for the onExit template, if onExit is specified', () => {
       const workflow = newWorkflow();
       workflow.spec.onExit = 'on-exit';

@@ -589,8 +589,12 @@ export default (app: express.Application) => {
 
   app.get('/k8s/pod/logs', (req, res) => {
     const podName = decodeURIComponent(req.query.podname);
+    if (podName === 'json-12abc') {
+      res.status(404).send('pod not found');
+      return;
+    }
     if (podName === 'coinflip-recursive-q7dqb-3721646052') {
-      res.status(404).send('Failed to retrieve log');
+      res.status(500).send('Failed to retrieve log');
       return;
     }
     const shortLog = fs.readFileSync('./mock-backend/shortlog.txt', 'utf-8');
@@ -603,6 +607,20 @@ export default (app: express.Application) => {
 
   app.get('/visualizations/allowed', (req, res) => {
     res.send(true);
+  });
+
+  // Uncomment this instead to test 404 endpoints.
+  // app.get('/system/cluster-name', (_, res) => {
+  //   res.status(404).send('404 Not Found');
+  // });
+  // app.get('/system/project-id', (_, res) => {
+  //   res.status(404).send('404 Not Found');
+  // });
+  app.get('/system/cluster-name', (_, res) => {
+    res.send('mock-cluster-name');
+  });
+  app.get('/system/project-id', (_, res) => {
+    res.send('mock-project-id');
   });
 
   app.all(v1beta1Prefix + '*', (req, res) => {

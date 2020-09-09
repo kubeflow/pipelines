@@ -70,7 +70,7 @@ outputs:
     type: UI metadata
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:85945e10920757efab999217c836403c024b09e3
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:1.0.0
     args: [
       --ui_metadata_path, {outputPath: MLPipeline UI metadata},
       kfp_component.google.dataproc, create_cluster,
@@ -83,8 +83,7 @@ implementation:
       --image_version, {inputValue: image_version},
       --cluster, {inputValue: cluster},
       --wait_interval, {inputValue: wait_interval},
+      --cluster_name_output_path, {outputPath: cluster_name},
     ]
     env:
       KFP_POD_NAME: "{{pod.name}}"
-    fileOutputs:
-      cluster_name: /tmp/kfp/output/dataproc/cluster_name.txt

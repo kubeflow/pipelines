@@ -118,7 +118,7 @@ exports[`Trigger enables a single day on click 1`] = `
           }
         }
         type="date"
-        value="2018-12-21"
+        value="2018-12-28"
         variant="outlined"
         width={160}
       />
@@ -165,10 +165,10 @@ exports[`Trigger enables a single day on click 1`] = `
               Whether the recurring run should catch up if behind schedule. Defaults to true.
             </p>
             <p>
-              For example, if the recurring run is paused for a while and re-enabled afterwards. If catchup=true, the scheduler will catch up on (backfill) each missed interval. Otherwise, it only schedules the latest interval.
+              For example, if the recurring run is paused for a while and re-enabled afterwards. If catchup=true, the scheduler will catch up on (backfill) each missed interval. Otherwise, it only schedules the latest interval if more than one interval is ready to be scheduled.
             </p>
             <p>
-              Usually, if your pipeline handles backfill internally, you should turn catchup off to avoid duplicate work.
+              Usually, if your pipeline handles backfill internally, you should turn catchup off to avoid duplicate backfill.
             </p>
           </div>
         }
@@ -459,7 +459,7 @@ exports[`Trigger renders all week days enabled 1`] = `
           }
         }
         type="date"
-        value="2018-12-21"
+        value="2018-12-28"
         variant="outlined"
         width={160}
       />
@@ -506,10 +506,10 @@ exports[`Trigger renders all week days enabled 1`] = `
               Whether the recurring run should catch up if behind schedule. Defaults to true.
             </p>
             <p>
-              For example, if the recurring run is paused for a while and re-enabled afterwards. If catchup=true, the scheduler will catch up on (backfill) each missed interval. Otherwise, it only schedules the latest interval.
+              For example, if the recurring run is paused for a while and re-enabled afterwards. If catchup=true, the scheduler will catch up on (backfill) each missed interval. Otherwise, it only schedules the latest interval if more than one interval is ready to be scheduled.
             </p>
             <p>
-              Usually, if your pipeline handles backfill internally, you should turn catchup off to avoid duplicate work.
+              Usually, if your pipeline handles backfill internally, you should turn catchup off to avoid duplicate backfill.
             </p>
           </div>
         }
@@ -800,7 +800,7 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
           }
         }
         type="date"
-        value="2018-12-21"
+        value="2018-12-28"
         variant="outlined"
         width={160}
       />
@@ -847,10 +847,10 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
               Whether the recurring run should catch up if behind schedule. Defaults to true.
             </p>
             <p>
-              For example, if the recurring run is paused for a while and re-enabled afterwards. If catchup=true, the scheduler will catch up on (backfill) each missed interval. Otherwise, it only schedules the latest interval.
+              For example, if the recurring run is paused for a while and re-enabled afterwards. If catchup=true, the scheduler will catch up on (backfill) each missed interval. Otherwise, it only schedules the latest interval if more than one interval is ready to be scheduled.
             </p>
             <p>
-              Usually, if your pipeline handles backfill internally, you should turn catchup off to avoid duplicate work.
+              Usually, if your pipeline handles backfill internally, you should turn catchup off to avoid duplicate backfill.
             </p>
           </div>
         }
@@ -1039,7 +1039,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
           }
         }
         type="date"
-        value="2018-12-21"
+        value="2018-12-28"
         variant="outlined"
         width={160}
       />
@@ -1086,10 +1086,10 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
               Whether the recurring run should catch up if behind schedule. Defaults to true.
             </p>
             <p>
-              For example, if the recurring run is paused for a while and re-enabled afterwards. If catchup=true, the scheduler will catch up on (backfill) each missed interval. Otherwise, it only schedules the latest interval.
+              For example, if the recurring run is paused for a while and re-enabled afterwards. If catchup=true, the scheduler will catch up on (backfill) each missed interval. Otherwise, it only schedules the latest interval if more than one interval is ready to be scheduled.
             </p>
             <p>
-              Usually, if your pipeline handles backfill internally, you should turn catchup off to avoid duplicate work.
+              Usually, if your pipeline handles backfill internally, you should turn catchup off to avoid duplicate backfill.
             </p>
           </div>
         }
@@ -1301,7 +1301,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
           }
         }
         type="date"
-        value="2018-12-21"
+        value="2018-12-28"
         variant="outlined"
         width={160}
       />
@@ -1348,10 +1348,10 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
               Whether the recurring run should catch up if behind schedule. Defaults to true.
             </p>
             <p>
-              For example, if the recurring run is paused for a while and re-enabled afterwards. If catchup=true, the scheduler will catch up on (backfill) each missed interval. Otherwise, it only schedules the latest interval.
+              For example, if the recurring run is paused for a while and re-enabled afterwards. If catchup=true, the scheduler will catch up on (backfill) each missed interval. Otherwise, it only schedules the latest interval if more than one interval is ready to be scheduled.
             </p>
             <p>
-              Usually, if your pipeline handles backfill internally, you should turn catchup off to avoid duplicate work.
+              Usually, if your pipeline handles backfill internally, you should turn catchup off to avoid duplicate backfill.
             </p>
           </div>
         }

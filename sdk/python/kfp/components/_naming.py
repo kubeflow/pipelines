@@ -92,7 +92,17 @@ def generate_unique_name_conversion_table(names: Sequence[str], conversion_func:
     '''
     forward_map = {}
     reverse_map = {}
+
+    # Names that do not change when applying the conversion_func should remain unchanged in the table
+    names_that_need_conversion = []
     for name in names:
+        if conversion_func(name) == name:
+            forward_map[name] = name
+            reverse_map[name] = name
+        else:
+            names_that_need_conversion.append(name)
+
+    for name in names_that_need_conversion:
         if name in forward_map:
             raise ValueError('Original name {} is not unique.'.format(name))
         converted_name = _convert_name_and_make_it_unique_by_adding_number(name, reverse_map, conversion_func)

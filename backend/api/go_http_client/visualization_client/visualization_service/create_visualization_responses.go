@@ -72,7 +72,7 @@ type CreateVisualizationOK struct {
 }
 
 func (o *CreateVisualizationOK) Error() string {
-	return fmt.Sprintf("[POST /apis/v1beta1/visualizations][%d] createVisualizationOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[POST /apis/v1beta1/visualizations/{namespace}][%d] createVisualizationOK  %+v", 200, o.Payload)
 }
 
 func (o *CreateVisualizationOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -110,7 +110,7 @@ func (o *CreateVisualizationDefault) Code() int {
 }
 
 func (o *CreateVisualizationDefault) Error() string {
-	return fmt.Sprintf("[POST /apis/v1beta1/visualizations][%d] CreateVisualization default  %+v", o._statusCode, o.Payload)
+	return fmt.Sprintf("[POST /apis/v1beta1/visualizations/{namespace}][%d] CreateVisualization default  %+v", o._statusCode, o.Payload)
 }
 
 func (o *CreateVisualizationDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

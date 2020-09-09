@@ -112,6 +112,13 @@ rules:
       - get
       - list
       - watch
+  - apiGroups:
+      - ''
+    resources:
+      - events
+    verbs:
+      - create
+      - patch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -163,6 +170,12 @@ rules:
       - create
       - get
       - list
+  - apiGroups:
+    - ""
+    resources:
+    - events
+    verbs:
+    - list
   - apiGroups:
     - ""
     resources:
@@ -479,7 +492,7 @@ spec:
     app: ml-pipeline
     app.kubernetes.io/name: {{ .Release.Name }}
 ---
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
@@ -501,12 +514,14 @@ spec:
         - env:
             - name: NAMESPACE
               value: {{ .Release.Namespace }}
+            - name: TTL_SECONDS_AFTER_WORKFLOW_FINISH
+              value: "86400"
           image: {{ .Values.images.persistenceagent }}
           imagePullPolicy: IfNotPresent
           name: ml-pipeline-persistenceagent
       serviceAccountName: ml-pipeline-persistenceagent
 ---
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
@@ -533,7 +548,7 @@ spec:
           name: ml-pipeline-scheduledworkflow
       serviceAccountName: ml-pipeline-scheduledworkflow
 ---
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
@@ -564,9 +579,33 @@ spec:
           name: ml-pipeline-ui
           ports:
             - containerPort: 3000
+          readinessProbe:
+            exec:
+              command:
+                - wget
+                - -q # quiet
+                - -S # show server response
+                - -O
+                - "-" # Redirect output to stdout
+                - http://localhost:3000/apis/v1beta1/healthz
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 2
+          livenessProbe:
+            exec:
+              command:
+                - wget
+                - -q # quiet
+                - -S # show server response
+                - -O
+                - "-" # Redirect output to stdout
+                - http://localhost:3000/apis/v1beta1/healthz
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 2
       serviceAccountName: ml-pipeline-ui
 ---
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
@@ -595,7 +634,7 @@ spec:
           name: ml-pipeline-viewer-crd
       serviceAccountName: ml-pipeline-viewer-crd-service-account
 ---
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
@@ -618,10 +657,35 @@ spec:
           imagePullPolicy: IfNotPresent
           name: ml-pipeline-visualizationserver
           ports:
-            - containerPort: 8888
+            - name: http
+              containerPort: 8888
+          readinessProbe:
+            exec:
+              command:
+                - wget
+                - -q # quiet
+                - -S # show server response
+                - -O
+                - "-" # Redirect output to stdout
+                - http://localhost:8888/
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 2
+          livenessProbe:
+            exec:
+              command:
+                - wget
+                - -q # quiet
+                - -S # show server response
+                - -O
+                - "-" # Redirect output to stdout
+                - http://localhost:8888/
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 2
       serviceAccountName: ml-pipeline-visualizationserver
 ---
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
@@ -641,20 +705,27 @@ spec:
     spec:
       containers:
         - env:
+            {{ if .Values.managedstorage.enabled }}
+            - name: HAS_DEFAULT_BUCKET
+              value: "true"
+            - name: BUCKET_NAME
+              value: "{{ .Values.managedstorage.gcsBucketName }}"
+            {{ else }}
             - name: HAS_DEFAULT_BUCKET
               valueFrom:
                 configMapKeyRef:
-                  name: {{ .Values.gcpDefaultConfigName}}
+                  name: "{{ .Values.gcpDefaultConfigName }}"
                   key: "has_default_bucket"
             - name: BUCKET_NAME
               valueFrom:
                 configMapKeyRef:
-                  name: {{ .Values.gcpDefaultConfigName}}
+                  name: "{{ .Values.gcpDefaultConfigName }}"
                   key: "bucket_name"
+            {{ end }}
             - name: PROJECT_ID
               valueFrom:
                 configMapKeyRef:
-                  name: {{ .Values.gcpDefaultConfigName}}
+                  name: "{{ .Values.gcpDefaultConfigName }}"
                   key: "project_id"
             - name: POD_NAMESPACE
               valueFrom:
@@ -662,10 +733,11 @@ spec:
                   fieldPath: metadata.namespace
             - name: DEFAULTPIPELINERUNNERSERVICEACCOUNT
               value: 'pipeline-runner'
-            # Following environment variables are only needed when using Cloud SQL and GCS.
+            - name: OBJECTSTORECONFIG_SECURE
+              value: "false"
             {{ if .Values.managedstorage.enabled }}
             - name: OBJECTSTORECONFIG_BUCKETNAME
-              value: '{{ tpl .Values.managedstorage.gcsBucketName . }}'
+              value: "{{ .Values.managedstorage.gcsBucketName }}"
             - name: DBCONFIG_DBNAME
               {{ if .Values.managedstorage.databaseNamePrefix }}
               value: '{{ .Values.managedstorage.databaseNamePrefix }}_pipeline'
@@ -687,6 +759,37 @@ spec:
           imagePullPolicy: IfNotPresent
           name: ml-pipeline-api-server
           ports:
-            - containerPort: 8888
-            - containerPort: 8887
+            - name: http
+              containerPort: 8888
+            - name: grpc
+              containerPort: 8887
+          readinessProbe:
+            exec:
+              command:
+                - wget
+                - -q # quiet
+                - -S # show server response
+                - -O
+                - "-" # Redirect output to stdout
+                - http://localhost:8888/apis/v1beta1/healthz
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 2
+          livenessProbe:
+            exec:
+              command:
+                - wget
+                - -q # quiet
+                - -S # show server response
+                - -O
+                - "-" # Redirect output to stdout
+                - http://localhost:8888/apis/v1beta1/healthz
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 2
       serviceAccountName: ml-pipeline
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubeflow-pipelines-container-builder

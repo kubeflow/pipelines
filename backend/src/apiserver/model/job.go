@@ -21,6 +21,7 @@ type Job struct {
 	DisplayName        string `gorm:"column:DisplayName; not null;"` /* The name that user provides. Can contain special characters*/
 	Name               string `gorm:"column:Name; not null;"`        /* The name of the K8s resource. Follow regex '[a-z0-9]([-a-z0-9]*[a-z0-9])?'*/
 	Namespace          string `gorm:"column:Namespace; not null;"`
+	ServiceAccount     string `gorm:"column:ServiceAccount; not null;"`
 	Description        string `gorm:"column:Description; not null"`
 	MaxConcurrency     int64  `gorm:"column:MaxConcurrency;not null"`
 	NoCatchup          bool   `gorm:"column:NoCatchup; not null"`
@@ -102,4 +103,34 @@ func (k *Job) APIToModelFieldMap() map[string]string {
 // GetModelName returns table name used as sort field prefix
 func (j *Job) GetModelName() string {
 	return "jobs"
+}
+
+func (j *Job) GetField(name string) (string, bool) {
+	if field, ok := jobAPIToModelFieldMap[name]; ok {
+		return field, true
+	}
+	return "", false
+}
+
+func (j *Job) GetFieldValue(name string) interface{} {
+	switch name {
+	case "UUID":
+		return j.UUID
+	case "DisplayName":
+		return j.DisplayName
+	case "CreatedAtInSec":
+		return j.CreatedAtInSec
+	case "PipelineId":
+		return j.PipelineId
+	default:
+		return nil
+	}
+}
+
+func (j *Job) GetSortByFieldPrefix(name string) string {
+	return "jobs."
+}
+
+func (j *Job) GetKeyFieldPrefix() string {
+	return "jobs."
 }

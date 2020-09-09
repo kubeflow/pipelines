@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2019-2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,13 +11,19 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import { Handler, Request, Response } from 'express';
 import fetch from 'node-fetch';
+import { AWSConfigs, HttpConfigs, MinioConfigs, ProcessEnv } from '../configs';
 import { Client as MinioClient } from 'minio';
+import { PreviewStream, findFileOnPodVolume } from '../utils';
+import { createMinioClient, getObjectStream } from '../minio-helper';
+import * as serverInfo from '../helpers/server-info';
+import { Handler, Request, Response } from 'express';
 import { Storage } from '@google-cloud/storage';
+import proxy from 'http-proxy-middleware';
+import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts';
 
-import { getTarObjectAsString, getObjectStream, createMinioClient } from '../minio-helper';
-import { HttpConfigs, AWSConfigs, MinioConfigs } from '../configs';
+import * as fs from 'fs';
+import { V1Container } from '@kubernetes/client-node/dist/api';
 
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs
@@ -25,11 +31,13 @@ import { HttpConfigs, AWSConfigs, MinioConfigs } from '../configs';
  */
 interface ArtifactsQueryStrings {
   /** artifact source. */
-  source: 'minio' | 's3' | 'gcs' | 'http' | 'https';
+  source: 'minio' | 's3' | 'gcs' | 'http' | 'https' | 'volume';
   /** bucket name. */
   bucket: string;
   /** artifact key/path that is uri encoded.  */
   key: string;
+  /** return only the first x characters or bytes. */
+  peek?: number;
 }
 
 /**
@@ -44,7 +52,9 @@ export function getArtifactsHandler(artifactsConfigs: {
 }): Handler {
   const { aws, http, minio } = artifactsConfigs;
   return async (req, res) => {
-    const { source, bucket, key: encodedKey } = req.query as Partial<ArtifactsQueryStrings>;
+    const { source, bucket, key: encodedKey, peek = 0 } = req.query as Partial<
+      ArtifactsQueryStrings
+    >;
     if (!source) {
       res.status(500).send('Storage source is missing from artifact request');
       return;
@@ -61,31 +71,48 @@ export function getArtifactsHandler(artifactsConfigs: {
     console.log(`Getting storage artifact at: ${source}: ${bucket}/${key}`);
     switch (source) {
       case 'gcs':
-        getGCSArtifactHandler({ bucket, key })(req, res);
+        getGCSArtifactHandler({ bucket, key }, peek)(req, res);
         break;
 
       case 'minio':
-        getMinioArtifactHandler({
-          bucket,
-          client: new MinioClient(minio),
-          key,
-        })(req, res);
+        getMinioArtifactHandler(
+          {
+            bucket,
+            client: new MinioClient(minio),
+            key,
+          },
+          peek,
+        )(req, res);
         break;
 
       case 's3':
-        getS3ArtifactHandler({
-          bucket,
-          client: await createMinioClient(aws),
-          key,
-        })(req, res);
+        getMinioArtifactHandler(
+          {
+            bucket,
+            client: await createMinioClient(aws),
+            key,
+          },
+          peek,
+        )(req, res);
         break;
 
       case 'http':
       case 'https':
-        getHttpArtifactsHandler(getHttpUrl(source, http.baseUrl || '', bucket, key), http.auth)(
-          req,
-          res,
-        );
+        getHttpArtifactsHandler(
+          getHttpUrl(source, http.baseUrl || '', bucket, key),
+          http.auth,
+          peek,
+        )(req, res);
+        break;
+
+      case 'volume':
+        await getVolumeArtifactsHandler(
+          {
+            bucket,
+            key,
+          },
+          peek,
+        )(req, res);
         break;
 
       default:
@@ -114,6 +141,7 @@ function getHttpArtifactsHandler(
     key: string;
     defaultValue: string;
   } = { key: '', defaultValue: '' },
+  peek: number = 0,
 ) {
   return async (req: Request, res: Response) => {
     const headers = {};
@@ -125,32 +153,30 @@ function getHttpArtifactsHandler(
         req.headers[auth.key] || req.headers[auth.key.toLowerCase()] || auth.defaultValue;
     }
     const response = await fetch(url, { headers });
-    const content = await response.buffer();
-    res.send(content);
+    response.body
+      .on('error', err => res.status(500).send(`Unable to retrieve artifact at ${url}: ${err}`))
+      .pipe(new PreviewStream({ peek }))
+      .pipe(res);
   };
 }
 
-function getS3ArtifactHandler(options: { bucket: string; key: string; client: MinioClient }) {
+function getMinioArtifactHandler(
+  options: { bucket: string; key: string; client: MinioClient },
+  peek: number = 0,
+) {
   return async (_: Request, res: Response) => {
     try {
       const stream = await getObjectStream(options);
-      stream.on('end', () => res.end());
-      stream.on('error', err =>
-        res
-          .status(500)
-          .send(`Failed to get object in bucket ${options.bucket} at path ${options.key}: ${err}`),
-      );
-      stream.pipe(res);
-    } catch (err) {
-      res.send(`Failed to get object in bucket ${options.bucket} at path ${options.key}: ${err}`);
-    }
-  };
-}
-
-function getMinioArtifactHandler(options: { bucket: string; key: string; client: MinioClient }) {
-  return async (_: Request, res: Response) => {
-    try {
-      res.send(await getTarObjectAsString(options));
+      stream
+        .on('error', err =>
+          res
+            .status(500)
+            .send(
+              `Failed to get object in bucket ${options.bucket} at path ${options.key}: ${err}`,
+            ),
+        )
+        .pipe(new PreviewStream({ peek }))
+        .pipe(res);
     } catch (err) {
       res
         .status(500)
@@ -159,7 +185,7 @@ function getMinioArtifactHandler(options: { bucket: string; key: string; client:
   };
 }
 
-function getGCSArtifactHandler(options: { key: string; bucket: string }) {
+function getGCSArtifactHandler(options: { key: string; bucket: string }, peek: number = 0) {
   const { key, bucket } = options;
   return async (_: Request, res: Response) => {
     try {
@@ -192,8 +218,21 @@ function getGCSArtifactHandler(options: { key: string; bucket: string }) {
         res.send();
         return;
       }
-      console.log(`Found ${matchingFiles.length} matching files:`, matchingFiles);
+      console.log(
+        `Found ${matchingFiles.length} matching files: `,
+        matchingFiles.map(file => file.name).join(','),
+      );
       let contents = '';
+      // TODO: support peek for concatenated matching files
+      if (peek) {
+        matchingFiles[0]
+          .createReadStream()
+          .pipe(new PreviewStream({ peek }))
+          .pipe(res);
+        return;
+      }
+
+      // if not peeking, iterate and append all the files
       matchingFiles.forEach((f, i) => {
         const buffer: Buffer[] = [];
         f.createReadStream()
@@ -213,4 +252,131 @@ function getGCSArtifactHandler(options: { key: string; bucket: string }) {
       res.status(500).send('Failed to download GCS file(s). Error: ' + err);
     }
   };
+}
+
+function getVolumeArtifactsHandler(options: { bucket: string; key: string }, peek: number = 0) {
+  const { key, bucket } = options;
+  return async (req: Request, res: Response) => {
+    try {
+      const [pod, err] = await serverInfo.getHostPod();
+      if (err) {
+        res.status(500).send(err);
+        return;
+      }
+
+      if (!pod) {
+        res.status(500).send('Could not get server pod');
+        return;
+      }
+
+      // ml-pipeline-ui server container name also be called 'ml-pipeline-ui-artifact' in KFP multi user mode.
+      // https://github.com/kubeflow/manifests/blob/master/pipeline/installs/multi-user/pipelines-profile-controller/sync.py#L212
+      const [filePath, parseError] = findFileOnPodVolume(pod, {
+        containerNames: ['ml-pipeline-ui', 'ml-pipeline-ui-artifact'],
+        volumeMountName: bucket,
+        filePathInVolume: key,
+      });
+      if (parseError) {
+        res.status(404).send(`Failed to open volume://${bucket}/${key}, ${parseError}`);
+        return;
+      }
+
+      // TODO: support directory and support filePath include wildcards '*'
+      const stat = await fs.promises.stat(filePath);
+      if (stat.isDirectory()) {
+        res
+          .status(400)
+          .send(
+            `Failed to open volume://${bucket}/${key}, file ${filePath} is directory, does not support now`,
+          );
+        return;
+      }
+
+      fs.createReadStream(filePath)
+        .pipe(new PreviewStream({ peek }))
+        .pipe(res);
+    } catch (err) {
+      res.status(500).send(`Failed to open volume://${bucket}/${key}: ${err}`);
+    }
+  };
+}
+
+const ARTIFACTS_PROXY_DEFAULTS = {
+  serviceName: 'ml-pipeline-ui-artifact',
+  servicePort: '80',
+};
+export type NamespacedServiceGetter = (namespace: string) => string;
+export interface ArtifactsProxyConfig {
+  serviceName: string;
+  servicePort: number;
+  enabled: boolean;
+}
+export function loadArtifactsProxyConfig(env: ProcessEnv): ArtifactsProxyConfig {
+  const {
+    ARTIFACTS_SERVICE_PROXY_NAME = ARTIFACTS_PROXY_DEFAULTS.serviceName,
+    ARTIFACTS_SERVICE_PROXY_PORT = ARTIFACTS_PROXY_DEFAULTS.servicePort,
+    ARTIFACTS_SERVICE_PROXY_ENABLED = 'false',
+  } = env;
+  return {
+    serviceName: ARTIFACTS_SERVICE_PROXY_NAME,
+    servicePort: parseInt(ARTIFACTS_SERVICE_PROXY_PORT, 10),
+    enabled: ARTIFACTS_SERVICE_PROXY_ENABLED.toLowerCase() === 'true',
+  };
+}
+
+const QUERIES = {
+  NAMESPACE: 'namespace',
+};
+
+export function getArtifactsProxyHandler({
+  enabled,
+  namespacedServiceGetter,
+}: {
+  enabled: boolean;
+  namespacedServiceGetter: NamespacedServiceGetter;
+}): Handler {
+  if (!enabled) {
+    return (req, res, next) => next();
+  }
+  return proxy(
+    (_pathname, req) => {
+      // only proxy requests with namespace query parameter
+      return !!getNamespaceFromUrl(req.url || '');
+    },
+    {
+      changeOrigin: true,
+      onProxyReq: proxyReq => {
+        console.log('Proxied artifact request: ', proxyReq.path);
+      },
+      pathRewrite: (pathStr, req) => {
+        const url = new URL(pathStr || '', DUMMY_BASE_PATH);
+        url.searchParams.delete(QUERIES.NAMESPACE);
+        return url.pathname + url.search;
+      },
+      router: req => {
+        const namespace = getNamespaceFromUrl(req.url || '');
+        if (!namespace) {
+          throw new Error(`namespace query param expected in ${req.url}.`);
+        }
+        return namespacedServiceGetter(namespace);
+      },
+      target: '/artifacts/get',
+      headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
+    },
+  );
+}
+
+function getNamespaceFromUrl(path: string): string | undefined {
+  // Gets namespace from query parameter "namespace"
+  const params = new URL(path, DUMMY_BASE_PATH).searchParams;
+  return params.get('namespace') || undefined;
+}
+
+// `new URL('/path')` doesn't work, because URL only accepts full URL with scheme and hostname.
+// We use the DUMMY_BASE_PATH like `new URL('/path', DUMMY_BASE_PATH)`, so that URL can parse paths
+// properly.
+const DUMMY_BASE_PATH = 'http://dummy-base-path';
+
+export function getArtifactServiceGetter({ serviceName, servicePort }: ArtifactsProxyConfig) {
+  return (namespace: string) => `http://${serviceName}.${namespace}:${servicePort}`;
 }

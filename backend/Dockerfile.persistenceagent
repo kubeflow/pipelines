@@ -17,7 +17,10 @@ COPY --from=builder /go/src/github.com/kubeflow/pipelines/third_party/license.tx
 
 ENV NAMESPACE ""
 
-# Set Workflow TTL to 7 days
-ENV TTL_SECONDS_AFTER_WORKFLOW_FINISH 604800
+# Set Workflow TTL to 1 day. The way to use a different value for a particular Kubeflow Pipelines deployment is demonstrated in manifests/kustomize/base/pipeline/ml-pipeline-persistenceagent-deployment.yaml
+ENV TTL_SECONDS_AFTER_WORKFLOW_FINISH 86400
 
-CMD persistence_agent --logtostderr=true --namespace=${NAMESPACE} --ttlSecondsAfterWorkflowFinish=${TTL_SECONDS_AFTER_WORKFLOW_FINISH}
+# NUM_WORKERS indicates now many worker goroutines
+ENV NUM_WORKERS 2
+
+CMD persistence_agent --logtostderr=true --namespace=${NAMESPACE} --ttlSecondsAfterWorkflowFinish=${TTL_SECONDS_AFTER_WORKFLOW_FINISH} --numWorker ${NUM_WORKERS}

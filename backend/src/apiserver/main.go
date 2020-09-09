@@ -38,6 +38,8 @@ import (
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var (
@@ -45,6 +47,8 @@ var (
 	httpPortFlag     = flag.String("httpPortFlag", ":8888", "Http Proxy Port")
 	configPath       = flag.String("config", "", "Path to JSON file containing config")
 	sampleConfigPath = flag.String("sampleconfig", "", "Path to samples")
+
+	collectMetricsFlag = flag.Bool("collectMetricsFlag", true, "Whether to collect Prometheus metrics in API server.")
 )
 
 type RegisterHttpHandlerFromEndpoint func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) error
@@ -74,12 +78,10 @@ func main() {
 // A custom http request header matcher to pass on the user identity
 // Reference: https://github.com/grpc-ecosystem/grpc-gateway/blob/master/docs/_docs/customizingyourgateway.md#mapping-from-http-request-headers-to-grpc-client-metadata
 func grpcCustomMatcher(key string) (string, bool) {
-	switch strings.ToLower(key) {
-	case common.GoogleIAPUserIdentityHeader:
+	if strings.EqualFold(key, common.GetKubeflowUserIDHeader()) {
 		return strings.ToLower(key), true
-	default:
-		return strings.ToLower(key), false
 	}
+	return strings.ToLower(key), false
 }
 
 func startRpcServer(resourceManager *resource.ResourceManager) {
@@ -89,10 +91,10 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 		glog.Fatalf("Failed to start RPC server: %v", err)
 	}
 	s := grpc.NewServer(grpc.UnaryInterceptor(apiServerInterceptor), grpc.MaxRecvMsgSize(math.MaxInt32))
-	api.RegisterPipelineServiceServer(s, server.NewPipelineServer(resourceManager))
-	api.RegisterExperimentServiceServer(s, server.NewExperimentServer(resourceManager))
-	api.RegisterRunServiceServer(s, server.NewRunServer(resourceManager))
-	api.RegisterJobServiceServer(s, server.NewJobServer(resourceManager))
+	api.RegisterPipelineServiceServer(s, server.NewPipelineServer(resourceManager, &server.PipelineServerOptions{CollectMetrics: *collectMetricsFlag}))
+	api.RegisterExperimentServiceServer(s, server.NewExperimentServer(resourceManager, &server.ExperimentServerOptions{CollectMetrics: *collectMetricsFlag}))
+	api.RegisterRunServiceServer(s, server.NewRunServer(resourceManager, &server.RunServerOptions{CollectMetrics: *collectMetricsFlag}))
+	api.RegisterJobServiceServer(s, server.NewJobServer(resourceManager, &server.JobServerOptions{CollectMetrics: *collectMetricsFlag}))
 	api.RegisterReportServiceServer(s, server.NewReportServer(resourceManager))
 	api.RegisterVisualizationServiceServer(
 		s,
@@ -101,6 +103,7 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 			common.GetStringConfig(visualizationServiceHost),
 			common.GetStringConfig(visualizationServicePort),
 		))
+	api.RegisterAuthServiceServer(s, server.NewAuthServer(resourceManager))
 
 	// Register reflection service on gRPC server.
 	reflection.Register(s)
@@ -125,6 +128,7 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	registerHttpHandlerFromEndpoint(api.RegisterRunServiceHandlerFromEndpoint, "RunService", ctx, mux)
 	registerHttpHandlerFromEndpoint(api.RegisterReportServiceHandlerFromEndpoint, "ReportService", ctx, mux)
 	registerHttpHandlerFromEndpoint(api.RegisterVisualizationServiceHandlerFromEndpoint, "Visualization", ctx, mux)
+	registerHttpHandlerFromEndpoint(api.RegisterAuthServiceHandlerFromEndpoint, "AuthService", ctx, mux)
 
 	// Create a top level mux to include both pipeline upload server and gRPC servers.
 	topMux := http.NewServeMux()
@@ -132,14 +136,17 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	// multipart upload is only supported in HTTP. In long term, we should have gRPC endpoints that
 	// accept pipeline url for importing.
 	// https://github.com/grpc-ecosystem/grpc-gateway/issues/410
-	pipelineUploadServer := server.NewPipelineUploadServer(resourceManager)
+	pipelineUploadServer := server.NewPipelineUploadServer(resourceManager, &server.PipelineUploadServerOptions{CollectMetrics: *collectMetricsFlag})
 	topMux.HandleFunc("/apis/v1beta1/pipelines/upload", pipelineUploadServer.UploadPipeline)
 	topMux.HandleFunc("/apis/v1beta1/pipelines/upload_version", pipelineUploadServer.UploadPipelineVersion)
 	topMux.HandleFunc("/apis/v1beta1/healthz", func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, `{"commit_sha":"`+common.GetStringConfig("COMMIT_SHA")+`"}`)
+		io.WriteString(w, `{"commit_sha":"`+common.GetStringConfigWithDefault("COMMIT_SHA", "unknown")+`", "tag_name":"`+common.GetStringConfigWithDefault("TAG_NAME", "unknown")+`"}`)
 	})
 
 	topMux.Handle("/apis/", mux)
+
+	// Register a handler for Prometheus to poll.
+	topMux.Handle("/metrics", promhttp.Handler())
 
 	http.ListenAndServe(*httpPortFlag, topMux)
 	glog.Info("Http Proxy started")
@@ -216,6 +223,8 @@ func initConfig() {
 	replacer := strings.NewReplacer(".", "_")
 	viper.SetEnvKeyReplacer(replacer)
 	viper.AutomaticEnv()
+	// We need empty string env var for e.g. KUBEFLOW_USERID_PREFIX.
+	viper.AllowEmptyEnv(true)
 
 	// Set configuration file name. The format is auto detected in this case.
 	viper.SetConfigName("config")

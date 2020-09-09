@@ -1,30 +1,57 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
+namespace: kubeflow
 bases:
 - application
 - argo
 - pipeline
-- proxy
 - metadata
-
+- cache
+- cache-deployer
 resources:
-  - pipeline-application.yaml
-
-images:
-- name: gcr.io/ml-pipeline/api-server
-  newTag: 0.2.4
-- name: gcr.io/ml-pipeline/persistenceagent
-  newTag: 0.2.4
-- name: gcr.io/ml-pipeline/scheduledworkflow
-  newTag: 0.2.4
-- name: gcr.io/ml-pipeline/frontend
-  newTag: 0.2.4
-- name: gcr.io/ml-pipeline/viewer-crd-controller
-  newTag: 0.2.4
-- name: gcr.io/ml-pipeline/inverse-proxy-agent
-  newTag: 0.2.4
-- name: gcr.io/ml-pipeline/visualization-server
-  newTag: 0.2.4
-- name: gcr.io/ml-pipeline/metadata-writer
-  newTag: 0.2.4
+- pipeline-application.yaml
+# Used by Kustomize
+configMapGenerator:
+- name: pipeline-install-config
+  env: params.env
+secretGenerator:
+- name: mysql-secret
+  env: params-db-secret.env
+vars:
+- name: kfp-namespace
+  objref:
+    kind: Deployment
+    apiVersion: apps/v1
+    name: ml-pipeline
+  fieldref:
+    fieldpath: metadata.namespace
+- name: kfp-app-name
+  objref:
+    kind: ConfigMap
+    name: pipeline-install-config
+    apiVersion: v1
+  fieldref:
+    fieldpath: data.appName
+- name: kfp-app-version
+  objref:
+    kind: ConfigMap
+    name: pipeline-install-config
+    apiVersion: v1
+  fieldref:
+    fieldpath: data.appVersion
+- name: kfp-artifact-bucket-name
+  objref:
+    kind: ConfigMap
+    name: pipeline-install-config
+    apiVersion: v1
+  fieldref:
+    fieldpath: data.bucketName
+- name: kfp-container-runtime-executor
+  objref:
+    kind: ConfigMap
+    name: pipeline-install-config
+    apiVersion: v1
+  fieldref:
+    fieldpath: data.containerRuntimeExecutor
+configurations:
+- params.yaml

@@ -26,8 +26,8 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
-var jobColumns = []string{"UUID", "DisplayName", "Name", "Namespace", "Description", "MaxConcurrency", "NoCatchup",
-	"CreatedAtInSec", "UpdatedAtInSec", "Enabled", "CronScheduleStartTimeInSec", "CronScheduleEndTimeInSec",
+var jobColumns = []string{"UUID", "DisplayName", "Name", "Namespace", "ServiceAccount", "Description", "MaxConcurrency",
+	"NoCatchup", "CreatedAtInSec", "UpdatedAtInSec", "Enabled", "CronScheduleStartTimeInSec", "CronScheduleEndTimeInSec",
 	"Schedule", "PeriodicScheduleStartTimeInSec", "PeriodicScheduleEndTimeInSec", "IntervalSecond",
 	"PipelineId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "Conditions",
 }
@@ -112,8 +112,18 @@ func (s *JobStore) ListJobs(
 
 func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
 	filterContext *common.FilterContext) (string, []interface{}, error) {
-	filteredSelectBuilder, err := list.FilterOnResourceReference("jobs", jobColumns,
-		common.Job, selectCount, filterContext)
+
+	var filteredSelectBuilder sq.SelectBuilder
+	var err error
+
+	refKey := filterContext.ReferenceKey
+	if refKey != nil && refKey.Type == common.Namespace {
+		filteredSelectBuilder, err = list.FilterOnNamespace("jobs", jobColumns,
+			selectCount, refKey.ID)
+	} else {
+		filteredSelectBuilder, err = list.FilterOnResourceReference("jobs", jobColumns,
+			common.Job, selectCount, filterContext)
+	}
 	if err != nil {
 		return "", nil, util.NewInternalServerError(err, "Failed to list jobs: %v", err)
 	}
@@ -173,7 +183,7 @@ func (s *JobStore) addResourceReferences(filteredSelectBuilder sq.SelectBuilder)
 func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 	var jobs []*model.Job
 	for r.Next() {
-		var uuid, displayName, name, namespace, pipelineId, pipelineName, conditions,
+		var uuid, displayName, name, namespace, pipelineId, pipelineName, conditions, serviceAccount,
 			description, parameters, pipelineSpecManifest, workflowSpecManifest string
 		var cronScheduleStartTimeInSec, cronScheduleEndTimeInSec,
 			periodicScheduleStartTimeInSec, periodicScheduleEndTimeInSec, intervalSecond sql.NullInt64
@@ -181,7 +191,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 		var enabled, noCatchup bool
 		var createdAtInSec, updatedAtInSec, maxConcurrency int64
 		err := r.Scan(
-			&uuid, &displayName, &name, &namespace, &description,
+			&uuid, &displayName, &name, &namespace, &serviceAccount, &description,
 			&maxConcurrency, &noCatchup, &createdAtInSec, &updatedAtInSec, &enabled,
 			&cronScheduleStartTimeInSec, &cronScheduleEndTimeInSec, &cron,
 			&periodicScheduleStartTimeInSec, &periodicScheduleEndTimeInSec, &intervalSecond,
@@ -195,6 +205,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 			DisplayName:        displayName,
 			Name:               name,
 			Namespace:          namespace,
+			ServiceAccount:     serviceAccount,
 			Description:        description,
 			Enabled:            enabled,
 			Conditions:         conditions,
@@ -264,6 +275,7 @@ func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 			"DisplayName":                    j.DisplayName,
 			"Name":                           j.Name,
 			"Namespace":                      j.Namespace,
+			"ServiceAccount":                 j.ServiceAccount,
 			"Description":                    j.Description,
 			"MaxConcurrency":                 j.MaxConcurrency,
 			"NoCatchup":                      j.NoCatchup,

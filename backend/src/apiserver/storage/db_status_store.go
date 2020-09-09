@@ -29,6 +29,12 @@ type DBStatusStoreInterface interface {
 	MarkSampleLoaded() error
 }
 
+var (
+	dbStatusStoreColumns = []string{
+		"HaveSamplesLoaded",
+	}
+)
+
 // Implementation of a DBStatusStoreInterface. This store read/write state of the database.
 // For now we store status like whether sample is loaded.
 type DBStatusStore struct {
@@ -46,10 +52,11 @@ func (s *DBStatusStore) InitializeDBStatusTable() error {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to load database status.")
 	}
-	defer rows.Close()
+	next := rows.Next()
+	rows.Close() // "rows" shouldn't be used after this point.
 
 	// The table is not initialized
-	if !rows.Next() {
+	if !next {
 		sql, args, queryErr := sq.
 			Insert("db_statuses").
 			SetMap(defaultDBStatus).
@@ -76,7 +83,7 @@ func (s *DBStatusStore) InitializeDBStatusTable() error {
 
 func (s *DBStatusStore) HaveSamplesLoaded() (bool, error) {
 	var haveSamplesLoaded bool
-	sql, args, err := sq.Select("*").From("db_statuses").ToSql()
+	sql, args, err := sq.Select(dbStatusStoreColumns...).From("db_statuses").ToSql()
 	if err != nil {
 		return false, util.NewInternalServerError(err, "Error creating query to get load sample status.")
 	}

@@ -16,9 +16,11 @@
 
 import * as React from 'react';
 import { shallow, mount } from 'enzyme';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { PlotType } from './Viewer';
 import VisualizationCreator, { VisualizationCreatorConfig } from './VisualizationCreator';
 import { ApiVisualizationType } from '../../apis/visualization';
+import { diffHTML } from 'src/TestUtils';
 
 describe('VisualizationCreator', () => {
   it('does not render component when no config is provided', () => {
@@ -330,5 +332,51 @@ describe('VisualizationCreator', () => {
 
   it('returns friendly display name', () => {
     expect(VisualizationCreator.prototype.getDisplayName()).toBe('Visualization Creator');
+  });
+
+  it('can be configured as collapsed initially and clicks to open', () => {
+    const baseConfig: VisualizationCreatorConfig = {
+      isBusy: false,
+      onGenerate: jest.fn(),
+      type: PlotType.VISUALIZATION_CREATOR,
+      collapsedInitially: false,
+    };
+    const { container: baseContainer } = render(<VisualizationCreator configs={[baseConfig]} />);
+    const { container } = render(
+      <VisualizationCreator
+        configs={[
+          {
+            ...baseConfig,
+            collapsedInitially: true,
+          },
+        ]}
+      />,
+    );
+    expect(container).toMatchInlineSnapshot(`
+      <div>
+        <button
+          class="MuiButtonBase-root-114 MuiButton-root-88 MuiButton-text-90 MuiButton-flat-93"
+          tabindex="0"
+          type="button"
+        >
+          <span
+            class="MuiButton-label-89"
+          >
+            create visualizations manually
+          </span>
+          <span
+            class="MuiTouchRipple-root-117"
+          />
+        </button>
+      </div>
+    `);
+    const button = screen.getByText('create visualizations manually');
+    fireEvent.click(button);
+    // expanding a visualization creator is equivalent to rendering a non-collapsed visualization creator
+    expect(diffHTML({ base: baseContainer.innerHTML, update: container.innerHTML }))
+      .toMatchInlineSnapshot(`
+      Snapshot Diff:
+      Compared values have no visual difference.
+    `);
   });
 });

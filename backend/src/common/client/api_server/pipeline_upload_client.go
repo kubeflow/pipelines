@@ -85,5 +85,37 @@ func (c *PipelineUploadClient) Upload(parameters *params.UploadPipelineParams) (
 	return response.Payload, nil
 }
 
-// TODO(jingzhang36): add UploadPipelineVersion after go_http_client and go_client are
-// auto-generated from UploadPipelineVersion in PipelineUploadServer
+// UploadPipelineVersion uploads pipeline version from local file.
+func (c *PipelineUploadClient) UploadPipelineVersion(filePath string, parameters *params.UploadPipelineVersionParams) (*model.APIPipelineVersion,
+	error) {
+	// Get file
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, util.NewUserErrorWithSingleMessage(err,
+			fmt.Sprintf("Failed to open file '%s'", filePath))
+	}
+	defer file.Close()
+	parameters.Uploadfile = runtime.NamedReader(filePath, file)
+
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	defer cancel()
+
+	// Make service call
+	parameters.Context = ctx
+	response, err := c.apiClient.PipelineUploadService.UploadPipelineVersion(parameters, PassThroughAuth)
+
+	if err != nil {
+		if defaultError, ok := err.(*params.UploadPipelineVersionDefault); ok {
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
+		}
+
+		return nil, util.NewUserError(err,
+			fmt.Sprintf("Failed to upload pipeline version. Params: '%v'", parameters),
+			fmt.Sprintf("Failed to upload pipeline version"))
+	}
+
+	return response.Payload, nil
+}

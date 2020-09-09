@@ -2,6 +2,8 @@ FROM node:12.14.1 as build
 
 ARG COMMIT_HASH
 ENV COMMIT_HASH=${COMMIT_HASH}
+ARG TAG_NAME
+ENV TAG_NAME=${TAG_NAME}
 
 ARG DATE
 
@@ -11,18 +13,13 @@ COPY . .
 
 WORKDIR ./frontend
 
-# Pin getting started page links to the commit that built the frontend image
-RUN sed -E "s#/(blob|tree)/master/#/\1/${COMMIT_HASH}/#g" -i src/pages/GettingStarted.tsx && \
-    sed -E "s/%252Fmaster/%252F${COMMIT_HASH}/#g" -i src/pages/GettingStarted.tsx && \
-    sed -E "s#/(blob|tree)/master/#/\1/${COMMIT_HASH}/#g" -i src/pages/GettingStarted.test.tsx && \
-    sed -E "s/%252Fmaster/%252F${COMMIT_HASH}/#g" -i src/pages/GettingStarted.test.tsx
-
 RUN npm ci && npm run postinstall
 RUN npm run build
 
 RUN mkdir -p ./server/dist && \
     echo ${COMMIT_HASH} > ./server/dist/COMMIT_HASH && \
-    echo ${DATE} > ./server/dist/BUILD_DATE
+    echo ${DATE} > ./server/dist/BUILD_DATE && \
+    echo ${TAG_NAME} > ./server/dist/TAG_NAME
 
 # Generate the dependency licenses files (one for the UI and one for the webserver),
 # concatenate them to one file under ./src/server

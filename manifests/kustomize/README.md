@@ -1,97 +1,106 @@
 # Install Kubeflow Pipelines
-This folder contains Kubeflow Pipelines Kustomize manifests for a light weight deployment. You can follow the instruction and deploy Kubeflow Pipelines in an existing cluster.
 
+This folder contains Kubeflow Pipelines Kustomize manifests for a light weight
+deployment. You can follow the instruction and deploy Kubeflow Pipelines in an
+existing cluster.
 
-## TL;DR
+To install Kubeflow Pipelines, you have several options.
+- Via [GCP AI Platform UI](http://console.cloud.google.com/ai-platform/pipelines).
+- Via an upcoming commandline tool.
+- Via Kubectl with Kustomize, it's detailed here.
 
-Deploy latest version of Kubeflow Pipelines
+## Install via Kustomize
+
+Deploy latest version of Kubeflow Pipelines.
+
+It uses following default settings.
+- image: latest released images
+- namespace: kubeflow
+- application name: pipeline
+
+### Option-1 Install it to any K8s cluster
+It's based on in-cluster PersistentVolumeClaim storage.
+
 ```
-export PIPELINE_VERSION=0.2.4
-kubectl apply -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/crd.yaml
-kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
-kubectl apply -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/namespaced-install.yaml
+kubectl apply -k cluster-scoped-resources/
+kubectl wait crd/applications.app.k8s.io --for condition=established --timeout=60s
+kubectl apply -k env/platform-agnostic/
+kubectl wait applications/pipeline -n kubeflow --for condition=Ready --timeout=1800s
+kubectl port-forward -n kubeflow svc/ml-pipeline-ui 8080:80
 ```
+Now you can access it via localhost:8080
 
-Then get the Pipeline URL
+### Option-2 Install it to GCP with in-cluster PersistentVolumeClaim storage
+It's based on in-cluster PersistentVolumeClaim storage.
+Additionally, it introduced a proxy in GCP to allow user easily access KFP safely.
+
 ```
+kubectl apply -k cluster-scoped-resources/
+kubectl wait crd/applications.app.k8s.io --for condition=established --timeout=60s
+
+kubectl apply -k env/dev/
+kubectl wait applications/pipeline -n kubeflow --for condition=Ready --timeout=1800s
+
+# Or visit http://console.cloud.google.com/ai-platform/pipelines
 kubectl describe configmap inverse-proxy-config -n kubeflow | grep googleusercontent.com
 ```
 
-## Customization
-Customization can be done through Kustomize [Overlay](https://github.com/kubernetes-sigs/kustomize/blob/master/docs/glossary.md#overlay).
+### Option-3 Install it to GCP with CloudSQL & GCS-Minio managed storage
+Its storage is based on CloudSQL & GCS. It's better than others for production usage.
 
-Note - The instruction below assume you installed kubectl v1.14.0 or later, which has native support of kustomize.
-To get latest kubectl, visit [here](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+Please following [sample](sample/README.md) for a customized installation.
 
-### Deploy on GCP with CloudSQL and GCS
-See [here](env/gcp/README.md) for more details.
+### Option-4 Install it to AWS with S3 and RDS MySQL
+Its storage is based on S3 & AWS RDS. It's more natural for AWS users to use this option.
 
-### Change deploy namespace
-To deploy Kubeflow Pipelines in namespace FOO,
-- Edit [dev/kustomization.yaml](env/dev/kustomization.yaml) or [gcp/kustomization.yaml](env/gcp/kustomization.yaml) namespace section to FOO
-- Then run
-```
-kubectl kustomize base/crds | kubectl apply -f -
-# then
-kubectl kustomize env/dev | kubectl apply -f -
-# or
-kubectl kustomize env/gcp | kubectl apply -f -
-```
+Please following [AWS Instructions](env/aws/README.md) for installation.
 
-### Disable the public endpoint
-By default, the deployment install an [invert proxy agent](https://github.com/google/inverting-proxy) that exposes a public URL. If you want to skip installing it,
-- Comment out the proxy component in the [kustomization.yaml](base/kustomization.yaml).
-- Then run
-```
-kubectl kustomize . | kubectl apply -f -
-```
-
-The UI is still accessible by port-forwarding
-```
-kubectl port-forward -n kubeflow svc/ml-pipeline-ui 8080:80
-```
-and open http://localhost:8080/
-
-### Deploy on AWS (with S3 buckets as artifact store)
-
-[https://github.com/e2fyi/kubeflow-aws](https://github.com/e2fyi/kubeflow-aws/tree/master/pipelines)
-provides a community-maintained manifest for deploying kubeflow pipelines on AWS
-(with S3 as artifact store instead of minio). More details can be found in the repo.
+Note: Community maintains a repo [e2fyi/kubeflow-aws](https://github.com/e2fyi/kubeflow-aws/tree/master/pipelines) for AWS.
 
 ## Uninstall
-You can uninstall Kubeflow Pipelines by running
-```
-export PIPELINE_VERSION=0.1.38
-kubectl delete -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/namespaced-install.yaml
-kubectl delete -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$PIPELINE_VERSION/crd.yaml
-```
 
-Or if you deploy through kustomize
+If the installation is based on CloudSQL/GCS, after the uninstall, the data is still there,
+reinstall a newer version can reuse the data.
+
 ```
+### 1. namespace scoped
+# Depends on how you installed it:
+kubectl kustomize env/platform-agnostic | kubectl delete -f -
+# or
 kubectl kustomize env/dev | kubectl delete -f -
 # or
 kubectl kustomize env/gcp | kubectl delete -f -
-# then
-kubectl kustomize base/crds | kubectl delete -f -
+# or
+kubectl delete applications/pipeline -n kubeflow
 
+### 2. cluster scoped
+kubectl delete -k cluster-scoped-resources/
 ```
 
 ## Troubleshooting
 
 ### Permission error installing Kubeflow Pipelines to a cluster
+
 Run
+
 ```
 kubectl create clusterrolebinding your-binding --clusterrole=cluster-admin --user=[your-user-name]
 ```
 
 ### Samples requires "user-gcp-sa" secret
+
 If sample code requires a "user-gcp-sa" secret, you could create one by
-- First download the GCE VM service account token [Document](https://cloud.google.com/iam/docs/creating-managing-service-account-keys#creating_service_account_keys)
+
+-   First download the GCE VM service account token
+    [Document](https://cloud.google.com/iam/docs/creating-managing-service-account-keys#creating_service_account_keys)
+
 ```
 gcloud iam service-accounts keys create application_default_credentials.json \
   --iam-account [SA-NAME]@[PROJECT-ID].iam.gserviceaccount.com
 ```
-- Run
+
+-   Run
+
 ```
-kubectl create secret -n [your-namespace] generic user-gcp-sa --from-file=user-gcp-sa.json=application_default_credentials.json
+kubectl create secret -n [your-namespace] generic user-gcp-sa --from-file=user-gcp-sa.json=application_default_credentials.json`
 ```
