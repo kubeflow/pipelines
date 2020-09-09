@@ -20,12 +20,14 @@ implementation:
                 gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
             fi
             src=$0
+            dst=$1
             if [ -f "$src" ]; then
               tmp=$(mktemp -d)
-              cp "$src" $tmp
+              cp "$src" "$tmp/$(basename "$dst")"
               src=$tmp
+              dst=$(dirname "$dst")
             fi
-            gsutil -m $flags rsync $rsync_flags -r $src "$1"
+            gsutil -m $flags rsync $rsync_flags -r $src "$dst"
             mkdir -p "$(dirname "$2")"
             echo "$1" > "$2"
         - inputPath: Data
