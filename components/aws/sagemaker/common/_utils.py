@@ -471,42 +471,45 @@ def create_model_request(args):
 
     return request
 
-def endpoint_name_exists(client, endpoint_name):
-  endpoint_exists = False
+def endpoint_name_exists(client, args):
+  endpoint_name = args['endpoint_name']
   if endpoint_name:
       endpoints = client.list_endpoints(
-          MaxResults=99,
           NameContains=endpoint_name,
       )['Endpoints']
-      for i in range(len(endpoints)):
-          ep = endpoints[i]
-          if (ep['EndpointName'] == endpoint_name):
-            endpoint_exists = True
-            logging.info("Endpoint exists: " + ep['EndpointName'] + " - " + ep['EndpointArn'])
-  return endpoint_exists
+      if any(map(lambda ep: ep['EndpointName'] == endpoint_name, endpoints)):
+          logging.info("Endpoint exists: " + endpoint_name)
+          return True
+  return False
 
 def endpoint_config_name_exists(client, endpoint_config_name):
-  ep_config_name_exists = False
   if endpoint_config_name:
-      if client.describe_endpoint_config(
-          EndpointConfigName=endpoint_config_name,
-          )['EndpointConfigName'] == endpoint_config_name:
-        ep_config_name_exists = True
-        logging.info("Endpoint Config exists: " + endpoint_config_name)
-  return ep_config_name_exists
+      configs = client.list_endpoint_configs(
+          NameContains=endpoint_config_name,
+      )["EndpointConfigs"]
+      if any(map(lambda config: config["EndpointConfigName"]==endpoint_config_name, configs)):
+          logging.info("Endpoint Config exists: " + endpoint_config_name)
+          return True
+  return False
+
+def endpoint_needs_update(client, args):
+  if (args['update_endpoint'] and endpoint_name_exists(client, args)):
+      return True
+  return False
+
+def update_deployed_model(client, args):
+    endpoint_config_name = create_endpoint_config(client, args)
+    endpoint_name = update_endpoint(client, args['region'], args['endpoint_name'], endpoint_config_name)
+    return endpoint_name
 
 def deploy_model(client, args):
-  if args['update_endpoint'] and endpoint_name_exists(client, args['endpoint_name']):
-      endpoint_config_name = create_endpoint_config(client, args)
-      endpoint_name = update_endpoint(client, args['region'], args['endpoint_name'], endpoint_config_name)
-  else:
-      args['update_endpoint'] = False
-      endpoint_config_name = create_endpoint_config(client, args)
-      endpoint_name = create_endpoint(client, args['region'], args['endpoint_name'], endpoint_config_name, args['endpoint_tags'])
-  return endpoint_name
+    args['update_endpoint'] = False
+    endpoint_config_name = create_endpoint_config(client, args)
+    endpoint_name = create_endpoint(client, args['region'], args['endpoint_name'], endpoint_config_name, args['endpoint_tags'])
+    return endpoint_name
 
 def get_current_endpoint_config(client, args):
-    endpoint_config_name = ''
+    endpoint_config_name = None
     try:
         endpoint_config_name = client.describe_endpoint(EndpointName=args['endpoint_name'])['EndpointConfigName']
         logging.info("Current Endpoint Config Name: " + endpoint_config_name)
@@ -522,7 +525,7 @@ def cleanup_endpoint_config(client, endpoint_config_name, args):
             logging.info('Starting best effort endpoint config cleanup for the update...')
             if endpoint_config_name != current_endpoint_config:
                client.delete_endpoint_config(EndpointConfigName=endpoint_config_name)
-            logging.info("Endpoint config deleted: " + endpoint_config_name)
+               logging.info("Endpoint config deleted: " + endpoint_config_name)
     except ClientError as e:
         logging.info("Endpoint config may not exist to be removed: " + e.response['Error']['Message'])
 
