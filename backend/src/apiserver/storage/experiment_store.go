@@ -5,12 +5,13 @@ import (
 
 	"fmt"
 
+	"apiserver/common"
+	"apiserver/list"
+	"apiserver/model"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 

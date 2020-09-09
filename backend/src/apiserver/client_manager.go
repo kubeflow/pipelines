@@ -20,14 +20,15 @@ import (
 	"os"
 	"time"
 
+	"apiserver/client"
+	"apiserver/common"
+	"apiserver/model"
+	"apiserver/storage"
+
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/minio/minio-go"
 )
@@ -296,8 +297,8 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 	b := backoff.NewExponentialBackOff()
 	b.MaxElapsedTime = initConnectionTimeout
 	//err = backoff.Retry(operation, b)
-	backoff.RetryNotify(operation,b, func(e error, duration time.Duration) {
-		glog.Errorf("%v",e)
+	backoff.RetryNotify(operation, b, func(e error, duration time.Duration) {
+		glog.Errorf("%v", e)
 	})
 
 	defer db.Close()

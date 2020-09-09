@@ -16,8 +16,8 @@ import (
 
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	"apiserver/common"
+	"apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/metadata"

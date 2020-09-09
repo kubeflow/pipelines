@@ -26,9 +26,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	"apiserver/list"
+	"apiserver/model"
+	"apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 )

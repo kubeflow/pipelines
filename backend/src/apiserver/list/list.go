@@ -25,10 +25,11 @@ import (
 	"reflect"
 	"strings"
 
+	"apiserver/common"
+	"apiserver/filter"
+
 	sq "github.com/Masterminds/squirrel"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 

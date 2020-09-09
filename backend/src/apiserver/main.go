@@ -28,13 +28,14 @@ import (
 	"strings"
 	"time"
 
+	"apiserver/common"
+	"apiserver/resource"
+	"apiserver/server"
+
 	"github.com/fsnotify/fsnotify"
 	"github.com/golang/glog"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"

@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"apiserver/common"
+	"apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"k8s.io/apimachinery/pkg/util/json"
 )

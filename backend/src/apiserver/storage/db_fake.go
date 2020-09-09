@@ -17,9 +17,10 @@ package storage
 import (
 	"fmt"
 
+	"apiserver/model"
+
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	_ "github.com/mattn/go-sqlite3"
 )
 

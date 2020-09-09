@@ -23,8 +23,8 @@ import (
 
 	"github.com/golang/protobuf/jsonpb"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
+	"apiserver/common"
+	"apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 

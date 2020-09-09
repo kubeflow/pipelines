@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"apiserver/client"
+	"apiserver/common"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/metadata"

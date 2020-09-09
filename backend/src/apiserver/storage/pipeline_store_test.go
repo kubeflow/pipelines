@@ -18,8 +18,8 @@ import (
 	"testing"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"apiserver/list"
+	"apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"

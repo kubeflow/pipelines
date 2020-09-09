@@ -17,7 +17,7 @@ package model
 import (
 	"testing"
 
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"apiserver/common"
 	"github.com/stretchr/testify/assert"
 )
 

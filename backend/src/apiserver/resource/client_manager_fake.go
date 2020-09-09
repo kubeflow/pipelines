@@ -15,9 +15,10 @@
 package resource
 
 import (
+	"apiserver/client"
+	"apiserver/storage"
+
 	"github.com/golang/glog"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 

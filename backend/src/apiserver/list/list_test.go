@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"apiserver/common"
+	"apiserver/filter"
+	"apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 

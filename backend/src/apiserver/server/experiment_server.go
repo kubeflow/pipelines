@@ -3,11 +3,12 @@ package server
 import (
 	"context"
 
+	"apiserver/common"
+	"apiserver/model"
+	"apiserver/resource"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"

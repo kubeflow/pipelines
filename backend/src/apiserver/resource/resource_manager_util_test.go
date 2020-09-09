@@ -18,8 +18,9 @@ import (
 	"testing"
 	"time"
 
+	"apiserver/storage"
+
 	"github.com/ghodss/yaml"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 

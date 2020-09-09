@@ -15,7 +15,7 @@
 package model
 
 import (
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"apiserver/common"
 )
 
 // Resource reference table models the relationship between resources in a loosely coupled way.
