@@ -32,7 +32,6 @@ const (
 // This method extract the common logic of naming the pipeline.
 // API caller can either explicitly name the pipeline through query string ?name=foobar
 // or API server can use the file name by default.
-// HERE HERE HERE HERE
 func GetPipelineName(queryString string, fileName string) (string, error) {
 	pipelineName, err := url.QueryUnescape(queryString)
 	if err != nil {
@@ -47,6 +46,9 @@ func GetPipelineName(queryString string, fileName string) (string, error) {
 	return pipelineName, nil
 }
 
+// This method extract the common logic of the behaviour for updating the default pipeline version.
+// API caller can either explicitly decide through query string ?updatedefaultversion=false
+// or API server will use true by default.
 func GetDefaultVersionUpdate(queryString string) (bool, error) {
 	updateDefaultVersionString, err := url.QueryUnescape(queryString)
 	if err != nil {

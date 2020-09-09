@@ -34,7 +34,7 @@ import (
 const (
 	FormFileKey                        = "uploadfile"
 	NameQueryStringKey                 = "name"
-	UpdateDefaultVersionQueryStringKey = "updateDefaultVersion"
+	UpdateDefaultVersionQueryStringKey = "updatedefaultversion"
 	DescriptionQueryStringKey          = "description"
 	// Pipeline Id in the query string specifies a pipeline when creating versions.
 	PipelineKey = "pipelineid"
@@ -140,8 +140,6 @@ func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *h
 		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Error read pipeline version file."))
 		return
 	}
-	// HERE HERE HERE
-	// SAME WITH MY OWN PARAMETER
 	versionNameQueryString := r.URL.Query().Get(NameQueryStringKey)
 	// If new version's name is not included in query string, use file name.
 	pipelineVersionName, err := GetPipelineName(versionNameQueryString, header.Filename)
