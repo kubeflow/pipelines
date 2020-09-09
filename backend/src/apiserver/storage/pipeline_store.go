@@ -62,7 +62,7 @@ type PipelineStoreInterface interface {
 	UpdatePipelineStatus(string, model.PipelineStatus) error
 	UpdatePipelineDefaultVersion(string, string) error
 
-	CreatePipelineVersion(*model.PipelineVersion) (*model.PipelineVersion, error)
+	CreatePipelineVersion(*model.PipelineVersion, bool updatePipelineVersion) (*model.PipelineVersion, error)
 	GetPipelineVersion(versionId string) (*model.PipelineVersion, error)
 	GetPipelineVersionWithStatus(versionId string, status model.PipelineVersionStatus) (*model.PipelineVersion, error)
 	ListPipelineVersions(pipelineId string, opts *list.Options) ([]*model.PipelineVersion, int, string, error)
@@ -447,7 +447,7 @@ func NewPipelineStore(db *DB, time util.TimeInterface, uuid util.UUIDGeneratorIn
 	return &PipelineStore{db: db, time: time, uuid: uuid}
 }
 
-func (s *PipelineStore) CreatePipelineVersion(v *model.PipelineVersion) (*model.PipelineVersion, error) {
+func (s *PipelineStore) CreatePipelineVersion(v *model.PipelineVersion, updatePipelineVersion bool) (*model.PipelineVersion, error) {
 	newPipelineVersion := *v
 	newPipelineVersion.CreatedAtInSec = s.time.Now().Unix()
 	id, err := s.uuid.NewRandom()
@@ -475,18 +475,8 @@ func (s *PipelineStore) CreatePipelineVersion(v *model.PipelineVersion) (*model.
 			"Failed to create query to insert version to pipeline version table: %v",
 			versionErr.Error())
 	}
-	pipelineSql, pipelineArgs, pipelineErr := sq.
-		Update("pipelines").
-		SetMap(sq.Eq{"DefaultVersionId": newPipelineVersion.UUID}).
-		Where(sq.Eq{"UUID": newPipelineVersion.PipelineId}).
-		ToSql()
-	if pipelineErr != nil {
-		return nil, util.NewInternalServerError(
-			pipelineErr,
-			"Failed to create query to update pipeline default version id: %v",
-			pipelineErr.Error())
-	}
-
+	// HERE HERE HERE
+	// HERE WE GO!!!!
 	// In a single transaction, insert new version and update default version.
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -506,11 +496,26 @@ func (s *PipelineStore) CreatePipelineVersion(v *model.PipelineVersion) (*model.
 		return nil, util.NewInternalServerError(err, "Failed to add version to pipeline version table: %v",
 			err.Error())
 	}
-	_, err = tx.Exec(pipelineSql, pipelineArgs...)
-	if err != nil {
-		tx.Rollback()
-		return nil, util.NewInternalServerError(err, "Failed to update pipeline default version id: %v",
-			err.Error())
+	if updatePipelineVersion {
+		pipelineSql, pipelineArgs, pipelineErr := sq.
+			Update("pipelines").
+			SetMap(sq.Eq{"DefaultVersionId": newPipelineVersion.UUID}).
+			Where(sq.Eq{"UUID": newPipelineVersion.PipelineId}).
+			ToSql()
+		if pipelineErr != nil {
+			return nil, util.NewInternalServerError(
+				pipelineErr,
+				"Failed to create query to update pipeline default version id: %v",
+				pipelineErr.Error())
+		}
+
+		_, err = tx.Exec(pipelineSql, pipelineArgs...)
+		if err != nil {
+			tx.Rollback()
+			return nil, util.NewInternalServerError(err, "Failed to update pipeline default version id: %v",
+				err.Error())
+		}
+
 	}
 	if err := tx.Commit(); err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create new pipeline version: %v",
