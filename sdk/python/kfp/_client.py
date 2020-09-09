@@ -701,11 +701,6 @@ class Client(object):
     run_info = self.run_pipeline(experiment.id, run_name, pipeline_file, arguments)
     return RunPipelineResult(self, run_info)
 
-<<<<<<< HEAD
-  def list_runs(self, page_token='', page_size=10, sort_by='', experiment_id=None, namespace=None):
-    """List runs, optionally can be filtered by experiment or namespace.
-
-=======
   def schedule_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None, 
     namespace=None, cron_schedule=None, description=None):
     """Schedule pipeline on kubeflow to run based upon a cron job
@@ -752,7 +747,7 @@ class Client(object):
     schedule_body = kfp_server_api.models.ApiJob(
         id=job_id,
         name=job_name,
-        description=description,
+        description="Schedule the pipeline using the API",
         pipeline_spec=spec,
         resource_references=resource_references,
         max_concurrency=10,
@@ -765,7 +760,6 @@ class Client(object):
 
   def list_runs(self, page_token='', page_size=10, sort_by='', experiment_id=None):
     """List runs.
->>>>>>> update to fetch remote
     Args:
       page_token: Token for starting of the page.
       page_size: Size of the page.
