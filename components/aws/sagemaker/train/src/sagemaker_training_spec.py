@@ -163,12 +163,12 @@ class SageMakerTrainingSpec(
         debug_hook_config=InputValidator(
             input_type=SpecValidators.yaml_or_json_dict,
             description="Configuration information for the debug hook parameters, collection configuration, and storage paths.",
-            default={}
+            default={},
         ),
         debug_rule_config=InputValidator(
             input_type=SpecValidators.yaml_or_json_list,
             description="Configuration information for debugging rules.",
-            default=[]
+            default=[],
         ),
         **vars(COMMON_INPUTS),
         **vars(SPOT_INSTANCE_INPUTS)

@@ -333,7 +333,7 @@ class TuningComponentTestCase(unittest.TestCase):
                 parsed_args.inputs, parsed_args.outputs
             )
 
-        mock_retrieve.assert_called_with('seq2seq', 'us-west-2')
+        mock_retrieve.assert_called_with("seq2seq", "us-west-2")
         self.assertEqual(
             response["TrainingJobDefinition"]["AlgorithmSpecification"][
                 "TrainingImage"
@@ -360,7 +360,7 @@ class TuningComponentTestCase(unittest.TestCase):
                 parsed_args.inputs, parsed_args.outputs
             )
 
-        mock_retrieve.assert_called_with('seq2seq', 'us-west-2')
+        mock_retrieve.assert_called_with("seq2seq", "us-west-2")
         self.assertEqual(
             response["TrainingJobDefinition"]["AlgorithmSpecification"][
                 "TrainingImage"
