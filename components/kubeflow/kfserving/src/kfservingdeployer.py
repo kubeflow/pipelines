@@ -31,7 +31,7 @@ from kfserving import V1alpha2PyTorchSpec
 from kfserving import V1alpha2SKLearnSpec
 from kfserving import V1alpha2XGBoostSpec
 from kfserving.models.v1alpha2_onnx_spec import V1alpha2ONNXSpec
-from kfserving import V1alpha2TensorRTSpec
+from kfserving import V1alpha2TritonSpec
 from kfserving import V1alpha2CustomSpec
 from kfserving import V1alpha2InferenceServiceSpec
 from kfserving import V1alpha2InferenceService
@@ -73,10 +73,10 @@ def EndpointSpec(framework, storage_uri, service_account):
                 service_account_name=service_account,
             )
         )
-    elif framework == "tensorrt":
+    elif framework == "triton":
         return V1alpha2EndpointSpec(
             predictor=V1alpha2PredictorSpec(
-                tensorrt=V1alpha2TensorRTSpec(storage_uri=storage_uri),
+                triton=V1alpha2TritonSpec(storage_uri=storage_uri),
                 service_account_name=service_account,
             )
         )
@@ -354,7 +354,7 @@ if __name__ == "__main__":
                 exit(1)
     try:
         print(
-            model_status["status"]["url"]
+            model_status["status"]["address"]["url"]
             + " is the knative domain header. $ISTIO_INGRESS_ENDPOINT are defined in the below commands"
         )
         print("Sample test commands: ")
@@ -365,7 +365,7 @@ if __name__ == "__main__":
             "ISTIO_INGRESS_ENDPOINT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')"
         )
         # model_status['status']['url'] is like http://flowers-sample.kubeflow.example.com/v1/models/flowers-sample
-        host, path = url.sub("", model_status["status"]["url"]).split("/", 1)
+        host, path = url.sub("", model_status["status"]["address"]["url"]).split("/", 1)
         print(
             'curl -X GET -H "Host: ' + host + '" http://$ISTIO_INGRESS_ENDPOINT/' + path
         )
