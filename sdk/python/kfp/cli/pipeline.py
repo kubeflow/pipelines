@@ -61,9 +61,15 @@ def upload(ctx, pipeline_name, package_file):
     help="Name of the pipeline version",
     required=True
 )
+@click.option(
+    "-u",
+    "--update-default-version",
+    help="Update the default version",
+    required=False
+)
 @click.argument("package-file")
 @click.pass_context
-def upload_version(ctx, package_file, pipeline_version, pipeline_id=None, pipeline_name=None, update_default_version=True):
+def upload_version(ctx, package_file, pipeline_version, pipeline_id=None, pipeline_name=None, update_default_version=None):
     """Upload a version of the KFP pipeline"""
     client = ctx.obj["client"]
     if bool(pipeline_id) == bool(pipeline_name):
