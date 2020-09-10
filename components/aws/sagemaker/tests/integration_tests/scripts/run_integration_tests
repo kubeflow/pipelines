@@ -84,7 +84,7 @@ function cleanup() {
   cleanup_kfp
   delete_assumed_role
   
-  [ "${SKIP_KFP_OIDC_SETUP}" == "false" ] && delete_oidc_role
+  [ "${SKIP_KFP_OIDC_SETUP}" == "false" ] && delete_oidc_role && get_oidc_arn
 
   if [[ "${SKIP_FSX_TESTS}" == "false" ]]; then
     delete_fsx_instance
@@ -96,6 +96,9 @@ function cleanup() {
   if [[ -z "${EKS_EXISTING_CLUSTER}" ]]; then
     delete_eks
   fi
+  
+  # corner case - identity provider sometimes doesnt get cleaned up 
+  [ "${SKIP_KFP_OIDC_SETUP}" == "false" ] && delete_identity_provider
 }
 
 # Set the trap to clean up resources in the case of an error
@@ -160,6 +163,20 @@ function delete_oidc_role() {
   aws iam detach-role-policy --role-name "${OIDC_ROLE_NAME}" --policy-arn arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
   aws iam delete-role-policy --role-name "${OIDC_ROLE_NAME}" --policy-name AllowAssumeRole
   aws iam delete-role --role-name "${OIDC_ROLE_NAME}"
+}
+
+function get_oidc_arn(){
+  OIDC_ARN="arn:aws:iam::${AWS_ACCOUNT_ID}:oidc-provider/"
+  OIDC_ARN+=$(aws eks describe-cluster --name ${EKS_CLUSTER_NAME} --region ${REGION} --query cluster.identity.oidc.issuer --output text | cut -d'/' -f3-)
+}
+
+function delete_identity_provider(){
+  aws iam get-open-id-connect-provider --open-id-connect-provider-arn "${OIDC_ARN}"
+  if [[ $? -eq 0 ]]; then
+    echo "Open-id connect provider ${OIDC_ARN} not found, No-Op"
+  else
+    aws iam delete-open-id-connect-provider --open-id-connect-provider-arn "${OIDC_ARN}"
+  fi
 }
 
 function generate_assumed_role() {
