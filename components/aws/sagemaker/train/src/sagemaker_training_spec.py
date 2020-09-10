@@ -54,6 +54,8 @@ class SageMakerTrainingInputs(SageMakerComponentCommonInputs, SpotInstanceInputs
     vpc_subnets: Input
     network_isolation: Input
     traffic_encryption: Input
+    debug_hook_config: Input
+    debug_rule_config: Input
 
 
 @dataclass
@@ -157,6 +159,16 @@ class SageMakerTrainingSpec(
             input_type=SpecValidators.str_to_bool,
             description="Encrypts all communications between ML compute instances in distributed training.",
             default=False,
+        ),
+        debug_hook_config=InputValidator(
+            input_type=SpecValidators.yaml_or_json_dict,
+            description="Configuration information for the debug hook parameters, collection configuration, and storage paths.",
+            default={}
+        ),
+        debug_rule_config=InputValidator(
+            input_type=SpecValidators.yaml_or_json_list,
+            description="Configuration information for debugging rules.",
+            default=[]
         ),
         **vars(COMMON_INPUTS),
         **vars(SPOT_INSTANCE_INPUTS)

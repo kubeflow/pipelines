@@ -13,7 +13,7 @@
 
 import logging
 from typing import Dict
-from sagemaker.amazon.amazon_estimator import get_image_uri
+from sagemaker.image_uris import retrieve
 
 from train.src.built_in_algos import BUILT_IN_ALGOS
 from hyperparameter_tuning.src.sagemaker_tuning_spec import (
@@ -154,7 +154,7 @@ class SageMakerTuningComponent(SageMakerComponent):
             if algo_name in BUILT_IN_ALGOS.keys():
                 request["TrainingJobDefinition"]["AlgorithmSpecification"][
                     "TrainingImage"
-                ] = get_image_uri(inputs.region, BUILT_IN_ALGOS[algo_name])
+                ] = retrieve(BUILT_IN_ALGOS[algo_name], inputs.region)
                 request["TrainingJobDefinition"]["AlgorithmSpecification"].pop(
                     "AlgorithmName"
                 )
@@ -165,7 +165,7 @@ class SageMakerTuningComponent(SageMakerComponent):
             elif algo_name in BUILT_IN_ALGOS.values():
                 request["TrainingJobDefinition"]["AlgorithmSpecification"][
                     "TrainingImage"
-                ] = get_image_uri(inputs.region, algo_name)
+                ] = retrieve(algo_name, inputs.region)
                 request["TrainingJobDefinition"]["AlgorithmSpecification"].pop(
                     "AlgorithmName"
                 )

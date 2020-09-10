@@ -80,6 +80,7 @@ class TrainingComponentTestCase(unittest.TestCase):
 
     def test_get_job_status(self):
         self.component._sm_client = mock_client = MagicMock()
+        self.component._get_debug_rule_status = MagicMock(return_value=SageMakerJobStatus(is_completed=True, has_error=False, raw_status="Completed"))
 
         self.component._sm_client.describe_training_job.return_value = {
             "TrainingJobStatus": "Starting"
@@ -191,12 +192,12 @@ class TrainingComponentTestCase(unittest.TestCase):
         spec = SageMakerTrainingSpec(known_algorithm_args)
 
         with patch(
-            "train.src.sagemaker_training_component.get_image_uri",
+            "train.src.sagemaker_training_component.retrieve",
             MagicMock(return_value="seq2seq-url"),
-        ) as mock_get_image_uri:
+        ) as mock_retrieve:
             response = self.component._create_job_request(spec.inputs, spec.outputs)
 
-        mock_get_image_uri.assert_called_with("us-west-2", "seq2seq")
+        mock_retrieve.assert_called_with('seq2seq', 'us-west-2')
         self.assertEqual(
             response["AlgorithmSpecification"]["TrainingImage"], "seq2seq-url"
         )
@@ -212,14 +213,14 @@ class TrainingComponentTestCase(unittest.TestCase):
 
         spec = SageMakerTrainingSpec(known_algorithm_args)
 
-        # Patch get_image_uri
+        # Patch retrieve
         with patch(
-            "train.src.sagemaker_training_component.get_image_uri",
+            "train.src.sagemaker_training_component.retrieve",
             MagicMock(return_value="seq2seq-url"),
-        ) as mock_get_image_uri:
+        ) as mock_retrieve:
             response = self.component._create_job_request(spec.inputs, spec.outputs)
 
-        mock_get_image_uri.assert_called_with("us-west-2", "seq2seq")
+        mock_retrieve.assert_called_with('seq2seq', 'us-west-2')
         self.assertEqual(
             response["AlgorithmSpecification"]["TrainingImage"], "seq2seq-url"
         )
@@ -237,15 +238,15 @@ class TrainingComponentTestCase(unittest.TestCase):
 
         spec = SageMakerTrainingSpec(known_algorithm_args)
 
-        # Patch get_image_uri
+        # Patch retrieve
         with patch(
-            "train.src.sagemaker_training_component.get_image_uri",
+            "train.src.sagemaker_training_component.retrieve",
             MagicMock(return_value="unknown-url"),
-        ) as mock_get_image_uri:
+        ) as mock_retrieve:
             response = self.component._create_job_request(spec.inputs, spec.outputs)
 
         # Should just place the algorithm name in regardless
-        mock_get_image_uri.assert_not_called()
+        mock_retrieve.assert_not_called()
         self.assertEqual(
             response["AlgorithmSpecification"]["AlgorithmName"], "unknown algorithm"
         )

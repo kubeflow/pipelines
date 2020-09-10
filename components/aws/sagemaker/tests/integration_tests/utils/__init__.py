@@ -90,7 +90,7 @@ def replace_placeholders(input_filename, output_filename):
         "((FSX_ID))": get_fsx_id(),
         "((FSX_SUBNET))": get_fsx_subnet(),
         "((FSX_SECURITY_GROUP))": get_fsx_security_group(),
-        "((ASSUME_ROLE_ARN))": get_assume_role_arn(),
+        "((ASSUME_ROLE_ARN))": get_assume_role_arn()
     }
 
     filedata = ""
@@ -113,7 +113,7 @@ def load_params(file_name):
 
 
 def generate_random_string(length):
-    """Generate a random string with twice the length of input parameter."""
+    """Generate a random string with twice the length of input parameter"""
     assert isinstance(length, int)
     return "".join(
         [random.choice(string.ascii_lowercase) for n in range(length)]
