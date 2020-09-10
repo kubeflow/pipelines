@@ -1,6 +1,6 @@
 from common.sagemaker_component import SageMakerJobStatus
 from train.src.sagemaker_training_spec import SageMakerTrainingSpec
-from train.src.sagemaker_training_component import SageMakerTrainingComponent
+from train.src.sagemaker_training_component import SageMakerTrainingComponent, DebugRulesStatus
 from tests.unit_tests.tests.train.test_train_spec import TrainingSpecTestCase
 import unittest
 
@@ -322,3 +322,100 @@ class TrainingComponentTestCase(unittest.TestCase):
         self.assertEqual(
             response["AlgorithmSpecification"]["TrainingInputMode"], "Pipe"
         )
+
+    def test_wait_for_debug_rules(self):
+        self.component._sm_client = mock_client = MagicMock()
+        mock_client.describe_training_job.side_effect = [
+            {"DebugRuleEvaluationStatuses": [{"RuleConfigurationName": "rule1", "RuleEvaluationStatus": "InProgress"}, {"RuleConfigurationName": "rule2", "RuleEvaluationStatus": "InProgress"}]},
+            {"DebugRuleEvaluationStatuses": [{"RuleConfigurationName": "rule1", "RuleEvaluationStatus": "NoIssuesFound"}, {"RuleConfigurationName": "rule2", "RuleEvaluationStatus": "InProgress"}]},
+            {"DebugRuleEvaluationStatuses": [{"RuleConfigurationName": "rule1", "RuleEvaluationStatus": "NoIssuesFound"}, {"RuleConfigurationName": "rule2", "RuleEvaluationStatus": "IssuesFound"}]},
+        ]
+        self.assertEqual(self.component._get_debug_rule_status(), SageMakerJobStatus(
+            is_completed=False, has_error=False, raw_status=DebugRulesStatus.INPROGRESS
+        ))
+        self.assertEqual(self.component._get_debug_rule_status(), SageMakerJobStatus(
+            is_completed=False, has_error=False, raw_status=DebugRulesStatus.INPROGRESS
+        ))
+        self.assertEqual(self.component._get_debug_rule_status(), SageMakerJobStatus(
+            is_completed=True, has_error=False, raw_status=DebugRulesStatus.COMPLETED
+        ))
+
+    def test_wait_for_errored_rule(self):
+        self.component._sm_client = mock_client = MagicMock()
+        mock_client.describe_training_job.side_effect = [
+            {"DebugRuleEvaluationStatuses": [{"RuleConfigurationName": "rule1", "RuleEvaluationStatus": "InProgress"}, {"RuleConfigurationName": "rule2", "RuleEvaluationStatus": "InProgress"}]},
+            {"DebugRuleEvaluationStatuses": [{"RuleConfigurationName": "rule1", "RuleEvaluationStatus": "Error"}, {"RuleConfigurationName": "rule2", "RuleEvaluationStatus": "InProgress"}]},
+            {"DebugRuleEvaluationStatuses": [{"RuleConfigurationName": "rule1", "RuleEvaluationStatus": "Error"}, {"RuleConfigurationName": "rule2", "RuleEvaluationStatus": "NoIssuesFound"}]},
+        ]
+        self.assertEqual(self.component._get_debug_rule_status(), SageMakerJobStatus(
+            is_completed=False, has_error=False, raw_status=DebugRulesStatus.INPROGRESS
+        ))
+        self.assertEqual(self.component._get_debug_rule_status(), SageMakerJobStatus(
+            is_completed=False, has_error=False, raw_status=DebugRulesStatus.INPROGRESS
+        ))
+        self.assertEqual(self.component._get_debug_rule_status(), SageMakerJobStatus(
+            is_completed=True, has_error=True, raw_status=DebugRulesStatus.ERRORED
+        ))
+
+    def test_hook_min_args(self):
+        spec = SageMakerTrainingSpec(
+            self.REQUIRED_ARGS
+            + [
+                '--debug_hook_config', '{"S3OutputPath": "s3://fake-uri/"}'
+            ]
+        )
+        response = self.component._create_job_request(spec.inputs, spec.outputs)
+        self.assertEqual(response['DebugHookConfig']['S3OutputPath'], "s3://fake-uri/")
+
+    def test_hook_max_args(self):
+        spec = SageMakerTrainingSpec(
+            self.REQUIRED_ARGS
+            + [
+                '--debug_hook_config', '{"S3OutputPath": "s3://fake-uri/", "LocalPath": "/local/path/", "HookParameters": {"key": "value"}, "CollectionConfigurations": [{"CollectionName": "collection1", "CollectionParameters": {"key1": "value1"}}, {"CollectionName": "collection2", "CollectionParameters": {"key2": "value2", "key3": "value3"}}]}'
+            ]
+        )
+        response = self.component._create_job_request(spec.inputs, spec.outputs)
+        self.assertEqual(response['DebugHookConfig']['S3OutputPath'], "s3://fake-uri/")
+        self.assertEqual(response['DebugHookConfig']['LocalPath'], "/local/path/")
+        self.assertEqual(response['DebugHookConfig']['HookParameters'], {"key": "value"})
+        self.assertEqual(response['DebugHookConfig']['CollectionConfigurations'], [
+        {
+            "CollectionName": "collection1",
+            "CollectionParameters": {
+            "key1": "value1"
+            }
+        }, {
+            "CollectionName": "collection2", 
+            "CollectionParameters": {
+            "key2": "value2",
+            "key3": "value3"
+            }
+        }
+        ])
+
+    def test_rule_max_args(self):
+        spec = SageMakerTrainingSpec(
+            self.REQUIRED_ARGS
+            + [
+                '--debug_rule_config', '[{"InstanceType": "ml.m4.xlarge", "LocalPath": "/local/path/", "RuleConfigurationName": "rule_name", "RuleEvaluatorImage": "test-image", "RuleParameters": {"key1": "value1"}, "S3OutputPath": "s3://fake-uri/", "VolumeSizeInGB": 1}]'
+            ]
+        )
+        response = self.component._create_job_request(spec.inputs, spec.outputs)
+        self.assertEqual(response['DebugRuleConfigurations'][0]['InstanceType'], 'ml.m4.xlarge')
+        self.assertEqual(response['DebugRuleConfigurations'][0]['LocalPath'], '/local/path/')
+        self.assertEqual(response['DebugRuleConfigurations'][0]['RuleConfigurationName'], 'rule_name')
+        self.assertEqual(response['DebugRuleConfigurations'][0]['RuleEvaluatorImage'], 'test-image')
+        self.assertEqual(response['DebugRuleConfigurations'][0]['RuleParameters'], {"key1": "value1"})
+        self.assertEqual(response['DebugRuleConfigurations'][0]['S3OutputPath'], 's3://fake-uri/')
+        self.assertEqual(response['DebugRuleConfigurations'][0]['VolumeSizeInGB'], 1)
+
+    def test_rule_min_good_args(self):
+        spec = SageMakerTrainingSpec(
+            self.REQUIRED_ARGS
+            + [
+                '--debug_rule_config', '[{"RuleConfigurationName": "rule_name", "RuleEvaluatorImage": "test-image"}]'
+            ]
+        )
+        response = self.component._create_job_request(spec.inputs, spec.outputs)
+        self.assertEqual(response['DebugRuleConfigurations'][0]['RuleConfigurationName'], 'rule_name')
+        self.assertEqual(response['DebugRuleConfigurations'][0]['RuleEvaluatorImage'], 'test-image')

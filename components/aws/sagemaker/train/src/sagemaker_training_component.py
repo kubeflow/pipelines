@@ -108,7 +108,7 @@ class SageMakerTrainingComponent(SageMakerComponent):
             logging.info("Rules have ended with status:\n")
             self._print_debug_rule_status(response, True)
             return SageMakerJobStatus(
-                is_completed=True, has_error=False, raw_status=raw_status
+                is_completed=True, has_error=(raw_status == DebugRulesStatus.ERRORED), raw_status=raw_status
             )
 
         self._print_debug_rule_status(response)
