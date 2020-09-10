@@ -60,6 +60,11 @@ inputs:
   description: Encrypts all communications between ML compute instances in distributed
     training.
   default: "False"
+- {name: debug_hook_config, type: JsonObject, description: 'Configuration information
+    for the debug hook parameters, collection configuration, and storage paths.',
+  default: '{}'}
+- {name: debug_rule_config, type: JsonArray, description: Configuration information
+    for debugging rules., default: '[]'}
 outputs:
 - {name: model_artifact_url, description: The model artifacts URL.}
 - {name: job_name, description: The training job name.}
@@ -67,7 +72,7 @@ outputs:
     the training algorithm.}
 implementation:
   container:
-    image: redbackthomson/aws-kubeflow-sagemaker:latest
+    image: amazon/aws-sagemaker-kfp-components:0.8.0
     command: [python3]
     args:
     - train/src/sagemaker_training_component.py
@@ -123,6 +128,10 @@ implementation:
     - {inputValue: network_isolation}
     - --traffic_encryption
     - {inputValue: traffic_encryption}
+    - --debug_hook_config
+    - {inputValue: debug_hook_config}
+    - --debug_rule_config
+    - {inputValue: debug_rule_config}
     - --model_artifact_url_output_path
     - {outputPath: model_artifact_url}
     - --job_name_output_path
