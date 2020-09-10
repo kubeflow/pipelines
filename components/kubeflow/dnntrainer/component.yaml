@@ -29,6 +29,7 @@ implementation:
       --target, {inputValue: Target},
       --preprocessing-module, {inputValue: Preprocessing module},
       --job-dir, {inputValue: Training output dir},
-      --exported-model-dir-uri-output-path, {outputPath: Training output dir},
-      --ui-metadata-output-path, {outputPath: MLPipeline UI metadata},
     ]
+    fileOutputs:
+      Training output dir: /output.txt
+      MLPipeline UI metadata:  /mlpipeline-ui-metadata.json
