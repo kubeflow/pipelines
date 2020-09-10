@@ -37,15 +37,16 @@ class DebugRulesStatus(Enum):
     @classmethod
     def from_describe(cls, response):
         has_error = False
-        for debug_rule in response['DebugRuleEvaluationStatuses']:
-            if debug_rule['RuleEvaluationStatus'] == "Error":
+        for debug_rule in response["DebugRuleEvaluationStatuses"]:
+            if debug_rule["RuleEvaluationStatus"] == "Error":
                 has_error = True
-            if debug_rule['RuleEvaluationStatus'] == "InProgress":
+            if debug_rule["RuleEvaluationStatus"] == "InProgress":
                 return DebugRulesStatus.INPROGRESS
         if has_error:
             return DebugRulesStatus.ERRORED
         else:
             return DebugRulesStatus.COMPLETED
+
 
 @ComponentMetadata(
     name="SageMaker - Training Job",
@@ -89,7 +90,7 @@ class SageMakerTrainingComponent(SageMakerComponent):
 
     def _get_debug_rule_status(self) -> SageMakerJobStatus:
         """Get the job status of the training debugging rules.
-        
+
         Returns:
             SageMakerJobStatus: A status object.
         """
@@ -98,17 +99,17 @@ class SageMakerTrainingComponent(SageMakerComponent):
         )
 
         # No debugging configured
-        if 'DebugRuleEvaluationStatuses' not in response:
-            return SageMakerJobStatus(
-                is_completed=True, has_error=False, raw_status=""
-            )
+        if "DebugRuleEvaluationStatuses" not in response:
+            return SageMakerJobStatus(is_completed=True, has_error=False, raw_status="")
 
         raw_status = DebugRulesStatus.from_describe(response)
         if raw_status != DebugRulesStatus.INPROGRESS:
             logging.info("Rules have ended with status:\n")
             self._print_debug_rule_status(response, True)
             return SageMakerJobStatus(
-                is_completed=True, has_error=(raw_status == DebugRulesStatus.ERRORED), raw_status=raw_status
+                is_completed=True,
+                has_error=(raw_status == DebugRulesStatus.ERRORED),
+                raw_status=raw_status,
             )
 
         self._print_debug_rule_status(response)
@@ -136,15 +137,17 @@ class SageMakerTrainingComponent(SageMakerComponent):
             response: A describe training job response.
             last_print: If true, prints each of the debug rule issues if found.
         """
-        for debug_rule in response['DebugRuleEvaluationStatuses']:
+        for debug_rule in response["DebugRuleEvaluationStatuses"]:
             line_ending = "\n" if last_print else ""
-            if 'StatusDetails' in debug_rule:
-                status_details = f"- {debug_rule['StatusDetails'].rstrip()}{line_ending}"
+            if "StatusDetails" in debug_rule:
+                status_details = (
+                    f"- {debug_rule['StatusDetails'].rstrip()}{line_ending}"
+                )
                 line_ending = ""
             else:
                 status_details = ""
             rule_status = f"- {debug_rule['RuleConfigurationName']}: {debug_rule['RuleEvaluationStatus']}{line_ending}"
-            if debug_rule['RuleEvaluationStatus'] == "Error":
+            if debug_rule["RuleEvaluationStatus"] == "Error":
                 log_fn = logging.error
                 status_padding = 1
             else:
@@ -208,14 +211,18 @@ class SageMakerTrainingComponent(SageMakerComponent):
             # TODO: Adjust this implementation to account for custom algorithm resources names that are the same as built-in algorithm names
             algo_name = inputs.algorithm_name.lower().strip()
             if algo_name in BUILT_IN_ALGOS.keys():
-                request["AlgorithmSpecification"]["TrainingImage"] = retrieve(BUILT_IN_ALGOS[algo_name], inputs.region)
+                request["AlgorithmSpecification"]["TrainingImage"] = retrieve(
+                    BUILT_IN_ALGOS[algo_name], inputs.region
+                )
                 request["AlgorithmSpecification"].pop("AlgorithmName")
                 logging.warning(
                     "Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm."
                 )
             # Just to give the user more leeway for built-in algorithm name inputs
             elif algo_name in BUILT_IN_ALGOS.values():
-                request["AlgorithmSpecification"]["TrainingImage"] = retrieve(algo_name, inputs.region)
+                request["AlgorithmSpecification"]["TrainingImage"] = retrieve(
+                    algo_name, inputs.region
+                )
                 request["AlgorithmSpecification"].pop("AlgorithmName")
                 logging.warning(
                     "Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm."
@@ -267,14 +274,14 @@ class SageMakerTrainingComponent(SageMakerComponent):
 
         ### Update DebugHookConfig and DebugRuleConfigurations
         if inputs.debug_hook_config:
-            request['DebugHookConfig'] = inputs.debug_hook_config
+            request["DebugHookConfig"] = inputs.debug_hook_config
         else:
-            request.pop('DebugHookConfig')
+            request.pop("DebugHookConfig")
 
         if inputs.debug_rule_config:
-            request['DebugRuleConfigurations'] = inputs.debug_rule_config
+            request["DebugRuleConfigurations"] = inputs.debug_rule_config
         else:
-            request.pop('DebugRuleConfigurations')
+            request.pop("DebugRuleConfigurations")
 
         self._enable_spot_instance_support(request, inputs)
         self._enable_tag_support(request, inputs)
