@@ -326,14 +326,14 @@ class TuningComponentTestCase(unittest.TestCase):
         parsed_args = SageMakerTuningSpec(known_algorithm_args)
 
         with patch(
-            "hyperparameter_tuning.src.sagemaker_tuning_component.get_image_uri",
+            "hyperparameter_tuning.src.sagemaker_tuning_component.retrieve",
             MagicMock(return_value="seq2seq-url"),
-        ) as mock_get_image_uri:
+        ) as mock_retrieve:
             response = self.component._create_job_request(
                 parsed_args.inputs, parsed_args.outputs
             )
 
-        mock_get_image_uri.assert_called_with("us-west-2", "seq2seq")
+        mock_retrieve.assert_called_with('seq2seq', 'us-west-2')
         self.assertEqual(
             response["TrainingJobDefinition"]["AlgorithmSpecification"][
                 "TrainingImage"
@@ -353,14 +353,14 @@ class TuningComponentTestCase(unittest.TestCase):
         parsed_args = SageMakerTuningSpec(known_algorithm_args)
 
         with patch(
-            "hyperparameter_tuning.src.sagemaker_tuning_component.get_image_uri",
+            "hyperparameter_tuning.src.sagemaker_tuning_component.retrieve",
             MagicMock(return_value="seq2seq-url"),
-        ) as mock_get_image_uri:
+        ) as mock_retrieve:
             response = self.component._create_job_request(
                 parsed_args.inputs, parsed_args.outputs
             )
 
-        mock_get_image_uri.assert_called_with("us-west-2", "seq2seq")
+        mock_retrieve.assert_called_with('seq2seq', 'us-west-2')
         self.assertEqual(
             response["TrainingJobDefinition"]["AlgorithmSpecification"][
                 "TrainingImage"
@@ -382,15 +382,15 @@ class TuningComponentTestCase(unittest.TestCase):
         parsed_args = SageMakerTuningSpec(known_algorithm_args)
 
         with patch(
-            "hyperparameter_tuning.src.sagemaker_tuning_component.get_image_uri",
+            "hyperparameter_tuning.src.sagemaker_tuning_component.retrieve",
             MagicMock(return_value="seq2seq-url"),
-        ) as mock_get_image_uri:
+        ) as mock_retrieve:
             response = self.component._create_job_request(
                 parsed_args.inputs, parsed_args.outputs
             )
 
         # Should just place the algorithm name in regardless
-        mock_get_image_uri.assert_not_called()
+        mock_retrieve.assert_not_called()
         self.assertEqual(
             response["TrainingJobDefinition"]["AlgorithmSpecification"][
                 "AlgorithmName"

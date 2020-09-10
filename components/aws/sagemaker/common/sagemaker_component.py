@@ -480,6 +480,15 @@ class SageMakerComponent(object):
             request = yaml.safe_load(f)
         return request
 
+    def _print_log_header(self, header_len, title=""):
+        """Prints a header section for logs.
+
+        Args:
+            header_len: The maximum length of the header line.
+            title: The header title.
+        """
+        logging.info(f"{title:*^{header_len}}")
+
     def _print_cloudwatch_logs(self, log_grp: str, job_name: str):
         """Gets the CloudWatch logs for SageMaker jobs.
 

@@ -13,7 +13,8 @@
 
 import logging
 from typing import Dict
-from sagemaker.amazon.amazon_estimator import get_image_uri
+from enum import Enum, auto
+from sagemaker.image_uris import retrieve
 
 from train.src.built_in_algos import BUILT_IN_ALGOS
 from train.src.sagemaker_training_spec import (
@@ -27,6 +28,24 @@ from common.sagemaker_component import (
     SageMakerJobStatus,
 )
 
+
+class DebugRulesStatus(Enum):
+    COMPLETED = auto()
+    ERRORED = auto()
+    INPROGRESS = auto()
+
+    @classmethod
+    def from_describe(cls, response):
+        has_error = False
+        for debug_rule in response['DebugRuleEvaluationStatuses']:
+            if debug_rule['RuleEvaluationStatus'] == "Error":
+                has_error = True
+            if debug_rule['RuleEvaluationStatus'] == "InProgress":
+                return DebugRulesStatus.INPROGRESS
+        if has_error:
+            return DebugRulesStatus.ERRORED
+        else:
+            return DebugRulesStatus.COMPLETED
 
 @ComponentMetadata(
     name="SageMaker - Training Job",
@@ -53,6 +72,7 @@ class SageMakerTrainingComponent(SageMakerComponent):
         status = response["TrainingJobStatus"]
 
         if status == "Completed":
+            return self._get_debug_rule_status()
             return SageMakerJobStatus(
                 is_completed=True, has_error=False, raw_status=status
             )
@@ -66,6 +86,75 @@ class SageMakerTrainingComponent(SageMakerComponent):
             )
 
         return SageMakerJobStatus(is_completed=False, raw_status=status)
+
+    def _get_debug_rule_status(self) -> SageMakerJobStatus:
+        """Get the job status of the training debugging rules.
+        
+        Returns:
+            SageMakerJobStatus: A status object.
+        """
+        response = self._sm_client.describe_training_job(
+            TrainingJobName=self._training_job_name
+        )
+
+        # No debugging configured
+        if 'DebugRuleEvaluationStatuses' not in response:
+            return SageMakerJobStatus(
+                is_completed=True, has_error=False, raw_status=""
+            )
+
+        raw_status = DebugRulesStatus.from_describe(response)
+        if raw_status != DebugRulesStatus.INPROGRESS:
+            logging.info("Rules have ended with status:\n")
+            self._print_debug_rule_status(response, True)
+            return SageMakerJobStatus(
+                is_completed=True, has_error=False, raw_status=raw_status
+            )
+
+        self._print_debug_rule_status(response)
+        return SageMakerJobStatus(is_completed=False, raw_status=raw_status)
+
+    def _print_debug_rule_status(self, response, last_print=False):
+        """Prints the status of each debug rule.
+
+            Example of DebugRuleEvaluationStatuses:
+            response['DebugRuleEvaluationStatuses'] =
+                [{
+                    "RuleConfigurationName": "VanishingGradient",
+                    "RuleEvaluationStatus": "IssuesFound",
+                    "StatusDetails": "There was an issue."
+                }]
+            If last_print is False:
+            INFO:root: - LossNotDecreasing: InProgress
+            INFO:root: - Overtraining: NoIssuesFound
+            ERROR:root:- CustomGradientRule: Error
+            If last_print is True:
+            INFO:root: - LossNotDecreasing: IssuesFound
+            INFO:root:   - RuleEvaluationConditionMet: Evaluation of the rule LossNotDecreasing at step 10 resulted in the condition being met
+
+        Args:
+            response: A describe training job response.
+            last_print: If true, prints each of the debug rule issues if found.
+        """
+        for debug_rule in response['DebugRuleEvaluationStatuses']:
+            line_ending = "\n" if last_print else ""
+            if 'StatusDetails' in debug_rule:
+                status_details = f"- {debug_rule['StatusDetails'].rstrip()}{line_ending}"
+                line_ending = ""
+            else:
+                status_details = ""
+            rule_status = f"- {debug_rule['RuleConfigurationName']}: {debug_rule['RuleEvaluationStatus']}{line_ending}"
+            if debug_rule['RuleEvaluationStatus'] == "Error":
+                log_fn = logging.error
+                status_padding = 1
+            else:
+                log_fn = logging.info
+                status_padding = 2
+
+            log_fn(f"{status_padding * ' '}{rule_status}")
+            if last_print and status_details:
+                log_fn(f"{(status_padding + 2) * ' '}{status_details}")
+        self._print_log_header(50)
 
     def _after_job_complete(
         self,
@@ -119,18 +208,14 @@ class SageMakerTrainingComponent(SageMakerComponent):
             # TODO: Adjust this implementation to account for custom algorithm resources names that are the same as built-in algorithm names
             algo_name = inputs.algorithm_name.lower().strip()
             if algo_name in BUILT_IN_ALGOS.keys():
-                request["AlgorithmSpecification"]["TrainingImage"] = get_image_uri(
-                    inputs.region, BUILT_IN_ALGOS[algo_name],
-                )
+                request["AlgorithmSpecification"]["TrainingImage"] = retrieve(BUILT_IN_ALGOS[algo_name], inputs.region)
                 request["AlgorithmSpecification"].pop("AlgorithmName")
                 logging.warning(
                     "Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm."
                 )
             # Just to give the user more leeway for built-in algorithm name inputs
             elif algo_name in BUILT_IN_ALGOS.values():
-                request["AlgorithmSpecification"]["TrainingImage"] = get_image_uri(
-                    inputs.region, algo_name
-                )
+                request["AlgorithmSpecification"]["TrainingImage"] = retrieve(algo_name, inputs.region)
                 request["AlgorithmSpecification"].pop("AlgorithmName")
                 logging.warning(
                     "Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm."
@@ -179,6 +264,17 @@ class SageMakerTrainingComponent(SageMakerComponent):
 
         if inputs.volume_size:
             request["ResourceConfig"]["VolumeSizeInGB"] = inputs.volume_size
+
+        ### Update DebugHookConfig and DebugRuleConfigurations
+        if inputs.debug_hook_config:
+            request['DebugHookConfig'] = inputs.debug_hook_config
+        else:
+            request.pop('DebugHookConfig')
+
+        if inputs.debug_rule_config:
+            request['DebugRuleConfigurations'] = inputs.debug_rule_config
+        else:
+            request.pop('DebugRuleConfigurations')
 
         self._enable_spot_instance_support(request, inputs)
         self._enable_tag_support(request, inputs)
