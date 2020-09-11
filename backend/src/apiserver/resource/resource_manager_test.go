@@ -1534,7 +1534,7 @@ func TestReportWorkflowResource_WorkflowCompleted_WorkflowNotFound(t *testing.T)
 	})
 	err := manager.ReportWorkflowResource(workflow)
 	require.NotNil(t, err)
-	assert.Truef(t, util.HasCustomCode(err, util.CUSTOM_CODE_PERMANENT), "Expected permanent error, but got %s", err.Error())
+	assert.Equalf(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(), "Expected not found error, but got %s", err.Error())
 	assert.Contains(t, err.Error(), "Failed to add PersistedFinalState label")
 }
 
@@ -1569,7 +1569,7 @@ func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_WorkflowNo
 	})
 	err := manager.ReportWorkflowResource(workflow)
 	require.NotNil(t, err)
-	assert.Truef(t, util.HasCustomCode(err, util.CUSTOM_CODE_PERMANENT), "Expected permanent error, but got %s", err.Error())
+	assert.Equalf(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(), "Expected not found error, but got %s", err.Error())
 	assert.Contains(t, err.Error(), "Failed to delete the completed workflow")
 }
 

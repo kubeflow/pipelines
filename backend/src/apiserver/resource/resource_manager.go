@@ -720,10 +720,10 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 		err := r.getWorkflowClient(workflow.Namespace).Delete(workflow.Name, &v1.DeleteOptions{})
 		if err != nil {
 			// A fix for kubeflow/pipelines#4484, persistence agent might have an outdated item in its workqueue, so it will
-			// report workflows that no longer exist. It's important to return a permanent error, so that persistence
+			// report workflows that no longer exist. It's important to return a not found error, so that persistence
 			// agent won't retry again.
 			if util.IsNotFound(err) {
-				return util.NewCustomError(err, util.CUSTOM_CODE_PERMANENT, "Failed to delete the completed workflow for run %s", runId)
+				return util.NewNotFoundError(err, "Failed to delete the completed workflow for run %s", runId)
 			} else {
 				return util.NewInternalServerError(err, "Failed to delete the completed workflow for run %s", runId)
 			}
@@ -799,10 +799,10 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 		if err != nil {
 			message := fmt.Sprintf("Failed to add PersistedFinalState label to workflow %s", workflow.GetName())
 			// A fix for kubeflow/pipelines#4484, persistence agent might have an outdated item in its workqueue, so it will
-			// report workflows that no longer exist. It's important to return a permanent error, so that persistence
+			// report workflows that no longer exist. It's important to return a not found error, so that persistence
 			// agent won't retry again.
 			if util.IsNotFound(err) {
-				return util.NewCustomError(err, util.CUSTOM_CODE_PERMANENT, message)
+				return util.NewNotFoundError(err, message)
 			} else {
 				return util.Wrapf(err, message)
 			}
