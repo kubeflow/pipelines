@@ -31,6 +31,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -670,7 +671,7 @@ func TestCreateRun_NullWorkflowSpec(t *testing.T) {
 	apiRun := &api.Run{
 		Name: "run1",
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: "null",  // this situation occurs for real when the manifest file disappears from object store in some way due to retention policy or manual deletion.
+			WorkflowManifest: "null", // this situation occurs for real when the manifest file disappears from object store in some way due to retention policy or manual deletion.
 			Parameters: []*api.Parameter{
 				{Name: "param1", Value: "world"},
 			},
@@ -1489,7 +1490,7 @@ func TestReportWorkflowResource_WorkflowMissingRunID(t *testing.T) {
 	defer store.Close()
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      run.Name,
+			Name: run.Name,
 		},
 	})
 	err := manager.ReportWorkflowResource(workflow)
@@ -1519,6 +1520,24 @@ func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
 	assert.Equal(t, wf.Labels[util.LabelKeyWorkflowPersistedFinalState], "true")
 }
 
+func TestReportWorkflowResource_WorkflowCompleted_WorkflowNotFound(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "non-existent-workflow",
+			Namespace: "kubeflow",
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeFailed},
+	})
+	err := manager.ReportWorkflowResource(workflow)
+	require.NotNil(t, err)
+	assert.Equalf(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(), "Expected not found error, but got %s", err.Error())
+	assert.Contains(t, err.Error(), "Failed to add PersistedFinalState label")
+}
+
 func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
 	defer store.Close()
@@ -1534,6 +1553,24 @@ func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted(t *testing
 	})
 	err := manager.ReportWorkflowResource(workflow)
 	assert.Nil(t, err)
+}
+
+func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_WorkflowNotFound(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "non-existent-workflow",
+			Namespace: "kubeflow",
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID, util.LabelKeyWorkflowPersistedFinalState: "true"},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeFailed},
+	})
+	err := manager.ReportWorkflowResource(workflow)
+	require.NotNil(t, err)
+	assert.Equalf(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(), "Expected not found error, but got %s", err.Error())
+	assert.Contains(t, err.Error(), "Failed to delete the completed workflow")
 }
 
 func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_DeleteFailed(t *testing.T) {
