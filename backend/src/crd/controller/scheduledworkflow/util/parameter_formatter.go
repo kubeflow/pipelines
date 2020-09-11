@@ -64,14 +64,14 @@ func (p *ParameterFormatter) Format(s string) string {
 	result := s
 
 	for _, match := range matches {
-		substitute := p.createSubtitute(match)
+		substitute := p.createSubstitutes(match)
 		result = strings.Replace(result, match, substitute, 1)
 	}
 
 	return result
 }
 
-func (p *ParameterFormatter) createSubtitute(match string) string {
+func (p *ParameterFormatter) createSubstitutes(match string) string {
 
 	if strings.HasPrefix(match, runUUIDExpression) {
 		return p.runUUID
