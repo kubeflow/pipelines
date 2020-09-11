@@ -719,6 +719,9 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 		// If workflow's final state has being persisted, the workflow should be garbage collected.
 		err := r.getWorkflowClient(workflow.Namespace).Delete(workflow.Name, &v1.DeleteOptions{})
 		if err != nil {
+			// A fix for kubeflow/pipelines#4484, persistence agent might have an outdated item in its workqueue, so it will
+			// report workflows that no longer exist. It's important to return a permanent error, so that persistence
+			// agent won't retry again.
 			if util.IsNotFound(err) {
 				return util.NewCustomError(err, util.CUSTOM_CODE_PERMANENT, "Failed to delete the completed workflow for run %s", runId)
 			} else {
@@ -794,7 +797,15 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 	if workflow.IsInFinalState() {
 		err := AddWorkflowLabel(r.getWorkflowClient(workflow.Namespace), workflow.Name, util.LabelKeyWorkflowPersistedFinalState, "true")
 		if err != nil {
-			return util.Wrap(err, "Failed to add PersistedFinalState label to workflow")
+			message := fmt.Sprintf("Failed to add PersistedFinalState label to workflow %s", workflow.GetName())
+			// A fix for kubeflow/pipelines#4484, persistence agent might have an outdated item in its workqueue, so it will
+			// report workflows that no longer exist. It's important to return a permanent error, so that persistence
+			// agent won't retry again.
+			if util.IsNotFound(err) {
+				return util.NewCustomError(err, util.CUSTOM_CODE_PERMANENT, message)
+			} else {
+				return util.Wrapf(err, message)
+			}
 		}
 	}
 

@@ -1520,6 +1520,24 @@ func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
 	assert.Equal(t, wf.Labels[util.LabelKeyWorkflowPersistedFinalState], "true")
 }
 
+func TestReportWorkflowResource_WorkflowCompleted_WorkflowNotFound(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "non-existent-workflow",
+			Namespace: "kubeflow",
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeFailed},
+	})
+	err := manager.ReportWorkflowResource(workflow)
+	require.NotNil(t, err)
+	assert.Truef(t, util.HasCustomCode(err, util.CUSTOM_CODE_PERMANENT), "Expected permanent error, but got %s", err.Error())
+	assert.Contains(t, err.Error(), "Failed to add PersistedFinalState label")
+}
+
 func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
 	defer store.Close()
@@ -1547,10 +1565,12 @@ func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_WorkflowNo
 			UID:       types.UID(run.UUID),
 			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID, util.LabelKeyWorkflowPersistedFinalState: "true"},
 		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeFailed},
 	})
 	err := manager.ReportWorkflowResource(workflow)
 	require.NotNil(t, err)
 	assert.Truef(t, util.HasCustomCode(err, util.CUSTOM_CODE_PERMANENT), "Expected permanent error, but got %s", err.Error())
+	assert.Contains(t, err.Error(), "Failed to delete the completed workflow")
 }
 
 func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_DeleteFailed(t *testing.T) {
