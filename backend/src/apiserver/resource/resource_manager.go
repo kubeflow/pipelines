@@ -719,7 +719,11 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 		// If workflow's final state has being persisted, the workflow should be garbage collected.
 		err := r.getWorkflowClient(workflow.Namespace).Delete(workflow.Name, &v1.DeleteOptions{})
 		if err != nil {
-			return util.NewInternalServerError(err, "Failed to delete the completed workflow for run %s", runId)
+			if util.IsNotFound(err) {
+				return util.NewCustomError(err, util.CUSTOM_CODE_PERMANENT, "Failed to delete the completed workflow for run %s", runId)
+			} else {
+				return util.NewInternalServerError(err, "Failed to delete the completed workflow for run %s", runId)
+			}
 		}
 		// TODO(jingzhang36): find a proper way to pass collectMetricsFlag here.
 		workflowGCCounter.Inc()

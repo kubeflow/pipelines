@@ -1550,7 +1550,7 @@ func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_WorkflowNo
 	})
 	err := manager.ReportWorkflowResource(workflow)
 	require.NotNil(t, err)
-	assert.Truef(t, util.HasCustomCode(err, util.CUSTOM_CODE_NOT_FOUND), "Expected not found error, but got ", err.Error())
+	assert.Truef(t, util.HasCustomCode(err, util.CUSTOM_CODE_PERMANENT), "Expected permanent error, but got %s", err.Error())
 }
 
 func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_DeleteFailed(t *testing.T) {
