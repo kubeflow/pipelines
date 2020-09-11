@@ -99,7 +99,9 @@ spec:
               - xgboost_training_cm
               - dataflow
               - ai_platform
-              - kubeflow_tf_serving
+              # TODO(#4361): Re-enable the kubeflow_tf_serving sample test after
+              # fixed the sample
+              # - kubeflow_tf_serving
               - container_build
               - parameterized_tfx_oss
               - iris
