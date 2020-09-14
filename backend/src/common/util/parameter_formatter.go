@@ -53,6 +53,16 @@ func NewParameterFormatter(runUUID string, scheduledEpoch int64, nowEpoch int64,
 	}
 }
 
+func (p *ParameterFormatter) FormatWorkflowParameters(
+	parameters map[string]string) map[string]string {
+	result := make(map[string]string)
+	for key, value := range parameters {
+		formatted := p.Format(value)
+		result[key] = formatted
+	}
+	return result
+}
+
 // Format substitutes special strings in the provided string.
 func (p *ParameterFormatter) Format(s string) string {
 	re := regexp.MustCompile(`\[\[(.*?)\]\]`)
