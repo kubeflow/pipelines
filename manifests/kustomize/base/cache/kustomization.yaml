@@ -8,4 +8,4 @@ resources:
 - cache-sa.yaml
 images:
 - name: gcr.io/ml-pipeline/cache-server
-  newTag: 1.0.0
+  newTag: 1.0.1
