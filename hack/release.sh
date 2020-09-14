@@ -14,14 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -xe
+set -e
 
 TAG_NAME=$1
 BRANCH=$2
 REPO=kubeflow/pipelines
 
 if [[ -z "$BRANCH" || -z "$TAG_NAME" ]]; then
-  echo "Usage: release.sh <release-tag> <release-branch>" >&2
+  echo "Usage: ./hack/release.sh <release-tag> <release-branch>" >&2
   exit 1
 fi
 
@@ -31,16 +31,29 @@ git clone "git@github.com:${REPO}.git" "$clone_dir"
 cd "$clone_dir"
 git checkout "$BRANCH"
 
-echo -n "$TAG_NAME" > ./VERSION
-# Run the release script in cloned repo
-"hack/release-imp.sh" $TAG_NAME
+echo "Preparing local git tags used by changelog generation."
+# tags with "-" are pre-releases, e.g. 1.0.0-rc.1
+if [[ "$TAG_NAME" =~ "-" ]]; then
+  echo "Releasing a pre-release $TAG_NAME."
+else
+  echo "Releasing a stable release $TAG_NAME."
+  echo "Deleting all local pre-release tags to generate changelog from the last stable release. See issue https://github.com/kubeflow/pipelines/issues/4248.".
+  for tag in $(git tag | grep -)
+  do
+    git tag -d "$tag"
+  done
+fi
 
-# Checking-in the component changes
+echo "Running the ./hack/release-imp.sh script in cloned repo"
+echo -n "$TAG_NAME" > ./VERSION
+"hack/release-imp.sh"
+
+echo "Checking in the version bump changes"
 git add --all
 git commit --message "chore(release): bumped version to $TAG_NAME"
 git tag -a "$TAG_NAME" -m "Kubeflow Pipelines $TAG_NAME release"
 
-# Pushing the changes upstream
+echo "Pushing the changes upstream"
 read -p "Do you want to push the version change and tag $TAG_NAME tag to upstream? [y|n]"
 if [ "$REPLY" != "y" ]; then
    exit
