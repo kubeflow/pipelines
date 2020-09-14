@@ -331,6 +331,8 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	}
 	runId := uuid.String()
 
+	runAt := r.time.Now().Unix()
+
 	var workflow util.Workflow
 	if err = json.Unmarshal(workflowSpecManifestBytes, &workflow); err != nil {
 		return nil, util.NewInternalServerError(err,
@@ -347,6 +349,13 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	if err = workflow.VerifyParameters(parameters); err != nil {
 		return nil, util.Wrap(err, "Failed to verify parameters.")
 	}
+	// Append provided parameter
+	workflow.OverrideParameters(parameters)
+
+	// Replace macros
+	formatter := util.NewRunParameterFormatter(uuid.String(), runAt)
+	formattedParams := formatter.FormatWorkflowParameters(workflow.GetWorkflowParametersAsMap())
+	workflow.OverrideParameters(formattedParams)
 
 	r.setDefaultServiceAccount(&workflow, apiRun.GetServiceAccount())
 
@@ -357,8 +366,6 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	// on every single step/pod so the cache server can understand.
 	// TODO: Add run_level flag with similar logic by reading flag value from create_run api.
 	workflow.SetLabelsToAllTemplates(util.LabelKeyCacheEnabled, common.IsCacheEnabled())
-	// Append provided parameter
-	workflow.OverrideParameters(parameters)
 
 	err = OverrideParameterWithSystemDefault(workflow, apiRun)
 	if err != nil {
@@ -412,7 +419,7 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	}
 
 	// Assign the create at time.
-	runDetail.CreatedAtInSec = r.time.Now().Unix()
+	runDetail.CreatedAtInSec = runAt
 	return r.runStore.CreateRun(runDetail)
 }
 

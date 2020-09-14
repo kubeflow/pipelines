@@ -176,7 +176,7 @@ func (s *ScheduledWorkflow) NewWorkflow(
 	result.OverrideName(s.NextResourceName())
 
 	// Get the workflow parameters and format them.
-	formatter := commonutil.NewParameterFormatter(uuid.String(), nextScheduledEpoch, nowEpoch, s.nextIndex())
+	formatter := commonutil.NewSWFParameterFormatter(uuid.String(), nextScheduledEpoch, nowEpoch, s.nextIndex())
 	formattedParams := formatter.FormatWorkflowParameters(s.getWorkflowParametersAsMap())
 
 	// Set the parameters.

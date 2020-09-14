@@ -42,8 +42,18 @@ type ParameterFormatter struct {
 	index          int64
 }
 
-// NewParameterFormatter returns a new ParameterFormatter.
-func NewParameterFormatter(runUUID string, scheduledEpoch int64, nowEpoch int64,
+// NewRunParameterFormatter returns a new ParameterFormatter to substitute run macros.
+func NewRunParameterFormatter(runUUID string, runAt int64) *ParameterFormatter {
+	return &ParameterFormatter{
+		runUUID:        runUUID,
+		nowEpoch:       runAt,
+		scheduledEpoch: -1, // invalidate field
+		index:          -1, // invalidate field
+	}
+}
+
+// NewSWFParameterFormatter returns a new ParameterFormatter to substitute recurring run macros.
+func NewSWFParameterFormatter(runUUID string, scheduledEpoch int64, nowEpoch int64,
 	index int64) *ParameterFormatter {
 	return &ParameterFormatter{
 		runUUID:        runUUID,
@@ -82,20 +92,20 @@ func (p *ParameterFormatter) Format(s string) string {
 }
 
 func (p *ParameterFormatter) createSubstitutes(match string) string {
-
-	if strings.HasPrefix(match, runUUIDExpression) {
+	// First ensure that the corresponding field is valid, then attempt to substitute
+	if len(p.runUUID) > 0 && strings.HasPrefix(match, runUUIDExpression) {
 		return p.runUUID
-	} else if strings.HasPrefix(match, scheduledTimeExpression) {
+	} else if p.scheduledEpoch != -1 && strings.HasPrefix(match, scheduledTimeExpression) {
 		return time.Unix(p.scheduledEpoch, 0).UTC().Format(defaultTimeFormat)
-	} else if strings.HasPrefix(match, currentTimeExpression) {
+	} else if p.nowEpoch != -1 && strings.HasPrefix(match, currentTimeExpression) {
 		return time.Unix(p.nowEpoch, 0).UTC().Format(defaultTimeFormat)
-	} else if strings.HasPrefix(match, IndexExpression) {
+	} else if p.index != -1 && strings.HasPrefix(match, IndexExpression) {
 		return fmt.Sprintf("%v", p.index)
-	} else if strings.HasPrefix(match, scheduledTimePrefix) {
+	} else if p.scheduledEpoch != -1 && strings.HasPrefix(match, scheduledTimePrefix) {
 		match = strings.Replace(match, scheduledTimePrefix, "", 1)
 		match = strings.Replace(match, suffix, "", 1)
 		return time.Unix(p.scheduledEpoch, 0).UTC().Format(match)
-	} else if strings.HasPrefix(match, currentTimePrefix) {
+	} else if p.nowEpoch != -1 && strings.HasPrefix(match, currentTimePrefix) {
 		match = strings.Replace(match, currentTimePrefix, "", 1)
 		match = strings.Replace(match, suffix, "", 1)
 		return time.Unix(p.nowEpoch, 0).UTC().Format(match)
