@@ -561,7 +561,7 @@ func (r *ResourceManager) ReadLog(runId string, nodeId string, dst io.Writer) er
 	}
 
 	err = r.readRunLogFromPod(run, nodeId, dst)
-	if err != nil {
+	if err != nil && r.logArchive != nil {
 		err = r.readRunLogFromArchive(run, nodeId, dst)
 	}
 

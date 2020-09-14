@@ -73,6 +73,12 @@ func TestGetLogObjectKey(t *testing.T) {
 	assert.Equal(t, "/logs/MY_NAME/node-id-98765432/main.log", key)
 }
 
+func TestGetLogObjectKey_InvalidConfig(t *testing.T) {
+	logArchive := NewLogArchive("", "")
+	_, err := logArchive.GetLogObjectKey(nil, "node-id-98765432")
+	assert.NotNil(t, err)
+}
+
 func TestCopyLogFromArchive_FromJsonToJson(t *testing.T) {
 	logArchive := initLogArchive()
 	opts := ExtractLogOptions{LogFormat: LogFormatJSON}

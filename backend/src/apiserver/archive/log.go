@@ -68,17 +68,11 @@ func NewLogArchive(logPathPrefix, logFileName string) *LogArchive {
 }
 
 func (a *LogArchive) GetLogObjectKey(workflow *util.Workflow, nodeID string) (key string, err error) {
-	/*node, found := workflow.Status.Nodes[nodeID]
-	if !found {
-		err = util.NewBadRequestError(errors.New("archived log cannot be read"),
-			"Failed to retrieve the node from the workflow")
-		return
-	}*/
-
-	// key = fmt.Sprintf("/artifacts/%s/%s/%s--step-main_log.gz", workflow.Name, node.Name, nodeID)
-
-	key = strings.Join([]string{a.logPathPrefix, workflow.Name, nodeID, a.logFileName}, "/")
-
+	if a.logPathPrefix == "" || a.logFileName == "" || workflow == nil {
+		err = fmt.Errorf("invalid log archive configuration: %v", a)
+	} else {
+		key = strings.Join([]string{a.logPathPrefix, workflow.Name, nodeID, a.logFileName}, "/")
+	}
 	return
 }
 
