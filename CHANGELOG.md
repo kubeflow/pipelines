@@ -1,5 +1,41 @@
 # Changelog
 
+### [1.0.1](https://github.com/kubeflow/pipelines/compare/1.0.0...1.0.1) (2020-09-14)
+
+
+### Features
+
+* **manifest:** add support for Standalone KFP on AWS. Fixes [\#4337](https://github.com/kubeflow/pipelines/issues/4337) ([\#4350](https://github.com/kubeflow/pipelines/issues/4350)) ([668a3ec](https://github.com/kubeflow/pipelines/commit/668a3ecbb9de50e9b81a42c00ac8d824ea9616c0))
+* GCP marketplace - preserve install config in configmap and secret ([\#4471](https://github.com/kubeflow/pipelines/issues/4471)) ([d447355](https://github.com/kubeflow/pipelines/commit/d447355a9d0ac177d3c7a0e18a61b2fbb1a2e5c4))
+* **deployment:** Add env/platform-agnostic-pns standalone deployment option ([\#4278](https://github.com/kubeflow/pipelines/issues/4278)) ([ee11f9e](https://github.com/kubeflow/pipelines/commit/ee11f9eb63c0a301c6fc0c42972e27d3aac5ecb9))
+* **deployment:** KFP standalone should keep user data when application deleted ([\#4332](https://github.com/kubeflow/pipelines/issues/4332)) ([6e1ceb7](https://github.com/kubeflow/pipelines/commit/6e1ceb7d2208667a5db9d495481f5f970b6cf65c))
+* **sdk:** support HTTP/S PROXY for SDK client  ([\#4215](https://github.com/kubeflow/pipelines/issues/4215)) ([9225b75](https://github.com/kubeflow/pipelines/commit/9225b75006e87a59f968ca10b0a8abd0776e4b1d))
+
+
+### Bug Fixes
+
+* **backend:** add `MaxCallRecvMsgSize(math.MaxInt32)` to proxy server ([\#4402](https://github.com/kubeflow/pipelines/issues/4402)) ([62bed1b](https://github.com/kubeflow/pipelines/commit/62bed1b5d1f156361815321d9a9cf10f4a01921e))
+* **backend:** Add a permission to create events to argo-role ([\#4449](https://github.com/kubeflow/pipelines/issues/4449)) ([2b48697](https://github.com/kubeflow/pipelines/commit/2b4869777060a83822eec7a0855fd914ceca0a43))
+* **backend:** Backend - Cache - Fixed reinstallation. Fixes [\#4299](https://github.com/kubeflow/pipelines/issues/4299) ([\#4320](https://github.com/kubeflow/pipelines/issues/4320)) ([f5e9901](https://github.com/kubeflow/pipelines/commit/f5e9901a107bf6c309018b2214fbbc17086a5128))
+* **backend:** Caching - Only send cache-enabled pods to the caching webhook ([\#4429](https://github.com/kubeflow/pipelines/issues/4429)) ([f2ed52d](https://github.com/kubeflow/pipelines/commit/f2ed52dc9d221fd082dff11b5a2f2252d738da84))
+* **backend:** Caching - Reduced the cache webhook timeout ([\#4428](https://github.com/kubeflow/pipelines/issues/4428)) ([eb86087](https://github.com/kubeflow/pipelines/commit/eb860872b5d048b26fa5e2f0034f97bc7074545c))
+* **backend:** fix typo in reference key type ([\#4376](https://github.com/kubeflow/pipelines/issues/4376)) ([e5f8209](https://github.com/kubeflow/pipelines/commit/e5f82090317ff62f9e25fbf3e9c886b7c4a5fed6))
+* **backend:** logs error when failing to init mysql. Fixes [\#4334](https://github.com/kubeflow/pipelines/issues/4334) ([\#4335](https://github.com/kubeflow/pipelines/issues/4335)) ([64c377e](https://github.com/kubeflow/pipelines/commit/64c377edad636620c451c95a67f510f7a09a613f))
+* **backend:** persistence agent - workflow not found error should be a permanent error ([\#4486](https://github.com/kubeflow/pipelines/issues/4486)) ([c31a346](https://github.com/kubeflow/pipelines/commit/c31a3469d540e1c8f9baae60cec0faec3884d6b5))
+* **backend:** prevent seg fault if workflow manifest is deleted. Fixes [\#4389](https://github.com/kubeflow/pipelines/issues/4389) ([\#4439](https://github.com/kubeflow/pipelines/issues/4439)) ([9f124d6](https://github.com/kubeflow/pipelines/commit/9f124d6a653ccf01ff058d590edbcf7de7f3dfcf))
+* **backend:** reduce confusing ReadArtifact errors for metrics in api server. Fixes [\#3699](https://github.com/kubeflow/pipelines/issues/3699) ([\#4338](https://github.com/kubeflow/pipelines/issues/4338)) ([44cd005](https://github.com/kubeflow/pipelines/commit/44cd005ff4e253b710492ad2607d226946096610))
+* **backend:** skip reporting native Argo workflows which do not have Run ID label. Fixes [\#3584](https://github.com/kubeflow/pipelines/issues/3584) ([\#4438](https://github.com/kubeflow/pipelines/issues/4438)) ([f39a98d](https://github.com/kubeflow/pipelines/commit/f39a98d3cb01eff2e4f4acbceb2867f99911b2f4))
+* **sdk/client:** reserve the host protocal (http or https) so that http host can work. Fixes [\#4277](https://github.com/kubeflow/pipelines/issues/4277) ([\#4285](https://github.com/kubeflow/pipelines/issues/4285)) ([522977f](https://github.com/kubeflow/pipelines/commit/522977fde98265fb5c5000b537592b4bee16b30c))
+* all big enough ui proxy requests fail with error proxying with partial data ([\#4266](https://github.com/kubeflow/pipelines/issues/4266)) ([3a93080](https://github.com/kubeflow/pipelines/commit/3a930807ce056e2c1ed2cfcae0b5d0773844c453))
+* **cache:** adds certificate approver permission to kubeflow-pipelines-cache-deployer-role. Fixes [\#4138](https://github.com/kubeflow/pipelines/issues/4138) ([\#4246](https://github.com/kubeflow/pipelines/issues/4246)) ([0ba88b0](https://github.com/kubeflow/pipelines/commit/0ba88b0709077b0e35d0da59f487471fdec7740c))
+
+
+### Other Pull Requests
+
+* Reduce ttl of persisted final workflow to 1 day ([\#4005](https://github.com/kubeflow/pipelines/issues/4005)) ([135715d](https://github.com/kubeflow/pipelines/commit/135715dbecf7a077c468bf9c3b58e45de101e991))
+* Manifests - Added permissions for certificate approval ([\#4385](https://github.com/kubeflow/pipelines/issues/4385)) ([1445576](https://github.com/kubeflow/pipelines/commit/1445576416acf3beefa4d600fb86b27e5d221d07))
+
+
 ## [1.0.0](https://github.com/kubeflow/pipelines/compare/0.5.1...1.0.0) (2020-07-20)
 
 
@@ -11,6 +47,7 @@
 * **sdk:** SDK - Components - Added annotations to TaskSpec ([\#4153](https://github.com/kubeflow/pipelines/issues/4153)) ([c439ec3](https://github.com/kubeflow/pipelines/commit/c439ec33b6d7c7cf0676acfbdb6d58e6d90a8c75))
 * **sdk:** SDK - Deprecation warning when using ContainerOp ([\#4166](https://github.com/kubeflow/pipelines/issues/4166)) ([ebd62ec](https://github.com/kubeflow/pipelines/commit/ebd62ec61c2e99f048e3ea4271519ca3275fa0a4))
 * **sdk/client:** add cookie configuration to kfp client ([\#2679](https://github.com/kubeflow/pipelines/issues/2679)) ([9206b5a](https://github.com/kubeflow/pipelines/commit/9206b5aade23edf77b9f6cdce6b0fd97325ea1a3))
+* **deployment:** GCP managed storage - detailed instructions to set up workload identity bindings before deployment ([\#4232](https://github.com/kubeflow/pipelines/issues/4232)) ([11c1cd6](https://github.com/kubeflow/pipelines/commit/11c1cd6b4fb99a8f55b1dc4d370c0de8fe83b1e6))
 
 
 ### Bug Fixes
@@ -157,64 +194,6 @@
 * Integration tests for AWS SageMaker Components ([\#3654](https://github.com/kubeflow/pipelines/issues/3654)) ([6beab22](https://github.com/kubeflow/pipelines/commit/6beab2251d1987333671d16f278ae1cfbada7f74))
 * [UI] textbox to select KSA when creating runs/jobs ([\#3651](https://github.com/kubeflow/pipelines/issues/3651)) ([e5bd2df](https://github.com/kubeflow/pipelines/commit/e5bd2df3e8f5e2ef8c663caa9b3fb90f9fa8c7e8))
 
-
-## [1.0.0-rc.5](https://github.com/kubeflow/pipelines/compare/1.0.0-rc.4...1.0.0-rc.5) (2020-07-13)
-
-
-### Features
-
-* **sdk:** SDK - Components - Added annotations to InputSpec and OutputSpec ([\#4154](https://github.com/kubeflow/pipelines/issues/4154)) ([98fccca](https://github.com/kubeflow/pipelines/commit/98fcccacef2111f45666fb14aa6efc99314b54f2))
-* **sdk:** SDK - Components - Added annotations to TaskSpec ([\#4153](https://github.com/kubeflow/pipelines/issues/4153)) ([c439ec3](https://github.com/kubeflow/pipelines/commit/c439ec33b6d7c7cf0676acfbdb6d58e6d90a8c75))
-* **sdk:** SDK - Deprecation warning when using ContainerOp ([\#4166](https://github.com/kubeflow/pipelines/issues/4166)) ([ebd62ec](https://github.com/kubeflow/pipelines/commit/ebd62ec61c2e99f048e3ea4271519ca3275fa0a4))
-
-
-### Bug Fixes
-
-* **cache:** cache-deployer should check both secret and config ([\#4186](https://github.com/kubeflow/pipelines/issues/4186)) ([7b3654b](https://github.com/kubeflow/pipelines/commit/7b3654b6fdfdb27e20d2688bad6bd783fb349468))
-* **cache:** Fix cache deployer not regenerating secrets when secret not present ([\#4171](https://github.com/kubeflow/pipelines/issues/4171)) ([d727c91](https://github.com/kubeflow/pipelines/commit/d727c91bdf3398cd7c26ab7545eaaa096628dc4a))
-* **deployment:** fix database name prefix description ([\#4198](https://github.com/kubeflow/pipelines/issues/4198)) ([2ea1a1f](https://github.com/kubeflow/pipelines/commit/2ea1a1fc2a770827c3805151d785a3948607abb3))
-* **deployment:** gcp managed storage - add service account to minio and cloudsql proxy deployments for workload identity ([\#4188](https://github.com/kubeflow/pipelines/issues/4188)) ([bd7f3c9](https://github.com/kubeflow/pipelines/commit/bd7f3c9cd60144aef953db7aa2a4b17cec1cfa73))
-* **sdk:** fixes the default value for _is_refresh_token. Fixes [\#4189](https://github.com/kubeflow/pipelines/issues/4189) ([\#4195](https://github.com/kubeflow/pipelines/issues/4195)) ([be47d6d](https://github.com/kubeflow/pipelines/commit/be47d6d646961d2ee0f5c855a3cfc1c3d55fc903))
-
-## [1.0.0-rc.4](https://github.com/kubeflow/pipelines/compare/1.0.0-rc.3...1.0.0-rc.4) (2020-07-08)
-
-
-### Features
-
-* **sdk:** DSL - Added support for volatile components ([\#4104](https://github.com/kubeflow/pipelines/issues/4104)) ([07ebc27](https://github.com/kubeflow/pipelines/commit/07ebc27305495cf3b4f3c71e9a2345bb3d9e65f2))
-
-
-### Bug Fixes
-
-* **backend:** fix the google-api-core to 1.16.0 for backend visualization server. ([\#4158](https://github.com/kubeflow/pipelines/issues/4158)) ([8da057d](https://github.com/kubeflow/pipelines/commit/8da057d183bb3a65f52d0e494e985d86b2a89050))
-
-## [1.0.0-rc.3](https://github.com/kubeflow/pipelines/compare/1.0.0-rc.2...1.0.0-rc.3) (2020-07-02)
-
-
-### Features
-
-* **deployment:** marketplace - allow specifying gcs bucket directly ([\#4112](https://github.com/kubeflow/pipelines/issues/4112)) ([92a8cfe](https://github.com/kubeflow/pipelines/commit/92a8cfebced775eb816e68622cd4d70bd3b45784))
-
-
-### Bug Fixes
-
-* increase TFX version from 0.20.2 to 0.22.0. Fixes [\#4084](https://github.com/kubeflow/pipelines/issues/4084), fixes [\#4114](https://github.com/kubeflow/pipelines/issues/4114) ([\#4133](https://github.com/kubeflow/pipelines/issues/4133)) ([5d8a59c](https://github.com/kubeflow/pipelines/commit/5d8a59c359038f13356eb9a4ecbffd961381e426))
-* **backend:** allow empty userid header prefix. Fixes [\#4091](https://github.com/kubeflow/pipelines/issues/4091) ([\#4098](https://github.com/kubeflow/pipelines/issues/4098)) ([9e00c79](https://github.com/kubeflow/pipelines/commit/9e00c79a4601f3a79629718c902db60a39792da2))
-
-
-### Other Pull Requests
-
-* SDK - Compiler - Removed the deprecated dsl-compile --package command ([\#4055](https://github.com/kubeflow/pipelines/issues/4055)) ([6bcb3ef](https://github.com/kubeflow/pipelines/commit/6bcb3efa144a38cda3c2ecf551c9f34a4c35e9de))
-* SDK - Components - Python - Switched the default base image to python 3.7 ([\#4054](https://github.com/kubeflow/pipelines/issues/4054)) ([090fffc](https://github.com/kubeflow/pipelines/commit/090fffc3c48ac4dded562ce76ade21ee0d83ef18))
-* Validate resourcekey to avoid apiserver being panic for invalid inputs ([\#3999](https://github.com/kubeflow/pipelines/issues/3999)) ([6ced6ea](https://github.com/kubeflow/pipelines/commit/6ced6ea6e6da8a5bd121d7dbfc788b05795f425c))
-* [Backend] Bug fix: applying filter in listing versions ([\#4052](https://github.com/kubeflow/pipelines/issues/4052)) ([3243f73](https://github.com/kubeflow/pipelines/commit/3243f73ed73a370b733d05376aeb7ae623a1b282))
-* better native-keras based sample ([\#3900](https://github.com/kubeflow/pipelines/issues/3900)) ([842e8ce](https://github.com/kubeflow/pipelines/commit/842e8ce1ee5fc5559733f99596fa5db401a7fa3b))
-* Metadata Writer - Added timeouts ([\#4037](https://github.com/kubeflow/pipelines/issues/4037)) ([e808795](https://github.com/kubeflow/pipelines/commit/e808795ad6b50f51f981e20587c96518d59af5bf))
-* Fix/log unavailable warning ([\#3848](https://github.com/kubeflow/pipelines/issues/3848)) ([3c6f6db](https://github.com/kubeflow/pipelines/commit/3c6f6db72d9ea7c5ba363285c3419c886f2ef1df))
-* Metadata-Writer: Updates metadata writer to use mlmd 0.22.0 ([\#4027](https://github.com/kubeflow/pipelines/issues/4027)) ([88d6da7](https://github.com/kubeflow/pipelines/commit/88d6da724f501402c1c497d1f3c5b155c97b7e18))
-* Metadata Writer - Stopped using artifact properties ([\#4004](https://github.com/kubeflow/pipelines/issues/4004)) ([4833d1a](https://github.com/kubeflow/pipelines/commit/4833d1a1e708633074481491a736a10c3c10fe3b))
-* update refreshing mechanism ([\#3981](https://github.com/kubeflow/pipelines/issues/3981)) ([efa5f1e](https://github.com/kubeflow/pipelines/commit/efa5f1e239af2705f2ffca48004871e6deaa6d77))
-* enable pagination when expanding experiment in both the home page and the archive page ([\#4012](https://github.com/kubeflow/pipelines/issues/4012)) ([8d34f6d](https://github.com/kubeflow/pipelines/commit/8d34f6d5e7e95caf0367c50dc78d26f4ca0899b3))
 
 ## [0.5.1](https://github.com/kubeflow/pipelines/tree/0.5.1) (2020-05-07)
 
