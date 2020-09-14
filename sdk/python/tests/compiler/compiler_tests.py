@@ -674,6 +674,23 @@ implementation:
     workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
     self.assertEqual(workflow_dict['spec']['ttlSecondsAfterFinished'], 86400)
 
+  def test_pod_disruption_budget(self):
+    """Test a pipeline with poddisruption budget."""
+    def some_op():
+        return dsl.ContainerOp(
+            name='sleep',
+            image='busybox',
+            command=['sleep 1'],
+        )
+
+    @dsl.pipeline()
+    def some_pipeline():
+      some_op()
+      dsl.get_pipeline_conf().set_pod_disruption_budget("100%")
+
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    self.assertEqual(workflow_dict['spec']["podDisruptionBudget"]['minAvailable'], "100%")
+
   def test_op_transformers(self):
     def some_op():
       return dsl.ContainerOp(

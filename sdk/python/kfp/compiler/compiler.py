@@ -683,6 +683,10 @@ class Compiler(object):
     if pipeline_conf.ttl_seconds_after_finished >= 0:
       workflow['spec']['ttlSecondsAfterFinished'] = pipeline_conf.ttl_seconds_after_finished
 
+    if pipeline_conf._pod_disruption_budget_min_available:
+      pod_disruption_budget = {"minAvailable": pipeline_conf._pod_disruption_budget_min_available}
+      workflow['spec']['podDisruptionBudget'] = pod_disruption_budget
+
     if len(pipeline_conf.image_pull_secrets) > 0:
       image_pull_secrets = []
       for image_pull_secret in pipeline_conf.image_pull_secrets:
