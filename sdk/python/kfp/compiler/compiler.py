@@ -683,8 +683,6 @@ class Compiler(object):
 
     if pipeline_conf._pod_disruption_budget_min_available:
       pod_disruption_budget = {"minAvailable": pipeline_conf._pod_disruption_budget_min_available}
-      if pipeline_conf._pod_disruption_budget_selector:
-        pod_disruption_budget["selector"] = pipeline_conf._pod_disruption_budget_selector
       workflow['spec']['podDisruptionBudget'] = pod_disruption_budget
 
     if len(pipeline_conf.image_pull_secrets) > 0:
