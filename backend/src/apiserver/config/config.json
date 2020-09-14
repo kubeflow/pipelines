@@ -13,6 +13,5 @@
   },
   "InitConnectionTimeout": "6m",
   "DefaultPipelineRunnerServiceAccount": "pipeline-runner",
-  "CacheEnabled": "true",
-  "UpdatePipelineVersionByDefault": "true"
+  "CacheEnabled": "true"
 }

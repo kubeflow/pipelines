@@ -30,12 +30,7 @@ const (
 	DefaultPipelineRunnerServiceAccount string = "DefaultPipelineRunnerServiceAccount"
 	KubeflowUserIDHeader                string = "KUBEFLOW_USERID_HEADER"
 	KubeflowUserIDPrefix                string = "KUBEFLOW_USERID_PREFIX"
-	UpdatePipelineVersionByDefault      string = "UpdatePipelineVersionByDefault"
 )
-
-func IsPipelineVersionUpdatedByDefault() string {
-	return GetStringConfigWithDefault(UpdatePipelineVersionByDefault, "true")
-}
 
 func GetStringConfig(configName string) string {
 	if !viper.IsSet(configName) {
