@@ -54,20 +54,31 @@ def main(argv=None):
 
   logging.getLogger().setLevel(logging.INFO)
   client = _utils.get_sagemaker_client(args.region, args.endpoint_url, assume_role_arn=args.assume_role)
-  endpoint_config_name = _utils.get_current_endpoint_config(client, vars(args))
-  logging.info('Submitting Endpoint request to SageMaker...')
   endpoint_name = None
-  if _utils.endpoint_needs_update(client, vars(args)):
+  old_endpoint_config_name = None
+  if (args.update_endpoint and _utils.endpoint_name_exists(client, args.endpoint_name)):
+    ## Get the old endpoint config to cleanup later
+    old_endpoint_config_name = _utils.get_endpoint_config(client, args.endpoint_name)
+    logging.info('Submitting Update Endpoint request to SageMaker...')
     endpoint_name = _utils.update_deployed_model(client, vars(args))
   else:
+    logging.info('Submitting Create Endpoint request to SageMaker...')
     endpoint_name = _utils.deploy_model(client, vars(args))
 
-  logging.info('Endpoint creation request submitted. Waiting for completion...')
+  logging.info('Endpoint creation/update request submitted. Waiting for completion...')
   _utils.wait_for_endpoint_creation(client, endpoint_name)
-  _utils.cleanup_endpoint_config(client, endpoint_config_name, vars(args))
+
+  ## If updating existing endpoint, cleanup old endpoint config
+  if old_endpoint_config_name:
+      logging.info("Deleting old endpoint config: " + old_endpoint_config_name)
+      if _utils.delete_endpoint_config(client, old_endpoint_config_name):
+        logging.info("Deleted old endpoint config: " + old_endpoint_config_name)
+      else:
+        logging.info("Unable to delete old endpoint config: " + old_endpoint_config_name)
+
   _utils.write_output(args.endpoint_name_output_path, endpoint_name)
 
-  logging.info('Endpoint creation completed.')
+  logging.info('Endpoint creation/update completed.')
 
 if __name__== "__main__":
   main(sys.argv[1:])
