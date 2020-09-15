@@ -102,7 +102,7 @@ outputs:
   - {name: output_location,    description: 'S3 URI of the transform job results.'}
 implementation:
   container:
-    image: jkurubar/jkurubar-sagemaker-kfp-components:0.9.1
+    image: jkurubar/jkurubar-sagemaker-kfp-components:0.9.3
     command: ['python3']
     args: [
       batch_transform.py,
