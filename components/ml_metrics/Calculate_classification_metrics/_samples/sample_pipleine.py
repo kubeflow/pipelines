@@ -1,10 +1,9 @@
 from pathlib import Path
 
 import kfp
-from kfp.components import ComponentStore, create_component_from_func, InputPath, OutputPath
+from kfp.components import ComponentStore, create_component_from_func, InputPath, OutputPath, load_component_from_file
 
 store = ComponentStore.default_store
-store.local_search_paths.append(str(Path(__file__).parent.parent.parent.parent))
 
 chicago_taxi_dataset_op = store.load_component('datasets/Chicago_Taxi_Trips')
 xgboost_train_on_csv_op = store.load_component('XGBoost/Train')
@@ -29,8 +28,8 @@ convert_values_to_int_op = create_component_from_func(
     packages_to_install=['pandas==1.1'],
 )
 
-calculate_classification_metrics_from_csv_op = store.load_component(
-    'ml_metrics/Calculate_classification_metrics/from_CSV'
+calculate_classification_metrics_from_csv_op = load_component_from_file(
+    str(Path(__file__).parent.parent / 'from_CSV' / 'component.yaml')
 )
 
 
