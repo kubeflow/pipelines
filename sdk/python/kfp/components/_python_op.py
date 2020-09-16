@@ -35,6 +35,7 @@ import inspect
 from pathlib import Path
 import typing
 from typing import Callable, Generic, List, TypeVar, Union
+import warnings
 
 T = TypeVar('T')
 
@@ -332,7 +333,10 @@ def _extract_component_interface(func) -> ComponentSpec:
                 input_spec.optional = True
                 if parameter.default is not None:
                     outer_type_name = list(type_struct.keys())[0] if isinstance(type_struct, dict) else type_struct
-                    input_spec.default = serialize_value(parameter.default, outer_type_name)
+                    try:
+                        input_spec.default = serialize_value(parameter.default, outer_type_name)
+                    except Exception as ex:
+                        warnings.warn('Could not serialize the default value of the parameter "{}". {}'.format(parameter.name, ex))
             input_spec._passing_style = passing_style
             input_spec._parameter_name = parameter.name
             inputs.append(input_spec)
@@ -356,7 +360,6 @@ def _extract_component_interface(func) -> ComponentSpec:
             outputs.append(output_spec)
     # Deprecated dict-based way of declaring multiple outputs. Was only used by the @component decorator
     elif isinstance(return_ann, dict):
-        import warnings
         warnings.warn(
             "The ability to specify multiple outputs using the dict syntax has been deprecated."
             "It will be removed soon after release 0.1.32."
