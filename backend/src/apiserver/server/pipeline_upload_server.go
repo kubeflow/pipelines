@@ -140,6 +140,7 @@ func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *h
 		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Error read pipeline version file."))
 		return
 	}
+
 	versionNameQueryString := r.URL.Query().Get(NameQueryStringKey)
 	// If new version's name is not included in query string, use file name.
 	pipelineVersionName, err := GetPipelineName(versionNameQueryString, header.Filename)
@@ -147,11 +148,13 @@ func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *h
 		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Invalid pipeline version name."))
 		return
 	}
+
 	pipelineId := r.URL.Query().Get(PipelineKey)
 	if len(pipelineId) == 0 {
 		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Please specify a pipeline id when creating versions."))
 		return
 	}
+
 	defaultVersionQueryString := r.URL.Query().Get(UpdateDefaultVersionQueryStringKey)
 	// If new version's name is not included in query string, default to true.
 	updateDefaultVersion, err := GetDefaultVersionUpdate(defaultVersionQueryString)

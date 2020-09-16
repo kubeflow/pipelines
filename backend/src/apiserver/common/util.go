@@ -15,13 +15,7 @@
 package common
 
 import (
-	"os"
-
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
-)
-
-const (
-	UpdatePipelineVersionByDefault string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
 )
 
 func GetNamespaceFromAPIResourceReferences(resourceRefs []*api.ResourceReference) string {
@@ -44,12 +38,4 @@ func GetExperimentIDFromAPIResourceReferences(resourceRefs []*api.ResourceRefere
 		}
 	}
 	return experimentID
-}
-
-func IsPipelineVersionUpdatedByDefault() string {
-	val, ok := os.LookupEnv(UpdatePipelineVersionByDefault)
-	if !ok {
-		return "true"
-	}
-	return val
 }
