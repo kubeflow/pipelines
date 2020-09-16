@@ -50,7 +50,7 @@ def deprecation_warning(func: Callable, op_name: str,
 def _create_getter_setter(prop):
     """Create a tuple of getter and setter methods for a property in `Container`."""
     def _getter(self):
-        return getattr(self._container, prop)   
+        return getattr(self._container, prop)
     def _setter(self, value):
         return setattr(self._container, prop, value)
     return _getter, _setter
@@ -218,7 +218,7 @@ class Container(V1Container):
         if int_value <= 0:
             raise ValueError('{} must be positive integer.'.format(param_name))
 
-    def add_resource_limit(self, resource_name, value):
+    def add_resource_limit(self, resource_name, value) -> 'Container':
         """Add the resource limit of the container.
 
         Args:
@@ -231,7 +231,7 @@ class Container(V1Container):
         self.resources.limits.update({resource_name: value})
         return self
 
-    def add_resource_request(self, resource_name, value):
+    def add_resource_request(self, resource_name, value) -> 'Container':
         """Add the resource request of the container.
 
         Args:
@@ -244,7 +244,7 @@ class Container(V1Container):
         self.resources.requests.update({resource_name: value})
         return self
 
-    def set_memory_request(self, memory):
+    def set_memory_request(self, memory) -> 'Container':
         """Set memory request (minimum) for this operator.
 
         Args:
@@ -255,7 +255,7 @@ class Container(V1Container):
         self._validate_memory_string(memory)
         return self.add_resource_request("memory", memory)
 
-    def set_memory_limit(self, memory):
+    def set_memory_limit(self, memory) -> 'Container':
         """Set memory limit (maximum) for this operator.
 
         Args:
@@ -265,7 +265,7 @@ class Container(V1Container):
         self._validate_memory_string(memory)
         return self.add_resource_limit("memory", memory)
 
-    def set_cpu_request(self, cpu):
+    def set_cpu_request(self, cpu) -> 'Container':
         """Set cpu request (minimum) for this operator.
 
         Args:
@@ -275,7 +275,7 @@ class Container(V1Container):
         self._validate_cpu_string(cpu)
         return self.add_resource_request("cpu", cpu)
 
-    def set_cpu_limit(self, cpu):
+    def set_cpu_limit(self, cpu) -> 'Container':
         """Set cpu limit (maximum) for this operator.
 
         Args:
@@ -285,7 +285,7 @@ class Container(V1Container):
         self._validate_cpu_string(cpu)
         return self.add_resource_limit("cpu", cpu)
 
-    def set_gpu_limit(self, gpu, vendor="nvidia"):
+    def set_gpu_limit(self, gpu, vendor="nvidia") -> 'Container':
         """Set gpu limit for the operator. This function add '<vendor>.com/gpu' into resource limit. 
         Note that there is no need to add GPU request. GPUs are only supposed to be specified in 
         the limits section. See https://kubernetes.io/docs/tasks/manage-gpus/scheduling-gpus/.
@@ -302,7 +302,7 @@ class Container(V1Container):
 
         return self.add_resource_limit("%s.com/gpu" % vendor, gpu)
 
-    def add_volume_mount(self, volume_mount):
+    def add_volume_mount(self, volume_mount) -> 'Container':
         """Add volume to the container
 
         Args:
@@ -319,7 +319,7 @@ class Container(V1Container):
                                                volume_mount)
         return self
 
-    def add_volume_devices(self, volume_device):
+    def add_volume_devices(self, volume_device) -> 'Container':
         """
         Add a block device to be used by the container.
 
@@ -337,7 +337,7 @@ class Container(V1Container):
                                                 volume_device)
         return self
 
-    def add_env_variable(self, env_variable):
+    def add_env_variable(self, env_variable) -> 'Container':
         """Add environment variable to the container.
 
         Args:
@@ -353,7 +353,7 @@ class Container(V1Container):
         self.env = create_and_append(self.env, env_variable)
         return self
 
-    def add_env_from(self, env_from):
+    def add_env_from(self, env_from) -> 'Container':
         """Add a source to populate environment variables int the container.
 
         Args:
@@ -369,7 +369,7 @@ class Container(V1Container):
         self.env_from = create_and_append(self.env_from, env_from)
         return self
 
-    def set_image_pull_policy(self, image_pull_policy):
+    def set_image_pull_policy(self, image_pull_policy) -> 'Container':
         """Set image pull policy for the container.
 
         Args:
@@ -383,7 +383,7 @@ class Container(V1Container):
         self.image_pull_policy = image_pull_policy
         return self
 
-    def add_port(self, container_port):
+    def add_port(self, container_port) -> 'Container':
         """Add a container port to the container.
 
         Args:
@@ -399,7 +399,7 @@ class Container(V1Container):
         self.ports = create_and_append(self.ports, container_port)
         return self
 
-    def set_security_context(self, security_context):
+    def set_security_context(self, security_context) -> 'Container':
         """Set security configuration to be applied on the container.  
 
         Args:
@@ -415,7 +415,7 @@ class Container(V1Container):
         self.security_context = security_context
         return self
 
-    def set_stdin(self, stdin=True):
+    def set_stdin(self, stdin=True) -> 'Container':
         """
         Whether this container should allocate a buffer for stdin in the container 
         runtime. If this is not set, reads from stdin in the container will always 
@@ -428,7 +428,7 @@ class Container(V1Container):
         self.stdin = stdin
         return self
 
-    def set_stdin_once(self, stdin_once=True):
+    def set_stdin_once(self, stdin_once=True) -> 'Container':
         """
         Whether the container runtime should close the stdin channel after it has 
         been opened by a single attach. When stdin is true the stdin stream will 
@@ -446,7 +446,7 @@ class Container(V1Container):
         self.stdin_once = stdin_once
         return self
 
-    def set_termination_message_path(self, termination_message_path):
+    def set_termination_message_path(self, termination_message_path) -> 'Container':
         """
         Path at which the file to which the container's termination message will be 
         written is mounted into the container's filesystem. Message written is 
@@ -460,7 +460,7 @@ class Container(V1Container):
         self.termination_message_path = termination_message_path
         return self
 
-    def set_termination_message_policy(self, termination_message_policy):
+    def set_termination_message_policy(self, termination_message_policy) -> 'Container':
         """
         Indicate how the termination message should be populated. File will use the 
         contents of terminationMessagePath to populate the container status message 
@@ -479,7 +479,7 @@ class Container(V1Container):
         self.termination_message_policy = termination_message_policy
         return self
 
-    def set_tty(self, tty=True):
+    def set_tty(self, tty: bool = True) -> 'Container':
         """
         Whether this container should allocate a TTY for itself, also requires 
         'stdin' to be true.
@@ -491,7 +491,7 @@ class Container(V1Container):
         self.tty = tty
         return self
 
-    def set_readiness_probe(self, readiness_probe):
+    def set_readiness_probe(self, readiness_probe) -> 'Container':
         """
         Set a readiness probe for the container.
 
@@ -508,7 +508,7 @@ class Container(V1Container):
         self.readiness_probe = readiness_probe
         return self
 
-    def set_liveness_probe(self, liveness_probe):
+    def set_liveness_probe(self, liveness_probe) -> 'Container':
         """
         Set a liveness probe for the container.
 
@@ -525,7 +525,7 @@ class Container(V1Container):
         self.liveness_probe = liveness_probe
         return self
 
-    def set_lifecycle(self, lifecycle):
+    def set_lifecycle(self, lifecycle) -> 'Container':
         """
         Setup a lifecycle config for the container.
 
@@ -1104,7 +1104,7 @@ class ContainerOp(BaseOp):
                 name: _pipeline_param.PipelineParam(name, op_name=self.name)
                 for name in file_outputs.keys()
             }
-        
+
         # Syntactic sugar: Add task.output attribute if the component has a single output.
         # TODO: Currently the "MLPipeline UI Metadata" output is removed from outputs to preserve backwards compatibility.
         # Maybe stop excluding it from outputs, but rather exclude it from unique_outputs.
