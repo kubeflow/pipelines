@@ -166,17 +166,17 @@ class Container(V1Container):
         super(Container, self).__init__(
             image=image, command=command, args=args, **kwargs)
 
-    def _validate_memory_string(self, memory_string):
-        """Validate a given string is valid for memory request or limit."""
+    def _validate_size_string(self, size_string):
+        """Validate a given string is valid for memory/ephemeral-storage request or limit."""
 
-        if isinstance(memory_string, _pipeline_param.PipelineParam):
-            if memory_string.value:
-                memory_string = memory_string.value
+        if isinstance(size_string, _pipeline_param.PipelineParam):
+            if size_string.value:
+                size_string = size_string.value
             else:
                 return
 
         if re.match(r'^[0-9]+(E|Ei|P|Pi|T|Ti|G|Gi|M|Mi|K|Ki){0,1}$',
-                    memory_string) is None:
+                    size_string) is None:
             raise ValueError(
                 'Invalid memory string. Should be an integer, or integer followed '
                 'by one of "E|Ei|P|Pi|T|Ti|G|Gi|M|Mi|K|Ki"')
@@ -252,7 +252,7 @@ class Container(V1Container):
                   "E", "P", "T", "G", "M", "K".
         """
 
-        self._validate_memory_string(memory)
+        self._validate_size_string(memory)
         return self.add_resource_request("memory", memory)
 
     def set_memory_limit(self, memory) -> 'Container':
@@ -262,8 +262,28 @@ class Container(V1Container):
           memory: a string which can be a number or a number followed by one of
                   "E", "P", "T", "G", "M", "K".
         """
-        self._validate_memory_string(memory)
+        self._validate_size_string(memory)
         return self.add_resource_limit("memory", memory)
+
+    def set_ephemeral_storage_request(self, size) -> 'Container':
+        """Set ephemeral-storage request (minimum) for this operator.
+
+        Args:
+          size: a string which can be a number or a number followed by one of
+                  "E", "P", "T", "G", "M", "K".
+        """
+        self._validate_size_string(size)
+        return self.add_resource_request("ephemeral-storage", size)
+
+    def set_ephemeral_storage_limit(self, size) -> 'Container':
+        """Set ephemeral-storage request (maximum) for this operator.
+
+        Args:
+          size: a string which can be a number or a number followed by one of
+                  "E", "P", "T", "G", "M", "K".
+        """
+        self._validate_size_string(size)
+        return self.add_resource_limit("ephemeral-storage", size)
 
     def set_cpu_request(self, cpu) -> 'Container':
         """Set cpu request (minimum) for this operator.
