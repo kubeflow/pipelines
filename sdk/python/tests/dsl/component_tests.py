@@ -448,7 +448,7 @@ class TestGraphComponent(unittest.TestCase):
 
   def test_graphcomponent_basic(self):
     """Test graph_component decorator metadata."""
-    @graph_component
+    @graph_component()
     def flip_component(flip_result):
       with dsl.Condition(flip_result == 'heads'):
         flip_component(flip_result)
@@ -465,3 +465,63 @@ class TestGraphComponent(unittest.TestCase):
       self.assertTrue(recursive_group.recursive_ref is not None)
       self.assertEqual(1, len(recursive_group.inputs))
       self.assertEqual('param', recursive_group.inputs[0].name)
+
+class TestGraphComponentParallelism(unittest.TestCase):
+
+  def test_graphcomponent_parallelism(self):
+
+    def print_op(msg):
+      """Print a message."""
+      return dsl.ContainerOp(
+          name='Print',
+          image='alpine:3.6',
+          command=['echo', msg],
+      )
+      
+    @dsl.graph_component(parallelism=3)
+    def testy_component():
+      loop_args = [{'A_a': 1, 'B_b': 2}, {'A_a': 10, 'B_b': 20}]
+      with dsl.ParallelFor(loop_args) as item:
+          print_op(item)
+          print_op(item.A_a)
+          print_op(item.B_b)
+
+    @dsl.pipeline(
+    name='Parallel pipeline',
+    description='Shows how to create recursive loops.'
+    )
+    def testyPipe(): 
+        testy_component()
+    
+    workflow = kfp.compiler.Compiler().create_workflow(testyPipe)
+    self.assertTrue("parallelism" in workflow["spec"]["templates"][1])
+    self.assertEqual(3, workflow["spec"]["templates"][1]["parallelism"])
+
+
+  def test_graphcomponent_basic(self):
+
+    def print_op(msg):
+      """Print a message."""
+      return dsl.ContainerOp(
+          name='Print',
+          image='alpine:3.6',
+          command=['echo', msg],
+      )
+    
+    @dsl.graph_component()
+    def testy_component():
+      loop_args = [{'A_a': 1, 'B_b': 2}, {'A_a': 10, 'B_b': 20}]
+      with dsl.ParallelFor(loop_args) as item:
+          print_op(item)
+          print_op(item.A_a)
+          print_op(item.B_b)
+
+    @dsl.pipeline(
+    name='Parallel pipeline',
+    description='Shows how to create recursive loops.'
+    )
+    def testyPipe(): 
+        testy_component()
+    
+    workflow = kfp.compiler.Compiler().create_workflow(testyPipe)
+    self.assertFalse("parallelism" in workflow["spec"]["templates"][1])

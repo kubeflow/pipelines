@@ -167,8 +167,9 @@ class Graph(OpsGroup):
   """Graph DAG with inputs, recursive_inputs, and outputs.
   This is not used directly by the users but auto generated when the graph_component decoration exists
   """
-  def __init__(self, name):
-    super(Graph, self).__init__(group_type='graph', name=name)
+
+  def __init__(self, name, parallelism=None):
+    super(Graph, self).__init__(group_type='graph', name=name, parallelism=parallelism)
     self.inputs = []
     self.outputs = {}
     self.dependencies = []

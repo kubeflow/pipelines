@@ -98,43 +98,47 @@ def component(func):
 
   return _component
 
-#TODO: combine the component and graph_component decorators into one
-def graph_component(func):
-  """Decorator for graph component functions.
-  This decorator returns an ops_group.
 
-  Usage:
-  ```python
-  # Warning: caching is tricky when recursion is involved. Please be careful and 
-  # set proper max_cache_staleness in case of infinite loop.
-  import kfp.dsl as dsl
-  @dsl.graph_component
-  def flip_component(flip_result):
-    print_flip = PrintOp(flip_result)
-    flipA = FlipCoinOp().after(print_flip)
-    flipA.execution_options.caching_strategy.max_cache_staleness = "P0D"
-    with dsl.Condition(flipA.output == 'heads'):
-      flip_component(flipA.output)
-    return {'flip_result': flipA.output}
-  """
-  from functools import wraps
-  @wraps(func)
-  def _graph_component(*args, **kargs):
-    # We need to make sure that the arguments are correctly mapped to inputs regardless of the passing order
-    signature = inspect.signature(func)
-    bound_arguments = signature.bind(*args, **kargs)
-    graph_ops_group = Graph(func.__name__)
-    graph_ops_group.inputs = list(bound_arguments.arguments.values())
-    graph_ops_group.arguments = bound_arguments.arguments
-    for input in graph_ops_group.inputs:
-      if not isinstance(input, PipelineParam):
-        raise ValueError('arguments to ' + func.__name__ + ' should be PipelineParams.')
 
-    # Entering the Graph Context
-    with graph_ops_group:
-      # Call the function
-      if not graph_ops_group.recursive_ref:
-        func(*args, **kargs)
+def graph_component(parallelism=None):
+  #TODO: combine the component and graph_component decorators into one
+  def _graph_component(func):
+    """Decorator for graph component functions.
+    This decorator returns an ops_group.
 
-    return graph_ops_group
+    Usage:
+    ```python
+    # Warning: caching is tricky when recursion is involved. Please be careful and 
+    # set proper max_cache_staleness in case of infinite loop.
+    import kfp.dsl as dsl
+    @dsl.graph_component
+    def flip_component(flip_result):
+      print_flip = PrintOp(flip_result)
+      flipA = FlipCoinOp().after(print_flip)
+      flipA.execution_options.caching_strategy.max_cache_staleness = "P0D"
+      with dsl.Condition(flipA.output == 'heads'):
+        flip_component(flipA.output)
+      return {'flip_result': flipA.output}
+    """
+    from functools import wraps
+    @wraps(func)
+    def _wrapper_(*args, **kargs):
+      # We need to make sure that the arguments are correctly mapped to inputs regardless of the passing order
+      signature = inspect.signature(func)
+      bound_arguments = signature.bind(*args, **kargs)
+      graph_ops_group = Graph(func.__name__, parallelism=parallelism)
+      graph_ops_group.inputs = list(bound_arguments.arguments.values())
+      graph_ops_group.arguments = bound_arguments.arguments
+      for input in graph_ops_group.inputs:
+        if not isinstance(input, PipelineParam):
+          raise ValueError('arguments to ' + func.__name__ + ' should be PipelineParams.')
+
+      # Entering the Graph Context
+      with graph_ops_group:
+        # Call the function
+        if not graph_ops_group.recursive_ref:
+          func(*args, **kargs)
+
+      return graph_ops_group
+    return _wrapper_
   return _graph_component
