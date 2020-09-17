@@ -38,7 +38,7 @@ class PrintOp(dsl.ContainerOp):
         command=['echo', msg],
     )
 
-@graph_component
+@graph_component()
 def flip_component(flip_result):
   print_flip = PrintOp(flip_result)
   flipA = FlipCoinOp().after(print_flip)
