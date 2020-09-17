@@ -14,6 +14,7 @@
 
 __version__ = '1.0.1'
 
+from . import compiler
 from . import components
 from . import containers
 from . import dsl
