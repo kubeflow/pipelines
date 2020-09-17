@@ -36,7 +36,7 @@ class PrintOp(dsl.ContainerOp):
         command=['echo', msg],
     )
 
-@dsl._component.graph_component
+@dsl._component.graph_component()
 def flip_component(flip_result, maxVal):
   with dsl.Condition(flip_result == 'heads'):
     print_flip = PrintOp(flip_result)
