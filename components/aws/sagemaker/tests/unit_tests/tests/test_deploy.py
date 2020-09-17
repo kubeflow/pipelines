@@ -41,6 +41,20 @@ class DeployTestCase(unittest.TestCase):
       call('/tmp/output', 'test-endpoint-name')
     ])
 
+  def test_main_assumes_role(self):
+    # Mock out all of utils except parser
+    deploy._utils = MagicMock()
+    deploy._utils.add_default_client_arguments = _utils.add_default_client_arguments
+
+    # Set some static returns
+    deploy._utils.deploy_model.return_value = 'test-endpoint-name'
+
+    assume_role_args = required_args + ['--assume_role', 'my-role']
+
+    deploy.main(assume_role_args)
+
+    deploy._utils.get_sagemaker_client.assert_called_once_with('us-west-2', None, assume_role_arn='my-role')
+
   def test_deploy_model(self):
     mock_client = MagicMock()
     mock_args = self.parser.parse_args(required_args + ['--endpoint_name', 'test-endpoint-name', '--endpoint_config_name', 'test-endpoint-config-name'])

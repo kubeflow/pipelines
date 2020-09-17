@@ -73,15 +73,7 @@ class TestVolumeOp(unittest.TestCase):
 
         delete_vop = vop.delete()
 
-        self.assertEqual(delete_vop.resource.action, "delete")
-        self.assertEqual(delete_vop.attribute_outputs, {})
-        self.assertEqual(delete_vop.outputs, {})
-        self.assertEqual(delete_vop.output, None)
-        expected_name = PipelineParam(name="name", op_name=vop.name)
-        expected_resource = {"apiVersion": "v1",
-                             "kind": "PersistentVolumeClaim",
-                             "metadata": {"name": expected_name}}
-        self.assertEqual(delete_vop.k8s_resource, expected_resource)
+        expected_name = str(vop.outputs['name'])
 
-        with self.assertRaises(ValueError):
-            delete_vop.delete()
+        self.assertEqual(delete_vop.command, ['kubectl', 'delete', 'PersistentVolumeClaim', expected_name, '--ignore-not-found', '--output', 'name'])
+        self.assertEqual(delete_vop.outputs, {})

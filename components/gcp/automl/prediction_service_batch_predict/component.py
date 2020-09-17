@@ -17,7 +17,7 @@ from typing import NamedTuple
 
 def automl_prediction_service_batch_predict(
     model_path,
-    gcs_input_uris: str = None,
+    gcs_input_uris: list = None,
     gcs_output_uri_prefix: str = None,
     bq_input_uri: str = None,
     bq_output_uri: str = None,

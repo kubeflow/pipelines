@@ -88,7 +88,7 @@ Follow these steps to use the component in a pipeline:
     ```python
     import kfp.components as comp
 
-    dataproc_create_cluster_op = comp.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/01a23ae8672d3b18e88adf3036071496aca3552d/components/gcp/dataproc/create_cluster/component.yaml')
+    dataproc_create_cluster_op = comp.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/38771da09094640cd2786a4b5130b26ea140f864/components/gcp/dataproc/create_cluster/component.yaml')
     help(dataproc_create_cluster_op)
     ```
 

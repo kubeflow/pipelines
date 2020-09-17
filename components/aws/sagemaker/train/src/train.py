@@ -13,6 +13,7 @@
 import sys
 import argparse
 import logging
+import signal
 
 from common import _utils
 
@@ -39,6 +40,8 @@ def create_parser():
   parser.add_argument('--vpc_subnets', type=str, required=False, help='The ID of the subnets in the VPC to which you want to connect your hpo job.')
   parser.add_argument('--network_isolation', type=_utils.str_to_bool, required=False, help='Isolates the training container.', default=True)
   parser.add_argument('--traffic_encryption', type=_utils.str_to_bool, required=False, help='Encrypts all communications between ML compute instances in distributed training.', default=False)
+  parser.add_argument('--debug_hook_config', type=_utils.yaml_or_json_str, required=False, help='Configuration information for the debug hook parameters, collection configuration, and storage paths.', default={})
+  parser.add_argument('--debug_rule_config', type=_utils.yaml_or_json_str, required=False, help='Configuration information for debugging rules.', default=[])
 
   ### Start spot instance support
   parser.add_argument('--spot_instance', type=_utils.str_to_bool, required=False, help='Use managed spot training.', default=False)
@@ -61,17 +64,25 @@ def main(argv=None):
   args = parser.parse_args(argv)
 
   logging.getLogger().setLevel(logging.INFO)
-  client = _utils.get_sagemaker_client(args.region, args.endpoint_url)
+  client = _utils.get_sagemaker_client(args.region, args.endpoint_url, assume_role_arn=args.assume_role)
 
   logging.info('Submitting Training Job to SageMaker...')
   job_name = _utils.create_training_job(client, vars(args))
+
+  def signal_term_handler(signalNumber, frame):
+    job_stopped = _utils.stop_training_job(client, job_name)
+    if job_stopped:
+        logging.info(f"Training Job: {job_stopped} request submitted to Stop")
+  signal.signal(signal.SIGTERM, signal_term_handler)
+
   logging.info('Job request submitted. Waiting for completion...')
   try:
     _utils.wait_for_training_job(client, job_name)
+    _utils.wait_for_debug_rules(client, job_name)
   except:
     raise
   finally:
-    cw_client = _utils.get_cloudwatch_client(args.region)
+    cw_client = _utils.get_cloudwatch_client(args.region, assume_role_arn=args.assume_role)
     _utils.print_logs_for_job(cw_client, '/aws/sagemaker/TrainingJobs', job_name)
 
   image = _utils.get_image_from_job(client, job_name)

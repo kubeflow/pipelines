@@ -25,7 +25,10 @@ from ._common_ops import (wait_and_dump_job, get_staging_location,
 
 def launch_template(project_id, gcs_path, launch_parameters, 
     location=None, validate_only=None, staging_dir=None, 
-    wait_interval=30):
+    wait_interval=30,
+    job_id_output_path='/tmp/kfp/output/dataflow/job_id.txt',
+    job_object_output_path='/tmp/kfp/output/dataflow/job.json',
+):
     """Launchs a dataflow job from template.
 
     Args:
@@ -67,7 +70,10 @@ def launch_template(project_id, gcs_path, launch_parameters,
         if job_id:
             job = df_client.get_job(project_id, job_id, location)
             return wait_and_dump_job(df_client, project_id, location, job,
-                wait_interval)
+                wait_interval,
+                job_id_output_path=job_id_output_path,
+                job_object_output_path=job_object_output_path,
+            )
 
         if not launch_parameters:
             launch_parameters = {}
@@ -81,4 +87,7 @@ def launch_template(project_id, gcs_path, launch_parameters,
         job_id = job.get('id')
         upload_job_id_and_location(storage_client, staging_location, job_id, location)
         return wait_and_dump_job(df_client, project_id, location, job,
-            wait_interval)
+            wait_interval,
+            job_id_output_path=job_id_output_path,
+            job_object_output_path=job_object_output_path,
+        )

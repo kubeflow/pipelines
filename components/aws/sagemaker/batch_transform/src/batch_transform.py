@@ -13,6 +13,7 @@
 import sys
 import argparse
 import logging
+import signal
 
 from common import _utils
 
@@ -51,9 +52,15 @@ def main(argv=None):
   args = parser.parse_args(argv)
 
   logging.getLogger().setLevel(logging.INFO)
-  client = _utils.get_sagemaker_client(args.region, args.endpoint_url)
+  client = _utils.get_sagemaker_client(args.region, args.endpoint_url, assume_role_arn=args.assume_role)
   logging.info('Submitting Batch Transformation request to SageMaker...')
   batch_job_name = _utils.create_transform_job(client, vars(args))
+
+  def signal_term_handler(signalNumber, frame):
+    _utils.stop_transform_job(client, batch_job_name)
+    logging.info(f"Transform job: {batch_job_name} request submitted to Stop")
+  signal.signal(signal.SIGTERM, signal_term_handler)
+
   logging.info('Batch Job request submitted. Waiting for completion...')
 
   try:
@@ -61,7 +68,7 @@ def main(argv=None):
   except:
     raise
   finally:
-    cw_client = _utils.get_cloudwatch_client(args.region)
+    cw_client = _utils.get_cloudwatch_client(args.region, assume_role_arn=args.assume_role)
     _utils.print_logs_for_job(cw_client, '/aws/sagemaker/TransformJobs', batch_job_name)
 
   _utils.write_output(args.output_location_output_path, args.output_location)

@@ -41,7 +41,7 @@ def main(argv=None):
   args = parser.parse_args(argv)
 
   logging.getLogger().setLevel(logging.INFO)
-  client = _utils.get_sagemaker_client(args.region, args.endpoint_url)
+  client = _utils.get_sagemaker_client(args.region, args.endpoint_url, assume_role_arn=args.assume_role)
 
   logging.info('Submitting model creation request to SageMaker...')
   _utils.create_model(client, vars(args))

@@ -1,6 +1,8 @@
 import unittest
+import os
+import signal
 
-from unittest.mock import patch, call, Mock, MagicMock, mock_open
+from unittest.mock import patch, call, Mock, MagicMock, mock_open, ANY
 from botocore.exceptions import ClientError
 
 from batch_transform.src import batch_transform
@@ -50,6 +52,20 @@ class BatchTransformTestCase(unittest.TestCase):
     batch_transform._utils.write_output.assert_has_calls([
       call('/tmp/output', 's3://fake-bucket/output')
     ])
+
+  def test_main_assumes_role(self):
+    # Mock out all of utils except parser
+    batch_transform._utils = MagicMock()
+    batch_transform._utils.add_default_client_arguments = _utils.add_default_client_arguments
+
+    # Set some static returns
+    batch_transform._utils.create_transform_job.return_value = 'test-batch-job'
+
+    assume_role_args = required_args + ['--assume_role', 'my-role']
+
+    batch_transform.main(assume_role_args)
+
+    batch_transform._utils.get_sagemaker_client.assert_called_once_with('us-west-2', None, assume_role_arn='my-role')
 
 
   def test_batch_transform(self):
@@ -117,6 +133,26 @@ class BatchTransformTestCase(unittest.TestCase):
                           'InstanceCount': None, 'VolumeKmsKeyId': ''}
     )
 
+  def test_main_stop_tranform_job(self):
+    batch_transform._utils = MagicMock()
+    batch_transform._utils.create_transform_job.return_value = 'test-batch-job'
+
+    try:
+      os.kill(os.getpid(), signal.SIGTERM)
+    finally:
+      batch_transform._utils.stop_transform_job.assert_called_once_with(ANY, 'test-batch-job')
+      batch_transform._utils.print_logs_for_job.assert_not_called()
+
+  def test_utils_stop_transform_job(self):
+    mock_sm_client = MagicMock()
+    mock_sm_client.stop_transform_job.return_value = None
+
+    response = _utils.stop_transform_job(mock_sm_client, 'FakeJobName')
+
+    mock_sm_client.stop_transform_job.assert_called_once_with(
+        TransformJobName='FakeJobName'
+    )
+    self.assertEqual(response, None)
 
   def test_sagemaker_exception_in_batch_transform(self):
     mock_client = MagicMock()

@@ -24,6 +24,7 @@ class TestSubmitSparkSqlJob(unittest.TestCase):
 
     def test_submit_sparksql_job_with_expected_payload(self, mock_submit_job):
         submit_sparksql_job('mock-project', 'mock-region', 'mock-cluster', 
+            job_id_output_path='/tmp/kfp/output/dataproc/job_id.txt',
             queries=['select * from mock_table'], 
             script_variables={'var-1': 'value1'}, 
             sparksql_job={ 'jarFileUris': ['gs://jar/file.jar'] },
@@ -41,4 +42,4 @@ class TestSubmitSparkSqlJob(unittest.TestCase):
                 'labels': {
                     'key1': 'value1'
                 }
-            }, 30)
+            }, 30, job_id_output_path='/tmp/kfp/output/dataproc/job_id.txt')

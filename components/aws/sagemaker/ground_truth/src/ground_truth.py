@@ -13,6 +13,7 @@
 import sys
 import argparse
 import logging
+import signal
 
 from common import _utils
 
@@ -59,9 +60,15 @@ def main(argv=None):
   args = parser.parse_args(argv)
 
   logging.getLogger().setLevel(logging.INFO)
-  client = _utils.get_sagemaker_client(args.region, args.endpoint_url)
+  client = _utils.get_sagemaker_client(args.region, args.endpoint_url, assume_role_arn=args.assume_role)
   logging.info('Submitting Ground Truth Job request to SageMaker...')
   _utils.create_labeling_job(client, vars(args))
+
+  def signal_term_handler(signalNumber, frame):
+    _utils.stop_labeling_job(client, args.job_name)
+    logging.info(f"Ground Truth labeling job: {args.job_name} request submitted to Stop")
+  signal.signal(signal.SIGTERM, signal_term_handler)
+
   logging.info('Ground Truth labeling job request submitted. Waiting for completion...')
   _utils.wait_for_labeling_job(client, args.job_name)
   output_manifest, active_learning_model_arn = _utils.get_labeling_job_outputs(client, args.job_name, args.enable_auto_labeling)
