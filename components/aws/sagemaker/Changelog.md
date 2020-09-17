@@ -4,6 +4,11 @@ The version of the AWS SageMaker Components is determined by the docker image ta
 Repository:  https://hub.docker.com/repository/docker/amazon/aws-sagemaker-kfp-components
 
 ---------------------------------------------
+**Change log for version 0.9.0**
+- Add functionality to Udpate SageMaker Endpoint for Deploy component
+
+> Pull requests " [#4424](https://github.com/kubeflow/pipelines/pull/4424/)
+
 **Change log for version 0.8.0**
 - Add functionality to configure SageMaker Debugger for Training component
 

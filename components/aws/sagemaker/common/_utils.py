@@ -477,7 +477,7 @@ def endpoint_name_exists(client, endpoint_name):
       logging.info("Endpoint exists: " + endpoint_name)
       return True
   except ClientError as e:
-      logging.info("Endpoint does not exist")
+      logging.debug("Endpoint does not exist")
   return False
 
 def endpoint_config_name_exists(client, endpoint_config_name):
@@ -527,7 +527,7 @@ def create_endpoint_config_request(args):
         logging.error("Must specify at least one model (model name) to host.")
         raise Exception("Could not create endpoint config.")
 
-    endpoint_config_name = args['endpoint_config_name'] if args['endpoint_config_name'] else 'EndpointConfig' + args['model_name_1'][args['model_name_1'].index('-'):]
+    endpoint_config_name = args['endpoint_config_name']
     request['EndpointConfigName'] = endpoint_config_name
 
     if args['resource_encryption_key']:
@@ -560,9 +560,9 @@ def create_endpoint_config_request(args):
     return request
 
 def get_endpoint_config_name(client, args):
-    endpoint_config_name = args['endpoint_config_name']
     ## boto3 documentation says to update an endpoint, a new EndPointConfig has to be created
     ## and the one currently in use should NOT be deleted. Appending a random number to resolve conflict
+    endpoint_config_name = args['endpoint_config_name'] if args['endpoint_config_name'] else 'EndpointConfig' + "-" + id_generator(8)
     if args['update_endpoint'] and endpoint_config_name_exists(client, endpoint_config_name):
         endpoint_config_name = endpoint_config_name + "-" + id_generator(8)
         logging.info("Changed endpoint_config_name to: " + endpoint_config_name)

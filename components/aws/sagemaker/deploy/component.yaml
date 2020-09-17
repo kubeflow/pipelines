@@ -112,7 +112,7 @@ outputs:
   - {name: endpoint_name,          description: 'Endpoint name'}
 implementation:
   container:
-    image: jkurubar/jkurubar-sagemaker-kfp-components:0.9.3
+    image: jkurubar/jkurubar-sagemaker-kfp-components:0.9.4
     command: ['python3']
     args: [
       deploy.py,

@@ -224,13 +224,14 @@ class DeployTestCase(unittest.TestCase):
   def test_get_endpoint_name_from_job(self):
     mock_client = MagicMock()
 
-    # if we don't pass --endpoint_name argument then endpoint name is constructed using --model_name_1
-    self.assertEqual(_utils.deploy_model(mock_client, vars(self.parser.parse_args(required_args))), 'Endpoint-test')
+    # if we don't pass --endpoint_name argument then endpoint name is constructed
+    self.assertTrue('Endpoint-' in _utils.deploy_model(mock_client, vars(self.parser.parse_args(required_args))))
 
   def test_pass_most_args(self):
     arguments =  [
       '--region', 'us-west-2',
       '--endpoint_url', 'fake-url',
+      '--endpoint_config_name','EndpointConfig-test-1',
       '--model_name_1', 'model-test-1',
       '--accelerator_type_1', 'ml.eia1.medium',
       '--model_name_2', 'model-test-2',

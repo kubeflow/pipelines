@@ -1,5 +1,5 @@
 PipelineDefinition: resources/definition/update_endpoint_pipeline.py
-TestName: kmeans-deploy-test
+TestName: kmeans-update-endpoint-test
 Timeout: 7200
 ExpectedInstanceType: ml.m5.xlarge
 ExpectedPrediction:
