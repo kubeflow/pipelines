@@ -28,7 +28,7 @@ WEBHOOK_SECRET_NAME=webhook-server-tls
 
 # This should fail if there are connectivity problems
 # Gotcha: Listing all objects requires list permission,
-# but when listing a single oblect kubecttl will fail if it's not found
+# but when listing a single oblect kubectl will fail if it's not found
 # unless --ignore-not-found is specified.
 kubectl get mutatingwebhookconfigurations "${MUTATING_WEBHOOK_CONFIGURATION_NAME}" --namespace "${NAMESPACE}" --ignore-not-found >webhooks.txt
 kubectl get secrets "${WEBHOOK_SECRET_NAME}" --namespace "${NAMESPACE}" --ignore-not-found >cache_secret.txt
@@ -50,12 +50,12 @@ fi
 
 if [ "$webhook_config_exists" == "true" ]; then
     echo "Warning: Webhook config exists, but the secret does not exist. Reinstalling."
-    kubectl delete mutatingwebhookconfigurations "${MUTATING_WEBHOOK_CONFIGURATION_NAME}" --namespace "${NAMESPACE}" || true
+    kubectl delete mutatingwebhookconfigurations "${MUTATING_WEBHOOK_CONFIGURATION_NAME}" --namespace "${NAMESPACE}"
 fi
 
 if [ "$webhook_secret_exists" == "true" ]; then
     echo "Warning: Webhook secret exists, but the config does not exist. Reinstalling."
-    kubectl delete secrets "${WEBHOOK_SECRET_NAME}" --namespace "${NAMESPACE}" || true
+    kubectl delete secrets "${WEBHOOK_SECRET_NAME}" --namespace "${NAMESPACE}"
 fi
 
 
@@ -68,7 +68,18 @@ touch ${CA_FILE}
 echo "Signed certificate generated for cache server"
 
 # Patch CA_BUNDLE for MutatingWebhookConfiguration
-NAMESPACE="$NAMESPACE" ./webhook-patch-ca-bundle.sh --cert_input_path "${CA_FILE}" <./cache-configmap.yaml.template >./cache-configmap-ca-bundle.yaml
+# Choosing the correct API version.
+# Kubernetes v1.15+ supports better filtering, but it's not trivial to detect since the API version was only bumped to v1 in v1.16.
+# Kubernetes has broken it's versioning policy here. https://github.com/kubernetes/kubernetes/pull/78505#commitcomment-41870735
+# We still want to support filtering on v1.15, so we need to detect it.
+if kubectl api-versions | grep --word-regexp 'admissionregistration.k8s.io/v1'; then
+    cache_webhook_config_template="cache-webhook-config.v1.yaml.template"
+elif kubectl version | grep 'Server Version: version.Info{Major:"1", Minor:"15'; then
+    cache_webhook_config_template="cache-webhook-config.v1beta1.v1.15.yaml.template"
+else
+    cache_webhook_config_template="cache-webhook-config.v1beta1.yaml.template"
+fi
+NAMESPACE="$NAMESPACE" ./webhook-patch-ca-bundle.sh --cert_input_path "${CA_FILE}" <./"$cache_webhook_config_template" >./cache-configmap-ca-bundle.yaml
 echo "CA_BUNDLE patched successfully"
 
 # Create MutatingWebhookConfiguration

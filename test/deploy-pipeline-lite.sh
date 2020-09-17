@@ -115,7 +115,7 @@ if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
     # between tests. Unless for testing scenario like this, it won't
     # meet the concurrent change issue.
     sleep $((RANDOM%30))
-    yes | PROJECT_ID=$PROJECT CLUSTER_NAME=$TEST_CLUSTER NAMESPACE=$NAMESPACE \
+    yes | PROJECT_ID=$PROJECT RESOURCE_PREFIX=$TEST_CLUSTER NAMESPACE=$NAMESPACE \
       ${DIR}/../manifests/kustomize/gcp-workload-identity-setup.sh
   }
   retry setup_workload_identity

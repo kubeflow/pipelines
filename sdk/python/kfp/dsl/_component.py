@@ -37,16 +37,16 @@ def python_component(name, description=None, base_image=None, target_component_f
   Returns:
       The same function (with some metadata fields set).
 
-  Usage:
-  ```python
-  @dsl.python_component(
-    name='my awesome component',
-    description='Come, Let's play',
-    base_image='tensorflow/tensorflow:1.11.0-py3',
-  )
-  def my_component(a: str, b: int) -> str:
-    ...
-  ```
+  Example:
+    ::
+
+      @dsl.python_component(
+        name='my awesome component',
+        description='Come, Let's play',
+        base_image='tensorflow/tensorflow:1.11.0-py3',
+      )
+      def my_component(a: str, b: int) -> str:
+        ...
   """
   def _python_component(func):
     func._component_human_name = name
@@ -64,11 +64,12 @@ def component(func):
   """Decorator for component functions that returns a ContainerOp.
   This is useful to enable type checking in the DSL compiler
 
-  Usage:
-  ```python
-  @dsl.component
-  def foobar(model: TFModel(), step: MLStep()):
-    return dsl.ContainerOp()
+  Example:
+    ::
+
+      @dsl.component
+      def foobar(model: TFModel(), step: MLStep()):
+        return dsl.ContainerOp()
   """
   from functools import wraps
   @wraps(func)
@@ -97,7 +98,6 @@ def component(func):
     return container_op
 
   return _component
-
 
 
 def graph_component(parallelism=None):
@@ -138,7 +138,8 @@ def graph_component(parallelism=None):
         # Call the function
         if not graph_ops_group.recursive_ref:
           func(*args, **kargs)
-
       return graph_ops_group
+    
     return _wrapper_
+  
   return _graph_component

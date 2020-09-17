@@ -15,9 +15,10 @@
 package model
 
 import (
+	"testing"
+
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestGetNamespaceFromResourceReferencesModel(t *testing.T) {

@@ -145,11 +145,7 @@ metadata:
   labels:
     component: metadata-server
 data:
-  {{ if .Values.managedstorage.databaseNamePrefix }}
-  MYSQL_DATABASE: '{{ .Values.managedstorage.databaseNamePrefix }}_metadata'
-  {{ else }}
-  MYSQL_DATABASE: '{{ .Release.Name | replace "-" "_" | replace "." "_"}}_metadata'
-  {{ end }}
+  MYSQL_DATABASE: '{{ tpl .Values.managedstorage.databaseNamePrefix . }}_metadata'
   MYSQL_HOST: "mysql"
   MYSQL_PORT: "3306"
 ---

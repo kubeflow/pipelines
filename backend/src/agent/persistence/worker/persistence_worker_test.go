@@ -45,6 +45,7 @@ func TestPersistenceWorker_Success(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "MY_NAMESPACE",
 			Name:      "MY_NAME",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "MY_UUID"},
 		},
 	})
 	workflowClient := client.NewWorkflowClientFake()
@@ -137,6 +138,7 @@ func TestPersistenceWorker_ReportWorkflowRetryableError(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "MY_NAMESPACE",
 			Name:      "MY_NAME",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "MY_UUID"},
 		},
 	})
 	workflowClient := client.NewWorkflowClientFake()

@@ -22,7 +22,10 @@ from kfp_component.core import KfpExecutionContext, display
 from ._client import MLEngineClient
 from .. import common as gcp_common
 
-def create_model(project_id, model_id=None, model=None):
+def create_model(project_id, model_id=None, model=None,
+    model_name_output_path='/tmp/kfp/output/ml_engine/model_name.txt',
+    model_object_output_path='/tmp/kfp/output/ml_engine/model.json',
+):
     """Creates a MLEngine model.
 
     Args:
@@ -31,10 +34,16 @@ def create_model(project_id, model_id=None, model=None):
             be generated.
         model (dict): the payload of the model.
     """
-    return CreateModelOp(project_id, model_id, model).execute()
+    return CreateModelOp(project_id, model_id, model,
+        model_name_output_path=model_name_output_path,
+        model_object_output_path=model_object_output_path,
+    ).execute()
 
 class CreateModelOp:
-    def __init__(self, project_id, model_id, model):
+    def __init__(self, project_id, model_id, model,
+        model_name_output_path,
+        model_object_output_path,
+    ):
         self._ml = MLEngineClient()
         self._project_id = project_id
         self._model_id = model_id
@@ -43,6 +52,8 @@ class CreateModelOp:
             self._model = model
         else:
             self._model = {}
+        self._model_name_output_path = model_name_output_path
+        self._model_object_output_path = model_object_output_path
 
     def execute(self):
         with KfpExecutionContext() as ctx:
@@ -90,5 +101,5 @@ class CreateModelOp:
 
     def _dump_model(self, model):
         logging.info('Dumping model: {}'.format(model))
-        gcp_common.dump_file('/tmp/kfp/output/ml_engine/model.json', json.dumps(model))
-        gcp_common.dump_file('/tmp/kfp/output/ml_engine/model_name.txt', self._model_name)
+        gcp_common.dump_file(self._model_object_output_path, json.dumps(model))
+        gcp_common.dump_file(self._model_name_output_path, self._model_name)

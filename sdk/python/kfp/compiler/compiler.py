@@ -36,19 +36,19 @@ from ..dsl._ops_group import OpsGroup
 
 
 class Compiler(object):
-  """DSL Compiler.
+  """DSL Compiler that compiles pipeline functions into workflow yaml.
+  
+  Example:
+    How to use the compiler to construct workflow yaml::
 
-  It compiles DSL pipeline functions into workflow yaml. Example usage:
-  ```python
-  @dsl.pipeline(
-    name='name',
-    description='description'
-  )
-  def my_pipeline(a: int = 1, b: str = "default value"):
-    ...
+      @dsl.pipeline(
+        name='name',
+        description='description'
+      )
+      def my_pipeline(a: int = 1, b: str = "default value"):
+        ...
 
-  Compiler().compile(my_pipeline, 'path/to/workflow.yaml')
-  ```
+      Compiler().compile(my_pipeline, 'path/to/workflow.yaml')
   """
 
   def _pipelineparam_full_name(self, param):
@@ -367,8 +367,8 @@ class Compiler(object):
       for op_name in upstream_op_names:
         if op_name in pipeline.ops:
           upstream_op = pipeline.ops[op_name]
-        elif op_name in opsgroups_groups:
-          upstream_op = opsgroups_groups[op_name]
+        elif op_name in opsgroups:
+          upstream_op = opsgroups[op_name]
         else:
           raise ValueError('compiler cannot find the ' + op_name)
         upstream_groups, downstream_groups = \
@@ -683,6 +683,10 @@ class Compiler(object):
     if pipeline_conf.ttl_seconds_after_finished >= 0:
       workflow['spec']['ttlSecondsAfterFinished'] = pipeline_conf.ttl_seconds_after_finished
 
+    if pipeline_conf._pod_disruption_budget_min_available:
+      pod_disruption_budget = {"minAvailable": pipeline_conf._pod_disruption_budget_min_available}
+      workflow['spec']['podDisruptionBudget'] = pod_disruption_budget
+
     if len(pipeline_conf.image_pull_secrets) > 0:
       image_pull_secrets = []
       for image_pull_secret in pipeline_conf.image_pull_secrets:
@@ -875,17 +879,20 @@ class Compiler(object):
                       pipeline_description: Text=None,
                       params_list: List[dsl.PipelineParam]=None,
                       pipeline_conf: dsl.PipelineConf = None) -> Dict[Text, Any]:
-    """ Create workflow spec from pipeline function and specified pipeline
+    """Create workflow spec from pipeline function and specified pipeline
     params/metadata. Currently, the pipeline params are either specified in
     the signature of the pipeline function or by passing a list of
     dsl.PipelineParam. Conflict will cause ValueError.
 
-    :param pipeline_func: pipeline function where ContainerOps are invoked.
-    :param pipeline_name:
-    :param pipeline_description:
-    :param params_list: list of pipeline params to append to the pipeline.
-    :param pipeline_conf: PipelineConf instance. Can specify op transforms, image pull secrets and other pipeline-level configuration options. Overrides any configuration that may be set by the pipeline.
-    :return: workflow dict.
+    Args:
+      pipeline_func: Pipeline function where ContainerOps are invoked.
+      pipeline_name: The name of the pipeline to compile.
+      pipeline_description: The description of the pipeline.
+      params_list: List of pipeline params to append to the pipeline.
+      pipeline_conf: PipelineConf instance. Can specify op transforms, image pull secrets and other pipeline-level configuration options. Overrides any configuration that may be set by the pipeline.
+
+    Returns:
+      The created workflow dictionary.
     """
     return self._create_workflow(pipeline_func, pipeline_name, pipeline_description, params_list, pipeline_conf)
 
@@ -900,9 +907,9 @@ class Compiler(object):
     """Compile the given pipeline function into workflow yaml.
 
     Args:
-      pipeline_func: pipeline functions with @dsl.pipeline decorator.
-      package_path: the output workflow tar.gz file path. for example, "~/a.tar.gz"
-      type_check: whether to enable the type check or not, default: False.
+      pipeline_func: Pipeline functions with @dsl.pipeline decorator.
+      package_path: The output workflow tar.gz file path. for example, "~/a.tar.gz"
+      type_check: Whether to enable the type check or not, default: False.
       pipeline_conf: PipelineConf instance. Can specify op transforms, image pull secrets and other pipeline-level configuration options. Overrides any configuration that may be set by the pipeline.
     """
     import kfp
@@ -922,8 +929,7 @@ class Compiler(object):
 
     Args:
       workflow: Workflow spec of the pipline, dict.
-      package_path: file path to be written. If not specified, a yaml_text string
-        will be returned.
+      package_path: file path to be written. If not specified, a yaml_text string will be returned.
     """
     yaml_text = dump_yaml(workflow)
 
@@ -991,6 +997,22 @@ Please create a new issue at https://github.com/kubeflow/pipelines/issues attach
   import subprocess
   argo_path = shutil.which('argo')
   if argo_path:
+    has_working_argo_lint = False
+    try:
+      has_working_argo_lint = _run_argo_lint('')
+    except:
+      warnings.warn("Cannot validate the compiled workflow. Found the argo program in PATH, but it's not usable. argo v2.4.3 should work.")
+    
+    if has_working_argo_lint:
+      _run_argo_lint(yaml_text)
+
+
+def _run_argo_lint(yaml_text: str):
+  # Running Argo lint if available
+  import shutil
+  import subprocess
+  argo_path = shutil.which('argo')
+  if argo_path:
     result = subprocess.run([argo_path, 'lint', '/dev/stdin'], input=yaml_text.encode('utf-8'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if result.returncode:
       raise RuntimeError(
@@ -998,3 +1020,5 @@ Please create a new issue at https://github.com/kubeflow/pipelines/issues attach
 Please create a new issue at https://github.com/kubeflow/pipelines/issues attaching the pipeline code and the pipeline package.
 Error: {}'''.format(result.stderr.decode('utf-8'))
       )
+    return True
+  return False

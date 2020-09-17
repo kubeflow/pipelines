@@ -63,8 +63,8 @@ Release manager will periodically or before release, search all merged PRs with
 * Find the active release branch name $BRANCH, e.g. release-1.0
 *
     ```bash
-    git co $BRANCH
-    git co -b <cherry-pick-pr-branch-name>
+    git checkout $BRANCH
+    git checkout -b <cherry-pick-pr-branch-name>
     git cherry-pick $COMMIT_SHA
     ```
 * Resolve merge conflicts if any
@@ -128,6 +128,42 @@ Do the following things before a release:
         NOTE: if there are merge conflicts for a PR, ask the PR author or area OWNER
         to create a cherry pick PR by themselves following other two options.
     * `git push upstream release-$VERSION` directly to the release branch.
+
+    There's an automated script that can help you do the above:
+    ```
+    # Prepare your env
+    cd ~/kubeflow/pipelines
+    git fetch upstream
+    git checkout release-1.0
+    git pull
+    git checkout -b <your-cherry-pick-branch-name>
+
+    # The following command shows usage info
+    ./hack/cherry-pick.sh
+
+    # The following command cherry picks PRs #123 #456 #789 for you.
+    # It runs git cherry-pick for each merged commit, then adds `cherrypicked`
+    # label on the PR.
+    #
+    # If there's a merge conflict in the middle, it will stop there waiting for
+    # you to resolve. You need to add the `cherrypicked` label by yourself in
+    # this case. After the issue resolved, you can rerun the same command and
+    # PRs already cherrypicked (with the label `cherrypicked`) will be skipped.
+    ./hack/cherry-pick.sh 123 456 789
+
+    # After cherry pickings are done, they are still in your local repo. Push
+    # them to your remote branch to create a PR.
+    git push origin HEAD
+    ```
+
+    You can get the list of PRs waiting to be cherrypicked by:
+    1. Open [cherrypick-approved PRs that haven't been cherrypicked sorted by updated order](https://github.com/kubeflow/pipelines/pulls?q=is%3Apr+label%3Acherrypick-approved+-label%3Acherrypicked+is%3Amerged+sort%3Aupdated-asc+).
+    1. Open browser console (usually by pressing F12).
+    1. Paste the following command into the console.
+        ```javascript
+            console.log(Array.from(document.querySelectorAll('[id^="issue_"][id*="_link"]')).map(el => /issue_(.*)_link/.exec(el.id)[1]).join(' '))
+        ```
+
 1. Verify cloudbuild and postsubmit tests are passing.
 
 ### Releasing from release branch
@@ -167,6 +203,7 @@ and then "Retry", because after waiting for previous step, artifacts are now rea
     git checkout $BRANCH
     git pull upstream
     cd backend/api/python_http_client
+    rm -r dist
     python3 setup.py --quiet sdist
     python3 -m twine upload --username kubeflow-pipelines dist/*
     ```
@@ -186,7 +223,7 @@ fill in the description. Detailed steps:
    1. Typing in version tag field to search and select the "$VERSION" tag published in release instructions above.
    Its format is like `X.Y.Z` or `X.Y.Z-rc.N`.
 
-   1. Use this template for public releases
+   1. Use this template for public releases and replace the `$TAG_NAME` with real values.
        <pre>
        To deploy Kubeflow Pipelines in an existing cluster, follow the instruction in [here](https://www.kubeflow.org/docs/pipelines/standalone-deployment-gcp/) or via UI [here](https://console.cloud.google.com/ai-platform/pipelines)
 
@@ -195,7 +232,7 @@ fill in the description. Detailed steps:
        python3 -m pip install kfp kfp-server-api --upgrade
        ```
 
-       See the [Change Log](https://github.com/kubeflow/pipelines/blob/master/CHANGELOG.md)
+       See the [Change Log](https://github.com/kubeflow/pipelines/blob/$TAG_NAME/CHANGELOG.md)
        </pre>
 
        Use this template for prereleases (release candidates) and **PLEASE CHECK** the
@@ -208,8 +245,23 @@ fill in the description. Detailed steps:
        python3 -m pip install kfp kfp-server-api --pre --upgrade
        ```
 
-       See the [Change Log](https://github.com/kubeflow/pipelines/blob/master/CHANGELOG.md)
+       See the [Change Log](https://github.com/kubeflow/pipelines/blob/$TAG_NAME/CHANGELOG.md)
        </pre>
+
+1. Update master branch to the same version.
+    ```bash
+    export TAG_NAME=<TAG_NAME>
+    git checkout master
+    git pull
+    git checkout -b <your-branch-name>
+    # This avoids line break at end of line.
+    echo -n $TAG_NAME > VERSION
+    # This takes a while.
+    ./hack/release-imp.sh
+    git checkout $TAG_NAME -- CHANGELOG.md
+    git add -A
+    git commit -m "chore(release): bump version to $TAG_NAME on master branch"
+    ```
 
 1. If current release is not a prerelease, create a PR to update version in kubeflow documentation website: 
 https://github.com/kubeflow/website/blob/master/layouts/shortcodes/pipelines/latest-version.html

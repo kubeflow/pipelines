@@ -182,10 +182,6 @@ def serialize_value(value, type_name: str) -> str:
                 str(e),
             ))
 
-    serialized_value = str(value)
-    warnings.warn('There are no registered serializers from type "{}" to type "{}", so the value will be serializers as string "{}".'.format(
-        str(type(value).__name__),
+    raise TypeError('There are no registered serializers for type "{}".'.format(
         str(type_name),
-        serialized_value),
-    )
-    return serialized_value
+    ))

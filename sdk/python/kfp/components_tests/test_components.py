@@ -693,6 +693,33 @@ implementation:
 
         self.assertFalse(hasattr(task, 'output'))
 
+    def test_prevent_passing_unserializable_objects_as_argument(self):
+        component_text = textwrap.dedent('''\
+            inputs:
+            - {name: input 1}
+            - {name: input 2}
+            implementation:
+                container:
+                    image: busybox
+                    command:
+                    - prog
+                    - {inputValue: input 1}
+                    - {inputPath: input 2}
+            '''
+        )
+        component = comp.load_component_from_text(component_text)
+        # Passing normal values to component
+        task1 = component(input_1="value 1", input_2="value 2")
+        # Passing unserializable values to component
+        with self.assertRaises(TypeError):
+            component(input_1=task1, input_2="value 2")
+        with self.assertRaises(TypeError):
+            component(input_1=open, input_2="value 2")
+        with self.assertRaises(TypeError):
+            component(input_1="value 1", input_2=task1)
+        with self.assertRaises(TypeError):
+            component(input_1="value 1", input_2=open)
+
     def test_check_type_validation_of_task_spec_outputs(self):
         producer_component_text = '''\
 outputs:

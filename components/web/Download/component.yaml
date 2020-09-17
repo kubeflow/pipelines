@@ -1,0 +1,25 @@
+name: Download data
+inputs:
+- {name: Url, type: URI}
+- {name: curl options, type: string, default: '--location', description: 'Additional options given to the curl bprogram. See https://curl.haxx.se/docs/manpage.html'}
+outputs:
+- {name: Data}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+implementation:
+  container:
+    image: curlimages/curl
+    command:
+    - sh
+    - -exc
+    - |
+      url="$0"
+      output_path="$1"
+      curl_options="$2"
+
+      mkdir -p "$(dirname "$output_path")"
+      curl --get "$url" --output "$output_path" $curl_options
+    - inputValue: Url
+    - outputPath: Data
+    - inputValue: curl options

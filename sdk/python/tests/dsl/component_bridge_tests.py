@@ -243,3 +243,26 @@ class TestComponentBridge(unittest.TestCase):
 
         with self.assertWarnsRegex(DeprecationWarning, expected_regex='reusable'):
             kfp.dsl.ContainerOp(name='name', image='image')
+
+    def test_prevent_passing_container_op_as_argument(self):
+        component_text = textwrap.dedent('''\
+            inputs:
+            - {name: input 1}
+            - {name: input 2}
+            implementation:
+                container:
+                    image: busybox
+                    command:
+                    - prog
+                    - {inputValue: input 1}
+                    - {inputPath: input 2}
+            '''
+        )
+        component = load_component_from_text(component_text)
+        # Passing normal values to component
+        task1 = component(input_1="value 1", input_2="value 2")
+        # Passing unserializable values to component
+        with self.assertRaises(TypeError):
+            component(input_1=task1, input_2="value 2")
+        with self.assertRaises(TypeError):
+            component(input_1="value 1", input_2=task1)

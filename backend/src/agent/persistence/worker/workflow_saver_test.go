@@ -35,6 +35,7 @@ func TestWorkflow_Save_Success(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "MY_NAMESPACE",
 			Name:      "MY_NAME",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "MY_UUID"},
 		},
 	})
 
@@ -87,6 +88,7 @@ func TestWorkflow_Save_PermanentFailureWhileReporting(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "MY_NAMESPACE",
 			Name:      "MY_NAME",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "MY_UUID"},
 		},
 	})
 
@@ -112,6 +114,7 @@ func TestWorkflow_Save_TransientFailureWhileReporting(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "MY_NAMESPACE",
 			Name:      "MY_NAME",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "MY_UUID"},
 		},
 	})
 
@@ -167,7 +170,10 @@ func TestWorkflow_Save_FinalStatueNotSkippedDueToExceedTTL(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "MY_NAMESPACE",
 			Name:      "MY_NAME",
-			Labels:    map[string]string{util.LabelKeyWorkflowPersistedFinalState: "true"},
+			Labels:    map[string]string{
+				util.LabelKeyWorkflowRunId: "MY_UUID",
+				util.LabelKeyWorkflowPersistedFinalState: "true",
+			},
 		},
 		Status: workflowapi.WorkflowStatus{
 			FinishedAt: metav1.Now(),
@@ -186,4 +192,29 @@ func TestWorkflow_Save_FinalStatueNotSkippedDueToExceedTTL(t *testing.T) {
 	assert.Equal(t, false, util.HasCustomCode(err, util.CUSTOM_CODE_TRANSIENT))
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "permanent failure")
+}
+
+func TestWorkflow_Save_SkippedDDueToMissingRunID(t *testing.T) {
+	workflowFake := client.NewWorkflowClientFake()
+	pipelineFake := client.NewPipelineClientFake()
+
+	// Add this will result in failure unless reporting is skipped
+	pipelineFake.SetError(util.NewCustomError(fmt.Errorf("Error"), util.CUSTOM_CODE_PERMANENT,
+		"My Permanent Error"))
+
+	workflow := util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "MY_NAMESPACE",
+			Name:      "MY_NAME",
+		},
+	})
+
+	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
+
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
+
+	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
+
+	assert.Equal(t, false, util.HasCustomCode(err, util.CUSTOM_CODE_TRANSIENT))
+	assert.Equal(t, nil, err)
 }

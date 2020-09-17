@@ -20,7 +20,7 @@ import (
 func TestCreateRun(t *testing.T) {
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
-	server := NewRunServer(manager)
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	run := &api.Run{
 		Name:               "run1",
 		ResourceReferences: validReference,
@@ -68,7 +68,7 @@ func TestCreateRun(t *testing.T) {
 func TestCreateRunPatch(t *testing.T) {
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
-	server := NewRunServer(manager)
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	run := &api.Run{
 		Name:               "run1",
 		ResourceReferences: validReference,
@@ -128,7 +128,7 @@ func TestCreateRun_Unauthorized(t *testing.T) {
 
 	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
 	defer clients.Close()
-	server := NewRunServer(manager)
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	run := &api.Run{
 		Name:               "run1",
 		ResourceReferences: validReference,
@@ -153,7 +153,7 @@ func TestCreateRun_Multiuser(t *testing.T) {
 
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
-	server := NewRunServer(manager)
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	run := &api.Run{
 		Name:               "run1",
 		ResourceReferences: validReference,
@@ -201,7 +201,7 @@ func TestCreateRun_Multiuser(t *testing.T) {
 func TestListRun(t *testing.T) {
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
-	server := NewRunServer(manager)
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	run := &api.Run{
 		Name:               "run1",
 		ResourceReferences: validReference,
@@ -246,7 +246,7 @@ func TestListRuns_Unauthorized(t *testing.T) {
 
 	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
 	defer clients.Close()
-	server := NewRunServer(manager)
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	_, err := server.ListRuns(ctx, &api.ListRunsRequest{
 		ResourceReferenceKey: &api.ResourceKey{
 			Type: api.ResourceType_NAMESPACE,
@@ -266,7 +266,7 @@ func TestListRuns_Multiuser(t *testing.T) {
 
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
-	server := NewRunServer(manager)
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	run := &api.Run{
 		Name:               "run1",
 		ResourceReferences: validReference,
@@ -386,7 +386,7 @@ func TestListRuns_Multiuser(t *testing.T) {
 func TestValidateCreateRunRequest(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewRunServer(manager)
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	run := &api.Run{
 		Name:               "run1",
 		ResourceReferences: validReference,
@@ -402,7 +402,7 @@ func TestValidateCreateRunRequest(t *testing.T) {
 func TestValidateCreateRunRequest_WithPipelineVersionReference(t *testing.T) {
 	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
-	server := NewRunServer(manager)
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	run := &api.Run{
 		Name:               "run1",
 		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
@@ -414,7 +414,7 @@ func TestValidateCreateRunRequest_WithPipelineVersionReference(t *testing.T) {
 func TestValidateCreateRunRequest_EmptyName(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewRunServer(manager)
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	run := &api.Run{
 		ResourceReferences: validReference,
 		PipelineSpec: &api.PipelineSpec{
@@ -430,7 +430,7 @@ func TestValidateCreateRunRequest_EmptyName(t *testing.T) {
 func TestValidateCreateRunRequest_NoExperiment(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewRunServer(manager)
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	run := &api.Run{
 		Name:               "run1",
 		ResourceReferences: nil,
@@ -446,7 +446,7 @@ func TestValidateCreateRunRequest_NoExperiment(t *testing.T) {
 func TestValidateCreateRunRequest_EmptyPipelineSpecAndEmptyPipelineVersion(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewRunServer(manager)
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	run := &api.Run{
 		Name:               "run1",
 		ResourceReferences: validReference,
@@ -459,7 +459,7 @@ func TestValidateCreateRunRequest_EmptyPipelineSpecAndEmptyPipelineVersion(t *te
 func TestValidateCreateRunRequest_TooMuchParameters(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewRunServer(manager)
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 
 	var params []*api.Parameter
 	// Create a long enough parameter string so it exceed the length limit of parameter.
@@ -487,7 +487,7 @@ func TestReportRunMetrics_RunNotFound(t *testing.T) {
 
 	clientManager, resourceManager, _ := initWithOneTimeRun(t)
 	defer clientManager.Close()
-	runServer := RunServer{resourceManager: resourceManager}
+	runServer := RunServer{resourceManager: resourceManager, options: &RunServerOptions{CollectMetrics: false}}
 
 	_, err := runServer.ReportRunMetrics(context.Background(), &api.ReportRunMetricsRequest{
 		RunId: "1",
@@ -502,7 +502,7 @@ func TestReportRunMetrics_Succeed(t *testing.T) {
 
 	clientManager, resourceManager, runDetails := initWithOneTimeRun(t)
 	defer clientManager.Close()
-	runServer := RunServer{resourceManager: resourceManager}
+	runServer := RunServer{resourceManager: resourceManager, options: &RunServerOptions{CollectMetrics: false}}
 
 	metric := &api.RunMetric{
 		Name:   "metric-1",
@@ -542,7 +542,7 @@ func TestReportRunMetrics_PartialFailures(t *testing.T) {
 
 	clientManager, resourceManager, runDetail := initWithOneTimeRun(t)
 	defer clientManager.Close()
-	runServer := RunServer{resourceManager: resourceManager}
+	runServer := RunServer{resourceManager: resourceManager, options: &RunServerOptions{CollectMetrics: false}}
 
 	validMetric := &api.RunMetric{
 		Name:   "metric-1",
@@ -596,7 +596,7 @@ func TestCanAccessRun_Unauthorized(t *testing.T) {
 
 	clients, manager, experiment := initWithExperiment_KFAM_Unauthorized(t)
 	defer clients.Close()
-	runServer := RunServer{resourceManager: manager}
+	runServer := RunServer{resourceManager: manager, options: &RunServerOptions{CollectMetrics: false}}
 
 	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
@@ -633,7 +633,7 @@ func TestCanAccessRun_Authorized(t *testing.T) {
 
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
-	runServer := RunServer{resourceManager: manager}
+	runServer := RunServer{resourceManager: manager, options: &RunServerOptions{CollectMetrics: false}}
 
 	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)

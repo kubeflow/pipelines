@@ -76,14 +76,14 @@ def save_most_frequent_word():
     counter = GetFrequentWordOp(
         name='get-Frequent',
         message=message_param)
-    counter.set_memory_request('200M')
+    counter.container.set_memory_request('200M')
 
     saver = SaveMessageOp(
         name='save',
         message=counter.output,
         output_path=output_path_param)
-    saver.set_cpu_limit('0.5')
-    saver.set_gpu_limit('2')
+    saver.container.set_cpu_limit('0.5')
+    saver.container.set_gpu_limit('2')
     saver.add_node_selector_constraint(
         'cloud.google.com/gke-accelerator',
         'nvidia-tesla-k80')

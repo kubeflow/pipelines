@@ -100,7 +100,7 @@ The steps to use the component in a pipeline are:
     ```python
     import kfp.components as comp
 
-    mlengine_train_op = comp.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/01a23ae8672d3b18e88adf3036071496aca3552d/components/gcp/ml_engine/train/component.yaml')
+    mlengine_train_op = comp.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/38771da09094640cd2786a4b5130b26ea140f864/components/gcp/ml_engine/train/component.yaml')
     help(mlengine_train_op)
     ```
 ### Sample

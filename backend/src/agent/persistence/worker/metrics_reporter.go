@@ -94,7 +94,7 @@ func (r MetricsReporter) collectNodeMetricsOrNil(
 	if !nodeStatus.Completed() {
 		return nil, nil
 	}
-	metricsJSON, err := r.readNodeMetricsJSONOrEmpty(runID, nodeStatus.ID)
+	metricsJSON, err := r.readNodeMetricsJSONOrEmpty(runID, nodeStatus)
 	if err != nil || metricsJSON == "" {
 		return nil, err
 	}
@@ -126,10 +126,24 @@ func (r MetricsReporter) collectNodeMetricsOrNil(
 	return reportMetricsRequest.GetMetrics(), nil
 }
 
-func (r MetricsReporter) readNodeMetricsJSONOrEmpty(runID string, nodeID string) (string, error) {
+func (r MetricsReporter) readNodeMetricsJSONOrEmpty(runID string, nodeStatus workflowapi.NodeStatus) (string, error) {
+	if nodeStatus.Outputs == nil || nodeStatus.Outputs.Artifacts == nil {
+		return "", nil // No output artifacts, skip the reporting
+	}
+
+	var foundMetricsArtifact bool = false
+	for _, artifact := range nodeStatus.Outputs.Artifacts {
+		if artifact.Name == metricsArtifactName {
+			foundMetricsArtifact = true
+		}
+	}
+	if !foundMetricsArtifact {
+		return "", nil // No metrics artifact, skip the reporting
+	}
+
 	artifactRequest := &api.ReadArtifactRequest{
 		RunId:        runID,
-		NodeId:       nodeID,
+		NodeId:       nodeStatus.ID,
 		ArtifactName: metricsArtifactName,
 	}
 	artifactResponse, err := r.pipelineClient.ReadArtifact(artifactRequest)

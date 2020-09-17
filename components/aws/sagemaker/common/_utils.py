@@ -22,11 +22,22 @@ import yaml
 import re
 import json
 from pathlib2 import Path
+from enum import Enum, auto
 
 import boto3
-import botocore
+from boto3.session import Session
+
+from botocore.config import Config
+from botocore.credentials import (
+    AssumeRoleCredentialFetcher,
+    CredentialResolver,
+    DeferredRefreshableCredentials,
+    JSONFileCache
+)
 from botocore.exceptions import ClientError
-from sagemaker.amazon.amazon_estimator import get_image_uri
+from botocore.session import Session as BotocoreSession
+
+from sagemaker.image_uris import retrieve
 
 import logging
 logging.getLogger().setLevel(logging.INFO)
@@ -71,6 +82,7 @@ def nullable_string_argument(value):
 def add_default_client_arguments(parser):
     parser.add_argument('--region', type=str, required=True, help='The region where the training job launches.')
     parser.add_argument('--endpoint_url', type=nullable_string_argument, required=False, help='The URL to use when communicating with the SageMaker service.')
+    parser.add_argument('--assume_role', type=nullable_string_argument, required=False, help='The ARN of an IAM role to assume when connecting to SageMaker.')
 
 
 def get_component_version():
@@ -87,6 +99,9 @@ def get_component_version():
 
     return component_version
 
+
+def print_log_header(header_len, title=""):
+    logging.info(f"{title:*^{header_len}}")
 
 def print_logs_for_job(cw_client, log_grp, job_name):
     """Gets the CloudWatch logs for SageMaker jobs"""
@@ -113,17 +128,59 @@ def print_logs_for_job(cw_client, log_grp, job_name):
         logging.error(e)
 
 
-def get_sagemaker_client(region, endpoint_url=None):
+class AssumeRoleProvider(object):
+    METHOD = 'assume-role'
+
+    def __init__(self, fetcher):
+        self._fetcher = fetcher
+
+    def load(self):
+        return DeferredRefreshableCredentials(
+            self._fetcher.fetch_credentials,
+            self.METHOD
+        )
+
+def get_boto3_session(region, role_arn=None):
+    """Creates a boto3 session, optionally assuming a role"""
+
+    # By default return a basic session
+    if role_arn is None:
+        return Session(region_name=region)
+
+    # The following assume role example was taken from
+    # https://github.com/boto/botocore/issues/761#issuecomment-426037853
+
+    # Create a session used to assume role
+    assume_session = BotocoreSession()
+    fetcher = AssumeRoleCredentialFetcher(
+        assume_session.create_client,
+        assume_session.get_credentials(),
+        role_arn,
+        extra_args={
+            'DurationSeconds': 3600, # 1 hour assume assume by default
+        },
+        cache=JSONFileCache()
+    )
+    role_session = BotocoreSession()
+    role_session.register_component(
+        'credential_provider',
+        CredentialResolver([AssumeRoleProvider(fetcher)])
+    )
+    return Session(region_name=region, botocore_session=role_session)
+
+def get_sagemaker_client(region, endpoint_url=None, assume_role_arn=None):
     """Builds a client to the AWS SageMaker API."""
-    session_config = botocore.config.Config(
+    session = get_boto3_session(region, assume_role_arn)
+    session_config = Config(
         user_agent='sagemaker-on-kubeflow-pipelines-v{}'.format(get_component_version())
     )
-    client = boto3.client('sagemaker', region_name=region, endpoint_url=endpoint_url, config=session_config)
+    client = session.client('sagemaker', endpoint_url=endpoint_url, config=session_config)
     return client
 
 
-def get_cloudwatch_client(region):
-    client = boto3.client('logs', region_name=region)
+def get_cloudwatch_client(region, assume_role_arn=None):
+    session = get_boto3_session(region, assume_role_arn)
+    client = session.client('logs')
     return client
 
 
@@ -153,12 +210,12 @@ def create_training_job_request(args):
         # TODO: Adjust this implementation to account for custom algorithm resources names that are the same as built-in algorithm names
         algo_name = args['algorithm_name'].lower().strip()
         if algo_name in built_in_algos.keys():
-            request['AlgorithmSpecification']['TrainingImage'] = get_image_uri(args['region'], built_in_algos[algo_name])
+            request['AlgorithmSpecification']['TrainingImage'] = retrieve(built_in_algos[algo_name], args['region'])
             request['AlgorithmSpecification'].pop('AlgorithmName')
             logging.warning('Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm.')
         # Just to give the user more leeway for built-in algorithm name inputs
         elif algo_name in built_in_algos.values():
-            request['AlgorithmSpecification']['TrainingImage'] = get_image_uri(args['region'], algo_name)
+            request['AlgorithmSpecification']['TrainingImage'] = retrieve(algo_name, args['region'])
             request['AlgorithmSpecification'].pop('AlgorithmName')
             logging.warning('Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm.')
         else:
@@ -205,6 +262,17 @@ def create_training_job_request(args):
 
     enable_spot_instance_support(request, args)
 
+    ### Update DebugHookConfig and DebugRuleConfigurations
+    if args['debug_hook_config']:
+        request['DebugHookConfig'] = args['debug_hook_config']
+    else:
+        request.pop('DebugHookConfig')
+
+    if args['debug_rule_config']:
+        request['DebugRuleConfigurations'] = args['debug_rule_config']
+    else:
+        request.pop('DebugRuleConfigurations')
+
     ### Update tags
     for key, val in args['tags'].items():
         request['Tags'].append({'Key': key, 'Value': val})
@@ -229,18 +297,94 @@ def create_training_job(client, args):
 
 
 def wait_for_training_job(client, training_job_name, poll_interval=30):
-  while(True):
-    response = client.describe_training_job(TrainingJobName=training_job_name)
-    status = response['TrainingJobStatus']
-    if status == 'Completed':
-      logging.info("Training job ended with status: " + status)
-      break
-    if status == 'Failed':
-      message = response['FailureReason']
-      logging.info('Training failed with the following error: {}'.format(message))
-      raise Exception('Training job failed')
-    logging.info("Training job is still in status: " + status)
-    time.sleep(poll_interval)
+    while(True):
+        response = client.describe_training_job(TrainingJobName=training_job_name)
+        status = response['TrainingJobStatus']
+        if status == 'Completed':
+            logging.info("Training job ended with status: " + status)
+            break
+        if status == 'Failed':
+            message = response['FailureReason']
+            logging.info(f'Training failed with the following error: {message}')
+            raise Exception('Training job failed')
+        logging.info("Training job is still in status: " + status)
+        time.sleep(poll_interval)
+
+
+def wait_for_debug_rules(client, training_job_name, poll_interval=30):
+    first_poll = True
+    while(True):
+        response = client.describe_training_job(TrainingJobName=training_job_name)
+        if 'DebugRuleEvaluationStatuses' not in response:
+            break
+        if first_poll:
+            logging.info("Polling for status of all debug rules:")
+            first_poll = False
+        if DebugRulesStatus.from_describe(response) != DebugRulesStatus.INPROGRESS:
+            logging.info("Rules have ended with status:\n")
+            print_debug_rule_status(response, True)
+            break
+        print_debug_rule_status(response)
+        time.sleep(poll_interval)
+
+
+class DebugRulesStatus(Enum):
+    COMPLETED = auto()
+    ERRORED = auto()
+    INPROGRESS = auto()
+
+    @classmethod
+    def from_describe(self, response):
+        has_error = False
+        for debug_rule in response['DebugRuleEvaluationStatuses']:
+            if debug_rule['RuleEvaluationStatus'] == "Error":
+                has_error = True
+            if debug_rule['RuleEvaluationStatus'] == "InProgress":
+                return DebugRulesStatus.INPROGRESS
+        if has_error:
+            return DebugRulesStatus.ERRORED
+        else:
+            return DebugRulesStatus.COMPLETED
+
+
+def print_debug_rule_status(response, last_print=False):
+    """
+    Example of DebugRuleEvaluationStatuses:
+    response['DebugRuleEvaluationStatuses'] =
+        [{
+            "RuleConfigurationName": "VanishingGradient",
+            "RuleEvaluationStatus": "IssuesFound",
+            "StatusDetails": "There was an issue."
+        }]
+
+    If last_print is False:
+    INFO:root: - LossNotDecreasing: InProgress
+    INFO:root: - Overtraining: NoIssuesFound
+    ERROR:root:- CustomGradientRule: Error
+
+    If last_print is True:
+    INFO:root: - LossNotDecreasing: IssuesFound
+    INFO:root:   - RuleEvaluationConditionMet: Evaluation of the rule LossNotDecreasing at step 10 resulted in the condition being met
+    """
+    for debug_rule in response['DebugRuleEvaluationStatuses']:
+        line_ending = "\n" if last_print else ""
+        if 'StatusDetails' in debug_rule:
+            status_details = f"- {debug_rule['StatusDetails'].rstrip()}{line_ending}"
+            line_ending = ""
+        else:
+            status_details = ""
+        rule_status = f"- {debug_rule['RuleConfigurationName']}: {debug_rule['RuleEvaluationStatus']}{line_ending}"
+        if debug_rule['RuleEvaluationStatus'] == "Error":
+            log = logging.error
+            status_padding = 1
+        else:
+            log = logging.info
+            status_padding = 2
+
+        log(f"{status_padding * ' '}{rule_status}")
+        if last_print and status_details:
+            log(f"{(status_padding + 2) * ' '}{status_details}")
+    print_log_header(50)
 
 
 def get_model_artifacts_from_job(client, job_name):
@@ -258,6 +402,16 @@ def get_image_from_job(client, job_name):
         image = client.describe_algorithm(AlgorithmName=algorithm_name)['TrainingSpecification']['TrainingImage']
 
     return image
+
+
+def stop_training_job(client, job_name):
+    response = client.describe_training_job(TrainingJobName=job_name)
+    if response["TrainingJobStatus"] == "InProgress":
+        try:
+            client.stop_training_job(TrainingJobName=job_name)
+            return job_name
+        except ClientError as e:
+            raise Exception(e.response['Error']['Message'])
 
 
 def create_model(client, args):
@@ -509,6 +663,13 @@ def wait_for_transform_job(client, batch_job_name, poll_interval=30):
     time.sleep(poll_interval)
 
 
+def stop_transform_job(client, job_name):
+    try:
+        client.stop_transform_job(TransformJobName=job_name)
+    except ClientError as e:
+        raise Exception(e.response['Error']['Message'])
+
+
 def create_hyperparameter_tuning_job_request(args):
     ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_hyper_parameter_tuning_job
     with open(os.path.join(__cwd__, 'hpo.template.yaml'), 'r') as f:
@@ -544,12 +705,12 @@ def create_hyperparameter_tuning_job_request(args):
         # TODO: Adjust this implementation to account for custom algorithm resources names that are the same as built-in algorithm names
         algo_name = args['algorithm_name'].lower().strip()
         if algo_name in built_in_algos.keys():
-            request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingImage'] = get_image_uri(args['region'], built_in_algos[algo_name])
+            request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingImage'] = retrieve(built_in_algos[algo_name], args['region'])
             request['TrainingJobDefinition']['AlgorithmSpecification'].pop('AlgorithmName')
             logging.warning('Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm.')
         # To give the user more leeway for built-in algorithm name inputs
         elif algo_name in built_in_algos.values():
-            request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingImage'] = get_image_uri(args['region'], algo_name)
+            request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingImage'] = retrieve(algo_name, args['region'])
             request['TrainingJobDefinition']['AlgorithmSpecification'].pop('AlgorithmName')
             logging.warning('Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm.')
         else:
@@ -625,7 +786,7 @@ def create_hyperparameter_tuning_job(client, args):
     try:
         client.create_hyper_parameter_tuning_job(**request)
         hpo_job_name = request['HyperParameterTuningJobName']
-        logging.info("Created Hyperparameter Training Job with name: " + hpo_job_name)
+        logging.info("Created Hyperparameter Tuning Job with name: " + hpo_job_name)
         logging.info("HPO job in SageMaker: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/hyper-tuning-jobs/{}"
             .format(args['region'], args['region'], hpo_job_name))
         logging.info("CloudWatch logs: https://{}.console.aws.amazon.com/cloudwatch/home?region={}#logStream:group=/aws/sagemaker/TrainingJobs;prefix={};streamFilter=typeLogStreamPrefix"
@@ -659,6 +820,13 @@ def get_best_training_job_and_hyperparameters(client, hpo_job_name):
     train_hyperparameters = training_info['HyperParameters']
     train_hyperparameters.pop('_tuning_objective_metric')
     return best_job, train_hyperparameters
+
+
+def stop_hyperparameter_tuning_job(client, job_name):
+    try:
+        client.stop_hyper_parameter_tuning_job(HyperParameterTuningJobName=job_name)
+    except ClientError as e:
+        raise Exception(e.response['Error']['Message'])
 
 
 def create_workteam(client, args):
@@ -880,6 +1048,14 @@ def get_labeling_job_outputs(client, labeling_job_name, auto_labeling):
         active_learning_model_arn = ' '
     return output_manifest, active_learning_model_arn
 
+
+def stop_labeling_job(client, job_name):
+    try:
+        client.stop_labeling_job(LabelingJobName=job_name)
+    except ClientError as e:
+        raise Exception(e.response['Error']['Message'])
+
+
 def create_hyperparameters(hyperparam_args):
     # Validate all values are strings
     for key, value in hyperparam_args.items():
@@ -1016,6 +1192,13 @@ def get_processing_job_outputs(client, processing_job_name):
         outputs[output['OutputName']] = output['S3Output']['S3Uri']
 
     return outputs
+
+
+def stop_processing_job(client, job_name):
+    try:
+        client.stop_processing_job(ProcessingJobName=job_name)
+    except ClientError as e:
+        raise Exception(e.response['Error']['Message'])
 
 
 def id_generator(size=4, chars=string.ascii_uppercase + string.digits):
