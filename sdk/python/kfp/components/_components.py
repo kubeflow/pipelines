@@ -537,7 +537,12 @@ def _resolve_graph_task(
 
         task_obj = task_factory(**pythonic_task_arguments)
         task_outputs_with_pythonic_names = task_obj.outputs
-        task_outputs_with_original_names = {pythonic_output_name_to_original[pythonic_output_name]: output_value for pythonic_output_name, output_value in task_outputs_with_pythonic_names.items()}
+        task_outputs_with_original_names = {
+            # component_bridge generates outputs under both pythonic and original name,
+            # so half of them are absent from pythonic_output_name_to_original
+            pythonic_output_name_to_original.get(pythonic_output_name, pythonic_output_name): output_value
+            for pythonic_output_name, output_value in task_outputs_with_pythonic_names.items()
+        }
         outputs_of_tasks[task_id] = task_outputs_with_original_names
 
     resolved_graph_outputs = OrderedDict([(output_name, resolve_argument(argument)) for output_name, argument in graph.output_values.items()])
