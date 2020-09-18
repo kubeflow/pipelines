@@ -112,7 +112,7 @@ class SageMakerCreateModelComponent(SageMakerComponent):
         inputs: SageMakerCreateModelInputs,
         outputs: SageMakerCreateModelOutputs,
     ):
-        logging.info("Model Config Arn: " + job["ModelArn"])
+        logging.info(f"Model Config Arn: {job['ModelArn']}")
 
 
 if __name__ == "__main__":

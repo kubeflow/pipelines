@@ -177,8 +177,8 @@ class SageMakerDeployComponent(SageMakerComponent):
                 region, region, request.config_request["EndpointConfigName"]
             )
         )
-        logging.info("Endpoint Config Arn: " + job.config_response["EndpointConfigArn"])
-        logging.info("Created endpoint with name: " + self._endpoint_name)
+        logging.info(f"Endpoint Config Arn: {job.config_response['EndpointConfigArn']}")
+        logging.info(f"Created endpoint with name: {self._endpoint_name}")
         logging.info(
             "Endpoint in SageMaker: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/endpoints/{}".format(
                 region, region, self._endpoint_name

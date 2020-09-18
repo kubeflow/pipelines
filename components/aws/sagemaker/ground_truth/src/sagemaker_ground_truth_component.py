@@ -330,7 +330,7 @@ class SageMakerGroundTruthComponent(SageMakerComponent):
         outputs: SageMakerGroundTruthOutputs,
     ):
         logging.info(
-            "Created Ground Truth Labeling Job with name: " + self._labeling_job_name
+            f"Created Ground Truth Labeling Job with name: {self._labeling_job_name}"
         )
         logging.info(
             "Ground Truth job in SageMaker: https://{}.console.aws.amazon.com/sagemaker/groundtruth?region={}#/labeling-jobs/details/{}".format(
