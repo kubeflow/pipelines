@@ -52,18 +52,18 @@ class SageMakerDeployComponent(SageMakerComponent):
     """SageMaker component for deploy."""
 
     def Do(self, spec: SageMakerDeploySpec):
+        name_suffix = SageMakerComponent._generate_unique_timestamped_id()
+        
         self._endpoint_config_name = (
             spec.inputs.endpoint_config_name
             if spec.inputs.endpoint_config_name
-            else "EndpointConfig"
-            + spec.inputs.model_name_1[spec.inputs.model_name_1.index("-") :]
+            else f"EndpointConfig{name_suffix}"
         )
 
         self._endpoint_name = (
             spec.inputs.endpoint_name
             if spec.inputs.endpoint_name
-            else "Endpoint"
-            + self._endpoint_config_name[self._endpoint_config_name.index("-") :]
+            else f"Endpoint{name_suffix}"
         )
         super().Do(spec.inputs, spec.outputs, spec.output_paths)
 
