@@ -49,6 +49,7 @@ def create_endpoint_pipeline(
 
     dsl.get_pipeline_conf().set_image_pull_policy(policy="Always")
 
+
 if __name__ == "__main__":
     kfp.compiler.Compiler().compile(
         create_endpoint_pipeline, "SageMaker_hosting_pipeline" + ".yaml"

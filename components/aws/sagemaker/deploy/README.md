@@ -11,7 +11,7 @@ Deploying a model using Amazon SageMaker hosting services is a three-step proces
 3. **Create an HTTPS endpoint** - Launch the ML compute instances and deploy the model as specified in the endpoint configuration
 
 This component handles Step 2 and 3. Step 1 can be done using the [create model component](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/model) for AWS SageMaker.
-Endpoint created above can be updated using this component as well. When update_endpoint is set to true, endpoint is updated if it exists, if not one is created. Tags and Production Variants will be ignored if the endpoint is being upated.
+Endpoint created above can be updated using this component as well. When update_endpoint is set to true, endpoint is updated if it exists, if not one is created. Tags will be ignored if the endpoint is being upated.
 
 ## Intended Use
 Create an endpoint in AWS SageMaker Hosting Service for model deployment.
