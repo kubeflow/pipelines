@@ -97,7 +97,8 @@ class SageMakerTransformComponent(SageMakerComponent):
         else:
             request.pop("BatchStrategy")
 
-        request["Environment"] = inputs.environment
+        if inputs.environment:
+            request["Environment"] = inputs.environment
 
         if inputs.data_type:
             request["TransformInput"]["DataSource"]["S3DataSource"][

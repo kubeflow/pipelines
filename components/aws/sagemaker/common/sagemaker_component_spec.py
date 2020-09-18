@@ -57,7 +57,9 @@ class SageMakerComponentSpec(Generic[IT, OT]):
 
     Typical usage example:
 
-        class MySageMakerComponentSpec(SageMakerComponentSpec):
+        class MySageMakerComponentSpec(
+            SageMakerComponentSpec[SageMakerComponentInputs, SageMakerComponentOutputs]
+        ):
             INPUTS = MySageMakerComponentInputs
             OUTPUTS = MySageMakerComponentOutputs
     """
@@ -77,7 +79,9 @@ class SageMakerComponentSpec(Generic[IT, OT]):
         """Instantiates the spec with given user inputs.
 
         Args:
-            arguments: A list of command line arguments
+            arguments: A list of command line arguments.
+            input_constructor: A constructor to create an input object.
+            output_constructor: A constructor to create an output object.
         """
         self._validate_spec()
 

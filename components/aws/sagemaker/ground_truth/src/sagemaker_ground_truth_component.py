@@ -32,7 +32,7 @@ from common.sagemaker_component import (
     spec=SageMakerGroundTruthSpec,
 )
 class SageMakerGroundTruthComponent(SageMakerComponent):
-    """SageMaker component for groundtruth."""
+    """SageMaker component for ground truth."""
 
     def Do(self, spec: SageMakerGroundTruthSpec):
         self._labeling_job_name = (

@@ -196,7 +196,7 @@ class SageMakerTransformSpec(
         **vars(COMMON_INPUTS),
     )
 
-    OUTPUTS = SageMakerTransformOutputs(
+    OUTPUTS: SageMakerTransformOutputs = SageMakerTransformOutputs(
         output_location=OutputValidator(
             description="S3 URI of the transform job results."
         ),
