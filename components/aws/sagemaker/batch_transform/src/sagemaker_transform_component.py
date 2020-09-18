@@ -38,8 +38,9 @@ class SageMakerTransformComponent(SageMakerComponent):
         self._transform_job_name = (
             spec.inputs.job_name
             if spec.inputs.job_name
-            else "BatchTransform"
-            + spec.inputs.model_name[spec.inputs.model_name.index("-") :]
+            else SageMakerComponent._generate_unique_timestamped_id(
+                prefix="BatchTransform"
+            )
         )
         super().Do(spec.inputs, spec.outputs, spec.output_paths)
 

@@ -25,7 +25,7 @@ from botocore.session import Session as BotocoreSession
 
 
 class Boto3Manager(object):
-    """Provides static methods for bot3 clients."""
+    """Provides static methods for boto3 clients."""
 
     class AssumeRoleProvider(object):
         METHOD = "assume-role"
