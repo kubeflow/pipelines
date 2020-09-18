@@ -266,3 +266,78 @@ class TestComponentBridge(unittest.TestCase):
             component(input_1=task1, input_2="value 2")
         with self.assertRaises(TypeError):
             component(input_1="value 1", input_2=task1)
+
+    def test_pythonic_container_output_handled_by_graph(self):
+        component_a = textwrap.dedent('''\
+          inputs: []
+          outputs:
+            - {name: out1, type: str}
+          implementation:
+            graph:
+              tasks:
+                some-container:
+                  arguments: {}
+                  componentRef:
+                    spec:
+                      outputs:
+                      - {name: out1, type: str}
+                      implementation:
+                        container:
+                          image: busybox
+                          command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
+              outputValues:
+                out1:
+                  taskOutput:
+                    taskId: some-container
+                    outputName: out1
+        ''')
+        component_b = textwrap.dedent('''\
+            inputs:
+            - {name: in1, type: str}
+            implementation:
+              container:
+                image: busybox
+                command: [echo, {inputValue: in1}]
+        '''
+                                      )
+        task_factory_a = load_component_from_text(component_a)
+        task_factory_b = load_component_from_text(component_b)
+        a_task = task_factory_a()
+        b_task = task_factory_b(in1=a_task.outputs['out1'])
+
+    def test_nonpythonic_container_output_handled_by_graph(self):
+        component_a = textwrap.dedent('''\
+          inputs: []
+          outputs:
+            - {name: out1, type: str}
+          implementation:
+            graph:
+              tasks:
+                some-container:
+                  arguments: {}
+                  componentRef:
+                    spec:
+                      outputs:
+                      - {name: out-1, type: str}
+                      implementation:
+                        container:
+                          image: busybox
+                          command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out-1}]
+              outputValues:
+                out1:
+                  taskOutput:
+                    taskId: some-container
+                    outputName: out-1
+        ''')
+        component_b = textwrap.dedent('''\
+            inputs:
+            - {name: in1, type: str}
+            implementation:
+              container:
+                image: busybox
+                command: [echo, {inputValue: in1}]
+        ''')
+        task_factory_a = load_component_from_text(component_a)
+        task_factory_b = load_component_from_text(component_b)
+        a_task = task_factory_a()
+        b_task = task_factory_b(in1=a_task.outputs['out1'])
