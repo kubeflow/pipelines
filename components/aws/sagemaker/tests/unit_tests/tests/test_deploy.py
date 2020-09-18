@@ -41,6 +41,50 @@ class DeployTestCase(unittest.TestCase):
       call('/tmp/output', 'test-endpoint-name')
     ])
 
+  def test_main_update_no_endpoint(self):
+    # Mock out all of utils except parser
+    deploy._utils = MagicMock()
+    deploy._utils.add_default_client_arguments = _utils.add_default_client_arguments
+
+    # Update is set to true, but endpoint does not exist
+    # Endpoint should be created in this case
+    # Set some static returns
+    update_endpoint_args = required_args + ['--update_endpoint', 'True']
+    deploy._utils.endpoint_name_exists.return_value = False
+    deploy._utils.deploy_model.return_value = 'test-endpoint-name'
+    deploy.main(update_endpoint_args)
+
+    # Check if correct requests were created and triggered
+    deploy._utils.deploy_model.assert_called()
+    deploy._utils.wait_for_endpoint_creation.assert_called()
+
+    # Check the file outputs
+    deploy._utils.write_output.assert_has_calls([
+      call('/tmp/output', 'test-endpoint-name')
+    ])
+
+  def test_main_update_endpoint(self):
+    # Update is set to true and endpoint exits
+    # Mock out all of utils except parser
+    deploy._utils = MagicMock()
+    deploy._utils.add_default_client_arguments = _utils.add_default_client_arguments
+
+    # Set some static returns
+    update_endpoint_args = required_args + ['--update_endpoint', 'True']
+    deploy._utils.endpoint_name_exists.return_value = True
+    deploy._utils.update_deployed_model.return_value = 'test-endpoint-name'
+    deploy.main(update_endpoint_args)
+
+    # Check if correct requests were created and triggered
+    deploy._utils.update_deployed_model.assert_called()
+    deploy._utils.wait_for_endpoint_creation.assert_called()
+    deploy._utils.delete_endpoint_config.assert_called()
+
+    # Check the file outputs
+    deploy._utils.write_output.assert_has_calls([
+      call('/tmp/output', 'test-endpoint-name')
+    ])
+
   def test_main_assumes_role(self):
     # Mock out all of utils except parser
     deploy._utils = MagicMock()
@@ -71,6 +115,22 @@ class DeployTestCase(unittest.TestCase):
 
     self.assertEqual(response, 'test-endpoint-name')
 
+  def test_update_deployed_model(self):
+    mock_client = MagicMock()
+    mock_args = self.parser.parse_args(required_args + ['--endpoint_name', 'test-endpoint-name', '--endpoint_config_name', 'test-endpoint-config-name'])
+    response = _utils.update_deployed_model(mock_client, vars(mock_args))
+
+    mock_client.create_endpoint_config.assert_called_once_with(
+      EndpointConfigName='test-endpoint-config-name',
+      ProductionVariants=[
+        {'VariantName': 'variant-name-1', 'ModelName': 'model-test', 'InitialInstanceCount': 1,
+         'InstanceType': 'ml.m4.xlarge', 'InitialVariantWeight': 1.0}
+      ],
+      Tags=[]
+    )
+
+    self.assertEqual(response, 'test-endpoint-name')
+
   def test_sagemaker_exception_in_deploy_model(self):
     mock_client = MagicMock()
     mock_exception = ClientError({"Error": {"Message": "SageMaker broke"}}, "deploy_model")
@@ -79,6 +139,15 @@ class DeployTestCase(unittest.TestCase):
 
     with self.assertRaises(Exception):
       _utils.deploy_model(mock_client, vars(mock_args))
+
+  def test_sagemaker_exception_in_update_deployed_model(self):
+    mock_client = MagicMock()
+    mock_exception = ClientError({"Error": {"Message": "SageMaker broke"}}, "update_deployed_model")
+    mock_client.create_endpoint_config.side_effect = mock_exception
+    mock_args = self.parser.parse_args(required_args)
+
+    with self.assertRaises(Exception):
+      _utils.update_deployed_model(mock_client, vars(mock_args))
 
   def test_model_name_exception(self):
     mock_client = MagicMock()
@@ -95,6 +164,38 @@ class DeployTestCase(unittest.TestCase):
 
     with self.assertRaises(Exception):
       _utils.create_endpoint(mock_client, 'us-east-1', 'fake-endpoint', 'fake-endpoint-config', {})
+
+  def test_get_endpoint_config_exception(self):
+    mock_client = MagicMock()
+    mock_exception = ClientError({"Error": {"Message": "SageMaker broke"}}, "describe_endpoint")
+    mock_client.describe_endpoint.side_effect = mock_exception
+
+    response = _utils.get_endpoint_config(mock_client, 'fake-endpoint')
+    self.assertEqual(response, None)
+
+  def test_delete_endpoint_config_exception(self):
+    mock_client = MagicMock()
+    mock_exception = ClientError({"Error": {"Message": "SageMaker broke"}}, "delete_endpoint")
+    mock_client.delete_endpoint_config.side_effect = mock_exception
+
+    response = _utils.delete_endpoint_config(mock_client, 'fake-endpoint-config')
+    self.assertEqual(response, False)
+
+  def test_endpoint_name_exists(self):
+    mock_client = MagicMock()
+    mock_exception = ClientError({"Error": {"Message": "SageMaker broke"}}, "delete_endpoint")
+    mock_client.describe_endpoint.side_effect = mock_exception
+
+    response = _utils.endpoint_name_exists(mock_client, 'fake-endpoint')
+    self.assertEqual(response, False)
+
+  def test_endpoint_config_name_exists_exception(self):
+    mock_client = MagicMock()
+    mock_exception = ClientError({"Error": {"Message": "SageMaker broke"}}, "describe_endpoint_config")
+    mock_client.describe_endpoint_config.side_effect = mock_exception
+
+    response = _utils.endpoint_config_name_exists(mock_client, 'fake-endpoint-config')
+    self.assertEqual(response, False)
 
   def test_wait_for_endpoint_creation(self):
     mock_client = MagicMock()
@@ -123,13 +224,14 @@ class DeployTestCase(unittest.TestCase):
   def test_get_endpoint_name_from_job(self):
     mock_client = MagicMock()
 
-    # if we don't pass --endpoint_name argument then endpoint name is constructed using --model_name_1
-    self.assertEqual(_utils.deploy_model(mock_client, vars(self.parser.parse_args(required_args))), 'Endpoint-test')
+    # if we don't pass --endpoint_name argument then endpoint name is constructed
+    self.assertTrue('Endpoint-' in _utils.deploy_model(mock_client, vars(self.parser.parse_args(required_args))))
 
   def test_pass_most_args(self):
     arguments =  [
       '--region', 'us-west-2',
       '--endpoint_url', 'fake-url',
+      '--endpoint_config_name','EndpointConfig-test-1',
       '--model_name_1', 'model-test-1',
       '--accelerator_type_1', 'ml.eia1.medium',
       '--model_name_2', 'model-test-2',

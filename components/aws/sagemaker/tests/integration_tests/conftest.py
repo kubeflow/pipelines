@@ -146,7 +146,7 @@ def get_experiment_id(kfp_client):
 
 @pytest.fixture(scope="session")
 def experiment_id(kfp_client, tmp_path_factory, worker_id):
-    if not worker_id:
+    if worker_id == "master":
         return get_experiment_id(kfp_client)
 
     # Locking taking as an example from
