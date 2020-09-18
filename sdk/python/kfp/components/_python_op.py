@@ -36,6 +36,8 @@ from pathlib import Path
 from typing import Callable, List, TypeVar
 import warnings
 
+import docstring_parser
+
 T = TypeVar('T')
 
 
@@ -257,11 +259,15 @@ def _capture_function_code_using_source_copy(func) -> str:
     return func_code
 
 
-def _extract_component_interface(func) -> ComponentSpec:
+def _extract_component_interface(func:Callable) -> ComponentSpec:
     single_output_name_const = 'Output'
 
     signature = inspect.signature(func)
     parameters = list(signature.parameters.values())
+
+    docstring = inspect.getdoc(func)
+    doc_dict = {p.arg_name: p.description for p in docstring_parser.parse(docstring).params}
+
     inputs = []
     outputs = []
 
@@ -317,6 +323,7 @@ def _extract_component_interface(func) -> ComponentSpec:
             output_spec = OutputSpec(
                 name=io_name,
                 type=type_struct,
+                description=doc_dict.get(parameter.name)
             )
             output_spec._passing_style = passing_style
             output_spec._parameter_name = parameter.name
@@ -327,6 +334,7 @@ def _extract_component_interface(func) -> ComponentSpec:
             input_spec = InputSpec(
                 name=io_name,
                 type=type_struct,
+                description=doc_dict.get(parameter.name)
             )
             if parameter.default is not inspect.Parameter.empty:
                 input_spec.optional = True
