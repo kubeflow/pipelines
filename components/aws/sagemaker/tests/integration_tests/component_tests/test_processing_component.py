@@ -15,7 +15,7 @@ from utils import argo_utils
             "resources/config/kmeans-algo-mnist-processing",
             marks=pytest.mark.canary_test,
         ),
-        "resources/config/assume-role-processing"
+        "resources/config/assume-role-processing",
     ],
 )
 def test_processingjob(
@@ -80,8 +80,9 @@ def test_processingjob(
     for output in process_response["ProcessingOutputConfig"]["Outputs"]:
         assert processing_outputs[output["OutputName"]] == output["S3Output"]["S3Uri"]
 
-    assert not argo_utils.error_in_cw_logs(workflow_json["metadata"]["name"]), \
-        ('Found the CloudWatch error message in the log output. Check SageMaker to see if the job has failed.')
+    assert not argo_utils.error_in_cw_logs(
+        workflow_json["metadata"]["name"]
+    ), "Found the CloudWatch error message in the log output. Check SageMaker to see if the job has failed."
 
     utils.remove_dir(download_dir)
 

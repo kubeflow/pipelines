@@ -104,11 +104,15 @@ inputs:
     description: 'Key-value pairs to categorize AWS resources.'
     default: '{}'
     type: JsonObject
+  - name: update_endpoint
+    description: 'Update EndPoint if it exists'
+    default: 'False'
+    type: Bool
 outputs:
   - {name: endpoint_name,          description: 'Endpoint name'}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:0.8.0
+    image: amazon/aws-sagemaker-kfp-components:0.9.0
     command: ['python3']
     args: [
       deploy.py,
@@ -138,5 +142,6 @@ implementation:
       --endpoint_config_tags, {inputValue: endpoint_config_tags},
       --endpoint_name, {inputValue: endpoint_name},
       --endpoint_tags, {inputValue: endpoint_tags},
+      --update_endpoint, {inputValue: update_endpoint},
       --endpoint_name_output_path, {outputPath: endpoint_name}
     ]
