@@ -33,8 +33,7 @@ from .structures import *
 
 import inspect
 from pathlib import Path
-import typing
-from typing import Callable, Generic, List, TypeVar, Union
+from typing import Callable, List, TypeVar
 import warnings
 
 T = TypeVar('T')
