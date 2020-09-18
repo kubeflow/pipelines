@@ -5,7 +5,7 @@ Repository:  https://hub.docker.com/repository/docker/amazon/aws-sagemaker-kfp-c
 
 ---------------------------------------------
 **Change log for version 0.9.0**
-- Add functionality to Udpate SageMaker Endpoint for Deploy component
+- Add functionality to Update SageMaker Endpoint for Deploy component
 
 > Pull requests : [#4424](https://github.com/kubeflow/pipelines/pull/4424/)
 
