@@ -470,7 +470,7 @@ class PythonOpTestCase(unittest.TestCase):
             """
 
         component_spec = comp._python_op._func_to_component_spec(pipeline)
-        self.assertEqual(component_spec.description,'Pipeline to Demonstrate Usage of Secret')
+        self.assertEqual(component_spec.description, 'Pipeline to Demonstrate Usage of Secret')
         self.assertEqual(component_spec.inputs[0].description, 'Name of the variable inside the Pod')
         self.assertEqual(component_spec.inputs[1].description, 'Name of the Secret in the namespace')
         self.assertIsNone(component_spec.inputs[2].description)

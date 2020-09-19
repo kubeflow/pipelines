@@ -259,7 +259,7 @@ def _capture_function_code_using_source_copy(func) -> str:
     return func_code
 
 
-def _extract_component_interface(func:Callable) -> ComponentSpec:
+def _extract_component_interface(func: Callable) -> ComponentSpec:
     single_output_name_const = 'Output'
 
     signature = inspect.signature(func)
@@ -267,7 +267,6 @@ def _extract_component_interface(func:Callable) -> ComponentSpec:
 
     parsed_docstring = docstring_parser.parse(inspect.getdoc(func))
     doc_dict = {p.arg_name: p.description for p in parsed_docstring.params}
-
 
     inputs = []
     outputs = []
