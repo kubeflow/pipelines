@@ -48,7 +48,7 @@ func TestMain(m *testing.M) {
 func getDeployments(t *testing.T, c client.Client) []*appsv1.Deployment {
 	dplList := &appsv1.DeploymentList{}
 
-	if err := c.List(context.Background(), &client.ListOptions{}, dplList); err != nil {
+	if err := c.List(context.Background(), dplList, &client.ListOptions{}); err != nil {
 		t.Fatalf("Failed to list deployments from Fake client: %v", err)
 	}
 
@@ -63,7 +63,7 @@ func getDeployments(t *testing.T, c client.Client) []*appsv1.Deployment {
 func getServices(t *testing.T, c client.Client) []*corev1.Service {
 	svcList := &corev1.ServiceList{}
 
-	if err := c.List(context.Background(), &client.ListOptions{}, svcList); err != nil {
+	if err := c.List(context.Background(), svcList, &client.ListOptions{}); err != nil {
 		t.Fatalf("Failed to list services with fake client: %v", err)
 	}
 
@@ -78,7 +78,7 @@ func getServices(t *testing.T, c client.Client) []*corev1.Service {
 func getViewers(t *testing.T, c client.Client) []*viewerV1beta1.Viewer {
 	list := &viewerV1beta1.ViewerList{}
 
-	if err := c.List(context.Background(), &client.ListOptions{}, list); err != nil {
+	if err := c.List(context.Background(), list, &client.ListOptions{}); err != nil {
 		t.Fatalf("Failed to list viewers with fake client: %v", err)
 	}
 
