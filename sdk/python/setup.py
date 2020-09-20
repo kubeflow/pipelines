@@ -37,6 +37,7 @@ REQUIRES = [
     'click',
     'Deprecated',
     'strip-hints',
+    'docstring-parser>=0.7.3'
 ]
 
 TESTS_REQUIRE = [
