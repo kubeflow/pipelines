@@ -281,8 +281,7 @@ spec:
   - arguments: {}
     container:
       args:
-      - import random; import sys; exit_code = random.choice([0, 0, 1]); print('exiting
-        with code {}'.format(exit_code)); sys.exit(exit_code)
+      - import random; import sys; exit_code = random.choice([0, 0, 1]); print('exiting with code {}'.format(exit_code)); sys.exit(exit_code)
       command:
       - python
       - -c
