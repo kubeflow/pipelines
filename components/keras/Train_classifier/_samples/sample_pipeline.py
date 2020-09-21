@@ -6,6 +6,8 @@ from kfp import components
 chicago_taxi_dataset_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/e3337b8bdcd63636934954e592d4b32c95b49129/components/datasets/Chicago%20Taxi/component.yaml')
 pandas_transform_csv_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/6162d55998b176b50267d351241100bb0ee715bc/components/pandas/Transform_DataFrame/in_CSV_format/component.yaml')
 keras_train_classifier_from_csv_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/f6aabf7f10b1f545f1fd5079aa8071845224f8e7/components/keras/Train_classifier/from_CSV/component.yaml')
+keras_convert_hdf5_model_to_tf_saved_model_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/51e49282d9511e4b72736c12dc66e37486849c6e/components/_converters/KerasModelHdf5/to_TensorflowSavedModel/component.yaml')
+
 
 number_of_classes = 2
 
@@ -38,14 +40,17 @@ def keras_classifier_pipeline():
         transform_code='''df = df["was_tipped"] * 1''',
     ).output
 
-    keras_train_classifier_from_csv_op(
+    keras_model_in_hdf5 = keras_train_classifier_from_csv_op(
         training_features=features_in_csv,
         training_labels=labels_in_csv,
         network_json=dense_network_with_sigmoid.to_json(),
         learning_rate=0.1,
         num_epochs=100,
-    )
+    ).outputs['model']
 
+    keras_model_in_tf_format = keras_convert_hdf5_model_to_tf_saved_model_op(
+        model=keras_model_in_hdf5,
+    ).output
     
 if __name__ == '__main__':
     kfp_endpoint = None
