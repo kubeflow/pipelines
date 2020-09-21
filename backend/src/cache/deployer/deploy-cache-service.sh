@@ -29,7 +29,7 @@ WEBHOOK_SECRET_NAME=webhook-server-tls
 # Getting correct kubectl. Kubernetes only supports kubectl versions within +/-1 minor version.
 # kubectl has some resource version information hardcoded, so using too old kubectl can lead to errors
 mkdir -p "$HOME/bin"
-export PATH="$PATH:$HOME/bin"
+export PATH="$HOME/bin:$PATH"
 {
     server_version_major_minor=$(kubectl version --output json | jq '(.serverVersion.major + "." + .serverVersion.minor)' | tr -d '+')
     stable_build_version=$(curl -s "https://storage.googleapis.com/kubernetes-release/release/stable-${server_version_major_minor}.txt")
