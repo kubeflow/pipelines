@@ -150,6 +150,7 @@ function createUIServer(options: UIConfigs) {
         },
         headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
         pathRewrite: (pathStr: string, req: any) => {
+          /** Argo nodeId is just POD name */
           const nodeId = req.query.podname;
           const runId = req.query.runid;
           return `/${apiVersionPrefix}/runs/${runId}/nodes/${nodeId}/log`;
