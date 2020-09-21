@@ -2,16 +2,25 @@ package client
 
 import (
 	"errors"
+
 	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/api/policy/v1beta1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/rest"
 )
 
 type FakePodClient struct {
+}
+
+func (FakePodClient) GetEphemeralContainers(string, v1.GetOptions) (*corev1.EphemeralContainers, error) {
+	return nil, nil
+}
+
+func (FakePodClient) UpdateEphemeralContainers(string, *corev1.EphemeralContainers) (*corev1.EphemeralContainers, error) {
+	return nil, nil
 }
 
 func (FakePodClient) Create(*corev1.Pod) (*corev1.Pod, error) {
