@@ -365,13 +365,15 @@ _ResolvedCommandLineAndPaths = NamedTuple(
     ],
 )
 
+def _generate_input_value(value, type_name: str, input_name: str) -> str:
+    return serialize_value(value, type_name)
 
 def _resolve_command_line_and_paths(
     component_spec: ComponentSpec,
     arguments: Mapping[str, str],
     input_path_generator=_generate_input_file_name,
     output_path_generator=_generate_output_file_name,
-    argument_serializer=serialize_value,
+    input_value_generator=_generate_input_value,
 ) -> _ResolvedCommandLineAndPaths:
     """Resolves the command line argument placeholders. Also produces the maps of the generated inpuit/output paths."""
     argument_values = arguments
@@ -402,7 +404,7 @@ def _resolve_command_line_and_paths(
             input_spec = inputs_dict[input_name]
             input_value = argument_values.get(input_name, None)
             if input_value is not None:
-                serialized_argument = argument_serializer(input_value, input_spec.type)
+                serialized_argument = input_value_generator(input_value, input_spec.type, input_name)
                 inputs_consumed_by_value[input_name] = serialized_argument
                 return serialized_argument
             else:
