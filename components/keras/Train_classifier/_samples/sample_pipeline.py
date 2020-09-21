@@ -1,4 +1,5 @@
 import keras
+import kfp
 from kfp import components
 
 
