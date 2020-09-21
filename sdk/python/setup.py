@@ -109,8 +109,8 @@ def GenerateProto(source):
 
 
 # Generate the protobuf files that we depend on.
-IR_SDK_PATH = os.path.join(KFPSDK_DIR, "kfp/ir/pipeline_spec.proto")
-GenerateProto(IR_SDK_PATH)
+IR_SDK_DIR = os.path.join(KFPSDK_DIR, "kfp/ir")
+GenerateProto(os.path.join(IR_SDK_DIR, "pipeline_spec.proto"))
 open(os.path.join(IR_SDK_DIR, "__init__.py"), "a").close()
 
 

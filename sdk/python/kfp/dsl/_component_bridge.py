@@ -18,31 +18,97 @@ from ..components.structures import ComponentSpec, ComponentReference
 from ..components._components import _default_component_name, _resolve_command_line_and_paths
 from ..components._naming import _sanitize_python_function_name, generate_unique_name_conversion_table
 from .. import dsl
-
+from kfp.dsl import ir_types
+from kfp.ir import pipeline_spec_pb2
 
 def _create_container_op_from_component_and_arguments(
     component_spec: ComponentSpec,
     arguments: Mapping[str, Any],
     component_ref: ComponentReference = None,
 ) -> 'dsl.ContainerOp':
+
+    pipeline_task_spec = pipeline_spec_pb2.PipelineTaskSpec()
+    pipeline_task_spec.task_info.name = component_spec.name
+
     # Check types of the reference arguments and serialize PipelineParams
     arguments = arguments.copy()
     for input_name, argument_value in arguments.items():
-        if isinstance(argument_value, dsl.PipelineParam):
+        if isinstance(argument_value, dsl.ContainerOp):
+            raise TypeError('ContainerOp object was passed to component as an input argument. Pass a single output instead.')
+        elif isinstance(argument_value, dsl.PipelineParam):
             input_type = component_spec._inputs_dict[input_name].type
             reference_type = argument_value.param_type
             dsl.types.verify_type_compatibility(reference_type, input_type, 'Incompatible argument passed to the input "{}" of component "{}": '.format(input_name, component_spec.name))
 
             arguments[input_name] = str(argument_value)
-        if isinstance(argument_value, dsl.ContainerOp):
-            raise TypeError('ContainerOp object was passed to component as an input argument. Pass a single output instead.')
 
+            # TODO: insert importer node
+            normalized_input_type = input_type.lower()
+            if normalized_input_type in ir_types._artifact_types_mapping.keys():
+                # argument_value.op_name could be none, in which case  an importer node will be inserted later
+                pipeline_task_spec.inputs.artifacts[input_name].producer_task = argument_value.op_name or ''
+                pipeline_task_spec.inputs.artifacts[input_name].output_artifact_key = argument_value.name
+            elif normalized_input_type in ir_types._parameter_types_mapping.keys():
+                pipeline_task_spec.inputs.parameters[input_name].runtime_value.runtime_parameter = argument_value.name
+            else:
+                raise NotImplementedError('Unsupported input type: "{}"'.format(input_type))
+        elif isinstance(argument_value, str):
+            pipeline_task_spec.inputs.parameters[input_name].runtime_value.constant_value.string_value = argument_value
+        elif isinstance(argument_value, int):
+            pipeline_task_spec.inputs.parameters[input_name].runtime_value.constant_value.int_value = argument_value
+        elif isinstance(argument_value, float):
+            pipeline_task_spec.inputs.parameters[input_name].runtime_value.constant_value.double_value = argument_value
+
+    if component_spec.outputs:
+        for output in component_spec.outputs:
+            normalized_output_type = output.type.lower()
+            if normalized_output_type in ir_types._artifact_types_mapping.keys():
+                pipeline_task_spec.outputs.artifacts[output.name].artifact_type.schema_title = ir_types._artifact_types_mapping.get(normalized_output_type)
+            elif normalized_output_type in ir_types._parameter_types_mapping.keys():
+                pipeline_task_spec.outputs.parameters[output.name].type = ir_types._parameter_types_mapping.get(normalized_output_type)
+            else:
+                raise NotImplementedError('Unsupported output type: "{}"'.format(output.type))
+
+
+    def _input_artifact_placeholder(port_name: str) -> str:
+        return "{{$.inputs.artifacts['" + port_name + "'].uri}}"
+
+
+    def _input_parameter_placeholder(port_name: str) -> str:
+        return "{{$.inputs.parameters['" + port_name + "']}}"
+
+
+    def _output_artifact_placeholder(port_name: str) -> str:
+        return "{{$.outputs.artifacts['" + port_name + "'].uri}}"
+
+
+    # Special handleing for input with 'GCSPath' type, treat it as artifact regardless
+    # whether it's InputValuePlaceholder or InputPathPlaceholder per component_spec
+    placeholder_arguments = {
+        input_spec.name:
+            _input_artifact_placeholder(input_spec.name)
+        if input_spec.type.lower() == 'gcspath'
+        else _input_parameter_placeholder(input_spec.name)
+        for input_spec in component_spec.inputs or []
+    }
+
+    resolved_cmd_ir = _resolve_command_line_and_paths(
+        component_spec=component_spec,
+        arguments=placeholder_arguments,
+        input_path_generator=_input_artifact_placeholder,
+        output_path_generator=_output_artifact_placeholder,
+    )
     resolved_cmd = _resolve_command_line_and_paths(
         component_spec=component_spec,
         arguments=arguments,
     )
 
     container_spec = component_spec.implementation.container
+
+    pipeline_container_spec = pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec()
+    pipeline_container_spec.image = container_spec.image
+    pipeline_container_spec.command.extend(resolved_cmd_ir.command)
+    pipeline_container_spec.args.extend(resolved_cmd_ir.args)
 
     old_warn_value = dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING
     dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = True
@@ -61,6 +127,9 @@ def _create_container_op_from_component_and_arguments(
             for input_name, path in resolved_cmd.input_paths.items()
         ],
     )
+
+    task.task_spec = pipeline_task_spec
+    task.container_spec = pipeline_container_spec
     dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = old_warn_value
 
     component_meta = copy.copy(component_spec)
