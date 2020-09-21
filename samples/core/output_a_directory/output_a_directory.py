@@ -1,3 +1,10 @@
+# This sample shows how components can output directories
+# Outputting a directory is performed the same way as outputting a file:
+# component receives an output path, writes data at that path and the system takes that data and makes it available for the downstream components.
+# To output a file, create a new file at the output path location.
+# To output a directory, create a new directory at the output path location.
+
+
 import kfp
 from kfp.components import create_component_from_func, InputPath, OutputPath
 
