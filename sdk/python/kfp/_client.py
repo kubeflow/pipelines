@@ -851,7 +851,7 @@ class Client(object):
 
     if pipeline_name:
       pipeline_id = self.get_pipeline_id(pipeline_name)
-      
+
     response = self._upload_api.upload_pipeline_version(
       pipeline_package_path, 
       name=pipeline_version_name, 
