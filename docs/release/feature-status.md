@@ -34,10 +34,10 @@ Note, these packages are stable in general, but specific classes, methods, and a
 
 |                  | Upload | Create | Get | List | Delete | Archive | Unarchive | Enable | Disable | Terminate | Retry |
 |:----------------:|:------:|:------:|:---:|:----:|:------:|:-------:|:---------:|:------:|:-------:|:---------:|:-----:|
-| Pipeline         | - [x]  |  - [x] |- [x]|- [x] | - [x]  |         |           |
-| Pipeline Version | - [x]  |  - [x] |- [x]|- [x] | - [x]  |         |           |
-| Run              |        |  - [x] |- [x]|- [x] | - [x]  | - [x]   | - [x]     |        |         | - [x]     | - [x] |
-| Experiment       |        |  - [x] |- [x]|- [x] | - [x]  | - [x]   | - [x]     |
+| Pipeline         | ☑️  |  ☑️ |☑️|☑️ | ☑️  |         |           |
+| Pipeline Version | ☑️  |  ☑️ |☑️|☑️ | ☑️  |         |           |
+| Run              |        |  ☑️ |☑️|☑️ | ☑️  | ☑️   | ☑️     |        |         | ☑️     | ☑️ |
+| Experiment       |        |  ☑️ |☑️|☑️ | ☑️  | ☑️   | ☑️     |
 
 * Refer to the Kubeflow Pipelines [introduction]((https://www.kubeflow.org/docs/pipelines/overview/)) for
   - An [overview](https://www.kubeflow.org/docs/pipelines/overview/pipelines-overview/) and [main concepts](https://www.kubeflow.org/docs/pipelines/overview/concepts/), for example, what is a pipeline or run in Kubeflow Pipelines.
@@ -52,7 +52,7 @@ for how to manage the Kubeflow Pipelines resources via the Kubeflow Pipelines cl
 
 |                  | Upload | Create | Get | List | Delete | Archive | Unarchive | Enable | Disable | Terminate | Retry |
 |:----------------:|:------:|:------:|:---:|:----:|:------:|:-------:|:---------:|:------:|:-------:|:---------:|:-----:|
-| Job              |        |  - [x] |- [x]|- [x] | - [x]  |         |           | - [x]  | - [x]   |
+| Job              |        |  ☑️ |☑️|☑️ | ☑️  |         |           | ☑️  | ☑️   |
 
 
 * [Upgrade support for the Kubeflow Pipelines standalone deployment](https://www.kubeflow.org/docs/pipelines/installation/standalone-deployment/#upgrading-kubeflow-pipelines).
