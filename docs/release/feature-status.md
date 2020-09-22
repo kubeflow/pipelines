@@ -25,8 +25,10 @@ All of the guarantees for Beta and:
 
 ## Stable Features
 
-* SDK DSL for constructing a pipeline.
+* [SDK DSL](https://github.com/kubeflow/pipelines/tree/master/sdk/python/kfp/dsl) for constructing a pipeline.
 * [ComponentSpec](https://github.com/kubeflow/pipelines/blob/release-1.0/sdk/python/kfp/components/structures/components.json_schema.json).
+
+Note, these packages are stable in general, but specific classes, methods, and arguments might be in a different stage. Refer to [their own documentation](https://kubeflow-pipelines.readthedocs.io/en/latest/source/kfp.dsl.html).
 
 ### APIs
 
@@ -64,8 +66,8 @@ for how to manage the Kubeflow Pipelines resources via the Kubeflow Pipelines cl
 ## Features in Alpha
 
 * [SDK client helper methods](https://kubeflow-pipelines.readthedocs.io/en/latest/source/kfp.client.html). The helper methods are mainly maintained by
-community. They are convenient to use, but some problems including lack of testing
-prevent us moving it to Beta quality right now. Refer to [SDK Client Beta Blockers project](https://github.com/kubeflow/pipelines/projects/7) for specific issues.
+community. They are convenient to use, but some problems including not providing all features from the API and lack of testing
+prevent us moving it to Beta stage right now. Refer to [SDK client Beta blockers project](https://github.com/kubeflow/pipelines/projects/7) for specific issues.
 
   We recommend and support auto-generated client APIs instead. For example,
   `client.pipelines.list_pipelines()`, `client.runs.list_runs()` and
