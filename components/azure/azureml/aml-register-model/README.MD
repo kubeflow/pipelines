@@ -17,6 +17,10 @@ This component registers trained ML model with [Azure Machine Learning Service](
 | workspace                  | string | Y        | Azure ML workspace name          |
 | run_id                     | string | Y        | Kubeflow pipeline run Id         |
 
+## Outputs
+
+Output `output_model_path` holds registered model name.
+
 ## Usage
 
 ```

@@ -11,7 +11,8 @@ inputs:
 - {name: resource_group, type: String}
 - {name: workspace, type: String}
 - {name: run_id, type: String}
-
+outputs:
+    - {name: output_model_path, type: String, description: 'Name of registered model'}
 implementation:
   container:
     image: ''
@@ -26,5 +27,6 @@ implementation:
       '--subscription_id', {inputValue: subscription_id},
       '--resource_group', {inputValue: resource_group},
       '--workspace', {inputValue: workspace},
-      '--run_id', {inputValue: run_id}
+      '--run_id', {inputValue: run_id},
+      '--output_model_path',{outputPath: output_model_path} 
     ]

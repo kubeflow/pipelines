@@ -17,7 +17,7 @@ This task enables you to queue an [Azure Pipelines](https://docs.microsoft.com/e
 
 ## Outputs
 
-The uri for the newly queued build is written to the log.
+Output `output_url_path` holds uri for the newly queued pipeline.
 
 ## Usage
 

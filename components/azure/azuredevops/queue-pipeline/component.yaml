@@ -12,7 +12,7 @@ inputs:
     - {name: source_version, type: String, default: '', description: 'Source version for the pipeline'}
     - {name: parameters, type: String, default: '', description: 'Parameters for the pipeline'}
 outputs:
-    - {name: url, description: 'Url of the queued pipeline'}
+    - {name: output_url_path, type: String, description: 'Url of the queued pipeline'}
 implementation:
     container:
         image: ''
@@ -25,5 +25,6 @@ implementation:
             --pat_path_env, {inputValue: pat_path_env},
             --source_branch, {inputValue: source_branch},
             --source_version, {inputValue: source_version},
-            --parameters, {inputValue: parameters}
+            --parameters, {inputValue: parameters},
+            --output_url_path, {outputPath: output_url_path} 
         ]

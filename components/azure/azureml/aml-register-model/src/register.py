@@ -40,8 +40,9 @@ def run(mdl_path, model_name, ws, tgs):
     # Model Path needs to be relative
     mdl_path = relpath(mdl_path, '.')
 
-    Model.register(ws, model_name=model_name, model_path=mdl_path, tags=tgs)
+    model = Model.register(ws, model_name=model_name, model_path=mdl_path, tags=tgs)
     info("Model Registered")
+   
 
 
 if __name__ == "__main__":
@@ -63,6 +64,7 @@ if __name__ == "__main__":
     parser.add_argument('-r', '--resource_group', help='resource_group')
     parser.add_argument('-w', '--workspace', help='workspace')
     parser.add_argument('-ri', '--run_id', help='pieline run id')
+    parser.add_argument('-omp','--output_model_path', help='Registered ML model name')
     args = parser.parse_args()
 
     print('Azure ML SDK Version: {}'.format(azureml.core.VERSION))
@@ -83,6 +85,15 @@ if __name__ == "__main__":
         'mdl_path': model_path,
         'model_name': args.model_name
     }
+
+    print("Creating output directory")
+    output_model_path = args.output_model_path
+    Path(output_model_path).parent.mkdir(parents=True, exist_ok=True)
+    
+    # Write model name to component output
+    with open(output_model_path, 'w') as f:
+        json.dump(args.model_name, f)
+
 
     # printing out args for posterity
     for i in wsrgs:
