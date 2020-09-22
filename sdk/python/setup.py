@@ -37,6 +37,7 @@ REQUIRES = [
     'click',
     'Deprecated',
     'strip-hints',
+    'docstring-parser>=0.7.3'
 ]
 
 TESTS_REQUIRE = [
@@ -74,7 +75,6 @@ setup(
         'kfp.compiler',
         'kfp.components',
         'kfp.components.structures',
-        'kfp.components.structures.kubernetes',
         'kfp.containers',
         'kfp.dsl',
         'kfp.dsl.extensions',

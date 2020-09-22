@@ -33,27 +33,17 @@ python3 -m pip install -e .
 popd # Changing the current directory to the repo root for correct coverall paths
 
 # Test against TFX
-# Compile and setup protobuf
-PROTOC_ZIP=protoc-3.7.1-linux-x86_64.zip
-curl -OL -sS https://github.com/protocolbuffers/protobuf/releases/download/v3.7.1/$PROTOC_ZIP
-unzip -o $PROTOC_ZIP -d /usr/local bin/protoc
-unzip -o $PROTOC_ZIP -d /usr/local 'include/*'
-rm -f $PROTOC_ZIP
+# Compile and setup bazel for compiling the protos
+# Instruction from https://docs.bazel.build/versions/master/install-ubuntu.html
+curl -sSL https://github.com/bazelbuild/bazel/releases/download/3.4.1/bazel-3.4.1-installer-linux-x86_64.sh -o bazel_installer.sh
+chmod +x bazel_installer.sh
+./bazel_installer.sh
 
 # Install TFX from head
 cd $source_root
-git clone https://github.com/tensorflow/tfx.git
+git clone --branch v0.23.0-rc0 --depth 1 https://github.com/tensorflow/tfx.git
 cd $source_root/tfx
-#pip3 install --upgrade pip
-#pip3 install --upgrade 'numpy>=1.16,<1.17'
-#set -x
-#set -e
-#python3 setup.py bdist_wheel
-#WHEEL_PATH=$(find dist -name "tfx-*.whl")
-#python3 -m pip install "${WHEEL_PATH}" --upgrade
-python3 -m pip install . --upgrade
-#set +e
-#set +x
+python3 -m pip install . --upgrade --use-feature=2020-resolver
 
 # Three KFP-related unittests
 cd $source_root/tfx/tfx/orchestration/kubeflow

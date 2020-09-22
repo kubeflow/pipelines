@@ -31,6 +31,17 @@ type ExperimentStore struct {
 	defaultExperimentStore *DefaultExperimentStore
 }
 
+var (
+	experimentColumns = []string{
+		"UUID",
+		"Name",
+		"Description",
+		"CreatedAtInSec",
+		"Namespace",
+		"StorageState",
+	}
+)
+
 // Runs two SQL queries in a transaction to return a list of matching experiments, as well as their
 // total_size. The total_size does not reflect the page size.
 func (s *ExperimentStore) ListExperiments(filterContext *common.FilterContext, opts *list.Options) ([]*model.Experiment, int, string, error) {
@@ -39,7 +50,7 @@ func (s *ExperimentStore) ListExperiments(filterContext *common.FilterContext, o
 	}
 
 	// SQL for getting the filtered and paginated rows
-	sqlBuilder := sq.Select("*").From("experiments")
+	sqlBuilder := sq.Select(experimentColumns...).From("experiments")
 	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == common.Namespace {
 		sqlBuilder = sqlBuilder.Where(sq.Eq{"Namespace": filterContext.ReferenceKey.ID})
 	}
@@ -108,7 +119,7 @@ func (s *ExperimentStore) ListExperiments(filterContext *common.FilterContext, o
 
 func (s *ExperimentStore) GetExperiment(uuid string) (*model.Experiment, error) {
 	sql, args, err := sq.
-		Select("*").
+		Select(experimentColumns...).
 		From("experiments").
 		Where(sq.Eq{"uuid": uuid}).
 		Limit(1).

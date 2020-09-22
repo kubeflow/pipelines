@@ -4,6 +4,29 @@ The version of the AWS SageMaker Components is determined by the docker image ta
 Repository:  https://hub.docker.com/repository/docker/amazon/aws-sagemaker-kfp-components
 
 ---------------------------------------------
+**Change log for version 0.9.0**
+- Add functionality to Update SageMaker Endpoint for Deploy component
+
+> Pull requests : [#4424](https://github.com/kubeflow/pipelines/pull/4424/)
+
+**Change log for version 0.8.0**
+- Add functionality to configure SageMaker Debugger for Training component
+
+> Pull requests : [#4283](https://github.com/kubeflow/pipelines/pull/4283/)
+
+
+**Change log for version 0.7.0**
+- Add functionality to assume role when sending SageMaker requests
+
+>  Pull requests : [#4212](https://github.com/kubeflow/pipelines/pull/4212)
+
+
+**Change log for version 0.6.0**
+- Add functionality to stop SageMaker jobs on run termination
+
+>  Pull requests : [#4167](https://github.com/kubeflow/pipelines/pull/4167)
+
+
 **Change log for version 0.5.3**
 - Add static error string in case of error fetching logs
 
@@ -17,7 +40,7 @@ Repository:  https://hub.docker.com/repository/docker/amazon/aws-sagemaker-kfp-c
 
 
 **Change log for version 0.5.1**
-- Update region support for GroudTruth component
+- Update region support for GroundTruth component
 - Make `label_category_config` an optional parameter in Ground Truth component
 
 > Pull requests : [#3932](https://github.com/kubeflow/pipelines/pull/3932)

@@ -149,7 +149,7 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 	var err error
 
 	refKey := filterContext.ReferenceKey
-	if refKey != nil && refKey.Type == "ExperimentUUID" {
+	if refKey != nil && refKey.Type == common.Experiment {
 		// for performance reasons need to special treat experiment ID filter on runs
 		// currently only the run table have experiment UUID column
 		filteredSelectBuilder, err = list.FilterOnExperiment("run_details", runColumns,
@@ -170,8 +170,9 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 	// If we're not just counting, then also add select columns and perform a left join
 	// to get resource reference information. Also add pagination.
 	if !selectCount {
+		sqlBuilder = s.AddSortByRunMetricToSelect(sqlBuilder, opts)
 		sqlBuilder = opts.AddPaginationToSelect(sqlBuilder)
-		sqlBuilder = s.addMetricsAndResourceReferences(sqlBuilder)
+		sqlBuilder = s.addMetricsAndResourceReferences(sqlBuilder, opts)
 		sqlBuilder = opts.AddSortingToSelect(sqlBuilder)
 	}
 	sql, args, err := sqlBuilder.ToSql()
@@ -187,7 +188,7 @@ func (s *RunStore) GetRun(runId string) (*model.RunDetail, error) {
 		sq.Select(runColumns...).
 			From("run_details").
 			Where(sq.Eq{"UUID": runId}).
-			Limit(1)).
+			Limit(1), nil).
 		ToSql()
 
 	if err != nil {
@@ -213,17 +214,38 @@ func (s *RunStore) GetRun(runId string) (*model.RunDetail, error) {
 	return runs[0], nil
 }
 
-func (s *RunStore) addMetricsAndResourceReferences(filteredSelectBuilder sq.SelectBuilder) sq.SelectBuilder {
+// Apply func f to every string in a given string slice.
+func Map(vs []string, f func(string) string) []string {
+	vsm := make([]string, len(vs))
+	for i, v := range vs {
+		vsm[i] = f(v)
+	}
+	return vsm
+}
+
+func (s *RunStore) addMetricsAndResourceReferences(filteredSelectBuilder sq.SelectBuilder, opts *list.Options) sq.SelectBuilder {
+	var r model.Run
 	resourceRefConcatQuery := s.db.Concat([]string{`"["`, s.db.GroupConcat("rr.Payload", ","), `"]"`}, "")
+	columnsAfterJoiningResourceReferences := append(
+		Map(runColumns, func(column string) string { return "rd." + column }), // Add prefix "rd." to runColumns
+		resourceRefConcatQuery+" AS refs")
+	if opts != nil && !r.IsRegularField(opts.SortByFieldName) {
+		columnsAfterJoiningResourceReferences = append(columnsAfterJoiningResourceReferences, "rd."+opts.SortByFieldName)
+	}
 	subQ := sq.
-		Select("rd.*", resourceRefConcatQuery+" AS refs").
+		Select(columnsAfterJoiningResourceReferences...).
 		FromSelect(filteredSelectBuilder, "rd").
 		LeftJoin("resource_references AS rr ON rr.ResourceType='Run' AND rd.UUID=rr.ResourceUUID").
 		GroupBy("rd.UUID")
 
+	// TODO(jingzhang36): address the case where some runs don't have the metric used in order by.
 	metricConcatQuery := s.db.Concat([]string{`"["`, s.db.GroupConcat("rm.Payload", ","), `"]"`}, "")
+	columnsAfterJoiningRunMetrics := append(
+		Map(runColumns, func(column string) string { return "subq." + column }), // Add prefix "subq." to runColumns
+		"subq.refs",
+		metricConcatQuery+" AS metrics")
 	return sq.
-		Select("subq.*", metricConcatQuery+" AS metrics").
+		Select(columnsAfterJoiningRunMetrics...).
 		FromSelect(subQ, "subq").
 		LeftJoin("run_metrics AS rm ON subq.UUID=rm.RunUUID").
 		GroupBy("subq.UUID")
@@ -597,4 +619,19 @@ func (s *RunStore) TerminateRun(runId string) error {
 	}
 
 	return nil
+}
+
+// Add a metric as a new field to the select clause by join the passed-in SQL query with run_metrics table.
+// With the metric as a field in the select clause enable sorting on this metric afterwards.
+// TODO(jingzhang36): example of resulting SQL query and explanation for it.
+func (s *RunStore) AddSortByRunMetricToSelect(sqlBuilder sq.SelectBuilder, opts *list.Options) sq.SelectBuilder {
+	var r model.Run
+	if r.IsRegularField(opts.SortByFieldName) {
+		return sqlBuilder
+	}
+	// TODO(jingzhang36): address the case where runs doesn't have the specified metric.
+	return sq.
+		Select("selected_runs.*, run_metrics.numbervalue as "+opts.SortByFieldName).
+		FromSelect(sqlBuilder, "selected_runs").
+		LeftJoin("run_metrics ON selected_runs.uuid=run_metrics.runuuid AND run_metrics.name='" + opts.SortByFieldName + "'")
 }

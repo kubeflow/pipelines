@@ -13,7 +13,7 @@ metadata:
 spec:
   descriptor:
     type: Kubeflow Pipelines
-    version: '0.5.1'
+    version: 1.0.1
     description: |-
       Reusable end-to-end ML workflow
     maintainers:
@@ -40,8 +40,6 @@ spec:
     kind: RoleBinding
   - group: v1
     kind: Service
-  - group: v1
-    kind: PersistentVolumeClaim
   - group: v1
     kind: ConfigMap
   - group: v1

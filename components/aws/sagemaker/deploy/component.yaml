@@ -88,6 +88,10 @@ inputs:
     description: 'The endpoint URL for the private link VPC endpoint.'
     default: ''
     type: String
+  - name: assume_role
+    description: 'The ARN of an IAM role to assume when connecting to SageMaker.'
+    default: ''
+    type: String
   - name: endpoint_config_tags
     description: 'Key-value pairs to categorize AWS resources.'
     default: '{}'
@@ -100,16 +104,21 @@ inputs:
     description: 'Key-value pairs to categorize AWS resources.'
     default: '{}'
     type: JsonObject
+  - name: update_endpoint
+    description: 'Update EndPoint if it exists'
+    default: 'False'
+    type: Bool
 outputs:
   - {name: endpoint_name,          description: 'Endpoint name'}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:0.5.3
+    image: amazon/aws-sagemaker-kfp-components:0.9.0
     command: ['python3']
     args: [
       deploy.py,
       --region, {inputValue: region},
       --endpoint_url, {inputValue: endpoint_url},
+      --assume_role, {inputValue: assume_role},
       --endpoint_config_name, {inputValue: endpoint_config_name},
       --variant_name_1,{inputValue: variant_name_1},
       --model_name_1, {inputValue: model_name_1},
@@ -133,5 +142,6 @@ implementation:
       --endpoint_config_tags, {inputValue: endpoint_config_tags},
       --endpoint_name, {inputValue: endpoint_name},
       --endpoint_tags, {inputValue: endpoint_tags},
+      --update_endpoint, {inputValue: update_endpoint},
       --endpoint_name_output_path, {outputPath: endpoint_name}
     ]

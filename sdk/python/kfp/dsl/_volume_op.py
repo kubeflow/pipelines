@@ -35,6 +35,29 @@ VOLUME_MODE_ROM = ["ReadOnlyMany"]
 class VolumeOp(ResourceOp):
     """Represents an op which will be translated into a resource template
     which will be creating a PVC.
+
+    Args:
+        resource_name: A desired name for the PVC which will be created
+        size: The size of the PVC which will be created
+        storage_class: The storage class to use for the dynamically created PVC
+        modes: The access modes for the PVC
+        annotations: Annotations to be patched in the PVC
+        data_source: May be a V1TypedLocalObjectReference, and then it is
+            used in the data_source field of the PVC as is. Can also be a
+            string/PipelineParam, and in that case it will be used as a
+            VolumeSnapshot name (Alpha feature)
+        volume_name: VolumeName is the binding reference to the PersistentVolume
+            backing this claim.
+        kwargs: See :py:class:`kfp.dsl.ResourceOp`
+
+    Raises:
+        ValueError: if k8s_resource is provided along with other arguments
+                    if k8s_resource is not a V1PersistentVolumeClaim
+                    if size is None
+                    if size is an invalid memory string (when not a
+                        PipelineParam)
+                    if data_source is not one of (str, PipelineParam,
+                        V1TypedLocalObjectReference)
     """
 
     def __init__(self,
@@ -46,31 +69,6 @@ class VolumeOp(ResourceOp):
                  data_source=None,
                  volume_name=None,
                  **kwargs):
-        """Create a new instance of VolumeOp.
-
-        Args:
-            resource_name: A desired name for the PVC which will be created
-            size: The size of the PVC which will be created
-            storage_class: The storage class to use for the dynamically created
-                PVC
-            modes: The access modes for the PVC
-            annotations: Annotations to be patched in the PVC
-            data_source: May be a V1TypedLocalObjectReference, and then it is
-                used in the data_source field of the PVC as is. Can also be a
-                string/PipelineParam, and in that case it will be used as a
-                VolumeSnapshot name (Alpha feature)
-            volume_name: VolumeName is the binding reference to the PersistentVolume
-                backing this claim.
-            kwargs: See ResourceOp definition
-        Raises:
-            ValueError: if k8s_resource is provided along with other arguments
-                        if k8s_resource is not a V1PersistentVolumeClaim
-                        if size is None
-                        if size is an invalid memory string (when not a
-                            PipelineParam)
-                        if data_source is not one of (str, PipelineParam,
-                            V1TypedLocalObjectReference)
-        """
         # Add size to attribute outputs
         self.attribute_outputs = {"size": "{.status.capacity.storage}"}
 
