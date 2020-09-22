@@ -22,10 +22,12 @@ import shutil
 
 from .output import print_output
 
+
 @click.group()
 def run():
     """manage run resources"""
     pass
+
 
 @run.command()
 @click.option('-e', '--experiment-id', help='Parent experiment ID of listed runs.')
@@ -41,16 +43,21 @@ def list(ctx, experiment_id, max_size):
     else:
         print('No runs found.')
 
+
 @run.command()
 @click.option('-e', '--experiment-name', required=True, help='Experiment name of the run.')
 @click.option('-r', '--run-name', help='Name of the run.')
-@click.option('-f', '--package-file', type=click.Path(exists=True, dir_okay=False), help='Path of the pipeline package file.')
+@click.option('-f', '--package-file', type=click.Path(exists=True, dir_okay=False),
+              help='Path of the pipeline package file.')
 @click.option('-p', '--pipeline-id', help='ID of the pipeline template.')
-@click.option('-w', '--watch', is_flag=True, default=False, help='Watch the run status until it finishes.')
+@click.option('-n', '--pipeline-name', help='Name of the pipeline template.')
+@click.option('-w', '--watch', is_flag=True, default=False,
+              help='Watch the run status until it finishes.')
 @click.option('-v', '--version', help='ID of the pipeline version.')
 @click.argument('args', nargs=-1)
 @click.pass_context
-def submit(ctx, experiment_name, run_name, package_file, pipeline_id, watch, version, args):
+def submit(ctx, experiment_name, run_name, package_file, pipeline_id, pipeline_name, watch,
+           version, args):
     """submit a KFP run"""
     client = ctx.obj['client']
     namespace = ctx.obj['namespace']
@@ -58,18 +65,24 @@ def submit(ctx, experiment_name, run_name, package_file, pipeline_id, watch, ver
     if not run_name:
         run_name = experiment_name
 
+    if not pipeline_id and pipeline_name:
+        pipeline_id = client.get_pipeline_id(name=pipeline_name)
+
     if not package_file and not pipeline_id and not version:
         print('You must provide one of [package_file, pipeline_id, version].')
         sys.exit(1)
 
     arg_dict = dict(arg.split('=') for arg in args)
     experiment = client.create_experiment(experiment_name)
-    run = client.run_pipeline(experiment.id, run_name, package_file, arg_dict, pipeline_id, version_id=version)
+    run = client.run_pipeline(experiment.id, run_name, package_file, arg_dict, pipeline_id,
+                              version_id=version)
     print('Run {} is submitted'.format(run.id))
     _display_run(client, namespace, run.id, watch, output_format)
 
+
 @run.command()
-@click.option('-w', '--watch', is_flag=True, default=False, help='Watch the run status until it finishes.')
+@click.option('-w', '--watch', is_flag=True, default=False,
+              help='Watch the run status until it finishes.')
 @click.argument('run-id')
 @click.pass_context
 def get(ctx, watch, run_id):
