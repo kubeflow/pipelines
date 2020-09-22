@@ -22,7 +22,7 @@ __all__ = [
 import copy
 import sys
 from collections import OrderedDict
-from typing import Any, List, Mapping, NamedTuple, Sequence, Union, Callable
+from typing import Any, List, Mapping, NamedTuple, Sequence, Union
 from ._naming import _sanitize_file_name, _sanitize_python_function_name, generate_unique_name_conversion_table
 from ._yaml_utils import load_yaml
 from .structures import *
@@ -240,10 +240,35 @@ def _create_task_spec_from_component_and_arguments(
 
     return task
 
-# Contract:
-#  - argument map's keys must match input names specified in spec
-#  - the result's "outputs" must match output names specified in spec
-ContainerTaskConstructor = Callable[[ComponentSpec, Mapping[str, Any], ComponentReference], TaskSpec]
+
+try:
+    from typing import Protocol
+except ImportError:
+    from typing_extensions import Protocol
+
+
+class ContainerTaskConstructor(Protocol):
+    """Callable which takes component spec, generates task object."""
+
+    def __call__(
+            self,
+            component_spec: ComponentSpec,
+            arguments: Mapping[str, Any],
+            component_ref: ComponentReference = None,
+    ) -> TaskSpec:
+        """
+        Args:
+            component_spec (ComponentSpec): specification of the component,
+                a template for the task object
+            arguments (Mapping[str, Any]): arguments to pass to the task object,
+                keys must much the inputs defined in ``spec``
+            component_ref (ComponentReference): component reference that generated
+                the spec
+
+        Returns:
+            task object, with outputs matching the ones defined in ``spec``
+        """
+        ...
 
 _default_container_task_constructor = _create_task_spec_from_component_and_arguments #type: ContainerTaskConstructor
 
