@@ -21,6 +21,7 @@ __all__ = [
 
 import copy
 import sys
+from abc import abstractmethod
 from collections import OrderedDict
 from typing import Any, List, Mapping, NamedTuple, Sequence, Union
 from ._naming import _sanitize_file_name, _sanitize_python_function_name, generate_unique_name_conversion_table
@@ -247,15 +248,38 @@ except ImportError:
     from typing_extensions import Protocol
 
 
+class ResolvedTask(Protocol):
+    """Any object representing resolved task.
+
+    The exact implementation depends on the task constructor used."""
+
+    # py >= 3.6
+    #   component_ref: ComponentReference
+    #   arguments: Mapping[str, Any]
+    #   outputs: Mapping[str, Any]
+
+    @property
+    @abstractmethod
+    def component_ref(self) -> ComponentReference: ...
+
+    @property
+    @abstractmethod
+    def arguments(self) -> Mapping[str, Any]: ...
+
+    @property
+    @abstractmethod
+    def outputs(self) -> Mapping[str, Any]: ...
+
+
 class ContainerTaskConstructor(Protocol):
-    """Callable which takes component spec, generates task object."""
+    """Callable which takes component spec and generates task object."""
 
     def __call__(
             self,
             component_spec: ComponentSpec,
             arguments: Mapping[str, Any],
             component_ref: ComponentReference = None,
-    ) -> TaskSpec:
+    ) -> ResolvedTask:
         """
         Args:
             component_spec (ComponentSpec): specification of the component,
@@ -291,7 +315,9 @@ class _DefaultValue:
 
 
 #TODO: Refactor the function to make it shorter
-def _create_task_factory_from_component_spec(component_spec:ComponentSpec, component_filename=None, component_ref: ComponentReference = None):
+def _create_task_factory_from_component_spec(
+    component_spec: ComponentSpec, component_filename=None, component_ref: ComponentReference = None
+) -> ResolvedTask:
     name = component_spec.name or _default_component_name
 
     func_docstring_lines = []
@@ -521,7 +547,7 @@ _ResolvedGraphTask = NamedTuple(
         ('component_spec', ComponentSpec),
         ('component_ref', ComponentReference),
         ('outputs', Mapping[str, Any]),
-        ('task_arguments', Mapping[str, Any]),
+        ('arguments', Mapping[str, Any]),
     ],
 )
 
@@ -530,7 +556,7 @@ def _resolve_graph_task(
     component_spec: ComponentSpec,
     arguments: Mapping[str, Any],
     component_ref: ComponentReference = None,
-) -> TaskSpec:
+) -> ResolvedTask:
     from ..components import ComponentStore
     component_store = ComponentStore.default_store
 
@@ -573,6 +599,6 @@ def _resolve_graph_task(
         component_ref=component_ref,
         component_spec=component_spec,
         outputs = resolved_graph_outputs,
-        task_arguments=arguments,
+        arguments=arguments,
     )
     return graph_task
