@@ -1,4 +1,4 @@
-# Kubeflow Pipelines Feature Status
+# Kubeflow Pipelines Feature Stages
 
 The features in Kubeflow Pipelines fall into three different stages: stable, beta and alpha.
 
