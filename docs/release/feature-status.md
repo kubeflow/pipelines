@@ -30,7 +30,7 @@ All of the guarantees for Beta and:
 
 Note, these packages are stable in general, but specific classes, methods, and arguments might be in a different stage. Refer to [their own documentation](https://kubeflow-pipelines.readthedocs.io/en/latest/source/kfp.dsl.html).
 
-### APIs
+### Core APIs
 
 |                  | Upload | Create | Get | List | Delete | Archive | Unarchive | Enable | Disable | Terminate | Retry |
 |:----------------:|:------:|:------:|:---:|:----:|:------:|:-------:|:---------:|:------:|:-------:|:---------:|:-----:|
@@ -50,9 +50,9 @@ for how to manage the Kubeflow Pipelines resources via the Kubeflow Pipelines cl
 
 * Job API
 
-|                  | Upload | Create | Get | List | Delete | Archive | Unarchive | Enable | Disable | Terminate | Retry |
-|:----------------:|:------:|:------:|:---:|:----:|:------:|:-------:|:---------:|:------:|:-------:|:---------:|:-----:|
-| Job              |        |  ☑️ |☑️|☑️ | ☑️  |         |           | ☑️  | ☑️   |
+  |                  | Upload | Create | Get | List | Delete | Archive | Unarchive | Enable | Disable | Terminate | Retry |
+  |:----------------:|:------:|:------:|:---:|:----:|:------:|:-------:|:---------:|:------:|:-------:|:---------:|:-----:|
+  | Job              |        |  ☑️ |☑️|☑️ | ☑️  |         |           | ☑️  | ☑️   |
 
 
 * [Upgrade support for the Kubeflow Pipelines standalone deployment](https://www.kubeflow.org/docs/pipelines/installation/standalone-deployment/#upgrading-kubeflow-pipelines).
