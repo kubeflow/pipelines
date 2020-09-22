@@ -1,37 +1,32 @@
-# Kubeflow Pipelines Versioning Policy
-
-The Kubeflow Pipelines versions follows [the semantic versioning](https://semver.org/).
-The Kubeflow Pipelines versions are in the format of `X.Y.Z`, where `X` is the major version,
-`Y` is the minor version, and `Z` is the patch version.
-
-We increment the:
-* MAJOR version when we make incompatible API changes on [generally available features](#features-in-general-availability),
-* MINOR version when we add functionality in a backwards compatible manner, and
-* PATCH version when we make backwards compatible bug fixes.
-
-Additionally, we do pre-releases as an extension in the format of `X.Y.Z-rc.N`
-where `N` is a number. The appendix indicates the Nth release candidate before
-an upcoming public release.
-
-The Kubeflow Pipelines version `X.Y.Z` refers to the version (git tag) of the released
-Kubeflow Pipelines. It versions all released artifacts, including:
-* `kfp` and `kfp-server-api` python packages
-* install manifests
-* docker images on gcr.io
-* first party components
-
 # Kubeflow Pipelines Feature Status
 
-The features in Kubeflow Pipelines fall into three different phases: general availability, beta and alpha.
+The features in Kubeflow Pipelines fall into three different stages: stable, beta and alpha.
 
-- The features in the general availability phase are stable. They have active
-support for bug fixes. Only backward compatible features will be added.
-- The features in beta phase are mostly stable. We reserve the right to make
-breaking changes, but we'll provide deprecation notice and a migration path.
-- The features in alpha phase are early. They haven't been tested extensively.
-They are subject to drastic and potentially backward incompatible changes.
+## Stage criteria and support levels
 
-## Features in general availability
+### Alpha
+* The software is very likely to contain bugs.
+* The support for a feature may be dropped at any time without notice in advance.
+* The API may change in incompatible ways in a later software release without notice.
+* The software is recommended for use only in short-lived testing environments, due to increased risk of bugs and lack of long-term support.
+* Documentation in https://github.com/kubeflow/pipelines/tree/master/docs (technical writing review not required).
+
+### Beta
+* The software is well tested.
+* The support for a feature will not be dropped, though the details may change.
+* The schema and/or semantics of objects may change in incompatible ways in a subsequent beta or stable release. When this happens, migration instructions are provided.
+* The software is recommended for only non-business-critical uses because of potential for incompatible changes in subsequent releases.
+* Full documentation on user facing channels (kubeflow.org and reference websites).
+
+### Stable
+All of the guarantees for Beta and:
+* No breaking changes without a major version bump.
+* The software is recommended for all uses.
+
+## Stable Features
+
+* SDK DSL for constructing a pipeline.
+* [ComponentSpec](https://github.com/kubeflow/pipelines/blob/release-1.0/sdk/python/kfp/components/structures/components.json_schema.json).
 
 ### APIs
 
@@ -51,8 +46,6 @@ for how to manage the Kubeflow Pipelines resources via the Kubeflow Pipelines cl
 
 ## Features in Beta
 
-* [ComponentSpec](https://github.com/kubeflow/pipelines/blob/release-1.0/sdk/python/kfp/components/structures/components.json_schema.json)
-
 * Job API
 
 |                  | Upload | Create | Get | List | Delete | Archive | Unarchive | Enable | Disable | Terminate | Retry |
@@ -60,18 +53,19 @@ for how to manage the Kubeflow Pipelines resources via the Kubeflow Pipelines cl
 | Job              |        |  - [x] |- [x]|- [x] | - [x]  |         |           | - [x]  | - [x]   |
 
 
-* SDK DSL for constructing a pipeline.
-
 * [Upgrade support for the Kubeflow Pipelines standalone deployment](https://www.kubeflow.org/docs/pipelines/installation/standalone-deployment/#upgrading-kubeflow-pipelines).
 
 * [Built-in Visualizations](https://www.kubeflow.org/docs/pipelines/sdk/output-viewer/).
 
+* [Pipeline Metrics](https://www.kubeflow.org/docs/pipelines/sdk/pipelines-metrics/).
+
+* [Multi-user Isolation](https://www.kubeflow.org/docs/pipelines/multi-user/).
 
 ## Features in Alpha
 
 * [SDK client helper methods](https://kubeflow-pipelines.readthedocs.io/en/latest/source/kfp.client.html). The helper methods are mainly maintained by
-community. They are convenient to use, but lack of error handling and testing
-prevent us moving it to Beta quality right now.
+community. They are convenient to use, but some problems including lack of testing
+prevent us moving it to Beta quality right now. Refer to [SDK Client Beta Blockers project](https://github.com/kubeflow/pipelines/projects/7) for specific issues.
 
   We recommend and support auto-generated client APIs instead. For example,
   `client.pipelines.list_pipelines()`, `client.runs.list_runs()` and
@@ -85,9 +79,3 @@ prevent us moving it to Beta quality right now.
   For example, artifact and execution list and detail pages.
 
 * [Python based custom visualization](https://www.kubeflow.org/docs/pipelines/sdk/python-based-visualizations/).
-
-* [Pipeline Metrics](https://www.kubeflow.org/docs/pipelines/sdk/pipelines-metrics/).
-
-* [Multi User Support](https://github.com/kubeflow/pipelines/issues/1223) will
-  not be present in Kubeflow Pipelines 1.0's standalone deployment. It
-  will instead get released with Kubeflow 1.1.
