@@ -21,3 +21,6 @@ requests_toolbelt>=0.8.0
 # CLI
 tabulate
 click
+
+# backwards-compatibility for older pythons
+typing_extensions

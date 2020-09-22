@@ -22,7 +22,7 @@ __all__ = [
 import copy
 import sys
 from collections import OrderedDict
-from typing import Any, List, Mapping, NamedTuple, Sequence, Union
+from typing import Any, List, Mapping, NamedTuple, Sequence, Union, Callable
 from ._naming import _sanitize_file_name, _sanitize_python_function_name, generate_unique_name_conversion_table
 from ._yaml_utils import load_yaml
 from .structures import *
@@ -240,14 +240,18 @@ def _create_task_spec_from_component_and_arguments(
 
     return task
 
+# Contract:
+#  - argument map's keys must match input names specified in spec
+#  - the result's "outputs" must match output names specified in spec
+ContainerTaskConstructor = Callable[[ComponentSpec, Mapping[str, Any], ComponentReference], TaskSpec]
 
-_default_container_task_constructor = _create_task_spec_from_component_and_arguments
+_default_container_task_constructor = _create_task_spec_from_component_and_arguments #type: ContainerTaskConstructor
 
 # Holds the function that constructs a task object based on ComponentSpec, arguments and ComponentReference.
 # Framework authors can override this constructor function to construct different framework-specific task-like objects.
 # The task object should have the task.outputs dictionary with keys corresponding to the ComponentSpec outputs.
 # The default constructor creates and instance of the TaskSpec class.
-_container_task_constructor = _default_container_task_constructor
+_container_task_constructor = _default_container_task_constructor #type: ContainerTaskConstructor
 
 
 _always_expand_graph_components = False

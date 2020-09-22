@@ -38,6 +38,7 @@ rsa==4.0                  # via google-auth
 six==1.14.0               # via google-api-core, google-auth, google-resumable-media, jsonschema, kfp-server-api, kubernetes, protobuf, pyrsistent, python-dateutil, websocket-client
 strip-hints==0.1.8        # via -r requirements.in
 tabulate==0.8.6           # via -r requirements.in
+typing-extensions==3.7.4.3  # via -r requirements.in
 urllib3==1.25.8           # via kfp-server-api, kubernetes, requests
 websocket-client==0.57.0  # via kubernetes
 wheel==0.34.2             # via strip-hints
