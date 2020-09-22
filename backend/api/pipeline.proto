@@ -22,7 +22,6 @@ import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
 import "backend/api/error.proto";
 import "backend/api/parameter.proto";
-import "backend/api/pipeline_spec.proto";
 import "backend/api/resource_reference.proto";
 import "protoc-gen-swagger/options/annotations.proto";
 
