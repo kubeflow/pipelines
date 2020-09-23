@@ -554,13 +554,13 @@ func (r *ResourceManager) RetryRun(runId string) error {
 	return nil
 }
 
-func (r *ResourceManager) ReadLog(runId string, nodeId string, dst io.Writer) error {
+func (r *ResourceManager) ReadLog(runId string, nodeId string, follow bool, dst io.Writer) error {
 	run, err := r.checkRunExist(runId)
 	if err != nil {
 		return util.NewBadRequestError(errors.New("log cannot be read"), "Run does not exist")
 	}
 
-	err = r.readRunLogFromPod(run, nodeId, dst)
+	err = r.readRunLogFromPod(run, nodeId, follow, dst)
 	if err != nil && r.logArchive != nil {
 		err = r.readRunLogFromArchive(run, nodeId, dst)
 	}
@@ -568,10 +568,11 @@ func (r *ResourceManager) ReadLog(runId string, nodeId string, dst io.Writer) er
 	return err
 }
 
-func (r *ResourceManager) readRunLogFromPod(run *model.RunDetail, nodeId string, dst io.Writer) error {
+func (r *ResourceManager) readRunLogFromPod(run *model.RunDetail, nodeId string, follow bool, dst io.Writer) error {
 	logOptions := corev1.PodLogOptions{
 		Container:  "main",
 		Timestamps: false,
+		Follow:     follow,
 	}
 
 	req := r.k8sCoreClient.PodClient(run.Namespace).GetLogs(nodeId, &logOptions)
