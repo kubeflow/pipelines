@@ -27,7 +27,7 @@ exports[`RunDetails closes side panel when close button is clicked 1`] = `
         <div
           className="page"
         >
-          <EnhancedGraph
+          <GraphMock
             graph={
               Graph {
                 "_defaultEdgeLabelFn": [Function],
@@ -529,7 +529,7 @@ exports[`RunDetails logs tab does not load logs if clicked node status is skippe
         <div
           className="page"
         >
-          <EnhancedGraph
+          <GraphMock
             graph={
               Graph {
                 "_defaultEdgeLabelFn": [Function],
@@ -631,7 +631,7 @@ exports[`RunDetails logs tab keeps side pane open and on same tab when logs chan
         <div
           className="page"
         >
-          <EnhancedGraph
+          <GraphMock
             graph={
               Graph {
                 "_defaultEdgeLabelFn": [Function],
@@ -749,7 +749,7 @@ exports[`RunDetails logs tab loads and shows logs in side pane 1`] = `
         <div
           className="page"
         >
-          <EnhancedGraph
+          <GraphMock
             graph={
               Graph {
                 "_defaultEdgeLabelFn": [Function],
@@ -867,7 +867,7 @@ exports[`RunDetails logs tab switches to logs tab in side pane 1`] = `
         <div
           className="page"
         >
-          <EnhancedGraph
+          <GraphMock
             graph={
               Graph {
                 "_defaultEdgeLabelFn": [Function],
@@ -985,7 +985,7 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
         <div
           className="page"
         >
-          <EnhancedGraph
+          <GraphMock
             graph={
               Graph {
                 "_defaultEdgeLabelFn": [Function],
@@ -1131,84 +1131,6 @@ exports[`RunDetails renders an empty run 1`] = `
           >
             No graph to show
           </span>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-`;
-
-exports[`RunDetails shows a one-node graph 1`] = `
-<div
-  className="page"
->
-  <div
-    className="page"
-  >
-    <MD2Tabs
-      onSwitch={[Function]}
-      selectedTab={0}
-      tabs={
-        Array [
-          "Graph",
-          "Run output",
-          "Config",
-        ]
-      }
-    />
-    <div
-      className="page"
-    >
-      <div
-        className="page graphPane"
-      >
-        <div
-          className="page"
-        >
-          <EnhancedGraph
-            graph={
-              Graph {
-                "_defaultEdgeLabelFn": [Function],
-                "_defaultNodeLabelFn": [Function],
-                "_edgeLabels": Object {},
-                "_edgeObjs": Object {},
-                "_in": Object {},
-                "_isCompound": false,
-                "_isDirected": true,
-                "_isMultigraph": false,
-                "_label": Object {},
-                "_nodes": Object {},
-                "_out": Object {},
-                "_preds": Object {},
-                "_sucs": Object {},
-              }
-            }
-            onClick={[Function]}
-            onError={[Function]}
-            selectedNodeId=""
-          />
-          <SidePanel
-            isBusy={false}
-            isOpen={false}
-            onClose={[Function]}
-            title=""
-          />
-          <div
-            className="footer"
-          >
-            <div
-              className="flex"
-            >
-              <pure(InfoOutlinedIcon)
-                className="infoIcon"
-              />
-              <span
-                className="infoSpan"
-              >
-                Runtime execution graph. Only steps that are currently running or have already completed are shown.
-              </span>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -1571,7 +1493,7 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
         <div
           className="page"
         >
-          <EnhancedGraph
+          <GraphMock
             graph={
               Graph {
                 "_defaultEdgeLabelFn": [Function],
@@ -1728,7 +1650,7 @@ exports[`RunDetails switches to manifest tab in side pane 1`] = `
         <div
           className="page"
         >
-          <EnhancedGraph
+          <GraphMock
             graph={
               Graph {
                 "_defaultEdgeLabelFn": [Function],
@@ -1879,7 +1801,7 @@ exports[`RunDetails switches to volumes tab in side pane 1`] = `
         <div
           className="page"
         >
-          <EnhancedGraph
+          <GraphMock
             graph={
               Graph {
                 "_defaultEdgeLabelFn": [Function],
