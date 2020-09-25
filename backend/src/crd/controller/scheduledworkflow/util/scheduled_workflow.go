@@ -252,6 +252,9 @@ func (s *ScheduledWorkflow) getNextScheduledEpoch(nowEpoch int64) int64 {
 
 	// Cron schedule
 	if s.Spec.Trigger.CronSchedule != nil {
+		nowTime := time.Unix(nowEpoch, 0)
+		var *time.Location loc := getLocation()
+		nowTime = nowTime.in(loc)
 		schedule := NewCronSchedule(s.Spec.Trigger.CronSchedule)
 		if catchup {
 			return schedule.GetNextScheduledEpoch(

@@ -16,5 +16,6 @@ package util
 
 const (
 	// ControllerAgentName is the name of the controller.
-	ControllerAgentName = "scheduled-workflow-controller"
+	ControllerAgentName        = "scheduled-workflow-controller"
+	TimeZone            string = "KUBEFLOW_USERID_PREFIX"
 )
