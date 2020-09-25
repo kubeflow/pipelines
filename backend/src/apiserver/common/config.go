@@ -33,6 +33,10 @@ const (
 	UpdatePipelineVersionByDefault      string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
 )
 
+func IsPipelineVersionUpdatedByDefault() string {
+	return GetStringConfigWithDefault(UpdatePipelineVersionByDefault, "true")
+}
+
 func GetStringConfig(configName string) string {
 	if !viper.IsSet(configName) {
 		glog.Fatalf("Please specify flag %s", configName)

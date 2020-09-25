@@ -23,7 +23,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/jsonpb"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
@@ -157,8 +156,12 @@ func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *h
 	}
 
 	defaultVersionQueryString := r.URL.Query().Get(UpdateDefaultVersionQueryStringKey)
-	// If pipeline default version should be updated is not specified in query string, default to true.
-	updateDefaultVersion := common.GetBoolFromStringWithDefault(defaultVersionQueryString, true)
+	// If pipeline version update indicator is not passed, default to true.
+	updateDefaultVersion, err := GetDefaultVersionUpdate(defaultVersionQueryString)
+	if err != nil {
+		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Please specify a valid pipeline default update bool indicator"))
+		return
+	}
 	newPipelineVersion, err := s.resourceManager.CreatePipelineVersion(
 		&api.PipelineVersion{
 			Name: pipelineVersionName,
