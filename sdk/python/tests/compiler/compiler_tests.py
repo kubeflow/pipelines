@@ -1003,3 +1003,8 @@ implementation:
         self.assertNotIn(' ', argument['name'], 'The input name "{}" of template "{}" was not sanitized.'.format(argument['name'], template['name']))
       for argument in template['inputs']['artifacts']:
         self.assertNotIn(' ', argument['name'], 'The input name "{}" of template "{}" was not sanitized.'.format(argument['name'], template['name']))
+
+  def test_keyword_only_argument_for_pipeline_func(self):
+    def some_pipeline(casual_argument: str, *, keyword_only_argument: str):
+      pass
+    kfp.compiler.Compiler().compile(some_pipeline)
