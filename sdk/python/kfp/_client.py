@@ -829,7 +829,7 @@ class Client(object):
     pipeline_version_name: str,
     pipeline_id: Optional[str] = None,
     pipeline_name: Optional[str] = None,
-    update_default_version: Optional[str] = None,
+    update_default_version: Optional[bool] = None,
   ):
     """Uploads a new version of the pipeline to the Kubeflow Pipelines cluster.
     Args:
@@ -837,8 +837,8 @@ class Client(object):
       pipeline_version_name:  Name of the pipeline version to be shown in the UI.
       pipeline_id: Optional. Id of the pipeline.
       pipeline_name: Optional. Name of the pipeline.
-      update_default_version: Optional. 'true' or 'false' depending on if pipeline 
-      default version should be updated or not. 
+      update_default_version: Optional. An indicator if pipeline default version 
+      should be updated or not. 
     Returns:
       Server response object containing pipleine id and other information.
     Throws:
