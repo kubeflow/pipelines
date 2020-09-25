@@ -471,10 +471,52 @@ def create_model_request(args):
 
     return request
 
+def endpoint_name_exists(client, endpoint_name):
+  try:
+      endpoint_name = client.describe_endpoint(EndpointName=endpoint_name)['EndpointName']
+      logging.info("Endpoint exists: " + endpoint_name)
+      return True
+  except ClientError as e:
+      logging.debug("Endpoint does not exist")
+  return False
+
+def endpoint_config_name_exists(client, endpoint_config_name):
+  try:
+      config_name = client.describe_endpoint_config(EndpointConfigName=endpoint_config_name)['EndpointConfigName']
+      logging.info("Endpoint Config exists: " + config_name)
+      return True
+  except ClientError as e:
+      logging.info("Endpoint Config does not exist:" + endpoint_config_name)
+  return False
+
+def update_deployed_model(client, args):
+    endpoint_config_name = create_endpoint_config(client, args)
+    endpoint_name = update_endpoint(client, args['region'], args['endpoint_name'], endpoint_config_name)
+    return endpoint_name
+
 def deploy_model(client, args):
-  endpoint_config_name = create_endpoint_config(client, args)
-  endpoint_name = create_endpoint(client, args['region'], args['endpoint_name'], endpoint_config_name, args['endpoint_tags'])
-  return endpoint_name
+    args['update_endpoint'] = False
+    endpoint_config_name = create_endpoint_config(client, args)
+    endpoint_name = create_endpoint(client, args['region'], args['endpoint_name'], endpoint_config_name, args['endpoint_tags'])
+    return endpoint_name
+
+def get_endpoint_config(client, endpoint_name):
+    endpoint_config_name = None
+    try:
+        endpoint_config_name = client.describe_endpoint(EndpointName=endpoint_name)['EndpointConfigName']
+        logging.info("Current Endpoint Config Name: " + endpoint_config_name)
+    except ClientError as e:
+        logging.info("Endpoint Config does not exist")
+        ## This is not an error, end point may not exist
+    return endpoint_config_name
+
+def delete_endpoint_config(client, endpoint_config_name):
+    try:
+        client.delete_endpoint_config(EndpointConfigName=endpoint_config_name)
+        return True
+    except ClientError as e:
+        logging.info("Endpoint config may not exist to be deleted: " + e.response['Error']['Message'])
+    return False
 
 def create_endpoint_config_request(args):
     ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_endpoint_config
@@ -485,7 +527,7 @@ def create_endpoint_config_request(args):
         logging.error("Must specify at least one model (model name) to host.")
         raise Exception("Could not create endpoint config.")
 
-    endpoint_config_name = args['endpoint_config_name'] if args['endpoint_config_name'] else 'EndpointConfig' + args['model_name_1'][args['model_name_1'].index('-'):]
+    endpoint_config_name = args['endpoint_config_name']
     request['EndpointConfigName'] = endpoint_config_name
 
     if args['resource_encryption_key']:
@@ -517,7 +559,17 @@ def create_endpoint_config_request(args):
 
     return request
 
+def get_endpoint_config_name(client, args):
+    ## boto3 documentation says to update an endpoint, a new EndPointConfig has to be created
+    ## and the one currently in use should NOT be deleted. Appending a random number to resolve conflict
+    endpoint_config_name = args['endpoint_config_name'] if args['endpoint_config_name'] else 'EndpointConfig' + "-" + id_generator(8)
+    if args['update_endpoint'] and endpoint_config_name_exists(client, endpoint_config_name):
+        endpoint_config_name = endpoint_config_name + "-" + id_generator(8)
+        logging.info("Changed endpoint_config_name to: " + endpoint_config_name)
+    return endpoint_config_name
+
 def create_endpoint_config(client, args):
+    args['endpoint_config_name'] = get_endpoint_config_name(client, args)
     request = create_endpoint_config_request(args)
     try:
         create_endpoint_config_response = client.create_endpoint_config(**request)
@@ -528,6 +580,20 @@ def create_endpoint_config(client, args):
     except ClientError as e:
         raise Exception(e.response['Error']['Message'])
 
+def update_endpoint(client, region, endpoint_name, endpoint_config_name):
+  try:
+      update_endpoint_response = client.update_endpoint(
+          EndpointName=endpoint_name,
+          EndpointConfigName=endpoint_config_name,
+          )
+      logging.info("Updating endpoint with name: " + endpoint_name)
+      logging.info("Endpoint in SageMaker: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/endpoints/{}"
+          .format(region, region, endpoint_name))
+      logging.info("CloudWatch logs: https://{}.console.aws.amazon.com/cloudwatch/home?region={}#logStream:group=/aws/sagemaker/Endpoints/{};streamFilter=typeLogStreamPrefix"
+          .format(region, region, endpoint_name))
+      return endpoint_name
+  except ClientError as e:
+      raise Exception(e.response['Error']['Message'])
 
 def create_endpoint(client, region, endpoint_name, endpoint_config_name, endpoint_tags):
   ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_endpoint
@@ -565,11 +631,11 @@ def wait_for_endpoint_creation(client, endpoint_name):
 
     if status != 'InService':
       message = resp['FailureReason']
-      logging.info('Create endpoint failed with the following error: {}'.format(message))
+      logging.info('Create/Update endpoint failed with the following error: {}'.format(message))
       raise Exception('Endpoint creation did not succeed')
 
     logging.info("Endpoint Arn: " + resp['EndpointArn'])
-    logging.info("Create endpoint ended with status: " + status)
+    logging.info("Create/Update endpoint ended with status: " + status)
 
 def create_transform_job_request(args):
     ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_transform_job

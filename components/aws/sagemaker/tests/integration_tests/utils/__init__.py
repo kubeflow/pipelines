@@ -85,12 +85,14 @@ def replace_placeholders(input_filename, output_filename):
         "((ROLE_ARN))": get_role_arn(),
         "((DATA_BUCKET))": get_s3_data_bucket(),
         "((KMEANS_REGISTRY))": get_algorithm_image_registry("kmeans", region, "1"),
-        "((XGBOOST_REGISTRY))": get_algorithm_image_registry("xgboost", region, "1.0-1"),
+        "((XGBOOST_REGISTRY))": get_algorithm_image_registry(
+            "xgboost", region, "1.0-1"
+        ),
         "((BUILTIN_RULE_IMAGE))": get_algorithm_image_registry("debugger", region),
         "((FSX_ID))": get_fsx_id(),
         "((FSX_SUBNET))": get_fsx_subnet(),
         "((FSX_SECURITY_GROUP))": get_fsx_security_group(),
-        "((ASSUME_ROLE_ARN))": get_assume_role_arn()
+        "((ASSUME_ROLE_ARN))": get_assume_role_arn(),
     }
 
     filedata = ""

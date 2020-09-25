@@ -137,6 +137,9 @@ func (s *JobApiTestSuite) TestJobApis() {
 	assert.Nil(t, err)
 
 	/* ---------- Create a new argument parameter job by uploading workflow manifest ---------- */
+	// Make sure the job is created at least 1 second later than the first one,
+	// because sort by created_at has precision of 1 second.
+	time.Sleep(1 * time.Second)
 	argParamsBytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
 	assert.Nil(t, err)
 	argParamsBytes, err = yaml.ToJSON(argParamsBytes)

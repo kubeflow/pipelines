@@ -1,0 +1,22 @@
+name: Convert Keras HDF5 model to Tensorflow Lite model
+inputs:
+- {name: Model, type: KerasModelHdf5}
+outputs:
+- {name: Model, type: TensorflowLiteModel}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+implementation:
+  container:
+    image: tensorflow/tensorflow:2.3.0
+    command:
+    - sh
+    - -exc
+    - |
+      model_path="$0"
+      output_model_path="$1"
+      mkdir -p "$(dirname "$output_model_path")"
+      
+      tflite_convert --keras_model_file "$model_path" --output_file "$output_model_path"
+    - {inputPath: Model}
+    - {outputPath: Model}

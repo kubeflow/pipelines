@@ -33,8 +33,10 @@ from .structures import *
 
 import inspect
 from pathlib import Path
-import typing
-from typing import Callable, Generic, List, TypeVar, Union
+from typing import Callable, List, TypeVar
+import warnings
+
+import docstring_parser
 
 T = TypeVar('T')
 
@@ -257,11 +259,15 @@ def _capture_function_code_using_source_copy(func) -> str:
     return func_code
 
 
-def _extract_component_interface(func) -> ComponentSpec:
+def _extract_component_interface(func: Callable) -> ComponentSpec:
     single_output_name_const = 'Output'
 
     signature = inspect.signature(func)
     parameters = list(signature.parameters.values())
+
+    parsed_docstring = docstring_parser.parse(inspect.getdoc(func))
+    doc_dict = {p.arg_name: p.description for p in parsed_docstring.params}
+
     inputs = []
     outputs = []
 
@@ -317,6 +323,7 @@ def _extract_component_interface(func) -> ComponentSpec:
             output_spec = OutputSpec(
                 name=io_name,
                 type=type_struct,
+                description=doc_dict.get(parameter.name)
             )
             output_spec._passing_style = passing_style
             output_spec._parameter_name = parameter.name
@@ -327,12 +334,16 @@ def _extract_component_interface(func) -> ComponentSpec:
             input_spec = InputSpec(
                 name=io_name,
                 type=type_struct,
+                description=doc_dict.get(parameter.name)
             )
             if parameter.default is not inspect.Parameter.empty:
                 input_spec.optional = True
                 if parameter.default is not None:
                     outer_type_name = list(type_struct.keys())[0] if isinstance(type_struct, dict) else type_struct
-                    input_spec.default = serialize_value(parameter.default, outer_type_name)
+                    try:
+                        input_spec.default = serialize_value(parameter.default, outer_type_name)
+                    except Exception as ex:
+                        warnings.warn('Could not serialize the default value of the parameter "{}". {}'.format(parameter.name, ex))
             input_spec._passing_style = passing_style
             input_spec._parameter_name = parameter.name
             inputs.append(input_spec)
@@ -356,7 +367,6 @@ def _extract_component_interface(func) -> ComponentSpec:
             outputs.append(output_spec)
     # Deprecated dict-based way of declaring multiple outputs. Was only used by the @component decorator
     elif isinstance(return_ann, dict):
-        import warnings
         warnings.warn(
             "The ability to specify multiple outputs using the dict syntax has been deprecated."
             "It will be removed soon after release 0.1.32."
@@ -384,13 +394,9 @@ def _extract_component_interface(func) -> ComponentSpec:
     # The name can be overridden by setting setting func.__name__ attribute (of the legacy func._component_human_name attribute).
     # The description can be overridden by setting the func.__doc__ attribute (or the legacy func._component_description attribute).
     component_name = getattr(func, '_component_human_name', None) or _python_function_name_to_component_name(func.__name__)
-    description = getattr(func, '_component_description', None) or func.__doc__
+    description = getattr(func, '_component_description', None) or parsed_docstring.short_description
     if description:
         description = description.strip()
-
-    # TODO: Parse input/output descriptions from the function docstring. See:
-    # https://github.com/rr-/docstring_parser
-    # https://github.com/terrencepreilly/darglint/blob/master/darglint/parse.py
 
     component_spec = ComponentSpec(
         name=component_name,
