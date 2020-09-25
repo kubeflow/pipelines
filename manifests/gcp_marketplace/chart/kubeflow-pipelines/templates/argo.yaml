@@ -103,6 +103,7 @@ rules:
       - ""
     resources:
       - persistentvolumeclaims
+      - events
     verbs:
       - create
       - delete

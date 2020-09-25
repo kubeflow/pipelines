@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-def use_aws_secret(secret_name='aws-secret', aws_access_key_id_name='AWS_ACCESS_KEY_ID', aws_secret_access_key_name='AWS_SECRET_ACCESS_KEY'):
+def use_aws_secret(secret_name='aws-secret', aws_access_key_id_name='AWS_ACCESS_KEY_ID', aws_secret_access_key_name='AWS_SECRET_ACCESS_KEY', aws_region=None):
     """An operator that configures the container to use AWS credentials.
 
     AWS doesn't create secret along with kubeflow deployment and it requires users
@@ -32,31 +32,38 @@ def use_aws_secret(secret_name='aws-secret', aws_access_key_id_name='AWS_ACCESS_
 
     def _use_aws_secret(task):
         from kubernetes import client as k8s_client
-        (
-            task.container
-                .add_env_variable(
-                    k8s_client.V1EnvVar(
-                        name='AWS_ACCESS_KEY_ID',
-                        value_from=k8s_client.V1EnvVarSource(
-                            secret_key_ref=k8s_client.V1SecretKeySelector(
-                                name=secret_name,
-                                key=aws_access_key_id_name
-                            )
+        task.container \
+            .add_env_variable(
+                k8s_client.V1EnvVar(
+                    name='AWS_ACCESS_KEY_ID',
+                    value_from=k8s_client.V1EnvVarSource(
+                        secret_key_ref=k8s_client.V1SecretKeySelector(
+                            name=secret_name,
+                            key=aws_access_key_id_name
                         )
                     )
                 )
-                .add_env_variable(
-                    k8s_client.V1EnvVar(
-                        name='AWS_SECRET_ACCESS_KEY',
-                        value_from=k8s_client.V1EnvVarSource(
-                            secret_key_ref=k8s_client.V1SecretKeySelector(
-                                name=secret_name,
-                                key=aws_secret_access_key_name
-                            )
+            ) \
+            .add_env_variable(
+                k8s_client.V1EnvVar(
+                    name='AWS_SECRET_ACCESS_KEY',
+                    value_from=k8s_client.V1EnvVarSource(
+                        secret_key_ref=k8s_client.V1SecretKeySelector(
+                            name=secret_name,
+                            key=aws_secret_access_key_name
                         )
                     )
                 )
-        )
+            )
+
+        if aws_region:
+            task.container \
+                .add_env_variable(
+                    k8s_client.V1EnvVar(
+                        name='AWS_REGION',
+                        value=aws_region
+                    )
+                )
         return task
 
     return _use_aws_secret

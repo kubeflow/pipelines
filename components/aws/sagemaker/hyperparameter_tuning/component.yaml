@@ -154,7 +154,7 @@ outputs:
     description: 'The registry path of the Docker image that contains the training algorithm'
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:0.8.0
+    image: amazon/aws-sagemaker-kfp-components:0.9.0
     command: ['python3']
     args: [
       hyperparameter_tuning.py,

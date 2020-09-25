@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+from typing import Union
 from . import _container_op
 from . import _resource_op
 from . import _ops_group
@@ -60,6 +60,7 @@ class PipelineConf():
     self.image_pull_secrets = []
     self.timeout = 0
     self.ttl_seconds_after_finished = -1
+    self._pod_disruption_budget_min_available = None
     self.op_transformers = []
     self.default_pod_node_selector = {}
     self.image_pull_policy = None
@@ -102,6 +103,18 @@ class PipelineConf():
       seconds: number of seconds for the workflow to be garbage collected after it is finished.
     """
     self.ttl_seconds_after_finished = seconds
+    return self
+
+  def set_pod_disruption_budget(self, min_available: Union[int, str]):
+    """ PodDisruptionBudget holds the number of concurrent disruptions that you allow for pipeline Pods.
+
+    Args:
+        min_available (Union[int, str]):  An eviction is allowed if at least "minAvailable" pods selected by 
+        "selector" will still be available after the eviction, i.e. even in the
+	      absence of the evicted pod.  So for example you can prevent all voluntary
+	      evictions by specifying "100%". "minAvailable" can be either an absolute number or a percentage.
+    """
+    self._pod_disruption_budget_min_available = min_available
     return self
 
   def set_default_pod_node_selector(self, label_name: str, value: str):

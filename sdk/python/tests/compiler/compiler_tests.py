@@ -355,6 +355,10 @@ class TestCompiler(unittest.TestCase):
     """Test pipeline with multiple pipeline params."""
     self._test_py_compile_yaml('pipelineparams')
 
+  def test_py_compile_with_opsgroups(self):
+    """Test pipeline with multiple opsgroups."""
+    self._test_py_compile_yaml('opsgroups')
+
   def test_py_compile_condition(self):
     """Test a pipeline with conditions."""
     self._test_py_compile_zip('coin')
@@ -669,6 +673,23 @@ implementation:
 
     workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
     self.assertEqual(workflow_dict['spec']['ttlSecondsAfterFinished'], 86400)
+
+  def test_pod_disruption_budget(self):
+    """Test a pipeline with poddisruption budget."""
+    def some_op():
+        return dsl.ContainerOp(
+            name='sleep',
+            image='busybox',
+            command=['sleep 1'],
+        )
+
+    @dsl.pipeline()
+    def some_pipeline():
+      some_op()
+      dsl.get_pipeline_conf().set_pod_disruption_budget("100%")
+
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    self.assertEqual(workflow_dict['spec']["podDisruptionBudget"]['minAvailable'], "100%")
 
   def test_op_transformers(self):
     def some_op():

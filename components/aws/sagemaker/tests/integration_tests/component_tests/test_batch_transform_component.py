@@ -83,8 +83,9 @@ def test_transform_job(
     )
     assert s3_utils.check_object_exists(s3_client, s3_data_bucket, file_key)
 
-    assert not argo_utils.error_in_cw_logs(workflow_json["metadata"]["name"]), \
-        ('Found the CloudWatch error message in the log output. Check SageMaker to see if the job has failed.')
+    assert not argo_utils.error_in_cw_logs(
+        workflow_json["metadata"]["name"]
+    ), "Found the CloudWatch error message in the log output. Check SageMaker to see if the job has failed."
 
     utils.remove_dir(download_dir)
 
@@ -104,9 +105,7 @@ def test_terminate_transformJob(kfp_client, experiment_id, region, sagemaker_cli
     # Generate random prefix for model, job name to avoid errors if resources with same name exists
     test_params["Arguments"]["model_name"] = test_params["Arguments"][
         "job_name"
-    ] = input_job_name = (
-        utils.generate_random_string(4) + "-terminate-job"
-    )
+    ] = input_job_name = (utils.generate_random_string(4) + "-terminate-job")
 
     run_id, _, workflow_json = kfp_client_utils.compile_run_monitor_pipeline(
         kfp_client,

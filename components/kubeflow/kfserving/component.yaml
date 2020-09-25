@@ -12,7 +12,8 @@ inputs:
   - {name: Canary Custom Model Spec,        type: String, default: '{}', description: 'Custom runtime canary custom model container spec.'}
   - {name: Autoscaling Target,              type: String, default: '0',        description: 'Autoscaling Target Number'}
   - {name: KFServing Endpoint,              type: String, default: '', description: 'KFServing remote deployer API endpoint'}
-  - {name: Service Account,                type: String, default: '', description: 'Model Service Account'}
+  - {name: Service Account,                 type: String, default: '', description: 'Model Service Account'}
+  - {name: Enable Istio Sidecar,            type: Bool,   default: 'True',     description: 'Whether to enable istio sidecar injection'}
 outputs:
   - {name: Service Endpoint URI, type: String,                      description: 'URI of the deployed prediction service..'}
 implementation:
@@ -33,5 +34,6 @@ implementation:
       --kfserving-endpoint,       {inputValue: KFServing Endpoint},
       --autoscaling-target,       {inputValue: Autoscaling Target},
       --service-account,          {inputValue: Service Account},
+      --enable-istio-sidecar,     {inputValue: Enable Istio Sidecar},
       --output-path,              {outputPath: Service Endpoint URI}
     ]

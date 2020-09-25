@@ -259,6 +259,12 @@ steps:
     docker push gcr.io/ml-pipeline/google/pipelines/visualizationserver:$(cat /workspace/mm.ver)
     docker push gcr.io/ml-pipeline/google/pipelines-test/visualizationserver:$(cat /workspace/mm.ver)
 
+# ! Sync to the same MLMD version:
+# * backend/metadata_writer/requirements.in and requirements.txt
+# * @kubeflow/frontend/src/mlmd/generated
+# * .cloudbuild.yaml and .release.cloudbuild.yaml
+# * manifests/kustomize/base/metadata/metadata-grpc-deployment.yaml
+# * test/tag_for_hosted.sh
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/tfx-oss-public/ml_metadata_store_server:0.22.1']
   id:   'pullMetadataServer'
