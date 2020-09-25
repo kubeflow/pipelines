@@ -46,25 +46,6 @@ func GetPipelineName(queryString string, fileName string) (string, error) {
 	return pipelineName, nil
 }
 
-// This method extract the common logic of the behaviour for updating the default pipeline version.
-// API caller can either explicitly decide through query string ?updatedefaultversion=false
-// or API server will use true by default.
-func GetDefaultVersionUpdate(queryString string) (bool, error) {
-	updateDefaultVersionString, err := url.QueryUnescape(queryString)
-	if err != nil {
-		return true, util.NewInvalidInputErrorWithDetails(err, "Update pipeline version value in the query string has invalid format.")
-	}
-	if updateDefaultVersionString == "" {
-		updateDefaultVersionString = common.IsPipelineVersionUpdatedByDefault()
-	}
-	updateDefaultVersion, err := strconv.ParseBool(updateDefaultVersionString)
-
-	if err != nil {
-		return true, util.NewInvalidInputErrorWithDetails(err, "Update pipeline version value in the query string has invalid value.")
-	}
-	return updateDefaultVersion, nil
-}
-
 func loadFile(fileReader io.Reader, maxFileLength int) ([]byte, error) {
 	reader := bufio.NewReader(fileReader)
 	pipelineFile := make([]byte, maxFileLength+1)

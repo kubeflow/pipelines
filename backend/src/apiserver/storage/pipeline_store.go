@@ -447,7 +447,7 @@ func NewPipelineStore(db *DB, time util.TimeInterface, uuid util.UUIDGeneratorIn
 	return &PipelineStore{db: db, time: time, uuid: uuid}
 }
 
-func (s *PipelineStore) CreatePipelineVersion(v *model.PipelineVersion, updatePipelineVersion bool) (*model.PipelineVersion, error) {
+func (s *PipelineStore) CreatePipelineVersion(v *model.PipelineVersion, updatePipelineDefaultVersion bool) (*model.PipelineVersion, error) {
 	newPipelineVersion := *v
 	newPipelineVersion.CreatedAtInSec = s.time.Now().Unix()
 	id, err := s.uuid.NewRandom()
@@ -475,7 +475,17 @@ func (s *PipelineStore) CreatePipelineVersion(v *model.PipelineVersion, updatePi
 			"Failed to create query to insert version to pipeline version table: %v",
 			versionErr.Error())
 	}
-
+	pipelineSql, pipelineArgs, pipelineErr := sq.
+		Update("pipelines").
+		SetMap(sq.Eq{"DefaultVersionId": newPipelineVersion.UUID}).
+		Where(sq.Eq{"UUID": newPipelineVersion.PipelineId}).
+		ToSql()
+	if pipelineErr != nil {
+		return nil, util.NewInternalServerError(
+			pipelineErr,
+			"Failed to create query to update pipeline default version id: %v",
+			pipelineErr.Error())
+	}
 	// In a single transaction, insert new version and update default version.
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -495,19 +505,7 @@ func (s *PipelineStore) CreatePipelineVersion(v *model.PipelineVersion, updatePi
 		return nil, util.NewInternalServerError(err, "Failed to add version to pipeline version table: %v",
 			err.Error())
 	}
-	if updatePipelineVersion {
-		pipelineSql, pipelineArgs, pipelineErr := sq.
-			Update("pipelines").
-			SetMap(sq.Eq{"DefaultVersionId": newPipelineVersion.UUID}).
-			Where(sq.Eq{"UUID": newPipelineVersion.PipelineId}).
-			ToSql()
-		if pipelineErr != nil {
-			return nil, util.NewInternalServerError(
-				pipelineErr,
-				"Failed to create query to update pipeline default version id: %v",
-				pipelineErr.Error())
-		}
-
+	if updatePipelineDefaultVersion {
 		_, err = tx.Exec(pipelineSql, pipelineArgs...)
 		if err != nil {
 			tx.Rollback()
