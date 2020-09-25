@@ -217,7 +217,7 @@ message CreatePipelineVersionRequest {
   PipelineVersion version = 1;
 
   // Bool indicating if pipeline defailt version should be updated or not
-  update_pipeline_default_version bool = 2;
+  bool update_pipeline_default_version = 2;
 }
 
 message GetPipelineVersionRequest {
