@@ -45,7 +45,8 @@ def _create_container_op_from_component_and_arguments(
             # TODO: insert importer node
             normalized_input_type = input_type.lower()
             if normalized_input_type in ir_types._artifact_types_mapping.keys():
-                # argument_value.op_name could be none, in which case  an importer node will be inserted later
+                # argument_value.op_name could be none, in which case an importer node will be inserted later
+                # use output_artifact_key to preserve the name of pipeline parameter which is needed by importer
                 pipeline_task_spec.inputs.artifacts[input_name].producer_task = argument_value.op_name or ''
                 pipeline_task_spec.inputs.artifacts[input_name].output_artifact_key = argument_value.name
             elif normalized_input_type in ir_types._parameter_types_mapping.keys():

@@ -187,6 +187,7 @@ class Compiler(object):
             conditions[g.name].add(param)
         else:
           _get_condition_params_for_ops_helper(g, new_current_conditions_params)
+
     _get_condition_params_for_ops_helper(root_group, [])
     return conditions
 
@@ -225,14 +226,14 @@ class Compiler(object):
     return subgroups
 
   def _get_inputs_outputs(
-          self,
-          pipeline,
-          root_group,
-          op_groups,
-          opsgroup_groups,
-          condition_params,
-          op_name_to_for_loop_op: Dict[Text, dsl.ParallelFor],
-          pipeline_spec: pipeline_spec_pb2.PipelineSpec,
+      self,
+      pipeline,
+      root_group,
+      op_groups,
+      opsgroup_groups,
+      condition_params,
+      op_name_to_for_loop_op: Dict[Text, dsl.ParallelFor],
+      pipeline_spec: pipeline_spec_pb2.PipelineSpec,
   ):
     """Get inputs and outputs of each group and op.
 
@@ -345,6 +346,7 @@ class Compiler(object):
       for param in op.inputs + list(condition_params[op.name]):
         if param.op_name:
           upstream_op_names.add(param.op_name)
+
       upstream_op_names |= set(op.dependent_names)
 
       for upstream_op_name in upstream_op_names:
@@ -423,7 +425,7 @@ class Compiler(object):
       template_inputs = [{'name': x[0]} for x in inputs[group.name]]
       template_inputs.sort(key=lambda x: x['name'])
       template['inputs'] = {
-        'parameters': template_inputs
+          'parameters': template_inputs
       }
 
     # Generate outputs section.
@@ -431,11 +433,12 @@ class Compiler(object):
       template_outputs = []
       for param_name, dependent_name in outputs[group.name]:
         template_outputs.append({
-          'name': param_name,
-          'valueFrom': {
-            'parameter': '{{tasks.%s.outputs.parameters.%s}}' % (dependent_name, param_name)
-          }
+            'name': param_name,
+            'valueFrom': {
+                'parameter': '{{tasks.%s.outputs.parameters.%s}}' % (dependent_name, param_name)
+            }
         })
+
       template_outputs.sort(key=lambda x: x['name'])
       template['outputs'] = {'parameters': template_outputs}
 
@@ -451,8 +454,8 @@ class Compiler(object):
         }
       else:
         task = {
-          'name': sub_group.name,
-          'template': sub_group.name,
+            'name': sub_group.name,
+            'template': sub_group.name,
         }
       if isinstance(sub_group, dsl.OpsGroup) and sub_group.type == 'condition':
         subgroup_inputs = inputs.get(sub_group.name, [])
@@ -486,7 +489,7 @@ class Compiler(object):
             withparam_value = '{{workflow.parameters.%s}}' % pipeline_param.name
           else:
             param_name = '%s-%s' % (
-              sanitize_k8s_name(pipeline_param.op_name), pipeline_param.name)
+                sanitize_k8s_name(pipeline_param.op_name), pipeline_param.name)
             withparam_value = '{{tasks.%s.outputs.parameters.%s}}' % (
                 sanitize_k8s_name(pipeline_param.op_name),
                 param_name)
@@ -520,10 +523,10 @@ class Compiler(object):
     return template
 
   def get_arguments_for_sub_group(
-          self,
-          sub_group: Union[OpsGroup, dsl._container_op.BaseOp],
-          is_recursive_subgroup: Optional[bool],
-          inputs: Dict[Text, Tuple[Text, Text]],
+      self,
+      sub_group: Union[OpsGroup, dsl._container_op.BaseOp],
+      is_recursive_subgroup: Optional[bool],
+      inputs: Dict[Text, Tuple[Text, Text]],
   ):
     arguments = []
     for param_name, dependent_name in inputs[sub_group.name]:
@@ -557,8 +560,8 @@ class Compiler(object):
           argument_value = '{{inputs.parameters.%s}}' % param_name
 
       arguments.append({
-        'name': argument_name,
-        'value': argument_value,
+          'name': argument_name,
+          'value': argument_value,
       })
 
     arguments.sort(key=lambda x: x['name'])
@@ -599,21 +602,21 @@ class Compiler(object):
     condition_params = self._get_condition_params_for_ops(root_group)
     op_name_to_for_loop_op = self._get_for_loop_ops(root_group)
     inputs, outputs = self._get_inputs_outputs(
-      pipeline,
-      root_group,
-      op_name_to_parent_groups,
-      opgroup_name_to_parent_groups,
-      condition_params,
-      op_name_to_for_loop_op,
-      pipeline_spec,
+        pipeline,
+        root_group,
+        op_name_to_parent_groups,
+        opgroup_name_to_parent_groups,
+        condition_params,
+        op_name_to_for_loop_op,
+        pipeline_spec,
     )
     dependencies = self._get_dependencies(
-      pipeline,
-      root_group,
-      op_name_to_parent_groups,
-      opgroup_name_to_parent_groups,
-      opsgroups,
-      condition_params,
+        pipeline,
+        root_group,
+        op_name_to_parent_groups,
+        opgroup_name_to_parent_groups,
+        opsgroups,
+        condition_params,
     )
 
     templates = []
@@ -627,11 +630,11 @@ class Compiler(object):
 
 
     def _get_input_artifact_type(input_name: str, component_spec: ComponentSpec) -> str:
-        for input in component_spec.inputs:
-            if input.name == input_name:
-                from kfp.dsl import ir_types
-                return ir_types._artifact_types_mapping.get(input.type.lower()) or ''
-        return ''
+      for input in component_spec.inputs:
+        if input.name == input_name:
+          from kfp.dsl import ir_types
+          return ir_types._artifact_types_mapping.get(input.type.lower()) or ''
+      return ''
 
 
     for op in pipeline.ops.values():
@@ -641,27 +644,25 @@ class Compiler(object):
       task.CopyFrom(op.task_spec)
       deployment_config.executors[task.task_info.name].container.CopyFrom(op.container_spec)
 
+      # Check if need to insert importer node
       for input_name in task.inputs.artifacts:
-          if task.inputs.artifacts[input_name].producer_task == '':
-              artifact_type = _get_input_artifact_type(input_name, component_spec)
+        if task.inputs.artifacts[input_name].producer_task == '':
+          artifact_type = _get_input_artifact_type(input_name, component_spec)
 
-              from kfp.v2.compiler import importer_node
-              importer_task, importer_spec = importer_node.build_importer_spec(
-                  task.task_info.name, input_name, artifact_type)
-              importer_tasks.append(importer_task)
+          from kfp.v2.compiler import importer_node
+          importer_task, importer_spec = importer_node.build_importer_spec(
+              task, input_name, artifact_type)
+          importer_tasks.append(importer_task)
 
-              task.inputs.artifacts[input_name].producer_task = importer_task.task_info.name
-              task.inputs.artifacts[input_name].output_artifact_key = importer_node._OUTPUT_KEY
+          task.inputs.artifacts[input_name].producer_task = importer_task.task_info.name
+          task.inputs.artifacts[input_name].output_artifact_key = importer_node._OUTPUT_KEY
 
-              deployment_config.executors[importer_task.executor_label].importer.CopyFrom(importer_spec)
+          deployment_config.executors[importer_task.executor_label].importer.CopyFrom(importer_spec)
 
     pipeline_spec.deployment_config.Pack(deployment_config)
 
     if len(importer_tasks) > 0:
-        # does the order of tasks really matter?
-        importer_tasks.extend(pipeline_spec.tasks)
-        del pipeline_spec.tasks[:]
-        pipeline_spec.tasks.extend(importer_tasks)
+      pipeline_spec.tasks.extend(importer_tasks)
 
     return templates
 
@@ -678,14 +679,14 @@ class Compiler(object):
       pipeline_spec.runtime_parameters[arg.name].type = pipeline_spec_pb2.PrimitiveType().PRIMITIVE_TYPE_UNSPECIFIED
       if arg.value is not None:
         if isinstance(arg.value, int):
-            pipeline_spec.runtime_parameters[arg.name].type = pipeline_spec_pb2.PrimitiveType().INT
-            pipeline_spec.runtime_parameters[arg.name].default_value.int_value = arg.value
+          pipeline_spec.runtime_parameters[arg.name].type = pipeline_spec_pb2.PrimitiveType().INT
+          pipeline_spec.runtime_parameters[arg.name].default_value.int_value = arg.value
         elif isinstance(arg.value, float):
-            pipeline_spec.runtime_parameters[arg.name].type = pipeline_spec_pb2.PrimitiveType().DOUBLE
-            pipeline_spec.runtime_parameters[arg.name].default_value.double_value = arg.value
+          pipeline_spec.runtime_parameters[arg.name].type = pipeline_spec_pb2.PrimitiveType().DOUBLE
+          pipeline_spec.runtime_parameters[arg.name].default_value.double_value = arg.value
         elif isinstance(arg.value, str):
-            pipeline_spec.runtime_parameters[arg.name].type = pipeline_spec_pb2.PrimitiveType().STRING
-            pipeline_spec.runtime_parameters[arg.name].default_value.string_value = arg.value
+          pipeline_spec.runtime_parameters[arg.name].type = pipeline_spec_pb2.PrimitiveType().STRING
+          pipeline_spec.runtime_parameters[arg.name].default_value.string_value = arg.value
         else:
             raise NotImplementedError('Unexpected parameter type with: "{}".'.format(str(arg.value)))
 
@@ -733,11 +734,11 @@ class Compiler(object):
     pipeline.ops = sanitized_ops
 
   def _create_pipeline(self,
-      pipeline_func: Callable,
-      pipeline_name: Text=None,
-      pipeline_description: Text=None,
-      params_list: List[dsl.PipelineParam]=None,
-      ) -> pipeline_spec_pb2.PipelineSpec:
+                       pipeline_func: Callable,
+                       pipeline_name: Text=None,
+                       pipeline_description: Text=None,
+                       params_list: List[dsl.PipelineParam]=None,
+                       ) -> pipeline_spec_pb2.PipelineSpec:
     """ Internal implementation of create_pipeline."""
     params_list = params_list or []
 
@@ -779,7 +780,7 @@ class Compiler(object):
     args_list_with_defaults = []
     if pipeline_meta.inputs:
       args_list_with_defaults = [
-        dsl.PipelineParam(sanitize_k8s_name(input_spec.name, True), value=input_spec.default)
+          dsl.PipelineParam(sanitize_k8s_name(input_spec.name, True), value=input_spec.default)
         for input_spec in pipeline_meta.inputs
       ]
     elif params_list:
@@ -789,10 +790,10 @@ class Compiler(object):
 
       args_list_with_defaults = params_list
       pipeline_meta.inputs = [
-        InputSpec(
-            name=param.name,
-            type=param.param_type,
-            default=param.value) for param in params_list]
+          InputSpec(
+              name=param.name,
+              type=param.param_type,
+              default=param.value) for param in params_list]
 
     pipeline_spec = self._create_pipeline_spec(
         args_list_with_defaults,
