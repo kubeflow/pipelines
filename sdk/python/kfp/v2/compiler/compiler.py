@@ -33,7 +33,7 @@ from kfp.components._yaml_utils import dump_yaml
 from kfp.dsl._metadata import _extract_pipeline_metadata
 from kfp.dsl._ops_group import OpsGroup
 from kfp.dsl import ir_types
-from kfp.ir import pipeline_spec_pb2
+from kfp.v2.proto import pipeline_spec_pb2
 from google.protobuf.json_format import MessageToJson
 
 

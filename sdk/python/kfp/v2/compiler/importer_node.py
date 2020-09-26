@@ -14,7 +14,7 @@
 """Utility funtion for building Importer Node spec."""
 
 from typing import Tuple
-from kfp.ir import pipeline_spec_pb2
+from kfp.v2.proto import pipeline_spec_pb2
 
 _OUTPUT_KEY = 'result'
 

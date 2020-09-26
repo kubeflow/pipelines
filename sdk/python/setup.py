@@ -12,13 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-try:
-    from distutils.spawn import find_executable
-except ImportError:
-    from shutil import which as find_executable
 import os
 import re
-import subprocess
 from setuptools import setup
 
 NAME = 'kfp'
@@ -64,54 +59,6 @@ def find_version(*file_path_parts):
     return version_match.group(1)
 
   raise RuntimeError('Unable to find version string.')
-
-
-KFPSDK_DIR = os.path.realpath(os.path.dirname(__file__))
-
-# Find the Protocol Compiler. (Taken from protobuf/python/setup.py)
-if "PROTOC" in os.environ and os.path.exists(os.environ["PROTOC"]):
-    PROTOC = os.environ["PROTOC"]
-else:
-    PROTOC = find_executable("protoc")
-
-def GenerateProto(source):
-    """Generate a _pb2.py from a .proto file.
-
-    Invokes the Protocol Compiler to generate a _pb2.py from the given
-    .proto file.  Does nothing if the output already exists and is newer than
-    the input.
-
-    Args:
-      source: The source proto file that needs to be compiled.
-    """
-
-    output = source.replace(".proto", "_pb2.py")
-
-    if not os.path.exists(output) or (
-            os.path.exists(source) and
-            os.path.getmtime(source) > os.path.getmtime(output)):
-        print("Generating %s..." % output)
-
-        if not os.path.exists(source):
-            sys.stderr.write("Can't find required file: %s\n" % source)
-            sys.exit(-1)
-
-        if PROTOC is None:
-            sys.stderr.write(
-                "protoc is not found.  Please compile it "
-                "or install the binary package.\n"
-            )
-            sys.exit(-1)
-
-        protoc_command = [PROTOC, "-I%s" % KFPSDK_DIR, "--python_out=.", source]
-        if subprocess.call(protoc_command) != 0:
-            sys.exit(-1)
-
-
-# Generate the protobuf files that we depend on.
-IR_SDK_DIR = os.path.join(KFPSDK_DIR, "kfp/ir")
-GenerateProto(os.path.join(IR_SDK_DIR, "pipeline_spec.proto"))
-open(os.path.join(IR_SDK_DIR, "__init__.py"), "a").close()
 
 
 setup(

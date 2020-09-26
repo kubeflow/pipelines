@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.ir import pipeline_spec_pb2
+from kfp.v2.proto import pipeline_spec_pb2
 
  # TODO: support more artifact types
 _artifact_types_mapping = {

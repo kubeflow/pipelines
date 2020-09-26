@@ -19,7 +19,7 @@ from ..components._components import _default_component_name, _resolve_command_l
 from ..components._naming import _sanitize_python_function_name, generate_unique_name_conversion_table
 from .. import dsl
 from kfp.dsl import ir_types
-from kfp.ir import pipeline_spec_pb2
+from kfp.v2.proto import pipeline_spec_pb2
 
 def _create_container_op_from_component_and_arguments(
     component_spec: ComponentSpec,
