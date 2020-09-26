@@ -11,20 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Utilities for component I/O type mapping."""
 
 from kfp.v2.proto import pipeline_spec_pb2
 
  # TODO: support more artifact types
 _artifact_types_mapping = {
     'gcspath': 'mlpipeline.Artifact',
-    'model'  : 'mlpipeline.Model',
+    'model': 'mlpipeline.Model',
 }
 
 _parameter_types_mapping = {
     'integer': pipeline_spec_pb2.PrimitiveType.INT,
-    'int'    : pipeline_spec_pb2.PrimitiveType.INT,
-    'double' : pipeline_spec_pb2.PrimitiveType.DOUBLE,
-    'float'  : pipeline_spec_pb2.PrimitiveType.DOUBLE,
-    'string' : pipeline_spec_pb2.PrimitiveType.STRING,
-    'str'    : pipeline_spec_pb2.PrimitiveType.STRING,
+    'int': pipeline_spec_pb2.PrimitiveType.INT,
+    'double': pipeline_spec_pb2.PrimitiveType.DOUBLE,
+    'float': pipeline_spec_pb2.PrimitiveType.DOUBLE,
+    'string': pipeline_spec_pb2.PrimitiveType.STRING,
+    'str': pipeline_spec_pb2.PrimitiveType.STRING,
 }
