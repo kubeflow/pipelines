@@ -49,10 +49,10 @@ func (s *CronSchedule) GetNextScheduledEpoch(lastJobEpoch *int64,
 }
 
 func (s *CronSchedule) GetNextScheduledEpochNoCatchup(lastJobEpoch *int64,
-	defaultStartEpoch int64, nowEpoch int64) int64 {
+	defaultStartTime time.Time, nowTime time.Time) int64 {
 
-	effectiveLastJobEpoch := s.getEffectiveLastJobEpoch(lastJobEpoch, defaultStartEpoch)
-	return s.getNextScheduledEpochImp(effectiveLastJobEpoch, false, nowEpoch)
+	effectiveLastJobEpoch := s.getEffectiveLastJobEpoch(lastJobEpoch, defaultStartTime)
+	return s.getNextScheduledEpochImp(effectiveLastJobEpoch, false, nowTime)
 }
 
 func (s *CronSchedule) getEffectiveLastJobEpoch(lastJobEpoch *int64,
@@ -76,7 +76,7 @@ func (s *CronSchedule) getNextScheduledEpoch(lastJobEpoch int64) int64 {
 		true, 0 /* nowEpoch doesn't matter when catchup=true */)
 }
 
-func (s *CronSchedule) getNextScheduledEpochImp(lastJobEpoch int64, catchup bool, nowEpoch int64) int64 {
+func (s *CronSchedule) getNextScheduledEpochImp(lastJobTime time.Time, catchup bool, nowTime time.Time) time.Time {
 	schedule, err := cron.Parse(s.Cron)
 	if err != nil {
 		// This should never happen, validation should have caught this at resource creation.
@@ -89,6 +89,7 @@ func (s *CronSchedule) getNextScheduledEpochImp(lastJobEpoch int64, catchup bool
 	if s.StartTime != nil && s.StartTime.Unix() > startEpoch {
 		startEpoch = s.StartTime.Unix()
 	}
+
 	result := schedule.Next(time.Unix(startEpoch, 0).UTC()).Unix()
 
 	var endTime int64 = math.MaxInt64
