@@ -102,8 +102,8 @@ class OpsGroup(object):
       sub_group.remove_op_recursive(op)
 
 
-class Parallelism(OpsGroup):
-  TYPE_NAME = 'parallelism'
+class SubGraph(OpsGroup):
+  TYPE_NAME = 'subgraph'
 
   def __init__(self,parallelism):
     super(Parallelism, self).__init__(self.TYPE_NAME, parallelism=parallelism)

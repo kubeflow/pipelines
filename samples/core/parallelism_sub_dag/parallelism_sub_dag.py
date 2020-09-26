@@ -22,7 +22,7 @@ def print_op(s: str):
 @dsl.pipeline(name='my-pipeline')
 def pipeline():
     loop_args = [{'A_a': 1, 'B_b': 2}, {'A_a': 10, 'B_b': 20}]
-    with dsl.Parallelism(parallelism=10):
+    with dsl.SubGraph(parallelism=10):
         with dsl.ParallelFor(loop_args) as item:
             print_op(item)
             print_op(item.A_a)
