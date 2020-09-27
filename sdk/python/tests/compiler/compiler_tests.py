@@ -1003,3 +1003,10 @@ implementation:
         self.assertNotIn(' ', argument['name'], 'The input name "{}" of template "{}" was not sanitized.'.format(argument['name'], template['name']))
       for argument in template['inputs']['artifacts']:
         self.assertNotIn(' ', argument['name'], 'The input name "{}" of template "{}" was not sanitized.'.format(argument['name'], template['name']))
+
+  def test_empty_string_pipeline_parameter_defaults(self):
+    def some_pipeline(param1: str = ''):
+      pass
+
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    self.assertEqual(workflow_dict['spec']['arguments']['parameters'][0].get('value'), '')
