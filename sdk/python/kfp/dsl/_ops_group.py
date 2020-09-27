@@ -106,7 +106,7 @@ class SubGraph(OpsGroup):
   TYPE_NAME = 'subgraph'
 
   def __init__(self,parallelism):
-    super(Parallelism, self).__init__(self.TYPE_NAME, parallelism=parallelism)
+    super(SubGraph, self).__init__(self.TYPE_NAME, parallelism=parallelism)
 
 
 class ExitHandler(OpsGroup):
