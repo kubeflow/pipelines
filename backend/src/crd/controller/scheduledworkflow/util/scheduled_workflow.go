@@ -25,6 +25,8 @@ import (
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
+	wraperror "github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/apis/core"
 )
@@ -334,7 +336,11 @@ func (s *ScheduledWorkflow) UpdateStatus(updatedEpoch int64, workflow *commonuti
 	if workflow != nil {
 		s.updateLastTriggeredTime(scheduledEpoch)
 		s.Status.Trigger.LastIndex = commonutil.Int64Pointer(s.nextIndex())
-		nextTriggerTime, _ := s.getNextScheduledEpoch(0)
+		nextTriggerTime, err := s.getNextScheduledEpoch(0)
+		if err != nil {
+			log.Errorf("%+v", wraperror.Errorf(
+				"Error extracting the next scheduled epoch: %v", err))
+		}
 		s.updateNextTriggeredTime(nextTriggerTime)
 	} else {
 		// LastTriggeredTime is unchanged.

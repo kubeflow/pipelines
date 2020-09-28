@@ -92,7 +92,7 @@ func (s *CronSchedule) getNextScheduledEpochImp(lastJobTime time.Time, catchup b
 	}
 	result := schedule.Next(startTime)
 	var endTime time.Time = time.Unix(1<<63-62135596801, 999999999).In(location)
-	// Have to use int32 here since the comparison with time will not work otherwise
+	// math.int64 max will break the comparison.
 	// Examle playground https://play.golang.org/p/LERg0aq2mU6
 	// Max date https://stackoverflow.com/questions/25065055/what-is-the-maximum-time-time-in-go
 	if s.EndTime != nil {
