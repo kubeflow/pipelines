@@ -17,7 +17,6 @@ package util
 import (
 	"fmt"
 	"math"
-	"time"
 
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	log "github.com/sirupsen/logrus"
@@ -43,20 +42,12 @@ func NewPeriodicSchedule(periodicSchedule *swfapi.PeriodicSchedule) *PeriodicSch
 // scheduled.
 func (s *PeriodicSchedule) GetNextScheduledEpoch(lastJobEpoch *int64,
 	defaultStartEpoch int64) int64 {
-	fmt.Println("Default start")
-	fmt.Println(time.Unix(defaultStartEpoch, 0).UTC())
 	effectiveLastJobEpoch := defaultStartEpoch
 	if lastJobEpoch != nil {
 		effectiveLastJobEpoch = *lastJobEpoch
-		fmt.Println("lastJobEpoch")
-		fmt.Println(time.Unix(effectiveLastJobEpoch, 0))
 	} else if s.StartTime != nil {
-		fmt.Println("Start time?")
 		effectiveLastJobEpoch = s.StartTime.Unix()
 	}
-	fmt.Println("Effective last epoch")
-	fmt.Println(effectiveLastJobEpoch)
-	fmt.Println(time.Unix(effectiveLastJobEpoch, 0).UTC())
 	return s.getNextScheduledEpoch(effectiveLastJobEpoch)
 }
 
@@ -104,8 +95,5 @@ func (s *PeriodicSchedule) GetNextScheduledEpochNoCatchup(
 		}
 		return nowEpoch
 	}
-	fmt.Println("HERE HERE HERE")
-	fmt.Println("HERE WE GO!!!")
-	fmt.Println(nextScheduledEpoch)
 	return nextScheduledEpoch
 }
