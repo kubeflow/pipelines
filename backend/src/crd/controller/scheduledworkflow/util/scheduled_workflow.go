@@ -240,12 +240,20 @@ func (s *ScheduledWorkflow) getNextScheduledEpoch(nowEpoch int64) (int64, error)
 	}
 	// Periodic schedule
 	if s.Spec.Trigger.PeriodicSchedule != nil {
+		fmt.Println("SCHEDULE")
 		schedule := NewPeriodicSchedule(s.Spec.Trigger.PeriodicSchedule)
 		if catchup {
+			fmt.Println("CATCH UP")
+			fmt.Println(commonutil.ToInt64Pointer(s.Status.Trigger.LastTriggeredTime))
+			fmt.Println(commonutil.ToInt64Pointer(s.Status.Trigger.LastTriggeredTime))
+			fmt.Println(time.Unix(36960, 0).UTC())
+			fmt.Println("CREATION")
+			fmt.Println(time.Unix(s.creationEpoch(), 0).UTC())
 			return schedule.GetNextScheduledEpoch(
 				commonutil.ToInt64Pointer(s.Status.Trigger.LastTriggeredTime),
 				s.creationEpoch()), nil
 		} else {
+			fmt.Println("IN HERE")
 			return schedule.GetNextScheduledEpochNoCatchup(
 				commonutil.ToInt64Pointer(s.Status.Trigger.LastTriggeredTime),
 				s.creationEpoch(), nowEpoch), nil
@@ -263,12 +271,12 @@ func (s *ScheduledWorkflow) getNextScheduledEpoch(nowEpoch int64) (int64, error)
 		schedule := NewCronSchedule(s.Spec.Trigger.CronSchedule)
 		if catchup {
 			return schedule.GetNextScheduledEpoch(
-				commonutil.ToInt64Pointer(s.Status.Trigger.LastTriggeredTime),
-				s.creationEpoch()), nil
+				s.Status.Trigger.LastTriggeredTime,
+				time.Unix(s.creationEpoch(), 0).In(loc), loc), nil
 		} else {
 			return schedule.GetNextScheduledEpochNoCatchup(
-				commonutil.ToInt64Pointer(s.Status.Trigger.LastTriggeredTime),
-				time.Unix(s.creationEpoch()).In(loc), nowTime), nil
+				s.Status.Trigger.LastTriggeredTime,
+				time.Unix(s.creationEpoch(), 0).In(loc), nowTime, loc), nil
 		}
 	}
 
@@ -336,6 +344,10 @@ func (s *ScheduledWorkflow) UpdateStatus(updatedEpoch int64, workflow *commonuti
 		s.updateLastTriggeredTime(scheduledEpoch)
 		s.Status.Trigger.LastIndex = commonutil.Int64Pointer(s.nextIndex())
 		// Next triggered time in label should not be related to now epoch.
+		fmt.Println("Inside")
+		fmt.Println(nextTriggerTime)
+		fmt.Println(time.Unix(nextTriggerTime, 0).UTC())
+		fmt.Println("HERE HERE HERE")
 		s.updateNextTriggeredTime(nextTriggerTime)
 	} else {
 		// LastTriggeredTime is unchanged.

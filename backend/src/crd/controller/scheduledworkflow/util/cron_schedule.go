@@ -22,6 +22,7 @@ import (
 	wraperror "github.com/pkg/errors"
 	"github.com/robfig/cron"
 	log "github.com/sirupsen/logrus"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // CronSchedule is a type to help manipulate CronSchedule objects.
@@ -42,41 +43,41 @@ func NewCronSchedule(cronSchedule *swfapi.CronSchedule) *CronSchedule {
 
 // GetNextScheduledEpoch returns the next epoch at which a workflow must be
 // scheduled.
-func (s *CronSchedule) GetNextScheduledEpoch(lastJobEpoch *int64,
-	defaultStartEpoch int64) int64 {
-	effectiveLastJobEpoch := s.getEffectiveLastJobEpoch(lastJobEpoch, defaultStartEpoch)
-	return s.getNextScheduledEpoch(effectiveLastJobEpoch)
+func (s *CronSchedule) GetNextScheduledEpoch(lastJobTime *v1.Time,
+	defaultStartTime time.Time, location *time.Location) int64 {
+	effectiveLastJobTime := s.getEffectiveLastJobEpoch(lastJobTime, defaultStartTime, location)
+	return s.getNextScheduledEpoch(effectiveLastJobTime, location)
 }
 
-func (s *CronSchedule) GetNextScheduledEpochNoCatchup(lastJobEpoch *int64,
-	defaultStartTime time.Time, nowTime time.Time) int64 {
+func (s *CronSchedule) GetNextScheduledEpochNoCatchup(lastJobTime *v1.Time,
+	defaultStartTime time.Time, nowTime time.Time, location *time.Location) int64 {
 
-	effectiveLastJobEpoch := s.getEffectiveLastJobEpoch(lastJobEpoch, defaultStartTime)
-	return s.getNextScheduledEpochImp(effectiveLastJobEpoch, false, nowTime)
+	effectiveLastJobTime := s.getEffectiveLastJobEpoch(lastJobTime, defaultStartTime, location)
+	return s.getNextScheduledEpochImp(effectiveLastJobTime, false, nowTime, location)
 }
 
-func (s *CronSchedule) getEffectiveLastJobEpoch(lastJobEpoch *int64,
-	defaultStartEpoch int64) int64 {
+func (s *CronSchedule) getEffectiveLastJobEpoch(lastJobTime *v1.Time,
+	defaultStartTime time.Time, location *time.Location) time.Time {
 
 	// Fallback to default start epoch, which will be passed the Job creation
 	// time.
-	effectiveLastJobEpoch := defaultStartEpoch
-	if lastJobEpoch != nil {
+	effectiveLastJobTime := defaultStartTime
+	if lastJobTime != nil {
 		// Last job epoch takes first precedence.
-		effectiveLastJobEpoch = *lastJobEpoch
+		effectiveLastJobTime = lastJobTime.Time
 	} else if s.StartTime != nil {
 		// Start time takes second precedence.
-		effectiveLastJobEpoch = s.StartTime.Unix()
+		effectiveLastJobTime = s.StartTime.In(location)
 	}
-	return effectiveLastJobEpoch
+	return effectiveLastJobTime
 }
 
-func (s *CronSchedule) getNextScheduledEpoch(lastJobEpoch int64) int64 {
-	return s.getNextScheduledEpochImp(lastJobEpoch,
-		true, 0 /* nowEpoch doesn't matter when catchup=true */)
+func (s *CronSchedule) getNextScheduledEpoch(lastJobTime time.Time, location *time.Location) int64 {
+	return s.getNextScheduledEpochImp(lastJobTime,
+		true, time.Unix(0, 0).In(location) /* nowEpoch doesn't matter when catchup=true */, location)
 }
 
-func (s *CronSchedule) getNextScheduledEpochImp(lastJobTime time.Time, catchup bool, nowTime time.Time) time.Time {
+func (s *CronSchedule) getNextScheduledEpochImp(lastJobTime time.Time, catchup bool, nowTime time.Time, location *time.Location) int64 {
 	schedule, err := cron.Parse(s.Cron)
 	if err != nil {
 		// This should never happen, validation should have caught this at resource creation.
@@ -85,37 +86,39 @@ func (s *CronSchedule) getNextScheduledEpochImp(lastJobTime time.Time, catchup b
 		return math.MaxInt64
 	}
 
-	startEpoch := lastJobEpoch
-	if s.StartTime != nil && s.StartTime.Unix() > startEpoch {
-		startEpoch = s.StartTime.Unix()
+	startTime := lastJobTime
+	if s.StartTime != nil && s.StartTime.Time.After(startTime) {
+		startTime = s.StartTime.Time
 	}
-
-	result := schedule.Next(time.Unix(startEpoch, 0).UTC()).Unix()
-
-	var endTime int64 = math.MaxInt64
+	result := schedule.Next(startTime)
+	var endTime time.Time = time.Unix(1<<63-62135596801, 999999999).In(location)
+	// Have to use int32 here since the comparison with time will not work otherwise
+	// Examle playground https://play.golang.org/p/LERg0aq2mU6
+	// Max date https://stackoverflow.com/questions/25065055/what-is-the-maximum-time-time-in-go
 	if s.EndTime != nil {
-		endTime = s.EndTime.Unix()
+		endTime = s.EndTime.Time.In(location)
 	}
-	if endTime < result {
+
+	if endTime.Before(result) {
 		return math.MaxInt64
 	}
 
 	// When we need to catch up with schedule, just run schedules one by one.
 	if catchup == true {
-		return result
+		return result.UTC().Unix()
 	}
 
 	// When we don't need to catch up, find the last schedule we need to run
 	// now and skip others in between.
 	next := result
-	var nextNext int64
+	var nextNext time.Time
 	for {
-		nextNext = schedule.Next(time.Unix(next, 0).UTC()).Unix()
-		if nextNext <= nowEpoch && nextNext <= endTime {
+		nextNext = schedule.Next(next)
+		if (nextNext.Before(nowTime) || nextNext.Equal(nowTime)) && (nextNext.Before(endTime) || nextNext.Equal(endTime)) {
 			next = nextNext
 		} else {
 			break
 		}
 	}
-	return next
+	return next.UTC().Unix()
 }
