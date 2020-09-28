@@ -74,7 +74,7 @@ func (s *CronSchedule) getEffectiveLastJobEpoch(lastJobTime *v1.Time,
 
 func (s *CronSchedule) getNextScheduledEpoch(lastJobTime time.Time, location *time.Location) int64 {
 	return s.getNextScheduledEpochImp(lastJobTime,
-		true, time.Unix(0, 0).In(location) /* nowEpoch doesn't matter when catchup=true */, location)
+		true /* nowEpoch doesn't matter when catchup=true */, time.Unix(0, 0).In(location), location)
 }
 
 func (s *CronSchedule) getNextScheduledEpochImp(lastJobTime time.Time, catchup bool, nowTime time.Time, location *time.Location) int64 {
