@@ -1,4 +1,4 @@
-from common.sagemaker_component import SageMakerJobStatus
+from common.sagemaker_component import SageMakerComponent, SageMakerJobStatus
 from batch_transform.src.sagemaker_transform_spec import SageMakerTransformSpec
 from batch_transform.src.sagemaker_transform_component import (
     SageMakerTransformComponent,
@@ -27,11 +27,15 @@ class TransformComponentTestCase(unittest.TestCase):
         )
         unnamed_spec = SageMakerTransformSpec(self.REQUIRED_ARGS)
 
-        self.component.Do(named_spec)
-        self.assertEqual("job-name", self.component._transform_job_name)
+        with patch(
+            "batch_transform.src.sagemaker_transform_component.SageMakerComponent._generate_unique_timestamped_id",
+            MagicMock(return_value="BatchTransform-generated"),
+        ):
+            self.component.Do(named_spec)
+            self.assertEqual("job-name", self.component._transform_job_name)
 
-        self.component.Do(unnamed_spec)
-        self.assertEqual("BatchTransform-test", self.component._transform_job_name)
+            self.component.Do(unnamed_spec)
+            self.assertEqual("BatchTransform-generated", self.component._transform_job_name)
 
     def test_create_transform_job(self):
         spec = SageMakerTransformSpec(self.REQUIRED_ARGS)

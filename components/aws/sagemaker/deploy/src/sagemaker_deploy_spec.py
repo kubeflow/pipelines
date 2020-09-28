@@ -38,6 +38,8 @@ class SageMakerDeployInputs(SageMakerComponentCommonInputs):
     endpoint_config_tags: Input
     resource_encryption_key: Input
 
+    update_endpoint: Input
+
     variant_name_1: Input
     model_name_1: Input
     initial_instance_count_1: Input
@@ -74,8 +76,14 @@ class SageMakerDeploySpec(
         endpoint_config_name=InputValidator(
             input_type=str,
             required=False,
-            description="The name of the endpoint configuration.",
+            description="The name of the endpoint configuration. If an existing endpoint is being updated, a suffix is automatically added if this config name exists.",
             default="",
+        ),
+        update_endpoint=InputValidator(
+            input_type=SpecValidators.str_to_bool,
+            required=False,
+            description="Update endpoint if it exists.",
+            default=False,
         ),
         variant_name_1=InputValidator(
             input_type=str,

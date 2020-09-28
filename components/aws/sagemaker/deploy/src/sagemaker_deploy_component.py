@@ -15,6 +15,8 @@ from dataclasses import dataclass
 import logging
 from typing import Dict
 
+from botocore.exceptions import ClientError
+
 from deploy.src.sagemaker_deploy_spec import (
     SageMakerDeploySpec,
     SageMakerDeployInputs,
@@ -53,18 +55,31 @@ class SageMakerDeployComponent(SageMakerComponent):
 
     def Do(self, spec: SageMakerDeploySpec):
         name_suffix = SageMakerComponent._generate_unique_timestamped_id()
-        
-        self._endpoint_config_name = (
-            spec.inputs.endpoint_config_name
-            if spec.inputs.endpoint_config_name
-            else f"EndpointConfig{name_suffix}"
-        )
 
         self._endpoint_name = (
             spec.inputs.endpoint_name
             if spec.inputs.endpoint_name
             else f"Endpoint{name_suffix}"
         )
+
+        self._should_update_existing = (
+            spec.inputs.update_endpoint
+            and self._endpoint_name_exists(spec.inputs.endpoint_name)
+        )
+
+        # Fetch existing config to delete after creation
+        if self._should_update_existing:
+            self._existing_endpoint_config_name = self._get_endpoint_config(
+                spec.inputs.endpoint_name
+            )
+
+        self._endpoint_config_name = (
+            spec.inputs.endpoint_config_name
+            # Only use the predefined name if we are not updating, otherwise could conflict
+            if (spec.inputs.endpoint_config_name and not self._should_update_existing)
+            else f"EndpointConfig{name_suffix}"
+        )
+
         super().Do(spec.inputs, spec.outputs, spec.output_paths)
 
     def _get_job_status(self) -> SageMakerJobStatus:
@@ -146,19 +161,58 @@ class SageMakerDeployComponent(SageMakerComponent):
 
         return request
 
+    def _create_update_endpoint_request(self):
+        """Creates an UpdateEndpoint request object.
+
+        Returns:
+            An UpdateEndpoint request object.
+        """
+        ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.update_endpoint
+        request = {}
+
+        request["EndpointName"] = self._endpoint_name
+        request["EndpointConfigName"] = self._endpoint_config_name
+
+        return request
+
     def _create_job_request(
         self, inputs: SageMakerDeployInputs, outputs: SageMakerDeployOutputs,
     ) -> EndpointRequests:
+        # The endpoint request represents an UpdateEndpoint request if we are updating
+        endpoint_request = (
+            self._create_update_endpoint_request()
+            if self._should_update_existing
+            else self._create_endpoint_request(inputs, outputs)
+        )
+
         return EndpointRequests(
             config_request=self._create_endpoint_config_request(inputs, outputs),
-            endpoint_request=self._create_endpoint_request(inputs, outputs),
+            endpoint_request=endpoint_request,
         )
 
     def _submit_job_request(self, request: EndpointRequests) -> EndpointResponses:
         config_response = self._sm_client.create_endpoint_config(
             **request.config_request
         )
-        endpoint_response = self._sm_client.create_endpoint(**request.endpoint_request)
+
+        if self._should_update_existing:
+            endpoint_response = self._sm_client.update_endpoint(
+                **request.endpoint_request
+            )
+
+            # Also delete the existing endpoint config
+            if self._delete_endpoint_config(self._existing_endpoint_config_name):
+                logging.info(
+                    f"Deleted old endpoint config: {self._existing_endpoint_config_name}"
+                )
+            else:
+                logging.info(
+                    f"Unable to delete old endpoint config: {self._existing_endpoint_config_name}"
+                )
+        else:
+            endpoint_response = self._sm_client.create_endpoint(
+                **request.endpoint_request
+            )
 
         return EndpointResponses(
             config_response=config_response, endpoint_response=endpoint_response
@@ -189,6 +243,85 @@ class SageMakerDeployComponent(SageMakerComponent):
                 region, region, self._endpoint_name
             )
         )
+
+    def _endpoint_name_exists(self, endpoint_name: str):
+        """Determine whether an endpoint already exists by a given name.
+
+        Args:
+            endpoint_name: The name of the endpoint to check.
+
+        Returns:
+            True if the endpoint already exists, False otherwise.
+        """
+        try:
+            endpoint_name = self._sm_client.describe_endpoint(
+                EndpointName=endpoint_name
+            )["EndpointName"]
+            logging.info("Endpoint exists: " + endpoint_name)
+            return True
+        except ClientError as e:
+            logging.debug("Endpoint does not exist")
+        return False
+
+    def _endpoint_config_name_exists(self, endpoint_config_name: str):
+        """Determine whether an endpoint config already exists by a given name.
+
+        Args:
+            endpoint_config_name: The name of the endpoint config to check.
+
+        Returns:
+            True if the endpoint config already exists, False otherwise.
+        """
+        try:
+            config_name = self._sm_client.describe_endpoint_config(
+                EndpointConfigName=endpoint_config_name
+            )["EndpointConfigName"]
+            logging.info("Endpoint Config exists: " + config_name)
+            return True
+        except ClientError as e:
+            logging.info("Endpoint Config does not exist:" + endpoint_config_name)
+        return False
+
+    def _get_endpoint_config(self, endpoint_name: str):
+        """Gets the name of the current config for a given endpoint
+
+        Args:
+            endpoint_name: The name of the endpoint whose config to reference.
+
+        Returns:
+            The name of an endpoint configuration currently assigned to the given endpoint.
+        """
+        endpoint_config_name = None
+        try:
+            endpoint_config_name = self._sm_client.describe_endpoint(
+                EndpointName=endpoint_name
+            )["EndpointConfigName"]
+            logging.info("Current Endpoint Config Name: " + endpoint_config_name)
+        except ClientError as e:
+            logging.info("Endpoint Config does not exist")
+            ## This is not an error, end point may not exist
+        return endpoint_config_name
+
+    def _delete_endpoint_config(self, endpoint_config_name: str):
+        """Deletes an endpoint config.
+
+        Args:
+            endpoint_config_name: The name of the endpoint config to delete.
+
+        Returns:
+            True if the endpoint was deleted, False otherwise.
+        """
+        try:
+            self._sm_client.delete_endpoint_config(
+                EndpointConfigName=endpoint_config_name
+            )
+            return True
+        except ClientError as e:
+            logging.info(
+                "Endpoint config may not exist to be deleted: "
+                + e.response["Error"]["Message"]
+            )
+        return False
 
 
 if __name__ == "__main__":
