@@ -66,6 +66,7 @@ class Compiler(object):
       return param.op_name + '-' + param.name
     return param.name
 
+
   def _get_groups_for_ops(self, root_group):
     """Helper function to get belonging groups for each op.
 
@@ -83,8 +84,7 @@ class Compiler(object):
         # Add recursive opsgroup in the ops_to_groups
         # such that the i/o dependency can be propagated to the ancester opsgroups
         if g.recursive_ref:
-          ops_to_groups[g.name] = [x.name for x in current_groups] + [g.name]
-          continue
+          raise NotImplementedError('Recursive group is not supported yet in v2.')
         current_groups.append(g)
         _get_op_groups_helper(current_groups, ops_to_groups)
         del current_groups[-1]
@@ -96,34 +96,6 @@ class Compiler(object):
     _get_op_groups_helper(current_groups, ops_to_groups)
     return ops_to_groups
 
-  #TODO: combine with the _get_groups_for_ops
-  def _get_groups_for_opsgroups(self, root_group):
-    """Helper function to get belonging groups for each opsgroup.
-
-    Each pipeline has a root group. Each group has a list of operators (leaf) and groups.
-    This function traverse the tree and get all ancestor groups for all opsgroups.
-
-    Returns:
-      A dict. Key is the opsgroup's name. Value is a list of ancestor groups including the
-              opsgroup itself. The list of a given opsgroup is sorted in a way that the farthest
-              group is the first and opsgroup itself is the last.
-    """
-    def _get_opsgroup_groups_helper(current_groups, opsgroups_to_groups):
-      root_group = current_groups[-1]
-      for g in root_group.groups:
-        # Add recursive opsgroup in the ops_to_groups
-        # such that the i/o dependency can be propagated to the ancester opsgroups
-        if g.recursive_ref:
-          continue
-        opsgroups_to_groups[g.name] = [x.name for x in current_groups] + [g.name]
-        current_groups.append(g)
-        _get_opsgroup_groups_helper(current_groups, opsgroups_to_groups)
-        del current_groups[-1]
-
-    opsgroups_to_groups = {}
-    current_groups = [root_group]
-    _get_opsgroup_groups_helper(current_groups, opsgroups_to_groups)
-    return opsgroups_to_groups
 
   def _get_groups(self, root_group):
     """Helper function to get all groups (not including ops) in a pipeline."""
@@ -139,7 +111,7 @@ class Compiler(object):
 
     return _get_groups_helper(root_group)
 
-  def _get_uncommon_ancestors(self, op_groups, opsgroup_groups, op1, op2):
+  def _get_uncommon_ancestors(self, op_groups, op1, op2):
     """Helper function to get unique ancestors between two ops.
 
     For example, op1's ancestor groups are [root, G1, G2, G3, op1], op2's ancestor groups are
@@ -148,15 +120,11 @@ class Compiler(object):
     #TODO: extract a function for the following two code module
     if op1.name in op_groups:
       op1_groups = op_groups[op1.name]
-    elif op1.name in opsgroup_groups:
-      op1_groups = opsgroup_groups[op1.name]
     else:
       raise ValueError(op1.name + ' does not exist.')
 
     if op2.name in op_groups:
       op2_groups = op_groups[op2.name]
-    elif op2.name in opsgroup_groups:
-      op2_groups = opsgroup_groups[op2.name]
     else:
       raise ValueError(op2.name + ' does not exist.')
 
@@ -165,33 +133,6 @@ class Compiler(object):
     group1 = op1_groups[common_groups_len:]
     group2 = op2_groups[common_groups_len:]
     return (group1, group2)
-
-  def _get_condition_params_for_ops(self, root_group):
-    """Get parameters referenced in conditions of ops."""
-    conditions = defaultdict(set)
-
-    def _get_condition_params_for_ops_helper(group, current_conditions_params):
-      new_current_conditions_params = current_conditions_params
-      if group.type == 'condition':
-        new_current_conditions_params = list(current_conditions_params)
-        if isinstance(group.condition.operand1, dsl.PipelineParam):
-          new_current_conditions_params.append(group.condition.operand1)
-        if isinstance(group.condition.operand2, dsl.PipelineParam):
-          new_current_conditions_params.append(group.condition.operand2)
-      for op in group.ops:
-        for param in new_current_conditions_params:
-          conditions[op.name].add(param)
-      for g in group.groups:
-        # If the subgroup is a recursive opsgroup, propagate the pipelineparams
-        # in the condition expression, similar to the ops.
-        if g.recursive_ref:
-          for param in new_current_conditions_params:
-            conditions[g.name].add(param)
-        else:
-          _get_condition_params_for_ops_helper(g, new_current_conditions_params)
-
-    _get_condition_params_for_ops_helper(root_group, [])
-    return conditions
 
   def _get_next_group_or_op(cls, to_visit: List, already_visited: Set):
     """Get next group or op to visit."""
@@ -202,21 +143,6 @@ class Compiler(object):
       next = to_visit.pop(0)
     already_visited.add(next)
     return next
-
-  def _get_for_loop_ops(self, new_root) -> Dict[Text, dsl.ParallelFor]:
-    to_visit = self._get_all_subgroups_and_ops(new_root)
-    op_name_to_op = {}
-    already_visited = set()
-
-    while len(to_visit):
-      next_op = self._get_next_group_or_op(to_visit, already_visited)
-      if next_op is None:
-        break
-      to_visit.extend(self._get_all_subgroups_and_ops(next_op))
-      if isinstance(next_op, dsl.ParallelFor):
-        op_name_to_op[next_op.name] = next_op
-
-    return op_name_to_op
 
   def _get_all_subgroups_and_ops(self, op):
     """Get all ops and groups contained within this group."""
@@ -232,9 +158,6 @@ class Compiler(object):
       pipeline,
       root_group,
       op_groups,
-      opsgroup_groups,
-      condition_params,
-      op_name_to_for_loop_op: Dict[Text, dsl.ParallelFor],
       pipeline_spec: pipeline_spec_pb2.PipelineSpec,
   ):
     """Get inputs and outputs of each group and op.
@@ -250,9 +173,8 @@ class Compiler(object):
     outputs = defaultdict(set)
 
     for op in pipeline.ops.values():
-      # op's inputs and all params used in conditions for that op are both considered.
       from kfp.components.structures import ComponentSpec
-      for param in op.inputs + list(condition_params[op.name]):
+      for param in op.inputs:
         # if the value is already provided (immediate value), then no need to expose
         # it as input for its parent groups.
         if param.value:
@@ -260,7 +182,7 @@ class Compiler(object):
         if param.op_name:
           upstream_op = pipeline.ops[param.op_name]
           upstream_groups, downstream_groups = \
-            self._get_uncommon_ancestors(op_groups, opsgroup_groups, upstream_op, op)
+            self._get_uncommon_ancestors(op_groups, upstream_op, op)
           for i, group_name in enumerate(downstream_groups):
             if i == 0:
               # If it is the first uncommon downstream group, then the input comes from
@@ -277,24 +199,10 @@ class Compiler(object):
             else:
               # If not last upstream group, output value comes from one of its child.
               outputs[group_name].add((param.full_name, upstream_groups[i+1]))
-        else:
-          if not op.is_exit_handler:
-            for group_name in op_groups[op.name][::-1]:
-              # if group is for loop group and param is that loop's param, then the param
-              # is created by that for loop ops_group and it shouldn't be an input to
-              # any of its parent groups.
-              inputs[group_name].add((param.full_name, None))
-              if group_name in op_name_to_for_loop_op:
-                # for example:
-                #   loop_group.loop_args.name = 'loop-item-param-99ca152e'
-                #   param.name =                'loop-item-param-99ca152e--a'
-                loop_group = op_name_to_for_loop_op[group_name]
-                if loop_group.loop_args.name in param.name:
-                  break
 
     return inputs, outputs
 
-  def _get_dependencies(self, pipeline, root_group, op_groups, opsgroups_groups, opsgroups, condition_params):
+  def _get_dependencies(self, pipeline, root_group, op_groups, opsgroups):
     """Get dependent groups and ops for all ops and groups.
 
     Returns:
@@ -307,7 +215,7 @@ class Compiler(object):
     dependencies = defaultdict(set)
     for op in pipeline.ops.values():
       upstream_op_names = set()
-      for param in op.inputs + list(condition_params[op.name]):
+      for param in op.inputs:
         if param.op_name:
           upstream_op_names.add(param.op_name)
 
@@ -322,35 +230,11 @@ class Compiler(object):
         else:
           raise ValueError('compiler cannot find the ' + upstream_op_name)
 
-        upstream_groups, downstream_groups = self._get_uncommon_ancestors(op_groups, opsgroups_groups, upstream_op, op)
+        upstream_groups, downstream_groups = self._get_uncommon_ancestors(op_groups, upstream_op, op)
         dependencies[downstream_groups[0]].add(upstream_groups[0])
-
-    # Generate dependencies based on the recursive opsgroups
-    #TODO: refactor the following codes with the above
-    def _get_dependency_opsgroup(group, dependencies):
-      upstream_op_names = set([dependency.name for dependency in group.dependencies])
-      if group.recursive_ref:
-        for param in group.inputs + list(condition_params[group.name]):
-          if param.op_name:
-            upstream_op_names.add(param.op_name)
-
-      for op_name in upstream_op_names:
-        if op_name in pipeline.ops:
-          upstream_op = pipeline.ops[op_name]
-        elif op_name in opsgroups:
-          upstream_op = opsgroups[op_name]
-        else:
-          raise ValueError('compiler cannot find the ' + op_name)
-        upstream_groups, downstream_groups = \
-          self._get_uncommon_ancestors(op_groups, opsgroups_groups, upstream_op, group)
-        dependencies[downstream_groups[0]].add(upstream_groups[0])
-
-      for subgroup in group.groups:
-        _get_dependency_opsgroup(subgroup, dependencies)
-
-    _get_dependency_opsgroup(root_group, dependencies)
 
     return dependencies
+
 
   def _resolve_value_or_reference(self, value_or_reference, potential_references):
     """_resolve_value_or_reference resolves values and PipelineParams, which could be task parameters or input parameters.
@@ -375,116 +259,6 @@ class Compiler(object):
     else:
       return str(value_or_reference)
 
-  def _group_to_dag_template(self, group, inputs, outputs, dependencies):
-    """Generate template given an OpsGroup.
-
-    inputs, outputs, dependencies are all helper dicts.
-    """
-    template = {'name': group.name}
-    if group.parallelism != None: 
-      template["parallelism"] = group.parallelism
-
-    # Generate inputs section.
-    if inputs.get(group.name, None):
-      template_inputs = [{'name': x[0]} for x in inputs[group.name]]
-      template_inputs.sort(key=lambda x: x['name'])
-      template['inputs'] = {
-          'parameters': template_inputs
-      }
-
-    # Generate outputs section.
-    if outputs.get(group.name, None):
-      template_outputs = []
-      for param_name, dependent_name in outputs[group.name]:
-        template_outputs.append({
-            'name': param_name,
-            'valueFrom': {
-                'parameter': '{{tasks.%s.outputs.parameters.%s}}' % (dependent_name, param_name)
-            }
-        })
-
-      template_outputs.sort(key=lambda x: x['name'])
-      template['outputs'] = {'parameters': template_outputs}
-
-    # Generate tasks section.
-    tasks = []
-    for sub_group in group.groups + group.ops:
-      is_recursive_subgroup = (isinstance(sub_group, OpsGroup) and sub_group.recursive_ref)
-      # Special handling for recursive subgroup: use the existing opsgroup name
-      if is_recursive_subgroup:
-        task = {
-            'name': sub_group.recursive_ref.name,
-            'template': sub_group.recursive_ref.name,
-        }
-      else:
-        task = {
-            'name': sub_group.name,
-            'template': sub_group.name,
-        }
-      if isinstance(sub_group, dsl.OpsGroup) and sub_group.type == 'condition':
-        subgroup_inputs = inputs.get(sub_group.name, [])
-        condition = sub_group.condition
-        operand1_value = self._resolve_value_or_reference(condition.operand1, subgroup_inputs)
-        operand2_value = self._resolve_value_or_reference(condition.operand2, subgroup_inputs)
-        if condition.operator in ['==', '!=']:
-          operand1_value = '"' + operand1_value + '"'
-          operand2_value = '"' + operand2_value + '"'
-        task['when'] = '{} {} {}'.format(operand1_value, condition.operator, operand2_value)
-
-      # Generate dependencies section for this task.
-      if dependencies.get(sub_group.name, None):
-        group_dependencies = list(dependencies[sub_group.name])
-        group_dependencies.sort()
-        task['dependencies'] = group_dependencies
-
-      # Generate arguments section for this task.
-      if inputs.get(sub_group.name, None):
-        task['arguments'] = {'parameters': self.get_arguments_for_sub_group(sub_group, is_recursive_subgroup, inputs)}
-
-      # additional task modifications for withItems and withParam
-      if isinstance(sub_group, dsl.ParallelFor):
-        if sub_group.items_is_pipeline_param:
-          # these loop args are a 'withParam' rather than 'withItems'.
-          # i.e., rather than a static list, they are either the output of another task or were input
-          # as global pipeline parameters
-
-          pipeline_param = sub_group.loop_args.items_or_pipeline_param
-          if pipeline_param.op_name is None:
-            withparam_value = '{{workflow.parameters.%s}}' % pipeline_param.name
-          else:
-            param_name = '%s-%s' % (
-                sanitize_k8s_name(pipeline_param.op_name), pipeline_param.name)
-            withparam_value = '{{tasks.%s.outputs.parameters.%s}}' % (
-                sanitize_k8s_name(pipeline_param.op_name),
-                param_name)
-
-            # these loop args are the output of another task
-            if 'dependencies' not in task or task['dependencies'] is None:
-              task['dependencies'] = []
-            if sanitize_k8s_name(
-                pipeline_param.op_name) not in task['dependencies']:
-              task['dependencies'].append(
-                  sanitize_k8s_name(pipeline_param.op_name))
-
-          task['withParam'] = withparam_value
-        else:
-          # Need to sanitize the dict keys for consistency.
-          loop_tasks = sub_group.loop_args.to_list_for_task_yaml()
-          sanitized_tasks = []
-          if isinstance(loop_tasks[0], dict):
-            for argument_set in loop_tasks:
-              c_dict = {}
-              for k, v in argument_set.items():
-                c_dict[sanitize_k8s_name(k, True)] = v
-              sanitized_tasks.append(c_dict)
-          else:
-            sanitized_tasks = loop_tasks
-          task['withItems'] = sanitized_tasks
-
-      tasks.append(task)
-    tasks.sort(key=lambda x: x['name'])
-    template['dag'] = {'tasks': tasks}
-    return template
 
   def get_arguments_for_sub_group(
       self,
@@ -495,6 +269,7 @@ class Compiler(object):
     arguments = []
     for param_name, dependent_name in inputs[sub_group.name]:
       if is_recursive_subgroup:
+        raise NotImplementedError('Recursive group not supported yet in v2.')
         for input_name, input in sub_group.arguments.items():
           if param_name == self._pipelineparam_full_name(input):
             break
@@ -504,24 +279,10 @@ class Compiler(object):
         argument_name = param_name
 
       # Preparing argument. It can be pipeline input reference, task output reference or loop item (or loop item attribute
-      sanitized_loop_arg_full_name = '---'
-      if isinstance(sub_group, dsl.ParallelFor):
-        sanitized_loop_arg_full_name = sanitize_k8s_name(self._pipelineparam_full_name(sub_group.loop_args))
-      arg_ref_full_name = sanitize_k8s_name(param_name)
-      # We only care about the reference to the current loop item, not the outer loops
-      if isinstance(sub_group, dsl.ParallelFor) and arg_ref_full_name.startswith(sanitized_loop_arg_full_name):
-        if arg_ref_full_name == sanitized_loop_arg_full_name:
-          argument_value = '{{item}}'
-        elif _for_loop.LoopArgumentVariable.name_is_loop_arguments_variable(param_name):
-          subvar_name = _for_loop.LoopArgumentVariable.get_subvar_name(param_name)
-          argument_value = '{{item.%s}}' % subvar_name
-        else:
-          raise ValueError("Argument seems to reference the loop item, but not the item itself and not some attribute of the item. param_name: {}, ".format(param_name))
+      if dependent_name:
+        argument_value = '{{tasks.%s.outputs.parameters.%s}}' % (dependent_name, param_name)
       else:
-        if dependent_name:
-          argument_value = '{{tasks.%s.outputs.parameters.%s}}' % (dependent_name, param_name)
-        else:
-          argument_value = '{{inputs.parameters.%s}}' % param_name
+        argument_value = '{{inputs.parameters.%s}}' % param_name
 
       arguments.append({
           'name': argument_name,
@@ -529,108 +290,7 @@ class Compiler(object):
       })
 
     arguments.sort(key=lambda x: x['name'])
-
     return arguments
-
-  def _create_dag_templates(self, pipeline, pipeline_spec, op_to_templates_handler=None):
-    """Create all groups and ops templates in the pipeline.
-
-    Args:
-      pipeline: Pipeline context object to get all the pipeline data from.
-      op_transformers: A list of functions that are applied to all ContainerOp instances that are being processed.
-      op_to_templates_handler: Handler which converts a base op into a list of argo templates.
-    """
-    op_to_templates_handler = op_to_templates_handler or (lambda op : [_op_to_template(op)])
-    root_group = pipeline.groups[0]
-
-    # Call the transformation functions before determining the inputs/outputs, otherwise
-    # the user would not be able to use pipeline parameters in the container definition
-    # (for example as pod labels) - the generated template is invalid.
-    # for op in pipeline.ops.values():
-    #   for transformer in op_transformers or []:
-    #     transformer(op)
-
-    # Generate core data structures to prepare for argo yaml generation
-    #   op_name_to_parent_groups: op name -> list of ancestor groups including the current op
-    #   opsgroups: a dictionary of ospgroup.name -> opsgroup
-    #   inputs, outputs: group/op names -> list of tuples (full_param_name, producing_op_name)
-    #   condition_params: recursive_group/op names -> list of pipelineparam
-    #   dependencies: group/op name -> list of dependent groups/ops.
-    # Special Handling for the recursive opsgroup
-    #   op_name_to_parent_groups also contains the recursive opsgroups
-    #   condition_params from _get_condition_params_for_ops also contains the recursive opsgroups
-    #   groups does not include the recursive opsgroups
-    opsgroups = self._get_groups(root_group)
-    op_name_to_parent_groups = self._get_groups_for_ops(root_group)
-    opgroup_name_to_parent_groups = self._get_groups_for_opsgroups(root_group)
-    condition_params = self._get_condition_params_for_ops(root_group)
-    op_name_to_for_loop_op = self._get_for_loop_ops(root_group)
-    inputs, outputs = self._get_inputs_outputs(
-        pipeline,
-        root_group,
-        op_name_to_parent_groups,
-        opgroup_name_to_parent_groups,
-        condition_params,
-        op_name_to_for_loop_op,
-        pipeline_spec,
-    )
-    dependencies = self._get_dependencies(
-        pipeline,
-        root_group,
-        op_name_to_parent_groups,
-        opgroup_name_to_parent_groups,
-        opsgroups,
-        condition_params,
-    )
-
-    templates = []
-    for opsgroup in opsgroups.keys():
-      template = self._group_to_dag_template(opsgroups[opsgroup], inputs, outputs, dependencies)
-      templates.append(template)
-
-    deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
-    importer_tasks = []
-
-
-    def _get_input_artifact_type(
-        input_name: str,
-        component_spec: ComponentSpec,
-    ) -> str:
-      """Find the input artifact type by input name."""
-      for input in component_spec.inputs:
-        if input.name == input_name:
-          return ir_types._artifact_types_mapping.get(input.type.lower()) or ''
-      return ''
-
-
-    for op in pipeline.ops.values():
-      templates.extend(op_to_templates_handler(op))
-      component_spec = op._metadata
-      task = pipeline_spec.tasks.add()
-      task.CopyFrom(op.task_spec)
-      deployment_config.executors[task.task_info.name].container.CopyFrom(op.container_spec)
-
-      # Check if need to insert importer node
-      for input_name in task.inputs.artifacts:
-        if task.inputs.artifacts[input_name].producer_task == '':
-          artifact_type = _get_input_artifact_type(input_name, component_spec)
-
-          from kfp.v2.compiler import importer_node
-          importer_task, importer_spec = importer_node.build_importer_spec(
-              task, input_name, artifact_type)
-          importer_tasks.append(importer_task)
-
-          task.inputs.artifacts[input_name].producer_task = importer_task.task_info.name
-          task.inputs.artifacts[input_name].output_artifact_key = importer_node._OUTPUT_KEY
-
-          deployment_config.executors[importer_task.executor_label].importer.CopyFrom(importer_spec)
-
-    pipeline_spec.deployment_config.Pack(deployment_config)
-
-    if len(importer_tasks) > 0:
-      pipeline_spec.tasks.extend(importer_tasks)
-
-    return templates
 
 
   def _create_pipeline_spec(self,
@@ -659,8 +319,62 @@ class Compiler(object):
         else:
             raise NotImplementedError('Unexpected parameter type with: "{}".'.format(str(arg.value)))
 
-    # Templates
-    templates = self._create_dag_templates(pipeline, pipeline_spec)
+    root_group = pipeline.groups[0]
+    opsgroups = self._get_groups(root_group)
+    op_name_to_parent_groups = self._get_groups_for_ops(root_group)
+    inputs, outputs = self._get_inputs_outputs(
+        pipeline,
+        root_group,
+        op_name_to_parent_groups,
+        pipeline_spec,
+    )
+    dependencies = self._get_dependencies(
+        pipeline,
+        root_group,
+        op_name_to_parent_groups,
+        opsgroups,
+    )
+
+    deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
+    importer_tasks = []
+
+
+    def _get_input_artifact_type(
+        input_name: str,
+        component_spec: ComponentSpec,
+    ) -> str:
+      """Find the input artifact type by input name."""
+      for input in component_spec.inputs:
+        if input.name == input_name:
+          return ir_types._artifact_types_mapping.get(input.type.lower()) or ''
+      return ''
+
+
+    for op in pipeline.ops.values():
+      component_spec = op._metadata
+      task = pipeline_spec.tasks.add()
+      task.CopyFrom(op.task_spec)
+      deployment_config.executors[task.task_info.name].container.CopyFrom(op.container_spec)
+
+      # Check if need to insert importer node
+      for input_name in task.inputs.artifacts:
+        if task.inputs.artifacts[input_name].producer_task == '':
+          artifact_type = _get_input_artifact_type(input_name, component_spec)
+
+          from kfp.v2.compiler import importer_node
+          importer_task, importer_spec = importer_node.build_importer_spec(
+              task, input_name, artifact_type)
+          importer_tasks.append(importer_task)
+
+          task.inputs.artifacts[input_name].producer_task = importer_task.task_info.name
+          task.inputs.artifacts[input_name].output_artifact_key = importer_node._OUTPUT_KEY
+
+          deployment_config.executors[importer_task.executor_label].importer.CopyFrom(importer_spec)
+
+    pipeline_spec.deployment_config.Pack(deployment_config)
+
+    if len(importer_tasks) > 0:
+      pipeline_spec.tasks.extend(importer_tasks)
 
     return pipeline_spec
 
@@ -770,7 +484,7 @@ class Compiler(object):
         dsl_pipeline,
     )
 
-    #print('###proto###\n', MessageToJson(pipeline_spec))
+    print('###proto###\n', MessageToJson(pipeline_spec))
     return pipeline_spec
 
   def compile(self, pipeline_func, package_path, type_check=True):
