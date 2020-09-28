@@ -1,6 +1,7 @@
 name: Download from GCS
 inputs:
 - {name: GCS path, type: URI}
+- {name: Default data, optional: true}
 outputs:
 - {name: Data}
 implementation:
@@ -17,15 +18,30 @@ implementation:
 
             uri="$0"
             output_path="$1"
-
-            # Checking whether the URI points to a single blob, a directory or a URI pattern
-            # URI points to a blob when that URI does not end with slash and listing that URI only yields the same URI
-            if [[ "$uri" != */ ]] && (gsutil ls "$uri" | grep --fixed-strings --line-regexp "$uri"); then
+            default_data_path="$2"
+            
+            # Checking whether the URI exists
+            # TODO: Distinguish between NotFound error and other errors
+            if gsutil ls "$uri"; then
+                # Checking whether the URI points to a single blob, a directory or a URI pattern
+                # URI points to a blob when that URI does not end with slash and listing that URI only yields the same URI
+                if [[ "$uri" != */ ]] && (gsutil ls "$uri" | grep --fixed-strings --line-regexp "$uri"); then
+                    mkdir -p "$(dirname "$output_path")"
+                    gsutil -m cp -r "$uri" "$output_path"
+                else
+                    mkdir -p "$output_path" # When source path is a directory, gsutil requires the destination to also be a directory
+                    gsutil -m rsync -r "$uri" "$output_path" # gsutil cp has different path handling than Linux cp. It always puts the source directory (name) inside the destination directory. gsutil rsync does not have that problem.
+                fi
+            elif [ "$default_data_path" != '' ]; then
                 mkdir -p "$(dirname "$output_path")"
-                gsutil -m cp -r "$uri" "$output_path"
+                cp -r "$default_data_path" "$output_path"
             else
-                mkdir -p "$output_path" # When source path is a directory, gsutil requires the destination to also be a directory
-                gsutil -m rsync -r "$uri" "$output_path" # gsutil cp has different path handling than Linux cp. It always puts the source directory (name) inside the destination directory. gsutil rsync does not have that problem.
+                echo "The URI does not exist and the default data was not provided"
+                exit 1
             fi
         - inputValue: GCS path
         - outputPath: Data
+        - if:
+            cond: {isPresent: Default data}
+            then: [{inputPath: Default data}]
+            else: [""]
