@@ -14,14 +14,18 @@ implementation:
             if [ -n "${GOOGLE_APPLICATION_CREDENTIALS}" ]; then
                 gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
             fi
-            
-            stat_result=$(gsutil ls -d "$0")
-            if [[ "$stat_result" == */ ]]; then
-                mkdir -p "$1" # When source path is a directory, gsutil requires the destination to also be a directory
+
+            uri="$0"
+            output_path="$1"
+
+            # Checking whether the URI points to a single blob, a directory or a URI pattern
+            # URI points to a blob when that URI does not end with slash and listing that URI only yields the same URI
+            if [[ "$uri" != */ ]] && (gsutil ls "$uri" | grep --fixed-strings --line-regexp "$uri"); then
+                mkdir -p "$(dirname "$output_path")"
+                gsutil -m cp -r "$uri" "$output_path"
             else
-                mkdir -p "$(dirname "$1")"
+                mkdir -p "$output_path" # When source path is a directory, gsutil requires the destination to also be a directory
+                gsutil -m rsync -r "$uri" "$output_path" # gsutil cp has different path handling than Linux cp. It always puts the source directory (name) inside the destination directory. gsutil rsync does not have that problem.
             fi
-            
-            gsutil -m rsync -r "$0" "$1" # gsutil cp has different path handling than Linux cp. It always puts the source directory (name) inside the destination directory. gsutil rsync does not have that problem.
         - inputValue: GCS path
         - outputPath: Data
