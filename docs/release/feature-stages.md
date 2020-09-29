@@ -1,6 +1,6 @@
 # Kubeflow Pipelines Feature Stages
 
-The features in Kubeflow Pipelines fall into three different stages: stable, beta and alpha.
+The features in Kubeflow Pipelines fall into three different stages: alpha, beta, and stable.
 
 ## Stage criteria and support levels
 
@@ -20,15 +20,22 @@ The features in Kubeflow Pipelines fall into three different stages: stable, bet
 
 ### Stable
 All of the guarantees for Beta and:
-* No breaking changes without a major version bump.
+* No breaking changes without a major version release.
 * The software is recommended for all uses.
 
 ## Stable Features
 
 * [SDK DSL](https://github.com/kubeflow/pipelines/tree/master/sdk/python/kfp/dsl) for constructing a pipeline.
 * [ComponentSpec](https://github.com/kubeflow/pipelines/blob/release-1.0/sdk/python/kfp/components/structures/components.json_schema.json).
+* [Core APIs](#core-apis)
+* The following SDK client helper methods (others are in Alpha stage)
+  * [run_pipeline](https://kubeflow-pipelines.readthedocs.io/en/latest/source/kfp.client.html#kfp.Client.run_pipeline)
+  * [create_experiment](https://kubeflow-pipelines.readthedocs.io/en/latest/source/kfp.client.html#kfp.Client.create_experiment)
+  * [get_experiment](https://kubeflow-pipelines.readthedocs.io/en/latest/source/kfp.client.html#kfp.Client.get_experiment)
+  * [wait_for_run_completion](https://kubeflow-pipelines.readthedocs.io/en/latest/source/kfp.client.html#kfp.Client.wait_for_run_completion)
+  * [create_run_from_pipelie_func](https://kubeflow-pipelines.readthedocs.io/en/latest/source/kfp.client.html#kfp.Client.create_run_from_pipeline_func)
 
-Note, these packages are stable in general, but specific classes, methods, and arguments might be in a different stage. Refer to [their own documentation](https://kubeflow-pipelines.readthedocs.io/en/latest/source/kfp.dsl.html).
+Note, these packages are stable in general, but specific classes, methods, and arguments might be in a different stage. For more information, refer to [Kubeflow Pipelines SDK documentation](https://kubeflow-pipelines.readthedocs.io/en/latest/source/kfp.dsl.html).
 
 ### Core APIs
 
@@ -39,16 +46,15 @@ Note, these packages are stable in general, but specific classes, methods, and a
 | Run              |        |  ☑️ |☑️|☑️ | ☑️  | ☑️   | ☑️     |        |         | ☑️     | ☑️ |
 | Experiment       |        |  ☑️ |☑️|☑️ | ☑️  | ☑️   | ☑️     |
 
-* Refer to the Kubeflow Pipelines [introduction]((https://www.kubeflow.org/docs/pipelines/overview/)) for
-  - An [overview](https://www.kubeflow.org/docs/pipelines/overview/pipelines-overview/) and [main concepts](https://www.kubeflow.org/docs/pipelines/overview/concepts/), for example, what is a pipeline or run in Kubeflow Pipelines.
-  - How to manage the Kubeflow Pipelines resources via the the [Kubeflow Pipelines UI](https://www.kubeflow.org/docs/pipelines/overview/interfaces/).
-* Refer to the Kubeflow Pipelines [SDK samples and tutorials](https://www.kubeflow.org/docs/pipelines/tutorials/sdk-examples/)
-for how to manage the Kubeflow Pipelines resources via the Kubeflow Pipelines client.
-* A complete API method list and a detailed description of parameters to those API methods are available at the Kubeflow Pipelines [API reference](https://www.kubeflow.org/docs/pipelines/reference/api/kubeflow-pipeline-api-spec/).
+* Refer to the Kubeflow Pipelines documentation to learn more about:
+  - The [purpose and goals of Kubeflow Pipelines](https://www.kubeflow.org/docs/pipelines/overview/pipelines-overview/) and the [main concepts required to use Kubeflow Pipelines](https://www.kubeflow.org/docs/pipelines/overview/concepts/). For example, what is a pipeline and what is a pipeline run in Kubeflow Pipelines.
+  - [How to manage Kubeflow Pipelines resources using the the Kubeflow Pipelines UI](https://www.kubeflow.org/docs/pipelines/overview/interfaces/).
+  -  [How to manage the Kubeflow Pipelines resources using the Kubeflow Pipelines client](https://www.kubeflow.org/docs/pipelines/tutorials/sdk-examples/).
+  - The [Kubeflow Pipelines API](https://www.kubeflow.org/docs/pipelines/reference/api/kubeflow-pipeline-api-spec/). The API reference includes a complete list of the methods and parameters that are available in the Kubeflow Pipelines API.
 
 ## Features in Beta
 
-* Job API
+* [Job API](https://www.kubeflow.org/docs/pipelines/reference/api/kubeflow-pipeline-api-spec/#tag-JobService)
 
   |                  | Upload | Create | Get | List | Delete | Archive | Unarchive | Enable | Disable | Terminate | Retry |
   |:----------------:|:------:|:------:|:---:|:----:|:------:|:-------:|:---------:|:------:|:-------:|:---------:|:-----:|
@@ -57,27 +63,25 @@ for how to manage the Kubeflow Pipelines resources via the Kubeflow Pipelines cl
 
 * [Upgrade support for the Kubeflow Pipelines standalone deployment](https://www.kubeflow.org/docs/pipelines/installation/standalone-deployment/#upgrading-kubeflow-pipelines).
 
-* [Built-in Visualizations](https://www.kubeflow.org/docs/pipelines/sdk/output-viewer/).
+* [Built-in visualizations](https://www.kubeflow.org/docs/pipelines/sdk/output-viewer/).
 
-* [Pipeline Metrics](https://www.kubeflow.org/docs/pipelines/sdk/pipelines-metrics/).
+* [Pipeline metrics](https://www.kubeflow.org/docs/pipelines/sdk/pipelines-metrics/).
 
-* [Multi-user Isolation](https://www.kubeflow.org/docs/pipelines/multi-user/).
+* [Multi-user isolation](https://www.kubeflow.org/docs/pipelines/multi-user/).
 
 ## Features in Alpha
 
-* [SDK client helper methods](https://kubeflow-pipelines.readthedocs.io/en/latest/source/kfp.client.html). The helper methods are mainly maintained by
-community. They are convenient to use, but some problems including not providing all features from the API and lack of testing
-prevent us moving it to Beta stage right now. Refer to [SDK client Beta blockers project](https://github.com/kubeflow/pipelines/projects/7) for specific issues.
+* Most of [SDK client helper methods](https://kubeflow-pipelines.readthedocs.io/en/latest/source/kfp.client.html) except those mentioned in stable stage. The helper methods are mainly maintained by the community. These methods can be convenient to use, but they may not provide all the features from the API and they may lack testing. These issues prevent us from moving these methods to Beta stage at this time. For more information, refer to the [SDK client Beta blockers project](https://github.com/kubeflow/pipelines/projects/7).
 
-  We recommend and support auto-generated client APIs instead. For example,
+  We recommend and support the auto-generated client APIs instead. For example,
   `client.pipelines.list_pipelines()`, `client.runs.list_runs()` and
   `client.pipeline_uploads.upload_pipeline()`.
-  
-  Refer to [Using the Kubeflow Pipelines SDK](https://www.kubeflow.org/docs/pipelines/tutorials/sdk-examples/) for some example usages and [SDK generated API reference](https://kubeflow-pipelines.readthedocs.io/en/latest/source/kfp.client.html#generated-apis) for exact method signatures.
+
+  For more information, refer to the [Using the Kubeflow Pipelines SDK](https://www.kubeflow.org/docs/pipelines/tutorials/sdk-examples/) guide for examples of using the SDK, and the [SDK generated API client reference](https://kubeflow-pipelines.readthedocs.io/en/latest/source/kfp.server_api.html).
 
 * [Step caching](https://www.kubeflow.org/docs/pipelines/caching/).
 
 * [ML Metadata (MLMD)](https://github.com/google/ml-metadata) UI integration.
   For example, artifact and execution list and detail pages.
 
-* [Python based custom visualization](https://www.kubeflow.org/docs/pipelines/sdk/python-based-visualizations/).
+* [Python based custom visualizations](https://www.kubeflow.org/docs/pipelines/sdk/python-based-visualizations/).
