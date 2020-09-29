@@ -15,13 +15,17 @@
 
 from kfp.v2.proto import pipeline_spec_pb2
 
- # TODO: support more artifact types
-_artifact_types_mapping = {
-    'gcspath': 'mlpipeline.Artifact',
+
+# GCSPath is a special case
+GCS_PATH_TYPE = 'gcspath'
+
+# TODO: support more artifact types
+ARTIFACT_TYPES_MAPPING = {
+    GCS_PATH_TYPE: 'mlpipeline.Artifact',
     'model': 'mlpipeline.Model',
 }
 
-_parameter_types_mapping = {
+PARAMETER_TYPES_MAPPING = {
     'integer': pipeline_spec_pb2.PrimitiveType.INT,
     'int': pipeline_spec_pb2.PrimitiveType.INT,
     'double': pipeline_spec_pb2.PrimitiveType.DOUBLE,

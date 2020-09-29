@@ -16,7 +16,7 @@
 from typing import Tuple
 from kfp.v2.proto import pipeline_spec_pb2
 
-_OUTPUT_KEY = 'result'
+OUTPUT_KEY = 'result'
 
 
 def build_importer_spec(
@@ -43,7 +43,7 @@ def build_importer_spec(
 
   task_spec = pipeline_spec_pb2.PipelineTaskSpec()
   task_spec.task_info.name = f'{dependent_task_name}_{input_name}_importer'
-  task_spec.outputs.artifacts[_OUTPUT_KEY].artifact_type.schema_title = (
+  task_spec.outputs.artifacts[OUTPUT_KEY].artifact_type.schema_title = (
       input_type)
   task_spec.executor_label = task_spec.task_info.name
 

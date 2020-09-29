@@ -11,15 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Function for creating ContainerOp instance."""
 
 import copy
 from typing import Any, Mapping
-from ..components.structures import ComponentSpec, ComponentReference
-from ..components._components import _default_component_name, _resolve_command_line_and_paths
-from ..components._naming import _sanitize_python_function_name, generate_unique_name_conversion_table
-from .. import dsl
-from ._container_op import ContainerOp
+
+from kfp import dsl
+from kfp.components._components import _default_component_name, _resolve_command_line_and_paths
+from kfp.components._naming import _sanitize_python_function_name, generate_unique_name_conversion_table
+from kfp.components.structures import ComponentSpec, ComponentReference
 from kfp.dsl import ir_types
+from kfp.dsl._container_op import ContainerOp
 from kfp.v2.proto import pipeline_spec_pb2
 
 
@@ -49,15 +51,15 @@ def _create_container_op_from_component_and_arguments(
       arguments[input_name] = str(argument_value)
 
       normalized_input_type = input_type.lower()
-      if normalized_input_type in ir_types._artifact_types_mapping.keys():
+      if normalized_input_type in ir_types.ARTIFACT_TYPES_MAPPING.keys():
         # argument_value.op_name could be none, in which case an importer node
         # will be inserted later. Use output_artifact_key to preserve the name
         # of pipeline parameter which is needed by importer.
         pipeline_task_spec.inputs.artifacts[input_name].producer_task = (
-          argument_value.op_name or '')
+            argument_value.op_name or '')
         pipeline_task_spec.inputs.artifacts[input_name].output_artifact_key = (
-          argument_value.name)
-      elif normalized_input_type in ir_types._parameter_types_mapping.keys():
+            argument_value.name)
+      elif normalized_input_type in ir_types.PARAMETER_TYPES_MAPPING.keys():
         pipeline_task_spec.inputs.parameters[
             input_name].runtime_value.runtime_parameter = argument_value.name
       else:
@@ -77,37 +79,37 @@ def _create_container_op_from_component_and_arguments(
           'Input argument supports only the following types: PipelineParam'
           ', str, int, float. Got: "{}".'.format(argument_value))
 
-  if component_spec.outputs:
-    for output in component_spec.outputs:
-      normalized_output_type = output.type.lower()
-      if normalized_output_type in ir_types._artifact_types_mapping.keys():
-        pipeline_task_spec.outputs.artifacts[
-            output.name].artifact_type.schema_title = (
-                ir_types._artifact_types_mapping.get(normalized_output_type))
-      elif normalized_output_type in ir_types._parameter_types_mapping.keys():
-        pipeline_task_spec.outputs.parameters[
-            output.name].type = ir_types._parameter_types_mapping.get(
-                normalized_output_type)
-      else:
-        raise NotImplementedError('Unsupported output type: "{}"'.format(
-            output.type))
+  for output in component_spec.outputs or []:
+    normalized_output_type = output.type.lower()
+    if normalized_output_type in ir_types.ARTIFACT_TYPES_MAPPING.keys():
+      pipeline_task_spec.outputs.artifacts[
+          output.name].artifact_type.schema_title = (
+              ir_types.ARTIFACT_TYPES_MAPPING.get(normalized_output_type))
+    elif normalized_output_type in ir_types.PARAMETER_TYPES_MAPPING.keys():
+      pipeline_task_spec.outputs.parameters[
+          output.name].type = ir_types.PARAMETER_TYPES_MAPPING.get(
+              normalized_output_type)
+    else:
+      raise NotImplementedError('Unsupported output type: "{}"'.format(
+          output.type))
 
-  def _input_artifact_placeholder(port_name: str) -> str:
-    return "{{$.inputs.artifacts['" + port_name + "'].uri}}"
+  def _input_artifact_placeholder(input_key: str) -> str:
+    return f'{{$.inputs.artifacts[\'{input_key}\'].uri}}'
 
-  def _input_parameter_placeholder(port_name: str) -> str:
-    return "{{$.inputs.parameters['" + port_name + "']}}"
+  def _input_parameter_placeholder(input_key: str) -> str:
+    return f'{{$.inputs.parameters[\'{input_key}\']}}'
 
-  def _output_artifact_placeholder(port_name: str) -> str:
-    return "{{$.outputs.artifacts['" + port_name + "'].uri}}"
+  def _output_artifact_placeholder(input_key: str) -> str:
+    return f'{{$.outputs.artifacts[\'{input_key}\'].uri}}'
 
-  # Special handleing for input with 'GCSPath' type, treat it as artifact
-  # regardless whether it's InputValuePlaceholder or InputPathPlaceholder per
-  # component_spec.
+  # IR placeholders are decided merely based on the declared type of the input.
+  # It doesn't matter wether it's InputValuePlaceholder or InputPathPlaceholder
+  # from component_spec.
   placeholder_arguments = {
       input_spec.name: _input_artifact_placeholder(input_spec.name)
-      if input_spec.type.lower() == 'gcspath' else _input_parameter_placeholder(
-          input_spec.name) for input_spec in component_spec.inputs or []
+      if input_spec.type.lower() in ir_types.ARTIFACT_TYPES_MAPPING else
+      _input_parameter_placeholder(input_spec.name)
+      for input_spec in component_spec.inputs or []
   }
 
   resolved_cmd_ir = _resolve_command_line_and_paths(
@@ -116,6 +118,7 @@ def _create_container_op_from_component_and_arguments(
       input_path_generator=_input_artifact_placeholder,
       output_path_generator=_output_artifact_placeholder,
   )
+
   resolved_cmd = _resolve_command_line_and_paths(
       component_spec=component_spec,
       arguments=arguments,
@@ -124,7 +127,7 @@ def _create_container_op_from_component_and_arguments(
   container_spec = component_spec.implementation.container
 
   pipeline_container_spec = (
-    pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec())
+      pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec())
   pipeline_container_spec.image = container_spec.image
   pipeline_container_spec.command.extend(resolved_cmd_ir.command)
   pipeline_container_spec.args.extend(resolved_cmd_ir.args)
