@@ -256,7 +256,7 @@ message PipelineDeploymentConfig {
   // The specification to import or reimport a new artifact to the pipeline.
   message ImporterSpec {
     // The URI of the artifact.
-    string artifact_uri = 1;
+    ValueOrRuntimeParameter artifact_uri = 1;
 
     // The type of the artifact.
     ArtifactTypeSchema type_schema = 2;
