@@ -531,13 +531,10 @@ def _resolve_graph_task(
         task_component_spec = task_factory.component_spec
 
         input_name_to_pythonic = generate_unique_name_conversion_table([input.name for input in task_component_spec.inputs or []], _sanitize_python_function_name)
-        output_name_to_pythonic = generate_unique_name_conversion_table([output.name for output in task_component_spec.outputs or []], _sanitize_python_function_name)
-        pythonic_output_name_to_original = {pythonic_name: original_name for original_name, pythonic_name in output_name_to_pythonic.items()}
         pythonic_task_arguments = {input_name_to_pythonic[input_name]: argument for input_name, argument in task_arguments.items()}
 
         task_obj = task_factory(**pythonic_task_arguments)
-        task_outputs_with_pythonic_names = task_obj.outputs
-        task_outputs_with_original_names = {pythonic_output_name_to_original[pythonic_output_name]: output_value for pythonic_output_name, output_value in task_outputs_with_pythonic_names.items()}
+        task_outputs_with_original_names = {output.name: task_obj.outputs[output.name] for output in task_component_spec.outputs or []}
         outputs_of_tasks[task_id] = task_outputs_with_original_names
 
     resolved_graph_outputs = OrderedDict([(output_name, resolve_argument(argument)) for output_name, argument in graph.output_values.items()])
