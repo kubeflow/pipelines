@@ -716,11 +716,6 @@ class BaseOp(object):
                  init_containers: List[UserContainer] = None,
                  sidecars: List[Sidecar] = None,
                  is_exit_handler: bool = False):
-        valid_name_regex = r'^[A-Za-z][A-Za-z0-9\s_-]*$'
-        if not re.match(valid_name_regex, name):
-            raise ValueError(
-                'Only letters, numbers, spaces, "_", and "-"  are allowed in name. Must begin with letter: %s'
-                % (name))
 
         if is_exit_handler:
             warnings.warn('is_exit_handler=True is no longer needed.', DeprecationWarning)

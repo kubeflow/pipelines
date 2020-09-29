@@ -1003,3 +1003,17 @@ implementation:
         self.assertNotIn(' ', argument['name'], 'The input name "{}" of template "{}" was not sanitized.'.format(argument['name'], template['name']))
       for argument in template['inputs']['artifacts']:
         self.assertNotIn(' ', argument['name'], 'The input name "{}" of template "{}" was not sanitized.'.format(argument['name'], template['name']))
+
+  def test_container_op_with_arbitrary_name(self):
+    def some_pipeline():
+      dsl.ContainerOp(
+        name=r''' !"#$%&'()*+,-./:;<=>?@[\]^_`''',
+        image='alpine:latest',
+      )
+      dsl.ContainerOp(
+        name=r''' !"#$%&'()*+,-./:;<=>?@[\]^_`''',
+        image='alpine:latest',
+      )
+    workflow_dict = compiler.Compiler()._compile(some_pipeline)
+    for template in workflow_dict['spec']['templates']:
+      self.assertNotEqual(template['name'], '')

@@ -16,7 +16,7 @@ from typing import Union
 from . import _container_op
 from . import _resource_op
 from . import _ops_group
-from ._component_bridge import _create_container_op_from_component_and_arguments
+from ._component_bridge import _create_container_op_from_component_and_arguments, _sanitize_python_function_name
 from ..components import _components
 from ..components._naming import _make_name_unique_by_adding_index
 import sys
@@ -254,8 +254,13 @@ class Pipeline():
     Returns
       op_name: a unique op name.
     """
+    # Sanitizing the op name.
+    # Technically this could be delayed to the compilation stage, but string serialization of PipelineParams make unsanitized names problematic.
+    op_name = _sanitize_python_function_name(op.human_name).replace('_', '-')
     #If there is an existing op with this name then generate a new name.
-    op_name = _make_name_unique_by_adding_index(op.human_name, list(self.ops.keys()), ' ')
+    op_name = _make_name_unique_by_adding_index(op_name, list(self.ops.keys()), ' ')
+    if op_name == '':
+      op_name = _make_name_unique_by_adding_index('task', list(self.ops.keys()), ' ')
 
     self.ops[op_name] = op
     if not define_only:
