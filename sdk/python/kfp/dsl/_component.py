@@ -64,6 +64,11 @@ def component(func):
   """Decorator for component functions that returns a ContainerOp.
   This is useful to enable type checking in the DSL compiler
 
+  Feature stage: Stable. This feature is well tested and won't be dropped.
+  No breaking changes will happen within the same major version. See
+  [here](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md)
+  for definitions of feature stages.
+
   Example:
     ::
 
@@ -103,6 +108,11 @@ def component(func):
 def graph_component(func):
   """Decorator for graph component functions.
   This decorator returns an ops_group.
+
+  Feature stage: Stable. This feature is well tested and won't be dropped.
+  No breaking changes will happen within the same major version. See
+  [here](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md)
+  for definitions of feature stages.
 
   Example:
     ::

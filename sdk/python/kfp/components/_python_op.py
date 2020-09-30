@@ -723,8 +723,21 @@ def func_to_component_file(func, output_component_file, base_image: str = None, 
     Path(output_component_file).write_text(component_yaml)
 
 
-def func_to_container_op(func, output_component_file=None, base_image: str = None, extra_code='', packages_to_install: List[str] = None, modules_to_capture: List[str] = None, use_code_pickling=False):
-    '''Converts a Python function to a component and returns a task (:class:`kfp.dsl.ContainerOp`) factory.
+def func_to_container_op(
+    func,
+    output_component_file = None,
+    base_image: str = None,
+    extra_code = '',
+    packages_to_install: List[str] = None,
+    modules_to_capture: List[str] = None,
+    use_code_pickling = False):
+    '''Converts a Python function to a component and returns a task
+      (:class:`kfp.dsl.ContainerOp`) factory.
+
+    Feature stage: Stable. This feature is well tested and won't be dropped.
+    No breaking changes will happen within the same major version. See
+    [here](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md)
+    for definitions of feature stages.
 
     Function docstring is used as component description. Argument and return annotations are used as component input/output types.
 
@@ -772,7 +785,13 @@ def create_component_from_func(
     base_image: str = None,
     packages_to_install: List[str] = None,
 ):
-    '''Converts a Python function to a component and returns a task factory (a function that accepts arguments and returns a task object).
+    '''Converts a Python function to a component and returns a task factory
+    (a function that accepts arguments and returns a task object).
+
+    Feature stage: Stable. This feature is well tested and won't be dropped.
+    No breaking changes will happen within the same major version. See
+    [here](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md)
+    for definitions of feature stages.
 
     Args:
         func: The python function to convert

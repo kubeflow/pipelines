@@ -63,8 +63,19 @@ def _generate_dockerfile_text(context_dir: str, dockerfile_path: str, base_image
     return '\n'.join(dockerfile_lines)
 
 
-def build_image_from_working_dir(image_name: str = None, working_dir: str = None, file_filter_re: str = r'.*\.py',  timeout: int = 1000, base_image: str = None, builder: ContainerBuilder = None) -> str:
+def build_image_from_working_dir(
+    image_name: str = None,
+    working_dir: str = None,
+    file_filter_re: str = r'.*\.py',
+    timeout: int = 1000,
+    base_image: str = None,
+    builder: ContainerBuilder = None) -> str:
     '''Builds and pushes a new container image that captures the current python working directory.
+
+    Feature stage: Stable. This feature is well tested and won't be dropped.
+    No breaking changes will happen within the same major version. See
+    [here](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md)
+    for definitions of feature stages.
 
     This function recursively scans the working directory and captures the following files in the container image context:
 

@@ -26,10 +26,10 @@ class VolumeSnapshotOp(ResourceOp):
     """Represents an op which will be translated into a resource template
     which will be creating a VolumeSnapshot.
 
-    At the time that this feature is written, VolumeSnapshots are an Alpha
-    feature in Kubernetes. You should check with your Kubernetes Cluster admin
-    if they have it enabled.
-
+    Feature stage: Alpha. This feature might contain bugs and breaking changes
+    might occur in future releases without notice. See
+    [here](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md)
+    for definitions of feature stages.
 
     Args:
         resource_name: A desired name for the VolumeSnapshot which will be created
