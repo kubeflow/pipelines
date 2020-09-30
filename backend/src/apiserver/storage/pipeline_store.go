@@ -486,6 +486,7 @@ func (s *PipelineStore) CreatePipelineVersion(v *model.PipelineVersion, updatePi
 			"Failed to create query to update pipeline default version id: %v",
 			pipelineErr.Error())
 	}
+
 	// In a single transaction, insert new version and update default version.
 	tx, err := s.db.Begin()
 	if err != nil {

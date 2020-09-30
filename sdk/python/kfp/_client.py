@@ -872,7 +872,7 @@ class Client(object):
     response = self._upload_api.upload_pipeline_version(
       pipeline_package_path, 
       name=pipeline_version_name, 
-      pipelineid=pipeline_id,
+      pipelineid=pipeline_id
     )
 
     if self._is_ipython():
