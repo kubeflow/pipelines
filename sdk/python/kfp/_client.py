@@ -327,7 +327,7 @@ class Client(object):
     if self._is_ipython():
       import IPython
       html = \
-          ('Experiment link <a href="%s/#/experiments/details/%s" target="_blank" >here</a>'
+          ('<a href="%s/#/experiments/details/%s" target="_blank" >Experiment details</a>.'
           % (self._get_url_prefix(), experiment.id))
       IPython.display.display(IPython.display.HTML(html))
     return experiment
@@ -507,7 +507,7 @@ class Client(object):
 
     if self._is_ipython():
       import IPython
-      html = ('Run link <a href="%s/#/runs/details/%s" target="_blank" >here</a>'
+      html = ('<a href="%s/#/runs/details/%s" target="_blank" >Run details</a>.'
               % (self._get_url_prefix(), response.run.id))
       IPython.display.display(IPython.display.HTML(html))
     return response.run
@@ -840,7 +840,7 @@ class Client(object):
     response = self._upload_api.upload_pipeline(pipeline_package_path, name=pipeline_name, description=description)
     if self._is_ipython():
       import IPython
-      html = 'Pipeline link <a href=%s/#/pipelines/details/%s>here</a>' % (self._get_url_prefix(), response.id)
+      html = '<a href=%s/#/pipelines/details/%s>Pipeline details</a>.' % (self._get_url_prefix(), response.id)
       IPython.display.display(IPython.display.HTML(html))
     return response
 
@@ -878,7 +878,7 @@ class Client(object):
 
     if self._is_ipython():
       import IPython
-      html = 'Pipeline link <a href=%s/#/pipelines/details/%s>here</a>' % (self._get_url_prefix(), response.id)
+      html = '<a href=%s/#/pipelines/details/%s>Pipeline details</a>.' % (self._get_url_prefix(), response.id)
       IPython.display.display(IPython.display.HTML(html))
     return response
 
