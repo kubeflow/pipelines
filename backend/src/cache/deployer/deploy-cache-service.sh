@@ -31,7 +31,7 @@ WEBHOOK_SECRET_NAME=webhook-server-tls
 mkdir -p "$HOME/bin"
 export PATH="$HOME/bin:$PATH"
 {
-    server_version_major_minor=$(kubectl version --output json | jq '(.serverVersion.major + "." + .serverVersion.minor)' | tr -d '+')
+    server_version_major_minor=$(kubectl version --output json | jq --raw-output '(.serverVersion.major + "." + .serverVersion.minor)' | tr -d '"+')
     stable_build_version=$(curl -s "https://storage.googleapis.com/kubernetes-release/release/stable-${server_version_major_minor}.txt")
     kubectl_url="https://storage.googleapis.com/kubernetes-release/release/${stable_build_version}/bin/linux/amd64/kubectl"
     curl -L -O "$HOME/bin/kubectl" "$kubectl_url"
