@@ -225,7 +225,7 @@ func (s *PipelineServer) CreatePipelineVersion(ctx context.Context, request *api
 		return nil, util.Wrap(err, "The URL is valid but pipeline system failed to read the file.")
 	}
 	updateDefaultVersion := common.IsPipelineVersionUpdatedByDefault()
-	version, err := s.resourceManager.CreatePipelineVersion(request.Version, pipelineFile, request.UpdatePipelineDefaultVersion)
+	version, err := s.resourceManager.CreatePipelineVersion(request.Version, pipelineFile, updateDefaultVersion)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a version.")
 	}

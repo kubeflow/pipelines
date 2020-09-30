@@ -156,7 +156,6 @@ func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *h
 		return
 	}
 
-	defaultVersionQueryString := r.URL.Query().Get(UpdateDefaultVersionQueryStringKey)
 	// If pipeline version update indicator is not passed, default to true.
 	updateDefaultVersion := common.IsPipelineVersionUpdatedByDefault()
 	if err != nil {
