@@ -157,10 +157,6 @@ func request_PipelineService_GetTemplate_0(ctx context.Context, marshaler runtim
 
 }
 
-var (
-	filter_PipelineService_CreatePipelineVersion_0 = &utilities.DoubleArray{Encoding: map[string]int{"version": 0}, Base: []int{1, 1, 0}, Check: []int{0, 1, 2}}
-)
-
 func request_PipelineService_CreatePipelineVersion_0(ctx context.Context, marshaler runtime.Marshaler, client PipelineServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq CreatePipelineVersionRequest
 	var metadata runtime.ServerMetadata
@@ -170,10 +166,6 @@ func request_PipelineService_CreatePipelineVersion_0(ctx context.Context, marsha
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
 	}
 	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq.Version); err != nil && err != io.EOF {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
-	}
-
-	if err := runtime.PopulateQueryParameters(&protoReq, req.URL.Query(), filter_PipelineService_CreatePipelineVersion_0); err != nil {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
