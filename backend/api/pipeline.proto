@@ -214,9 +214,6 @@ message CreatePipelineVersionRequest {
   // ResourceReference inside PipelineVersion specifies the pipeline that this
   // version belongs to.
   PipelineVersion version = 1;
-
-  // Bool indicating if pipeline version should be updated by default or not
-  bool update_pipeline_default_version = 2;
 }
 
 message GetPipelineVersionRequest {
