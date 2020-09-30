@@ -33,8 +33,8 @@ const (
 	UpdatePipelineVersionByDefault      string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
 )
 
-func IsPipelineVersionUpdatedByDefault() string {
-	return GetStringConfigWithDefault(UpdatePipelineVersionByDefault, "true")
+func IsPipelineVersionUpdatedByDefault() bool {
+	return GetBoolConfigWithDefault(UpdatePipelineVersionByDefault, true)
 }
 
 func GetStringConfig(configName string) string {
