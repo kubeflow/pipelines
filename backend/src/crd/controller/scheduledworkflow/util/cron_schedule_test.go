@@ -15,7 +15,9 @@
 package util
 
 import (
+	"fmt"
 	"math"
+	"os"
 	"testing"
 	"time"
 
@@ -113,6 +115,36 @@ func TestCronSchedule_GetNextScheduledEpoch(t *testing.T) {
 		Cron:    "0 * * * * * ",
 	})
 	assert.Equal(t, int64(10*hour+15*minute+minute),
+		schedule.GetNextScheduledEpoch(nil, defaultStartTime, location))
+}
+
+func TestCronSchedule_GetNextScheduledEpoch_LocationsEnvSet(t *testing.T) {
+	// There was a previous job.
+	locationString := "Asia/Shanghai"
+	os.Setenv("CRON_SCHEDULE_TIMEZONE", locationString)
+	location, _ := time.LoadLocation(locationString)
+
+	startTime, _ := time.Parse(time.RFC3339, "2010-01-11T10:10:00.000Z")
+	startTime = startTime.In(location)
+	endTime, _ := time.Parse(time.RFC3339, "2010-01-11T11:00:00.000Z")
+	endTime = endTime.In(location)
+	lastJob, _ := time.Parse(time.RFC3339, "2010-01-11T10:20:00.000Z")
+	lastJob = lastJob.In(location)
+	defaultStartTime, _ := time.Parse(time.RFC3339, "2010-01-11T10:15:00.000Z")
+	defaultStartTime = defaultStartTime.In(location)
+	schedule := NewCronSchedule(&swfapi.CronSchedule{
+		StartTime: commonutil.Metav1TimePointer(v1.NewTime(startTime.In(location))),
+		EndTime:   commonutil.Metav1TimePointer(v1.NewTime(endTime.In(location))),
+		Cron:      "0 * * * * * ",
+	})
+	lastJobTime := v1.Time{lastJob.In(location)}
+	fmt.Println(defaultStartTime)
+	fmt.Println(defaultStartTime)
+	assert.Equal(t, lastJob.Add(time.Minute*1).Unix(),
+		schedule.GetNextScheduledEpoch(&lastJobTime, defaultStartTime, location))
+
+	// There is no previous job, falling back on the start date of the schedule.
+	assert.Equal(t, startTime.Add(time.Minute*1).Unix(),
 		schedule.GetNextScheduledEpoch(nil, defaultStartTime, location))
 }
 
