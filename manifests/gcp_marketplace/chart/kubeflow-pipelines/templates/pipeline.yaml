@@ -739,11 +739,7 @@ spec:
             - name: OBJECTSTORECONFIG_BUCKETNAME
               value: "{{ .Values.managedstorage.gcsBucketName }}"
             - name: DBCONFIG_DBNAME
-              {{ if .Values.managedstorage.databaseNamePrefix }}
-              value: '{{ .Values.managedstorage.databaseNamePrefix }}_pipeline'
-              {{ else }}
-              value: '{{ .Release.Name | replace "-" "_" | replace "." "_" }}_pipeline'
-              {{ end }}
+              value: '{{ tpl .Values.managedstorage.databaseNamePrefix . }}_pipeline'
             - name: DBCONFIG_USER
               valueFrom:
                 secretKeyRef:

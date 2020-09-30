@@ -4,6 +4,7 @@ PyYAML
 # kfp.components
 cloudpickle
 strip-hints>=0.1.8
+docstring-parser>=0.7.3
 
 # kfp.dsl
 jsonschema>=3.0.1

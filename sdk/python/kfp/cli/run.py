@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .._client import Client
+
 import sys
 import subprocess
-import pprint
 import time
 import json
 import click
+import shutil
 
 from tabulate import tabulate
 
@@ -81,6 +81,13 @@ def _display_run(client, namespace, run_id, watch):
     _print_runs([run])
     if not watch:
         return
+    argo_path = shutil.which('argo')
+    if not argo_path:
+        raise RuntimeError("argo isn't found in $PATH. It's necessary for watch. "
+                           "Please make sure it's installed and available. "
+                           "Installation instructions be found here - "
+                           "https://github.com/argoproj/argo/releases")
+
     argo_workflow_name = None
     while True:
         time.sleep(1)
@@ -95,7 +102,7 @@ def _display_run(client, namespace, run_id, watch):
             print('Run is finished with status {}.'.format(run_detail.run.status))
             return
     if argo_workflow_name:
-        subprocess.run(['argo', 'watch', argo_workflow_name, '-n', namespace])
+        subprocess.run([argo_path, 'watch', argo_workflow_name, '-n', namespace])
         _print_runs([run])
 
 def _print_runs(runs):

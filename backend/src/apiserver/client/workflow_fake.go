@@ -23,7 +23,9 @@ import (
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	k8errors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8schema "k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 )
@@ -55,7 +57,7 @@ func (c *FakeWorkflowClient) Get(name string, options v1.GetOptions) (*v1alpha1.
 	if ok {
 		return workflow, nil
 	}
-	return nil, errors.New("not found")
+	return nil, k8errors.NewNotFound(k8schema.ParseGroupResource("workflows.argoproj.io"), name)
 }
 
 func (c *FakeWorkflowClient) List(opts v1.ListOptions) (*v1alpha1.WorkflowList, error) {
@@ -69,11 +71,20 @@ func (c *FakeWorkflowClient) Watch(opts v1.ListOptions) (watch.Interface, error)
 }
 
 func (c *FakeWorkflowClient) Update(workflow *v1alpha1.Workflow) (*v1alpha1.Workflow, error) {
-	return nil, nil
+	name := workflow.GetObjectMeta().GetName()
+	_, ok := c.workflows[name]
+	if ok {
+		return workflow, nil
+	}
+	return nil, k8errors.NewNotFound(k8schema.ParseGroupResource("workflows.argoproj.io"), name)
 }
 
 func (c *FakeWorkflowClient) Delete(name string, options *v1.DeleteOptions) error {
-	return nil
+	_, ok := c.workflows[name]
+	if ok {
+		return nil
+	}
+	return k8errors.NewNotFound(k8schema.ParseGroupResource("workflows.argoproj.io"), name)
 }
 
 func (c *FakeWorkflowClient) DeleteCollection(options *v1.DeleteOptions,
@@ -84,6 +95,11 @@ func (c *FakeWorkflowClient) DeleteCollection(options *v1.DeleteOptions,
 
 func (c *FakeWorkflowClient) Patch(name string, pt types.PatchType, data []byte,
 	subresources ...string) (*v1alpha1.Workflow, error) {
+
+	_, ok := c.workflows[name]
+	if !ok {
+		return nil, k8errors.NewNotFound(k8schema.ParseGroupResource("workflows.argoproj.io"), name)
+	}
 
 	var dat map[string]interface{}
 	json.Unmarshal(data, &dat)

@@ -34,6 +34,8 @@ def _create_container_op_from_component_and_arguments(
             dsl.types.verify_type_compatibility(reference_type, input_type, 'Incompatible argument passed to the input "{}" of component "{}": '.format(input_name, component_spec.name))
 
             arguments[input_name] = str(argument_value)
+        if isinstance(argument_value, dsl.ContainerOp):
+            raise TypeError('ContainerOp object was passed to component as an input argument. Pass a single output instead.')
 
     resolved_cmd = _resolve_command_line_and_paths(
         component_spec=component_spec,

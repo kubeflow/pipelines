@@ -15,8 +15,6 @@
 
 mkdir -p ./build
 rsync -arvp --exclude=.tox "component_sdk/python"/ ./build/
-cp ../../license.sh ./build/
-cp ../../third_party_licenses.csv ./build/
 
 ../../build_image.sh -l ml-pipeline-gcp "$@"
 rm -rf ./build
