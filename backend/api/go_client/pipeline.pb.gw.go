@@ -592,7 +592,7 @@ var (
 
 	pattern_PipelineService_GetPipelineVersionTemplate_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3, 2, 4}, []string{"apis", "v1beta1", "pipeline_versions", "version_id", "templates"}, ""))
 
-	pattern_PipelineService_UpdatePipelineDefaultVersion_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3, 1, 0, 4, 1, 5, 4}, []string{"apis", "v1beta1", "pipelines", "pipeline_id", "version_id"}, ""))
+	pattern_PipelineService_UpdatePipelineDefaultVersion_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3, 2, 4, 1, 0, 4, 1, 5, 5}, []string{"apis", "v1beta1", "pipelines", "pipeline_id", "default_version", "version_id"}, ""))
 )
 
 var (

@@ -1028,7 +1028,7 @@
         ]
       }
     },
-    "/apis/v1beta1/pipelines/{pipeline_id}/{version_id}": {
+    "/apis/v1beta1/pipelines/{pipeline_id}/default_version/{version_id}": {
       "post": {
         "summary": "Update the default pipeline version of a specific pipeline.",
         "operationId": "UpdatePipelineDefaultVersion",

@@ -340,7 +340,7 @@ func (a *Client) UpdatePipelineDefaultVersion(params *UpdatePipelineDefaultVersi
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "UpdatePipelineDefaultVersion",
 		Method:             "POST",
-		PathPattern:        "/apis/v1beta1/pipelines/{pipeline_id}/{version_id}",
+		PathPattern:        "/apis/v1beta1/pipelines/{pipeline_id}/default_version/{version_id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},

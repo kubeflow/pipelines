@@ -72,7 +72,7 @@ type UpdatePipelineDefaultVersionOK struct {
 }
 
 func (o *UpdatePipelineDefaultVersionOK) Error() string {
-	return fmt.Sprintf("[POST /apis/v1beta1/pipelines/{pipeline_id}/{version_id}][%d] updatePipelineDefaultVersionOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[POST /apis/v1beta1/pipelines/{pipeline_id}/default_version/{version_id}][%d] updatePipelineDefaultVersionOK  %+v", 200, o.Payload)
 }
 
 func (o *UpdatePipelineDefaultVersionOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -108,7 +108,7 @@ func (o *UpdatePipelineDefaultVersionDefault) Code() int {
 }
 
 func (o *UpdatePipelineDefaultVersionDefault) Error() string {
-	return fmt.Sprintf("[POST /apis/v1beta1/pipelines/{pipeline_id}/{version_id}][%d] UpdatePipelineDefaultVersion default  %+v", o._statusCode, o.Payload)
+	return fmt.Sprintf("[POST /apis/v1beta1/pipelines/{pipeline_id}/default_version/{version_id}][%d] UpdatePipelineDefaultVersion default  %+v", o._statusCode, o.Payload)
 }
 
 func (o *UpdatePipelineDefaultVersionDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

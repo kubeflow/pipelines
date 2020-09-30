@@ -144,7 +144,8 @@ service PipelineService {
   // Update the default pipeline version of a specific pipeline.
   rpc UpdatePipelineDefaultVersion(UpdatePipelineDefaultVersionRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
-      post: "/apis/v1beta1/pipelines/{pipeline_id}/{version_id}"
+      post: "/apis/v1beta1/pipelines/{pipeline_id}/default_version/{version_id}"
+      
     };
   }
 }
