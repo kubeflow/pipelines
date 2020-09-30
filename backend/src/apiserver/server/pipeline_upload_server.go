@@ -33,10 +33,9 @@ import (
 
 // These are valid conditions of a ScheduledWorkflow.
 const (
-	FormFileKey                        = "uploadfile"
-	NameQueryStringKey                 = "name"
-	UpdateDefaultVersionQueryStringKey = "updatedefaultversion"
-	DescriptionQueryStringKey          = "description"
+	FormFileKey               = "uploadfile"
+	NameQueryStringKey        = "name"
+	DescriptionQueryStringKey = "description"
 	// Pipeline Id in the query string specifies a pipeline when creating versions.
 	PipelineKey = "pipelineid"
 )
