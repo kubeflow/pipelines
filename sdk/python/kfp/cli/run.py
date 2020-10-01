@@ -20,7 +20,7 @@ import json
 import click
 import shutil
 
-from tabulate import tabulate
+from .output import print_output
 
 @click.group()
 def run():
@@ -34,9 +34,10 @@ def run():
 def list(ctx, experiment_id, max_size):
     """list recent KFP runs"""
     client = ctx.obj['client']
+    output_format = ctx.obj['output']
     response = client.list_runs(experiment_id=experiment_id, page_size=max_size, sort_by='created_at desc')
     if response and response.runs:
-        _print_runs(response.runs)
+        _print_runs(response.runs, output_format)
     else:
         print('No runs found.')
 
@@ -53,6 +54,7 @@ def submit(ctx, experiment_name, run_name, package_file, pipeline_id, watch, ver
     """submit a KFP run"""
     client = ctx.obj['client']
     namespace = ctx.obj['namespace']
+    output_format = ctx.obj['output']
     if not run_name:
         run_name = experiment_name
 
@@ -64,7 +66,7 @@ def submit(ctx, experiment_name, run_name, package_file, pipeline_id, watch, ver
     experiment = client.create_experiment(experiment_name)
     run = client.run_pipeline(experiment.id, run_name, package_file, arg_dict, pipeline_id, version_id=version)
     print('Run {} is submitted'.format(run.id))
-    _display_run(client, namespace, run.id, watch)
+    _display_run(client, namespace, run.id, watch, output_format)
 
 @run.command()
 @click.option('-w', '--watch', is_flag=True, default=False, help='Watch the run status until it finishes.')
@@ -74,11 +76,13 @@ def get(ctx, watch, run_id):
     """display the details of a KFP run"""
     client = ctx.obj['client']
     namespace = ctx.obj['namespace']
-    _display_run(client, namespace, run_id, watch)
+    output_format = ctx.obj['output']
+    _display_run(client, namespace, run_id, watch, output_format)
 
-def _display_run(client, namespace, run_id, watch):
+
+def _display_run(client, namespace, run_id, watch, output_format):
     run = client.get_run(run_id).run
-    _print_runs([run])
+    _print_runs([run], output_format)
     if not watch:
         return
     argo_path = shutil.which('argo')
@@ -103,9 +107,10 @@ def _display_run(client, namespace, run_id, watch):
             return
     if argo_workflow_name:
         subprocess.run([argo_path, 'watch', argo_workflow_name, '-n', namespace])
-        _print_runs([run])
+        _print_runs([run], output_format)
 
-def _print_runs(runs):
+
+def _print_runs(runs, output_format):
     headers = ['run id', 'name', 'status', 'created at']
     data = [[run.id, run.name, run.status, run.created_at.isoformat()] for run in runs]
-    print(tabulate(data, headers=headers, tablefmt='grid'))
+    print_output(data, headers, output_format, table_format='grid')
