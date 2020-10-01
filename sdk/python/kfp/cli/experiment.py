@@ -23,10 +23,6 @@ def create(ctx, description, name):
     output_format = ctx.obj["output"]
 
     response = client.create_experiment(name, description=description)
-    if output_format == OutputFormat.table.name:
-        # This log message restricts the advantage of piping the output in other formats
-        # like json on the command-line, so print only for table format.
-        logging.info("Experiment {} has been submitted\n".format(name))
     _display_experiment(response, output_format)
 
 

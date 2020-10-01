@@ -74,18 +74,8 @@ def upload_version(ctx, package_file, pipeline_version, pipeline_id=None, pipeli
         pipeline_id = client.get_pipeline_id(name=pipeline_name)
         if pipeline_id==None: 
             raise ValueError("Can't find a pipeline with name: %s" % pipeline_name)
-    if output_format == OutputFormat.table.name:
-        # This log message restricts the advantage of piping the output in other formats
-        # like json on the command-line, so print only for table format.
-        logging.info("The pipeline id is: %s" % pipeline_id)
     version = client.pipeline_uploads.upload_pipeline_version(
         package_file, name=pipeline_version, pipelineid=pipeline_id)
-    if output_format == OutputFormat.table.name:
-        # This log message restricts the advantage of piping the output in other formats
-        # like json on the command-line, so print only for table format.
-        logging.info(
-            "The %s version of the pipeline %s has been submitted\n" %
-                (pipeline_version, pipeline_id))
     _display_pipeline_version(version, output_format)
 
 
@@ -191,9 +181,6 @@ def _display_pipeline(pipeline, output_format):
     data = [[param.name, param.value] for param in pipeline.parameters]
 
     if output_format == OutputFormat.table.name:
-        # This log message restricts the advantage of piping the output in other formats
-        # like json on the command-line, so print only for table format.
-        logging.info("Pipeline {} has been submitted\n".format(pipeline.id))
         print_output([], ["Pipeline Details"], output_format)
         print_output(table, [], output_format, table_format="plain")
         print_output(data, headers, output_format, table_format="grid")
