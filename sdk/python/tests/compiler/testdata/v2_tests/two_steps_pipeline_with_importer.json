@@ -1,0 +1,146 @@
+{
+  "pipelineInfo": {
+    "name": "my-pipeline"
+  },
+  "tasks": [
+    {
+      "taskInfo": {
+        "name": "Trainer"
+      },
+      "inputs": {
+        "parameters": {
+          "num_epochs": {
+            "runtimeValue": {
+              "runtimeParameter": "epochs"
+            }
+          },
+          "train_optimizer": {
+            "runtimeValue": {
+              "runtimeParameter": "optimizer"
+            }
+          }
+        },
+        "artifacts": {
+          "input_location": {
+            "producerTask": "Trainer_input_location_importer",
+            "outputArtifactKey": "result"
+          }
+        }
+      },
+      "outputs": {
+        "parameters": {
+          "model_config": {
+            "type": "STRING"
+          }
+        },
+        "artifacts": {
+          "model_output": {
+            "artifactType": {
+              "schemaTitle": "mlpipeline.Model"
+            }
+          }
+        }
+      }
+    },
+    {
+      "taskInfo": {
+        "name": "Serving"
+      },
+      "inputs": {
+        "parameters": {
+          "model_cfg": {
+            "runtimeValue": {
+              "runtimeParameter": "model_config"
+            }
+          }
+        },
+        "artifacts": {
+          "model": {
+            "producerTask": "Trainer",
+            "outputArtifactKey": "model_output"
+          }
+        }
+      }
+    },
+    {
+      "taskInfo": {
+        "name": "Trainer_input_location_importer"
+      },
+      "outputs": {
+        "artifacts": {
+          "result": {
+            "artifactType": {
+              "schemaTitle": "mlpipeline.Artifact"
+            }
+          }
+        }
+      },
+      "executorLabel": "Trainer_input_location_importer"
+    }
+  ],
+  "deploymentConfig": {
+    "@type": "type.googleapis.com/ml_pipelines.PipelineDeploymentConfig",
+    "executors": {
+      "Trainer": {
+        "container": {
+          "image": "gcr.io/my-project/my-training",
+          "args": [
+            "--input-location",
+            "{{$.inputs.artifacts['input_location'].path}}",
+            "--optimizer",
+            "{{$.inputs.parameters['train_optimizer']}}",
+            "--epochs",
+            "{{$.inputs.parameters['num_epochs']}}",
+            "--model",
+            "{{$.outputs.artifacts['model_output'].path}}",
+            "--model-config",
+            "{{$.outputs.artifacts['model_config'].path}}"
+          ]
+        }
+      },
+      "Trainer_input_location_importer": {
+        "importer": {
+          "artifactUri": {
+            "runtimeParameter": "input_gcs"
+          },
+          "typeSchema": {
+            "schemaTitle": "mlpipeline.Artifact"
+          }
+        }
+      },
+      "Serving": {
+        "container": {
+          "image": "gcr.io/my-project/my-server",
+          "args": [
+            "--model-to-serve",
+            "{{$.inputs.artifacts['model'].path}}",
+            "--model-config",
+            "{{$.inputs.parameters['model_cfg']}}"
+          ]
+        }
+      }
+    }
+  },
+  "sdkVersion": "kfp.v2",
+  "schemaVersion": "dummy.v1",
+  "runtimeParameters": {
+    "input_gcs": {
+      "type": "STRING",
+      "defaultValue": {
+        "stringValue": "gs://test-bucket/pipeline_root"
+      }
+    },
+    "epochs": {
+      "type": "STRING",
+      "defaultValue": {
+        "stringValue": "200"
+      }
+    },
+    "optimizer": {
+      "type": "STRING",
+      "defaultValue": {
+        "stringValue": "sgd"
+      }
+    }
+  }
+}

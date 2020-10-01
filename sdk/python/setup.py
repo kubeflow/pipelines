@@ -99,6 +99,8 @@ setup(
     include_package_data=True,
     entry_points={
         'console_scripts': [
-            'dsl-compile = kfp.compiler.main:main', 'kfp=kfp.__main__:main'
+            'dsl-compile = kfp.compiler.main:main',
+            'dsl-compile-v2 = kfp.v2.compiler.main:main',
+            'kfp=kfp.__main__:main'
         ]
     })

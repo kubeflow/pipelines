@@ -11,7 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""KFP DSL v2 compiler implementation."""
+"""KFP DSL v2 compiler.
+
+This is an experimental implementation of KFP compiler that compiles KFP
+pipeline into Pipeline IR:
+https://docs.google.com/document/d/1PUDuSQ8vmeKSBloli53mp7GIvzekaY7sggg6ywy35Dk/
+"""
 
 import contextlib
 import inspect
@@ -21,19 +26,25 @@ from typing import Any, Callable, List, Optional
 import zipfile
 
 import kfp
-from kfp import dsl
 from kfp.compiler._k8s_helper import sanitize_k8s_name
-from kfp.components.structures import ComponentSpec, InputSpec
-from kfp.dsl import ir_types
+from kfp.components import structures
 from kfp.dsl._metadata import _extract_pipeline_metadata
+from kfp.v2 import dsl
 from kfp.v2.compiler import importer_node
+from kfp.v2.dsl import type_utils
 from kfp.v2.proto import pipeline_spec_pb2
 
 from google.protobuf.json_format import MessageToJson
 
 
 class Compiler(object):
-  """DSL Compiler that compiles pipeline functions into pipeline_spec json.
+  """DSL Compiler that compiles pipeline function into PipelineSpec json string.
+
+  PipelineSpec is the IR protobuf message that defines a pipeline:
+  https://github.com/kubeflow/pipelines/blob/237795539f7b85bac77435e2464367226ee19391/api/v2alpha1/pipeline_spec.proto#L8
+  In this initial implementation, we only support components authored through
+  Component yaml spec. And we don't support advanced features like conditions,
+  static and dynamic loops, etc.
 
   Example:
     How to use the compiler to construct pipeline_spec json:
@@ -97,7 +108,7 @@ class Compiler(object):
 
     def _get_input_artifact_type(
         input_name: str,
-        component_spec: ComponentSpec,
+        component_spec: structures.ComponentSpec,
     ) -> str:
       """Find the input artifact type by input name.
 
@@ -110,8 +121,7 @@ class Compiler(object):
       """
       for component_input in component_spec.inputs:
         if component_input.name == input_name:
-          return ir_types.ARTIFACT_TYPES_MAPPING.get(
-              component_input.type.lower()) or ''
+          return type_utils.get_artifact_type(component_input.type)
       return ''
 
     for op in pipeline.ops.values():
@@ -213,7 +223,7 @@ class Compiler(object):
 
       args_list_with_defaults = params_list
       pipeline_meta.inputs = [
-          InputSpec(
+          structures.InputSpec(
               name=param.name, type=param.param_type, default=param.value)
           for param in params_list
       ]
@@ -223,7 +233,6 @@ class Compiler(object):
         dsl_pipeline,
     )
 
-    print('###json###\n', MessageToJson(pipeline_spec))
     return pipeline_spec
 
   def compile(self,
