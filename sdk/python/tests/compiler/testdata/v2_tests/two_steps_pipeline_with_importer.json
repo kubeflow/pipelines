@@ -1,6 +1,6 @@
 {
   "pipelineInfo": {
-    "name": "my-pipeline"
+    "name": "two-steps-pipeline-with-importer"
   },
   "tasks": [
     {
@@ -40,7 +40,8 @@
             }
           }
         }
-      }
+      },
+      "executorLabel": "Trainer"
     },
     {
       "taskInfo": {
@@ -60,7 +61,8 @@
             "outputArtifactKey": "model_output"
           }
         }
-      }
+      },
+      "executorLabel": "Serving"
     },
     {
       "taskInfo": {

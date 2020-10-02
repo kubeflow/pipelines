@@ -39,7 +39,8 @@ class TestV2Compiler(unittest.TestCase):
       with open(os.path.join(test_data_dir, target_json), 'r') as f:
         compiled = json.load(f)
 
-      self.assertCountEqual(golden, compiled)
+      self.maxDiff = None
+      self.assertEqual(sorted(golden.items()), sorted(compiled.items()))
     finally:
       shutil.rmtree(tmpdir)
 

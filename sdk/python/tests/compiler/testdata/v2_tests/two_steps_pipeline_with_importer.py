@@ -25,10 +25,12 @@ serving_op = kfp.components.load_component_from_file(
     os.path.join(test_data_dir, 'serving_component.yaml'))
 
 
-@dsl.pipeline(name='simple-pipeline', description='A linear two-step pipeline.')
-def simple_pipeline(input_gcs='gs://test-bucket/pipeline_root',
-                    optimizer: str = 'sgd',
-                    epochs: int = 200):
+@dsl.pipeline(
+    name='two-steps-pipeline-with-importer',
+    description='A linear two-step pipeline.')
+def my_pipeline(input_gcs='gs://test-bucket/pipeline_root',
+                optimizer: str = 'sgd',
+                epochs: int = 200):
   trainer = trainer_op(
       input_location=input_gcs, train_optimizer=optimizer, num_epochs=epochs)
   serving = serving_op(
@@ -37,4 +39,4 @@ def simple_pipeline(input_gcs='gs://test-bucket/pipeline_root',
 
 
 if __name__ == '__main__':
-  compiler.Compiler().compile(simple_pipeline, __file__ + '.json')
+  compiler.Compiler().compile(my_pipeline, __file__ + '.json')

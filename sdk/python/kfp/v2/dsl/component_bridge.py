@@ -33,6 +33,8 @@ def _create_container_op_from_component_and_arguments(
 
   pipeline_task_spec = pipeline_spec_pb2.PipelineTaskSpec()
   pipeline_task_spec.task_info.name = component_spec.name
+  # might need to append suffix to exuector_label to ensure its uniqueness?
+  pipeline_task_spec.executor_label = component_spec.name
 
   # Check types of the reference arguments and serialize PipelineParams
   arguments = arguments.copy()
@@ -94,13 +96,13 @@ def _create_container_op_from_component_and_arguments(
           output.type))
 
   def _input_artifact_placeholder(input_key: str) -> str:
-    return f'{{{{$.inputs.artifacts[\'{input_key}\'].path}}}}'
+    return "{{{{$.inputs.artifacts['{}'].path}}}}".format(input_key)
 
   def _input_parameter_placeholder(input_key: str) -> str:
-    return f'{{{{$.inputs.parameters[\'{input_key}\']}}}}'
+    return "{{{{$.inputs.parameters['{}']}}}}".format(input_key)
 
   def _output_artifact_placeholder(input_key: str) -> str:
-    return f'{{{{$.outputs.artifacts[\'{input_key}\'].path}}}}'
+    return "{{{{$.outputs.artifacts['{}'].path}}}}".format(input_key)
 
   # IR placeholders are decided merely based on the declared type of the input.
   # It doesn't matter wether it's InputValuePlaceholder or InputPathPlaceholder
