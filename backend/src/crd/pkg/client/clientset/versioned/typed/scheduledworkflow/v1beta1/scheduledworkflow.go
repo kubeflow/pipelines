@@ -16,6 +16,9 @@
 package v1beta1
 
 import (
+	"context"
+	"time"
+
 	v1beta1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	scheme "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,14 +35,14 @@ type ScheduledWorkflowsGetter interface {
 
 // ScheduledWorkflowInterface has methods to work with ScheduledWorkflow resources.
 type ScheduledWorkflowInterface interface {
-	Create(*v1beta1.ScheduledWorkflow) (*v1beta1.ScheduledWorkflow, error)
-	Update(*v1beta1.ScheduledWorkflow) (*v1beta1.ScheduledWorkflow, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*v1beta1.ScheduledWorkflow, error)
-	List(opts v1.ListOptions) (*v1beta1.ScheduledWorkflowList, error)
-	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.ScheduledWorkflow, err error)
+	Create(ctx context.Context, scheduledWorkflow *v1beta1.ScheduledWorkflow, opts v1.CreateOptions) (*v1beta1.ScheduledWorkflow, error)
+	Update(ctx context.Context, scheduledWorkflow *v1beta1.ScheduledWorkflow, opts v1.UpdateOptions) (*v1beta1.ScheduledWorkflow, error)
+	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1beta1.ScheduledWorkflow, error)
+	List(ctx context.Context, opts v1.ListOptions) (*v1beta1.ScheduledWorkflowList, error)
+	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.ScheduledWorkflow, err error)
 	ScheduledWorkflowExpansion
 }
 
@@ -58,97 +61,115 @@ func newScheduledWorkflows(c *ScheduledworkflowV1beta1Client, namespace string) 
 }
 
 // Get takes name of the scheduledWorkflow, and returns the corresponding scheduledWorkflow object, and an error if there is any.
-func (c *scheduledWorkflows) Get(name string, options v1.GetOptions) (result *v1beta1.ScheduledWorkflow, err error) {
+func (c *scheduledWorkflows) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.ScheduledWorkflow, err error) {
 	result = &v1beta1.ScheduledWorkflow{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("scheduledworkflows").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of ScheduledWorkflows that match those selectors.
-func (c *scheduledWorkflows) List(opts v1.ListOptions) (result *v1beta1.ScheduledWorkflowList, err error) {
+func (c *scheduledWorkflows) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.ScheduledWorkflowList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &v1beta1.ScheduledWorkflowList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("scheduledworkflows").
 		VersionedParams(&opts, scheme.ParameterCodec).
-		Do().
+		Timeout(timeout).
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested scheduledWorkflows.
-func (c *scheduledWorkflows) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *scheduledWorkflows) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
 		Namespace(c.ns).
 		Resource("scheduledworkflows").
 		VersionedParams(&opts, scheme.ParameterCodec).
-		Watch()
+		Timeout(timeout).
+		Watch(ctx)
 }
 
 // Create takes the representation of a scheduledWorkflow and creates it.  Returns the server's representation of the scheduledWorkflow, and an error, if there is any.
-func (c *scheduledWorkflows) Create(scheduledWorkflow *v1beta1.ScheduledWorkflow) (result *v1beta1.ScheduledWorkflow, err error) {
+func (c *scheduledWorkflows) Create(ctx context.Context, scheduledWorkflow *v1beta1.ScheduledWorkflow, opts v1.CreateOptions) (result *v1beta1.ScheduledWorkflow, err error) {
 	result = &v1beta1.ScheduledWorkflow{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("scheduledworkflows").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(scheduledWorkflow).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a scheduledWorkflow and updates it. Returns the server's representation of the scheduledWorkflow, and an error, if there is any.
-func (c *scheduledWorkflows) Update(scheduledWorkflow *v1beta1.ScheduledWorkflow) (result *v1beta1.ScheduledWorkflow, err error) {
+func (c *scheduledWorkflows) Update(ctx context.Context, scheduledWorkflow *v1beta1.ScheduledWorkflow, opts v1.UpdateOptions) (result *v1beta1.ScheduledWorkflow, err error) {
 	result = &v1beta1.ScheduledWorkflow{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("scheduledworkflows").
 		Name(scheduledWorkflow.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(scheduledWorkflow).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the scheduledWorkflow and deletes it. Returns an error if one occurs.
-func (c *scheduledWorkflows) Delete(name string, options *v1.DeleteOptions) error {
+func (c *scheduledWorkflows) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("scheduledworkflows").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *scheduledWorkflows) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *scheduledWorkflows) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	var timeout time.Duration
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("scheduledworkflows").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
-		Body(options).
-		Do().
+		VersionedParams(&listOpts, scheme.ParameterCodec).
+		Timeout(timeout).
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched scheduledWorkflow.
-func (c *scheduledWorkflows) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.ScheduledWorkflow, err error) {
+func (c *scheduledWorkflows) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.ScheduledWorkflow, err error) {
 	result = &v1beta1.ScheduledWorkflow{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
 		Resource("scheduledworkflows").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
