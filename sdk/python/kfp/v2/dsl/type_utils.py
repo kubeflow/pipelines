@@ -45,6 +45,9 @@ def is_artifact_type(type_name: str) -> bool:
 
   Returns:
     True if the type name maps to an artifact type else False.
+
+  Raises:
+    AttributeError: if type_name os not a string type.
   """
   return type_name.lower() in _ARTIFACT_TYPES_MAPPING
 
@@ -57,6 +60,9 @@ def is_parameter_type(type_name: str) -> bool:
 
   Returns:
     True if the type name maps to a parameter type else False.
+
+  Raises:
+    AttributeError: if type_name os not a string type.
   """
   return type_name.lower() in _PARAMETER_TYPES_MAPPING
 
@@ -68,10 +74,13 @@ def get_artifact_type(type_name: str) -> str:
     type_name: type name of the ComponentSpec I/O type.
 
   Returns:
-     The string value of artifact type if a mapping exists else an empty string.
+     The string value of artifact type.
+
+  Raises:
+    AttributeError: if type_name os not a string type.
+    KeyError: if type_name doesn't match any predefined key.
   """
-  return _ARTIFACT_TYPES_MAPPING.get(
-      type_name.lower()) if is_artifact_type(type_name) else ''
+  return _ARTIFACT_TYPES_MAPPING.get(type_name.lower())
 
 
 def get_parameter_type(type_name: str) -> pipeline_spec_pb2.PrimitiveType:
@@ -82,6 +91,9 @@ def get_parameter_type(type_name: str) -> pipeline_spec_pb2.PrimitiveType:
 
   Returns:
     The enum value of the mapped IR I/O primitive type.
+
+  Raises:
+    AttributeError: if type_name os not a string type.
+    KeyError: if type_name doesn't match any predefined key.
   """
-  return _PARAMETER_TYPES_MAPPING.get(type_name.lower()) if is_parameter_type(
-      type_name) else pipeline_spec_pb2.PrimitiveType.PRIMITIVE_TYPE_UNSPECIFIED
+  return _PARAMETER_TYPES_MAPPING.get(type_name.lower())

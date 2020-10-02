@@ -56,7 +56,7 @@ class Compiler(object):
       def my_pipeline(a: int = 1, b: str = "default value"):
         ...
 
-      Compiler().compile(my_pipeline, 'path/to/pipeline.json')
+      kfp.v2.compiler.Compiler().compile(my_pipeline, 'path/to/pipeline.json')
   """
 
   def _create_pipeline_spec(
@@ -103,38 +103,39 @@ class Compiler(object):
           raise NotImplementedError(
               'Unexpected parameter type with: "{}".'.format(str(arg.value)))
 
-    deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
-    importer_tasks = []
-
     def _get_input_artifact_type(
         input_name: str,
-        component_spec: structures.ComponentSpec,
+        inputs: List[structures.InputSpec],
     ) -> str:
       """Find the input artifact type by input name.
 
       Args:
         input_name: The name of the component input.
-        component_spec: The component spec object.
+        inputs: The list of InputSpec
 
       Returns:
-        The input type name if found in component_spec, or '' if not found.
+        The input type name if found in inputs, or '' if not found.
       """
-      for component_input in component_spec.inputs:
+      for component_input in inputs:
         if component_input.name == input_name:
           return type_utils.get_artifact_type(component_input.type)
       return ''
+
+    deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
+    importer_tasks = []
 
     for op in pipeline.ops.values():
       component_spec = op._metadata
       task = pipeline_spec.tasks.add()
       task.CopyFrom(op.task_spec)
-      deployment_config.executors[task.task_info.name].container.CopyFrom(
+      deployment_config.executors[task.executor_label].container.CopyFrom(
           op.container_spec)
 
       # Check if need to insert importer node
       for input_name in task.inputs.artifacts:
         if not task.inputs.artifacts[input_name].producer_task:
-          artifact_type = _get_input_artifact_type(input_name, component_spec)
+          artifact_type = _get_input_artifact_type(input_name,
+                                                   component_spec.inputs)
 
           importer_task, importer_spec = importer_node.build_importer_spec(
               task, input_name, artifact_type)
@@ -156,8 +157,8 @@ class Compiler(object):
   def _create_pipeline(
       self,
       pipeline_func: Callable[..., Any],
-      pipeline_name: str = None,
-      pipeline_description: str = None,
+      pipeline_name: Optional[str] = None,
+      pipeline_description: Optional[str] = None,
       params_list: List[dsl.PipelineParam] = None,
   ) -> pipeline_spec_pb2.PipelineSpec:
     """Internal implementation of create_pipeline.
@@ -292,9 +293,9 @@ class Compiler(object):
       with open(package_path, 'w') as json_file:
         json_file.write(json_text)
     else:
-      raise ValueError('The output path ' + package_path +
+      raise ValueError('The output path {}'
                        ' should ends with one of the following formats: '
-                       '[.tar.gz, .tgz, .zip, .json]')
+                       '[.tar.gz, .tgz, .zip, .json]'.format(package_path))
 
   def _create_and_write_pipeline_spec(self,
                                       pipeline_func: Callable[..., Any],

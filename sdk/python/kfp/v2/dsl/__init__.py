@@ -23,6 +23,3 @@ from kfp.dsl._pipeline_volume import PipelineVolume
 from kfp.dsl._volume_snapshot_op import VolumeSnapshotOp
 from kfp.dsl._ops_group import OpsGroup, ExitHandler, Condition, ParallelFor
 from kfp.dsl._component import python_component, graph_component, component
-
-EXECUTION_ID_PLACEHOLDER = '{{workflow.uid}}-{{pod.name}}'
-RUN_ID_PLACEHOLDER = '{{workflow.uid}}'

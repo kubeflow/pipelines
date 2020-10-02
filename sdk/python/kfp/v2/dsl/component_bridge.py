@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Function for creating ContainerOp instance."""
+"""Function for creating ContainerOp instances from component spec."""
 
 import copy
 from typing import Any, Mapping
@@ -19,17 +19,17 @@ from typing import Any, Mapping
 from kfp import dsl
 from kfp.components._components import _default_component_name, _resolve_command_line_and_paths
 from kfp.components._naming import _sanitize_python_function_name, generate_unique_name_conversion_table
-from kfp.components.structures import ComponentSpec, ComponentReference
+from kfp.components import structures
+from kfp.dsl import types
 from kfp.v2.dsl import type_utils
-from kfp.dsl._container_op import ContainerOp
 from kfp.v2.proto import pipeline_spec_pb2
 
 
 def _create_container_op_from_component_and_arguments(
-    component_spec: ComponentSpec,
+    component_spec: structures.ComponentSpec,
     arguments: Mapping[str, Any],
-    component_ref: ComponentReference = None,
-) -> ContainerOp:
+    component_ref: structures.ComponentReference = None,
+) -> dsl.ContainerOp:
 
   pipeline_task_spec = pipeline_spec_pb2.PipelineTaskSpec()
   pipeline_task_spec.task_info.name = component_spec.name
@@ -38,12 +38,13 @@ def _create_container_op_from_component_and_arguments(
   arguments = arguments.copy()
   for input_name, argument_value in arguments.items():
     if isinstance(argument_value, dsl.ContainerOp):
-      raise TypeError('ContainerOp object was passed to component as an input '
-                      'argument. Pass a single output instead.')
+      raise TypeError(
+          'ContainerOp object {} was passed to component as an input argument. '
+          'Pass a single output instead.'.format(input_name))
     elif isinstance(argument_value, dsl.PipelineParam):
       input_type = component_spec._inputs_dict[input_name].type
       reference_type = argument_value.param_type
-      dsl.types.verify_type_compatibility(
+      types.verify_type_compatibility(
           reference_type, input_type,
           'Incompatible argument passed to the input "{}" of component "{}": '
           .format(input_name, component_spec.name))
@@ -82,7 +83,9 @@ def _create_container_op_from_component_and_arguments(
     normalized_output_type = output.type.lower()
     if type_utils.is_artifact_type(output.type):
       pipeline_task_spec.outputs.artifacts[
-          output.name].artifact_type.schema_title = type_utils.get_artifact_type(output.type)
+          output
+          .name].artifact_type.schema_title = type_utils.get_artifact_type(
+              output.type)
     elif type_utils.is_parameter_type(output.type):
       pipeline_task_spec.outputs.parameters[
           output.name].type = type_utils.get_parameter_type(output.type)
