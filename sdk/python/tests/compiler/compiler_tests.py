@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import List
 
 import kfp
 import kfp.compiler as compiler
@@ -1008,3 +1009,40 @@ implementation:
     def some_pipeline(casual_argument: str, *, keyword_only_argument: str):
       pass
     kfp.compiler.Compiler()._create_workflow(some_pipeline)
+
+  def test_keyword_only_argument_for_pipeline_func_identity(self):
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+    sys.path.append(test_data_dir)
+    import basic
+
+    pipeline_func_arg = basic.save_most_frequent_word
+
+    # clone name and description
+    @dsl.pipeline(
+      name = pipeline_func_arg._component_human_name,
+      description = pipeline_func_arg._component_description
+    )
+    def pipeline_func_kwarg(*args, **kwargs):
+      return basic.save_most_frequent_word(*args, **kwargs)
+
+    # clone signature, but changing all arguments to keyword-only
+    import inspect
+    sig = inspect.signature(pipeline_func_arg)
+    new_parameters = [
+      param.replace(kind = inspect.Parameter.KEYWORD_ONLY)
+      for param in sig.parameters.values()
+    ]
+    new_sig = sig.replace(parameters = new_parameters)
+    pipeline_func_kwarg.__signature__ = new_sig
+
+    pipeline_yaml_arg   = kfp.compiler.Compiler()._create_workflow(pipeline_func_arg)
+    pipeline_yaml_kwarg = kfp.compiler.Compiler()._create_workflow(pipeline_func_kwarg)
+
+    # the yamls may differ in creation time, remove it
+    def remove_creation_time(yaml) -> None:
+      del yaml['metadata']['annotations']['pipelines.kubeflow.org/pipeline_compilation_time']
+    remove_creation_time(pipeline_yaml_arg)
+    remove_creation_time(pipeline_yaml_kwarg)
+
+    # compare
+    assert pipeline_yaml_arg == pipeline_yaml_kwarg
