@@ -23,10 +23,8 @@ def build_importer_spec(
     dependent_task: pipeline_spec_pb2.PipelineTaskSpec,
     input_name: str,
     input_type: str,
-) -> Tuple[
-    pipeline_spec_pb2.PipelineTaskSpec,
-    pipeline_spec_pb2.PipelineDeploymentConfig.ImporterSpec
-]:
+) -> Tuple[pipeline_spec_pb2.PipelineTaskSpec,
+           pipeline_spec_pb2.PipelineDeploymentConfig.ImporterSpec]:
   """Build importer task spec and importer executor spec.
 
   Args:
@@ -42,7 +40,8 @@ def build_importer_spec(
       dependent_task.inputs.artifacts[input_name].output_artifact_key)
 
   task_spec = pipeline_spec_pb2.PipelineTaskSpec()
-  task_spec.task_info.name = f'{dependent_task_name}_{input_name}_importer'
+  task_spec.task_info.name = '{}_{}_importer'.format(dependent_task_name,
+                                                     input_name)
   task_spec.outputs.artifacts[OUTPUT_KEY].artifact_type.schema_title = (
       input_type)
   task_spec.executor_label = task_spec.task_info.name
