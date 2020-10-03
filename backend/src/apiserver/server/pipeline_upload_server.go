@@ -155,12 +155,6 @@ func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *h
 		return
 	}
 
-	// If pipeline version update indicator is not passed, default to true.
-	updateDefaultVersion := common.IsPipelineVersionUpdatedByDefault()
-	if err != nil {
-		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Please specify a valid pipeline default update bool indicator"))
-		return
-	}
 	newPipelineVersion, err := s.resourceManager.CreatePipelineVersion(
 		&api.PipelineVersion{
 			Name: pipelineVersionName,
@@ -173,7 +167,7 @@ func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *h
 					Relationship: api.Relationship_OWNER,
 				},
 			},
-		}, pipelineFile, updateDefaultVersion)
+		}, pipelineFile, common.IsPipelineVersionUpdatedByDefault())
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating pipeline version"))
 		return

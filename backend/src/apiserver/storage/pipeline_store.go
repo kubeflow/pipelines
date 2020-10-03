@@ -506,6 +506,7 @@ func (s *PipelineStore) CreatePipelineVersion(v *model.PipelineVersion, updatePi
 		return nil, util.NewInternalServerError(err, "Failed to add version to pipeline version table: %v",
 			err.Error())
 	}
+
 	if updatePipelineDefaultVersion {
 		_, err = tx.Exec(pipelineSql, pipelineArgs...)
 		if err != nil {
@@ -513,8 +514,8 @@ func (s *PipelineStore) CreatePipelineVersion(v *model.PipelineVersion, updatePi
 			return nil, util.NewInternalServerError(err, "Failed to update pipeline default version id: %v",
 				err.Error())
 		}
-
 	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create new pipeline version: %v",
 			err.Error())
