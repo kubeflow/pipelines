@@ -3,7 +3,7 @@ description: |
     Component to train a model
 inputs:
 - name: input_location
-  description: \'The GCS path of the input file
+  description: The GCS path of the input file
   type: GCSPath
 - name: train_optimizer
   description: Optimizer argument, should be a string

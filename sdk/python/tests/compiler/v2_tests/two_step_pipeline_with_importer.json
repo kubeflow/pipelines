@@ -1,6 +1,6 @@
 {
   "pipelineInfo": {
-    "name": "two-steps-pipeline-with-importer"
+    "name": "two-step-pipeline-with-importer"
   },
   "tasks": [
     {
@@ -88,15 +88,15 @@
           "image": "gcr.io/my-project/my-training",
           "args": [
             "--input-location",
-            "{{$.inputs.artifacts['input_location'].path}}",
+            "{{$.inputs.artifacts['input_location'].uri}}",
             "--optimizer",
             "{{$.inputs.parameters['train_optimizer']}}",
             "--epochs",
             "{{$.inputs.parameters['num_epochs']}}",
             "--model",
-            "{{$.outputs.artifacts['model_output'].path}}",
+            "{{$.outputs.artifacts['model_output'].uri}}",
             "--model-config",
-            "{{$.outputs.artifacts['model_config'].path}}"
+            "{{$.outputs.artifacts['model_config'].uri}}"
           ]
         }
       },
@@ -115,7 +115,7 @@
           "image": "gcr.io/my-project/my-server",
           "args": [
             "--model-to-serve",
-            "{{$.inputs.artifacts['model'].path}}",
+            "{{$.inputs.artifacts['model'].uri}}",
             "--model-config",
             "{{$.inputs.parameters['model_cfg']}}"
           ]

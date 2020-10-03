@@ -26,7 +26,7 @@ serving_op = kfp.components.load_component_from_file(
 
 
 @dsl.pipeline(
-    name='two-steps-pipeline-with-importer',
+    name='two-step-pipeline-with-importer',
     description='A linear two-step pipeline.')
 def my_pipeline(input_gcs='gs://test-bucket/pipeline_root',
                 optimizer: str = 'sgd',

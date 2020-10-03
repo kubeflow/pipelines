@@ -20,7 +20,7 @@ import compiler_tests
 import component_builder_test
 import container_builder_test
 import k8s_helper_tests
-import v2_compiler_tests
+import v2_tests.compiler_tests as v2_compiler_tests
 
 
 if __name__ == '__main__':

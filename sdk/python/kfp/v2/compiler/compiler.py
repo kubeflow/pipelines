@@ -18,17 +18,13 @@ pipeline into Pipeline IR:
 https://docs.google.com/document/d/1PUDuSQ8vmeKSBloli53mp7GIvzekaY7sggg6ywy35Dk/
 """
 
-import contextlib
 import inspect
-import io
-import tarfile
 from typing import Any, Callable, List, Optional
-import zipfile
 
 import kfp
 from kfp.compiler._k8s_helper import sanitize_k8s_name
+from kfp.components import _python_op
 from kfp.components import structures
-from kfp.dsl._metadata import _extract_pipeline_metadata
 from kfp.v2 import dsl
 from kfp.v2.compiler import importer_node
 from kfp.v2.dsl import type_utils
@@ -38,8 +34,9 @@ from google.protobuf.json_format import MessageToJson
 
 
 class Compiler(object):
-  """DSL Compiler that compiles pipeline function into PipelineSpec json string.
+  """Experimental DSL compiler that targets the PipelineSpec IR.
 
+  It compiles pipeline function into PipelineSpec json string.
   PipelineSpec is the IR protobuf message that defines a pipeline:
   https://github.com/kubeflow/pipelines/blob/237795539f7b85bac77435e2464367226ee19391/api/v2alpha1/pipeline_spec.proto#L8
   In this initial implementation, we only support components authored through
@@ -64,7 +61,7 @@ class Compiler(object):
       args: List[dsl.PipelineParam],
       pipeline: dsl.Pipeline,
   ) -> pipeline_spec_pb2.PipelineSpec:
-    """Create the pipeline spec object.
+    """Creates the pipeline spec object.
 
     Args:
       args: The list of pipeline arguments.
@@ -176,7 +173,7 @@ class Compiler(object):
 
     # Create the arg list with no default values and call pipeline function.
     # Assign type information to the PipelineParam
-    pipeline_meta = _extract_pipeline_metadata(pipeline_func)
+    pipeline_meta = _python_op._extract_component_interface(pipeline_func)
     pipeline_meta.name = pipeline_name or pipeline_meta.name
     pipeline_meta.description = pipeline_description or pipeline_meta.description
     pipeline_name = sanitize_k8s_name(pipeline_meta.name)
@@ -256,10 +253,10 @@ class Compiler(object):
     finally:
       kfp.TYPE_CHECK = type_check_old_value
 
-  @staticmethod
-  def _write_pipeline(pipeline_spec: pipeline_spec_pb2.PipelineSpec,
+  def _write_pipeline(self,
+                      pipeline_spec: pipeline_spec_pb2.PipelineSpec,
                       package_path: str = None) -> Optional[str]:
-    """Dump pipeline workflow into yaml spec and write out in the format specified by the user.
+    """Dump pipeline spec into json file.
 
     Args:
       pipeline_spec: IR pipeline spec.
@@ -267,7 +264,7 @@ class Compiler(object):
         string will be returned.
 
     Returns:
-      The json represtation of pipeline_spec if no package_path specified.
+      The json representation of pipeline_spec if no package_path specified.
 
     Raises:
       ValueError: if the specified output path doesn't end with the acceptable
@@ -278,24 +275,12 @@ class Compiler(object):
     if package_path is None:
       return json_text
 
-    if package_path.endswith('.tar.gz') or package_path.endswith('.tgz'):
-      with tarfile.open(package_path, 'w:gz') as tar:
-        with contextlib.closing(io.BytesIO(json_text.encode())) as json_file:
-          tarinfo = tarfile.TarInfo('pipeline.json')
-          tarinfo.size = len(json_file.getvalue())
-          tar.addfile(tarinfo, fileobj=json_file)
-    elif package_path.endswith('.zip'):
-      with zipfile.ZipFile(package_path, 'w') as zip_file:
-        zipinfo = zipfile.ZipInfo('pipeline.json')
-        zipinfo.compress_type = zipfile.ZIP_DEFLATED
-        zip_file.writestr(zipinfo, json_text)
-    elif package_path.endswith('.json'):
+    if package_path.endswith('.json'):
       with open(package_path, 'w') as json_file:
         json_file.write(json_text)
     else:
-      raise ValueError('The output path {}'
-                       ' should ends with one of the following formats: '
-                       '[.tar.gz, .tgz, .zip, .json]'.format(package_path))
+      raise ValueError(
+          'The output path {} should ends with ".json".'.format(package_path))
 
   def _create_and_write_pipeline_spec(self,
                                       pipeline_func: Callable[..., Any],
