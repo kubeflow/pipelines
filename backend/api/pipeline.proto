@@ -169,7 +169,6 @@ message UpdatePipelineDefaultVersionRequest {
   string version_id = 2; 
 }
 
-
 message GetPipelineRequest {
   // The ID of the pipeline to be retrieved.
   string id = 1;
