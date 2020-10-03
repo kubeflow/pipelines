@@ -144,7 +144,6 @@ func (s *PipelineServer) UpdatePipelineDefaultVersion(ctx context.Context, reque
 	}
 
 	return &empty.Empty{}, nil
-
 }
 
 func (s *PipelineServer) GetPipeline(ctx context.Context, request *api.GetPipelineRequest) (*api.Pipeline, error) {
