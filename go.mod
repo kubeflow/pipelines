@@ -10,8 +10,6 @@ require (
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5 // indirect
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/ghodss/yaml v1.0.0
-	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8 // indirect
-	github.com/go-logr/zapr v0.1.0 // indirect
 	github.com/go-openapi/errors v0.19.2
 	github.com/go-openapi/runtime v0.19.4
 	github.com/go-openapi/strfmt v0.19.3
@@ -45,6 +43,7 @@ require (
 	k8s.io/api v0.17.9
 	k8s.io/apimachinery v0.17.9
 	k8s.io/client-go v0.17.9
+	k8s.io/code-generator v0.17.9
 	k8s.io/kubernetes v1.11.1
 	sigs.k8s.io/controller-runtime v0.5.11
 	sigs.k8s.io/testing_frameworks v0.1.1 // indirect
