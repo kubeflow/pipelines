@@ -23,6 +23,7 @@ import coinflipRun from './mock-coinflip-runtime';
 import errorRun from './mock-error-runtime';
 import xgboostRun from './mock-xgboost-runtime';
 import largeGraph from './large-graph-runtime';
+import retryRun from './mock-retry-runtime';
 
 function padStartTwoZeroes(str: string): string {
   let padded = str || '';
@@ -664,6 +665,30 @@ const runs: ApiRunDetail[] = [
         },
       ],
       scheduled_at: new Date('1970-01-01T00:00:00.000Z'),
+      status: 'Succeeded',
+    },
+  },
+  {
+    pipeline_runtime: {
+      workflow_manifest: JSON.stringify(retryRun),
+    },
+    run: {
+      id: '2f9a3d50-454c-4979-be8d-f222bc245bc1',
+      created_at: new Date('2020-09-08T08:19:12Z'),
+      finished_at: new Date('2020-09-08T08:19:25Z'),
+      name: 'Run of retry (835b8)',
+      pipeline_spec: {},
+      metrics: [],
+      resource_references: [
+        {
+          key: {
+            id: '275ea11d-ac63-4ce3-bc33-ec81981ed56a',
+            type: ApiResourceType.EXPERIMENT,
+          },
+          relationship: ApiRelationship.OWNER,
+        },
+      ],
+      scheduled_at: new Date('1970-01-01T00:00:00Z'),
       status: 'Succeeded',
     },
   },

@@ -22,6 +22,7 @@ import yaml
 import re
 import json
 from pathlib2 import Path
+from enum import Enum, auto
 
 import boto3
 from boto3.session import Session
@@ -36,7 +37,7 @@ from botocore.credentials import (
 from botocore.exceptions import ClientError
 from botocore.session import Session as BotocoreSession
 
-from sagemaker.amazon.amazon_estimator import get_image_uri
+from sagemaker.image_uris import retrieve
 
 import logging
 logging.getLogger().setLevel(logging.INFO)
@@ -98,6 +99,9 @@ def get_component_version():
 
     return component_version
 
+
+def print_log_header(header_len, title=""):
+    logging.info(f"{title:*^{header_len}}")
 
 def print_logs_for_job(cw_client, log_grp, job_name):
     """Gets the CloudWatch logs for SageMaker jobs"""
@@ -206,12 +210,12 @@ def create_training_job_request(args):
         # TODO: Adjust this implementation to account for custom algorithm resources names that are the same as built-in algorithm names
         algo_name = args['algorithm_name'].lower().strip()
         if algo_name in built_in_algos.keys():
-            request['AlgorithmSpecification']['TrainingImage'] = get_image_uri(args['region'], built_in_algos[algo_name])
+            request['AlgorithmSpecification']['TrainingImage'] = retrieve(built_in_algos[algo_name], args['region'])
             request['AlgorithmSpecification'].pop('AlgorithmName')
             logging.warning('Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm.')
         # Just to give the user more leeway for built-in algorithm name inputs
         elif algo_name in built_in_algos.values():
-            request['AlgorithmSpecification']['TrainingImage'] = get_image_uri(args['region'], algo_name)
+            request['AlgorithmSpecification']['TrainingImage'] = retrieve(algo_name, args['region'])
             request['AlgorithmSpecification'].pop('AlgorithmName')
             logging.warning('Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm.')
         else:
@@ -258,6 +262,17 @@ def create_training_job_request(args):
 
     enable_spot_instance_support(request, args)
 
+    ### Update DebugHookConfig and DebugRuleConfigurations
+    if args['debug_hook_config']:
+        request['DebugHookConfig'] = args['debug_hook_config']
+    else:
+        request.pop('DebugHookConfig')
+
+    if args['debug_rule_config']:
+        request['DebugRuleConfigurations'] = args['debug_rule_config']
+    else:
+        request.pop('DebugRuleConfigurations')
+
     ### Update tags
     for key, val in args['tags'].items():
         request['Tags'].append({'Key': key, 'Value': val})
@@ -282,18 +297,94 @@ def create_training_job(client, args):
 
 
 def wait_for_training_job(client, training_job_name, poll_interval=30):
-  while(True):
-    response = client.describe_training_job(TrainingJobName=training_job_name)
-    status = response['TrainingJobStatus']
-    if status == 'Completed':
-      logging.info("Training job ended with status: " + status)
-      break
-    if status == 'Failed':
-      message = response['FailureReason']
-      logging.info('Training failed with the following error: {}'.format(message))
-      raise Exception('Training job failed')
-    logging.info("Training job is still in status: " + status)
-    time.sleep(poll_interval)
+    while(True):
+        response = client.describe_training_job(TrainingJobName=training_job_name)
+        status = response['TrainingJobStatus']
+        if status == 'Completed':
+            logging.info("Training job ended with status: " + status)
+            break
+        if status == 'Failed':
+            message = response['FailureReason']
+            logging.info(f'Training failed with the following error: {message}')
+            raise Exception('Training job failed')
+        logging.info("Training job is still in status: " + status)
+        time.sleep(poll_interval)
+
+
+def wait_for_debug_rules(client, training_job_name, poll_interval=30):
+    first_poll = True
+    while(True):
+        response = client.describe_training_job(TrainingJobName=training_job_name)
+        if 'DebugRuleEvaluationStatuses' not in response:
+            break
+        if first_poll:
+            logging.info("Polling for status of all debug rules:")
+            first_poll = False
+        if DebugRulesStatus.from_describe(response) != DebugRulesStatus.INPROGRESS:
+            logging.info("Rules have ended with status:\n")
+            print_debug_rule_status(response, True)
+            break
+        print_debug_rule_status(response)
+        time.sleep(poll_interval)
+
+
+class DebugRulesStatus(Enum):
+    COMPLETED = auto()
+    ERRORED = auto()
+    INPROGRESS = auto()
+
+    @classmethod
+    def from_describe(self, response):
+        has_error = False
+        for debug_rule in response['DebugRuleEvaluationStatuses']:
+            if debug_rule['RuleEvaluationStatus'] == "Error":
+                has_error = True
+            if debug_rule['RuleEvaluationStatus'] == "InProgress":
+                return DebugRulesStatus.INPROGRESS
+        if has_error:
+            return DebugRulesStatus.ERRORED
+        else:
+            return DebugRulesStatus.COMPLETED
+
+
+def print_debug_rule_status(response, last_print=False):
+    """
+    Example of DebugRuleEvaluationStatuses:
+    response['DebugRuleEvaluationStatuses'] =
+        [{
+            "RuleConfigurationName": "VanishingGradient",
+            "RuleEvaluationStatus": "IssuesFound",
+            "StatusDetails": "There was an issue."
+        }]
+
+    If last_print is False:
+    INFO:root: - LossNotDecreasing: InProgress
+    INFO:root: - Overtraining: NoIssuesFound
+    ERROR:root:- CustomGradientRule: Error
+
+    If last_print is True:
+    INFO:root: - LossNotDecreasing: IssuesFound
+    INFO:root:   - RuleEvaluationConditionMet: Evaluation of the rule LossNotDecreasing at step 10 resulted in the condition being met
+    """
+    for debug_rule in response['DebugRuleEvaluationStatuses']:
+        line_ending = "\n" if last_print else ""
+        if 'StatusDetails' in debug_rule:
+            status_details = f"- {debug_rule['StatusDetails'].rstrip()}{line_ending}"
+            line_ending = ""
+        else:
+            status_details = ""
+        rule_status = f"- {debug_rule['RuleConfigurationName']}: {debug_rule['RuleEvaluationStatus']}{line_ending}"
+        if debug_rule['RuleEvaluationStatus'] == "Error":
+            log = logging.error
+            status_padding = 1
+        else:
+            log = logging.info
+            status_padding = 2
+
+        log(f"{status_padding * ' '}{rule_status}")
+        if last_print and status_details:
+            log(f"{(status_padding + 2) * ' '}{status_details}")
+    print_log_header(50)
 
 
 def get_model_artifacts_from_job(client, job_name):
@@ -314,10 +405,13 @@ def get_image_from_job(client, job_name):
 
 
 def stop_training_job(client, job_name):
-    try:
-        client.stop_training_job(TrainingJobName=job_name)
-    except ClientError as e:
-        raise Exception(e.response['Error']['Message'])
+    response = client.describe_training_job(TrainingJobName=job_name)
+    if response["TrainingJobStatus"] == "InProgress":
+        try:
+            client.stop_training_job(TrainingJobName=job_name)
+            return job_name
+        except ClientError as e:
+            raise Exception(e.response['Error']['Message'])
 
 
 def create_model(client, args):
@@ -377,10 +471,52 @@ def create_model_request(args):
 
     return request
 
+def endpoint_name_exists(client, endpoint_name):
+  try:
+      endpoint_name = client.describe_endpoint(EndpointName=endpoint_name)['EndpointName']
+      logging.info("Endpoint exists: " + endpoint_name)
+      return True
+  except ClientError as e:
+      logging.debug("Endpoint does not exist")
+  return False
+
+def endpoint_config_name_exists(client, endpoint_config_name):
+  try:
+      config_name = client.describe_endpoint_config(EndpointConfigName=endpoint_config_name)['EndpointConfigName']
+      logging.info("Endpoint Config exists: " + config_name)
+      return True
+  except ClientError as e:
+      logging.info("Endpoint Config does not exist:" + endpoint_config_name)
+  return False
+
+def update_deployed_model(client, args):
+    endpoint_config_name = create_endpoint_config(client, args)
+    endpoint_name = update_endpoint(client, args['region'], args['endpoint_name'], endpoint_config_name)
+    return endpoint_name
+
 def deploy_model(client, args):
-  endpoint_config_name = create_endpoint_config(client, args)
-  endpoint_name = create_endpoint(client, args['region'], args['endpoint_name'], endpoint_config_name, args['endpoint_tags'])
-  return endpoint_name
+    args['update_endpoint'] = False
+    endpoint_config_name = create_endpoint_config(client, args)
+    endpoint_name = create_endpoint(client, args['region'], args['endpoint_name'], endpoint_config_name, args['endpoint_tags'])
+    return endpoint_name
+
+def get_endpoint_config(client, endpoint_name):
+    endpoint_config_name = None
+    try:
+        endpoint_config_name = client.describe_endpoint(EndpointName=endpoint_name)['EndpointConfigName']
+        logging.info("Current Endpoint Config Name: " + endpoint_config_name)
+    except ClientError as e:
+        logging.info("Endpoint Config does not exist")
+        ## This is not an error, end point may not exist
+    return endpoint_config_name
+
+def delete_endpoint_config(client, endpoint_config_name):
+    try:
+        client.delete_endpoint_config(EndpointConfigName=endpoint_config_name)
+        return True
+    except ClientError as e:
+        logging.info("Endpoint config may not exist to be deleted: " + e.response['Error']['Message'])
+    return False
 
 def create_endpoint_config_request(args):
     ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_endpoint_config
@@ -391,7 +527,7 @@ def create_endpoint_config_request(args):
         logging.error("Must specify at least one model (model name) to host.")
         raise Exception("Could not create endpoint config.")
 
-    endpoint_config_name = args['endpoint_config_name'] if args['endpoint_config_name'] else 'EndpointConfig' + args['model_name_1'][args['model_name_1'].index('-'):]
+    endpoint_config_name = args['endpoint_config_name']
     request['EndpointConfigName'] = endpoint_config_name
 
     if args['resource_encryption_key']:
@@ -423,7 +559,17 @@ def create_endpoint_config_request(args):
 
     return request
 
+def get_endpoint_config_name(client, args):
+    ## boto3 documentation says to update an endpoint, a new EndPointConfig has to be created
+    ## and the one currently in use should NOT be deleted. Appending a random number to resolve conflict
+    endpoint_config_name = args['endpoint_config_name'] if args['endpoint_config_name'] else 'EndpointConfig' + "-" + id_generator(8)
+    if args['update_endpoint'] and endpoint_config_name_exists(client, endpoint_config_name):
+        endpoint_config_name = endpoint_config_name + "-" + id_generator(8)
+        logging.info("Changed endpoint_config_name to: " + endpoint_config_name)
+    return endpoint_config_name
+
 def create_endpoint_config(client, args):
+    args['endpoint_config_name'] = get_endpoint_config_name(client, args)
     request = create_endpoint_config_request(args)
     try:
         create_endpoint_config_response = client.create_endpoint_config(**request)
@@ -434,6 +580,20 @@ def create_endpoint_config(client, args):
     except ClientError as e:
         raise Exception(e.response['Error']['Message'])
 
+def update_endpoint(client, region, endpoint_name, endpoint_config_name):
+  try:
+      update_endpoint_response = client.update_endpoint(
+          EndpointName=endpoint_name,
+          EndpointConfigName=endpoint_config_name,
+          )
+      logging.info("Updating endpoint with name: " + endpoint_name)
+      logging.info("Endpoint in SageMaker: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/endpoints/{}"
+          .format(region, region, endpoint_name))
+      logging.info("CloudWatch logs: https://{}.console.aws.amazon.com/cloudwatch/home?region={}#logStream:group=/aws/sagemaker/Endpoints/{};streamFilter=typeLogStreamPrefix"
+          .format(region, region, endpoint_name))
+      return endpoint_name
+  except ClientError as e:
+      raise Exception(e.response['Error']['Message'])
 
 def create_endpoint(client, region, endpoint_name, endpoint_config_name, endpoint_tags):
   ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_endpoint
@@ -471,11 +631,11 @@ def wait_for_endpoint_creation(client, endpoint_name):
 
     if status != 'InService':
       message = resp['FailureReason']
-      logging.info('Create endpoint failed with the following error: {}'.format(message))
+      logging.info('Create/Update endpoint failed with the following error: {}'.format(message))
       raise Exception('Endpoint creation did not succeed')
 
     logging.info("Endpoint Arn: " + resp['EndpointArn'])
-    logging.info("Create endpoint ended with status: " + status)
+    logging.info("Create/Update endpoint ended with status: " + status)
 
 def create_transform_job_request(args):
     ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_transform_job
@@ -611,12 +771,12 @@ def create_hyperparameter_tuning_job_request(args):
         # TODO: Adjust this implementation to account for custom algorithm resources names that are the same as built-in algorithm names
         algo_name = args['algorithm_name'].lower().strip()
         if algo_name in built_in_algos.keys():
-            request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingImage'] = get_image_uri(args['region'], built_in_algos[algo_name])
+            request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingImage'] = retrieve(built_in_algos[algo_name], args['region'])
             request['TrainingJobDefinition']['AlgorithmSpecification'].pop('AlgorithmName')
             logging.warning('Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm.')
         # To give the user more leeway for built-in algorithm name inputs
         elif algo_name in built_in_algos.values():
-            request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingImage'] = get_image_uri(args['region'], algo_name)
+            request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingImage'] = retrieve(algo_name, args['region'])
             request['TrainingJobDefinition']['AlgorithmSpecification'].pop('AlgorithmName')
             logging.warning('Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm.')
         else:

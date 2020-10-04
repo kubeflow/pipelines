@@ -454,6 +454,27 @@ class PythonOpTestCase(unittest.TestCase):
         self.assertEqual(component_spec.inputs[0].default, '3')
         self.assertEqual(component_spec.inputs[1].default, '5')
 
+    def test_handling_of_descriptions(self):
+
+        def pipeline(
+                env_var: str,
+                secret_name: str,
+                secret_key: str = None
+        ) -> None:
+            """
+            Pipeline to Demonstrate Usage of Secret
+
+            Args:
+                env_var: Name of the variable inside the Pod
+                secret_name: Name of the Secret in the namespace
+            """
+
+        component_spec = comp._python_op._func_to_component_spec(pipeline)
+        self.assertEqual(component_spec.description, 'Pipeline to Demonstrate Usage of Secret')
+        self.assertEqual(component_spec.inputs[0].description, 'Name of the variable inside the Pod')
+        self.assertEqual(component_spec.inputs[1].description, 'Name of the Secret in the namespace')
+        self.assertIsNone(component_spec.inputs[2].description)
+
     def test_handling_default_value_of_none(self):
         def assert_is_none(arg=None):
             assert arg is None

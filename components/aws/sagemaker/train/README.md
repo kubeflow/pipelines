@@ -36,7 +36,47 @@ traffic_encryption | Encrypts all communications between ML compute instances in
 spot_instance | Use managed spot training if true | No | Boolean | False, True | False |
 max_wait_time | The maximum time in seconds you are willing to wait for a managed spot training job to complete | Yes | Int | ≤ 432000 (5 days) | 86400 (1 day) |
 checkpoint_config | Dictionary of information about the output location for managed spot training checkpoint data | Yes | Dict | | {} |
+debug_hook_config | Dictionary of configuration information for the debug hook parameters, collection configurations, and storage paths | Yes | Dict | | {} |
+debug_rule_config | List of configuration information for debugging rules. | Yes | List of Dicts | | [] |
 tags | Key-value pairs to categorize AWS resources | Yes | Dict | | {} |
+
+Notes:
+* Please use the links in the [Resources section](#Resources) for detailed information on each input parameter and SageMaker APIs used in this component.
+* The value of `RuleEvaluatorImage` will depend on two things: the region and whether the rule is a built-in or a custom rule. [Debugger Registry URLs](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-docker-images-rules.html) in the [Resources section](#Resources) will lead you to the documentation which outlines what the value of `RuleEvaluatorImage` will be.
+* The format for the [`debug_hook_config`](https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_DebugHookConfig.html) field is:
+```
+{
+    "CollectionConfigurations": [
+    {
+        'CollectionName': 'string',
+        'CollectionParameters': {
+           'string' : 'string'
+        }
+     }
+    ],
+    'HookParameters': {
+        'string' : 'string'
+    },
+    'LocalPath': 'string',
+    'S3OutputPath': 'string'
+}
+```
+* The format for the [`debug_rule_config`](https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_DebugRuleConfiguration.html) field is:
+```
+[
+    {
+        'InstanceType': 'string',
+        'LocalPath': 'string',
+        'RuleConfigurationName': 'string',
+        'RuleEvaluatorImage': 'string',
+        'RuleParameters': {
+            'string' : 'string'
+        },
+        'S3OutputPath': 'string',
+        'VolumeSizeInGB': number
+    }
+]
+```
 
 
 ## Output
@@ -44,6 +84,13 @@ Stores the Model in the s3 bucket you specified
 
 # Example code
 Simple example pipeline with only Train component : [simple_train_pipeline](https://github.com/kubeflow/pipelines/tree/master/samples/contrib/aws-samples/simple_train_pipeline)
+Sample Pipeline for Training Component with Debugger: [sagemaker_debugger_demo](https://github.com/kubeflow/pipelines/tree/master/samples/contrib/aws-samples/sagemaker_debugger_demo)
 
 # Resources
 * [Using Amazon built-in algorithms](https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-algo-docker-registry-paths.html)
+* [Amazon SageMaker Debugger](https://docs.aws.amazon.com/sagemaker/latest/dg/train-debugger.html)
+* [Available Frameworks to Use Debugger](https://docs.aws.amazon.com/sagemaker/latest/dg/train-debugger.html#debugger-supported-aws-containers)
+* [Debugger Built-In Rules](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-built-in-rules.html)
+* [Debugger Custom Rules](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-custom-rules.html)
+* [Debugger Registry URLs](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-docker-images-rules.html)
+* [Debugger API Examples](https://docs.aws.amazon.com/sagemaker/latest/dg/debugger-createtrainingjob-api.html)

@@ -1,0 +1,24 @@
+name: Convert Keras HDF5 model to Tensorflow JS GraphModel
+inputs:
+- {name: Model, type: KerasModelHdf5}
+outputs:
+- {name: Model, type: TensorflowJSGraphModel}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+implementation:
+  container:
+    image: tensorflow/tensorflow:2.3.0
+    command:
+    - sh
+    - -exc
+    - |
+      # Manually installing prerequisites so that tensorflowjs does not re-install tensorflow-cpu on top of tensorflow. See https://github.com/tensorflow/tfjs/issues/3953
+      python3 -m pip install --quiet 'h5py>=2.8.0' 'numpy>=1.16.4,<1.19.0' 'six>=1.12.0' 'tensorflow-hub==0.7.0' 'PyInquirer==1.0.3'
+      python3 -m pip install --quiet tensorflowjs==2.4.0 --no-dependencies
+      "$0" "$*"
+    - tensorflowjs_converter
+    - --input_format=keras
+    - --output_format=tfjs_graph_model
+    - inputPath: Model
+    - outputPath: Model

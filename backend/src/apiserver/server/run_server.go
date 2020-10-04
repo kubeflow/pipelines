@@ -24,13 +24,85 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
+
+// Metric variables. Please prefix the metric names with run_server_.
+var (
+	// Used to calculate the request rate.
+	createRunRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "run_server_create_requests",
+		Help: "The total number of CreateRun requests",
+	})
+
+	getRunRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "run_server_get_requests",
+		Help: "The total number of GetRun requests",
+	})
+
+	listRunRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "run_server_list_requests",
+		Help: "The total number of ListRuns requests",
+	})
+
+	deleteRunRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "run_server_delete_requests",
+		Help: "The total number of DeleteRun requests",
+	})
+
+	archiveRunRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "run_server_archive_requests",
+		Help: "The total number of ArchiveRun requests",
+	})
+
+	unarchiveRunRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "run_server_unarchive_requests",
+		Help: "The total number of UnarchiveRun requests",
+	})
+
+	reportRunMetricsRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "run_server_report_metrics_requests",
+		Help: "The total number of ReportRunMetrics requests",
+	})
+
+	readArtifactRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "run_server_read_artifact_requests",
+		Help: "The total number of ReadArtifact requests",
+	})
+
+	terminateRunRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "run_server_terminate_requests",
+		Help: "The total number of TerminateRun requests",
+	})
+
+	retryRunRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "run_server_retry_requests",
+		Help: "The total number of RetryRun requests",
+	})
+
+	// TODO(jingzhang36): error count and success count.
+
+	runCount = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "run_server_run_count",
+		Help: "The current number of runs in Kubeflow Pipelines instance",
+	})
+)
+
+type RunServerOptions struct {
+	CollectMetrics bool
+}
 
 type RunServer struct {
 	resourceManager *resource.ResourceManager
+	options         *RunServerOptions
 }
 
 func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest) (*api.RunDetail, error) {
+	if s.options.CollectMetrics {
+		createRunRequests.Inc()
+	}
+
 	err := s.validateCreateRunRequest(request)
 	if err != nil {
 		return nil, util.Wrap(err, "Validate create run request failed.")
@@ -44,10 +116,18 @@ func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a new run.")
 	}
+
+	if s.options.CollectMetrics {
+		runCount.Inc()
+	}
 	return ToApiRunDetail(run), nil
 }
 
 func (s *RunServer) GetRun(ctx context.Context, request *api.GetRunRequest) (*api.RunDetail, error) {
+	if s.options.CollectMetrics {
+		getRunRequests.Inc()
+	}
+
 	if !common.IsMultiUserSharedReadMode() {
 		err := s.canAccessRun(ctx, request.RunId)
 		if err != nil {
@@ -62,6 +142,10 @@ func (s *RunServer) GetRun(ctx context.Context, request *api.GetRunRequest) (*ap
 }
 
 func (s *RunServer) ListRuns(ctx context.Context, request *api.ListRunsRequest) (*api.ListRunsResponse, error) {
+	if s.options.CollectMetrics {
+		listRunRequests.Inc()
+	}
+
 	opts, err := validatedListOptions(&model.Run{}, request.PageToken, int(request.PageSize), request.SortBy, request.Filter)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create list options")
@@ -109,6 +193,10 @@ func (s *RunServer) ListRuns(ctx context.Context, request *api.ListRunsRequest) 
 }
 
 func (s *RunServer) ArchiveRun(ctx context.Context, request *api.ArchiveRunRequest) (*empty.Empty, error) {
+	if s.options.CollectMetrics {
+		archiveRunRequests.Inc()
+	}
+
 	err := s.canAccessRun(ctx, request.Id)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the request.")
@@ -121,6 +209,10 @@ func (s *RunServer) ArchiveRun(ctx context.Context, request *api.ArchiveRunReque
 }
 
 func (s *RunServer) UnarchiveRun(ctx context.Context, request *api.UnarchiveRunRequest) (*empty.Empty, error) {
+	if s.options.CollectMetrics {
+		unarchiveRunRequests.Inc()
+	}
+
 	err := s.canAccessRun(ctx, request.Id)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the request.")
@@ -133,6 +225,10 @@ func (s *RunServer) UnarchiveRun(ctx context.Context, request *api.UnarchiveRunR
 }
 
 func (s *RunServer) DeleteRun(ctx context.Context, request *api.DeleteRunRequest) (*empty.Empty, error) {
+	if s.options.CollectMetrics {
+		deleteRunRequests.Inc()
+	}
+
 	err := s.canAccessRun(ctx, request.Id)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the request.")
@@ -141,10 +237,18 @@ func (s *RunServer) DeleteRun(ctx context.Context, request *api.DeleteRunRequest
 	if err != nil {
 		return nil, err
 	}
+
+	if s.options.CollectMetrics {
+		runCount.Dec()
+	}
 	return &empty.Empty{}, nil
 }
 
 func (s *RunServer) ReportRunMetrics(ctx context.Context, request *api.ReportRunMetricsRequest) (*api.ReportRunMetricsResponse, error) {
+	if s.options.CollectMetrics {
+		reportRunMetricsRequests.Inc()
+	}
+
 	// Makes sure run exists
 	_, err := s.resourceManager.GetRun(request.GetRunId())
 	if err != nil {
@@ -166,6 +270,10 @@ func (s *RunServer) ReportRunMetrics(ctx context.Context, request *api.ReportRun
 }
 
 func (s *RunServer) ReadArtifact(ctx context.Context, request *api.ReadArtifactRequest) (*api.ReadArtifactResponse, error) {
+	if s.options.CollectMetrics {
+		readArtifactRequests.Inc()
+	}
+
 	content, err := s.resourceManager.ReadArtifact(
 		request.GetRunId(), request.GetNodeId(), request.GetArtifactName())
 	if err != nil {
@@ -192,6 +300,10 @@ func (s *RunServer) validateCreateRunRequest(request *api.CreateRunRequest) erro
 }
 
 func (s *RunServer) TerminateRun(ctx context.Context, request *api.TerminateRunRequest) (*empty.Empty, error) {
+	if s.options.CollectMetrics {
+		terminateRunRequests.Inc()
+	}
+
 	err := s.canAccessRun(ctx, request.RunId)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the request.")
@@ -204,6 +316,10 @@ func (s *RunServer) TerminateRun(ctx context.Context, request *api.TerminateRunR
 }
 
 func (s *RunServer) RetryRun(ctx context.Context, request *api.RetryRunRequest) (*empty.Empty, error) {
+	if s.options.CollectMetrics {
+		retryRunRequests.Inc()
+	}
+
 	err := s.canAccessRun(ctx, request.RunId)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the request.")
@@ -236,6 +352,6 @@ func (s *RunServer) canAccessRun(ctx context.Context, runId string) error {
 	return nil
 }
 
-func NewRunServer(resourceManager *resource.ResourceManager) *RunServer {
-	return &RunServer{resourceManager: resourceManager}
+func NewRunServer(resourceManager *resource.ResourceManager, options *RunServerOptions) *RunServer {
+	return &RunServer{resourceManager: resourceManager, options: options}
 }

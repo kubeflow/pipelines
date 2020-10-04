@@ -67,7 +67,13 @@ def batch_predict(project_id, model_path, input_paths, input_data_format,
     job = {
         'predictionInput': prediction_input
     }
-    create_job(project_id, job, job_id_prefix, wait_interval, job_id_output_path=job_id_output_path)
+    create_job(
+        project_id=project_id,
+        job=job,
+        job_id_prefix=job_id_prefix,
+        wait_interval=wait_interval,
+        job_id_output_path=job_id_output_path,
+    )
     
 def _is_model_name(name):
     return re.match(r'/projects/[^/]+/models/[^/]+$', name)

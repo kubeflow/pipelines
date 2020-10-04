@@ -249,7 +249,7 @@ describe('WorkflowParser', () => {
         });
     });
 
-    it('deletes virtual nodes', () => {
+    it('deletes virtual nodes (Steps, StepGroup)', () => {
       const workflow = {
         metadata: { name: 'testWorkflow' },
         status: {
@@ -268,6 +268,40 @@ describe('WorkflowParser', () => {
               name: 'node2',
               phase: 'Succeeded',
               type: 'StepGroup',
+            },
+            node3: {
+              id: 'node3',
+              name: 'node3',
+              phase: 'Succeeded',
+              type: 'Pod',
+            },
+          },
+        },
+      };
+      const g = WorkflowParser.createRuntimeGraph(workflow as any);
+      expect(g.nodes()).toEqual(['node1', 'node3']);
+      expect(g.edges()).toEqual([{ v: 'node1', w: 'node3' }]);
+    });
+
+    it('deletes virtual nodes (Retry)', () => {
+      const workflow = {
+        metadata: { name: 'testWorkflow' },
+        status: {
+          nodes: {
+            node1: {
+              children: ['node2'],
+              id: 'node1',
+              name: 'node1',
+              phase: 'Succeeded',
+              type: 'Pod',
+            },
+            node2: {
+              boundaryID: 'node',
+              children: ['node3'],
+              id: 'node2',
+              name: 'node2',
+              phase: 'Succeeded',
+              type: 'Retry',
             },
             node3: {
               id: 'node3',

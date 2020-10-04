@@ -18,6 +18,7 @@ import os
 import requests
 import re
 import time
+from distutils.util import strtobool
 
 from kubernetes import client
 
@@ -142,10 +143,15 @@ def deploy_model(
     canary_custom_model_spec,
     service_account,
     autoscaling_target=0,
+    enable_istio_sidecar=True
 ):
+    # Create annotation
+    annotations = {}
     if int(autoscaling_target) != 0:
-        annotations = {"autoscaling.knative.dev/target": str(autoscaling_target)}
-    else:
+        annotations["autoscaling.knative.dev/target"] = str(autoscaling_target)
+    if not enable_istio_sidecar:
+        annotations["sidecar.istio.io/inject"] = 'false'
+    if not annotations:
         annotations = None
     metadata = client.V1ObjectMeta(
         name=model_name, namespace=namespace, annotations=annotations
@@ -279,6 +285,9 @@ if __name__ == "__main__":
         help="Service account containing s3 credentials",
         default="",
     )
+    parser.add_argument(
+        "--enable-istio-sidecar", type=strtobool, help="Whether to inject istio sidecar", default="True"
+    )
     parser.add_argument("--output-path", type=str, help="Path to store URI output")
     args = parser.parse_args()
 
@@ -297,6 +306,7 @@ if __name__ == "__main__":
     kfserving_endpoint = url.sub("", args.kfserving_endpoint)
     autoscaling_target = int(args.autoscaling_target)
     service_account = args.service_account
+    enable_istio_sidecar = args.enable_istio_sidecar
 
     if kfserving_endpoint:
         formData = {
@@ -311,6 +321,7 @@ if __name__ == "__main__":
             "canary_custom_model_spec": canary_custom_model_spec,
             "autoscaling_target": autoscaling_target,
             "service_account": service_account,
+            "enable_istio_sidecar": enable_istio_sidecar
         }
         response = requests.post(
             "http://" + kfserving_endpoint + "/deploy-model", json=formData
@@ -329,8 +340,18 @@ if __name__ == "__main__":
             canary_custom_model_spec=canary_custom_model_spec,
             autoscaling_target=autoscaling_target,
             service_account=service_account,
+            enable_istio_sidecar=enable_istio_sidecar
         )
     print(model_status)
+    # Check whether the model is ready
+    for condition in model_status["status"]["conditions"]:
+        if condition['type'] == 'Ready':
+            if condition['status'] == 'True':
+                print('Model is ready')
+                break
+            else:
+                print('Model is timed out, please check the inferenceservice events for more details.')
+                exit(1)
     try:
         print(
             model_status["status"]["url"]
@@ -350,6 +371,7 @@ if __name__ == "__main__":
         )
     except:
         print("Model is not ready, check the logs for the Knative URL status.")
+        exit(1)
     if not os.path.exists(os.path.dirname(output_path)):
         os.makedirs(os.path.dirname(output_path))
     with open(output_path, "w") as report:

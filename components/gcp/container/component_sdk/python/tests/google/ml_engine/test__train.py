@@ -39,7 +39,7 @@ class TestCreateTrainingJob(unittest.TestCase):
             job_id_output_path='/tmp/kfp/output/ml_engine/job_id.txt',
         )
         
-        mock_create_job.assert_called_with('proj-1', {
+        mock_create_job.assert_called_with(project_id='proj-1', job={
             'trainingInput': {
                 'pythonModule': 'mock.module',
                 'packageUris': ['gs://test/package'],
@@ -55,4 +55,4 @@ class TestCreateTrainingJob(unittest.TestCase):
                     'imageUri': 'debian:latest'
                 }
             }
-        }, 'job-', 'job-1', 30, job_id_output_path='/tmp/kfp/output/ml_engine/job_id.txt')
+        }, job_id_prefix='job-', job_id='job-1', wait_interval=30, job_id_output_path='/tmp/kfp/output/ml_engine/job_id.txt')

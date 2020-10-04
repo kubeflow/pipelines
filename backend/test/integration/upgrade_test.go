@@ -108,15 +108,16 @@ func (s *UpgradeTests) SetupSuite() {
 
 func (s *UpgradeTests) TearDownSuite() {
 	if *runIntegrationTests {
-		t := s.T()
-
-		// Clean up after the suite to unblock other tests. (Not needed for upgrade
-		// tests because it needs changes in prepare tests to persist and verified
-		// later.)
-		test.DeleteAllExperiments(s.experimentClient, t)
-		test.DeleteAllPipelines(s.pipelineClient, t)
-		test.DeleteAllRuns(s.runClient, t)
-		test.DeleteAllJobs(s.jobClient, t)
+		if !*isDevMode {
+			t := s.T()
+			// Clean up after the suite to unblock other tests. (Not needed for upgrade
+			// tests because it needs changes in prepare tests to persist and verified
+			// later.)
+			test.DeleteAllExperiments(s.experimentClient, t)
+			test.DeleteAllPipelines(s.pipelineClient, t)
+			test.DeleteAllRuns(s.runClient, t)
+			test.DeleteAllJobs(s.jobClient, t)
+		}
 	}
 }
 
@@ -359,6 +360,9 @@ func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
 	// Check runtime workflow manifest is not empty
 	assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "whalesay")
 
+	expectedExperimentID := test.GetExperimentIDFromAPIResourceReferences(runDetail.Run.ResourceReferences)
+	require.NotEmpty(t, expectedExperimentID)
+
 	expectedRun := &run_model.APIRun{
 		ID:          runDetail.Run.ID,
 		Name:        "hello world",
@@ -370,7 +374,7 @@ func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
-			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: runDetail.Run.ResourceReferences[0].Key.ID},
+			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: expectedExperimentID},
 				Name: "hello world experiment", Relationship: run_model.APIRelationshipOWNER,
 			},
 			{Key: &run_model.APIResourceKey{ID: runDetail.Run.PipelineSpec.PipelineID, Type: run_model.APIResourceTypePIPELINEVERSION},
