@@ -44,6 +44,13 @@ def parse_arguments():
         default="amazon/aws-sagemaker-kfp-components",
         help="The component container image.",
     )
+    parser.add_argument(
+        "--check",
+        type=bool,
+        required=False,
+        default=False,
+        help="Dry-run to compare against the existing files.",
+    )
 
     args = parser.parse_args()
     return args
@@ -79,6 +86,7 @@ def compile_spec_file(component_file, spec_dir, args):
         component_file: A path to a component definition.
         spec_dir: The path containing the specification.
         args: Optional arguments as defined by the command line.
+        check: Dry-run and check that the files match the expected output.
     """
     output_path = Path(spec_dir.parent, "component.yaml")
     relative_path = component_file.relative_to(root)
@@ -92,6 +100,15 @@ def compile_spec_file(component_file, spec_dir, args):
     if len(component_metadatas) != 1:
         raise ValueError(
             f"Expected exactly 1 ComponentMetadata in {component_file}, found {len(component_metadatas)}"
+        )
+
+    if args.check:
+        return SageMakerComponentCompiler.check(
+            component_metadatas[0],
+            str(relative_path),
+            str(output_path.resolve()),
+            component_image_tag=args.tag,
+            component_image_uri=args.image,
         )
 
     SageMakerComponentCompiler.compile(
@@ -122,4 +139,10 @@ if __name__ == "__main__":
         elif len(components) > 1:
             raise ValueError(f"Found multiple _component.py files for {component}")
 
-        compile_spec_file(components[0], component_src_dir, args)
+        result = compile_spec_file(components[0], component_src_dir, args)
+
+        if args.check and result:
+            print(result)
+            raise ValueError(
+                f'Difference found between to the existing spec for the "{component}" component'
+            )

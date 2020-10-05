@@ -11,6 +11,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import difflib
+import yaml
+from tempfile import NamedTemporaryFile
 from typing import Callable, Dict, Type, Union, List, NamedTuple, cast
 from kfp.components.structures import (
     ComponentSpec,
@@ -82,6 +85,34 @@ class SageMakerComponentCompiler(object):
             component_image_tag=component_image_tag,
         )
         SageMakerComponentCompiler._write_component(component_spec, output_path)
+
+    @staticmethod
+    def _create_and_compare_component(
+        component_def: Type[SageMakerComponent],
+        component_file_path: str,
+        compare_path: str,
+        component_image_uri: str,
+        component_image_tag: str,
+    ):
+        """Creates a component YAML specification and compares it to an
+        existing file.
+
+        Args:
+            component_def: The type of the SageMaker component.
+            component_file_path: The path to the component definition file.
+            compare_path: The file path for the existing `component.yaml` file to compare against.
+            component_image_uri: Compiled image URI.
+            component_image_tag: Compiled image tag.
+        """
+        component_spec = SageMakerComponentCompiler._create_component_spec(
+            component_def,
+            component_file_path,
+            component_image_uri=component_image_uri,
+            component_image_tag=component_image_tag,
+        )
+        return SageMakerComponentCompiler._compare_component(
+            component_spec, compare_path
+        )
 
     @staticmethod
     def _create_io_from_component_spec(spec: Type[SageMakerComponentSpec]) -> IOArgs:
@@ -188,6 +219,41 @@ class SageMakerComponentCompiler(object):
         component_spec.save(output_path)
 
     @staticmethod
+    def _compare_component(component_spec: ComponentSpec, compare_path: str):
+        """Compare an existing specification file to a new specification.
+
+        Args:
+            component_spec: A `component.yaml` specification object.
+            compare_path: The path of the existing specification file.
+        """
+        # Write new spec into a temporary file
+        temp_spec_file = NamedTemporaryFile(mode="w", delete=False)
+        component_spec.save(temp_spec_file.name)
+
+        ignore_image: Callable[[str], bool] = lambda line: not line.lstrip().startswith(
+            "image:"
+        )
+
+        with open(temp_spec_file.name, mode="r") as temp_file:
+            with open(compare_path, mode="r") as existing_file:
+                temp_lines = list(filter(ignore_image, temp_file.readlines()))
+                existing_lines = list(filter(ignore_image, existing_file.readlines()))
+
+                # Cast to list to read through generator
+                diff_results = list(
+                    difflib.unified_diff(
+                        temp_lines,
+                        existing_lines,
+                        fromfile=temp_spec_file.name,
+                        tofile=compare_path,
+                    )
+                )
+
+        if len(diff_results) == 0:
+            return False
+        return "\n".join(diff_results)
+
+    @staticmethod
     def compile(
         component_def: Type[SageMakerComponent],
         component_file_path: str,
@@ -208,6 +274,32 @@ class SageMakerComponentCompiler(object):
             component_def,
             component_file_path,
             output_path,
+            component_image_uri,
+            component_image_tag,
+        )
+
+    @staticmethod
+    def check(
+        component_def: Type[SageMakerComponent],
+        component_file_path: str,
+        compare_path: str,
+        component_image_uri: str,
+        component_image_tag: str,
+    ):
+        """Compiles a defined component into its component YAML specification
+        and compares it against an existing YAML file.
+
+        Args:
+            component_def: The type of the SageMaker component.
+            component_file_path: The path to the component definition file.
+            compare_path: The file path for the `component.yaml` file to compare against.
+            component_image_uri: Compiled image URI.
+            component_image_tag: Compiled image tag.
+        """
+        return SageMakerComponentCompiler._create_and_compare_component(
+            component_def,
+            component_file_path,
+            compare_path,
             component_image_uri,
             component_image_tag,
         )

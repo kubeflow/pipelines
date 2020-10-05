@@ -6,3 +6,4 @@ set -e
 
 ./run_unit_tests.sh
 ./check_formatting.sh
+./check_generated_specifications.sh
