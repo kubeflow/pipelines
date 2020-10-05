@@ -12,17 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-from pathlib import Path
-import kfp
-import kfp.v2.compiler as compiler
-from kfp.v2 import dsl
+import pathlib
 
-test_data_dir = os.path.join(Path(__file__).parent, 'test_data')
+import kfp
+from kfp.v2 import dsl
+import kfp.v2.compiler as compiler
+
+
+test_data_dir = pathlib.Path(__file__).parent / 'test_data'
 trainer_op = kfp.components.load_component_from_file(
-    os.path.join(test_data_dir, 'trainer_component.yaml'))
+    str(test_data_dir / 'trainer_component.yaml'))
 serving_op = kfp.components.load_component_from_file(
-    os.path.join(test_data_dir, 'serving_component.yaml'))
+    str(test_data_dir / 'serving_component.yaml'))
 
 
 @dsl.pipeline(
