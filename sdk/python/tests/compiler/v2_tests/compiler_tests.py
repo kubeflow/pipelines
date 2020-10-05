@@ -18,6 +18,7 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+import kfp
 
 
 class TestV2Compiler(unittest.TestCase):
@@ -34,6 +35,8 @@ class TestV2Compiler(unittest.TestCase):
       with open(os.path.join(test_data_dir, file_base_name + '.json'),
                 'r') as f:
         golden = json.load(f)
+        # Correct the sdkVersion
+        golden['sdkVersion'] = kfp.__version__
 
       with open(os.path.join(test_data_dir, target_json), 'r') as f:
         compiled = json.load(f)

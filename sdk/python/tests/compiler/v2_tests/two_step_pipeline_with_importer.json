@@ -123,8 +123,8 @@
       }
     }
   },
-  "sdkVersion": "kfp.v2",
-  "schemaVersion": "dummy.v1",
+  "sdkVersion": "dummy`",
+  "schemaVersion": "v2alpha1",
   "runtimeParameters": {
     "input_gcs": {
       "type": "STRING",

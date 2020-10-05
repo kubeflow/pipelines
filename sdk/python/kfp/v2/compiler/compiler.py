@@ -68,15 +68,17 @@ class Compiler(object):
       pipeline: The instantiated pipeline object.
 
     Returns:
-      The IR proto of pipeline_spec.
+      A PipelineSpec proto representing the compiled pipeline.
 
     Raises:
       NotImplementedError if the argument is of unsupported types.
     """
     pipeline_spec = pipeline_spec_pb2.PipelineSpec()
-    pipeline_spec.pipeline_info.name = pipeline.name or 'Pipeline'
-    pipeline_spec.sdk_version = 'kfp.v2'
-    pipeline_spec.schema_version = 'dummy.v1'
+    if not pipeline.name:
+      raise ValueError('Pipeline name is required.')
+    pipeline_spec.pipeline_info.name = pipeline.name
+    pipeline_spec.sdk_version = kfp.__version__
+    pipeline_spec.schema_version = 'v2alpha1'
 
     # Pipeline Parameters
     for arg in args:
@@ -235,32 +237,32 @@ class Compiler(object):
 
   def compile(self,
               pipeline_func: Callable[..., Any],
-              package_path: str,
+              output_path: str,
               type_check: bool = True) -> None:
     """Compile the given pipeline function into workflow yaml.
 
     Args:
       pipeline_func: Pipeline function with @dsl.pipeline decorator.
-      package_path: The output pipeline spec tar.gz file path. for example,
-        "~/a.tar.gz"
+      output_path: The output pipeline spec .json file path. for example,
+        "~/a.json"
       type_check: Whether to enable the type check or not, default: True.
     """
     type_check_old_value = kfp.TYPE_CHECK
     try:
       kfp.TYPE_CHECK = type_check
       self._create_and_write_pipeline_spec(
-          pipeline_func=pipeline_func, package_path=package_path)
+          pipeline_func=pipeline_func, output_path=output_path)
     finally:
       kfp.TYPE_CHECK = type_check_old_value
 
   def _write_pipeline(self,
                       pipeline_spec: pipeline_spec_pb2.PipelineSpec,
-                      package_path: str = None) -> Optional[str]:
+                      output_path: str = None) -> Optional[str]:
     """Dump pipeline spec into json file.
 
     Args:
       pipeline_spec: IR pipeline spec.
-      package_path: The file path to be written. If not specified, a json_text
+      ouput_path: The file path to be written. If not specified, a json_text
         string will be returned.
 
     Returns:
@@ -272,15 +274,15 @@ class Compiler(object):
     """
     json_text = MessageToJson(pipeline_spec)
 
-    if package_path is None:
+    if output_path is None:
       return json_text
 
-    if package_path.endswith('.json'):
-      with open(package_path, 'w') as json_file:
+    if output_path.endswith('.json'):
+      with open(output_path, 'w') as json_file:
         json_file.write(json_text)
     else:
       raise ValueError(
-          'The output path {} should ends with ".json".'.format(package_path))
+          'The output path {} should ends with ".json".'.format(output_path))
 
   def _create_and_write_pipeline_spec(self,
                                       pipeline_func: Callable[..., Any],
@@ -288,7 +290,7 @@ class Compiler(object):
                                       pipeline_description: str = None,
                                       params_list: List[
                                           dsl.PipelineParam] = None,
-                                      package_path: str = None) -> None:
+                                      output_path: str = None) -> None:
     """Compile the given pipeline function and dump it to specified file format.
 
     Args:
@@ -296,8 +298,8 @@ class Compiler(object):
       pipeline_name: The name of the pipeline. Optional.
       pipeline_description: An optional description of the pipeline.
       params_list: A list of pipeline arguments.
-      package_path: The path of the compiled output.
+      output_path: The path of the compiled output.
     """
     pipeline = self._create_pipeline(pipeline_func, pipeline_name,
                                      pipeline_description, params_list)
-    self._write_pipeline(pipeline, package_path)
+    self._write_pipeline(pipeline, output_path)
