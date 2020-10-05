@@ -13,6 +13,7 @@
 # limitations under the License.
 """Utilities for component I/O type mapping."""
 
+from typing import List
 from kfp.v2.proto import pipeline_spec_pb2
 
 # ComponentSpec I/O types to (IR) PipelineTaskSpec I/O types mapping.
@@ -29,11 +30,8 @@ _ARTIFACT_TYPES_MAPPING = {
 # The values are the corresponding IR parameter primitive types.
 _PARAMETER_TYPES_MAPPING = {
     'integer': pipeline_spec_pb2.PrimitiveType.INT,
-    'int': pipeline_spec_pb2.PrimitiveType.INT,
     'double': pipeline_spec_pb2.PrimitiveType.DOUBLE,
-    'float': pipeline_spec_pb2.PrimitiveType.DOUBLE,
     'string': pipeline_spec_pb2.PrimitiveType.STRING,
-    'str': pipeline_spec_pb2.PrimitiveType.STRING,
 }
 
 
@@ -97,3 +95,12 @@ def get_parameter_type(type_name: str) -> pipeline_spec_pb2.PrimitiveType:
     KeyError: if type_name doesn't match any predefined key.
   """
   return _PARAMETER_TYPES_MAPPING.get(type_name.lower())
+
+
+def all_types() -> List[str]:
+  """Get all supported type names that can be used in component spec.
+
+  Returns:
+    The list of type names.
+  """
+  return [*_ARTIFACT_TYPES_MAPPING, *_PARAMETER_TYPES_MAPPING]

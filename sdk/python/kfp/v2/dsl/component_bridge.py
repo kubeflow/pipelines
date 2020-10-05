@@ -17,9 +17,11 @@ import copy
 from typing import Any, Mapping
 
 from kfp import dsl
-from kfp.components._components import _default_component_name, _resolve_command_line_and_paths
-from kfp.components._naming import _sanitize_python_function_name, generate_unique_name_conversion_table
 from kfp.components import structures
+from kfp.components._components import _default_component_name
+from kfp.components._components import _resolve_command_line_and_paths
+from kfp.components._naming import _sanitize_python_function_name
+from kfp.components._naming import generate_unique_name_conversion_table
 from kfp.dsl import types
 from kfp.v2.dsl import type_utils
 from kfp.v2.proto import pipeline_spec_pb2
@@ -66,7 +68,8 @@ def _create_container_op_from_component_and_arguments(
             input_name].runtime_value.runtime_parameter = argument_value.name
       else:
         raise NotImplementedError(
-            'Unsupported input type: "{}"'.format(input_type))
+            'Unsupported input type: "{}". The type must be one of the following: {}.'
+            .format(input_type, type_utils.all_types()))
     elif isinstance(argument_value, str):
       pipeline_task_spec.inputs.parameters[
           input_name].runtime_value.constant_value.string_value = argument_value
@@ -82,7 +85,6 @@ def _create_container_op_from_component_and_arguments(
           ', str, int, float. Got: "{}".'.format(argument_value))
 
   for output in component_spec.outputs or []:
-    normalized_output_type = output.type.lower()
     if type_utils.is_artifact_type(output.type):
       pipeline_task_spec.outputs.artifacts[
           output
@@ -92,8 +94,9 @@ def _create_container_op_from_component_and_arguments(
       pipeline_task_spec.outputs.parameters[
           output.name].type = type_utils.get_parameter_type(output.type)
     else:
-      raise NotImplementedError('Unsupported output type: "{}"'.format(
-          output.type))
+      raise NotImplementedError(
+          'Unsupported output type: "{}". The type must be one of the following: {}.'
+          .format(output.type, type_utils.all_types()))
 
   def _input_artifact_placeholder(input_key: str) -> str:
     return "{{{{$.inputs.artifacts['{}'].uri}}}}".format(input_key)
