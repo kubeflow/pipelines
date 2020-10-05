@@ -13,23 +13,16 @@ SageMakerComponents."""
 # limitations under the License.
 
 import argparse
-from dataclasses import dataclass
-from types import FunctionType
 
 from typing import (
     Callable,
     Generic,
     List,
-    NamedTuple,
-    NewType,
     TypeVar,
     Dict,
-    Optional,
-    Union,
     Any,
 )
 
-from .spec_validators import SpecValidators
 from .common_inputs import (
     SageMakerComponentBaseInputs,
     SageMakerComponentBaseOutputs,

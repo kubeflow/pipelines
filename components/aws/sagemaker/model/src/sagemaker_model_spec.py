@@ -18,7 +18,7 @@ from common.sagemaker_component_spec import (
     SageMakerComponentSpec,
     SageMakerComponentBaseOutputs,
 )
-from common.spec_validators import SpecValidators
+from common.spec_input_parsers import SpecInputParsers
 from common.common_inputs import (
     COMMON_INPUTS,
     SageMakerComponentCommonInputs,
@@ -85,7 +85,7 @@ class SageMakerCreateModelSpec(
             default="",
         ),
         environment=InputValidator(
-            input_type=SpecValidators.yaml_or_json_dict,
+            input_type=SpecInputParsers.yaml_or_json_dict,
             required=False,
             description="The dictionary of the environment variables to set in the Docker container. Up to 16 key-value entries in the map.",
             default={},
@@ -97,7 +97,7 @@ class SageMakerCreateModelSpec(
             default="",
         ),
         secondary_containers=InputValidator(
-            input_type=SpecValidators.yaml_or_json_dict,
+            input_type=SpecInputParsers.yaml_or_json_dict,
             required=False,
             description="A list of dicts that specifies the additional containers in the inference pipeline.",
             default={},
@@ -115,7 +115,7 @@ class SageMakerCreateModelSpec(
             default="",
         ),
         network_isolation=InputValidator(
-            input_type=SpecValidators.str_to_bool,
+            input_type=SpecInputParsers.str_to_bool,
             required=False,
             description="Isolates the training container.",
             default=True,

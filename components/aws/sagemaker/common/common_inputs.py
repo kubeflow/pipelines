@@ -20,7 +20,7 @@ from typing import (
     Optional,
     Union,
 )
-from .spec_validators import SpecValidators
+from .spec_input_parsers import SpecInputParsers
 
 
 @dataclass(frozen=True)
@@ -101,7 +101,7 @@ COMMON_INPUTS = SageMakerComponentCommonInputs(
         description="The region for the SageMaker resource.",
     ),
     endpoint_url=SageMakerComponentInputValidator(
-        input_type=SpecValidators.nullable_string_argument,
+        input_type=SpecInputParsers.nullable_string_argument,
         required=False,
         description="The URL to use when communicating with the SageMaker service.",
     ),
@@ -111,7 +111,7 @@ COMMON_INPUTS = SageMakerComponentCommonInputs(
         description="The ARN of an IAM role to assume when connecting to SageMaker.",
     ),
     tags=SageMakerComponentInputValidator(
-        input_type=SpecValidators.yaml_or_json_dict,
+        input_type=SpecInputParsers.yaml_or_json_dict,
         required=False,
         description="An array of key-value pairs, to categorize AWS resources.",
         default={},
@@ -131,7 +131,7 @@ class SpotInstanceInputs(SageMakerComponentBaseInputs):
 
 SPOT_INSTANCE_INPUTS = SpotInstanceInputs(
     spot_instance=SageMakerComponentInputValidator(
-        input_type=SpecValidators.str_to_bool,
+        input_type=SpecInputParsers.str_to_bool,
         description="Use managed spot training.",
         default=False,
     ),
@@ -146,7 +146,7 @@ SPOT_INSTANCE_INPUTS = SpotInstanceInputs(
         default=86400,
     ),
     checkpoint_config=SageMakerComponentInputValidator(
-        input_type=SpecValidators.yaml_or_json_dict,
+        input_type=SpecInputParsers.yaml_or_json_dict,
         description="Dictionary of information about the output location for managed spot training checkpoint data.",
         default={},
     ),

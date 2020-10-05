@@ -18,7 +18,7 @@ from common.sagemaker_component_spec import (
     SageMakerComponentSpec,
     SageMakerComponentBaseOutputs,
 )
-from common.spec_validators import SpecValidators
+from common.spec_input_parsers import SpecInputParsers
 from common.common_inputs import (
     COMMON_INPUTS,
     SPOT_INSTANCE_INPUTS,
@@ -111,7 +111,7 @@ class SageMakerTuningSpec(
             default="File",
         ),
         metric_definitions=InputValidator(
-            input_type=SpecValidators.yaml_or_json_dict,
+            input_type=SpecInputParsers.yaml_or_json_dict,
             required=False,
             description="The dictionary of name-regex pairs specify the metrics that the algorithm emits.",
             default={},
@@ -142,31 +142,31 @@ class SageMakerTuningSpec(
             default="Off",
         ),
         static_parameters=InputValidator(
-            input_type=SpecValidators.yaml_or_json_dict,
+            input_type=SpecInputParsers.yaml_or_json_dict,
             required=False,
             description="The values of hyperparameters that do not change for the tuning job.",
             default={},
         ),
         integer_parameters=InputValidator(
-            input_type=SpecValidators.yaml_or_json_list,
+            input_type=SpecInputParsers.yaml_or_json_list,
             required=False,
             description="The array of IntegerParameterRange objects that specify ranges of integer hyperparameters that you want to search.",
             default=[],
         ),
         continuous_parameters=InputValidator(
-            input_type=SpecValidators.yaml_or_json_list,
+            input_type=SpecInputParsers.yaml_or_json_list,
             required=False,
             description="The array of ContinuousParameterRange objects that specify ranges of continuous hyperparameters that you want to search.",
             default=[],
         ),
         categorical_parameters=InputValidator(
-            input_type=SpecValidators.yaml_or_json_list,
+            input_type=SpecInputParsers.yaml_or_json_list,
             required=False,
             description="The array of CategoricalParameterRange objects that specify ranges of categorical hyperparameters that you want to search.",
             default=[],
         ),
         channels=InputValidator(
-            input_type=SpecValidators.yaml_or_json_list,
+            input_type=SpecInputParsers.yaml_or_json_list,
             required=True,
             description="A list of dicts specifying the input channels. Must have at least one.",
         ),
@@ -226,13 +226,13 @@ class SageMakerTuningSpec(
             description="The ID of the subnets in the VPC to which you want to connect your hpo job.",
         ),
         network_isolation=InputValidator(
-            input_type=SpecValidators.str_to_bool,
+            input_type=SpecInputParsers.str_to_bool,
             required=False,
             description="Isolates the training container.",
             default=True,
         ),
         traffic_encryption=InputValidator(
-            input_type=SpecValidators.str_to_bool,
+            input_type=SpecInputParsers.str_to_bool,
             required=False,
             description="Encrypts all communications between ML compute instances in distributed training.",
             default=False,

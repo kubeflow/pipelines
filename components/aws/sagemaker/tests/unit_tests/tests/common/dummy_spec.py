@@ -1,4 +1,4 @@
-from common.spec_validators import SpecValidators
+from common.spec_input_parsers import SpecInputParsers
 from common.sagemaker_component_spec import SageMakerComponentSpec
 
 from typing import List
@@ -68,12 +68,12 @@ class ExtraSpec(SageMakerComponentSpec[AllInputTypes, NoOutputs]):
         inputInt=InputValidator(input_type=int, required=True, description="int",),
         inputBool=InputValidator(input_type=bool, required=True, description="bool",),
         inputDict=InputValidator(
-            input_type=SpecValidators.yaml_or_json_dict,
+            input_type=SpecInputParsers.yaml_or_json_dict,
             required=True,
             description="dict",
         ),
         inputList=InputValidator(
-            input_type=SpecValidators.yaml_or_json_list,
+            input_type=SpecInputParsers.yaml_or_json_list,
             required=True,
             description="list",
         ),

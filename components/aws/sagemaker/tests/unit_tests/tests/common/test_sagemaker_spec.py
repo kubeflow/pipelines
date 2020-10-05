@@ -1,4 +1,4 @@
-from common.spec_validators import SpecValidators
+from common.spec_input_parsers import SpecInputParsers
 from dataclasses import dataclass
 from common.common_inputs import (
     SageMakerComponentBaseInputs,
@@ -167,7 +167,7 @@ class SageMakerComponentSpecTestCase(unittest.TestCase):
                         default=None,
                         help="dict",
                         required=True,
-                        type=SpecValidators.yaml_or_json_dict,
+                        type=SpecInputParsers.yaml_or_json_dict,
                     ),
                     call(
                         "--inputList",
@@ -175,7 +175,7 @@ class SageMakerComponentSpecTestCase(unittest.TestCase):
                         default=None,
                         help="list",
                         required=True,
-                        type=SpecValidators.yaml_or_json_list,
+                        type=SpecInputParsers.yaml_or_json_list,
                     ),
                     call(
                         "--inputOptional",

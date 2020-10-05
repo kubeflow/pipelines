@@ -18,7 +18,7 @@ from common.sagemaker_component_spec import (
     SageMakerComponentSpec,
     SageMakerComponentBaseOutputs,
 )
-from common.spec_validators import SpecValidators
+from common.spec_input_parsers import SpecInputParsers
 from common.common_inputs import (
     COMMON_INPUTS,
     SageMakerComponentCommonInputs,
@@ -90,7 +90,7 @@ class SageMakerTrainingSpec(
             default="",
         ),
         metric_definitions=InputValidator(
-            input_type=SpecValidators.yaml_or_json_dict,
+            input_type=SpecInputParsers.yaml_or_json_dict,
             description="The dictionary of name-regex pairs specify the metrics that the algorithm emits.",
             default={},
         ),
@@ -101,12 +101,12 @@ class SageMakerTrainingSpec(
             default="File",
         ),
         hyperparameters=InputValidator(
-            input_type=SpecValidators.yaml_or_json_dict,
+            input_type=SpecInputParsers.yaml_or_json_dict,
             description="Dictionary of hyperparameters for the the algorithm.",
             default={},
         ),
         channels=InputValidator(
-            input_type=SpecValidators.yaml_or_json_list,
+            input_type=SpecInputParsers.yaml_or_json_list,
             required=True,
             description="A list of dicts specifying the input channels. Must have at least one.",
         ),
@@ -151,22 +151,22 @@ class SageMakerTrainingSpec(
             description="The ID of the subnets in the VPC to which you want to connect your hpo job.",
         ),
         network_isolation=InputValidator(
-            input_type=SpecValidators.str_to_bool,
+            input_type=SpecInputParsers.str_to_bool,
             description="Isolates the training container.",
             default=True,
         ),
         traffic_encryption=InputValidator(
-            input_type=SpecValidators.str_to_bool,
+            input_type=SpecInputParsers.str_to_bool,
             description="Encrypts all communications between ML compute instances in distributed training.",
             default=False,
         ),
         debug_hook_config=InputValidator(
-            input_type=SpecValidators.yaml_or_json_dict,
+            input_type=SpecInputParsers.yaml_or_json_dict,
             description="Configuration information for the debug hook parameters, collection configuration, and storage paths.",
             default={},
         ),
         debug_rule_config=InputValidator(
-            input_type=SpecValidators.yaml_or_json_list,
+            input_type=SpecInputParsers.yaml_or_json_list,
             description="Configuration information for debugging rules.",
             default=[],
         ),

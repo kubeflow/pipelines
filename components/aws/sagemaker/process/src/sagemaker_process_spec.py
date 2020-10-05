@@ -18,7 +18,7 @@ from common.sagemaker_component_spec import (
     SageMakerComponentSpec,
     SageMakerComponentBaseOutputs,
 )
-from common.spec_validators import SpecValidators
+from common.spec_input_parsers import SpecInputParsers
 from common.common_inputs import (
     COMMON_INPUTS,
     SageMakerComponentCommonInputs,
@@ -119,31 +119,31 @@ class SageMakerProcessSpec(
             default=86400,
         ),
         environment=InputValidator(
-            input_type=SpecValidators.yaml_or_json_dict,
+            input_type=SpecInputParsers.yaml_or_json_dict,
             required=False,
             description="The dictionary of the environment variables to set in the Docker container. Up to 16 key-value entries in the map.",
             default={},
         ),
         container_entrypoint=InputValidator(
-            input_type=SpecValidators.yaml_or_json_list,
+            input_type=SpecInputParsers.yaml_or_json_list,
             required=False,
             description="The entrypoint for the processing job. This is in the form of a list of strings that make a command.",
             default=[],
         ),
         container_arguments=InputValidator(
-            input_type=SpecValidators.yaml_or_json_list,
+            input_type=SpecInputParsers.yaml_or_json_list,
             required=False,
             description="A list of string arguments to be passed to a processing job.",
             default=[],
         ),
         input_config=InputValidator(
-            input_type=SpecValidators.yaml_or_json_list,
+            input_type=SpecInputParsers.yaml_or_json_list,
             required=False,
             description="Parameters that specify Amazon S3 inputs for a processing job.",
             default=[],
         ),
         output_config=InputValidator(
-            input_type=SpecValidators.yaml_or_json_list,
+            input_type=SpecInputParsers.yaml_or_json_list,
             required=True,
             description="Parameters that specify Amazon S3 outputs for a processing job.",
             default=[],
@@ -159,13 +159,13 @@ class SageMakerProcessSpec(
             description="The ID of the subnets in the VPC to which you want to connect your hpo job.",
         ),
         network_isolation=InputValidator(
-            input_type=SpecValidators.str_to_bool,
+            input_type=SpecInputParsers.str_to_bool,
             required=False,
             description="Isolates the processing container.",
             default=True,
         ),
         traffic_encryption=InputValidator(
-            input_type=SpecValidators.str_to_bool,
+            input_type=SpecInputParsers.str_to_bool,
             required=False,
             description="Encrypts all communications between ML compute instances in distributed training.",
             default=False,

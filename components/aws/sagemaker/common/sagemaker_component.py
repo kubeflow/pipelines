@@ -284,22 +284,28 @@ class SageMakerComponent(object):
         prefix: str = "",
         size: int = 4,
         chars: str = string.ascii_uppercase + string.digits,
+        max_length: int = 63,
     ) -> str:
         """Generate a pseudo-random string of characters appended to a
         timestamp.
 
-        Format of the ID is as follows: `prefix-YYYYMMDDHHMMSS-unique`.
+        Format of the ID is as follows: `prefix-YYYYMMDDHHMMSS-unique`. If the
+        length of the total ID exceeds `max_length`, it will be truncated from
+        the beginning (prefix will be trimmed).
 
         Args:
             prefix: A prefix to append to the random suffix.
             size: The number of unique characters to append to the ID.
             chars: A list of characters to use in the random suffix.
+            max_length: The maximum length of the generated ID.
 
         Returns:
             string: A pseudo-random string with included timestamp and prefix.
         """
         unique = "".join(random.choice(chars) for _ in range(size))
-        return f'{prefix}{"-" if prefix else ""}{strftime("%Y%m%d%H%M%S", gmtime())}-{unique}'
+        return f'{prefix}{"-" if prefix else ""}{strftime("%Y%m%d%H%M%S", gmtime())}-{unique}'[
+            -max_length:
+        ]
 
     @staticmethod
     def _enable_spot_instance_support(

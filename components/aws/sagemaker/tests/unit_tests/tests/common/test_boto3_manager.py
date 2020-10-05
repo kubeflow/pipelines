@@ -9,12 +9,10 @@ from common.boto3_manager import Boto3Manager
 
 class Boto3ManagerTestCase(unittest.TestCase):
     def test_assume_default_boto3_session(self):
-        with patch("common.boto3_manager.boto3", MagicMock()) as mock_boto3:
-            returned_session = Boto3Manager._get_boto3_session("us-east-1")
+        returned_session = Boto3Manager._get_boto3_session("us-east-1")
 
         assert isinstance(returned_session, Session)
         assert returned_session.region_name == "us-east-1"
-        mock_boto3.assert_not_called()
 
     @patch("common.boto3_manager.DeferredRefreshableCredentials", MagicMock())
     @patch("common.boto3_manager.AssumeRoleCredentialFetcher", MagicMock())

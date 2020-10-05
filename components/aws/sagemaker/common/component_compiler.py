@@ -28,7 +28,7 @@ from .sagemaker_component_spec import (
     SageMakerComponentInputValidator,
     SageMakerComponentOutputValidator,
 )
-from .spec_validators import SpecValidators
+from .spec_input_parsers import SpecInputParsers
 
 CommandlineArgumentType = Union[
     str, InputValuePlaceholder, OutputPathPlaceholder,
@@ -52,10 +52,10 @@ class SageMakerComponentCompiler(object):
         str: "String",
         int: "Integer",
         bool: "Bool",
-        SpecValidators.nullable_string_argument: "String",
-        SpecValidators.yaml_or_json_dict: "JsonObject",
-        SpecValidators.yaml_or_json_list: "JsonArray",
-        SpecValidators.str_to_bool: "Bool",
+        SpecInputParsers.nullable_string_argument: "String",
+        SpecInputParsers.yaml_or_json_dict: "JsonObject",
+        SpecInputParsers.yaml_or_json_list: "JsonArray",
+        SpecInputParsers.str_to_bool: "Bool",
     }
 
     @staticmethod

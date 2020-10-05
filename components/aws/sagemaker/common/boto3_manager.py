@@ -26,6 +26,12 @@ class Boto3Manager(object):
     """Provides static methods for boto3 clients."""
 
     class AssumeRoleProvider(object):
+        """AWS session provider that is capable of refreshing credentials using
+        assume role.
+
+        Taken from https://github.com/boto/botocore/issues/761#issuecomment-426037853 .
+        """
+
         METHOD = "assume-role"
 
         def __init__(self, fetcher):
@@ -37,12 +43,15 @@ class Boto3Manager(object):
             )
 
     @staticmethod
-    def _get_boto3_session(region, role_arn=None):
+    def _get_boto3_session(
+        region: str, role_arn: str = None, assume_duration: int = 3600
+    ):
         """Creates a boto3 session, optionally assuming a role.
 
         Args:
             region: The AWS region for the session.
             role_arn: The ARN to assume for the session.
+            assume_duration: The duration (in seconds) to assume the role.
 
         Returns:
             object: A boto3 Session.
@@ -61,7 +70,7 @@ class Boto3Manager(object):
             assume_session.create_client,
             assume_session.get_credentials(),
             role_arn,
-            extra_args={"DurationSeconds": 3600,},  # 1 hour assume assume by default
+            extra_args={"DurationSeconds": assume_duration,},
             cache=JSONFileCache(),
         )
         role_session = BotocoreSession()
@@ -92,7 +101,7 @@ class Boto3Manager(object):
         """
         session = Boto3Manager._get_boto3_session(region, assume_role_arn)
         session_config = Config(
-            user_agent="sagemaker-on-kubeflow-pipelines-v{}".format(component_version)
+            user_agent=f"sagemaker-on-kubeflow-pipelines-v{component_version}"
         )
         client = session.client(
             "sagemaker",

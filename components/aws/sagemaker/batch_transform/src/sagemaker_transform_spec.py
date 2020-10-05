@@ -18,7 +18,7 @@ from common.sagemaker_component_spec import (
     SageMakerComponentSpec,
     SageMakerComponentBaseOutputs,
 )
-from common.spec_validators import SpecValidators
+from common.spec_input_parsers import SpecInputParsers
 from common.common_inputs import (
     COMMON_INPUTS,
     SageMakerComponentCommonInputs,
@@ -98,7 +98,7 @@ class SageMakerTransformSpec(
             default="",
         ),
         environment=InputValidator(
-            input_type=SpecValidators.yaml_or_json_dict,
+            input_type=SpecInputParsers.yaml_or_json_dict,
             required=False,
             description="The dictionary of the environment variables to set in the Docker container. Up to 16 key-value entries in the map.",
             default={},

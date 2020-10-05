@@ -18,7 +18,7 @@ from common.sagemaker_component_spec import (
     SageMakerComponentSpec,
     SageMakerComponentBaseOutputs,
 )
-from common.spec_validators import SpecValidators
+from common.spec_input_parsers import SpecInputParsers
 from common.common_inputs import (
     COMMON_INPUTS,
     SageMakerComponentCommonInputs,
@@ -80,7 +80,7 @@ class SageMakerDeploySpec(
             default="",
         ),
         update_endpoint=InputValidator(
-            input_type=SpecValidators.str_to_bool,
+            input_type=SpecInputParsers.str_to_bool,
             required=False,
             description="Update endpoint if it exists.",
             default=False,
@@ -202,7 +202,7 @@ class SageMakerDeploySpec(
             default="",
         ),
         endpoint_config_tags=InputValidator(
-            input_type=SpecValidators.yaml_or_json_dict,
+            input_type=SpecInputParsers.yaml_or_json_dict,
             required=False,
             description="An array of key-value pairs, to categorize AWS resources.",
             default={},

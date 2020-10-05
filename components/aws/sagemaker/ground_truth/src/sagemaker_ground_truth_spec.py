@@ -18,7 +18,7 @@ from common.sagemaker_component_spec import (
     SageMakerComponentSpec,
     SageMakerComponentBaseOutputs,
 )
-from common.spec_validators import SpecValidators
+from common.spec_input_parsers import SpecInputParsers
 from common.common_inputs import (
     COMMON_INPUTS,
     SageMakerComponentCommonInputs,
@@ -121,13 +121,13 @@ class SageMakerGroundTruthSpec(
             description="The ARN of the work team assigned to complete the tasks.",
         ),
         no_adult_content=InputValidator(
-            input_type=SpecValidators.str_to_bool,
+            input_type=SpecInputParsers.str_to_bool,
             required=False,
             description="If true, your data is free of adult content.",
             default="False",
         ),
         no_ppi=InputValidator(
-            input_type=SpecValidators.str_to_bool,
+            input_type=SpecInputParsers.str_to_bool,
             required=False,
             description="If true, your data is free of personally identifiable information.",
             default="False",
@@ -151,7 +151,7 @@ class SageMakerGroundTruthSpec(
             default=0,
         ),
         enable_auto_labeling=InputValidator(
-            input_type=SpecValidators.str_to_bool,
+            input_type=SpecInputParsers.str_to_bool,
             required=False,
             description="Enables auto-labeling, only for bounding box, text classification, and image classification.",
             default=False,

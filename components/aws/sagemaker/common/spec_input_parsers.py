@@ -20,7 +20,7 @@ from argparse import ArgumentTypeError
 from typing import List, Dict
 
 
-class SpecValidators:
+class SpecInputParsers:
     """Utility class to define argparse validator methods."""
 
     @staticmethod
@@ -43,7 +43,7 @@ class SpecValidators:
     @staticmethod
     def yaml_or_json_list(value):
         """Parses a YAML or JSON list to a Python list."""
-        parsed = SpecValidators._yaml_or_json_str(value)
+        parsed = SpecInputParsers._yaml_or_json_str(value)
         if not isinstance(parsed, List):
             raise ArgumentTypeError(f"{value} is not a list")
         return parsed
@@ -51,7 +51,7 @@ class SpecValidators:
     @staticmethod
     def yaml_or_json_dict(value):
         """Parses a YAML or JSON dictionary to a Python dictionary."""
-        parsed = SpecValidators._yaml_or_json_str(value)
+        parsed = SpecInputParsers._yaml_or_json_str(value)
         if not isinstance(parsed, Dict):
             raise ArgumentTypeError(f"{value} is not a dictionary")
         return parsed
