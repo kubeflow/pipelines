@@ -35,7 +35,9 @@ class TransformComponentTestCase(unittest.TestCase):
             self.assertEqual("job-name", self.component._transform_job_name)
 
             self.component.Do(unnamed_spec)
-            self.assertEqual("BatchTransform-generated", self.component._transform_job_name)
+            self.assertEqual(
+                "BatchTransform-generated", self.component._transform_job_name
+            )
 
     def test_create_transform_job(self):
         spec = SageMakerTransformSpec(self.REQUIRED_ARGS)

@@ -283,7 +283,7 @@ class SageMakerDeployComponent(SageMakerComponent):
         return False
 
     def _get_endpoint_config(self, endpoint_name: str):
-        """Gets the name of the current config for a given endpoint
+        """Gets the name of the current config for a given endpoint.
 
         Args:
             endpoint_name: The name of the endpoint whose config to reference.

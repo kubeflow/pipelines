@@ -36,7 +36,9 @@ class DeployComponentTestCase(unittest.TestCase):
             MagicMock(return_value="-generated"),
         ):
             self.component.Do(given_endpoint_name)
-            self.assertEqual("EndpointConfig-generated", self.component._endpoint_config_name)
+            self.assertEqual(
+                "EndpointConfig-generated", self.component._endpoint_config_name
+            )
             self.assertEqual("my-endpoint", self.component._endpoint_name)
 
             self.component.Do(given_endpoint_config_name)
@@ -44,19 +46,30 @@ class DeployComponentTestCase(unittest.TestCase):
             self.assertEqual("Endpoint-generated", self.component._endpoint_name)
 
             self.component.Do(unnamed_spec)
-            self.assertEqual("EndpointConfig-generated", self.component._endpoint_config_name)
+            self.assertEqual(
+                "EndpointConfig-generated", self.component._endpoint_config_name
+            )
             self.assertEqual("Endpoint-generated", self.component._endpoint_name)
 
     @patch("deploy.src.sagemaker_deploy_component.super", MagicMock())
     def test_update_endpoint_do_sets_name(self):
         given_endpoint_name = SageMakerDeploySpec(
-            self.REQUIRED_ARGS + ["--endpoint_name", "my-endpoint", "--update_endpoint", "True"]
+            self.REQUIRED_ARGS
+            + ["--endpoint_name", "my-endpoint", "--update_endpoint", "True"]
         )
         given_endpoint_config_name = SageMakerDeploySpec(
-            self.REQUIRED_ARGS + ["--endpoint_config_name", "my-endpoint-config", "--update_endpoint", "True"]
+            self.REQUIRED_ARGS
+            + [
+                "--endpoint_config_name",
+                "my-endpoint-config",
+                "--update_endpoint",
+                "True",
+            ]
         )
         unnamed_spec = SageMakerDeploySpec(self.REQUIRED_ARGS)
-        SageMakerDeployComponent._generate_unique_timestamped_id = MagicMock(return_value="-generated-update")
+        SageMakerDeployComponent._generate_unique_timestamped_id = MagicMock(
+            return_value="-generated-update"
+        )
         self.component._endpoint_name_exists = MagicMock(return_value=True)
         self.component._get_endpoint_config = MagicMock(return_value="existing-config")
 
@@ -65,18 +78,24 @@ class DeployComponentTestCase(unittest.TestCase):
             MagicMock(return_value="-generated-update"),
         ):
             self.component.Do(given_endpoint_name)
-            self.assertEqual("EndpointConfig-generated-update", self.component._endpoint_config_name)
+            self.assertEqual(
+                "EndpointConfig-generated-update", self.component._endpoint_config_name
+            )
             self.assertEqual("my-endpoint", self.component._endpoint_name)
             self.assertTrue(self.component._should_update_existing)
 
             # Ignore given endpoint config name for update
             self.component.Do(given_endpoint_config_name)
-            self.assertEqual("EndpointConfig-generated-update", self.component._endpoint_config_name)
+            self.assertEqual(
+                "EndpointConfig-generated-update", self.component._endpoint_config_name
+            )
             self.assertEqual("Endpoint-generated-update", self.component._endpoint_name)
             self.assertTrue(self.component._should_update_existing)
 
             self.component.Do(unnamed_spec)
-            self.assertEqual("EndpointConfig-generated-update", self.component._endpoint_config_name)
+            self.assertEqual(
+                "EndpointConfig-generated-update", self.component._endpoint_config_name
+            )
             self.assertEqual("Endpoint-generated-update", self.component._endpoint_name)
             self.assertFalse(self.component._should_update_existing)
 
@@ -248,9 +267,7 @@ class DeployComponentTestCase(unittest.TestCase):
 
         self.component._submit_job_request(requests)
 
-        self.component._sm_client.update_endpoint.assert_called_once_with(**{
-            "EndpointName": "endpoint",
-            "EndpointConfigName": "endpoint-config",
-        })
+        self.component._sm_client.update_endpoint.assert_called_once_with(
+            **{"EndpointName": "endpoint", "EndpointConfigName": "endpoint-config",}
+        )
         self.component._delete_endpoint_config.assert_called_once_with("old-config")
-

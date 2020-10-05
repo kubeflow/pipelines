@@ -9,13 +9,18 @@ inputs:
 - {name: tags, type: JsonObject, description: 'An array of key-value pairs, to categorize
     AWS resources.', default: '{}'}
 - {name: endpoint_name, type: String, description: The name of the endpoint., default: ''}
-- {name: endpoint_config_name, type: String, description: The name of the endpoint
-    configuration., default: ''}
+- {name: endpoint_config_name, type: String, description: 'The name of the endpoint
+    configuration. If an existing endpoint is being updated, a suffix is automatically
+    added if this config name exists.', default: ''}
 - {name: endpoint_config_tags, type: JsonObject, description: 'An array of key-value
     pairs, to categorize AWS resources.', default: '{}'}
 - {name: resource_encryption_key, type: String, description: The AWS KMS key that
     Amazon SageMaker uses to encrypt data on the storage volume attached to the ML
     compute instance(s)., default: ''}
+- name: update_endpoint
+  type: Bool
+  description: Update endpoint if it exists.
+  default: "False"
 - {name: variant_name_1, type: String, description: The name of the production variant.,
   default: variant-name-1}
 - {name: model_name_1, type: String, description: The model name used for endpoint
@@ -79,6 +84,8 @@ implementation:
     - {inputValue: endpoint_config_tags}
     - --resource_encryption_key
     - {inputValue: resource_encryption_key}
+    - --update_endpoint
+    - {inputValue: update_endpoint}
     - --variant_name_1
     - {inputValue: variant_name_1}
     - --model_name_1

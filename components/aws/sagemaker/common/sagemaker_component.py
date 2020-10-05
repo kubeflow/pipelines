@@ -162,7 +162,9 @@ class SageMakerComponent(object):
 
         self._after_submit_job_request(job, request, inputs, outputs)
 
-        status: SageMakerJobStatus = SageMakerJobStatus(is_completed=False, raw_status="No Status")
+        status: SageMakerJobStatus = SageMakerJobStatus(
+            is_completed=False, raw_status="No Status"
+        )
         try:
             while True:
                 status = self._get_job_status()
