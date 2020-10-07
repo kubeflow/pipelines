@@ -655,12 +655,31 @@ describe('RunDetails', () => {
   });
 
   it('shows a one-node compressed workflow graph', async () => {
-    testRun.pipeline_runtime!.workflow_manifest =
-      '{"status": { "compressedNodes": "H4sIAAAAAAACE6tWystPSTVUslKoVspMAVJQfm0tAEBEv1kaAAAA" }}';
-    tree = shallow(<RunDetails {...generateProps()} />);
+    testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+      ...WORKFLOW_TEMPLATE,
+      status: { compressedNodes: "H4sIAAAAAAACE6tWystPSTVUslKoVspMAVJQfm0tAEBEv1kaAAAA" },
+    });
+
+    const { getByTestId } = render(<RunDetails {...generateProps()} />);
     await getRunSpy;
+    // Here we need to call flushPromises twice since it frees up only queued promised.
+    // The first flush will free up the await on advance Apis.runServiceApi.getRun but not the decodeCompressedNodes since 
+    // it's not queued yet
     await TestUtils.flushPromises();
-    expect(tree).toMatchSnapshot();
+    // The second flush will free up the await on decodeCompressedNodes
+    await TestUtils.flushPromises();
+
+    //await new Promise(resolve => setTimeout(resolve, 2000));
+
+    expect(getByTestId('graph')).toMatchInlineSnapshot(`
+      <pre
+        data-testid="graph"
+      >
+        Node node1
+        Node node1-running-placeholder
+        Edge node1 to node1-running-placeholder
+      </pre>
+    `);
   });
 
   it('opens side panel when graph node is clicked', async () => {
