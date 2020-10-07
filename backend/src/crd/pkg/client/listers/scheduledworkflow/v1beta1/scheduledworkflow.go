@@ -23,10 +23,8 @@ import (
 )
 
 // ScheduledWorkflowLister helps list ScheduledWorkflows.
-// All objects returned here must be treated as read-only.
 type ScheduledWorkflowLister interface {
 	// List lists all ScheduledWorkflows in the indexer.
-	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.ScheduledWorkflow, err error)
 	// ScheduledWorkflows returns an object that can list and get ScheduledWorkflows.
 	ScheduledWorkflows(namespace string) ScheduledWorkflowNamespaceLister
@@ -57,13 +55,10 @@ func (s *scheduledWorkflowLister) ScheduledWorkflows(namespace string) Scheduled
 }
 
 // ScheduledWorkflowNamespaceLister helps list and get ScheduledWorkflows.
-// All objects returned here must be treated as read-only.
 type ScheduledWorkflowNamespaceLister interface {
 	// List lists all ScheduledWorkflows in the indexer for a given namespace.
-	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.ScheduledWorkflow, err error)
 	// Get retrieves the ScheduledWorkflow from the indexer for a given namespace and name.
-	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1beta1.ScheduledWorkflow, error)
 	ScheduledWorkflowNamespaceListerExpansion
 }

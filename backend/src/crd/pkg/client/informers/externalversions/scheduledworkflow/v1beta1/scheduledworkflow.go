@@ -16,7 +16,6 @@
 package v1beta1
 
 import (
-	"context"
 	time "time"
 
 	scheduledworkflowv1beta1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
@@ -59,13 +58,13 @@ func NewFilteredScheduledWorkflowInformer(client versioned.Interface, namespace 
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ScheduledworkflowV1beta1().ScheduledWorkflows(namespace).List(context.TODO(), options)
+				return client.ScheduledworkflowV1beta1().ScheduledWorkflows(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ScheduledworkflowV1beta1().ScheduledWorkflows(namespace).Watch(context.TODO(), options)
+				return client.ScheduledworkflowV1beta1().ScheduledWorkflows(namespace).Watch(options)
 			},
 		},
 		&scheduledworkflowv1beta1.ScheduledWorkflow{},
