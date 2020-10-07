@@ -30,16 +30,21 @@ def pipeline():
     "--pipeline-name",
     help="Name of the pipeline."
 )
+@click.option(
+    "-d",
+    "--description",
+    help="Description for the pipeline."
+)
 @click.argument("package-file")
 @click.pass_context
-def upload(ctx, pipeline_name, package_file):
+def upload(ctx, pipeline_name, package_file, description=None):
     """Upload a KFP pipeline"""
     client = ctx.obj["client"]
     output_format = ctx.obj["output"]
     if not pipeline_name:
         pipeline_name = package_file.split(".")[0]
 
-    pipeline = client.upload_pipeline(package_file, pipeline_name)
+    pipeline = client.upload_pipeline(package_file, pipeline_name, description)
     _display_pipeline(pipeline, output_format)
 
 

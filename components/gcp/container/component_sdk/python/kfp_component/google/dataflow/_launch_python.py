@@ -97,7 +97,7 @@ def _prepare_cmd(project_id, python_file_path, args, staging_location):
         '--project', project_id]
     if staging_location:
         dataflow_args += ['--staging_location', staging_location, '--temp_location', staging_location]
-    return (['python2', '-u', python_file_path] + 
+    return (['python', '-u', python_file_path] + 
         dataflow_args + args)
 
 def _extract_job_id_and_location(line):
@@ -114,4 +114,4 @@ def _install_requirements(requirements_file_path):
     if not requirements_file_path:
         return
     requirements_file_path = stage_file(requirements_file_path)
-    subprocess.check_call(['pip2', 'install', '-r', requirements_file_path])
+    subprocess.check_call(['pip', 'install', '-r', requirements_file_path])
