@@ -19,7 +19,7 @@ from ._create_job import create_job
 def train(project_id, job_id_output_path, python_module=None, package_uris=None, 
     region=None, args=None, job_dir=None, python_version=None, 
     runtime_version=None, master_image_uri=None, worker_image_uri=None, 
-    training_input=None, job_id_prefix=None, job_id=None, wait_interval=30):
+    training_input=None, job_id_prefix=None, job_id=None, wait_interval=20):
     """Creates a MLEngine training job.
 
     Args:
