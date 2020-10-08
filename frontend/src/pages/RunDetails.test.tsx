@@ -662,14 +662,15 @@ describe('RunDetails', () => {
 
     const { getByTestId } = render(<RunDetails {...generateProps()} />);
     await getRunSpy;
-    // Here we need to call flushPromises twice since it frees up only queued promised.
+
+    // Here we need to call flushPromises multiple times since it frees up only queued promised.
     // The first flush will free up the await on advance Apis.runServiceApi.getRun but not the decodeCompressedNodes since
     // it's not queued yet
     await TestUtils.flushPromises();
-    // The second flush will free up the await on decodeCompressedNodes
+    // The second flush will free up the await on getExperiment
     await TestUtils.flushPromises();
-
-    //await new Promise(resolve => setTimeout(resolve, 2000));
+    // The third flush will free up the await on decodeCompressedNodes
+    await TestUtils.flushPromises();
 
     expect(getByTestId('graph')).toMatchInlineSnapshot(`
       <pre
