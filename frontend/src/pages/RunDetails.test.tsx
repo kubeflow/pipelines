@@ -96,6 +96,7 @@ describe('RunDetails', () => {
   let getTfxRunContextSpy: any;
   let getKfpRunContextSpy: any;
   let warnSpy: any;
+  let decodeCompressedNodesSpy: any;
 
   let testRun: ApiRunDetail = {};
   let tree: ShallowWrapper | ReactWrapper;
@@ -166,6 +167,9 @@ describe('RunDetails', () => {
     });
     // Hide expected warning messages
     warnSpy = jest.spyOn(Utils.logger, 'warn').mockImplementation();
+
+    // Mock decodeCompressedNodes to avoid dequeuing chained promises
+    decodeCompressedNodesSpy = jest.spyOn(Utils, 'decodeCompressedNodes').mockImplementation();
 
     getRunSpy.mockImplementation(() => Promise.resolve(testRun));
     getExperimentSpy.mockImplementation(() =>
@@ -659,18 +663,22 @@ describe('RunDetails', () => {
       ...WORKFLOW_TEMPLATE,
       status: { compressedNodes: 'H4sIAAAAAAACE6tWystPSTVUslKoVspMAVJQfm0tAEBEv1kaAAAA' },
     });
+    decodeCompressedNodesSpy.mockImplementation(() => Promise.resolve({ node1: { id: 'node1' } }));
 
     const { getByTestId } = render(<RunDetails {...generateProps()} />);
     await getRunSpy;
+    await decodeCompressedNodesSpy;
 
     // Here we need to call flushPromises multiple times since it frees up only queued promised.
     // The first flush will free up the await on advance Apis.runServiceApi.getRun but not the decodeCompressedNodes since
     // it's not queued yet
+    console.log('Will flush');
     await TestUtils.flushPromises();
     // The second flush will free up the await on getExperiment
     await TestUtils.flushPromises();
     // The third flush will free up the await on decodeCompressedNodes
     await TestUtils.flushPromises();
+    console.log('Will check graph');
 
     expect(getByTestId('graph')).toMatchInlineSnapshot(`
       <pre
@@ -681,6 +689,10 @@ describe('RunDetails', () => {
         Edge node1 to node1-running-placeholder
       </pre>
     `);
+    expect(decodeCompressedNodesSpy).toHaveBeenCalledTimes(1);
+    expect(decodeCompressedNodesSpy).toHaveBeenLastCalledWith(
+      'H4sIAAAAAAACE6tWystPSTVUslKoVspMAVJQfm0tAEBEv1kaAAAA',
+    );
   });
 
   it('opens side panel when graph node is clicked', async () => {

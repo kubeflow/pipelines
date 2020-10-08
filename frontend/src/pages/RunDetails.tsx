@@ -652,12 +652,16 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     }
 
     try {
+      console.log('Will getRun');
       const runDetail = await Apis.runServiceApi.getRun(runId);
+      console.log('Ok getRun');
 
       const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(runDetail.run);
       let experiment: ApiExperiment | undefined;
       if (relatedExperimentId) {
+        console.log('Will getExperiment');
         experiment = await Apis.experimentServiceApi.getExperiment(relatedExperimentId);
+        console.log('Ok getExperiment');
       }
 
       const runMetadata = runDetail.run!;
@@ -677,9 +681,11 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         !jsonWorkflow.status.nodes &&
         jsonWorkflow.status.compressedNodes
       ) {
+        console.log('Will decodeCompressedNodes');
         jsonWorkflow.status.nodes = await decodeCompressedNodes(
           jsonWorkflow.status.compressedNodes,
         );
+        console.log('Ok decodeCompressedNodes', JSON.stringify(jsonWorkflow.status.nodes));
         delete jsonWorkflow.status.compressedNodes;
       }
       const workflow = jsonWorkflow as Workflow;
