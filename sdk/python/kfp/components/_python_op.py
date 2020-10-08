@@ -33,7 +33,7 @@ from .structures import *
 
 import inspect
 from pathlib import Path
-from typing import Callable, List, TypeVar
+from typing import Callable, List, Optional, TypeVar
 import warnings
 
 import docstring_parser
