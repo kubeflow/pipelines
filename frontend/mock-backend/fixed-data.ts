@@ -648,10 +648,10 @@ const runs: ApiRunDetail[] = [
     },
     run: {
       created_at: new Date('2020-07-08T10:03:37.000Z'),
-      description: 'simple run with pipeline spec embedded in it.',
+      description: 'large pipelien with a lot of nodes.',
       finished_at: new Date('2020-07-08T10:39:43.000Z'),
       id: '808ecf03-ee3b-48c6-9fa1-5f14ad11a3f8',
-      name: 'test_pipeline 2020-07-08 10-03-30',
+      name: 'Very large graph',
       pipeline_spec: {
         workflow_manifest: JSON.stringify(largeGraph),
       },
