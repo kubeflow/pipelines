@@ -28,7 +28,7 @@ from .experiment import experiment
 @click.option('--other-client-id', help='Client ID for IAP protected endpoint to obtain the refresh token.')
 @click.option('--other-client-secret', help='Client ID for IAP protected endpoint to obtain the refresh token.')
 @click.pass_context
-def cli(ctx, endpoint, iap_client_id, namespace, other_client_id, other_client_secret):
+def cli(ctx, endpoint, iap_client_id, namespace, other_client_id, other_client_secret, output):
     """kfp is the command line interface to KFP service.
 
     Feature stage: Alpha. This feature might contain bugs and breaking changes
