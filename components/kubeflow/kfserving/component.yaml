@@ -6,7 +6,7 @@ inputs:
   - {name: Default Model URI,               type: String, default: '',         description: 'Path of the S3 or GCS compatible directory containing default model.'}
   - {name: Canary Model URI,                type: String, default: '',         description: 'Optional Path of the S3 or GCS compatible directory containing canary model.'}
   - {name: Canary Model Traffic Percentage, type: String, default: '0',        description: 'Optional Traffic to be sent to default model'}
-  - {name: Namespace,                       type: String, default: 'kubeflow', description: 'Kubernetes namespace where the KFServing service is deployed.'}
+  - {name: Namespace,                       type: String, default: 'anonymous', description: 'Kubernetes namespace where the KFServing service is deployed.'}
   - {name: Framework,                       type: String, default: 'tensorflow', description: 'Machine Learning Framework for Model Serving.'}
   - {name: Default Custom Model Spec,       type: String, default: '{}', description: 'Custom runtime default custom model container spec.'}
   - {name: Canary Custom Model Spec,        type: String, default: '{}', description: 'Custom runtime canary custom model container spec.'}
@@ -14,6 +14,7 @@ inputs:
   - {name: KFServing Endpoint,              type: String, default: '', description: 'KFServing remote deployer API endpoint'}
   - {name: Service Account,                 type: String, default: '', description: 'Model Service Account'}
   - {name: Enable Istio Sidecar,            type: Bool,   default: 'True',     description: 'Whether to enable istio sidecar injection'}
+  - {name: InferenceService YAML,           type: String, default: '{}',         description: 'Raw InferenceService serialized YAML for deployment'} 
 outputs:
   - {name: Service Endpoint URI, type: String,                      description: 'URI of the deployed prediction service..'}
 implementation:
@@ -35,5 +36,6 @@ implementation:
       --autoscaling-target,       {inputValue: Autoscaling Target},
       --service-account,          {inputValue: Service Account},
       --enable-istio-sidecar,     {inputValue: Enable Istio Sidecar},
-      --output-path,              {outputPath: Service Endpoint URI}
+      --output-path,              {outputPath: Service Endpoint URI},
+      --inferenceservice_yaml,    {inputValue: InferenceService YAML}
     ]
