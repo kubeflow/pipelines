@@ -36,7 +36,7 @@ class TestV2Compiler(unittest.TestCase):
                 'r') as f:
         golden = json.load(f)
         # Correct the sdkVersion
-        golden['sdkVersion'] = kfp.__version__
+        golden['sdkVersion'] = 'kfp-{}'.format(kfp.__version__)
 
       with open(os.path.join(test_data_dir, target_json), 'r') as f:
         compiled = json.load(f)
