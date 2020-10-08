@@ -16,7 +16,6 @@
 
 import * as React from 'react';
 import * as zlib from 'zlib';
-import { TextDecoder } from 'util';
 import { ApiRun } from '../apis/run';
 import { ApiTrigger } from '../apis/job';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
@@ -370,10 +369,10 @@ export async function decodeCompressedNodes(compressedNodes: string): Promise<ob
         resolve(undefined);
       } else {
         try {
-          const strNodes = new TextDecoder('utf-8').decode(result);
-          const nodes = JSON.parse(strNodes);
+          const nodes = JSON.parse(result.toString('utf8'));
           resolve(nodes);
         } catch (err) {
+          logger.error('failed to gunzip data ', err);
           resolve(undefined);
         }
       }
