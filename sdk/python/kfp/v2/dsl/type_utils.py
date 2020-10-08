@@ -18,11 +18,17 @@ from kfp.v2.proto import pipeline_spec_pb2
 
 # ComponentSpec I/O types to (IR) PipelineTaskSpec I/O types mapping.
 # The keys are normalized (lowercased). These are types viewed as Artifacts.
-# The values are the corresponding IR artifact types.
+# The values are the corresponding IR artifact type schemas.
 _ARTIFACT_TYPES_MAPPING = {
     # TODO: support more artifact types
-    'gcspath': 'mlpipeline.Artifact',
-    'model': 'mlpipeline.Model',
+    'gcspath': """title: Artifact
+type: object
+properties:
+""",
+    'model': """title: Model
+type: object
+properties:
+""",
 }
 
 # ComponentSpec I/O types to (IR) PipelineTaskSpec I/O types mapping.
@@ -65,14 +71,14 @@ def is_parameter_type(type_name: str) -> bool:
   return type_name.lower() in _PARAMETER_TYPES_MAPPING
 
 
-def get_artifact_type(type_name: str) -> str:
+def get_artifact_type_schema(type_name: str) -> str:
   """Get the IR I/O artifact type for the given ComponentSpec I/O type.
 
   Args:
     type_name: type name of the ComponentSpec I/O type.
 
   Returns:
-     The string value of artifact type.
+     The string value of artifact type schema.
 
   Raises:
     AttributeError: if type_name os not a string type.

@@ -22,7 +22,7 @@ OUTPUT_KEY = 'result'
 def build_importer_spec(
     dependent_task: pipeline_spec_pb2.PipelineTaskSpec,
     input_name: str,
-    input_type: str,
+    input_type_schema: str,
 ) -> Tuple[pipeline_spec_pb2.PipelineTaskSpec,
            pipeline_spec_pb2.PipelineDeploymentConfig.ImporterSpec]:
   """Build importer task spec and importer executor spec.
@@ -30,7 +30,7 @@ def build_importer_spec(
   Args:
     dependent_task: the task requires importer node.
     input_name: the name of the input artifact needs to be imported.
-    input_type: the type of the input artifact.
+    input_type_schema: the type of the input artifact.
 
   Returns:
     a tuple of task_spec and importer_spec
@@ -42,12 +42,12 @@ def build_importer_spec(
   task_spec = pipeline_spec_pb2.PipelineTaskSpec()
   task_spec.task_info.name = '{}_{}_importer'.format(dependent_task_name,
                                                      input_name)
-  task_spec.outputs.artifacts[OUTPUT_KEY].artifact_type.schema_title = (
-      input_type)
+  task_spec.outputs.artifacts[OUTPUT_KEY].artifact_type.instance_schema = (
+      input_type_schema)
   task_spec.executor_label = task_spec.task_info.name
 
   importer_spec = pipeline_spec_pb2.PipelineDeploymentConfig.ImporterSpec()
   importer_spec.artifact_uri.runtime_parameter = pipeline_parameter_name
-  importer_spec.type_schema.schema_title = input_type
+  importer_spec.type_schema.instance_schema = input_type_schema
 
   return task_spec, importer_spec

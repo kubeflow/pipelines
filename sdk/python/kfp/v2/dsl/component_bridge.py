@@ -87,9 +87,8 @@ def _create_container_op_from_component_and_arguments(
   for output in component_spec.outputs or []:
     if type_utils.is_artifact_type(output.type):
       pipeline_task_spec.outputs.artifacts[
-          output
-          .name].artifact_type.schema_title = type_utils.get_artifact_type(
-              output.type)
+          output.name].artifact_type.instance_schema = (
+              type_utils.get_artifact_type_schema(output.type))
     elif type_utils.is_parameter_type(output.type):
       pipeline_task_spec.outputs.parameters[
           output.name].type = type_utils.get_parameter_type(output.type)

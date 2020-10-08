@@ -36,7 +36,7 @@
         "artifacts": {
           "model_output": {
             "artifactType": {
-              "schemaTitle": "mlpipeline.Model"
+              "instanceSchema": "title: Model\ntype: object\nproperties:\n"
             }
           }
         }
@@ -72,7 +72,7 @@
         "artifacts": {
           "result": {
             "artifactType": {
-              "schemaTitle": "mlpipeline.Artifact"
+              "instanceSchema": "title: Artifact\ntype: object\nproperties:\n"
             }
           }
         }
@@ -106,7 +106,7 @@
             "runtimeParameter": "input_gcs"
           },
           "typeSchema": {
-            "schemaTitle": "mlpipeline.Artifact"
+            "instanceSchema": "title: Artifact\ntype: object\nproperties:\n"
           }
         }
       },
