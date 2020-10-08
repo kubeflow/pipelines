@@ -66,10 +66,8 @@ class Resource(object):
 class ResourceOp(BaseOp):
     """Represents an op which will be translated into a resource template.
 
-    Feature stage: Alpha. This feature might contain bugs and breaking changes
-    might occur in future releases without notice. See
-    [here](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md)
-    for definitions of feature stages.
+    Feature stage:
+    [Alpha](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#alpha).
 
     Args:
         k8s_resource: A k8s resource which will be submitted to the cluster

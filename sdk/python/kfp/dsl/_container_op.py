@@ -932,10 +932,8 @@ class InputArgumentPath:
 class ContainerOp(BaseOp):
     """Represents an op implemented by a container image.
 
-    Feature stage: Stable. This feature is well tested and won't be dropped.
-    No breaking changes will happen within the same major version. See
-    [here](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md)
-    for definitions of feature stages.
+    Feature stage:
+    [Stable](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#stable).
 
     Args:
         name: the name of the op. It does not have to be unique within a pipeline

@@ -13,11 +13,8 @@
 # limitations under the License.
 """Module for input/output types in Pipeline DSL.
 
-Feature stage: Beta. This feature is well tested and won't be dropped. If any
-incompatible changes occurs in subsequent beta or stable releases, migration
-instructions will be provided. See
-[here](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md)
-for definitions of feature stages.
+Feature stage:
+[Beta](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#beta).
 """
 from typing import Dict, Union
 import warnings

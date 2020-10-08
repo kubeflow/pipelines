@@ -906,10 +906,8 @@ class Compiler(object):
   def compile(self, pipeline_func, package_path, type_check=True, pipeline_conf: dsl.PipelineConf = None):
     """Compile the given pipeline function into workflow yaml.
 
-    Feature stage: Stable. This feature is well tested and won't be dropped.
-    No breaking changes will happen within the same major version. See
-    [here](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md)
-    for definitions of feature stages.
+    Feature stage:
+    [Stable](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#stable).
 
     Args:
       pipeline_func: Pipeline functions with @dsl.pipeline decorator.

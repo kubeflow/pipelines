@@ -63,12 +63,10 @@ def load_component(filename=None, url=None, text=None):
 
 
 def load_component_from_url(url: str, auth = None):
-    """Loads component from URL and creates a task factory function.0
+    """Loads component from URL and creates a task factory function.
 
-    Feature stage: Stable. This feature is well tested and won't be dropped.
-    No breaking changes will happen within the same major version. See
-    [here](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md)
-    for definitions of feature stages.
+    Feature stage:
+    [Stable](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#stable).
     
     Args:
         url: The URL of the component file data
@@ -89,12 +87,10 @@ def load_component_from_url(url: str, auth = None):
 
 
 def load_component_from_file(filename):
-    """Loads component from file and creates a task factory function.0
+    """Loads component from file and creates a task factory function.
 
-    Feature stage: Stable. This feature is well tested and won't be dropped.
-    No breaking changes will happen within the same major version. See
-    [here](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md)
-    for definitions of feature stages.
+    Feature stage:
+    [Stable](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#stable).
     
     Args:
         filename: Path of local file containing the component definition.

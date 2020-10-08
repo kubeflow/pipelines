@@ -724,20 +724,18 @@ def func_to_component_file(func, output_component_file, base_image: str = None, 
 
 
 def func_to_container_op(
-    func,
-    output_component_file = None,
-    base_image: str = None,
-    extra_code = '',
+    func: Callable,
+    output_component_file: Optional[str] = None,
+    base_image: Optional[str] = None,
+    extra_code: Optional[str] = '',
     packages_to_install: List[str] = None,
     modules_to_capture: List[str] = None,
-    use_code_pickling = False):
+    use_code_pickling: bool = False):
     '''Converts a Python function to a component and returns a task
       (:class:`kfp.dsl.ContainerOp`) factory.
 
-    Feature stage: Stable. This feature is well tested and won't be dropped.
-    No breaking changes will happen within the same major version. See
-    [here](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md)
-    for definitions of feature stages.
+    Feature stage:
+    [Stable](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#stable).
 
     Function docstring is used as component description. Argument and return annotations are used as component input/output types.
 
@@ -788,10 +786,8 @@ def create_component_from_func(
     '''Converts a Python function to a component and returns a task factory
     (a function that accepts arguments and returns a task object).
 
-    Feature stage: Stable. This feature is well tested and won't be dropped.
-    No breaking changes will happen within the same major version. See
-    [here](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md)
-    for definitions of feature stages.
+    Feature stage:
+    [Stable](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#stable).
 
     Args:
         func: The python function to convert

@@ -72,10 +72,8 @@ def build_image_from_working_dir(
     builder: ContainerBuilder = None) -> str:
     '''Builds and pushes a new container image that captures the current python working directory.
 
-    Feature stage: Stable. This feature is well tested and won't be dropped.
-    No breaking changes will happen within the same major version. See
-    [here](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md)
-    for definitions of feature stages.
+    Feature stage:
+    [Stable](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#stable).
 
     This function recursively scans the working directory and captures the following files in the container image context:
 

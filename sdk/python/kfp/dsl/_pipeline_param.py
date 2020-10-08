@@ -136,10 +136,8 @@ class PipelineParam(object):
   pipeline parameter that shows up in ML Pipelines system UI. It can also represent an intermediate
   value passed between components.
 
-  Feature stage: Stable. This feature is well tested and won't be dropped.
-  No breaking changes will happen within the same major version. See
-  [here](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md)
-  for definitions of feature stages.
+  Feature stage:
+  [Stable](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#stable).
 
   Args:
     name: name of the pipeline parameter.

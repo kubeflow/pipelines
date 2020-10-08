@@ -30,10 +30,8 @@ _pipeline_decorator_handler = None
 def pipeline(name : str = None, description : str = None):
   """Decorator of pipeline functions.
 
-  Feature stage: Stable. This feature is well tested and won't be dropped.
-  No breaking changes will happen within the same major version. See
-  [here](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md)
-  for definitions of feature stages.
+  Feature stage:
+  [Stable](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#stable).
 
   Example
     ::
@@ -61,10 +59,8 @@ def pipeline(name : str = None, description : str = None):
 class PipelineConf():
   """PipelineConf contains pipeline level settings
 
-  Feature stage: Stable. This feature is well tested and won't be dropped.
-  No breaking changes will happen within the same major version. See
-  [here](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md)
-  for definitions of feature stages.
+  Feature stage:
+  [Stable](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#stable).
 
   """
   def __init__(self):

@@ -39,10 +39,8 @@ class PipelineVolume(V1Volume):
     function's filesystem. It may then be passed between ContainerOps,
     exposing dependencies.
 
-    Feature stage: Alpha. This feature might contain bugs and breaking changes
-    might occur in future releases without notice. See
-    [here](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md)
-    for definitions of feature stages.
+    Feature stage:
+    [Alpha](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#alpha).
 
     Args:
         pvc: The name of an existing PVC

@@ -31,10 +31,8 @@ from .experiment import experiment
 def cli(ctx, endpoint, iap_client_id, namespace, other_client_id, other_client_secret, output):
     """kfp is the command line interface to KFP service.
 
-    Feature stage: Alpha. This feature might contain bugs and breaking changes
-    might occur in future releases without notice. See
-    [here](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md)
-    for definitions of feature stages.
+    Feature stage:
+    [Alpha](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#alpha)
 
     """
     if ctx.invoked_subcommand == 'diagnose_me':
