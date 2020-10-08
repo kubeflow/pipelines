@@ -79,6 +79,10 @@ setup(
         'kfp.dsl',
         'kfp.dsl.extensions',
         'kfp.notebook',
+        'kfp.v2',
+        'kfp.v2.compiler',
+        'kfp.v2.dsl',
+        'kfp.v2.proto',
     ],
     classifiers=[
         'Intended Audience :: Developers',
