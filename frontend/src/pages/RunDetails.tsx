@@ -677,11 +677,9 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         !jsonWorkflow.status.nodes &&
         jsonWorkflow.status.compressedNodes
       ) {
-        console.log('Will decodeCompressedNodes');
         jsonWorkflow.status.nodes = await decodeCompressedNodes(
           jsonWorkflow.status.compressedNodes,
         );
-        console.log('Ok decodeCompressedNodes', JSON.stringify(jsonWorkflow.status.nodes));
         delete jsonWorkflow.status.compressedNodes;
       }
       const workflow = jsonWorkflow as Workflow;

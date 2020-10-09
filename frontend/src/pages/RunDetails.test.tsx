@@ -666,19 +666,11 @@ describe('RunDetails', () => {
     decodeCompressedNodesSpy.mockImplementation(() => Promise.resolve({ node1: { id: 'node1' } }));
 
     const { getByTestId } = render(<RunDetails {...generateProps()} />);
+
     await getRunSpy;
     await decodeCompressedNodesSpy;
 
-    // Here we need to call flushPromises multiple times since it frees up only queued promised.
-    // The first flush will free up the await on advance Apis.runServiceApi.getRun but not the decodeCompressedNodes since
-    // it's not queued yet
-    console.log('Will flush');
     await TestUtils.flushPromises();
-    // The second flush will free up the await on getExperiment
-    await TestUtils.flushPromises();
-    // The third flush will free up the await on decodeCompressedNodes
-    await TestUtils.flushPromises();
-    console.log('Will check graph');
 
     expect(getByTestId('graph')).toMatchInlineSnapshot(`
       <pre
