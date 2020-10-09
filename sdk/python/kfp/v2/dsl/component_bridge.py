@@ -27,11 +27,22 @@ from kfp.v2.dsl import type_utils
 from kfp.v2.proto import pipeline_spec_pb2
 
 
-def _create_container_op_from_component_and_arguments(
+# TODO: cleanup unused code.
+def create_container_op_from_component_and_arguments(
     component_spec: structures.ComponentSpec,
     arguments: Mapping[str, Any],
     component_ref: structures.ComponentReference = None,
 ) -> dsl.ContainerOp:
+  """Instantiates ContainerOp object.
+
+  Args:
+    component_spec: The component spec object.
+    arguments: The dictionary of component arguments.
+    component_ref: The component reference. Optional.
+
+  Returns:
+    A ContainerOp instance.
+  """
 
   pipeline_task_spec = pipeline_spec_pb2.PipelineTaskSpec()
   pipeline_task_spec.task_info.name = component_spec.name
@@ -41,11 +52,7 @@ def _create_container_op_from_component_and_arguments(
   # Check types of the reference arguments and serialize PipelineParams
   arguments = arguments.copy()
   for input_name, argument_value in arguments.items():
-    if isinstance(argument_value, dsl.ContainerOp):
-      raise TypeError(
-          'ContainerOp object {} was passed to component as an input argument. '
-          'Pass a single output instead.'.format(input_name))
-    elif isinstance(argument_value, dsl.PipelineParam):
+    if isinstance(argument_value, dsl.PipelineParam):
       input_type = component_spec._inputs_dict[input_name].type
       reference_type = argument_value.param_type
       types.verify_type_compatibility(
@@ -79,6 +86,10 @@ def _create_container_op_from_component_and_arguments(
     elif isinstance(argument_value, float):
       pipeline_task_spec.inputs.parameters[
           input_name].runtime_value.constant_value.double_value = argument_value
+    elif isinstance(argument_value, dsl.ContainerOp):
+      raise TypeError(
+          'ContainerOp object {} was passed to component as an input argument. '
+          'Pass a single output instead.'.format(input_name))
     else:
       raise NotImplementedError(
           'Input argument supports only the following types: PipelineParam'
@@ -181,12 +192,6 @@ def _create_container_op_from_component_and_arguments(
     # (e.g. MLPipeline UI Metadata)
     if pythonic_output_name not in task.outputs and output_name in task.outputs:
       task.outputs[pythonic_output_name] = task.outputs[output_name]
-
-  if container_spec.env:
-    from kubernetes import client as k8s_client
-    for name, value in container_spec.env.items():
-      task.container.add_env_variable(
-          k8s_client.V1EnvVar(name=name, value=value))
 
   if component_spec.metadata:
     annotations = component_spec.metadata.annotations or {}

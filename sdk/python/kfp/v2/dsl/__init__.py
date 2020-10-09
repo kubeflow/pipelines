@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from kfp.dsl._pipeline_param import PipelineParam, match_serialized_pipelineparam
-from kfp.v2.dsl._pipeline import Pipeline, pipeline, get_pipeline_conf, PipelineConf
+from kfp.v2.dsl._pipeline import Pipeline, pipeline
 from kfp.dsl._container_op import ContainerOp, InputArgumentPath, UserContainer, Sidecar
 from kfp.dsl._resource_op import ResourceOp
 from kfp.dsl._volume_op import (
