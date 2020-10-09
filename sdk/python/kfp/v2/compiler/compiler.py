@@ -102,24 +102,6 @@ class Compiler(object):
           raise NotImplementedError(
               'Unexpected parameter type with: "{}".'.format(str(arg.value)))
 
-    def _get_input_artifact_type_schema(
-        input_name: str,
-        inputs: List[structures.InputSpec],
-    ) -> str:
-      """Find the input artifact type by input name.
-
-      Args:
-        input_name: The name of the component input.
-        inputs: The list of InputSpec
-
-      Returns:
-        The input type schema if found in inputs, or '' if not found.
-      """
-      for component_input in inputs:
-        if component_input.name == input_name:
-          return type_utils.get_artifact_type_schema(component_input.type)
-      return ''
-
     deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
     importer_tasks = []
 
@@ -133,7 +115,7 @@ class Compiler(object):
       # Check if need to insert importer node
       for input_name in task.inputs.artifacts:
         if not task.inputs.artifacts[input_name].producer_task:
-          artifact_type = _get_input_artifact_type_schema(
+          artifact_type = type_utils.get_input_artifact_type_schema(
               input_name, component_spec.inputs)
 
           importer_task, importer_spec = importer_node.build_importer_spec(

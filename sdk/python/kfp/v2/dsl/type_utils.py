@@ -13,7 +13,8 @@
 # limitations under the License.
 """Utilities for component I/O type mapping."""
 
-from typing import List
+from typing import List, Optional
+from kfp.components import structures
 from kfp.v2.proto import pipeline_spec_pb2
 
 # ComponentSpec I/O types to (IR) PipelineTaskSpec I/O types mapping.
@@ -71,7 +72,7 @@ def is_parameter_type(type_name: str) -> bool:
   return type_name.lower() in _PARAMETER_TYPES_MAPPING
 
 
-def get_artifact_type_schema(type_name: str) -> str:
+def get_artifact_type_schema(type_name: str) -> Optional[str]:
   """Get the IR I/O artifact type for the given ComponentSpec I/O type.
 
   Args:
@@ -82,23 +83,22 @@ def get_artifact_type_schema(type_name: str) -> str:
 
   Raises:
     AttributeError: if type_name os not a string type.
-    KeyError: if type_name doesn't match any predefined key.
   """
   return _ARTIFACT_TYPES_MAPPING.get(type_name.lower())
 
 
-def get_parameter_type(type_name: str) -> pipeline_spec_pb2.PrimitiveType:
+def get_parameter_type(
+    type_name: str) -> Optional[pipeline_spec_pb2.PrimitiveType]:
   """Get the IR I/O parameter type for the given ComponentSpec I/O type.
 
   Args:
     type_name: type name of the ComponentSpec I/O type.
 
   Returns:
-    The enum value of the mapped IR I/O primitive type.
+    The enum value of the mapped IR I/O primitive type, or None if not found.
 
   Raises:
     AttributeError: if type_name os not a string type.
-    KeyError: if type_name doesn't match any predefined key.
   """
   return _PARAMETER_TYPES_MAPPING.get(type_name.lower())
 
@@ -110,3 +110,22 @@ def all_types() -> List[str]:
     The list of type names.
   """
   return [*_ARTIFACT_TYPES_MAPPING, *_PARAMETER_TYPES_MAPPING]
+
+
+def get_input_artifact_type_schema(
+    input_name: str,
+    inputs: List[structures.InputSpec],
+) -> Optional[str]:
+  """Find the input artifact type by input name.
+
+  Args:
+    input_name: The name of the component input.
+    inputs: The list of InputSpec
+
+  Returns:
+    The input type schema if found in inputs, or None if not found.
+  """
+  for component_input in inputs:
+    if component_input.name == input_name:
+      return get_artifact_type_schema(component_input.type)
+  return None

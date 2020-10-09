@@ -16,10 +16,13 @@ import sys
 import unittest
 
 import compiler_tests
+import importer_node_tests
 
 if __name__ == '__main__':
   suite = unittest.TestSuite()
   suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(compiler_tests))
+  suite.addTests(
+      unittest.defaultTestLoader.loadTestsFromModule(importer_node_tests))
   runner = unittest.TextTestRunner()
   if not runner.run(suite).wasSuccessful():
     sys.exit(1)
