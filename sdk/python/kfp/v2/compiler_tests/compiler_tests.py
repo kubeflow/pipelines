@@ -47,3 +47,6 @@ class TestCompiler(unittest.TestCase):
 
   def test_two_step_pipeline_with_importer(self):
     self._test_compile_py_to_json('two_step_pipeline_with_importer')
+
+  def test_simple_pipeline_without_importer(self):
+    self._test_compile_py_to_json('simple_pipeline_without_importer')
