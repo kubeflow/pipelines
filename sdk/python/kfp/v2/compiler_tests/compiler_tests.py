@@ -21,12 +21,11 @@ import unittest
 import kfp
 
 
-class TestV2Compiler(unittest.TestCase):
-  """Unit tests for KFP DSL v2 compiler."""
+class TestCompiler(unittest.TestCase):
 
-  def _test_compilation_to_json(self, file_base_name):
-    test_data_dir = os.path.dirname(__file__)
-    py_file = os.path.join(test_data_dir, file_base_name + '.py')
+  def _test_compile_py_to_json(self, file_base_name):
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'test_data')
+    py_file = os.path.join(test_data_dir, '{}.py'.format(file_base_name))
     tmpdir = tempfile.mkdtemp()
     try:
       target_json = os.path.join(tmpdir, file_base_name + '-pipeline.json')
@@ -47,5 +46,4 @@ class TestV2Compiler(unittest.TestCase):
       shutil.rmtree(tmpdir)
 
   def test_two_step_pipeline_with_importer(self):
-    """Test two steps linear pipeline with importer node."""
-    self._test_compilation_to_json('two_step_pipeline_with_importer')
+    self._test_compile_py_to_json('two_step_pipeline_with_importer')
