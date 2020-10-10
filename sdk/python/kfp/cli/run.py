@@ -29,7 +29,7 @@ def run():
 
 @run.command()
 @click.option('-e', '--experiment-id', help='Parent experiment ID of listed runs.')
-@click.option('--max-size', default=100, help='Max size of the listed runs.')
+@click.option('-m', '--max-size', default=100, help='Max size of the listed runs.')
 @click.pass_context
 def list(ctx, experiment_id, max_size):
     """list recent KFP runs"""

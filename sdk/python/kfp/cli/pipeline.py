@@ -86,6 +86,7 @@ def upload_version(ctx, package_file, pipeline_version, pipeline_id=None, pipeli
 
 @pipeline.command()
 @click.option(
+    "-m",
     "--max-size",
     default=100,
     help="Max size of the listed pipelines."
@@ -109,6 +110,7 @@ def list(ctx, max_size):
 @pipeline.command()
 @click.argument("pipeline-id")
 @click.option(
+    "-m",
     "--max-size",
     default=10,
     help="Max size of the listed pipelines."
