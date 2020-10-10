@@ -12,6 +12,7 @@ def experiment():
 
 @experiment.command()
 @click.option(
+    '-d',
     '--description',
     help="Description of the experiment."
 )
@@ -28,6 +29,7 @@ def create(ctx, description, name):
 
 @experiment.command()
 @click.option(
+    '-m',
     '--max-size',
     default=100,
     help="Max size of the listed experiments."
