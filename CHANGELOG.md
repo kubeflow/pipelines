@@ -1,5 +1,20 @@
 # Changelog
 
+### [1.0.3-rc.1](https://github.com/kubeflow/pipelines/compare/1.0.1...1.0.3-rc.1) (2020-10-10)
+
+
+### Features
+
+* **sdk:** Added optional argument to specify description for pipeline upload ([\#4577](https://github.com/kubeflow/pipelines/issues/4577)) ([4db53a9](https://github.com/kubeflow/pipelines/commit/4db53a9007f378a191ca5f294d2ce30f2ee9e2e6))
+* **sdk:** Adds missing short options to the cli ([\#4604](https://github.com/kubeflow/pipelines/issues/4604)) ([95f03d6](https://github.com/kubeflow/pipelines/commit/95f03d6be4bac749fcee6d8820e94cc217c152cd))
+
+
+### Bug Fixes
+
+* **backend:** Cache Deployer - Fixed grep call ([\#4568](https://github.com/kubeflow/pipelines/issues/4568)) ([f4cf298](https://github.com/kubeflow/pipelines/commit/f4cf2980db2341a74788b3c2ba51bcd873daf30d))
+* **cache:** Cache deployer - Using the same kubectl version as the server ([\#4525](https://github.com/kubeflow/pipelines/issues/4525)) ([3979519](https://github.com/kubeflow/pipelines/commit/397951962d84086ed91015beed149edd08bc7660))
+* **sdk:** Allow non-pythonic names for graph components' task's outputs. Fixes [\#4514](https://github.com/kubeflow/pipelines/issues/4514). ([\#4515](https://github.com/kubeflow/pipelines/issues/4515)) ([fa4b5d2](https://github.com/kubeflow/pipelines/commit/fa4b5d2cad77f6e58764d423cc2db618085a3be5))
+
 ### [1.0.1](https://github.com/kubeflow/pipelines/compare/1.0.0...1.0.1) (2020-09-14)
 
 
