@@ -1,0 +1,32 @@
+name: Azure ML Register Model 
+description: A Kubeflow pipeline component register model with Azure ML.
+inputs:
+- {name: base_path, type: String}
+- {name: model_file, type: String}
+- {name: model_name, type: String}
+- {name: tenant_id, type: String}
+- {name: service_principal_id, type: String}
+- {name: service_principal_password, type: String}
+- {name: subscription_id, type: String}
+- {name: resource_group, type: String}
+- {name: workspace, type: String}
+- {name: run_id, type: String}
+outputs:
+    - {name: output_model_path, type: String, description: 'Name of registered model'}
+implementation:
+  container:
+    image: ''
+    command: [
+      "python", "/scripts/register.py",
+      '--base_path', {inputValue: base_path},
+      '--model', {inputValue: model_file},
+      '--model_name', {inputValue: model_name},
+      '--tenant_id', {inputValue: tenant_id},
+      '--service_principal_id', {inputValue: service_principal_id},
+      '--service_principal_password', {inputValue: service_principal_password},
+      '--subscription_id', {inputValue: subscription_id},
+      '--resource_group', {inputValue: resource_group},
+      '--workspace', {inputValue: workspace},
+      '--run_id', {inputValue: run_id},
+      '--output_model_path',{outputPath: output_model_path} 
+    ]
