@@ -29,8 +29,10 @@ from ._k8s_helper import convert_k8s_obj_to_json, sanitize_k8s_name
 from ._op_to_template import _op_to_template
 from ._default_transformers import add_pod_env
 
+from ..components import _components
 from ..components.structures import InputSpec
 from ..components._yaml_utils import dump_yaml
+from ..dsl._component_bridge import _create_container_op_from_component_and_arguments
 from ..dsl._metadata import _extract_pipeline_metadata
 from ..dsl._ops_group import OpsGroup
 
@@ -812,7 +814,8 @@ class Compiler(object):
       args_list.append(dsl.PipelineParam(sanitize_k8s_name(arg_name, True), param_type=arg_type))
 
     with dsl.Pipeline(pipeline_name) as dsl_pipeline:
-      pipeline_func(*args_list)
+      with ConvertComponentsToContainerOps():
+        pipeline_func(*args_list)
 
     pipeline_conf = pipeline_conf or dsl_pipeline.conf # Configuration passed to the compiler is overriding. Unfortunately, it's not trivial to detect whether the dsl_pipeline.conf was ever modified.
 
@@ -1022,3 +1025,19 @@ Error: {}'''.format(result.stderr.decode('utf-8'))
       )
     return True
   return False
+
+
+class ConvertComponentsToContainerOps:
+  """Compilation context that enables auto-conversion of components instances to ContainerOps.
+  
+  KFP DSL builds pipelines from ContainerOps.
+  Since the component library is SDK and compiler agnostic, instances of components are not ContainerOps by default.
+  However the component library has a hook that allows to install a custom task constructor which enables auto-conversion to ContainerOp.
+  This feature should only be enabled during the pipeline compilation.
+  """
+  def __enter__(self):
+    self._old_container_task_constructor = _components._container_task_constructor
+    _components._container_task_constructor = _create_container_op_from_component_and_arguments
+
+  def __exit__(self, *args):
+    _components._container_task_constructor = self._old_container_task_constructor
