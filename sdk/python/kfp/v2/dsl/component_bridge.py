@@ -71,8 +71,16 @@ def create_container_op_from_component_and_arguments(
         pipeline_task_spec.inputs.artifacts[input_name].output_artifact_key = (
             argument_value.name)
       elif type_utils.is_parameter_type(input_type):
-        pipeline_task_spec.inputs.parameters[
-            input_name].runtime_value.runtime_parameter = argument_value.name
+        if argument_value.op_name:
+          pipeline_task_spec.inputs.parameters[
+              input_name].task_output_parameter.producer_task = (
+                  argument_value.op_name)
+          pipeline_task_spec.inputs.parameters[
+              input_name].task_output_parameter.output_parameter_key = (
+                  argument_value.name)
+        else:
+          pipeline_task_spec.inputs.parameters[
+              input_name].runtime_value.runtime_parameter = argument_value.name
       else:
         raise NotImplementedError(
             'Unsupported input type: "{}". The type must be one of the following: {}.'

@@ -50,8 +50,9 @@
       "inputs": {
         "parameters": {
           "model_cfg": {
-            "runtimeValue": {
-              "runtimeParameter": "model_config"
+            "taskOutputParameter": {
+              "producerTask": "Trainer",
+              "outputParameterKey": "model_config"
             }
           }
         },
