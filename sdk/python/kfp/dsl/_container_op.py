@@ -1028,7 +1028,7 @@ class ContainerOp(BaseOp):
                 category=DeprecationWarning,
             )
 
-        self.attrs_with_pipelineparams = BaseOp.attrs_with_pipelineparams + ['_container', 'artifact_arguments'] #Copying the BaseOp class variable!
+        self.attrs_with_pipelineparams = BaseOp.attrs_with_pipelineparams + ['_container', 'artifact_arguments', '_parameter_arguments'] #Copying the BaseOp class variable!
 
         input_artifact_paths = {}
         artifact_arguments = {}
@@ -1108,6 +1108,7 @@ class ContainerOp(BaseOp):
             warnings.warn('The output_artifact_paths parameter is deprecated since SDK v0.1.32. Use the file_outputs parameter instead. file_outputs now supports outputting big data.', DeprecationWarning)
 
         self._metadata = None
+        self._parameter_arguments = None
 
         self.execution_options = ExecutionOptionsSpec(
             caching_strategy=CachingStrategySpec(),
