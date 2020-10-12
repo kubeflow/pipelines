@@ -20,7 +20,7 @@ import json
 import click
 import shutil
 
-from .output import print_output
+from .output import print_output, OutputFormat
 
 @click.group()
 def run():
@@ -39,7 +39,10 @@ def list(ctx, experiment_id, max_size):
     if response and response.runs:
         _print_runs(response.runs, output_format)
     else:
-        print('No runs found.')
+        if output_format == OutputFormat.json.name:
+            _print_runs([], output_format)
+        else:
+            print('No runs found.')
 
 @run.command()
 @click.option('-e', '--experiment-name', required=True, help='Experiment name of the run.')
@@ -65,7 +68,6 @@ def submit(ctx, experiment_name, run_name, package_file, pipeline_id, watch, ver
     arg_dict = dict(arg.split('=') for arg in args)
     experiment = client.create_experiment(experiment_name)
     run = client.run_pipeline(experiment.id, run_name, package_file, arg_dict, pipeline_id, version_id=version)
-    print('Run {} is submitted'.format(run.id))
     _display_run(client, namespace, run.id, watch, output_format)
 
 @run.command()
