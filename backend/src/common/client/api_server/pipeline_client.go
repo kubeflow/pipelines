@@ -36,7 +36,7 @@ func (c *PipelineClient) UpdateDefaultVersion(parameters *params.UpdatePipelineD
 	defer cancel()
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.PipelineService.UpdatePipelineDefaultVersion(parameters, PassThroughAuth)
+	_, err := c.apiClient.PipelineService.UpdatePipelineDefaultVersion(parameters, PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.GetPipelineDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
@@ -49,7 +49,7 @@ func (c *PipelineClient) UpdateDefaultVersion(parameters *params.UpdatePipelineD
 			fmt.Sprintf("Failed to update pipeline '%v'", parameters.PipelineID))
 	}
 
-	return response.Payload, nil
+	return nil
 }
 
 func NewPipelineClient(clientConfig clientcmd.ClientConfig, debug bool) (
