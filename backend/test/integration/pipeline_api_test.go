@@ -89,6 +89,12 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Nil(t, err)
 	assert.Equal(t, "zip-arguments-parameters", argumentUploadPipeline.Name)
 
+	/* ---------- Update pipeline default version ---------- */
+	time.Sleep(1 * time.Second)
+	s.pipelineClient.UpdateDefaultVersion()
+	// HERE WE GO!!!!
+	// HERE HERE HERE HER
+
 	/* ---------- Import pipeline tarball by URL ---------- */
 	time.Sleep(1 * time.Second)
 	argumentUrlPipeline, err := s.pipelineClient.Create(&params.CreatePipelineParams{
