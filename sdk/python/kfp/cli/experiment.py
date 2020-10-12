@@ -77,7 +77,7 @@ def delete(ctx, experiment_id):
     client = ctx.obj["client"]
 
     client.experiments.delete_experiment(id=experiment_id)
-    print("{} is deleted.".format(experiment_id))
+    click.secho("{} is deleted.".format(experiment_id), fg='green')
 
 
 def _display_experiments(experiments, output_format):

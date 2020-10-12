@@ -151,7 +151,7 @@ def delete(ctx, pipeline_id):
     client = ctx.obj["client"]
 
     client.delete_pipeline(pipeline_id)
-    print("{} is deleted".format(pipeline_id))
+    click.secho("{} is deleted".format(pipeline_id), fg='green')
 
 
 def _print_pipelines(pipelines, output_format):
