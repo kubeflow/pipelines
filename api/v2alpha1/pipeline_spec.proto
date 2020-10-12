@@ -340,7 +340,7 @@ message RuntimeArtifact {
 
 // Message that represents a list of artifacts.
 message ArtifactList {
-  // A list of parameters.
+  // A list of artifacts.
   repeated RuntimeArtifact artifacts = 1;
 }
 
