@@ -363,7 +363,7 @@ export function buildQuery(queriesMap: { [key: string]: string | number | undefi
 export async function decodeCompressedNodes(compressedNodes: string): Promise<object> {
   return new Promise<object>(resolve => {
     const compressedBuffer = Buffer.from(compressedNodes, 'base64');
-    zlib.gunzip(compressedBuffer, { windowBits: 15 }, (error, result: Buffer) => {
+    zlib.gunzip(compressedBuffer, (error, result: Buffer) => {
       if (error) {
         logger.error('failed to gunzip data ', error);
         resolve(undefined);
