@@ -19,7 +19,7 @@ from kfp.v2.proto import pipeline_spec_pb2 as pb
 from google.protobuf import json_format
 
 
-class TestImporterNode(unittest.TestCase):
+class ImporterNodeTest(unittest.TestCase):
 
   def test_build_importer_spec(self):
 
@@ -75,3 +75,7 @@ class TestImporterNode(unittest.TestCase):
     self.maxDiff = None
     self.assertEqual(expected_task_spec, task_spec)
     self.assertEqual(expected_importer_spec, importer_spec)
+
+
+if __name__ == '__main__':
+  unittest.main()

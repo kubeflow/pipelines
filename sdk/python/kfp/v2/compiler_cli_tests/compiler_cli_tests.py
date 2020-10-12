@@ -21,7 +21,7 @@ import unittest
 import kfp
 
 
-class TestCompiler(unittest.TestCase):
+class CompilerCliTests(unittest.TestCase):
 
   def _test_compile_py_to_json(self, file_base_name):
     test_data_dir = os.path.join(os.path.dirname(__file__), 'test_data')
@@ -50,3 +50,7 @@ class TestCompiler(unittest.TestCase):
 
   def test_simple_pipeline_without_importer(self):
     self._test_compile_py_to_json('simple_pipeline_without_importer')
+
+
+if __name__ == '__main__':
+  unittest.main()

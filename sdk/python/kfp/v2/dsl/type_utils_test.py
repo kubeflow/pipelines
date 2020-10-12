@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
 import unittest
 from kfp.components import structures
 from kfp.v2.dsl import type_utils
 from kfp.v2.proto import pipeline_spec_pb2 as pb
 
 
-class TestTypeUtils(unittest.TestCase):
+class TypeUtilsTest(unittest.TestCase):
 
   _artifact_types = ['GCSPath', 'Model']
   _parameter_types = ['Integer', 'Double', 'String']
@@ -77,3 +78,7 @@ class TestTypeUtils(unittest.TestCase):
     self.assertEqual(
         'title: Artifact\ntype: object\nproperties:\n',
         type_utils.get_input_artifact_type_schema('input2', input_specs))
+
+
+if __name__ == '__main__':
+  unittest.main()
