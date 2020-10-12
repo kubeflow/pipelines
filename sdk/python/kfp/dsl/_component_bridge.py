@@ -69,6 +69,8 @@ def _create_container_op_from_component_and_arguments(
     component_ref_without_spec.spec = None
     task._component_ref = component_ref_without_spec
 
+    task._parameter_arguments = resolved_cmd.inputs_consumed_by_value
+
     # Previously, ContainerOp had strict requirements for the output names, so we had to
     # convert all the names before passing them to the ContainerOp constructor.
     # Outputs with non-pythonic names could not be accessed using their original names.
