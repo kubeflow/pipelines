@@ -51,6 +51,7 @@ def test_groundtruth_labeling_job(
         )
     )
 
+    workteam_arn = ground_truth_train_job_name = None
     # Verify the GroundTruthJob was created in SageMaker and is InProgress.
     # TODO: Add a bot to complete the labeling job and check for completion instead.
     try:
@@ -110,13 +111,35 @@ def test_groundtruth_labeling_job(
         )
         assert response["LabelingJobStatus"] in ["Stopping", "Stopped"]
     finally:
-        # Cleanup the SageMaker Resources
-        if ground_truth_train_job_name:
-            sagemaker_utils.stop_labeling_job(
-                sagemaker_client, ground_truth_train_job_name
-            )
-        if workteam_name:
-            sagemaker_utils.delete_workteam(sagemaker_client, workteam_name)
+        print(
+            f"Clean up workteam: {workteam_arn} and GT job: {ground_truth_train_job_name}"
+        )
+        if workteam_arn:
+            try:
+                if ground_truth_train_job_name:
+                    # Check if terminate failed, and stop the labeling job
+                    labeling_jobs = sagemaker_utils.list_labeling_jobs_for_workteam(
+                        sagemaker_client, workteam_arn
+                    )
+                    # Check for status before terminating because list can return stopping jobs
+                    if (
+                        len(labeling_jobs["LabelingJobSummaryList"]) > 0
+                        and sagemaker_utils.describe_labeling_job(
+                            sagemaker_client, ground_truth_train_job_name
+                        )["LabelingJobStatus"]
+                        == "InProgress"
+                    ):
+                        sagemaker_utils.stop_labeling_job(
+                            sagemaker_client, ground_truth_train_job_name
+                        )
+            finally:
+                # Cleanup the workteam
+                workteams = sagemaker_utils.list_workteams(sagemaker_client)[
+                    "Workteams"
+                ]
+                workteam_names = list(map((lambda x: x["WorkteamName"]), workteams))
+                if workteam_name in workteam_names:
+                    sagemaker_utils.delete_workteam(sagemaker_client, workteam_name)
 
     # Delete generated files
     utils.remove_dir(download_dir)
