@@ -61,4 +61,4 @@ def simple_pipeline(text='Hello world!',):
 
 
 if __name__ == '__main__':
-  compiler.Compiler().compile(my_pipeline, __file__ + '.json')
+  compiler.Compiler().compile(simple_pipeline, __file__ + '.json')
