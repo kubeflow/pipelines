@@ -664,9 +664,9 @@ describe('RunDetails', () => {
     await getRunSpy;
     await TestUtils.flushPromises();
 
-    jest.useRealTimers()
+    jest.useRealTimers();
     await new Promise(resolve => setTimeout(resolve, 500));
-    jest.useFakeTimers()
+    jest.useFakeTimers();
 
     expect(getByTestId('graph')).toMatchInlineSnapshot(`
       <pre
@@ -677,6 +677,24 @@ describe('RunDetails', () => {
         Edge node1 to node1-running-placeholder
       </pre>
     `);
+  });
+
+  it('shows a empty workflow graph if compressedNodes corrupt', async () => {
+    testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+      ...WORKFLOW_TEMPLATE,
+      status: { compressedNodes: 'Y29ycnVwdF9kYXRh' },
+    });
+
+    const { getByTestId } = render(<RunDetails {...generateProps()} />);
+
+    await getRunSpy;
+    await TestUtils.flushPromises();
+
+    jest.useRealTimers();
+    await new Promise(resolve => setTimeout(resolve, 500));
+    jest.useFakeTimers();
+
+    expect(tree).toMatchSnapshot('');
   });
 
   it('opens side panel when graph node is clicked', async () => {

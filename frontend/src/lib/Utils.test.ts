@@ -276,10 +276,11 @@ describe('Utils', () => {
       expect(decodeCompressedNodes(compressedNodes)).resolves.toEqual({ node1: { id: 'node1' } });
     });
 
-    it('return undefined if failed to decompress', async () => {
-      let compressedNodes =
-        'I4sIAAAAAAACE6tWystPSS1WslKIrlbKS8xNBbLAQoZKOgpKmSlArmFtbC0A+U7xAicAAAA=';
-      expect(decodeCompressedNodes(compressedNodes)).resolves.toEqual(undefined);
+    it('raise exception if failed to decompress data', async () => {
+      let compressedNodes = 'I4sIAAAAAAACE6tWystPSS1WslKIrlxNBbLAQoZKOgpKmSlArmFtbC0A+U7xAicAAAA=';
+      await expect(decodeCompressedNodes(compressedNodes)).rejects.toEqual(
+        'failed to gunzip data Error: incorrect header check',
+      );
     });
   });
 });
