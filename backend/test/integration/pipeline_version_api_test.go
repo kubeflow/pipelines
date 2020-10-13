@@ -291,24 +291,17 @@ func (s *PipelineVersionApiTest) TestPipelineVersionAPI() {
 	argumentYAMLPipelineVersion, err = s.pipelineUploadClient.UploadPipelineVersion("../resources/arguments-parameters.yaml", pipelineVersionParams)
 	assert.Nil(t, err)
 	assert.Equal(t, "arguments-parameters.yaml", argumentYAMLPipelineVersion.Name)
-
-	versions, _, _, err := s.pipelineClient.ListPipelineVersions(&params.ListPipelineVersionsParams{ResourceKeyID: &pipelineID})
+	sortBy := "created_at"
+	versions, _, _, err := s.pipelineClient.ListPipelineVersions(&params.ListPipelineVersionsParams{ResourceKeyID: &pipelineID, SortBy: &sortBy})
 	assert.Nil(t, err)
 	time.Sleep(1 * time.Second)
 	err = s.pipelineClient.UpdateDefaultVersion(&params.UpdatePipelineDefaultVersionParams{PipelineID: pipelineID,
 		VersionID: versions[0].ID})
 	assert.Nil(t, err)
-	filter := `
-		{
-			"op": 1,
-			"key": id,
-			"stringValue": "testId15242123"
-		}`
-	var pageSize int32 = 10
-	pipelineList, _, _, err := s.pipelineClient.List(&params.ListPipelinesParams{Filter: &filter, PageSize: &pageSize})
+
+	pipelineSelected, err := s.pipelineClient.Get(&params.GetPipelineParams{ID: pipelineID})
 	assert.Nil(t, err)
-	assert.Equal(t, len(pipelineList), 1)
-	assert.Equal(t, pipelineList[0].DefaultVersion.ID, versions[0].ID)
+	assert.Equal(t, pipelineSelected.DefaultVersion, versions[0].ID)
 }
 
 func TestPipelineVersionAPI(t *testing.T) {

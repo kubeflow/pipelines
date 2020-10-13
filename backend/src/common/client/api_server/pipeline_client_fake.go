@@ -8,6 +8,7 @@ import (
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/ghodss/yaml"
 	"github.com/go-openapi/strfmt"
+	params "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service"
 	pipelineparams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service"
 	pipelinemodel "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -127,4 +128,13 @@ func (c *PipelineClientFake) List(params *pipelineparams.ListPipelinesParams) (
 func (c *PipelineClientFake) ListAll(params *pipelineparams.ListPipelinesParams,
 	maxResultSize int) ([]*pipelinemodel.APIPipeline, error) {
 	return listAllForPipeline(c, params, maxResultSize)
+}
+
+func (c *PipelineClientFake) UpdateDefaultVersion(params *params.UpdatePipelineDefaultVersionParams) error {
+	switch params.PipelineID {
+	case PipelineForClientErrorTest:
+		return fmt.Errorf(ClientErrorString)
+	default:
+		return nil
+	}
 }
