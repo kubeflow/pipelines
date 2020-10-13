@@ -338,6 +338,12 @@ message RuntimeArtifact {
   map<string, Value> custom_properties = 5;
 }
 
+// Message that represents a list of artifacts.
+message ArtifactList {
+  // A list of artifacts.
+  repeated RuntimeArtifact artifacts = 1;
+}
+
 // The input of an executor, which includes all the data that
 // can be passed into the executor spec by a string based placeholder.
 //
@@ -364,11 +370,6 @@ message RuntimeArtifact {
 // output file and executor output metadata files are set by the container, the
 // output metadata file will have higher precedence to set output parameters.
 message ExecutorInput {
-  // Message that represents a list of artifacts.
-  message ArtifactList {
-    // A list of parameters.
-    repeated RuntimeArtifact artifacts = 1;
-  }
 
   // The runtime inputs data of the execution.
   message Inputs {
@@ -416,5 +417,5 @@ message ExecutorOutput {
   map<string, Value> parameters = 1;
 
   // The updated metadata for output artifact.
-  map<string, RuntimeArtifact> artifacts = 2;
+  map<string, ArtifactList> artifacts = 2;
 }
