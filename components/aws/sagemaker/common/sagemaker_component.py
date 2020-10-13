@@ -76,7 +76,7 @@ class SageMakerJobStatus(NamedTuple):
     error_message: Optional[str] = None
 
 
-class SageMakerComponent(object):
+class SageMakerComponent:
     """Base class for a KFP SageMaker component.
 
     An instance of a subclass of this component represents an instantiation of the

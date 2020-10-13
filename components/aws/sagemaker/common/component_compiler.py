@@ -12,7 +12,6 @@
 # limitations under the License.
 
 import difflib
-import yaml
 from tempfile import NamedTemporaryFile
 from typing import Callable, Dict, Type, Union, List, NamedTuple, cast
 from kfp.components.structures import (
@@ -44,7 +43,7 @@ class IOArgs(NamedTuple):
 
     inputs: List[InputSpec]
     outputs: List[OutputSpec]
-    args: List[Union[str, CommandlineArgumentType]]
+    args: List[CommandlineArgumentType]
 
 
 class SageMakerComponentCompiler(object):
