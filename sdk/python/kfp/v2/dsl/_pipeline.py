@@ -13,6 +13,7 @@
 # limitations under the License.
 """Pipeline class and decorator function definition."""
 
+import collections
 from typing import Any, Callable
 
 from kfp.components import _components
@@ -105,7 +106,7 @@ class Pipeline():
         Pipeline System UI.
     """
     self.name = name
-    self.ops = {}
+    self.ops = collections.OrderedDict()
     # Add the root group.
     self.groups = [_ops_group.OpsGroup('pipeline', name=name)]
     self.group_id = 0
