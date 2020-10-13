@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import { Api, GetArtifactTypesResponse } from '@kubeflow/frontend';
 import { render } from '@testing-library/react';
 import * as dagre from 'dagre';
@@ -96,7 +95,6 @@ describe('RunDetails', () => {
   let getTfxRunContextSpy: any;
   let getKfpRunContextSpy: any;
   let warnSpy: any;
-  let decodeCompressedNodesSpy: any;
 
   let testRun: ApiRunDetail = {};
   let tree: ShallowWrapper | ReactWrapper;
@@ -167,9 +165,6 @@ describe('RunDetails', () => {
     });
     // Hide expected warning messages
     warnSpy = jest.spyOn(Utils.logger, 'warn').mockImplementation();
-
-    // Mock decodeCompressedNodes to avoid dequeuing chained promises
-    decodeCompressedNodesSpy = jest.spyOn(Utils, 'decodeCompressedNodes').mockImplementation();
 
     getRunSpy.mockImplementation(() => Promise.resolve(testRun));
     getExperimentSpy.mockImplementation(() =>
@@ -663,14 +658,15 @@ describe('RunDetails', () => {
       ...WORKFLOW_TEMPLATE,
       status: { compressedNodes: 'H4sIAAAAAAACE6tWystPSTVUslKoVspMAVJQfm0tAEBEv1kaAAAA' },
     });
-    decodeCompressedNodesSpy.mockImplementation(() => Promise.resolve({ node1: { id: 'node1' } }));
 
     const { getByTestId } = render(<RunDetails {...generateProps()} />);
 
     await getRunSpy;
-    await decodeCompressedNodesSpy;
-
     await TestUtils.flushPromises();
+
+    jest.useRealTimers()
+    await new Promise(resolve => setTimeout(resolve, 500));
+    jest.useFakeTimers()
 
     expect(getByTestId('graph')).toMatchInlineSnapshot(`
       <pre
@@ -681,10 +677,6 @@ describe('RunDetails', () => {
         Edge node1 to node1-running-placeholder
       </pre>
     `);
-    expect(decodeCompressedNodesSpy).toHaveBeenCalledTimes(1);
-    expect(decodeCompressedNodesSpy).toHaveBeenLastCalledWith(
-      'H4sIAAAAAAACE6tWystPSTVUslKoVspMAVJQfm0tAEBEv1kaAAAA',
-    );
   });
 
   it('opens side panel when graph node is clicked', async () => {
