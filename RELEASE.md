@@ -227,7 +227,7 @@ fill in the description. Detailed steps:
        <pre>
        To deploy Kubeflow Pipelines in an existing cluster, follow the instruction in [here](https://www.kubeflow.org/docs/pipelines/standalone-deployment-gcp/) or via UI [here](https://console.cloud.google.com/ai-platform/pipelines)
 
-       Install python SDK (python 3.5 above) by running:
+       Install python SDK (python 3.6 above) by running:
        ```
        python3 -m pip install kfp kfp-server-api --upgrade
        ```
@@ -240,7 +240,7 @@ fill in the description. Detailed steps:
        <pre>
        To deploy Kubeflow Pipelines in an existing cluster, follow the instruction in [here](https://www.kubeflow.org/docs/pipelines/standalone-deployment-gcp/).
 
-       Install python SDK (python 3.5 above) by running:
+       Install python SDK (python 3.6 above) by running:
        ```
        python3 -m pip install kfp kfp-server-api --pre --upgrade
        ```
