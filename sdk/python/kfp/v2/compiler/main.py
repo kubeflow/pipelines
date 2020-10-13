@@ -14,7 +14,7 @@
 
 
 import argparse
-import kfp.v2.dsl as dsl
+import kfp.dsl as dsl
 import kfp.v2.compiler as compiler
 import os
 import shutil

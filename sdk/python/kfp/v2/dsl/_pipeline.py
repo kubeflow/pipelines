@@ -22,46 +22,6 @@ from kfp.dsl import _container_op
 from kfp.dsl import _ops_group
 from kfp.v2.dsl import component_bridge
 
-# This handler is called whenever the @pipeline decorator is applied.
-# It can be used by command-line DSL compiler to inject code that runs for every
-# pipeline definition.
-_pipeline_decorator_handler = None
-
-
-def pipeline(name: str = None, description: str = None) -> Callable[..., Any]:
-  """Decorator of pipeline functions.
-
-  Example
-    ::
-
-      @pipeline(
-        name='my awesome pipeline',
-        description='Is it really awesome?'
-      )
-      def my_pipeline(a: PipelineParam, b: PipelineParam):
-        ...
-
-  Args:
-    name: The name of the pipeline. Optional.
-    description: The description of the pipeline. Optional
-
-  Returns:
-    The decorated pipeline function.
-  """
-
-  def _pipeline(func):
-    if name:
-      func._component_human_name = name
-    if description:
-      func._component_description = description
-
-    if _pipeline_decorator_handler:
-      return _pipeline_decorator_handler(func) or func
-    else:
-      return func
-
-  return _pipeline
-
 
 # TODO: Pipeline is in fact an opsgroup, refactor the code.
 class Pipeline():

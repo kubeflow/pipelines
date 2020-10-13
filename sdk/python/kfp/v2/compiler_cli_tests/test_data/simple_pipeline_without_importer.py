@@ -15,7 +15,7 @@
 import pathlib
 
 import kfp
-from kfp.v2 import dsl
+from kfp import dsl
 import kfp.v2.compiler as compiler
 
 component_op_1 = kfp.components.load_component_from_text("""
