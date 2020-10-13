@@ -122,8 +122,11 @@ def create_container_op_from_component_and_arguments(
   def _input_parameter_placeholder(input_key: str) -> str:
     return "{{{{$.inputs.parameters['{}']}}}}".format(input_key)
 
-  def _output_artifact_placeholder(input_key: str) -> str:
-    return "{{{{$.outputs.artifacts['{}'].uri}}}}".format(input_key)
+  def _output_artifact_placeholder(output_key: str) -> str:
+    return "{{{{$.outputs.artifacts['{}'].uri}}}}".format(output_key)
+
+  def _output_parameter_placeholder(output_key: str) -> str:
+    return "{{{{$.outputs.parameters['{}'].output_file}}}}".format(output_key)
 
   # IR placeholders are decided merely based on the declared type of the input.
   # It doesn't matter wether it's InputValuePlaceholder or InputPathPlaceholder
@@ -140,6 +143,7 @@ def create_container_op_from_component_and_arguments(
       arguments=placeholder_arguments,
       input_path_generator=_input_artifact_placeholder,
       output_path_generator=_output_artifact_placeholder,
+      output_value_generator=_output_parameter_placeholder,
   )
 
   resolved_cmd = _resolve_command_line_and_paths(

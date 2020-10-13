@@ -97,7 +97,7 @@
             "--model",
             "{{$.outputs.artifacts['model_output'].uri}}",
             "--model-config",
-            "{{$.outputs.artifacts['model_config'].uri}}"
+            "{{$.outputs.parameters['model_config'].output_file}}"
           ]
         }
       },
