@@ -84,6 +84,20 @@ func (s *PipelineVersionApiTest) TestPipelineVersionAPI() {
 	assert.Nil(t, err)
 	assert.Equal(t, "arguments-parameters.yaml", argumentYAMLPipelineVersion.Name)
 
+	/* ---------- Update pipeline default version ---------- */
+	time.Sleep(1 * time.Second)
+	sortBy := "created_at"
+	versions, _, _, err := s.pipelineClient.ListPipelineVersions(&params.ListPipelineVersionsParams{ResourceKeyID: &pipelineId, SortBy: &sortBy})
+	assert.Nil(t, err)
+	time.Sleep(1 * time.Second)
+	err = s.pipelineClient.UpdateDefaultVersion(&params.UpdatePipelineDefaultVersionParams{PipelineID: pipelineId,
+		VersionID: versions[0].ID})
+	assert.Nil(t, err)
+
+	pipelineSelected, err := s.pipelineClient.Get(&params.GetPipelineParams{ID: pipelineId})
+	assert.Nil(t, err)
+	assert.Equal(t, pipelineSelected.DefaultVersion, versions[0].ID)
+
 	/* ---------- Upload the same pipeline version again. Should fail due to name uniqueness ---------- */
 	_, err = s.pipelineUploadClient.UploadPipelineVersion("../resources/arguments-parameters.yaml", uploadParams.NewUploadPipelineVersionParams())
 	assert.NotNil(t, err)
@@ -278,41 +292,6 @@ func (s *PipelineVersionApiTest) TestPipelineVersionAPI() {
 	var expectedWorkflow v1alpha1.Workflow
 	err = yaml.Unmarshal(expected, &expectedWorkflow)
 	assert.Equal(t, expectedWorkflow, *template)
-
-	/* ---------- Update pipeline default version ---------- */
-	time.Sleep(1 * time.Second)
-	pipelineVersionParams = uploadParams.NewUploadPipelineVersionParams()
-	pipelineVersionParams.SetPipelineid(&pipelineId)
-	argumentYAMLPipelineVersion, err = s.pipelineUploadClient.UploadPipelineVersion("../resources/arguments-parameters.yaml", pipelineVersionParams)
-	assert.Nil(t, err)
-	assert.Equal(t, "arguments-parameters.yaml", argumentYAMLPipelineVersion.Name)
-
-	time.Sleep(1 * time.Second)
-	pipelineVersionParams := uploadParams.NewUploadPipelineVersionParams()
-	pipelineVersionParams.SetPipelineid(&pipelineId)
-	argumentYAMLPipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion("../resources/arguments-parameters.yaml", pipelineVersionParams)
-	assert.Nil(t, err)
-	assert.Equal(t, "arguments-parameters.yaml", argumentYAMLPipelineVersion.Name)
-
-	time.Sleep(1 * time.Second)
-	pipelineVersionParams := uploadParams.NewUploadPipelineVersionParams()
-	pipelineVersionParams.SetPipelineid(&pipelineId)
-	argumentYAMLPipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion("../resources/arguments-parameters.yaml", pipelineVersionParams)
-	assert.Nil(t, err)
-	assert.Equal(t, "arguments-parameters.yaml", argumentYAMLPipelineVersion.Name)
-
-	time.Sleep(1 * time.Second)
-	sortBy := "created_at"
-	versions, _, _, err := s.pipelineClient.ListPipelineVersions(&params.ListPipelineVersionsParams{ResourceKeyID: &pipelineId, SortBy: &sortBy})
-	assert.Nil(t, err)
-	time.Sleep(1 * time.Second)
-	err = s.pipelineClient.UpdateDefaultVersion(&params.UpdatePipelineDefaultVersionParams{PipelineID: pipelineId,
-		VersionID: versions[0].ID})
-	assert.Nil(t, err)
-
-	pipelineSelected, err := s.pipelineClient.Get(&params.GetPipelineParams{ID: pipelineId})
-	assert.Nil(t, err)
-	assert.Equal(t, pipelineSelected.DefaultVersion, versions[0].ID)
 
 }
 
