@@ -116,6 +116,8 @@ def create_container_op_from_component_and_arguments(
           'Unsupported output type: "{}". The type must be one of the following: {}.'
           .format(output.type, type_utils.all_types()))
 
+  outputs_dict = {output_spec.name: output_spec for output_spec in component_spec.outputs or []}
+
   def _input_artifact_placeholder(input_key: str) -> str:
     return "{{{{$.inputs.artifacts['{}'].uri}}}}".format(input_key)
 
@@ -127,6 +129,12 @@ def create_container_op_from_component_and_arguments(
 
   def _output_parameter_placeholder(output_key: str) -> str:
     return "{{{{$.outputs.parameters['{}'].output_file}}}}".format(output_key)
+
+  def _resolve_output_path_placeholder(output_key: str) -> str:
+    if type_utils.is_parameter_type(outputs_dict[output_key].type):
+      return _output_parameter_placeholder(output_key)
+    else:
+      return _output_artifact_placeholder(output_key)
 
   # IR placeholders are decided merely based on the declared type of the input.
   # It doesn't matter wether it's InputValuePlaceholder or InputPathPlaceholder
@@ -142,8 +150,7 @@ def create_container_op_from_component_and_arguments(
       component_spec=component_spec,
       arguments=placeholder_arguments,
       input_path_generator=_input_artifact_placeholder,
-      output_path_generator=_output_artifact_placeholder,
-      output_value_generator=_output_parameter_placeholder,
+      output_path_generator=_resolve_output_path_placeholder,
   )
 
   resolved_cmd = _resolve_command_line_and_paths(
