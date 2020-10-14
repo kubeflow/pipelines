@@ -287,10 +287,12 @@ func (s *PipelineVersionApiTest) TestPipelineVersionAPI() {
 	argumentYAMLPipelineVersion, err = s.pipelineUploadClient.UploadPipelineVersion("../resources/arguments-parameters.yaml", pipelineVersionParams)
 	assert.Nil(t, err)
 	assert.Equal(t, "arguments-parameters.yaml", argumentYAMLPipelineVersion.Name)
-
+	time.Sleep(1 * time.Second)
 	argumentYAMLPipelineVersion, err = s.pipelineUploadClient.UploadPipelineVersion("../resources/arguments-parameters.yaml", pipelineVersionParams)
 	assert.Nil(t, err)
 	assert.Equal(t, "arguments-parameters.yaml", argumentYAMLPipelineVersion.Name)
+
+	time.Sleep(1 * time.Second)
 	sortBy := "created_at"
 	versions, _, _, err := s.pipelineClient.ListPipelineVersions(&params.ListPipelineVersionsParams{ResourceKeyID: &pipelineID, SortBy: &sortBy})
 	assert.Nil(t, err)
