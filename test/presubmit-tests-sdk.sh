@@ -21,6 +21,12 @@ python3 -m pip install mock  # TODO: Remove when added to requirements
 python3 -m pip install -r "$source_root/sdk/python/requirements.txt"
 python3 -m pip install --upgrade protobuf
 
+# Testing the component authoring library
+pushd "$(mktemp --directory)"
+cp "$source_root"/sdk/python/{components,components_tests} .
+python3 -m unittest discover --verbose --pattern '*test*.py'
+popd
+
 # Installing Argo CLI to lint all compiled workflows
 LOCAL_BIN="${HOME}/.local/bin"
 mkdir -p "$LOCAL_BIN"
