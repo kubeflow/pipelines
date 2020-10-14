@@ -313,7 +313,7 @@ func (s *PipelineVersionApiTest) TestPipelineVersionAPI() {
 	pipelineSelected, err := s.pipelineClient.Get(&params.GetPipelineParams{ID: pipelineId})
 	assert.Nil(t, err)
 	assert.Equal(t, pipelineSelected.DefaultVersion, versions[0].ID)
-	*/
+
 }
 
 func TestPipelineVersionAPI(t *testing.T) {
