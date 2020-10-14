@@ -294,7 +294,6 @@ func (s *PipelineVersionApiTest) TestPipelineVersionAPI() {
 	var expectedWorkflow v1alpha1.Workflow
 	err = yaml.Unmarshal(expected, &expectedWorkflow)
 	assert.Equal(t, expectedWorkflow, *template)
-
 }
 
 func TestPipelineVersionAPI(t *testing.T) {
