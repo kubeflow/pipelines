@@ -390,6 +390,7 @@ def _resolve_command_line_and_paths(
     arguments: Mapping[str, str],
     input_path_generator=_generate_input_file_name,
     output_path_generator=_generate_output_file_name,
+    output_value_generator=None,
     argument_serializer=serialize_value,
 ) -> _ResolvedCommandLineAndPaths:
     """Resolves the command line argument placeholders. Also produces the maps of the generated inpuit/output paths."""
@@ -399,6 +400,7 @@ def _resolve_command_line_and_paths(
         raise TypeError('Only container components have command line to resolve')
 
     inputs_dict = {input_spec.name: input_spec for input_spec in component_spec.inputs or []}
+    outputs_dict = {output_spec.name: output_spec for output_spec in component_spec.outputs or []}
     container_spec = component_spec.implementation.container
 
     output_paths = OrderedDict() #Preserving the order to make the kubernetes output names deterministic
@@ -454,6 +456,15 @@ def _resolve_command_line_and_paths(
                     raise ValueError('Conflicting output files specified for port {}: {} and {}'.format(output_name, output_paths[output_name], output_filename))
             else:
                 output_paths[output_name] = output_filename
+
+            # output_value_generator is only used by the v2 (experimental) compiler.
+            # TODO: maybe fork the file so that we can split the logic for v1 vs. v2.
+            if output_value_generator:
+                output_spec = outputs_dict[output_name]
+                # TODO: move the import to the top of the file (once fixed circular dependency).
+                from kfp.v2.dsl import type_utils
+                if type_utils.is_parameter_type(output_spec.type):
+                    return output_value_generator(output_name)
 
             return output_filename
 
