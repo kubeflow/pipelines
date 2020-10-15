@@ -10,8 +10,10 @@ import (
 	"testing"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 )
@@ -259,6 +261,48 @@ func TestListPipelineVersion_NoResourceKey(t *testing.T) {
 		PageSize:    20,
 	})
 	assert.Equal(t, "Invalid input error: ResourceKey must be set in the input", err.Error())
+}
+
+func TestCreatePipelineVersionDontUpdateDefault(t *testing.T) {
+	viper.Set(common.UpdatePipelineVersionByDefault, "false")
+	defer viper.Set(common.UpdatePipelineVersionByDefault, "false")
+	httpServer := getMockServer(t)
+	// Close the server when test finishes
+	defer httpServer.Close()
+
+	clientManager := resource.NewFakeClientManagerOrFatal(
+		util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+
+	pipelineServer := PipelineServer{
+		resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+	pipelineVersion, err := pipelineServer.CreatePipelineVersion(
+		context.Background(), &api.CreatePipelineVersionRequest{
+			Version: &api.PipelineVersion{
+				PackageUrl: &api.Url{
+					PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
+				Name: "argument-parameters",
+				ResourceReferences: []*api.ResourceReference{
+					&api.ResourceReference{
+						Key: &api.ResourceKey{
+							Id:   "pipeline",
+							Type: api.ResourceType_PIPELINE,
+						},
+						Relationship: api.Relationship_OWNER,
+					}}}})
+
+	assert.Nil(t, err)
+	assert.NotNil(t, pipelineVersion)
+	assert.Equal(t, "argument-parameters", pipelineVersion.Name)
+	newPipelineVersion, err := resourceManager.GetPipelineVersion(
+		pipelineVersion.Id)
+	assert.Nil(t, err)
+	assert.NotNil(t, newPipelineVersion)
+	var params []api.Parameter
+	err = json.Unmarshal([]byte(newPipelineVersion.Parameters), &params)
+	assert.Nil(t, err)
+	assert.Equal(t, []api.Parameter{
+		{Name: "param1", Value: "hello"}, {Name: "param2"}}, params)
 }
 
 func getMockServer(t *testing.T) *httptest.Server {
