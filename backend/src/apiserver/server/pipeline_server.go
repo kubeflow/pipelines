@@ -79,6 +79,11 @@ var (
 		Name: "pipeline_server_pipeline_count",
 		Help: "The current number of pipelines in Kubeflow Pipelines instance",
 	})
+
+	updatePipelineDefaultVersionRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "pipeline_server_update_default_version_requests",
+		Help: "The total number of UpdatePipelineDefaultVersion requests",
+	})
 )
 
 type PipelineServerOptions struct {
@@ -126,6 +131,19 @@ func (s *PipelineServer) CreatePipeline(ctx context.Context, request *api.Create
 	}
 
 	return ToApiPipeline(pipeline), nil
+}
+
+func (s *PipelineServer) UpdatePipelineDefaultVersion(ctx context.Context, request *api.UpdatePipelineDefaultVersionRequest) (*empty.Empty, error) {
+	if s.options.CollectMetrics {
+		updatePipelineDefaultVersionRequests.Inc()
+	}
+
+	err := s.resourceManager.UpdatePipelineDefaultVersion(request.PipelineId, request.VersionId)
+	if err != nil {
+		return nil, util.Wrap(err, "Update Pipeline Default Version failed.")
+	}
+
+	return &empty.Empty{}, nil
 }
 
 func (s *PipelineServer) GetPipeline(ctx context.Context, request *api.GetPipelineRequest) (*api.Pipeline, error) {

@@ -23,10 +23,33 @@ type PipelineInterface interface {
 	List(params *params.ListPipelinesParams) ([]*model.APIPipeline, int, string, error)
 	ListAll(params *params.ListPipelinesParams, maxResultSize int) (
 		[]*model.APIPipeline, error)
+	UpdateDefaultVersion(params *params.UpdatePipelineDefaultVersionParams) error
 }
 
 type PipelineClient struct {
 	apiClient *apiclient.Pipeline
+}
+
+func (c *PipelineClient) UpdateDefaultVersion(parameters *params.UpdatePipelineDefaultVersionParams) error {
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	defer cancel()
+	// Make service call
+	parameters.Context = ctx
+	_, err := c.apiClient.PipelineService.UpdatePipelineDefaultVersion(parameters, PassThroughAuth)
+	if err != nil {
+		if defaultError, ok := err.(*params.GetPipelineDefault); ok {
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
+		}
+
+		return util.NewUserError(err,
+			fmt.Sprintf("Failed to update pipeline. Params: '%v'", parameters),
+			fmt.Sprintf("Failed to update pipeline '%v'", parameters.PipelineID))
+	}
+
+	return nil
 }
 
 func NewPipelineClient(clientConfig clientcmd.ClientConfig, debug bool) (
