@@ -464,7 +464,7 @@ func TestUploadPipelineVersion_FileNameTooLong(t *testing.T) {
 
 func TestDefaultNotUpdatedPipelineVersion(t *testing.T) {
 	viper.Set(common.UpdatePipelineVersionByDefault, "false")
-	defer viper.Set(common.UpdatePipelineVersionByDefault, "false")
+	defer viper.Set(common.UpdatePipelineVersionByDefault, "true")
 
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
