@@ -97,7 +97,7 @@ func (s *PipelineVersionApiTest) TestPipelineVersionAPI() {
 	time.Sleep(1 * time.Second)
 	pipelineSelected, err := s.pipelineClient.Get(&params.GetPipelineParams{ID: pipelineId})
 	assert.Nil(t, err)
-	assert.Equal(t, pipelineSelected.DefaultVersion, versions[0].ID)
+	assert.Equal(t, pipelineSelected.DefaultVersion.ID, versions[0].ID)
 
 	/* ---------- Upload the same pipeline version again. Should fail due to name uniqueness ---------- */
 	time.Sleep(1 * time.Second)
