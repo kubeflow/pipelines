@@ -328,6 +328,35 @@ func (a *Client) ListPipelines(params *ListPipelinesParams, authInfo runtime.Cli
 
 }
 
+/*
+UpdatePipelineDefaultVersion updates the default pipeline version of a specific pipeline
+*/
+func (a *Client) UpdatePipelineDefaultVersion(params *UpdatePipelineDefaultVersionParams, authInfo runtime.ClientAuthInfoWriter) (*UpdatePipelineDefaultVersionOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewUpdatePipelineDefaultVersionParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "UpdatePipelineDefaultVersion",
+		Method:             "POST",
+		PathPattern:        "/apis/v1beta1/pipelines/{pipeline_id}/default_version/{version_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &UpdatePipelineDefaultVersionReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*UpdatePipelineDefaultVersionOK), nil
+
+}
+
 // SetTransport changes the transport on the client
 func (a *Client) SetTransport(transport runtime.ClientTransport) {
 	a.transport = transport
