@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import { Api, GetArtifactTypesResponse } from '@kubeflow/frontend';
 import { render } from '@testing-library/react';
 import * as dagre from 'dagre';
@@ -652,6 +651,50 @@ describe('RunDetails', () => {
         Edge node1 to node1-running-placeholder
       </pre>
     `);
+  });
+
+  it('shows a one-node compressed workflow graph', async () => {
+    testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+      ...WORKFLOW_TEMPLATE,
+      status: { compressedNodes: 'H4sIAAAAAAACE6tWystPSTVUslKoVspMAVJQfm0tAEBEv1kaAAAA' },
+    });
+
+    const { getByTestId } = render(<RunDetails {...generateProps()} />);
+
+    await getRunSpy;
+    await TestUtils.flushPromises();
+
+    jest.useRealTimers();
+    await new Promise(resolve => setTimeout(resolve, 500));
+    jest.useFakeTimers();
+
+    expect(getByTestId('graph')).toMatchInlineSnapshot(`
+      <pre
+        data-testid="graph"
+      >
+        Node node1
+        Node node1-running-placeholder
+        Edge node1 to node1-running-placeholder
+      </pre>
+    `);
+  });
+
+  it('shows a empty workflow graph if compressedNodes corrupt', async () => {
+    testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+      ...WORKFLOW_TEMPLATE,
+      status: { compressedNodes: 'Y29ycnVwdF9kYXRh' },
+    });
+
+    const { queryAllByTestId } = render(<RunDetails {...generateProps()} />);
+
+    await getRunSpy;
+    await TestUtils.flushPromises();
+
+    jest.useRealTimers();
+    await new Promise(resolve => setTimeout(resolve, 500));
+    jest.useFakeTimers();
+
+    expect(queryAllByTestId('graph')).toEqual([]);
   });
 
   it('opens side panel when graph node is clicked', async () => {
