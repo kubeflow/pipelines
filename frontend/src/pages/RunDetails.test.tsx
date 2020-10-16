@@ -685,7 +685,7 @@ describe('RunDetails', () => {
       status: { compressedNodes: 'Y29ycnVwdF9kYXRh' },
     });
 
-    const { getByTestId } = render(<RunDetails {...generateProps()} />);
+    const { queryAllByTestId } = render(<RunDetails {...generateProps()} />);
 
     await getRunSpy;
     await TestUtils.flushPromises();
@@ -694,7 +694,7 @@ describe('RunDetails', () => {
     await new Promise(resolve => setTimeout(resolve, 500));
     jest.useFakeTimers();
 
-    expect(tree).toMatchSnapshot('');
+    expect(queryAllByTestId('graph')).toEqual([]);
   });
 
   it('opens side panel when graph node is clicked', async () => {
