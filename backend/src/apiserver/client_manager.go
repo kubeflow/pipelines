@@ -49,8 +49,8 @@ const (
 	kfamServiceHost        = "PROFILES_KFAM_SERVICE_HOST"
 	kfamServicePort        = "PROFILES_KFAM_SERVICE_PORT"
 	mysqlExtraParams       = "DBConfig.ExtraParams"
-	archiveLogFileName     = "ARCHIVE_LOG_FILE_NAME"
-	archiveLogPathPrefix   = "ARCHIVE_LOG_PATH_PREFIX"
+	archiveLogFileName     = "ARCHIVE_CONFIG_LOG_FILE_NAME"
+	archiveLogPathPrefix   = "ARCHIVE_CONFIG_LOG_PATH_PREFIX"
 
 	visualizationServiceHost = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST"
 	visualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
@@ -379,10 +379,8 @@ func createMinioBucket(minioClient *minio.Client, bucketName, region string) {
 }
 
 func initLogArchive() (logArchive archive.LogArchiveInterface) {
-	logFileName := common.GetStringConfigWithDefault(
-		"ArchiveConfig.LogFileName", os.Getenv(archiveLogFileName))
-	logPathPrefix := common.GetStringConfigWithDefault(
-		"ArchiveConfig.LogPathPrefix", os.Getenv(archiveLogPathPrefix))
+	logFileName := common.GetStringConfigWithDefault(archiveLogFileName, "")
+	logPathPrefix := common.GetStringConfigWithDefault(archiveLogPathPrefix, "")
 
 	if logFileName != "" && logPathPrefix != "" {
 		logArchive = archive.NewLogArchive(logPathPrefix, logFileName)

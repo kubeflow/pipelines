@@ -52,6 +52,9 @@ type RunLogEntry struct {
 	Timestamp time.Time `json:"timestamp,omitempty"`
 }
 
+// Inspired on fluent-bit parsers
+// https://github.com/fluent/fluent-bit/blob/master/tests/runtime/data/kubernetes/parsers.conf
+// Apache License, Version 2.0, January 2004
 var k8sLogPrefixExp = regexp.MustCompile(`(?m)^(\d{4}-\d{2}-\d{2}T\S+)\s(.+)$`)
 var crioLogPrefixExp = regexp.MustCompile(`(?m)^(.+)\s(stdout|stderr)\s\w\s(.+)$`)
 
