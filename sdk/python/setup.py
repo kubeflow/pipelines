@@ -38,7 +38,7 @@ REQUIRES = [
     'Deprecated',
     'strip-hints',
     'docstring-parser>=0.7.3',
-    'colorama'
+    'colorama>=0.4.4'
 ]
 
 TESTS_REQUIRE = [
