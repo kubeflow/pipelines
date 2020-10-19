@@ -41,14 +41,7 @@ const (
 )
 
 func TestUploadPipeline_YAML(t *testing.T) {
-	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager)
-	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
-	b := &bytes.Buffer{}
-	w := multipart.NewWriter(b)
-	part, _ := w.CreateFormFile("uploadfile", "hello-world.yaml")
-	io.Copy(part, bytes.NewBufferString("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
-	w.Close()
+	clientManager, resourceManager, server, b, w, _ := setupCreateFromFile()
 	req, _ := http.NewRequest("POST", "/apis/v1beta1/pipelines/upload", bytes.NewReader(b.Bytes()))
 	req.Header.Set("Content-Type", w.FormDataContentType())
 
@@ -149,18 +142,7 @@ func TestUploadPipeline_YAML(t *testing.T) {
 }
 
 func TestUploadPipeline_Tarball(t *testing.T) {
-	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager)
-	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
-	b := &bytes.Buffer{}
-	w := multipart.NewWriter(b)
-	part, _ := w.CreateFormFile("uploadfile", "arguments.tar.gz")
-	fileReader, _ := os.Open("test/arguments_tarball/arguments.tar.gz")
-	io.Copy(part, fileReader)
-	w.Close()
-	req, _ := http.NewRequest("POST", "/apis/v1beta1/pipelines/upload", bytes.NewReader(b.Bytes()))
-	req.Header.Set("Content-Type", w.FormDataContentType())
-
+	clientManager, resourceManager, server, b, w, part, req, fileReader := setupCreateFromTarBall()
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(server.UploadPipeline)
 	handler.ServeHTTP(rr, req)
@@ -275,14 +257,7 @@ func TestUploadPipeline_GetFormFileError(t *testing.T) {
 }
 
 func TestUploadPipeline_SpecifyFileName(t *testing.T) {
-	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager)
-	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
-	b := &bytes.Buffer{}
-	w := multipart.NewWriter(b)
-	part, _ := w.CreateFormFile("uploadfile", "hello-world.yaml")
-	io.Copy(part, bytes.NewBufferString("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
-	w.Close()
+	clientManager, _, server, b, w, _ := setupCreateFromFile()
 	req, _ := http.NewRequest("POST", fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s", url.PathEscape("foo bar")), bytes.NewReader(b.Bytes()))
 	req.Header.Set("Content-Type", w.FormDataContentType())
 
@@ -324,14 +299,7 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 }
 
 func TestUploadPipeline_FileNameTooLong(t *testing.T) {
-	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager)
-	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
-	b := &bytes.Buffer{}
-	w := multipart.NewWriter(b)
-	part, _ := w.CreateFormFile("uploadfile", "hello-world.yaml")
-	io.Copy(part, bytes.NewBufferString("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
-	w.Close()
+	_, _, server, b, w, _ := setupCreateFromFile()
 	encodedName := url.PathEscape(
 		"this is a loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooog name")
 	req, _ := http.NewRequest("POST", fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s", encodedName), bytes.NewReader(b.Bytes()))
@@ -345,14 +313,7 @@ func TestUploadPipeline_FileNameTooLong(t *testing.T) {
 }
 
 func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
-	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager)
-	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
-	b := &bytes.Buffer{}
-	w := multipart.NewWriter(b)
-	part, _ := w.CreateFormFile("uploadfile", "hello-world.yaml")
-	io.Copy(part, bytes.NewBufferString("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
-	w.Close()
+	clientManager, _, server, b, w, _ := setupCreateFromFile()
 	req, _ := http.NewRequest("POST", fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s&description=%s", url.PathEscape("foo bar"), url.PathEscape("description of foo bar")), bytes.NewReader(b.Bytes()))
 	req.Header.Set("Content-Type", w.FormDataContentType())
 
@@ -396,14 +357,7 @@ func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
 }
 
 func TestUploadPipelineVersion_GetFromFileError(t *testing.T) {
-	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager)
-	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
-	b := &bytes.Buffer{}
-	w := multipart.NewWriter(b)
-	part, _ := w.CreateFormFile("uploadfile", "hello-world.yaml")
-	io.Copy(part, bytes.NewBufferString("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
-	w.Close()
+	clientManager, resourceManager, server, b, w, _ := setupCreateFromFile()
 	req, _ := http.NewRequest("POST", "/apis/v1beta1/pipelines/upload", bytes.NewReader(b.Bytes()))
 	req.Header.Set("Content-Type", w.FormDataContentType())
 	rr := httptest.NewRecorder()
@@ -431,14 +385,7 @@ func TestUploadPipelineVersion_GetFromFileError(t *testing.T) {
 }
 
 func TestUploadPipelineVersion_FileNameTooLong(t *testing.T) {
-	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager)
-	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
-	b := &bytes.Buffer{}
-	w := multipart.NewWriter(b)
-	part, _ := w.CreateFormFile("uploadfile", "hello-world.yaml")
-	io.Copy(part, bytes.NewBufferString("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
-	w.Close()
+	clientManager, resourceManager, server, b, w, _ := setupCreateFromFile()
 	req, _ := http.NewRequest("POST", "/apis/v1beta1/pipelines/upload", bytes.NewReader(b.Bytes()))
 	req.Header.Set("Content-Type", w.FormDataContentType())
 	rr := httptest.NewRecorder()
@@ -466,17 +413,7 @@ func TestDefaultNotUpdatedPipelineVersion(t *testing.T) {
 	viper.Set(common.UpdatePipelineVersionByDefault, "false")
 	defer viper.Set(common.UpdatePipelineVersionByDefault, "true")
 
-	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager)
-	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
-	b := &bytes.Buffer{}
-	w := multipart.NewWriter(b)
-	part, _ := w.CreateFormFile("uploadfile", "arguments.tar.gz")
-	fileReader, _ := os.Open("test/arguments_tarball/arguments.tar.gz")
-	io.Copy(part, fileReader)
-	w.Close()
-	req, _ := http.NewRequest("POST", "/apis/v1beta1/pipelines/upload", bytes.NewReader(b.Bytes()))
-	req.Header.Set("Content-Type", w.FormDataContentType())
+	clientManager, resourceManager, server, b, w, part, req, fileReader := setupCreateFromTarBall()
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(server.UploadPipeline)
@@ -511,17 +448,7 @@ func TestDefaultNotUpdatedPipelineVersion(t *testing.T) {
 }
 
 func TestDefaultUpdatedPipelineVersion(t *testing.T) {
-	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager)
-	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
-	b := &bytes.Buffer{}
-	w := multipart.NewWriter(b)
-	part, _ := w.CreateFormFile("uploadfile", "arguments.tar.gz")
-	fileReader, _ := os.Open("test/arguments_tarball/arguments.tar.gz")
-	io.Copy(part, fileReader)
-	w.Close()
-	req, _ := http.NewRequest("POST", "/apis/v1beta1/pipelines/upload", bytes.NewReader(b.Bytes()))
-	req.Header.Set("Content-Type", w.FormDataContentType())
+	clientManager, resourceManager, server, b, w, part, req, fileReader := setupCreateFromTarBall()
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(server.UploadPipeline)
@@ -552,4 +479,32 @@ func TestDefaultUpdatedPipelineVersion(t *testing.T) {
 	pipeline, err := clientManager.PipelineStore().GetPipeline(resource.DefaultFakeUUID)
 	assert.Nil(t, err)
 	assert.Equal(t, pipeline.DefaultVersionId, fakeVersionUUID)
+}
+
+func setupCreateFromFile() (*resource.FakeClientManager, *resource.ResourceManager, PipelineUploadServer, *bytes.Buffer, *multipart.Writer, io.Writer) {
+	clientManager, resourceManager, server, b, w := setupBase()
+	part, _ := w.CreateFormFile("uploadfile", "hello-world.yaml")
+	io.Copy(part, bytes.NewBufferString("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+	w.Close()
+	return clientManager, resourceManager, server, b, w, part
+}
+
+func setupCreateFromTarBall() (*resource.FakeClientManager, *resource.ResourceManager, PipelineUploadServer, *bytes.Buffer, *multipart.Writer, io.Writer, *http.Request, *os.File) {
+	clientManager, resourceManager, server, b, w := setupBase()
+	part, _ := w.CreateFormFile("uploadfile", "arguments.tar.gz")
+	fileReader, _ := os.Open("test/arguments_tarball/arguments.tar.gz")
+	io.Copy(part, fileReader)
+	w.Close()
+	req, _ := http.NewRequest("POST", "/apis/v1beta1/pipelines/upload", bytes.NewReader(b.Bytes()))
+	req.Header.Set("Content-Type", w.FormDataContentType())
+	return clientManager, resourceManager, server, b, w, part, req, fileReader
+}
+
+func setupBase() (*resource.FakeClientManager, *resource.ResourceManager, PipelineUploadServer, *bytes.Buffer, *multipart.Writer) {
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
+	b := &bytes.Buffer{}
+	w := multipart.NewWriter(b)
+	return clientManager, resourceManager, server, b, w
 }
