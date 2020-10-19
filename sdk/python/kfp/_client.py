@@ -286,6 +286,14 @@ class Client(object):
     Returns:
       namespace: kubernetes namespace from the local context file or empty if it wasn't set.
     """
+    if self._context_setting['namespace'] == "":
+      if self._is_ipython() is True:
+        if not os.path.exists(Client.LOCAL_KFP_CONTEXT):
+          os.makedirs('.config/kfp/')
+        NAMESPACE_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+        with open(NAMESPACE_PATH, "r") as f:
+          namespace = f.read()
+          self.set_user_namespace(namespace)
     return self._context_setting['namespace']
 
   def create_experiment(self, name, description=None, namespace=None):
