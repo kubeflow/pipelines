@@ -22,6 +22,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -242,7 +243,7 @@ func (s *PipelineServer) CreatePipelineVersion(ctx context.Context, request *api
 		return nil, util.Wrap(err, "The URL is valid but pipeline system failed to read the file.")
 	}
 
-	version, err := s.resourceManager.CreatePipelineVersion(request.Version, pipelineFile)
+	version, err := s.resourceManager.CreatePipelineVersion(request.Version, pipelineFile, common.IsPipelineVersionUpdatedByDefault())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a version.")
 	}

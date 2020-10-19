@@ -1019,7 +1019,7 @@ func (r *ResourceManager) getDefaultSA() string {
 	return common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccount, defaultPipelineRunnerServiceAccount)
 }
 
-func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion, pipelineFile []byte) (*model.PipelineVersion, error) {
+func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion, pipelineFile []byte, updateDefaultVersion bool) (*model.PipelineVersion, error) {
 	// Extract the parameters from the pipeline
 	params, err := util.GetParameters(pipelineFile)
 	if err != nil {
@@ -1045,7 +1045,7 @@ func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion,
 		Parameters:    params,
 		CodeSourceUrl: apiVersion.CodeSourceUrl,
 	}
-	version, err = r.pipelineStore.CreatePipelineVersion(version)
+	version, err = r.pipelineStore.CreatePipelineVersion(version, updateDefaultVersion)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline version failed")
 	}
