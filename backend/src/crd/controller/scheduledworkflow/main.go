@@ -16,6 +16,7 @@ package main
 
 import (
 	"flag"
+	"strings"
 	"time"
 
 	workflowclientSet "github.com/argoproj/argo/pkg/client/clientset/versioned"
@@ -25,6 +26,7 @@ import (
 	swfinformers "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions"
 	"github.com/kubeflow/pipelines/backend/src/crd/pkg/signals"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
@@ -37,6 +39,7 @@ var (
 )
 
 func main() {
+	initEnv()
 	flag.Parse()
 
 	// set up signals so we handle the first shutdown signal gracefully
@@ -86,6 +89,15 @@ func main() {
 	if err = controller.Run(2, stopCh); err != nil {
 		log.Fatalf("Error running controller: %s", err.Error())
 	}
+}
+
+func initEnv() {
+	// Import environment variable, support nested vars e.g. OBJECTSTORECONFIG_ACCESSKEY
+	replacer := strings.NewReplacer(".", "_")
+	viper.SetEnvKeyReplacer(replacer)
+	viper.AutomaticEnv()
+	// We need empty string env var for e.g. KUBEFLOW_USERID_PREFIX.
+	viper.AllowEmptyEnv(true)
 }
 
 func init() {
