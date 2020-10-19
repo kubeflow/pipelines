@@ -26,10 +26,12 @@ import (
 	"os"
 	"testing"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -458,4 +460,96 @@ func TestUploadPipelineVersion_FileNameTooLong(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 	assert.Equal(t, 400, rr.Code)
 	assert.Contains(t, string(rr.Body.Bytes()), "Pipeline name too long")
+}
+
+func TestDefaultNotUpdatedPipelineVersion(t *testing.T) {
+	viper.Set(common.UpdatePipelineVersionByDefault, "false")
+	defer viper.Set(common.UpdatePipelineVersionByDefault, "true")
+
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
+	b := &bytes.Buffer{}
+	w := multipart.NewWriter(b)
+	part, _ := w.CreateFormFile("uploadfile", "arguments.tar.gz")
+	fileReader, _ := os.Open("test/arguments_tarball/arguments.tar.gz")
+	io.Copy(part, fileReader)
+	w.Close()
+	req, _ := http.NewRequest("POST", "/apis/v1beta1/pipelines/upload", bytes.NewReader(b.Bytes()))
+	req.Header.Set("Content-Type", w.FormDataContentType())
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(server.UploadPipeline)
+	handler.ServeHTTP(rr, req)
+
+	pipelineVersion, err := clientManager.PipelineStore().GetPipelineVersion(resource.DefaultFakeUUID)
+	assert.Nil(t, err)
+	assert.Equal(t, pipelineVersion.PipelineId, resource.DefaultFakeUUID)
+
+	// Upload a new version under this pipeline and check that the default version is not updated
+
+	// Set the fake uuid generator with a new uuid to avoid generate a same uuid as above.
+	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(fakeVersionUUID, nil))
+	resourceManager = resource.NewResourceManager(clientManager)
+	server = PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
+	b = &bytes.Buffer{}
+	w = multipart.NewWriter(b)
+	part, _ = w.CreateFormFile("uploadfile", "arguments-version.tar.gz")
+	fileReader, _ = os.Open("test/arguments_tarball/arguments-version.tar.gz")
+	io.Copy(part, fileReader)
+	w.Close()
+	req, _ = http.NewRequest("POST", "/apis/v1beta1/pipelines/upload_version?pipelineid="+resource.DefaultFakeUUID, bytes.NewReader(b.Bytes()))
+	req.Header.Set("Content-Type", w.FormDataContentType())
+	rr = httptest.NewRecorder()
+	handler = http.HandlerFunc(server.UploadPipelineVersion)
+	handler.ServeHTTP(rr, req)
+
+	pipeline, err := clientManager.PipelineStore().GetPipeline(resource.DefaultFakeUUID)
+	assert.Nil(t, err)
+	assert.Equal(t, pipeline.DefaultVersionId, resource.DefaultFakeUUID)
+	assert.NotEqual(t, pipeline.DefaultVersionId, fakeVersionUUID)
+}
+
+func TestDefaultUpdatedPipelineVersion(t *testing.T) {
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
+	b := &bytes.Buffer{}
+	w := multipart.NewWriter(b)
+	part, _ := w.CreateFormFile("uploadfile", "arguments.tar.gz")
+	fileReader, _ := os.Open("test/arguments_tarball/arguments.tar.gz")
+	io.Copy(part, fileReader)
+	w.Close()
+	req, _ := http.NewRequest("POST", "/apis/v1beta1/pipelines/upload", bytes.NewReader(b.Bytes()))
+	req.Header.Set("Content-Type", w.FormDataContentType())
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(server.UploadPipeline)
+	handler.ServeHTTP(rr, req)
+
+	pipelineVersion, err := clientManager.PipelineStore().GetPipelineVersion(resource.DefaultFakeUUID)
+	assert.Nil(t, err)
+	assert.Equal(t, pipelineVersion.PipelineId, resource.DefaultFakeUUID)
+
+	// Upload a new version under this pipeline and check that the default version is not updated
+
+	// Set the fake uuid generator with a new uuid to avoid generate a same uuid as above.
+	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(fakeVersionUUID, nil))
+	resourceManager = resource.NewResourceManager(clientManager)
+	server = PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
+	b = &bytes.Buffer{}
+	w = multipart.NewWriter(b)
+	part, _ = w.CreateFormFile("uploadfile", "arguments-version.tar.gz")
+	fileReader, _ = os.Open("test/arguments_tarball/arguments-version.tar.gz")
+	io.Copy(part, fileReader)
+	w.Close()
+	req, _ = http.NewRequest("POST", "/apis/v1beta1/pipelines/upload_version?pipelineid="+resource.DefaultFakeUUID, bytes.NewReader(b.Bytes()))
+	req.Header.Set("Content-Type", w.FormDataContentType())
+	rr = httptest.NewRecorder()
+	handler = http.HandlerFunc(server.UploadPipelineVersion)
+	handler.ServeHTTP(rr, req)
+
+	pipeline, err := clientManager.PipelineStore().GetPipeline(resource.DefaultFakeUUID)
+	assert.Nil(t, err)
+	assert.Equal(t, pipeline.DefaultVersionId, fakeVersionUUID)
 }
