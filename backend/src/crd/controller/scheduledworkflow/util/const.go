@@ -14,7 +14,23 @@
 
 package util
 
+import (
+	"time"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+)
+
 const (
 	// ControllerAgentName is the name of the controller.
 	ControllerAgentName = "scheduled-workflow-controller"
+	// TimeZone is the name of the cron schedule env parameter
+	TimeZone string = "CRON_SCHEDULE_TIMEZONE"
 )
+
+func getLocation() (*time.Location, error) {
+	locString := common.GetStringConfigWithDefault(TimeZone, "")
+	if locString == "" {
+		locString = time.Now().Location().String()
+	}
+	return time.LoadLocation(locString)
+}

@@ -449,6 +449,7 @@ func (c *Controller) submitNextWorkflowIfNeeded(swf *util.ScheduledWorkflow,
 			ScheduledWorkflow: swf.Name,
 		}).Errorf("Collected schedule for ScheduledWorkflow (%v): transient error while extracting workflow: %v",
 			swf.Name, err)
+	}
 	if !shouldRunNow {
 		log.WithFields(log.Fields{
 			ScheduledWorkflow: swf.Name,
