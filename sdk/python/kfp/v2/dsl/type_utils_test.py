@@ -37,10 +37,16 @@ class TypeUtilsTest(unittest.TestCase):
       self.assertTrue(type_utils.is_parameter_type(type_name))
 
   def test_get_artifact_type_schema(self):
-    self.assertEqual('title: Artifact\ntype: object\nproperties:\n',
+    self.assertEqual('title: kfp.Artifact\ntype: object\nproperties:\n',
                      type_utils.get_artifact_type_schema('GCSPath'))
-    self.assertEqual('title: Model\ntype: object\nproperties:\n',
+    self.assertEqual('title: kfp.Model\ntype: object\nproperties:\n',
                      type_utils.get_artifact_type_schema('Model'))
+    self.assertEqual('title: kfp.Dataset\ntype: object\nproperties:\n',
+                         type_utils.get_artifact_type_schema('Dataset'))
+    self.assertEqual('title: kfp.Metrics\ntype: object\nproperties:\n',
+                         type_utils.get_artifact_type_schema('Metrics'))
+    self.assertEqual('title: kfp.Schema\ntype: object\nproperties:\n',
+                         type_utils.get_artifact_type_schema('Schema'))
     self.assertEqual(None, type_utils.get_artifact_type_schema('dummy'))
     with self.assertRaises(AttributeError):
       type_utils.get_artifact_type_schema(None)
