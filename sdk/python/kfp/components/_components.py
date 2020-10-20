@@ -174,7 +174,7 @@ def _load_component_spec_from_component_text(text) -> ComponentSpec:
 
 
 _inputs_dir = '/tmp/inputs'
-_outputs_dir = '/tmp/outputs'
+_outputs_dir = '/outputs'
 _single_io_file_name = 'data'
 
 
