@@ -124,7 +124,7 @@ class SageMakerCreateModelSpec(
     )
 
     OUTPUTS = SageMakerCreateModelOutputs(
-        model_name=OutputValidator(description="The model name SageMaker created."),
+        model_name=OutputValidator(description="The name of the model created by SageMaker."),
     )
 
     def __init__(self, arguments: List[str]):
