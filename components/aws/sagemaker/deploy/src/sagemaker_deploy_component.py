@@ -54,6 +54,10 @@ class SageMakerDeployComponent(SageMakerComponent):
     """SageMaker component for deploy."""
 
     def Do(self, spec: SageMakerDeploySpec):
+        # Manually invoke AWS client configuration so we can use it before
+        # starting the reconciliation loop
+        self._configure_aws_clients(spec.inputs)
+
         name_suffix = SageMakerComponent._generate_unique_timestamped_id()
 
         self._endpoint_name = (

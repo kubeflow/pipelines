@@ -122,15 +122,7 @@ class SageMakerComponent:
         """
         # Global try-catch in order to allow for safe abort
         try:
-            self._sm_client = Boto3Manager.get_sagemaker_client(
-                self._get_component_version(),
-                inputs.region,
-                endpoint_url=inputs.endpoint_url,
-                assume_role_arn=inputs.assume_role,
-            )
-            self._cw_client = Boto3Manager.get_cloudwatch_client(
-                inputs.region, assume_role_arn=inputs.assume_role
-            )
+            self._configure_aws_clients(inputs)
 
             # Successful execution
             if not self._do(inputs, outputs, output_paths):
@@ -138,6 +130,22 @@ class SageMakerComponent:
         except Exception as e:
             logging.exception("An error occurred while running the component")
             raise e
+
+    def _configure_aws_clients(self, inputs: SageMakerComponentCommonInputs):
+        """Configures the internal AWS clients for the component.
+
+        Args:
+            inputs: A populated list of user inputs.
+        """
+        self._sm_client = Boto3Manager.get_sagemaker_client(
+            self._get_component_version(),
+            inputs.region,
+            endpoint_url=inputs.endpoint_url,
+            assume_role_arn=inputs.assume_role,
+        )
+        self._cw_client = Boto3Manager.get_cloudwatch_client(
+            inputs.region, assume_role_arn=inputs.assume_role
+        )
 
     def _do(
         self,
