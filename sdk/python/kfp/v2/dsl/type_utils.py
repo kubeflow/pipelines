@@ -13,6 +13,7 @@
 # limitations under the License.
 """Utilities for component I/O type mapping."""
 
+import textwrap
 from typing import List, Optional
 from kfp.components import structures
 from kfp.v2.proto import pipeline_spec_pb2
@@ -21,15 +22,31 @@ from kfp.v2.proto import pipeline_spec_pb2
 # The keys are normalized (lowercased). These are types viewed as Artifacts.
 # The values are the corresponding IR artifact type schemas.
 _ARTIFACT_TYPES_MAPPING = {
-    # TODO: support more artifact types
-    'gcspath': """title: Artifact
-type: object
-properties:
-""",
-    'model': """title: Model
-type: object
-properties:
-""",
+    'gcspath': textwrap.dedent("""\
+        title: kfp.Artifact
+        type: object
+        properties:
+    """),
+    'model': textwrap.dedent("""\
+        title: kfp.Model
+        type: object
+        properties:
+    """),
+    'dataset':textwrap.dedent("""\
+        title: kfp.Dataset
+        type: object
+        properties:
+    """),
+    'metrics':textwrap.dedent("""\
+        title: kfp.Metrics
+        type: object
+        properties:
+    """),
+    'schema':textwrap.dedent("""\
+        title: kfp.Schema
+        type: object
+        properties:
+    """)
 }
 
 # ComponentSpec I/O types to (IR) PipelineTaskSpec I/O types mapping.
