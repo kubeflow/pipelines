@@ -21,7 +21,7 @@ from kfp.v2.proto import pipeline_spec_pb2 as pb
 
 class TypeUtilsTest(unittest.TestCase):
 
-  _artifact_types = ['GCSPath', 'Model']
+  _artifact_types = ['GCSPath', 'Model', 'Dataset', 'Schema', 'Metrics']
   _parameter_types = ['Integer', 'Double', 'String']
 
   def test_is_artifact_type(self):
@@ -82,7 +82,7 @@ class TypeUtilsTest(unittest.TestCase):
         None, type_utils.get_input_artifact_type_schema('input1', input_specs))
     # input found, and a matching artifact type schema returned.
     self.assertEqual(
-        'title: Artifact\ntype: object\nproperties:\n',
+        'title: kfp.Artifact\ntype: object\nproperties:\n',
         type_utils.get_input_artifact_type_schema('input2', input_specs))
 
 
