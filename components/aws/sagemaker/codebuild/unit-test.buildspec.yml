@@ -10,7 +10,7 @@ phases:
 
   post_build:
     commands:
-      - docker cp unit-test-container:/app/tests/unit_tests/unit_tests.log /tmp/results.xml
+      - docker cp unit-test-container:/app/components/aws/sagemaker/unit_tests.log /tmp/results.xml
       - docker rm -f unit-test-container
 
 reports:
