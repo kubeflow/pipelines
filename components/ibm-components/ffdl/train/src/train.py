@@ -19,6 +19,7 @@ import time
 from ruamel.yaml import YAML
 import subprocess
 import os
+from pathlib import Path
 
 ''' global initialization '''
 yaml = YAML(typ='safe')
@@ -28,6 +29,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_def_file_path', type=str, help='Object storage bucket file path for the training model definition')
     parser.add_argument('--manifest_file_path', type=str, help='Object storage bucket file path for the FfDL manifest')
+    parser.add_argument('--output_training_id_path', type=str, help='Output path for training id', default='/tmp/training_id.txt')
     args = parser.parse_args()
 
     with open("/app/secrets/s3_url", 'r') as f:
@@ -121,8 +123,8 @@ if __name__ == "__main__":
         training_status = response.json()['training']['training_status']['status']
         print('Training Status: ' + training_status)
         if training_status == 'COMPLETED':
-            with open('/tmp/training_id.txt', "w") as report:
-                report.write(json.dumps(id))
+            Path(args.output_training_id_path).parent.mkdir(parents=True, exist_ok=True)
+            Path(args.output_training_id_path).write_text(json.dumps(id))
             exit(0)
         if training_status == 'FAILED':
             print('Training failed. Exiting...')
