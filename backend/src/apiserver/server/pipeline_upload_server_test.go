@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-// https://www.apache.org/licenses/LICENSE-2.0
+// https://wwwriter.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -41,13 +41,7 @@ const (
 )
 
 func TestUploadPipeline_YAML(t *testing.T) {
-	clientManager, resourceManager, server, b, w, _ := setupCreateFromFile()
-	req, _ := http.NewRequest("POST", "/apis/v1beta1/pipelines/upload", bytes.NewReader(b.Bytes()))
-	req.Header.Set("Content-Type", w.FormDataContentType())
-
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(server.UploadPipeline)
-	handler.ServeHTTP(rr, req)
+	clientManager, resourceManager, req, rr, server, bytesBuffer, writer, handler := uploadPipeline("POST", "/apis/v1beta1/pipelines/upload")
 	assert.Equal(t, 200, rr.Code)
 	// Verify time format is RFC3339.
 	parsedResponse := struct {
@@ -98,8 +92,8 @@ func TestUploadPipeline_YAML(t *testing.T) {
 	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(fakeVersionUUID, nil))
 	resourceManager = resource.NewResourceManager(clientManager)
 	server = PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
-	req, _ = http.NewRequest("POST", "/apis/v1beta1/pipelines/upload_version?name="+fakeVersionName+"&pipelineid="+resource.DefaultFakeUUID, bytes.NewReader(b.Bytes()))
-	req.Header.Set("Content-Type", w.FormDataContentType())
+	req, _ = http.NewRequest("POST", "/apis/v1beta1/pipelines/upload_version?name="+fakeVersionName+"&pipelineid="+resource.DefaultFakeUUID, bytes.NewReader(bytesBuffer.Bytes()))
+	req.Header.Set("Content-Type", writer.FormDataContentType())
 	rr = httptest.NewRecorder()
 	handler = http.HandlerFunc(server.UploadPipelineVersion)
 	handler.ServeHTTP(rr, req)
@@ -142,7 +136,7 @@ func TestUploadPipeline_YAML(t *testing.T) {
 }
 
 func TestUploadPipeline_Tarball(t *testing.T) {
-	clientManager, resourceManager, server, b, w, part, req, fileReader := setupCreateFromTarBall()
+	clientManager, resourceManager, server, bytesBuffer, writer, part, req, fileReader := setupCreateFromTarBall()
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(server.UploadPipeline)
 	handler.ServeHTTP(rr, req)
@@ -187,14 +181,14 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(fakeVersionUUID, nil))
 	resourceManager = resource.NewResourceManager(clientManager)
 	server = PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
-	b = &bytes.Buffer{}
-	w = multipart.NewWriter(b)
-	part, _ = w.CreateFormFile("uploadfile", "arguments-version.tar.gz")
+	bytesBuffer = &bytes.Buffer{}
+	writer = multipart.NewWriter(bytesBuffer)
+	part, _ = writer.CreateFormFile("uploadfile", "arguments-version.tar.gz")
 	fileReader, _ = os.Open("test/arguments_tarball/arguments-version.tar.gz")
 	io.Copy(part, fileReader)
-	w.Close()
-	req, _ = http.NewRequest("POST", "/apis/v1beta1/pipelines/upload_version?pipelineid="+resource.DefaultFakeUUID, bytes.NewReader(b.Bytes()))
-	req.Header.Set("Content-Type", w.FormDataContentType())
+	writer.Close()
+	req, _ = http.NewRequest("POST", "/apis/v1beta1/pipelines/upload_version?pipelineid="+resource.DefaultFakeUUID, bytes.NewReader(bytesBuffer.Bytes()))
+	req.Header.Set("Content-Type", writer.FormDataContentType())
 	rr = httptest.NewRecorder()
 	handler = http.HandlerFunc(server.UploadPipelineVersion)
 	handler.ServeHTTP(rr, req)
@@ -241,13 +235,13 @@ func TestUploadPipeline_GetFormFileError(t *testing.T) {
 	resourceManager := resource.NewResourceManager(clientManager)
 
 	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
-	var b bytes.Buffer
-	b.WriteString("I am invalid file")
-	w := multipart.NewWriter(&b)
-	w.CreateFormFile("uploadfile", "hello-world.yaml")
-	w.Close()
-	req, _ := http.NewRequest("POST", "/apis/v1beta1/pipeline/upload", bytes.NewReader(b.Bytes()))
-	req.Header.Set("Content-Type", w.FormDataContentType())
+	var bytesBuffer bytes.Buffer
+	bytesBuffer.WriteString("I am invalid file")
+	writer := multipart.NewWriter(&bytesBuffer)
+	writer.CreateFormFile("uploadfile", "hello-world.yaml")
+	writer.Close()
+	req, _ := http.NewRequest("POST", "/apis/v1beta1/pipeline/upload", bytes.NewReader(bytesBuffer.Bytes()))
+	req.Header.Set("Content-Type", writer.FormDataContentType())
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(server.UploadPipeline)
@@ -257,13 +251,7 @@ func TestUploadPipeline_GetFormFileError(t *testing.T) {
 }
 
 func TestUploadPipeline_SpecifyFileName(t *testing.T) {
-	clientManager, _, server, b, w, _ := setupCreateFromFile()
-	req, _ := http.NewRequest("POST", fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s", url.PathEscape("foo bar")), bytes.NewReader(b.Bytes()))
-	req.Header.Set("Content-Type", w.FormDataContentType())
-
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(server.UploadPipeline)
-	handler.ServeHTTP(rr, req)
+	clientManager, _, _, rr, _, _, _, _ := uploadPipeline("POST", fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s", url.PathEscape("foo bar")))
 	assert.Equal(t, 200, rr.Code)
 
 	// Verify stored in object store
@@ -299,25 +287,15 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 }
 
 func TestUploadPipeline_FileNameTooLong(t *testing.T) {
-	_, _, server, b, w, _ := setupCreateFromFile()
 	encodedName := url.PathEscape(
 		"this is a loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooog name")
-	req, _ := http.NewRequest("POST", fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s", encodedName), bytes.NewReader(b.Bytes()))
-	req.Header.Set("Content-Type", w.FormDataContentType())
-
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(server.UploadPipeline)
-	handler.ServeHTTP(rr, req)
+	_, _, _, rr, _, _, _, _ := uploadPipeline("POST", fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s", encodedName))
 	assert.Equal(t, 400, rr.Code)
 	assert.Contains(t, string(rr.Body.Bytes()), "Pipeline name too long")
 }
 
 func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
-	clientManager, _, server, b, w, _ := setupCreateFromFile()
-	req, _ := http.NewRequest("POST", fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s&description=%s", url.PathEscape("foo bar"), url.PathEscape("description of foo bar")), bytes.NewReader(b.Bytes()))
-	req.Header.Set("Content-Type", w.FormDataContentType())
-
-	rr := httptest.NewRecorder()
+	clientManager, _, req, rr, server, _, _, _ := uploadPipeline("POST", fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s&description=%s", url.PathEscape("foo bar"), url.PathEscape("description of foo bar")))
 	handler := http.HandlerFunc(server.UploadPipeline)
 	handler.ServeHTTP(rr, req)
 	assert.Equal(t, 200, rr.Code)
@@ -357,25 +335,19 @@ func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
 }
 
 func TestUploadPipelineVersion_GetFromFileError(t *testing.T) {
-	clientManager, resourceManager, server, b, w, _ := setupCreateFromFile()
-	req, _ := http.NewRequest("POST", "/apis/v1beta1/pipelines/upload", bytes.NewReader(b.Bytes()))
-	req.Header.Set("Content-Type", w.FormDataContentType())
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(server.UploadPipeline)
-	handler.ServeHTTP(rr, req)
-	// Upload a new version under this pipeline
+	clientManager, resourceManager, req, rr, server, bytesBuffer, writer, handler := uploadPipeline("POST", "/apis/v1beta1/pipelines/upload")
 
 	// Set the fake uuid generator with a new uuid to avoid generate a same uuid as above.
 	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(fakeVersionUUID, nil))
 	resourceManager = resource.NewResourceManager(clientManager)
 	server = PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
-	b = &bytes.Buffer{}
-	b.WriteString("I am invalid file")
-	w = multipart.NewWriter(b)
-	w.CreateFormFile("uploadfile", "hello-world.yaml")
-	w.Close()
-	req, _ = http.NewRequest("POST", "/apis/v1beta1/pipelines/upload_version?name="+fakeVersionName+"&pipelineid="+resource.DefaultFakeUUID, bytes.NewReader(b.Bytes()))
-	req.Header.Set("Content-Type", w.FormDataContentType())
+	bytesBuffer = &bytes.Buffer{}
+	bytesBuffer.WriteString("I am invalid file")
+	writer = multipart.NewWriter(bytesBuffer)
+	writer.CreateFormFile("uploadfile", "hello-world.yaml")
+	writer.Close()
+	req, _ = http.NewRequest("POST", "/apis/v1beta1/pipelines/upload_version?name="+fakeVersionName+"&pipelineid="+resource.DefaultFakeUUID, bytes.NewReader(bytesBuffer.Bytes()))
+	req.Header.Set("Content-Type", writer.FormDataContentType())
 	rr = httptest.NewRecorder()
 	handler = http.HandlerFunc(server.UploadPipelineVersion)
 	handler.ServeHTTP(rr, req)
@@ -385,12 +357,7 @@ func TestUploadPipelineVersion_GetFromFileError(t *testing.T) {
 }
 
 func TestUploadPipelineVersion_FileNameTooLong(t *testing.T) {
-	clientManager, resourceManager, server, b, w, _ := setupCreateFromFile()
-	req, _ := http.NewRequest("POST", "/apis/v1beta1/pipelines/upload", bytes.NewReader(b.Bytes()))
-	req.Header.Set("Content-Type", w.FormDataContentType())
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(server.UploadPipeline)
-	handler.ServeHTTP(rr, req)
+	clientManager, resourceManager, req, rr, server, bytesBuffer, writer, handler := uploadPipeline("POST", "/apis/v1beta1/pipelines/upload")
 
 	// Upload a new version under this pipeline
 
@@ -400,8 +367,8 @@ func TestUploadPipelineVersion_FileNameTooLong(t *testing.T) {
 	server = PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
 	encodedName := url.PathEscape(
 		"this is a loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooog name")
-	req, _ = http.NewRequest("POST", "/apis/v1beta1/pipelines/upload_version?name="+encodedName+"&pipelineid="+resource.DefaultFakeUUID, bytes.NewReader(b.Bytes()))
-	req.Header.Set("Content-Type", w.FormDataContentType())
+	req, _ = http.NewRequest("POST", "/apis/v1beta1/pipelines/upload_version?name="+encodedName+"&pipelineid="+resource.DefaultFakeUUID, bytes.NewReader(bytesBuffer.Bytes()))
+	req.Header.Set("Content-Type", writer.FormDataContentType())
 	rr = httptest.NewRecorder()
 	handler = http.HandlerFunc(server.UploadPipelineVersion)
 	handler.ServeHTTP(rr, req)
@@ -413,7 +380,7 @@ func TestDefaultNotUpdatedPipelineVersion(t *testing.T) {
 	viper.Set(common.UpdatePipelineVersionByDefault, "false")
 	defer viper.Set(common.UpdatePipelineVersionByDefault, "true")
 
-	clientManager, resourceManager, server, b, w, part, req, fileReader := setupCreateFromTarBall()
+	clientManager, resourceManager, server, bytesBuffer, writer, part, req, fileReader := setupCreateFromTarBall()
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(server.UploadPipeline)
@@ -429,14 +396,14 @@ func TestDefaultNotUpdatedPipelineVersion(t *testing.T) {
 	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(fakeVersionUUID, nil))
 	resourceManager = resource.NewResourceManager(clientManager)
 	server = PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
-	b = &bytes.Buffer{}
-	w = multipart.NewWriter(b)
-	part, _ = w.CreateFormFile("uploadfile", "arguments-version.tar.gz")
+	bytesBuffer = &bytes.Buffer{}
+	writer = multipart.NewWriter(bytesBuffer)
+	part, _ = writer.CreateFormFile("uploadfile", "arguments-version.tar.gz")
 	fileReader, _ = os.Open("test/arguments_tarball/arguments-version.tar.gz")
 	io.Copy(part, fileReader)
-	w.Close()
-	req, _ = http.NewRequest("POST", "/apis/v1beta1/pipelines/upload_version?pipelineid="+resource.DefaultFakeUUID, bytes.NewReader(b.Bytes()))
-	req.Header.Set("Content-Type", w.FormDataContentType())
+	writer.Close()
+	req, _ = http.NewRequest("POST", "/apis/v1beta1/pipelines/upload_version?pipelineid="+resource.DefaultFakeUUID, bytes.NewReader(bytesBuffer.Bytes()))
+	req.Header.Set("Content-Type", writer.FormDataContentType())
 	rr = httptest.NewRecorder()
 	handler = http.HandlerFunc(server.UploadPipelineVersion)
 	handler.ServeHTTP(rr, req)
@@ -448,7 +415,7 @@ func TestDefaultNotUpdatedPipelineVersion(t *testing.T) {
 }
 
 func TestDefaultUpdatedPipelineVersion(t *testing.T) {
-	clientManager, resourceManager, server, b, w, part, req, fileReader := setupCreateFromTarBall()
+	clientManager, resourceManager, server, bytesBuffer, writer, part, req, fileReader := setupCreateFromTarBall()
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(server.UploadPipeline)
@@ -464,14 +431,14 @@ func TestDefaultUpdatedPipelineVersion(t *testing.T) {
 	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(fakeVersionUUID, nil))
 	resourceManager = resource.NewResourceManager(clientManager)
 	server = PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
-	b = &bytes.Buffer{}
-	w = multipart.NewWriter(b)
-	part, _ = w.CreateFormFile("uploadfile", "arguments-version.tar.gz")
+	bytesBuffer = &bytes.Buffer{}
+	writer = multipart.NewWriter(bytesBuffer)
+	part, _ = writer.CreateFormFile("uploadfile", "arguments-version.tar.gz")
 	fileReader, _ = os.Open("test/arguments_tarball/arguments-version.tar.gz")
 	io.Copy(part, fileReader)
-	w.Close()
-	req, _ = http.NewRequest("POST", "/apis/v1beta1/pipelines/upload_version?pipelineid="+resource.DefaultFakeUUID, bytes.NewReader(b.Bytes()))
-	req.Header.Set("Content-Type", w.FormDataContentType())
+	writer.Close()
+	req, _ = http.NewRequest("POST", "/apis/v1beta1/pipelines/upload_version?pipelineid="+resource.DefaultFakeUUID, bytes.NewReader(bytesBuffer.Bytes()))
+	req.Header.Set("Content-Type", writer.FormDataContentType())
 	rr = httptest.NewRecorder()
 	handler = http.HandlerFunc(server.UploadPipelineVersion)
 	handler.ServeHTTP(rr, req)
@@ -482,29 +449,41 @@ func TestDefaultUpdatedPipelineVersion(t *testing.T) {
 }
 
 func setupCreateFromFile() (*resource.FakeClientManager, *resource.ResourceManager, PipelineUploadServer, *bytes.Buffer, *multipart.Writer, io.Writer) {
-	clientManager, resourceManager, server, b, w := setupBase()
-	part, _ := w.CreateFormFile("uploadfile", "hello-world.yaml")
+	clientManager, resourceManager, server, bytesBuffer, writer := setupBase()
+	part, _ := writer.CreateFormFile("uploadfile", "hello-world.yaml")
 	io.Copy(part, bytes.NewBufferString("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
-	w.Close()
-	return clientManager, resourceManager, server, b, w, part
+	writer.Close()
+	return clientManager, resourceManager, server, bytesBuffer, writer, part
 }
 
+func uploadPipeline(method string, url string) (*resource.FakeClientManager, *resource.ResourceManager, *http.Request, *httptest.ResponseRecorder, PipelineUploadServer, *bytes.Buffer, *multipart.Writer, http.HandlerFunc) {
+	clientManager, resourceManager, server, bytesBuffer, writer := setupBase()
+	part, _ := writer.CreateFormFile("uploadfile", "hello-world.yaml")
+	io.Copy(part, bytes.NewBufferString("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+	writer.Close()
+	req, _ := http.NewRequest(method, url, bytes.NewReader(bytesBuffer.Bytes()))
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(server.UploadPipeline)
+	handler.ServeHTTP(rr, req)
+	return clientManager, resourceManager, req, rr, server, bytesBuffer, writer, handler
+}
 func setupCreateFromTarBall() (*resource.FakeClientManager, *resource.ResourceManager, PipelineUploadServer, *bytes.Buffer, *multipart.Writer, io.Writer, *http.Request, *os.File) {
-	clientManager, resourceManager, server, b, w := setupBase()
-	part, _ := w.CreateFormFile("uploadfile", "arguments.tar.gz")
+	clientManager, resourceManager, server, bytesBuffer, writer := setupBase()
+	part, _ := writer.CreateFormFile("uploadfile", "arguments.tar.gz")
 	fileReader, _ := os.Open("test/arguments_tarball/arguments.tar.gz")
 	io.Copy(part, fileReader)
-	w.Close()
-	req, _ := http.NewRequest("POST", "/apis/v1beta1/pipelines/upload", bytes.NewReader(b.Bytes()))
-	req.Header.Set("Content-Type", w.FormDataContentType())
-	return clientManager, resourceManager, server, b, w, part, req, fileReader
+	writer.Close()
+	req, _ := http.NewRequest("POST", "/apis/v1beta1/pipelines/upload", bytes.NewReader(bytesBuffer.Bytes()))
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	return clientManager, resourceManager, server, bytesBuffer, writer, part, req, fileReader
 }
 
 func setupBase() (*resource.FakeClientManager, *resource.ResourceManager, PipelineUploadServer, *bytes.Buffer, *multipart.Writer) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
 	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
-	b := &bytes.Buffer{}
-	w := multipart.NewWriter(b)
-	return clientManager, resourceManager, server, b, w
+	bytesBuffer := &bytes.Buffer{}
+	writer := multipart.NewWriter(bytesBuffer)
+	return clientManager, resourceManager, server, bytesBuffer, writer
 }
