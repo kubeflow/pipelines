@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-// https://wwwriter.apache.org/licenses/LICENSE-2.0
+// https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -136,7 +136,7 @@ func TestUploadPipeline_YAML(t *testing.T) {
 }
 
 func TestUploadPipeline_Tarball(t *testing.T) {
-	clientManager, resourceManager, server, bytesBuffer, writer, part, req, fileReader := setupCreateFromTarBall()
+	clientManager, resourceManager, server, bytesBuffer, writer, part, req, fileReader := uploadeFromTarBall()
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(server.UploadPipeline)
 	handler.ServeHTTP(rr, req)
@@ -380,7 +380,7 @@ func TestDefaultNotUpdatedPipelineVersion(t *testing.T) {
 	viper.Set(common.UpdatePipelineVersionByDefault, "false")
 	defer viper.Set(common.UpdatePipelineVersionByDefault, "true")
 
-	clientManager, resourceManager, server, bytesBuffer, writer, part, req, fileReader := setupCreateFromTarBall()
+	clientManager, resourceManager, server, bytesBuffer, writer, part, req, fileReader := uploadeFromTarBall()
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(server.UploadPipeline)
@@ -415,7 +415,7 @@ func TestDefaultNotUpdatedPipelineVersion(t *testing.T) {
 }
 
 func TestDefaultUpdatedPipelineVersion(t *testing.T) {
-	clientManager, resourceManager, server, bytesBuffer, writer, part, req, fileReader := setupCreateFromTarBall()
+	clientManager, resourceManager, server, bytesBuffer, writer, part, req, fileReader := uploadeFromTarBall()
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(server.UploadPipeline)
@@ -448,7 +448,7 @@ func TestDefaultUpdatedPipelineVersion(t *testing.T) {
 	assert.Equal(t, pipeline.DefaultVersionId, fakeVersionUUID)
 }
 
-func setupCreateFromFile() (*resource.FakeClientManager, *resource.ResourceManager, PipelineUploadServer, *bytes.Buffer, *multipart.Writer, io.Writer) {
+func uploadeFromFile() (*resource.FakeClientManager, *resource.ResourceManager, PipelineUploadServer, *bytes.Buffer, *multipart.Writer, io.Writer) {
 	clientManager, resourceManager, server, bytesBuffer, writer := setupBase()
 	part, _ := writer.CreateFormFile("uploadfile", "hello-world.yaml")
 	io.Copy(part, bytes.NewBufferString("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
@@ -468,7 +468,7 @@ func uploadPipeline(method string, url string) (*resource.FakeClientManager, *re
 	handler.ServeHTTP(rr, req)
 	return clientManager, resourceManager, req, rr, server, bytesBuffer, writer, handler
 }
-func setupCreateFromTarBall() (*resource.FakeClientManager, *resource.ResourceManager, PipelineUploadServer, *bytes.Buffer, *multipart.Writer, io.Writer, *http.Request, *os.File) {
+func uploadeFromTarBall() (*resource.FakeClientManager, *resource.ResourceManager, PipelineUploadServer, *bytes.Buffer, *multipart.Writer, io.Writer, *http.Request, *os.File) {
 	clientManager, resourceManager, server, bytesBuffer, writer := setupBase()
 	part, _ := writer.CreateFormFile("uploadfile", "arguments.tar.gz")
 	fileReader, _ := os.Open("test/arguments_tarball/arguments.tar.gz")
