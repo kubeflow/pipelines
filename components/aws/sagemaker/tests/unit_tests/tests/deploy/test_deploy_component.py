@@ -218,9 +218,44 @@ class DeployComponentTestCase(unittest.TestCase):
         )
 
     def test_get_job_status(self):
+        self.component._sm_client = mock_client = MagicMock()
+
+        self.component._sm_client.describe_endpoint.return_value = {
+            "EndpointStatus": "Creating"
+        }
         self.assertEqual(
             self.component._get_job_status(),
-            SageMakerJobStatus(is_completed=True, raw_status=""),
+            SageMakerJobStatus(is_completed=False, raw_status="Creating"),
+        )
+
+        self.component._sm_client.describe_endpoint.return_value = {
+            "EndpointStatus": "Updating"
+        }
+        self.assertEqual(
+            self.component._get_job_status(),
+            SageMakerJobStatus(is_completed=False, raw_status="Updating"),
+        )
+
+        self.component._sm_client.describe_endpoint.return_value = {
+            "EndpointStatus": "InService"
+        }
+        self.assertEqual(
+            self.component._get_job_status(),
+            SageMakerJobStatus(is_completed=True, raw_status="InService"),
+        )
+
+        self.component._sm_client.describe_endpoint.return_value = {
+            "EndpointStatus": "Failed",
+            "FailureReason": "lolidk",
+        }
+        self.assertEqual(
+            self.component._get_job_status(),
+            SageMakerJobStatus(
+                is_completed=True,
+                raw_status="Failed",
+                has_error=True,
+                error_message="lolidk",
+            ),
         )
 
     def test_after_job_completed(self):

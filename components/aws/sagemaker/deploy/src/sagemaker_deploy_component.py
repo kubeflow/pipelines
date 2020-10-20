@@ -83,8 +83,26 @@ class SageMakerDeployComponent(SageMakerComponent):
         super().Do(spec.inputs, spec.outputs, spec.output_paths)
 
     def _get_job_status(self) -> SageMakerJobStatus:
-        # Job will complete instantly, unless there is a Create* exception
-        return SageMakerJobStatus(is_completed=True, raw_status="")
+        # Wait for endpoint creation to complete
+        response = self._sm_client.describe_endpoint(
+            EndpointName=self._endpoint_name
+        )
+        status = response["EndpointStatus"]
+
+        if status == "InService":
+            return SageMakerJobStatus(
+                is_completed=True, has_error=False, raw_status=status
+            )
+        if status == "Failed":
+            message = response["FailureReason"]
+            return SageMakerJobStatus(
+                is_completed=True,
+                has_error=True,
+                error_message=message,
+                raw_status=status,
+            )
+
+        return SageMakerJobStatus(is_completed=False, raw_status=status)
 
     def _after_job_complete(
         self,
