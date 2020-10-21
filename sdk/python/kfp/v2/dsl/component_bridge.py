@@ -141,9 +141,7 @@ def create_container_op_from_component_and_arguments(
 
   placeholder_arguments = {}
   for input_spec in component_spec.inputs or []:
-    # Skip inputs not presented in arguments list. This could happen for
-    # optional inputs whose presence in command/arguments is controlled by
-    # if placeholder.
+    # Skip inputs not presented in arguments list.
     if input_spec.name not in arguments:
       continue
 
