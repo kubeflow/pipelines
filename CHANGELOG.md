@@ -1,5 +1,13 @@
 # Changelog
 
+### [1.0.4](https://github.com/kubeflow/pipelines/compare/1.0.3...1.0.4) (2020-10-22)
+
+
+### Bug Fixes
+
+* **backend:** Caching - Fixed deployer failure on Kubernetes v1.16+. Fixes [\#4627](https://github.com/kubeflow/pipelines/issues/4627) ([\#4632](https://github.com/kubeflow/pipelines/issues/4632)) ([1792103](https://github.com/kubeflow/pipelines/commit/17921030edb7c87b07064a50c0af2f96fc217239))
+* **frontend:** fix parsing large workflow graph. Fixes [\#4179](https://github.com/kubeflow/pipelines/issues/4179) ([\#4180](https://github.com/kubeflow/pipelines/issues/4180)) ([0475368](https://github.com/kubeflow/pipelines/commit/04753687ba5a0fa6dc9388a6ce4072df40dda092))
+
 ### [1.0.3](https://github.com/kubeflow/pipelines/compare/1.0.1...1.0.3) (2020-10-12)
 
 
