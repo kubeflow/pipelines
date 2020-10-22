@@ -21,3 +21,4 @@ requests_toolbelt>=0.8.0
 # CLI
 tabulate
 click
+colorama>=0.4.4

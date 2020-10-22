@@ -10,6 +10,7 @@ certifi==2019.11.28       # via kfp-server-api, kubernetes, requests
 chardet==3.0.4            # via requests
 click==7.1.1              # via -r requirements.in
 cloudpickle==1.3.0        # via -r requirements.in
+colorama==0.4.4           # via -r requirements.in
 deprecated==1.2.7         # via -r requirements.in
 docstring-parser==0.7.3   # via -r requirements.in
 google-api-core==1.16.0   # via google-cloud-core

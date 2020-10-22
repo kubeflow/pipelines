@@ -52,5 +52,5 @@ def main():
     try:
         cli(obj={}, auto_envvar_prefix='KFP')
     except Exception as e:
-        logging.error(e)
+        click.secho(str(e), fg='red', err=True)
         sys.exit(1)
