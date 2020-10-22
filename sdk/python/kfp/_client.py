@@ -291,7 +291,7 @@ class Client(object):
     Returns:
       response: json formatted response from the healtz endpoint.
     """
-    healthz_api = 'http://' + Client.IN_CLUSTER_DNS_NAME.format('kubeflow') + '/' + HEALTH_PATH
+    healthz_api = 'http://' + Client.IN_CLUSTER_DNS_NAME.format('kubeflow') + '/' + Client.HEALTH_PATH
     r = requests.get(healthz_api)
     response = r.json()
     return response
