@@ -23,6 +23,7 @@ import warnings
 import yaml
 import zipfile
 import datetime
+import requests
 from typing import Mapping, Callable, Optional
 
 import kfp
@@ -288,12 +289,16 @@ class Client(object):
     Returns:
       namespace: kubernetes namespace from the local context file or empty if it wasn't set.
     """
+    HEALTH_PATH = "apis/v1beta1/healthz"
+    HEALTH_API = Client.IN_CLUSTER_DNS_NAME.format("kubeflow") + '/' + HEALTH_PATH
     if self._context_setting['namespace'] == "":
-      if self._is_ipython() is True:
-        NAMESPACE_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
-        with open(NAMESPACE_PATH, "r") as f:
-          namespace = f.read()
-          self.set_user_namespace(namespace)
+      r = requests.get(HEALTH_API)
+      if r.json()["multi_user"] == True:
+        if self._is_ipython() is True:
+          NAMESPACE_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+          with open(NAMESPACE_PATH, "r") as f:
+            namespace = f.read()
+            self.set_user_namespace(namespace)
     return self._context_setting['namespace']
 
   def create_experiment(self, name, description=None, namespace=None):
