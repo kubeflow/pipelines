@@ -277,6 +277,8 @@ class Client(object):
       namespace: kubernetes namespace the user has access to.
     """
     self._context_setting['namespace'] = namespace
+    if not os.path.exists(Client.LOCAL_KFP_CONTEXT):
+        os.makedirs('~/.config/kfp/')
     with open(Client.LOCAL_KFP_CONTEXT, 'w') as f:
       json.dump(self._context_setting, f)
 
