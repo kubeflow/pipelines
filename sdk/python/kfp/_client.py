@@ -289,7 +289,7 @@ class Client(object):
     if self._context_setting['namespace'] == "":
       if self._is_ipython() is True:
         if not os.path.exists(Client.LOCAL_KFP_CONTEXT):
-          os.makedirs('.config/kfp/')
+          os.makedirs('~/.config/kfp/')
         NAMESPACE_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
         with open(NAMESPACE_PATH, "r") as f:
           namespace = f.read()
