@@ -290,7 +290,7 @@ class Client(object):
       namespace: kubernetes namespace from the local context file or empty if it wasn't set.
     """
     HEALTH_PATH = "apis/v1beta1/healthz"
-    HEALTH_API = Client.IN_CLUSTER_DNS_NAME.format("kubeflow") + '/' + HEALTH_PATH
+    HEALTH_API = 'http://' + Client.IN_CLUSTER_DNS_NAME.format("kubeflow") + '/' + HEALTH_PATH
     if self._context_setting['namespace'] == "":
       r = requests.get(HEALTH_API)
       if r.json()["multi_user"] == True:
