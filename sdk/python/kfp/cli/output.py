@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import click
 import json
 from enum import Enum, unique
 from typing import Union
@@ -44,7 +45,7 @@ def print_output(data: Union[list, dict], headers: list, output_format: str, tab
         NotImplementedError: If the ``output_format`` is unknown.
     """
     if output_format == OutputFormat.table.name:
-        print(tabulate(data, headers=headers, tablefmt=table_format))
+        click.echo(tabulate(data, headers=headers, tablefmt=table_format))
     elif output_format == OutputFormat.json.name:
         if not headers:
             output = data
@@ -52,6 +53,6 @@ def print_output(data: Union[list, dict], headers: list, output_format: str, tab
             output = []
             for row in data:
                 output.append(dict(zip(headers, row)))
-        print(json.dumps(output, indent=4))
+        click.echo(json.dumps(output, indent=4))
     else:
         raise NotImplementedError("Unknown Output Format: {}".format(output_format))
