@@ -20,7 +20,7 @@ import json
 import click
 import shutil
 
-from .output import print_output
+from .output import print_output, OutputFormat
 
 
 @click.group()
@@ -41,7 +41,11 @@ def list(ctx, experiment_id, max_size):
     if response and response.runs:
         _print_runs(response.runs, output_format)
     else:
-        print('No runs found.')
+        if output_format == OutputFormat.json.name:
+            msg = json.dumps([])
+        else:
+            msg = 'No runs found.'
+        click.secho(msg, fg='yellow')
 
 
 @run.command()
@@ -69,7 +73,7 @@ def submit(ctx, experiment_name, run_name, package_file, pipeline_id, pipeline_n
         pipeline_id = client.get_pipeline_id(name=pipeline_name)
 
     if not package_file and not pipeline_id and not version:
-        print('You must provide one of [package_file, pipeline_id, version].')
+        click.secho('You must provide one of [package_file, pipeline_id, version].', fg='red', err=True)
         sys.exit(1)
 
     arg_dict = dict(arg.split('=') for arg in args)
@@ -116,7 +120,7 @@ def _display_run(client, namespace, run_id, watch, output_format):
                 argo_workflow_name = manifest['metadata']['name']
                 break
         if run_detail.run.status in ['Succeeded', 'Skipped', 'Failed', 'Error']:
-            print('Run is finished with status {}.'.format(run_detail.run.status))
+            click.secho('Run is finished with status {}.'.format(run_detail.run.status), fg='green')
             return
     if argo_workflow_name:
         subprocess.run([argo_path, 'watch', argo_workflow_name, '-n', namespace])
