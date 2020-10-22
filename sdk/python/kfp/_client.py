@@ -277,8 +277,8 @@ class Client(object):
       namespace: kubernetes namespace the user has access to.
     """
     self._context_setting['namespace'] = namespace
-    if not os.path.exists(Client.LOCAL_KFP_CONTEXT):
-        os.makedirs('~/.config/kfp/')
+    if not os.path.exists(os.path.dirname(Client.LOCAL_KFP_CONTEXT)):
+        os.makedirs(os.path.dirname(Client.LOCAL_KFP_CONTEXT))
     with open(Client.LOCAL_KFP_CONTEXT, 'w') as f:
       json.dump(self._context_setting, f)
 
@@ -290,8 +290,6 @@ class Client(object):
     """
     if self._context_setting['namespace'] == "":
       if self._is_ipython() is True:
-        if not os.path.exists(Client.LOCAL_KFP_CONTEXT):
-          os.makedirs('~/.config/kfp/')
         NAMESPACE_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
         with open(NAMESPACE_PATH, "r") as f:
           namespace = f.read()
