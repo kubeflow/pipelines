@@ -135,7 +135,7 @@ func (in *ScheduledWorkflowCondition) DeepCopy() *ScheduledWorkflowCondition {
 func (in *ScheduledWorkflowList) DeepCopyInto(out *ScheduledWorkflowList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]ScheduledWorkflow, len(*in))
@@ -170,6 +170,11 @@ func (in *ScheduledWorkflowSpec) DeepCopyInto(out *ScheduledWorkflowSpec) {
 	if in.MaxConcurrency != nil {
 		in, out := &in.MaxConcurrency, &out.MaxConcurrency
 		*out = new(int64)
+		**out = **in
+	}
+	if in.NoCatchup != nil {
+		in, out := &in.NoCatchup, &out.NoCatchup
+		*out = new(bool)
 		**out = **in
 	}
 	if in.MaxHistory != nil {
