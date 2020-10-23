@@ -100,6 +100,11 @@ def _get_memory_number(memory_string: Text) -> float:
     return float(memory_string)
 
 
+def _sanitize_gpu_type(gpu_type: Text) -> Text:
+  """Converts the GPU type to conform the enum style."""
+  return gpu_type.replace('-', '_').upper()
+
+
 class ContainerOp(dsl.ContainerOp):
   """V2 ContainerOp class.
 
@@ -114,6 +119,7 @@ class ContainerOp(dsl.ContainerOp):
     super(ContainerOp, self).__init__(**kwargs)
 
   # Override resource specification calls.
+  @resource_setter
   def set_cpu_limit(self, cpu: Text) -> 'ContainerOp':
     """Sets the cpu provisioned for this task.
     
@@ -126,6 +132,7 @@ class ContainerOp(dsl.ContainerOp):
     """
     self._validate_cpu_string(cpu)
     self.container_spec.resources.cpu_limit = _get_cpu_number(cpu)
+    return self
 
   @resource_setter
   def set_memory_limit(self, memory: Text) -> 'ContainerOp':
@@ -140,17 +147,22 @@ class ContainerOp(dsl.ContainerOp):
     """
     self._validate_size_string(memory)
     self.container_spec.resources.memory_limit = _get_memory_number(memory)
+    return self
 
   @resource_setter
   def add_node_selector_constraint(
       self, label_name: Text, value: Text
   ) -> 'ContainerOp':
-    """Sets accelerator requirement for this task.
+    """Sets accelerator type requirement for this task.
     
     This function is designed to enable users to specify accelerator using
     a similar DSL syntax as KFP V1. Under the hood, it will directly specify
     the accelerator required in the IR proto, instead of relying on the
     k8s node selector API.
+
+    This function can be optionally used with set_gpu_limit to set the number
+    of accelerator required. Otherwise, by default the number requested will be
+    1.
     
     Args:
       label_name: only support 'cloud.google.com/gke-accelerator' now.
@@ -159,4 +171,23 @@ class ContainerOp(dsl.ContainerOp):
     Returns:
       self return to allow chained call with other resource specification.
     """
-    pass
+    accelerator_cnt = 1
+    if self.container_spec.resources.accelerator.count > 1:
+      # Reserve the number of already set.
+      accelerator_cnt = self.container_spec.resources.accelerator.count
+
+    accelerator_config = pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig(
+        type=_sanitize_gpu_type(value),
+        count=accelerator_cnt
+    )
+    self.container_spec.resources.accelerator.CopyFrom(accelerator_config)
+    return self
+
+  @resource_setter
+  def set_gpu_limit(self, count: int) -> 'ContainerOp':
+    """Sets the number of accelerator needed for this task."""
+    if count < 1:
+      raise ValueError('Accelerator count needs to be positive: Got: '
+                       '{}'.format(count))
+    self.container_spec.resources.accelerator.count = count
+    return self
