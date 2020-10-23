@@ -24,7 +24,6 @@ from typing import Any, Callable, List, Optional
 import kfp
 from kfp.compiler._k8s_helper import sanitize_k8s_name
 from kfp.components import _python_op
-from kfp.components import structures
 from kfp.v2 import dsl
 from kfp.v2.compiler import importer_node
 from kfp.v2.dsl import type_utils
@@ -106,6 +105,7 @@ class Compiler(object):
     importer_tasks = []
 
     for op in pipeline.ops.values():
+      print(op.container_spec)
       component_spec = op._metadata
       task = pipeline_spec.tasks.add()
       task.CopyFrom(op.task_spec)
