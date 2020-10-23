@@ -49,8 +49,7 @@ def resource_setter(func: Callable):
       raise ValueError('Expecting container_spec attribute of the container_op:'
                        ' {}'.format(container_op))
     if not isinstance(
-        container_op.container_spec,
-        pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec):
+        container_op.container_spec, _PipelineContainerSpec):
       raise TypeError('ContainerOp.container_spec is expected to be a '
                       'PipelineContainerSpec proto. Got: {} for {}'.format(
           type(container_op.container_spec), container_op.container_spec))
