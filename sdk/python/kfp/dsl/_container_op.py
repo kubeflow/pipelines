@@ -31,7 +31,9 @@ T = TypeVar('T')
 # type alias: either a string or a list of string
 StringOrStringList = Union[str, List[str]]
 
-_V2_PROXY_EXEMPT = frozenset(['set_cpu_limit', 'set_memory_limit', 'add_node_selector_constraint', 'set_gpu_limit'])
+_V2_PROXY_EXEMPT = frozenset([
+    'set_cpu_limit', 'set_memory_limit', 'add_node_selector_constraint',
+    'set_gpu_limit'])
 
 
 # util functions

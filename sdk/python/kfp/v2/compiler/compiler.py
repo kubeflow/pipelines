@@ -105,7 +105,6 @@ class Compiler(object):
     importer_tasks = []
 
     for op in pipeline.ops.values():
-      print(op.container_spec)
       component_spec = op._metadata
       task = pipeline_spec.tasks.add()
       task.CopyFrom(op.task_spec)
