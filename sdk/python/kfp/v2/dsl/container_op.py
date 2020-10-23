@@ -72,32 +72,34 @@ def _get_memory_number(memory_string: Text) -> float:
   # G, Gi, M, Mi, K, Ki).
   # See the meaning of different suffix at
   # https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-memory
+  # Also, ResourceSpec in pipeline IR expects a number in GB.
   if memory_string.endswith('E'):
-    return float(memory_string) * _E
+    return float(memory_string) * _E / _G
   elif memory_string.endswith('Ei'):
-    return float(memory_string) * _EI
+    return float(memory_string) * _EI / _G
   elif memory_string.endswith('P'):
-    return float(memory_string) * _P
+    return float(memory_string) * _P / _G
   elif memory_string.endswith('Pi'):
-    return float(memory_string) * _PI
+    return float(memory_string) * _PI / _G
   elif memory_string.endswith('T'):
-    return float(memory_string) * _T
+    return float(memory_string) * _T / _G
   elif memory_string.endswith('Ti'):
-    return float(memory_string) * _TI
+    return float(memory_string) * _TI / _G
   elif memory_string.endswith('G'):
-    return float(memory_string) * _G
-  elif memory_string.endswith('Gi'):
-    return float(memory_string) * _GI
-  elif memory_string.endswith('M'):
-    return float(memory_string) * _M
-  elif memory_string.endswith('Mi'):
-    return float(memory_string) * _MI
-  elif memory_string.endswith('K'):
-    return float(memory_string) * _K
-  elif memory_string.endswith('Ki'):
-    return float(memory_string) * _KI
-  else:
     return float(memory_string)
+  elif memory_string.endswith('Gi'):
+    return float(memory_string) * _GI / _G
+  elif memory_string.endswith('M'):
+    return float(memory_string) * _M / _G
+  elif memory_string.endswith('Mi'):
+    return float(memory_string) * _MI / _G
+  elif memory_string.endswith('K'):
+    return float(memory_string) * _K / _G
+  elif memory_string.endswith('Ki'):
+    return float(memory_string) * _KI / _G
+  else:
+    # By default interpret as a plain integer, in the unit of Bytes.
+    return float(memory_string) / _G
 
 
 def _sanitize_gpu_type(gpu_type: Text) -> Text:
