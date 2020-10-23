@@ -132,8 +132,7 @@ class ContainerOp(dsl.ContainerOp):
     return self._container_spec
 
   @container_spec.setter
-  def container_spec(self,
-      spec: pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec):
+  def container_spec(self, spec: _PipelineContainerSpec):
     if not isinstance(spec, _PipelineContainerSpec):
       raise TypeError('container_spec can only be PipelineContainerSpec. '
                       'Got: {}'.format(spec))
@@ -199,7 +198,7 @@ class ContainerOp(dsl.ContainerOp):
 
     accelerator_cnt = 1
     if self.container_spec.resources.accelerator.count > 1:
-      # Reserve the number of already set.
+      # Reserve the number if already set.
       accelerator_cnt = self.container_spec.resources.accelerator.count
 
     accelerator_config = _PipelineContainerSpec.ResourceSpec.AcceleratorConfig(
