@@ -116,7 +116,7 @@ func (c *FakeScheduledWorkflows) DeleteCollection(options *v1.DeleteOptions, lis
 // Patch applies the patch and returns the patched scheduledWorkflow.
 func (c *FakeScheduledWorkflows) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.ScheduledWorkflow, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(scheduledworkflowsResource, c.ns, name, data, subresources...), &v1beta1.ScheduledWorkflow{})
+		Invokes(testing.NewPatchSubresourceAction(scheduledworkflowsResource, c.ns, name, pt, data, subresources...), &v1beta1.ScheduledWorkflow{})
 
 	if obj == nil {
 		return nil, err

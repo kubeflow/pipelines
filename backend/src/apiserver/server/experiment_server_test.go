@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -394,7 +395,7 @@ func TestListExperiment_Multiuser(t *testing.T) {
 		} else {
 			if err != nil {
 				t.Errorf("TestListExperiment_Multiuser(%v) expect no error but got %v", tc.name, err)
-			} else if !cmp.Equal(tc.expectedExperiments, response.Experiments) {
+			} else if !cmp.Equal(tc.expectedExperiments, response.Experiments, cmpopts.IgnoreFields(api.Experiment{}, "CreatedAt")) {
 				t.Errorf("TestListExperiment_Multiuser(%v) expect (%+v) but got (%+v)", tc.name, tc.expectedExperiments, response.Experiments)
 			}
 		}
