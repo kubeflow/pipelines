@@ -13,13 +13,91 @@
 # limitations under the License.
 """IR-based ContainerOp."""
 
-from typing import List, Text, Union
+from typing import Callable, Text
 
 from kfp import dsl
 from kfp.v2.proto import pipeline_spec_pb2
 
-# type alias: either a string or a list of string
-StringOrStringList = Union[str, List[str]]
+# Unit constants for k8s size string.
+_E = 10 ** 18  # Exa
+_EI = 1 << 60  # Exa: power-of-two approximate
+_P = 10 ** 15  # Peta
+_PI = 1 << 50  # Peta: power-of-two approximate
+# noinspection PyShadowingBuiltins
+_T = 10 ** 12  # Tera
+_TI = 1 << 40  # Tera: power-of-two approximate
+_G = 10 ** 9  # Giga
+_GI = 1 << 30  # Giga: power-of-two approximate
+_M = 10 ** 6  # Mega
+_MI = 1 << 20  # Mega: power-of-two approximate
+_K = 10 ** 3  # Kilo
+_KI = 1 << 10  # Kilo: power-of-two approximate
+
+
+def resource_setter(func: Callable):
+  """Function decorator for common validation before setting resource spec."""
+
+  def resource_setter_wrapper(container_op: ContainerOp, **kwargs):
+    # Validate the container_op has right format of container_spec set.
+    if not hasattr(container_op, 'container_spec'):
+      raise ValueError('Expecting container_spec attribute of the container_op:'
+                       ' {}'.format(container_op))
+    if not isinstance(
+        container_op.container_spec,
+        pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec):
+      raise TypeError('ContainerOp.container_spec is expected to be a '
+                      'PipelineContainerSpec proto. Got: {} for {}'.format(
+          type(container_op.container_spec), container_op.container_spec))
+    # Run the resource setter function
+    func(container_op, **kwargs)
+
+  return resource_setter_wrapper
+
+
+def _get_cpu_number(cpu_string: Text) -> float:
+  """Converts the cpu string to number of vCPU core."""
+  # dsl.ContainerOp._validate_cpu_string guaranteed that cpu_string is either
+  # 1) a string can be converted to a float; or
+  # 2) a string followed by 'm', and it can be converted to a float.
+  if cpu_string.endswith('m'):
+    return float(cpu_string[:-1]) / 1000
+  else:
+    return float(cpu_string)
+
+
+def _get_memory_number(memory_string: Text) -> float:
+  """Converts the memory string to number of memory in GBi."""
+  # dsl.ContainerOp._validate_size_string guaranteed that memory_string
+  # represents an integer, optionally followed by one of (E, Ei, P, Pi, T, Ti,
+  # G, Gi, M, Mi, K, Ki).
+  # See the meaning of different suffix at
+  # https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-memory
+  if memory_string.endswith('E'):
+    return float(memory_string) * _E
+  elif memory_string.endswith('Ei'):
+    return float(memory_string) * _EI
+  elif memory_string.endswith('P'):
+    return float(memory_string) * _P
+  elif memory_string.endswith('Pi'):
+    return float(memory_string) * _PI
+  elif memory_string.endswith('T'):
+    return float(memory_string) * _T
+  elif memory_string.endswith('Ti'):
+    return float(memory_string) * _TI
+  elif memory_string.endswith('G'):
+    return float(memory_string) * _G
+  elif memory_string.endswith('Gi'):
+    return float(memory_string) * _GI
+  elif memory_string.endswith('M'):
+    return float(memory_string) * _M
+  elif memory_string.endswith('Mi'):
+    return float(memory_string) * _MI
+  elif memory_string.endswith('K'):
+    return float(memory_string) * _K
+  elif memory_string.endswith('Ki'):
+    return float(memory_string) * _KI
+  else:
+    return float(memory_string)
 
 
 class ContainerOp(dsl.ContainerOp):
@@ -47,7 +125,9 @@ class ContainerOp(dsl.ContainerOp):
       self return to allow chained call with other resource specification.
     """
     self._validate_cpu_string(cpu)
+    self.container_spec.resources.cpu_limit = _get_cpu_number(cpu)
 
+  @resource_setter
   def set_memory_limit(self, memory: Text) -> 'ContainerOp':
     """Sets the memory provisioned for this task.
     
@@ -59,7 +139,9 @@ class ContainerOp(dsl.ContainerOp):
       self return to allow chained call with other resource specification.
     """
     self._validate_size_string(memory)
+    self.container_spec.resources.memory_limit = _get_memory_number(memory)
 
+  @resource_setter
   def add_node_selector_constraint(
       self, label_name: Text, value: Text
   ) -> 'ContainerOp':
@@ -72,7 +154,7 @@ class ContainerOp(dsl.ContainerOp):
     
     Args:
       label_name: only support 'cloud.google.com/gke-accelerator' now.
-        value: name of the accelerator. For example, 'nvidia-tesla-k80', or
+      value: name of the accelerator. For example, 'nvidia-tesla-k80', or
         'tpu-v3'.
     Returns:
       self return to allow chained call with other resource specification.
