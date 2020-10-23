@@ -16,7 +16,6 @@ resources {
     count: 1
   }
 }
-
 """
 
 # Shorthand for PipelineContainerSpec
