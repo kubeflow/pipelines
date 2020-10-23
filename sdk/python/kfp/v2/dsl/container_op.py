@@ -37,7 +37,7 @@ _KI = 1 << 10  # Kilo: power-of-two approximate
 def resource_setter(func: Callable):
   """Function decorator for common validation before setting resource spec."""
 
-  def resource_setter_wrapper(container_op: ContainerOp, **kwargs):
+  def resource_setter_wrapper(container_op: 'ContainerOp', *args, **kwargs):
     # Validate the container_op has right format of container_spec set.
     if not hasattr(container_op, 'container_spec'):
       raise ValueError('Expecting container_spec attribute of the container_op:'
@@ -49,7 +49,7 @@ def resource_setter(func: Callable):
                       'PipelineContainerSpec proto. Got: {} for {}'.format(
           type(container_op.container_spec), container_op.container_spec))
     # Run the resource setter function
-    func(container_op, **kwargs)
+    func(container_op, *args, **kwargs)
 
   return resource_setter_wrapper
 
@@ -132,7 +132,7 @@ class ContainerOp(dsl.ContainerOp):
     Returns:
       self return to allow chained call with other resource specification.
     """
-    self._validate_cpu_string(cpu)
+    self.container._validate_cpu_string(cpu)
     self.container_spec.resources.cpu_limit = _get_cpu_number(cpu)
     return self
 
@@ -147,7 +147,7 @@ class ContainerOp(dsl.ContainerOp):
     Returns:
       self return to allow chained call with other resource specification.
     """
-    self._validate_size_string(memory)
+    self.container._validate_size_string(memory)
     self.container_spec.resources.memory_limit = _get_memory_number(memory)
     return self
 

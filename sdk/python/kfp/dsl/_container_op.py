@@ -31,6 +31,8 @@ T = TypeVar('T')
 # type alias: either a string or a list of string
 StringOrStringList = Union[str, List[str]]
 
+_V2_PROXY_EXEMPT = frozenset(['set_cpu_limit', 'set_memory_limit', 'add_node_selector_constraint', 'set_gpu_limit'])
+
 
 # util functions
 def deprecation_warning(func: Callable, op_name: str,
@@ -1071,6 +1073,10 @@ class ContainerOp(BaseOp):
         # decorator func to proxy a method in `Container` into `ContainerOp`
         def _proxy(proxy_attr):
             """Decorator func to proxy to ContainerOp.container"""
+            # Stop proxy for some methods in v2.
+            if (self.__class__.__module__ == 'kfp.v2.dsl.container_op'
+                and proxy_attr in _V2_PROXY_EXEMPT):
+                return getattr(self, proxy_attr)
 
             def _decorated(*args, **kwargs):
                 # execute method
