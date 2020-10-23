@@ -23,57 +23,58 @@ StringOrStringList = Union[str, List[str]]
 
 
 class ContainerOp(dsl.ContainerOp):
-    """V2 ContainerOp class.
-  
-    This class inherits an almost identical behavior as the previous ContainerOp
-    class. The diffs are in two aspects:
-    - The source of truth is migrating to the PipelineContainerSpec proto.
-    -
-    """
+  """V2 ContainerOp class.
 
-    def __init__(self, **kwargs):
-        super(ContainerOp, self).__init__(**kwargs)
+  This class inherits an almost identical behavior as the previous ContainerOp
+  class. The diffs are in two aspects:
+  - The source of truth is migrating to the PipelineContainerSpec proto.
+  - The implementation (and impact) of several APIs are different. For example,
+    resource spec will be set in the pipeline IR proto instead of using k8s API.
+  """
+
+  def __init__(self, **kwargs):
+    super(ContainerOp, self).__init__(**kwargs)
+
+  # Override resource specification calls.
+  def set_cpu_limit(self, cpu: Text) -> 'ContainerOp':
+    """Sets the cpu provisioned for this task.
     
-    # Override resource specification calls.
-    def set_cpu_limit(self, cpu: Text) -> 'ContainerOp':
-        """Sets the cpu provisioned for this task.
-        
-        Args:
-            cpu: a string indicating the amount of vCPU required by this task.
-                Please refer to dsl.ContainerOp._validate_cpu_string regarding
-                its format.
-        Returns:
-            self return to allow chained call with other resource specification.
-        """
-        self._validate_cpu_string(cpu)
+    Args:
+      cpu: a string indicating the amount of vCPU required by this task.
+        Please refer to dsl.ContainerOp._validate_cpu_string regarding
+        its format.
+    Returns:
+      self return to allow chained call with other resource specification.
+    """
+    self._validate_cpu_string(cpu)
+
+  def set_memory_limit(self, memory: Text) -> 'ContainerOp':
+    """Sets the memory provisioned for this task.
     
-    def set_memory_limit(self, memory: Text) -> 'ContainerOp':
-        """Sets the memory provisioned for this task.
-        
-        Args:
-            memory: a string described the amount of memory required by this
-                task. Please refer to dsl.ContainerOp._validate_size_string
-                regarding its format.
-        Returns:
-            self return to allow chained call with other resource specification.
-        """
-        self._validate_size_string(memory)
-        
-    def add_node_selector_constraint(self, label_name: Text, value: Text) -> 'ContainerOp':
-        """Sets accelerator requirement for this task.
-        
-        This function is designed to enable users to specify accelerator using
-        a similar DSL syntax as KFP V1. Under the hood, it will directly specify
-        the accelerator required in the IR proto, instead of relying on the
-        k8s node selector API.
-        
-        Args:
-            label_name: only support 'cloud.google.com/gke-accelerator' now.
-            value: name of the accelerator. For example, 'nvidia-tesla-k80', or
-                'tpu-v3'.
-        Returns:
-            self return to allow chained call with other resource specification.
-        """
-        pass
-        
+    Args:
+      memory: a string described the amount of memory required by this
+        task. Please refer to dsl.ContainerOp._validate_size_string
+        regarding its format.
+    Returns:
+      self return to allow chained call with other resource specification.
+    """
+    self._validate_size_string(memory)
+
+  def add_node_selector_constraint(
+      self, label_name: Text, value: Text
+  ) -> 'ContainerOp':
+    """Sets accelerator requirement for this task.
     
+    This function is designed to enable users to specify accelerator using
+    a similar DSL syntax as KFP V1. Under the hood, it will directly specify
+    the accelerator required in the IR proto, instead of relying on the
+    k8s node selector API.
+    
+    Args:
+      label_name: only support 'cloud.google.com/gke-accelerator' now.
+        value: name of the accelerator. For example, 'nvidia-tesla-k80', or
+        'tpu-v3'.
+    Returns:
+      self return to allow chained call with other resource specification.
+    """
+    pass
