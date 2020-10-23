@@ -142,6 +142,11 @@ class Client(object):
     self._experiment_api = kfp_server_api.api.experiment_service_api.ExperimentServiceApi(api_client)
     self._pipelines_api = kfp_server_api.api.pipeline_service_api.PipelineServiceApi(api_client)
     self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
+    if self._context_setting['namespace'] == "" and self.get_kfp_healthz().get('multi_user') is True and self._is_ipython() is True:
+      NAMESPACE_PATH = '/var/run/secrets/kubernetes.io/serviceaccount/namespace'
+      with open(NAMESPACE_PATH, 'r') as f:
+        current_namespace = f.read()
+        self.set_user_namespace(current_namespace)
 
   def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy, ssl_ca_cert, kube_context):
     config = kfp_server_api.configuration.Configuration()
@@ -302,13 +307,6 @@ class Client(object):
     Returns:
       namespace: kubernetes namespace from the local context file or empty if it wasn't set.
     """
-    if self._context_setting['namespace'] == "":
-      if self.get_kfp_healthz()['multi_user'] is True:
-        if self._is_ipython() is True:
-          NAMESPACE_PATH = '/var/run/secrets/kubernetes.io/serviceaccount/namespace'
-          with open(NAMESPACE_PATH, 'r') as f:
-            namespace = f.read()
-            self.set_user_namespace(namespace)
     return self._context_setting['namespace']
 
   def create_experiment(self, name, description=None, namespace=None):
