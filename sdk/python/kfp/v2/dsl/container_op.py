@@ -33,11 +33,17 @@ _MI = 1 << 20  # Mega: power-of-two approximate
 _K = 10 ** 3  # Kilo
 _KI = 1 << 10  # Kilo: power-of-two approximate
 
+_GKE_ACCELERATOR_LABEL = 'cloud.google.com/gke-accelerator'
+
+# Shorthand for PipelineContainerSpec
+_PipelineContainerSpec = pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec
+
 
 def resource_setter(func: Callable):
   """Function decorator for common validation before setting resource spec."""
 
-  def resource_setter_wrapper(container_op: 'ContainerOp', *args, **kwargs):
+  def resource_setter_wrapper(container_op: 'ContainerOp', *args,
+      **kwargs) -> 'ContainerOp':
     # Validate the container_op has right format of container_spec set.
     if not hasattr(container_op, 'container_spec'):
       raise ValueError('Expecting container_spec attribute of the container_op:'
@@ -49,7 +55,7 @@ def resource_setter(func: Callable):
                       'PipelineContainerSpec proto. Got: {} for {}'.format(
           type(container_op.container_spec), container_op.container_spec))
     # Run the resource setter function
-    func(container_op, *args, **kwargs)
+    return func(container_op, *args, **kwargs)
 
   return resource_setter_wrapper
 
@@ -74,29 +80,29 @@ def _get_memory_number(memory_string: Text) -> float:
   # https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-memory
   # Also, ResourceSpec in pipeline IR expects a number in GB.
   if memory_string.endswith('E'):
-    return float(memory_string) * _E / _G
+    return float(memory_string[:-1]) * _E / _G
   elif memory_string.endswith('Ei'):
-    return float(memory_string) * _EI / _G
+    return float(memory_string[:-2]) * _EI / _G
   elif memory_string.endswith('P'):
-    return float(memory_string) * _P / _G
+    return float(memory_string[:-1]) * _P / _G
   elif memory_string.endswith('Pi'):
-    return float(memory_string) * _PI / _G
+    return float(memory_string[:-2]) * _PI / _G
   elif memory_string.endswith('T'):
-    return float(memory_string) * _T / _G
+    return float(memory_string[:-1]) * _T / _G
   elif memory_string.endswith('Ti'):
-    return float(memory_string) * _TI / _G
+    return float(memory_string[:-2]) * _TI / _G
   elif memory_string.endswith('G'):
-    return float(memory_string)
+    return float(memory_string[:-1])
   elif memory_string.endswith('Gi'):
-    return float(memory_string) * _GI / _G
+    return float(memory_string[:-2]) * _GI / _G
   elif memory_string.endswith('M'):
-    return float(memory_string) * _M / _G
+    return float(memory_string[:-1]) * _M / _G
   elif memory_string.endswith('Mi'):
-    return float(memory_string) * _MI / _G
+    return float(memory_string[:-2]) * _MI / _G
   elif memory_string.endswith('K'):
-    return float(memory_string) * _K / _G
+    return float(memory_string[:-1]) * _K / _G
   elif memory_string.endswith('Ki'):
-    return float(memory_string) * _KI / _G
+    return float(memory_string[:-2]) * _KI / _G
   else:
     # By default interpret as a plain integer, in the unit of Bytes.
     return float(memory_string) / _G
@@ -119,6 +125,19 @@ class ContainerOp(dsl.ContainerOp):
 
   def __init__(self, **kwargs):
     super(ContainerOp, self).__init__(**kwargs)
+    self._container_spec = None
+
+  @property
+  def container_spec(self):
+    return self._container_spec
+
+  @container_spec.setter
+  def container_spec(self,
+      spec: pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec):
+    if not isinstance(spec, _PipelineContainerSpec):
+      raise TypeError('container_spec can only be PipelineContainerSpec. '
+                      'Got: {}'.format(spec))
+    self._container_spec = spec
 
   # Override resource specification calls.
   @resource_setter
@@ -173,12 +192,17 @@ class ContainerOp(dsl.ContainerOp):
     Returns:
       self return to allow chained call with other resource specification.
     """
+    if label_name != _GKE_ACCELERATOR_LABEL:
+      raise ValueError('Currently add_node_selector_constraint only supports '
+                       'accelerator spec, with node label {}. Got {} instead'.format(
+        _GKE_ACCELERATOR_LABEL, label_name))
+
     accelerator_cnt = 1
     if self.container_spec.resources.accelerator.count > 1:
       # Reserve the number of already set.
       accelerator_cnt = self.container_spec.resources.accelerator.count
 
-    accelerator_config = pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig(
+    accelerator_config = _PipelineContainerSpec.ResourceSpec.AcceleratorConfig(
         type=_sanitize_gpu_type(value),
         count=accelerator_cnt
     )
