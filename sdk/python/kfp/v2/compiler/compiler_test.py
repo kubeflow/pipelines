@@ -73,37 +73,45 @@ class CompilerTest(unittest.TestCase):
 
   def test_compile_pipeline_with_dsl_condition_should_raise_error(self):
 
-    class FlipCoinOp(dsl.ContainerOp):
+    flip_coin_op = components.load_component_from_text("""
+      name: flip coin
+      inputs:
+      - {name: name, type: String}
+      outputs:
+      - {name: result, type: String}
+      implementation:
+        container:
+          image: gcr.io/my-project/my-image:tag
+          args:
+          - {inputValue: name}
+          - {outputPath: result}
+      """)
 
-      def __init__(self, name):
-        super(FlipCoinOp, self).__init__(
-            name=name,
-            image='python:alpine3.6',
-            command=['sh', '-c'],
-            arguments=[
-                'python -c "import random; result = \'heads\' if random.randint(0,1) == 0 '
-                'else \'tails\'; print(result)" | tee /tmp/output'
-            ],
-            file_outputs={'output': '/tmp/output'})
-
-    class PrintOp(dsl.ContainerOp):
-
-      def __init__(self, name, msg):
-        super(PrintOp, self).__init__(
-            name=name, image='alpine:3.6', command=['echo', msg])
+    print_op = components.load_component_from_text("""
+      name: print
+      inputs:
+      - {name: name, type: String}
+      - {name: msg, type: String}
+      implementation:
+        container:
+          image: gcr.io/my-project/my-image:tag
+          args:
+          - {inputValue: name}
+          - {inputValue: msg}
+      """)
 
     @dsl.pipeline()
     def flipcoin():
-      flip = FlipCoinOp('flip')
+      flip = flip_coin_op('flip')
 
-      with dsl.Condition(flip.output == 'heads'):
-        flip2 = FlipCoinOp('flip-again')
+      with dsl.Condition(flip.outputs['result'] == 'heads'):
+        flip2 = flip_coin_op('flip-again')
 
-        with dsl.Condition(flip2.output == 'tails'):
-          PrintOp('print1', flip2.output)
+        with dsl.Condition(flip2.outputs['result'] == 'tails'):
+          print_op('print1', flip2.outputs['result'])
 
-      with dsl.Condition(flip.output == 'tails'):
-        PrintOp('print2', flip2.output)
+      with dsl.Condition(flip.outputs['result'] == 'tails'):
+        print_op('print2', flip2.outputs['results'])
 
     with self.assertRaises(NotImplementedError) as cm:
       compiler.Compiler().compile(flipcoin, 'output.json')
@@ -113,23 +121,30 @@ class CompilerTest(unittest.TestCase):
 
   def test_compile_pipeline_with_dsl_exithandler_should_raise_error(self):
 
-    def gcs_download_op(url):
-      return dsl.ContainerOp(
-          name='GCS - Download',
-          image='google/cloud-sdk:279.0.0',
-          command=['sh', '-c'],
-          arguments=['gsutil cat $0 | tee $1', url, '/tmp/results.txt'],
-          file_outputs={
-              'data': '/tmp/results.txt',
-          })
+    gcs_download_op = components.load_component_from_text("""
+      name: GCS - Download
+      inputs:
+      - {name: url, type: String}
+      outputs:
+      - {name: result, type: String}
+      implementation:
+        container:
+          image: gcr.io/my-project/my-image:tag
+          args:
+          - {inputValue: url}
+          - {outputPath: result}
+      """)
 
-    def echo_op(text):
-      return dsl.ContainerOp(
-          name='echo',
-          image='library/bash:4.4.23',
-          command=['sh', '-c'],
-          arguments=['echo "$0"', text],
-      )
+    echo_op = components.load_component_from_text("""
+      name: echo
+      inputs:
+      - {name: msg, type: String}
+      implementation:
+        container:
+          image: gcr.io/my-project/my-image:tag
+          args:
+          - {inputValue: msg}
+      """)
 
     @dsl.pipeline()
     def download_and_print(url='gs://ml-pipeline/shakespeare/shakespeare1.txt'):
@@ -139,7 +154,7 @@ class CompilerTest(unittest.TestCase):
 
       with dsl.ExitHandler(exit_task):
         download_task = gcs_download_op(url)
-        echo_task = echo_op(download_task.output)
+        echo_task = echo_op(download_task.outputs['result'])
 
     with self.assertRaises(NotImplementedError) as cm:
       compiler.Compiler().compile(download_and_print, 'output.json')
