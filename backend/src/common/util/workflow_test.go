@@ -157,7 +157,7 @@ func TestToStringForStore(t *testing.T) {
 		},
 	})
 	assert.Equal(t,
-		"{\"metadata\":{\"name\":\"WORKFLOW_NAME\",\"creationTimestamp\":null},\"spec\":{\"templates\":null,\"entrypoint\":\"\",\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
+		"{\"metadata\":{\"name\":\"WORKFLOW_NAME\",\"creationTimestamp\":null},\"spec\":{\"templates\":null,\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
 		workflow.ToStringForStore())
 }
 

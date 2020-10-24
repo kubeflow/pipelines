@@ -79,7 +79,8 @@ else
     # reference: https://cloud.google.com/compute/docs/access/service-accounts#accesscopesiam
     SCOPE_ARG="--scopes=storage-rw,cloud-platform"
   fi
-  gcloud beta container clusters create ${TEST_CLUSTER} ${SCOPE_ARG} ${NODE_POOL_CONFIG_ARG} ${WI_ARG}
+  # Use regular release channel to keep up with newly created clusters in Google Cloud Marketplace.
+  gcloud container clusters create ${TEST_CLUSTER} --release-channel regular ${SCOPE_ARG} ${NODE_POOL_CONFIG_ARG} ${WI_ARG}
 fi
 
 gcloud container clusters get-credentials ${TEST_CLUSTER}

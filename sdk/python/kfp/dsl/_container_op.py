@@ -1025,7 +1025,7 @@ class ContainerOp(BaseOp):
                 " The components can be created manually (or, in case of python, using kfp.components.create_component_from_func or func_to_container_op)"
                 " and then loaded using kfp.components.load_component_from_file, load_component_from_uri or load_component_from_text: "
                 "https://kubeflow-pipelines.readthedocs.io/en/latest/source/kfp.components.html#kfp.components.load_component_from_file",
-                category=DeprecationWarning,
+                category=FutureWarning,
             )
 
         self.attrs_with_pipelineparams = BaseOp.attrs_with_pipelineparams + ['_container', 'artifact_arguments', '_parameter_arguments'] #Copying the BaseOp class variable!

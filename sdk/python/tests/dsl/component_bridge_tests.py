@@ -241,7 +241,7 @@ class TestComponentBridge(unittest.TestCase):
             deprecation_messages = list(str(message) for message in warning_messages if message.category == DeprecationWarning)
             self.assertListEqual(deprecation_messages, [])
 
-        with self.assertWarnsRegex(DeprecationWarning, expected_regex='reusable'):
+        with self.assertWarnsRegex(FutureWarning, expected_regex='reusable'):
             kfp.dsl.ContainerOp(name='name', image='image')
 
     def test_prevent_passing_container_op_as_argument(self):
