@@ -40,11 +40,13 @@ class ContainerOpTest(unittest.TestCase):
   def test_chained_call_resource_setter(self):
     task = container_op.ContainerOp(name='test_task', image='python:3.7')
     task.container_spec = _PipelineContainerSpec()
-    task.set_cpu_limit(
-        '1').set_memory_limit(
-        '1G').add_node_selector_constraint(
+    (task.
+     set_cpu_limit('1').
+     set_memory_limit('1G').
+     add_node_selector_constraint(
         'cloud.google.com/gke-accelerator',
-        'nvidia-tesla-k80').set_gpu_limit(1)
+        'nvidia-tesla-k80').
+     set_gpu_limit(1))
 
     expected_container_spec = text_format.Parse(
         _EXPECTED_CONTAINER_WITH_RESOURCE, _PipelineContainerSpec())

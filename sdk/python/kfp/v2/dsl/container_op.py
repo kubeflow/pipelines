@@ -70,41 +70,41 @@ def _get_cpu_number(cpu_string: Text) -> float:
     return float(cpu_string)
 
 
-def _get_memory_number(memory_string: Text) -> float:
-  """Converts the memory string to number of memory in GBi."""
+def _get_resource_number(resource_string: Text) -> float:
+  """Converts the resource string to number of resource in GB."""
   # dsl.ContainerOp._validate_size_string guaranteed that memory_string
   # represents an integer, optionally followed by one of (E, Ei, P, Pi, T, Ti,
   # G, Gi, M, Mi, K, Ki).
   # See the meaning of different suffix at
   # https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-memory
   # Also, ResourceSpec in pipeline IR expects a number in GB.
-  if memory_string.endswith('E'):
-    return float(memory_string[:-1]) * _E / _G
-  elif memory_string.endswith('Ei'):
-    return float(memory_string[:-2]) * _EI / _G
-  elif memory_string.endswith('P'):
-    return float(memory_string[:-1]) * _P / _G
-  elif memory_string.endswith('Pi'):
-    return float(memory_string[:-2]) * _PI / _G
-  elif memory_string.endswith('T'):
-    return float(memory_string[:-1]) * _T / _G
-  elif memory_string.endswith('Ti'):
-    return float(memory_string[:-2]) * _TI / _G
-  elif memory_string.endswith('G'):
-    return float(memory_string[:-1])
-  elif memory_string.endswith('Gi'):
-    return float(memory_string[:-2]) * _GI / _G
-  elif memory_string.endswith('M'):
-    return float(memory_string[:-1]) * _M / _G
-  elif memory_string.endswith('Mi'):
-    return float(memory_string[:-2]) * _MI / _G
-  elif memory_string.endswith('K'):
-    return float(memory_string[:-1]) * _K / _G
-  elif memory_string.endswith('Ki'):
-    return float(memory_string[:-2]) * _KI / _G
+  if resource_string.endswith('E'):
+    return float(resource_string[:-1]) * _E / _G
+  elif resource_string.endswith('Ei'):
+    return float(resource_string[:-2]) * _EI / _G
+  elif resource_string.endswith('P'):
+    return float(resource_string[:-1]) * _P / _G
+  elif resource_string.endswith('Pi'):
+    return float(resource_string[:-2]) * _PI / _G
+  elif resource_string.endswith('T'):
+    return float(resource_string[:-1]) * _T / _G
+  elif resource_string.endswith('Ti'):
+    return float(resource_string[:-2]) * _TI / _G
+  elif resource_string.endswith('G'):
+    return float(resource_string[:-1])
+  elif resource_string.endswith('Gi'):
+    return float(resource_string[:-2]) * _GI / _G
+  elif resource_string.endswith('M'):
+    return float(resource_string[:-1]) * _M / _G
+  elif resource_string.endswith('Mi'):
+    return float(resource_string[:-2]) * _MI / _G
+  elif resource_string.endswith('K'):
+    return float(resource_string[:-1]) * _K / _G
+  elif resource_string.endswith('Ki'):
+    return float(resource_string[:-2]) * _KI / _G
   else:
     # By default interpret as a plain integer, in the unit of Bytes.
-    return float(memory_string) / _G
+    return float(resource_string) / _G
 
 
 def _sanitize_gpu_type(gpu_type: Text) -> Text:
@@ -165,7 +165,7 @@ class ContainerOp(dsl.ContainerOp):
       self return to allow chained call with other resource specification.
     """
     self.container._validate_size_string(memory)
-    self.container_spec.resources.memory_limit = _get_memory_number(memory)
+    self.container_spec.resources.memory_limit = _get_resource_number(memory)
     return self
 
   @resource_setter

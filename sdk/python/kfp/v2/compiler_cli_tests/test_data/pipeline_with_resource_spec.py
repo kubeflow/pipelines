@@ -38,15 +38,17 @@ def my_pipeline(
     n_epochs: int = 200
 ):
   ingestor = ingestion_op(input_location=input_location)
-  _ = training_op(
+  _ = (training_op(
       examples=ingestor.outputs['examples'],
       schema=ingestor.outputs['schema'],
       optimizer=optimizer,
-      n_epochs=n_epochs
-  ).set_cpu_limit('4').set_memory_limit('14Gi').add_node_selector_constraint(
+      n_epochs=n_epochs).
+       set_cpu_limit('4').
+       set_memory_limit('14Gi').
+       add_node_selector_constraint(
       'cloud.google.com/gke-accelerator',
-      'tpu-v3'
-  ).set_gpu_limit(1)
+      'tpu-v3').
+       set_gpu_limit(1))
 
 
 if __name__ == '__main__':
