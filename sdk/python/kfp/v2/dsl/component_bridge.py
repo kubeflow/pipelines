@@ -116,7 +116,10 @@ def create_container_op_from_component_and_arguments(
           'Unsupported output type: "{}". The type must be one of the following: {}.'
           .format(output.type, type_utils.all_types()))
 
-  outputs_dict = {output_spec.name: output_spec for output_spec in component_spec.outputs or []}
+  outputs_dict = {
+      output_spec.name: output_spec
+      for output_spec in component_spec.outputs or []
+  }
 
   def _input_artifact_placeholder(input_key: str) -> str:
     return "{{{{$.inputs.artifacts['{}'].uri}}}}".format(input_key)
@@ -136,15 +139,21 @@ def create_container_op_from_component_and_arguments(
     else:
       return _output_artifact_placeholder(output_key)
 
-  # IR placeholders are decided merely based on the declared type of the input.
-  # It doesn't matter wether it's InputValuePlaceholder or InputPathPlaceholder
-  # from component_spec.
-  placeholder_arguments = {
-      input_spec.name: _input_artifact_placeholder(input_spec.name)
-      if type_utils.is_artifact_type(input_spec.type) else
-      _input_parameter_placeholder(input_spec.name)
-      for input_spec in component_spec.inputs or []
-  }
+  placeholder_arguments = {}
+  for input_spec in component_spec.inputs or []:
+    # Skip inputs not presented in arguments list.
+    if input_spec.name not in arguments:
+      continue
+
+    # IR placeholders are decided merely based on the declared type of the
+    # input. It doesn't matter wether it's InputValuePlaceholder or
+    # InputPathPlaceholder from component_spec.
+    if type_utils.is_artifact_type(input_spec.type):
+      placeholder_arguments[input_spec.name] = _input_artifact_placeholder(
+          input_spec.name)
+    else:
+      placeholder_arguments[input_spec.name] = _input_parameter_placeholder(
+          input_spec.name)
 
   resolved_cmd_ir = _resolve_command_line_and_paths(
       component_spec=component_spec,
