@@ -57,6 +57,8 @@ class CompilerCliTests(unittest.TestCase):
   def test_pipeline_with_if_placeholder(self):
     self._test_compile_py_to_json('pipeline_with_if_placeholder')
 
+  def test_pipeline_with_concat_placeholder(self):
+    self._test_compile_py_to_json('pipeline_with_concat_placeholder')
 
 if __name__ == '__main__':
   unittest.main()
