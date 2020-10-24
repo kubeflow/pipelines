@@ -15,7 +15,7 @@
 import pathlib
 
 import kfp
-from kfp import dsl
+from kfp.v2 import dsl
 import kfp.v2.compiler as compiler
 
 
