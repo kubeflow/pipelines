@@ -1,6 +1,6 @@
 {
   "pipelineInfo": {
-    "name": "two-step-pipeline-with-ontology"
+    "name": "two-step-pipeline-with-resource-spec"
   },
   "tasks": [
     {

@@ -29,8 +29,8 @@ training_op = kfp.components.load_component_from_file(
 
 
 @dsl.pipeline(
-    name='two-step-pipeline-with-ontology',
-    description='A linear two-step pipeline with artifact ontology types.'
+    name='two-step-pipeline-with-resource-spec',
+    description='A linear two-step pipeline with resource specification.'
 )
 def my_pipeline(
     input_location='gs://test-bucket/pipeline_root',
