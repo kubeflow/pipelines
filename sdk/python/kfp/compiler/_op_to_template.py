@@ -185,7 +185,7 @@ def _op_to_template(op: BaseOp):
     processed_op = _process_base_ops(op)
 
     if isinstance(op, dsl.ContainerOp):
-        output_artifact_paths = OrderedDict()
+        output_artifact_paths = OrderedDict(op.output_artifact_paths)
         # This should have been as easy as output_artifact_paths.update(op.file_outputs), but the _outputs_to_json function changes the output names and we must do the same here, so that the names are the same
         output_artifact_paths.update(sorted(((param.full_name, processed_op.file_outputs[param.name]) for param in processed_op.outputs.values()), key=lambda x: x[0]))
 
