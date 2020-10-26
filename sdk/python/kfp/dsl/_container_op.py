@@ -1090,6 +1090,9 @@ class ContainerOp(BaseOp):
                 # only proxy public callables
                 setattr(self, attr_to_proxy, _proxy(attr_to_proxy))
 
+        if output_artifact_paths:
+            warnings.warn('The output_artifact_paths parameter is deprecated since SDK v0.1.32. Use the file_outputs parameter instead. file_outputs now supports outputting big data.', DeprecationWarning)
+
         # Special handling for the mlpipeline-ui-metadata and mlpipeline-metrics outputs that should always be saved as artifacts
         # TODO: Remove when outputs are always saved as artifacts
         for output_name, path in dict(file_outputs).items():
@@ -1103,9 +1106,6 @@ class ContainerOp(BaseOp):
         self.artifact_arguments = artifact_arguments
         self.file_outputs = file_outputs
         self.output_artifact_paths = output_artifact_paths or {}
-        if output_artifact_paths:
-            file_outputs.update(output_artifact_paths)
-            warnings.warn('The output_artifact_paths parameter is deprecated since SDK v0.1.32. Use the file_outputs parameter instead. file_outputs now supports outputting big data.', DeprecationWarning)
 
         self._metadata = None
         self._parameter_arguments = None
