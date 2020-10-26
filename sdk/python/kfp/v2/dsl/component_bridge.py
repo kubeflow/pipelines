@@ -23,6 +23,7 @@ from kfp.components._components import _resolve_command_line_and_paths
 from kfp.components._naming import _sanitize_python_function_name
 from kfp.components._naming import generate_unique_name_conversion_table
 from kfp.dsl import types
+from kfp.v2.dsl import container_op
 from kfp.v2.dsl import type_utils
 from kfp.v2.proto import pipeline_spec_pb2
 
@@ -32,7 +33,7 @@ def create_container_op_from_component_and_arguments(
     component_spec: structures.ComponentSpec,
     arguments: Mapping[str, Any],
     component_ref: structures.ComponentReference = None,
-) -> dsl.ContainerOp:
+) -> container_op.ContainerOp:
   """Instantiates ContainerOp object.
 
   Args:
@@ -177,7 +178,7 @@ def create_container_op_from_component_and_arguments(
 
   old_warn_value = dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING
   dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = True
-  task = dsl.ContainerOp(
+  task = container_op.ContainerOp(
       name=component_spec.name or _default_component_name,
       image=container_spec.image,
       command=resolved_cmd.command,

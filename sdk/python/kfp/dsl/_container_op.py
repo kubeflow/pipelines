@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import collections
+
 import re
 import warnings
 from typing import Any, Dict, List, TypeVar, Union, Callable, Optional, Sequence
@@ -1084,9 +1084,11 @@ class ContainerOp(BaseOp):
         # iter thru container and attach a proxy func to the container method
         for attr_to_proxy in dir(self._container):
             func = getattr(self._container, attr_to_proxy)
-            # ignore private methods
-            if hasattr(func, '__call__') and (attr_to_proxy[0] != '_') and (
-                    attr_to_proxy not in ignore_set):
+            # ignore private methods, and bypass method overrided by subclasses.
+            if (not hasattr(self, attr_to_proxy)
+                and hasattr(func, '__call__')
+                and (attr_to_proxy[0] != '_')
+                and (attr_to_proxy not in ignore_set)):
                 # only proxy public callables
                 setattr(self, attr_to_proxy, _proxy(attr_to_proxy))
 
