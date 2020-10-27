@@ -55,10 +55,10 @@ fi
 
 echo "Deploying version ${FULL_VERSION_TAG}"
 
-if docker_tag_exists "$REMOTE_REPOSITORY" "$FULL_VERSION_TAG"; then
-  >&2 echo "Tag ${REMOTE_REPOSITORY}:${FULL_VERSION_TAG} already exists. Cannot overwrite an existing image."
-  exit 1
-fi
+# if docker_tag_exists "$REMOTE_REPOSITORY" "$FULL_VERSION_TAG"; then
+#   >&2 echo "Tag ${REMOTE_REPOSITORY}:${FULL_VERSION_TAG} already exists. Cannot overwrite an existing image."
+#   exit 1
+# fi
 
 # Build the image
 FULL_VERSION_IMAGE="${REMOTE_REPOSITORY}:${FULL_VERSION_TAG}"
