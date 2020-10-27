@@ -37,9 +37,9 @@ class WorkteamComponentTestCase(unittest.TestCase):
                 "MemberDefinitions": [
                     {
                         "CognitoMemberDefinition": {
-                            "UserPool": "",
+                            "UserPool": None,
                             "UserGroup": "",
-                            "ClientId": "",
+                            "ClientId": None,
                         }
                     }
                 ],
@@ -62,9 +62,9 @@ class WorkteamComponentTestCase(unittest.TestCase):
                 "MemberDefinitions": [
                     {
                         "CognitoMemberDefinition": {
-                            "UserPool": "",
+                            "UserPool": None,
                             "UserGroup": "",
-                            "ClientId": "",
+                            "ClientId": None,
                         }
                     }
                 ],

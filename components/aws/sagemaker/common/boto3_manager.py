@@ -102,10 +102,7 @@ class Boto3Manager(object):
         session = Boto3Manager._get_boto3_session(region, assume_role_arn)
         session_config = Config(
             user_agent=f"sagemaker-on-kubeflow-pipelines-v{component_version}",
-            retries={
-                'max_attempts': 10,
-                'mode': 'standard'
-            }
+            retries={"max_attempts": 10, "mode": "standard"},
         )
         client = session.client(
             "sagemaker",

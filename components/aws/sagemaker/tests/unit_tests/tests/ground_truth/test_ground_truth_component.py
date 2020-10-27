@@ -45,7 +45,7 @@ class GroundTruthComponentTestCase(unittest.TestCase):
             request,
             {
                 "LabelingJobName": "my-labeling-job",
-                "LabelAttributeName": "",
+                "LabelAttributeName": None,
                 "InputConfig": {
                     "DataSource": {
                         "S3DataSource": {"ManifestS3Uri": "s3://fake-bucket/manifest"}

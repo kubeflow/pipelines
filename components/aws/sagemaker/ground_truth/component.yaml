@@ -71,7 +71,7 @@ inputs:
     objects that can be labeled by human workers at the same time., default: '0'}
 - {name: workforce_task_price, type: String, description: The price that you pay for
     each task performed by a public worker in USD. Specify to the tenth fractions
-    of a cent. Format as '0.000'., default: '0.0'}
+    of a cent. Format as '0.000'., default: '0.000'}
 outputs:
 - {name: output_manifest_location, description: The Amazon S3 bucket location of the
     manifest file for labeled data.}
@@ -79,7 +79,7 @@ outputs:
     SageMaker model trained as part of automated data labeling.}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:1.0.0
+    image: redbackthomson/aws-kubeflow-sagemaker:latest
     command: [python3]
     args:
     - ground_truth/src/sagemaker_ground_truth_component.py

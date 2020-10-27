@@ -23,8 +23,8 @@ inputs:
   default: '{}'}
 - {name: model_package, type: String, description: The name or Amazon Resource Name
     (ARN) of the model package to use to create the model., default: ''}
-- {name: secondary_containers, type: JsonObject, description: A list of dicts that
-    specifies the additional containers in the inference pipeline., default: '{}'}
+- {name: secondary_containers, type: JsonArray, description: A list of dicts that
+    specifies the additional containers in the inference pipeline., default: '[]'}
 - {name: vpc_security_group_ids, type: String, description: 'The VPC security group
     IDs, in the form sg-xxxxxxxx.', default: ''}
 - {name: vpc_subnets, type: String, description: The ID of the subnets in the VPC
@@ -37,7 +37,7 @@ outputs:
 - {name: model_name, description: The name of the model created by SageMaker.}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:1.0.0
+    image: redbackthomson/aws-kubeflow-sagemaker:latest
     command: [python3]
     args:
     - model/src/sagemaker_model_component.py

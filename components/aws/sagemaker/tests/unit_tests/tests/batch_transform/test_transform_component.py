@@ -69,7 +69,7 @@ class TransformComponentTestCase(unittest.TestCase):
                 },
                 "TransformResources": {
                     "InstanceType": "ml.c5.18xlarge",
-                    "InstanceCount": None,
+                    "InstanceCount": 1,
                     "VolumeKmsKeyId": "",
                 },
                 "DataProcessing": {
@@ -138,7 +138,7 @@ class TransformComponentTestCase(unittest.TestCase):
                 },
                 "TransformResources": {
                     "InstanceType": "ml.c5.18xlarge",
-                    "InstanceCount": None,
+                    "InstanceCount": 1,
                     "VolumeKmsKeyId": "",
                 },
                 "DataProcessing": {

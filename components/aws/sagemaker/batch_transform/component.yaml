@@ -48,7 +48,7 @@ inputs:
 - {name: instance_type, type: String, description: The ML compute instance type for
     the transform job., default: ml.m4.xlarge}
 - {name: instance_count, type: Integer, description: The number of ML compute instances
-    to use in the transform job., default: ''}
+    to use in the transform job., default: '1'}
 - {name: resource_encryption_key, type: String, description: The AWS KMS key that
     Amazon SageMaker uses to encrypt data on the storage volume attached to the ML
     compute instance(s)., default: ''}
@@ -56,7 +56,7 @@ outputs:
 - {name: output_location, description: S3 URI of the transform job results.}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:1.0.0
+    image: redbackthomson/aws-kubeflow-sagemaker:latest
     command: [python3]
     args:
     - batch_transform/src/sagemaker_transform_component.py

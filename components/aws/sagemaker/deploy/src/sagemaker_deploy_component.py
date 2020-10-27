@@ -88,9 +88,7 @@ class SageMakerDeployComponent(SageMakerComponent):
 
     def _get_job_status(self) -> SageMakerJobStatus:
         # Wait for endpoint creation to complete
-        response = self._sm_client.describe_endpoint(
-            EndpointName=self._endpoint_name
-        )
+        response = self._sm_client.describe_endpoint(EndpointName=self._endpoint_name)
         status = response["EndpointStatus"]
 
         if status == "InService":

@@ -67,6 +67,7 @@ class SageMakerWorkteamSpec(
             input_type=str,
             required=False,
             description="A list of identifiers for user groups separated by commas.",
+            default="",
         ),
         client_id=InputValidator(
             input_type=str,
@@ -77,6 +78,7 @@ class SageMakerWorkteamSpec(
             input_type=str,
             required=False,
             description="The ARN for the SNS topic to which notifications should be published.",
+            default="",
         ),
         **vars(COMMON_INPUTS),
     )
