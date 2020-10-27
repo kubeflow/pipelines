@@ -67,6 +67,7 @@ print("Connected to the metadata store")
 ARGO_OUTPUTS_ANNOTATION_KEY = 'workflows.argoproj.io/outputs'
 ARGO_TEMPLATE_ANNOTATION_KEY = 'workflows.argoproj.io/template'
 KFP_COMPONENT_SPEC_ANNOTATION_KEY = 'pipelines.kubeflow.org/component_spec'
+KFP_PARAMETER_ARGUMENTS_ANNOTATION_KEY = 'pipelines.kubeflow.org/arguments.parameters'
 METADATA_EXECUTION_ID_LABEL_KEY = 'pipelines.kubeflow.org/metadata_execution_id'
 METADATA_CONTEXT_ID_LABEL_KEY = 'pipelines.kubeflow.org/metadata_context_id'
 METADATA_ARTIFACT_IDS_ANNOTATION_KEY = 'pipelines.kubeflow.org/metadata_artifact_ids'
@@ -184,6 +185,17 @@ while True:
                     run_id=argo_workflow_name, # We can switch to internal run IDs once backend starts adding them
                 )
 
+                # Saving input paramater arguments
+                execution_custom_properties = {}
+                if KFP_PARAMETER_ARGUMENTS_ANNOTATION_KEY in obj.metadata.annotations:
+                    parameter_arguments_json = obj.metadata.annotations[KFP_PARAMETER_ARGUMENTS_ANNOTATION_KEY]
+                    try:
+                        parameter_arguments = json.loads(parameter_arguments_json)
+                        for paramater_name, parameter_value in parameter_arguments.items():
+                            execution_custom_properties['input:' + paramater_name] = parameter_value
+                    except Exception:
+                        pass
+
                 # Adding new execution to the database
                 execution = create_new_execution_in_existing_run_context(
                     store=mlmd_store,
@@ -193,6 +205,7 @@ while True:
                     pipeline_name=argo_workflow_name,
                     run_id=argo_workflow_name,
                     instance_id=component_name,
+                    custom_properties=execution_custom_properties,
                 )
 
                 argo_input_artifacts = argo_template.get('inputs', {}).get('artifacts', [])
