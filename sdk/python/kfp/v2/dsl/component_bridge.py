@@ -71,7 +71,7 @@ def create_container_op_from_component_and_arguments(
             argument_value.op_name or '')
         pipeline_task_spec.inputs.artifacts[input_name].output_artifact_key = (
             argument_value.name)
-      elif type_utils.is_parameter_type(input_type):
+      else:
         if argument_value.op_name:
           pipeline_task_spec.inputs.parameters[
               input_name].task_output_parameter.producer_task = (
@@ -82,10 +82,6 @@ def create_container_op_from_component_and_arguments(
         else:
           pipeline_task_spec.inputs.parameters[
               input_name].runtime_value.runtime_parameter = argument_value.name
-      else:
-        raise NotImplementedError(
-            'Unsupported input type: "{}". The type must be one of the following: {}.'
-            .format(input_type, type_utils.all_types()))
     elif isinstance(argument_value, str):
       pipeline_task_spec.inputs.parameters[
           input_name].runtime_value.constant_value.string_value = argument_value
@@ -109,13 +105,9 @@ def create_container_op_from_component_and_arguments(
       pipeline_task_spec.outputs.artifacts[
           output.name].artifact_type.instance_schema = (
               type_utils.get_artifact_type_schema(output.type))
-    elif type_utils.is_parameter_type(output.type):
+    else:
       pipeline_task_spec.outputs.parameters[
           output.name].type = type_utils.get_parameter_type(output.type)
-    else:
-      raise NotImplementedError(
-          'Unsupported output type: "{}". The type must be one of the following: {}.'
-          .format(output.type, type_utils.all_types()))
 
   outputs_dict = {
       output_spec.name: output_spec
@@ -135,10 +127,10 @@ def create_container_op_from_component_and_arguments(
     return "{{{{$.outputs.parameters['{}'].output_file}}}}".format(output_key)
 
   def _resolve_output_path_placeholder(output_key: str) -> str:
-    if type_utils.is_parameter_type(outputs_dict[output_key].type):
-      return _output_parameter_placeholder(output_key)
-    else:
+    if type_utils.is_artifact_type(outputs_dict[output_key].type):
       return _output_artifact_placeholder(output_key)
+    else:
+      return _output_parameter_placeholder(output_key)
 
   placeholder_arguments = {}
   for input_spec in component_spec.inputs or []:
