@@ -62,25 +62,21 @@ class SageMakerWorkteamSpec(
             input_type=str,
             required=False,
             description="An identifier for a user pool. The user pool must be in the same region as the service that you are calling.",
-            default="",
         ),
         user_groups=InputValidator(
             input_type=str,
             required=False,
             description="A list of identifiers for user groups separated by commas.",
-            default="",
         ),
         client_id=InputValidator(
             input_type=str,
             required=False,
             description="An identifier for an application client. You must create the app client ID using Amazon Cognito.",
-            default="",
         ),
         sns_topic=InputValidator(
             input_type=str,
             required=False,
             description="The ARN for the SNS topic to which notifications should be published.",
-            default="",
         ),
         **vars(COMMON_INPUTS),
     )

@@ -186,6 +186,7 @@ class SageMakerTransformSpec(
             input_type=int,
             required=False,
             description="The number of ML compute instances to use in the transform job.",
+            default="1",
         ),
         resource_encryption_key=InputValidator(
             input_type=str,

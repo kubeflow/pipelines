@@ -97,10 +97,10 @@ class SageMakerCreateModelSpec(
             default="",
         ),
         secondary_containers=InputValidator(
-            input_type=SpecInputParsers.yaml_or_json_dict,
+            input_type=SpecInputParsers.yaml_or_json_list,
             required=False,
             description="A list of dicts that specifies the additional containers in the inference pipeline.",
-            default={},
+            default=[],
         ),
         vpc_security_group_ids=InputValidator(
             input_type=str,

@@ -81,7 +81,7 @@ class SageMakerGroundTruthSpec(
             description="The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf.",
         ),
         job_name=InputValidator(
-            input_type=str, default="", description="The name of the labeling job."
+            input_type=str, description="The name of the labeling job."
         ),
         label_attribute_name=InputValidator(
             input_type=str,
@@ -215,19 +215,19 @@ class SageMakerGroundTruthSpec(
             input_type=int,
             required=False,
             description="The length of time that a task remains available for labelling by human workers.",
-            default=0,
+            default="0",
         ),
         max_concurrent_tasks=InputValidator(
             input_type=int,
             required=False,
             description="The maximum number of data objects that can be labeled by human workers at the same time.",
-            default=0,
+            default="0",
         ),
         workforce_task_price=InputValidator(
             input_type=float,
             required=False,
             description="The price that you pay for each task performed by a public worker in USD. Specify to the tenth fractions of a cent. Format as '0.000'.",
-            default=0.000,
+            default="0.000",
         ),
         **vars(COMMON_INPUTS),
     )
