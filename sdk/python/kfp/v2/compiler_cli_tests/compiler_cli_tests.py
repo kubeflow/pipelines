@@ -63,6 +63,9 @@ class CompilerCliTests(unittest.TestCase):
   def test_pipeline_with_resource_spec(self):
     self._test_compile_py_to_json('pipeline_with_resource_spec')
 
+  def test_pipeline_with_various_io_types(self):
+    self._test_compile_py_to_json('pipeline_with_various_io_types')
+
 
 if __name__ == '__main__':
   unittest.main()

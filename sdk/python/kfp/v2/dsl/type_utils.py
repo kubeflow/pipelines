@@ -54,12 +54,13 @@ _ARTIFACT_TYPES_MAPPING = {
 # The values are the corresponding IR parameter primitive types.
 _PARAMETER_TYPES_MAPPING = {
     'integer': pipeline_spec_pb2.PrimitiveType.INT,
+    'int': pipeline_spec_pb2.PrimitiveType.INT,
     'double': pipeline_spec_pb2.PrimitiveType.DOUBLE,
-    'string': pipeline_spec_pb2.PrimitiveType.STRING,
+    'float': pipeline_spec_pb2.PrimitiveType.DOUBLE,
 }
 
 
-def is_artifact_type(type_name: str) -> bool:
+def is_artifact_type(type_name: Optional[str]) -> bool:
   """Check if a ComponentSpec I/O type is considered as an artifact type.
 
   Args:
@@ -67,26 +68,10 @@ def is_artifact_type(type_name: str) -> bool:
 
   Returns:
     True if the type name maps to an artifact type else False.
-
-  Raises:
-    AttributeError: if type_name os not a string type.
   """
+  if not isinstance(type_name, str):
+    return False
   return type_name.lower() in _ARTIFACT_TYPES_MAPPING
-
-
-def is_parameter_type(type_name: str) -> bool:
-  """Check if a ComponentSpec I/O type is considered as a parameter type.
-
-  Args:
-    type_name: type name of the ComponentSpec I/O type.
-
-  Returns:
-    True if the type name maps to a parameter type else False.
-
-  Raises:
-    AttributeError: if type_name os not a string type.
-  """
-  return type_name.lower() in _PARAMETER_TYPES_MAPPING
 
 
 def get_artifact_type_schema(type_name: str) -> Optional[str]:
@@ -105,28 +90,20 @@ def get_artifact_type_schema(type_name: str) -> Optional[str]:
 
 
 def get_parameter_type(
-    type_name: str) -> Optional[pipeline_spec_pb2.PrimitiveType]:
+    type_name: Optional[str]) -> pipeline_spec_pb2.PrimitiveType:
   """Get the IR I/O parameter type for the given ComponentSpec I/O type.
 
   Args:
     type_name: type name of the ComponentSpec I/O type.
 
   Returns:
-    The enum value of the mapped IR I/O primitive type, or None if not found.
-
-  Raises:
-    AttributeError: if type_name os not a string type.
+    The enum value of the mapped IR I/O primitive type. Default to
+    PrimitiveType.STRING for unrecognized type names.
   """
-  return _PARAMETER_TYPES_MAPPING.get(type_name.lower())
-
-
-def all_types() -> List[str]:
-  """Get all supported type names that can be used in component spec.
-
-  Returns:
-    The list of type names.
-  """
-  return [*_ARTIFACT_TYPES_MAPPING, *_PARAMETER_TYPES_MAPPING]
+  if not isinstance(type_name, str):
+    return pipeline_spec_pb2.PrimitiveType.STRING
+  return _PARAMETER_TYPES_MAPPING.get(type_name.lower(),
+                                      pipeline_spec_pb2.PrimitiveType.STRING)
 
 
 def get_input_artifact_type_schema(

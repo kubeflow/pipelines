@@ -22,19 +22,13 @@ from kfp.v2.proto import pipeline_spec_pb2 as pb
 class TypeUtilsTest(unittest.TestCase):
 
   _artifact_types = ['GCSPath', 'Model', 'Dataset', 'Schema', 'Metrics']
-  _parameter_types = ['Integer', 'Double', 'String']
+  _non_artifact_types = ['String', 'Integer', 'Double', 'Arbitary', '', None]
 
   def test_is_artifact_type(self):
     for type_name in self._artifact_types:
       self.assertTrue(type_utils.is_artifact_type(type_name))
-    for type_name in self._parameter_types:
+    for type_name in self._non_artifact_types:
       self.assertFalse(type_utils.is_artifact_type(type_name))
-
-  def test_is_parameter_type(self):
-    for type_name in self._artifact_types:
-      self.assertFalse(type_utils.is_parameter_type(type_name))
-    for type_name in self._parameter_types:
-      self.assertTrue(type_utils.is_parameter_type(type_name))
 
   def test_get_artifact_type_schema(self):
     self.assertEqual('title: kfp.Artifact\ntype: object\nproperties:\n',
@@ -42,11 +36,11 @@ class TypeUtilsTest(unittest.TestCase):
     self.assertEqual('title: kfp.Model\ntype: object\nproperties:\n',
                      type_utils.get_artifact_type_schema('Model'))
     self.assertEqual('title: kfp.Dataset\ntype: object\nproperties:\n',
-                         type_utils.get_artifact_type_schema('Dataset'))
+                     type_utils.get_artifact_type_schema('Dataset'))
     self.assertEqual('title: kfp.Metrics\ntype: object\nproperties:\n',
-                         type_utils.get_artifact_type_schema('Metrics'))
+                     type_utils.get_artifact_type_schema('Metrics'))
     self.assertEqual('title: kfp.Schema\ntype: object\nproperties:\n',
-                         type_utils.get_artifact_type_schema('Schema'))
+                     type_utils.get_artifact_type_schema('Schema'))
     self.assertEqual(None, type_utils.get_artifact_type_schema('dummy'))
     with self.assertRaises(AttributeError):
       type_utils.get_artifact_type_schema(None)
@@ -54,20 +48,17 @@ class TypeUtilsTest(unittest.TestCase):
   def test_get_parameter_type(self):
     self.assertEqual(pb.PrimitiveType.INT,
                      type_utils.get_parameter_type('Integer'))
+    self.assertEqual(pb.PrimitiveType.INT, type_utils.get_parameter_type('Int'))
     self.assertEqual(pb.PrimitiveType.DOUBLE,
                      type_utils.get_parameter_type('Double'))
+    self.assertEqual(pb.PrimitiveType.DOUBLE,
+                     type_utils.get_parameter_type('Float'))
     self.assertEqual(pb.PrimitiveType.STRING,
                      type_utils.get_parameter_type('String'))
-    self.assertEqual(None, type_utils.get_parameter_type('dummy'))
-    with self.assertRaises(AttributeError):
-      type_utils.get_parameter_type(None)
-
-  def test_all_types(self):
-    expected_list = [
-        type_name.lower()
-        for type_name in self._artifact_types + self._parameter_types
-    ]
-    self.assertCountEqual(expected_list, type_utils.all_types())
+    self.assertEqual(pb.PrimitiveType.STRING,
+                     type_utils.get_parameter_type('arbitrary type'))
+    self.assertEqual(pb.PrimitiveType.STRING,
+                     type_utils.get_parameter_type(None))
 
   def test_get_input_artifact_type_schema(self):
     input_specs = [
