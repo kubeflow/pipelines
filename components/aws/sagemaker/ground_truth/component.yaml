@@ -1,164 +1,153 @@
-name: 'SageMaker - Ground Truth'
-description: |
-  Ground Truth Jobs in SageMaker
+name: SageMaker - Ground Truth
+description: Ground Truth Jobs in SageMaker
 inputs:
-  - name: region
-    description: 'The region where the cluster launches.'
-    type: String
-  - name: role
-    description: 'The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf.'
-    type: String
-  - name: job_name
-    description: 'The name of the labeling job.'
-    type: String
-  - name: label_attribute_name
-    description: 'The attribute name to use for the label in the output manifest file. Default is the job name.'
-    default: ''
-    type: String
-  - name: manifest_location
-    description: 'The Amazon S3 location of the manifest file that describes the input data objects.'
-    type: String
-  - name: output_location
-    description: 'The Amazon S3 location to write output data.'
-    type: String
-  - name: output_encryption_key
-    description: 'The AWS Key Management Service ID of the key used to encrypt the output data.'
-    default: ''
-    type: String
-  - name: task_type
-    description: 'Built in image classification, bounding box, text classification, or semantic segmentation, or custom. If custom, please provide pre- and post-labeling task lambda functions.'
-    type: String
-  - name: worker_type
-    description: 'The workteam for data labeling, either public, private, or vendor.'
-    type: String
-  - name: workteam_arn
-    description: 'The ARN of the work team assigned to complete the tasks.'
-    default: ''
-    type: String
-  - name: no_adult_content
-    description: 'If true, your data is free of adult content.'
-    default: 'False'
-    type: Bool
-  - name: no_ppi
-    description: 'If true, your data is free of personally identifiable information.'
-    default: 'False'
-    type: Bool
-  - name: label_category_config
-    description: 'The S3 URL of the JSON structured file that defines the categories used to label the data objects.'
-    default: ''
-    type: String
-  - name: max_human_labeled_objects
-    description: 'The maximum number of objects that can be labeled by human workers.'
-    default: '0'
-    type: Integer
-  - name: max_percent_objects
-    description: 'The maximum number of input data objects that should be labeled.'
-    default: '0'
-    type: Integer
-  - name: enable_auto_labeling
-    description: 'Enables auto-labeling, only for bounding box, text classification, and image classification.'
-    default: 'False'
-    type: Bool
-  - name: initial_model_arn
-    description: 'The ARN of the final model used for a previous auto-labeling job.'
-    default: ''
-    type: String
-  - name: resource_encryption_key
-    description: 'The AWS KMS key that Amazon SageMaker uses to encrypt data on the storage volume attached to the ML compute instance(s).'
-    default: ''
-    type: String
-  - name: ui_template
-    description: 'The Amazon S3 bucket location of the UI template.'
-    type: String
-  - name: pre_human_task_function
-    description: 'The ARN of a Lambda function that is run before a data object is sent to a human worker.'
-    default: ''
-    type: String
-  - name: post_human_task_function
-    description: 'The ARN of a Lambda function implements the logic for annotation consolidation.'
-    default: ''
-    type: String
-  - name: task_keywords
-    description: 'Keywords used to describe the task so that workers on Amazon Mechanical Turk can discover the task.'
-    default: ''
-    type: String
-  - name: title
-    description: 'A title for the task for your human workers.'
-    type: String
-  - name: description
-    description: 'A description of the task for your human workers.'
-    type: String
-  - name: num_workers_per_object
-    description: 'The number of human workers that will label an object.'
-    type: Integer
-  - name: time_limit
-    description: 'The amount of time that a worker has to complete a task in seconds'
-    type: Integer
-  - name: task_availibility
-    description: 'The length of time that a task remains available for labeling by human workers.'
-    default: ''
-    type: Integer
-  - name: max_concurrent_tasks
-    description: 'The maximum number of data objects that can be labeled by human workers at the same time.'
-    default: ''
-    type: Integer
-  - name: workforce_task_price
-    description: 'The price that you pay for each task performed by a public worker in USD. Specify to the tenth fractions of a cent. Format as "0.000".'
-    default: '0.000'
-    type: Float
-  - name: endpoint_url
-    description: 'The endpoint URL for the private link VPC endpoint.'
-    default: ''
-    type: String
-  - name: assume_role
-    description: 'The ARN of an IAM role to assume when connecting to SageMaker.'
-    default: ''
-    type: String
-  - name: tags
-    description: 'Key-value pairs to categorize AWS resources.'
-    default: '{}'
-    type: JsonObject
+- {name: region, type: String, description: The region for the SageMaker resource.}
+- {name: endpoint_url, type: String, description: The URL to use when communicating
+    with the SageMaker service., default: ''}
+- {name: assume_role, type: String, description: The ARN of an IAM role to assume
+    when connecting to SageMaker., default: ''}
+- {name: tags, type: JsonObject, description: 'An array of key-value pairs, to categorize
+    AWS resources.', default: '{}'}
+- {name: role, type: String, description: The Amazon Resource Name (ARN) that Amazon
+    SageMaker assumes to perform tasks on your behalf.}
+- {name: job_name, type: String, description: The name of the labeling job., default: ''}
+- {name: label_attribute_name, type: String, description: The attribute name to use
+    for the label in the output manifest file. Default is the job name., default: ''}
+- {name: manifest_location, type: String, description: The Amazon S3 location of the
+    manifest file that describes the input data objects.}
+- {name: output_location, type: String, description: The Amazon S3 location to write
+    output data.}
+- {name: output_encryption_key, type: String, description: The AWS KMS key that Amazon
+    SageMaker uses to encrypt the model artifacts., default: ''}
+- {name: task_type, type: String, description: 'Built in image classification, bounding
+    box, text classification, or semantic segmentation, or custom. If custom, please
+    provide pre- and post-labeling task lambda functions.'}
+- {name: worker_type, type: String, description: 'The workteam for data labeling,
+    either public, private, or vendor.'}
+- {name: workteam_arn, type: String, description: The ARN of the work team assigned
+    to complete the tasks., default: ''}
+- name: no_adult_content
+  type: Bool
+  description: If true, your data is free of adult content.
+  default: "False"
+- name: no_ppi
+  type: Bool
+  description: If true, your data is free of personally identifiable information.
+  default: "False"
+- {name: label_category_config, type: String, description: The S3 URL of the JSON
+    structured file that defines the categories used to label the data objects., default: ''}
+- {name: max_human_labeled_objects, type: Integer, description: The maximum number
+    of objects that can be labeled by human workers., default: '0'}
+- {name: max_percent_objects, type: Integer, description: The maximum percentatge
+    of input data objects that should be labeled., default: '0'}
+- name: enable_auto_labeling
+  type: Bool
+  description: Enables auto-labeling, only for bounding box, text classification,
+    and image classification.
+  default: "False"
+- {name: initial_model_arn, type: String, description: The ARN of the final model
+    used for a previous auto-labeling job., default: ''}
+- {name: resource_encryption_key, type: String, description: The AWS KMS key that
+    Amazon SageMaker uses to encrypt data on the storage volume attached to the ML
+    compute instance(s)., default: ''}
+- {name: ui_template, type: String, description: The Amazon S3 bucket location of
+    the UI template.}
+- {name: pre_human_task_function, type: String, description: The ARN of a Lambda function
+    that is run before a data object is sent to a human worker., default: ''}
+- {name: post_human_task_function, type: String, description: The ARN of a Lambda
+    function implements the logic for annotation consolidation., default: ''}
+- {name: task_keywords, type: String, description: Keywords used to describe the task
+    so that workers on Amazon Mechanical Turk can discover the task., default: ''}
+- {name: title, type: String, description: A title for the task for your human workers.}
+- {name: description, type: String, description: A description of the task for your
+    human workers.}
+- {name: num_workers_per_object, type: Integer, description: The number of human workers
+    that will label an object.}
+- {name: time_limit, type: Integer, description: The amount of time that a worker
+    has to complete a task in seconds}
+- {name: task_availibility, type: Integer, description: The length of time that a
+    task remains available for labelling by human workers., default: '0'}
+- {name: max_concurrent_tasks, type: Integer, description: The maximum number of data
+    objects that can be labeled by human workers at the same time., default: '0'}
+- {name: workforce_task_price, type: String, description: The price that you pay for
+    each task performed by a public worker in USD. Specify to the tenth fractions
+    of a cent. Format as '0.000'., default: '0.000'}
 outputs:
-  - {name: output_manifest_location,  description: 'The Amazon S3 bucket location of the manifest file for labeled data.'}
-  - {name: active_learning_model_arn, description: 'The ARN for the most recent Amazon SageMaker model trained as part of automated data labeling.'}
+- {name: output_manifest_location, description: The Amazon S3 bucket location of the
+    manifest file for labeled data.}
+- {name: active_learning_model_arn, description: The ARN for the most recent Amazon
+    SageMaker model trained as part of automated data labeling.}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:0.9.0
-    command: ['python3']
-    args: [
-      ground_truth.py,
-      --region, {inputValue: region},
-      --endpoint_url, {inputValue: endpoint_url},
-      --assume_role, {inputValue: assume_role},
-      --role, {inputValue: role},
-      --job_name, {inputValue: job_name},
-      --label_attribute_name, {inputValue: label_attribute_name},
-      --manifest_location, {inputValue: manifest_location},
-      --output_location, {inputValue: output_location},
-      --output_encryption_key, {inputValue: output_encryption_key},
-      --task_type, {inputValue: task_type},
-      --worker_type, {inputValue: worker_type},
-      --workteam_arn, {inputValue: workteam_arn},
-      --no_adult_content, {inputValue: no_adult_content},
-      --no_ppi, {inputValue: no_ppi},
-      --label_category_config, {inputValue: label_category_config},
-      --max_human_labeled_objects, {inputValue: max_human_labeled_objects},
-      --max_percent_objects, {inputValue: max_percent_objects},
-      --enable_auto_labeling, {inputValue: enable_auto_labeling},
-      --initial_model_arn, {inputValue: initial_model_arn},
-      --resource_encryption_key, {inputValue: resource_encryption_key},
-      --ui_template, {inputValue: ui_template},
-      --pre_human_task_function, {inputValue: pre_human_task_function},
-      --post_human_task_function, {inputValue: post_human_task_function},
-      --task_keywords, {inputValue: task_keywords},
-      --title, {inputValue: title},
-      --description, {inputValue: description},
-      --num_workers_per_object, {inputValue: num_workers_per_object},
-      --time_limit, {inputValue: time_limit},
-      --task_availibility, {inputValue: task_availibility},
-      --max_concurrent_tasks, {inputValue: max_concurrent_tasks},
-      --workforce_task_price, {inputValue: workforce_task_price},
-      --tags, {inputValue: tags},
-      --output_manifest_location_output_path, {outputPath: output_manifest_location},
-      --active_learning_model_arn_output_path, {outputPath: active_learning_model_arn}
-    ]
+    image: amazon/aws-sagemaker-kfp-components:1.0.0
+    command: [python3]
+    args:
+    - ground_truth/src/sagemaker_ground_truth_component.py
+    - --region
+    - {inputValue: region}
+    - --endpoint_url
+    - {inputValue: endpoint_url}
+    - --assume_role
+    - {inputValue: assume_role}
+    - --tags
+    - {inputValue: tags}
+    - --role
+    - {inputValue: role}
+    - --job_name
+    - {inputValue: job_name}
+    - --label_attribute_name
+    - {inputValue: label_attribute_name}
+    - --manifest_location
+    - {inputValue: manifest_location}
+    - --output_location
+    - {inputValue: output_location}
+    - --output_encryption_key
+    - {inputValue: output_encryption_key}
+    - --task_type
+    - {inputValue: task_type}
+    - --worker_type
+    - {inputValue: worker_type}
+    - --workteam_arn
+    - {inputValue: workteam_arn}
+    - --no_adult_content
+    - {inputValue: no_adult_content}
+    - --no_ppi
+    - {inputValue: no_ppi}
+    - --label_category_config
+    - {inputValue: label_category_config}
+    - --max_human_labeled_objects
+    - {inputValue: max_human_labeled_objects}
+    - --max_percent_objects
+    - {inputValue: max_percent_objects}
+    - --enable_auto_labeling
+    - {inputValue: enable_auto_labeling}
+    - --initial_model_arn
+    - {inputValue: initial_model_arn}
+    - --resource_encryption_key
+    - {inputValue: resource_encryption_key}
+    - --ui_template
+    - {inputValue: ui_template}
+    - --pre_human_task_function
+    - {inputValue: pre_human_task_function}
+    - --post_human_task_function
+    - {inputValue: post_human_task_function}
+    - --task_keywords
+    - {inputValue: task_keywords}
+    - --title
+    - {inputValue: title}
+    - --description
+    - {inputValue: description}
+    - --num_workers_per_object
+    - {inputValue: num_workers_per_object}
+    - --time_limit
+    - {inputValue: time_limit}
+    - --task_availibility
+    - {inputValue: task_availibility}
+    - --max_concurrent_tasks
+    - {inputValue: max_concurrent_tasks}
+    - --workforce_task_price
+    - {inputValue: workforce_task_price}
+    - --output_manifest_location_output_path
+    - {outputPath: output_manifest_location}
+    - --active_learning_model_arn_output_path
+    - {outputPath: active_learning_model_arn}
