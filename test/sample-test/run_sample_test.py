@@ -41,6 +41,7 @@ class PySampleChecker(object):
     self._input = input
     self._output = output
     self._result = result
+    self._host = host
     self._namespace = namespace
     self._host = host
     self._run_pipeline = None
