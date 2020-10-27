@@ -43,7 +43,6 @@ class PySampleChecker(object):
     self._result = result
     self._host = host
     self._namespace = namespace
-    self._host = host
     self._run_pipeline = None
     self._test_timeout = None
 
