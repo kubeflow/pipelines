@@ -65,8 +65,7 @@ Follow these steps to use the component in a pipeline:
     ```python
     %%capture --no-stderr
 
-    KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar.gz'
-    !pip3 install $KFP_PACKAGE --upgrade
+    !pip3 install kfp --upgrade
     ```
 
 2. Load the component using the Kubeflow pipeline's SDK:
@@ -74,7 +73,7 @@ Follow these steps to use the component in a pipeline:
     ```python
     import kfp.components as comp
 
-    dataproc_submit_sparksql_job_op = comp.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/1.0.0/components/gcp/dataproc/submit_sparksql_job/component.yaml')
+    dataproc_submit_sparksql_job_op = comp.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/38771da09094640cd2786a4b5130b26ea140f864/components/gcp/dataproc/submit_sparksql_job/component.yaml')
     help(dataproc_submit_sparksql_job_op)
     ```
 

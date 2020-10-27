@@ -2,7 +2,7 @@ name: Automl prediction service batch predict
 inputs:
 - name: model_path
 - name: gcs_input_uris
-  type: String
+  type: JsonArray
   optional: true
 - name: gcs_output_uri_prefix
   type: String
@@ -90,7 +90,7 @@ implementation:
       _missing_arg = object()
       _parser = argparse.ArgumentParser(prog='Automl prediction service batch predict', description='')
       _parser.add_argument("--model-path", dest="model_path", type=str, required=True, default=_missing_arg)
-      _parser.add_argument("--gcs-input-uris", dest="gcs_input_uris", type=str, required=False, default=_missing_arg)
+      _parser.add_argument("--gcs-input-uris", dest="gcs_input_uris", type=json.loads, required=False, default=_missing_arg)
       _parser.add_argument("--gcs-output-uri-prefix", dest="gcs_output_uri_prefix", type=str, required=False, default=_missing_arg)
       _parser.add_argument("--bq-input-uri", dest="bq_input_uri", type=str, required=False, default=_missing_arg)
       _parser.add_argument("--bq-output-uri", dest="bq_output_uri", type=str, required=False, default=_missing_arg)

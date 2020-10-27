@@ -234,6 +234,10 @@ func (r *ResourceManager) DeletePipeline(pipelineId string) error {
 	return nil
 }
 
+func (r *ResourceManager) UpdatePipelineDefaultVersion(pipelineId string, versionId string) error {
+    return r.pipelineStore.UpdatePipelineDefaultVersion(pipelineId, versionId)
+}
+
 func (r *ResourceManager) CreatePipeline(name string, description string, pipelineFile []byte) (*model.Pipeline, error) {
 	// Extract the parameter from the pipeline
 	params, err := util.GetParameters(pipelineFile)
@@ -330,6 +334,11 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	if err = json.Unmarshal(workflowSpecManifestBytes, &workflow); err != nil {
 		return nil, util.NewInternalServerError(err,
 			"Failed to unmarshal workflow spec manifest. Workflow bytes: %s", string(workflowSpecManifestBytes))
+	}
+	if workflow.Workflow == nil {
+		return nil, util.Wrap(
+			util.NewResourceNotFoundError("WorkflowSpecManifest", apiRun.GetName()),
+			"Failed to fetch workflow spec manifest.")
 	}
 
 	parameters := toParametersMap(apiRun.GetPipelineSpec().GetParameters())
@@ -582,6 +591,11 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 		return nil, util.NewInternalServerError(err,
 			"Failed to unmarshal workflow spec manifest. Workflow bytes: %s", string(workflowSpecManifestBytes))
 	}
+	if workflow.Workflow == nil {
+		return nil, util.Wrap(
+			util.NewResourceNotFoundError("WorkflowSpecManifest", apiJob.GetName()),
+			"Failed to fetch workflow spec manifest.")
+	}
 
 	// Verify no additional parameter provided
 	err = workflow.VerifyParameters(toParametersMap(apiJob.GetPipelineSpec().GetParameters()))
@@ -697,7 +711,7 @@ func (r *ResourceManager) DeleteJob(jobID string) error {
 func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error {
 	if _, ok := workflow.ObjectMeta.Labels[util.LabelKeyWorkflowRunId]; !ok {
 		// Skip reporting if the workflow doesn't have the run id label
-		return util.NewInvalidInputError("Workflow missing the Run ID label")
+		return util.NewInvalidInputError("Workflow[%s] missing the Run ID label", workflow.Name)
 	}
 	runId := workflow.ObjectMeta.Labels[util.LabelKeyWorkflowRunId]
 	jobId := workflow.ScheduledWorkflowUUIDAsStringOrEmpty()
@@ -709,7 +723,14 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 		// If workflow's final state has being persisted, the workflow should be garbage collected.
 		err := r.getWorkflowClient(workflow.Namespace).Delete(workflow.Name, &v1.DeleteOptions{})
 		if err != nil {
-			return util.NewInternalServerError(err, "Failed to delete the completed workflow for run %s", runId)
+			// A fix for kubeflow/pipelines#4484, persistence agent might have an outdated item in its workqueue, so it will
+			// report workflows that no longer exist. It's important to return a not found error, so that persistence
+			// agent won't retry again.
+			if util.IsNotFound(err) {
+				return util.NewNotFoundError(err, "Failed to delete the completed workflow for run %s", runId)
+			} else {
+				return util.NewInternalServerError(err, "Failed to delete the completed workflow for run %s", runId)
+			}
 		}
 		// TODO(jingzhang36): find a proper way to pass collectMetricsFlag here.
 		workflowGCCounter.Inc()
@@ -736,6 +757,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 		runDetail := &model.RunDetail{
 			Run: model.Run{
 				UUID:             runId,
+				ExperimentUUID:   experimentRef.ReferenceUUID,
 				DisplayName:      workflow.Name,
 				Name:             workflow.Name,
 				StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
@@ -779,7 +801,15 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 	if workflow.IsInFinalState() {
 		err := AddWorkflowLabel(r.getWorkflowClient(workflow.Namespace), workflow.Name, util.LabelKeyWorkflowPersistedFinalState, "true")
 		if err != nil {
-			return util.Wrap(err, "Failed to add PersistedFinalState label to workflow")
+			message := fmt.Sprintf("Failed to add PersistedFinalState label to workflow %s", workflow.GetName())
+			// A fix for kubeflow/pipelines#4484, persistence agent might have an outdated item in its workqueue, so it will
+			// report workflows that no longer exist. It's important to return a not found error, so that persistence
+			// agent won't retry again.
+			if util.IsNotFound(err) {
+				return util.NewNotFoundError(err, message)
+			} else {
+				return util.Wrapf(err, message)
+			}
 		}
 	}
 
@@ -989,7 +1019,7 @@ func (r *ResourceManager) getDefaultSA() string {
 	return common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccount, defaultPipelineRunnerServiceAccount)
 }
 
-func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion, pipelineFile []byte) (*model.PipelineVersion, error) {
+func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion, pipelineFile []byte, updateDefaultVersion bool) (*model.PipelineVersion, error) {
 	// Extract the parameters from the pipeline
 	params, err := util.GetParameters(pipelineFile)
 	if err != nil {
@@ -1015,7 +1045,7 @@ func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion,
 		Parameters:    params,
 		CodeSourceUrl: apiVersion.CodeSourceUrl,
 	}
-	version, err = r.pipelineStore.CreatePipelineVersion(version)
+	version, err = r.pipelineStore.CreatePipelineVersion(version, updateDefaultVersion)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline version failed")
 	}

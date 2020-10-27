@@ -4,6 +4,23 @@ The version of the AWS SageMaker Components is determined by the docker image ta
 Repository:  https://hub.docker.com/repository/docker/amazon/aws-sagemaker-kfp-components
 
 ---------------------------------------------
+**Change log for version 1.0.0**
+- First release to guarantee backward compatibility within major version
+- Internally refactored components
+
+> Pull requests : [#4336](https://github.com/kubeflow/pipelines/pull/4336/)
+
+**Change log for version 0.9.0**
+- Add functionality to Update SageMaker Endpoint for Deploy component
+
+> Pull requests : [#4424](https://github.com/kubeflow/pipelines/pull/4424/)
+
+**Change log for version 0.8.0**
+- Add functionality to configure SageMaker Debugger for Training component
+
+> Pull requests : [#4283](https://github.com/kubeflow/pipelines/pull/4283/)
+
+
 **Change log for version 0.7.0**
 - Add functionality to assume role when sending SageMaker requests
 
@@ -29,7 +46,7 @@ Repository:  https://hub.docker.com/repository/docker/amazon/aws-sagemaker-kfp-c
 
 
 **Change log for version 0.5.1**
-- Update region support for GroudTruth component
+- Update region support for GroundTruth component
 - Make `label_category_config` an optional parameter in Ground Truth component
 
 > Pull requests : [#3932](https://github.com/kubeflow/pipelines/pull/3932)
@@ -66,7 +83,7 @@ Repository:  https://hub.docker.com/repository/docker/amazon/aws-sagemaker-kfp-c
 > Pull requests : [#3518](https://github.com/kubeflow/pipelines/pull/3518)
 
 
-**Change log for version 2.0 (Apr 14, 2020)**
+**Change log for version 0.2.0 (Apr 14, 2020)**
 - Fix bug in Ground Truth component
 - Add user agent header to boto3 client
   

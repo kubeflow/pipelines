@@ -21,6 +21,8 @@ get package updates.)
 Run `npm install --save <package>` (or `npm i -S <package>` for short) to install runtime dependencies and save them to package.json.
 Run `npm install --save-dev <package>` (or `npm i -D <package>` for short) to install dev dependencies and save them to package.json.
 
+To upgrade @kubeflow/frontend, run `npm i -S kubeflow/frontend#<commit-hash>`. Get the commit hash from https://github.com/kubeflow/frontend/commits/master.
+
 ### Daily workflow
 You will see a lot of `npm run xxx` commands in instructions below, the actual script being run is defined in the "scripts" field of [package.json](https://github.com/kubeflow/pipelines/blob/91db95a601fa7fffcb670cb744a5dcaeb08290ae/frontend/package.json#L32). Development common scripts are maintained in package.json, and we use npm to call them conveniently.
 

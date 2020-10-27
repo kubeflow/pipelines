@@ -108,6 +108,7 @@ class Client(object):
     cookies: CookieJar object containing cookies that will be passed to the pipelines API.
     proxy: HTTP or HTTPS proxy server
     ssl_ca_cert: Cert for proxy
+    kube_context: String name of context within kubeconfig to use, defaults to the current-context set within kubeconfig.
     userid: The ID of the user creating the client.
   """
 
@@ -119,16 +120,21 @@ class Client(object):
   KUBEFLOW_USERID_HEADER = 'kubeflow-userid'
 
   # TODO: Wrap the configurations for different authentication methods.
-  def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None, existing_token=None, cookies=None, proxy=None, ssl_ca_cert=None, userid=None):
+  def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None, existing_token=None, cookies=None, proxy=None, ssl_ca_cert=None, kube_context=None, userid=None):
     """Create a new instance of kfp client.
     """
     host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
     self._uihost = os.environ.get(KF_PIPELINES_UI_ENDPOINT_ENV, host)
-    config = self._load_config(host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy, ssl_ca_cert)
+    config = self._load_config(host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy, ssl_ca_cert, kube_context)
     # Save the loaded API client configuration, as a reference if update is
     # needed.
+    self._load_context_setting_or_default()
     self._existing_config = config
-    api_client = kfp_server_api.api_client.ApiClient(config, cookie=cookies)
+    if cookies is None:
+      cookies = self._context_setting.get('client_authentication_cookie')
+    api_client = kfp_server_api.api_client.ApiClient(config, cookie=cookies,
+        header_name=self._context_setting.get('client_authentication_header_name'),
+        header_value=self._context_setting.get('client_authentication_header_value'))
     if userid:
       api_client.set_default_header(Client.KUBEFLOW_USERID_HEADER, userid)
     _add_generated_apis(self, kfp_server_api, api_client)
@@ -137,9 +143,8 @@ class Client(object):
     self._experiment_api = kfp_server_api.api.experiment_service_api.ExperimentServiceApi(api_client)
     self._pipelines_api = kfp_server_api.api.pipeline_service_api.PipelineServiceApi(api_client)
     self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
-    self._load_context_setting_or_default()
 
-  def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy, ssl_ca_cert):
+  def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy, ssl_ca_cert, kube_context):
     config = kfp_server_api.configuration.Configuration()
 
     if proxy:
@@ -210,7 +215,7 @@ class Client(object):
       return config
 
     try:
-      k8s.config.load_kube_config(client_configuration=config)
+      k8s.config.load_kube_config(client_configuration=config, context=kube_context)
     except:
       print('Failed to load kube config.')
       return config
@@ -327,7 +332,7 @@ class Client(object):
     if self._is_ipython():
       import IPython
       html = \
-          ('Experiment link <a href="%s/#/experiments/details/%s" target="_blank" >here</a>'
+          ('<a href="%s/#/experiments/details/%s" target="_blank" >Experiment details</a>.'
           % (self._get_url_prefix(), experiment.id))
       IPython.display.display(IPython.display.HTML(html))
     return experiment
@@ -507,7 +512,7 @@ class Client(object):
 
     if self._is_ipython():
       import IPython
-      html = ('Run link <a href="%s/#/runs/details/%s" target="_blank" >here</a>'
+      html = ('<a href="%s/#/runs/details/%s" target="_blank" >Run details</a>.'
               % (self._get_url_prefix(), response.run.id))
       IPython.display.display(IPython.display.HTML(html))
     return response.run
@@ -621,7 +626,14 @@ class Client(object):
         parameters=api_params)
     return JobConfig(spec=spec, resource_references=resource_references)
 
-  def create_run_from_pipeline_func(self, pipeline_func: Callable, arguments: Mapping[str, str], run_name=None, experiment_name=None, pipeline_conf: kfp.dsl.PipelineConf = None, namespace=None):
+  def create_run_from_pipeline_func(
+      self,
+      pipeline_func: Callable,
+      arguments: Mapping[str, str],
+      run_name: Optional[str] = None,
+      experiment_name: Optional[str] = None,
+      pipeline_conf: Optional[kfp.dsl.PipelineConf] = None,
+      namespace: Optional[str] = None):
     """Runs pipeline on KFP-enabled Kubernetes cluster.
 
     This command compiles the pipeline function, creates or gets an experiment and submits the pipeline for execution.
@@ -631,6 +643,8 @@ class Client(object):
       arguments: Arguments to the pipeline function provided as a dict.
       run_name: Optional. Name of the run to be shown in the UI.
       experiment_name: Optional. Name of the experiment to add the run to.
+      pipeline_conf: Optional. Pipeline configuration ops that will be applied
+        to all the ops in the pipeline func.
       namespace: Kubernetes namespace where the pipeline runs are created.
         For single user deployment, leave it as None;
         For multi user, input a namespace where the user is authorized
@@ -643,10 +657,17 @@ class Client(object):
       compiler.Compiler().compile(pipeline_func, pipeline_package_path, pipeline_conf=pipeline_conf)
       return self.create_run_from_pipeline_package(pipeline_package_path, arguments, run_name, experiment_name, namespace)
 
-  def create_run_from_pipeline_package(self, pipeline_file: str, arguments: Mapping[str, str], run_name=None, experiment_name=None, namespace=None):
+  def create_run_from_pipeline_package(
+      self,
+      pipeline_file: str,
+      arguments: Mapping[str, str],
+      run_name: Optional[str] = None,
+      experiment_name: Optional[str] = None,
+      namespace: Optional[str] = None):
     """Runs pipeline on KFP-enabled Kubernetes cluster.
 
-    This command compiles the pipeline function, creates or gets an experiment and submits the pipeline for execution.
+    This command takes a local pipeline package, creates or gets an experiment
+    and submits the pipeline for execution.
 
     Args:
       pipeline_file: A compiled pipeline package file.
@@ -824,7 +845,7 @@ class Client(object):
     response = self._upload_api.upload_pipeline(pipeline_package_path, name=pipeline_name, description=description)
     if self._is_ipython():
       import IPython
-      html = 'Pipeline link <a href=%s/#/pipelines/details/%s>here</a>' % (self._get_url_prefix(), response.id)
+      html = '<a href=%s/#/pipelines/details/%s>Pipeline details</a>.' % (self._get_url_prefix(), response.id)
       IPython.display.display(IPython.display.HTML(html))
     return response
 
@@ -862,7 +883,7 @@ class Client(object):
 
     if self._is_ipython():
       import IPython
-      html = 'Pipeline link <a href=%s/#/pipelines/details/%s>here</a>' % (self._get_url_prefix(), response.id)
+      html = '<a href=%s/#/pipelines/details/%s>Pipeline details</a>.' % (self._get_url_prefix(), response.id)
       IPython.display.display(IPython.display.HTML(html))
     return response
 

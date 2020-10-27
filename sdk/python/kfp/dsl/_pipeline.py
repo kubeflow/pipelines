@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+from typing import Union
 from . import _container_op
 from . import _resource_op
 from . import _ops_group
-from ._component_bridge import _create_container_op_from_component_and_arguments
+from ._component_bridge import _create_container_op_from_component_and_arguments, _sanitize_python_function_name
 from ..components import _components
 from ..components._naming import _make_name_unique_by_adding_index
 import sys
@@ -60,6 +60,7 @@ class PipelineConf():
     self.image_pull_secrets = []
     self.timeout = 0
     self.ttl_seconds_after_finished = -1
+    self._pod_disruption_budget_min_available = None
     self.op_transformers = []
     self.default_pod_node_selector = {}
     self.image_pull_policy = None
@@ -102,6 +103,18 @@ class PipelineConf():
       seconds: number of seconds for the workflow to be garbage collected after it is finished.
     """
     self.ttl_seconds_after_finished = seconds
+    return self
+
+  def set_pod_disruption_budget(self, min_available: Union[int, str]):
+    """ PodDisruptionBudget holds the number of concurrent disruptions that you allow for pipeline Pods.
+
+    Args:
+        min_available (Union[int, str]):  An eviction is allowed if at least "minAvailable" pods selected by 
+        "selector" will still be available after the eviction, i.e. even in the
+	      absence of the evicted pod.  So for example you can prevent all voluntary
+	      evictions by specifying "100%". "minAvailable" can be either an absolute number or a percentage.
+    """
+    self._pod_disruption_budget_min_available = min_available
     return self
 
   def set_default_pod_node_selector(self, label_name: str, value: str):
@@ -241,8 +254,13 @@ class Pipeline():
     Returns
       op_name: a unique op name.
     """
+    # Sanitizing the op name.
+    # Technically this could be delayed to the compilation stage, but string serialization of PipelineParams make unsanitized names problematic.
+    op_name = _sanitize_python_function_name(op.human_name).replace('_', '-')
     #If there is an existing op with this name then generate a new name.
-    op_name = _make_name_unique_by_adding_index(op.human_name, list(self.ops.keys()), ' ')
+    op_name = _make_name_unique_by_adding_index(op_name, list(self.ops.keys()), ' ')
+    if op_name == '':
+      op_name = _make_name_unique_by_adding_index('task', list(self.ops.keys()), ' ')
 
     self.ops[op_name] = op
     if not define_only:

@@ -92,6 +92,12 @@ docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA:$SEM_VER
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA:$MM_VER
 
 # 3rd-party images
+# ! Sync to the same MLMD version:
+# * backend/metadata_writer/requirements.in and requirements.txt
+# * @kubeflow/frontend/src/mlmd/generated
+# * .cloudbuild.yaml and .release.cloudbuild.yaml
+# * manifests/kustomize/base/metadata/metadata-grpc-deployment.yaml
+# * test/tag_for_hosted.sh
 docker tag gcr.io/tfx-oss-public/ml_metadata_store_server:0.22.1 gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/metadataserver:$SEM_VER
 docker tag gcr.io/tfx-oss-public/ml_metadata_store_server:0.22.1 gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/metadataserver:$MM_VER
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/metadataserver:$SEM_VER

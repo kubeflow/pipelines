@@ -367,8 +367,8 @@ class Compiler(object):
       for op_name in upstream_op_names:
         if op_name in pipeline.ops:
           upstream_op = pipeline.ops[op_name]
-        elif op_name in opsgroups_groups:
-          upstream_op = opsgroups_groups[op_name]
+        elif op_name in opsgroups:
+          upstream_op = opsgroups[op_name]
         else:
           raise ValueError('compiler cannot find the ' + op_name)
         upstream_groups, downstream_groups = \
@@ -682,6 +682,10 @@ class Compiler(object):
     # set ttl after workflow finishes
     if pipeline_conf.ttl_seconds_after_finished >= 0:
       workflow['spec']['ttlSecondsAfterFinished'] = pipeline_conf.ttl_seconds_after_finished
+
+    if pipeline_conf._pod_disruption_budget_min_available:
+      pod_disruption_budget = {"minAvailable": pipeline_conf._pod_disruption_budget_min_available}
+      workflow['spec']['podDisruptionBudget'] = pod_disruption_budget
 
     if len(pipeline_conf.image_pull_secrets) > 0:
       image_pull_secrets = []

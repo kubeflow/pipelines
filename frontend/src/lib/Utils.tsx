@@ -15,6 +15,7 @@
  */
 
 import * as React from 'react';
+import * as zlib from 'zlib';
 import { ApiRun } from '../apis/run';
 import { ApiTrigger } from '../apis/job';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
@@ -357,4 +358,21 @@ export function buildQuery(queriesMap: { [key: string]: string | number | undefi
     return '';
   }
   return `?${queryContent}`;
+}
+
+export async function decodeCompressedNodes(compressedNodes: string): Promise<object> {
+  return new Promise<object>((resolve, reject) => {
+    const compressedBuffer = Buffer.from(compressedNodes, 'base64');
+    zlib.gunzip(compressedBuffer, (error, result: Buffer) => {
+      if (error) {
+        const gz_error_msg = `failed to gunzip data ${error}`;
+        logger.error(gz_error_msg);
+        reject(gz_error_msg);
+      } else {
+        const nodesStr = result.toString('utf8');
+        const nodes = JSON.parse(nodesStr);
+        resolve(nodes);
+      }
+    });
+  });
 }

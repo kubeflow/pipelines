@@ -22,6 +22,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -79,6 +80,11 @@ var (
 		Name: "pipeline_server_pipeline_count",
 		Help: "The current number of pipelines in Kubeflow Pipelines instance",
 	})
+
+	updatePipelineDefaultVersionRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "pipeline_server_update_default_version_requests",
+		Help: "The total number of UpdatePipelineDefaultVersion requests",
+	})
 )
 
 type PipelineServerOptions struct {
@@ -126,6 +132,19 @@ func (s *PipelineServer) CreatePipeline(ctx context.Context, request *api.Create
 	}
 
 	return ToApiPipeline(pipeline), nil
+}
+
+func (s *PipelineServer) UpdatePipelineDefaultVersion(ctx context.Context, request *api.UpdatePipelineDefaultVersionRequest) (*empty.Empty, error) {
+	if s.options.CollectMetrics {
+		updatePipelineDefaultVersionRequests.Inc()
+	}
+
+	err := s.resourceManager.UpdatePipelineDefaultVersion(request.PipelineId, request.VersionId)
+	if err != nil {
+		return nil, util.Wrap(err, "Update Pipeline Default Version failed.")
+	}
+
+	return &empty.Empty{}, nil
 }
 
 func (s *PipelineServer) GetPipeline(ctx context.Context, request *api.GetPipelineRequest) (*api.Pipeline, error) {
@@ -224,7 +243,7 @@ func (s *PipelineServer) CreatePipelineVersion(ctx context.Context, request *api
 		return nil, util.Wrap(err, "The URL is valid but pipeline system failed to read the file.")
 	}
 
-	version, err := s.resourceManager.CreatePipelineVersion(request.Version, pipelineFile)
+	version, err := s.resourceManager.CreatePipelineVersion(request.Version, pipelineFile, common.IsPipelineVersionUpdatedByDefault())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a version.")
 	}

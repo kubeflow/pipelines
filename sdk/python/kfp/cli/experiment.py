@@ -1,6 +1,7 @@
 import click
 import logging
-from tabulate import tabulate
+
+from .output import print_output, OutputFormat
 
 
 @click.group()
@@ -11,6 +12,7 @@ def experiment():
 
 @experiment.command()
 @click.option(
+    '-d',
     '--description',
     help="Description of the experiment."
 )
@@ -20,14 +22,15 @@ def create(ctx, description, name):
     """Create an experiment"""
     client = ctx.obj["client"]
     namespace = ctx.obj["namespace"]
+    output_format = ctx.obj["output"]
 
     response = client.create_experiment(name, description=description, namespace=namespace)
-    logging.info("Experiment {} has been submitted\n".format(name))
-    _display_experiment(response)
+    _display_experiment(response, output_format)
 
 
 @experiment.command()
 @click.option(
+    '-m',
     '--max-size',
     default=100,
     help="Max size of the listed experiments."
@@ -37,14 +40,15 @@ def list(ctx, max_size):
     """List experiments"""
     client = ctx.obj['client']
     namespace = ctx.obj["namespace"]
+    output_format = ctx.obj['output']
 
-    response = client.experiments.list_experiment(
+    response = client.list_experiments(
         page_size=max_size,
         sort_by="created_at desc",
         namespace=namespace
     )
     if response.experiments:
-        _display_experiments(response.experiments)
+        _display_experiments(response.experiments, output_format)
     else:
         logging.info("No experiments found")
 
@@ -56,9 +60,10 @@ def get(ctx, experiment_id):
     """Get detailed information about an experiment"""
     client = ctx.obj["client"]
     namespace = ctx.obj["namespace"]
+    output_format = ctx.obj["output"]
 
     response = client.get_experiment(experiment_id, namespace)
-    _display_experiment(response)
+    _display_experiment(response, output_format)
 
 
 # TODO Add in client method for deleting experiments.
@@ -80,22 +85,25 @@ def get(ctx, experiment_id):
 #     print("{} is deleted.".format(experiment_id))
 
 
-def _display_experiments(experiments):
+def _display_experiments(experiments, output_format):
     headers = ["Experiment ID", "Name", "Created at"]
     data = [[
         exp.id,
         exp.name,
         exp.created_at.isoformat()
     ] for exp in experiments]
-    print(tabulate(data, headers=headers, tablefmt="grid"))
+    print_output(data, headers, output_format, table_format="grid")
 
 
-def _display_experiment(exp):
-    print(tabulate([], headers=["Experiment Details"]))
+def _display_experiment(exp, output_format):
     table = [
         ["ID", exp.id],
         ["Name", exp.name],
         ["Description", exp.description],
         ["Created at", exp.created_at.isoformat()],
     ]
-    print(tabulate(table, tablefmt="plain"))
+    if output_format == OutputFormat.table.name:
+        print_output([], ["Experiment Details"], output_format)
+        print_output(table, [], output_format, table_format="plain")
+    elif output_format == OutputFormat.json.name:
+        print_output(dict(table), [], output_format)
