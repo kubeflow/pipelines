@@ -112,11 +112,7 @@ func (p *PersistenceWorker) enqueue(obj interface{}) {
 		runtime.HandleError(fmt.Errorf("Equeuing object: error: %v: %+v", err, obj))
 		return
 	}
-	if p.enforceRequeueDelays {
-		p.workqueue.AddRateLimited(key) // Exponential backoff.
-	} else {
-		p.workqueue.Add(key) // For testing.
-	}
+	p.workqueue.Add(key)
 }
 
 func (p *PersistenceWorker) enqueueForDelete(obj interface{}) {
