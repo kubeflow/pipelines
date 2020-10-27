@@ -44,7 +44,8 @@ func TestUploadPipeline_YAML(t *testing.T) {
 	clientManager, server := setupClientAndServer()
 	bytesBuffer, writer := setupWriter("")
 	setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
-	response := uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload", bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipeline)
+	response := uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload",
+		bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipeline)
 	assert.Equal(t, 200, response.Code)
 
 	// Verify time format is RFC3339.
@@ -94,7 +95,8 @@ func TestUploadPipeline_YAML(t *testing.T) {
 
 	// Set the fake uuid generator with a new uuid to avoid generate a same uuid as above.
 	server = updateClientManager(clientManager, util.NewFakeUUIDGeneratorOrFatal(fakeVersionUUID, nil))
-	response = uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload_version?name="+fakeVersionName+"&pipelineid="+resource.DefaultFakeUUID, bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipelineVersion)
+	response = uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload_version?name="+fakeVersionName+"&pipelineid="+resource.DefaultFakeUUID,
+		bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipelineVersion)
 	assert.Equal(t, 200, response.Code)
 	assert.Contains(t, response.Body.String(), `"created_at":"1970-01-01T00:00:02Z"`)
 
@@ -137,7 +139,8 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 	clientManager, server := setupClientAndServer()
 	bytesBuffer, writer := setupWriter("")
 	setWriterFromFile("uploadfile", "arguments.tar.gz", "test/arguments_tarball/arguments.tar.gz", writer)
-	response := uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload", bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipeline)
+	response := uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload",
+		bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipeline)
 	assert.Equal(t, 200, response.Code)
 
 	// Verify time format is RFC3339
@@ -180,7 +183,8 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 	server = updateClientManager(clientManager, util.NewFakeUUIDGeneratorOrFatal(fakeVersionUUID, nil))
 	bytesBuffer, writer = setupWriter("")
 	setWriterFromFile("uploadfile", "arguments-version.tar.gz", "test/arguments_tarball/arguments-version.tar.gz", writer)
-	response = uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload_version?pipelineid="+resource.DefaultFakeUUID, bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipelineVersion)
+	response = uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload_version?pipelineid="+resource.DefaultFakeUUID,
+		bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipelineVersion)
 	assert.Equal(t, 200, response.Code)
 	assert.Contains(t, response.Body.String(), `"created_at":"1970-01-01T00:00:02Z"`)
 
@@ -224,7 +228,8 @@ func TestUploadPipeline_GetFormFileError(t *testing.T) {
 	bytesBuffer, writer := setupWriter("I am invalid file")
 	writer.CreateFormFile("uploadfile", "hello-world.yaml")
 	writer.Close()
-	response := uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload", bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipeline)
+	response := uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload",
+		bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipeline)
 	assert.Equal(t, 400, response.Code)
 	assert.Contains(t, string(response.Body.Bytes()), "Failed to read pipeline")
 }
@@ -233,7 +238,8 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 	clientManager, server := setupClientAndServer()
 	bytesBuffer, writer := setupWriter("")
 	setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
-	response := uploadPipeline(server, "POST", fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s", url.PathEscape("foo bar")), bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipeline)
+	response := uploadPipeline(server, "POST", fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s", url.PathEscape("foo bar")),
+		bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipeline)
 	assert.Equal(t, 200, response.Code)
 
 	// Verify stored in object store
@@ -274,7 +280,8 @@ func TestUploadPipeline_FileNameTooLong(t *testing.T) {
 	setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
 	encodedName := url.PathEscape(
 		"this is a loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooog name")
-	response := uploadPipeline(server, "POST", fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s", encodedName), bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipeline)
+	response := uploadPipeline(server, "POST", fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s", encodedName),
+		bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipeline)
 	assert.Equal(t, 400, response.Code)
 	assert.Contains(t, string(response.Body.Bytes()), "Pipeline name too long")
 }
@@ -283,7 +290,8 @@ func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
 	clientManager, server := setupClientAndServer()
 	bytesBuffer, writer := setupWriter("")
 	setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
-	response := uploadPipeline(server, "POST", fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s&description=%s", url.PathEscape("foo bar"), url.PathEscape("description of foo bar")), bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipeline)
+	response := uploadPipeline(server, "POST", fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s&description=%s", url.PathEscape("foo bar"), url.PathEscape("description of foo bar")),
+		bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipeline)
 	assert.Equal(t, 200, response.Code)
 
 	// Verify stored in object store
@@ -324,7 +332,8 @@ func TestUploadPipelineVersion_GetFromFileError(t *testing.T) {
 	clientManager, server := setupClientAndServer()
 	bytesBuffer, writer := setupWriter("")
 	setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
-	response := uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload", bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipeline)
+	response := uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload",
+		bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipeline)
 	assert.Equal(t, 200, response.Code)
 	// Upload a new version under this pipeline
 
@@ -333,7 +342,8 @@ func TestUploadPipelineVersion_GetFromFileError(t *testing.T) {
 	bytesBuffer, writer = setupWriter("I am invalid file")
 	writer.CreateFormFile("uploadfile", "hello-world.yaml")
 	writer.Close()
-	response = uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload_version?name="+fakeVersionName+"&pipelineid="+resource.DefaultFakeUUID, bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipelineVersion)
+	response = uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload_version?name="+fakeVersionName+"&pipelineid="+resource.DefaultFakeUUID,
+		bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipelineVersion)
 	assert.Equal(t, 400, response.Code)
 	assert.Contains(t, string(response.Body.Bytes()), "Failed to read pipeline version")
 }
@@ -342,7 +352,8 @@ func TestUploadPipelineVersion_FileNameTooLong(t *testing.T) {
 	clientManager, server := setupClientAndServer()
 	bytesBuffer, writer := setupWriter("")
 	setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
-	response := uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload", bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipeline)
+	response := uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload",
+		bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipeline)
 	assert.Equal(t, 200, response.Code)
 
 	// Upload a new version under this pipeline
@@ -351,7 +362,8 @@ func TestUploadPipelineVersion_FileNameTooLong(t *testing.T) {
 	server = updateClientManager(clientManager, util.NewFakeUUIDGeneratorOrFatal(fakeVersionUUID, nil))
 	encodedName := url.PathEscape(
 		"this is a loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooog name")
-	response = uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload_version?name="+encodedName+"&pipelineid="+resource.DefaultFakeUUID, bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipeline)
+	response = uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload_version?name="+encodedName+"&pipelineid="+resource.DefaultFakeUUID,
+		bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipeline)
 	assert.Equal(t, 400, response.Code)
 	assert.Contains(t, string(response.Body.Bytes()), "Pipeline name too long")
 }
@@ -363,7 +375,8 @@ func TestDefaultNotUpdatedPipelineVersion(t *testing.T) {
 	clientManager, server := setupClientAndServer()
 	bytesBuffer, writer := setupWriter("")
 	setWriterFromFile("uploadfile", "arguments.tar.gz", "test/arguments_tarball/arguments.tar.gz", writer)
-	response := uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload", bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipeline)
+	response := uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload",
+		bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipeline)
 	assert.Equal(t, 200, response.Code)
 
 	pipelineVersion, err := clientManager.PipelineStore().GetPipelineVersion(resource.DefaultFakeUUID)
@@ -376,7 +389,8 @@ func TestDefaultNotUpdatedPipelineVersion(t *testing.T) {
 	server = updateClientManager(clientManager, util.NewFakeUUIDGeneratorOrFatal(fakeVersionUUID, nil))
 	bytesBuffer, writer = setupWriter("")
 	setWriterFromFile("uploadfile", "arguments-version.tar.gz", "test/arguments_tarball/arguments.tar.gz", writer)
-	response = uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload_version?pipelineid="+resource.DefaultFakeUUID, bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipelineVersion)
+	response = uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload_version?pipelineid="+resource.DefaultFakeUUID,
+		bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipelineVersion)
 	assert.Equal(t, 200, response.Code)
 
 	pipeline, err := clientManager.PipelineStore().GetPipeline(resource.DefaultFakeUUID)
@@ -389,7 +403,8 @@ func TestDefaultUpdatedPipelineVersion(t *testing.T) {
 	clientManager, server := setupClientAndServer()
 	bytesBuffer, writer := setupWriter("")
 	setWriterFromFile("uploadfile", "arguments.tar.gz", "test/arguments_tarball/arguments.tar.gz", writer)
-	response := uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload", bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipeline)
+	response := uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload",
+		bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipeline)
 	assert.Equal(t, 200, response.Code)
 
 	pipelineVersion, err := clientManager.PipelineStore().GetPipelineVersion(resource.DefaultFakeUUID)
@@ -402,7 +417,8 @@ func TestDefaultUpdatedPipelineVersion(t *testing.T) {
 	server = updateClientManager(clientManager, util.NewFakeUUIDGeneratorOrFatal(fakeVersionUUID, nil))
 	bytesBuffer, writer = setupWriter("")
 	setWriterFromFile("uploadfile", "arguments-version.tar.gz", "test/arguments_tarball/arguments-version.tar.gz", writer)
-	response = uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload_version?pipelineid="+resource.DefaultFakeUUID, bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipelineVersion)
+	response = uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload_version?pipelineid="+resource.DefaultFakeUUID,
+		bytes.NewReader(bytesBuffer.Bytes()), "Content-Type", writer.FormDataContentType(), server.UploadPipelineVersion)
 	assert.Equal(t, 200, response.Code)
 
 	pipeline, err := clientManager.PipelineStore().GetPipeline(resource.DefaultFakeUUID)
@@ -445,7 +461,8 @@ func updateClientManager(clientManager *resource.FakeClientManager, uuid util.UU
 	return server
 }
 
-func uploadPipeline(server PipelineUploadServer, method string, url string, body io.Reader, requestKey string, requestValue string, uploadFunc func(http.ResponseWriter, *http.Request)) *httptest.ResponseRecorder {
+func uploadPipeline(server PipelineUploadServer, method string, url string, body io.Reader, requestKey string,
+	requestValue string, uploadFunc func(http.ResponseWriter, *http.Request)) *httptest.ResponseRecorder {
 	req, _ := http.NewRequest(method, url, body)
 	req.Header.Set(requestKey, requestValue)
 	rr := httptest.NewRecorder()
