@@ -41,7 +41,7 @@ const (
 )
 
 func TestUploadPipeline_YAML(t *testing.T) {
-	clientManager, server := setupClientAndServer()
+	clientManager, server := setupClientManagerAndServer()
 	bytesBuffer, writer := setupWriter("")
 	setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
 	response := uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload",
@@ -136,7 +136,7 @@ func TestUploadPipeline_YAML(t *testing.T) {
 }
 
 func TestUploadPipeline_Tarball(t *testing.T) {
-	clientManager, server := setupClientAndServer()
+	clientManager, server := setupClientManagerAndServer()
 	bytesBuffer, writer := setupWriter("")
 	setWriterFromFile("uploadfile", "arguments.tar.gz", "test/arguments_tarball/arguments.tar.gz", writer)
 	response := uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload",
@@ -224,7 +224,7 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 }
 
 func TestUploadPipeline_GetFormFileError(t *testing.T) {
-	_, server := setupClientAndServer()
+	_, server := setupClientManagerAndServer()
 	bytesBuffer, writer := setupWriter("I am invalid file")
 	writer.CreateFormFile("uploadfile", "hello-world.yaml")
 	writer.Close()
@@ -235,7 +235,7 @@ func TestUploadPipeline_GetFormFileError(t *testing.T) {
 }
 
 func TestUploadPipeline_SpecifyFileName(t *testing.T) {
-	clientManager, server := setupClientAndServer()
+	clientManager, server := setupClientManagerAndServer()
 	bytesBuffer, writer := setupWriter("")
 	setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
 	response := uploadPipeline(server, "POST", fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s", url.PathEscape("foo bar")),
@@ -275,7 +275,7 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 }
 
 func TestUploadPipeline_FileNameTooLong(t *testing.T) {
-	_, server := setupClientAndServer()
+	_, server := setupClientManagerAndServer()
 	bytesBuffer, writer := setupWriter("")
 	setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
 	encodedName := url.PathEscape(
@@ -287,7 +287,7 @@ func TestUploadPipeline_FileNameTooLong(t *testing.T) {
 }
 
 func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
-	clientManager, server := setupClientAndServer()
+	clientManager, server := setupClientManagerAndServer()
 	bytesBuffer, writer := setupWriter("")
 	setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
 	response := uploadPipeline(server, "POST", fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s&description=%s", url.PathEscape("foo bar"), url.PathEscape("description of foo bar")),
@@ -329,7 +329,7 @@ func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
 }
 
 func TestUploadPipelineVersion_GetFromFileError(t *testing.T) {
-	clientManager, server := setupClientAndServer()
+	clientManager, server := setupClientManagerAndServer()
 	bytesBuffer, writer := setupWriter("")
 	setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
 	response := uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload",
@@ -349,7 +349,7 @@ func TestUploadPipelineVersion_GetFromFileError(t *testing.T) {
 }
 
 func TestUploadPipelineVersion_FileNameTooLong(t *testing.T) {
-	clientManager, server := setupClientAndServer()
+	clientManager, server := setupClientManagerAndServer()
 	bytesBuffer, writer := setupWriter("")
 	setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
 	response := uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload",
@@ -372,7 +372,7 @@ func TestDefaultNotUpdatedPipelineVersion(t *testing.T) {
 	viper.Set(common.UpdatePipelineVersionByDefault, "false")
 	defer viper.Set(common.UpdatePipelineVersionByDefault, "true")
 
-	clientManager, server := setupClientAndServer()
+	clientManager, server := setupClientManagerAndServer()
 	bytesBuffer, writer := setupWriter("")
 	setWriterFromFile("uploadfile", "arguments.tar.gz", "test/arguments_tarball/arguments.tar.gz", writer)
 	response := uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload",
@@ -400,7 +400,7 @@ func TestDefaultNotUpdatedPipelineVersion(t *testing.T) {
 }
 
 func TestDefaultUpdatedPipelineVersion(t *testing.T) {
-	clientManager, server := setupClientAndServer()
+	clientManager, server := setupClientManagerAndServer()
 	bytesBuffer, writer := setupWriter("")
 	setWriterFromFile("uploadfile", "arguments.tar.gz", "test/arguments_tarball/arguments.tar.gz", writer)
 	response := uploadPipeline(server, "POST", "/apis/v1beta1/pipelines/upload",
@@ -447,7 +447,7 @@ func setupWriter(text string) (*bytes.Buffer, *multipart.Writer) {
 	return bytesBuffer, multipart.NewWriter(bytesBuffer)
 }
 
-func setupClientAndServer() (*resource.FakeClientManager, PipelineUploadServer) {
+func setupClientManagerAndServer() (*resource.FakeClientManager, PipelineUploadServer) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
 	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
