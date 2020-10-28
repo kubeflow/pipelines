@@ -61,7 +61,7 @@ class SampleTest(object):
           kubernetes.config.load_kube_config()
 
         v1 = kubernetes.client.CoreV1Api()
-        inverse_proxy_config = v1.read_namespaced_config_map(name='inverse-proxy-config', self._namespace)
+        inverse_proxy_config = v1.read_namespaced_config_map(name='inverse-proxy-config', namespace=self._namespace)
         self._host = inverse_proxy_config.data.get('Hostname')
       except Exception as err:
         raise RuntimeError('Failed to get inverse proxy hostname') from err
