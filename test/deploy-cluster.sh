@@ -54,7 +54,7 @@ function clean_up {
   if [ $SHOULD_CLEANUP_CLUSTER == true ]; then
     # --async doesn't wait for this operation to complete, so we can get test
     # results faster
-    yes | gcloud container clusters delete ${TEST_CLUSTER} --async
+    # yes | gcloud container clusters delete ${TEST_CLUSTER} --async
   fi
 }
 trap clean_up EXIT SIGINT SIGTERM
