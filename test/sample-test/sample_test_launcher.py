@@ -34,7 +34,7 @@ from run_sample_test import PySampleChecker
 
 class SampleTest(object):
 
-  def __init__(self, test_name, results_gcs_dir, host, target_image_prefix='',
+  def __init__(self, test_name, results_gcs_dir, host='', target_image_prefix='',
                namespace='kubeflow'):
     """Launch a KFP sample_test provided its name.
 
@@ -51,7 +51,7 @@ class SampleTest(object):
     self._target_image_prefix = target_image_prefix
     self._namespace = namespace
     self._host = host
-    if self._host is None:
+    if self._host == '':
       try:
         # Get inverse proxy hostname from a config map called 'inverse-proxy-config'
         # in the same namespace as KFP.
