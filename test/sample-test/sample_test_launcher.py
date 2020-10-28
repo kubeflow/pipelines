@@ -34,14 +34,14 @@ from run_sample_test import PySampleChecker
 
 class SampleTest(object):
 
-  def __init__(self, test_name, results_gcs_dir, target_image_prefix='', host,
+  def __init__(self, test_name, results_gcs_dir, host, target_image_prefix='',
                namespace='kubeflow'):
     """Launch a KFP sample_test provided its name.
 
     :param test_name: name of the corresponding sample test.
     :param results_gcs_dir: gs dir to store test result.
-    :param target_image_prefix: prefix of docker image, default is empty.
     :param host: host of KFP API endpoint, default is auto-discovery from inverse-proxy-config.
+    :param target_image_prefix: prefix of docker image, default is empty.
     :param namespace: namespace for kfp, default is kubeflow.
     """
     self._test_name = test_name
