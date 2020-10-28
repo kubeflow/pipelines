@@ -87,6 +87,25 @@ spec:
             value: test/sample-test/Dockerfile
           - name: image-name
             value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.basic-e2e-tests-image-suffix}}"
+    - - name: run-basic-sample-tests
+        template: run-basic-e2e-tests
+        arguments:
+          parameters:
+            - name: test-results-gcs-dir
+              value: "{{inputs.parameters.test-results-gcs-dir}}"
+            - name: sample-tests-image
+              value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.basic-e2e-tests-image-suffix}}"
+            - name: namespace
+              value: "{{inputs.parameters.namespace}}"
+            - name: test-name
+              value: "{{item}}"
+        withItems:
+          - condition
+          - exit_handler
+          - recursion
+          - sequential
+          - parallel_join
+          - volume_ops
     - - name: run-initialization-tests
         template: run-initialization-tests
         arguments:
@@ -114,25 +133,6 @@ spec:
         #TODO: Uncomment to disable the test on Minikube
         #TODO: Change the cluster-type to "minikube" once https://github.com/kubeflow/pipelines/pull/1285 and related PRs are merged.
         #when: "{{workflow.parameters.cluster-type}} != none" #Do not run the test on Minikube
-    - - name: run-basic-sample-tests
-        template: run-basic-e2e-tests
-        arguments:
-          parameters:
-            - name: test-results-gcs-dir
-              value: "{{inputs.parameters.test-results-gcs-dir}}"
-            - name: sample-tests-image
-              value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.basic-e2e-tests-image-suffix}}"
-            - name: namespace
-              value: "{{inputs.parameters.namespace}}"
-            - name: test-name
-              value: "{{item}}"
-        withItems:
-          - condition
-          - exit_handler
-          - recursion
-          - sequential
-          - parallel_join
-          - volume_ops
 
   - name: upgrade-test-preparation
     inputs:
@@ -250,7 +250,7 @@ spec:
 
   - name: run-basic-e2e-tests
     retryStrategy:
-      limit: 2
+      limit: 0
     inputs:
       parameters:
       - name: test-results-gcs-dir
