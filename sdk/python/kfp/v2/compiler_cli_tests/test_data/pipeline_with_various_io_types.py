@@ -25,9 +25,10 @@ inputs:
 - {name: input_2, type: Float}
 - {name: input_3, type: }
 - {name: input_4}
-- {name: input_5, type: GCSPath}
+- {name: input_5, type: Metrics}
 - {name: input_6, type: Datasets}
 - {name: input_7, type: Some arbitrary type}
+- {name: input_8, type: {GcsPath: {data_type: TSV}}}
 outputs:
 - {name: output_1, type: Integer}
 - {name: output_2, type: Model}
@@ -43,6 +44,7 @@ implementation:
     - {inputValue: input_5}
     - {inputPath: input_6}
     - {inputValue: input_7}
+    - {inputValue: input_8}
     - {outputPath: output_1}
     - {outputPath: output_2}
     - {outputPath: output_3}
@@ -69,15 +71,17 @@ def my_pipeline(input1,
                 input3,
                 input4,
                 input6='gs://bucket/dataset',
-                input7='arbitrary value'):
+                input7='arbitrary value',
+                input8='gs://path2'):
   component_1 = component_op_1(
       input_1=input1,
       input_2=3.1415926,
       input_3=input3,
       input_4=input4,
-      input_5='gs://path',
+      input_5='/path/to/metics',
       input_6=input6,
-      input_7=input7)
+      input_7=input7,
+      input_8=input8)
   component_2 = component_op_2(
       input_a=component_1.outputs['output_1'],
       input_b=component_1.outputs['output_2'],
