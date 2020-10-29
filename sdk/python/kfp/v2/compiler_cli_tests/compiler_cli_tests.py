@@ -45,7 +45,7 @@ class CompilerCliTests(unittest.TestCase):
         compiled['tasks'].sort(key=lambda x: x['executorLabel'])
 
       self.maxDiff = None
-      self.assertDictEqual(golden, compiled)
+      self.assertEqual(golden, compiled)
     finally:
       shutil.rmtree(tmpdir)
 

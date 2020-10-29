@@ -76,9 +76,10 @@ def is_parameter_type(type_name: Optional[str]) -> bool:
   Returns:
     True if the type name maps to a parameter type else False.
   """
-  if not isinstance(type_name, str):
+  if isinstance(type_name, str):
+    return type_name.lower() in _PARAMETER_TYPES_MAPPING
+  else:
     return False
-  return type_name.lower() in _PARAMETER_TYPES_MAPPING
 
 
 def get_artifact_type_schema(type_name: str) -> str:
@@ -90,9 +91,10 @@ def get_artifact_type_schema(type_name: str) -> str:
   Returns:
      The string value of artifact type schema. Defaults to generic artifact.
   """
-  if not isinstance(type_name, str):
+  if isinstance(type_name, str):
+    return _ARTIFACT_TYPES_MAPPING.get(type_name.lower(), _GENERIC_ARTIFACT_TYPE)
+  else:
     return _GENERIC_ARTIFACT_TYPE
-  return _ARTIFACT_TYPES_MAPPING.get(type_name.lower(), _GENERIC_ARTIFACT_TYPE)
 
 
 def get_parameter_type(
@@ -106,7 +108,7 @@ def get_parameter_type(
     The enum value of the mapped IR I/O primitive type.
 
   Raises:
-    AttributeError: if type_name os not a string type.
+    AttributeError: if type_name is not a string type.
   """
   return _PARAMETER_TYPES_MAPPING.get(type_name.lower())
 

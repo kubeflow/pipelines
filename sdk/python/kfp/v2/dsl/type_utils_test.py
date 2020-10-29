@@ -18,21 +18,21 @@ from kfp.components import structures
 from kfp.v2.dsl import type_utils
 from kfp.v2.proto import pipeline_spec_pb2 as pb
 
+_PARAMETER_TYPES = ['String', 'str', 'Integer', 'int', 'Float', 'Double']
+_KNOWN_ARTIFACT_TYPES = ['Model', 'Dataset', 'Schema', 'Metrics']
+_UNKNOWN_ARTIFACT_TYPES = [{
+    'JsonObject': {
+        'data_type': 'proto:tfx.components.trainer.Trai'
+    }
+}, None, 'Arbtrary Model', 'dummy']
+
 
 class TypeUtilsTest(unittest.TestCase):
 
-  _parameter_types = ['String', 'str', 'Integer', 'int', 'Float', 'Double']
-  _known_artifact_types = ['Model', 'Dataset', 'Schema', 'Metrics']
-  _unknown_artifact_types = [{
-      'JsonObject': {
-          'data_type': 'proto:tfx.components.trainer.Trai'
-      }
-  }, None, 'Arbtrary Model', 'dummy']
-
   def test_is_parameter_type(self):
-    for type_name in self._parameter_types:
+    for type_name in _PARAMETER_TYPES:
       self.assertTrue(type_utils.is_parameter_type(type_name))
-    for type_name in self._known_artifact_types + self._unknown_artifact_types:
+    for type_name in _KNOWN_ARTIFACT_TYPES + _UNKNOWN_ARTIFACT_TYPES:
       self.assertFalse(type_utils.is_parameter_type(type_name))
 
   def test_get_artifact_type_schema(self):
@@ -44,7 +44,7 @@ class TypeUtilsTest(unittest.TestCase):
                      type_utils.get_artifact_type_schema('Metrics'))
     self.assertEqual('title: kfp.Schema\ntype: object\nproperties:\n',
                      type_utils.get_artifact_type_schema('Schema'))
-    for type_name in self._unknown_artifact_types:
+    for type_name in _UNKNOWN_ARTIFACT_TYPES:
       self.assertEqual('title: kfp.Artifact\ntype: object\nproperties:\n',
                        type_utils.get_artifact_type_schema(type_name))
 
@@ -66,7 +66,8 @@ class TypeUtilsTest(unittest.TestCase):
   def test_get_input_artifact_type_schema(self):
     input_specs = [
         structures.InputSpec(name='input1', type='String'),
-        structures.InputSpec(name='input2', type='GCSPath'),
+        structures.InputSpec(name='input2', type='Model'),
+        structures.InputSpec(name='input3', type=None),
     ]
     # input not found.
     self.assertEqual(
@@ -76,8 +77,13 @@ class TypeUtilsTest(unittest.TestCase):
         None, type_utils.get_input_artifact_type_schema('input1', input_specs))
     # input found, and a matching artifact type schema returned.
     self.assertEqual(
-        'title: kfp.Artifact\ntype: object\nproperties:\n',
+        'title: kfp.Model\ntype: object\nproperties:\n',
         type_utils.get_input_artifact_type_schema('input2', input_specs))
+
+    # input found, and the default artifact type schema returned.
+    self.assertEqual(
+        'title: kfp.Artifact\ntype: object\nproperties:\n',
+        type_utils.get_input_artifact_type_schema('input3', input_specs))
 
 
 if __name__ == '__main__':
