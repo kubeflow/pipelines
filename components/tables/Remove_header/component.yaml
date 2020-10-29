@@ -1,0 +1,20 @@
+name: Remove header
+description: Remove the header line from CSV and TSV data (unconditionally)
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+inputs:
+- name: table
+outputs:
+- name: table
+implementation:
+  container:
+    image: alpine
+    command:
+    - sh
+    - -exc
+    - |
+      mkdir -p "$(dirname "$1")"
+      tail -n +2 <"$0" >"$1"
+    - inputPath: table
+    - outputPath: table

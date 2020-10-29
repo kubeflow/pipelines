@@ -60,8 +60,8 @@ describe('Apis', () => {
 
   it('getPodLogs', async () => {
     const spy = fetchSpy('http://some/address');
-    expect(await Apis.getPodLogs('some-pod-name')).toEqual('http://some/address');
-    expect(spy).toHaveBeenCalledWith('k8s/pod/logs?podname=some-pod-name', {
+    expect(await Apis.getPodLogs('some-pod-name', 'ns')).toEqual('http://some/address');
+    expect(spy).toHaveBeenCalledWith('k8s/pod/logs?podname=some-pod-name&podnamespace=ns', {
       credentials: 'same-origin',
     });
   });
@@ -87,7 +87,7 @@ describe('Apis', () => {
         text: () => 'bad response',
       }),
     );
-    expect(Apis.getPodLogs('some-pod-name')).rejects.toThrowError('bad response');
+    expect(Apis.getPodLogs('some-pod-name', 'ns')).rejects.toThrowError('bad response');
     expect(Apis.getPodLogs('some-pod-name', 'some-namespace-name')).rejects.toThrowError(
       'bad response',
     );

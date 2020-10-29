@@ -144,6 +144,15 @@ func NewInternalServerError(err error, internalMessageFormat string,
 		codes.Internal)
 }
 
+func NewNotFoundError(err error, externalMessageFormat string,
+	a ...interface{}) *UserError {
+	externalMessage := fmt.Sprintf(externalMessageFormat, a...)
+	return newUserError(
+		errors.Wrapf(err, fmt.Sprintf("NotFoundError: %v", externalMessage)),
+		externalMessage,
+		codes.NotFound)
+}
+
 func NewResourceNotFoundError(resourceType string, resourceName string) *UserError {
 	externalMessage := fmt.Sprintf("%s %s not found.", resourceType, resourceName)
 	return newUserError(

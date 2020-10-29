@@ -1,6 +1,11 @@
 This directory contains code for the components that comprise the Kubeflow
 Pipelines backend.
 
+
+## Bazel
+
+The supported Bazel version is 0.24.0. 
+
 ## Building & Testing
 
 All components can be built using [Bazel](https://bazel.build/). To build
@@ -11,9 +16,11 @@ To run all tests: `bazel test --action_env=PATH --define=grpc_no_ares=true
 //backend/...`
 
 The API server itself can only be built/tested using Bazel. The following
-commands target building and testing just the API server. `bazel build
---action_env=PATH --define=grpc_no_ares=true backend/src/apiserver/...` `bazel
-test --action_env=PATH --define=grpc_no_ares=true backend/src/apiserver/...`
+commands target building and testing just the API server.
+```
+bazel build --action_env=PATH --define=grpc_no_ares=true backend/src/apiserver/...
+bazel test --action_env=PATH --define=grpc_no_ares=true backend/src/apiserver/...
+```
 
 ## Building APIServer Image using Remote Build Execution
 
@@ -29,7 +36,7 @@ speeding up the build. To do so, execute the following command:
 ## Building Go client library and swagger files
 
 After making changes to proto files, the Go client libraries and swagger files
-need to be regenerated and checked-in. The backend/api/generate_api.sh script
+need to be regenerated and checked-in. The `backend/api/generate_api.sh` script
 takes care of this.
 
 ## Updating BUILD files
@@ -50,4 +57,3 @@ WORKSPACE go_repository rules using the following command: `bazel run
 dependencies. To update dependencies, edit [requirements.in](requirements.in)
 and run `./update_requirements.sh <requirements.in >requirements.txt` to update and pin the transitive
 dependencies.
-

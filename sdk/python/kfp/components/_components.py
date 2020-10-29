@@ -33,20 +33,19 @@ _default_component_name = 'Component'
 
 
 def load_component(filename=None, url=None, text=None):
-    '''
-    Loads component from text, file or URL and creates a task factory function
+    """Loads component from text, file or URL and creates a task factory function
     
     Only one argument should be specified.
 
     Args:
         filename: Path of local file containing the component definition.
-        url: The URL of the component file data
+        url: The URL of the component file data.
         text: A string containing the component file data.
 
     Returns:
         A factory function with a strongly-typed signature.
         Once called with the required arguments, the factory constructs a pipeline task instance (ContainerOp).
-    '''
+    """
     #This function should be called load_task_factory since it returns a factory function.
     #The real load_component function should produce an object with component properties (e.g. name, description, inputs/outputs).
     #TODO: Change this function to return component spec object but it should be callable to construct tasks.
@@ -63,18 +62,18 @@ def load_component(filename=None, url=None, text=None):
         raise ValueError('Need to specify a source')
 
 
-def load_component_from_url(url):
-    '''
-    Loads component from URL and creates a task factory function
+def load_component_from_url(url: str, auth=None):
+    """Loads component from URL and creates a task factory function
     
     Args:
         url: The URL of the component file data
+        auth: Auth object for the requests library. See https://requests.readthedocs.io/en/master/user/authentication/
 
     Returns:
         A factory function with a strongly-typed signature.
         Once called with the required arguments, the factory constructs a pipeline task instance (ContainerOp).
-    '''
-    component_spec = _load_component_spec_from_url(url)
+    """
+    component_spec = _load_component_spec_from_url(url, auth)
     url = _fix_component_uri(url)
     component_ref = ComponentReference(url=url)
     return _create_task_factory_from_component_spec(
@@ -85,8 +84,7 @@ def load_component_from_url(url):
 
 
 def load_component_from_file(filename):
-    '''
-    Loads component from file and creates a task factory function
+    """Loads component from file and creates a task factory function
     
     Args:
         filename: Path of local file containing the component definition.
@@ -94,7 +92,7 @@ def load_component_from_file(filename):
     Returns:
         A factory function with a strongly-typed signature.
         Once called with the required arguments, the factory constructs a pipeline task instance (ContainerOp).
-    '''
+    """
     component_spec = _load_component_spec_from_file(path=filename)
     return _create_task_factory_from_component_spec(
         component_spec=component_spec,
@@ -103,8 +101,7 @@ def load_component_from_file(filename):
 
 
 def load_component_from_text(text):
-    '''
-    Loads component from text and creates a task factory function
+    """Loads component from text and creates a task factory function
     
     Args:
         text: A string containing the component file data.
@@ -112,7 +109,7 @@ def load_component_from_text(text):
     Returns:
         A factory function with a strongly-typed signature.
         Once called with the required arguments, the factory constructs a pipeline task instance (ContainerOp).
-    '''
+    """
     if text is None:
         raise TypeError
     component_spec = _load_component_spec_from_component_text(text)
@@ -132,14 +129,14 @@ def _load_component_spec_from_file(path) -> ComponentSpec:
         return _load_component_spec_from_yaml_or_zip_bytes(component_stream.read())
 
 
-def _load_component_spec_from_url(url: str):
+def _load_component_spec_from_url(url: str, auth=None):
     if url is None:
         raise TypeError
 
     url = _fix_component_uri(url)
 
     import requests
-    resp = requests.get(url)
+    resp = requests.get(url, auth=auth)
     resp.raise_for_status()
     return _load_component_spec_from_yaml_or_zip_bytes(resp.content)
 
@@ -148,10 +145,10 @@ _COMPONENT_FILE_NAME_IN_ARCHIVE = 'component.yaml'
 
 
 def _load_component_spec_from_yaml_or_zip_bytes(data: bytes):
-    '''Loads component spec from binary data.
+    """Loads component spec from binary data.
 
     The data can be a YAML file or a zip file with a component.yaml file inside.
-    '''
+    """
     import zipfile
     import io
     stream = io.BytesIO(data)
@@ -169,6 +166,7 @@ def _load_component_spec_from_component_text(text) -> ComponentSpec:
     # Calculating hash digest for the component
     import hashlib
     data = text if isinstance(text, bytes) else text.encode('utf-8')
+    data = data.replace(b'\r\n', b'\n')  # Normalizing line endings
     digest = hashlib.sha256(data).hexdigest()
     component_spec._digest = digest
 
@@ -202,6 +200,7 @@ def _create_task_spec_from_component_and_arguments(
     component_spec: ComponentSpec,
     arguments: Mapping[str, Any],
     component_ref: ComponentReference = None,
+    **kwargs
 ) -> TaskSpec:
     """Constructs a TaskSpec object from component reference and arguments.
     The function also checks the arguments types and serializes them."""
@@ -255,6 +254,42 @@ _container_task_constructor = _default_container_task_constructor
 _always_expand_graph_components = False
 
 
+def _create_task_object_from_component_and_arguments(
+    component_spec: ComponentSpec,
+    arguments: Mapping[str, Any],
+    component_ref: ComponentReference = None,
+    **kwargs
+):
+    """Creates a task object from component and argument.
+
+    Unlike _container_task_constructor, handles the graph components as well.
+    """
+    if (
+        isinstance(component_spec.implementation, GraphImplementation)
+        and (
+            # When the container task constructor is not overriden, we just construct TaskSpec for both container and graph tasks.
+            # If the container task constructor is overriden, we should expand the graph components so that the override is called for all sub-tasks.
+            _container_task_constructor != _default_container_task_constructor
+            or _always_expand_graph_components
+        )
+    ):
+        return _resolve_graph_task(
+            component_spec=component_spec,
+            arguments=arguments,
+            component_ref=component_ref,
+            **kwargs,
+        )
+
+    task = _container_task_constructor(
+        component_spec=component_spec,
+        arguments=arguments,
+        component_ref=component_ref,
+        **kwargs,
+    )
+
+    return task
+
+
 class _DefaultValue:
     def __init__(self, value):
         self.value = value
@@ -292,35 +327,17 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
         component_ref.digest = digest
 
 
-    def create_task_from_component_and_arguments(pythonic_arguments):
+    def create_task_object_from_component_and_pythonic_arguments(pythonic_arguments):
         arguments = {
             pythonic_name_to_input_name[argument_name]: argument_value
             for argument_name, argument_value in pythonic_arguments.items()
             if not isinstance(argument_value, _DefaultValue) # Skipping passing arguments for optional values that have not been overridden.
         }
-
-        if (
-            isinstance(component_spec.implementation, GraphImplementation)
-            and (
-                # When the container task constructor is not overriden, we just construct TaskSpec for both container and graph tasks.
-                # If the container task constructor is overriden, we should expand the graph components so that the override is called for all sub-tasks.
-                _container_task_constructor != _default_container_task_constructor
-                or _always_expand_graph_components
-            )
-        ):
-            return _resolve_graph_task(
-                component_spec=component_spec,
-                arguments=arguments,
-                component_ref=component_ref,
-            )
-
-        task = _container_task_constructor(
+        return _create_task_object_from_component_and_arguments(
             component_spec=component_spec,
             arguments=arguments,
             component_ref=component_ref,
         )
-
-        return task
 
     import inspect
     from . import _dynamic
@@ -346,7 +363,7 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
     factory_function_parameters = input_parameters #Outputs are no longer part of the task factory function signature. The paths are always generated by the system.
     
     task_factory = _dynamic.create_function_from_parameters(
-        create_task_from_component_and_arguments,        
+        create_task_object_from_component_and_pythonic_arguments,        
         factory_function_parameters,
         documentation='\n'.join(func_docstring_lines),
         func_name=name,
@@ -527,19 +544,17 @@ def _resolve_graph_task(
             raise TypeError('Argument for input has unexpected type "{}".'.format(type(argument)))
 
     for task_id, task_spec in graph._toposorted_tasks.items(): # Cannot use graph.tasks here since they might be listed not in dependency order. Especially on python <3.6 where the dicts do not preserve ordering
-        task_factory = component_store._load_component_from_ref(task_spec.component_ref)
+        resolved_task_component_ref = component_store._load_component_spec_in_component_ref(task_spec.component_ref)
         # TODO: Handle the case when optional graph component input is passed to optional task component input
         task_arguments = {input_name: resolve_argument(argument) for input_name, argument in task_spec.arguments.items()}
-        task_component_spec = task_factory.component_spec
+        task_component_spec = resolved_task_component_ref.spec
 
-        input_name_to_pythonic = generate_unique_name_conversion_table([input.name for input in task_component_spec.inputs or []], _sanitize_python_function_name)
-        output_name_to_pythonic = generate_unique_name_conversion_table([output.name for output in task_component_spec.outputs or []], _sanitize_python_function_name)
-        pythonic_output_name_to_original = {pythonic_name: original_name for original_name, pythonic_name in output_name_to_pythonic.items()}
-        pythonic_task_arguments = {input_name_to_pythonic[input_name]: argument for input_name, argument in task_arguments.items()}
-
-        task_obj = task_factory(**pythonic_task_arguments)
-        task_outputs_with_pythonic_names = task_obj.outputs
-        task_outputs_with_original_names = {pythonic_output_name_to_original[pythonic_output_name]: output_value for pythonic_output_name, output_value in task_outputs_with_pythonic_names.items()}
+        task_obj = _create_task_object_from_component_and_arguments(
+            component_spec=task_component_spec,
+            arguments=task_arguments,
+            component_ref=task_spec.component_ref,
+        )
+        task_outputs_with_original_names = {output.name: task_obj.outputs[output.name] for output in task_component_spec.outputs or []}
         outputs_of_tasks[task_id] = task_outputs_with_original_names
 
     resolved_graph_outputs = OrderedDict([(output_name, resolve_argument(argument)) for output_name, argument in graph.output_values.items()])

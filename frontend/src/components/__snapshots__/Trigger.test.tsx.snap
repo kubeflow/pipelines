@@ -118,7 +118,7 @@ exports[`Trigger enables a single day on click 1`] = `
           }
         }
         type="date"
-        value="2018-12-21"
+        value="2018-12-28"
         variant="outlined"
         width={160}
       />
@@ -459,7 +459,7 @@ exports[`Trigger renders all week days enabled 1`] = `
           }
         }
         type="date"
-        value="2018-12-21"
+        value="2018-12-28"
         variant="outlined"
         width={160}
       />
@@ -800,7 +800,7 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
           }
         }
         type="date"
-        value="2018-12-21"
+        value="2018-12-28"
         variant="outlined"
         width={160}
       />
@@ -1039,7 +1039,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
           }
         }
         type="date"
-        value="2018-12-21"
+        value="2018-12-28"
         variant="outlined"
         width={160}
       />
@@ -1301,7 +1301,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
           }
         }
         type="date"
-        value="2018-12-21"
+        value="2018-12-28"
         variant="outlined"
         width={160}
       />

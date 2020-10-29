@@ -34,6 +34,8 @@ def _create_container_op_from_component_and_arguments(
             dsl.types.verify_type_compatibility(reference_type, input_type, 'Incompatible argument passed to the input "{}" of component "{}": '.format(input_name, component_spec.name))
 
             arguments[input_name] = str(argument_value)
+        if isinstance(argument_value, dsl.ContainerOp):
+            raise TypeError('ContainerOp object was passed to component as an input argument. Pass a single output instead.')
 
     resolved_cmd = _resolve_command_line_and_paths(
         component_spec=component_spec,
@@ -42,6 +44,8 @@ def _create_container_op_from_component_and_arguments(
 
     container_spec = component_spec.implementation.container
 
+    old_warn_value = dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING
+    dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = True
     task = dsl.ContainerOp(
         name=component_spec.name or _default_component_name,
         image=container_spec.image,
@@ -57,12 +61,15 @@ def _create_container_op_from_component_and_arguments(
             for input_name, path in resolved_cmd.input_paths.items()
         ],
     )
+    dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = old_warn_value
 
     component_meta = copy.copy(component_spec)
     task._set_metadata(component_meta)
     component_ref_without_spec = copy.copy(component_ref)
     component_ref_without_spec.spec = None
     task._component_ref = component_ref_without_spec
+
+    task._parameter_arguments = resolved_cmd.inputs_consumed_by_value
 
     # Previously, ContainerOp had strict requirements for the output names, so we had to
     # convert all the names before passing them to the ContainerOp constructor.
@@ -84,9 +91,13 @@ def _create_container_op_from_component_and_arguments(
             task.container.add_env_variable(k8s_client.V1EnvVar(name=name, value=value))
 
     if component_spec.metadata:
-        for key, value in (component_spec.metadata.annotations or {}).items():
+        annotations = component_spec.metadata.annotations or {}
+        for key, value in annotations.items():
             task.add_pod_annotation(key, value)
         for key, value in (component_spec.metadata.labels or {}).items():
             task.add_pod_label(key, value)
+        # Disabling the caching for the volatile components by default
+        if annotations.get('volatile_component', 'false') == 'true':
+            task.execution_options.caching_strategy.max_cache_staleness = 'P0D'
 
     return task

@@ -107,6 +107,24 @@ exports[`Banner uses error mode when instructed 1`] = `
 </div>
 `;
 
+exports[`Banner uses info mode when instructed 1`] = `
+<div
+  className="flex banner mode"
+>
+  <div
+    className="message"
+  >
+    <pure(InfoIcon)
+      className="icon"
+    />
+    Some message
+  </div>
+  <div
+    className="flex"
+  />
+</div>
+`;
+
 exports[`Banner uses warning mode when instructed 1`] = `
 <div
   className="flex banner mode"

@@ -1,24 +1,20 @@
 # Kubeflow Pipelines for GKE Marketplace
 
-Kubeflow Pipelines can be installed using either of the following approaches:
-
-* [Using the Google Cloud Platform Console](#using-install-platform-console)
-
-* [Using the command line](#using-install-command-line)
-
 ## <a name="using-install-platform-console"></a>Using the Google Cloud Platform Marketplace
 
 Get up and running with a few clicks! Install this Kubeflow Pipelines app to a
 Google Kubernetes Engine cluster using Google Cloud Marketplace. Follow the
-[on-screen instructions](https://console.cloud.google.com/marketplace/details/google-cloud-ai-platform/kubeflow-pipelines) and [guide](https://github.com/kubeflow/pipelines/blob/master/manifests/gcp_marketplace/guide.md).
-
+[on-screen instructions](https://console.cloud.google.com/marketplace/details/google-cloud-ai-platform/kubeflow-pipelines) and [Google Cloud AI Platform Pipelines documentation](https://cloud.google.com/ai-platform/pipelines/docs).
 
 ## <a name="using-install-command-line"></a>Using the command line
 
-We prefer you use Google Cloud Platform Marketplace UI to deploy the application.
-If you want to know how , please follow the [guide](https://github.com/kubeflow/pipelines/blob/master/manifests/gcp_marketplace/cli.md). It's not target for production usage. The tool "mpdev" is for Kubeflow Pipeline developers. We will provide better command line experiences in 2020 Q2/Q3. Please check [Standalone CLI](https://www.kubeflow.org/docs/pipelines/installation/standalone-deployment/) for now on how to install via commandline.
+For users, please refer to [Kubeflow Pipelines Standalone](https://www.kubeflow.org/docs/pipelines/installation/standalone-deployment/) on how to install via commandline using kustomize manifests. The installation is almost the same as AI Platform Pipelines.
+
+Refer to the [Installation Options for Kubeflow Pipelines](https://www.kubeflow.org/docs/pipelines/installation/overview/) doc for all installation options and their feature comparison.
 
 ## Developement guide
+
+Only for developing AI Platform Pipelines purpose, we have a [CLI installation guide for AI Platform Pipelines](cli.md). It's not suitable for end users. The tool "mpdev" is for Kubeflow Pipeline developers.
 
 This section details how to test your changes before submit codes.
 

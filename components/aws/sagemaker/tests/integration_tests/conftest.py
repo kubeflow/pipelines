@@ -19,6 +19,11 @@ def pytest_addoption(parser):
         "--role-arn", required=True, help="SageMaker execution IAM role ARN",
     )
     parser.addoption(
+        "--assume-role-arn",
+        required=True,
+        help="The ARN of a role which the assume role tests will assume to access SageMaker.",
+    )
+    parser.addoption(
         "--s3-data-bucket",
         required=True,
         help="Regional S3 bucket name in which test data is hosted",
@@ -35,12 +40,36 @@ def pytest_addoption(parser):
         required=False,
         help="Cluster namespace where kubeflow pipelines is installed",
     )
+    parser.addoption(
+        "--fsx-subnet",
+        required=False,
+        help="The subnet in which FSx is installed",
+        default="",
+    )
+    parser.addoption(
+        "--fsx-security-group",
+        required=False,
+        help="The security group SageMaker should use when running the FSx test",
+        default="",
+    )
+    parser.addoption(
+        "--fsx-id",
+        required=False,
+        help="The file system ID of the FSx instance",
+        default="",
+    )
 
 
 @pytest.fixture(scope="session", autouse=True)
 def region(request):
     os.environ["AWS_REGION"] = request.config.getoption("--region")
     return request.config.getoption("--region")
+
+
+@pytest.fixture(scope="session", autouse=True)
+def assume_role_arn(request):
+    os.environ["ASSUME_ROLE_ARN"] = request.config.getoption("--assume-role-arn")
+    return request.config.getoption("--assume-role-arn")
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -67,6 +96,24 @@ def kfp_namespace(request):
     return request.config.getoption("--kfp-namespace")
 
 
+@pytest.fixture(scope="session", autouse=True)
+def fsx_subnet(request):
+    os.environ["FSX_SUBNET"] = request.config.getoption("--fsx-subnet")
+    return request.config.getoption("--fsx-subnet")
+
+
+@pytest.fixture(scope="session", autouse=True)
+def fsx_security_group(request):
+    os.environ["FSX_SECURITY_GROUP"] = request.config.getoption("--fsx-security-group")
+    return request.config.getoption("--fsx-security-group")
+
+
+@pytest.fixture(scope="session", autouse=True)
+def fsx_id(request):
+    os.environ["FSX_ID"] = request.config.getoption("--fsx-id")
+    return request.config.getoption("--fsx-id")
+
+
 @pytest.fixture(scope="session")
 def boto3_session(region):
     return boto3.Session(region_name=region)
@@ -87,6 +134,7 @@ def kfp_client():
     kfp_installed_namespace = utils.get_kfp_namespace()
     return kfp.Client(namespace=kfp_installed_namespace)
 
+
 def get_experiment_id(kfp_client):
     exp_name = datetime.now().strftime("%Y-%m-%d-%H-%M")
     try:
@@ -95,9 +143,10 @@ def get_experiment_id(kfp_client):
         experiment = kfp_client.create_experiment(name=exp_name)
     return experiment.id
 
+
 @pytest.fixture(scope="session")
 def experiment_id(kfp_client, tmp_path_factory, worker_id):
-    if not worker_id:
+    if worker_id == "master":
         return get_experiment_id(kfp_client)
 
     # Locking taking as an example from

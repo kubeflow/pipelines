@@ -61,6 +61,7 @@ if [ -z "$KFP_DEPLOY_RELEASE" ]; then
   kustomize edit set image gcr.io/ml-pipeline/metadata-writer=${GCR_IMAGE_BASE_DIR}/metadata-writer:${GCR_IMAGE_TAG}
   kustomize edit set image gcr.io/ml-pipeline/cache-server=${GCR_IMAGE_BASE_DIR}/cache-server:${GCR_IMAGE_TAG}
   kustomize edit set image gcr.io/ml-pipeline/cache-deployer=${GCR_IMAGE_BASE_DIR}/cache-deployer:${GCR_IMAGE_TAG}
+  kustomize edit set image gcr.io/ml-pipeline/metadata-envoy=${GCR_IMAGE_BASE_DIR}/metadata-envoy:${GCR_IMAGE_TAG}
   cat kustomization.yaml
 
   kubectl apply -k .
@@ -114,7 +115,7 @@ if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
     # between tests. Unless for testing scenario like this, it won't
     # meet the concurrent change issue.
     sleep $((RANDOM%30))
-    yes | PROJECT_ID=$PROJECT CLUSTER_NAME=$TEST_CLUSTER NAMESPACE=$NAMESPACE \
+    yes | PROJECT_ID=$PROJECT RESOURCE_PREFIX=$TEST_CLUSTER NAMESPACE=$NAMESPACE \
       ${DIR}/../manifests/kustomize/gcp-workload-identity-setup.sh
   }
   retry setup_workload_identity

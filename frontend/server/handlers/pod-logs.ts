@@ -62,7 +62,7 @@ export function getPodLogsHandler(
 
   return async (req, res) => {
     if (!req.query.podname) {
-      res.status(404).send('podname argument is required');
+      res.status(400).send('podname argument is required');
       return;
     }
     const podName = decodeURIComponent(req.query.podname);
@@ -73,7 +73,16 @@ export function getPodLogsHandler(
 
     try {
       const stream = await getPodLogsStream(podName, podNamespace);
-      stream.on('error', err => res.status(500).send('Could not get main container logs: ' + err));
+      stream.on('error', err => {
+        if (
+          err?.message &&
+          err.message?.indexOf('Unable to find pod log archive information') > -1
+        ) {
+          res.status(404).send('pod not found');
+        } else {
+          res.status(500).send('Could not get main container logs: ' + err);
+        }
+      });
       stream.on('end', () => res.end());
       stream.pipe(res);
     } catch (err) {

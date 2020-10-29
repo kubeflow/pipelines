@@ -36,9 +36,6 @@ spec:
       parameters:
       - name: url
     name: download
-    metadata:
-      labels:
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
     outputs:
       artifacts:
       - name: download-downloaded
@@ -90,9 +87,6 @@ spec:
       parameters:
       - name: download-downloaded
     name: get-frequent
-    metadata:
-      labels:
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
     outputs:
       artifacts:
       - name: get-frequent-word
@@ -114,6 +108,3 @@ spec:
       - name: get-frequent-word
       - name: outputpath
     name: save
-    metadata:
-      labels:
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp

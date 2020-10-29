@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -70,7 +71,7 @@ var (
 func TestValidateApiJob(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewJobServer(manager)
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	err := server.validateCreateJobRequest(&api.CreateJobRequest{Job: commonApiJob})
 	assert.Nil(t, err)
 }
@@ -78,7 +79,7 @@ func TestValidateApiJob(t *testing.T) {
 func TestValidateApiJob_WithPipelineVersion(t *testing.T) {
 	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
-	server := NewJobServer(manager)
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	apiJob := &api.Job{
 		Name:           "job1",
 		Enabled:        true,
@@ -97,7 +98,7 @@ func TestValidateApiJob_WithPipelineVersion(t *testing.T) {
 func TestValidateApiJob_ValidateNoExperimentResourceReferenceSucceeds(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewJobServer(manager)
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	apiJob := &api.Job{
 		Name:           "job1",
 		Enabled:        true,
@@ -120,7 +121,7 @@ func TestValidateApiJob_ValidateNoExperimentResourceReferenceSucceeds(t *testing
 func TestValidateApiJob_ValidatePipelineSpecFailed(t *testing.T) {
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
-	server := NewJobServer(manager)
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	apiJob := &api.Job{
 		Name:           "job1",
 		Enabled:        true,
@@ -146,7 +147,7 @@ func TestValidateApiJob_ValidatePipelineSpecFailed(t *testing.T) {
 func TestValidateApiJob_NoValidPipelineSpecOrPipelineVersion(t *testing.T) {
 	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
-	server := NewJobServer(manager)
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	apiJob := &api.Job{
 		Name:           "job1",
 		Enabled:        true,
@@ -166,7 +167,7 @@ func TestValidateApiJob_NoValidPipelineSpecOrPipelineVersion(t *testing.T) {
 func TestValidateApiJob_InvalidCron(t *testing.T) {
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
-	server := NewJobServer(manager)
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	apiJob := &api.Job{
 		Name:           "job1",
 		Enabled:        true,
@@ -192,7 +193,7 @@ func TestValidateApiJob_InvalidCron(t *testing.T) {
 func TestValidateApiJob_MaxConcurrencyOutOfRange(t *testing.T) {
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
-	server := NewJobServer(manager)
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	apiJob := &api.Job{
 		Name:           "job1",
 		Enabled:        true,
@@ -218,7 +219,7 @@ func TestValidateApiJob_MaxConcurrencyOutOfRange(t *testing.T) {
 func TestValidateApiJob_NegativeIntervalSecond(t *testing.T) {
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
-	server := NewJobServer(manager)
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	apiJob := &api.Job{
 		Name:           "job1",
 		Enabled:        true,
@@ -243,7 +244,7 @@ func TestValidateApiJob_NegativeIntervalSecond(t *testing.T) {
 func TestCreateJob(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewJobServer(manager)
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	job, err := server.CreateJob(nil, &api.CreateJobRequest{Job: commonApiJob})
 	assert.Nil(t, err)
 	assert.Equal(t, commonExpectedJob, job)
@@ -258,7 +259,7 @@ func TestCreateJob_Unauthorized(t *testing.T) {
 
 	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
 	defer clients.Close()
-	server := NewJobServer(manager)
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	_, err := server.CreateJob(ctx, &api.CreateJobRequest{Job: commonApiJob})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Unauthorized access")
@@ -273,13 +274,13 @@ func TestGetJob_Unauthorized(t *testing.T) {
 
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewJobServer(manager)
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	job, err := server.CreateJob(ctx, &api.CreateJobRequest{Job: commonApiJob})
 	assert.Nil(t, err)
 
 	clients.KfamClientFake = client.NewFakeKFAMClientUnauthorized()
 	manager = resource.NewResourceManager(clients)
-	server = NewJobServer(manager)
+	server = NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 
 	_, err = server.GetJob(ctx, &api.GetJobRequest{Id: job.Id})
 	assert.NotNil(t, err)
@@ -295,7 +296,7 @@ func TestGetJob_Multiuser(t *testing.T) {
 
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewJobServer(manager)
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	createdJob, err := server.CreateJob(ctx, &api.CreateJobRequest{Job: commonApiJob})
 	assert.Nil(t, err)
 
@@ -313,7 +314,7 @@ func TestListJobs_Unauthorized(t *testing.T) {
 
 	clients, manager, experiment := initWithExperiment_KFAM_Unauthorized(t)
 	defer clients.Close()
-	server := NewJobServer(manager)
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	_, err := server.ListJobs(ctx, &api.ListJobsRequest{
 		ResourceReferenceKey: &api.ResourceKey{
 			Type: api.ResourceType_EXPERIMENT,
@@ -342,7 +343,7 @@ func TestListJobs_Multiuser(t *testing.T) {
 
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewJobServer(manager)
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	_, err := server.CreateJob(ctx, &api.CreateJobRequest{Job: commonApiJob})
 	assert.Nil(t, err)
 
@@ -426,7 +427,9 @@ func TestListJobs_Multiuser(t *testing.T) {
 		} else {
 			if err != nil {
 				t.Errorf("TestListJobs_Multiuser(%v) expect no error but got %v", tc.name, err)
-			} else if !cmp.Equal(tc.expectedJobs, response.Jobs) {
+			} else if !cmp.Equal(tc.expectedJobs, response.Jobs, cmpopts.IgnoreFields(api.Job{}, "Trigger"),
+				cmpopts.IgnoreFields(api.Run{}, "CreatedAt"), cmpopts.IgnoreFields(api.Job{}, "UpdatedAt"),
+				cmpopts.IgnoreFields(api.Job{}, "CreatedAt")) {
 				t.Errorf("TestListJobs_Multiuser(%v) expect (%+v) but got (%+v)", tc.name, tc.expectedJobs, response.Jobs)
 			}
 		}
@@ -442,13 +445,13 @@ func TestEnableJob_Unauthorized(t *testing.T) {
 
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewJobServer(manager)
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	job, err := server.CreateJob(ctx, &api.CreateJobRequest{Job: commonApiJob})
 	assert.Nil(t, err)
 
 	clients.KfamClientFake = client.NewFakeKFAMClientUnauthorized()
 	manager = resource.NewResourceManager(clients)
-	server = NewJobServer(manager)
+	server = NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 
 	_, err = server.EnableJob(ctx, &api.EnableJobRequest{Id: job.Id})
 	assert.NotNil(t, err)
@@ -464,7 +467,7 @@ func TestEnableJob_Multiuser(t *testing.T) {
 
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewJobServer(manager)
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 
 	job, err := server.CreateJob(ctx, &api.CreateJobRequest{Job: commonApiJob})
 	assert.Nil(t, err)
@@ -482,13 +485,13 @@ func TestDisableJob_Unauthorized(t *testing.T) {
 
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewJobServer(manager)
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	job, err := server.CreateJob(ctx, &api.CreateJobRequest{Job: commonApiJob})
 	assert.Nil(t, err)
 
 	clients.KfamClientFake = client.NewFakeKFAMClientUnauthorized()
 	manager = resource.NewResourceManager(clients)
-	server = NewJobServer(manager)
+	server = NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 
 	_, err = server.DisableJob(ctx, &api.DisableJobRequest{Id: job.Id})
 	assert.NotNil(t, err)
@@ -504,7 +507,7 @@ func TestDisableJob_Multiuser(t *testing.T) {
 
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewJobServer(manager)
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 
 	job, err := server.CreateJob(ctx, &api.CreateJobRequest{Job: commonApiJob})
 	assert.Nil(t, err)

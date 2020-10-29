@@ -15,6 +15,11 @@ spec:
     spec:
       containers:
       - env:
+        - name: AUTO_UPDATE_PIPELINE_DEFAULT_VERSION
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: autoUpdatePipelineDefaultVersion
         - name: POD_NAMESPACE
           valueFrom:
             fieldRef:
@@ -22,7 +27,10 @@ spec:
         - name: OBJECTSTORECONFIG_SECURE
           value: "false"
         - name: OBJECTSTORECONFIG_BUCKETNAME
-          value: $(BUCKET_NAME)
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: bucketName
         - name: DBCONFIG_USER
           valueFrom:
             secretKeyRef:
@@ -36,18 +44,28 @@ spec:
         - name: DBCONFIG_DBNAME
           valueFrom:
             configMapKeyRef:
-              name: mysql-configmap
-              key: pipeline_db
+              name: pipeline-install-config
+              key: pipelineDb
         - name: DBCONFIG_HOST
           valueFrom:
             configMapKeyRef:
-              name: mysql-configmap
-              key: host
+              name: pipeline-install-config
+              key: dbHost
         - name: DBCONFIG_PORT
           valueFrom:
             configMapKeyRef:
-              name: mysql-configmap
-              key: port
+              name: pipeline-install-config
+              key: dbPort
+        - name: OBJECTSTORECONFIG_ACCESSKEY
+          valueFrom:
+            secretKeyRef:
+              name: mlpipeline-minio-artifact
+              key: accesskey
+        - name: OBJECTSTORECONFIG_SECRETACCESSKEY
+          valueFrom:
+            secretKeyRef:
+              name: mlpipeline-minio-artifact
+              key: secretkey
         image: gcr.io/ml-pipeline/api-server:dummy
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-api-server

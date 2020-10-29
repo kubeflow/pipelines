@@ -31,6 +31,16 @@ type FakePodClient struct {
 	patchIsCalled bool
 }
 
+func (FakePodClient) GetEphemeralContainers(string, v1.GetOptions) (*corev1.EphemeralContainers, error) {
+	glog.Error("This fake method is not yet implemented.")
+	return nil, nil
+}
+
+func (FakePodClient) UpdateEphemeralContainers(string, *corev1.EphemeralContainers) (*corev1.EphemeralContainers, error) {
+	glog.Error("This fake method is not yet implemented.")
+	return nil, nil
+}
+
 func (FakePodClient) Create(*corev1.Pod) (*corev1.Pod, error) {
 	glog.Error("This fake method is not yet implemented.")
 	return nil, nil

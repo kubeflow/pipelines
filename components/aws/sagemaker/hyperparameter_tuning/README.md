@@ -11,6 +11,8 @@ For hyperparameter tuning jobs using AWS SageMaker.
 Argument        | Description                 | Optional (in pipeline definition) | Optional (in UI) | Data type  | Accepted values | Default    |
 :---            | :----------                 | :----------                       | :----------      | :----------| :----------     | :----------|
 region | The region where the cluster launches | No | No | String | | |
+endpoint_url | The endpoint URL for the private link VPC endpoint | Yes | String | | |
+assume_role | The ARN of an IAM role to assume when connecting to SageMaker | Yes | String | | |
 job_name | The name of the tuning job. Must be unique within the same AWS account and AWS region | Yes | Yes | String | | HPOJob-[datetime]-[random id] |
 role | The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf | No | No | String | | |
 image | The registry path of the Docker image that contains the training algorithm | Yes | Yes | String | | |
@@ -28,7 +30,7 @@ categorical_parameters | The array of CategoricalParameterRange objects that spe
 channels | A list of dicts specifying the input channels (at least one); refer to [documentation](https://github.com/awsdocs/amazon-sagemaker-developer-guide/blob/master/doc_source/API_Channel.md) for parameters | No | No | List of Dicts | | |
 output_location | The Amazon S3 path where you want Amazon SageMaker to store the results of the transform job | No | No | String | | |
 output_encryption_key | The AWS KMS key that Amazon SageMaker uses to encrypt the model artifacts | Yes | Yes | String | | |
-instance_type | The ML compute instance type | Yes | No | String | ml.m4.xlarge, ml.m4.2xlarge, ml.m4.4xlarge, ml.m4.10xlarge, ml.m4.16xlarge, ml.m5.large, ml.m5.xlarge, ml.m5.2xlarge, ml.m5.4xlarge, ml.m5.12xlarge, ml.m5.24xlarge, ml.c4.xlarge, ml.c4.2xlarge, ml.c4.4xlarge, ml.c4.8xlarge, ml.p2.xlarge, ml.p2.8xlarge, ml.p2.16xlarge, ml.p3.2xlarge, ml.p3.8xlarge, ml.p3.16xlarge, ml.c5.xlarge, ml.c5.2xlarge, ml.c5.4xlarge, ml.c5.9xlarge, ml.c5.18xlarge | ml.m4.xlarge |
+instance_type | The ML compute instance type | Yes | No | String | ml.m4.xlarge, ml.m4.2xlarge, ml.m4.4xlarge, ml.m4.10xlarge, ml.m4.16xlarge, ml.m5.large, ml.m5.xlarge, ml.m5.2xlarge, ml.m5.4xlarge, ml.m5.12xlarge, ml.m5.24xlarge, ml.c4.xlarge, ml.c4.2xlarge, ml.c4.4xlarge, ml.c4.8xlarge, ml.p2.xlarge, ml.p2.8xlarge, ml.p2.16xlarge, ml.p3.2xlarge, ml.p3.8xlarge, ml.p3.16xlarge, ml.c5.xlarge, ml.c5.2xlarge, ml.c5.4xlarge, ml.c5.9xlarge, ml.c5.18xlarge [and many more](https://aws.amazon.com/sagemaker/pricing/instance-types/)| ml.m4.xlarge |
 instance_count | The number of ML compute instances to use in each training job | Yes | Yes | Int | ≥ 1 | 1 |
 volume_size | The size of the ML storage volume that you want to provision in GB | Yes | Yes | Int | ≥ 1 | 30 |
 max_num_jobs | The maximum number of training jobs that a hyperparameter tuning job can launch | No | No | Int | [1, 500] | |
@@ -44,7 +46,6 @@ max_wait_time | The maximum time in seconds you are willing to wait for a manage
 checkpoint_config | Dictionary of information about the output location for managed spot training checkpoint data | Yes | Yes | Dict | | {} |
 warm_start_type | Specifies the type of warm start used | Yes | No | String | IdenticalDataAndAlgorithm, TransferLearning | |
 parent_hpo_jobs | List of previously completed or stopped hyperparameter tuning jobs to be used as a starting point | Yes | Yes | String | Yes | | |
-endpoint_url | The endpoint URL for the private link VPC endpoint. | Yes | Yes | String | | |
 tags | Key-value pairs to categorize AWS resources | Yes | Yes | Dict | | {} |
 
 Notes:

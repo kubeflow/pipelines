@@ -13,17 +13,37 @@ spec:
       labels:
         app: ml-pipeline-ui
     spec:
+      volumes:
+      - name: config-volume
+        configMap:
+          name: ml-pipeline-ui-configmap
       containers:
       - image: gcr.io/ml-pipeline/frontend:dummy
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-ui
         ports:
         - containerPort: 3000
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/config
+          readOnly: true
         env:
+          - name: VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH
+            value: /etc/config/viewer-pod-template.json
           - name: MINIO_NAMESPACE
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
+          - name: MINIO_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: mlpipeline-minio-artifact
+                key: accesskey
+          - name: MINIO_SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: mlpipeline-minio-artifact
+                key: secretkey
           - name: ALLOW_CUSTOM_VISUALIZATIONS
             value: "true"
         readinessProbe:

@@ -11,6 +11,7 @@ Deploying a model using Amazon SageMaker hosting services is a three-step proces
 3. **Create an HTTPS endpoint** - Launch the ML compute instances and deploy the model as specified in the endpoint configuration
 
 This component handles Step 2 and 3. Step 1 can be done using the [create model component](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/model) for AWS SageMaker.
+Endpoint created above can be updated using this component as well. When update_endpoint is set to true, endpoint is updated if it exists, if not one is created. Tags will be ignored if the endpoint is being upated.
 
 ## Intended Use
 Create an endpoint in AWS SageMaker Hosting Service for model deployment.
@@ -19,7 +20,8 @@ Create an endpoint in AWS SageMaker Hosting Service for model deployment.
 Argument        | Description                 | Optional (in pipeline definition) | Optional (in UI) | Data type  | Accepted values | Default    |
 :---            | :----------                 | :----------                       | :----------      | :----------| :----------     | :----------|
 region | The region where the endpoint is created | No | No | String | | |
-endpoint_url | The endpoint URL for the private link VPC endpoint | Yes | Yes | String | | |
+endpoint_url | The endpoint URL for the private link VPC endpoint | Yes | String | | |
+assume_role | The ARN of an IAM role to assume when connecting to SageMaker | Yes | String | | |
 endpoint_config_name | The name of the endpoint configuration | Yes | Yes | String | | |
 endpoint_config_tags | Key-value pairs to tag endpoint configurations in AWS | Yes | Yes | Dict | | {} |
 endpoint_tags | Key-value pairs to tag the Hosting endpoint in AWS | Yes | Yes | Dict | | {} |
@@ -31,10 +33,11 @@ Argument        | Description                 | Optional (in pipeline definition
 :---            | :----------                 | :----------                       | :----------      | :----------| :----------     | :----------|
 model_name_[1, 3] | The name of the model that you want to host. This is the name that you specified when creating the model | No | No | String | | |
 variant_name_[1, 3] | The name of the production variant | Yes | Yes | String | | variant_name_[1, 3] |
-instance_type_[1, 3] | The ML compute instance type | Yes | Yes | String | ml.m4.xlarge, ml.m4.2xlarge, ml.m4.4xlarge, ml.m4.10xlarge, ml.m4.16xlarge, ml.m5.large, ml.m5.xlarge, ml.m5.2xlarge, ml.m5.4xlarge, ml.m5.12xlarge, ml.m5.24xlarge, ml.c4.xlarge, ml.c4.2xlarge, ml.c4.4xlarge, ml.c4.8xlarge, ml.p2.xlarge, ml.p2.8xlarge, ml.p2.16xlarge, ml.p3.2xlarge, ml.p3.8xlarge, ml.p3.16xlarge, ml.c5.xlarge, ml.c5.2xlarge, ml.c5.4xlarge, ml.c5.9xlarge, ml.c5.18xlarge | ml.m4.xlarge |
+instance_type_[1, 3] | The ML compute instance type | Yes | Yes | String | ml.m4.xlarge, ml.m4.2xlarge, ml.m4.4xlarge, ml.m4.10xlarge, ml.m4.16xlarge, ml.m5.large, ml.m5.xlarge, ml.m5.2xlarge, ml.m5.4xlarge, ml.m5.12xlarge, ml.m5.24xlarge, ml.c4.xlarge, ml.c4.2xlarge, ml.c4.4xlarge, ml.c4.8xlarge, ml.p2.xlarge, ml.p2.8xlarge, ml.p2.16xlarge, ml.p3.2xlarge, ml.p3.8xlarge, ml.p3.16xlarge, ml.c5.xlarge, ml.c5.2xlarge, ml.c5.4xlarge, ml.c5.9xlarge, ml.c5.18xlarge [and many more](https://aws.amazon.com/sagemaker/pricing/instance-types/)| ml.m4.xlarge |
 initial_instance_count_[1, 3] | Number of instances to launch initially | Yes | Yes | Integer | ≥ 1 | 1 |
 initial_variant_weight_[1, 3] | Determines initial traffic distribution among all of the models that you specify in the endpoint configuration. The traffic to a production variant is determined by the ratio of the VariantWeight to the sum of all VariantWeight values across all ProductionVariants. | Yes | Yes | Float | Minimum value of 0 | |
 accelerator_type_[1, 3] | The size of the Elastic Inference (EI) instance to use for the production variant | Yes | Yes | String| ml.eia1.medium, ml.eia1.large, ml.eia1.xlarge | |
+update_endpoint | Updates the end point if it exists | Yes | Yes | Bool | | False |
 
 Notes:
 * Please use the links in the [Resources section](#Resources) for detailed information on each input parameter and SageMaker APIs used in this component

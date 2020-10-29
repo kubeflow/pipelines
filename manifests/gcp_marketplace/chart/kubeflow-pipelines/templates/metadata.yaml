@@ -77,7 +77,8 @@ spec:
                  "--mysql_config_host=$(MYSQL_HOST)",
                  "--mysql_config_port=$(MYSQL_PORT)",
                  "--mysql_config_user=$(DBCONFIG_USER)",
-                 "--mysql_config_password=$(DBCONFIG_PASSWORD)"
+                 "--mysql_config_password=$(DBCONFIG_PASSWORD)",
+                 "--enable_database_upgrade=true"
                 ]
         ports:
         - containerPort: 8080
@@ -144,11 +145,7 @@ metadata:
   labels:
     component: metadata-server
 data:
-  {{ if .Values.managedstorage.databaseNamePrefix }}
-  MYSQL_DATABASE: '{{ .Values.managedstorage.databaseNamePrefix }}_metadata'
-  {{ else }}
-  MYSQL_DATABASE: '{{ .Release.Name | replace "-" "_" | replace "." "_"}}_metadata'
-  {{ end }}
+  MYSQL_DATABASE: '{{ tpl .Values.managedstorage.databaseNamePrefix . }}_metadata'
   MYSQL_HOST: "mysql"
   MYSQL_PORT: "3306"
 ---

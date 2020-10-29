@@ -1,7 +1,7 @@
 import kfp
 from kfp import components
 from kfp import dsl
-from kfp.aws import use_aws_secret
+
 
 sagemaker_hpo_op = components.load_component_from_file(
     "../../hyperparameter_tuning/component.yaml"
@@ -13,6 +13,7 @@ sagemaker_hpo_op = components.load_component_from_file(
 )
 def hpo_pipeline(
     region="",
+    job_name="",
     algorithm_name="",
     training_input_mode="",
     static_parameters="",
@@ -36,6 +37,7 @@ def hpo_pipeline(
 ):
     sagemaker_hpo_op(
         region=region,
+        job_name=job_name,
         algorithm_name=algorithm_name,
         training_input_mode=training_input_mode,
         static_parameters=static_parameters,

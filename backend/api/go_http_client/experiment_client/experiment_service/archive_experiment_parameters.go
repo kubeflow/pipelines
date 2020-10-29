@@ -75,7 +75,10 @@ for the archive experiment operation typically these are written to a http.Reque
 */
 type ArchiveExperimentParams struct {
 
-	/*ID*/
+	/*ID
+	  The ID of the experiment to be archived.
+
+	*/
 	ID string
 
 	timeout    time.Duration

@@ -1,0 +1,6 @@
+# Runtime requirements
+boto3==1.14.12
+sagemaker==2.1.0
+pathlib2==2.3.5
+pyyaml==3.12
+mypy-extensions==0.4.3

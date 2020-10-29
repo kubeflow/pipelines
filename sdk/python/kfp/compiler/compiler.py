@@ -27,7 +27,7 @@ from kfp.dsl import _for_loop
 from .. import dsl
 from ._k8s_helper import convert_k8s_obj_to_json, sanitize_k8s_name
 from ._op_to_template import _op_to_template
-from ._default_transformers import add_pod_env, add_pod_labels, get_default_telemetry_labels
+from ._default_transformers import add_pod_env
 
 from ..components.structures import InputSpec
 from ..components._yaml_utils import dump_yaml
@@ -36,19 +36,19 @@ from ..dsl._ops_group import OpsGroup
 
 
 class Compiler(object):
-  """DSL Compiler.
+  """DSL Compiler that compiles pipeline functions into workflow yaml.
+  
+  Example:
+    How to use the compiler to construct workflow yaml::
 
-  It compiles DSL pipeline functions into workflow yaml. Example usage:
-  ```python
-  @dsl.pipeline(
-    name='name',
-    description='description'
-  )
-  def my_pipeline(a: int = 1, b: str = "default value"):
-    ...
+      @dsl.pipeline(
+        name='name',
+        description='description'
+      )
+      def my_pipeline(a: int = 1, b: str = "default value"):
+        ...
 
-  Compiler().compile(my_pipeline, 'path/to/workflow.yaml')
-  ```
+      Compiler().compile(my_pipeline, 'path/to/workflow.yaml')
   """
 
   def _pipelineparam_full_name(self, param):
@@ -154,7 +154,7 @@ class Compiler(object):
     elif op2.name in opsgroup_groups:
       op2_groups = opsgroup_groups[op2.name]
     else:
-      raise ValueError(op1.name + ' does not exist.')
+      raise ValueError(op2.name + ' does not exist.')
 
     both_groups = [op1_groups, op2_groups]
     common_groups_len = sum(1 for x in zip(*both_groups) if x==(x[0],)*len(x))
@@ -367,8 +367,8 @@ class Compiler(object):
       for op_name in upstream_op_names:
         if op_name in pipeline.ops:
           upstream_op = pipeline.ops[op_name]
-        elif op_name in opsgroups_groups:
-          upstream_op = opsgroups_groups[op_name]
+        elif op_name in opsgroups:
+          upstream_op = opsgroups[op_name]
         else:
           raise ValueError('compiler cannot find the ' + op_name)
         upstream_groups, downstream_groups = \
@@ -411,6 +411,8 @@ class Compiler(object):
     inputs, outputs, dependencies are all helper dicts.
     """
     template = {'name': group.name}
+    if group.parallelism != None: 
+      template["parallelism"] = group.parallelism
 
     # Generate inputs section.
     if inputs.get(group.name, None):
@@ -522,10 +524,10 @@ class Compiler(object):
     arguments = []
     for param_name, dependent_name in inputs[sub_group.name]:
       if is_recursive_subgroup:
-        for index, input in enumerate(sub_group.inputs):
+        for input_name, input in sub_group.arguments.items():
           if param_name == self._pipelineparam_full_name(input):
             break
-        referenced_input = sub_group.recursive_ref.inputs[index]
+        referenced_input = sub_group.recursive_ref.arguments[input_name]
         argument_name = self._pipelineparam_full_name(referenced_input)
       else:
         argument_name = param_name
@@ -681,6 +683,10 @@ class Compiler(object):
     if pipeline_conf.ttl_seconds_after_finished >= 0:
       workflow['spec']['ttlSecondsAfterFinished'] = pipeline_conf.ttl_seconds_after_finished
 
+    if pipeline_conf._pod_disruption_budget_min_available:
+      pod_disruption_budget = {"minAvailable": pipeline_conf._pod_disruption_budget_min_available}
+      workflow['spec']['podDisruptionBudget'] = pod_disruption_budget
+
     if len(pipeline_conf.image_pull_secrets) > 0:
       image_pull_secrets = []
       for image_pull_secret in pipeline_conf.image_pull_secrets:
@@ -759,6 +765,11 @@ class Compiler(object):
           sanitized_attribute_outputs[sanitize_k8s_name(key, True)] = \
             op.attribute_outputs[key]
         op.attribute_outputs = sanitized_attribute_outputs
+      if isinstance(op, dsl.ContainerOp):
+        if op.input_artifact_paths:
+          op.input_artifact_paths = {sanitize_k8s_name(key, True): value for key, value in op.input_artifact_paths.items()}
+        if op.artifact_arguments:
+          op.artifact_arguments = {sanitize_k8s_name(key, True): value for key, value in op.artifact_arguments.items()}
       sanitized_ops[sanitized_name] = op
     pipeline.ops = sanitized_ops
 
@@ -768,11 +779,9 @@ class Compiler(object):
       pipeline_description: Text=None,
       params_list: List[dsl.PipelineParam]=None,
       pipeline_conf: dsl.PipelineConf = None,
-      allow_telemetry: bool = True,
-  ) -> Dict[Text, Any]:
+      ) -> Dict[Text, Any]:
     """ Internal implementation of create_workflow."""
     params_list = params_list or []
-    argspec = inspect.getfullargspec(pipeline_func)
 
     # Create the arg list with no default values and call pipeline function.
     # Assign type information to the PipelineParam
@@ -793,7 +802,8 @@ class Compiler(object):
       raise ValueError('Either specify pipeline params in the pipeline function, or in "params_list", but not both.')
 
     args_list = []
-    for arg_name in argspec.args:
+    signature = inspect.signature(pipeline_func)
+    for arg_name in signature.parameters:
       arg_type = None
       for input in pipeline_meta.inputs or []:
         if arg_name == input.name:
@@ -812,11 +822,10 @@ class Compiler(object):
     # Fill in the default values.
     args_list_with_defaults = []
     if pipeline_meta.inputs:
-      args_list_with_defaults = [dsl.PipelineParam(sanitize_k8s_name(arg_name, True))
-                                 for arg_name in argspec.args]
-      if argspec.defaults:
-        for arg, default in zip(reversed(args_list_with_defaults), reversed(argspec.defaults)):
-          arg.value = default.value if isinstance(default, dsl.PipelineParam) else default
+      args_list_with_defaults = [
+        dsl.PipelineParam(sanitize_k8s_name(input_spec.name, True), value=input_spec.default)
+        for input_spec in pipeline_meta.inputs
+      ]
     elif params_list:
       # Or, if args are provided by params_list, fill in pipeline_meta.
       for param in params_list:
@@ -830,13 +839,6 @@ class Compiler(object):
             default=param.value) for param in params_list]
 
     op_transformers = [add_pod_env]
-    # By default adds telemetry instruments. Users can opt out toggling
-    # allow_telemetry.
-    # Also, TFX pipelines will be bypassed for pipeline compiled by tfx>0.21.4.
-    if allow_telemetry:
-      pod_labels = get_default_telemetry_labels()
-      op_transformers.append(add_pod_labels(pod_labels))
-
     op_transformers.extend(pipeline_conf.op_transformers)
 
     workflow = self._create_pipeline_workflow(
@@ -848,6 +850,9 @@ class Compiler(object):
 
     from ._data_passing_rewriter import fix_big_data_passing
     workflow = fix_big_data_passing(workflow)
+
+    if pipeline_conf and pipeline_conf.data_passing_method != None:
+      workflow = pipeline_conf.data_passing_method(workflow)
 
     metadata = workflow.setdefault('metadata', {})
     annotations = metadata.setdefault('annotations', {})
@@ -874,17 +879,20 @@ class Compiler(object):
                       pipeline_description: Text=None,
                       params_list: List[dsl.PipelineParam]=None,
                       pipeline_conf: dsl.PipelineConf = None) -> Dict[Text, Any]:
-    """ Create workflow spec from pipeline function and specified pipeline
+    """Create workflow spec from pipeline function and specified pipeline
     params/metadata. Currently, the pipeline params are either specified in
     the signature of the pipeline function or by passing a list of
     dsl.PipelineParam. Conflict will cause ValueError.
 
-    :param pipeline_func: pipeline function where ContainerOps are invoked.
-    :param pipeline_name:
-    :param pipeline_description:
-    :param params_list: list of pipeline params to append to the pipeline.
-    :param pipeline_conf: PipelineConf instance. Can specify op transforms, image pull secrets and other pipeline-level configuration options. Overrides any configuration that may be set by the pipeline.
-    :return: workflow dict.
+    Args:
+      pipeline_func: Pipeline function where ContainerOps are invoked.
+      pipeline_name: The name of the pipeline to compile.
+      pipeline_description: The description of the pipeline.
+      params_list: List of pipeline params to append to the pipeline.
+      pipeline_conf: PipelineConf instance. Can specify op transforms, image pull secrets and other pipeline-level configuration options. Overrides any configuration that may be set by the pipeline.
+
+    Returns:
+      The created workflow dictionary.
     """
     return self._create_workflow(pipeline_func, pipeline_name, pipeline_description, params_list, pipeline_conf)
 
@@ -895,24 +903,14 @@ class Compiler(object):
     """Compile the given pipeline function into workflow."""
     return self._create_workflow(pipeline_func=pipeline_func, pipeline_conf=pipeline_conf)
 
-  def compile(
-      self,
-      pipeline_func,
-      package_path,
-      type_check=True,
-      pipeline_conf: dsl.PipelineConf = None,
-      allow_telemetry: bool = True,
-  ):
+  def compile(self, pipeline_func, package_path, type_check=True, pipeline_conf: dsl.PipelineConf = None):
     """Compile the given pipeline function into workflow yaml.
 
     Args:
-      pipeline_func: pipeline functions with @dsl.pipeline decorator.
-      package_path: the output workflow tar.gz file path. for example, "~/a.tar.gz"
-      type_check: whether to enable the type check or not, default: False.
+      pipeline_func: Pipeline functions with @dsl.pipeline decorator.
+      package_path: The output workflow tar.gz file path. for example, "~/a.tar.gz"
+      type_check: Whether to enable the type check or not, default: False.
       pipeline_conf: PipelineConf instance. Can specify op transforms, image pull secrets and other pipeline-level configuration options. Overrides any configuration that may be set by the pipeline.
-      allow_telemetry: If set to true, two pod labels will be attached to k8s
-        pods spawned by this pipeline: 1) pipeline SDK style, 2) pipeline random
-        ID.
     """
     import kfp
     type_check_old_value = kfp.TYPE_CHECK
@@ -921,8 +919,7 @@ class Compiler(object):
       self._create_and_write_workflow(
           pipeline_func=pipeline_func,
           pipeline_conf=pipeline_conf,
-          package_path=package_path,
-          allow_telemetry=allow_telemetry)
+          package_path=package_path)
     finally:
       kfp.TYPE_CHECK = type_check_old_value
 
@@ -932,8 +929,7 @@ class Compiler(object):
 
     Args:
       workflow: Workflow spec of the pipline, dict.
-      package_path: file path to be written. If not specified, a yaml_text string
-        will be returned.
+      package_path: file path to be written. If not specified, a yaml_text string will be returned.
     """
     yaml_text = dump_yaml(workflow)
 
@@ -969,8 +965,7 @@ class Compiler(object):
       pipeline_description: Text=None,
       params_list: List[dsl.PipelineParam]=None,
       pipeline_conf: dsl.PipelineConf=None,
-      package_path: Text=None,
-      allow_telemetry: bool=True
+      package_path: Text=None
   ) -> None:
     """Compile the given pipeline function and dump it to specified file format."""
     workflow = self._create_workflow(
@@ -978,8 +973,7 @@ class Compiler(object):
         pipeline_name,
         pipeline_description,
         params_list,
-        pipeline_conf,
-        allow_telemetry)
+        pipeline_conf)
     self._write_workflow(workflow, package_path)
     _validate_workflow(workflow)
 
@@ -1003,6 +997,22 @@ Please create a new issue at https://github.com/kubeflow/pipelines/issues attach
   import subprocess
   argo_path = shutil.which('argo')
   if argo_path:
+    has_working_argo_lint = False
+    try:
+      has_working_argo_lint = _run_argo_lint('')
+    except:
+      warnings.warn("Cannot validate the compiled workflow. Found the argo program in PATH, but it's not usable. argo v2.4.3 should work.")
+    
+    if has_working_argo_lint:
+      _run_argo_lint(yaml_text)
+
+
+def _run_argo_lint(yaml_text: str):
+  # Running Argo lint if available
+  import shutil
+  import subprocess
+  argo_path = shutil.which('argo')
+  if argo_path:
     result = subprocess.run([argo_path, 'lint', '/dev/stdin'], input=yaml_text.encode('utf-8'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if result.returncode:
       raise RuntimeError(
@@ -1010,3 +1020,5 @@ Please create a new issue at https://github.com/kubeflow/pipelines/issues attach
 Please create a new issue at https://github.com/kubeflow/pipelines/issues attaching the pipeline code and the pipeline package.
 Error: {}'''.format(result.stderr.decode('utf-8'))
       )
+    return True
+  return False

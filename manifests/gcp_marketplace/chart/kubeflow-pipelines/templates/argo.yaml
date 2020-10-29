@@ -103,6 +103,7 @@ rules:
       - ""
     resources:
       - persistentvolumeclaims
+      - events
     verbs:
       - create
       - delete
@@ -146,7 +147,7 @@ data:
     artifactRepository:
     {
         s3: {
-            bucket: '{{ if .Values.managedstorage.enabled }}{{ tpl .Values.managedstorage.gcsBucketName . }}{{ else }}mlpipeline{{ end }}',
+            bucket: '{{ if .Values.managedstorage.enabled }}{{ .Values.managedstorage.gcsBucketName }}{{ else }}mlpipeline{{ end }}',
             keyPrefix: artifacts,
             endpoint: minio-service.{{ .Release.Namespace }}:9000,
             insecure: true,

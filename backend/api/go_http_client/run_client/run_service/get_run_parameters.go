@@ -75,7 +75,10 @@ for the get run operation typically these are written to a http.Request
 */
 type GetRunParams struct {
 
-	/*RunID*/
+	/*RunID
+	  The ID of the run to be retrieved.
+
+	*/
 	RunID string
 
 	timeout    time.Duration

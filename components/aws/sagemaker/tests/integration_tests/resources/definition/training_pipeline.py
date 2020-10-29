@@ -1,7 +1,6 @@
 import kfp
 from kfp import components
 from kfp import dsl
-from kfp.aws import use_aws_secret
 
 sagemaker_train_op = components.load_component_from_file("../../train/component.yaml")
 
@@ -11,6 +10,7 @@ def training_pipeline(
     region="",
     endpoint_url="",
     image="",
+    job_name="",
     training_input_mode="",
     hyperparameters="",
     channels="",
@@ -24,13 +24,17 @@ def training_pipeline(
     traffic_encryption="",
     spot_instance="",
     max_wait_time="",
-    checkpoint_config="{}",
+    checkpoint_config="",
+    vpc_security_group_ids="",
+    vpc_subnets="",
+    assume_role="",
     role="",
 ):
     sagemaker_train_op(
         region=region,
         endpoint_url=endpoint_url,
         image=image,
+        job_name=job_name,
         training_input_mode=training_input_mode,
         hyperparameters=hyperparameters,
         channels=channels,
@@ -45,6 +49,9 @@ def training_pipeline(
         spot_instance=spot_instance,
         max_wait_time=max_wait_time,
         checkpoint_config=checkpoint_config,
+        vpc_security_group_ids=vpc_security_group_ids,
+        vpc_subnets=vpc_subnets,
+        assume_role=assume_role,
         role=role,
     )
 
