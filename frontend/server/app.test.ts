@@ -44,6 +44,7 @@ describe('UIServer apis', () => {
   let app: UIServer;
   const tagName = '1.0.0';
   const commitHash = 'abcdefg';
+  const multiUser = false;
   const { argv, buildDate, indexHtmlContent } = commonSetup({ tagName, commitHash });
 
   beforeEach(() => {
@@ -129,6 +130,7 @@ describe('UIServer apis', () => {
             buildDate,
             frontendCommitHash: commitHash,
             frontendTagName: tagName,
+            frontendMultiUser: multiUser,
           },
           done,
         );
@@ -140,6 +142,7 @@ describe('UIServer apis', () => {
           Promise.resolve({
             commit_sha: 'commit_sha',
             tag_name: '1.0.0',
+            multi_user: false,
           }),
       }));
 
@@ -152,10 +155,13 @@ describe('UIServer apis', () => {
           {
             apiServerCommitHash: 'commit_sha',
             apiServerTagName: '1.0.0',
+            apiServerMultiUser: false,
+            multi_user: false,
             apiServerReady: true,
             buildDate,
             frontendCommitHash: commitHash,
             frontendTagName: tagName,
+            frontendMultiUser: multiUser,
           },
           done,
         );
