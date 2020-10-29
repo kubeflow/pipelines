@@ -1,0 +1,22 @@
+name: Ingestion
+description: |
+  Component to ingest data to the pipeline
+inputs:
+  - name: input_location
+    description: The GCS path of the input file
+    type: String
+outputs:
+  - name: examples
+    description: The ingested example set.
+    type: Dataset
+  - name: schema
+    description: Calculated schema of the dataset
+    type: Schema
+implementation:
+  container:
+    image: gcr.io/my-project/my-ingestor
+    args: [
+      --input-location, {inputValue: input_location},
+      --output-examples, {outputPath: examples},
+      --output-schema, {outputPath: schema}
+    ]

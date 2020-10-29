@@ -8,12 +8,7 @@ from utils import sagemaker_utils
 
 
 @pytest.mark.parametrize(
-    "test_file_dir",
-    [
-        pytest.param(
-            "resources/config/kmeans-mnist-model", marks=pytest.mark.canary_test
-        )
-    ],
+    "test_file_dir", ["resources/config/kmeans-mnist-model"],
 )
 def test_createmodel(kfp_client, experiment_id, sagemaker_client, test_file_dir):
 
@@ -48,7 +43,7 @@ def test_createmodel(kfp_client, experiment_id, sagemaker_client, test_file_dir)
     )
 
     output_model_name = utils.read_from_file_in_tar(
-        output_files["sagemaker-create-model"]["model_name"], "model_name.txt"
+        output_files["sagemaker-create-model"]["model_name"]
     )
     print(f"model_name: {output_model_name}")
     assert output_model_name == input_model_name

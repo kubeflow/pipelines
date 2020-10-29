@@ -46,5 +46,12 @@ vars:
     apiVersion: v1
   fieldref:
     fieldpath: data.bucketName
+- name: kfp-container-runtime-executor
+  objref:
+    kind: ConfigMap
+    name: pipeline-install-config
+    apiVersion: v1
+  fieldref:
+    fieldpath: data.containerRuntimeExecutor
 configurations:
 - params.yaml

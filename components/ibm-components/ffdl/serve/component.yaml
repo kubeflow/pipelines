@@ -33,7 +33,6 @@ implementation:
       --deployment_name, {inputValue: deployment_name},
       --model_class_name, {inputValue: model_class_name},
       --model_class_file, {inputValue: model_class_file},
-      --serving_image, {inputValue: serving_image}
+      --serving_image, {inputValue: serving_image},
+      --output_deployment_result_path, {outputPath: output}
     ]
-    fileOutputs:
-      output: /tmp/deployment_result.txt

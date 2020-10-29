@@ -75,8 +75,7 @@ Note: The following sample code works in an IPython notebook or directly in Pyth
 ```python
 %%capture --no-stderr
 
-KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar.gz'
-!pip3 install $KFP_PACKAGE --upgrade
+!pip3 install kfp --upgrade
 ```
 
 2. Load the component using KFP SDK
@@ -175,7 +174,7 @@ run_result = client.run_pipeline(experiment.id, run_name, pipeline_filename, arg
 
 
 ```python
-!gsutil cat OUTPUT_PATH
+!gsutil cat $OUTPUT_PATH
 ```
 
 ## References

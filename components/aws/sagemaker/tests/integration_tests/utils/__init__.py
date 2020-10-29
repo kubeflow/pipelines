@@ -7,7 +7,7 @@ import random
 import string
 import shutil
 
-from sagemaker.amazon.amazon_estimator import get_image_uri
+from sagemaker.image_uris import retrieve
 
 
 def get_region():
@@ -42,8 +42,12 @@ def get_fsx_id():
     return os.environ.get("FSX_ID")
 
 
-def get_algorithm_image_registry(region, algorithm):
-    return get_image_uri(region, algorithm).split(".")[0]
+def get_algorithm_image_registry(framework, region, version=None):
+    return retrieve(framework, region, version).split(".")[0]
+
+
+def get_assume_role_arn():
+    return os.environ.get("ASSUME_ROLE_ARN")
 
 
 def run_command(cmd, *popenargs, **kwargs):
@@ -58,7 +62,15 @@ def run_command(cmd, *popenargs, **kwargs):
         pytest.fail(f"Command failed. Error code: {e.returncode}, Log: {e.output}")
 
 
-def read_from_file_in_tar(file_path, file_name, decode=True):
+def read_from_file_in_tar(file_path, file_name="data", decode=True):
+    """Opens a local tarball and reads the contents of the file as specified.
+    Arguments:
+    - file_path: The local path of the tarball file.
+    - file_name: The name of the file inside the tarball to be read. (Default `"data"`)
+    - decode: Ensures the contents of the file is decoded to type `str`. (Default `True`)
+
+    See: https://github.com/kubeflow/pipelines/blob/2e14fe732b3f878a710b16d1a63beece6c19330a/sdk/python/kfp/components/_components.py#L182
+    """
     with tarfile.open(file_path).extractfile(file_name) as f:
         if decode:
             return f.read().decode()
@@ -72,10 +84,15 @@ def replace_placeholders(input_filename, output_filename):
         "((REGION))": region,
         "((ROLE_ARN))": get_role_arn(),
         "((DATA_BUCKET))": get_s3_data_bucket(),
-        "((KMEANS_REGISTRY))": get_algorithm_image_registry(region, "kmeans"),
+        "((KMEANS_REGISTRY))": get_algorithm_image_registry("kmeans", region, "1"),
+        "((XGBOOST_REGISTRY))": get_algorithm_image_registry(
+            "xgboost", region, "1.0-1"
+        ),
+        "((BUILTIN_RULE_IMAGE))": get_algorithm_image_registry("debugger", region),
         "((FSX_ID))": get_fsx_id(),
         "((FSX_SUBNET))": get_fsx_subnet(),
         "((FSX_SECURITY_GROUP))": get_fsx_security_group(),
+        "((ASSUME_ROLE_ARN))": get_assume_role_arn(),
     }
 
     filedata = ""
@@ -98,7 +115,7 @@ def load_params(file_name):
 
 
 def generate_random_string(length):
-    """Generate a random string with twice the length of input parameter"""
+    """Generate a random string with twice the length of input parameter."""
     assert isinstance(length, int)
     return "".join(
         [random.choice(string.ascii_lowercase) for n in range(length)]

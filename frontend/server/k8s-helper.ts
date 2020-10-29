@@ -23,7 +23,7 @@ import {
 import * as crypto from 'crypto-js';
 import * as fs from 'fs';
 import { PartialArgoWorkflow } from './workflow-helper';
-import { parseError } from './utils';
+import { parseError, findFileOnPodVolume } from './utils';
 
 // If this is running inside a k8s Pod, its namespace should be written at this
 // path, this is also how we can tell whether we're running in the cluster.
@@ -63,6 +63,37 @@ function getNameOfViewerResource(logdir: string): string {
 }
 
 /**
+ * Parse logdir to Support volume:// url in logdir,
+ * otherwise, there's no need to parse logdir, we can just use them.
+ */
+function parseTensorboardLogDir(logdir: string, podTemplateSpec: object): string {
+  const urls: string[] = [];
+  const seriesParts = logdir.split(',');
+  for (const seriesPart of seriesParts) {
+    const strPath = seriesPart.replace(/Series\d+:/g, '');
+    if (!strPath.startsWith('volume://')) {
+      urls.push(strPath);
+      continue;
+    }
+    // volume storage: parse real local mount path
+    const pathParts = strPath.substr('volume://'.length).split('/');
+    const bucket = pathParts[0];
+    const key = pathParts.slice(1).join('/');
+
+    const [filePath, err] = findFileOnPodVolume(podTemplateSpec, {
+      volumeMountName: bucket,
+      filePathInVolume: key,
+      containerNames: undefined,
+    });
+    if (err) {
+      throw new Error(err);
+    }
+    urls.push(filePath);
+  }
+  return urls.length === 1 ? urls[0] : urls.map((c, i) => `Series${i + 1}:` + c).join(',');
+}
+
+/**
  * Create Tensorboard instance via CRD with the given logdir if there is no
  * existing Tensorboard instance.
  */
@@ -83,7 +114,6 @@ export async function newTensorboardInstance(
       );
     }
   }
-
   const body = {
     apiVersion: viewerGroup + '/' + viewerVersion,
     kind: 'Viewer',
@@ -94,7 +124,7 @@ export async function newTensorboardInstance(
     spec: {
       podTemplateSpec,
       tensorboardSpec: {
-        logDir: logdir,
+        logDir: parseTensorboardLogDir(logdir, podTemplateSpec),
         tensorflowImage: tfImageName + ':' + tfversion,
       },
       type: 'tensorboard',
@@ -129,13 +159,14 @@ export async function getTensorboardInstance(
       // Viewer CRD pod has tensorboard instance running at port 6006 while
       // viewer CRD service has tensorboard instance running at port 80. Since
       // we return service address here (instead of pod address), so use 80.
+
+      // remove to check viewer.body.spec.tensorboardSpec.logDir===logdir
+      // actually getNameOfViewerResource(logdir) may have hash collision
+      // but if there is a hash collision, not check logdir will return error tensorboard link
+      // if check logdir and then create Viewer CRD with same name will break anyway.
+      // TODO fix hash collision
       (viewer: any) => {
-        if (
-          viewer &&
-          viewer.body &&
-          viewer.body.spec.tensorboardSpec.logDir === logdir &&
-          viewer.body.spec.type === 'tensorboard'
-        ) {
+        if (viewer && viewer.body && viewer.body.spec.type === 'tensorboard') {
           const address = `http://${viewer.body.metadata.name}-service.${namespace}.svc.cluster.local:80/tensorboard/${viewer.body.metadata.name}/`;
           const tfImageParts = viewer.body.spec.tensorboardSpec.tensorflowImage.split(':', 2);
           const tfVersion = tfImageParts.length == 2 ? tfImageParts[1] : '';
@@ -311,4 +342,5 @@ export async function getK8sSecret(name: string, key: string) {
 export const TEST_ONLY = {
   k8sV1Client,
   k8sV1CustomObjectClient,
+  parseTensorboardLogDir,
 };

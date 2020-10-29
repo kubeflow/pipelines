@@ -1,6 +1,6 @@
 # This image has the script to kick off the ML pipeline sample e2e test,
 
-FROM google/cloud-sdk:279.0.0
+FROM google/cloud-sdk:315.0.0
 
 RUN apt-get update -y
 RUN apt-get install --no-install-recommends -y -q libssl-dev libffi-dev wget ssh

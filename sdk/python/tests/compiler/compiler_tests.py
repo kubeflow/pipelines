@@ -355,6 +355,10 @@ class TestCompiler(unittest.TestCase):
     """Test pipeline with multiple pipeline params."""
     self._test_py_compile_yaml('pipelineparams')
 
+  def test_py_compile_with_opsgroups(self):
+    """Test pipeline with multiple opsgroups."""
+    self._test_py_compile_yaml('opsgroups')
+
   def test_py_compile_condition(self):
     """Test a pipeline with conditions."""
     self._test_py_compile_zip('coin')
@@ -624,6 +628,16 @@ implementation:
     template = workflow_dict['spec']['templates'][0]
     self.assertEqual(template['metadata']['annotations']['pipelines.kubeflow.org/task_display_name'], 'Custom name')
 
+  def test_set_dynamic_display_name(self):
+    """Test a pipeline with a customized task names."""
+
+    def some_pipeline(custom_name):
+      some_op().set_display_name(custom_name)
+
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    template = [template for template in workflow_dict['spec']['templates'] if 'container' in template][0]
+    self.assertNotIn('pipelineparam', template['metadata']['annotations']['pipelines.kubeflow.org/task_display_name'])
+
   def test_set_parallelism(self):
     """Test a pipeline with parallelism limits."""
     def some_op():
@@ -659,6 +673,23 @@ implementation:
 
     workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
     self.assertEqual(workflow_dict['spec']['ttlSecondsAfterFinished'], 86400)
+
+  def test_pod_disruption_budget(self):
+    """Test a pipeline with poddisruption budget."""
+    def some_op():
+        return dsl.ContainerOp(
+            name='sleep',
+            image='busybox',
+            command=['sleep 1'],
+        )
+
+    @dsl.pipeline()
+    def some_pipeline():
+      some_op()
+      dsl.get_pipeline_conf().set_pod_disruption_budget("100%")
+
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    self.assertEqual(workflow_dict['spec']["podDisruptionBudget"]['minAvailable'], "100%")
 
   def test_op_transformers(self):
     def some_op():
@@ -943,3 +974,72 @@ implementation:
           'Wrong argument mapping: "{}" passed to "{}"'.format(argument['value'], argument['name']))
       else:
         self.fail('Unexpected input name: ' + argument['name'])
+
+  def test_input_name_sanitization(self):
+    component_2_in_1_out_op = kfp.components.load_component_from_text('''
+inputs:
+- name: Input 1
+- name: Input 2
+outputs:
+- name: Output 1
+implementation:
+  container:
+    image: busybox
+    command:
+    - echo
+    - inputValue: Input 1
+    - inputPath: Input 2
+    - outputPath: Output 1
+    ''')
+    def some_pipeline():
+      task1 = component_2_in_1_out_op('value 1', 'value 2')
+      component_2_in_1_out_op(task1.output, task1.output)
+
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    container_templates = [template for template in workflow_dict['spec']['templates'] if 'container' in template]
+    for template in container_templates:
+      for argument in template['inputs'].get('parameters', []):
+        self.assertNotIn(' ', argument['name'], 'The input name "{}" of template "{}" was not sanitized.'.format(argument['name'], template['name']))
+      for argument in template['inputs']['artifacts']:
+        self.assertNotIn(' ', argument['name'], 'The input name "{}" of template "{}" was not sanitized.'.format(argument['name'], template['name']))
+
+  def test_container_op_with_arbitrary_name(self):
+    def some_pipeline():
+      dsl.ContainerOp(
+        name=r''' !"#$%&'()*+,-./:;<=>?@[\]^_`''',
+        image='alpine:latest',
+      )
+      dsl.ContainerOp(
+        name=r''' !"#$%&'()*+,-./:;<=>?@[\]^_`''',
+        image='alpine:latest',
+      )
+    workflow_dict = compiler.Compiler()._compile(some_pipeline)
+    for template in workflow_dict['spec']['templates']:
+      self.assertNotEqual(template['name'], '')
+
+  def test_preserving_parameter_arguments_map(self):
+    component_2_in_1_out_op = kfp.components.load_component_from_text('''
+inputs:
+- name: Input 1
+- name: Input 2
+outputs:
+- name: Output 1
+implementation:
+  container:
+    image: busybox
+    command:
+    - echo
+    - inputValue: Input 1
+    - inputPath: Input 2
+    - outputPath: Output 1
+    ''')
+    def some_pipeline():
+      task1 = component_2_in_1_out_op('value 1', 'value 2')
+      component_2_in_1_out_op(task1.output, task1.output)
+
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    container_templates = [template for template in workflow_dict['spec']['templates'] if 'container' in template]
+    for template in container_templates:
+      parameter_arguments_json = template['metadata']['annotations']['pipelines.kubeflow.org/arguments.parameters']
+      parameter_arguments = json.loads(parameter_arguments_json)
+      self.assertEqual(set(parameter_arguments.keys()), {'Input 1'})

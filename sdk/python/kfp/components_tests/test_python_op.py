@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import subprocess
+import sys
 import tempfile
 import unittest
 from contextlib import contextmanager
@@ -90,6 +91,12 @@ class PythonOpTestCase(unittest.TestCase):
                 )
 
             full_command = resolved_cmd.command + resolved_cmd.args
+            # Setting the component python interpreter to the current one.
+            # Otherwise the components are executed in different environment.
+            # Some components (e.g. the ones that use code pickling) are sensitive to this.
+            for i in range(2):
+                if full_command[i] == 'python3':
+                    full_command[i] = sys.executable
             subprocess.run(full_command, check=True)
 
             output_path = list(resolved_cmd.output_paths.values())[0]
@@ -114,6 +121,12 @@ class PythonOpTestCase(unittest.TestCase):
                 )
 
             full_command = resolved_cmd.command + resolved_cmd.args
+            # Setting the component python interpreter to the current one.
+            # Otherwise the components are executed in different environment.
+            # Some components (e.g. the ones that use code pickling) are sensitive to this.
+            for i in range(2):
+                if full_command[i] == 'python3':
+                    full_command[i] = sys.executable
 
             subprocess.run(full_command, check=True)
 
@@ -163,6 +176,12 @@ class PythonOpTestCase(unittest.TestCase):
 
             # Constructing the full command-line from resolved command+args
             full_command = resolved_cmd.command + resolved_cmd.args
+            # Setting the component python interpreter to the current one.
+            # Otherwise the components are executed in different environment.
+            # Some components (e.g. the ones that use code pickling) are sensitive to this.
+            for i in range(2):
+                if full_command[i] == 'python3':
+                    full_command[i] = sys.executable
 
             # Executing the command-line locally
             subprocess.run(full_command, check=True)
@@ -453,6 +472,27 @@ class PythonOpTestCase(unittest.TestCase):
 
         self.assertEqual(component_spec.inputs[0].default, '3')
         self.assertEqual(component_spec.inputs[1].default, '5')
+
+    def test_handling_of_descriptions(self):
+
+        def pipeline(
+                env_var: str,
+                secret_name: str,
+                secret_key: str = None
+        ) -> None:
+            """
+            Pipeline to Demonstrate Usage of Secret
+
+            Args:
+                env_var: Name of the variable inside the Pod
+                secret_name: Name of the Secret in the namespace
+            """
+
+        component_spec = comp._python_op._func_to_component_spec(pipeline)
+        self.assertEqual(component_spec.description, 'Pipeline to Demonstrate Usage of Secret')
+        self.assertEqual(component_spec.inputs[0].description, 'Name of the variable inside the Pod')
+        self.assertEqual(component_spec.inputs[1].description, 'Name of the Secret in the namespace')
+        self.assertIsNone(component_spec.inputs[2].description)
 
     def test_handling_default_value_of_none(self):
         def assert_is_none(arg=None):

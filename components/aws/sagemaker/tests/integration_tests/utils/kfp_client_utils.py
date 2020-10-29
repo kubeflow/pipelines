@@ -70,3 +70,8 @@ def compile_run_monitor_pipeline(
         pytest.fail(f"Test Failed: {pipeline_name}. Run-id: {run_id}")
 
     return run_id, status, workflow_json
+
+
+def terminate_run(client, run_id):
+    client.runs.terminate_run(run_id)
+    wait_for_job_status(client, run_id, 30, "failed")

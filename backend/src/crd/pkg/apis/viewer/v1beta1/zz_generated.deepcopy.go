@@ -68,7 +68,7 @@ func (in *Viewer) DeepCopyObject() runtime.Object {
 func (in *ViewerList) DeepCopyInto(out *ViewerList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Viewer, len(*in))

@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+from typing import Union
 from . import _container_op
 from . import _resource_op
 from . import _ops_group
-from ._component_bridge import _create_container_op_from_component_and_arguments
+from ._component_bridge import _create_container_op_from_component_and_arguments, _sanitize_python_function_name
 from ..components import _components
 from ..components._naming import _make_name_unique_by_adding_index
 import sys
@@ -30,15 +30,15 @@ _pipeline_decorator_handler = None
 def pipeline(name : str = None, description : str = None):
   """Decorator of pipeline functions.
 
-  Usage:
-  ```python
-  @pipeline(
-    name='my awesome pipeline',
-    description='Is it really awesome?'
-  )
-  def my_pipeline(a: PipelineParam, b: PipelineParam):
-    ...
-  ```
+  Example
+    ::
+
+      @pipeline(
+        name='my awesome pipeline',
+        description='Is it really awesome?'
+      )
+      def my_pipeline(a: PipelineParam, b: PipelineParam):
+        ...
   """
   def _pipeline(func):
     if name:
@@ -60,6 +60,7 @@ class PipelineConf():
     self.image_pull_secrets = []
     self.timeout = 0
     self.ttl_seconds_after_finished = -1
+    self._pod_disruption_budget_min_available = None
     self.op_transformers = []
     self.default_pod_node_selector = {}
     self.image_pull_policy = None
@@ -71,8 +72,8 @@ class PipelineConf():
 
     Args:
       image_pull_secrets: a list of Kubernetes V1LocalObjectReference
-      For detailed description, check Kubernetes V1LocalObjectReference definition
-      https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1LocalObjectReference.md
+        For detailed description, check Kubernetes V1LocalObjectReference definition
+        https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1LocalObjectReference.md
     """
     self.image_pull_secrets = image_pull_secrets
     return self
@@ -90,7 +91,7 @@ class PipelineConf():
     """Configures the max number of total parallel pods that can execute at the same time in a workflow.
 
     Args:
-        max_num_pods (int): max number of total parallel pods.
+        max_num_pods: max number of total parallel pods.
     """
     self.parallelism = max_num_pods
     return self
@@ -102,6 +103,18 @@ class PipelineConf():
       seconds: number of seconds for the workflow to be garbage collected after it is finished.
     """
     self.ttl_seconds_after_finished = seconds
+    return self
+
+  def set_pod_disruption_budget(self, min_available: Union[int, str]):
+    """ PodDisruptionBudget holds the number of concurrent disruptions that you allow for pipeline Pods.
+
+    Args:
+        min_available (Union[int, str]):  An eviction is allowed if at least "minAvailable" pods selected by 
+        "selector" will still be available after the eviction, i.e. even in the
+	      absence of the evicted pod.  So for example you can prevent all voluntary
+	      evictions by specifying "100%". "minAvailable" can be either an absolute number or a percentage.
+    """
+    self._pod_disruption_budget_min_available = min_available
     return self
 
   def set_default_pod_node_selector(self, label_name: str, value: str):
@@ -129,10 +142,10 @@ class PipelineConf():
 
   def add_op_transformer(self, transformer):
     """Configures the op_transformers which will be applied to all ops in the pipeline.
-    The ops can be ResourceOp, VolumenOp, or ContainerOp.
+    The ops can be ResourceOp, VolumeOp, or ContainerOp.
 
     Args:
-      transformer: a function that takes a kfp Op as input and returns a kfp Op
+      transformer: A function that takes a kfp Op as input and returns a kfp Op
     """
     self.op_transformers.append(transformer)
 
@@ -142,20 +155,22 @@ class PipelineConf():
 
   @data_passing_method.setter
   def data_passing_method(self, value):
-    '''Sets the object representing the method used for intermediate data passing.
-    Example::
+    """Sets the object representing the method used for intermediate data passing.
 
-      from kfp.dsl import PipelineConf, data_passing_methods
-      from kubernetes.client.models import V1Volume, V1PersistentVolumeClaim
-      pipeline_conf = PipelineConf()
-      pipeline_conf.data_passing_method = data_passing_methods.KubernetesVolume(
-          volume=V1Volume(
-              name='data',
-              persistent_volume_claim=V1PersistentVolumeClaim('data-volume'),
-          ),
-          path_prefix='artifact_data/',
-      )
-    '''
+    Example:
+      ::
+
+        from kfp.dsl import PipelineConf, data_passing_methods
+        from kubernetes.client.models import V1Volume, V1PersistentVolumeClaim
+        pipeline_conf = PipelineConf()
+        pipeline_conf.data_passing_method = data_passing_methods.KubernetesVolume(
+            volume=V1Volume(
+                name='data',
+                persistent_volume_claim=V1PersistentVolumeClaim('data-volume'),
+            ),
+            path_prefix='artifact_data/',
+        )
+    """
     self._data_passing_method = value
 
 def get_pipeline_conf():
@@ -173,12 +188,13 @@ class Pipeline():
   is useful for implementing a compiler. For example, the compiler can use the following
   to get the pipeline object and its ops:
 
-  ```python
-  with Pipeline() as p:
-    pipeline_func(*args_list)
+  Example:
+    ::
 
-  traverse(p.ops)
-  ```
+      with Pipeline() as p:
+        pipeline_func(*args_list)
+
+      traverse(p.ops)
   """
 
   # _default_pipeline is set when it (usually a compiler) runs "with Pipeline()"
@@ -238,8 +254,13 @@ class Pipeline():
     Returns
       op_name: a unique op name.
     """
+    # Sanitizing the op name.
+    # Technically this could be delayed to the compilation stage, but string serialization of PipelineParams make unsanitized names problematic.
+    op_name = _sanitize_python_function_name(op.human_name).replace('_', '-')
     #If there is an existing op with this name then generate a new name.
-    op_name = _make_name_unique_by_adding_index(op.human_name, list(self.ops.keys()), ' ')
+    op_name = _make_name_unique_by_adding_index(op_name, list(self.ops.keys()), ' ')
+    if op_name == '':
+      op_name = _make_name_unique_by_adding_index('task', list(self.ops.keys()), ' ')
 
     self.ops[op_name] = op
     if not define_only:
@@ -271,8 +292,9 @@ class Pipeline():
     return self.group_id
 
   def _set_metadata(self, metadata):
-    '''_set_metadata passes the containerop the metadata information
+    """_set_metadata passes the containerop the metadata information
+
     Args:
       metadata (ComponentMeta): component metadata
-    '''
+    """
     self._metadata = metadata
