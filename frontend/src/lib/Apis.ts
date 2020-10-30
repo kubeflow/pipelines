@@ -229,12 +229,12 @@ export class Apis {
   }) {
     const { source, bucket, key } = path;
     if (isDownload) {
-      return `artifacts/download/${source}/${bucket}/${key}${buildQuery({
+      return `artifacts/${source}/${bucket}/${key}${buildQuery({
         namespace,
         peek,
       })}`;
     } else {
-      return `artifacts/get${buildQuery({ namespace, peek, source, bucket, key })}`;
+      return `artifacts/get${buildQuery({ source, namespace, peek, bucket, key })}`;
     }
   }
 

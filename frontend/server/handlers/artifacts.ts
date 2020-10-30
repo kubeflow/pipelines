@@ -45,7 +45,7 @@ interface ArtifactsQueryStrings {
  * backend (i.e. gcs, minio, s3, http/https).
  * @param artifactsConfigs configs to retrieve the artifacts from the various backend.
  * @param useParameter get bucket and key from parameter instead of query. When true, expect
- *    to be used in a route like `/artifacts/download/:source/:bucket/*`.
+ *    to be used in a route like `/artifacts/:source/:bucket/*`.
  * @param tryExtract whether the handler try to extract content from *.tar.gz files.
  */
 export function getArtifactsHandler({

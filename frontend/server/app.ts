@@ -124,7 +124,7 @@ function createUIServer(options: UIConfigs) {
       namespacedServiceGetter: getArtifactServiceGetter(options.artifacts.proxy),
     }),
   );
-  // artifacts/get endpoint tries to extract the artifact to return pure text content
+  // /artifacts/get endpoint tries to extract the artifact to return pure text content
   registerHandler(
     app.get,
     '/artifacts/get',
@@ -134,7 +134,7 @@ function createUIServer(options: UIConfigs) {
       tryExtract: true,
     }),
   );
-  // artifacts/download endpoint downloads the artifact as is, it does not try to unzip or untar.
+  // /artifacts/ endpoint downloads the artifact as is, it does not try to unzip or untar.
   registerHandler(
     app.get,
     // The last * represents object key. Key could contain special characters like '/',
@@ -142,7 +142,7 @@ function createUIServer(options: UIConfigs) {
     // It is important to include the original object's key at the end of the url, because
     // browser automatically determines file extension by the url. A wrong extension may affect
     // whether the file can be opened by the correct application by default.
-    '/artifacts/download/:source/:bucket/*',
+    '/artifacts/:source/:bucket/*',
     getArtifactsHandler({
       artifactsConfigs: options.artifacts,
       useParameter: true,

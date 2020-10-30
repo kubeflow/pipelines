@@ -93,7 +93,7 @@ const MinioArtifactPreview: React.FC<MinioArtifactPreviewProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [storagePath, namespace, maxbytes, maxlines]);
+  }, [storagePath?.source, storagePath?.bucket, storagePath?.key, namespace, maxbytes, maxlines]);
 
   if (!storagePath) {
     // if value is undefined, null, or an invalid s3artifact object, don't render

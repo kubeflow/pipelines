@@ -23,11 +23,8 @@ describe('MinioArtifactPreview', () => {
   const readFile = jest.spyOn(Apis, 'readFile');
 
   beforeEach(() => {
-    readFile.mockResolvedValue('preview ...');
-  });
-
-  afterEach(() => {
     jest.resetAllMocks();
+    readFile.mockResolvedValue('preview ...');
   });
 
   it('handles undefined artifact', () => {
@@ -105,7 +102,7 @@ describe('MinioArtifactPreview', () => {
         >
           <a
             class="link"
-            href="artifacts/get?source=s3&bucket=foo&key=bar"
+            href="artifacts/s3/foo/bar"
             rel="noopener"
             target="_blank"
             title="s3://foo/bar"
@@ -145,7 +142,7 @@ describe('MinioArtifactPreview', () => {
         >
           <a
             class="link"
-            href="artifacts/get?source=minio&bucket=foo&key=bar"
+            href="artifacts/minio/foo/bar"
             rel="noopener"
             target="_blank"
             title="minio://foo/bar"
@@ -185,7 +182,7 @@ describe('MinioArtifactPreview', () => {
         >
           <a
             class="link"
-            href="artifacts/get?source=minio&namespace=namespace&bucket=foo&key=bar"
+            href="artifacts/minio/foo/bar?namespace=namespace"
             rel="noopener"
             target="_blank"
             title="minio://foo/bar"
@@ -224,7 +221,7 @@ describe('MinioArtifactPreview', () => {
         >
           <a
             class="link"
-            href="artifacts/get?source=minio&bucket=foo&key=bar"
+            href="artifacts/minio/foo/bar"
             rel="noopener"
             target="_blank"
             title="minio://foo/bar"
@@ -257,7 +254,7 @@ describe('MinioArtifactPreview', () => {
         >
           <a
             class="link"
-            href="artifacts/get?source=minio&bucket=foo&key=bar"
+            href="artifacts/minio/foo/bar"
             rel="noopener"
             target="_blank"
             title="minio://foo/bar"
@@ -302,7 +299,7 @@ describe('MinioArtifactPreview', () => {
         >
           <a
             class="link"
-            href="artifacts/get?source=minio&bucket=foo&key=bar"
+            href="artifacts/minio/foo/bar"
             rel="noopener"
             target="_blank"
             title="minio://foo/bar"
@@ -319,6 +316,14 @@ describe('MinioArtifactPreview', () => {
       ...
               </pre>
             </small>
+            <a
+              class="link"
+              href="artifacts/get?source=minio&bucket=foo&key=bar"
+              rel="noopener"
+              target="_blank"
+            >
+              View All
+            </a>
           </div>
         </div>
       </div>
@@ -346,7 +351,7 @@ describe('MinioArtifactPreview', () => {
         >
           <a
             class="link"
-            href="artifacts/get?source=minio&bucket=foo&key=bar"
+            href="artifacts/minio/foo/bar"
             rel="noopener"
             target="_blank"
             title="minio://foo/bar"
@@ -364,6 +369,14 @@ describe('MinioArtifactPreview', () => {
       ...
               </pre>
             </small>
+            <a
+              class="link"
+              href="artifacts/get?source=minio&bucket=foo&key=bar"
+              rel="noopener"
+              target="_blank"
+            >
+              View All
+            </a>
           </div>
         </div>
       </div>
