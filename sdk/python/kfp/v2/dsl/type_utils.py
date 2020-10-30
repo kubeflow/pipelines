@@ -126,7 +126,7 @@ def get_input_artifact_type_schema(
     inputs: The list of InputSpec
 
   Returns:
-    The input type schema if found in inputs, or None if not found.
+    The artifact type schema of the input.
 
   Raises:
     AssertionError if input not found, or input found but not an artifact type.
