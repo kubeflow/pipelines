@@ -13,10 +13,11 @@ const css = stylesheet({
     width: '100%',
   },
   preview: {
+    backgroundColor: color.lightGrey,
+    flex: 1,
     maxHeight: 250,
     overflowY: 'auto',
     padding: 3,
-    backgroundColor: color.lightGrey,
   },
 });
 
@@ -47,12 +48,12 @@ async function getPreview(
   namespace: string | undefined,
   maxbytes: number,
   maxlines?: number,
-) {
+): Promise<{ data: string; hasMore: boolean }> {
   // TODO how to handle binary data (can probably use magic number to id common mime types)
   let data = await Apis.readFile(storagePath, namespace, maxbytes + 1);
   // is preview === data and no maxlines
   if (data.length <= maxbytes && !maxlines) {
-    return data;
+    return { data, hasMore: false };
   }
   // remove extra byte at the end (we requested maxbytes +1)
   data = data.slice(0, maxbytes);
@@ -64,7 +65,7 @@ async function getPreview(
       .join('\n')
       .trim();
   }
-  return `${data}\n...`;
+  return { data: `${data}\n...`, hasMore: true };
 }
 
 /**
@@ -76,14 +77,16 @@ const MinioArtifactPreview: React.FC<MinioArtifactPreviewProps> = ({
   maxbytes = 255,
   maxlines,
 }) => {
-  const [content, setContent] = React.useState<string | undefined>(undefined);
+  const [content, setContent] = React.useState<{ data: string; hasMore: boolean } | undefined>(
+    undefined,
+  );
   const storagePath = getStoragePath(value);
 
   React.useEffect(() => {
     let cancelled = false;
     if (storagePath) {
       getPreview(storagePath, namespace, maxbytes, maxlines).then(
-        data => !cancelled && setContent(data),
+        content => !cancelled && setContent(content),
         error => console.error(error), // TODO error badge on link?
       );
     }
@@ -102,20 +105,26 @@ const MinioArtifactPreview: React.FC<MinioArtifactPreviewProps> = ({
   // TODO need to come to an agreement how to encode artifact info inside a url
   // namespace is currently not supported
   const linkText = Apis.buildArtifactUrl(storagePath);
-  const artifactUrl = Apis.buildReadFileUrl({ path: storagePath, namespace, isDownload: true });
+  const artifactDownloadUrl = Apis.buildReadFileUrl({
+    path: storagePath,
+    namespace,
+    isDownload: true,
+  });
+  const artifactViewUrl = Apis.buildReadFileUrl({ path: storagePath, namespace });
 
   // Opens in new window safely
   // TODO use ArtifactLink instead (but it need to support namespace)
   return (
     <div className={css.root}>
-      <ExternalLink href={artifactUrl} title={linkText}>
+      <ExternalLink href={artifactDownloadUrl} title={linkText}>
         {linkText}
       </ExternalLink>
-      {content && (
+      {content?.data && (
         <div className={css.preview}>
           <small>
-            <pre>{content}</pre>
+            <pre>{content.data}</pre>
           </small>
+          {content.hasMore && <ExternalLink href={artifactViewUrl}>View All</ExternalLink>}
         </div>
       )}
     </div>
