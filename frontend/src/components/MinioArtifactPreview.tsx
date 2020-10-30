@@ -13,11 +13,10 @@ const css = stylesheet({
     width: '100%',
   },
   preview: {
-    backgroundColor: color.lightGrey,
-    flex: 1,
     maxHeight: 250,
     overflowY: 'auto',
     padding: 3,
+    backgroundColor: color.lightGrey,
   },
 });
 

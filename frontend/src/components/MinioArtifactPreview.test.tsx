@@ -243,7 +243,7 @@ describe('MinioArtifactPreview', () => {
     };
     const data = `012\n345\n678\n910`;
     readFile.mockResolvedValue(data);
-    const { container } = render(
+    const { container, queryByText } = render(
       <MinioArtifactPreview value={minioArtifact} maxbytes={data.length} />,
     );
     await act(TestUtils.flushPromises);
@@ -276,6 +276,7 @@ describe('MinioArtifactPreview', () => {
         </div>
       </div>
     `);
+    expect(queryByText('View All')).toEqual(null);
   });
 
   it('handles artifact that previews with maxlines', async () => {
@@ -288,7 +289,7 @@ describe('MinioArtifactPreview', () => {
     };
     const data = `012\n345\n678\n910`;
     readFile.mockResolvedValue(data);
-    const { container } = render(
+    const { container, queryByText } = render(
       <MinioArtifactPreview value={minioArtifact} maxbytes={data.length} maxlines={2} />,
     );
     await act(TestUtils.flushPromises);
@@ -328,6 +329,7 @@ describe('MinioArtifactPreview', () => {
         </div>
       </div>
     `);
+    expect(queryByText('View All')).toBeTruthy();
   });
 
   it('handles artifact that previews with maxbytes', async () => {
@@ -340,7 +342,7 @@ describe('MinioArtifactPreview', () => {
     };
     const data = `012\n345\n678\n910`;
     readFile.mockResolvedValue(data);
-    const { container } = render(
+    const { container, queryByText } = render(
       <MinioArtifactPreview value={minioArtifact} maxbytes={data.length - 5} />,
     );
     await act(TestUtils.flushPromises);
@@ -381,5 +383,6 @@ describe('MinioArtifactPreview', () => {
         </div>
       </div>
     `);
+    expect(queryByText('View All')).toBeTruthy();
   });
 });
