@@ -44,17 +44,29 @@ interface ArtifactsQueryStrings {
  * Returns an artifact handler which retrieve an artifact from the corresponding
  * backend (i.e. gcs, minio, s3, http/https).
  * @param artifactsConfigs configs to retrieve the artifacts from the various backend.
+ * @param useParameter get bucket and key from parameter instead of query. When true, expect
+ *    to be used in a route like `/artifacts/download/:source/:bucket/*`.
+ * @param tryExtract whether the handler try to extract content from *.tar.gz files.
  */
-export function getArtifactsHandler(artifactsConfigs: {
-  aws: AWSConfigs;
-  http: HttpConfigs;
-  minio: MinioConfigs;
+export function getArtifactsHandler({
+  artifactsConfigs,
+  useParameter,
+  tryExtract,
+}: {
+  artifactsConfigs: {
+    aws: AWSConfigs;
+    http: HttpConfigs;
+    minio: MinioConfigs;
+  };
+  tryExtract: boolean;
+  useParameter: boolean;
 }): Handler {
   const { aws, http, minio } = artifactsConfigs;
   return async (req, res) => {
-    const { source, bucket, key: encodedKey, peek = 0 } = req.query as Partial<
-      ArtifactsQueryStrings
-    >;
+    const source = useParameter ? req.params.source : req.query.source;
+    const bucket = useParameter ? req.params.bucket : req.query.bucket;
+    const key = useParameter ? req.params[0] : req.query.key;
+    const { peek = 0 } = req.query as Partial<ArtifactsQueryStrings>;
     if (!source) {
       res.status(500).send('Storage source is missing from artifact request');
       return;
@@ -63,11 +75,10 @@ export function getArtifactsHandler(artifactsConfigs: {
       res.status(500).send('Storage bucket is missing from artifact request');
       return;
     }
-    if (!encodedKey) {
+    if (!key) {
       res.status(500).send('Storage key is missing from artifact request');
       return;
     }
-    const key = decodeURIComponent(encodedKey);
     console.log(`Getting storage artifact at: ${source}: ${bucket}/${key}`);
     switch (source) {
       case 'gcs':
@@ -80,6 +91,7 @@ export function getArtifactsHandler(artifactsConfigs: {
             bucket,
             client: new MinioClient(minio),
             key,
+            tryExtract,
           },
           peek,
         )(req, res);
@@ -161,7 +173,7 @@ function getHttpArtifactsHandler(
 }
 
 function getMinioArtifactHandler(
-  options: { bucket: string; key: string; client: MinioClient },
+  options: { bucket: string; key: string; client: MinioClient; tryExtract?: boolean },
   peek: number = 0,
 ) {
   return async (_: Request, res: Response) => {
@@ -360,7 +372,7 @@ export function getArtifactsProxyHandler({
         }
         return namespacedServiceGetter(namespace);
       },
-      target: '/artifacts/get',
+      target: '/artifacts',
       headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
     },
   );
