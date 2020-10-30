@@ -64,6 +64,7 @@ _PARAMETER_TYPES_MAPPING = {
     'float': pipeline_spec_pb2.PrimitiveType.DOUBLE,
     'string': pipeline_spec_pb2.PrimitiveType.STRING,
     'str': pipeline_spec_pb2.PrimitiveType.STRING,
+    'text': pipeline_spec_pb2.PrimitiveType.STRING,
 }
 
 
@@ -92,7 +93,8 @@ def get_artifact_type_schema(type_name: str) -> str:
      The string value of artifact type schema. Defaults to generic artifact.
   """
   if isinstance(type_name, str):
-    return _ARTIFACT_TYPES_MAPPING.get(type_name.lower(), _GENERIC_ARTIFACT_TYPE)
+    return _ARTIFACT_TYPES_MAPPING.get(type_name.lower(),
+                                       _GENERIC_ARTIFACT_TYPE)
   else:
     return _GENERIC_ARTIFACT_TYPE
 
@@ -125,9 +127,13 @@ def get_input_artifact_type_schema(
 
   Returns:
     The input type schema if found in inputs, or None if not found.
+
+  Raises:
+    AssertionError if input not found, or input found but not an artifact type.
   """
   for component_input in inputs:
-    if component_input.name == input_name and not is_parameter_type(
-        component_input.type):
+    if component_input.name == input_name:
+      assert not is_parameter_type(
+          component_input.type), 'Input is not an artifact type.'
       return get_artifact_type_schema(component_input.type)
-  return None
+  assert False, 'Input not found.'

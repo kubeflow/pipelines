@@ -70,11 +70,15 @@ class TypeUtilsTest(unittest.TestCase):
         structures.InputSpec(name='input3', type=None),
     ]
     # input not found.
-    self.assertEqual(
-        None, type_utils.get_input_artifact_type_schema('input0', input_specs))
+    with self.assertRaises(AssertionError) as cm:
+      type_utils.get_input_artifact_type_schema('input0', input_specs)
+      self.assertEqual('Input not found.', str(cm))
+
     # input found, but it doesn't map to an artifact type.
-    self.assertEqual(
-        None, type_utils.get_input_artifact_type_schema('input1', input_specs))
+    with self.assertRaises(AssertionError) as cm:
+      type_utils.get_input_artifact_type_schema('input1', input_specs)
+      self.assertEqual('Input is not an artifact type.', str(cm))
+
     # input found, and a matching artifact type schema returned.
     self.assertEqual(
         'title: kfp.Model\ntype: object\nproperties:\n',
