@@ -27,7 +27,8 @@ spec:
         - --configmap
         - workflow-controller-configmap
         - --executor-image
-        - gcr.io/ml-pipeline/argoexec:v2.7.5-license-compliance
+        - gcr.io/ml-pipeline/argoexec:v2.11.6-license-compliance
+        - --namespaced
         command:
         - workflow-controller
         env:
@@ -36,7 +37,7 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.namespace
-        image: gcr.io/ml-pipeline/workflow-controller:v2.7.5-license-compliance
+        image: gcr.io/ml-pipeline/workflow-controller:v2.11.6-license-compliance
         imagePullPolicy: IfNotPresent
         name: workflow-controller
         resources: {}
