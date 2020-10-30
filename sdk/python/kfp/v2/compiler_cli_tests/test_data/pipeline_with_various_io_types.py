@@ -39,12 +39,12 @@ implementation:
     args:
     - {inputValue: input_1}
     - {inputValue: input_2}
-    - {inputValue: input_3}
-    - {inputValue: input_4}
-    - {inputValue: input_5}
+    - {inputPath: input_3}
+    - {inputPath: input_4}
+    - {inputPath: input_5}
     - {inputPath: input_6}
-    - {inputValue: input_7}
-    - {inputValue: input_8}
+    - {inputPath: input_7}
+    - {inputPath: input_8}
     - {outputPath: output_1}
     - {outputPath: output_2}
     - {outputPath: output_3}
@@ -62,7 +62,7 @@ implementation:
     args:
     - {inputValue: input_a}
     - {inputPath: input_b}
-    - {inputValue: input_c}
+    - {inputPath: input_c}
 """)
 
 
@@ -70,6 +70,7 @@ implementation:
 def my_pipeline(input1,
                 input3,
                 input4,
+                input5='gs://bucket/metrics',
                 input6='gs://bucket/dataset',
                 input7='arbitrary value',
                 input8='gs://path2'):
@@ -78,7 +79,7 @@ def my_pipeline(input1,
       input_2=3.1415926,
       input_3=input3,
       input_4=input4,
-      input_5='/path/to/metics',
+      input_5=input5,
       input_6=input6,
       input_7=input7,
       input_8=input8)

@@ -14,13 +14,6 @@
               "runtimeParameter": "input1"
             }
           },
-          "input_5": {
-            "runtimeValue": {
-              "constantValue": {
-                "stringValue": "/path/to/metics"
-              }
-            }
-          },
           "input_2": {
             "runtimeValue": {
               "constantValue": {
@@ -30,14 +23,6 @@
           }
         },
         "artifacts": {
-          "input_4": {
-            "producerTask": "upstream_input_4_importer",
-            "outputArtifactKey": "result"
-          },
-          "input_3": {
-            "producerTask": "upstream_input_3_importer",
-            "outputArtifactKey": "result"
-          },
           "input_6": {
             "producerTask": "upstream_input_6_importer",
             "outputArtifactKey": "result"
@@ -46,8 +31,20 @@
             "producerTask": "upstream_input_7_importer",
             "outputArtifactKey": "result"
           },
+          "input_5": {
+            "producerTask": "upstream_input_5_importer",
+            "outputArtifactKey": "result"
+          },
+          "input_4": {
+            "producerTask": "upstream_input_4_importer",
+            "outputArtifactKey": "result"
+          },
           "input_8": {
             "producerTask": "upstream_input_8_importer",
+            "outputArtifactKey": "result"
+          },
+          "input_3": {
+            "producerTask": "upstream_input_3_importer",
             "outputArtifactKey": "result"
           }
         }
@@ -101,36 +98,6 @@
     },
     {
       "taskInfo": {
-        "name": "upstream_input_4_importer"
-      },
-      "outputs": {
-        "artifacts": {
-          "result": {
-            "artifactType": {
-              "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
-            }
-          }
-        }
-      },
-      "executorLabel": "upstream_input_4_importer"
-    },
-    {
-      "taskInfo": {
-        "name": "upstream_input_3_importer"
-      },
-      "outputs": {
-        "artifacts": {
-          "result": {
-            "artifactType": {
-              "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
-            }
-          }
-        }
-      },
-      "executorLabel": "upstream_input_3_importer"
-    },
-    {
-      "taskInfo": {
         "name": "upstream_input_6_importer"
       },
       "outputs": {
@@ -161,6 +128,36 @@
     },
     {
       "taskInfo": {
+        "name": "upstream_input_5_importer"
+      },
+      "outputs": {
+        "artifacts": {
+          "result": {
+            "artifactType": {
+              "instanceSchema": "title: kfp.Metrics\ntype: object\nproperties:\n"
+            }
+          }
+        }
+      },
+      "executorLabel": "upstream_input_5_importer"
+    },
+    {
+      "taskInfo": {
+        "name": "upstream_input_4_importer"
+      },
+      "outputs": {
+        "artifacts": {
+          "result": {
+            "artifactType": {
+              "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
+            }
+          }
+        }
+      },
+      "executorLabel": "upstream_input_4_importer"
+    },
+    {
+      "taskInfo": {
         "name": "upstream_input_8_importer"
       },
       "outputs": {
@@ -173,15 +170,50 @@
         }
       },
       "executorLabel": "upstream_input_8_importer"
+    },
+    {
+      "taskInfo": {
+        "name": "upstream_input_3_importer"
+      },
+      "outputs": {
+        "artifacts": {
+          "result": {
+            "artifactType": {
+              "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
+            }
+          }
+        }
+      },
+      "executorLabel": "upstream_input_3_importer"
     }
   ],
   "deploymentConfig": {
     "@type": "type.googleapis.com/ml_pipelines.PipelineDeploymentConfig",
     "executors": {
-      "upstream_input_3_importer": {
+      "upstream_input_7_importer": {
         "importer": {
           "artifactUri": {
-            "runtimeParameter": "input3"
+            "runtimeParameter": "input7"
+          },
+          "typeSchema": {
+            "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
+          }
+        }
+      },
+      "upstream_input_5_importer": {
+        "importer": {
+          "artifactUri": {
+            "runtimeParameter": "input5"
+          },
+          "typeSchema": {
+            "instanceSchema": "title: kfp.Metrics\ntype: object\nproperties:\n"
+          }
+        }
+      },
+      "upstream_input_8_importer": {
+        "importer": {
+          "artifactUri": {
+            "runtimeParameter": "input8"
           },
           "typeSchema": {
             "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
@@ -206,10 +238,20 @@
           ]
         }
       },
-      "upstream_input_7_importer": {
+      "upstream_input_4_importer": {
         "importer": {
           "artifactUri": {
-            "runtimeParameter": "input7"
+            "runtimeParameter": "input4"
+          },
+          "typeSchema": {
+            "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
+          }
+        }
+      },
+      "upstream_input_3_importer": {
+        "importer": {
+          "artifactUri": {
+            "runtimeParameter": "input3"
           },
           "typeSchema": {
             "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
@@ -235,36 +277,16 @@
             "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
           }
         }
-      },
-      "upstream_input_4_importer": {
-        "importer": {
-          "artifactUri": {
-            "runtimeParameter": "input4"
-          },
-          "typeSchema": {
-            "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
-          }
-        }
-      },
-      "upstream_input_8_importer": {
-        "importer": {
-          "artifactUri": {
-            "runtimeParameter": "input8"
-          },
-          "typeSchema": {
-            "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
-          }
-        }
       }
     }
   },
-  "sdkVersion": "kfp-1.0.1",
+  "sdkVersion": "kfp-1.0.1-dev20201029",
   "schemaVersion": "v2alpha1",
   "runtimeParameters": {
-    "input8": {
+    "input6": {
       "type": "STRING",
       "defaultValue": {
-        "stringValue": "gs://path2"
+        "stringValue": "gs://bucket/dataset"
       }
     },
     "input7": {
@@ -273,10 +295,16 @@
         "stringValue": "arbitrary value"
       }
     },
-    "input6": {
+    "input5": {
       "type": "STRING",
       "defaultValue": {
-        "stringValue": "gs://bucket/dataset"
+        "stringValue": "gs://bucket/metrics"
+      }
+    },
+    "input8": {
+      "type": "STRING",
+      "defaultValue": {
+        "stringValue": "gs://path2"
       }
     }
   }
