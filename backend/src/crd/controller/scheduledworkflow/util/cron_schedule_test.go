@@ -15,14 +15,13 @@
 package util
 
 import (
-	"fmt"
 	"math"
-	"os"
 	"testing"
 	"time"
 
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -119,27 +118,30 @@ func TestCronSchedule_GetNextScheduledEpoch(t *testing.T) {
 }
 
 func TestCronSchedule_GetNextScheduledEpoch_LocationsEnvSet(t *testing.T) {
-	// There was a previous job.
 	locationString := "Asia/Shanghai"
-	os.Setenv("CRON_SCHEDULE_TIMEZONE", locationString)
-	location, _ := time.LoadLocation(locationString)
+	viper.Set(TimeZone, locationString)
+	defer viper.Set(TimeZone, "")
 
-	startTime, _ := time.Parse(time.RFC3339, "2010-01-11T10:10:00.000Z")
+	location, err := time.LoadLocation(locationString)
+	assert.Nil(t, err)
+	startTime, err := time.Parse(time.RFC3339, "2010-01-11T10:10:00.000Z")
+	assert.Nil(t, err)
 	startTime = startTime.In(location)
-	endTime, _ := time.Parse(time.RFC3339, "2010-01-11T11:00:00.000Z")
+	endTime, err := time.Parse(time.RFC3339, "2010-01-11T11:00:00.000Z")
+	assert.Nil(t, err)
 	endTime = endTime.In(location)
-	lastJob, _ := time.Parse(time.RFC3339, "2010-01-11T10:20:00.000Z")
+	lastJob, err := time.Parse(time.RFC3339, "2010-01-11T10:20:00.000Z")
+	assert.Nil(t, err)
 	lastJob = lastJob.In(location)
 	defaultStartTime, _ := time.Parse(time.RFC3339, "2010-01-11T10:15:00.000Z")
 	defaultStartTime = defaultStartTime.In(location)
 	schedule := NewCronSchedule(&swfapi.CronSchedule{
-		StartTime: commonutil.Metav1TimePointer(v1.NewTime(startTime.In(location))),
-		EndTime:   commonutil.Metav1TimePointer(v1.NewTime(endTime.In(location))),
+		StartTime: commonutil.Metav1TimePointer(v1.NewTime(startTime)),
+		EndTime:   commonutil.Metav1TimePointer(v1.NewTime(endTime)),
 		Cron:      "0 * * * * * ",
 	})
-	lastJobTime := v1.Time{lastJob.In(location)}
-	fmt.Println(defaultStartTime)
-	fmt.Println(defaultStartTime)
+	lastJobTime := v1.Time{lastJob}
+
 	assert.Equal(t, lastJob.Add(time.Minute*1).Unix(),
 		schedule.GetNextScheduledEpoch(&lastJobTime, defaultStartTime, location))
 
