@@ -52,18 +52,18 @@ def urls_for_zone(zone, location_to_urls_map):
 
   urls = []
   if region in location_to_urls_map:
-    urls.extend(location_to_urls_map[region])
+    urls.extend([url for url in location_to_urls_map[region] if url not in urls])
 
   region_regex = re.compile("([a-z]+-[a-z]+)\d+")
   for location in location_to_urls_map:
     region_match = region_regex.match(location)
     if region_match and region_match.group(1) == approx_region:
-      urls.extend(location_to_urls_map[location])
+      urls.extend([url for url in location_to_urls_map[location] if url not in urls])
 
   if country in location_to_urls_map:
-    urls.extend(location_to_urls_map[country])
+    urls.extend([url for url in location_to_urls_map[country] if url not in urls])
 
-  return set(urls)
+  return urls
 
 
 def main():
