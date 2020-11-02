@@ -21,28 +21,33 @@ from kfp.v2.proto import pipeline_spec_pb2
 # ComponentSpec I/O types to (IR) PipelineTaskSpec I/O types mapping.
 # The keys are normalized (lowercased). These are types viewed as Artifacts.
 # The values are the corresponding IR artifact type schemas.
-_ARTIFACT_TYPES_MAPPING = {
-    'gcspath': textwrap.dedent("""\
+_GENERIC_ARTIFACT_TYPE = textwrap.dedent("""\
         title: kfp.Artifact
         type: object
         properties:
-    """),
-    'model': textwrap.dedent("""\
+    """)
+
+_ARTIFACT_TYPES_MAPPING = {
+    'model':
+        textwrap.dedent("""\
         title: kfp.Model
         type: object
         properties:
     """),
-    'dataset':textwrap.dedent("""\
+    'dataset':
+        textwrap.dedent("""\
         title: kfp.Dataset
         type: object
         properties:
     """),
-    'metrics':textwrap.dedent("""\
+    'metrics':
+        textwrap.dedent("""\
         title: kfp.Metrics
         type: object
         properties:
     """),
-    'schema':textwrap.dedent("""\
+    'schema':
+        textwrap.dedent("""\
         title: kfp.Schema
         type: object
         properties:
@@ -57,36 +62,41 @@ _PARAMETER_TYPES_MAPPING = {
     'int': pipeline_spec_pb2.PrimitiveType.INT,
     'double': pipeline_spec_pb2.PrimitiveType.DOUBLE,
     'float': pipeline_spec_pb2.PrimitiveType.DOUBLE,
+    'string': pipeline_spec_pb2.PrimitiveType.STRING,
+    'str': pipeline_spec_pb2.PrimitiveType.STRING,
+    'text': pipeline_spec_pb2.PrimitiveType.STRING,
 }
 
 
-def is_artifact_type(type_name: Optional[str]) -> bool:
-  """Check if a ComponentSpec I/O type is considered as an artifact type.
+def is_parameter_type(type_name: Optional[str]) -> bool:
+  """Check if a ComponentSpec I/O type is considered as a parameter type.
 
   Args:
     type_name: type name of the ComponentSpec I/O type.
 
   Returns:
-    True if the type name maps to an artifact type else False.
+    True if the type name maps to a parameter type else False.
   """
-  if not isinstance(type_name, str):
+  if isinstance(type_name, str):
+    return type_name.lower() in _PARAMETER_TYPES_MAPPING
+  else:
     return False
-  return type_name.lower() in _ARTIFACT_TYPES_MAPPING
 
 
-def get_artifact_type_schema(type_name: str) -> Optional[str]:
+def get_artifact_type_schema(type_name: str) -> str:
   """Get the IR I/O artifact type for the given ComponentSpec I/O type.
 
   Args:
     type_name: type name of the ComponentSpec I/O type.
 
   Returns:
-     The string value of artifact type schema.
-
-  Raises:
-    AttributeError: if type_name os not a string type.
+     The string value of artifact type schema. Defaults to generic artifact.
   """
-  return _ARTIFACT_TYPES_MAPPING.get(type_name.lower())
+  if isinstance(type_name, str):
+    return _ARTIFACT_TYPES_MAPPING.get(type_name.lower(),
+                                       _GENERIC_ARTIFACT_TYPE)
+  else:
+    return _GENERIC_ARTIFACT_TYPE
 
 
 def get_parameter_type(
@@ -97,13 +107,12 @@ def get_parameter_type(
     type_name: type name of the ComponentSpec I/O type.
 
   Returns:
-    The enum value of the mapped IR I/O primitive type. Default to
-    PrimitiveType.STRING for unrecognized type names.
+    The enum value of the mapped IR I/O primitive type.
+
+  Raises:
+    AttributeError: if type_name is not a string type.
   """
-  if not isinstance(type_name, str):
-    return pipeline_spec_pb2.PrimitiveType.STRING
-  return _PARAMETER_TYPES_MAPPING.get(type_name.lower(),
-                                      pipeline_spec_pb2.PrimitiveType.STRING)
+  return _PARAMETER_TYPES_MAPPING.get(type_name.lower())
 
 
 def get_input_artifact_type_schema(
@@ -117,9 +126,14 @@ def get_input_artifact_type_schema(
     inputs: The list of InputSpec
 
   Returns:
-    The input type schema if found in inputs, or None if not found.
+    The artifact type schema of the input.
+
+  Raises:
+    AssertionError if input not found, or input found but not an artifact type.
   """
   for component_input in inputs:
     if component_input.name == input_name:
+      assert not is_parameter_type(
+          component_input.type), 'Input is not an artifact type.'
       return get_artifact_type_schema(component_input.type)
-  return None
+  assert False, 'Input not found.'
