@@ -38,13 +38,6 @@ describe('UIServer apis', () => {
   const commitHash = 'abcdefg';
   const { argv, buildDate, indexHtmlContent } = commonSetup({ tagName, commitHash });
 
-  beforeEach(() => {
-    const consoleInfoSpy = jest.spyOn(global.console, 'info');
-    consoleInfoSpy.mockImplementation(() => null);
-    const consoleLogSpy = jest.spyOn(global.console, 'log');
-    consoleLogSpy.mockImplementation(() => null);
-  });
-
   afterEach(() => {
     if (app) {
       app.close();

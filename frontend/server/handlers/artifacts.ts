@@ -23,7 +23,6 @@ import proxy from 'http-proxy-middleware';
 import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts';
 
 import * as fs from 'fs';
-import { V1Container } from '@kubernetes/client-node/dist/api';
 
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs
@@ -190,6 +189,7 @@ function getMinioArtifactHandler(
         .pipe(new PreviewStream({ peek }))
         .pipe(res);
     } catch (err) {
+      console.error(err);
       res
         .status(500)
         .send(`Failed to get object in bucket ${options.bucket} at path ${options.key}: ${err}`);
