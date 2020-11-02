@@ -112,6 +112,13 @@ class TestPipelineServiceApi(unittest.TestCase):
         """
         pass
 
+    def test_update_pipeline_default_version(self):
+        """Test case for update_pipeline_default_version
+
+        Update the default pipeline version of a specific pipeline.  # noqa: E501
+        """
+        pass
+
 
 if __name__ == '__main__':
     unittest.main()
