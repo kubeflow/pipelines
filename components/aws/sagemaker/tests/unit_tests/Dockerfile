@@ -7,11 +7,14 @@ RUN yum update -y \
     python3
 
 # requirements.txt is copied separately to preserve cache
-COPY ./sagemaker/tests/unit_tests/requirements.txt .
+COPY ./components/aws/sagemaker/requirements.txt .
 RUN pip3 install -r requirements.txt
 
-COPY ./sagemaker/ /app/
+COPY ./components/aws/sagemaker/dev_requirements.txt .
+RUN pip3 install -r dev_requirements.txt
 
-WORKDIR /app/tests/unit_tests/
+COPY . /app/
 
-ENTRYPOINT [ "bash", "./run_all_tests.sh" ]
+WORKDIR /app/components/aws/sagemaker/tests/unit_tests/
+
+ENTRYPOINT [ "bash", "./run_automated_test.sh" ]

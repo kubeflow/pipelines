@@ -16,6 +16,8 @@
 package v1beta1
 
 import (
+	"time"
+
 	v1beta1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	scheme "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -72,11 +74,16 @@ func (c *scheduledWorkflows) Get(name string, options v1.GetOptions) (result *v1
 
 // List takes label and field selectors, and returns the list of ScheduledWorkflows that match those selectors.
 func (c *scheduledWorkflows) List(opts v1.ListOptions) (result *v1beta1.ScheduledWorkflowList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &v1beta1.ScheduledWorkflowList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("scheduledworkflows").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
@@ -84,11 +91,16 @@ func (c *scheduledWorkflows) List(opts v1.ListOptions) (result *v1beta1.Schedule
 
 // Watch returns a watch.Interface that watches the requested scheduledWorkflows.
 func (c *scheduledWorkflows) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
 		Namespace(c.ns).
 		Resource("scheduledworkflows").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
@@ -130,10 +142,15 @@ func (c *scheduledWorkflows) Delete(name string, options *v1.DeleteOptions) erro
 
 // DeleteCollection deletes a collection of objects.
 func (c *scheduledWorkflows) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("scheduledworkflows").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()
