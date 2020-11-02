@@ -21,10 +21,8 @@ import (
 )
 
 const (
-	// ControllerAgentName is the name of the controller.
-	ControllerAgentName = "scheduled-workflow-controller"
-	// TimeZone is the name of the cron schedule env parameter
-	TimeZone = "CRON_SCHEDULE_TIMEZONE"
+	ControllerAgentName string = "scheduled-workflow-controller" // ControllerAgentName is the name of the controller.
+	TimeZone            string = "CRON_SCHEDULE_TIMEZONE"        // TimeZone is the name of the cron schedule env parameter
 )
 
 func getLocation() (*time.Location, error) {
