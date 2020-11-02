@@ -24,7 +24,7 @@ spec:
                 fieldPath: metadata.namespace
           - name: CRON_SCHEDULE_TIMEZONE
             valueFrom:
-             configMapKeyRef:
-               name: pipeline-install-config
-               key: cronScheduleTimezone
+              configMapKeyRef:
+                name: pipeline-install-config
+                key: cronScheduleTimezone
       serviceAccountName: ml-pipeline-scheduledworkflow
