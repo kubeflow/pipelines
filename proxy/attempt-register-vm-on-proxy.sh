@@ -24,7 +24,7 @@ function run-proxy-agent {
   # Connect proxy agent to Kubeflow Pipelines UI
   /opt/bin/proxy-forwarding-agent \
         --debug=${DEBUG} \
-        --proxy=${PROXY_URL} \
+        --proxy=${PROXY_URL}/ \
         --proxy-timeout=${PROXY_TIMEOUT} \
         --backend=${BACKEND_ID} \
         --host=${ML_PIPELINE_UI_SERVICE_HOST}:${ML_PIPELINE_UI_SERVICE_PORT} \
@@ -57,14 +57,17 @@ fi
 INSTANCE_ZONE="/"$(curl http://metadata.google.internal/computeMetadata/v1/instance/zone -H "Metadata-Flavor: Google")
 INSTANCE_ZONE="${INSTANCE_ZONE##/*/}"
 
-# Get latest Proxy server URL
-wget https://storage.googleapis.com/ml-pipeline/proxy-agent-config.json
-PROXY_URL=$(python ${DIR}/get_proxy_url.py --config-file-path "proxy-agent-config.json" --location "${INSTANCE_ZONE}" --version "latest")
+# Allow providing PROXY_URL from env, so we can specify staging inverse proxy url.
+if [[ -z "${PROXY_URL}" ]]; then
+  # Get latest Proxy server URL
+  wget https://storage.googleapis.com/ml-pipeline/proxy-agent-config.json
+  PROXY_URL=$(python ${DIR}/get_proxy_url.py --config-file-path "proxy-agent-config.json" --location "${INSTANCE_ZONE}" --version "latest")
+fi
 if [[ -z "${PROXY_URL}" ]]; then
     echo "Proxy URL for the zone ${INSTANCE_ZONE} no found, exiting."
     exit 1
 fi
-echo "Proxy URL from the config: ${PROXY_URL}"
+echo "Proxy URL: ${PROXY_URL}"
 
 # Register the proxy agent
 VM_ID=$(curl -H 'Metadata-Flavor: Google' "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity?format=full&audience=${PROXY_URL}/request-service-account-endpoint"  2>/dev/null)

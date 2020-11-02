@@ -1,135 +1,114 @@
-name: 'SageMaker - Batch Transformation'
-description: |
-  Batch Transformation Jobs in SageMaker
+name: SageMaker - Batch Transformation
+description: Batch Transformation Jobs in SageMaker
 inputs:
-  - name: region
-    description: 'The region where the cluster launches.'
-    type: String
-  - name: job_name
-    description: 'The name of the batch transform job.'
-    default: ''
-    type: String
-  - name: model_name
-    description: 'The name of the model that you want to use for the transform job.'
-    type: String
-  - name: max_concurrent
-    description: 'The maximum number of parallel requests that can be sent to each instance in a transform job.'
-    default: '0'
-    type: Integer
-  - name: max_payload
-    description: 'The maximum allowed size of the payload, in MB.'
-    default: '6'
-    type: Integer
-  - name: batch_strategy
-    description: 'The number of records to include in a mini-batch for an HTTP inference request.'
-    default: ''
-    type: String
-  - name: environment
-    description: 'The environment variables to set in the Docker container. Up to 16 key-value entries in the map.'
-    default: '{}'
-    type: JsonObject
-  - name: input_location
-    description: 'The S3 location of the data source that is associated with a channel.'
-    type: String
-  - name: data_type
-    description: 'Data type of the input. Can be ManifestFile, S3Prefix, or AugmentedManifestFile.'
-    default: 'S3Prefix'
-    type: String
-  - name: content_type
-    description: 'The multipurpose internet mail extension (MIME) type of the data.'
-    default: ''
-    type: String
-  - name: split_type
-    description: 'The method to use to split the transform job data files into smaller batches.'
-    default: 'None'
-    type: String
-  - name: compression_type
-    description: 'If the transform data is compressed, the specification of the compression type.'
-    default: 'None'
-    type: String
-  - name: output_location
-    description: 'The Amazon S3 path where you want Amazon SageMaker to store the results of the transform job.'
-    type: String
-  - name: accept
-    description: 'The MIME type used to specify the output data.'
-    default: ''
-    type: String
-  - name: assemble_with
-    description: 'Defines how to assemble the results of the transform job as a single S3 object. Either None or Line.'
-    default: ''
-    type: String
-  - name: output_encryption_key
-    description: 'The AWS Key Management Service ID of the key used to encrypt the output data.'
-    default: ''
-    type: String
-  - name: input_filter
-    description: 'A JSONPath expression used to select a portion of the input data to pass to the algorithm.'
-    default: ''
-    type: String
-  - name: output_filter
-    description: 'A JSONPath expression used to select a portion of the joined dataset to save in the output file for a batch transform job.'
-    default: ''
-    type: String
-  - name: join_source
-    description: 'Specifies the source of the data to join with the transformed data.'
-    default: 'None'
-    type: String
-  - name: instance_type
-    description: 'The ML compute instance type.'
-    default: 'ml.m4.xlarge'
-    type: String
-  - name: instance_count
-    description: 'The number of ML compute instances to use in each training job.'
-    default: '1'
-    type: Integer
-  - name: resource_encryption_key
-    description: 'The AWS KMS key that Amazon SageMaker uses to encrypt data on the storage volume attached to the ML compute instance(s).'
-    default: ''
-    type: String
-  - name: endpoint_url
-    description: 'The endpoint URL for the private link VPC endpoint.'
-    default: ''
-    type: String
-  - name: assume_role
-    description: 'The ARN of an IAM role to assume when connecting to SageMaker.'
-    default: ''
-    type: String
-  - name: tags
-    description: 'Key-value pairs to categorize AWS resources.'
-    default: '{}'
-    type: JsonObject
+- {name: region, type: String, description: The region for the SageMaker resource.}
+- {name: endpoint_url, type: String, description: The URL to use when communicating
+    with the SageMaker service., default: ''}
+- {name: assume_role, type: String, description: The ARN of an IAM role to assume
+    when connecting to SageMaker., default: ''}
+- {name: tags, type: JsonObject, description: 'An array of key-value pairs, to categorize
+    AWS resources.', default: '{}'}
+- {name: job_name, type: String, description: The name of the transform job., default: ''}
+- {name: model_name, type: String, description: The name of the model that you want
+    to use for the transform job.}
+- {name: max_concurrent, type: Integer, description: The maximum number of parallel
+    requests that can be sent to each instance in a transform job., default: '0'}
+- {name: max_payload, type: Integer, description: 'The maximum allowed size of the
+    payload, in MB.', default: '6'}
+- {name: batch_strategy, type: String, description: The number of records to include
+    in a mini-batch for an HTTP inference request., default: ''}
+- {name: environment, type: JsonObject, description: The dictionary of the environment
+    variables to set in the Docker container. Up to 16 key-value entries in the map.,
+  default: '{}'}
+- {name: input_location, type: String, description: The S3 location of the data source
+    that is associated with a channel.}
+- {name: data_type, type: String, description: 'Data type of the input. Can be ManifestFile,
+    S3Prefix, or AugmentedManifestFile.', default: S3Prefix}
+- {name: content_type, type: String, description: The multipurpose internet mail extension
+    (MIME) type of the data., default: ''}
+- {name: split_type, type: String, description: The method to use to split the transform
+    job data files into smaller batches., default: None}
+- {name: compression_type, type: String, description: 'If the transform data is compressed,
+    the specification of the compression type.', default: None}
+- {name: output_location, type: String, description: The Amazon S3 path where you
+    want Amazon SageMaker to store the results of the transform job.}
+- {name: accept, type: String, description: The MIME type used to specify the output
+    data., default: ''}
+- {name: assemble_with, type: String, description: Defines how to assemble the results
+    of the transform job as a single S3 object. Either None or Line., default: ''}
+- {name: output_encryption_key, type: String, description: The AWS KMS key that Amazon
+    SageMaker uses to encrypt the model artifacts., default: ''}
+- {name: input_filter, type: String, description: A JSONPath expression used to select
+    a portion of the input data to pass to the algorithm., default: ''}
+- {name: output_filter, type: String, description: A JSONPath expression used to select
+    a portion of the joined dataset to save in the output file for a batch transform
+    job., default: ''}
+- {name: join_source, type: String, description: Specifies the source of the data
+    to join with the transformed data., default: None}
+- {name: instance_type, type: String, description: The ML compute instance type for
+    the transform job., default: ml.m4.xlarge}
+- {name: instance_count, type: Integer, description: The number of ML compute instances
+    to use in the transform job., default: '1'}
+- {name: resource_encryption_key, type: String, description: The AWS KMS key that
+    Amazon SageMaker uses to encrypt data on the storage volume attached to the ML
+    compute instance(s)., default: ''}
 outputs:
-  - {name: output_location,    description: 'S3 URI of the transform job results.'}
+- {name: output_location, description: S3 URI of the transform job results.}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:0.9.0
-    command: ['python3']
-    args: [
-      batch_transform.py,
-      --region, {inputValue: region},
-      --endpoint_url, {inputValue: endpoint_url},
-      --assume_role, {inputValue: assume_role},
-      --job_name, {inputValue: job_name},
-      --model_name, {inputValue: model_name},
-      --max_concurrent, {inputValue: max_concurrent},
-      --max_payload, {inputValue: max_payload},
-      --batch_strategy, {inputValue: batch_strategy},
-      --environment, {inputValue: environment},
-      --input_location, {inputValue: input_location},
-      --data_type, {inputValue: data_type},
-      --content_type, {inputValue: content_type},
-      --split_type, {inputValue: split_type},
-      --compression_type, {inputValue: compression_type},
-      --output_location, {inputValue: output_location},
-      --accept, {inputValue: accept},
-      --assemble_with, {inputValue: assemble_with},
-      --output_encryption_key, {inputValue: output_encryption_key},
-      --input_filter, {inputValue: input_filter},
-      --output_filter, {inputValue: output_filter},
-      --join_source, {inputValue: join_source},
-      --instance_type, {inputValue: instance_type},
-      --instance_count, {inputValue: instance_count},
-      --resource_encryption_key, {inputValue: resource_encryption_key},
-      --tags, {inputValue: tags},
-      --output_location_output_path, {outputPath: output_location}
-    ]
+    image: amazon/aws-sagemaker-kfp-components:1.0.0
+    command: [python3]
+    args:
+    - batch_transform/src/sagemaker_transform_component.py
+    - --region
+    - {inputValue: region}
+    - --endpoint_url
+    - {inputValue: endpoint_url}
+    - --assume_role
+    - {inputValue: assume_role}
+    - --tags
+    - {inputValue: tags}
+    - --job_name
+    - {inputValue: job_name}
+    - --model_name
+    - {inputValue: model_name}
+    - --max_concurrent
+    - {inputValue: max_concurrent}
+    - --max_payload
+    - {inputValue: max_payload}
+    - --batch_strategy
+    - {inputValue: batch_strategy}
+    - --environment
+    - {inputValue: environment}
+    - --input_location
+    - {inputValue: input_location}
+    - --data_type
+    - {inputValue: data_type}
+    - --content_type
+    - {inputValue: content_type}
+    - --split_type
+    - {inputValue: split_type}
+    - --compression_type
+    - {inputValue: compression_type}
+    - --output_location
+    - {inputValue: output_location}
+    - --accept
+    - {inputValue: accept}
+    - --assemble_with
+    - {inputValue: assemble_with}
+    - --output_encryption_key
+    - {inputValue: output_encryption_key}
+    - --input_filter
+    - {inputValue: input_filter}
+    - --output_filter
+    - {inputValue: output_filter}
+    - --join_source
+    - {inputValue: join_source}
+    - --instance_type
+    - {inputValue: instance_type}
+    - --instance_count
+    - {inputValue: instance_count}
+    - --resource_encryption_key
+    - {inputValue: resource_encryption_key}
+    - --output_location_output_path
+    - {outputPath: output_location}

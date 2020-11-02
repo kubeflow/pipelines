@@ -1,6 +1,6 @@
 PipelineDefinition: resources/definition/create_endpoint_pipeline.py
 TestName: kmeans-create-endpoint-test
-Timeout: 1800
+Timeout: 3600
 ExpectedPrediction:
   predictions:
     - distance_to_cluster: 7.448746204376221

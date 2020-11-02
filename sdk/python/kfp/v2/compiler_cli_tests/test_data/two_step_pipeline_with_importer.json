@@ -36,7 +36,7 @@
         "artifacts": {
           "model_output": {
             "artifactType": {
-              "instanceSchema": "title: Model\ntype: object\nproperties:\n"
+              "instanceSchema": "title: kfp.Model\ntype: object\nproperties:\n"
             }
           }
         }
@@ -73,7 +73,7 @@
         "artifacts": {
           "result": {
             "artifactType": {
-              "instanceSchema": "title: Artifact\ntype: object\nproperties:\n"
+              "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
             }
           }
         }
@@ -107,7 +107,7 @@
             "runtimeParameter": "input_gcs"
           },
           "typeSchema": {
-            "instanceSchema": "title: Artifact\ntype: object\nproperties:\n"
+            "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
           }
         }
       },

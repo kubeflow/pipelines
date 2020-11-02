@@ -8,6 +8,7 @@ from ibm_ai_openscale.supporting_classes import PayloadRecord, Feature
 from ibm_ai_openscale.supporting_classes.enums import *
 from watson_machine_learning_client import WatsonMachineLearningAPIClient
 from minio import Minio
+from pathlib import Path
 
 def get_secret_creds(path):
     with open(path, 'r') as f:
@@ -24,6 +25,7 @@ if __name__ == "__main__":
     parser.add_argument('--aios_manifest_path', type=str, help='Object storage file path for the aios manifest file', default="")
     parser.add_argument('--bucket_name', type=str, help='Object storage bucket name', default="dummy-bucket-name")
     parser.add_argument('--problem_type', type=str, help='Model problem type', default="BINARY_CLASSIFICATION")
+    parser.add_argument('--output_model_name_path', type=str, help='Output path for model name', default='/tmp/model_name')
     args = parser.parse_args()
 
     aios_schema = args.aios_schema
@@ -173,5 +175,5 @@ if __name__ == "__main__":
 
     print('Scoring endpoint is: ' + credit_risk_scoring_endpoint + '\n')
 
-    with open("/tmp/model_name", "w") as report:
-        report.write(model_name)
+    Path(args.output_model_name_path).parent.mkdir(parents=True, exist_ok=True)
+    Path(args.output_model_name_path).write_text(model_name)
