@@ -24,7 +24,7 @@ function run-proxy-agent {
   # Connect proxy agent to Kubeflow Pipelines UI
   /opt/bin/proxy-forwarding-agent \
         --debug=${DEBUG} \
-        --proxy=${PROXY_URL} \
+        --proxy=${PROXY_URL}/ \
         --proxy-timeout=${PROXY_TIMEOUT} \
         --backend=${BACKEND_ID} \
         --host=${ML_PIPELINE_UI_SERVICE_HOST}:${ML_PIPELINE_UI_SERVICE_PORT} \
