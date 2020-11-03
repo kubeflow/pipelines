@@ -1,0 +1,31 @@
+name: Azure ML Deploy Model 
+description: A Kubeflow Pipeline Component to deploy registered model to Azure Machine Learning.
+inputs:
+- {name: deployment_name, type: String}
+- {name: model_name, type: String}
+- {name: model_version, type: String}
+- {name: inference_config, type: String}
+- {name: deployment_config, type: String}
+- {name: tenant_id, type: String}
+- {name: service_principal_id, type: String}
+- {name: service_principal_password, type: String}
+- {name: subscription_id, type: String}
+- {name: resource_group, type: String}
+- {name: workspace, type: String}
+implementation:
+  container:
+    image: ''
+    command: [
+      "sh", "/scripts/deploy.sh",
+      '-n', {inputValue: deployment_name},
+      '-m', {inputValue: model_name},
+      '-v', {inputValue: model_version},
+      '-i', {inputValue: inference_config},
+      '-d', {inputValue: deployment_config},
+      '-s', {inputValue: service_principal_id},
+      '-p', {inputValue: service_principal_password},
+      '-u', {inputValue: subscription_id},
+      '-r', {inputValue: resource_group},
+      '-w', {inputValue: workspace},
+      '-t', {inputValue: tenant_id}
+    ]
