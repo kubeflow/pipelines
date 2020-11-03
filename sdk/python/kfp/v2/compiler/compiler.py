@@ -81,7 +81,11 @@ class Compiler(object):
 
     # Pipeline Parameters
     for arg in args:
-      if arg.value is not None:
+      if arg.value is None:
+        # Defaults to string primitive type.
+        pipeline_spec.runtime_parameters[
+            arg.name].type = pipeline_spec_pb2.PrimitiveType.STRING
+      else:
         if isinstance(arg.value, int):
           pipeline_spec.runtime_parameters[
               arg.name].type = pipeline_spec_pb2.PrimitiveType.INT

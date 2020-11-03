@@ -283,6 +283,21 @@
   "sdkVersion": "kfp-1.0.1-dev20201029",
   "schemaVersion": "v2alpha1",
   "runtimeParameters": {
+    "input1": {
+      "type": "STRING"
+    },
+    "input3": {
+      "type": "STRING"
+    },
+    "input4": {
+      "type": "STRING"
+    },
+    "input5": {
+      "type": "STRING",
+      "defaultValue": {
+        "stringValue": "gs://bucket/metrics"
+      }
+    },
     "input6": {
       "type": "STRING",
       "defaultValue": {
@@ -293,12 +308,6 @@
       "type": "STRING",
       "defaultValue": {
         "stringValue": "arbitrary value"
-      }
-    },
-    "input5": {
-      "type": "STRING",
-      "defaultValue": {
-        "stringValue": "gs://bucket/metrics"
       }
     },
     "input8": {
