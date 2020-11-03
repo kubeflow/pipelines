@@ -6,7 +6,7 @@ import kfp.dsl as dsl
 import os
 
 component_root = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".")
-image_repo_name = "kftest17acr.azurecr.io/deploy" # the container registery for the container operation and path in the ACR
+image_repo_name = "<your_acr_name>.azurecr.io/deploy" # the container registery for the container operation and path in the ACR
 file_path = os.path.join(component_root, "component.yaml")
 
 # Loading the component.yaml file for deployment operation
