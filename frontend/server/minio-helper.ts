@@ -138,8 +138,5 @@ export async function getObjectStream({
   tryExtract = true,
 }: MinioRequestConfig): Promise<Transform> {
   const stream = await client.getObject(bucket, key);
-  if (tryExtract == null) {
-    tryExtract = true;
-  }
   return tryExtract ? stream.pipe(gunzip()).pipe(maybeTarball()) : stream.pipe(new PassThrough());
 }
