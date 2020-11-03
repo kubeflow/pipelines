@@ -100,15 +100,30 @@ describe('MinioArtifactPreview', () => {
         <div
           class="root"
         >
-          <a
-            class="link"
-            href="artifacts/s3/foo/bar"
-            rel="noopener"
-            target="_blank"
-            title="s3://foo/bar"
+          <div
+            class="topDiv"
           >
-            s3://foo/bar
-          </a>
+            <a
+              class="link"
+              href="artifacts/s3/foo/bar"
+              rel="noopener"
+              target="_blank"
+              title="s3://foo/bar"
+            >
+              s3://foo/bar
+            </a>
+            <span
+              class="separater"
+            />
+            <a
+              class="link viewLink"
+              href="artifacts/get?source=s3&bucket=foo&key=bar"
+              rel="noopener"
+              target="_blank"
+            >
+              View All
+            </a>
+          </div>
           <div
             class="preview"
           >
@@ -140,15 +155,30 @@ describe('MinioArtifactPreview', () => {
         <div
           class="root"
         >
-          <a
-            class="link"
-            href="artifacts/minio/foo/bar"
-            rel="noopener"
-            target="_blank"
-            title="minio://foo/bar"
+          <div
+            class="topDiv"
           >
-            minio://foo/bar
-          </a>
+            <a
+              class="link"
+              href="artifacts/minio/foo/bar"
+              rel="noopener"
+              target="_blank"
+              title="minio://foo/bar"
+            >
+              minio://foo/bar
+            </a>
+            <span
+              class="separater"
+            />
+            <a
+              class="link viewLink"
+              href="artifacts/get?source=minio&bucket=foo&key=bar"
+              rel="noopener"
+              target="_blank"
+            >
+              View All
+            </a>
+          </div>
           <div
             class="preview"
           >
@@ -180,15 +210,30 @@ describe('MinioArtifactPreview', () => {
         <div
           class="root"
         >
-          <a
-            class="link"
-            href="artifacts/minio/foo/bar?namespace=namespace"
-            rel="noopener"
-            target="_blank"
-            title="minio://foo/bar"
+          <div
+            class="topDiv"
           >
-            minio://foo/bar
-          </a>
+            <a
+              class="link"
+              href="artifacts/minio/foo/bar?namespace=namespace"
+              rel="noopener"
+              target="_blank"
+              title="minio://foo/bar"
+            >
+              minio://foo/bar
+            </a>
+            <span
+              class="separater"
+            />
+            <a
+              class="link viewLink"
+              href="artifacts/get?source=minio&namespace=namespace&bucket=foo&key=bar"
+              rel="noopener"
+              target="_blank"
+            >
+              View All
+            </a>
+          </div>
           <div
             class="preview"
           >
@@ -219,15 +264,30 @@ describe('MinioArtifactPreview', () => {
         <div
           class="root"
         >
-          <a
-            class="link"
-            href="artifacts/minio/foo/bar"
-            rel="noopener"
-            target="_blank"
-            title="minio://foo/bar"
+          <div
+            class="topDiv"
           >
-            minio://foo/bar
-          </a>
+            <a
+              class="link"
+              href="artifacts/minio/foo/bar"
+              rel="noopener"
+              target="_blank"
+              title="minio://foo/bar"
+            >
+              minio://foo/bar
+            </a>
+            <span
+              class="separater"
+            />
+            <a
+              class="link viewLink"
+              href="artifacts/get?source=minio&bucket=foo&key=bar"
+              rel="noopener"
+              target="_blank"
+            >
+              View All
+            </a>
+          </div>
         </div>
       </div>
     `);
@@ -252,15 +312,30 @@ describe('MinioArtifactPreview', () => {
         <div
           class="root"
         >
-          <a
-            class="link"
-            href="artifacts/minio/foo/bar"
-            rel="noopener"
-            target="_blank"
-            title="minio://foo/bar"
+          <div
+            class="topDiv"
           >
-            minio://foo/bar
-          </a>
+            <a
+              class="link"
+              href="artifacts/minio/foo/bar"
+              rel="noopener"
+              target="_blank"
+              title="minio://foo/bar"
+            >
+              minio://foo/bar
+            </a>
+            <span
+              class="separater"
+            />
+            <a
+              class="link viewLink"
+              href="artifacts/get?source=minio&bucket=foo&key=bar"
+              rel="noopener"
+              target="_blank"
+            >
+              View All
+            </a>
+          </div>
           <div
             class="preview"
           >
@@ -276,7 +351,6 @@ describe('MinioArtifactPreview', () => {
         </div>
       </div>
     `);
-    expect(queryByText('View All')).toEqual(null);
   });
 
   it('handles artifact that previews with maxlines', async () => {
@@ -298,15 +372,30 @@ describe('MinioArtifactPreview', () => {
         <div
           class="root"
         >
-          <a
-            class="link"
-            href="artifacts/minio/foo/bar"
-            rel="noopener"
-            target="_blank"
-            title="minio://foo/bar"
+          <div
+            class="topDiv"
           >
-            minio://foo/bar
-          </a>
+            <a
+              class="link"
+              href="artifacts/minio/foo/bar"
+              rel="noopener"
+              target="_blank"
+              title="minio://foo/bar"
+            >
+              minio://foo/bar
+            </a>
+            <span
+              class="separater"
+            />
+            <a
+              class="link viewLink"
+              href="artifacts/get?source=minio&bucket=foo&key=bar"
+              rel="noopener"
+              target="_blank"
+            >
+              View All
+            </a>
+          </div>
           <div
             class="preview"
           >
@@ -317,14 +406,6 @@ describe('MinioArtifactPreview', () => {
       ...
               </pre>
             </small>
-            <a
-              class="link"
-              href="artifacts/get?source=minio&bucket=foo&key=bar"
-              rel="noopener"
-              target="_blank"
-            >
-              View All
-            </a>
           </div>
         </div>
       </div>
@@ -351,15 +432,30 @@ describe('MinioArtifactPreview', () => {
         <div
           class="root"
         >
-          <a
-            class="link"
-            href="artifacts/minio/foo/bar"
-            rel="noopener"
-            target="_blank"
-            title="minio://foo/bar"
+          <div
+            class="topDiv"
           >
-            minio://foo/bar
-          </a>
+            <a
+              class="link"
+              href="artifacts/minio/foo/bar"
+              rel="noopener"
+              target="_blank"
+              title="minio://foo/bar"
+            >
+              minio://foo/bar
+            </a>
+            <span
+              class="separater"
+            />
+            <a
+              class="link viewLink"
+              href="artifacts/get?source=minio&bucket=foo&key=bar"
+              rel="noopener"
+              target="_blank"
+            >
+              View All
+            </a>
+          </div>
           <div
             class="preview"
           >
@@ -371,14 +467,6 @@ describe('MinioArtifactPreview', () => {
       ...
               </pre>
             </small>
-            <a
-              class="link"
-              href="artifacts/get?source=minio&bucket=foo&key=bar"
-              rel="noopener"
-              target="_blank"
-            >
-              View All
-            </a>
           </div>
         </div>
       </div>
