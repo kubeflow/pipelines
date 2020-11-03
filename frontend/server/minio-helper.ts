@@ -135,8 +135,8 @@ export async function getObjectStream({
   bucket,
   key,
   client,
-  tryExtract,
-}: MinioRequestConfig & { extract?: boolean }): Promise<Transform> {
+  tryExtract = true,
+}: MinioRequestConfig): Promise<Transform> {
   const stream = await client.getObject(bucket, key);
   if (tryExtract == null) {
     tryExtract = true;
