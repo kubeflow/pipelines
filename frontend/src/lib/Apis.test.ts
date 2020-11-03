@@ -137,15 +137,15 @@ describe('Apis', () => {
 
   it('buildReadFileUrl', () => {
     expect(
-      Apis.buildReadFileUrl(
-        {
+      Apis.buildReadFileUrl({
+        path: {
           bucket: 'testbucket',
           key: 'testkey',
           source: StorageService.GCS,
         },
-        'testnamespace',
-        255,
-      ),
+        namespace: 'testnamespace',
+        peek: 255,
+      }),
     ).toEqual(
       'artifacts/get?source=gcs&namespace=testnamespace&peek=255&bucket=testbucket&key=testkey',
     );

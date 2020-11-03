@@ -118,13 +118,37 @@ function createUIServer(options: UIConfigs) {
   /** Artifact */
   registerHandler(
     app.get,
-    '/artifacts/get',
+    '/artifacts/*',
     getArtifactsProxyHandler({
       enabled: options.artifacts.proxy.enabled,
       namespacedServiceGetter: getArtifactServiceGetter(options.artifacts.proxy),
     }),
   );
-  registerHandler(app.get, '/artifacts/get', getArtifactsHandler(options.artifacts));
+  // /artifacts/get endpoint tries to extract the artifact to return pure text content
+  registerHandler(
+    app.get,
+    '/artifacts/get',
+    getArtifactsHandler({
+      artifactsConfigs: options.artifacts,
+      useParameter: false,
+      tryExtract: true,
+    }),
+  );
+  // /artifacts/ endpoint downloads the artifact as is, it does not try to unzip or untar.
+  registerHandler(
+    app.get,
+    // The last * represents object key. Key could contain special characters like '/',
+    // so we cannot use `:key` as the placeholder.
+    // It is important to include the original object's key at the end of the url, because
+    // browser automatically determines file extension by the url. A wrong extension may affect
+    // whether the file can be opened by the correct application by default.
+    '/artifacts/:source/:bucket/*',
+    getArtifactsHandler({
+      artifactsConfigs: options.artifacts,
+      useParameter: true,
+      tryExtract: false,
+    }),
+  );
 
   /** Authorize function */
   const authorizeFn = getAuthorizeFn(options.auth, { apiServerAddress });
