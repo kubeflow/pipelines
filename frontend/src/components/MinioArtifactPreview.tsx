@@ -18,6 +18,17 @@ const css = stylesheet({
     padding: 3,
     backgroundColor: color.lightGrey,
   },
+  topDiv: {
+    display: 'flex',
+    justifyContent: 'space-between',
+  },
+  separater: {
+    width: 20, // There's minimum 20px separation between URI and view button.
+    display: 'inline-block',
+  },
+  viewLink: {
+    whiteSpace: 'nowrap',
+  },
 });
 
 /**
@@ -80,11 +91,14 @@ const MinioArtifactPreview: React.FC<MinioArtifactPreviewProps> = ({
     undefined,
   );
   const storagePath = getStoragePath(value);
+  const source = storagePath?.source;
+  const bucket = storagePath?.bucket;
+  const key = storagePath?.key;
 
   React.useEffect(() => {
     let cancelled = false;
-    if (storagePath) {
-      getPreview(storagePath, namespace, maxbytes, maxlines).then(
+    if (source && bucket && key) {
+      getPreview({ source, bucket, key }, namespace, maxbytes, maxlines).then(
         content => !cancelled && setContent(content),
         error => console.error(error), // TODO error badge on link?
       );
@@ -92,7 +106,7 @@ const MinioArtifactPreview: React.FC<MinioArtifactPreviewProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [storagePath?.source, storagePath?.bucket, storagePath?.key, namespace, maxbytes, maxlines]);
+  }, [source, bucket, key, namespace, maxbytes, maxlines]);
 
   if (!storagePath) {
     // if value is undefined, null, or an invalid s3artifact object, don't render
@@ -115,15 +129,20 @@ const MinioArtifactPreview: React.FC<MinioArtifactPreviewProps> = ({
   // TODO use ArtifactLink instead (but it need to support namespace)
   return (
     <div className={css.root}>
-      <ExternalLink href={artifactDownloadUrl} title={linkText}>
-        {linkText}
-      </ExternalLink>
+      <div className={css.topDiv}>
+        <ExternalLink href={artifactDownloadUrl} title={linkText}>
+          {linkText}
+        </ExternalLink>
+        <span className={css.separater}></span>
+        <ExternalLink href={artifactViewUrl} className={css.viewLink}>
+          View All
+        </ExternalLink>
+      </div>
       {content?.data && (
         <div className={css.preview}>
           <small>
             <pre>{content.data}</pre>
           </small>
-          {content.hasMore && <ExternalLink href={artifactViewUrl}>View All</ExternalLink>}
         </div>
       )}
     </div>
