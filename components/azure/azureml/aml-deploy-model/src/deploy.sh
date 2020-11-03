@@ -1,12 +1,11 @@
 #!/bin/sh
 
 # Deploy registered model to Azure Machine Learning
-while getopts "n:m:v:i:d:s:p:u:r:w:t:" option;
+while getopts "n:m:i:d:s:p:u:r:w:t:" option;
     do
     case "$option" in
         n ) DEPLOYMENT_NAME=${OPTARG};;
         m ) MODEL_NAME=${OPTARG};;
-        v ) MODEL_VERSION=${OPTARG};;
         i ) INFERENCE_CONFIG=${OPTARG};;
         d ) DEPLOYMENTCONFIG=${OPTARG};;
         s ) SERVICE_PRINCIPAL_ID=${OPTARG};;

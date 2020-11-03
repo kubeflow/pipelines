@@ -3,7 +3,6 @@ import kfp.compiler as compiler
 import kfp.components as components
 from kfp.azure import use_azure_secret
 import kfp.dsl as dsl
-import os
 
 component_root = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".")
 image_repo_name = "<your_acr_name>.azurecr.io/deploy" # the container registery for the container operation and path in the ACR
@@ -39,7 +38,6 @@ def model_deploy(
                             subscription_id='$(AZ_SUBSCRIPTION_ID)',
                             resource_group=resource_group,
                             workspace=workspace,
-                            model_version='1',
                             inference_config='scripts/inferenceconfig.json',
                             deployment_config='scripts/deploymentconfig.json'). \
                             apply(use_azure_secret()). \

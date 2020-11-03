@@ -3,7 +3,6 @@ description: A Kubeflow Pipeline Component to deploy registered model to Azure M
 inputs:
 - {name: deployment_name, type: String}
 - {name: model_name, type: String}
-- {name: model_version, type: String}
 - {name: inference_config, type: String}
 - {name: deployment_config, type: String}
 - {name: tenant_id, type: String}
@@ -19,7 +18,6 @@ implementation:
       "sh", "/scripts/deploy.sh",
       '-n', {inputValue: deployment_name},
       '-m', {inputValue: model_name},
-      '-v', {inputValue: model_version},
       '-i', {inputValue: inference_config},
       '-d', {inputValue: deployment_config},
       '-s', {inputValue: service_principal_id},
