@@ -209,11 +209,11 @@ func (s *ScheduledWorkflow) NewWorkflow(
 
 // GetNextScheduledEpoch returns the next epoch at which a workflow should be scheduled,
 // and whether it should be run now.
-func (s *ScheduledWorkflow) GetNextScheduledEpoch(activeWorkflowCount int64, nowEpoch int64) (
+func (s *ScheduledWorkflow) GetNextScheduledEpoch(activeWorkflowCount int64, nowEpoch int64, location time.Location) (
 	nextScheduleEpoch int64, shouldRunNow bool, err error) {
 
 	// Get the next scheduled time.
-	nextScheduledEpoch, err := s.getNextScheduledEpoch(nowEpoch)
+	nextScheduledEpoch, err := s.getNextScheduledEpoch(nowEpoch, location)
 	if err != nil {
 		return 0, false, err
 	}
@@ -235,7 +235,7 @@ func (s *ScheduledWorkflow) GetNextScheduledEpoch(activeWorkflowCount int64, now
 	return nextScheduledEpoch, true, nil
 }
 
-func (s *ScheduledWorkflow) getNextScheduledEpoch(nowEpoch int64) (int64, error) {
+func (s *ScheduledWorkflow) getNextScheduledEpoch(nowEpoch int64, location time.Location) (int64, error) {
 	catchup := true
 	if s.Spec.NoCatchup != nil {
 		catchup = !*s.Spec.NoCatchup
@@ -257,20 +257,15 @@ func (s *ScheduledWorkflow) getNextScheduledEpoch(nowEpoch int64) (int64, error)
 	// Cron schedule
 	if s.Spec.Trigger.CronSchedule != nil {
 		nowTime := time.Unix(nowEpoch, 0)
-		loc, err := getLocation()
-		if err != nil {
-			return 0, err
-		}
-		nowTime = nowTime.In(loc)
 		schedule := NewCronSchedule(s.Spec.Trigger.CronSchedule)
 		if catchup {
 			return schedule.GetNextScheduledEpoch(
 				s.Status.Trigger.LastTriggeredTime,
-				time.Unix(s.creationEpoch(), 0).In(loc), loc), nil
+				time.Unix(s.creationEpoch(), 0).In(&location), &location), nil
 		} else {
 			return schedule.GetNextScheduledEpochNoCatchup(
 				s.Status.Trigger.LastTriggeredTime,
-				time.Unix(s.creationEpoch(), 0).In(loc), nowTime, loc), nil
+				time.Unix(s.creationEpoch(), 0).In(&location), nowTime, &location), nil
 		}
 	}
 
@@ -295,7 +290,7 @@ func (s *ScheduledWorkflow) setLabel(key string, value string) {
 // UpdateStatus updates the status of a workflow in the Kubernetes API server.
 func (s *ScheduledWorkflow) UpdateStatus(updatedEpoch int64, workflow *commonutil.Workflow,
 	scheduledEpoch int64, active []swfapi.WorkflowStatus,
-	completed []swfapi.WorkflowStatus) {
+	completed []swfapi.WorkflowStatus, location *time.Location) {
 
 	updatedTime := metav1.NewTime(time.Unix(updatedEpoch, 0).UTC())
 
@@ -336,7 +331,7 @@ func (s *ScheduledWorkflow) UpdateStatus(updatedEpoch int64, workflow *commonuti
 	if workflow != nil {
 		s.updateLastTriggeredTime(scheduledEpoch)
 		s.Status.Trigger.LastIndex = commonutil.Int64Pointer(s.nextIndex())
-		nextTriggerTime, err := s.getNextScheduledEpoch(0)
+		nextTriggerTime, err := s.getNextScheduledEpoch(0, *location)
 		if err != nil {
 			log.Errorf("%+v", wraperror.Errorf(
 				"Error extracting the next scheduled epoch: %v", err))

@@ -22,6 +22,7 @@ import (
 	workflowclientSet "github.com/argoproj/argo/pkg/client/clientset/versioned"
 	workflowinformers "github.com/argoproj/argo/pkg/client/informers/externalversions"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/util"
 	swfclientset "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
 	swfinformers "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions"
 	"github.com/kubeflow/pipelines/backend/src/crd/pkg/signals"
@@ -36,6 +37,7 @@ var (
 	masterURL  string
 	kubeconfig string
 	namespace  string
+	location   *time.Location
 )
 
 func main() {
@@ -81,7 +83,8 @@ func main() {
 		workflowClient,
 		scheduleInformerFactory,
 		workflowInformerFactory,
-		commonutil.NewRealTime())
+		commonutil.NewRealTime(),
+		location)
 
 	go scheduleInformerFactory.Start(stopCh)
 	go workflowInformerFactory.Start(stopCh)
@@ -96,7 +99,6 @@ func initEnv() {
 	replacer := strings.NewReplacer(".", "_")
 	viper.SetEnvKeyReplacer(replacer)
 	viper.AutomaticEnv()
-	// We need empty string env var for e.g. KUBEFLOW_USERID_PREFIX.
 	viper.AllowEmptyEnv(true)
 }
 
@@ -104,4 +106,9 @@ func init() {
 	flag.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&namespace, "namespace", "", "The namespace name used for Kubernetes informers to obtain the listers.")
+	var err error
+	location, err = util.GetLocation()
+	if err != nil {
+		log.Fatalf("Error running controller: %s", err.Error())
+	}
 }

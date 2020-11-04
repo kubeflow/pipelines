@@ -12,7 +12,7 @@ func TestGetLocationSet(t *testing.T) {
 	locString := "Asia/Shanghai"
 	viper.Set(TimeZone, locString)
 	defer viper.Set(TimeZone, "")
-	timezone, err := getLocation()
+	timezone, err := GetLocation()
 	assert.Nil(t, err)
 	expectedTimezone, _ := time.LoadLocation(locString)
 	assert.Equal(t, expectedTimezone, timezone)
@@ -20,7 +20,7 @@ func TestGetLocationSet(t *testing.T) {
 
 func TestGetLocationDefault(t *testing.T) {
 	locString := "Local"
-	timezone, err := getLocation()
+	timezone, err := GetLocation()
 	assert.Nil(t, err)
 	expectedTimezone, _ := time.LoadLocation(locString)
 	assert.Equal(t, expectedTimezone, timezone)

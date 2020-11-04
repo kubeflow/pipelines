@@ -25,10 +25,10 @@ const (
 	TimeZone            string = "CRON_SCHEDULE_TIMEZONE"        // TimeZone is the name of the cron schedule env parameter
 )
 
-func getLocation() (*time.Location, error) {
+func GetLocation() (*time.Location, error) {
 	locString := common.GetStringConfigWithDefault(TimeZone, "")
 	if locString == "" {
-		locString = time.Now().Location().String()
+		return time.Now().Location(), nil
 	}
 	return time.LoadLocation(locString)
 }

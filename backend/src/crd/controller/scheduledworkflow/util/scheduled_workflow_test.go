@@ -23,6 +23,7 @@ import (
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/apis/core"
@@ -226,7 +227,7 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_OneTimeRun(t *testing.T) {
 		},
 	})
 	nextScheduledEpoch, mustRunNow, err := schedule.GetNextScheduledEpoch(
-		int64(0) /* active workflow count */, nowEpoch)
+		int64(0) /* active workflow count */, nowEpoch, time.Location{})
 	assert.Nil(t, err)
 	assert.Equal(t, true, mustRunNow)
 	assert.Equal(t, creationTimestamp.Unix(), nextScheduledEpoch)
@@ -246,7 +247,7 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_OneTimeRun(t *testing.T) {
 		},
 	})
 	nextScheduledEpoch, mustRunNow, err = schedule.GetNextScheduledEpoch(
-		int64(0) /* active workflow count */, nowEpoch)
+		int64(0) /* active workflow count */, nowEpoch, time.Location{})
 	assert.Nil(t, err)
 	assert.Equal(t, false, mustRunNow)
 	assert.Equal(t, never, nextScheduledEpoch)
@@ -261,7 +262,7 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_OneTimeRun(t *testing.T) {
 		},
 	})
 	nextScheduledEpoch, mustRunNow, err = schedule.GetNextScheduledEpoch(
-		int64(0) /* active workflow count */, pastEpoch)
+		int64(0) /* active workflow count */, pastEpoch, time.Location{})
 	assert.Nil(t, err)
 	assert.Equal(t, false, mustRunNow)
 	assert.Equal(t, creationTimestamp.Unix(), nextScheduledEpoch)
@@ -276,7 +277,7 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_OneTimeRun(t *testing.T) {
 		},
 	})
 	nextScheduledEpoch, mustRunNow, err = schedule.GetNextScheduledEpoch(
-		int64(0) /* active workflow count */, nowEpoch)
+		int64(0) /* active workflow count */, nowEpoch, time.Location{})
 	assert.Nil(t, err)
 	assert.Equal(t, false, mustRunNow)
 	assert.Equal(t, creationTimestamp.Unix(), nextScheduledEpoch)
@@ -291,7 +292,7 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_OneTimeRun(t *testing.T) {
 		},
 	})
 	nextScheduledEpoch, mustRunNow, err = schedule.GetNextScheduledEpoch(
-		int64(1) /* active workflow count */, nowEpoch)
+		int64(1) /* active workflow count */, nowEpoch, time.Location{})
 	assert.Nil(t, err)
 	assert.Equal(t, false, mustRunNow)
 	assert.Equal(t, creationTimestamp.Unix(), nextScheduledEpoch)
@@ -319,24 +320,80 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_CronSchedule(t *testing.T) {
 		},
 	})
 	nextScheduledEpoch, mustRunNow, err := schedule.GetNextScheduledEpoch(
-		int64(9) /* active workflow count */, nowEpoch)
+		int64(9) /* active workflow count */, nowEpoch, time.Location{})
 	assert.Nil(t, err)
 	//assert.Equal(t, true, mustRunNow)
 	assert.Equal(t, int64(9*hour+minute), nextScheduledEpoch)
 
 	// Must run later
 	nextScheduledEpoch, mustRunNow, err = schedule.GetNextScheduledEpoch(
-		int64(9) /* active workflow count */, pastEpoch)
+		int64(9) /* active workflow count */, pastEpoch, time.Location{})
 	assert.Nil(t, err)
 	assert.Equal(t, false, mustRunNow)
 	assert.Equal(t, int64(9*hour+minute), nextScheduledEpoch)
 
 	// Cannot run because of concurrency
 	nextScheduledEpoch, mustRunNow, err = schedule.GetNextScheduledEpoch(
-		int64(10) /* active workflow count */, nowEpoch)
+		int64(10) /* active workflow count */, nowEpoch, time.Location{})
 	assert.Nil(t, err)
 	assert.Equal(t, false, mustRunNow)
 	assert.Equal(t, int64(9*hour+minute), nextScheduledEpoch)
+}
+
+func TestScheduledWorkflow_GetNextScheduledEpoch_CronSchedule_Fail(t *testing.T) {
+	// https://stackoverflow.com/questions/54363451/setting-timezone-globally-in-golang
+	// Can fool that we are somewhere else .....
+	// Should be better I guess.
+
+	// Augment the cluster to be in UTC
+	defaultLocation := "UTC"
+	viper.Set(TimeZone, defaultLocation)
+	defer viper.Set(TimeZone, "")
+	location, err := GetLocation()
+
+	// Augment the user to be in Los Angeles
+	assert.Nil(t, err)
+	actualLocation, err := time.LoadLocation("America/Los_Angeles")
+	assert.Nil(t, err)
+
+	// user and cluster in different timezone
+	assert.NotEqual(t, actualLocation, location)
+
+	// Must run now
+	nowTime, err := time.Parse(time.RFC1123Z, "Mon, 03 Jan 2006 14:04:05 -0700")
+	assert.Nil(t, err)
+	nowEpoch := nowTime.Unix()
+	lastJob, err := time.Parse(time.RFC1123Z, "Mon, 02 Jan 2006 15:00:01 -0700")
+	assert.Nil(t, err)
+	pastEpoch := lastJob.Unix()
+
+	creationTime, err := time.Parse(time.RFC1123Z, "Mon, 01 Jan 2006 15:04:05 -0700")
+	assert.Nil(t, err)
+	creationTimestamp := metav1.NewTime(creationTime)
+
+	schedule := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		ObjectMeta: metav1.ObjectMeta{
+			CreationTimestamp: creationTimestamp,
+		},
+		Spec: swfapi.ScheduledWorkflowSpec{
+			Enabled:        true,
+			MaxConcurrency: commonutil.Int64Pointer(int64(10)),
+			Trigger: swfapi.Trigger{
+				CronSchedule: &swfapi.CronSchedule{
+					Cron: "* * 15 * * *",
+				},
+			},
+		},
+	})
+
+	// Must run later
+	nextScheduledEpoch, mustRunNow, err := schedule.GetNextScheduledEpoch(
+		nowEpoch /* active workflow count */, pastEpoch, *location)
+	assert.Nil(t, err)
+	assert.Equal(t, false, mustRunNow)
+	nextRun, err := time.Parse(time.RFC1123Z, "Mon, 03 Jan 2006 15:00:00 -0700")
+	assert.Nil(t, err)
+	assert.NotEqual(t, nextRun.UTC().Unix(), nextScheduledEpoch)
 }
 
 func TestScheduledWorkflow_GetNextScheduledEpoch_PeriodicSchedule(t *testing.T) {
@@ -361,21 +418,21 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_PeriodicSchedule(t *testing.T) 
 		},
 	})
 	nextScheduledEpoch, mustRunNow, err := schedule.GetNextScheduledEpoch(
-		int64(9) /* active workflow count */, nowEpoch)
+		int64(9) /* active workflow count */, nowEpoch, time.Location{})
 	assert.Nil(t, err)
 	assert.Equal(t, true, mustRunNow)
 	assert.Equal(t, int64(9*hour+minute), nextScheduledEpoch)
 
 	// Must run later
 	nextScheduledEpoch, mustRunNow, err = schedule.GetNextScheduledEpoch(
-		int64(9) /* active workflow count */, pastEpoch)
+		int64(9) /* active workflow count */, pastEpoch, time.Location{})
 	assert.Nil(t, err)
 	assert.Equal(t, false, mustRunNow)
 	assert.Equal(t, int64(9*hour+minute), nextScheduledEpoch)
 
 	// Cannot run because of concurrency
 	nextScheduledEpoch, mustRunNow, err = schedule.GetNextScheduledEpoch(
-		int64(10) /* active workflow count */, nowEpoch)
+		int64(10) /* active workflow count */, nowEpoch, time.Location{})
 	assert.Nil(t, err)
 	assert.Equal(t, false, mustRunNow)
 	assert.Equal(t, int64(9*hour+minute), nextScheduledEpoch)
@@ -413,7 +470,7 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_UpdateStatus_NoWorkflow(t *test
 		nil, /* no workflow created during this run */
 		scheduledEpoch,
 		[]swfapi.WorkflowStatus{*status1, *status2, *status3},
-		[]swfapi.WorkflowStatus{*status1, *status2, *status3, *status4})
+		[]swfapi.WorkflowStatus{*status1, *status2, *status3, *status4}, &time.Location{})
 
 	expected := &swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{
@@ -495,7 +552,7 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_UpdateStatus_WithWorkflow(t *te
 		workflow, /* no workflow created during this run */
 		scheduledEpoch,
 		[]swfapi.WorkflowStatus{*status1, *status2, *status3},
-		[]swfapi.WorkflowStatus{*status1, *status2, *status3, *status4})
+		[]swfapi.WorkflowStatus{*status1, *status2, *status3, *status4}, &time.Location{})
 
 	expected := &swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{

@@ -67,7 +67,7 @@ func (s *CronSchedule) getEffectiveLastJobEpoch(lastJobTime *v1.Time,
 		effectiveLastJobTime = lastJobTime.Time
 	} else if s.StartTime != nil {
 		// Start time takes second precedence.
-		effectiveLastJobTime = s.StartTime.In(location)
+		effectiveLastJobTime = s.StartTime.Time
 	}
 	return effectiveLastJobTime
 }

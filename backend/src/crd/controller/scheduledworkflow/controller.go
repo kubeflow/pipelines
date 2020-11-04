@@ -71,6 +71,9 @@ type Controller struct {
 
 	// An interface to generate the current time.
 	time commonutil.TimeInterface
+
+	// the timezone loation which the scheduled will use
+	location *time.Location
 }
 
 // NewController returns a new sample controller
@@ -80,7 +83,8 @@ func NewController(
 	workflowClientSet workflowclientset.Interface,
 	swfInformerFactory swfinformers.SharedInformerFactory,
 	workflowInformerFactory workflowinformers.SharedInformerFactory,
-	time commonutil.TimeInterface) *Controller {
+	time commonutil.TimeInterface,
+	location *time.Location) *Controller {
 
 	// obtain references to shared informers
 	swfInformer := swfInformerFactory.Scheduledworkflow().V1beta1().ScheduledWorkflows()
@@ -103,7 +107,8 @@ func NewController(
 		workflowClient: client.NewWorkflowClient(workflowClientSet, workflowInformer),
 		workqueue: workqueue.NewNamedRateLimitingQueue(
 			workqueue.NewItemExponentialFailureRateLimiter(DefaultJobBackOff, MaxJobBackOff), swfregister.Kind),
-		time: time,
+		time:     time,
+		location: location,
 	}
 
 	log.Info("Setting up event handlers")
@@ -443,7 +448,7 @@ func (c *Controller) submitNextWorkflowIfNeeded(swf *util.ScheduledWorkflow,
 	workflow *commonutil.Workflow, nextScheduledEpoch int64, err error) {
 	// Compute the next scheduled time.
 	nextScheduledEpoch, shouldRunNow, err := swf.GetNextScheduledEpoch(
-		int64(activeWorkflowCount), nowEpoch)
+		int64(activeWorkflowCount), nowEpoch, c.location)
 	if err != nil {
 		log.WithFields(log.Fields{
 			ScheduledWorkflow: swf.Name,
@@ -520,7 +525,7 @@ func (c *Controller) updateStatus(
 	// You can use DeepCopy() to make a deep copy of original object and modify this copy
 	// Or create a copy manually for better performance
 	swfCopy := util.NewScheduledWorkflow(swf.Get().DeepCopy())
-	swfCopy.UpdateStatus(nowEpoch, workflow, nextScheduledEpoch, active, completed)
+	swfCopy.UpdateStatus(nowEpoch, workflow, nextScheduledEpoch, active, completed, c.location)
 
 	// Until #38113 is merged, we must use Update instead of UpdateStatus to
 	// update the Status block of the ScheduledWorkflow. UpdateStatus will not
