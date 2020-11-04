@@ -12,24 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pathlib
 
-from kfp.v2 import components
-from kfp.v2 import dsl
-import kfp.v2.compiler as compiler
+# from kfp.components._airflow_op import *
+from kfp.components._python_op import create_component_from_func
+from kfp.components import _naming
+# from kfp.components._python_to_graph_component import *
+# from kfp.components._component_store import *
 
-
-test_data_dir = pathlib.Path(__file__).parent / 'component_yaml'
-component_op = components.load_component_from_file(
-    str(test_data_dir / 'concat_placeholder_component.yaml'))
-
-
-@dsl.pipeline(
-    name='one-step-pipeline-with-concat-placeholder')
-def my_pipeline():
-  component = component_op(
-      input_prefix='some prefix:')
-
-
-if __name__ == '__main__':
-  compiler.Compiler().compile(my_pipeline, __file__ + '.json')
+from kfp.components.structures import ExecutionOptionsSpec
+from kfp.components.structures import CachingStrategySpec
+from kfp.v2.components.components import *
+from kfp.v2.components.structures import *

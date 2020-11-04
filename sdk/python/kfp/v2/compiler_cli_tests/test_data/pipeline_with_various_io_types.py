@@ -14,11 +14,11 @@
 
 import pathlib
 
-import kfp
+from kfp.v2 import components
 from kfp.v2 import dsl
 import kfp.v2.compiler as compiler
 
-component_op_1 = kfp.components.load_component_from_text("""
+component_op_1 = components.load_component_from_text("""
 name: upstream
 inputs:
 - {name: input_1, type: String}
@@ -50,7 +50,7 @@ implementation:
     - {outputPath: output_3}
 """)
 
-component_op_2 = kfp.components.load_component_from_text("""
+component_op_2 = components.load_component_from_text("""
 name: downstream
 inputs:
 - {name: input_a, type: Integer}
