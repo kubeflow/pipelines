@@ -117,7 +117,7 @@ class Compiler(object):
           type_schema = type_utils.get_input_artifact_type_schema(
               input_name, component_spec.inputs)
 
-          importer_task= importer_node.build_importer_task_spec(
+          importer_task = importer_node.build_importer_task_spec(
               dependent_task=task,
               input_name=input_name,
               input_type_schema=type_schema)

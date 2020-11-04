@@ -51,6 +51,7 @@ def create_container_op_from_component_and_arguments(
   # might need to append suffix to exuector_label to ensure its uniqueness?
   pipeline_task_spec.executor_label = component_spec.name
 
+  # Keep track of auto-injected importer spec.
   importer_spec = {}
 
   # Check types of the reference arguments and serialize PipelineParams

@@ -23,14 +23,16 @@ def build_importer_spec(
     pipeline_param_name: str = None,
     constant_value: str = None
 ) -> pipeline_spec_pb2.PipelineDeploymentConfig.ImporterSpec:
-  """Build an importer executor spec.
+  """Builds an importer executor spec.
 
   Args:
     input_type_schema: The type of the input artifact.
     pipeline_param_name: The name of the pipeline parameter if the importer gets
-      its artifacts_uri via a pipeline parameter.
+      its artifacts_uri via a pipeline parameter. This argument is mutually
+      exclusive with constant_value.
     constant_value: The value of artifact_uri in case a contant value is passed
-      directly into the compoent op.
+      directly into the compoent op. This argument is mutually exclusive with
+      pipeline_param_name.
 
   Returns:
     An importer spec.
@@ -54,7 +56,7 @@ def build_importer_task_spec(
     input_name: str,
     input_type_schema: str,
 ) -> pipeline_spec_pb2.PipelineTaskSpec:
-  """Build an importer task spec.
+  """Builds an importer task spec.
 
   Args:
     dependent_task: The task requires importer node.
