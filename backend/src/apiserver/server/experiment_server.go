@@ -83,7 +83,7 @@ func (s *ExperimentServer) CreateExperiment(ctx context.Context, request *api.Cr
 	}
 	err = s.canAccessExperiment(ctx, "", resourceAttributes)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 
 	newExperiment, err := s.resourceManager.CreateExperiment(request.Experiment)
@@ -105,7 +105,7 @@ func (s *ExperimentServer) GetExperiment(ctx context.Context, request *api.GetEx
 
 	err := s.canAccessExperiment(ctx, request.Id, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 
 	experiment, err := s.resourceManager.GetExperiment(request.Id)
@@ -177,7 +177,7 @@ func (s *ExperimentServer) DeleteExperiment(ctx context.Context, request *api.De
 
 	err := s.canAccessExperiment(ctx, request.Id, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbDelete})
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 
 	err = s.resourceManager.DeleteExperiment(request.Id)
@@ -258,7 +258,7 @@ func (s *ExperimentServer) ArchiveExperiment(ctx context.Context, request *api.A
 
 	err := s.canAccessExperiment(ctx, request.Id, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbArchive})
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the requests.")
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 	err = s.resourceManager.ArchiveExperiment(request.Id)
 	if err != nil {
@@ -274,7 +274,7 @@ func (s *ExperimentServer) UnarchiveExperiment(ctx context.Context, request *api
 
 	err := s.canAccessExperiment(ctx, request.Id, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbUnarchive})
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the requests.")
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 	err = s.resourceManager.UnarchiveExperiment(request.Id)
 	if err != nil {

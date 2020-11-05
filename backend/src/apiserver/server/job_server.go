@@ -109,7 +109,7 @@ func (s *JobServer) CreateJob(ctx context.Context, request *api.CreateJobRequest
 		}
 		err = s.canAccessJob(ctx, "", resourceAttributes)
 		if err != nil {
-			return nil, util.Wrap(err, "Failed to authorize the request.")
+			return nil, util.Wrap(err, "Failed to authorize the request")
 		}
 	}
 
@@ -131,7 +131,7 @@ func (s *JobServer) GetJob(ctx context.Context, request *api.GetJobRequest) (*ap
 
 	err := s.canAccessJob(ctx, request.Id, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 
 	job, err := s.resourceManager.GetJob(request.Id)
@@ -211,7 +211,7 @@ func (s *JobServer) EnableJob(ctx context.Context, request *api.EnableJobRequest
 
 	err := s.canAccessJob(ctx, request.Id, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbEnable})
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 
 	return s.enableJob(request.Id, true)
@@ -224,7 +224,7 @@ func (s *JobServer) DisableJob(ctx context.Context, request *api.DisableJobReque
 
 	err := s.canAccessJob(ctx, request.Id, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbDisable})
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 
 	return s.enableJob(request.Id, false)
@@ -237,7 +237,7 @@ func (s *JobServer) DeleteJob(ctx context.Context, request *api.DeleteJobRequest
 
 	err := s.canAccessJob(ctx, request.Id, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbDelete})
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 
 	err = s.resourceManager.DeleteJob(request.Id)

@@ -128,7 +128,7 @@ func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest
 		}
 		err = s.canAccessRun(ctx, "", resourceAttributes)
 		if err != nil {
-			return nil, util.Wrap(err, "Failed to authorize the request.")
+			return nil, util.Wrap(err, "Failed to authorize the request")
 		}
 	}
 
@@ -150,7 +150,7 @@ func (s *RunServer) GetRun(ctx context.Context, request *api.GetRunRequest) (*ap
 
 	err := s.canAccessRun(ctx, request.RunId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 
 	run, err := s.resourceManager.GetRun(request.RunId)
@@ -230,7 +230,7 @@ func (s *RunServer) ArchiveRun(ctx context.Context, request *api.ArchiveRunReque
 
 	err := s.canAccessRun(ctx, request.Id, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbArchive})
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 	err = s.resourceManager.ArchiveRun(request.Id)
 	if err != nil {
@@ -246,7 +246,7 @@ func (s *RunServer) UnarchiveRun(ctx context.Context, request *api.UnarchiveRunR
 
 	err := s.canAccessRun(ctx, request.Id, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbUnarchive})
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 	err = s.resourceManager.UnarchiveRun(request.Id)
 	if err != nil {
@@ -262,7 +262,7 @@ func (s *RunServer) DeleteRun(ctx context.Context, request *api.DeleteRunRequest
 
 	err := s.canAccessRun(ctx, request.Id, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbDelete})
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 	err = s.resourceManager.DeleteRun(request.Id)
 	if err != nil {
@@ -337,7 +337,7 @@ func (s *RunServer) TerminateRun(ctx context.Context, request *api.TerminateRunR
 
 	err := s.canAccessRun(ctx, request.RunId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbTerminate})
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 	err = s.resourceManager.TerminateRun(request.RunId)
 	if err != nil {
@@ -353,7 +353,7 @@ func (s *RunServer) RetryRun(ctx context.Context, request *api.RetryRunRequest) 
 
 	err := s.canAccessRun(ctx, request.RunId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbRetry})
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 	err = s.resourceManager.RetryRun(request.RunId)
 	if err != nil {
