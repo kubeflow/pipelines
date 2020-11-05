@@ -447,14 +447,9 @@ func (c *Controller) submitNextWorkflowIfNeeded(swf *util.ScheduledWorkflow,
 	activeWorkflowCount int, nowEpoch int64) (
 	workflow *commonutil.Workflow, nextScheduledEpoch int64, err error) {
 	// Compute the next scheduled time.
-	nextScheduledEpoch, shouldRunNow, err := swf.GetNextScheduledEpoch(
+	nextScheduledEpoch, shouldRunNow := swf.GetNextScheduledEpoch(
 		int64(activeWorkflowCount), nowEpoch, *c.location)
-	if err != nil {
-		log.WithFields(log.Fields{
-			ScheduledWorkflow: swf.Name,
-		}).Errorf("Collected schedule for ScheduledWorkflow (%v): transient error while extracting workflow: %v",
-			swf.Name, err)
-	}
+
 	if !shouldRunNow {
 		log.WithFields(log.Fields{
 			ScheduledWorkflow: swf.Name,

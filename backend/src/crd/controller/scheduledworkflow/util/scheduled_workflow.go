@@ -25,8 +25,6 @@ import (
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
-	wraperror "github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/apis/core"
 )
@@ -210,32 +208,30 @@ func (s *ScheduledWorkflow) NewWorkflow(
 // GetNextScheduledEpoch returns the next epoch at which a workflow should be scheduled,
 // and whether it should be run now.
 func (s *ScheduledWorkflow) GetNextScheduledEpoch(activeWorkflowCount int64, nowEpoch int64, location time.Location) (
-	nextScheduleEpoch int64, shouldRunNow bool, err error) {
+	nextScheduleEpoch int64, shouldRunNow bool) {
 
 	// Get the next scheduled time.
-	nextScheduledEpoch, err := s.getNextScheduledEpoch(nowEpoch, location)
-	if err != nil {
-		return 0, false, err
-	}
+	nextScheduledEpoch := s.getNextScheduledEpoch(nowEpoch, location)
+
 	// If the schedule is not enabled, we should not schedule the workflow now.
 	if s.enabled() == false {
-		return nextScheduledEpoch, false, nil
+		return nextScheduledEpoch, false
 	}
 
 	// If the maxConcurrency is exceeded, return.
 	if activeWorkflowCount >= s.maxConcurrency() {
-		return nextScheduledEpoch, false, nil
+		return nextScheduledEpoch, false
 	}
 
 	// If it is not yet time to schedule the next workflow...
 	if nextScheduledEpoch > nowEpoch {
-		return nextScheduledEpoch, false, nil
+		return nextScheduledEpoch, false
 	}
 
-	return nextScheduledEpoch, true, nil
+	return nextScheduledEpoch, true
 }
 
-func (s *ScheduledWorkflow) getNextScheduledEpoch(nowEpoch int64, location time.Location) (int64, error) {
+func (s *ScheduledWorkflow) getNextScheduledEpoch(nowEpoch int64, location time.Location) int64 {
 	catchup := true
 	if s.Spec.NoCatchup != nil {
 		catchup = !*s.Spec.NoCatchup
@@ -246,12 +242,12 @@ func (s *ScheduledWorkflow) getNextScheduledEpoch(nowEpoch int64, location time.
 		if catchup {
 			return schedule.GetNextScheduledEpoch(
 				commonutil.ToInt64Pointer(s.Status.Trigger.LastTriggeredTime),
-				s.creationEpoch()), nil
-		} else {
-			return schedule.GetNextScheduledEpochNoCatchup(
-				commonutil.ToInt64Pointer(s.Status.Trigger.LastTriggeredTime),
-				s.creationEpoch(), nowEpoch), nil
+				s.creationEpoch())
 		}
+		return schedule.GetNextScheduledEpochNoCatchup(
+			commonutil.ToInt64Pointer(s.Status.Trigger.LastTriggeredTime),
+			s.creationEpoch(), nowEpoch)
+
 	}
 
 	// Cron schedule
@@ -261,15 +257,14 @@ func (s *ScheduledWorkflow) getNextScheduledEpoch(nowEpoch int64, location time.
 		if catchup {
 			return schedule.GetNextScheduledEpoch(
 				s.Status.Trigger.LastTriggeredTime,
-				time.Unix(s.creationEpoch(), 0).In(&location), &location), nil
-		} else {
-			return schedule.GetNextScheduledEpochNoCatchup(
-				s.Status.Trigger.LastTriggeredTime,
-				time.Unix(s.creationEpoch(), 0).In(&location), nowTime, &location), nil
+				time.Unix(s.creationEpoch(), 0).In(&location), &location)
 		}
+		return schedule.GetNextScheduledEpochNoCatchup(
+			s.Status.Trigger.LastTriggeredTime,
+			time.Unix(s.creationEpoch(), 0).In(&location), nowTime, &location)
 	}
 
-	return s.getNextScheduledEpochForOneTimeRun(), nil
+	return s.getNextScheduledEpochForOneTimeRun()
 }
 
 func (s *ScheduledWorkflow) getNextScheduledEpochForOneTimeRun() int64 {
@@ -331,11 +326,7 @@ func (s *ScheduledWorkflow) UpdateStatus(updatedEpoch int64, workflow *commonuti
 	if workflow != nil {
 		s.updateLastTriggeredTime(scheduledEpoch)
 		s.Status.Trigger.LastIndex = commonutil.Int64Pointer(s.nextIndex())
-		nextTriggerTime, err := s.getNextScheduledEpoch(0, *location)
-		if err != nil {
-			log.Errorf("%+v", wraperror.Errorf(
-				"Error extracting the next scheduled epoch: %v", err))
-		}
+		nextTriggerTime := s.getNextScheduledEpoch(0, *location)
 		s.updateNextTriggeredTime(nextTriggerTime)
 	} else {
 		// LastTriggeredTime is unchanged.

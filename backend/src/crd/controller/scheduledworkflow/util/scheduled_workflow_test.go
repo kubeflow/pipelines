@@ -226,9 +226,8 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_OneTimeRun(t *testing.T) {
 			Enabled: true,
 		},
 	})
-	nextScheduledEpoch, mustRunNow, err := schedule.GetNextScheduledEpoch(
+	nextScheduledEpoch, mustRunNow := schedule.GetNextScheduledEpoch(
 		int64(0) /* active workflow count */, nowEpoch, time.Location{})
-	assert.Nil(t, err)
 	assert.Equal(t, true, mustRunNow)
 	assert.Equal(t, creationTimestamp.Unix(), nextScheduledEpoch)
 
@@ -246,9 +245,8 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_OneTimeRun(t *testing.T) {
 			},
 		},
 	})
-	nextScheduledEpoch, mustRunNow, err = schedule.GetNextScheduledEpoch(
+	nextScheduledEpoch, mustRunNow = schedule.GetNextScheduledEpoch(
 		int64(0) /* active workflow count */, nowEpoch, time.Location{})
-	assert.Nil(t, err)
 	assert.Equal(t, false, mustRunNow)
 	assert.Equal(t, never, nextScheduledEpoch)
 
@@ -261,9 +259,8 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_OneTimeRun(t *testing.T) {
 			Enabled: true,
 		},
 	})
-	nextScheduledEpoch, mustRunNow, err = schedule.GetNextScheduledEpoch(
+	nextScheduledEpoch, mustRunNow = schedule.GetNextScheduledEpoch(
 		int64(0) /* active workflow count */, pastEpoch, time.Location{})
-	assert.Nil(t, err)
 	assert.Equal(t, false, mustRunNow)
 	assert.Equal(t, creationTimestamp.Unix(), nextScheduledEpoch)
 
@@ -276,9 +273,8 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_OneTimeRun(t *testing.T) {
 			Enabled: false,
 		},
 	})
-	nextScheduledEpoch, mustRunNow, err = schedule.GetNextScheduledEpoch(
+	nextScheduledEpoch, mustRunNow = schedule.GetNextScheduledEpoch(
 		int64(0) /* active workflow count */, nowEpoch, time.Location{})
-	assert.Nil(t, err)
 	assert.Equal(t, false, mustRunNow)
 	assert.Equal(t, creationTimestamp.Unix(), nextScheduledEpoch)
 
@@ -291,9 +287,8 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_OneTimeRun(t *testing.T) {
 			Enabled: true,
 		},
 	})
-	nextScheduledEpoch, mustRunNow, err = schedule.GetNextScheduledEpoch(
+	nextScheduledEpoch, mustRunNow = schedule.GetNextScheduledEpoch(
 		int64(1) /* active workflow count */, nowEpoch, time.Location{})
-	assert.Nil(t, err)
 	assert.Equal(t, false, mustRunNow)
 	assert.Equal(t, creationTimestamp.Unix(), nextScheduledEpoch)
 }
@@ -319,23 +314,20 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_CronSchedule(t *testing.T) {
 			},
 		},
 	})
-	nextScheduledEpoch, mustRunNow, err := schedule.GetNextScheduledEpoch(
+	nextScheduledEpoch, mustRunNow := schedule.GetNextScheduledEpoch(
 		int64(9) /* active workflow count */, nowEpoch, time.Location{})
-	assert.Nil(t, err)
 	//assert.Equal(t, true, mustRunNow)
 	assert.Equal(t, int64(9*hour+minute), nextScheduledEpoch)
 
 	// Must run later
-	nextScheduledEpoch, mustRunNow, err = schedule.GetNextScheduledEpoch(
+	nextScheduledEpoch, mustRunNow = schedule.GetNextScheduledEpoch(
 		int64(9) /* active workflow count */, pastEpoch, time.Location{})
-	assert.Nil(t, err)
 	assert.Equal(t, false, mustRunNow)
 	assert.Equal(t, int64(9*hour+minute), nextScheduledEpoch)
 
 	// Cannot run because of concurrency
-	nextScheduledEpoch, mustRunNow, err = schedule.GetNextScheduledEpoch(
+	nextScheduledEpoch, mustRunNow = schedule.GetNextScheduledEpoch(
 		int64(10) /* active workflow count */, nowEpoch, time.Location{})
-	assert.Nil(t, err)
 	assert.Equal(t, false, mustRunNow)
 	assert.Equal(t, int64(9*hour+minute), nextScheduledEpoch)
 }
@@ -359,7 +351,6 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_CronSchedule_Fail(t *testing.T)
 	// user and cluster in different timezone
 	assert.NotEqual(t, actualLocation, location)
 
-	// Must run now
 	nowTime, err := time.Parse(time.RFC1123Z, "Mon, 03 Jan 2006 14:04:05 -0700")
 	assert.Nil(t, err)
 	nowEpoch := nowTime.Unix()
@@ -387,9 +378,9 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_CronSchedule_Fail(t *testing.T)
 	})
 
 	// Must run later
-	nextScheduledEpoch, mustRunNow, err := schedule.GetNextScheduledEpoch(
+	nextScheduledEpoch, mustRunNow := schedule.GetNextScheduledEpoch(
 		nowEpoch /* active workflow count */, pastEpoch, *location)
-	assert.Nil(t, err)
+
 	assert.Equal(t, false, mustRunNow)
 	nextRun, err := time.Parse(time.RFC1123Z, "Mon, 03 Jan 2006 15:00:00 -0700")
 	assert.Nil(t, err)
@@ -417,23 +408,20 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_PeriodicSchedule(t *testing.T) 
 			},
 		},
 	})
-	nextScheduledEpoch, mustRunNow, err := schedule.GetNextScheduledEpoch(
+	nextScheduledEpoch, mustRunNow := schedule.GetNextScheduledEpoch(
 		int64(9) /* active workflow count */, nowEpoch, time.Location{})
-	assert.Nil(t, err)
 	assert.Equal(t, true, mustRunNow)
 	assert.Equal(t, int64(9*hour+minute), nextScheduledEpoch)
 
 	// Must run later
-	nextScheduledEpoch, mustRunNow, err = schedule.GetNextScheduledEpoch(
+	nextScheduledEpoch, mustRunNow = schedule.GetNextScheduledEpoch(
 		int64(9) /* active workflow count */, pastEpoch, time.Location{})
-	assert.Nil(t, err)
 	assert.Equal(t, false, mustRunNow)
 	assert.Equal(t, int64(9*hour+minute), nextScheduledEpoch)
 
 	// Cannot run because of concurrency
-	nextScheduledEpoch, mustRunNow, err = schedule.GetNextScheduledEpoch(
+	nextScheduledEpoch, mustRunNow = schedule.GetNextScheduledEpoch(
 		int64(10) /* active workflow count */, nowEpoch, time.Location{})
-	assert.Nil(t, err)
 	assert.Equal(t, false, mustRunNow)
 	assert.Equal(t, int64(9*hour+minute), nextScheduledEpoch)
 
