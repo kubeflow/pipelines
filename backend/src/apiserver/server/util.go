@@ -289,19 +289,19 @@ func getUserIdentityFromHeader(userIdentityHeader, prefix string) (string, error
 
 func getUserIdentity(ctx context.Context) (string, error) {
 	if ctx == nil {
-		return "", util.NewBadRequestError(errors.New("Request error: context is nil"), "Request error: context is nil.")
+		return "", util.NewUnauthenticatedError(errors.New("Request error: context is nil"), "Request error: context is nil.")
 	}
 	md, _ := metadata.FromIncomingContext(ctx)
 	// If the request header contains the user identity, requests are authorized
 	// based on the namespace field in the request.
 	if userIdentityHeader, ok := md[common.GetKubeflowUserIDHeader()]; ok {
 		if len(userIdentityHeader) != 1 {
-			return "", util.NewBadRequestError(errors.New("Request header error: unexpected number of user identity header. Expect 1 got "+strconv.Itoa(len(userIdentityHeader))),
+			return "", util.NewUnauthenticatedError(errors.New("Request header error: unexpected number of user identity header. Expect 1 got "+strconv.Itoa(len(userIdentityHeader))),
 				"Request header error: unexpected number of user identity header. Expect 1 got "+strconv.Itoa(len(userIdentityHeader)))
 		}
 		return getUserIdentityFromHeader(userIdentityHeader[0], common.GetKubeflowUserIDPrefix())
 	}
-	return "", util.NewBadRequestError(errors.New("Request header error: there is no user identity header."), "Request header error: there is no user identity header.")
+	return "", util.NewUnauthenticatedError(errors.New("Request header error: there is no user identity header."), "Request header error: there is no user identity header.")
 }
 
 func CanAccessExperiment(resourceManager *resource.ResourceManager, ctx context.Context, experimentID string) error {
@@ -380,7 +380,7 @@ func isAuthorized(resourceManager *resource.ResourceManager, ctx context.Context
 	}
 
 	if len(userIdentity) == 0 {
-		return util.NewBadRequestError(errors.New("Request header error: user identity is empty."), "Request header error: user identity is empty.")
+		return util.NewUnauthenticatedError(errors.New("Request header error: user identity is empty."), "Request header error: user identity is empty.")
 	}
 
 	isAuthorized, err := resourceManager.IsRequestAuthorized(userIdentity, namespace)
@@ -390,7 +390,7 @@ func isAuthorized(resourceManager *resource.ResourceManager, ctx context.Context
 
 	if isAuthorized == false {
 		glog.Infof("Unauthorized access for %s to namespace %s", userIdentity, namespace)
-		return util.NewBadRequestError(errors.New("Unauthorized access for "+userIdentity+" to namespace "+namespace), "Unauthorized access for "+userIdentity+" to namespace "+namespace)
+		return util.NewPermissionDeniedError(errors.New("Unauthorized access for "+userIdentity+" to namespace "+namespace), "Unauthorized access for "+userIdentity+" to namespace "+namespace)
 	}
 
 	glog.Infof("Authorized user %s in namespace %s", userIdentity, namespace)
