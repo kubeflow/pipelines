@@ -100,22 +100,20 @@ class ImporterNodeTest(unittest.TestCase):
     self.assertEqual(expected_importer_spec, importer_spec)
 
   def test_build_importer_spec_with_invalid_inputs_should_fail(self):
-    with self.assertRaises(AssertionError) as cm:
+    with self.assertRaisesRegexp(
+        AssertionError,
+        'importer spec should be built using either pipeline_param_name or '
+        'constant_value'):
       importer_node.build_importer_spec(
           input_type_schema='title: kfp.Artifact',
           pipeline_param_name='param1',
           constant_value='some_uri')
-      self.assertEqual(
-          'importer spec should be built using either pipeline_param_name or'
-          'constant_value.',
-          str(cm))
 
-    with self.assertRaises(AssertionError) as cm:
+    with self.assertRaisesRegexp(
+        AssertionError,
+        'importer spec should be built using either pipeline_param_name or '
+        'constant_value'):
       importer_node.build_importer_spec(input_type_schema='title: kfp.Artifact')
-      self.assertEqual(
-          'importer spec should be built using either pipeline_param_name or'
-          'constant_value.',
-          str(cm))
 
 
 if __name__ == '__main__':
