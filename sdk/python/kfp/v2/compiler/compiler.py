@@ -25,7 +25,7 @@ import kfp
 from kfp.compiler._k8s_helper import sanitize_k8s_name
 from kfp.components import _python_op
 from kfp.v2 import dsl
-from kfp.v2.compiler import importer_node
+from kfp.v2.dsl import importer_node
 from kfp.v2.dsl import type_utils
 from kfp.v2.proto import pipeline_spec_pb2
 
@@ -114,11 +114,13 @@ class Compiler(object):
       # Check if need to insert importer node
       for input_name in task.inputs.artifacts:
         if not task.inputs.artifacts[input_name].producer_task:
-          artifact_type = type_utils.get_input_artifact_type_schema(
+          type_schema = type_utils.get_input_artifact_type_schema(
               input_name, component_spec.inputs)
 
-          importer_task, importer_spec = importer_node.build_importer_spec(
-              task, input_name, artifact_type)
+          importer_task = importer_node.build_importer_task_spec(
+              dependent_task=task,
+              input_name=input_name,
+              input_type_schema=type_schema)
           importer_tasks.append(importer_task)
 
           task.inputs.artifacts[
@@ -126,6 +128,8 @@ class Compiler(object):
           task.inputs.artifacts[
               input_name].output_artifact_key = importer_node.OUTPUT_KEY
 
+          # Retrieve the pre-built importer spec
+          importer_spec = op.importer_spec[input_name]
           deployment_config.executors[
               importer_task.executor_label].importer.CopyFrom(importer_spec)
 

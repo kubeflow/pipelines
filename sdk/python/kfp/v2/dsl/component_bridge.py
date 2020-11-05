@@ -24,6 +24,7 @@ from kfp.components._naming import _sanitize_python_function_name
 from kfp.components._naming import generate_unique_name_conversion_table
 from kfp.dsl import types
 from kfp.v2.dsl import container_op
+from kfp.v2.dsl import importer_node
 from kfp.v2.dsl import type_utils
 from kfp.v2.proto import pipeline_spec_pb2
 
@@ -50,6 +51,9 @@ def create_container_op_from_component_and_arguments(
   # might need to append suffix to exuector_label to ensure its uniqueness?
   pipeline_task_spec.executor_label = component_spec.name
 
+  # Keep track of auto-injected importer spec.
+  importer_spec = {}
+
   # Check types of the reference arguments and serialize PipelineParams
   arguments = arguments.copy()
   for input_name, argument_value in arguments.items():
@@ -75,16 +79,34 @@ def create_container_op_from_component_and_arguments(
           pipeline_task_spec.inputs.parameters[
               input_name].runtime_value.runtime_parameter = argument_value.name
       else:
-        # argument_value.op_name could be none, in which case an importer node
-        # will be inserted later. Use output_artifact_key to preserve the name
-        # of pipeline parameter which is needed by importer.
-        pipeline_task_spec.inputs.artifacts[input_name].producer_task = (
-            argument_value.op_name or '')
-        pipeline_task_spec.inputs.artifacts[input_name].output_artifact_key = (
-            argument_value.name)
+        if argument_value.op_name:
+          pipeline_task_spec.inputs.artifacts[input_name].producer_task = (
+              argument_value.op_name)
+          pipeline_task_spec.inputs.artifacts[
+              input_name].output_artifact_key = (
+                  argument_value.name)
+        else:
+          # argument_value.op_name could be none, in which case an importer node
+          # will be inserted later.
+          pipeline_task_spec.inputs.artifacts[input_name].producer_task = ''
+          type_schema = type_utils.get_input_artifact_type_schema(
+              input_name, component_spec.inputs)
+          importer_spec[input_name] = importer_node.build_importer_spec(
+              input_type_schema=type_schema,
+              pipeline_param_name=argument_value.name)
     elif isinstance(argument_value, str):
-      pipeline_task_spec.inputs.parameters[
-          input_name].runtime_value.constant_value.string_value = argument_value
+      input_type = component_spec._inputs_dict[input_name].type
+      if type_utils.is_parameter_type(input_type):
+        pipeline_task_spec.inputs.parameters[
+            input_name].runtime_value.constant_value.string_value = (
+                argument_value)
+      else:
+        # An importer node with constant value artifact_uri will be inserted.
+        pipeline_task_spec.inputs.artifacts[input_name].producer_task = ''
+        type_schema = type_utils.get_input_artifact_type_schema(
+            input_name, component_spec.inputs)
+        importer_spec[input_name] = importer_node.build_importer_spec(
+            input_type_schema=type_schema, constant_value=argument_value)
     elif isinstance(argument_value, int):
       pipeline_task_spec.inputs.parameters[
           input_name].runtime_value.constant_value.int_value = argument_value
@@ -186,6 +208,7 @@ def create_container_op_from_component_and_arguments(
   )
 
   task.task_spec = pipeline_task_spec
+  task.importer_spec = importer_spec
   task.container_spec = pipeline_container_spec
   dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = old_warn_value
 
