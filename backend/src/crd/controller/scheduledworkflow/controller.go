@@ -448,7 +448,7 @@ func (c *Controller) submitNextWorkflowIfNeeded(swf *util.ScheduledWorkflow,
 	workflow *commonutil.Workflow, nextScheduledEpoch int64, err error) {
 	// Compute the next scheduled time.
 	nextScheduledEpoch, shouldRunNow, err := swf.GetNextScheduledEpoch(
-		int64(activeWorkflowCount), nowEpoch, c.location)
+		int64(activeWorkflowCount), nowEpoch, *c.location)
 	if err != nil {
 		log.WithFields(log.Fields{
 			ScheduledWorkflow: swf.Name,
