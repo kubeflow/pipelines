@@ -15,9 +15,6 @@
 package client
 
 import (
-	"context"
-
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	authzv1 "k8s.io/api/authorization/v1"
 )
@@ -32,11 +29,6 @@ func (FakeSubjectAccessReviewClient) Create(*authzv1.SubjectAccessReview) (*auth
 		Reason:          "",
 		EvaluationError: "",
 	}}, nil
-}
-
-func (FakeSubjectAccessReviewClient) CreateContext(context.Context, *authzv1.SubjectAccessReview) (*authzv1.SubjectAccessReview, error) {
-	glog.Error("This fake method is not yet implemented.")
-	return nil, nil
 }
 
 func NewFakeSubjectAccessReviewClient() FakeSubjectAccessReviewClient {
@@ -55,11 +47,6 @@ func (FakeSubjectAccessReviewClientUnauthorized) Create(*authzv1.SubjectAccessRe
 	}}, nil
 }
 
-func (FakeSubjectAccessReviewClientUnauthorized) CreateContext(context.Context, *authzv1.SubjectAccessReview) (*authzv1.SubjectAccessReview, error) {
-	glog.Error("This fake method is not yet implemented.")
-	return nil, nil
-}
-
 func NewFakeSubjectAccessReviewClientUnauthorized() FakeSubjectAccessReviewClientUnauthorized {
 	return FakeSubjectAccessReviewClientUnauthorized{}
 }
@@ -69,11 +56,6 @@ type FakeSubjectAccessReviewClientError struct {
 
 func (FakeSubjectAccessReviewClientError) Create(*authzv1.SubjectAccessReview) (*authzv1.SubjectAccessReview, error) {
 	return nil, errors.New("failed to create subject access review")
-}
-
-func (FakeSubjectAccessReviewClientError) CreateContext(context.Context, *authzv1.SubjectAccessReview) (*authzv1.SubjectAccessReview, error) {
-	glog.Error("This fake method is not yet implemented.")
-	return nil, nil
 }
 
 func NewFakeSubjectAccessReviewClientError() FakeSubjectAccessReviewClientError {
