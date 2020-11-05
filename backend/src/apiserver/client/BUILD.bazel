@@ -13,6 +13,8 @@ go_library(
         "pod_fake.go",
         "scheduled_workflow_fake.go",
         "sql.go",
+        "subject_access_review.go",
+        "subject_access_review_fake.go",
         "swf.go",
         "swf_fake.go",
         "workflow_fake.go",
