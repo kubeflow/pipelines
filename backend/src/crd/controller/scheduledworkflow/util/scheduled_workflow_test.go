@@ -293,6 +293,47 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_OneTimeRun(t *testing.T) {
 	assert.Equal(t, creationTimestamp.Unix(), nextScheduledEpoch)
 }
 
+func TestScheduledWorkflow_GetNextScheduledEpoch_CronScheduleTimeZone(t *testing.T) {
+	locationString := "America/Los_Angeles"
+	viper.Set(TimeZone, locationString)
+	defer viper.Set(TimeZone, "")
+
+	location, err := time.LoadLocation(locationString)
+	assert.Nil(t, err)
+	nowTime, err := time.Parse(time.RFC1123Z, "Mon, 03 Jan 2006 14:04:05 -0800")
+	assert.Nil(t, err)
+	nowEpoch := nowTime.Unix()
+
+	creationTime, err := time.Parse(time.RFC1123Z, "Mon, 01 Jan 2006 16:04:05 -0800")
+	assert.Nil(t, err)
+	creationTimestamp := metav1.NewTime(creationTime)
+	//catchUp := false
+	schedule := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		ObjectMeta: metav1.ObjectMeta{
+			CreationTimestamp: creationTimestamp,
+		},
+		Spec: swfapi.ScheduledWorkflowSpec{
+			Enabled: true,
+			//NoCatchup:      &catchUp,
+			MaxConcurrency: commonutil.Int64Pointer(int64(10)),
+			Trigger: swfapi.Trigger{
+				CronSchedule: &swfapi.CronSchedule{
+					Cron: "* * 15 * * *",
+				},
+			},
+		},
+	})
+
+	// Must run later
+	nextScheduledEpoch, mustRunNow := schedule.GetNextScheduledEpoch(
+		int64(9) /* active workflow count */, nowEpoch, *location)
+
+	assert.Equal(t, true, mustRunNow)
+	nextRun, err := time.Parse(time.RFC1123Z, "Mon, 02 Jan 2006 15:00:00 -0800")
+	assert.Nil(t, err)
+	assert.Equal(t, nextRun.Unix(), nextScheduledEpoch)
+}
+
 func TestScheduledWorkflow_GetNextScheduledEpoch_CronSchedule(t *testing.T) {
 
 	// Must run now
@@ -316,7 +357,7 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_CronSchedule(t *testing.T) {
 	})
 	nextScheduledEpoch, mustRunNow := schedule.GetNextScheduledEpoch(
 		int64(9) /* active workflow count */, nowEpoch, time.Location{})
-	//assert.Equal(t, true, mustRunNow)
+	assert.Equal(t, true, mustRunNow)
 	assert.Equal(t, int64(9*hour+minute), nextScheduledEpoch)
 
 	// Must run later
@@ -333,32 +374,25 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_CronSchedule(t *testing.T) {
 }
 
 func TestScheduledWorkflow_GetNextScheduledEpoch_CronSchedule_Fail(t *testing.T) {
-	// https://stackoverflow.com/questions/54363451/setting-timezone-globally-in-golang
-	// Can fool that we are somewhere else .....
-	// Should be better I guess.
-
 	// Augment the cluster to be in UTC
 	defaultLocation := "UTC"
 	viper.Set(TimeZone, defaultLocation)
 	defer viper.Set(TimeZone, "")
-	location, err := GetLocation()
+	clusterLocation, err := GetLocation()
+	assert.Nil(t, err)
 
 	// Augment the user to be in Los Angeles
-	assert.Nil(t, err)
-	actualLocation, err := time.LoadLocation("America/Los_Angeles")
+
+	userLocation, err := time.LoadLocation("America/Los_Angeles")
 	assert.Nil(t, err)
 
 	// user and cluster in different timezone
-	assert.NotEqual(t, actualLocation, location)
+	assert.NotEqual(t, userLocation, clusterLocation)
 
-	nowTime, err := time.Parse(time.RFC1123Z, "Mon, 03 Jan 2006 14:04:05 -0700")
+	nowTime, err := time.Parse(time.RFC1123Z, "Mon, 03 Jan 2006 14:04:05 -0800")
 	assert.Nil(t, err)
 	nowEpoch := nowTime.Unix()
-	lastJob, err := time.Parse(time.RFC1123Z, "Mon, 02 Jan 2006 15:00:01 -0700")
-	assert.Nil(t, err)
-	pastEpoch := lastJob.Unix()
-
-	creationTime, err := time.Parse(time.RFC1123Z, "Mon, 01 Jan 2006 15:04:05 -0700")
+	creationTime, err := time.Parse(time.RFC1123Z, "Mon, 01 Jan 2006 16:04:05 -0800")
 	assert.Nil(t, err)
 	creationTimestamp := metav1.NewTime(creationTime)
 
@@ -379,12 +413,12 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_CronSchedule_Fail(t *testing.T)
 
 	// Must run later
 	nextScheduledEpoch, mustRunNow := schedule.GetNextScheduledEpoch(
-		nowEpoch /* active workflow count */, pastEpoch, *location)
+		int64(9) /* active workflow count */, nowEpoch, *clusterLocation)
 
-	assert.Equal(t, false, mustRunNow)
-	nextRun, err := time.Parse(time.RFC1123Z, "Mon, 03 Jan 2006 15:00:00 -0700")
+	assert.Equal(t, true, mustRunNow)
+	nextRun, err := time.Parse(time.RFC1123Z, "Mon, 03 Jan 2006 15:00:00 -0800")
 	assert.Nil(t, err)
-	assert.NotEqual(t, nextRun.UTC().Unix(), nextScheduledEpoch)
+	assert.NotEqual(t, nextRun, time.Unix(nextScheduledEpoch, 0))
 }
 
 func TestScheduledWorkflow_GetNextScheduledEpoch_PeriodicSchedule(t *testing.T) {

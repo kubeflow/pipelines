@@ -74,7 +74,7 @@ func (s *CronSchedule) getEffectiveLastJobEpoch(lastJobTime *v1.Time,
 
 func (s *CronSchedule) getNextScheduledEpoch(lastJobTime time.Time, location *time.Location) int64 {
 	return s.getNextScheduledEpochImp(lastJobTime,
-		true /* nowEpoch doesn't matter when catchup=true */, time.Unix(0, 0).In(location), location)
+		true /* nowEpoch doesn't matter when catchup=true */, time.Unix(0, 0), location)
 }
 
 func (s *CronSchedule) getNextScheduledEpochImp(lastJobTime time.Time, catchup bool, nowTime time.Time, location *time.Location) int64 {
@@ -90,13 +90,14 @@ func (s *CronSchedule) getNextScheduledEpochImp(lastJobTime time.Time, catchup b
 	if s.StartTime != nil && s.StartTime.Time.After(startTime) {
 		startTime = s.StartTime.Time
 	}
-	result := schedule.Next(startTime)
-	var endTime time.Time = time.Unix(1<<63-62135596801, 999999999).In(location)
+
+	result := schedule.Next(startTime.In(location))
+	var endTime time.Time = time.Unix(1<<63-62135596801, 999999999)
 	// math.int64 max will break the comparison.
 	// Examle playground https://play.golang.org/p/LERg0aq2mU6
 	// Max date https://stackoverflow.com/questions/25065055/what-is-the-maximum-time-time-in-go
 	if s.EndTime != nil {
-		endTime = s.EndTime.Time.In(location)
+		endTime = s.EndTime.Time
 	}
 
 	if endTime.Before(result) {
@@ -105,7 +106,7 @@ func (s *CronSchedule) getNextScheduledEpochImp(lastJobTime time.Time, catchup b
 
 	// When we need to catch up with schedule, just run schedules one by one.
 	if catchup == true {
-		return result.UTC().Unix()
+		return result.Unix()
 	}
 
 	// When we don't need to catch up, find the last schedule we need to run
@@ -120,5 +121,5 @@ func (s *CronSchedule) getNextScheduledEpochImp(lastJobTime time.Time, catchup b
 			break
 		}
 	}
-	return next.UTC().Unix()
+	return next.Unix()
 }
