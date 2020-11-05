@@ -5,8 +5,6 @@ go_library(
     srcs = [
         "argo.go",
         "argo_fake.go",
-        "kfam.go",
-        "kfam_fake.go",
         "kubernetes_core.go",
         "kubernetes_core_fake.go",
         "minio.go",
@@ -51,7 +49,6 @@ go_library(
 go_test(
     name = "go_default_test",
     srcs = [
-        "kfam_test.go",
         "sql_test.go",
     ],
     data = glob(["test/**/*"]),  # keep

@@ -41,7 +41,6 @@ type FakeClientManager struct {
 	swfClientFake                 *client.FakeSwfClient
 	k8sCoreClientFake             *client.FakeKuberneteCoreClient
 	SubjectAccessReviewClientFake client.SubjectAccessReviewInterface
-	KfamClientFake                client.KFAMClientInterface
 	logArchive                    archive.LogArchiveInterface
 	time                          util.TimeInterface
 	uuid                          util.UUIDGeneratorInterface
@@ -79,7 +78,6 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		swfClientFake:                 client.NewFakeSwfClient(),
 		k8sCoreClientFake:             client.NewFakeKuberneteCoresClient(),
 		SubjectAccessReviewClientFake: client.NewFakeSubjectAccessReviewClient(),
-		KfamClientFake:                client.NewFakeKFAMClientAuthorized(),
 		logArchive:                    archive.NewLogArchive("/logs", "main.log"),
 		time:                          time,
 		uuid:                          uuid,
@@ -157,10 +155,6 @@ func (f *FakeClientManager) KubernetesCoreClient() client.KubernetesCoreInterfac
 
 func (f *FakeClientManager) SubjectAccessReviewClient() client.SubjectAccessReviewInterface {
 	return f.SubjectAccessReviewClientFake
-}
-
-func (f *FakeClientManager) KFAMClient() client.KFAMClientInterface {
-	return f.KfamClientFake
 }
 
 func (f *FakeClientManager) Close() error {

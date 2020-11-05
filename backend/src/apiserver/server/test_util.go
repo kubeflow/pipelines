@@ -102,28 +102,6 @@ func initWithExperiment(t *testing.T) (*resource.FakeClientManager, *resource.Re
 	return clientManager, resourceManager, experiment
 }
 
-func initWithExperiment_KFAM_Unauthorized(t *testing.T) (*resource.FakeClientManager, *resource.ResourceManager, *model.Experiment) {
-	initEnvVars()
-	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	clientManager.KfamClientFake = client.NewFakeKFAMClientUnauthorized()
-	resourceManager := resource.NewResourceManager(clientManager)
-	apiExperiment := &api.Experiment{Name: "exp1"}
-	if common.IsMultiUserMode() {
-		apiExperiment = &api.Experiment{
-			Name: "exp1",
-			ResourceReferences: []*api.ResourceReference{
-				{
-					Key:          &api.ResourceKey{Type: api.ResourceType_NAMESPACE, Id: "ns1"},
-					Relationship: api.Relationship_OWNER,
-				},
-			},
-		}
-	}
-	experiment, err := resourceManager.CreateExperiment(apiExperiment)
-	assert.Nil(t, err)
-	return clientManager, resourceManager, experiment
-}
-
 func initWithExperiment_SubjectAccessReview_Unauthorized(t *testing.T) (*resource.FakeClientManager, *resource.ResourceManager, *model.Experiment) {
 	initEnvVars()
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())

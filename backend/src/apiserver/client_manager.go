@@ -46,8 +46,6 @@ const (
 	mysqlPassword          = "DBConfig.Password"
 	mysqlDBName            = "DBConfig.DBName"
 	mysqlGroupConcatMaxLen = "DBConfig.GroupConcatMaxLen"
-	kfamServiceHost        = "PROFILES_KFAM_SERVICE_HOST"
-	kfamServicePort        = "PROFILES_KFAM_SERVICE_PORT"
 	mysqlExtraParams       = "DBConfig.ExtraParams"
 	archiveLogFileName     = "ARCHIVE_CONFIG_LOG_FILE_NAME"
 	archiveLogPathPrefix   = "ARCHIVE_CONFIG_LOG_PATH_PREFIX"
@@ -73,7 +71,6 @@ type ClientManager struct {
 	swfClient                 client.SwfClientInterface
 	k8sCoreClient             client.KubernetesCoreInterface
 	subjectAccessReviewClient client.SubjectAccessReviewInterface
-	kfamClient                client.KFAMClientInterface
 	logArchive                archive.LogArchiveInterface
 	time                      util.TimeInterface
 	uuid                      util.UUIDGeneratorInterface
@@ -127,10 +124,6 @@ func (c *ClientManager) SubjectAccessReviewClient() client.SubjectAccessReviewIn
 	return c.subjectAccessReviewClient
 }
 
-func (c *ClientManager) KFAMClient() client.KFAMClientInterface {
-	return c.kfamClient
-}
-
 func (c *ClientManager) LogArchive() archive.LogArchiveInterface {
 	return c.logArchive
 }
@@ -176,7 +169,6 @@ func (c *ClientManager) init() {
 
 	if common.IsMultiUserMode() {
 		c.subjectAccessReviewClient = client.CreateSubjectAccessReviewClientOrFatal(common.GetDurationConfig(initConnectionTimeout))
-		c.kfamClient = client.NewKFAMClient(common.GetStringConfig(kfamServiceHost), common.GetStringConfig(kfamServicePort))
 	}
 	glog.Infof("Client manager initialized successfully")
 }
