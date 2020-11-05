@@ -105,17 +105,17 @@ class ImporterNodeTest(unittest.TestCase):
           input_type_schema='title: kfp.Artifact',
           pipeline_param_name='param1',
           constant_value='some_uri')
-      self.assertEqual(
-          'importer spec should be built using either pipeline_param_name or'
-          'constant_value.',
-          str(cm))
+    self.assertEqual(
+        'importer spec should be built using either pipeline_param_name or'
+        'constant_value.',
+        str(cm.exception))
 
     with self.assertRaises(AssertionError) as cm:
       importer_node.build_importer_spec(input_type_schema='title: kfp.Artifact')
-      self.assertEqual(
-          'importer spec should be built using either pipeline_param_name or'
-          'constant_value.',
-          str(cm))
+    self.assertEqual(
+        'importer spec should be built using either pipeline_param_name or'
+        'constant_value.',
+        str(cm.exception))
 
 
 if __name__ == '__main__':
