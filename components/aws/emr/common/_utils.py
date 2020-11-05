@@ -149,6 +149,4 @@ def wait_for_job(client, jobflow_id, step_id):
 
 def submit_pyspark_job(client, jobflow_id, job_name, py_file, extra_args):
   """Submits single spark job to a running cluster"""
-
-  pyspark_args = [py_file, extra_args]
-  return submit_spark_job(client, jobflow_id, job_name, '', '', pyspark_args)
+  return submit_spark_job(client, jobflow_id, job_name, py_file, '', extra_args)
