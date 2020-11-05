@@ -79,7 +79,7 @@ def my_pipeline(input1,
       input_2=3.1415926,
       input_3=input3,
       input_4=input4,
-      input_5=input5,
+      input_5='gs://bucket/metrics',
       input_6=input6,
       input_7=input7,
       input_8=input8)

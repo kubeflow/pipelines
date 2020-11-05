@@ -3,6 +3,7 @@ kind: Service
 metadata:
   name: minio-service
   labels:
+    app: minio
     app.kubernetes.io/name: {{ .Release.Name }}
 spec:
   ports:

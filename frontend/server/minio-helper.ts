@@ -1,3 +1,4 @@
+import { Stream } from 'stream';
 // Copyright 2019-2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +24,7 @@ export interface MinioRequestConfig {
   bucket: string;
   key: string;
   client: MinioClient;
+  tryExtract?: boolean;
 }
 
 /** MinioClientOptionsWithOptionalSecrets wraps around MinioClientOptions where only endPoint is required (accesskey and secretkey are optional). */
@@ -126,13 +128,15 @@ function extractFirstTarRecordAsStream() {
  * @param param.bucket Bucket name to retrieve the object from.
  * @param param.key Key of the object to retrieve.
  * @param param.client Minio client.
+ * @param param.tryExtract Whether we try to extract *.tar.gz, default to true.
  *
  */
 export async function getObjectStream({
   bucket,
   key,
   client,
+  tryExtract = true,
 }: MinioRequestConfig): Promise<Transform> {
   const stream = await client.getObject(bucket, key);
-  return stream.pipe(gunzip()).pipe(maybeTarball());
+  return tryExtract ? stream.pipe(gunzip()).pipe(maybeTarball()) : stream.pipe(new PassThrough());
 }
