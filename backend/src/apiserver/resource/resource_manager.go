@@ -37,6 +37,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -1193,8 +1194,33 @@ func (r *ResourceManager) GetPipelineVersionTemplate(versionId string) ([]byte, 
 	return template, nil
 }
 
-func (r *ResourceManager) IsRequestAuthorized(userIdentity string, namespace string) (bool, error) {
-	return r.kfamClient.IsAuthorized(userIdentity, namespace)
+func (r *ResourceManager) IsRequestAuthorized(userIdentity string, resourceAttributes *authorizationv1.ResourceAttributes) error {
+	result, err := r.subjectAccessReviewClient.Create(
+		&authorizationv1.SubjectAccessReview{
+			Spec: authorizationv1.SubjectAccessReviewSpec{
+				ResourceAttributes: resourceAttributes,
+				User:               userIdentity,
+			},
+		},
+	)
+	if err != nil {
+		return util.NewInternalServerError(
+			err,
+			"Failed to create SubjectAccessReview for user '%s' (request: %+v)",
+			userIdentity,
+			resourceAttributes,
+		)
+	}
+	if !result.Status.Allowed {
+		return util.NewPermissionDeniedError(
+			errors.New("Unauthorized access"),
+			"User '%s' is not authorized with reason: %s (request: %+v)",
+			userIdentity,
+			result.Status.Reason,
+			resourceAttributes,
+		)
+	}
+	return nil
 }
 
 func (r *ResourceManager) GetNamespaceFromExperimentID(experimentID string) (string, error) {
