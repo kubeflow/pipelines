@@ -40,7 +40,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -72,6 +71,7 @@ type ClientManagerInterface interface {
 	ArgoClient() client.ArgoClientInterface
 	SwfClient() client.SwfClientInterface
 	KubernetesCoreClient() client.KubernetesCoreInterface
+	SubjectAccessReviewClient() client.SubjectAccessReviewInterface
 	KFAMClient() client.KFAMClientInterface
 	LogArchive() archive.LogArchiveInterface
 	Time() util.TimeInterface
@@ -79,40 +79,42 @@ type ClientManagerInterface interface {
 }
 
 type ResourceManager struct {
-	experimentStore        storage.ExperimentStoreInterface
-	pipelineStore          storage.PipelineStoreInterface
-	jobStore               storage.JobStoreInterface
-	runStore               storage.RunStoreInterface
-	resourceReferenceStore storage.ResourceReferenceStoreInterface
-	dBStatusStore          storage.DBStatusStoreInterface
-	defaultExperimentStore storage.DefaultExperimentStoreInterface
-	objectStore            storage.ObjectStoreInterface
-	argoClient             client.ArgoClientInterface
-	swfClient              client.SwfClientInterface
-	k8sCoreClient          client.KubernetesCoreInterface
-	kfamClient             client.KFAMClientInterface
-	logArchive             archive.LogArchiveInterface
-	time                   util.TimeInterface
-	uuid                   util.UUIDGeneratorInterface
+	experimentStore           storage.ExperimentStoreInterface
+	pipelineStore             storage.PipelineStoreInterface
+	jobStore                  storage.JobStoreInterface
+	runStore                  storage.RunStoreInterface
+	resourceReferenceStore    storage.ResourceReferenceStoreInterface
+	dBStatusStore             storage.DBStatusStoreInterface
+	defaultExperimentStore    storage.DefaultExperimentStoreInterface
+	objectStore               storage.ObjectStoreInterface
+	argoClient                client.ArgoClientInterface
+	swfClient                 client.SwfClientInterface
+	k8sCoreClient             client.KubernetesCoreInterface
+	subjectAccessReviewClient client.SubjectAccessReviewInterface
+	kfamClient                client.KFAMClientInterface
+	logArchive                archive.LogArchiveInterface
+	time                      util.TimeInterface
+	uuid                      util.UUIDGeneratorInterface
 }
 
 func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 	return &ResourceManager{
-		experimentStore:        clientManager.ExperimentStore(),
-		pipelineStore:          clientManager.PipelineStore(),
-		jobStore:               clientManager.JobStore(),
-		runStore:               clientManager.RunStore(),
-		resourceReferenceStore: clientManager.ResourceReferenceStore(),
-		dBStatusStore:          clientManager.DBStatusStore(),
-		defaultExperimentStore: clientManager.DefaultExperimentStore(),
-		objectStore:            clientManager.ObjectStore(),
-		argoClient:             clientManager.ArgoClient(),
-		swfClient:              clientManager.SwfClient(),
-		k8sCoreClient:          clientManager.KubernetesCoreClient(),
-		kfamClient:             clientManager.KFAMClient(),
-		logArchive:             clientManager.LogArchive(),
-		time:                   clientManager.Time(),
-		uuid:                   clientManager.UUID(),
+		experimentStore:           clientManager.ExperimentStore(),
+		pipelineStore:             clientManager.PipelineStore(),
+		jobStore:                  clientManager.JobStore(),
+		runStore:                  clientManager.RunStore(),
+		resourceReferenceStore:    clientManager.ResourceReferenceStore(),
+		dBStatusStore:             clientManager.DBStatusStore(),
+		defaultExperimentStore:    clientManager.DefaultExperimentStore(),
+		objectStore:               clientManager.ObjectStore(),
+		argoClient:                clientManager.ArgoClient(),
+		swfClient:                 clientManager.SwfClient(),
+		k8sCoreClient:             clientManager.KubernetesCoreClient(),
+		subjectAccessReviewClient: clientManager.SubjectAccessReviewClient(),
+		kfamClient:                clientManager.KFAMClient(),
+		logArchive:                clientManager.LogArchive(),
+		time:                      clientManager.Time(),
+		uuid:                      clientManager.UUID(),
 	}
 }
 
@@ -242,7 +244,7 @@ func (r *ResourceManager) DeletePipeline(pipelineId string) error {
 }
 
 func (r *ResourceManager) UpdatePipelineDefaultVersion(pipelineId string, versionId string) error {
-    return r.pipelineStore.UpdatePipelineDefaultVersion(pipelineId, versionId)
+	return r.pipelineStore.UpdatePipelineDefaultVersion(pipelineId, versionId)
 }
 
 func (r *ResourceManager) CreatePipeline(name string, description string, pipelineFile []byte) (*model.Pipeline, error) {

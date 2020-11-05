@@ -28,22 +28,23 @@ const (
 )
 
 type FakeClientManager struct {
-	db                     *storage.DB
-	experimentStore        storage.ExperimentStoreInterface
-	pipelineStore          storage.PipelineStoreInterface
-	jobStore               storage.JobStoreInterface
-	runStore               storage.RunStoreInterface
-	resourceReferenceStore storage.ResourceReferenceStoreInterface
-	dBStatusStore          storage.DBStatusStoreInterface
-	defaultExperimentStore storage.DefaultExperimentStoreInterface
-	objectStore            storage.ObjectStoreInterface
-	ArgoClientFake         *client.FakeArgoClient
-	swfClientFake          *client.FakeSwfClient
-	k8sCoreClientFake      *client.FakeKuberneteCoreClient
-	KfamClientFake         client.KFAMClientInterface
-	logArchive             archive.LogArchiveInterface
-	time                   util.TimeInterface
-	uuid                   util.UUIDGeneratorInterface
+	db                            *storage.DB
+	experimentStore               storage.ExperimentStoreInterface
+	pipelineStore                 storage.PipelineStoreInterface
+	jobStore                      storage.JobStoreInterface
+	runStore                      storage.RunStoreInterface
+	resourceReferenceStore        storage.ResourceReferenceStoreInterface
+	dBStatusStore                 storage.DBStatusStoreInterface
+	defaultExperimentStore        storage.DefaultExperimentStoreInterface
+	objectStore                   storage.ObjectStoreInterface
+	ArgoClientFake                *client.FakeArgoClient
+	swfClientFake                 *client.FakeSwfClient
+	k8sCoreClientFake             *client.FakeKuberneteCoreClient
+	SubjectAccessReviewClientFake client.SubjectAccessReviewInterface
+	KfamClientFake                client.KFAMClientInterface
+	logArchive                    archive.LogArchiveInterface
+	time                          util.TimeInterface
+	uuid                          util.UUIDGeneratorInterface
 }
 
 func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterface) (
@@ -65,22 +66,23 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 
 	// TODO(neuromage): Pass in metadata.Store instance for tests as well.
 	return &FakeClientManager{
-		db:                     db,
-		experimentStore:        storage.NewExperimentStore(db, time, uuid),
-		pipelineStore:          storage.NewPipelineStore(db, time, uuid),
-		jobStore:               storage.NewJobStore(db, time),
-		runStore:               storage.NewRunStore(db, time),
-		ArgoClientFake:         client.NewFakeArgoClient(),
-		resourceReferenceStore: storage.NewResourceReferenceStore(db),
-		dBStatusStore:          storage.NewDBStatusStore(db),
-		defaultExperimentStore: storage.NewDefaultExperimentStore(db),
-		objectStore:            storage.NewFakeObjectStore(),
-		swfClientFake:          client.NewFakeSwfClient(),
-		k8sCoreClientFake:      client.NewFakeKuberneteCoresClient(),
-		KfamClientFake:         client.NewFakeKFAMClientAuthorized(),
-		logArchive:             archive.NewLogArchive("/logs", "main.log"),
-		time:                   time,
-		uuid:                   uuid,
+		db:                            db,
+		experimentStore:               storage.NewExperimentStore(db, time, uuid),
+		pipelineStore:                 storage.NewPipelineStore(db, time, uuid),
+		jobStore:                      storage.NewJobStore(db, time),
+		runStore:                      storage.NewRunStore(db, time),
+		ArgoClientFake:                client.NewFakeArgoClient(),
+		resourceReferenceStore:        storage.NewResourceReferenceStore(db),
+		dBStatusStore:                 storage.NewDBStatusStore(db),
+		defaultExperimentStore:        storage.NewDefaultExperimentStore(db),
+		objectStore:                   storage.NewFakeObjectStore(),
+		swfClientFake:                 client.NewFakeSwfClient(),
+		k8sCoreClientFake:             client.NewFakeKuberneteCoresClient(),
+		SubjectAccessReviewClientFake: client.NewFakeSubjectAccessReviewClient(),
+		KfamClientFake:                client.NewFakeKFAMClientAuthorized(),
+		logArchive:                    archive.NewLogArchive("/logs", "main.log"),
+		time:                          time,
+		uuid:                          uuid,
 	}, nil
 }
 
@@ -151,6 +153,10 @@ func (f *FakeClientManager) SwfClient() client.SwfClientInterface {
 
 func (f *FakeClientManager) KubernetesCoreClient() client.KubernetesCoreInterface {
 	return f.k8sCoreClientFake
+}
+
+func (f *FakeClientManager) SubjectAccessReviewClient() client.SubjectAccessReviewInterface {
+	return f.SubjectAccessReviewClientFake
 }
 
 func (f *FakeClientManager) KFAMClient() client.KFAMClientInterface {
