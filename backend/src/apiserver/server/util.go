@@ -314,6 +314,12 @@ func isAuthorized(resourceManager *resource.ResourceManager, ctx context.Context
 		// Skip authz if not multi-user mode.
 		return nil
 	}
+	if common.IsMultiUserSharedReadMode() &&
+		(resourceAttributes.Verb == common.RbacResourceVerbGet ||
+			resourceAttributes.Verb == common.RbacResourceVerbList) {
+		glog.Infof("Multi-user shared read mode is enabled. Request allowed: %+v", resourceAttributes)
+		return nil
+	}
 
 	glog.Info("Getting user identity...")
 	userIdentity, err := getUserIdentity(ctx)
