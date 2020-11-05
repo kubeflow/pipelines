@@ -124,7 +124,7 @@
       }
     }
   },
-  "sdkVersion": "dummy`",
+  "sdkVersion": "kfp-1.1.0-alpha.1",
   "schemaVersion": "v2alpha1",
   "runtimeParameters": {
     "input_gcs": {
@@ -134,9 +134,9 @@
       }
     },
     "epochs": {
-      "type": "STRING",
+      "type": "INT",
       "defaultValue": {
-        "stringValue": "200"
+        "intValue": "200"
       }
     },
     "optimizer": {
