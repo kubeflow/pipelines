@@ -308,9 +308,9 @@ class Client(object):
     r.raise_for_status()
     try:
       response = r.json()
+      return response
     except ValueError:
       print('No JSON returned.')
-    return response
 
   def get_user_namespace(self):
     """Get user namespace in context config.
