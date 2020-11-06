@@ -25,6 +25,7 @@ import kfp
 from kfp.compiler._k8s_helper import sanitize_k8s_name
 from kfp.components import _python_op
 from kfp.v2 import dsl
+from kfp.v2.compiler import compiler_utils
 from kfp.v2.dsl import importer_node
 from kfp.v2.dsl import type_utils
 from kfp.v2.proto import pipeline_spec_pb2
@@ -72,34 +73,15 @@ class Compiler(object):
     Raises:
       NotImplementedError if the argument is of unsupported types.
     """
-    pipeline_spec = pipeline_spec_pb2.PipelineSpec()
     if not pipeline.name:
       raise ValueError('Pipeline name is required.')
+
+    pipeline_spec = pipeline_spec_pb2.PipelineSpec(
+        runtime_parameters=compiler_utils.build_runtime_parameter_spec(args))
+
     pipeline_spec.pipeline_info.name = pipeline.name
     pipeline_spec.sdk_version = 'kfp-{}'.format(kfp.__version__)
     pipeline_spec.schema_version = 'v2alpha1'
-
-    # Pipeline Parameters
-    for arg in args:
-      if arg.value is not None:
-        if isinstance(arg.value, int):
-          pipeline_spec.runtime_parameters[
-              arg.name].type = pipeline_spec_pb2.PrimitiveType.INT
-          pipeline_spec.runtime_parameters[
-              arg.name].default_value.int_value = arg.value
-        elif isinstance(arg.value, float):
-          pipeline_spec.runtime_parameters[
-              arg.name].type = pipeline_spec_pb2.PrimitiveType.DOUBLE
-          pipeline_spec.runtime_parameters[
-              arg.name].default_value.double_value = arg.value
-        elif isinstance(arg.value, str):
-          pipeline_spec.runtime_parameters[
-              arg.name].type = pipeline_spec_pb2.PrimitiveType.STRING
-          pipeline_spec.runtime_parameters[
-              arg.name].default_value.string_value = arg.value
-        else:
-          raise NotImplementedError(
-              'Unexpected parameter type with: "{}".'.format(str(arg.value)))
 
     deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
     importer_tasks = []
@@ -179,6 +161,7 @@ class Compiler(object):
       args_list_with_defaults = [
           dsl.PipelineParam(
               sanitize_k8s_name(input_spec.name, True),
+              param_type=input_spec.type,
               value=input_spec.default) for input_spec in pipeline_meta.inputs
       ]
 

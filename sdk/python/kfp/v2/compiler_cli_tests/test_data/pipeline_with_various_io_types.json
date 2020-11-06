@@ -9,42 +9,42 @@
       },
       "inputs": {
         "parameters": {
-          "input_1": {
-            "runtimeValue": {
-              "runtimeParameter": "input1"
-            }
-          },
           "input_2": {
             "runtimeValue": {
               "constantValue": {
                 "doubleValue": 3.1415926
               }
             }
+          },
+          "input_1": {
+            "runtimeValue": {
+              "runtimeParameter": "input1"
+            }
           }
         },
         "artifacts": {
+          "input_4": {
+            "producerTask": "upstream_input_4_importer",
+            "outputArtifactKey": "result"
+          },
           "input_7": {
             "producerTask": "upstream_input_7_importer",
             "outputArtifactKey": "result"
           },
-          "input_5": {
-            "producerTask": "upstream_input_5_importer",
+          "input_8": {
+            "producerTask": "upstream_input_8_importer",
             "outputArtifactKey": "result"
           },
           "input_3": {
             "producerTask": "upstream_input_3_importer",
             "outputArtifactKey": "result"
           },
-          "input_4": {
-            "producerTask": "upstream_input_4_importer",
-            "outputArtifactKey": "result"
-          },
           "input_6": {
             "producerTask": "upstream_input_6_importer",
             "outputArtifactKey": "result"
           },
-          "input_8": {
-            "producerTask": "upstream_input_8_importer",
+          "input_5": {
+            "producerTask": "upstream_input_5_importer",
             "outputArtifactKey": "result"
           }
         }
@@ -98,6 +98,21 @@
     },
     {
       "taskInfo": {
+        "name": "upstream_input_4_importer"
+      },
+      "outputs": {
+        "artifacts": {
+          "result": {
+            "artifactType": {
+              "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
+            }
+          }
+        }
+      },
+      "executorLabel": "upstream_input_4_importer"
+    },
+    {
+      "taskInfo": {
         "name": "upstream_input_7_importer"
       },
       "outputs": {
@@ -113,18 +128,18 @@
     },
     {
       "taskInfo": {
-        "name": "upstream_input_5_importer"
+        "name": "upstream_input_8_importer"
       },
       "outputs": {
         "artifacts": {
           "result": {
             "artifactType": {
-              "instanceSchema": "title: kfp.Metrics\ntype: object\nproperties:\n"
+              "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
             }
           }
         }
       },
-      "executorLabel": "upstream_input_5_importer"
+      "executorLabel": "upstream_input_8_importer"
     },
     {
       "taskInfo": {
@@ -143,21 +158,6 @@
     },
     {
       "taskInfo": {
-        "name": "upstream_input_4_importer"
-      },
-      "outputs": {
-        "artifacts": {
-          "result": {
-            "artifactType": {
-              "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
-            }
-          }
-        }
-      },
-      "executorLabel": "upstream_input_4_importer"
-    },
-    {
-      "taskInfo": {
         "name": "upstream_input_6_importer"
       },
       "outputs": {
@@ -173,23 +173,75 @@
     },
     {
       "taskInfo": {
-        "name": "upstream_input_8_importer"
+        "name": "upstream_input_5_importer"
       },
       "outputs": {
         "artifacts": {
           "result": {
             "artifactType": {
-              "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
+              "instanceSchema": "title: kfp.Metrics\ntype: object\nproperties:\n"
             }
           }
         }
       },
-      "executorLabel": "upstream_input_8_importer"
+      "executorLabel": "upstream_input_5_importer"
     }
   ],
   "deploymentConfig": {
     "@type": "type.googleapis.com/ml_pipelines.PipelineDeploymentConfig",
     "executors": {
+      "upstream_input_8_importer": {
+        "importer": {
+          "artifactUri": {
+            "runtimeParameter": "input8"
+          },
+          "typeSchema": {
+            "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
+          }
+        }
+      },
+      "upstream_input_7_importer": {
+        "importer": {
+          "artifactUri": {
+            "runtimeParameter": "input7"
+          },
+          "typeSchema": {
+            "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
+          }
+        }
+      },
+      "upstream_input_5_importer": {
+        "importer": {
+          "artifactUri": {
+            "constantValue": {
+              "stringValue": "gs://bucket/metrics"
+            }
+          },
+          "typeSchema": {
+            "instanceSchema": "title: kfp.Metrics\ntype: object\nproperties:\n"
+          }
+        }
+      },
+      "upstream_input_3_importer": {
+        "importer": {
+          "artifactUri": {
+            "runtimeParameter": "input3"
+          },
+          "typeSchema": {
+            "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
+          }
+        }
+      },
+      "downstream": {
+        "container": {
+          "image": "gcr.io/image",
+          "args": [
+            "{{$.inputs.parameters['input_a']}}",
+            "{{$.inputs.artifacts['input_b'].uri}}",
+            "{{$.inputs.artifacts['input_c'].uri}}"
+          ]
+        }
+      },
       "upstream_input_6_importer": {
         "importer": {
           "artifactUri": {
@@ -218,62 +270,10 @@
           ]
         }
       },
-      "upstream_input_3_importer": {
-        "importer": {
-          "artifactUri": {
-            "runtimeParameter": "input3"
-          },
-          "typeSchema": {
-            "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
-          }
-        }
-      },
-      "downstream": {
-        "container": {
-          "image": "gcr.io/image",
-          "args": [
-            "{{$.inputs.parameters['input_a']}}",
-            "{{$.inputs.artifacts['input_b'].uri}}",
-            "{{$.inputs.artifacts['input_c'].uri}}"
-          ]
-        }
-      },
       "upstream_input_4_importer": {
         "importer": {
           "artifactUri": {
             "runtimeParameter": "input4"
-          },
-          "typeSchema": {
-            "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
-          }
-        }
-      },
-      "upstream_input_8_importer": {
-        "importer": {
-          "artifactUri": {
-            "runtimeParameter": "input8"
-          },
-          "typeSchema": {
-            "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
-          }
-        }
-      },
-      "upstream_input_5_importer": {
-        "importer": {
-          "artifactUri": {
-            "constantValue": {
-              "stringValue": "gs://bucket/metrics"
-            }
-          },
-          "typeSchema": {
-            "instanceSchema": "title: kfp.Metrics\ntype: object\nproperties:\n"
-          }
-        }
-      },
-      "upstream_input_7_importer": {
-        "importer": {
-          "artifactUri": {
-            "runtimeParameter": "input7"
           },
           "typeSchema": {
             "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
@@ -285,11 +285,8 @@
   "sdkVersion": "kfp-1.1.0-alpha.1",
   "schemaVersion": "v2alpha1",
   "runtimeParameters": {
-    "input8": {
-      "type": "STRING",
-      "defaultValue": {
-        "stringValue": "gs://path2"
-      }
+    "input1": {
+      "type": "STRING"
     },
     "input7": {
       "type": "STRING",
@@ -301,6 +298,24 @@
       "type": "STRING",
       "defaultValue": {
         "stringValue": "gs://bucket/dataset"
+      }
+    },
+    "input5": {
+      "type": "STRING",
+      "defaultValue": {
+        "stringValue": "gs://bucket/metrics"
+      }
+    },
+    "input4": {
+      "type": "STRING"
+    },
+    "input3": {
+      "type": "STRING"
+    },
+    "input8": {
+      "type": "STRING",
+      "defaultValue": {
+        "stringValue": "gs://path2"
       }
     }
   }
