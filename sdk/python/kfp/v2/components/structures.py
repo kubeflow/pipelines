@@ -51,8 +51,8 @@ __all__ = [
 ]
 
 from collections import OrderedDict
-
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
+import warnings
 
 from kfp.components.modelbase import ModelBase
 from kfp.components.structures import ExecutionOptionsSpec
@@ -133,6 +133,10 @@ class InputPathPlaceholder(ModelBase):  #Non-standard attr names
       input_name: str,
   ):
     super().__init__(locals())
+    warnings.warn(
+        'Local file paths are currently unsupported for I/O. Please ensure your '
+        'component is able to read/write to Google Cloud Storage (using gsutil, '
+        'tf.gfile, or other similar libraries).')
 
 
 class OutputPathPlaceholder(ModelBase):  #Non-standard attr names
@@ -146,6 +150,10 @@ class OutputPathPlaceholder(ModelBase):  #Non-standard attr names
       output_name: str,
   ):
     super().__init__(locals())
+    warnings.warn(
+        'Local file paths are currently unsupported for I/O. Please ensure your '
+        'component is able to read/write to Google Cloud Storage (using gsutil, '
+        'tf.gfile, or other similar libraries).')
 
 
 class OutputUriPlaceholder(ModelBase):  #Non-standard attr names
@@ -627,7 +635,6 @@ class RetryStrategySpec(ModelBase):
 #           str] = None,  # RFC3339 compliant duration: P30DT1H22M3S
 #   ):
 #     super().__init__(locals())
-
 
 # class ExecutionOptionsSpec(ModelBase):
 #   _serialized_names = {

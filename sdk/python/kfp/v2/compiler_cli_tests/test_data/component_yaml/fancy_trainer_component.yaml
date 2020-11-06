@@ -25,10 +25,10 @@ implementation:
   container:
     image: gcr.io/my-project/my-fancy-trainer
     args: [
-      --input-examples, {inputPath: examples},
-      --input-schema, {inputPath: schema},
+      --input-examples, {inputUri: examples},
+      --input-schema, {inputUri: schema},
       --optimizer, {inputValue: optimizer},
       --n_epochs, {inputValue: n_epochs},
-      --output-model, {outputPath: model},
-      --output-metrics, {outputPath: metrics}
+      --output-model, {outputUri: model},
+      --output-metrics, {outputUri: metrics}
     ]

@@ -39,15 +39,15 @@ implementation:
     args:
     - {inputValue: input_1}
     - {inputValue: input_2}
-    - {inputPath: input_3}
-    - {inputPath: input_4}
-    - {inputPath: input_5}
-    - {inputPath: input_6}
-    - {inputPath: input_7}
-    - {inputPath: input_8}
+    - {inputUri: input_3}
+    - {inputUri: input_4}
+    - {inputUri: input_5}
+    - {inputUri: input_6}
+    - {inputUri: input_7}
+    - {inputUri: input_8}
     - {outputPath: output_1}
-    - {outputPath: output_2}
-    - {outputPath: output_3}
+    - {outputUri: output_2}
+    - {outputUri: output_3}
 """)
 
 component_op_2 = components.load_component_from_text("""
@@ -61,8 +61,8 @@ implementation:
     image: gcr.io/image
     args:
     - {inputValue: input_a}
-    - {inputPath: input_b}
-    - {inputPath: input_c}
+    - {inputUri: input_b}
+    - {inputUri: input_c}
 """)
 
 

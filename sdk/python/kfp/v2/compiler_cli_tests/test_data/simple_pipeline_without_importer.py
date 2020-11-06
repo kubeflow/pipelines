@@ -34,7 +34,7 @@ implementation:
       set -e -x
       echo "$0" | gsutil cp - "$1"
     - {inputValue: text}
-    - {outputPath: output_gcs_path}
+    - {outputUri: output_gcs_path}
 """)
 
 component_op_2 = components.load_component_from_text("""
@@ -50,7 +50,7 @@ implementation:
     - |
       set -e -x
       gsutil cat "$0"
-    - {inputPath: input_gcs_path}
+    - {inputUri: input_gcs_path}
 """)
 
 @dsl.pipeline(name='simple-two-step-pipeline')

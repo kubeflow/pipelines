@@ -227,7 +227,9 @@ def _create_task_spec_from_component_and_arguments(
   for input_name, argument_value in arguments.items():
     input_type = component_spec._inputs_dict[input_name].type
 
-    if isinstance(argument_value, (structures.GraphInputArgument, structures.TaskOutputArgument)):
+    if isinstance(
+        argument_value,
+        (structures.GraphInputArgument, structures.TaskOutputArgument)):
       # argument_value is a reference
       if isinstance(argument_value, structures.GraphInputArgument):
         reference_type = argument_value.graph_input.type
@@ -275,7 +277,9 @@ def _create_task_object_from_component_and_arguments(
 
     Unlike _container_task_constructor, handles the graph components as well.
     """
-  if (isinstance(component_spec.implementation, structures.GraphImplementation) and (
+  if (isinstance(
+      component_spec.implementation, structures.GraphImplementation
+  ) and (
       # When the container task constructor is not overriden, we just construct TaskSpec for both container and graph tasks.
       # If the container task constructor is overriden, we should expand the graph components so that the override is called for all sub-tasks.
       _container_task_constructor != _default_container_task_constructor or
@@ -405,6 +409,8 @@ _ResolvedCommandLineAndPaths = NamedTuple(
     [
         ('command', Sequence[str]),
         ('args', Sequence[str]),
+        ('input_uris', Mapping[str, str]),
+        ('output_uris', Mapping[str, str]),
         ('input_paths', Mapping[str, str]),
         ('output_paths', Mapping[str, str]),
         ('inputs_consumed_by_value', Mapping[str, str]),
@@ -415,11 +421,11 @@ _ResolvedCommandLineAndPaths = NamedTuple(
 def _resolve_command_line_and_paths(
     component_spec: structures.ComponentSpec,
     arguments: Mapping[str, str],
-    input_uri_generator: Callable[..., Any],
-    output_uri_generator: Callable[..., Any],
-    input_path_generator=_generate_input_file_name,
-    output_path_generator=_generate_output_file_name,
-    argument_serializer=serialize_value,
+    input_value_generator: Callable[[str], str],
+    input_uri_generator: Callable[[str], str],
+    output_uri_generator: Callable[[str], str],
+    input_path_generator: Callable[[str], str],
+    output_path_generator: Callable[[str], str],
 ) -> _ResolvedCommandLineAndPaths:
   """Resolves the command line argument placeholders.
 
@@ -427,7 +433,8 @@ def _resolve_command_line_and_paths(
   """
   argument_values = arguments
 
-  if not isinstance(component_spec.implementation, structures.ContainerImplementation):
+  if not isinstance(component_spec.implementation,
+                    structures.ContainerImplementation):
     raise TypeError('Only container components have command line to resolve')
 
   inputs_dict = {
@@ -458,16 +465,16 @@ def _resolve_command_line_and_paths(
       input_spec = inputs_dict[input_name]
       input_value = argument_values.get(input_name, None)
       if input_value is not None:
-        serialized_argument = argument_serializer(input_value, input_spec.type)
-        inputs_consumed_by_value[input_name] = serialized_argument
-        return serialized_argument
+        input_value = input_value_generator(input_name)
+        inputs_consumed_by_value[input_name] = input_value
+        return input_value
       else:
         if input_spec.optional:
           return None
         else:
           raise ValueError('No value provided for input {}'.format(input_name))
 
-    if isinstance(arg, structures.InputUriPlaceholder):
+    elif isinstance(arg, structures.InputUriPlaceholder):
       input_name = arg.input_name
       input_value = argument_values.get(input_name, None)
       if input_value is not None:
@@ -505,8 +512,8 @@ def _resolve_command_line_and_paths(
       if arg.output_name in output_uris:
         if output_uris[output_name] != output_uri:
           raise ValueError(
-              'Conflicting output URIs specified for port {}: {} and {}'
-              .format(output_name, output_uris[output_name], output_uri))
+              'Conflicting output URIs specified for port {}: {} and {}'.format(
+                  output_name, output_uris[output_name], output_uri))
       else:
         output_uris[output_name] = output_uri
 
@@ -570,6 +577,8 @@ def _resolve_command_line_and_paths(
   return _ResolvedCommandLineAndPaths(
       command=expanded_command,
       args=expanded_args,
+      input_uris=input_uris,
+      output_uris=output_uris,
       input_paths=input_paths,
       output_paths=output_paths,
       inputs_consumed_by_value=inputs_consumed_by_value,
