@@ -18,18 +18,18 @@ import kfp
 from kfp import dsl
 import kfp.v2.compiler as compiler
 
-
 test_data_dir = pathlib.Path(__file__).parent / 'component_yaml'
 component_op = kfp.components.load_component_from_file(
     str(test_data_dir / 'concat_placeholder_component.yaml'))
 
 
-@dsl.pipeline(
-    name='one-step-pipeline-with-concat-placeholder')
+@dsl.pipeline(name='one-step-pipeline-with-concat-placeholder')
 def my_pipeline():
-  component = component_op(
-      input_prefix='some prefix:')
+  component = component_op(input_prefix='some prefix:')
 
 
 if __name__ == '__main__':
-  compiler.Compiler().compile(my_pipeline, __file__ + '.json')
+  compiler.Compiler().compile(
+      pipeline_func=my_pipeline,
+      pipeline_root='dummy_root',
+      output_path=__file__ + '.json')

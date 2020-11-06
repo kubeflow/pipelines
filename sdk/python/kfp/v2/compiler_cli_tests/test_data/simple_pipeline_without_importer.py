@@ -53,12 +53,16 @@ implementation:
     - {inputPath: input_gcs_path}
 """)
 
+
 @dsl.pipeline(name='simple-two-step-pipeline')
-def simple_pipeline(text='Hello world!',):
+def my_pipeline(text='Hello world!',):
   component_1 = component_op_1(text=text)
   component_2 = component_op_2(
       input_gcs_path=component_1.outputs['output_gcs_path'])
 
 
 if __name__ == '__main__':
-  compiler.Compiler().compile(simple_pipeline, __file__ + '.json')
+  compiler.Compiler().compile(
+      pipeline_func=my_pipeline,
+      pipeline_root='dummy_root',
+      output_path=__file__ + '.json')

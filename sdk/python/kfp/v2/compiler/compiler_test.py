@@ -65,7 +65,10 @@ class CompilerTest(unittest.TestCase):
             input_value=producer.outputs['output_value'])
 
       target_json_file = os.path.join(tmpdir, 'result.json')
-      compiler.Compiler().compile(simple_pipeline, target_json_file)
+      compiler.Compiler().compile(
+          pipeline_func=simple_pipeline,
+          pipeline_root='dummy_root',
+          output_path=target_json_file)
 
       self.assertTrue(os.path.exists(target_json_file))
     finally:
@@ -114,7 +117,10 @@ class CompilerTest(unittest.TestCase):
         print_op('print2', flip2.outputs['results'])
 
     with self.assertRaises(NotImplementedError) as cm:
-      compiler.Compiler().compile(flipcoin, 'output.json')
+      compiler.Compiler().compile(
+          pipeline_func=flipcoin,
+          pipeline_root='dummy_root',
+          output_path='output.json')
 
     self.assertEqual('dsl.Condition is not yet supported in KFP v2 compiler.',
                      str(cm.exception))
@@ -157,7 +163,10 @@ class CompilerTest(unittest.TestCase):
         echo_task = echo_op(download_task.outputs['result'])
 
     with self.assertRaises(NotImplementedError) as cm:
-      compiler.Compiler().compile(download_and_print, 'output.json')
+      compiler.Compiler().compile(
+          pipeline_func=download_and_print,
+          pipeline_root='dummy_root',
+          output_path='output.json')
 
     self.assertEqual('dsl.ExitHandler is not yet supported in KFP v2 compiler.',
                      str(cm.exception))
@@ -177,7 +186,10 @@ class CompilerTest(unittest.TestCase):
         print_op(item.B_b)
 
     with self.assertRaises(NotImplementedError) as cm:
-      compiler.Compiler().compile(my_pipeline, 'output.json')
+      compiler.Compiler().compile(
+          pipeline_func=my_pipeline,
+          pipeline_root='dummy_root',
+          output_path='output.json')
 
     self.assertEqual('dsl.ParallelFor is not yet supported in KFP v2 compiler.',
                      str(cm.exception))
@@ -208,7 +220,10 @@ class CompilerTest(unittest.TestCase):
         step2_graph_component = echo2_graph_component(text2)
         step2_graph_component.after(step1_graph_component)
 
-      compiler.Compiler().compile(opsgroups_pipeline, 'output.json')
+      compiler.Compiler().compile(
+          pipeline_func=opsgroups_pipeline,
+          pipeline_root='dummy_root',
+          output_path='output.json')
 
     self.assertEqual(
         'dsl.graph_component is not yet supported in KFP v2 compiler.',

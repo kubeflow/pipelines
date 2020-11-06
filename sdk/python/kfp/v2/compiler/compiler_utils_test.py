@@ -72,6 +72,22 @@ class CompilerUtilsTest(unittest.TestCase):
         TypeError, 'Unsupported type "Dict" for argument "input1"'):
       compiler_utils.build_runtime_parameter_spec(pipeline_params)
 
+  def test_build_runtime_config_spec(self):
+    expected_dict = {
+        'gcsOutputDirectory': 'gs://path',
+        'parameters': {
+            'input1': {
+                'stringValue': 'test'
+            }
+        }
+    }
+    expected_spec = pipeline_spec_pb2.PipelineJob.RuntimeConfig()
+    json_format.ParseDict(expected_dict, expected_spec)
+
+    runtime_config = compiler_utils.build_runtime_config_spec(
+        'gs://path', {'input1': 'test'})
+    self.assertEqual(expected_spec, runtime_config)
+
 
 if __name__ == '__main__':
   unittest.main()
