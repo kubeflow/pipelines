@@ -1,5 +1,85 @@
 {
   "pipelineSpec": {
+    "sdkVersion": "kfp-1.1.0-dev20201106",
+    "tasks": [
+      {
+        "outputs": {
+          "artifacts": {
+            "model_output": {
+              "artifactType": {
+                "instanceSchema": "title: kfp.Model\ntype: object\nproperties:\n"
+              }
+            }
+          },
+          "parameters": {
+            "model_config": {
+              "type": "STRING"
+            }
+          }
+        },
+        "taskInfo": {
+          "name": "Trainer"
+        },
+        "inputs": {
+          "artifacts": {
+            "input_location": {
+              "producerTask": "Trainer_input_location_importer",
+              "outputArtifactKey": "result"
+            }
+          },
+          "parameters": {
+            "train_optimizer": {
+              "runtimeValue": {
+                "runtimeParameter": "optimizer"
+              }
+            },
+            "num_epochs": {
+              "runtimeValue": {
+                "runtimeParameter": "epochs"
+              }
+            }
+          }
+        },
+        "executorLabel": "Trainer"
+      },
+      {
+        "taskInfo": {
+          "name": "Serving"
+        },
+        "executorLabel": "Serving",
+        "inputs": {
+          "parameters": {
+            "model_cfg": {
+              "taskOutputParameter": {
+                "producerTask": "Trainer",
+                "outputParameterKey": "model_config"
+              }
+            }
+          },
+          "artifacts": {
+            "model": {
+              "outputArtifactKey": "model_output",
+              "producerTask": "Trainer"
+            }
+          }
+        }
+      },
+      {
+        "taskInfo": {
+          "name": "Trainer_input_location_importer"
+        },
+        "outputs": {
+          "artifacts": {
+            "result": {
+              "artifactType": {
+                "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
+              }
+            }
+          }
+        },
+        "executorLabel": "Trainer_input_location_importer"
+      }
+    ],
     "runtimeParameters": {
       "epochs": {
         "type": "INT",
@@ -8,19 +88,23 @@
         }
       },
       "optimizer": {
+        "type": "STRING",
         "defaultValue": {
           "stringValue": "sgd"
-        },
-        "type": "STRING"
+        }
       },
       "input_gcs": {
+        "type": "STRING",
         "defaultValue": {
           "stringValue": "gs://test-bucket/pipeline_root"
-        },
-        "type": "STRING"
+        }
       }
     },
+    "pipelineInfo": {
+      "name": "two-step-pipeline-with-importer"
+    },
     "deploymentConfig": {
+      "@type": "type.googleapis.com/ml_pipelines.PipelineDeploymentConfig",
       "executors": {
         "Trainer_input_location_importer": {
           "importer": {
@@ -30,17 +114,6 @@
             "artifactUri": {
               "runtimeParameter": "input_gcs"
             }
-          }
-        },
-        "Serving": {
-          "container": {
-            "image": "gcr.io/my-project/my-server",
-            "args": [
-              "--model-to-serve",
-              "{{$.inputs.artifacts['model'].uri}}",
-              "--model-config",
-              "{{$.inputs.parameters['model_cfg']}}"
-            ]
           }
         },
         "Trainer": {
@@ -59,94 +132,23 @@
               "{{$.outputs.parameters['model_config'].output_file}}"
             ]
           }
-        }
-      },
-      "@type": "type.googleapis.com/ml_pipelines.PipelineDeploymentConfig"
-    },
-    "pipelineInfo": {
-      "name": "two-step-pipeline-with-importer"
-    },
-    "tasks": [
-      {
-        "taskInfo": {
-          "name": "Trainer"
         },
-        "executorLabel": "Trainer",
-        "outputs": {
-          "parameters": {
-            "model_config": {
-              "type": "STRING"
-            }
-          },
-          "artifacts": {
-            "model_output": {
-              "artifactType": {
-                "instanceSchema": "title: kfp.Model\ntype: object\nproperties:\n"
-              }
-            }
-          }
-        },
-        "inputs": {
-          "parameters": {
-            "num_epochs": {
-              "runtimeValue": {
-                "runtimeParameter": "epochs"
-              }
-            },
-            "train_optimizer": {
-              "runtimeValue": {
-                "runtimeParameter": "optimizer"
-              }
-            }
-          },
-          "artifacts": {
-            "input_location": {
-              "producerTask": "Trainer_input_location_importer",
-              "outputArtifactKey": "result"
-            }
-          }
-        }
-      },
-      {
-        "inputs": {
-          "parameters": {
-            "model_cfg": {
-              "taskOutputParameter": {
-                "outputParameterKey": "model_config",
-                "producerTask": "Trainer"
-              }
-            }
-          },
-          "artifacts": {
-            "model": {
-              "outputArtifactKey": "model_output",
-              "producerTask": "Trainer"
-            }
-          }
-        },
-        "taskInfo": {
-          "name": "Serving"
-        },
-        "executorLabel": "Serving"
-      },
-      {
-        "executorLabel": "Trainer_input_location_importer",
-        "taskInfo": {
-          "name": "Trainer_input_location_importer"
-        },
-        "outputs": {
-          "artifacts": {
-            "result": {
-              "artifactType": {
-                "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
-              }
-            }
+        "Serving": {
+          "container": {
+            "image": "gcr.io/my-project/my-server",
+            "args": [
+              "--model-to-serve",
+              "{{$.inputs.artifacts['model'].uri}}",
+              "--model-config",
+              "{{$.inputs.parameters['model_cfg']}}"
+            ]
           }
         }
       }
-    ],
-    "sdkVersion": "kfp-1.1.0-alpha.1",
+    },
     "schemaVersion": "v2alpha1"
   },
-  "runtimeConfig": {}
+  "runtimeConfig": {
+    "gcsOutputDirectory": "dummy_root"
+  }
 }

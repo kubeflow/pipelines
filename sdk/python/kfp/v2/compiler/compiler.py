@@ -175,14 +175,14 @@ class Compiler(object):
   def _create_pipeline_job(
       self,
       pipeline_spec: pipeline_spec_pb2.PipelineSpec,
-      pipeline_root: Optional[str] = None,
+      pipeline_root: str,
       pipeline_parameters: Optional[Mapping[str, Any]] = None,
   ) -> pipeline_spec_pb2.PipelineJob:
     """Creates the pipeline job spec object.
 
     Args:
       pipeline_spec: The pipeline spec object.
-      pipeline_root: The root of the pipeline outputs. Optional.
+      pipeline_root: The root of the pipeline outputs.
       pipeline_parameters: The mapping from parameter names to values. Optional.
 
     Returns:
@@ -197,20 +197,20 @@ class Compiler(object):
 
   def compile(self,
               pipeline_func: Callable[..., Any],
+              pipeline_root: str,
               output_path: str,
-              type_check: bool = True,
               pipeline_name: Optional[str] = None,
-              pipeline_root: Optional[str] = None,
-              pipeline_parameters: Optional[Mapping[str, Any]] = None) -> None:
-    """Compile the given pipeline function into workflow yaml.
+              pipeline_parameters: Optional[Mapping[str, Any]] = None,
+              type_check: bool = True) -> None:
+    """Compile the given pipeline function into pipeline job json.
 
     Args:
       pipeline_func: Pipeline function with @dsl.pipeline decorator.
+      pipeline_root: The root of the pipeline ouputs.
       output_path: The output pipeline spec .json file path. for example,
         "~/a.json"
       type_check: Whether to enable the type check or not, default: True.
       pipeline_name: The name of the pipeline. Optional.
-      pipeline_root: The root of the pipeline ouputs. Optional.
       pipeline_parameters: The mapping from parameter names to values. Optional.
     """
     type_check_old_value = kfp.TYPE_CHECK

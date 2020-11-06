@@ -56,13 +56,13 @@ def build_runtime_parameter_spec(
 
 
 def build_runtime_config_spec(
-    pipeline_root: Optional[str] = None,
+    pipeline_root: str,
     pipeline_parameters: Optional[Mapping[str, Any]] = None,
 ) -> pipeline_spec_pb2.PipelineJob.RuntimeConfig:
   """Converts pipeine parameters to runtime parameters mapping.
 
   Args:
-    pipeline_root: The root of pipeline outputs. Optional.
+    pipeline_root: The root of pipeline outputs.
     pipeline_parameters: The mapping from parameter names to values. Optional.
 
   Returns:
@@ -70,7 +70,8 @@ def build_runtime_config_spec(
   """
 
   def _get_value(
-      value: Union[int, float, str]) -> Optional[pipeline_spec_pb2.Value]:
+      value: Optional[Union[int, float,
+                            str]]) -> Optional[pipeline_spec_pb2.Value]:
     if value is None:
       return None
 

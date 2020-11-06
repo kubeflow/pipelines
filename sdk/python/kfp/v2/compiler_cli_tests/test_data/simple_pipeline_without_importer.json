@@ -1,30 +1,10 @@
 {
   "pipelineSpec": {
-    "schemaVersion": "v2alpha1",
     "pipelineInfo": {
       "name": "simple-two-step-pipeline"
     },
-    "runtimeParameters": {
-      "text": {
-        "type": "STRING",
-        "defaultValue": {
-          "stringValue": "Hello world!"
-        }
-      }
-    },
-    "sdkVersion": "kfp-1.1.0-alpha.1",
     "tasks": [
       {
-        "executorLabel": "Write to GCS",
-        "outputs": {
-          "artifacts": {
-            "output_gcs_path": {
-              "artifactType": {
-                "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
-              }
-            }
-          }
-        },
         "inputs": {
           "parameters": {
             "text": {
@@ -36,21 +16,31 @@
         },
         "taskInfo": {
           "name": "Write to GCS"
+        },
+        "executorLabel": "Write to GCS",
+        "outputs": {
+          "artifacts": {
+            "output_gcs_path": {
+              "artifactType": {
+                "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
+              }
+            }
+          }
         }
       },
       {
-        "inputs": {
-          "artifacts": {
-            "input_gcs_path": {
-              "outputArtifactKey": "output_gcs_path",
-              "producerTask": "Write to GCS"
-            }
-          }
-        },
         "taskInfo": {
           "name": "Read from GCS"
         },
-        "executorLabel": "Read from GCS"
+        "executorLabel": "Read from GCS",
+        "inputs": {
+          "artifacts": {
+            "input_gcs_path": {
+              "producerTask": "Write to GCS",
+              "outputArtifactKey": "output_gcs_path"
+            }
+          }
+        }
       }
     ],
     "deploymentConfig": {
@@ -69,18 +59,30 @@
         },
         "Write to GCS": {
           "container": {
+            "image": "google/cloud-sdk:slim",
             "command": [
               "sh",
               "-c",
               "set -e -x\necho \"$0\" | gsutil cp - \"$1\"\n",
               "{{$.inputs.parameters['text']}}",
               "{{$.outputs.artifacts['output_gcs_path'].uri}}"
-            ],
-            "image": "google/cloud-sdk:slim"
+            ]
           }
         }
       }
-    }
+    },
+    "sdkVersion": "kfp-1.1.0-dev20201106",
+    "runtimeParameters": {
+      "text": {
+        "defaultValue": {
+          "stringValue": "Hello world!"
+        },
+        "type": "STRING"
+      }
+    },
+    "schemaVersion": "v2alpha1"
   },
-  "runtimeConfig": {}
+  "runtimeConfig": {
+    "gcsOutputDirectory": "dummy_root"
+  }
 }

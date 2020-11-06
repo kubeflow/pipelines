@@ -29,8 +29,10 @@ class CompilerCliTests(unittest.TestCase):
     tmpdir = tempfile.mkdtemp()
     try:
       target_json = os.path.join(tmpdir, file_base_name + '-pipeline.json')
-      subprocess.check_call(
-          ['dsl-compile-v2', '--py', py_file, '--output', target_json])
+      subprocess.check_call([
+          'dsl-compile-v2', '--py', py_file, '--pipeline-root', 'dummy_root',
+          '--output', target_json
+      ])
       with open(os.path.join(test_data_dir, file_base_name + '.json'),
                 'r') as f:
         golden = json.load(f)
