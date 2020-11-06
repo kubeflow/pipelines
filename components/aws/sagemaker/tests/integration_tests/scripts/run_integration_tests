@@ -118,7 +118,7 @@ function launch_eks() {
 
 function delete_eks() {
   time_unit=m
-  timeout=60
+  timeout=15
   retry_interval=5
   
   loop_counter=$timeout
