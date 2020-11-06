@@ -15,6 +15,7 @@
 package util
 
 import (
+	"fmt"
 	"math"
 	"strconv"
 	"testing"
@@ -330,6 +331,54 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_CronScheduleTimeZone(t *testing
 
 	assert.Equal(t, true, mustRunNow)
 	nextRun, err := time.Parse(time.RFC1123Z, "Mon, 02 Jan 2006 15:00:00 -0800")
+	assert.Nil(t, err)
+	assert.Equal(t, nextRun.Unix(), nextScheduledEpoch)
+}
+
+func TestScheduledWorkflow_GetNextScheduledEpoch_CronScheduleTimeZoneEndTime(t *testing.T) {
+	// This needs to be set since otherwise the local will be used which will differ between
+	// where the tests are run.
+	locationString := "America/Los_Angeles"
+	viper.Set(TimeZone, locationString)
+	defer viper.Set(TimeZone, "")
+
+	location, err := time.LoadLocation(locationString)
+	assert.Nil(t, err)
+	nowTime, err := time.Parse(time.RFC1123Z, "Mon, 02 Jan 2006 14:04:05 -0800")
+	assert.Nil(t, err)
+	nowEpoch := nowTime.Unix()
+
+	creationTime, err := time.Parse(time.RFC1123Z, "Mon, 01 Jan 2006 16:04:05 -0800")
+	assert.Nil(t, err)
+	creationTimestamp := metav1.NewTime(creationTime)
+
+	endTimestamp := metav1.NewTime(nowTime.Add(time.Second * 60 * 30))
+	fmt.Println(nowTime)
+	fmt.Println(nowTime.Add(time.Second * 60 * 30))
+	//catchUp := false
+	schedule := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		ObjectMeta: metav1.ObjectMeta{
+			CreationTimestamp: creationTimestamp,
+		},
+		Spec: swfapi.ScheduledWorkflowSpec{
+			Enabled: true,
+			//NoCatchup:      &catchUp,
+			MaxConcurrency: commonutil.Int64Pointer(int64(10)),
+			Trigger: swfapi.Trigger{
+				CronSchedule: &swfapi.CronSchedule{
+					Cron:    "* * 15 * * *",
+					EndTime: &endTimestamp,
+				},
+			},
+		},
+	})
+
+	// Must run later
+	nextScheduledEpoch, mustRunNow := schedule.GetNextScheduledEpoch(
+		int64(9) /* active workflow count */, nowEpoch, *location)
+
+	assert.Equal(t, false, mustRunNow)
+	nextRun := time.Unix(1<<63-62135596801, 999999999)
 	assert.Nil(t, err)
 	assert.Equal(t, nextRun.Unix(), nextScheduledEpoch)
 }

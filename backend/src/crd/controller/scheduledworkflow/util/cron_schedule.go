@@ -101,7 +101,7 @@ func (s *CronSchedule) getNextScheduledEpochImp(lastJobTime time.Time, catchup b
 	}
 
 	if endTime.Before(result) {
-		return math.MaxInt64
+		return time.Unix(1<<63-62135596801, 999999999).Unix()
 	}
 
 	// When we need to catch up with schedule, just run schedules one by one.
