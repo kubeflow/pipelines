@@ -18,14 +18,14 @@
       },
       "outputs": {
         "artifacts": {
-          "examples": {
-            "artifactType": {
-              "instanceSchema": "title: kfp.Dataset\ntype: object\nproperties:\n"
-            }
-          },
           "schema": {
             "artifactType": {
               "instanceSchema": "title: kfp.Schema\ntype: object\nproperties:\n"
+            }
+          },
+          "examples": {
+            "artifactType": {
+              "instanceSchema": "title: kfp.Dataset\ntype: object\nproperties:\n"
             }
           }
         }
@@ -38,25 +38,25 @@
       },
       "inputs": {
         "parameters": {
-          "n_epochs": {
-            "runtimeValue": {
-              "runtimeParameter": "n_epochs"
-            }
-          },
           "optimizer": {
             "runtimeValue": {
               "runtimeParameter": "optimizer"
             }
+          },
+          "n_epochs": {
+            "runtimeValue": {
+              "runtimeParameter": "n_epochs"
+            }
           }
         },
         "artifacts": {
-          "examples": {
-            "producerTask": "Ingestion",
-            "outputArtifactKey": "examples"
-          },
           "schema": {
             "producerTask": "Ingestion",
             "outputArtifactKey": "schema"
+          },
+          "examples": {
+            "producerTask": "Ingestion",
+            "outputArtifactKey": "examples"
           }
         }
       },
@@ -122,25 +122,25 @@
       }
     }
   },
-  "sdkVersion": "kfp-1.0.1dev",
+  "sdkVersion": "kfp-1.1.0-alpha.1",
   "schemaVersion": "v2alpha1",
   "runtimeParameters": {
-    "n_epochs": {
+    "input_location": {
       "type": "STRING",
       "defaultValue": {
-        "stringValue": "200"
+        "stringValue": "gs://test-bucket/pipeline_root"
+      }
+    },
+    "n_epochs": {
+      "type": "INT",
+      "defaultValue": {
+        "intValue": "200"
       }
     },
     "optimizer": {
       "type": "STRING",
       "defaultValue": {
         "stringValue": "sgd"
-      }
-    },
-    "input_location": {
-      "type": "STRING",
-      "defaultValue": {
-        "stringValue": "gs://test-bucket/pipeline_root"
       }
     }
   }
