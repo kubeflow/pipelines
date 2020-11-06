@@ -142,15 +142,18 @@ class Client(object):
     self._experiment_api = kfp_server_api.api.experiment_service_api.ExperimentServiceApi(api_client)
     self._pipelines_api = kfp_server_api.api.pipeline_service_api.PipelineServiceApi(api_client)
     self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
-    if self._context_setting['namespace'] == "" and self.get_kfp_healthz().get('multi_user') is True:
-      NAMESPACE_PATH = '/var/run/secrets/kubernetes.io/serviceaccount/namespace'
-      try:
-        with open(NAMESPACE_PATH, 'r') as f:
-          current_namespace = f.read()
-          self.set_user_namespace(current_namespace)
-      except:
-        print('Failed to automatically set namespace.')
-        pass
+    if self._context_setting['namespace'] == '':
+      if 'multi_user' not in self.get_kfp_healthz():
+        print('API server not up to date: key "multi_user" not found')
+      elif self.get_kfp_healthz().get('multi_user') is True:
+        NAMESPACE_PATH = '/var/run/secrets/kubernetes.io/serviceaccount/namespace'
+        try:
+          with open(NAMESPACE_PATH, 'r') as f:
+            current_namespace = f.read()
+            self.set_user_namespace(current_namespace)
+        except:
+          print('Failed to automatically set namespace.')
+          pass
 
   def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy, ssl_ca_cert, kube_context):
     config = kfp_server_api.configuration.Configuration()
@@ -303,7 +306,10 @@ class Client(object):
     healthz_api = 'http://' + self._existing_config.host + '/' + Client.HEALTH_PATH
     r = requests.get(healthz_api)
     r.raise_for_status()
-    response = r.json()
+    try:
+      response = r.json()
+    except ValueError:
+      print('No JSON returned.')
     return response
 
   def get_user_namespace(self):
