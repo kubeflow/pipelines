@@ -27,6 +27,8 @@ It performs the following workflow:
 
 ## Prerequisites
 
+Ensure Kubeflow has been installed on AKS following [instructions for deploying Kubeflow on Azure](https://www.kubeflow.org/docs/azure/).
+
 Azure Machine Learning service will be used to deploy the model, store the metadata and manage the active deployment. To create a Machine Learning Service workspace: 1. Go to [the Azure portal](https://portal.azure.com) and click on your resource group. 2. Select the **add a new resource** option. 3. Search for **Machine Learning Studio Workspace** and use the default options, taking note of the name you decide for it.
 
 You need to create a [container registry](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-intro) to store those images in the cloud so that Kubeflow can pull the images as they are needed. [See here](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-get-started-portal) for step-by-step guidance to create an Azure Container Registry. Please ensure enable **admin user**, and change the SKU option to **Premium**.
@@ -34,15 +36,23 @@ You need to create a [container registry](https://docs.microsoft.com/en-us/azure
 In order for the AKS cluster to have access to pulling images created for execution of the pipeline, you will need to [update](https://docs.microsoft.com/en-us/azure/aks/cluster-container-registry-integration) your cluster so that it is able to pull the images from the container registry we just created by running:
 
 ```shell
-az aks update -n <myAKSCluster> -g <MyResourceGroup> --attach-acr <REGISTRY_NAME>
+az aks update -n {myAKSCluster} -g {MyResourceGroup} --attach-acr {REGISTRY_NAME}
 ```
 
 A service principal is used to allow your pipeline to securely interface with your Azure services without having to directly login in the pipeline and use admin privileges. See [here](https://docs.microsoft.com/en-us/powerapps/developer/common-data-service/walkthrough-register-app-azure-active-directory) for a detailed guide to create a service principal. Also please ensure to add a **Contributor** role to the service principal to be able access Azure resources.
 
 ## Usage
-In `./src` folder, adjust pre-configured `inferenceconfig.json`, `deploymentconfig.json`, and `environment.yml` to adjust your needs to specify the resources for deployment like the compute type, number of cores etc. `score.py` is the entry script for inference, where `init()` and `run(data)` are the functions to edit to use the model. See here for [a detailed instruction on constructing the entry script](https://docs.microsoft.com/en-us/azure/machine-learning/how-to-deploy-and-where?tabs=azcli). If additional pip packages are used for `score.py`, please ensure them being added to `environment.yml`. In the end, build and push the image to Container Registry, the pipeline operation will directly pull the image from ACR.
+In `./src` folder, adjust pre-configured `inferenceconfig.json`, `deploymentconfig.json`, and `environment.yml` to specify the resources for deployment like the compute type, number of cores etc. `score.py` is the entry script for inference, where `init()` and `run(data)` are the functions to be *edited* to use the model. See here for [a detailed instruction on constructing the entry script](https://docs.microsoft.com/en-us/azure/machine-learning/how-to-deploy-and-where?tabs=azcli). If additional pip packages are used for `score.py`, please ensure them being added to `environment.yml`. In the end, build and push the image to the Container Registry, the pipeline operation will directly pull the image from ACR.
 
-An example usage for the component is provided in the `compile_pipeline.py` file. It is a single operation pipeline to use this component and `use_azure_secret` function from `kfp.azure`. You can also provide service principal parameters as pipeline parameters. 
+A sample script to build and push the image:
+
+```shell
+docker build . -t {your_ACR_name}.azurecr.io/deploy/{your_image_name}:latest
+docker push {your_ACR_name}.azurecr.io/deploy/{your_image_name}:latest
+```
+
+
+An example usage for the component is provided in the `compile_pipeline.py` file. It is a single-operation pipeline to use this component and `use_azure_secret` function from `kfp.azure`. You can also provide service principal parameters as pipeline parameters. 
 
 ```
 @dsl.pipeline(
@@ -72,3 +82,5 @@ if __name__ == '__main__':
 ```
 
 **Note:** The deployment name requires alphanumeric characters and the model_name shall be a combination of "model name" and "version number".
+
+Once the deployment has finished, navigate to your Azure Machine Learning Workspace and select the `Endpoints` tab to find your Real-Time endpoints. You can access your model as a web-service by the `REST endpoint`. It should look like "http://{your_rest_endpoint}.{region}.azurecontainer.io/score?{your_data}".
