@@ -20,7 +20,7 @@ import json
 import click
 import shutil
 
-from .output import print_output
+from .output import print_output, OutputFormat
 
 
 @click.group()
@@ -41,7 +41,11 @@ def list(ctx, experiment_id, max_size):
     if response and response.runs:
         _print_runs(response.runs, output_format)
     else:
-        print('No runs found.')
+        if output_format == OutputFormat.json.name:
+            msg = json.dumps([])
+        else:
+            msg = 'No runs found.'
+        print(msg)
 
 
 @run.command()

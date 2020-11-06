@@ -3,6 +3,42 @@ syntax = "proto3";
 package ml_pipelines;
 
 import "google/protobuf/any.proto";
+import "google/protobuf/struct.proto";
+
+// The spec of a pipeline job.
+message pipelineJob {
+  string name = 1;  // Name of the job.
+
+  // User friendly display name
+  string display_name = 2;
+
+  reserved 3, 4, 5, 6;
+
+  // Definition of the pipeline that is being executed.
+  google.protobuf.Struct pipeline_spec = 7;
+
+  reserved 8, 9, 10;
+
+  // The labels with user-defined metadata to organize PipelineJob.
+  map<string, string> labels = 11;
+
+  // The runtime config of a PipelineJob.
+  message RuntimeConfig {
+    // The runtime parameters of the PipelineJob. The parameters will be
+    // passed into [PipelineJob.pipeline_spec][] to replace the placeholders
+    // at runtime.
+    map<string, Value> parameters = 1;
+
+    // A path in a Cloud Storage bucket which will be treated as the root
+    // output directory of the pipeline. It is used by the system to
+    // generate the paths of output artifacts.
+    // This is a GCP-specific optimization.
+    string gcs_output_directory = 2;
+  }
+
+  // Runtime config of the pipeline.
+  RuntimeConfig runtime_config = 12;
+}
 
 // The spec of a pipeline.
 message PipelineSpec {

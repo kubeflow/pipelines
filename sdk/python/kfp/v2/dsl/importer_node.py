@@ -37,11 +37,9 @@ def build_importer_spec(
   Returns:
     An importer spec.
   """
-  assert (
-      bool(pipeline_param_name) != bool(constant_value),
-      'importer spec should be built using either pipeline_param_name or'
-      'constant_value.'
-  )
+  assert bool(pipeline_param_name) != bool(constant_value), (
+      'importer spec should be built using either pipeline_param_name or '
+      'constant_value.')
   importer_spec = pipeline_spec_pb2.PipelineDeploymentConfig.ImporterSpec()
   importer_spec.type_schema.instance_schema = input_type_schema
   if pipeline_param_name:
