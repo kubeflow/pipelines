@@ -18,7 +18,6 @@ import kfp
 from kfp.v2 import dsl
 import kfp.v2.compiler as compiler
 
-
 test_data_dir = pathlib.Path(__file__).parent / 'component_yaml'
 trainer_op = kfp.components.load_component_from_file(
     str(test_data_dir / 'trainer_component.yaml'))
@@ -40,4 +39,7 @@ def my_pipeline(input_gcs='gs://test-bucket/pipeline_root',
 
 
 if __name__ == '__main__':
-  compiler.Compiler().compile(my_pipeline, __file__ + '.json')
+  compiler.Compiler().compile(
+      pipeline_func=my_pipeline,
+      pipeline_root='dummy_root',
+      output_path=__file__ + '.json')

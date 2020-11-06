@@ -13,7 +13,7 @@
 # limitations under the License.
 """KFP v2 DSL compiler utility functions."""
 
-from typing import List, Mapping
+from typing import Any, List, Mapping, Optional, Union
 from kfp.v2 import dsl
 from kfp.v2.proto import pipeline_spec_pb2
 
@@ -29,6 +29,7 @@ def build_runtime_parameter_spec(
   Returns:
     A map of pipeline parameter name to its runtime parameter message.
   """
+
   def to_message(param: dsl.PipelineParam):
     result = pipeline_spec_pb2.PipelineSpec.RuntimeParameter()
     if param.param_type == 'Integer' or (param.param_type is None and
@@ -52,3 +53,41 @@ def build_runtime_parameter_spec(
     return result
 
   return {param.name: to_message(param) for param in pipeline_params}
+
+
+def build_runtime_config_spec(
+    pipeline_root: str,
+    pipeline_parameters: Optional[Mapping[str, Any]] = None,
+) -> pipeline_spec_pb2.PipelineJob.RuntimeConfig:
+  """Converts pipeine parameters to runtime parameters mapping.
+
+  Args:
+    pipeline_root: The root of pipeline outputs.
+    pipeline_parameters: The mapping from parameter names to values. Optional.
+
+  Returns:
+    A pipeline job RuntimeConfig object.
+  """
+
+  def _get_value(
+      value: Optional[Union[int, float,
+                            str]]) -> Optional[pipeline_spec_pb2.Value]:
+    if value is None:
+      return None
+
+    result = pipeline_spec_pb2.Value()
+    if isinstance(value, int):
+      result.int_value = value
+    elif isinstance(value, float):
+      result.double_value = value
+    elif isinstance(value, str):
+      result.string_value = value
+    else:
+      raise TypeError('Got unknown type of value: {}'.format(value))
+
+    return result
+
+  parameter_values = pipeline_parameters or {}
+  return pipeline_spec_pb2.PipelineJob.RuntimeConfig(
+      gcs_output_directory=pipeline_root,
+      parameters={k: _get_value(v) for k, v in parameter_values.items()})
