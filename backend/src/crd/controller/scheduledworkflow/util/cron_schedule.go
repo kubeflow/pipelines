@@ -15,7 +15,6 @@
 package util
 
 import (
-	"math"
 	"time"
 
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
@@ -83,7 +82,7 @@ func (s *CronSchedule) getNextScheduledEpochImp(lastJobTime time.Time, catchup b
 		// This should never happen, validation should have caught this at resource creation.
 		log.Errorf("%+v", wraperror.Errorf(
 			"Found invalid schedule (%v): %v", s.Cron, err))
-		return math.MaxInt64
+		return time.Unix(1<<63-62135596801, 999999999).Unix()
 	}
 
 	startTime := lastJobTime
