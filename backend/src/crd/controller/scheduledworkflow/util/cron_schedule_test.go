@@ -15,7 +15,6 @@
 package util
 
 import (
-	"math"
 	"testing"
 	"time"
 
@@ -51,7 +50,7 @@ func TestCronSchedule_getNextScheduledEpoch_Cron_StartDate_EndDate(t *testing.T)
 
 	// Last job
 	lastJobEpoch = int64(13 * hour)
-	assert.Equal(t, int64(math.MaxInt64),
+	assert.Equal(t, time.Unix(1<<63-62135596801, 999999999).Unix(),
 		schedule.getNextScheduledEpoch(time.Unix(lastJobEpoch, 0).UTC(), location))
 
 }
@@ -86,7 +85,7 @@ func TestCronSchedule_getNextScheduledEpoch_InvalidCron(t *testing.T) {
 	})
 	lastJobEpoch := int64(0)
 	location, _ := time.LoadLocation("UTC")
-	assert.Equal(t, int64(math.MaxInt64),
+	assert.Equal(t, time.Unix(1<<63-62135596801, 999999999).Unix(),
 		schedule.getNextScheduledEpoch(time.Unix(lastJobEpoch, 0).UTC(), location))
 }
 
@@ -130,7 +129,6 @@ func TestCronSchedule_GetNextScheduledEpoch_LocationsEnvSet(t *testing.T) {
 	assert.Nil(t, err)
 	lastJob, err := time.Parse(time.RFC1123Z, "Mon, 11 Jan 2010 10:20:00 +0800")
 	assert.Nil(t, err)
-
 	defaultStartTime, err := time.Parse(time.RFC1123Z, "Mon, 11 Jan 2010 10:15:00 +0800")
 	defaultStartTime = defaultStartTime.In(location)
 	schedule := NewCronSchedule(&swfapi.CronSchedule{
