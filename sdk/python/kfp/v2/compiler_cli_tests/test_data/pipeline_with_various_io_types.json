@@ -214,7 +214,7 @@
             "{{$.inputs.artifacts['input_8'].uri}}",
             "{{$.outputs.parameters['output_1'].output_file}}",
             "{{$.outputs.artifacts['output_2'].uri}}",
-            "{{$.outputs.artifacts['output_3'].uri}}"
+            "{{$.outputs.artifacts['output_3'].path}}"
           ]
         }
       },
@@ -234,7 +234,7 @@
           "args": [
             "{{$.inputs.parameters['input_a']}}",
             "{{$.inputs.artifacts['input_b'].uri}}",
-            "{{$.inputs.artifacts['input_c'].uri}}"
+            "{{$.inputs.artifacts['input_c'].path}}"
           ]
         }
       },

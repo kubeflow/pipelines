@@ -47,7 +47,7 @@ implementation:
     - {inputUri: input_8}
     - {outputPath: output_1}
     - {outputUri: output_2}
-    - {outputUri: output_3}
+    - {outputPath: output_3}
 """)
 
 component_op_2 = components.load_component_from_text("""
@@ -62,7 +62,7 @@ implementation:
     args:
     - {inputValue: input_a}
     - {inputUri: input_b}
-    - {inputUri: input_c}
+    - {inputPath: input_c}
 """)
 
 
