@@ -251,6 +251,27 @@ class CompilerTest(unittest.TestCase):
         ' type "String" cannot be paired with InputPathPlaceholder.'):
       compiler.Compiler().compile(my_pipeline, 'output.json')
 
+  def test_compile_pipeline_with_misused_inputuri_should_raise_error(self):
+
+    component_op = components.load_component_from_text("""
+        name: compoent with misused placeholder
+        inputs:
+        - {name: value, type: Float}
+        implementation:
+          container:
+            image: dummy
+            args:
+            - {inputUri: value}
+        """)
+
+    def my_pipeline(value):
+      component_op(value=value)
+
+    with self.assertRaisesRegex(
+        TypeError,
+        ' type "Float" cannot be paired with InputUriPlaceholder.'):
+      compiler.Compiler().compile(my_pipeline, 'output.json')
+
   def test_compile_pipeline_with_misused_outputuri_should_raise_error(self):
 
     component_op = components.load_component_from_text("""
