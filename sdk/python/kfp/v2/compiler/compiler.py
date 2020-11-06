@@ -209,9 +209,9 @@ class Compiler(object):
       pipeline_root: The root of the pipeline ouputs.
       output_path: The output pipeline spec .json file path. for example,
         "~/a.json"
-      type_check: Whether to enable the type check or not, default: True.
       pipeline_name: The name of the pipeline. Optional.
       pipeline_parameters: The mapping from parameter names to values. Optional.
+      type_check: Whether to enable the type check or not, default: True.
     """
     type_check_old_value = kfp.TYPE_CHECK
     try:

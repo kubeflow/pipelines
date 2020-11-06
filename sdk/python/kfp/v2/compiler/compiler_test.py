@@ -67,7 +67,7 @@ class CompilerTest(unittest.TestCase):
       target_json_file = os.path.join(tmpdir, 'result.json')
       compiler.Compiler().compile(
           pipeline_func=simple_pipeline,
-          pipeline_root='duumy_root',
+          pipeline_root='dummy_root',
           output_path=target_json_file)
 
       self.assertTrue(os.path.exists(target_json_file))
