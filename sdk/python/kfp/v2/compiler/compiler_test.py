@@ -17,8 +17,8 @@ import shutil
 import tempfile
 import unittest
 
-from kfp.v2 import components
 from kfp.v2 import compiler
+from kfp.v2 import components
 from kfp.v2 import dsl
 
 

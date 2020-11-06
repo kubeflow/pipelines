@@ -16,8 +16,9 @@
 from typing import Callable, Text
 
 from kfp import dsl
-from kfp.v2.proto import pipeline_spec_pb2
 from kfp.v2.components import structures
+from kfp.v2.proto import pipeline_spec_pb2
+
 
 # Unit constants for k8s size string.
 _E = 10**18  # Exa
@@ -219,12 +220,10 @@ class ContainerOp(dsl.ContainerOp):
 
   # Override _set_metadata to use v2 ComponentSpec
   def _set_metadata(self, metadata):
-    """Passes the ContainerOp the metadata information
+    """Passes the ContainerOp the metadata information and configures the right output.
 
-        and configures the right output
-
-        Args:
-          metadata (ComponentSpec): component metadata
+    Args:
+      metadata (ComponentSpec): component metadata
     """
     if not isinstance(metadata, structures.ComponentSpec):
       raise ValueError('_set_metadata is expecting ComponentSpec.')

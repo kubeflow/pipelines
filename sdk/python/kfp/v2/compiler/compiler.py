@@ -23,8 +23,8 @@ from typing import Any, Callable, List, Optional
 
 import kfp
 from kfp.compiler._k8s_helper import sanitize_k8s_name
-from kfp.v2.components import python_op
 from kfp.v2 import dsl
+from kfp.v2.components import python_op
 from kfp.v2.dsl import importer_node
 from kfp.v2.dsl import type_utils
 from kfp.v2.proto import pipeline_spec_pb2

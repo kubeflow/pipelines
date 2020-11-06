@@ -13,17 +13,16 @@
 # limitations under the License.
 """Function for creating ContainerOp instances from component spec."""
 
-import collections
 import copy
 from typing import Any, Mapping
 
 from kfp import dsl
-from kfp.v2.components import structures
-from kfp.v2.components.components import _default_component_name
-from kfp.v2.components.components import _resolve_command_line_and_paths
 from kfp.components._naming import _sanitize_python_function_name
 from kfp.components._naming import generate_unique_name_conversion_table
 from kfp.dsl import types
+from kfp.v2.components import structures
+from kfp.v2.components.components import _default_component_name
+from kfp.v2.components.components import _resolve_command_line_and_paths
 from kfp.v2.dsl import container_op
 from kfp.v2.dsl import importer_node
 from kfp.v2.dsl import type_utils
