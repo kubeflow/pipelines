@@ -117,7 +117,24 @@ function launch_eks() {
 }
 
 function delete_eks() {
-  eksctl delete cluster --name "${EKS_CLUSTER_NAME}" --region "${REGION}"
+  time_unit=m
+  timeout=15
+  retry_interval=5
+  
+  loop_counter=$timeout
+  while [ "$loop_counter" -gt "0" ]; do
+    eksctl delete cluster --name "$EKS_CLUSTER_NAME" --region "$REGION" --wait
+    if [ $? -eq 0 ]; then
+      echo "EKS cluster deleted"
+      return 0
+    fi
+    echo "Failed to delete EKS cluster. Retrying after ${retry_interval}${time_unit}"
+    loop_counter=$(($loop_counter-$retry_interval))
+    sleep "${retry_interval}${time_unit}"
+  done
+
+  echo "Failed to delete EKS cluster even after trying for ${timeout}${time_unit}"
+  return 1
 }
 
 function install_kfp() {
