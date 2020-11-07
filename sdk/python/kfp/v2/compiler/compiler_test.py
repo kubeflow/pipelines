@@ -243,7 +243,10 @@ class CompilerTest(unittest.TestCase):
     with self.assertRaisesRegex(
         TypeError,
         ' type "Model" cannot be paired with InputValuePlaceholder.'):
-      compiler.Compiler().compile(my_pipeline, 'output.json')
+      compiler.Compiler().compile(
+          pipeline_func=my_pipeline,
+          pipeline_root='dummy',
+          output_path='output.json')
 
   def test_compile_pipeline_with_misused_inputpath_should_raise_error(self):
 
@@ -264,7 +267,10 @@ class CompilerTest(unittest.TestCase):
     with self.assertRaisesRegex(
         TypeError,
         ' type "String" cannot be paired with InputPathPlaceholder.'):
-      compiler.Compiler().compile(my_pipeline, 'output.json')
+      compiler.Compiler().compile(
+          pipeline_func=my_pipeline,
+          pipeline_root='dummy',
+          output_path='output.json')
 
   def test_compile_pipeline_with_misused_inputuri_should_raise_error(self):
 
@@ -285,7 +291,10 @@ class CompilerTest(unittest.TestCase):
     with self.assertRaisesRegex(
         TypeError,
         ' type "Float" cannot be paired with InputUriPlaceholder.'):
-      compiler.Compiler().compile(my_pipeline, 'output.json')
+      compiler.Compiler().compile(
+          pipeline_func=my_pipeline,
+          pipeline_root='dummy',
+          output_path='output.json')
 
   def test_compile_pipeline_with_misused_outputuri_should_raise_error(self):
 
@@ -306,7 +315,10 @@ class CompilerTest(unittest.TestCase):
     with self.assertRaisesRegex(
         TypeError,
         ' type "Integer" cannot be paired with OutputUriPlaceholder.'):
-      compiler.Compiler().compile(my_pipeline, 'output.json')
+      compiler.Compiler().compile(
+          pipeline_func=my_pipeline,
+          pipeline_root='dummy',
+          output_path='output.json')
 
   def test_compile_pipeline_with_outputpath_should_warn(self):
 
