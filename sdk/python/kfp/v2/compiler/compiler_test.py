@@ -65,7 +65,10 @@ class CompilerTest(unittest.TestCase):
             input_value=producer.outputs['output_value'])
 
       target_json_file = os.path.join(tmpdir, 'result.json')
-      compiler.Compiler().compile(simple_pipeline, target_json_file)
+      compiler.Compiler().compile(
+          pipeline_func=simple_pipeline,
+          pipeline_root='dummy_root',
+          output_path=target_json_file)
 
       self.assertTrue(os.path.exists(target_json_file))
     finally:
@@ -116,7 +119,10 @@ class CompilerTest(unittest.TestCase):
     with self.assertRaisesRegex(
         NotImplementedError,
         'dsl.Condition is not yet supported in KFP v2 compiler.'):
-      compiler.Compiler().compile(flipcoin, 'output.json')
+      compiler.Compiler().compile(
+          pipeline_func=flipcoin,
+          pipeline_root='dummy_root',
+          output_path='output.json')
 
   def test_compile_pipeline_with_dsl_exithandler_should_raise_error(self):
 
@@ -158,7 +164,10 @@ class CompilerTest(unittest.TestCase):
     with self.assertRaisesRegex(
         NotImplementedError,
         'dsl.ExitHandler is not yet supported in KFP v2 compiler.'):
-      compiler.Compiler().compile(download_and_print, 'output.json')
+      compiler.Compiler().compile(
+          pipeline_func=download_and_print,
+          pipeline_root='dummy_root',
+          output_path='output.json')
 
   def test_compile_pipeline_with_dsl_parallelfor_should_raise_error(self):
 
@@ -177,7 +186,10 @@ class CompilerTest(unittest.TestCase):
     with self.assertRaisesRegex(
         NotImplementedError,
         'dsl.ParallelFor is not yet supported in KFP v2 compiler.'):
-      compiler.Compiler().compile(my_pipeline, 'output.json')
+      compiler.Compiler().compile(
+          pipeline_func=my_pipeline,
+          pipeline_root='dummy_root',
+          output_path='output.json')
 
   def test_compile_pipeline_with_dsl_graph_component_should_raise_error(self):
 
@@ -207,7 +219,10 @@ class CompilerTest(unittest.TestCase):
         step2_graph_component = echo2_graph_component(text2)
         step2_graph_component.after(step1_graph_component)
 
-      compiler.Compiler().compile(opsgroups_pipeline, 'output.json')
+      compiler.Compiler().compile(
+          pipeline_func=opsgroups_pipeline,
+          pipeline_root='dummy_root',
+          output_path='output.json')
 
   def test_compile_pipeline_with_misused_inputvalue_should_raise_error(self):
 
