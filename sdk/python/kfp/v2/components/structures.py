@@ -389,7 +389,7 @@ class ComponentSpec(ModelBase):
     It can be shared online and later loaded using the load_component
     function.
     """
-    from ._yaml_utils import dump_yaml
+    from kfp.components._yaml_utils import dump_yaml
     component_yaml = dump_yaml(self.to_dict())
     with open(file_path, 'w') as f:
       f.write(component_yaml)
