@@ -14,17 +14,13 @@
 
 __all__ = [
     'create_component_from_func',
-    'func_to_container_op',
-    'func_to_component_text',
     'default_base_image_or_builder',
-    'InputUri',
+    'func_to_component_text',
+    'func_to_container_op',
     'InputPath',
-    'InputTextFile',
-    'InputBinaryFile',
-    'OutputUri',
+    'InputUri',
     'OutputPath',
-    'OutputTextFile',
-    'OutputBinaryFile',
+    'OutputUri',
 ]
 
 import inspect
@@ -66,32 +62,6 @@ class InputPath:
     self.type = type
 
 
-class InputTextFile:
-  """InputTextFile annotation type.
-
-  When creating component from function, :class:`.InputTextFile` should be used
-  as function parameter annotation to tell the system to pass the *text data
-  stream* object (`io.TextIOWrapper`) to the function instead of passing the
-  actual data.
-  """
-
-  def __init__(self, type=None):
-    self.type = type
-
-
-class InputBinaryFile:
-  """InputBinaryFile annotation type.
-
-  When creating component from function, :class:`.InputBinaryFile` should be
-  used as function parameter annotation to tell the system to pass the *binary
-  data stream* object (`io.BytesIO`) to the function instead of passing the
-  actual data.
-  """
-
-  def __init__(self, type=None):
-    self.type = type
-
-
 class OutputUri:
   """OuputUri annotation type.
 
@@ -112,32 +82,6 @@ class OutputPath:
   function parameter annotation to tell the system that the function wants to
   output data by writing it into a file with the given path instead of returning
   the data from the function.
-  """
-
-  def __init__(self, type=None):
-    self.type = type
-
-
-class OutputTextFile:
-  """OuputTextFile annotation type.
-
-  When creating component from function, :class:`.OutputTextFile` should be used
-  AS8 function parameter annotation to tell the system that the function wants
-  to output data by writing it into a given text file stream
-  (`io.TextIOWrapper`) instead of returning the data from the function.
-  """
-
-  def __init__(self, type=None):
-    self.type = type
-
-
-class OutputBinaryFile:
-  """OutputBinaryFile annotation type.
-
-  When creating component from function, :class:`.OutputBinaryFile` should be
-  used as function parameter annotation to tell the system that the function
-  wants to output data by writing it into a given binary file stream
-  (:code:`io.BytesIO`) instead of returning the data from the function.
   """
 
   def __init__(self, type=None):
@@ -384,8 +328,7 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
     passing_style = None
     io_name = parameter.name
     if isinstance(parameter_annotation,
-                  (InputUri, InputPath, InputTextFile, InputBinaryFile,
-                   OutputUri, OutputPath, OutputTextFile, OutputBinaryFile)):
+                  (InputUri, InputPath, OutputUri, OutputPath)):
       passing_style = type(parameter_annotation)
       parameter_annotation = parameter_annotation.type
       if parameter.default is not inspect.Parameter.empty and not (
@@ -406,8 +349,7 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
     type_struct = annotation_to_type_struct(parameter_annotation)
     #TODO: Humanize the input/output names
 
-    if isinstance(parameter.annotation,
-                  (OutputUri, OutputPath, OutputTextFile, OutputBinaryFile)):
+    if isinstance(parameter.annotation, (OutputUri, OutputPath)):
       io_name = _make_name_unique_by_adding_index(io_name, output_names, '_')
       output_names.add(io_name)
       output_spec = OutputSpec(
@@ -598,26 +540,11 @@ def _func_to_component_spec(func,
 
     if passing_style in (InputPath, InputUri, OutputUri):
       return 'str'
-    elif passing_style is InputTextFile:
-      return "argparse.FileType('rt')"
-    elif passing_style is InputBinaryFile:
-      return "argparse.FileType('rb')"
-    # For Output* we cannot use the build-in argparse.FileType objects since they do not create parent directories.
     elif passing_style is OutputPath:
       # ~= return 'str'
       pre_func_definitions.add(
           inspect.getsource(_make_parent_dirs_and_return_path))
       return _make_parent_dirs_and_return_path.__name__
-    elif passing_style is OutputTextFile:
-      # ~= return "argparse.FileType('wt')"
-      pre_func_definitions.add(
-          inspect.getsource(_parent_dirs_maker_that_returns_open_file))
-      return _parent_dirs_maker_that_returns_open_file.__name__ + "('wt')"
-    elif passing_style is OutputBinaryFile:
-      # ~= return "argparse.FileType('wb')"
-      pre_func_definitions.add(
-          inspect.getsource(_parent_dirs_maker_that_returns_open_file))
-      return _parent_dirs_maker_that_returns_open_file.__name__ + "('wb')"
     raise NotImplementedError('Unexpected data passing style: "{}".'.format(
         str(passing_style)))
 
@@ -667,11 +594,11 @@ def _func_to_component_spec(func,
     )
     arg_parse_code_lines.append(line)
 
-    if input._passing_style in [InputPath, InputTextFile, InputBinaryFile]:
+    if input._passing_style in [InputPath]:
       arguments_for_input = [param_flag, InputPathPlaceholder(input.name)]
     elif input._passing_style is InputUri:
       arguments_for_input = [param_flag, InputUriPlaceholder(input.name)]
-    elif input._passing_style in [OutputPath, OutputTextFile, OutputBinaryFile]:
+    elif input._passing_style in [OutputPath]:
       arguments_for_input = [param_flag, OutputPathPlaceholder(input.name)]
     elif input._passing_style is OutputUri:
       arguments_for_input = [param_flag, OutputUriPlaceholder(input.name)]
