@@ -12,13 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.components._python_op import create_component_from_func
-from kfp.components import _naming
-from kfp.components._python_to_graph_component import *
-from kfp.components._component_store import *
-from kfp.components.structures import ExecutionOptionsSpec
-from kfp.components.structures import CachingStrategySpec
-
 from kfp.v2.components.python_op import *
 from kfp.v2.components.components import *
 from kfp.v2.components.structures import *
