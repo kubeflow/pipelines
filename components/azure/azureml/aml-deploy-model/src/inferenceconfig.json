@@ -1,7 +1,7 @@
 {
-    "entryScript": "/scripts/score.py",
+    "entryScript": "/src/score.py",
     "runtime": "python",
-    "condaFile": "/scripts/environment.yml",
+    "condaFile": "/src/environment.yml",
     "extraDockerfileSteps": null,
     "sourceDirectory": null,
     "enableGpu": false,

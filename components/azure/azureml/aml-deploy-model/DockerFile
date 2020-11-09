@@ -1,9 +1,9 @@
 FROM mcr.microsoft.com/azure-cli
 RUN az extension add -n azure-cli-ml
 RUN pip install --upgrade pip
-COPY src/deploymentconfig.json /scripts/deploymentconfig.json
-COPY src/inferenceconfig.json /scripts/inferenceconfig.json
-COPY src/deploy.sh /scripts/deploy.sh
-COPY src/score.py /scripts/score.py
-COPY src/environment.yml /scripts/environment.yml
+COPY src/deploymentconfig.json /src/deploymentconfig.json
+COPY src/inferenceconfig.json /src/inferenceconfig.json
+COPY src/deploy.sh /src/deploy.sh
+COPY src/score.py /src/score.py
+COPY src/environment.yml /src/environment.yml
 CMD bash

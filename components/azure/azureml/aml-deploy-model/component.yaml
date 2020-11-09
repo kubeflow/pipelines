@@ -3,14 +3,16 @@ description: A Kubeflow Pipeline Component to deploy registered model to Azure M
 inputs:
 - {name: deployment_name, type: String}
 - {name: model_name, type: String}
-- {name: inference_config, type: String}
-- {name: deployment_config, type: String}
+- {name: inference_config, type: String, default: 'src/inferenceconfig.json', optional: true}
+- {name: deployment_config, type: String, default: 'src/deploymentconfig.json', optional: true}
 - {name: tenant_id, type: String}
 - {name: service_principal_id, type: String}
 - {name: service_principal_password, type: String}
 - {name: subscription_id, type: String}
 - {name: resource_group, type: String}
 - {name: workspace, type: String}
+outputs:
+- {name: output_config, type: String, description: 'Description of the deployed web-service'}
 implementation:
   container:
     image: ''
@@ -25,5 +27,6 @@ implementation:
       '-u', {inputValue: subscription_id},
       '-r', {inputValue: resource_group},
       '-w', {inputValue: workspace},
-      '-t', {inputValue: tenant_id}
+      '-t', {inputValue: tenant_id},
+      '-o', {outputPath: output_config}
     ]

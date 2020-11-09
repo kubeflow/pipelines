@@ -25,6 +25,9 @@ It performs the following workflow:
 | resource_group             | string | Y        | Azure resource group                    |
 | workspace                  | string | Y        | Azure ML workspace name                 |
 
+## Outputs
+Output `output_config` holds description of the deployed web service for the machine learning model.
+
 ## Prerequisites
 
 Ensure Kubeflow has been installed on AKS following [instructions for deploying Kubeflow on Azure](https://www.kubeflow.org/docs/azure/).

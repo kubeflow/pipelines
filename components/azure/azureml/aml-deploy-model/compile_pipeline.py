@@ -31,17 +31,17 @@ def model_deploy(
 ):
 
     operation = deploy_operation(deployment_name='deploymentname',
-                            model_name='model_name:1',
-                            tenant_id='$(AZ_TENANT_ID)',
-                            service_principal_id='$(AZ_CLIENT_ID)',
-                            service_principal_password='$(AZ_CLIENT_SECRET)',
-                            subscription_id='$(AZ_SUBSCRIPTION_ID)',
-                            resource_group=resource_group,
-                            workspace=workspace,
-                            inference_config='scripts/inferenceconfig.json',
-                            deployment_config='scripts/deploymentconfig.json'). \
-                            apply(use_azure_secret()). \
-                            apply(use_image(deploy_image_name))
+                                model_name='model_name:1',
+                                tenant_id='$(AZ_TENANT_ID)',
+                                service_principal_id='$(AZ_CLIENT_ID)',
+                                service_principal_password='$(AZ_CLIENT_SECRET)',
+                                subscription_id='$(AZ_SUBSCRIPTION_ID)',
+                                resource_group=resource_group,
+                                workspace=workspace,
+                                inference_config='src/inferenceconfig.json',
+                                deployment_config='src/deploymentconfig.json'). \
+                                apply(use_azure_secret()). \
+                                apply(use_image(deploy_image_name))
 
 if __name__ == '__main__':
     compiler.Compiler().compile(model_deploy,  __file__ + '.tar.gz')
