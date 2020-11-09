@@ -14,14 +14,14 @@
 
 import pathlib
 
-import kfp
+from kfp.v2 import components
 from kfp.v2 import dsl
 import kfp.v2.compiler as compiler
 
 test_data_dir = pathlib.Path(__file__).parent / 'component_yaml'
-trainer_op = kfp.components.load_component_from_file(
+trainer_op = components.load_component_from_file(
     str(test_data_dir / 'trainer_component.yaml'))
-serving_op = kfp.components.load_component_from_file(
+serving_op = components.load_component_from_file(
     str(test_data_dir / 'serving_component.yaml'))
 
 

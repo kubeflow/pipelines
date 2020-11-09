@@ -14,12 +14,12 @@
 
 import pathlib
 
-import kfp
-from kfp import dsl
+from kfp.v2 import components
+from kfp.v2 import dsl
 import kfp.v2.compiler as compiler
 
 test_data_dir = pathlib.Path(__file__).parent / 'component_yaml'
-component_op = kfp.components.load_component_from_file(
+component_op = components.load_component_from_file(
     str(test_data_dir / 'concat_placeholder_component.yaml'))
 
 
