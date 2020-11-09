@@ -18,6 +18,7 @@ while getopts "n:m:i:d:s:p:u:r:w:t:o:" option;
     esac
 done
 az login --service-principal --username ${SERVICE_PRINCIPAL_ID} --password ${SERVICE_PRINCIPAL_PASSWORD} -t ${TENANT_ID}
+az account set --subscription ${SUBSCRIPTION_ID}
 az ml model deploy -n ${DEPLOYMENT_NAME} -m ${MODEL_NAME} --ic ${INFERENCE_CONFIG} --dc ${DEPLOYMENTCONFIG} -w ${WORKSPACE} -g ${RESOURCE_GROUP} --overwrite -v
 
 # write the web-service description to output folder
