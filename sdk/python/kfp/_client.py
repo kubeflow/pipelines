@@ -303,11 +303,13 @@ class Client(object):
     healthz_api = 'http://' + self._existing_config.host + '/' + Client.HEALTH_PATH
     r = requests.get(healthz_api)
     r.raise_for_status()
-    try:
+    response = r.json()
+    if not response:
+      time.sleep(5)
+      r = requests.get(healthz_api)
+      r.raise_for_status()
       response = r.json()
-      return response
-    except ValueError:
-      print('No JSON returned.')
+    return response
 
   def get_user_namespace(self):
     """Get user namespace in context config.
