@@ -17,8 +17,8 @@ import shutil
 import tempfile
 import unittest
 
-from kfp import components
 from kfp.v2 import compiler
+from kfp.v2 import components
 from kfp.v2 import dsl
 
 
@@ -58,7 +58,7 @@ class CompilerTest(unittest.TestCase):
       """)
 
       @dsl.pipeline(name='two-step-pipeline')
-      def simple_pipeline(pipeline_input='Hello KFP!',):
+      def simple_pipeline(pipeline_input='Hello KFP!'):
         producer = producer_op(input_param=pipeline_input)
         consumer = consumer_op(
             input_model=producer.outputs['output_model'],
@@ -116,14 +116,13 @@ class CompilerTest(unittest.TestCase):
       with dsl.Condition(flip.outputs['result'] == 'tails'):
         print_op('print2', flip2.outputs['results'])
 
-    with self.assertRaises(NotImplementedError) as cm:
+    with self.assertRaisesRegex(
+        NotImplementedError,
+        'dsl.Condition is not yet supported in KFP v2 compiler.'):
       compiler.Compiler().compile(
           pipeline_func=flipcoin,
           pipeline_root='dummy_root',
           output_path='output.json')
-
-    self.assertEqual('dsl.Condition is not yet supported in KFP v2 compiler.',
-                     str(cm.exception))
 
   def test_compile_pipeline_with_dsl_exithandler_should_raise_error(self):
 
@@ -162,14 +161,13 @@ class CompilerTest(unittest.TestCase):
         download_task = gcs_download_op(url)
         echo_task = echo_op(download_task.outputs['result'])
 
-    with self.assertRaises(NotImplementedError) as cm:
+    with self.assertRaisesRegex(
+        NotImplementedError,
+        'dsl.ExitHandler is not yet supported in KFP v2 compiler.'):
       compiler.Compiler().compile(
           pipeline_func=download_and_print,
           pipeline_root='dummy_root',
           output_path='output.json')
-
-    self.assertEqual('dsl.ExitHandler is not yet supported in KFP v2 compiler.',
-                     str(cm.exception))
 
   def test_compile_pipeline_with_dsl_parallelfor_should_raise_error(self):
 
@@ -185,18 +183,19 @@ class CompilerTest(unittest.TestCase):
         print_op(item.A_a)
         print_op(item.B_b)
 
-    with self.assertRaises(NotImplementedError) as cm:
+    with self.assertRaisesRegex(
+        NotImplementedError,
+        'dsl.ParallelFor is not yet supported in KFP v2 compiler.'):
       compiler.Compiler().compile(
           pipeline_func=my_pipeline,
           pipeline_root='dummy_root',
           output_path='output.json')
 
-    self.assertEqual('dsl.ParallelFor is not yet supported in KFP v2 compiler.',
-                     str(cm.exception))
-
   def test_compile_pipeline_with_dsl_graph_component_should_raise_error(self):
 
-    with self.assertRaises(NotImplementedError) as cm:
+    with self.assertRaisesRegex(
+        NotImplementedError,
+        'dsl.graph_component is not yet supported in KFP v2 compiler.'):
 
       @dsl.graph_component
       def echo1_graph_component(text1):
@@ -225,9 +224,131 @@ class CompilerTest(unittest.TestCase):
           pipeline_root='dummy_root',
           output_path='output.json')
 
-    self.assertEqual(
-        'dsl.graph_component is not yet supported in KFP v2 compiler.',
-        str(cm.exception))
+  def test_compile_pipeline_with_misused_inputvalue_should_raise_error(self):
+
+    component_op = components.load_component_from_text("""
+        name: compoent with misused placeholder
+        inputs:
+        - {name: model, type: Model}
+        implementation:
+          container:
+            image: dummy
+            args:
+            - {inputValue: model}
+        """)
+
+    def my_pipeline(model):
+      component_op(model=model)
+
+    with self.assertRaisesRegex(
+        TypeError,
+        ' type "Model" cannot be paired with InputValuePlaceholder.'):
+      compiler.Compiler().compile(
+          pipeline_func=my_pipeline,
+          pipeline_root='dummy',
+          output_path='output.json')
+
+  def test_compile_pipeline_with_misused_inputpath_should_raise_error(self):
+
+    component_op = components.load_component_from_text("""
+        name: compoent with misused placeholder
+        inputs:
+        - {name: text, type: String}
+        implementation:
+          container:
+            image: dummy
+            args:
+            - {inputPath: text}
+        """)
+
+    def my_pipeline(text):
+      component_op(text=text)
+
+    with self.assertRaisesRegex(
+        TypeError,
+        ' type "String" cannot be paired with InputPathPlaceholder.'):
+      compiler.Compiler().compile(
+          pipeline_func=my_pipeline,
+          pipeline_root='dummy',
+          output_path='output.json')
+
+  def test_compile_pipeline_with_misused_inputuri_should_raise_error(self):
+
+    component_op = components.load_component_from_text("""
+        name: compoent with misused placeholder
+        inputs:
+        - {name: value, type: Float}
+        implementation:
+          container:
+            image: dummy
+            args:
+            - {inputUri: value}
+        """)
+
+    def my_pipeline(value):
+      component_op(value=value)
+
+    with self.assertRaisesRegex(
+        TypeError,
+        ' type "Float" cannot be paired with InputUriPlaceholder.'):
+      compiler.Compiler().compile(
+          pipeline_func=my_pipeline,
+          pipeline_root='dummy',
+          output_path='output.json')
+
+  def test_compile_pipeline_with_misused_outputuri_should_raise_error(self):
+
+    component_op = components.load_component_from_text("""
+        name: compoent with misused placeholder
+        outputs:
+        - {name: value, type: Integer}
+        implementation:
+          container:
+            image: dummy
+            args:
+            - {outputUri: value}
+        """)
+
+    def my_pipeline():
+      component_op()
+
+    with self.assertRaisesRegex(
+        TypeError,
+        ' type "Integer" cannot be paired with OutputUriPlaceholder.'):
+      compiler.Compiler().compile(
+          pipeline_func=my_pipeline,
+          pipeline_root='dummy',
+          output_path='output.json')
+
+  def test_compile_pipeline_with_outputpath_should_warn(self):
+
+    with self.assertWarnsRegex(
+        UserWarning, 'Local file paths are currently unsupported for I/O.'):
+      component_op = components.load_component_from_text("""
+          name: compoent use outputPath
+          outputs:
+          - {name: metrics, type: Metrics}
+          implementation:
+            container:
+              image: dummy
+              args:
+              - {outputPath: metrics}
+          """)
+
+  def test_compile_pipeline_with_inputpath_should_warn(self):
+
+    with self.assertWarnsRegex(
+        UserWarning, 'Local file paths are currently unsupported for I/O.'):
+      component_op = components.load_component_from_text("""
+          name: compoent use inputPath
+          inputs:
+          - {name: data, type: Datasets}
+          implementation:
+            container:
+              image: dummy
+              args:
+              - {inputPath: data}
+          """)
 
 
 if __name__ == '__main__':

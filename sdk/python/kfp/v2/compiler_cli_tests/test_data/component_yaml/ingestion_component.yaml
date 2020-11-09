@@ -17,6 +17,6 @@ implementation:
     image: gcr.io/my-project/my-ingestor
     args: [
       --input-location, {inputValue: input_location},
-      --output-examples, {outputPath: examples},
-      --output-schema, {outputPath: schema}
+      --output-examples, {outputUri: examples},
+      --output-schema, {outputUri: schema}
     ]

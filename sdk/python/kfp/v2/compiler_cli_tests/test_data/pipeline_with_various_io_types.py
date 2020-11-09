@@ -14,11 +14,11 @@
 
 import pathlib
 
-import kfp
+from kfp.v2 import components
 from kfp.v2 import dsl
 import kfp.v2.compiler as compiler
 
-component_op_1 = kfp.components.load_component_from_text("""
+component_op_1 = components.load_component_from_text("""
 name: upstream
 inputs:
 - {name: input_1, type: String}
@@ -39,18 +39,18 @@ implementation:
     args:
     - {inputValue: input_1}
     - {inputValue: input_2}
-    - {inputPath: input_3}
-    - {inputPath: input_4}
-    - {inputPath: input_5}
-    - {inputPath: input_6}
-    - {inputPath: input_7}
-    - {inputPath: input_8}
+    - {inputUri: input_3}
+    - {inputUri: input_4}
+    - {inputUri: input_5}
+    - {inputUri: input_6}
+    - {inputUri: input_7}
+    - {inputUri: input_8}
     - {outputPath: output_1}
-    - {outputPath: output_2}
+    - {outputUri: output_2}
     - {outputPath: output_3}
 """)
 
-component_op_2 = kfp.components.load_component_from_text("""
+component_op_2 = components.load_component_from_text("""
 name: downstream
 inputs:
 - {name: input_a, type: Integer}
@@ -61,7 +61,7 @@ implementation:
     image: gcr.io/image
     args:
     - {inputValue: input_a}
-    - {inputPath: input_b}
+    - {inputUri: input_b}
     - {inputPath: input_c}
 """)
 

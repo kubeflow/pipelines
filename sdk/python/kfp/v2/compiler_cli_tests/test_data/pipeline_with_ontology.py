@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp
+from kfp.v2 import components
 from kfp.v2 import dsl
 import kfp.v2.compiler as compiler
 import pathlib
 
 test_data_dir = pathlib.Path(__file__).parent / 'component_yaml'
 
-ingestion_op = kfp.components.load_component_from_file(
+ingestion_op = components.load_component_from_file(
     str(test_data_dir / 'ingestion_component.yaml'))
 
-training_op = kfp.components.load_component_from_file(
+training_op = components.load_component_from_file(
     str(test_data_dir / 'fancy_trainer_component.yaml'))
 
 

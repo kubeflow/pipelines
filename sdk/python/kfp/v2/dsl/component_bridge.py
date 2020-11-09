@@ -17,12 +17,12 @@ import copy
 from typing import Any, Mapping
 
 from kfp import dsl
-from kfp.components import structures
-from kfp.components._components import _default_component_name
-from kfp.components._components import _resolve_command_line_and_paths
 from kfp.components._naming import _sanitize_python_function_name
 from kfp.components._naming import generate_unique_name_conversion_table
 from kfp.dsl import types
+from kfp.v2.components import structures
+from kfp.v2.components.components import _default_component_name
+from kfp.v2.components.components import _resolve_command_line_and_paths
 from kfp.v2.dsl import container_op
 from kfp.v2.dsl import importer_node
 from kfp.v2.dsl import type_utils
@@ -131,55 +131,66 @@ def create_container_op_from_component_and_arguments(
           output.name].artifact_type.instance_schema = (
               type_utils.get_artifact_type_schema(output.type))
 
+  inputs_dict = {
+      input_spec.name: input_spec for input_spec in component_spec.inputs or []
+  }
   outputs_dict = {
       output_spec.name: output_spec
       for output_spec in component_spec.outputs or []
   }
 
-  def _input_artifact_placeholder(input_key: str) -> str:
-    return "{{{{$.inputs.artifacts['{}'].uri}}}}".format(input_key)
+  def _input_artifact_uri_placeholder(input_key: str) -> str:
+    if type_utils.is_parameter_type(inputs_dict[input_key].type):
+      raise TypeError(
+          'Input "{}" with type "{}" cannot be paired with InputUriPlaceholder.'
+          .format(input_key, inputs_dict[input_key].type))
+    else:
+      return "{{{{$.inputs.artifacts['{}'].uri}}}}".format(input_key)
+
+  def _input_artifact_path_placeholder(input_key: str) -> str:
+    if type_utils.is_parameter_type(inputs_dict[input_key].type):
+      raise TypeError(
+          'Input "{}" with type "{}" cannot be paired with InputPathPlaceholder.'
+          .format(input_key, inputs_dict[input_key].type))
+    else:
+      return "{{{{$.inputs.artifacts['{}'].path}}}}".format(input_key)
 
   def _input_parameter_placeholder(input_key: str) -> str:
-    return "{{{{$.inputs.parameters['{}']}}}}".format(input_key)
+    if type_utils.is_parameter_type(inputs_dict[input_key].type):
+      return "{{{{$.inputs.parameters['{}']}}}}".format(input_key)
+    else:
+      raise TypeError(
+          'Input "{}" with type "{}" cannot be paired with InputValuePlaceholder.'
+          .format(input_key, inputs_dict[input_key].type))
 
-  def _output_artifact_placeholder(output_key: str) -> str:
-    return "{{{{$.outputs.artifacts['{}'].uri}}}}".format(output_key)
+  def _output_artifact_uri_placeholder(output_key: str) -> str:
+    if type_utils.is_parameter_type(outputs_dict[output_key].type):
+      raise TypeError(
+          'Output "{}" with type "{}" cannot be paired with OutputUriPlaceholder.'
+          .format(output_key, outputs_dict[output_key].type))
+    else:
+      return "{{{{$.outputs.artifacts['{}'].uri}}}}".format(output_key)
 
-  def _output_parameter_placeholder(output_key: str) -> str:
+  def _output_artifact_path_placeholder(output_key: str) -> str:
+    return "{{{{$.outputs.artifacts['{}'].path}}}}".format(output_key)
+
+  def _output_parameter_path_placeholder(output_key: str) -> str:
     return "{{{{$.outputs.parameters['{}'].output_file}}}}".format(output_key)
 
   def _resolve_output_path_placeholder(output_key: str) -> str:
     if type_utils.is_parameter_type(outputs_dict[output_key].type):
-      return _output_parameter_placeholder(output_key)
+      return _output_parameter_path_placeholder(output_key)
     else:
-      return _output_artifact_placeholder(output_key)
-
-  placeholder_arguments = {}
-  for input_spec in component_spec.inputs or []:
-    # Skip inputs not presented in arguments list.
-    if input_spec.name not in arguments:
-      continue
-
-    # IR placeholders are decided merely based on the declared type of the
-    # input. It doesn't matter wether it's InputValuePlaceholder or
-    # InputPathPlaceholder from component_spec.
-    if type_utils.is_parameter_type(input_spec.type):
-      placeholder_arguments[input_spec.name] = _input_parameter_placeholder(
-          input_spec.name)
-    else:
-      placeholder_arguments[input_spec.name] = _input_artifact_placeholder(
-          input_spec.name)
-
-  resolved_cmd_ir = _resolve_command_line_and_paths(
-      component_spec=component_spec,
-      arguments=placeholder_arguments,
-      input_path_generator=_input_artifact_placeholder,
-      output_path_generator=_resolve_output_path_placeholder,
-  )
+      return _output_artifact_path_placeholder(output_key)
 
   resolved_cmd = _resolve_command_line_and_paths(
       component_spec=component_spec,
       arguments=arguments,
+      input_value_generator=_input_parameter_placeholder,
+      input_uri_generator=_input_artifact_uri_placeholder,
+      output_uri_generator=_output_artifact_uri_placeholder,
+      input_path_generator=_input_artifact_path_placeholder,
+      output_path_generator=_resolve_output_path_placeholder,
   )
 
   container_spec = component_spec.implementation.container
@@ -187,8 +198,13 @@ def create_container_op_from_component_and_arguments(
   pipeline_container_spec = (
       pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec())
   pipeline_container_spec.image = container_spec.image
-  pipeline_container_spec.command.extend(resolved_cmd_ir.command)
-  pipeline_container_spec.args.extend(resolved_cmd_ir.args)
+  pipeline_container_spec.command.extend(resolved_cmd.command)
+  pipeline_container_spec.args.extend(resolved_cmd.args)
+
+  output_uris_and_paths = resolved_cmd.output_uris.copy()
+  output_uris_and_paths.update(resolved_cmd.output_paths)
+  input_uris_and_paths = resolved_cmd.input_uris.copy()
+  input_uris_and_paths.update(resolved_cmd.input_paths)
 
   old_warn_value = dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING
   dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = True
@@ -197,13 +213,13 @@ def create_container_op_from_component_and_arguments(
       image=container_spec.image,
       command=resolved_cmd.command,
       arguments=resolved_cmd.args,
-      file_outputs=resolved_cmd.output_paths,
+      file_outputs=output_uris_and_paths,
       artifact_argument_paths=[
           dsl.InputArgumentPath(
               argument=arguments[input_name],
               input=input_name,
               path=path,
-          ) for input_name, path in resolved_cmd.input_paths.items()
+          ) for input_name, path in input_uris_and_paths.items()
       ],
   )
 
