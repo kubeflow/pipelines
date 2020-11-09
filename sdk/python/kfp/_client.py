@@ -301,15 +301,19 @@ class Client(object):
       response: json formatted response from the healtz endpoint.
     """
     healthz_api = 'http://' + self._existing_config.host + '/' + Client.HEALTH_PATH
-    r = requests.get(healthz_api)
-    r.raise_for_status()
-    response = r.json()
-    if not response:
-      time.sleep(5)
-      r = requests.get(healthz_api)
-      r.raise_for_status()
-      response = r.json()
-    return response
+    count = 0
+    response = None
+    max_attempts = 60
+    while count < max_attempts and not response:
+      count += 1
+      try:
+        r = requests.get(healthz_api)
+        r.raise_for_status()
+        response = r.json()
+        return response
+      except ValueError:
+        print("Exception; retrying after 5 seconds", ValueError)
+        time.sleep(5)
 
   def get_user_namespace(self):
     """Get user namespace in context config.
