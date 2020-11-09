@@ -219,14 +219,14 @@ class ContainerOp(dsl.ContainerOp):
     return self
 
   # Override _set_metadata to use v2 ComponentSpec
-  def _set_metadata(self, metadata):
-    """Passes the ContainerOp the metadata information and configures the right output.
+  def _set_metadata(self, metadata: structures.ComponentSpec):
+    """Passes the ContainerOp the metadata information and configures the output.
 
     Args:
       metadata (ComponentSpec): component metadata
     """
     if not isinstance(metadata, structures.ComponentSpec):
-      raise ValueError('_set_metadata is expecting ComponentSpec.')
+      raise TypeError('_set_metadata is expecting ComponentSpec.')
 
     self._metadata = metadata
 
