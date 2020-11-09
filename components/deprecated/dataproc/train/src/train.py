@@ -32,7 +32,6 @@
 
 import argparse
 import logging
-from pathlib import Path
 
 from common import _utils
 
@@ -52,11 +51,6 @@ def main(argv=None):
   parser.add_argument('--eval', type=str, help='GCS path of the eval libsvm file pattern.')
   parser.add_argument('--analysis', type=str, help='GCS path of the analysis input.')
   parser.add_argument('--target', type=str, help='Target column name.')
-  parser.add_argument('--output-dir-uri-output-path',
-                      type=str,
-                      default='/output.txt',
-                      help='Local output path for the file containing the output dir URI.')
-
   args = parser.parse_args()
 
   logging.getLogger().setLevel(logging.INFO)
@@ -69,8 +63,8 @@ def main(argv=None):
       'ml.dmlc.xgboost4j.scala.example.spark.XGBoostTrainer', spark_args)
   logging.info('Job request submitted. Waiting for completion...')
   _utils.wait_for_job(api, args.project, args.region, job_id)
-  Path(args.output_dir_uri_output_path).parent.mkdir(parents=True, exist_ok=True)
-  Path(args.output_dir_uri_output_path).write_text(args.output)
+  with open('/output.txt', 'w') as f:
+    f.write(args.output)
 
   logging.info('Job completed.')
 

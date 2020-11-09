@@ -19,6 +19,15 @@ python3 -m pip install --upgrade pip
 python3 -m pip install coverage==4.5.4 coveralls==1.9.2
 python3 -m pip install mock  # TODO: Remove when added to requirements
 python3 -m pip install -r "$source_root/sdk/python/requirements.txt"
+python3 -m pip install --upgrade protobuf
+
+# Testing the component authoring library
+component_lib=/tmp/component_lib
+mkdir -p "$component_lib"
+pushd "$component_lib"
+cp -r "$source_root"/sdk/python/kfp/{components,components_tests} .
+python3 -m unittest discover --verbose --pattern '*test*.py' --top-level-directory .. --start-directory components_tests
+popd
 
 # Installing Argo CLI to lint all compiled workflows
 LOCAL_BIN="${HOME}/.local/bin"

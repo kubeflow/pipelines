@@ -1,6 +1,7 @@
 import os
 import argparse
 import json
+from pathlib import Path
 
 
 def get_secret_creds(path):
@@ -16,6 +17,8 @@ if __name__ == "__main__":
     parser.add_argument('--data_filename', type=str, help='Name of the data binary', default="")
     parser.add_argument('--model_filename', type=str, help='Name of the training model file', default="model.py")
     parser.add_argument('--spark_entrypoint', type=str, help='Entrypoint command for training the spark model', default="python model.py")
+    parser.add_argument('--output_model_file_path', type=str, help='Output path for model file path', default='/tmp/model_filepath')
+    parser.add_argument('--output_train_data_file_path', type=str, help='Output path for train data file path', default='/tmp/train_data_filepath')
     args = parser.parse_args()
 
     cos_bucket_name = args.bucket_name
@@ -61,7 +64,7 @@ if __name__ == "__main__":
     os.system('./spark-submit.sh --vcap ./vcap.json --deploy-mode cluster --conf spark.service.spark_version=2.1 --files creds.json  wrapper.py')
     os.system('cat stdout')
 
-    with open("/tmp/model_filepath", "w") as report:
-        report.write("model.zip")
-    with open("/tmp/train_data_filepath", "w") as report:
-        report.write("train_data.zip")
+    Path(args.output_model_file_path).parent.mkdir(parents=True, exist_ok=True)
+    Path(args.output_model_file_path).write_text("model.zip")
+    Path(args.output_train_data_file_path).parent.mkdir(parents=True, exist_ok=True)
+    Path(args.output_train_data_file_path).write_text("train_data.zip")

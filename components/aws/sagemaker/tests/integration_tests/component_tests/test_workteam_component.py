@@ -31,12 +31,7 @@ def create_workteamjob(
 
 @pytest.mark.parametrize(
     "test_file_dir",
-    [
-        pytest.param(
-            "resources/config/create-workteam",
-            marks=pytest.mark.canary_test
-        )
-    ],
+    [pytest.param("resources/config/create-workteam", marks=pytest.mark.canary_test)],
 )
 def test_workteamjob(
     kfp_client, experiment_id, region, sagemaker_client, test_file_dir
@@ -58,7 +53,12 @@ def test_workteamjob(
 
     try:
         workflow_json = create_workteamjob(
-            kfp_client, test_params, experiment_id, region, sagemaker_client, download_dir
+            kfp_client,
+            test_params,
+            experiment_id,
+            region,
+            sagemaker_client,
+            download_dir,
         )
 
         outputs = {"sagemaker-private-workforce": ["workteam_arn"]}
@@ -80,14 +80,11 @@ def test_workteamjob(
         assert response["Workteam"]["WorkteamArn"] == workteam_arn
 
     finally:
-        workteams = sagemaker_utils.list_workteams(
-            sagemaker_client
-        )["Workteams"]
+        workteams = sagemaker_utils.list_workteams(sagemaker_client)["Workteams"]
         workteam_names = list(map((lambda x: x["WorkteamName"]), workteams))
         # Check workteam was successfully created
         if workteam_name in workteam_names:
             sagemaker_utils.delete_workteam(sagemaker_client, workteam_name)
-
 
     # Delete generated files only if the test is successful
     utils.remove_dir(download_dir)

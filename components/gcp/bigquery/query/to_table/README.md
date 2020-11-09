@@ -67,8 +67,7 @@ Note: The following sample code works in an IPython notebook or directly in Pyth
 ```python
 %%capture --no-stderr
 
-KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar.gz'
-!pip3 install $KFP_PACKAGE --upgrade
+!pip3 install kfp --upgrade
 ```
 
 2. Load the component using KFP SDK
@@ -78,7 +77,7 @@ KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar
 import kfp.components as comp
 
 bigquery_query_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/38771da09094640cd2786a4b5130b26ea140f864/components/gcp/bigquery/query/to_table/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/1.1.0-alpha.1/components/gcp/bigquery/query/to_table/component.yaml')
 help(bigquery_query_op)
 ```
 

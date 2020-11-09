@@ -12,49 +12,65 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .._client import Client
+
 import sys
 import subprocess
-import pprint
 import time
 import json
 import click
+import shutil
 
-from tabulate import tabulate
+from .output import print_output, OutputFormat
+
 
 @click.group()
 def run():
     """manage run resources"""
     pass
 
+
 @run.command()
 @click.option('-e', '--experiment-id', help='Parent experiment ID of listed runs.')
-@click.option('--max-size', default=100, help='Max size of the listed runs.')
+@click.option('-m', '--max-size', default=100, help='Max size of the listed runs.')
 @click.pass_context
 def list(ctx, experiment_id, max_size):
     """list recent KFP runs"""
     client = ctx.obj['client']
+    output_format = ctx.obj['output']
     response = client.list_runs(experiment_id=experiment_id, page_size=max_size, sort_by='created_at desc')
     if response and response.runs:
-        _print_runs(response.runs)
+        _print_runs(response.runs, output_format)
     else:
-        print('No runs found.')
+        if output_format == OutputFormat.json.name:
+            msg = json.dumps([])
+        else:
+            msg = 'No runs found.'
+        print(msg)
+
 
 @run.command()
 @click.option('-e', '--experiment-name', required=True, help='Experiment name of the run.')
 @click.option('-r', '--run-name', help='Name of the run.')
-@click.option('-f', '--package-file', type=click.Path(exists=True, dir_okay=False), help='Path of the pipeline package file.')
+@click.option('-f', '--package-file', type=click.Path(exists=True, dir_okay=False),
+              help='Path of the pipeline package file.')
 @click.option('-p', '--pipeline-id', help='ID of the pipeline template.')
-@click.option('-w', '--watch', is_flag=True, default=False, help='Watch the run status until it finishes.')
+@click.option('-n', '--pipeline-name', help='Name of the pipeline template.')
+@click.option('-w', '--watch', is_flag=True, default=False,
+              help='Watch the run status until it finishes.')
 @click.option('-v', '--version', help='ID of the pipeline version.')
 @click.argument('args', nargs=-1)
 @click.pass_context
-def submit(ctx, experiment_name, run_name, package_file, pipeline_id, watch, version, args):
+def submit(ctx, experiment_name, run_name, package_file, pipeline_id, pipeline_name, watch,
+           version, args):
     """submit a KFP run"""
     client = ctx.obj['client']
     namespace = ctx.obj['namespace']
+    output_format = ctx.obj['output']
     if not run_name:
         run_name = experiment_name
+
+    if not pipeline_id and pipeline_name:
+        pipeline_id = client.get_pipeline_id(name=pipeline_name)
 
     if not package_file and not pipeline_id and not version:
         print('You must provide one of [package_file, pipeline_id, version].')
@@ -62,25 +78,37 @@ def submit(ctx, experiment_name, run_name, package_file, pipeline_id, watch, ver
 
     arg_dict = dict(arg.split('=') for arg in args)
     experiment = client.create_experiment(experiment_name)
-    run = client.run_pipeline(experiment.id, run_name, package_file, arg_dict, pipeline_id, version_id=version)
+    run = client.run_pipeline(experiment.id, run_name, package_file, arg_dict, pipeline_id,
+                              version_id=version)
     print('Run {} is submitted'.format(run.id))
-    _display_run(client, namespace, run.id, watch)
+    _display_run(client, namespace, run.id, watch, output_format)
+
 
 @run.command()
-@click.option('-w', '--watch', is_flag=True, default=False, help='Watch the run status until it finishes.')
+@click.option('-w', '--watch', is_flag=True, default=False,
+              help='Watch the run status until it finishes.')
 @click.argument('run-id')
 @click.pass_context
 def get(ctx, watch, run_id):
     """display the details of a KFP run"""
     client = ctx.obj['client']
     namespace = ctx.obj['namespace']
-    _display_run(client, namespace, run_id, watch)
+    output_format = ctx.obj['output']
+    _display_run(client, namespace, run_id, watch, output_format)
 
-def _display_run(client, namespace, run_id, watch):
+
+def _display_run(client, namespace, run_id, watch, output_format):
     run = client.get_run(run_id).run
-    _print_runs([run])
+    _print_runs([run], output_format)
     if not watch:
         return
+    argo_path = shutil.which('argo')
+    if not argo_path:
+        raise RuntimeError("argo isn't found in $PATH. It's necessary for watch. "
+                           "Please make sure it's installed and available. "
+                           "Installation instructions be found here - "
+                           "https://github.com/argoproj/argo/releases")
+
     argo_workflow_name = None
     while True:
         time.sleep(1)
@@ -95,10 +123,11 @@ def _display_run(client, namespace, run_id, watch):
             print('Run is finished with status {}.'.format(run_detail.run.status))
             return
     if argo_workflow_name:
-        subprocess.run(['argo', 'watch', argo_workflow_name, '-n', namespace])
-        _print_runs([run])
+        subprocess.run([argo_path, 'watch', argo_workflow_name, '-n', namespace])
+        _print_runs([run], output_format)
 
-def _print_runs(runs):
+
+def _print_runs(runs, output_format):
     headers = ['run id', 'name', 'status', 'created at']
     data = [[run.id, run.name, run.status, run.created_at.isoformat()] for run in runs]
-    print(tabulate(data, headers=headers, tablefmt='grid'))
+    print_output(data, headers, output_format, table_format='grid')

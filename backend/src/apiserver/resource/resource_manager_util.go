@@ -166,7 +166,7 @@ func formulateRetryWorkflow(wf *util.Workflow) (*util.Workflow, []string, error)
 			// Do not allow retry of workflows with pods in Running/Pending phase
 			return nil, nil, util.NewInternalServerError(
 				errors.New("workflow cannot be retried"),
-				"Workflow cannot be retried with node %s in %s phase", node, node.Phase)
+				"Workflow cannot be retried with node %s in %s phase", node.ID, node.Phase)
 		}
 		if node.Type == wfv1.NodeTypePod {
 			podsToDelete = append(podsToDelete, node.ID)

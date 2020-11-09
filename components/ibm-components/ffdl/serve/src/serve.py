@@ -12,6 +12,7 @@
 
 import json
 import argparse
+from pathlib import Path
 
 from app import run_safe
 
@@ -22,6 +23,7 @@ if __name__ == "__main__":
     parser.add_argument('--model_class_name', type=str, help='PyTorch model class name', default='ModelClass')
     parser.add_argument('--model_class_file', type=str, help='File that contains the PyTorch model class', default='model_class.py')
     parser.add_argument('--serving_image', type=str, help='Model serving images', default='aipipeline/seldon-pytorch:0.1')
+    parser.add_argument('--output_deployment_result_path', type=str, help='Output path for deployment result', default='/tmp/deployment_result.txt')
     args = parser.parse_args()
 
     with open("/app/secrets/s3_url", 'r') as f:
@@ -64,7 +66,7 @@ if __name__ == "__main__":
     metrics = run_safe(formData, "POST")
     print(metrics)
 
-    with open('/tmp/deployment_result.txt', "w") as report:
-        report.write(json.dumps(metrics))
+    Path(args.output_deployment_result_path).parent.mkdir(parents=True, exist_ok=True)
+    Path(args.output_deployment_result_path).write_text(json.dumps(metrics))
 
     print('\nThe Model is running at ' + metrics['deployment_url'])

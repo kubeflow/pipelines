@@ -9,8 +9,14 @@ def describe_model(client, model_name):
 def describe_endpoint(client, endpoint_name):
     return client.describe_endpoint(EndpointName=endpoint_name)
 
+
 def list_endpoints(client, name_contains):
     return client.list_endpoints(NameContains=name_contains)
+
+
+def describe_endpoint_config(client, endpoint_config_name):
+    return client.describe_endpoint_config(EndpointConfigName=endpoint_config_name)
+
 
 def delete_endpoint(client, endpoint_name):
     client.delete_endpoint(EndpointName=endpoint_name)

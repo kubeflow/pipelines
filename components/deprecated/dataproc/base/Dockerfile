@@ -21,7 +21,7 @@ RUN easy_install pip
 
 RUN pip install google-api-python-client==1.6.2
 
-RUN pip install tensorflow==1.6.0 pathlib2
+RUN pip install tensorflow==1.6.0
 
 RUN wget -nv https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.zip && \
     unzip -qq google-cloud-sdk.zip -d tools && \

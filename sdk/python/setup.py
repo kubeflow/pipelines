@@ -37,6 +37,7 @@ REQUIRES = [
     'click',
     'Deprecated',
     'strip-hints',
+    'docstring-parser>=0.7.3'
 ]
 
 TESTS_REQUIRE = [
@@ -78,6 +79,10 @@ setup(
         'kfp.dsl',
         'kfp.dsl.extensions',
         'kfp.notebook',
+        'kfp.v2',
+        'kfp.v2.compiler',
+        'kfp.v2.dsl',
+        'kfp.v2.proto',
     ],
     classifiers=[
         'Intended Audience :: Developers',
@@ -98,6 +103,8 @@ setup(
     include_package_data=True,
     entry_points={
         'console_scripts': [
-            'dsl-compile = kfp.compiler.main:main', 'kfp=kfp.__main__:main'
+            'dsl-compile = kfp.compiler.main:main',
+            'dsl-compile-v2 = kfp.v2.compiler.main:main',
+            'kfp=kfp.__main__:main'
         ]
     })

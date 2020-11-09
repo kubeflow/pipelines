@@ -15,16 +15,18 @@
  */
 
 import * as React from 'react';
+import * as zlib from 'zlib';
 import { ApiRun } from '../apis/run';
 import { ApiTrigger } from '../apis/job';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { isFunction } from 'lodash';
 import { hasFinished, NodePhase } from './StatusUtils';
-import { ListRequest } from './Apis';
+import { ListRequest, Apis } from './Apis';
 import { Row, Column, ExpandState } from '../components/CustomTable';
 import { padding } from '../Css';
 import { classes } from 'typestyle';
 import { CustomTableRow, css } from '../components/CustomTableRow';
+import { StorageService } from './WorkflowParser';
 
 export const logger = {
   error: (...args: any[]) => {
@@ -293,23 +295,6 @@ export function generateGcsConsoleUri(gcsUri: string): string | undefined {
 const MINIO_URI_PREFIX = 'minio://';
 
 /**
- * Generates the path component of the url to retrieve an artifact.
- *
- * @param source source of the artifact. Can be "minio", "s3", "http", "https", or "gcs".
- * @param bucket bucket where the artifact is stored, value is assumed to be uri encoded.
- * @param key path to the artifact, value is assumed to be uri encoded.
- * @param peek number of characters or bytes to return. If not provided, the entire content of the artifact will be returned.
- */
-export function generateArtifactUrl(
-  source: string,
-  bucket: string,
-  key: string,
-  peek?: number,
-): string {
-  return `artifacts/get${buildQuery({ source, bucket, key, peek })}`;
-}
-
-/**
  * Generates an HTTPS API URL from minio:// uri
  *
  * @param minioUri Minio uri that starts with minio://, like minio://ml-pipeline/path/file
@@ -325,7 +310,11 @@ export function generateMinioArtifactUrl(minioUri: string, peek?: number): strin
   if (matches == null) {
     return undefined;
   }
-  return generateArtifactUrl('minio', matches[1], matches[2], peek);
+  return Apis.buildReadFileUrl({
+    path: { source: StorageService.MINIO, bucket: matches[1], key: matches[2] },
+    peek,
+    isDownload: true,
+  });
 }
 
 const S3_URI_PREFIX = 's3://';
@@ -345,7 +334,10 @@ export function generateS3ArtifactUrl(s3Uri: string): string | undefined {
   if (matches == null) {
     return undefined;
   }
-  return generateArtifactUrl('s3', matches[1], matches[2]);
+  return Apis.buildReadFileUrl({
+    path: { source: StorageService.S3, bucket: matches[1], key: matches[2] },
+    isDownload: true,
+  });
 }
 
 export function buildQuery(queriesMap: { [key: string]: string | number | undefined }): string {
@@ -357,4 +349,21 @@ export function buildQuery(queriesMap: { [key: string]: string | number | undefi
     return '';
   }
   return `?${queryContent}`;
+}
+
+export async function decodeCompressedNodes(compressedNodes: string): Promise<object> {
+  return new Promise<object>((resolve, reject) => {
+    const compressedBuffer = Buffer.from(compressedNodes, 'base64');
+    zlib.gunzip(compressedBuffer, (error, result: Buffer) => {
+      if (error) {
+        const gz_error_msg = `failed to gunzip data ${error}`;
+        logger.error(gz_error_msg);
+        reject(gz_error_msg);
+      } else {
+        const nodesStr = result.toString('utf8');
+        const nodes = JSON.parse(nodesStr);
+        resolve(nodes);
+      }
+    });
+  });
 }

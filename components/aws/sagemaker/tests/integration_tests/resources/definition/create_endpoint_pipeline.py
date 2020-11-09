@@ -47,6 +47,8 @@ def create_endpoint_pipeline(
         initial_variant_weight_1=initial_variant_weight_1,
     )
 
+    dsl.get_pipeline_conf().set_image_pull_policy(policy="Always")
+
 
 if __name__ == "__main__":
     kfp.compiler.Compiler().compile(

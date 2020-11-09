@@ -1,0 +1,9 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["tools.go"],
+    importpath = "github.com/kubeflow/pipelines/tools",
+    visibility = ["//visibility:public"],
+    deps = ["@io_k8s_code_generator//:go_default_library"],
+)

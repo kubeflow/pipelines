@@ -5,8 +5,8 @@ channels:
 dependencies:
   - python=3.7.*
   - pip=20.0.*
-  - awscli=1.18.*
-  - boto3=1.12.*
+  - awscli=1.18.141
+  - boto3=1.15.0
   - pytest-xdist=2.1.0
   - pyyaml=5.3.*
   - flake8=3.7.*

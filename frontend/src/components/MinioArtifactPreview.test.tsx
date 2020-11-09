@@ -23,11 +23,8 @@ describe('MinioArtifactPreview', () => {
   const readFile = jest.spyOn(Apis, 'readFile');
 
   beforeEach(() => {
-    readFile.mockResolvedValue('preview ...');
-  });
-
-  afterEach(() => {
     jest.resetAllMocks();
+    readFile.mockResolvedValue('preview ...');
   });
 
   it('handles undefined artifact', () => {
@@ -103,15 +100,30 @@ describe('MinioArtifactPreview', () => {
         <div
           class="root"
         >
-          <a
-            class="link"
-            href="artifacts/get?source=s3&bucket=foo&key=bar"
-            rel="noopener"
-            target="_blank"
-            title="s3://foo/bar"
+          <div
+            class="topDiv"
           >
-            s3://foo/bar
-          </a>
+            <a
+              class="link"
+              href="artifacts/s3/foo/bar"
+              rel="noopener"
+              target="_blank"
+              title="s3://foo/bar"
+            >
+              s3://foo/bar
+            </a>
+            <span
+              class="separater"
+            />
+            <a
+              class="link viewLink"
+              href="artifacts/get?source=s3&bucket=foo&key=bar"
+              rel="noopener"
+              target="_blank"
+            >
+              View All
+            </a>
+          </div>
           <div
             class="preview"
           >
@@ -143,15 +155,30 @@ describe('MinioArtifactPreview', () => {
         <div
           class="root"
         >
-          <a
-            class="link"
-            href="artifacts/get?source=minio&bucket=foo&key=bar"
-            rel="noopener"
-            target="_blank"
-            title="minio://foo/bar"
+          <div
+            class="topDiv"
           >
-            minio://foo/bar
-          </a>
+            <a
+              class="link"
+              href="artifacts/minio/foo/bar"
+              rel="noopener"
+              target="_blank"
+              title="minio://foo/bar"
+            >
+              minio://foo/bar
+            </a>
+            <span
+              class="separater"
+            />
+            <a
+              class="link viewLink"
+              href="artifacts/get?source=minio&bucket=foo&key=bar"
+              rel="noopener"
+              target="_blank"
+            >
+              View All
+            </a>
+          </div>
           <div
             class="preview"
           >
@@ -183,15 +210,30 @@ describe('MinioArtifactPreview', () => {
         <div
           class="root"
         >
-          <a
-            class="link"
-            href="artifacts/get?source=minio&namespace=namespace&bucket=foo&key=bar"
-            rel="noopener"
-            target="_blank"
-            title="minio://foo/bar"
+          <div
+            class="topDiv"
           >
-            minio://foo/bar
-          </a>
+            <a
+              class="link"
+              href="artifacts/minio/foo/bar?namespace=namespace"
+              rel="noopener"
+              target="_blank"
+              title="minio://foo/bar"
+            >
+              minio://foo/bar
+            </a>
+            <span
+              class="separater"
+            />
+            <a
+              class="link viewLink"
+              href="artifacts/get?source=minio&namespace=namespace&bucket=foo&key=bar"
+              rel="noopener"
+              target="_blank"
+            >
+              View All
+            </a>
+          </div>
           <div
             class="preview"
           >
@@ -222,15 +264,30 @@ describe('MinioArtifactPreview', () => {
         <div
           class="root"
         >
-          <a
-            class="link"
-            href="artifacts/get?source=minio&bucket=foo&key=bar"
-            rel="noopener"
-            target="_blank"
-            title="minio://foo/bar"
+          <div
+            class="topDiv"
           >
-            minio://foo/bar
-          </a>
+            <a
+              class="link"
+              href="artifacts/minio/foo/bar"
+              rel="noopener"
+              target="_blank"
+              title="minio://foo/bar"
+            >
+              minio://foo/bar
+            </a>
+            <span
+              class="separater"
+            />
+            <a
+              class="link viewLink"
+              href="artifacts/get?source=minio&bucket=foo&key=bar"
+              rel="noopener"
+              target="_blank"
+            >
+              View All
+            </a>
+          </div>
         </div>
       </div>
     `);
@@ -246,7 +303,7 @@ describe('MinioArtifactPreview', () => {
     };
     const data = `012\n345\n678\n910`;
     readFile.mockResolvedValue(data);
-    const { container } = render(
+    const { container, queryByText } = render(
       <MinioArtifactPreview value={minioArtifact} maxbytes={data.length} />,
     );
     await act(TestUtils.flushPromises);
@@ -255,15 +312,30 @@ describe('MinioArtifactPreview', () => {
         <div
           class="root"
         >
-          <a
-            class="link"
-            href="artifacts/get?source=minio&bucket=foo&key=bar"
-            rel="noopener"
-            target="_blank"
-            title="minio://foo/bar"
+          <div
+            class="topDiv"
           >
-            minio://foo/bar
-          </a>
+            <a
+              class="link"
+              href="artifacts/minio/foo/bar"
+              rel="noopener"
+              target="_blank"
+              title="minio://foo/bar"
+            >
+              minio://foo/bar
+            </a>
+            <span
+              class="separater"
+            />
+            <a
+              class="link viewLink"
+              href="artifacts/get?source=minio&bucket=foo&key=bar"
+              rel="noopener"
+              target="_blank"
+            >
+              View All
+            </a>
+          </div>
           <div
             class="preview"
           >
@@ -291,7 +363,7 @@ describe('MinioArtifactPreview', () => {
     };
     const data = `012\n345\n678\n910`;
     readFile.mockResolvedValue(data);
-    const { container } = render(
+    const { container, queryByText } = render(
       <MinioArtifactPreview value={minioArtifact} maxbytes={data.length} maxlines={2} />,
     );
     await act(TestUtils.flushPromises);
@@ -300,15 +372,30 @@ describe('MinioArtifactPreview', () => {
         <div
           class="root"
         >
-          <a
-            class="link"
-            href="artifacts/get?source=minio&bucket=foo&key=bar"
-            rel="noopener"
-            target="_blank"
-            title="minio://foo/bar"
+          <div
+            class="topDiv"
           >
-            minio://foo/bar
-          </a>
+            <a
+              class="link"
+              href="artifacts/minio/foo/bar"
+              rel="noopener"
+              target="_blank"
+              title="minio://foo/bar"
+            >
+              minio://foo/bar
+            </a>
+            <span
+              class="separater"
+            />
+            <a
+              class="link viewLink"
+              href="artifacts/get?source=minio&bucket=foo&key=bar"
+              rel="noopener"
+              target="_blank"
+            >
+              View All
+            </a>
+          </div>
           <div
             class="preview"
           >
@@ -323,6 +410,7 @@ describe('MinioArtifactPreview', () => {
         </div>
       </div>
     `);
+    expect(queryByText('View All')).toBeTruthy();
   });
 
   it('handles artifact that previews with maxbytes', async () => {
@@ -335,7 +423,7 @@ describe('MinioArtifactPreview', () => {
     };
     const data = `012\n345\n678\n910`;
     readFile.mockResolvedValue(data);
-    const { container } = render(
+    const { container, queryByText } = render(
       <MinioArtifactPreview value={minioArtifact} maxbytes={data.length - 5} />,
     );
     await act(TestUtils.flushPromises);
@@ -344,15 +432,30 @@ describe('MinioArtifactPreview', () => {
         <div
           class="root"
         >
-          <a
-            class="link"
-            href="artifacts/get?source=minio&bucket=foo&key=bar"
-            rel="noopener"
-            target="_blank"
-            title="minio://foo/bar"
+          <div
+            class="topDiv"
           >
-            minio://foo/bar
-          </a>
+            <a
+              class="link"
+              href="artifacts/minio/foo/bar"
+              rel="noopener"
+              target="_blank"
+              title="minio://foo/bar"
+            >
+              minio://foo/bar
+            </a>
+            <span
+              class="separater"
+            />
+            <a
+              class="link viewLink"
+              href="artifacts/get?source=minio&bucket=foo&key=bar"
+              rel="noopener"
+              target="_blank"
+            >
+              View All
+            </a>
+          </div>
           <div
             class="preview"
           >
@@ -368,5 +471,6 @@ describe('MinioArtifactPreview', () => {
         </div>
       </div>
     `);
+    expect(queryByText('View All')).toBeTruthy();
   });
 });
