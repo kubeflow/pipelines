@@ -43,6 +43,7 @@ REQUIRES = [
 
 TESTS_REQUIRE = [
     'mock',
+    'kfp-pipeline-spec',
 ]
 
 
