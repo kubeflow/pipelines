@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# `kfp` is a namespace package.
+# https://packaging.python.org/guides/packaging-namespace-packages/#pkgutil-style-namespace-packages
+__path__ = __import__('pkgutil').extend_path(__path__, __name__)
+
 __version__ = '1.1.1rc1'
 
 from . import components
@@ -20,7 +24,3 @@ from . import dsl
 from ._client import Client
 from ._config import *
 from ._runners import *
-
-# `kfp` is a namespace package.
-# https://packaging.python.org/guides/packaging-namespace-packages/#pkgutil-style-namespace-packages
-__path__ = __import__('pkgutil').extend_path(__path__, __name__)
