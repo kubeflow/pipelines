@@ -20,3 +20,7 @@ from . import dsl
 from ._client import Client
 from ._config import *
 from ._runners import *
+
+# `kfp` is a namespace package.
+# https://packaging.python.org/guides/packaging-namespace-packages/#pkgutil-style-namespace-packages
+__path__ = __import__('pkgutil').extend_path(__path__, __name__)
