@@ -38,7 +38,7 @@ REQUIRES = [
     'Deprecated',
     'strip-hints',
     'docstring-parser>=0.7.3',
-    'kfp-pipeline-spec>=0.0.3rc1',
+    'kfp-pipeline-spec',
 ]
 
 TESTS_REQUIRE = [
