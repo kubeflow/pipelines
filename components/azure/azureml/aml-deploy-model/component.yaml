@@ -17,7 +17,7 @@ implementation:
   container:
     image: ''
     command: [
-      "sh", "/scripts/deploy.sh",
+      "sh", "/src/deploy.sh",
       '-n', {inputValue: deployment_name},
       '-m', {inputValue: model_name},
       '-i', {inputValue: inference_config},
