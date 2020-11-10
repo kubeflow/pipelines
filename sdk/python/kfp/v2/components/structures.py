@@ -122,6 +122,10 @@ class InputValuePlaceholder(ModelBase):  #Non-standard attr names
     super().__init__(locals())
 
 
+def _custom_formatwarning(message, category, filename, lineno, line=None):
+  return '%s:%s: %s: %s\n' % (filename, lineno, category.__name__, message)
+
+
 class InputPathPlaceholder(ModelBase):  #Non-standard attr names
   """Represents the command-line argument placeholder that will be replaced at run-time by a local file path pointing to a file containing the input argument value."""
   _serialized_names = {
@@ -133,10 +137,13 @@ class InputPathPlaceholder(ModelBase):  #Non-standard attr names
       input_name: str,
   ):
     super().__init__(locals())
+    formatwarning_orig = warnings.formatwarning
+    warnings.formatwarning = _custom_formatwarning
     warnings.warn(
         'Local file paths are currently unsupported for I/O. Please ensure your '
         'component is able to read/write to Google Cloud Storage (using gsutil, '
         'tf.gfile, or other similar libraries).')
+    warnings.formatwarning = formatwarning_orig
 
 
 class OutputPathPlaceholder(ModelBase):  #Non-standard attr names
@@ -150,10 +157,13 @@ class OutputPathPlaceholder(ModelBase):  #Non-standard attr names
       output_name: str,
   ):
     super().__init__(locals())
+    formatwarning_orig = warnings.formatwarning
+    warnings.formatwarning = _custom_formatwarning
     warnings.warn(
         'Local file paths are currently unsupported for I/O. Please ensure your '
         'component is able to read/write to Google Cloud Storage (using gsutil, '
         'tf.gfile, or other similar libraries).')
+    warnings.formatwarning = formatwarning_orig
 
 
 class OutputUriPlaceholder(ModelBase):  #Non-standard attr names
