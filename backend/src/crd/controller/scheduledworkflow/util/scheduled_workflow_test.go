@@ -15,7 +15,6 @@
 package util
 
 import (
-	"fmt"
 	"math"
 	"strconv"
 	"testing"
@@ -353,9 +352,6 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_CronScheduleTimeZoneEndTime(t *
 	creationTimestamp := metav1.NewTime(creationTime)
 
 	endTimestamp := metav1.NewTime(nowTime.Add(time.Second * 60 * 30))
-	fmt.Println(nowTime)
-	fmt.Println(nowTime.Add(time.Second * 60 * 30))
-	//catchUp := false
 	schedule := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: creationTimestamp,

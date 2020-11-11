@@ -130,7 +130,6 @@ func TestCronSchedule_GetNextScheduledEpoch_LocationsEnvSet(t *testing.T) {
 	lastJob, err := time.Parse(time.RFC1123Z, "Mon, 11 Jan 2010 10:20:00 +0800")
 	assert.Nil(t, err)
 	defaultStartTime, err := time.Parse(time.RFC1123Z, "Mon, 11 Jan 2010 10:15:00 +0800")
-	defaultStartTime = defaultStartTime.In(location)
 	schedule := NewCronSchedule(&swfapi.CronSchedule{
 		StartTime: commonutil.Metav1TimePointer(v1.NewTime(startTime)),
 		EndTime:   commonutil.Metav1TimePointer(v1.NewTime(endTime)),
