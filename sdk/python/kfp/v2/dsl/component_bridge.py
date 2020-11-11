@@ -26,7 +26,7 @@ from kfp.v2.components.components import _resolve_command_line_and_paths
 from kfp.v2.dsl import container_op
 from kfp.v2.dsl import importer_node
 from kfp.v2.dsl import type_utils
-from kfp.v2.proto import pipeline_spec_pb2
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 
 # TODO: cleanup unused code.

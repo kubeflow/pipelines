@@ -15,7 +15,7 @@
 
 from typing import Any, List, Mapping, Optional, Union
 from kfp.v2 import dsl
-from kfp.v2.proto import pipeline_spec_pb2
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 
 def build_runtime_parameter_spec(
