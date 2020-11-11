@@ -22,13 +22,13 @@ except ImportError:
   from shutil import which as find_executable
 
 NAME = "kfp-pipeline-spec"
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 
 PROTO_DIR = os.path.realpath(
     os.path.join(os.path.dirname(__file__), os.pardir))
 
 PKG_DIR = os.path.realpath(
-    os.path.join(os.path.dirname(__file__), "kfp", "pipeline_spec"))
+    os.path.join(os.path.dirname(__file__), "kfp_pipeline_spec"))
 
 # Find the Protocol Compiler. (Taken from protobuf/python/setup.py)
 if "PROTOC" in os.environ and os.path.exists(os.environ["PROTOC"]):
