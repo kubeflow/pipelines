@@ -303,7 +303,7 @@ class Client(object):
     healthz_api = 'http://' + self._existing_config.host + '/' + Client.HEALTH_PATH
     count = 0
     response = None
-    max_attempts = 60
+    max_attempts = 1
     while count < max_attempts and not response:
       count += 1
       try:
@@ -313,6 +313,7 @@ class Client(object):
         return response
       except ValueError:
         print("Exception; No JSON returned. Retrying after 5 seconds", ValueError)
+        print(r.url)
         print(r.status_code)
         print(r.headers)
         print(r.text)
