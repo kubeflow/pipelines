@@ -14,7 +14,7 @@
 
 import unittest
 from kfp.v2.dsl import importer_node
-from kfp.v2.proto import pipeline_spec_pb2 as pb
+from kfp.pipeline_spec import pipeline_spec_pb2 as pb
 from google.protobuf import json_format
 
 

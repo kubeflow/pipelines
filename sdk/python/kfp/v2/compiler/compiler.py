@@ -28,7 +28,7 @@ from kfp.v2.compiler import compiler_utils
 from kfp.v2.components import python_op
 from kfp.v2.dsl import importer_node
 from kfp.v2.dsl import type_utils
-from kfp.v2.proto import pipeline_spec_pb2
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 from google.protobuf import json_format
 

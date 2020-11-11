@@ -37,11 +37,13 @@ REQUIRES = [
     'click',
     'Deprecated',
     'strip-hints',
-    'docstring-parser>=0.7.3'
+    'docstring-parser>=0.7.3',
+    'kfp-pipeline-spec',
 ]
 
 TESTS_REQUIRE = [
     'mock',
+    'kfp-pipeline-spec',
 ]
 
 
@@ -83,7 +85,6 @@ setup(
         'kfp.v2.compiler',
         'kfp.v2.components',
         'kfp.v2.dsl',
-        'kfp.v2.proto',
     ],
     classifiers=[
         'Intended Audience :: Developers',

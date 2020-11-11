@@ -17,7 +17,7 @@ from typing import Callable, Text
 
 from kfp import dsl
 from kfp.v2.components import structures
-from kfp.v2.proto import pipeline_spec_pb2
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 
 # Unit constants for k8s size string.

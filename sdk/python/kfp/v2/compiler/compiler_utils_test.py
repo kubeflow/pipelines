@@ -16,7 +16,7 @@ import unittest
 
 from kfp.v2 import dsl
 from kfp.v2.compiler import compiler_utils
-from kfp.v2.proto import pipeline_spec_pb2
+from kfp.pipeline_spec import pipeline_spec_pb2
 from google.protobuf import json_format
 
 
