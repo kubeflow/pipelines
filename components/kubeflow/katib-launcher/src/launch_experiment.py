@@ -41,6 +41,9 @@ class Experiment(launch_crd.K8sCR):
     super(Experiment, self).__init__(ExperimentGroup, ExperimentPlural, version, client)
 
   def is_expected_conditions(self, inst, expected_conditions):
+    trials_running_count = inst.get('status', {}).get('trialsRunning', 0)
+    if 0 != trials_running_count:
+      return False, ''
     conditions = inst.get('status', {}).get("conditions")
     if not conditions:
       return False, ""
