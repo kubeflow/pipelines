@@ -300,7 +300,7 @@ class Client(object):
     Returns:
       response: json formatted response from the healtz endpoint.
     """
-    healthz_api = 'http://' + self._existing_config.host + '/' + Client.HEALTH_PATH
+    healthz_api = 'https://' + self._existing_config.host + '/' + Client.HEALTH_PATH
     count = 0
     response = None
     max_attempts = 60
