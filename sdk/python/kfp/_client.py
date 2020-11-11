@@ -300,7 +300,7 @@ class Client(object):
     Returns:
       response: json formatted response from the healtz endpoint.
     """
-    healthz_api = 'https://' + self._existing_config.host + '/' + Client.HEALTH_PATH
+    healthz_api = 'http://' + self._existing_config.host + '/' + Client.HEALTH_PATH
     count = 0
     response = None
     max_attempts = 60
@@ -312,7 +312,10 @@ class Client(object):
         response = r.json()
         return response
       except ValueError:
-        print("Exception; retrying after 5 seconds", ValueError)
+        print("Exception; No JSON returned. Retrying after 5 seconds", ValueError)
+        print(r.status_code)
+        print(r.headers)
+        print(r.text)
         time.sleep(5)
 
   def get_user_namespace(self):
