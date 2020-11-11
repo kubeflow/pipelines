@@ -16,6 +16,7 @@ package resource
 
 import (
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -40,6 +41,7 @@ type FakeClientManager struct {
 	swfClientFake          *client.FakeSwfClient
 	k8sCoreClientFake      *client.FakeKuberneteCoreClient
 	KfamClientFake         client.KFAMClientInterface
+	logArchive             archive.LogArchiveInterface
 	time                   util.TimeInterface
 	uuid                   util.UUIDGeneratorInterface
 }
@@ -76,6 +78,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		swfClientFake:          client.NewFakeSwfClient(),
 		k8sCoreClientFake:      client.NewFakeKuberneteCoresClient(),
 		KfamClientFake:         client.NewFakeKFAMClientAuthorized(),
+		logArchive:             archive.NewLogArchive("/logs", "main.log"),
 		time:                   time,
 		uuid:                   uuid,
 	}, nil
@@ -100,6 +103,10 @@ func (f *FakeClientManager) PipelineStore() storage.PipelineStoreInterface {
 
 func (f *FakeClientManager) ObjectStore() storage.ObjectStoreInterface {
 	return f.objectStore
+}
+
+func (f *FakeClientManager) LogArchive() archive.LogArchiveInterface {
+	return f.logArchive
 }
 
 func (f *FakeClientManager) Time() util.TimeInterface {

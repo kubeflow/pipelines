@@ -163,8 +163,29 @@ function createUIServer(options: UIConfigs) {
   registerHandler(app.delete, '/apps/tensorboard', tensorboardDeleteHandler);
   registerHandler(app.post, '/apps/tensorboard', tensorboardCreateHandler);
 
-  /** Pod logs */
-  registerHandler(app.get, '/k8s/pod/logs', getPodLogsHandler(options.argo, options.artifacts));
+  /** Pod logs - conditionally stream through API server, otherwise directly from k8s and archive */
+  if (options.artifacts.streamLogsFromServerApi) {
+    app.all(
+      '/k8s/pod/logs',
+      proxy({
+        changeOrigin: true,
+        onProxyReq: proxyReq => {
+          console.log('Proxied log request: ', proxyReq.path);
+        },
+        headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
+        pathRewrite: (pathStr: string, req: any) => {
+          /** Argo nodeId is just POD name */
+          const nodeId = req.query.podname;
+          const runId = req.query.runid;
+          return `/${apiVersionPrefix}/runs/${runId}/nodes/${nodeId}/log`;
+        },
+        target: apiServerAddress,
+      }),
+    );
+  } else {
+    registerHandler(app.get, '/k8s/pod/logs', getPodLogsHandler(options.argo, options.artifacts));
+  }
+
   /** Pod info */
   registerHandler(app.get, '/k8s/pod', podInfoHandler);
   registerHandler(app.get, '/k8s/pod/events', podEventsHandler);

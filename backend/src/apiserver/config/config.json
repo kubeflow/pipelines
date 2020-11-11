@@ -11,6 +11,8 @@
     "BucketName": "mlpipeline",
     "PipelinePath": "pipelines"
   },
+  "ARCHIVE_CONFIG_LOG_FILE_NAME": "main.log",
+  "ARCHIVE_CONFIG_LOG_PATH_PREFIX": "/artifacts",
   "InitConnectionTimeout": "6m",
   "DefaultPipelineRunnerServiceAccount": "pipeline-runner",
   "CacheEnabled": "true"

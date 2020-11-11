@@ -17,6 +17,7 @@ package resource
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"strconv"
 
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
@@ -24,6 +25,7 @@ import (
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
@@ -35,6 +37,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -69,6 +73,7 @@ type ClientManagerInterface interface {
 	SwfClient() client.SwfClientInterface
 	KubernetesCoreClient() client.KubernetesCoreInterface
 	KFAMClient() client.KFAMClientInterface
+	LogArchive() archive.LogArchiveInterface
 	Time() util.TimeInterface
 	UUID() util.UUIDGeneratorInterface
 }
@@ -86,6 +91,7 @@ type ResourceManager struct {
 	swfClient              client.SwfClientInterface
 	k8sCoreClient          client.KubernetesCoreInterface
 	kfamClient             client.KFAMClientInterface
+	logArchive             archive.LogArchiveInterface
 	time                   util.TimeInterface
 	uuid                   util.UUIDGeneratorInterface
 }
@@ -104,6 +110,7 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		swfClient:              clientManager.SwfClient(),
 		k8sCoreClient:          clientManager.KubernetesCoreClient(),
 		kfamClient:             clientManager.KFAMClient(),
+		logArchive:             clientManager.LogArchive(),
 		time:                   clientManager.Time(),
 		uuid:                   clientManager.UUID(),
 	}
@@ -548,6 +555,74 @@ func (r *ResourceManager) RetryRun(runId string) error {
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to update the database entry.")
 	}
+	return nil
+}
+
+func (r *ResourceManager) ReadLog(runId string, nodeId string, follow bool, dst io.Writer) error {
+	run, err := r.checkRunExist(runId)
+	if err != nil {
+		return util.NewBadRequestError(errors.New("log cannot be read"), "Run does not exist")
+	}
+
+	err = r.readRunLogFromPod(run, nodeId, follow, dst)
+	if err != nil && r.logArchive != nil {
+		err = r.readRunLogFromArchive(run, nodeId, dst)
+	}
+
+	return err
+}
+
+func (r *ResourceManager) readRunLogFromPod(run *model.RunDetail, nodeId string, follow bool, dst io.Writer) error {
+	logOptions := corev1.PodLogOptions{
+		Container:  "main",
+		Timestamps: false,
+		Follow:     follow,
+	}
+
+	req := r.k8sCoreClient.PodClient(run.Namespace).GetLogs(nodeId, &logOptions)
+	podLogs, err := req.Stream()
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			glog.Errorf("Failed to access Pod log: %v", err)
+		}
+		return util.NewInternalServerError(err, "error in opening log stream")
+	}
+	defer podLogs.Close()
+
+	_, err = io.Copy(dst, podLogs)
+	if err != nil && err != io.EOF {
+		return util.NewInternalServerError(err, "error in streaming the log")
+	}
+
+	return nil
+}
+
+func (r *ResourceManager) readRunLogFromArchive(run *model.RunDetail, nodeId string, dst io.Writer) error {
+	workflow := new(util.Workflow)
+
+	if run.WorkflowRuntimeManifest == "" {
+		return util.NewBadRequestError(errors.New("archived log cannot be read"), "Failed to retrieve the runtime workflow from the run")
+	}
+	if err := json.Unmarshal([]byte(run.WorkflowRuntimeManifest), &workflow); err != nil {
+		return util.NewInternalServerError(err, "Failed to retrieve the runtime pipeline spec from the run")
+	}
+
+	logPath, err := r.logArchive.GetLogObjectKey(workflow, nodeId)
+	if err != nil {
+		return err
+	}
+
+	logContent, err := r.objectStore.GetFile(logPath)
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to retrieve the log file from archive")
+	}
+
+	err = r.logArchive.CopyLogFromArchive(logContent, dst, archive.ExtractLogOptions{LogFormat: archive.LogFormatText, Timestamps: false})
+
+	if err != nil {
+		return util.NewInternalServerError(err, "error in streaming the log")
+	}
+
 	return nil
 }
 
