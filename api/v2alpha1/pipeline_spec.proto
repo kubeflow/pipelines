@@ -330,27 +330,36 @@ message PipelineDeploymentConfig {
     bool reimport = 5;
   }
 
-  // ResolverSpec is subject to change. Currently we only use enum to
-  // represent two of the currently available policies. We plan to introduce a
-  // flexible config to enable more sophisticated policies in the future.
-  // TODO(b/152230663): Support more flexibility for resolution logic.
+  // ResolverSpec resolves artifacts from historical metadata and returns them
+  // to the pipeline as output artifacts of the resolver task. The downstream
+  // tasks can consume them as their input artifacts.
   message ResolverSpec {
-    enum ResolverPolicy {
-      RESOLVER_POLICY_UNSPECIFIED = 0;
-      // Within the models associated with the same pipeline context, always
-      // select the model with largest `last_update_time_since_epoch`.
-      LATEST_MODEL = 1;
-      // Within the models associated with the same pipeline context,
-      // select the latest Model that is blessed (represented by having a
-      // corresponding ModelBlessing artifact. The result will be consumed by
-      // components that need the latest model that is blessed such as
-      // Evaluator.
-      LATEST_BLESSED_MODEL = 2;
+    // The query to fetch artifacts.
+    message ArtifactQuerySpec {
+      // The filter of the artifact query. The supported syntax are:
+      // - `contexts.name='<context name>'`
+      // - `artifact_type='<artifact type name>'`
+      // - `uri='<uri>'`
+      // - `state=<state>`
+      // - `properties['key']='value'`
+      // - `custom_properties['key']='value'`
+      // - `name='value'`
+      // - `and` to combine two conditions and returns when both are true.
+      // If no `contexts.name` filter is set, the query will be scoped to the
+      // the current pipeline context.
+      string filter = 1;
+      // The maximum number of the artifacts to be returned from the
+      // query. If not defined, the default limit is `1`.
+      int32 limit = 2;
     }
-    // TODO(b/152230663): Make this one of special resolver policies or generic
-    // ResolverConfig.
-    ResolverPolicy resolver_policy = 1;
+
+    // A list of resolver output definitions. The
+    // key of the map must be exactly the same as
+    // the keys in the [TaskOutputsSpec.artifacts][] map.
+    // At least one output must be defined.
+    map<string, ArtifactQuerySpec> output_artifact_queries = 1;
   }
+
 
   // The specification of the executor.
   message ExecutorSpec {
