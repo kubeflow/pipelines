@@ -13,7 +13,7 @@
 # limitations under the License.
 import datetime
 import json
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from deprecated import deprecated
 import inspect
 import tarfile
@@ -622,18 +622,15 @@ class Compiler(object):
 
     return templates
 
-  def _create_pipeline_workflow(self, args, pipeline, op_transformers=None, pipeline_conf=None):
+  def _create_pipeline_workflow(self, parameter_defaults, pipeline, op_transformers=None, pipeline_conf=None):
     """Create workflow for the pipeline."""
 
     # Input Parameters
     input_params = []
-    for arg in args:
-      param = {'name': arg.name}
-      if arg.value is not None:
-        if isinstance(arg.value, (list, tuple)):
-          param['value'] = json.dumps(arg.value, sort_keys=True)
-        else:
-          param['value'] = str(arg.value)
+    for name, value in parameter_defaults.items():
+      param = {'name': name}
+      if value is not None:
+        param['value'] = value
       input_params.append(param)
 
     # Making the pipeline group name unique to prevent name clashes with templates
@@ -793,7 +790,7 @@ class Compiler(object):
 
     # Need to first clear the default value of dsl.PipelineParams. Otherwise, it
     # will be resolved immediately in place when being to each component.
-    default_param_values = {}
+    default_param_values = OrderedDict()
     for param in params_list:
       default_param_values[param.name] = param.value
       param.value = None
@@ -821,23 +818,23 @@ class Compiler(object):
     self._sanitize_and_inject_artifact(dsl_pipeline, pipeline_conf)
 
     # Fill in the default values.
-    args_list_with_defaults = []
+    args_list_with_defaults = OrderedDict()
     if pipeline_meta.inputs:
-      args_list_with_defaults = [
-        dsl.PipelineParam(sanitize_k8s_name(input_spec.name, True), value=input_spec.default)
+      args_list_with_defaults = OrderedDict([
+        (sanitize_k8s_name(input_spec.name, True), input_spec.default)
         for input_spec in pipeline_meta.inputs
-      ]
+      ])
     elif params_list:
       # Or, if args are provided by params_list, fill in pipeline_meta.
-      for param in params_list:
-        param.value = default_param_values[param.name]
-
-      args_list_with_defaults = params_list
+      args_list_with_defaults = default_param_values
       pipeline_meta.inputs = [
         InputSpec(
             name=param.name,
             type=param.param_type,
-            default=param.value) for param in params_list]
+            default=default_param_values[param.name]
+        )
+        for param in params_list
+      ]
 
     op_transformers = [add_pod_env]
     op_transformers.extend(pipeline_conf.op_transformers)
