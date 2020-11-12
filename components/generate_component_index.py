@@ -55,4 +55,4 @@ with open('README.md', 'w') as f:
         if 'Index of components' in line:
             break
     for line in component_list_lines:
-        f.write(line + '\n')
+        f.write(line + '\n\n')
