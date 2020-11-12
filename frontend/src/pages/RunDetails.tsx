@@ -920,7 +920,8 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
   private async _loadSelectedNodeLogs(): Promise<void> {
     const selectedNodeDetails = this.state.selectedNodeDetails;
     const namespace = this.state.workflow?.metadata?.namespace;
-    if (!selectedNodeDetails || !namespace) {
+    const runId = this.state.runMetadata?.id;
+    if (!selectedNodeDetails || !runId || !namespace) {
       return;
     }
     this.setStateSafe({ sidepanelBusy: true });
@@ -930,7 +931,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     let logsBannerMode = '' as Mode;
 
     try {
-      selectedNodeDetails.logs = await Apis.getPodLogs(selectedNodeDetails.id, namespace);
+      selectedNodeDetails.logs = await Apis.getPodLogs(runId, selectedNodeDetails.id, namespace);
     } catch (err) {
       let errMsg = await errorToMessage(err);
       logsBannerMessage = 'Failed to retrieve pod logs.';
