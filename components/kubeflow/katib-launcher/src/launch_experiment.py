@@ -43,7 +43,7 @@ class Experiment(launch_crd.K8sCR):
   def is_expected_conditions(self, inst, expected_conditions):
     trials_running_count = inst.get('status', {}).get('trialsRunning')
     if trials_running_count:
-      return False, ''
+      return False, ""
     conditions = inst.get('status', {}).get("conditions")
     if not conditions:
       return False, ""
