@@ -1,38 +1,18 @@
-# Kubeflow pipeline components
+# Components for Kubeflow Pipelines
 
-Kubeflow pipeline components are implementations of Kubeflow pipeline tasks. Each task takes
-one or more [artifacts](https://www.kubeflow.org/docs/pipelines/overview/concepts/output-artifact/)
-as input and may produce one or more
-[artifacts](https://www.kubeflow.org/docs/pipelines/overview/concepts/output-artifact/) as output.
+Kubeflow Pipelines system orchestrates pipeline graphs of containerized command-line programs.
+Components are the building blocks of pipelines.
+Component definition files describe component interface (inputs and outputs) and implementation (how to call the containerized program).
+Users can load components with KFP SDK, instantiate the components and compose them in a pipeline graph.
 
+## Example components
 
-**Example: XGBoost DataProc components**
-* [Set up cluster](deprecated/dataproc/create_cluster/src/create_cluster.py)
-* [Analyze](deprecated/dataproc/analyze/src/analyze.py)
-* [Transform](deprecated/dataproc/transform/src/transform.py)
-* [Distributed train](deprecated/dataproc/train/src/train.py)
-* [Delete cluster](deprecated/dataproc/delete_cluster/src/delete_cluster.py)
+* Python-based: [Train with XGBoost](https://github.com/kubeflow/pipelines/tree/ea94251143f300fafed8950a1b4ba0a6b6065094/components/XGBoost/Train)
+* Command-line-based: [Execute notebook](https://github.com/kubeflow/pipelines/blob/329ed48/components/notebooks/Run_notebook_using_papermill/component.yaml)
+* Graph-based: [Cross-validate](https://github.com/kubeflow/pipelines/tree/34cb59daaea4f800afae5d968b5efd31eb432291/components/XGBoost/Cross_validation_for_regression/from_CSV)
 
-Each task usually includes two parts:
-
-``Client code``
-  The code that talks to endpoints to submit jobs. For example, code to talk to Google
-  Dataproc API to submit a Spark job.
-
-``Runtime code``
-  The code that does the actual job and usually runs in the cluster. For example, Spark code
-  that transforms raw data into preprocessed data.
-
-``Container``
-  A container image that runs the client code.
-
-Note the naming convention for client code and runtime code&mdash;for a task named "mytask":
-
-* The `mytask.py` program contains the client code.
-* The `mytask` directory contains all the runtime code.
-
-See how to [use the Kubeflow Pipelines SDK](https://www.kubeflow.org/docs/pipelines/sdk/sdk-overview/)
-and [build your own components](https://www.kubeflow.org/docs/pipelines/sdk/build-component/).
+See how to [build your own components](https://www.kubeflow.org/docs/pipelines/sdk/component-development/).
+Also see the tutorials for [data passing for components based on python functions](https://github.com/kubeflow/pipelines/blob/fd5778d/samples/tutorials/Data%20passing%20in%20python%20components.ipynb) and [components based on command-line programs](https://github.com/Ark-kun/kfp_samples/blob/ae1a5b6/2019-10%20Kubeflow%20summit/106%20-%20Creating%20components%20from%20command-line%20programs/106%20-%20Creating%20components%20from%20command-line%20programs.ipynb).
 
 ## Index of components
  / [_converters](https://github.com/kubeflow/pipelines/tree/b63dd3f53237f74ae7f965441fd97698fafba7c9/components/_converters) / [ApacheParquet](https://github.com/kubeflow/pipelines/tree/b63dd3f53237f74ae7f965441fd97698fafba7c9/components/_converters/ApacheParquet) / [from_ApacheArrowFeather](https://github.com/kubeflow/pipelines/tree/b63dd3f53237f74ae7f965441fd97698fafba7c9/components/_converters/ApacheParquet/from_ApacheArrowFeather) / [Convert apache arrow feather to apache parquet](https://raw.githubusercontent.com/kubeflow/pipelines/b63dd3f53237f74ae7f965441fd97698fafba7c9/components/_converters/ApacheParquet/from_ApacheArrowFeather/component.yaml)
