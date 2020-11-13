@@ -323,14 +323,14 @@ class Client(object):
           response = requests.get('https://' + healthz_api)
         except SSLError:
           response = requests.get('http://' + healthz_api)
-          if response.history:
-            print("Request was redirected")
-            for resp in response.history:
-              print(resp.status_code, resp.url)
-            print("Final destination:")
-            print(response.status_code, response.url)
-          else:
-            print("Request was not redirected")
+        if response.history:
+          print("Request was redirected")
+          for resp in response.history:
+            print(resp.status_code, resp.url)
+          print("Final destination:")
+          print(response.status_code, response.url)
+        else:
+          print("Request was not redirected")
         time.sleep(5)
 
   def get_user_namespace(self):
