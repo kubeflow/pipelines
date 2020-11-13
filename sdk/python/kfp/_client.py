@@ -33,6 +33,8 @@ from kfp.compiler import compiler
 from kfp.compiler._k8s_helper import sanitize_k8s_name
 
 from kfp._auth import get_auth_token, get_gcp_access_token
+from ssl import SSLError
+from json import JSONDecodeError
 
 # TTL of the access token associated with the client. This is needed because
 # `gcloud auth print-access-token` generates a token with TTL=1 hour, after
@@ -142,6 +144,7 @@ class Client(object):
     self._experiment_api = kfp_server_api.api.experiment_service_api.ExperimentServiceApi(api_client)
     self._pipelines_api = kfp_server_api.api.pipeline_service_api.PipelineServiceApi(api_client)
     self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
+    self._api_client = api_client
     if self._context_setting['namespace'] == '' and self.get_kfp_healthz().get('multi_user') is True:
       NAMESPACE_PATH = '/var/run/secrets/kubernetes.io/serviceaccount/namespace'
       try:
@@ -300,23 +303,24 @@ class Client(object):
     Returns:
       response: json formatted response from the healtz endpoint.
     """
-    healthz_api = 'http://' + self._existing_config.host + '/' + Client.HEALTH_PATH
+    healthz_api = self._existing_config.host + '/' + Client.HEALTH_PATH
     count = 0
     response = None
     max_attempts = 1
     while count < max_attempts and not response:
       count += 1
       try:
-        r = requests.get(healthz_api)
-        r.raise_for_status()
-        response = r.json()
+        r = self._api_client.request('GET', 'https://' + healthz_api)
+        response = json.loads(r.data)
         return response
-      except ValueError:
-        print("Exception; No JSON returned. Retrying after 5 seconds", ValueError)
-        print(r.url)
-        print(r.status_code)
-        print(r.headers)
-        print(r.text)
+      except SSLError:
+        r = self._api_client.request('GET', 'http://' + healthz_api)
+        response = json.loads(r.data)
+        return response
+      except JSONDecodeError:
+        print("Exception; No JSON returned. Retrying after 5 seconds", JSONDecodeError)
+        print(r.status)
+        print(r.reason)
         time.sleep(5)
 
   def get_user_namespace(self):
