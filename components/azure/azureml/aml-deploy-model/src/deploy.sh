@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Deploy registered model to Azure Machine Learning
-while getopts "n:m:i:d:s:p:u:r:w:t:o:" option;
+while getopts "n:m:i:d:s:p:u:r:w:t:o:e:" option;
     do
     case "$option" in
         n ) DEPLOYMENT_NAME=${OPTARG};;
@@ -15,6 +15,7 @@ while getopts "n:m:i:d:s:p:u:r:w:t:o:" option;
         w ) WORKSPACE=${OPTARG};;
         t ) TENANT_ID=${OPTARG};;
         o ) OUTPUT_CONFIG_PATH=${OPTARG};;
+        e ) SCORE_URI=${OPTARG};;
     esac
 done
 az login --service-principal --username ${SERVICE_PRINCIPAL_ID} --password ${SERVICE_PRINCIPAL_PASSWORD} -t ${TENANT_ID}
@@ -31,3 +32,15 @@ else
     mkdir -p ${parentdir}
 fi
 az ml service show -n ${DEPLOYMENT_NAME} --resource-group ${RESOURCE_GROUP} --workspace-name ${WORKSPACE} > ${OUTPUT_CONFIG_PATH}
+
+# Get the scoring uri from the deployment config
+scoreuri_parentdir="$(dirname "$SCORE_URI")"
+if [ -d "$scoreuri_parentdir" ];
+then
+    echo Found The directory ${scoreuri_parentdir}.
+else
+    echo Parent directory did not exist, creating parent directory.
+    mkdir -p ${scoreuri_parentdir}
+fi
+jq .scoringUri ${OUTPUT_CONFIG_PATH} > ${SCORE_URI}
+

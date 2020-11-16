@@ -27,6 +27,7 @@ It performs the following workflow:
 
 ## Outputs
 Output `output_config` holds description of the deployed web service for the machine learning model.
+Output `score_uri` holds endpoint for the deployed model.
 
 ## Prerequisites
 
@@ -86,4 +87,4 @@ if __name__ == '__main__':
 
 **Note:** The deployment name requires alphanumeric characters and the model_name shall be a combination of "model name" and "version number".
 
-Once the deployment has finished, navigate to your Azure Machine Learning Workspace and select the `Endpoints` tab to find your Real-Time endpoints. You can access your model as a web-service by the `REST endpoint`. It should look like "http://{your_rest_endpoint}.{region}.azurecontainer.io/score?{your_data}".
+Once the deployment has finished, navigate to your Azure Machine Learning Workspace and select the `Endpoints` tab to find your Real-Time endpoints. You can access your model as a web-service by the `REST endpoint`. It should look like "http://{your_rest_endpoint}.{region}.azurecontainer.io/score?{your_data}". Alternatively, the output `score_uri` should also contain the information for the model endpoint. The `output_config` contains detailed information for the deployed web service.

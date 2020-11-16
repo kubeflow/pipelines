@@ -12,7 +12,8 @@ inputs:
 - {name: resource_group, type: String}
 - {name: workspace, type: String}
 outputs:
-- {name: output_config, type: String, description: 'Description of the deployed web-service'}
+- {name: output_config, type: String, description: 'Description of the deployed web-service.'}
+- {name: score_uri, type: String, description: 'The endpoint for deployed model.'}
 implementation:
   container:
     image: ''
@@ -28,5 +29,6 @@ implementation:
       '-r', {inputValue: resource_group},
       '-w', {inputValue: workspace},
       '-t', {inputValue: tenant_id},
-      '-o', {outputPath: output_config}
+      '-o', {outputPath: output_config},
+      '-e', {outputPath: score_uri}
     ]
