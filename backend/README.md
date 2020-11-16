@@ -30,8 +30,8 @@ speeding up the build. To do so, execute the following command:
 
 The API server image can be built from the root folder of the repo using: 
 ```
-export APISERVERIMAGE=api_server
-docker build -f backend/Dockerfile . --tag $APISERVERIMAGE
+export API_SERVER_IMAGE=api_server
+docker build -f backend/Dockerfile . --tag $API_SERVER_IMAGE
 ```
 
 ## Building Go client library and swagger files
