@@ -11,7 +11,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/metadata"
 )
@@ -371,86 +370,4 @@ func TestGetUserIdentityFromHeaderError(t *testing.T) {
 	_, err := getUserIdentityFromHeader("user", prefix)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Request header error: user identity value is incorrectly formatted")
-}
-
-func TestCanAccessNamespaceInResourceReferences_Unauthorized(t *testing.T) {
-	viper.Set(common.MultiUserMode, "true")
-	defer viper.Set(common.MultiUserMode, "false")
-
-	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
-	defer clients.Close()
-
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
-	ctx := metadata.NewIncomingContext(context.Background(), md)
-	references := []*api.ResourceReference{
-		{
-			Key: &api.ResourceKey{
-				Type: api.ResourceType_NAMESPACE, Id: "ns1"},
-			Relationship: api.Relationship_OWNER,
-		},
-	}
-	err := CanAccessNamespaceInResourceReferences(manager, ctx, references)
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Unauthorized access")
-}
-
-func TestCanAccessNamespaceInResourceReferences_Authorized(t *testing.T) {
-	viper.Set(common.MultiUserMode, "true")
-	defer viper.Set(common.MultiUserMode, "false")
-
-	clients, manager, _ := initWithExperiment(t)
-	defer clients.Close()
-
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
-	ctx := metadata.NewIncomingContext(context.Background(), md)
-	references := []*api.ResourceReference{
-		{
-			Key: &api.ResourceKey{
-				Type: api.ResourceType_NAMESPACE, Id: "ns1"},
-			Relationship: api.Relationship_OWNER,
-		},
-	}
-	err := CanAccessNamespaceInResourceReferences(manager, ctx, references)
-	assert.Nil(t, err)
-}
-
-func TestCanAccessExperimentInResourceReferences_Unauthorized(t *testing.T) {
-	viper.Set(common.MultiUserMode, "true")
-	defer viper.Set(common.MultiUserMode, "false")
-
-	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
-	defer clients.Close()
-
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
-	ctx := metadata.NewIncomingContext(context.Background(), md)
-	references := []*api.ResourceReference{
-		{
-			Key: &api.ResourceKey{
-				Type: api.ResourceType_EXPERIMENT, Id: resource.DefaultFakeUUID},
-			Relationship: api.Relationship_OWNER,
-		},
-	}
-	err := CanAccessExperimentInResourceReferences(manager, ctx, references)
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Unauthorized access")
-}
-
-func TestCanAccessExperiemntInResourceReferences_Authorized(t *testing.T) {
-	viper.Set(common.MultiUserMode, "true")
-	defer viper.Set(common.MultiUserMode, "false")
-
-	clients, manager, _ := initWithExperiment(t)
-	defer clients.Close()
-
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
-	ctx := metadata.NewIncomingContext(context.Background(), md)
-	references := []*api.ResourceReference{
-		{
-			Key: &api.ResourceKey{
-				Type: api.ResourceType_EXPERIMENT, Id: resource.DefaultFakeUUID},
-			Relationship: api.Relationship_OWNER,
-		},
-	}
-	err := CanAccessExperimentInResourceReferences(manager, ctx, references)
-	assert.Nil(t, err)
 }
