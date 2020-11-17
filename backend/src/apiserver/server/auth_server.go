@@ -2,12 +2,24 @@ package server
 
 import (
 	"context"
+	"strings"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
+
+var rbacResourceTypeToGroup = map[string]string{
+	common.RbacResourceTypePipelines:      common.RbacPipelinesGroup,
+	common.RbacResourceTypeExperiments:    common.RbacPipelinesGroup,
+	common.RbacResourceTypeRuns:           common.RbacPipelinesGroup,
+	common.RbacResourceTypeJobs:           common.RbacPipelinesGroup,
+	common.RbacResourceTypeViewers:        common.RbacKubeflowGroup,
+	common.RbacResourceTypeVisualizations: common.RbacPipelinesGroup,
+}
 
 type AuthServer struct {
 	resourceManager *resource.ResourceManager
@@ -20,10 +32,19 @@ func (s *AuthServer) Authorize(ctx context.Context, request *api.AuthorizeReques
 		return nil, util.Wrap(err, "Authorize request is not valid")
 	}
 
-	// TODO: when KFP changes authorization implementation to have more
-	// granularity, we need to start using resources and verb info in the
-	// request.
-	err = CanAccessNamespace(s.resourceManager, ctx, request.Namespace)
+	namespace := strings.ToLower(request.GetNamespace())
+	verb := strings.ToLower(request.GetVerb().String())
+	resource := strings.ToLower(request.GetResources().String())
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace:   namespace,
+		Verb:        verb,
+		Group:       rbacResourceTypeToGroup[resource],
+		Version:     common.RbacPipelinesVersion,
+		Resource:    resource,
+		Subresource: "",
+		Name:        "",
+	}
+	err = isAuthorized(s.resourceManager, ctx, resourceAttributes)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the request")
 	}

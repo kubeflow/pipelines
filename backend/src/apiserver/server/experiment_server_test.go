@@ -9,13 +9,13 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/metadata"
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
 func TestCreateExperiment(t *testing.T) {
@@ -75,10 +75,8 @@ func TestCreateExperiment_Unauthorized(t *testing.T) {
 	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
-	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	clientManager.KfamClientFake = client.NewFakeKFAMClientUnauthorized()
-	resourceManager := resource.NewResourceManager(clientManager)
-	defer clientManager.Close()
+	clients, resourceManager, _ := initWithExperiment_SubjectAccessReview_Unauthorized(t)
+	defer clients.Close()
 
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	experiment := &api.Experiment{
@@ -93,7 +91,19 @@ func TestCreateExperiment_Unauthorized(t *testing.T) {
 
 	_, err := server.CreateExperiment(ctx, &api.CreateExperimentRequest{Experiment: experiment})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Unauthorized access")
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: "ns1",
+		Verb:      common.RbacResourceVerbCreate,
+		Group:     common.RbacPipelinesGroup,
+		Version:   common.RbacPipelinesVersion,
+		Resource:  common.RbacResourceTypeExperiments,
+		Name:      experiment.Name,
+	}
+	assert.EqualError(
+		t,
+		err,
+		wrapFailedAuthzRequestError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(ctx, resourceAttributes))).Error(),
+	)
 }
 
 func TestCreateExperiment_Multiuser(t *testing.T) {
@@ -170,14 +180,26 @@ func TestGetExperiment_Unauthorized(t *testing.T) {
 	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
-	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
+	clients, manager, experiment := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
 
 	server := ExperimentServer{manager, &ExperimentServerOptions{CollectMetrics: false}}
 
-	_, err := server.GetExperiment(ctx, &api.GetExperimentRequest{Id: resource.DefaultFakeUUID})
+	_, err := server.GetExperiment(ctx, &api.GetExperimentRequest{Id: experiment.UUID})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Unauthorized access")
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: "ns1",
+		Verb:      common.RbacResourceVerbGet,
+		Group:     common.RbacPipelinesGroup,
+		Version:   common.RbacPipelinesVersion,
+		Resource:  common.RbacResourceTypeExperiments,
+		Name:      "exp1",
+	}
+	assert.EqualError(
+		t,
+		err,
+		wrapFailedAuthzRequestError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(ctx, resourceAttributes))).Error(),
+	)
 }
 
 func TestGetExperiment_Multiuser(t *testing.T) {
@@ -273,7 +295,7 @@ func TestListExperiment_Unauthorized(t *testing.T) {
 	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
-	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
+	clients, manager, _ := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
 
 	server := ExperimentServer{manager, &ExperimentServerOptions{CollectMetrics: false}}
@@ -285,7 +307,18 @@ func TestListExperiment_Unauthorized(t *testing.T) {
 		},
 	})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Unauthorized access")
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: "ns1",
+		Verb:      common.RbacResourceVerbList,
+		Group:     common.RbacPipelinesGroup,
+		Version:   common.RbacPipelinesVersion,
+		Resource:  common.RbacResourceTypeExperiments,
+	}
+	assert.EqualError(
+		t,
+		err,
+		wrapFailedAuthzApiResourcesError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(ctx, resourceAttributes))).Error(),
+	)
 }
 
 func TestListExperiment_Multiuser(t *testing.T) {

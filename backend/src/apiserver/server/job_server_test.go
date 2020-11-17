@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
 var (
@@ -257,12 +258,24 @@ func TestCreateJob_Unauthorized(t *testing.T) {
 	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
-	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
+	clients, manager, _ := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
 	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	_, err := server.CreateJob(ctx, &api.CreateJobRequest{Job: commonApiJob})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Unauthorized access")
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: "ns1",
+		Verb:      common.RbacResourceVerbCreate,
+		Group:     common.RbacPipelinesGroup,
+		Version:   common.RbacPipelinesVersion,
+		Resource:  common.RbacResourceTypeJobs,
+		Name:      commonApiJob.Name,
+	}
+	assert.EqualError(
+		t,
+		err,
+		wrapFailedAuthzRequestError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(ctx, resourceAttributes))).Error(),
+	)
 }
 
 func TestGetJob_Unauthorized(t *testing.T) {
@@ -278,13 +291,25 @@ func TestGetJob_Unauthorized(t *testing.T) {
 	job, err := server.CreateJob(ctx, &api.CreateJobRequest{Job: commonApiJob})
 	assert.Nil(t, err)
 
-	clients.KfamClientFake = client.NewFakeKFAMClientUnauthorized()
+	clients.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
 	manager = resource.NewResourceManager(clients)
 	server = NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 
 	_, err = server.GetJob(ctx, &api.GetJobRequest{Id: job.Id})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Unauthorized access")
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: "ns1",
+		Verb:      common.RbacResourceVerbGet,
+		Group:     common.RbacPipelinesGroup,
+		Version:   common.RbacPipelinesVersion,
+		Resource:  common.RbacResourceTypeJobs,
+		Name:      job.Name,
+	}
+	assert.EqualError(
+		t,
+		err,
+		wrapFailedAuthzRequestError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(ctx, resourceAttributes))).Error(),
+	)
 }
 
 func TestGetJob_Multiuser(t *testing.T) {
@@ -312,7 +337,7 @@ func TestListJobs_Unauthorized(t *testing.T) {
 	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
-	clients, manager, experiment := initWithExperiment_KFAM_Unauthorized(t)
+	clients, manager, experiment := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
 	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	_, err := server.ListJobs(ctx, &api.ListJobsRequest{
@@ -322,7 +347,21 @@ func TestListJobs_Unauthorized(t *testing.T) {
 		},
 	})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Unauthorized access")
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: "ns1",
+		Verb:      common.RbacResourceVerbList,
+		Group:     common.RbacPipelinesGroup,
+		Version:   common.RbacPipelinesVersion,
+		Resource:  common.RbacResourceTypeJobs,
+	}
+	assert.EqualError(
+		t,
+		err,
+		util.Wrap(
+			wrapFailedAuthzApiResourcesError(getPermissionDeniedError(ctx, resourceAttributes)),
+			"Failed to authorize with namespace in experiment resource reference.",
+		).Error(),
+	)
 
 	_, err = server.ListJobs(ctx, &api.ListJobsRequest{
 		ResourceReferenceKey: &api.ResourceKey{
@@ -331,7 +370,14 @@ func TestListJobs_Unauthorized(t *testing.T) {
 		},
 	})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Unauthorized access")
+	assert.EqualError(
+		t,
+		err,
+		util.Wrap(
+			wrapFailedAuthzApiResourcesError(getPermissionDeniedError(ctx, resourceAttributes)),
+			"Failed to authorize with namespace resource reference.",
+		).Error(),
+	)
 }
 
 func TestListJobs_Multiuser(t *testing.T) {
@@ -449,13 +495,25 @@ func TestEnableJob_Unauthorized(t *testing.T) {
 	job, err := server.CreateJob(ctx, &api.CreateJobRequest{Job: commonApiJob})
 	assert.Nil(t, err)
 
-	clients.KfamClientFake = client.NewFakeKFAMClientUnauthorized()
+	clients.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
 	manager = resource.NewResourceManager(clients)
 	server = NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 
 	_, err = server.EnableJob(ctx, &api.EnableJobRequest{Id: job.Id})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Unauthorized access")
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: "ns1",
+		Verb:      common.RbacResourceVerbEnable,
+		Group:     common.RbacPipelinesGroup,
+		Version:   common.RbacPipelinesVersion,
+		Resource:  common.RbacResourceTypeJobs,
+		Name:      commonApiJob.Name,
+	}
+	assert.EqualError(
+		t,
+		err,
+		wrapFailedAuthzRequestError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(ctx, resourceAttributes))).Error(),
+	)
 }
 
 func TestEnableJob_Multiuser(t *testing.T) {
@@ -489,13 +547,25 @@ func TestDisableJob_Unauthorized(t *testing.T) {
 	job, err := server.CreateJob(ctx, &api.CreateJobRequest{Job: commonApiJob})
 	assert.Nil(t, err)
 
-	clients.KfamClientFake = client.NewFakeKFAMClientUnauthorized()
+	clients.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
 	manager = resource.NewResourceManager(clients)
 	server = NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 
 	_, err = server.DisableJob(ctx, &api.DisableJobRequest{Id: job.Id})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Unauthorized access")
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: "ns1",
+		Verb:      common.RbacResourceVerbDisable,
+		Group:     common.RbacPipelinesGroup,
+		Version:   common.RbacPipelinesVersion,
+		Resource:  common.RbacResourceTypeJobs,
+		Name:      job.Name,
+	}
+	assert.EqualError(
+		t,
+		err,
+		wrapFailedAuthzRequestError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(ctx, resourceAttributes))).Error(),
+	)
 }
 
 func TestDisableJob_Multiuser(t *testing.T) {
