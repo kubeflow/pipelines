@@ -1399,6 +1399,38 @@
           "PipelineUploadService"
         ]
       }
+    },
+    "/apis/v1beta1/healthz": {
+      "get": {
+        "summary": "Get healthz data.",
+        "operationId": "GetHealthz",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiGetHealthzResponse"
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "The healthz request.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "HealthzService"
+        ]
+      }
     }
   },
   "definitions": {
@@ -2100,6 +2132,24 @@
         "next_page_token": {
           "type": "string",
           "description": "The token to list the next page of experiments."
+        }
+      }
+    },
+    "apiGetHealthzResponse": {
+      "type": "object",
+      "properties": {
+        "commit_sha": {
+          "type": "string",
+          "description": "The commit sha."
+        },
+        "tag_name": {
+          "type": "string",
+          "title": "The tag name"
+        },
+        "multi_user": {
+          "type": "boolean",
+          "format": "boolean",
+          "title": "Returns if KFP in multi-user mode"
         }
       }
     }

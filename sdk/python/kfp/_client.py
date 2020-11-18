@@ -144,6 +144,7 @@ class Client(object):
     self._experiment_api = kfp_server_api.api.experiment_service_api.ExperimentServiceApi(api_client)
     self._pipelines_api = kfp_server_api.api.pipeline_service_api.PipelineServiceApi(api_client)
     self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
+    self._healthz_api = kfp_server_api.api.healthz_service_api.HealthzServiceApi(api_client)
     self._api_client = api_client
     if self._context_setting['namespace'] == '' and self.get_kfp_healthz().get('multi_user') is True:
       NAMESPACE_PATH = '/var/run/secrets/kubernetes.io/serviceaccount/namespace'
@@ -310,8 +311,10 @@ class Client(object):
     while count < max_attempts and not response:
       count += 1
       try:
-        r = self._api_client.request('GET', 'https://' + healthz_api)
-        response = json.loads(r.data)
+        #r = self._api_client.request('GET', 'https://' + healthz_api)
+        #response = json.loads(r.data)
+        response = self._healthz_api.get_healthz()
+        print(response)
         return response
       except SSLError:
         r = self._api_client.request('GET', 'http://' + healthz_api)

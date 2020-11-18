@@ -66,7 +66,7 @@ jq -s '
     .info.version = "'$VERSION'" |
     .info.contact = { "name": "google", "email": "kubeflow-pipelines@google.com", "url": "https://www.google.com" } |
     .info.license = { "name": "Apache 2.0", "url": "https://raw.githubusercontent.com/kubeflow/pipelines/master/LICENSE" }
-' ${DIR}/swagger/{run,job,pipeline,experiment,pipeline.upload}.swagger.json > "${DIR}/swagger/kfp_api_single_file.swagger.json"
+' ${DIR}/swagger/{run,job,pipeline,experiment,pipeline.upload,healthz}.swagger.json > "${DIR}/swagger/kfp_api_single_file.swagger.json"
 
 # Generate Go HTTP client from the swagger files.
 ${SWAGGER_CMD} generate client \
