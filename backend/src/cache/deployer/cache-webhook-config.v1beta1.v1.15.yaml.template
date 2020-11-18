@@ -10,11 +10,13 @@ webhooks:
         namespace: ${NAMESPACE}
         path: "/mutate"
       caBundle: ${CA_BUNDLE}
+    failurePolicy: Ignore
     rules:
     - operations: [ "CREATE" ]
       apiGroups: [""]
       apiVersions: ["v1"]
       resources: ["pods"]
+    sideEffects: None
     timeoutSeconds: 5
     objectSelector:
       matchLabels:

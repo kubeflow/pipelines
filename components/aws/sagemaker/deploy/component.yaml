@@ -1,147 +1,126 @@
-name: 'SageMaker - Deploy Model'
-description: |
-  Deploy Machine Learning Model Endpoint in SageMaker
+name: SageMaker - Deploy Model
+description: Deploy Machine Learning Model Endpoint in SageMaker
 inputs:
-  - name: region
-    description: 'The region to deploy your model endpoints.'
-    type: String
-  - name: endpoint_config_name
-    description: 'The name of the endpoint configuration.'
-    default: ''
-    type: String
-  - name: variant_name_1
-    description: 'The name of the production variant.'
-    default: 'variant-name-1'
-    type: String
-  - name: model_name_1
-    description: 'The model name used for endpoint deployment.'
-    type: String
-  - name: initial_instance_count_1
-    description: 'Number of instances to launch initially.'
-    default: '1'
-    type: Integer
-  - name: instance_type_1
-    description: 'The ML compute instance type.'
-    default: 'ml.m4.xlarge'
-    type: String
-  - name: initial_variant_weight_1
-    description: 'Determines initial traffic distribution among all of the models that you specify in the endpoint configuration.'
-    default: '1.0'
-    type: Float
-  - name: accelerator_type_1
-    description: 'The size of the Elastic Inference (EI) instance to use for the production variant.'
-    default: ''
-    type: String
-  - name: variant_name_2
-    description: 'The name of the production variant.'
-    default: 'variant-name-2'
-    type: String
-  - name: model_name_2
-    description: 'The model name used for endpoint deployment.'
-    default: ''
-    type: String
-  - name: initial_instance_count_2
-    description: 'Number of instances to launch initially.'
-    default: '1'
-    type: Integer
-  - name: instance_type_2
-    description: 'The ML compute instance type.'
-    default: 'ml.m4.xlarge'
-    type: String
-  - name: initial_variant_weight_2
-    description: 'Determines initial traffic distribution among all of the models that you specify in the endpoint configuration.'
-    default: '1.0'
-    type: Float
-  - name: accelerator_type_2
-    description: 'The size of the Elastic Inference (EI) instance to use for the production variant.'
-    default: ''
-    type: String
-  - name: variant_name_3
-    description: 'The name of the production variant.'
-    default: 'variant-name-3'
-    type: String
-  - name: model_name_3
-    description: 'The model name used for endpoint deployment'
-    default: ''
-    type: String
-  - name: initial_instance_count_3
-    description: 'Number of instances to launch initially.'
-    default: '1'
-    type: Integer
-  - name: instance_type_3
-    description: 'The ML compute instance type.'
-    default: 'ml.m4.xlarge'
-    type: String
-  - name: initial_variant_weight_3
-    description: 'Determines initial traffic distribution among all of the models that you specify in the endpoint configuration.'
-    default: '1.0'
-    type: Float
-  - name: accelerator_type_3
-    description: 'The size of the Elastic Inference (EI) instance to use for the production variant.'
-    default: ''
-    type: String
-  - name: resource_encryption_key
-    description: 'The AWS KMS key that Amazon SageMaker uses to encrypt data on the storage volume attached to the ML compute instance that hosts the endpoint.'
-    default: ''
-    type: String
-  - name: endpoint_url
-    description: 'The endpoint URL for the private link VPC endpoint.'
-    default: ''
-    type: String
-  - name: assume_role
-    description: 'The ARN of an IAM role to assume when connecting to SageMaker.'
-    default: ''
-    type: String
-  - name: endpoint_config_tags
-    description: 'Key-value pairs to categorize AWS resources.'
-    default: '{}'
-    type: JsonObject
-  - name: endpoint_name
-    description: 'The name of the endpoint.'
-    default: ''
-    type: String
-  - name: endpoint_tags
-    description: 'Key-value pairs to categorize AWS resources.'
-    default: '{}'
-    type: JsonObject
-  - name: update_endpoint
-    description: 'Update EndPoint if it exists'
-    default: 'False'
-    type: Bool
+- {name: region, type: String, description: The region for the SageMaker resource.}
+- {name: endpoint_url, type: String, description: The URL to use when communicating
+    with the SageMaker service., default: ''}
+- {name: assume_role, type: String, description: The ARN of an IAM role to assume
+    when connecting to SageMaker., default: ''}
+- {name: tags, type: JsonObject, description: 'An array of key-value pairs, to categorize
+    AWS resources.', default: '{}'}
+- {name: endpoint_name, type: String, description: The name of the endpoint., default: ''}
+- {name: endpoint_config_name, type: String, description: 'The name of the endpoint
+    configuration. If an existing endpoint is being updated, a suffix is automatically
+    added if this config name exists.', default: ''}
+- {name: endpoint_config_tags, type: JsonObject, description: 'An array of key-value
+    pairs, to categorize AWS resources.', default: '{}'}
+- {name: resource_encryption_key, type: String, description: The AWS KMS key that
+    Amazon SageMaker uses to encrypt data on the storage volume attached to the ML
+    compute instance(s)., default: ''}
+- name: update_endpoint
+  type: Bool
+  description: Update endpoint if it exists.
+  default: "False"
+- {name: variant_name_1, type: String, description: The name of the production variant.,
+  default: variant-name-1}
+- {name: model_name_1, type: String, description: The model name used for endpoint
+    deployment.}
+- {name: initial_instance_count_1, type: Integer, description: Number of instances
+    to launch initially., default: '1'}
+- {name: instance_type_1, type: String, description: The ML compute instance type.,
+  default: ml.m4.xlarge}
+- {name: initial_variant_weight_1, type: String, description: Determines initial traffic
+    distribution among all of the models that you specify in the endpoint configuration.,
+  default: '1.0'}
+- {name: accelerator_type_1, type: String, description: The size of the Elastic Inference
+    (EI) instance to use for the production variant., default: ''}
+- {name: variant_name_2, type: String, description: The name of the production variant.,
+  default: variant-name-2}
+- {name: model_name_2, type: String, description: The model name used for endpoint
+    deployment., default: ''}
+- {name: initial_instance_count_2, type: Integer, description: Number of instances
+    to launch initially., default: '1'}
+- {name: instance_type_2, type: String, description: The ML compute instance type.,
+  default: ml.m4.xlarge}
+- {name: initial_variant_weight_2, type: String, description: Determines initial traffic
+    distribution among all of the models that you specify in the endpoint configuration.,
+  default: '1.0'}
+- {name: accelerator_type_2, type: String, description: The size of the Elastic Inference
+    (EI) instance to use for the production variant., default: ''}
+- {name: variant_name_3, type: String, description: The name of the production variant.,
+  default: variant-name-3}
+- {name: model_name_3, type: String, description: The model name used for endpoint
+    deployment., default: ''}
+- {name: initial_instance_count_3, type: Integer, description: Number of instances
+    to launch initially., default: '1'}
+- {name: instance_type_3, type: String, description: The ML compute instance type.,
+  default: ml.m4.xlarge}
+- {name: initial_variant_weight_3, type: String, description: Determines initial traffic
+    distribution among all of the models that you specify in the endpoint configuration.,
+  default: '1.0'}
+- {name: accelerator_type_3, type: String, description: The size of the Elastic Inference
+    (EI) instance to use for the production variant., default: ''}
 outputs:
-  - {name: endpoint_name,          description: 'Endpoint name'}
+- {name: endpoint_name, description: The created endpoint name.}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:0.9.0
-    command: ['python3']
-    args: [
-      deploy.py,
-      --region, {inputValue: region},
-      --endpoint_url, {inputValue: endpoint_url},
-      --assume_role, {inputValue: assume_role},
-      --endpoint_config_name, {inputValue: endpoint_config_name},
-      --variant_name_1,{inputValue: variant_name_1},
-      --model_name_1, {inputValue: model_name_1},
-      --initial_instance_count_1, {inputValue: initial_instance_count_1},
-      --instance_type_1, {inputValue: instance_type_1},
-      --initial_variant_weight_1, {inputValue: initial_variant_weight_1},
-      --accelerator_type_1, {inputValue: accelerator_type_1},
-      --variant_name_2,{inputValue: variant_name_2},
-      --model_name_2, {inputValue: model_name_2},
-      --initial_instance_count_2, {inputValue: initial_instance_count_2},
-      --instance_type_2, {inputValue: instance_type_2},
-      --initial_variant_weight_2, {inputValue: initial_variant_weight_2},
-      --accelerator_type_2, {inputValue: accelerator_type_2},
-      --variant_name_3,{inputValue: variant_name_3},
-      --model_name_3, {inputValue: model_name_3},
-      --initial_instance_count_3, {inputValue: initial_instance_count_3},
-      --instance_type_3, {inputValue: instance_type_3},
-      --initial_variant_weight_3, {inputValue: initial_variant_weight_3},
-      --accelerator_type_3, {inputValue: accelerator_type_3},
-      --resource_encryption_key, {inputValue: resource_encryption_key},
-      --endpoint_config_tags, {inputValue: endpoint_config_tags},
-      --endpoint_name, {inputValue: endpoint_name},
-      --endpoint_tags, {inputValue: endpoint_tags},
-      --update_endpoint, {inputValue: update_endpoint},
-      --endpoint_name_output_path, {outputPath: endpoint_name}
-    ]
+    image: amazon/aws-sagemaker-kfp-components:1.0.0
+    command: [python3]
+    args:
+    - deploy/src/sagemaker_deploy_component.py
+    - --region
+    - {inputValue: region}
+    - --endpoint_url
+    - {inputValue: endpoint_url}
+    - --assume_role
+    - {inputValue: assume_role}
+    - --tags
+    - {inputValue: tags}
+    - --endpoint_name
+    - {inputValue: endpoint_name}
+    - --endpoint_config_name
+    - {inputValue: endpoint_config_name}
+    - --endpoint_config_tags
+    - {inputValue: endpoint_config_tags}
+    - --resource_encryption_key
+    - {inputValue: resource_encryption_key}
+    - --update_endpoint
+    - {inputValue: update_endpoint}
+    - --variant_name_1
+    - {inputValue: variant_name_1}
+    - --model_name_1
+    - {inputValue: model_name_1}
+    - --initial_instance_count_1
+    - {inputValue: initial_instance_count_1}
+    - --instance_type_1
+    - {inputValue: instance_type_1}
+    - --initial_variant_weight_1
+    - {inputValue: initial_variant_weight_1}
+    - --accelerator_type_1
+    - {inputValue: accelerator_type_1}
+    - --variant_name_2
+    - {inputValue: variant_name_2}
+    - --model_name_2
+    - {inputValue: model_name_2}
+    - --initial_instance_count_2
+    - {inputValue: initial_instance_count_2}
+    - --instance_type_2
+    - {inputValue: instance_type_2}
+    - --initial_variant_weight_2
+    - {inputValue: initial_variant_weight_2}
+    - --accelerator_type_2
+    - {inputValue: accelerator_type_2}
+    - --variant_name_3
+    - {inputValue: variant_name_3}
+    - --model_name_3
+    - {inputValue: model_name_3}
+    - --initial_instance_count_3
+    - {inputValue: initial_instance_count_3}
+    - --instance_type_3
+    - {inputValue: instance_type_3}
+    - --initial_variant_weight_3
+    - {inputValue: initial_variant_weight_3}
+    - --accelerator_type_3
+    - {inputValue: accelerator_type_3}
+    - --endpoint_name_output_path
+    - {outputPath: endpoint_name}

@@ -14,6 +14,7 @@
 
 from kfp.dsl._pipeline_param import PipelineParam, match_serialized_pipelineparam
 from kfp.v2.dsl._pipeline import Pipeline
+from kfp.dsl._pipeline import pipeline
 from kfp.dsl._container_op import ContainerOp, InputArgumentPath, UserContainer, Sidecar
 from kfp.dsl._resource_op import ResourceOp
 from kfp.dsl._volume_op import (
@@ -21,5 +22,7 @@ from kfp.dsl._volume_op import (
 )
 from kfp.dsl._pipeline_volume import PipelineVolume
 from kfp.dsl._volume_snapshot_op import VolumeSnapshotOp
-from kfp.dsl._ops_group import OpsGroup, ExitHandler, Condition, ParallelFor
-from kfp.dsl._component import python_component, graph_component, component
+from kfp.dsl._ops_group import OpsGroup
+from kfp.v2.dsl._ops_group import ExitHandler, Condition, ParallelFor
+from kfp.dsl._component import python_component, component
+from kfp.v2.dsl._component import graph_component

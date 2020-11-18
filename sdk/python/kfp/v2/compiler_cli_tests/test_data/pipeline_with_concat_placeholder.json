@@ -1,0 +1,45 @@
+{
+  "pipelineSpec": {
+    "pipelineInfo": {
+      "name": "one-step-pipeline-with-concat-placeholder"
+    },
+    "deploymentConfig": {
+      "@type": "type.googleapis.com/ml_pipelines.PipelineDeploymentConfig",
+      "executors": {
+        "Component with concat placeholder": {
+          "container": {
+            "image": "gcr.io/my-project/my-image",
+            "args": [
+              "--arg0",
+              "{{$.inputs.parameters['input_prefix']}}some value"
+            ]
+          }
+        }
+      }
+    },
+    "schemaVersion": "v2alpha1",
+    "sdkVersion": "kfp-1.1.0-dev20201106",
+    "tasks": [
+      {
+        "taskInfo": {
+          "name": "Component with concat placeholder"
+        },
+        "inputs": {
+          "parameters": {
+            "input_prefix": {
+              "runtimeValue": {
+                "constantValue": {
+                  "stringValue": "some prefix:"
+                }
+              }
+            }
+          }
+        },
+        "executorLabel": "Component with concat placeholder"
+      }
+    ]
+  },
+  "runtimeConfig": {
+    "gcsOutputDirectory": "dummy_root"
+  }
+}

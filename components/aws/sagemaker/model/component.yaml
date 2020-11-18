@@ -1,86 +1,75 @@
-name: 'SageMaker - Create Model'
-description: |
-  Create Models in SageMaker
+name: SageMaker - Create Model
+description: Create Models in SageMaker
 inputs:
-  - name: region
-    description: 'The region where the training job launches.'
-    type: String
-  - name: model_name
-    description: 'The name of the new model.'
-    type: String
-  - name: role
-    description: 'The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf.'
-    type: String
-  - name: container_host_name
-    description: 'When a ContainerDefinition is part of an inference pipeline, this value uniquely identifies the container for the purposes of logging and metrics.'
-    default: ''
-    type: String
-  - name: image
-    description: 'The Amazon EC2 Container Registry (Amazon ECR) path where inference code is stored.'
-    default: ''
-    type: String
-  - name: model_artifact_url
-    description: 'S3 path where Amazon SageMaker to store the model artifacts.'
-    default: ''
-    type: String
-  - name: environment
-    description: 'The dictionary of the environment variables to set in the Docker container. Up to 16 key-value entries in the map.'
-    default: '{}'
-    type: JsonObject
-  - name: model_package
-    description: 'The name or Amazon Resource Name (ARN) of the model package to use to create the model.'
-    default: ''
-    type: String
-  - name: secondary_containers
-    description: 'A list of dicts that specifies the additional containers in the inference pipeline.'
-    default: '[]'
-    type: JsonArray
-  - name: vpc_security_group_ids
-    description: 'The VPC security group IDs, in the form sg-xxxxxxxx.'
-    default: ''
-    type: String
-  - name: vpc_subnets
-    description: 'The ID of the subnets in the VPC to which you want to connect your hpo job.'
-    default: ''
-    type: String
-  - name: network_isolation
-    description: 'Isolates the training container.'
-    default: 'True'
-    type: Bool
-  - name: endpoint_url
-    description: 'The endpoint URL for the private link VPC endpoint.'
-    default: ''
-    type: String
-  - name: assume_role
-    description: 'The ARN of an IAM role to assume when connecting to SageMaker.'
-    default: ''
-    type: String
-  - name: tags
-    description: 'Key-value pairs to categorize AWS resources.'
-    default: '{}'
-    type: JsonObject
+- {name: region, type: String, description: The region for the SageMaker resource.}
+- {name: endpoint_url, type: String, description: The URL to use when communicating
+    with the SageMaker service., default: ''}
+- {name: assume_role, type: String, description: The ARN of an IAM role to assume
+    when connecting to SageMaker., default: ''}
+- {name: tags, type: JsonObject, description: 'An array of key-value pairs, to categorize
+    AWS resources.', default: '{}'}
+- {name: model_name, type: String, description: The name of the new model.}
+- {name: role, type: String, description: The Amazon Resource Name (ARN) that Amazon
+    SageMaker assumes to perform tasks on your behalf.}
+- {name: container_host_name, type: String, description: 'When a ContainerDefinition
+    is part of an inference pipeline, this value uniquely identifies the container
+    for the purposes of logging and metrics.', default: ''}
+- {name: image, type: String, description: The Amazon EC2 Container Registry (Amazon
+    ECR) path where inference code is stored., default: ''}
+- {name: model_artifact_url, type: String, description: S3 path where Amazon SageMaker
+    to store the model artifacts., default: ''}
+- {name: environment, type: JsonObject, description: The dictionary of the environment
+    variables to set in the Docker container. Up to 16 key-value entries in the map.,
+  default: '{}'}
+- {name: model_package, type: String, description: The name or Amazon Resource Name
+    (ARN) of the model package to use to create the model., default: ''}
+- {name: secondary_containers, type: JsonArray, description: A list of dicts that
+    specifies the additional containers in the inference pipeline., default: '[]'}
+- {name: vpc_security_group_ids, type: String, description: 'The VPC security group
+    IDs, in the form sg-xxxxxxxx.', default: ''}
+- {name: vpc_subnets, type: String, description: The ID of the subnets in the VPC
+    to which you want to connect your hpo job., default: ''}
+- name: network_isolation
+  type: Bool
+  description: Isolates the training container.
+  default: "True"
 outputs:
-  - {name: model_name,          description: 'The model name SageMaker created'}
+- {name: model_name, description: The name of the model created by SageMaker.}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:0.9.0
-    command: ['python3']
-    args: [
-      create_model.py,
-      --region, {inputValue: region},
-      --endpoint_url, {inputValue: endpoint_url},
-      --assume_role, {inputValue: assume_role},
-      --model_name, {inputValue: model_name},
-      --role, {inputValue: role},
-      --container_host_name, {inputValue: container_host_name},
-      --image, {inputValue: image},
-      --model_artifact_url, {inputValue: model_artifact_url},
-      --environment, {inputValue: environment},
-      --model_package, {inputValue: model_package},
-      --secondary_containers, {inputValue: secondary_containers},
-      --vpc_security_group_ids, {inputValue: vpc_security_group_ids},
-      --vpc_subnets, {inputValue: vpc_subnets},
-      --network_isolation, {inputValue: network_isolation},
-      --tags, {inputValue: tags},
-      --model_name_output_path, {outputPath: model_name}
-    ]
+    image: amazon/aws-sagemaker-kfp-components:1.0.0
+    command: [python3]
+    args:
+    - model/src/sagemaker_model_component.py
+    - --region
+    - {inputValue: region}
+    - --endpoint_url
+    - {inputValue: endpoint_url}
+    - --assume_role
+    - {inputValue: assume_role}
+    - --tags
+    - {inputValue: tags}
+    - --model_name
+    - {inputValue: model_name}
+    - --role
+    - {inputValue: role}
+    - --container_host_name
+    - {inputValue: container_host_name}
+    - --image
+    - {inputValue: image}
+    - --model_artifact_url
+    - {inputValue: model_artifact_url}
+    - --environment
+    - {inputValue: environment}
+    - --model_package
+    - {inputValue: model_package}
+    - --secondary_containers
+    - {inputValue: secondary_containers}
+    - --vpc_security_group_ids
+    - {inputValue: vpc_security_group_ids}
+    - --vpc_subnets
+    - {inputValue: vpc_subnets}
+    - --network_isolation
+    - {inputValue: network_isolation}
+    - --model_name_output_path
+    - {outputPath: model_name}

@@ -24,6 +24,7 @@ import subprocess
 import utils
 import yamale
 import yaml
+import kubernetes
 
 from constants import PAPERMILL_ERR_MSG, BASE_DIR, TEST_DIR, SCHEMA_CONFIG, CONFIG_DIR, DEFAULT_CONFIG
 from check_notebook_results import NoteBookChecker
@@ -33,12 +34,13 @@ from run_sample_test import PySampleChecker
 
 class SampleTest(object):
 
-  def __init__(self, test_name, results_gcs_dir, target_image_prefix='',
+  def __init__(self, test_name, results_gcs_dir, host='', target_image_prefix='',
                namespace='kubeflow'):
     """Launch a KFP sample_test provided its name.
 
     :param test_name: name of the corresponding sample test.
     :param results_gcs_dir: gs dir to store test result.
+    :param host: host of KFP API endpoint, default is auto-discovery from inverse-proxy-config.
     :param target_image_prefix: prefix of docker image, default is empty.
     :param namespace: namespace for kfp, default is kubeflow.
     """
@@ -48,6 +50,26 @@ class SampleTest(object):
     self._bucket_name = results_gcs_dir.split('/')[2]
     self._target_image_prefix = target_image_prefix
     self._namespace = namespace
+    self._host = host
+    if self._host == '':
+      try:
+        # Get inverse proxy hostname from a config map called 'inverse-proxy-config'
+        # in the same namespace as KFP.
+        try:
+          kubernetes.config.load_incluster_config()
+        except:
+          kubernetes.config.load_kube_config()
+
+        v1 = kubernetes.client.CoreV1Api()
+        inverse_proxy_config = v1.read_namespaced_config_map(name='inverse-proxy-config', namespace=self._namespace)
+        self._host = inverse_proxy_config.data.get('Hostname')
+      except Exception as err:
+        raise RuntimeError('Failed to get inverse proxy hostname') from err
+        # Keep as comment here, we can also specify host in-cluster as the following,
+        # but we no longer use it in e2e tests, because we prefer including
+        # test coverage for inverse proxy.
+        # self._host = 'ml-pipeline.%s.svc.cluster.local:8888' % self._namespace
+    print('KFP API host is %s' % self._host)
 
     self._is_notebook = None
     self._work_dir = os.path.join(BASE_DIR, 'samples/core/', self._test_name)
@@ -154,6 +176,7 @@ class SampleTest(object):
                                   result=self._sample_test_result,
                                   run_pipeline=self._run_pipeline,
                                   experiment_name=experiment_name,
+                                  host=self._host,
       )
       nbchecker.run()
       os.chdir(TEST_DIR)
@@ -166,6 +189,7 @@ class SampleTest(object):
                                          input=input_file,
                                          output=self._sample_test_output,
                                          result=self._sample_test_result,
+                                         host=self._host,
                                          namespace=self._namespace,
                                          experiment_name=experiment_name,
       )

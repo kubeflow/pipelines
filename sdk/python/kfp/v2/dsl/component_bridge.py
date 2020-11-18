@@ -17,14 +17,16 @@ import copy
 from typing import Any, Mapping
 
 from kfp import dsl
-from kfp.components import structures
-from kfp.components._components import _default_component_name
-from kfp.components._components import _resolve_command_line_and_paths
 from kfp.components._naming import _sanitize_python_function_name
 from kfp.components._naming import generate_unique_name_conversion_table
 from kfp.dsl import types
+from kfp.v2.components import structures
+from kfp.v2.components.components import _default_component_name
+from kfp.v2.components.components import _resolve_command_line_and_paths
+from kfp.v2.dsl import container_op
+from kfp.v2.dsl import importer_node
 from kfp.v2.dsl import type_utils
-from kfp.v2.proto import pipeline_spec_pb2
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 
 # TODO: cleanup unused code.
@@ -32,7 +34,7 @@ def create_container_op_from_component_and_arguments(
     component_spec: structures.ComponentSpec,
     arguments: Mapping[str, Any],
     component_ref: structures.ComponentReference = None,
-) -> dsl.ContainerOp:
+) -> container_op.ContainerOp:
   """Instantiates ContainerOp object.
 
   Args:
@@ -49,6 +51,9 @@ def create_container_op_from_component_and_arguments(
   # might need to append suffix to exuector_label to ensure its uniqueness?
   pipeline_task_spec.executor_label = component_spec.name
 
+  # Keep track of auto-injected importer spec.
+  importer_spec = {}
+
   # Check types of the reference arguments and serialize PipelineParams
   arguments = arguments.copy()
   for input_name, argument_value in arguments.items():
@@ -62,15 +67,7 @@ def create_container_op_from_component_and_arguments(
 
       arguments[input_name] = str(argument_value)
 
-      if type_utils.is_artifact_type(input_type):
-        # argument_value.op_name could be none, in which case an importer node
-        # will be inserted later. Use output_artifact_key to preserve the name
-        # of pipeline parameter which is needed by importer.
-        pipeline_task_spec.inputs.artifacts[input_name].producer_task = (
-            argument_value.op_name or '')
-        pipeline_task_spec.inputs.artifacts[input_name].output_artifact_key = (
-            argument_value.name)
-      elif type_utils.is_parameter_type(input_type):
+      if type_utils.is_parameter_type(input_type):
         if argument_value.op_name:
           pipeline_task_spec.inputs.parameters[
               input_name].task_output_parameter.producer_task = (
@@ -82,12 +79,34 @@ def create_container_op_from_component_and_arguments(
           pipeline_task_spec.inputs.parameters[
               input_name].runtime_value.runtime_parameter = argument_value.name
       else:
-        raise NotImplementedError(
-            'Unsupported input type: "{}". The type must be one of the following: {}.'
-            .format(input_type, type_utils.all_types()))
+        if argument_value.op_name:
+          pipeline_task_spec.inputs.artifacts[input_name].producer_task = (
+              argument_value.op_name)
+          pipeline_task_spec.inputs.artifacts[
+              input_name].output_artifact_key = (
+                  argument_value.name)
+        else:
+          # argument_value.op_name could be none, in which case an importer node
+          # will be inserted later.
+          pipeline_task_spec.inputs.artifacts[input_name].producer_task = ''
+          type_schema = type_utils.get_input_artifact_type_schema(
+              input_name, component_spec.inputs)
+          importer_spec[input_name] = importer_node.build_importer_spec(
+              input_type_schema=type_schema,
+              pipeline_param_name=argument_value.name)
     elif isinstance(argument_value, str):
-      pipeline_task_spec.inputs.parameters[
-          input_name].runtime_value.constant_value.string_value = argument_value
+      input_type = component_spec._inputs_dict[input_name].type
+      if type_utils.is_parameter_type(input_type):
+        pipeline_task_spec.inputs.parameters[
+            input_name].runtime_value.constant_value.string_value = (
+                argument_value)
+      else:
+        # An importer node with constant value artifact_uri will be inserted.
+        pipeline_task_spec.inputs.artifacts[input_name].producer_task = ''
+        type_schema = type_utils.get_input_artifact_type_schema(
+            input_name, component_spec.inputs)
+        importer_spec[input_name] = importer_node.build_importer_spec(
+            input_type_schema=type_schema, constant_value=argument_value)
     elif isinstance(argument_value, int):
       pipeline_task_spec.inputs.parameters[
           input_name].runtime_value.constant_value.int_value = argument_value
@@ -104,58 +123,74 @@ def create_container_op_from_component_and_arguments(
           ', str, int, float. Got: "{}".'.format(argument_value))
 
   for output in component_spec.outputs or []:
-    if type_utils.is_artifact_type(output.type):
-      pipeline_task_spec.outputs.artifacts[
-          output.name].artifact_type.instance_schema = (
-              type_utils.get_artifact_type_schema(output.type))
-    elif type_utils.is_parameter_type(output.type):
+    if type_utils.is_parameter_type(output.type):
       pipeline_task_spec.outputs.parameters[
           output.name].type = type_utils.get_parameter_type(output.type)
     else:
-      raise NotImplementedError(
-          'Unsupported output type: "{}". The type must be one of the following: {}.'
-          .format(output.type, type_utils.all_types()))
+      pipeline_task_spec.outputs.artifacts[
+          output.name].artifact_type.instance_schema = (
+              type_utils.get_artifact_type_schema(output.type))
 
-  outputs_dict = {output_spec.name: output_spec for output_spec in component_spec.outputs or []}
+  inputs_dict = {
+      input_spec.name: input_spec for input_spec in component_spec.inputs or []
+  }
+  outputs_dict = {
+      output_spec.name: output_spec
+      for output_spec in component_spec.outputs or []
+  }
 
-  def _input_artifact_placeholder(input_key: str) -> str:
-    return "{{{{$.inputs.artifacts['{}'].uri}}}}".format(input_key)
+  def _input_artifact_uri_placeholder(input_key: str) -> str:
+    if type_utils.is_parameter_type(inputs_dict[input_key].type):
+      raise TypeError(
+          'Input "{}" with type "{}" cannot be paired with InputUriPlaceholder.'
+          .format(input_key, inputs_dict[input_key].type))
+    else:
+      return "{{{{$.inputs.artifacts['{}'].uri}}}}".format(input_key)
+
+  def _input_artifact_path_placeholder(input_key: str) -> str:
+    if type_utils.is_parameter_type(inputs_dict[input_key].type):
+      raise TypeError(
+          'Input "{}" with type "{}" cannot be paired with InputPathPlaceholder.'
+          .format(input_key, inputs_dict[input_key].type))
+    else:
+      return "{{{{$.inputs.artifacts['{}'].path}}}}".format(input_key)
 
   def _input_parameter_placeholder(input_key: str) -> str:
-    return "{{{{$.inputs.parameters['{}']}}}}".format(input_key)
+    if type_utils.is_parameter_type(inputs_dict[input_key].type):
+      return "{{{{$.inputs.parameters['{}']}}}}".format(input_key)
+    else:
+      raise TypeError(
+          'Input "{}" with type "{}" cannot be paired with InputValuePlaceholder.'
+          .format(input_key, inputs_dict[input_key].type))
 
-  def _output_artifact_placeholder(output_key: str) -> str:
-    return "{{{{$.outputs.artifacts['{}'].uri}}}}".format(output_key)
+  def _output_artifact_uri_placeholder(output_key: str) -> str:
+    if type_utils.is_parameter_type(outputs_dict[output_key].type):
+      raise TypeError(
+          'Output "{}" with type "{}" cannot be paired with OutputUriPlaceholder.'
+          .format(output_key, outputs_dict[output_key].type))
+    else:
+      return "{{{{$.outputs.artifacts['{}'].uri}}}}".format(output_key)
 
-  def _output_parameter_placeholder(output_key: str) -> str:
+  def _output_artifact_path_placeholder(output_key: str) -> str:
+    return "{{{{$.outputs.artifacts['{}'].path}}}}".format(output_key)
+
+  def _output_parameter_path_placeholder(output_key: str) -> str:
     return "{{{{$.outputs.parameters['{}'].output_file}}}}".format(output_key)
 
   def _resolve_output_path_placeholder(output_key: str) -> str:
     if type_utils.is_parameter_type(outputs_dict[output_key].type):
-      return _output_parameter_placeholder(output_key)
+      return _output_parameter_path_placeholder(output_key)
     else:
-      return _output_artifact_placeholder(output_key)
-
-  # IR placeholders are decided merely based on the declared type of the input.
-  # It doesn't matter wether it's InputValuePlaceholder or InputPathPlaceholder
-  # from component_spec.
-  placeholder_arguments = {
-      input_spec.name: _input_artifact_placeholder(input_spec.name)
-      if type_utils.is_artifact_type(input_spec.type) else
-      _input_parameter_placeholder(input_spec.name)
-      for input_spec in component_spec.inputs or []
-  }
-
-  resolved_cmd_ir = _resolve_command_line_and_paths(
-      component_spec=component_spec,
-      arguments=placeholder_arguments,
-      input_path_generator=_input_artifact_placeholder,
-      output_path_generator=_resolve_output_path_placeholder,
-  )
+      return _output_artifact_path_placeholder(output_key)
 
   resolved_cmd = _resolve_command_line_and_paths(
       component_spec=component_spec,
       arguments=arguments,
+      input_value_generator=_input_parameter_placeholder,
+      input_uri_generator=_input_artifact_uri_placeholder,
+      output_uri_generator=_output_artifact_uri_placeholder,
+      input_path_generator=_input_artifact_path_placeholder,
+      output_path_generator=_resolve_output_path_placeholder,
   )
 
   container_spec = component_spec.implementation.container
@@ -163,27 +198,33 @@ def create_container_op_from_component_and_arguments(
   pipeline_container_spec = (
       pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec())
   pipeline_container_spec.image = container_spec.image
-  pipeline_container_spec.command.extend(resolved_cmd_ir.command)
-  pipeline_container_spec.args.extend(resolved_cmd_ir.args)
+  pipeline_container_spec.command.extend(resolved_cmd.command)
+  pipeline_container_spec.args.extend(resolved_cmd.args)
+
+  output_uris_and_paths = resolved_cmd.output_uris.copy()
+  output_uris_and_paths.update(resolved_cmd.output_paths)
+  input_uris_and_paths = resolved_cmd.input_uris.copy()
+  input_uris_and_paths.update(resolved_cmd.input_paths)
 
   old_warn_value = dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING
   dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = True
-  task = dsl.ContainerOp(
+  task = container_op.ContainerOp(
       name=component_spec.name or _default_component_name,
       image=container_spec.image,
       command=resolved_cmd.command,
       arguments=resolved_cmd.args,
-      file_outputs=resolved_cmd.output_paths,
+      file_outputs=output_uris_and_paths,
       artifact_argument_paths=[
           dsl.InputArgumentPath(
               argument=arguments[input_name],
               input=input_name,
               path=path,
-          ) for input_name, path in resolved_cmd.input_paths.items()
+          ) for input_name, path in input_uris_and_paths.items()
       ],
   )
 
   task.task_spec = pipeline_task_spec
+  task.importer_spec = importer_spec
   task.container_spec = pipeline_container_spec
   dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = old_warn_value
 

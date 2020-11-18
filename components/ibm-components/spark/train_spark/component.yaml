@@ -32,8 +32,7 @@ implementation:
       --bucket_name, {inputValue: bucket_name},
       --data_filename, {inputValue: data_filename},
       --model_filename, {inputValue: model_filename},
-      --spark_entrypoint, {inputValue: spark_entrypoint}
+      --spark_entrypoint, {inputValue: spark_entrypoint},
+      --output_model_file_path, {outputPath: model_filepath},
+      --output_train_data_file_path, {outputPath: train_data_filepath}
     ]
-    fileOutputs:
-      model_filepath: /tmp/model_filepath
-      train_data_filepath: /tmp/train_data_filepath
