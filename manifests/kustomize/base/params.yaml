@@ -6,3 +6,5 @@ varReference:
   kind: Application
 - path: spec/descriptor/version
   kind: Application
+- path: metadata/name
+  kind: Namespace

@@ -9,6 +9,7 @@ bases:
 - cache
 - cache-deployer
 resources:
+- namespace.yaml
 - pipeline-application.yaml
 # Used by Kustomize
 configMapGenerator:
