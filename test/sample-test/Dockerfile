@@ -12,8 +12,8 @@ COPY ./test/sample-test/requirements.txt /python/src/github.com/kubeflow/pipelin
 RUN pip3 install -r /python/src/github.com/kubeflow/pipelines/test/sample-test/requirements.txt
 
 # Install KFP server API from commit.
-COPY ./backend/api/python_http_client/kfp_server_api /python_http_client/kfp_server_api
-RUN pip3 install /python_http_client/kfp_server_api
+COPY ./backend/api/python_http_client /python_http_client
+RUN cd /python_http_client && python3 setup.py install
 
 # Install python client, including DSL compiler.
 COPY ./sdk/python /sdk/python
