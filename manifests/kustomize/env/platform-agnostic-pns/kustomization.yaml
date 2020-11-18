@@ -1,7 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-bases:
+resources:
   - ../platform-agnostic
 
 # Identifier for application manager to apply ownerReference.
@@ -17,5 +17,6 @@ namespace: kubeflow
 # Used by Kustomize
 configMapGenerator:
   - name: pipeline-install-config
-    env: params.env
+    envs:
+      - params.env
     behavior: merge

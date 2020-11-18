@@ -4,12 +4,11 @@ kind: Kustomization
 namespace: kubeflow
 
 resources:
-- namespace.yaml
-bases:
 - ../base/application/cluster-scoped
 - ../base/argo/cluster-scoped
 - ../base/pipeline/cluster-scoped
 - ../base/cache-deployer/cluster-scoped
+- namespace.yaml
 vars:
 # NOTE: var name must be unique globally to allow composition of multiple kustomize
 # packages. Therefore, we added prefix `kfp-cluster-scoped-` to distinguish it from

@@ -5,6 +5,6 @@ kind: Kustomization
 # please also update sample/kustomization.yaml's namespace field to the same value
 namespace: kubeflow
 
-bases:
+resources:
   # Or github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=1.0.0
   - ../../cluster-scoped-resources

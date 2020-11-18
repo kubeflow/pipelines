@@ -1,7 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-bases:
+resources:
   - ../../base
   - inverse-proxy
   - minio-gcs-gateway
@@ -23,5 +23,6 @@ patchesStrategicMerge:
 # Used by Kustomize
 configMapGenerator:
   - name: pipeline-install-config
-    env: params.env
+    envs:
+      - params.env
     behavior: merge
