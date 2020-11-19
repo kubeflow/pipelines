@@ -1092,4 +1092,4 @@ implementation:
     remove_metadata(pipeline_yaml_kwarg)
 
     # compare
-    assert pipeline_yaml_arg == pipeline_yaml_kwarg
+    self.assertEqual(pipeline_yaml_arg, pipeline_yaml_kwarg)
