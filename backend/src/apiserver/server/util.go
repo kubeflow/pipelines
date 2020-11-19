@@ -21,6 +21,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/metadata"
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
 // These are valid conditions of a ScheduledWorkflow.
@@ -289,110 +290,55 @@ func getUserIdentityFromHeader(userIdentityHeader, prefix string) (string, error
 
 func getUserIdentity(ctx context.Context) (string, error) {
 	if ctx == nil {
-		return "", util.NewBadRequestError(errors.New("Request error: context is nil"), "Request error: context is nil.")
+		return "", util.NewUnauthenticatedError(errors.New("Request error: context is nil"), "Request error: context is nil.")
 	}
 	md, _ := metadata.FromIncomingContext(ctx)
 	// If the request header contains the user identity, requests are authorized
 	// based on the namespace field in the request.
 	if userIdentityHeader, ok := md[common.GetKubeflowUserIDHeader()]; ok {
 		if len(userIdentityHeader) != 1 {
-			return "", util.NewBadRequestError(errors.New("Request header error: unexpected number of user identity header. Expect 1 got "+strconv.Itoa(len(userIdentityHeader))),
+			return "", util.NewUnauthenticatedError(errors.New("Request header error: unexpected number of user identity header. Expect 1 got "+strconv.Itoa(len(userIdentityHeader))),
 				"Request header error: unexpected number of user identity header. Expect 1 got "+strconv.Itoa(len(userIdentityHeader)))
 		}
 		return getUserIdentityFromHeader(userIdentityHeader[0], common.GetKubeflowUserIDPrefix())
 	}
-	return "", util.NewBadRequestError(errors.New("Request header error: there is no user identity header."), "Request header error: there is no user identity header.")
+	return "", util.NewUnauthenticatedError(errors.New("Request header error: there is no user identity header."), "Request header error: there is no user identity header.")
 }
 
-func CanAccessExperiment(resourceManager *resource.ResourceManager, ctx context.Context, experimentID string) error {
+// isAuthorized verifies whether the user identity, which is contained in the context object,
+// can perform some action (verb) on a resource (resourceType/resourceName) living in the
+// target namespace. If the returned error is nil, the authorization passes. Otherwise,
+// authorization fails with a non-nil error.
+func isAuthorized(resourceManager *resource.ResourceManager, ctx context.Context, resourceAttributes *authorizationv1.ResourceAttributes) error {
 	if common.IsMultiUserMode() == false {
 		// Skip authz if not multi-user mode.
 		return nil
 	}
-
-	experiment, err := resourceManager.GetExperiment(experimentID)
-	if err != nil {
-		return util.NewBadRequestError(errors.New("Invalid experiment ID"), "Failed to get experiment.")
-	}
-	if len(experiment.Namespace) == 0 {
-		return util.NewInternalServerError(errors.New("Missing namespace"), "Experiment %v doesn't have a namespace.", experiment.Name)
-	}
-	err = isAuthorized(resourceManager, ctx, experiment.Namespace)
-	if err != nil {
-		return util.Wrap(err, "Failed to authorize with API resource references")
-	}
-	return nil
-}
-
-func CanAccessExperimentInResourceReferences(resourceManager *resource.ResourceManager, ctx context.Context, resourceRefs []*api.ResourceReference) error {
-	if common.IsMultiUserMode() == false {
-		// Skip authz if not multi-user mode.
+	if common.IsMultiUserSharedReadMode() &&
+		(resourceAttributes.Verb == common.RbacResourceVerbGet ||
+			resourceAttributes.Verb == common.RbacResourceVerbList) {
+		glog.Infof("Multi-user shared read mode is enabled. Request allowed: %+v", resourceAttributes)
 		return nil
 	}
 
-	experimentID := common.GetExperimentIDFromAPIResourceReferences(resourceRefs)
-	if len(experimentID) == 0 {
-		return util.NewBadRequestError(errors.New("Missing experiment"), "Experiment is required for CreateRun/CreateJob.")
-	}
-	return CanAccessExperiment(resourceManager, ctx, experimentID)
-}
-
-func CanAccessNamespaceInResourceReferences(resourceManager *resource.ResourceManager, ctx context.Context, resourceRefs []*api.ResourceReference) error {
-	if common.IsMultiUserMode() == false {
-		// Skip authz if not multi-user mode.
-		return nil
-	}
-
-	namespace := common.GetNamespaceFromAPIResourceReferences(resourceRefs)
-	if len(namespace) == 0 {
-		return util.NewBadRequestError(errors.New("Namespace required in Kubeflow deployment for authorization."), "Namespace required in Kubeflow deployment for authorization.")
-	}
-	err := isAuthorized(resourceManager, ctx, namespace)
-	if err != nil {
-		return util.Wrap(err, "Failed to authorize with API resource references")
-	}
-	return nil
-}
-
-func CanAccessNamespace(resourceManager *resource.ResourceManager, ctx context.Context, namespace string) error {
-	if common.IsMultiUserMode() == false {
-		// Skip authz if not multi-user mode.
-		return nil
-	}
-
-	if len(namespace) == 0 {
-		return util.NewBadRequestError(errors.New("Namespace required for authorization."), "Namespace required for authorization.")
-	}
-	err := isAuthorized(resourceManager, ctx, namespace)
-	if err != nil {
-		return util.Wrap(err, "Failed to authorize namespace")
-	}
-	return nil
-}
-
-// isAuthorized verified whether the user identity, which is contains in the context object,
-// can access the target namespace. If the returned error is nil, the authorization passes.
-// Otherwise, Authorization fails with a non-nil error.
-func isAuthorized(resourceManager *resource.ResourceManager, ctx context.Context, namespace string) error {
+	glog.Info("Getting user identity...")
 	userIdentity, err := getUserIdentity(ctx)
 	if err != nil {
 		return util.Wrap(err, "Bad request.")
 	}
 
 	if len(userIdentity) == 0 {
-		return util.NewBadRequestError(errors.New("Request header error: user identity is empty."), "Request header error: user identity is empty.")
+		return util.NewUnauthenticatedError(errors.New("Request header error: user identity is empty."), "Request header error: user identity is empty.")
 	}
 
-	isAuthorized, err := resourceManager.IsRequestAuthorized(userIdentity, namespace)
+	glog.Infof("User: %s, ResourceAttributes: %+v", userIdentity, resourceAttributes)
+	glog.Info("Authorizing request...")
+	err = resourceManager.IsRequestAuthorized(userIdentity, resourceAttributes)
 	if err != nil {
-		return util.Wrap(err, "Authorization failure.")
+		glog.Info(err.Error())
+		return err
 	}
 
-	if isAuthorized == false {
-		glog.Infof("Unauthorized access for %s to namespace %s", userIdentity, namespace)
-		return util.NewBadRequestError(errors.New("Unauthorized access for "+userIdentity+" to namespace "+namespace), "Unauthorized access for "+userIdentity+" to namespace "+namespace)
-	}
-
-	glog.Infof("Authorized user %s in namespace %s", userIdentity, namespace)
+	glog.Infof("Authorized user '%s': %+v", userIdentity, resourceAttributes)
 	return nil
 }

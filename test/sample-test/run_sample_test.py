@@ -25,13 +25,14 @@ from constants import CONFIG_DIR, DEFAULT_CONFIG, SCHEMA_CONFIG
 
 
 class PySampleChecker(object):
-  def __init__(self, testname, input, output, result, experiment_name, namespace='kubeflow'):
+  def __init__(self, testname, input, output, result, experiment_name, host, namespace='kubeflow'):
     """Util class for checking python sample test running results.
 
     :param testname: test name.
     :param input: The path of a pipeline file that will be submitted.
     :param output: The path of the test output.
     :param result: The path of the test result that will be exported.
+    :param host: The hostname of KFP API endpoint.
     :param namespace: namespace of the deployed pipeline system. Default: kubeflow
     :param experiment_name: Name of the experiment to monitor
     """
@@ -40,6 +41,7 @@ class PySampleChecker(object):
     self._input = input
     self._output = output
     self._result = result
+    self._host = host
     self._namespace = namespace
     self._run_pipeline = None
     self._test_timeout = None
@@ -58,8 +60,7 @@ class PySampleChecker(object):
 
 
     ###### Initialization ######
-    host = 'ml-pipeline.%s.svc.cluster.local:8888' % self._namespace
-    self._client = Client(host=host)
+    self._client = Client(host=self._host)
 
     ###### Check Input File ######
     utils.add_junit_test(self._test_cases, 'input generated yaml file',

@@ -1,25 +1,18 @@
 This directory contains code for the components that comprise the Kubeflow
 Pipelines backend.
 
-
-## Bazel
-
-The supported Bazel version is 0.24.0. 
-
 ## Building & Testing
 
-All components can be built using [Bazel](https://bazel.build/). To build
-everything under backend, run: `bazel build --action_env=PATH
---define=grpc_no_ares=true //backend/...`
+To run all unittests for backend: 
 
-To run all tests: `bazel test --action_env=PATH --define=grpc_no_ares=true
-//backend/...`
-
-The API server itself can only be built/tested using Bazel. The following
-commands target building and testing just the API server.
 ```
-bazel build --action_env=PATH --define=grpc_no_ares=true backend/src/apiserver/...
-bazel test --action_env=PATH --define=grpc_no_ares=true backend/src/apiserver/...
+go test -v -cover ./backend/...
+```
+
+The API server itself can be built using:
+
+```
+go build -o /tmp/apiserver backend/src/apiserver/*.go
 ```
 
 ## Building APIServer Image using Remote Build Execution
@@ -33,23 +26,19 @@ speeding up the build. To do so, execute the following command:
 ./build_api_server.sh -i gcr.io/cloud-ml-pipelines-test/api-server:dev
 ```
 
+## Building APIServer image locally
+
+The API server image can be built from the root folder of the repo using: 
+```
+export API_SERVER_IMAGE=api_server
+docker build -f backend/Dockerfile . --tag $API_SERVER_IMAGE
+```
+
 ## Building Go client library and swagger files
 
 After making changes to proto files, the Go client libraries and swagger files
 need to be regenerated and checked-in. The `backend/api/generate_api.sh` script
-takes care of this.
-
-## Updating BUILD files
-
-As the backend is written in Go, the BUILD files can be updated automatically
-using [Gazelle](https://github.com/bazelbuild/bazel-gazelle). Whenever a Go file
-is added or updated, run the following to ensure the BUILD files are updated as
-well: `bazel run //:gazelle`
-
-If a new external Go dependency is added, or an existing one has its version
-bumped in the `go.mod` file, ensure the BUILD files pick this up by updating the
-WORKSPACE go_repository rules using the following command: `bazel run
-//:gazelle -- update-repos --from_file=go.mod`
+takes care of this. It should be noted that this requires [Bazel](https://bazel.build/), version 0.24.0` 
 
 ## Updating python dependencies
 

@@ -1,0 +1,63 @@
+{
+  "pipelineSpec": {
+    "deploymentConfig": {
+      "executors": {
+        "Component with optional inputs": {
+          "container": {
+            "image": "gcr.io/my-project/my-image",
+            "args": [
+              "--arg0",
+              "{{$.inputs.parameters['required_input']}}",
+              "--arg1",
+              "{{$.inputs.parameters['optional_input_1']}}",
+              "--arg3",
+              "default value"
+            ]
+          }
+        }
+      },
+      "@type": "type.googleapis.com/ml_pipelines.PipelineDeploymentConfig"
+    },
+    "schemaVersion": "v2alpha1",
+    "pipelineInfo": {
+      "name": "one-step-pipeline-with-if-placeholder"
+    },
+    "runtimeParameters": {
+      "input2": {
+        "type": "STRING"
+      },
+      "input0": {
+        "type": "STRING"
+      },
+      "input1": {
+        "type": "STRING"
+      }
+    },
+    "tasks": [
+      {
+        "executorLabel": "Component with optional inputs",
+        "taskInfo": {
+          "name": "Component with optional inputs"
+        },
+        "inputs": {
+          "parameters": {
+            "optional_input_1": {
+              "runtimeValue": {
+                "runtimeParameter": "input1"
+              }
+            },
+            "required_input": {
+              "runtimeValue": {
+                "runtimeParameter": "input0"
+              }
+            }
+          }
+        }
+      }
+    ],
+    "sdkVersion": "kfp-1.1.0-dev20201106"
+  },
+  "runtimeConfig": {
+    "gcsOutputDirectory": "dummy_root"
+  }
+}

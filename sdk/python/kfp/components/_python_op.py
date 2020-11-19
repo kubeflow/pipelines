@@ -351,10 +351,14 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
     #Analyzing the return type annotations.
     return_ann = signature.return_annotation
     if hasattr(return_ann, '_fields'): #NamedTuple
+        # Getting field type annotations.
+        # __annotations__ does not exist in python 3.5 and earlier
+        # _field_types does not exist in python 3.9 and later
+        field_annotations = getattr(return_ann, '__annotations__', None) or getattr(return_ann, '_field_types', None)
         for field_name in return_ann._fields:
             type_struct = None
-            if hasattr(return_ann, '_field_types'):
-                type_struct = annotation_to_type_struct(return_ann._field_types.get(field_name, None))
+            if field_annotations:
+                type_struct = annotation_to_type_struct(field_annotations.get(field_name, None))
 
             output_name = _make_name_unique_by_adding_index(field_name, output_names, '_')
             output_names.add(output_name)

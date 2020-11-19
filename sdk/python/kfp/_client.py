@@ -305,9 +305,10 @@ class Client(object):
     experiment = None
     try:
       experiment = self.get_experiment(experiment_name=name, namespace=namespace)
-    except:
+    except ValueError as error:
       # Ignore error if the experiment does not exist.
-      pass
+      if not str(error).startswith('No experiment is found with name'):
+        raise error
 
     if not experiment:
       logging.info('Creating experiment {}.'.format(name))

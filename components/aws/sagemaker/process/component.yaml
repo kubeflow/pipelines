@@ -1,124 +1,111 @@
-name: 'SageMaker - Processing Job'
-description: |
-  Perform data pre-processing, post-processing, feature engineering, data validation, and model evaluation, and interpretation on using SageMaker
+name: SageMaker - Processing Job
+description: Perform data pre-processing, post-processing, feature engineering, data
+  validation, and model evaluation, and interpretation on using SageMaker
 inputs:
-  - name: region
-    description: 'The region where the processing job launches.'
-    type: String
-  - name: job_name
-    description: 'The name of the processing job.'
-    default: ''
-    type: String
-  - name: role
-    description: 'The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf.'
-    type: String
-  - name: image
-    description: 'The registry path of the Docker image that contains the processing container.'
-    default: ''
-    type: String
-  - name: instance_type
-    description: 'The ML compute instance type.'
-    default: 'ml.m4.xlarge'
-    type: String
-  - name: instance_count
-    description: 'The number of ML compute instances to use in each processing job.'
-    default: '1'
-    type: Integer
-  - name: volume_size
-    description: 'The size of the ML storage volume that you want to provision.'
-    default: '30'
-    type: Integer
-  - name: resource_encryption_key
-    description: 'The AWS KMS key that Amazon SageMaker uses to encrypt data on the storage volume attached to the ML compute instance(s).'
-    default: ''
-    type: String
-  - name: max_run_time
-    description: 'The maximum run time in seconds for the processing job.'
-    default: '86400'
-    type: Integer
-  - name: environment
-    description: 'The environment variables to set in the Docker container. Up to 16 key-value entries in the map.'
-    default: '{}'
-    type: JsonObject
-  - name: container_entrypoint
-    description: 'The entrypoint for the processing job. This is in the form of a list of strings that make a command.'
-    default: '[]'
-    type: JsonArray
-  - name: container_arguments
-    description: 'A list of string arguments to be passed to a processing job.'
-    default: '[]'
-    type: JsonArray
-  - name: output_config
-    description: 'Parameters that specify Amazon S3 outputs for a processing job.'
-    default: '[]'
-    type: JsonArray
-  - name: input_config
-    description: 'Parameters that specify Amazon S3 inputs for a processing job.'
-    default: '[]'
-    type: JsonArray
-  - name: output_encryption_key
-    description: 'The AWS KMS key that Amazon SageMaker uses to encrypt the processing artifacts.'
-    default: ''
-    type: String
-  - name: vpc_security_group_ids
-    description: 'The VPC security group IDs, in the form sg-xxxxxxxx.'
-    default: ''
-    type: String
-  - name: vpc_subnets
-    description: 'The ID of the subnets in the VPC to which you want to connect your hpo job.'
-    default: ''
-    type: String
-  - name: network_isolation
-    description: 'Isolates the processing job container.'
-    default: 'True'
-    type: Bool
-  - name: traffic_encryption
-    description: 'Encrypts all communications between ML compute instances in distributed training.'
-    default: 'False'
-    type: Bool
-  - name: endpoint_url
-    description: 'The endpoint URL for the private link VPC endpoint.'
-    default: ''
-    type: String
-  - name: assume_role
-    description: 'The ARN of an IAM role to assume when connecting to SageMaker.'
-    default: ''
-    type: String
-  - name: tags
-    description: 'Key-value pairs, to categorize AWS resources.'
-    default: '{}'
-    type: JsonObject
+- {name: region, type: String, description: The region for the SageMaker resource.}
+- {name: endpoint_url, type: String, description: The URL to use when communicating
+    with the SageMaker service., default: ''}
+- {name: assume_role, type: String, description: The ARN of an IAM role to assume
+    when connecting to SageMaker., default: ''}
+- {name: tags, type: JsonObject, description: 'An array of key-value pairs, to categorize
+    AWS resources.', default: '{}'}
+- {name: job_name, type: String, description: The name of the processing job., default: ''}
+- {name: role, type: String, description: The Amazon Resource Name (ARN) that Amazon
+    SageMaker assumes to perform tasks on your behalf.}
+- {name: image, type: String, description: The registry path of the Docker image that
+    contains the processing container., default: ''}
+- {name: instance_type, type: String, description: The ML compute instance type.,
+  default: ml.m4.xlarge}
+- {name: instance_count, type: Integer, description: The number of ML compute instances
+    to use in each processing job., default: '1'}
+- {name: volume_size, type: Integer, description: The size of the ML storage volume
+    that you want to provision., default: '30'}
+- {name: resource_encryption_key, type: String, description: The AWS KMS key that
+    Amazon SageMaker uses to encrypt data on the storage volume attached to the ML
+    compute instance(s)., default: ''}
+- {name: output_encryption_key, type: String, description: The AWS KMS key that Amazon
+    SageMaker uses to encrypt the processing artifacts., default: ''}
+- {name: max_run_time, type: Integer, description: The maximum run time in seconds
+    for the processing job., default: '86400'}
+- {name: environment, type: JsonObject, description: The dictionary of the environment
+    variables to set in the Docker container. Up to 16 key-value entries in the map.,
+  default: '{}'}
+- {name: container_entrypoint, type: JsonArray, description: The entrypoint for the
+    processing job. This is in the form of a list of strings that make a command.,
+  default: '[]'}
+- {name: container_arguments, type: JsonArray, description: A list of string arguments
+    to be passed to a processing job., default: '[]'}
+- {name: output_config, type: JsonArray, description: Parameters that specify Amazon
+    S3 outputs for a processing job., default: '[]'}
+- {name: input_config, type: JsonArray, description: Parameters that specify Amazon
+    S3 inputs for a processing job., default: '[]'}
+- {name: vpc_security_group_ids, type: String, description: 'The VPC security group
+    IDs, in the form sg-xxxxxxxx.', default: ''}
+- {name: vpc_subnets, type: String, description: The ID of the subnets in the VPC
+    to which you want to connect your hpo job., default: ''}
+- name: network_isolation
+  type: Bool
+  description: Isolates the processing container.
+  default: "True"
+- name: traffic_encryption
+  type: Bool
+  description: Encrypts all communications between ML compute instances in distributed
+    training.
+  default: "False"
 outputs:
-  - {name: job_name,              description: 'Processing job name'}
-  - {name: output_artifacts,      description: 'A dictionary containing the output S3 artifacts'}
+- {name: job_name, description: Processing job name.}
+- {name: output_artifacts, description: A dictionary containing the output S3 artifacts.}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:0.9.0
-    command: ['python3']
-    args: [
-      process.py,
-      --region, {inputValue: region},
-      --endpoint_url, {inputValue: endpoint_url},
-      --assume_role, {inputValue: assume_role},
-      --job_name, {inputValue: job_name},
-      --role, {inputValue: role},
-      --image, {inputValue: image},
-      --instance_type, {inputValue: instance_type},
-      --instance_count, {inputValue: instance_count},
-      --volume_size, {inputValue: volume_size},
-      --resource_encryption_key, {inputValue: resource_encryption_key},
-      --output_encryption_key, {inputValue: output_encryption_key},
-      --max_run_time, {inputValue: max_run_time},
-      --environment, {inputValue: environment},
-      --container_entrypoint, {inputValue: container_entrypoint},
-      --container_arguments, {inputValue: container_arguments},
-      --output_config, {inputValue: output_config},
-      --input_config, {inputValue: input_config},
-      --vpc_security_group_ids, {inputValue: vpc_security_group_ids},
-      --vpc_subnets, {inputValue: vpc_subnets},
-      --network_isolation, {inputValue: network_isolation},
-      --traffic_encryption, {inputValue: traffic_encryption},
-      --tags, {inputValue: tags},
-      --job_name_output_path, {outputPath: job_name},
-      --output_artifacts_output_path, {outputPath: output_artifacts}
-    ]
+    image: amazon/aws-sagemaker-kfp-components:1.0.0
+    command: [python3]
+    args:
+    - process/src/sagemaker_process_component.py
+    - --region
+    - {inputValue: region}
+    - --endpoint_url
+    - {inputValue: endpoint_url}
+    - --assume_role
+    - {inputValue: assume_role}
+    - --tags
+    - {inputValue: tags}
+    - --job_name
+    - {inputValue: job_name}
+    - --role
+    - {inputValue: role}
+    - --image
+    - {inputValue: image}
+    - --instance_type
+    - {inputValue: instance_type}
+    - --instance_count
+    - {inputValue: instance_count}
+    - --volume_size
+    - {inputValue: volume_size}
+    - --resource_encryption_key
+    - {inputValue: resource_encryption_key}
+    - --output_encryption_key
+    - {inputValue: output_encryption_key}
+    - --max_run_time
+    - {inputValue: max_run_time}
+    - --environment
+    - {inputValue: environment}
+    - --container_entrypoint
+    - {inputValue: container_entrypoint}
+    - --container_arguments
+    - {inputValue: container_arguments}
+    - --output_config
+    - {inputValue: output_config}
+    - --input_config
+    - {inputValue: input_config}
+    - --vpc_security_group_ids
+    - {inputValue: vpc_security_group_ids}
+    - --vpc_subnets
+    - {inputValue: vpc_subnets}
+    - --network_isolation
+    - {inputValue: network_isolation}
+    - --traffic_encryption
+    - {inputValue: traffic_encryption}
+    - --job_name_output_path
+    - {outputPath: job_name}
+    - --output_artifacts_output_path
+    - {outputPath: output_artifacts}

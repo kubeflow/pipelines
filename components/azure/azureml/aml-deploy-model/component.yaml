@@ -1,0 +1,34 @@
+name: Azure ML Deploy Model 
+description: A Kubeflow Pipeline Component to deploy registered model to Azure Machine Learning.
+inputs:
+- {name: deployment_name, type: String}
+- {name: model_name, type: String}
+- {name: inference_config, type: String, default: 'src/inferenceconfig.json', optional: true}
+- {name: deployment_config, type: String, default: 'src/deploymentconfig.json', optional: true}
+- {name: tenant_id, type: String}
+- {name: service_principal_id, type: String}
+- {name: service_principal_password, type: String}
+- {name: subscription_id, type: String}
+- {name: resource_group, type: String}
+- {name: workspace, type: String}
+outputs:
+- {name: output_config, type: String, description: 'Description of the deployed web-service.'}
+- {name: score_uri, type: String, description: 'The endpoint for deployed model.'}
+implementation:
+  container:
+    image: ''
+    command: [
+      "sh", "/src/deploy.sh",
+      '-n', {inputValue: deployment_name},
+      '-m', {inputValue: model_name},
+      '-i', {inputValue: inference_config},
+      '-d', {inputValue: deployment_config},
+      '-s', {inputValue: service_principal_id},
+      '-p', {inputValue: service_principal_password},
+      '-u', {inputValue: subscription_id},
+      '-r', {inputValue: resource_group},
+      '-w', {inputValue: workspace},
+      '-t', {inputValue: tenant_id},
+      '-o', {outputPath: output_config},
+      '-e', {outputPath: score_uri}
+    ]

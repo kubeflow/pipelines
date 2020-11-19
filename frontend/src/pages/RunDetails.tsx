@@ -71,6 +71,7 @@ import {
   getRunDurationFromWorkflow,
   logger,
   serviceErrorToString,
+  decodeCompressedNodes,
 } from '../lib/Utils';
 import WorkflowParser from '../lib/WorkflowParser';
 import { ExecutionDetailsContent } from './ExecutionDetails';
@@ -669,9 +670,23 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         runFinished = true;
       }
 
-      const workflow = JSON.parse(
-        runDetail.pipeline_runtime!.workflow_manifest || '{}',
-      ) as Workflow;
+      const jsonWorkflow = JSON.parse(runDetail.pipeline_runtime!.workflow_manifest || '{}');
+
+      if (
+        jsonWorkflow.status &&
+        !jsonWorkflow.status.nodes &&
+        jsonWorkflow.status.compressedNodes
+      ) {
+        try {
+          jsonWorkflow.status.nodes = await decodeCompressedNodes(
+            jsonWorkflow.status.compressedNodes,
+          );
+          delete jsonWorkflow.status.compressedNodes;
+        } catch (err) {
+          console.error(`Failed to decode compressedNodes: ${err}`);
+        }
+      }
+      const workflow = jsonWorkflow as Workflow;
 
       // Show workflow errors
       const workflowError = WorkflowParser.getWorkflowError(workflow);
@@ -905,7 +920,8 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
   private async _loadSelectedNodeLogs(): Promise<void> {
     const selectedNodeDetails = this.state.selectedNodeDetails;
     const namespace = this.state.workflow?.metadata?.namespace;
-    if (!selectedNodeDetails || !namespace) {
+    const runId = this.state.runMetadata?.id;
+    if (!selectedNodeDetails || !runId || !namespace) {
       return;
     }
     this.setStateSafe({ sidepanelBusy: true });
@@ -915,7 +931,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     let logsBannerMode = '' as Mode;
 
     try {
-      selectedNodeDetails.logs = await Apis.getPodLogs(selectedNodeDetails.id, namespace);
+      selectedNodeDetails.logs = await Apis.getPodLogs(runId, selectedNodeDetails.id, namespace);
     } catch (err) {
       let errMsg = await errorToMessage(err);
       logsBannerMessage = 'Failed to retrieve pod logs.';
