@@ -1061,6 +1061,9 @@ implementation:
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
     sys.path.append(test_data_dir)
 
+    # `@pipeline` is needed to make name the same for both functions
+
+    @pipeline(name="pipeline_func")
     def pipeline_func_arg(foo_arg: str, bar_arg: str):
       dsl.ContainerOp(
         name='foo',
@@ -1069,6 +1072,7 @@ implementation:
         arguments=[foo_arg, ' and ', bar_arg]
       )
 
+    @pipeline(name="pipeline_func")
     def pipeline_func_kwarg(foo_arg: str, *, bar_arg: str):
       return pipeline_func_arg(foo_arg, bar_arg)
 
