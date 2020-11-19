@@ -1085,11 +1085,11 @@ implementation:
     pipeline_yaml_arg   = kfp.compiler.Compiler()._create_workflow(pipeline_func_arg)
     pipeline_yaml_kwarg = kfp.compiler.Compiler()._create_workflow(pipeline_func_kwarg)
 
-    # the yamls may differ in creation time, remove it
-    def remove_creation_time(yaml) -> None:
-      del yaml['metadata']['annotations']['pipelines.kubeflow.org/pipeline_compilation_time']
-    remove_creation_time(pipeline_yaml_arg)
-    remove_creation_time(pipeline_yaml_kwarg)
+    # the yamls may differ in metadata
+    def remove_metadata(yaml) -> None:
+      del yaml['metadata']
+    remove_metadata(pipeline_yaml_arg)
+    remove_metadata(pipeline_yaml_kwarg)
 
     # compare
     assert pipeline_yaml_arg == pipeline_yaml_kwarg
