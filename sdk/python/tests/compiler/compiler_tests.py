@@ -1060,27 +1060,17 @@ implementation:
   def test_keyword_only_argument_for_pipeline_func_identity(self):
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
     sys.path.append(test_data_dir)
-    import basic
 
-    pipeline_func_arg = basic.save_most_frequent_word
+    def pipeline_func_arg(foo_arg: str, bar_arg: str):
+      dsl.ContainerOp(
+        name='foo',
+        image='foo',
+        command=['bar'],
+        arguments=[foo_arg, ' and ', bar_arg]
+      )
 
-    # clone name and description
-    @dsl.pipeline(
-      name = pipeline_func_arg._component_human_name,
-      description = pipeline_func_arg._component_description
-    )
-    def pipeline_func_kwarg(*args, **kwargs):
-      return basic.save_most_frequent_word(*args, **kwargs)
-
-    # clone signature, but changing all arguments to keyword-only
-    import inspect
-    sig = inspect.signature(pipeline_func_arg)
-    new_parameters = [
-      param.replace(kind = inspect.Parameter.KEYWORD_ONLY)
-      for param in sig.parameters.values()
-    ]
-    new_sig = sig.replace(parameters = new_parameters)
-    pipeline_func_kwarg.__signature__ = new_sig
+    def pipeline_func_kwarg(foo_arg: str, *, bar_arg: str):
+      return pipeline_func_arg(foo_arg, bar_arg)
 
     pipeline_yaml_arg   = kfp.compiler.Compiler()._create_workflow(pipeline_func_arg)
     pipeline_yaml_kwarg = kfp.compiler.Compiler()._create_workflow(pipeline_func_kwarg)
