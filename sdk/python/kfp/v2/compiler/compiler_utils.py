@@ -96,11 +96,11 @@ def build_runtime_config_spec(
 
 
 def sanitize_pipeline_name(name: str) -> str:
-  """Sanitize pipeline name.
+  """Sanitizes pipeline name.
 
   Make the pipeline name conform to [a-z0-9][a-z0-9-]{0,127}.
   1. Convert upper case to lower case.
-  2. Replace any invalid character to '-'.
+  2. Replace any invalid character with '-'.
   3. Strip '-' from the left end.
   4. Truncate the string to at most 128 characters.
 
