@@ -108,6 +108,5 @@ class Pipeline():
     op_name = _naming._make_name_unique_by_adding_index(op.human_name,
                                                         list(self.ops.keys()),
                                                         ' ')
-
     self.ops[op_name] = op
     return op_name
