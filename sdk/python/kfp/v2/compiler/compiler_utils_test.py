@@ -88,6 +88,16 @@ class CompilerUtilsTest(unittest.TestCase):
         'gs://path', {'input1': 'test'})
     self.assertEqual(expected_spec, runtime_config)
 
+  def test_sanitize_pipeline_name(self):
+    self.assertEqual('pipeline-name-1',
+                     compiler_utils.sanitize_pipeline_name('Pipeline name 1'))
+    self.assertEqual('pipeline-name',
+                     compiler_utils.sanitize_pipeline_name('-pipeline_name'))
+    self.assertEqual('pipeline-name',
+                     compiler_utils.sanitize_pipeline_name('?pipeline*name'))
+    self.assertEqual('p' * 128,
+                     compiler_utils.sanitize_pipeline_name('p' * 256))
+
 
 if __name__ == '__main__':
   unittest.main()

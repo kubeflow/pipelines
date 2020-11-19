@@ -79,7 +79,8 @@ class Compiler(object):
     pipeline_spec = pipeline_spec_pb2.PipelineSpec(
         runtime_parameters=compiler_utils.build_runtime_parameter_spec(args))
 
-    pipeline_spec.pipeline_info.name = pipeline.name
+    pipeline_spec.pipeline_info.name = compiler_utils.sanitize_pipeline_name(
+        pipeline.name)
     pipeline_spec.sdk_version = 'kfp-{}'.format(kfp.__version__)
     pipeline_spec.schema_version = 'v2alpha1'
 

@@ -54,7 +54,7 @@ implementation:
 """)
 
 
-@dsl.pipeline(name='simple-two-step-pipeline')
+@dsl.pipeline(name='Simple two step pipeline')
 def my_pipeline(text='Hello world!',):
   component_1 = component_op_1(text=text)
   component_2 = component_op_2(

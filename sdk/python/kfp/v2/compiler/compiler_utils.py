@@ -13,7 +13,9 @@
 # limitations under the License.
 """KFP v2 DSL compiler utility functions."""
 
+import re
 from typing import Any, List, Mapping, Optional, Union
+
 from kfp.v2 import dsl
 from kfp.pipeline_spec import pipeline_spec_pb2
 
@@ -91,3 +93,17 @@ def build_runtime_config_spec(
   return pipeline_spec_pb2.PipelineJob.RuntimeConfig(
       gcs_output_directory=pipeline_root,
       parameters={k: _get_value(v) for k, v in parameter_values.items()})
+
+
+def sanitize_pipeline_name(name: str) -> str:
+  """Sanitize pipeline name.
+
+  Make the pipeline name comform to [a-z0-9][a-z0-9-]{0,127}
+
+  Args:
+    name: The original pipeline name.
+
+  Returns:
+   The sanitized the pipeline name.
+  """
+  return re.sub('[^a-z0-9-]', '-', name.lower()).lstrip('-')[:128]
