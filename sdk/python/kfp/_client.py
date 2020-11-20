@@ -33,8 +33,6 @@ from kfp.compiler import compiler
 from kfp.compiler._k8s_helper import sanitize_k8s_name
 
 from kfp._auth import get_auth_token, get_gcp_access_token
-from ssl import SSLError
-from json import JSONDecodeError
 
 # TTL of the access token associated with the client. This is needed because
 # `gcloud auth print-access-token` generates a token with TTL=1 hour, after
@@ -118,7 +116,7 @@ class Client(object):
   IN_CLUSTER_DNS_NAME = 'ml-pipeline.{}.svc.cluster.local:8888'
   KUBE_PROXY_PATH = 'api/v1/namespaces/{}/services/ml-pipeline:http/proxy/'
 
-  HEALTH_PATH = 'apis/v1beta1/healthz'
+  NAMESPACE_PATH = '/var/run/secrets/kubernetes.io/serviceaccount/namespace'
 
   LOCAL_KFP_CONTEXT = os.path.expanduser('~/.config/kfp/context.json')
 
@@ -145,16 +143,13 @@ class Client(object):
     self._pipelines_api = kfp_server_api.api.pipeline_service_api.PipelineServiceApi(api_client)
     self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
     self._healthz_api = kfp_server_api.api.healthz_service_api.HealthzServiceApi(api_client)
-    self._api_client = api_client
-    if self._context_setting['namespace'] == '' and self.get_kfp_healthz().multi_user is True:
-      NAMESPACE_PATH = '/var/run/secrets/kubernetes.io/serviceaccount/namespace'
+    if not self._context_setting['namespace'] and self.get_kfp_healthz().multi_user is True:
       try:
-        with open(NAMESPACE_PATH, 'r') as f:
+        with open(Client.NAMESPACE_PATH, 'r') as f:
           current_namespace = f.read()
           self.set_user_namespace(current_namespace)
       except:
-        print('Failed to automatically set namespace.')
-        pass
+        logging.info('Failed to automatically set namespace.')
 
   def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy, ssl_ca_cert, kube_context):
     config = kfp_server_api.configuration.Configuration()
@@ -299,41 +294,21 @@ class Client(object):
       json.dump(self._context_setting, f)
 
   def get_kfp_healthz(self):
-    """Get healthz info of KFP deployment.
+    """Gets healthz info of KFP deployment.
 
     Returns:
       response: json formatted response from the healtz endpoint.
     """
-    healthz_api = self._existing_config.host + '/' + Client.HEALTH_PATH
     count = 0
     response = None
     max_attempts = 5
     while count < max_attempts and not response:
       count += 1
       try:
-        #r = self._api_client.request('GET', 'https://' + healthz_api)
-        #response = json.loads(r.data)
         response = self._healthz_api.get_healthz()
-        print(response)
         return response
-      except SSLError:
-        r = self._api_client.request('GET', 'http://' + healthz_api)
-        response = json.loads(r.data)
-        return response
-      except JSONDecodeError:
-        print("Exception; No JSON returned. Retrying after 5 seconds", JSONDecodeError)
-        try:
-          response = requests.get('https://' + healthz_api)
-        except SSLError:
-          response = requests.get('http://' + healthz_api)
-        if response.history:
-          print("Request was redirected")
-          for resp in response.history:
-            print(resp.status_code, resp.url)
-          print("Final destination:")
-          print(response.status_code, response.url)
-        else:
-          print("Request was not redirected")
+      except:
+        logging.info('Failed to get healthz info attempt {}.'.format(max_attempts))
         time.sleep(5)
 
   def get_user_namespace(self):
