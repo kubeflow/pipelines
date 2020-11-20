@@ -23,7 +23,6 @@ import warnings
 import yaml
 import zipfile
 import datetime
-import requests
 from typing import Mapping, Callable, Optional
 
 import kfp
@@ -302,13 +301,15 @@ class Client(object):
     count = 0
     response = None
     max_attempts = 5
-    while count < max_attempts and not response:
+    while not response:
       count += 1
+      if count > max_attempts:
+        raise TimeoutError('API call timeout')
       try:
         response = self._healthz_api.get_healthz()
         return response
       except:
-        logging.info('Failed to get healthz info attempt {}.'.format(max_attempts))
+        logging.info('Failed to get healthz info attempt {} of 5.'.format(count))
         time.sleep(5)
 
   def get_user_namespace(self):
