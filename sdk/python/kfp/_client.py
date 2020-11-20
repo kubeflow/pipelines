@@ -146,7 +146,7 @@ class Client(object):
     self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
     self._healthz_api = kfp_server_api.api.healthz_service_api.HealthzServiceApi(api_client)
     self._api_client = api_client
-    if self._context_setting['namespace'] == '' and self.get_kfp_healthz().get('multi_user') is True:
+    if self._context_setting['namespace'] == '' and self.get_kfp_healthz().multi_user is True:
       NAMESPACE_PATH = '/var/run/secrets/kubernetes.io/serviceaccount/namespace'
       try:
         with open(NAMESPACE_PATH, 'r') as f:
