@@ -38,7 +38,7 @@ def get_gcp_access_token():
     https://cloud.google.com/sdk/gcloud/reference/auth/application-default/print-access-token
     """
     token = None
-    args = [shutil.which(gcloud), 'auth', 'print-access-token']
+    args = [shutil.which('gcloud'), 'auth', 'print-access-token']
     try:
       # Casting to string to accommodate API server request schema.
       token = subprocess.check_output(args).rstrip().decode("utf-8")
