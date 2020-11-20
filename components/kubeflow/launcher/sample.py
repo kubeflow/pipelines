@@ -6,12 +6,11 @@ import kfp.dsl as dsl
     name="Launch kubeflow tfjob",
     description="An example to launch tfjob."
 )
-def mnist_train(
-        name="mnist",
-        namespace="kubeflow",
-        workerNum=3,
-        ttlSecondsAfterFinished=-1,
-        tfjobTimeoutMinutes=60,
+def mnist_train(name: str="mnist",
+        namespace: str="kubeflow",
+        workerNum: int=3,
+        ttlSecondsAfterFinished: int=-1,
+        tfjobTimeoutMinutes: int=60,
         deleteAfterDone=False):
     tfjob_launcher_op = components.load_component_from_file("./component.yaml")
     # tfjob_launcher_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/kubeflow/launcher/component.yaml')
@@ -28,7 +27,7 @@ def mnist_train(
                   "/opt/model.py"
                 ],
                 "args": [
-                  "--tf-train-steps=6000"
+                  "--tf-train-steps=60"
                 ],
                 "image": "liuhougangxa/tf-estimator-mnist",
                 "name": "tensorflow",
@@ -40,7 +39,7 @@ def mnist_train(
     worker = {}
     if workerNum > 0:
       worker = {
-       "replicas": workerNum,
+       "replicas": 3,
        "restartPolicy": "OnFailure",
        "template": {
           "spec": {
@@ -51,7 +50,7 @@ def mnist_train(
                   "/opt/model.py"
                 ],
                 "args": [
-                  "--tf-train-steps=6000"
+                  "--tf-train-steps=60"
                 ],
                 "image": "liuhougangxa/tf-estimator-mnist",
                 "name": "tensorflow",
