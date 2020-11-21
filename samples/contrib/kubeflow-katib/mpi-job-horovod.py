@@ -83,7 +83,7 @@ def horovod_mnist_hpo():
         ),
     ]
 
-    # Trial template specification.
+    # JSON template specification for the Trial's Worker Kubeflow MPIJob.
     trial_spec = {
         "apiVersion": "kubeflow.org/v1",
         "kind": "MPIJob",
@@ -171,7 +171,7 @@ def horovod_mnist_hpo():
         }
     }
 
-    # Template with Trial parameters and Trial specification.
+    # Configure parameters for the Trial template.
     trial_template = V1beta1TrialTemplate(
         primary_pod_labels={
             "mpi-job-role": "launcher"
@@ -207,7 +207,7 @@ def horovod_mnist_hpo():
 
     output_file = "/output.txt"
 
-    # Create DSL Pipeline.
+    # Katib launcher component.
     # We use pickle to dump the Experiment specification and send it to the launcher.
     # The Experiment is deleted after the Pipeline is finished.
     experiment_spec_decoded = base64.b64encode(pickle.dumps(experiment_spec)).decode('ascii')
@@ -224,7 +224,7 @@ def horovod_mnist_hpo():
         file_outputs={"BestParameterSet": output_file}
     )
 
-    # Output container
+    # Output container to print the results.
     dsl.ContainerOp(
         name="best-hp",
         image="library/bash:4.4.23",
