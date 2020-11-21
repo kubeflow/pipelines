@@ -57,6 +57,14 @@ Please following [AWS Instructions](env/aws/README.md) for installation.
 
 Note: Community maintains a repo [e2fyi/kubeflow-aws](https://github.com/e2fyi/kubeflow-aws/tree/master/pipelines) for AWS.
 
+### Option-5 Multiple namespaced installations
+
+The major difference between this one and Option-1 is this manifest doesn't contain KFP `cache` component
+which sets up mutating webhook for execution cache. Since `MutatingWebhookConfiguration` is cluster scope resource,
+`cache` component requires `ClusterRole` which is hard to limit all KFP in given namespace.
+
+Please following [Instructions](env/namespaced-installation/README.md) for installation to install multiple KFP in your cluster.
+
 ## Uninstall
 
 If the installation is based on CloudSQL/GCS, after the uninstall, the data is still there,
