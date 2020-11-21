@@ -1,12 +1,14 @@
 # Kubeflow Katib Component Samples
 
-These examples demonstrate how to create a Kubeflow Pipeline using
-[Katib](https://github.com/kubeflow/katib)
+These samples demonstrate how to create a Kubeflow Pipeline using
+[Katib](https://github.com/kubeflow/katib).
 The source code for the Katib Pipeline component can be found
 [here](../../../components/kubeflow/katib-launcher).
 
-Check the following samples:
+Check the following examples:
 
-- [Random search algorithm with Early Stopping](random-early-stopping.ipynb)
+- Run Pipeline from Jupyter Notebook using Katib Experiment with
+  [random search algorithm and early stopping](random-early-stopping.ipynb).
 
-- [Kubeflow MPIJob with Horovod training container](mpijob-horovod.py)
+- Compile compressed YAML definition of the Pipeline using Katib Experiment with
+  [Kubeflow MPIJob and Horovod training container](mpijob-horovod.py).
