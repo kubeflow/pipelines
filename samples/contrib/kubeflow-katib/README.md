@@ -8,7 +8,7 @@ The source code for the Katib Pipeline component can be found
 Check the following examples:
 
 - Run Pipeline from Jupyter Notebook using Katib Experiment with
-  [random search algorithm and early stopping](random-early-stopping.ipynb).
+  [random search algorithm and early stopping](early-stopping.ipynb).
 
 - Compile compressed YAML definition of the Pipeline using Katib Experiment with
-  [Kubeflow MPIJob and Horovod training container](mpijob-horovod.py).
+  [Kubeflow MPIJob and Horovod training container](mpi-job-horovod.py).
