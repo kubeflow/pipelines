@@ -65,7 +65,8 @@ if elapsed_time.total_seconds() > 30:
 def caching_pipeline3(seconds: int = 30):
     # All outputs of successfull executions are cached
     work_task = do_work_op(seconds)
-    work_task.execution_options.caching_strategy.max_cache_staleness = 'PT5S'  # = Period: Time: 5 seconds
+    # TODO(Ark-kun): Fix handling non-zero periods in the backend
+    work_task.execution_options.caching_strategy.max_cache_staleness = 'PT0S'  # = Period: Time: 0 seconds
 
 # Waiting for some time for the cached data to become stale:
 time.sleep(10)
