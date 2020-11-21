@@ -5,7 +5,7 @@ from kfp.dsl.types import Integer
 from typing import NamedTuple
 
 
-def worker(workerNum: int=0) -> NamedTuple(
+def create_worker_spec(workerNum: int=0) -> NamedTuple(
     'WorkersOutput',
     [
       ('worker', dict),
@@ -63,8 +63,8 @@ def worker(workerNum: int=0) -> NamedTuple(
         ['worker', 'mlpipeline_ui_metadata', 'mlpipeline_metrics'])
     return divmod_output(worker, json.dumps(metadata), json.dumps(metrics))
 
-worker_op = components.func_to_container_op(
-    worker, base_image='tensorflow/tensorflow:1.11.0-py3')
+worker_spec_op = components.func_to_container_op(
+    create_worker_spec, base_image='tensorflow/tensorflow:1.11.0-py3')
 
 @dsl.pipeline(
     name="Launch kubeflow tfjob",
@@ -101,13 +101,13 @@ def mnist_train(name: str="mnist",
        }
     }
 
-    worker_task = worker_op(workerNum)
+    worker_spec_create = worker_spec_op(workerNum)
 
     tfjob_launcher_op(
         name=name,
         namespace=namespace,
         ttl_seconds_after_finished=ttlSecondsAfterFinished,
-        worker_spec=worker_task.outputs['worker'],
+        worker_spec=worker_spec_create.outputs['worker'],
         chief_spec=chief,
         tfjob_timeout_minutes=tfjobTimeoutMinutes,
         delete_finished_tfjob=deleteAfterDone
