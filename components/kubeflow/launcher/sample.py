@@ -6,25 +6,14 @@ from typing import NamedTuple
 
 
 def create_worker_spec(workerNum: int=0) -> NamedTuple(
-    'WorkersOutput',
+    'CreatWorkerSpec',
     [
-      ('worker', dict),
-      ('mlpipeline_ui_metadata', 'UI_metadata'),
-      ('mlpipeline_metrics', 'Metrics')
+      ('worker_spec', dict),
     ]):
-    '''Divides two numbers and calculate  the quotient and remainder'''
-    
-
-    from tensorflow.python.lib.io import file_io
+    """
+    Creates tf-job worker spec
+    """
     import json
-    
-    # Export a sample tensorboard
-    metadata = {
-      'outputs' : [{
-        'type': 'tensorboard',
-        'source': 'gs://ml-pipeline-dataset/tensorboard-train',
-      }]
-    }
 
     worker = {}
     if workerNum > 0:
@@ -49,19 +38,11 @@ def create_worker_spec(workerNum: int=0) -> NamedTuple(
           }
        }
     }
-
-    # Export two metrics
-    metrics = {
-      'metrics': [{
-          'name': 'workers',
-          'numberValue':  float(workerNum),
-        }]}
-
     from collections import namedtuple
-    divmod_output = namedtuple(
+    worker_spec_output = namedtuple(
         'MyWorkerOutput',
-        ['worker', 'mlpipeline_ui_metadata', 'mlpipeline_metrics'])
-    return divmod_output(worker, json.dumps(metadata), json.dumps(metrics))
+        ['worker_spec'])
+    return worker_spec_output(worker)
 
 worker_spec_op = components.func_to_container_op(
     create_worker_spec, base_image='tensorflow/tensorflow:1.11.0-py3')
@@ -107,7 +88,7 @@ def mnist_train(name: str="mnist",
         name=name,
         namespace=namespace,
         ttl_seconds_after_finished=ttlSecondsAfterFinished,
-        worker_spec=worker_spec_create.outputs['worker'],
+        worker_spec=worker_spec_create.outputs['worker_spec'],
         chief_spec=chief,
         tfjob_timeout_minutes=tfjobTimeoutMinutes,
         delete_finished_tfjob=deleteAfterDone
