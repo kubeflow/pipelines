@@ -9,7 +9,7 @@ inputs:
 - {name: ttl Seconds After Finished,   type: Integer,  default: -1,        description: 'Defines the TTL for cleaning up finished TFJobs.'}
 - {name: CleanPodPolicy,            type: String,   default: Running,   description: 'Defines the policy for cleaning up pods after the TFJob completes.'}
 - {name: PS Spec,                   type: Dict,     default: '{}',      description: 'TFJob ps replicaSpecs.'}
-- {name: Worker Spec,               type: Dict,     default: '{}',      description: 'TFJob worker replicaSpecs.'}
+- {name: Worker Spec,               type: JsonObject,     default: '{}',      description: 'TFJob worker replicaSpecs.'}
 - {name: Chief Spec,                type: Dict,     default: '{}',      description: 'TFJob chief replicaSpecs.'}
 - {name: Evaluator Spec,            type: Dict,     default: '{}',      description: 'TFJob evaluator replicaSpecs.'}
 - {name: Tfjob Timeout Minutes,     type: Integer,  default: 1440,      description: 'Time in minutes to wait for the TFJob to complete.'}
