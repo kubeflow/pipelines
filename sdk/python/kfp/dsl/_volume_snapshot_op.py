@@ -53,6 +53,7 @@ class VolumeSnapshotOp(ResourceOp):
                  snapshot_class: str = None,
                  annotations: Dict[str, str] = None,
                  volume: V1Volume = None,
+                 api_version: str = "snapshot.storage.k8s.io/v1alpha1",
                  **kwargs):
         # Add size to output params
         self.attribute_outputs = {"size": "{.status.restoreSize}"}
@@ -104,7 +105,7 @@ class VolumeSnapshotOp(ResourceOp):
             annotations=annotations
         )
         k8s_resource = {
-            "apiVersion": "snapshot.storage.k8s.io/v1alpha1",
+            "apiVersion": api_version,
             "kind": "VolumeSnapshot",
             "metadata": snapshot_metadata,
             "spec": {"source": source}
