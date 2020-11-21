@@ -81,7 +81,6 @@ if __name__ == "__main__":
     experiment_name = args.experiment_name
     experiment_namespace = args.experiment_namespace
 
-    logger.info('Generating Experiment template')
     logger.info("Creating Experiment: {} in namespace: {}".format(experiment_name, experiment_namespace))
 
     # Create Experiment object.
