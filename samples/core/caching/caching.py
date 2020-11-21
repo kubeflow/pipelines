@@ -8,11 +8,11 @@ from kfp.components import create_component_from_func
 
 
 @create_component_from_func
-def do_work_op(seconds: int = 60) -> str:
+def do_work_op(seconds: float = 60) -> str:
     import datetime
     import time
     print(f"Working for {seconds} seconds.")
-    for i in range(seconds):
+    for i in range(int(seconds)):
         print(f"Working: {i}.")
         time.sleep(1)
     print("Done.")
