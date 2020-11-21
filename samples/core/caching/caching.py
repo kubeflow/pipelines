@@ -57,14 +57,15 @@ if elapsed_time.total_seconds() > 30:
 
 # Test 3
 # For each task we can specify the maximum cached data staleness.
-# For eample: task.execution_options.caching_strategy.max_cache_staleness = "P5s" or = "P14d"
+# For example: task.execution_options.caching_strategy.max_cache_staleness = "P7D"  # (7 days)
+# The `max_cache_staleness` attribute uses the [RFC3339 duration format](https://tools.ietf.org/html/rfc3339#appendix-A). For example: "P0D" (0 days), "PT5H" (5 hours; notice the "T")
 # Cached results that are older than the specified time span, are not reused.
 # In this case, the pipeline should not reuse the cached result, since they will be stale.
 
 def caching_pipeline3(seconds: int = 30):
     # All outputs of successfull executions are cached
     work_task = do_work_op(seconds)
-    work_task.execution_options.caching_strategy.max_cache_staleness = 'P5s'  # = 5 seconds
+    work_task.execution_options.caching_strategy.max_cache_staleness = 'PT5s'  # = Period: Time: 5 seconds
 
 # Waiting for some time for the cached data to become stale:
 time.sleep(10)
