@@ -19,7 +19,7 @@ def do_work_op(seconds: float = 60) -> str:
     return datetime.datetime.now().isoformat()
 
 
-def caching_pipeline(seconds: int = 60):
+def caching_pipeline(seconds: float = 60):
     # All outputs of successfull executions are cached
     work_task = do_work_op(seconds)
 
@@ -62,7 +62,7 @@ if elapsed_time.total_seconds() > 60:
 # Cached results that are older than the specified time span, are not reused.
 # In this case, the pipeline should not reuse the cached result, since they will be stale.
 
-def caching_pipeline3(seconds: int = 60):
+def caching_pipeline3(seconds: float = 60):
     # All outputs of successfull executions are cached
     work_task = do_work_op(seconds)
     # TODO(Ark-kun): Fix handling non-zero periods in the backend
