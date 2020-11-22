@@ -790,6 +790,8 @@ class Client(object):
     status = 'Running:'
     start_time = datetime.datetime.now()
     last_token_refresh_time = datetime.datetime.now()
+    if isinstance(timeout, datetime.timedelta):
+      timeout = timeout.total_seconds()
     while (status is None or
            status.lower() not in ['succeeded', 'failed', 'skipped', 'error']):
       # Refreshes the access token before it hits the TTL.
@@ -800,7 +802,7 @@ class Client(object):
         
       get_run_response = self._run_api.get_run(run_id=run_id)
       status = get_run_response.run.status
-      elapsed_time = (datetime.datetime.now() - start_time).seconds
+      elapsed_time = (datetime.datetime.now() - start_time).total_seconds()
       logging.info('Waiting for the job to complete...')
       if elapsed_time > timeout:
         raise TimeoutError('Run timeout')
