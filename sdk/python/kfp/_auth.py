@@ -14,7 +14,6 @@
 
 import logging
 import os
-import subprocess
 import google.auth
 import google.auth.app_engine
 import google.auth.compute_engine.credentials
@@ -37,11 +36,14 @@ def get_gcp_access_token():
     https://cloud.google.com/sdk/gcloud/reference/auth/application-default/print-access-token
     """
     token = None
-    args = ['gcloud', 'auth', 'print-access-token']
     try:
-      # Casting to string to accommodate API server request schema.
-      token = subprocess.check_output(args).rstrip().decode("utf-8")
-    except subprocess.CalledProcessError as e:
+        creds, project = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+        if not creds.valid:
+            auth_req = Request()
+            creds.refresh(auth_req)
+        if creds.valid:
+            token = creds.token
+    except Exception as e:
       logging.warning('Failed to get GCP access token: %s', e)
     return token
 
