@@ -82,7 +82,7 @@ func (s *CronSchedule) getNextScheduledEpochImp(lastJobTime time.Time, catchup b
 		// This should never happen, validation should have caught this at resource creation.
 		log.Errorf("%+v", wraperror.Errorf(
 			"Found invalid schedule (%v): %v", s.Cron, err))
-		return time.Unix(1<<63-62135596801, 999999999).Unix()
+		return time.Unix(1<<63-62135596801, 0).Unix()
 	}
 
 	startTime := lastJobTime
@@ -91,7 +91,7 @@ func (s *CronSchedule) getNextScheduledEpochImp(lastJobTime time.Time, catchup b
 	}
 
 	result := schedule.Next(startTime.In(location))
-	var endTime time.Time = time.Unix(1<<63-62135596801, 999999999)
+	var endTime time.Time = time.Unix(1<<63-62135596801, 0)
 	// math.int64 max will break the comparison.
 	// Examle playground https://play.golang.org/p/LERg0aq2mU6
 	// Max date https://stackoverflow.com/questions/25065055/what-is-the-maximum-time-time-in-go
@@ -100,7 +100,7 @@ func (s *CronSchedule) getNextScheduledEpochImp(lastJobTime time.Time, catchup b
 	}
 
 	if endTime.Before(result) {
-		return time.Unix(1<<63-62135596801, 999999999).Unix()
+		return time.Unix(1<<63-62135596801, 0).Unix()
 	}
 
 	// When we need to catch up with schedule, just run schedules one by one.

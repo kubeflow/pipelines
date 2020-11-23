@@ -374,7 +374,7 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_CronScheduleTimeZoneEndTime(t *
 		int64(9) /* active workflow count */, nowEpoch, *location)
 
 	assert.Equal(t, false, mustRunNow)
-	nextRun := time.Unix(1<<63-62135596801, 999999999)
+	nextRun := time.Unix(1<<63-62135596801, 0)
 	assert.Nil(t, err)
 	assert.Equal(t, nextRun.Unix(), nextScheduledEpoch)
 }
