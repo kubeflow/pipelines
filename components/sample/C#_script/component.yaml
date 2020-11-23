@@ -1,0 +1,39 @@
+name: Filter text
+inputs:
+- {name: Text}
+- {name: Pattern, default: '.*'}
+outputs:
+- {name: Filtered text}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+implementation:
+  container:
+    image: mcr.microsoft.com/dotnet/sdk:5.0
+    command:
+    - sh
+    - -ec
+    - |
+      dotnet tool install dotnet-script --tool-path /usr/bin
+      "$0" "$@"
+    - dotnet
+    - script
+    - eval
+    - |
+      string textPath = Args[0];
+      string pattern = Args[1];
+      string filteredTextPath = Args[2];
+
+      var regex = new System.Text.RegularExpressions.Regex(pattern);
+      Directory.CreateDirectory(Path.GetDirectoryName(filteredTextPath));
+      using(var writer = new StreamWriter(filteredTextPath)) {
+          foreach (var line in File.ReadLines(textPath)) {
+              if (regex.IsMatch(line)) {
+                  writer.WriteLine(line);
+              }
+          }
+      }
+    - --
+    - {inputPath: Text}
+    - {inputValue: Pattern}
+    - {outputPath: Filtered text}
