@@ -17,9 +17,6 @@ require (
 	github.com/go-openapi/validate v0.19.5
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
-	github.com/golang/groupcache v0.0.0-20180513044358-24b0969c4cb7 // indirect
-	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf // indirect
-	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/golang/protobuf v1.4.2
 	github.com/google/addlicense v0.0.0-20200906110928-a0294312aa76 // indirect
 	github.com/google/go-cmp v0.5.2
@@ -34,23 +31,6 @@ require (
 	github.com/mattn/go-sqlite3 v1.9.0
 	github.com/minio/minio-go v6.0.14+incompatible
 	github.com/peterhellberg/duration v0.0.0-20191119133758-ec6baeebcd10
-	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d // indirect
-	github.com/smartystreets/goconvey v0.0.0-20181108003508-044398e4856c // indirect
-	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/valyala/fasttemplate v0.0.0-20170224212429-dcecefd839c4 // indirect
-	go.uber.org/atomic v1.3.2 // indirect
-	go.uber.org/multierr v1.1.0 // indirect
-	go.uber.org/zap v1.9.1 // indirect
-	golang.org/x/crypto v0.0.0-20190829043050-9756ffdc2472 // indirect
-	golang.org/x/sys v0.0.0-20190826190057-c7b8b68b1456 // indirect
-	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
-	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
-	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect
-	gopkg.in/inf.v0 v0.9.1 // indirect
-	gopkg.in/ini.v1 v1.39.3 // indirect
-	k8s.io/apiextensions-apiserver v0.0.0-20190103235604-e7617803aceb // indirect
-	k8s.io/apimachinery v0.0.0-20180621070125-103fd098999d
-	k8s.io/kube-openapi v0.0.0-20180719232738-d8ea2fe547a4 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.0.0
 	github.com/robfig/cron v1.2.0
