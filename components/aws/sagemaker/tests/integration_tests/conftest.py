@@ -125,6 +125,11 @@ def sagemaker_client(boto3_session):
 
 
 @pytest.fixture(scope="session")
+def robomaker_client(boto3_session):
+    return boto3_session.client(service_name="robomaker")
+
+
+@pytest.fixture(scope="session")
 def s3_client(boto3_session):
     return boto3_session.client(service_name="s3")
 

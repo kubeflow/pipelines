@@ -1,0 +1,22 @@
+PipelineDefinition: resources/definition/robomaker_simulation_job_pipeline.py
+TestName: robomaker-run-simulation-job-test
+Timeout: 900
+Arguments:
+  region: ((REGION))
+  output_bucket: ((DATA_BUCKET))
+  output_path: "robomaker-output-key"
+  max_run: 300
+  failure_behavior: "Fail"
+  sim_app_arn:
+  sim_app_launch_config:
+    packageName: "object_tracker_simulation"
+    launchFile: "evaluation.launch"
+    environmentVariables:
+      MODEL_S3_BUCKET: ((DATA_BUCKET))
+      MODEL_S3_PREFIX: "prefix-path"
+      ROS_AWS_REGION: ((REGION))
+      MARKOV_PRESET_FILE: "object_tracker.py"
+      NUMBER_OF_ROLLOUT_WORKERS: "1"
+  role: ((ROLE_ARN))
+  vpc_security_group_ids: ((ROBOMAKER_SECURITY_GROUPS))
+  vpc_subnets: ((ROBOMAKER_SUBNETS))

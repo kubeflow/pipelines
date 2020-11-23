@@ -1,3 +1,4 @@
+import json
 import os
 import subprocess
 import pytest
@@ -40,6 +41,15 @@ def get_fsx_security_group():
 
 def get_fsx_id():
     return os.environ.get("FSX_ID")
+
+
+def get_robomaker_security_groups():
+    print(json.dumps(os.environ.get("ROBOMAKER_SECURITY_GROUPS").split(",")))
+    return json.dumps(os.environ.get("ROBOMAKER_SECURITY_GROUPS").split(","))
+
+
+def get_robomaker_subnets():
+    return json.dumps(os.environ.get("ROBOMAKER_SUBNETS").split(","))
 
 
 def get_algorithm_image_registry(framework, region, version=None):
@@ -93,6 +103,8 @@ def replace_placeholders(input_filename, output_filename):
         "((FSX_SUBNET))": get_fsx_subnet(),
         "((FSX_SECURITY_GROUP))": get_fsx_security_group(),
         "((ASSUME_ROLE_ARN))": get_assume_role_arn(),
+        "((ROBOMAKER_SECURITY_GROUPS))": get_robomaker_security_groups(),
+        "((ROBOMAKER_SUBNETS))": get_robomaker_subnets(),
     }
 
     filedata = ""
