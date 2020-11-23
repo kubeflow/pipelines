@@ -72,7 +72,8 @@ class TestCompiler(unittest.TestCase):
             name="resource"
           )
         ),
-        attribute_outputs={"out": json}
+        attribute_outputs={"out": json},
+        set_owner_reference=True
       )
       golden_output = {
         'container': {
@@ -147,7 +148,8 @@ class TestCompiler(unittest.TestCase):
             "kind: '{{inputs.parameters.kind}}'\n"
             "metadata:\n"
             "  name: resource\n"
-          )
+          ),
+          'setOwnerReference': True
         }
       }
 
