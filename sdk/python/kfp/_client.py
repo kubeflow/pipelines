@@ -115,6 +115,9 @@ class Client(object):
   IN_CLUSTER_DNS_NAME = 'ml-pipeline.{}.svc.cluster.local:8888'
   KUBE_PROXY_PATH = 'api/v1/namespaces/{}/services/ml-pipeline:http/proxy/'
 
+  # Auto populated path in pods
+  # https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#accessing-the-api-from-a-pod
+  # https://kubernetes.io/docs/reference/access-authn-authz/service-accounts-admin/#serviceaccount-admission-controller
   NAMESPACE_PATH = '/var/run/secrets/kubernetes.io/serviceaccount/namespace'
 
   LOCAL_KFP_CONTEXT = os.path.expanduser('~/.config/kfp/context.json')
@@ -147,8 +150,8 @@ class Client(object):
         with open(Client.NAMESPACE_PATH, 'r') as f:
           current_namespace = f.read()
           self.set_user_namespace(current_namespace)
-      except:
-        logging.info('Failed to automatically set namespace.')
+      except FileNotFoundError:
+        logging.info('Failed to automatically set namespace.', exc_info=True)
 
   def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy, ssl_ca_cert, kube_context):
     config = kfp_server_api.configuration.Configuration()

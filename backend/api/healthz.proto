@@ -61,17 +61,12 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 
 service HealthzService {
   // Get healthz data.
-  rpc GetHealthz(GetHealthzRequest) returns (GetHealthzResponse) {
+  rpc GetHealthz(google.protobuf.Empty) returns (GetHealthzResponse) {
     option (google.api.http) = {
       get: "/apis/v1beta1/healthz"
     };
   }
 }
-
-message GetHealthzRequest {
-    // The healthz request.
-    string id = 1;
-  }
 
 message GetHealthzResponse {
   // The commit sha.
