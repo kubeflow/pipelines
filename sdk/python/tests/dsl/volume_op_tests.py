@@ -75,5 +75,8 @@ class TestVolumeOp(unittest.TestCase):
 
         expected_name = str(vop.outputs['name'])
 
-        self.assertEqual(delete_vop.command, ['kubectl', 'delete', 'PersistentVolumeClaim', expected_name, '--ignore-not-found', '--output', 'name'])
+        self.assertEqual(delete_vop.command,
+                         ['kubectl', 'delete', 'PersistentVolumeClaim',
+                          expected_name, '--ignore-not-found', '--output',
+                          'name', '--wait=false'])
         self.assertEqual(delete_vop.outputs, {})
