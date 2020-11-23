@@ -23,9 +23,9 @@ input_bucket_name = "kf-pipelines-rlestimator-input"
 input_key = "sourcedir.tar.gz"
 job_name_prefix = "rlestimator-pipeline-custom-image"
 image_uri = (
-    "456351336578.dkr.ecr.us-east-1.amazonaws.com/sagemaker-unity-ray-cpu:latest"
+    "your_sagemaker_image_name"
 )
-role = "arn:aws:iam::456351336578:role/service-role/AmazonSageMaker-ExecutionRole-20201102T134698"
+role = "your_sagemaker_role_name"
 security_groups = ["sg-0490601e83f220e82"]
 subnets = [
     "subnet-0efc73526db16a4a4",

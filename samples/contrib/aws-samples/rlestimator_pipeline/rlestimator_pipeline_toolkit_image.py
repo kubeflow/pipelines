@@ -42,11 +42,11 @@ metric_definitions = [
     },
 ]
 
-output_bucket_name = "sagemaker-us-east-1-456351336578"
-input_bucket_name = "sagemaker-us-east-1-456351336578"
+output_bucket_name = "your_sagemaker_bucket_name"
+input_bucket_name = "your_sagemaker_bucket_name"
 input_key = "rl-newsvendor-2020-11-11-10-43-30-556/source/sourcedir.tar.gz"
 job_name_prefix = "rlestimator-pipeline-toolkit-image"
-role = "arn:aws:iam::456351336578:role/service-role/AmazonSageMaker-ExecutionRole-20201102T134698"
+role = "your_sagemaker_role_name"
 
 
 @dsl.pipeline(
