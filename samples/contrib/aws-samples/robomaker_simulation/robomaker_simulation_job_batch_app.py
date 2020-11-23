@@ -28,7 +28,7 @@ robomaker_delete_sim_app_op = components.load_component_from_file(
 )
 
 simulation_app_name = "robomaker-pipeline-simulation-batch-application"
-sources_bucket = "sagemaker-us-east-1-456351336578"
+sources_bucket = "your_sagemaker_bucket_name"
 sources_key = "object-tracker/simulation_ws.tar.gz"
 sources_architecture = "X86_64"
 simulation_software_name = "Gazebo"
@@ -37,7 +37,7 @@ robot_software_name = "ROS"
 robot_software_version = "Kinetic"
 rendering_engine_name = "OGRE"
 rendering_engine_version = "1.x"
-role = "arn:aws:iam::456351336578:role/service-role/AmazonSageMaker-ExecutionRole-20201102T134698"
+role = "your_sagemaker_role_name"
 
 job_requests = [
     {
@@ -47,7 +47,7 @@ job_requests = [
         },
         "loggingConfig": {"recordAllRosTopics": True},
         "maxJobDurationInSeconds": 900,
-        "iamRole": "arn:aws:iam::456351336578:role/service-role/AmazonSageMaker-ExecutionRole-20201102T134698",
+        "iamRole": "your_sagemaker_role_name",
         "failureBehavior": "Fail",
         "simulationApplications": [
             {
@@ -56,7 +56,7 @@ job_requests = [
                     "packageName": "object_tracker_simulation",
                     "launchFile": "evaluation.launch",
                     "environmentVariables": {
-                        "MODEL_S3_BUCKET": "sagemaker-us-east-1-456351336578",
+                        "MODEL_S3_BUCKET": "your_sagemaker_bucket_name",
                         "MODEL_S3_PREFIX": "rl-object-tracker-sagemaker-201116-051751",
                         "ROS_AWS_REGION": "us-east-1",
                         "MARKOV_PRESET_FILE": "object_tracker.py",

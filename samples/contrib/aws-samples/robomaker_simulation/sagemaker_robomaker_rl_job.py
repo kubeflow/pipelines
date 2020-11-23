@@ -107,7 +107,7 @@ rendering_engine_version = "1.x"
 simulation_app_name = "robomaker-pipeline-objecttracker-sim-app" + "".join(
     random.choice(string.ascii_lowercase) for i in range(10)
 )
-sources_bucket = "sagemaker-us-east-1-456351336578"
+sources_bucket = "your_sagemaker_bucket_name"
 sources_key = "object-tracker/simulation_ws.tar.gz"
 sources_architecture = "X86_64"
 sources = [
@@ -139,7 +139,7 @@ hyperparameters = {
     "aws_region": "us-east-1",
     "RLCOACH_PRESET": "object_tracker",
 }
-role = "arn:aws:iam::456351336578:role/service-role/AmazonSageMaker-ExecutionRole-20201102T134698"
+role = "your_sagemaker_role_name"
 security_groups = ["sg-0490601e83f220e82"]
 subnets = [
     "subnet-0efc73526db16a4a4",
