@@ -1,0 +1,138 @@
+name: Get executions from mlmd
+description: Gets executions from MLMD
+inputs:
+- {name: type_name, type: String, optional: true}
+- {name: context_id, type: Integer, optional: true}
+- {name: context_name, type: String, optional: true}
+outputs:
+- {name: Output, type: JsonArray}
+implementation:
+  container:
+    image: python:3.7
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'ml-metadata==0.25.0' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install
+      --quiet --no-warn-script-location 'ml-metadata==0.25.0' --user) && "$0" "$@"
+    - python3
+    - -u
+    - -c
+    - |
+      def get_executions_from_mlmd(
+          type_name = None,
+          context_id = None,
+          context_name = None,
+      ):
+          """Gets executions from MLMD
+
+          Annotations:
+              author: Alexey Volkov <alexey.volkov@ark-kun.com>
+          """
+          import os
+          from google.protobuf.json_format import MessageToDict
+          from ml_metadata.proto import metadata_store_pb2
+          from ml_metadata.metadata_store import metadata_store
+          metadata_service_host = os.environ.get('METADATA_GRPC_SERVICE_SERVICE_HOST', 'metadata-grpc-service')
+          metadata_service_port = int(os.environ.get('METADATA_GRPC_SERVICE_SERVICE_PORT', 8080))
+          mlmd_connection_config = metadata_store_pb2.MetadataStoreClientConfig(
+              host=metadata_service_host,
+              port=metadata_service_port,
+          )
+          mlmd_store = metadata_store.MetadataStore(mlmd_connection_config)
+
+          if context_name:
+              all_contexts = mlmd_store.get_contexts()
+              contexts = [
+                  context
+                  for context in all_contexts
+                  if context.name == context_name
+              ]
+              if len(contexts) == 0:
+                  raise ValueError(f'Context "{context_name}" was not found.')
+              if len(contexts) == 2:
+                  raise ValueError(f'Found multiple contexts with name "{context_name}": {contexts}.')
+              context = contexts[0]
+              context_id = context.id
+
+          if context_id:
+              executions = mlmd_store.get_executions_by_context(context_id=context_id)
+              if type_name:
+                  all_execution_types = mlmd_store.get_execution_types()
+                  execution_types = [
+                      execution_type
+                      for execution_type in all_execution_types
+                      if execution_type.name == type_name
+                  ]
+                  if len(execution_types) == 0:
+                      raise ValueError(f'Execution type "{type_name}" was not found.')
+                  if len(execution_types) == 2:
+                      raise ValueError(f'Found multiple execution types with name "{type_name}": {execution_types}.')
+                  execution_type = execution_types[0]
+                  executions = [
+                      execution
+                      for execution in executions
+                      if execution.type_id == execution_type.id
+                  ]
+          elif type_name:
+              executions = mlmd_store.get_executions_by_type(type_name=type_name)
+          else:
+              executions = mlmd_store.get_executions()
+          execution_dicts = [MessageToDict(execution) for execution in executions]
+          return execution_dicts
+
+      def _serialize_json(obj) -> str:
+          if isinstance(obj, str):
+              return obj
+          import json
+          def default_serializer(obj):
+              if hasattr(obj, 'to_struct'):
+                  return obj.to_struct()
+              else:
+                  raise TypeError("Object of type '%s' is not JSON serializable and does not have .to_struct() method." % obj.__class__.__name__)
+          return json.dumps(obj, default=default_serializer, sort_keys=True)
+
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Get executions from mlmd', description='Gets executions from MLMD')
+      _parser.add_argument("--type-name", dest="type_name", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--context-id", dest="context_id", type=int, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--context-name", dest="context_name", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+      _parsed_args = vars(_parser.parse_args())
+      _output_files = _parsed_args.pop("_output_paths", [])
+
+      _outputs = get_executions_from_mlmd(**_parsed_args)
+
+      _outputs = [_outputs]
+
+      _output_serializers = [
+          _serialize_json,
+
+      ]
+
+      import os
+      for idx, output_file in enumerate(_output_files):
+          try:
+              os.makedirs(os.path.dirname(output_file))
+          except OSError:
+              pass
+          with open(output_file, 'w') as f:
+              f.write(_output_serializers[idx](_outputs[idx]))
+    args:
+    - if:
+        cond: {isPresent: type_name}
+        then:
+        - --type-name
+        - {inputValue: type_name}
+    - if:
+        cond: {isPresent: context_id}
+        then:
+        - --context-id
+        - {inputValue: context_id}
+    - if:
+        cond: {isPresent: context_name}
+        then:
+        - --context-name
+        - {inputValue: context_name}
+    - '----output-paths'
+    - {outputPath: Output}
