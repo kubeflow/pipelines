@@ -75,9 +75,9 @@ def upload_version(ctx, package_file, pipeline_version, pipeline_id=None, pipeli
     output_format = ctx.obj["output"]
     if bool(pipeline_id) == bool(pipeline_name):
         raise ValueError("Need to suppy 'pipeline-name' or 'pipeline-id'")
-    if pipeline_name!=None: 
+    if pipeline_name is not None:
         pipeline_id = client.get_pipeline_id(name=pipeline_name)
-        if pipeline_id==None: 
+        if pipeline_id is None:
             raise ValueError("Can't find a pipeline with name: %s" % pipeline_name)
     version = client.pipeline_uploads.upload_pipeline_version(
         package_file, name=pipeline_version, pipelineid=pipeline_id)
@@ -86,6 +86,7 @@ def upload_version(ctx, package_file, pipeline_version, pipeline_id=None, pipeli
 
 @pipeline.command()
 @click.option(
+    "-m",
     "--max-size",
     default=100,
     help="Max size of the listed pipelines."
@@ -109,6 +110,7 @@ def list(ctx, max_size):
 @pipeline.command()
 @click.argument("pipeline-id")
 @click.option(
+    "-m",
     "--max-size",
     default=10,
     help="Max size of the listed pipelines."
@@ -128,6 +130,7 @@ def list_versions(ctx, pipeline_id, max_size):
         _print_pipeline_versions(response.versions, output_format)
     else:
         logging.info("No pipeline or version found")
+
 
 @pipeline.command()
 @click.argument("pipeline-id")

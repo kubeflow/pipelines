@@ -139,6 +139,14 @@ service PipelineService {
       get: "/apis/v1beta1/pipeline_versions/{version_id}/templates"
     };
   }
+
+  // Update the default pipeline version of a specific pipeline.
+  rpc UpdatePipelineDefaultVersion(UpdatePipelineDefaultVersionRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v1beta1/pipelines/{pipeline_id}/default_version/{version_id}"
+      
+    };
+  }
 }
 
 message Url {
@@ -151,6 +159,14 @@ message Url {
 // pipeline name by default. Maximum size of 32MB is supported.
 message CreatePipelineRequest {
   Pipeline pipeline = 1;
+}
+
+message UpdatePipelineDefaultVersionRequest {
+  // The ID of the pipeline to be updated.
+  string pipeline_id = 1;
+
+  // The ID of the default version. 
+  string version_id = 2; 
 }
 
 message GetPipelineRequest {

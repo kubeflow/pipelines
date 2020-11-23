@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import subprocess
+import sys
 import tempfile
 import unittest
 from contextlib import contextmanager
@@ -90,6 +91,12 @@ class PythonOpTestCase(unittest.TestCase):
                 )
 
             full_command = resolved_cmd.command + resolved_cmd.args
+            # Setting the component python interpreter to the current one.
+            # Otherwise the components are executed in different environment.
+            # Some components (e.g. the ones that use code pickling) are sensitive to this.
+            for i in range(2):
+                if full_command[i] == 'python3':
+                    full_command[i] = sys.executable
             subprocess.run(full_command, check=True)
 
             output_path = list(resolved_cmd.output_paths.values())[0]
@@ -114,6 +121,12 @@ class PythonOpTestCase(unittest.TestCase):
                 )
 
             full_command = resolved_cmd.command + resolved_cmd.args
+            # Setting the component python interpreter to the current one.
+            # Otherwise the components are executed in different environment.
+            # Some components (e.g. the ones that use code pickling) are sensitive to this.
+            for i in range(2):
+                if full_command[i] == 'python3':
+                    full_command[i] = sys.executable
 
             subprocess.run(full_command, check=True)
 
@@ -163,6 +176,12 @@ class PythonOpTestCase(unittest.TestCase):
 
             # Constructing the full command-line from resolved command+args
             full_command = resolved_cmd.command + resolved_cmd.args
+            # Setting the component python interpreter to the current one.
+            # Otherwise the components are executed in different environment.
+            # Some components (e.g. the ones that use code pickling) are sensitive to this.
+            for i in range(2):
+                if full_command[i] == 'python3':
+                    full_command[i] = sys.executable
 
             # Executing the command-line locally
             subprocess.run(full_command, check=True)

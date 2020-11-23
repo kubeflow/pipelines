@@ -337,7 +337,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	_, runsWhenCatchupTrue, _, err = s.runClient.List(&runParams.ListRunsParams{
 		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
 		ResourceReferenceKeyID:   util.StringPointer(cronCatchupTrueExperiment.ID)})
-
+	assert.Equal(t, 2, runsWhenCatchupTrue)
 	/* ---------- Assert number of runs when catchup = false ---------- */
 	_, runsWhenCatchupFalse, _, err := s.runClient.List(&runParams.ListRunsParams{
 		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),

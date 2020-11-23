@@ -18,6 +18,17 @@ const css = stylesheet({
     padding: 3,
     backgroundColor: color.lightGrey,
   },
+  topDiv: {
+    display: 'flex',
+    justifyContent: 'space-between',
+  },
+  separater: {
+    width: 20, // There's minimum 20px separation between URI and view button.
+    display: 'inline-block',
+  },
+  viewLink: {
+    whiteSpace: 'nowrap',
+  },
 });
 
 /**
@@ -47,12 +58,12 @@ async function getPreview(
   namespace: string | undefined,
   maxbytes: number,
   maxlines?: number,
-) {
+): Promise<{ data: string; hasMore: boolean }> {
   // TODO how to handle binary data (can probably use magic number to id common mime types)
   let data = await Apis.readFile(storagePath, namespace, maxbytes + 1);
   // is preview === data and no maxlines
   if (data.length <= maxbytes && !maxlines) {
-    return data;
+    return { data, hasMore: false };
   }
   // remove extra byte at the end (we requested maxbytes +1)
   data = data.slice(0, maxbytes);
@@ -64,7 +75,7 @@ async function getPreview(
       .join('\n')
       .trim();
   }
-  return `${data}\n...`;
+  return { data: `${data}\n...`, hasMore: true };
 }
 
 /**
@@ -76,21 +87,26 @@ const MinioArtifactPreview: React.FC<MinioArtifactPreviewProps> = ({
   maxbytes = 255,
   maxlines,
 }) => {
-  const [content, setContent] = React.useState<string | undefined>(undefined);
+  const [content, setContent] = React.useState<{ data: string; hasMore: boolean } | undefined>(
+    undefined,
+  );
   const storagePath = getStoragePath(value);
+  const source = storagePath?.source;
+  const bucket = storagePath?.bucket;
+  const key = storagePath?.key;
 
   React.useEffect(() => {
     let cancelled = false;
-    if (storagePath) {
-      getPreview(storagePath, namespace, maxbytes, maxlines).then(
-        data => !cancelled && setContent(data),
+    if (source && bucket && key) {
+      getPreview({ source, bucket, key }, namespace, maxbytes, maxlines).then(
+        content => !cancelled && setContent(content),
         error => console.error(error), // TODO error badge on link?
       );
     }
     return () => {
       cancelled = true;
     };
-  }, [storagePath, namespace, maxbytes, maxlines]);
+  }, [source, bucket, key, namespace, maxbytes, maxlines]);
 
   if (!storagePath) {
     // if value is undefined, null, or an invalid s3artifact object, don't render
@@ -102,19 +118,30 @@ const MinioArtifactPreview: React.FC<MinioArtifactPreviewProps> = ({
   // TODO need to come to an agreement how to encode artifact info inside a url
   // namespace is currently not supported
   const linkText = Apis.buildArtifactUrl(storagePath);
-  const artifactUrl = Apis.buildReadFileUrl(storagePath, namespace);
+  const artifactDownloadUrl = Apis.buildReadFileUrl({
+    path: storagePath,
+    namespace,
+    isDownload: true,
+  });
+  const artifactViewUrl = Apis.buildReadFileUrl({ path: storagePath, namespace });
 
   // Opens in new window safely
   // TODO use ArtifactLink instead (but it need to support namespace)
   return (
     <div className={css.root}>
-      <ExternalLink href={artifactUrl} title={linkText}>
-        {linkText}
-      </ExternalLink>
-      {content && (
+      <div className={css.topDiv}>
+        <ExternalLink href={artifactDownloadUrl} title={linkText}>
+          {linkText}
+        </ExternalLink>
+        <span className={css.separater}></span>
+        <ExternalLink href={artifactViewUrl} className={css.viewLink}>
+          View All
+        </ExternalLink>
+      </div>
+      {content?.data && (
         <div className={css.preview}>
           <small>
-            <pre>{content}</pre>
+            <pre>{content.data}</pre>
           </small>
         </div>
       )}

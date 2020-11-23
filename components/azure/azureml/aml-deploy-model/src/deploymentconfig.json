@@ -1,0 +1,8 @@
+{
+    "containerResourceRequirements": {
+       "cpu": 1,
+       "memoryInGB": 1
+    },
+    "computeType": "ACI",
+    "enableAppInsights": "True"
+ }

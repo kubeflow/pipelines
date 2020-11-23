@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import collections
+
 import re
 import warnings
 from typing import Any, Dict, List, TypeVar, Union, Callable, Optional, Sequence
@@ -1028,10 +1028,10 @@ class ContainerOp(BaseOp):
                 " The components can be created manually (or, in case of python, using kfp.components.create_component_from_func or func_to_container_op)"
                 " and then loaded using kfp.components.load_component_from_file, load_component_from_uri or load_component_from_text: "
                 "https://kubeflow-pipelines.readthedocs.io/en/latest/source/kfp.components.html#kfp.components.load_component_from_file",
-                category=DeprecationWarning,
+                category=FutureWarning,
             )
 
-        self.attrs_with_pipelineparams = BaseOp.attrs_with_pipelineparams + ['_container', 'artifact_arguments'] #Copying the BaseOp class variable!
+        self.attrs_with_pipelineparams = BaseOp.attrs_with_pipelineparams + ['_container', 'artifact_arguments', '_parameter_arguments'] #Copying the BaseOp class variable!
 
         input_artifact_paths = {}
         artifact_arguments = {}
@@ -1087,11 +1087,16 @@ class ContainerOp(BaseOp):
         # iter thru container and attach a proxy func to the container method
         for attr_to_proxy in dir(self._container):
             func = getattr(self._container, attr_to_proxy)
-            # ignore private methods
-            if hasattr(func, '__call__') and (attr_to_proxy[0] != '_') and (
-                    attr_to_proxy not in ignore_set):
+            # ignore private methods, and bypass method overrided by subclasses.
+            if (not hasattr(self, attr_to_proxy)
+                and hasattr(func, '__call__')
+                and (attr_to_proxy[0] != '_')
+                and (attr_to_proxy not in ignore_set)):
                 # only proxy public callables
                 setattr(self, attr_to_proxy, _proxy(attr_to_proxy))
+
+        if output_artifact_paths:
+            warnings.warn('The output_artifact_paths parameter is deprecated since SDK v0.1.32. Use the file_outputs parameter instead. file_outputs now supports outputting big data.', DeprecationWarning)
 
         # Special handling for the mlpipeline-ui-metadata and mlpipeline-metrics outputs that should always be saved as artifacts
         # TODO: Remove when outputs are always saved as artifacts
@@ -1106,11 +1111,9 @@ class ContainerOp(BaseOp):
         self.artifact_arguments = artifact_arguments
         self.file_outputs = file_outputs
         self.output_artifact_paths = output_artifact_paths or {}
-        if output_artifact_paths:
-            file_outputs.update(output_artifact_paths)
-            warnings.warn('The output_artifact_paths parameter is deprecated since SDK v0.1.32. Use the file_outputs parameter instead. file_outputs now supports outputting big data.', DeprecationWarning)
 
         self._metadata = None
+        self._parameter_arguments = None
 
         self.execution_options = ExecutionOptionsSpec(
             caching_strategy=CachingStrategySpec(),

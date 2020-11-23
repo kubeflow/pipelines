@@ -4,6 +4,7 @@ papermill
 fire
 yamale
 tfx==0.22.0
+kubernetes
 
 # Avoiding conflicts:
 # There are incompatible versions in the resolved dependencies:

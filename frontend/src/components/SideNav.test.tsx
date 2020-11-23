@@ -303,7 +303,7 @@ describe('SideNav', () => {
       +     </div>
             <div class="envMetadata" title="Report an Issue">
               <a
-                href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+                href="https://github.com/kubeflow/pipelines/issues/new/choose"
                 class="link unstyled"
                 rel="noopener"
     `);

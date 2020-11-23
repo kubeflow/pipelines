@@ -3,6 +3,42 @@ syntax = "proto3";
 package ml_pipelines;
 
 import "google/protobuf/any.proto";
+import "google/protobuf/struct.proto";
+
+// The spec of a pipeline job.
+message PipelineJob {
+  string name = 1;  // Name of the job.
+
+  // User friendly display name
+  string display_name = 2;
+
+  reserved 3, 4, 5, 6;
+
+  // Definition of the pipeline that is being executed.
+  google.protobuf.Struct pipeline_spec = 7;
+
+  reserved 8, 9, 10;
+
+  // The labels with user-defined metadata to organize PipelineJob.
+  map<string, string> labels = 11;
+
+  // The runtime config of a PipelineJob.
+  message RuntimeConfig {
+    // The runtime parameters of the PipelineJob. The parameters will be
+    // passed into [PipelineJob.pipeline_spec][] to replace the placeholders
+    // at runtime.
+    map<string, Value> parameters = 1;
+
+    // A path in a Cloud Storage bucket which will be treated as the root
+    // output directory of the pipeline. It is used by the system to
+    // generate the paths of output artifacts.
+    // This is a GCP-specific optimization.
+    string gcs_output_directory = 2;
+  }
+
+  // Runtime config of the pipeline.
+  RuntimeConfig runtime_config = 12;
+}
 
 // The spec of a pipeline.
 message PipelineSpec {
@@ -251,6 +287,29 @@ message PipelineDeploymentConfig {
     }
     // The lifecycle hooks of the container executor.
     Lifecycle lifecycle = 4;
+
+    // The specification on the resource requirements of a container execution.
+    // This can include specification of vCPU, memory requirements, as well as
+    // accelerator types and counts.
+    message ResourceSpec {
+      // The limit of the number of vCPU cores. This container execution needs
+      // at most cpu_limit vCPU to run.
+      double cpu_limit = 1;
+
+      // The memory limit in GB. This container execution needs at most
+      // memory_limit RAM to run.
+      double memory_limit = 2;
+
+      // The specification on the accelerators being attached to this container.
+      message AcceleratorConfig {
+        // The type of accelerators.
+        string type = 1;
+        // The number of accelerators.
+        int64 count = 2;
+      }
+      AcceleratorConfig accelerator = 3;
+    }
+    ResourceSpec resources = 5;
   }
 
   // The specification to import or reimport a new artifact to the pipeline.
@@ -271,27 +330,36 @@ message PipelineDeploymentConfig {
     bool reimport = 5;
   }
 
-  // ResolverSpec is subject to change. Currently we only use enum to
-  // represent two of the currently available policies. We plan to introduce a
-  // flexible config to enable more sophisticated policies in the future.
-  // TODO(b/152230663): Support more flexibility for resolution logic.
+  // ResolverSpec resolves artifacts from historical metadata and returns them
+  // to the pipeline as output artifacts of the resolver task. The downstream
+  // tasks can consume them as their input artifacts.
   message ResolverSpec {
-    enum ResolverPolicy {
-      RESOLVER_POLICY_UNSPECIFIED = 0;
-      // Within the models associated with the same pipeline context, always
-      // select the model with largest `last_update_time_since_epoch`.
-      LATEST_MODEL = 1;
-      // Within the models associated with the same pipeline context,
-      // select the latest Model that is blessed (represented by having a
-      // corresponding ModelBlessing artifact. The result will be consumed by
-      // components that need the latest model that is blessed such as
-      // Evaluator.
-      LATEST_BLESSED_MODEL = 2;
+    // The query to fetch artifacts.
+    message ArtifactQuerySpec {
+      // The filter of the artifact query. The supported syntax are:
+      // - `contexts.name='<context name>'`
+      // - `artifact_type='<artifact type name>'`
+      // - `uri='<uri>'`
+      // - `state=<state>`
+      // - `properties['key']='value'`
+      // - `custom_properties['key']='value'`
+      // - `name='value'`
+      // - `and` to combine two conditions and returns when both are true.
+      // If no `contexts.name` filter is set, the query will be scoped to the
+      // the current pipeline context.
+      string filter = 1;
+      // The maximum number of the artifacts to be returned from the
+      // query. If not defined, the default limit is `1`.
+      int32 limit = 2;
     }
-    // TODO(b/152230663): Make this one of special resolver policies or generic
-    // ResolverConfig.
-    ResolverPolicy resolver_policy = 1;
+
+    // A list of resolver output definitions. The
+    // key of the map must be exactly the same as
+    // the keys in the [TaskOutputsSpec.artifacts][] map.
+    // At least one output must be defined.
+    map<string, ArtifactQuerySpec> output_artifact_queries = 1;
   }
+
 
   // The specification of the executor.
   message ExecutorSpec {
@@ -338,6 +406,12 @@ message RuntimeArtifact {
   map<string, Value> custom_properties = 5;
 }
 
+// Message that represents a list of artifacts.
+message ArtifactList {
+  // A list of artifacts.
+  repeated RuntimeArtifact artifacts = 1;
+}
+
 // The input of an executor, which includes all the data that
 // can be passed into the executor spec by a string based placeholder.
 //
@@ -364,11 +438,6 @@ message RuntimeArtifact {
 // output file and executor output metadata files are set by the container, the
 // output metadata file will have higher precedence to set output parameters.
 message ExecutorInput {
-  // Message that represents a list of artifacts.
-  message ArtifactList {
-    // A list of parameters.
-    repeated RuntimeArtifact artifacts = 1;
-  }
 
   // The runtime inputs data of the execution.
   message Inputs {
@@ -416,5 +485,5 @@ message ExecutorOutput {
   map<string, Value> parameters = 1;
 
   // The updated metadata for output artifact.
-  map<string, RuntimeArtifact> artifacts = 2;
+  map<string, ArtifactList> artifacts = 2;
 }
