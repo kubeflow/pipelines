@@ -81,6 +81,7 @@ spec:
               - loop_static
               - resource_ops
               - multiple_outputs
+              - caching
           - name: run-integration-tests-loop
             template: run-sample-tests
             arguments:
