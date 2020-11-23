@@ -23,7 +23,7 @@ See the Kubeflow [Pipelines API doc](https://www.kubeflow.org/docs/pipelines/ref
 
 Consult the [Python SDK reference docs](https://kubeflow-pipelines.readthedocs.io/en/latest/) when writing pipelines using the Python SDK.
 
-Refer to the [versioning policy](./docs/release/versioning-policy.md) and [feature stages](./docs/release/feature-status.md) documentation for more information about how we manage versions and feature stages (such as Alpha, Beta, and Stable).
+Refer to the [versioning policy](./docs/release/versioning-policy.md) and [feature stages](./docs/release/feature-stages.md) documentation for more information about how we manage versions and feature stages (such as Alpha, Beta, and Stable).
 
 ## Kubeflow Pipelines Community Meeting
 
