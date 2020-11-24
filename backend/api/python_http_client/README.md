@@ -102,6 +102,7 @@ Class | Method | HTTP request | Description
 *ExperimentServiceApi* | [**get_experiment**](docs/ExperimentServiceApi.md#get_experiment) | **GET** /apis/v1beta1/experiments/{id} | Finds a specific experiment by ID.
 *ExperimentServiceApi* | [**list_experiment**](docs/ExperimentServiceApi.md#list_experiment) | **GET** /apis/v1beta1/experiments | Finds all experiments. Supports pagination, and sorting on certain fields.
 *ExperimentServiceApi* | [**unarchive_experiment**](docs/ExperimentServiceApi.md#unarchive_experiment) | **POST** /apis/v1beta1/experiments/{id}:unarchive | Restores an archived experiment. The experiment&#39;s archived runs and jobs will stay archived.
+*HealthzServiceApi* | [**get_healthz**](docs/HealthzServiceApi.md#get_healthz) | **GET** /apis/v1beta1/healthz | Get healthz data.
 *JobServiceApi* | [**create_job**](docs/JobServiceApi.md#create_job) | **POST** /apis/v1beta1/jobs | Creates a new job.
 *JobServiceApi* | [**delete_job**](docs/JobServiceApi.md#delete_job) | **DELETE** /apis/v1beta1/jobs/{id} | Deletes a job.
 *JobServiceApi* | [**disable_job**](docs/JobServiceApi.md#disable_job) | **POST** /apis/v1beta1/jobs/{id}/disable | Stops a job and all its associated runs. The job is not deleted.
@@ -137,6 +138,7 @@ Class | Method | HTTP request | Description
 
  - [ApiCronSchedule](docs/ApiCronSchedule.md)
  - [ApiExperiment](docs/ApiExperiment.md)
+ - [ApiGetHealthzResponse](docs/ApiGetHealthzResponse.md)
  - [ApiGetTemplateResponse](docs/ApiGetTemplateResponse.md)
  - [ApiJob](docs/ApiJob.md)
  - [ApiListExperimentsResponse](docs/ApiListExperimentsResponse.md)
