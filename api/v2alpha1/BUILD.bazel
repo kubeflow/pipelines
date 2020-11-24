@@ -5,7 +5,10 @@ proto_library(
     name = "ml_pipelines_proto",
     srcs = ["pipeline_spec.proto"],
     visibility = ["//visibility:public"],
-    deps = ["@com_google_protobuf//:any_proto"],
+    deps = [
+        "@com_google_protobuf//:any_proto",
+        "@com_google_protobuf//:struct_proto",
+    ],
 )
 
 go_proto_library(

@@ -115,6 +115,11 @@ class Client(object):
   IN_CLUSTER_DNS_NAME = 'ml-pipeline.{}.svc.cluster.local:8888'
   KUBE_PROXY_PATH = 'api/v1/namespaces/{}/services/ml-pipeline:http/proxy/'
 
+  # Auto populated path in pods
+  # https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#accessing-the-api-from-a-pod
+  # https://kubernetes.io/docs/reference/access-authn-authz/service-accounts-admin/#serviceaccount-admission-controller
+  NAMESPACE_PATH = '/var/run/secrets/kubernetes.io/serviceaccount/namespace'
+
   LOCAL_KFP_CONTEXT = os.path.expanduser('~/.config/kfp/context.json')
 
   # TODO: Wrap the configurations for different authentication methods.
@@ -139,6 +144,14 @@ class Client(object):
     self._experiment_api = kfp_server_api.api.experiment_service_api.ExperimentServiceApi(api_client)
     self._pipelines_api = kfp_server_api.api.pipeline_service_api.PipelineServiceApi(api_client)
     self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
+    self._healthz_api = kfp_server_api.api.healthz_service_api.HealthzServiceApi(api_client)
+    if not self._context_setting['namespace'] and self.get_kfp_healthz().multi_user is True:
+      try:
+        with open(Client.NAMESPACE_PATH, 'r') as f:
+          current_namespace = f.read()
+          self.set_user_namespace(current_namespace)
+      except FileNotFoundError:
+        logging.info('Failed to automatically set namespace.', exc_info=True)
 
   def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy, ssl_ca_cert, kube_context):
     config = kfp_server_api.configuration.Configuration()
@@ -277,8 +290,30 @@ class Client(object):
       namespace: kubernetes namespace the user has access to.
     """
     self._context_setting['namespace'] = namespace
+    if not os.path.exists(os.path.dirname(Client.LOCAL_KFP_CONTEXT)):
+        os.makedirs(os.path.dirname(Client.LOCAL_KFP_CONTEXT))
     with open(Client.LOCAL_KFP_CONTEXT, 'w') as f:
       json.dump(self._context_setting, f)
+
+  def get_kfp_healthz(self):
+    """Gets healthz info of KFP deployment.
+
+    Returns:
+      response: json formatted response from the healtz endpoint.
+    """
+    count = 0
+    response = None
+    max_attempts = 5
+    while not response:
+      count += 1
+      if count > max_attempts:
+        raise TimeoutError('API call timeout')
+      try:
+        response = self._healthz_api.get_healthz()
+        return response
+      except:
+        logging.info('Failed to get healthz info attempt {} of 5.'.format(count))
+        time.sleep(5)
 
   def get_user_namespace(self):
     """Get user namespace in context config.
