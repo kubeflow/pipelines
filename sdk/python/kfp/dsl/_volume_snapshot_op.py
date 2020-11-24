@@ -26,8 +26,8 @@ class VolumeSnapshotOp(ResourceOp):
     """Represents an op which will be translated into a resource template
     which will be creating a VolumeSnapshot.
 
-    Feature stage:
-    [Alpha](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#alpha).
+    TODO(https://github.com/kubeflow/pipelines/issues/4822): Determine the
+        stability level of this feature.
 
     Args:
         resource_name: A desired name for the VolumeSnapshot which will be created
