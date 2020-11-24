@@ -738,9 +738,6 @@ def func_to_container_op(
     '''Converts a Python function to a component and returns a task
       (:class:`kfp.dsl.ContainerOp`) factory.
 
-    Feature stage:
-    [Stable](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#stable).
-
     Function docstring is used as component description. Argument and return annotations are used as component input/output types.
 
     To declare a function with multiple return values, use the :code:`NamedTuple` return annotation syntax::
@@ -789,9 +786,6 @@ def create_component_from_func(
 ):
     '''Converts a Python function to a component and returns a task factory
     (a function that accepts arguments and returns a task object).
-
-    Feature stage:
-    [Stable](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#stable).
 
     Args:
         func: The python function to convert

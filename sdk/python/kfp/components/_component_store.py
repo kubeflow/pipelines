@@ -21,11 +21,7 @@ _COMPONENT_FILENAME = 'component.yaml'
 class ComponentStore:
     def __init__(
         self, local_search_paths=None, url_search_prefixes=None, auth=None):
-        """Instantiates a ComponentStore.
-
-        Feature stage:
-        [Stable](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#stable).
-        """
+        """Instantiates a ComponentStore."""
         self.local_search_paths = local_search_paths or ['.']
         self.url_search_prefixes = url_search_prefixes or []
         self._auth = auth
