@@ -36,6 +36,7 @@ const (
 	FormFileKey               = "uploadfile"
 	NameQueryStringKey        = "name"
 	DescriptionQueryStringKey = "description"
+	NamespaceStringQuery      = "namespace"
 	// Pipeline Id in the query string specifies a pipeline when creating versions.
 	PipelineKey = "pipelineid"
 )
@@ -89,6 +90,18 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	namespaceQuery := r.URL.Query().Get(NamespaceStringQuery)
+	pipelineNamespace, err := GetPipelineNamespace(namespaceQuery)
+	if err != nil {
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Invalid pipeline namespace."))
+		return
+	}
+
+	err = s.canUploadVersionedPipeline(r, pipelineNamespace)
+	if err != nil {
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Authorization to namespace failed."))
+		return
+	}
 	fileNameQueryString := r.URL.Query().Get(NameQueryStringKey)
 	pipelineName, err := GetPipelineName(fileNameQueryString, header.Filename)
 	if err != nil {
@@ -101,7 +114,7 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Error read pipeline description."))
 		return
 	}
-	newPipeline, err := s.resourceManager.CreatePipeline(pipelineName, pipelineDescription, pipelineFile)
+	newPipeline, err := s.resourceManager.CreatePipeline(pipelineName, pipelineDescription, pipelineNamespace, pipelineFile)
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating pipeline"))
 		return
@@ -155,6 +168,18 @@ func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *h
 		return
 	}
 
+	namespace, err := s.resourceManager.GetNamespaceFromPipelineID(pipelineId)
+	if err != nil {
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Failed to get namespace from pipelineId."))
+		return
+	}
+
+	err = s.canUploadVersionedPipeline(r, namespace)
+	if err != nil {
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Authorization to namespace failed."))
+		return
+	}
+
 	newPipelineVersion, err := s.resourceManager.CreatePipelineVersion(
 		&api.PipelineVersion{
 			Name: pipelineVersionName,
@@ -189,6 +214,21 @@ func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *h
 	if s.options.CollectMetrics {
 		pipelineCount.Inc()
 	}
+}
+
+func (s *PipelineUploadServer) canUploadVersionedPipeline(r *http.Request, namespace string) error {
+	if namespace == "" {
+		return nil
+	}
+	userIdentityHeader := r.Header.Get(common.GetKubeflowUserIDHeader())
+	isAuthorized, err := s.resourceManager.IsRequestAuthorized(userIdentityHeader, namespace)
+	if err != nil {
+		return util.Wrap(err, "Authorization Failure.")
+	}
+	if isAuthorized == false {
+		return util.Wrap(err, "Unauthorized access to namespace.")
+	}
+	return nil
 }
 
 func (s *PipelineUploadServer) writeErrorToResponse(w http.ResponseWriter, code int, err error) {

@@ -67,6 +67,21 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
       variant="outlined"
     />
     <div
+      className="flex"
+    >
+      <WithStyles(WithFormControlContext(FormControlLabel))
+        checked={false}
+        control={
+          <WithStyles(Checkbox)
+            color="primary"
+          />
+        }
+        id="isSharedBtn"
+        label="Shared"
+        onChange={[Function]}
+      />
+    </div>
+    <div
       className=""
     >
       URL must be publicly accessible.

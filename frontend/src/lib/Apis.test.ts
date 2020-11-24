@@ -210,13 +210,16 @@ describe('Apis', () => {
       'test pipeline name',
       'test description',
       new File([], 'test name'),
+      'test-namespace',
     );
     expect(result).toEqual({ name: 'resultName' });
     expect(spy).toHaveBeenCalledWith(
       'apis/v1beta1/pipelines/upload?name=' +
         encodeURIComponent('test pipeline name') +
         '&description=' +
-        encodeURIComponent('test description'),
+        encodeURIComponent('test description') +
+        "&namespace=" +
+        encodeURIComponent('test-namespace'),
       {
         body: expect.anything(),
         cache: 'no-cache',

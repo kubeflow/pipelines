@@ -208,9 +208,9 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
       urlParser.get(QUERY_PARAMS.cloneFromRun) || urlParser.get(QUERY_PARAMS.fromRunId);
     const pipelineDetailsUrl = originalRunId
       ? RoutePage.PIPELINE_DETAILS.replace(
-          ':' + RouteParams.pipelineId + '/version/:' + RouteParams.pipelineVersionId + '?',
-          '',
-        ) + urlParser.build({ [QUERY_PARAMS.fromRunId]: originalRunId })
+        ':' + RouteParams.pipelineId + '/version/:' + RouteParams.pipelineVersionId + '?',
+        '',
+      ) + urlParser.build({ [QUERY_PARAMS.fromRunId]: originalRunId })
       : '';
 
     const buttons = new Buttons(this.props, this.refresh.bind(this));
@@ -290,8 +290,19 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                 {...this.props}
                 title='Choose a pipeline'
                 filterLabel='Filter pipelines'
-                listApi={async (...args) => {
-                  const response = await Apis.pipelineServiceApi.listPipelines(...args);
+                listApi={async (
+                      page_token?: string,
+                      page_size?: number,
+                      sort_by?: string,
+                      filter?: string) => {
+                      const response = await Apis.pipelineServiceApi.listPipelines(
+                        page_token,
+                        page_size,
+                        sort_by,
+                        filter,
+                        this.props.namespace ? 'NAMESPACE' : undefined,
+                        this.props.namespace,
+                        );
                   return {
                     nextPageToken: response.next_page_token || '',
                     resources: response.pipelines || [],
@@ -601,9 +612,9 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                 this.props.history.push(
                   !!this.state.experiment
                     ? RoutePage.EXPERIMENT_DETAILS.replace(
-                        ':' + RouteParams.experimentId,
-                        this.state.experiment.id!,
-                      )
+                      ':' + RouteParams.experimentId,
+                      this.state.experiment.id!,
+                    )
                     : RoutePage.RUNS,
                 );
               }}
@@ -872,8 +883,8 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
     try {
       const uploadedPipeline =
         method === ImportMethod.LOCAL
-          ? await Apis.uploadPipeline(name, description || '', file!)
-          : await Apis.pipelineServiceApi.createPipeline({ name, url: { pipeline_url: url } });
+          ? await Apis.uploadPipeline(name, description || '', file!, this.props.namespace)
+          : await Apis.pipelineServiceApi.createPipeline({ name, url: { pipeline_url: url }, namespace: this.props.namespace });
       this.setStateSafe(
         {
           pipeline: uploadedPipeline,
@@ -974,7 +985,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
       } catch (err) {
         await this.showPageError(
           'Error: failed to find a pipeline version corresponding to that of the original run:' +
-            ` ${originalRun.id}.`,
+          ` ${originalRun.id}.`,
           err,
         );
         return;
@@ -986,7 +997,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
       } catch (err) {
         await this.showPageError(
           'Error: failed to find a pipeline corresponding to that of the original run:' +
-            ` ${originalRun.id}.`,
+          ` ${originalRun.id}.`,
           err,
         );
         return;

@@ -202,13 +202,14 @@ func (m *GetPipelineRequest) GetId() string {
 }
 
 type ListPipelinesRequest struct {
-	PageToken            string   `protobuf:"bytes,1,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
-	PageSize             int32    `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	SortBy               string   `protobuf:"bytes,3,opt,name=sort_by,json=sortBy,proto3" json:"sort_by,omitempty"`
-	Filter               string   `protobuf:"bytes,4,opt,name=filter,proto3" json:"filter,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	PageToken            string       `protobuf:"bytes,1,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageSize             int32        `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	SortBy               string       `protobuf:"bytes,3,opt,name=sort_by,json=sortBy,proto3" json:"sort_by,omitempty"`
+	Filter               string       `protobuf:"bytes,4,opt,name=filter,proto3" json:"filter,omitempty"`
+	ResourceReferenceKey *ResourceKey `protobuf:"bytes,5,opt,name=resource_reference_key,json=resourceReferenceKey,proto3" json:"resource_reference_key,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
+	XXX_unrecognized     []byte       `json:"-"`
+	XXX_sizecache        int32        `json:"-"`
 }
 
 func (m *ListPipelinesRequest) Reset()         { *m = ListPipelinesRequest{} }
@@ -261,6 +262,13 @@ func (m *ListPipelinesRequest) GetFilter() string {
 		return m.Filter
 	}
 	return ""
+}
+
+func (m *ListPipelinesRequest) GetResourceReferenceKey() *ResourceKey {
+	if m != nil {
+		return m.ResourceReferenceKey
+	}
+	return nil
 }
 
 type ListPipelinesResponse struct {
@@ -716,6 +724,7 @@ type Pipeline struct {
 	Url                  *Url                 `protobuf:"bytes,7,opt,name=url,proto3" json:"url,omitempty"`
 	Error                string               `protobuf:"bytes,6,opt,name=error,proto3" json:"error,omitempty"`
 	DefaultVersion       *PipelineVersion     `protobuf:"bytes,8,opt,name=default_version,json=defaultVersion,proto3" json:"default_version,omitempty"`
+	ResourceReferences   []*ResourceReference `protobuf:"bytes,9,rep,name=resource_references,json=resourceReferences,proto3" json:"resource_references,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -797,6 +806,13 @@ func (m *Pipeline) GetError() string {
 func (m *Pipeline) GetDefaultVersion() *PipelineVersion {
 	if m != nil {
 		return m.DefaultVersion
+	}
+	return nil
+}
+
+func (m *Pipeline) GetResourceReferences() []*ResourceReference {
+	if m != nil {
+		return m.ResourceReferences
 	}
 	return nil
 }

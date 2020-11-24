@@ -47,6 +47,14 @@ func GetPipelineName(queryString string, fileName string) (string, error) {
 	return pipelineName, nil
 }
 
+func GetPipelineNamespace(queryString string) (string, error) {
+	pipelineNamespace, err := url.QueryUnescape(queryString)
+	if err != nil {
+		return "", util.NewInvalidInputErrorWithDetails(err, "Pipeline namespace in the query string has invalid format.")
+	}
+	return pipelineNamespace, nil
+}
+
 func loadFile(fileReader io.Reader, maxFileLength int) ([]byte, error) {
 	reader := bufio.NewReader(fileReader)
 	pipelineFile := make([]byte, maxFileLength+1)

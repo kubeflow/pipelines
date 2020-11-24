@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import NewPipelineVersion, { ImportMethod } from './NewPipelineVersion';
+import { NewPipelineVersion,  ImportMethod } from './NewPipelineVersion';
 import TestUtils from '../TestUtils';
 import { shallow, ShallowWrapper, ReactWrapper } from 'enzyme';
 import { PageProps } from './Page';
@@ -336,6 +336,7 @@ describe('NewPipelineVersion', () => {
         'test pipeline name',
         'test pipeline description',
         file,
+        undefined,
       );
       expect(createPipelineSpy).not.toHaveBeenCalled();
     });

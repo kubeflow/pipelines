@@ -221,6 +221,12 @@ export interface ApiPipeline {
    * @memberof ApiPipeline
    */
   default_version?: ApiPipelineVersion;
+  /**
+   *
+   * @type {string}
+   * @memberof ApiPipeline
+   */
+  namespace?: string;
 }
 
 /**
@@ -883,6 +889,8 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
      * @param {number} [page_size]
      * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
      * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
+     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
+     * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -891,6 +899,14 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
       page_size?: number,
       sort_by?: string,
       filter?: string,
+      resource_reference_key_type?:
+        | 'UNKNOWN_RESOURCE_TYPE'
+        | 'EXPERIMENT'
+        | 'JOB'
+        | 'PIPELINE'
+        | 'PIPELINE_VERSION'
+        | 'NAMESPACE',
+      resource_reference_key_id?: string,
       options: any = {},
     ): FetchArgs {
       const localVarPath = `/apis/v1beta1/pipelines`;
@@ -922,6 +938,14 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
 
       if (filter !== undefined) {
         localVarQueryParameter['filter'] = filter;
+      }
+
+      if (resource_reference_key_type !== undefined) {
+        localVarQueryParameter['resource_reference_key.type'] = resource_reference_key_type;
+      }
+
+      if (resource_reference_key_id !== undefined) {
+        localVarQueryParameter['resource_reference_key.id'] = resource_reference_key_id;
       }
 
       localVarUrlObj.query = Object.assign(
@@ -1194,6 +1218,8 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
      * @param {number} [page_size]
      * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
      * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
+     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
+     * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1202,6 +1228,14 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
       page_size?: number,
       sort_by?: string,
       filter?: string,
+      resource_reference_key_type?:
+        | 'UNKNOWN_RESOURCE_TYPE'
+        | 'EXPERIMENT'
+        | 'JOB'
+        | 'PIPELINE'
+        | 'PIPELINE_VERSION'
+        | 'NAMESPACE',
+      resource_reference_key_id?: string,
       options?: any,
     ): (fetch?: FetchAPI, basePath?: string) => Promise<ApiListPipelinesResponse> {
       const localVarFetchArgs = PipelineServiceApiFetchParamCreator(configuration).listPipelines(
@@ -1209,6 +1243,8 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
         page_size,
         sort_by,
         filter,
+        resource_reference_key_type,
+        resource_reference_key_id,
         options,
       );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
@@ -1563,6 +1599,14 @@ export class PipelineServiceApi extends BaseAPI {
     page_size?: number,
     sort_by?: string,
     filter?: string,
+    resource_reference_key_type?:
+      | 'UNKNOWN_RESOURCE_TYPE'
+      | 'EXPERIMENT'
+      | 'JOB'
+      | 'PIPELINE'
+      | 'PIPELINE_VERSION'
+      | 'NAMESPACE',
+    resource_reference_key_id?: string,
     options?: any,
   ) {
     return PipelineServiceApiFp(this.configuration).listPipelines(
@@ -1570,6 +1614,8 @@ export class PipelineServiceApi extends BaseAPI {
       page_size,
       sort_by,
       filter,
+      resource_reference_key_type,
+      resource_reference_key_id,
       options,
     )(this.fetch, this.basePath);
   }

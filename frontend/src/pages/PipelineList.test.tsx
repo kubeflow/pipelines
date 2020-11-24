@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import PipelineList from './PipelineList';
+import { PipelineList } from './PipelineList';
 import TestUtils from '../TestUtils';
 import { Apis } from '../lib/Apis';
 import { PageProps } from './Page';
@@ -146,7 +146,7 @@ describe('PipelineList', () => {
     listPipelinesSpy.mockImplementationOnce(() => ({ pipelines: [{ name: 'pipeline1' }] }));
     tree = TestUtils.mountWithRouter(<PipelineList {...generateProps()} />);
     await listPipelinesSpy;
-    expect(listPipelinesSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
+    expect(listPipelinesSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '', undefined, undefined);
     expect(tree.state()).toHaveProperty('displayPipelines', [
       { expandState: 0, name: 'pipeline1' },
     ]);
@@ -160,7 +160,7 @@ describe('PipelineList', () => {
     expect(refreshBtn).toBeDefined();
     await refreshBtn!.action();
     expect(listPipelinesSpy.mock.calls.length).toBe(2);
-    expect(listPipelinesSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
+    expect(listPipelinesSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '', undefined, undefined);
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
   });
 
@@ -186,7 +186,7 @@ describe('PipelineList', () => {
     TestUtils.makeErrorResponseOnce(listPipelinesSpy, 'bad stuff happened');
     await refreshBtn!.action();
     expect(listPipelinesSpy.mock.calls.length).toBe(2);
-    expect(listPipelinesSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
+    expect(listPipelinesSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '', undefined, undefined);
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'bad stuff happened',

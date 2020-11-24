@@ -135,7 +135,7 @@ func initWithExperimentAndPipelineVersion(t *testing.T) (*resource.FakeClientMan
 	assert.Nil(t, err)
 
 	// Create a pipeline and then a pipeline version.
-	_, err = resourceManager.CreatePipeline("pipeline", "", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+	_, err = resourceManager.CreatePipeline("pipeline", "", "", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
 	assert.Nil(t, err)
 	_, err = resourceManager.CreatePipelineVersion(&api.PipelineVersion{
 		Name: "pipeline_version",
@@ -181,7 +181,7 @@ func initWithPipeline(t *testing.T) (*resource.FakeClientManager, *resource.Reso
 	initEnvVars()
 	store := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	manager := resource.NewResourceManager(store)
-	p, err := manager.CreatePipeline("p1", "", []byte(testWorkflow.ToStringForStore()))
+	p, err := manager.CreatePipeline("p1", "", "", []byte(testWorkflow.ToStringForStore()))
 	assert.Nil(t, err)
 	return store, manager, p
 }

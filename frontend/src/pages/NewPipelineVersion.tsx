@@ -20,7 +20,7 @@ import Button from '@material-ui/core/Button';
 import Buttons from '../lib/Buttons';
 import Dropzone from 'react-dropzone';
 import Input from '../atoms/Input';
-import { Page } from './Page';
+import { Page, PageProps } from './Page';
 import { RoutePage, QUERY_PARAMS, RouteParams } from '../components/Router';
 import { TextFieldProps } from '@material-ui/core/TextField';
 import { ToolbarProps } from '../components/Toolbar';
@@ -41,6 +41,8 @@ import { Description } from '../components/Description';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Radio from '@material-ui/core/Radio';
 import { ExternalLink } from '../atoms/ExternalLink';
+import { Checkbox } from '@material-ui/core';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 interface NewPipelineVersionState {
   validationError: string;
@@ -52,7 +54,7 @@ interface NewPipelineVersionState {
   pipelineName?: string;
   pipelineVersionName: string;
   pipeline?: ApiPipeline;
-
+  isShared: boolean;
   codeSourceUrl: string;
 
   // Package can be local file or url
@@ -109,7 +111,7 @@ const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props =
   return <Description description={props.value || ''} forceInline={true} />;
 };
 
-class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
+export class NewPipelineVersion extends Page<{ namespace?: string }, NewPipelineVersionState> {
   private _dropzoneRef = React.createRef<Dropzone & HTMLDivElement>();
   private _pipelineVersionNameRef = React.createRef<HTMLInputElement>();
   private _pipelineNameRef = React.createRef<HTMLInputElement>();
@@ -143,6 +145,7 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
       pipelineSelectorOpen: false,
       pipelineVersionName: '',
       validationError: '',
+      isShared: false,
     };
   }
 
@@ -169,6 +172,7 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
       pipelineDescription,
       fileName,
       dropzoneActive,
+      isShared,
     } = this.state;
 
     const buttons = new Buttons(this.props, this.refresh.bind(this));
@@ -235,6 +239,16 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
                 onChange={this.handleChange('pipelineDescription')}
                 autoFocus={true}
               />
+              
+              <div className={classes(commonCss.flex, padding(10, 'b'))}>
+              <FormControlLabel
+                id='isSharedBtn'
+                label='Shared'
+                checked={isShared}
+                control={<Checkbox color='primary' />}
+                onChange={() => this.setState({ isShared: !isShared })}
+              />
+              </div>
 
               {/* Choose a local file for package or specify a url for package */}
             </>
@@ -284,8 +298,19 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
                     {...this.props}
                     title='Choose a pipeline'
                     filterLabel='Filter pipelines'
-                    listApi={async (...args) => {
-                      const response = await Apis.pipelineServiceApi.listPipelines(...args);
+                    listApi={async (
+                      page_token?: string,
+                      page_size?: number,
+                      sort_by?: string,
+                      filter?: string) => {
+                      const response = await Apis.pipelineServiceApi.listPipelines(
+                        page_token,
+                        page_size,
+                        sort_by,
+                        filter,
+                        this.props.namespace ? 'NAMESPACE' : undefined,
+                        this.props.namespace,
+                        );
                       return {
                         nextPageToken: response.next_page_token || '',
                         resources: response.pipelines || [],
@@ -533,21 +558,23 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
         const response =
           this.state.newPipeline && this.state.importMethod === ImportMethod.LOCAL
             ? (
-                await Apis.uploadPipeline(
-                  this.state.pipelineName!,
-                  this.state.pipelineDescription,
-                  this.state.file!,
-                )
-              ).default_version!
+              await Apis.uploadPipeline(
+                this.state.pipelineName!,
+                this.state.pipelineDescription,
+                this.state.file!,
+                this.state.isShared ? "": this.props.namespace,
+              )
+            ).default_version!
             : this.state.newPipeline && this.state.importMethod === ImportMethod.URL
-            ? (
+              ? (
                 await Apis.pipelineServiceApi.createPipeline({
                   description: this.state.pipelineDescription,
                   name: this.state.pipelineName!,
                   url: { pipeline_url: this.state.packageUrl },
+                  namespace: this.state.isShared ? "" : this.props.namespace,
                 })
               ).default_version!
-            : await this._createPipelineVersion();
+              : await this._createPipelineVersion();
 
         // If success, go to pipeline details page of the new version
         this.props.history.push(
@@ -583,6 +610,7 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
           description: this.state.pipelineDescription,
           name: this.state.pipelineName,
           url: { pipeline_url: this.state.packageUrl },
+          namespace: this.state.isShared ? "" : this.props.namespace,
         };
         const response = await Apis.pipelineServiceApi.createPipeline(newPipeline);
         return response.id!;
@@ -663,7 +691,13 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
   }
 }
 
-export default NewPipelineVersion;
+const EnhancedNewPipelineVersion: React.FC<PageProps> = props => {
+  const namespace = React.useContext(NamespaceContext);
+  return <NewPipelineVersion key={namespace} {...props} namespace={namespace} />;
+};
+
+export default EnhancedNewPipelineVersion;
+
 
 const DocumentationCompilePipeline: React.FC = () => (
   <div className={padding(10, 'b')}>
