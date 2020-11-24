@@ -72,6 +72,8 @@ class CompilerCliTests(unittest.TestCase):
   def test_pipeline_with_various_io_types(self):
     self._test_compile_py_to_json('pipeline_with_various_io_types')
 
+  def test_pipeline_with_reused_component(self):
+    self._test_compile_py_to_json('pipeline_with_reused_component')
 
 if __name__ == '__main__':
   unittest.main()
