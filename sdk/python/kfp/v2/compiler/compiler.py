@@ -93,6 +93,11 @@ class Compiler(object):
       deployment_config.executors[task.executor_label].container.CopyFrom(
           op.container_spec)
 
+      # A task may have explicit depdency on other tasks even though they may
+      # not have inputs/outputs dependency. e.g.: op2.after(op1)
+      if op.dependent_names:
+        task.dependent_tasks.extend(op.dependent_names)
+
       # Check if need to insert importer node
       for input_name in task.inputs.artifacts:
         if not task.inputs.artifacts[input_name].producer_task:
