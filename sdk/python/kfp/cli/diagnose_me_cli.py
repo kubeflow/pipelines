@@ -33,7 +33,12 @@ def diagnose_me():
 )
 @click.pass_context
 def diagnose_me(ctx, json, project_id, namespace):
-  """Runs environment diagnostic with specified parameters."""
+  """Runs environment diagnostic with specified parameters.
+
+  Feature stage:
+  [Alpha](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#alpha)
+
+  """
   # validate kubectl, gcloud , and gsutil exist
   local_env_gcloud_sdk = gcp.get_gcp_configuration(
       gcp.Commands.GET_GCLOUD_VERSION,

@@ -36,6 +36,9 @@ class VolumeOp(ResourceOp):
     """Represents an op which will be translated into a resource template
     which will be creating a PVC.
 
+    TODO(https://github.com/kubeflow/pipelines/issues/4822): Determine the
+        stability level of this feature.
+
     Args:
         resource_name: A desired name for the PVC which will be created
         size: The size of the PVC which will be created

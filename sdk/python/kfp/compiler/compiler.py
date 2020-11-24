@@ -906,9 +906,12 @@ class Compiler(object):
 
     Args:
       pipeline_func: Pipeline functions with @dsl.pipeline decorator.
-      package_path: The output workflow tar.gz file path. for example, "~/a.tar.gz"
+      package_path: The output workflow tar.gz file path. for example,
+        "~/a.tar.gz"
       type_check: Whether to enable the type check or not, default: False.
-      pipeline_conf: PipelineConf instance. Can specify op transforms, image pull secrets and other pipeline-level configuration options. Overrides any configuration that may be set by the pipeline.
+      pipeline_conf: PipelineConf instance. Can specify op transforms, image
+        pull secrets and other pipeline-level configuration options. Overrides
+        any configuration that may be set by the pipeline.
     """
     import kfp
     type_check_old_value = kfp.TYPE_CHECK
