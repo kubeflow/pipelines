@@ -39,6 +39,9 @@ class PipelineVolume(V1Volume):
     function's filesystem. It may then be passed between ContainerOps,
     exposing dependencies.
 
+    TODO(https://github.com/kubeflow/pipelines/issues/4822): Determine the
+        stability level of this feature.
+
     Args:
         pvc: The name of an existing PVC
         volume: Create a deep copy out of a V1Volume or PipelineVolume with no deps

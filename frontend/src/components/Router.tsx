@@ -126,9 +126,9 @@ export const RoutePageFactory = {
 };
 
 export const ExternalLinks = {
-  AI_HUB: 'https://aihub.cloud.google.com/u/0/s?category=pipeline',
   DOCUMENTATION: 'https://www.kubeflow.org/docs/pipelines/',
   GITHUB: 'https://github.com/kubeflow/pipelines',
+  GITHUB_ISSUE: 'https://github.com/kubeflow/pipelines/issues/new/choose',
 };
 
 export interface DialogProps {
