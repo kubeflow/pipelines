@@ -8,7 +8,7 @@ Method | HTTP request | Description
 
 
 # **get_healthz**
-> ApiGetHealthzResponse get_healthz(id=id)
+> ApiGetHealthzResponse get_healthz()
 
 Get healthz data.
 
@@ -46,21 +46,17 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.HealthzServiceApi(api_client)
-    id = 'id_example' # str | The healthz request. (optional)
-
+    
     try:
         # Get healthz data.
-        api_response = api_instance.get_healthz(id=id)
+        api_response = api_instance.get_healthz()
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling HealthzServiceApi->get_healthz: %s\n" % e)
 ```
 
 ### Parameters
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **id** | **str**| The healthz request. | [optional] 
+This endpoint does not need any parameter.
 
 ### Return type
 

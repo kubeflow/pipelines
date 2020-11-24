@@ -50,8 +50,6 @@ class TestApiGetHealthzResponse(unittest.TestCase):
         # model = kfp_server_api.models.api_get_healthz_response.ApiGetHealthzResponse()  # noqa: E501
         if include_optional :
             return ApiGetHealthzResponse(
-                commit_sha = '0', 
-                tag_name = '0', 
                 multi_user = True
             )
         else :

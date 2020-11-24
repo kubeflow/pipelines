@@ -59,8 +59,6 @@ class HealthzServiceApi(object):
         >>> thread = api.get_healthz(async_req=True)
         >>> result = thread.get()
 
-        :param id: The healthz request.
-        :type id: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -87,8 +85,6 @@ class HealthzServiceApi(object):
         >>> thread = api.get_healthz_with_http_info(async_req=True)
         >>> result = thread.get()
 
-        :param id: The healthz request.
-        :type id: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -111,7 +107,6 @@ class HealthzServiceApi(object):
         local_var_params = locals()
 
         all_params = [
-            'id'
         ]
         all_params.extend(
             [
@@ -136,8 +131,6 @@ class HealthzServiceApi(object):
         path_params = {}
 
         query_params = []
-        if 'id' in local_var_params and local_var_params['id'] is not None:  # noqa: E501
-            query_params.append(('id', local_var_params['id']))  # noqa: E501
 
         header_params = {}
 

@@ -29,14 +29,8 @@ import (
 // swagger:model apiGetHealthzResponse
 type APIGetHealthzResponse struct {
 
-	// The commit sha.
-	CommitSha string `json:"commit_sha,omitempty"`
-
 	// Returns if KFP in multi-user mode
 	MultiUser bool `json:"multi_user,omitempty"`
-
-	// The tag name
-	TagName string `json:"tag_name,omitempty"`
 }
 
 // Validate validates this api get healthz response

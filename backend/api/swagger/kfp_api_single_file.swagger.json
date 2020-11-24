@@ -1418,15 +1418,6 @@
             }
           }
         },
-        "parameters": [
-          {
-            "name": "id",
-            "description": "The healthz request.",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          }
-        ],
         "tags": [
           "HealthzService"
         ]
@@ -2138,14 +2129,6 @@
     "apiGetHealthzResponse": {
       "type": "object",
       "properties": {
-        "commit_sha": {
-          "type": "string",
-          "description": "The commit sha."
-        },
-        "tag_name": {
-          "type": "string",
-          "title": "The tag name"
-        },
         "multi_user": {
           "type": "boolean",
           "format": "boolean",

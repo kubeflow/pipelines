@@ -47,78 +47,24 @@ class ApiGetHealthzResponse(object):
                             and the value is json key in definition.
     """
     openapi_types = {
-        'commit_sha': 'str',
-        'tag_name': 'str',
         'multi_user': 'bool'
     }
 
     attribute_map = {
-        'commit_sha': 'commit_sha',
-        'tag_name': 'tag_name',
         'multi_user': 'multi_user'
     }
 
-    def __init__(self, commit_sha=None, tag_name=None, multi_user=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, multi_user=None, local_vars_configuration=None):  # noqa: E501
         """ApiGetHealthzResponse - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
         self.local_vars_configuration = local_vars_configuration
 
-        self._commit_sha = None
-        self._tag_name = None
         self._multi_user = None
         self.discriminator = None
 
-        if commit_sha is not None:
-            self.commit_sha = commit_sha
-        if tag_name is not None:
-            self.tag_name = tag_name
         if multi_user is not None:
             self.multi_user = multi_user
-
-    @property
-    def commit_sha(self):
-        """Gets the commit_sha of this ApiGetHealthzResponse.  # noqa: E501
-
-        The commit sha.  # noqa: E501
-
-        :return: The commit_sha of this ApiGetHealthzResponse.  # noqa: E501
-        :rtype: str
-        """
-        return self._commit_sha
-
-    @commit_sha.setter
-    def commit_sha(self, commit_sha):
-        """Sets the commit_sha of this ApiGetHealthzResponse.
-
-        The commit sha.  # noqa: E501
-
-        :param commit_sha: The commit_sha of this ApiGetHealthzResponse.  # noqa: E501
-        :type commit_sha: str
-        """
-
-        self._commit_sha = commit_sha
-
-    @property
-    def tag_name(self):
-        """Gets the tag_name of this ApiGetHealthzResponse.  # noqa: E501
-
-
-        :return: The tag_name of this ApiGetHealthzResponse.  # noqa: E501
-        :rtype: str
-        """
-        return self._tag_name
-
-    @tag_name.setter
-    def tag_name(self, tag_name):
-        """Sets the tag_name of this ApiGetHealthzResponse.
-
-
-        :param tag_name: The tag_name of this ApiGetHealthzResponse.  # noqa: E501
-        :type tag_name: str
-        """
-
-        self._tag_name = tag_name
 
     @property
     def multi_user(self):

@@ -69,12 +69,6 @@ service HealthzService {
 }
 
 message GetHealthzResponse {
-  // The commit sha.
-  string commit_sha = 1;
-
-  // The tag name
-  string tag_name = 2;
-
   // Returns if KFP in multi-user mode
   bool multi_user = 3;
 }

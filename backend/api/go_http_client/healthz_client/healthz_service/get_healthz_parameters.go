@@ -34,7 +34,7 @@ import (
 // NewGetHealthzParams creates a new GetHealthzParams object
 // with the default values initialized.
 func NewGetHealthzParams() *GetHealthzParams {
-	var ()
+
 	return &GetHealthzParams{
 
 		timeout: cr.DefaultTimeout,
@@ -44,7 +44,7 @@ func NewGetHealthzParams() *GetHealthzParams {
 // NewGetHealthzParamsWithTimeout creates a new GetHealthzParams object
 // with the default values initialized, and the ability to set a timeout on a request
 func NewGetHealthzParamsWithTimeout(timeout time.Duration) *GetHealthzParams {
-	var ()
+
 	return &GetHealthzParams{
 
 		timeout: timeout,
@@ -54,7 +54,7 @@ func NewGetHealthzParamsWithTimeout(timeout time.Duration) *GetHealthzParams {
 // NewGetHealthzParamsWithContext creates a new GetHealthzParams object
 // with the default values initialized, and the ability to set a context for a request
 func NewGetHealthzParamsWithContext(ctx context.Context) *GetHealthzParams {
-	var ()
+
 	return &GetHealthzParams{
 
 		Context: ctx,
@@ -64,7 +64,7 @@ func NewGetHealthzParamsWithContext(ctx context.Context) *GetHealthzParams {
 // NewGetHealthzParamsWithHTTPClient creates a new GetHealthzParams object
 // with the default values initialized, and the ability to set a custom HTTPClient for a request
 func NewGetHealthzParamsWithHTTPClient(client *http.Client) *GetHealthzParams {
-	var ()
+
 	return &GetHealthzParams{
 		HTTPClient: client,
 	}
@@ -74,13 +74,6 @@ func NewGetHealthzParamsWithHTTPClient(client *http.Client) *GetHealthzParams {
 for the get healthz operation typically these are written to a http.Request
 */
 type GetHealthzParams struct {
-
-	/*ID
-	  The healthz request.
-
-	*/
-	ID *string
-
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
@@ -119,17 +112,6 @@ func (o *GetHealthzParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithID adds the id to the get healthz params
-func (o *GetHealthzParams) WithID(id *string) *GetHealthzParams {
-	o.SetID(id)
-	return o
-}
-
-// SetID adds the id to the get healthz params
-func (o *GetHealthzParams) SetID(id *string) {
-	o.ID = id
-}
-
 // WriteToRequest writes these params to a swagger request
 func (o *GetHealthzParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -137,22 +119,6 @@ func (o *GetHealthzParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Re
 		return err
 	}
 	var res []error
-
-	if o.ID != nil {
-
-		// query param id
-		var qrID string
-		if o.ID != nil {
-			qrID = *o.ID
-		}
-		qID := qrID
-		if qID != "" {
-			if err := r.SetQueryParam("id", qID); err != nil {
-				return err
-			}
-		}
-
-	}
 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
