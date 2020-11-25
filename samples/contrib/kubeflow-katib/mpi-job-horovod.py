@@ -13,10 +13,9 @@
 
 # Note: You have to install kfp>=1.1.1 SDK and kubeflow-katib>=0.10.0 SDK to run this example.
 
-import json
-
-import kfp.dsl as dsl
 import kfp
+import kfp.dsl as dsl
+from kfp import components
 
 from kubeflow.katib import V1beta1ExperimentSpec
 from kubeflow.katib import V1beta1AlgorithmSpec
@@ -204,23 +203,18 @@ def horovod_mnist_hpo():
         trial_template=trial_template
     )
 
-    output_file = "/output.txt"
+    # Get the Katib launcher.
+    katib_experiment_launcher_op = components.load_component_from_url(
+        "https://raw.githubusercontent.com/kubeflow/pipelines/master/components/kubeflow/katib-launcher/component.yaml")
 
     # Katib launcher component.
     # We convert Experiment spec to JSON dict.
     # The Experiment is deleted after the Pipeline is finished.
-    op = dsl.ContainerOp(
-        name="horovod-mnist-hpo",
-        image="docker.io/kubeflowkatib/kubeflow-pipelines-launcher",
-        arguments=[
-            "--experiment-name", experiment_name,
-            "--experiment-namespace", experiment_namespace,
-            "--experiment-spec", json.dumps(experiment_spec.to_dict(), sort_keys=True),
-            "--experiment-timeout-minutes", 60,
-            "--output-file", output_file,
-        ],
-        file_outputs={"BestParameterSet": output_file}
-    )
+    op = katib_experiment_launcher_op(
+        experiment_name=experiment_name,
+        experiment_namespace=experiment_namespace,
+        experiment_spec=experiment_spec.to_dict(),
+        experiment_timeout_minutes=60)
 
     # Output container to print the results.
     dsl.ContainerOp(
