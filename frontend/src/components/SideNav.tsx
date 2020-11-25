@@ -495,18 +495,6 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
               <img src={GitHubIcon} className={classes(className, css.iconImage)} alt='Github' />
             )}
           />
-          <ExternalUri
-            title={'AI Hub Samples'}
-            to={ExternalLinks.AI_HUB}
-            collapsed={collapsed}
-            icon={className => (
-              <img
-                src='https://www.gstatic.com/aihub/aihub_favicon.png'
-                className={classes(className, css.iconImage)}
-                alt='AI Hub'
-              />
-            )}
-          />
           <hr className={classes(css.separator, collapsed && css.collapsedSeparator)} />
           <IconButton
             className={classes(css.chevron, collapsed && css.collapsedChevron)}
@@ -557,7 +545,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
           <Tooltip title='Report an Issue' enterDelay={300} placement={'top-start'}>
             <div className={css.envMetadata}>
               <a
-                href='https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md'
+                href={ExternalLinks.GITHUB_ISSUE}
                 className={classes(css.link, commonCss.unstyled)}
                 rel='noopener'
                 target='_blank'

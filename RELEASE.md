@@ -69,7 +69,7 @@ Release manager will periodically or before release, search all merged PRs with
     ```
 * Resolve merge conflicts if any
 * `git push origin HEAD`
-* Create a PR and remember to update PR's destination branch to `release-$VERSION`
+* Create a PR and remember to update PR's destination branch to `release-$MINOR_VERSION`
 * Ask the same OWNERS that would normally need to approve this PR
 
 #### Option - Kubeflow cherry_pick_pull.sh helper
@@ -104,11 +104,11 @@ if you only want to use or contribute to this repo.
     1. Clone github.com/kubeflow/pipelines repo into `$KFP_REPO`.
     2. `cd $KFP_REPO`
 
-### Cutting a release branch
+### Cutting a release branch (Optional)
 
 1. Choose a good commit on master branch with commit hash as `$COMMIT_SHA`.
-2. Choose the next release branch's `$MINOR_VERSION` in format `x.y`, e.g. `1.0`, `1.1`...
-2. Make a release branch of format `release-$MINOR_VERSION`, e.g. `release-1.0`, `release-1.1`. Branch from the commit and push to kubeflow pipelines upstream repo.
+1. Choose the next release branch's `$MINOR_VERSION` in format `x.y`, e.g. `1.0`, `1.1`...
+1. Make a release branch of format `release-$MINOR_VERSION`, e.g. `release-1.0`, `release-1.1`. Branch from the commit and push to kubeflow pipelines upstream repo.
     ```bash
     git checkout $COMMIT_SHA
     git checkout -b release-$MINOR_VERSION
@@ -118,7 +118,7 @@ if you only want to use or contribute to this repo.
 ### Before release
 
 Do the following things before a release:
-1. Cherry pick all merged PRs with `cherrypick-approved` label:
+1. If not releasing from master branch, cherry pick all merged PRs with `cherrypick-approved` label:
     * Search all merged PRs with `cherrypick-approved`
         label, but no `cherrypicked` label using
         [this link](https://github.com/kubeflow/pipelines/pulls?q=is%3Apr+label%3Acherrypick-approved+-label%3Acherrypicked+is%3Aclosed+sort%3Aupdated-asc)
@@ -168,6 +168,8 @@ Do the following things before a release:
 
 ### Releasing from release branch
 
+Note, when releasing from master, all the below mentions of "release branch" means master branch.
+
 1. Choose the release's complete `$VERSION` following semantic versioning, e.g.
     * `1.0.0-rc.1`
     * `1.0.0-rc.2`
@@ -175,9 +177,11 @@ Do the following things before a release:
     * `1.0.1`
     * `1.1.0`
     * ...
+    Contact @Bobgy if you are not sure what next version should be.
+
 1. Update all version refs in release branch by
     ```bash
-    ./hack/release.sh $VERSION release-$MINOR_VERSION
+    ./hack/release.sh $VERSION $BRANCH
     ```
     It will prompt you whether to push it to release branch. Press `y` and hit `Enter`.
 
@@ -216,11 +220,11 @@ and then "Retry", because after waiting for previous step, artifacts are now rea
 
     !!! The file name must contain the version. See https://github.com/kubeflow/pipelines/issues/1292
 
-1. Create a GitHub release using `$VERSION` git tag and title `Version $VERSION`,
+1. Create a GitHub release using `$TAG_NAME` git tag and title `Version $TAG_NAME`,
 fill in the description. Detailed steps:
    
    1. [Draft a new release](https://github.com/kubeflow/pipelines/releases/new).
-   1. Typing in version tag field to search and select the "$VERSION" tag published in release instructions above.
+   1. Typing in version tag field to search and select the "$TAG_NAME" tag published in release instructions above.
    Its format is like `X.Y.Z` or `X.Y.Z-rc.N`.
 
    1. Use this template for public releases and replace the `$TAG_NAME` with real values.

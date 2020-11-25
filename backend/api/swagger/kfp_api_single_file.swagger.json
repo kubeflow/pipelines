@@ -1399,6 +1399,29 @@
           "PipelineUploadService"
         ]
       }
+    },
+    "/apis/v1beta1/healthz": {
+      "get": {
+        "summary": "Get healthz data.",
+        "operationId": "GetHealthz",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiGetHealthzResponse"
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "tags": [
+          "HealthzService"
+        ]
+      }
     }
   },
   "definitions": {
@@ -2100,6 +2123,16 @@
         "next_page_token": {
           "type": "string",
           "description": "The token to list the next page of experiments."
+        }
+      }
+    },
+    "apiGetHealthzResponse": {
+      "type": "object",
+      "properties": {
+        "multi_user": {
+          "type": "boolean",
+          "format": "boolean",
+          "title": "Returns if KFP in multi-user mode"
         }
       }
     }
