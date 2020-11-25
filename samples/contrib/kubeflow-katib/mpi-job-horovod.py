@@ -13,8 +13,7 @@
 
 # Note: You have to install kfp>=1.1.1 SDK and kubeflow-katib>=0.10.0 SDK to run this example.
 
-import pickle
-import base64
+import json
 
 import kfp.dsl as dsl
 import kfp
@@ -208,16 +207,15 @@ def horovod_mnist_hpo():
     output_file = "/output.txt"
 
     # Katib launcher component.
-    # We use pickle to dump the Experiment specification and send it to the launcher.
+    # We convert Experiment spec to JSON dict.
     # The Experiment is deleted after the Pipeline is finished.
-    experiment_spec_decoded = base64.b64encode(pickle.dumps(experiment_spec)).decode('ascii')
     op = dsl.ContainerOp(
         name="horovod-mnist-hpo",
         image="docker.io/kubeflowkatib/kubeflow-pipelines-launcher",
         arguments=[
             "--experiment-name", experiment_name,
             "--experiment-namespace", experiment_namespace,
-            "--experiment-spec", experiment_spec_decoded,
+            "--experiment-spec", json.dumps(experiment_spec.to_dict(), sort_keys=True),
             "--experiment-timeout-minutes", 60,
             "--output-file", output_file,
         ],
