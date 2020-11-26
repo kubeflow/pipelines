@@ -1,5 +1,46 @@
 # Changelog
 
+### [1.1.1-beta.1](https://github.com/kubeflow/pipelines/compare/1.1.0-alpha.1...1.1.1-beta.1) (2020-11-26)
+
+
+### Features
+
+* Set current namespace for in-cluster SDK in multi-user mode and add healthz endpoint to API backends ([\#4638](https://github.com/kubeflow/pipelines/issues/4638)) ([0df9473](https://github.com/kubeflow/pipelines/commit/0df9473bbaecc062284a92e012394cdc95a70f1f))
+* **backend:** new server API to read run log. Fixes [\#4468](https://github.com/kubeflow/pipelines/issues/4468) ([\#4493](https://github.com/kubeflow/pipelines/issues/4493)) ([678ae0f](https://github.com/kubeflow/pipelines/commit/678ae0fe08162b2599c58dac63789e7fcb2e7390))
+* **backend:** Refactor authz to perform SubjectAccessReview. Fixes [\#3513](https://github.com/kubeflow/pipelines/issues/3513) ([\#4723](https://github.com/kubeflow/pipelines/issues/4723)) ([39203d5](https://github.com/kubeflow/pipelines/commit/39203d5ffa8f1a1197a6db3f31d2f0729f85364a))
+* **components:** Added a sample C# script component ([\#4815](https://github.com/kubeflow/pipelines/issues/4815)) ([c5e6ca2](https://github.com/kubeflow/pipelines/commit/c5e6ca23176355e3c01b6a778bfed46d3d041be8))
+* **components:** Added a sample R script component ([\#4817](https://github.com/kubeflow/pipelines/issues/4817)) ([3826edf](https://github.com/kubeflow/pipelines/commit/3826edfcde77eb92a47dea1b9241a657236f45bc))
+* **components:** Azure ML component to deploy model ([\#4711](https://github.com/kubeflow/pipelines/issues/4711)) ([ec721fe](https://github.com/kubeflow/pipelines/commit/ec721fe94dbcaa054b1057e5503e4f9823fdf2a5))
+* **frontend:** UX change to support downloading directory artifacts. Fixes [\#3667](https://github.com/kubeflow/pipelines/issues/3667) ([\#4696](https://github.com/kubeflow/pipelines/issues/4696)) ([e3992fa](https://github.com/kubeflow/pipelines/commit/e3992faf8305570ca56c5932d701eb8765305568))
+* **gcp:** Revert "turn off archiveLogs for GCP marketplace [\#4758](https://github.com/kubeflow/pipelines/issues/4758)" ([\#4771](https://github.com/kubeflow/pipelines/issues/4771)) ([aa162e6](https://github.com/kubeflow/pipelines/commit/aa162e6a2491fe8d9a718b27b8c628f7b4a10bee))
+* **gcp:** turn off archiveLogs for GCP marketplace ([\#4758](https://github.com/kubeflow/pipelines/issues/4758)) ([1165ed2](https://github.com/kubeflow/pipelines/commit/1165ed243b381ae37a72e245d685ba318d58b345))
+* **samples:** Added the caching sample. Fixes [\#4636](https://github.com/kubeflow/pipelines/issues/4636) ([\#4664](https://github.com/kubeflow/pipelines/issues/4664)) ([9597c8b](https://github.com/kubeflow/pipelines/commit/9597c8b4f49678163c263601ad73c8d48d779b70))
+* **sdk:** added pipeline name option to kfp run submit ([\#4535](https://github.com/kubeflow/pipelines/issues/4535)) ([38946d8](https://github.com/kubeflow/pipelines/commit/38946d88f83b8a352ab4eefbb211f4ba76d39581))
+* **sdk:** Client - Getting access token without gcloud CLI ([\#4811](https://github.com/kubeflow/pipelines/issues/4811)) ([ab21ec9](https://github.com/kubeflow/pipelines/commit/ab21ec98455976bbb1f1f8b3d23710d19fbcfc9a))
+* **sdk:** Fix print message for run submission with respect to output format ([\#4691](https://github.com/kubeflow/pipelines/issues/4691)) ([a8bd468](https://github.com/kubeflow/pipelines/commit/a8bd4682656e75b5c5cd48d75ffdf23e97bf99aa))
+
+
+### Bug Fixes
+
+* **backend:** added setup structure to simplify adding new tests and removing duplicated code. Fixes [\#4630](https://github.com/kubeflow/pipelines/issues/4630) ([\#4639](https://github.com/kubeflow/pipelines/issues/4639)) ([92a932e](https://github.com/kubeflow/pipelines/commit/92a932e9d93c9529f1bb18c66738a7ad8b417b40))
+* **components:** AWS SageMaker - Retry delete EKS Cluster after Integ test failure  ([\#4662](https://github.com/kubeflow/pipelines/issues/4662)) ([008985a](https://github.com/kubeflow/pipelines/commit/008985a576de4a4acf987d8a4eacbaff40a19486))
+* **components:** Fix kfserving component url parsing ([\#4780](https://github.com/kubeflow/pipelines/issues/4780)) ([7f32dde](https://github.com/kubeflow/pipelines/commit/7f32dde71190d46a132823e7d0ed59ae8df792f2))
+* **components:** sending pyspark jobs and set generated step_id to /output.txt from the generated EMR step ([\#4725](https://github.com/kubeflow/pipelines/issues/4725)) ([d6a2c23](https://github.com/kubeflow/pipelines/commit/d6a2c23f56943ea8af35b5b2e5f6c6381bfb25ed))
+* **components:** sending pyspark jobs to aws EMR with the correct py … ([\#4721](https://github.com/kubeflow/pipelines/issues/4721)) ([b9e2259](https://github.com/kubeflow/pipelines/commit/b9e2259b4be4eaf7fbd123818b82263169ccdd3a))
+* **frontend:** Fix logic deciding if a node was cached. Fixes [\#4814](https://github.com/kubeflow/pipelines/issues/4814) ([\#4819](https://github.com/kubeflow/pipelines/issues/4819)) ([e3bbf16](https://github.com/kubeflow/pipelines/commit/e3bbf1645fd071507fa2f31ce1c2725dbe5735e8))
+* **Process:** update backend development README. Fixes [\#4750](https://github.com/kubeflow/pipelines/issues/4750) ([\#4774](https://github.com/kubeflow/pipelines/issues/4774)) ([1b924e6](https://github.com/kubeflow/pipelines/commit/1b924e6e72b30ad2f701edde4a4d3059f181cad4))
+* **sdk:** Client - Fixed wait_for_run_completion ([\#4808](https://github.com/kubeflow/pipelines/issues/4808)) ([5c1b919](https://github.com/kubeflow/pipelines/commit/5c1b919793576b2af951fdea2d15fef8739d85e2))
+* **sdk:** Compiler - Fixed pipeline parameters with empty default values ([\#4552](https://github.com/kubeflow/pipelines/issues/4552)) ([f7874d3](https://github.com/kubeflow/pipelines/commit/f7874d38ffe1d6eaf13ddffef5c61c44217b47cf))
+* **sdk:** fixes too broad except when retrieving experiments. ([\#4765](https://github.com/kubeflow/pipelines/issues/4765)) ([950fae4](https://github.com/kubeflow/pipelines/commit/950fae4921f7f193c738079e4ab3c1e8d81d8af5))
+* **sdk:** VolumeOp has apiVersion as parameter ([\#4694](https://github.com/kubeflow/pipelines/issues/4694)) ([5f992f5](https://github.com/kubeflow/pipelines/commit/5f992f5d06a33e85bc53b8531cfc2cbf1f1faa87))
+
+
+### Other Pull Requests
+
+* Update RELEASE.md ([6acd19b](https://github.com/kubeflow/pipelines/commit/6acd19b8ddf66fe22afbcc56b0ed79437f6e39f7))
+* fix(sdk) - fixes missing import in KFP compiler ([\#4741](https://github.com/kubeflow/pipelines/issues/4741)) ([9efc9e5](https://github.com/kubeflow/pipelines/commit/9efc9e59b28227a56c487d925d787126e3b5f9df))
+* kfp sdk version to 1.1.0 ([\#4740](https://github.com/kubeflow/pipelines/issues/4740)) ([79e9f68](https://github.com/kubeflow/pipelines/commit/79e9f688a1f84891c5befa6853ddc6a93f9637c0))
+
 ## [1.1.0-alpha.1](https://github.com/kubeflow/pipelines/compare/0.5.1...1.1.0-alpha.1) (2020-11-02)
 
 
