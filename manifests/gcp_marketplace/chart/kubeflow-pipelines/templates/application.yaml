@@ -6,42 +6,43 @@ metadata:
   annotations:
     kubernetes-engine.cloud.google.com/icon: >-
       data:image/png;base64,{{ .Files.Get "logo.png" | b64enc }}
-    marketplace.cloud.google.com/deploy-info: '{"partner_id": "google-cloud-ai-platform", "product_id": "kubeflow-pipelines", "partner_name": "Google Cloud AI Platform"}'
+    marketplace.cloud.google.com/deploy-info: '{"partner_id": "google-cloud-ai-platform",
+      "product_id": "kubeflow-pipelines", "partner_name": "Google Cloud AI Platform"}'
   labels:
     app.kubernetes.io/name: "{{ .Release.Name }}"
 spec:
   descriptor:
     type: Kubeflow Pipelines
-    version: 1.1.1.beta.1
+    version: 1.1.0-alpha.1
     description: |-
       Reusable end-to-end ML workflow
     maintainers:
-      - name: Google Cloud AI Platform
-        url: https://cloud.google.com/ai-platform/
-      - name: Kubeflow Pipelines
-        url: https://github.com/kubeflow/pipelines
+    - name: Google Cloud AI Platform
+      url: https://cloud.google.com/ai-platform/
+    - name: Kubeflow Pipelines
+      url: https://github.com/kubeflow/pipelines
     links:
-      - description: 'Kubeflow Pipelines Documentation'
-        url: https://www.kubeflow.org/docs/pipelines/
+    - description: 'Kubeflow Pipelines Documentation'
+      url: https://www.kubeflow.org/docs/pipelines/
     notes: |-
       Please go to [Hosted Kubeflow Pipelines Console](https://console.cloud.google.com/ai-platform/pipelines/clusters).
   info:
-    - name: Application Namespace
-      value: "{{ .Release.Namespace }}"
-    - name: Console
-      value: 'https://console.cloud.google.com/ai-platform/pipelines/clusters'
+  - name: Application Namespace
+    value: "{{ .Release.Namespace }}"
+  - name: Console
+    value: 'https://console.cloud.google.com/ai-platform/pipelines/clusters'
   componentKinds:
-    - group: v1
-      kind: ServiceAccount
-    - group: rbac.authorization.k8s.io/v1
-      kind: Role
-    - group: rbac.authorization.k8s.io/v1
-      kind: RoleBinding
-    - group: v1
-      kind: Service
-    - group: v1
-      kind: ConfigMap
-    - group: v1
-      kind: Secret
-    - group: apps/v1
-      kind: Deployment
+  - group: v1
+    kind: ServiceAccount
+  - group: rbac.authorization.k8s.io/v1
+    kind: Role
+  - group: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+  - group: v1
+    kind: Service
+  - group: v1
+    kind: ConfigMap
+  - group: v1
+    kind: Secret
+  - group: apps/v1
+    kind: Deployment
