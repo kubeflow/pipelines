@@ -118,7 +118,9 @@ if you only want to use or contribute to this repo.
 ### Before release
 
 Do the following things before a release:
-1. If not releasing from master branch, cherry pick all merged PRs with `cherrypick-approved` label:
+1. **(Do this step only when releasing from a NON-master release branch)**
+    
+    cherry pick all merged PRs with `cherrypick-approved` label:
     * Search all merged PRs with `cherrypick-approved`
         label, but no `cherrypicked` label using
         [this link](https://github.com/kubeflow/pipelines/pulls?q=is%3Apr+label%3Acherrypick-approved+-label%3Acherrypicked+is%3Aclosed+sort%3Aupdated-asc)
@@ -164,7 +166,7 @@ Do the following things before a release:
             console.log(Array.from(document.querySelectorAll('[id^="issue_"][id*="_link"]')).map(el => /issue_(.*)_link/.exec(el.id)[1]).join(' '))
         ```
 
-1. Verify cloudbuild and postsubmit tests are passing.
+1. Verify cloudbuild and postsubmit tests are passing: visit https://github.com/kubeflow/pipelines/commits/master for master branch.
 
 ### Releasing from release branch
 
