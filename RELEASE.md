@@ -93,13 +93,15 @@ if you only want to use or contribute to this repo.
 * OS: Linux (MacOS not supported yet due to different behavior of sed)
 * Permissions needed
     * Can create a branch in github.com/kubeflow/pipelines.
+    * (Optional) if release from master branch, one would need the admin access to kubeflow/pipelines repo.
     * Can trigger cloudbuild jobs in ml-pipeline-test GCP project.
 * Tools that should be in your `$PATH`
     * jq 1.6 https://stedolan.github.io/jq/download/
     * yq https://github.com/mikefarah/yq/releases/tag/3.3.0
-    * jdk 8
+    * jdk 8 
     * node 12
-    * bazel 0.24.0
+    * bazel 0.24.0 https://github.com/bazelbuild/bazel/releases/tag/0.24.0
+    * python 3 (on linux, one would need the `python` to be `python3` by default instead of `python2`)
 * Preparations
     1. Clone github.com/kubeflow/pipelines repo into `$KFP_REPO`.
     2. `cd $KFP_REPO`
@@ -166,7 +168,7 @@ Do the following things before a release:
             console.log(Array.from(document.querySelectorAll('[id^="issue_"][id*="_link"]')).map(el => /issue_(.*)_link/.exec(el.id)[1]).join(' '))
         ```
 
-1. Verify cloudbuild and postsubmit tests are passing: visit https://github.com/kubeflow/pipelines/commits/master for master branch.
+1. Verify cloudbuild and postsubmit tests are passing: visit https://github.com/kubeflow/pipelines/commits/master for master branch.  (https://screenshot.googleplex.com/3W7G2gE8DChojzx).
 
 ### Releasing from release branch
 
@@ -190,7 +192,8 @@ Note, when releasing from master, all the below mentions of "release branch" mea
     Note, the script will clone kubeflow/pipelines repo into a temporary location on your computer, make those changes and attempt to push to upstream, so that it won't interfere with your current git repo.
 
 1. View related cloudbuild jobs' statuses by clicking the latest commit's status icon
-in the release branch. The page will look like https://github.com/kubeflow/pipelines/runs/775788343.
+in the release branch. The page will look like https://github.com/kubeflow/pipelines/runs/775788343
+(way to the page https://screenshot.googleplex.com/3W7G2gE8DChojzx).
 
 1. Wait and make sure the `build-each-commit` cloudbuild job that builds all images
 in gcr.io/ml-pipeline-test succeeded. If it fails, please click "View more details
@@ -215,6 +218,7 @@ and then "Retry", because after waiting for previous step, artifacts are now rea
     ```
 1. Release `kfp` python packages to PyPI.
     ```bash
+    export TAG_NAME=$VERSION
     pip3 install twine --user
     gsutil cp gs://ml-pipeline/release/$TAG_NAME/kfp.tar.gz kfp-$TAG_NAME.tar.gz
     python3 -m twine upload --username kubeflow-pipelines kfp-$TAG_NAME.tar.gz
