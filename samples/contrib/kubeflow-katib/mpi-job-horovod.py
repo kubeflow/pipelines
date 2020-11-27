@@ -11,12 +11,13 @@
 # Note: To run this example, your Kubernetes cluster should run MPIJob operator.
 # Follow this guide to install MPIJob on your cluster: https://www.kubeflow.org/docs/components/training/mpi/
 
-# Note: You have to install kfp>=1.1.1 SDK and kubeflow-katib>=0.10.0 SDK to run this example.
+# Note: You have to install kfp>=1.1.1 SDK and kubeflow-katib>=0.10.1 SDK to run this example.
 
 import kfp
 import kfp.dsl as dsl
 from kfp import components
 
+from kubeflow.katib import ApiClient
 from kubeflow.katib import V1beta1ExperimentSpec
 from kubeflow.katib import V1beta1AlgorithmSpec
 from kubeflow.katib import V1beta1AlgorithmSetting
@@ -204,16 +205,20 @@ def horovod_mnist_hpo():
     )
 
     # Get the Katib launcher.
+    # Load component from the URL or from the file.
     katib_experiment_launcher_op = components.load_component_from_url(
         "https://raw.githubusercontent.com/kubeflow/pipelines/master/components/kubeflow/katib-launcher/component.yaml")
+    # katib_experiment_launcher_op = components.load_component_from_file(
+    #     "../../../components/kubeflow/katib-launcher/component.yaml"
+    # )
 
     # Katib launcher component.
-    # We convert Experiment spec to JSON dict.
+    # Experiment Spec should be serialized to a valid Kubernetes object.
     # The Experiment is deleted after the Pipeline is finished.
     op = katib_experiment_launcher_op(
         experiment_name=experiment_name,
         experiment_namespace=experiment_namespace,
-        experiment_spec=experiment_spec.to_dict(),
+        experiment_spec=ApiClient().sanitize_for_serialization(experiment_spec),
         experiment_timeout_minutes=60)
 
     # Output container to print the results.

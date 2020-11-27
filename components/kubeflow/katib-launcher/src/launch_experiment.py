@@ -21,27 +21,10 @@ import logging
 import time
 
 from kubernetes.client import V1ObjectMeta
-from kubernetes.client import V1Container
-from kubernetes.client import V1HTTPGetAction
 
 from kubeflow.katib import KatibClient
+from kubeflow.katib import ApiClient
 from kubeflow.katib import V1beta1Experiment
-from kubeflow.katib import V1beta1ExperimentSpec
-from kubeflow.katib import V1beta1ObjectiveSpec
-from kubeflow.katib import V1beta1MetricStrategy
-from kubeflow.katib import V1beta1AlgorithmSpec
-from kubeflow.katib import V1beta1AlgorithmSetting
-from kubeflow.katib import V1beta1EarlyStoppingSpec
-from kubeflow.katib import V1beta1EarlyStoppingSetting
-from kubeflow.katib import V1beta1ParameterSpec
-from kubeflow.katib import V1beta1FeasibleSpace
-from kubeflow.katib import V1beta1MetricsCollectorSpec
-from kubeflow.katib import V1beta1CollectorSpec
-from kubeflow.katib import V1beta1SourceSpec
-from kubeflow.katib import V1beta1FileSystemPath
-from kubeflow.katib import V1beta1FilterSpec
-from kubeflow.katib import V1beta1TrialTemplate
-from kubeflow.katib import V1beta1TrialParameterSpec
 
 logger = logging.getLogger()
 logging.basicConfig(level=logging.INFO)
@@ -49,148 +32,13 @@ logging.basicConfig(level=logging.INFO)
 FINISH_CONDITIONS = ["Succeeded", "Failed"]
 
 
-def remove_none_from_dict(obj_dict):
-    """ Returns dict without "None" values """
-    if isinstance(obj_dict, (list, tuple, set)):
-        return type(obj_dict)(remove_none_from_dict(x) for x in obj_dict if x is not None)
-    elif isinstance(obj_dict, dict):
-        return type(obj_dict)((remove_none_from_dict(k), remove_none_from_dict(v))
-                              for k, v in obj_dict.items() if k is not None and v is not None)
-    else:
-        return obj_dict
+class JSONObject(object):
+    """ This class is needed to deserialize input JSON.
+    Katib API client expects JSON under .data attribute.
+    """
 
-
-def convert_dict_to_experiment_spec(experiment_spec_dict):
-    """ Returns V1beta1ExperimentSpec for the given dict """
-
-    experiment_spec = V1beta1ExperimentSpec()
-    # Set Trials count.
-    if "max_trial_count" in experiment_spec_dict:
-        experiment_spec.max_trial_count = experiment_spec_dict["max_trial_count"]
-    if "max_failed_trial_count" in experiment_spec_dict:
-        experiment_spec.max_failed_trial_count = experiment_spec_dict["max_failed_trial_count"]
-    if "parallel_trial_count" in experiment_spec_dict:
-        experiment_spec.parallel_trial_count = experiment_spec_dict["parallel_trial_count"]
-
-    # Set ResumePolicy.
-    if "resume_policy" in experiment_spec_dict:
-        experiment_spec.resume_policy = experiment_spec_dict["resume_policy"]
-
-    # Set Objective.
-    if "objective" in experiment_spec_dict:
-        experiment_spec.objective = V1beta1ObjectiveSpec(
-            **experiment_spec_dict["objective"]
-        )
-        # Convert metrics strategies.
-        if experiment_spec.objective.metric_strategies is not None:
-            experiment_spec.objective.metric_strategies = []
-            for strategy in experiment_spec_dict["objective"]["metric_strategies"]:
-                experiment_spec.objective.metric_strategies.append(
-                    V1beta1MetricStrategy(
-                        name=strategy["name"],
-                        value=strategy["value"]
-                    )
-                )
-
-    # Set Algorithm.
-    if "algorithm" in experiment_spec_dict:
-        experiment_spec.algorithm = V1beta1AlgorithmSpec(
-            **experiment_spec_dict["algorithm"]
-        )
-        # Convert algorithm settings.
-        if experiment_spec.algorithm.algorithm_settings is not None:
-            experiment_spec.algorithm.algorithm_settings = []
-            for setting in experiment_spec_dict["algorithm"]["algorithm_settings"]:
-                experiment_spec.algorithm.algorithm_settings.append(
-                    V1beta1AlgorithmSetting(
-                        name=setting["name"],
-                        value=setting["value"]
-                    )
-                )
-
-    # Set Early Stopping.
-    if "early_stopping" in experiment_spec_dict:
-        experiment_spec.early_stopping = V1beta1EarlyStoppingSpec(
-            **experiment_spec_dict["early_stopping"]
-        )
-        # Convert early stopping settings
-        if experiment_spec.early_stopping.algorithm_settings is not None:
-            experiment_spec.early_stopping.algorithm_settings = []
-            for setting in experiment_spec_dict["early_stopping"]["algorithm_settings"]:
-                experiment_spec.early_stopping.algorithm_settings.append(
-                    V1beta1EarlyStoppingSetting(
-                        name=setting["name"],
-                        value=setting["value"]
-                    )
-                )
-
-    # Set parameters.
-    if "parameters" in experiment_spec_dict:
-        experiment_spec.parameters = []
-        for parameter in experiment_spec_dict["parameters"]:
-            experiment_spec.parameters.append(
-                V1beta1ParameterSpec(
-                    name=parameter["name"],
-                    parameter_type=parameter["parameter_type"],
-                    feasible_space=V1beta1FeasibleSpace(
-                        **parameter["feasible_space"]
-                    )
-                )
-            )
-
-    # Set Metrics Collector spec.
-    if "metrics_collector_spec" in experiment_spec_dict:
-        mc_spec = experiment_spec_dict["metrics_collector_spec"]
-        collector_spec = V1beta1CollectorSpec()
-        source_spec = V1beta1SourceSpec()
-
-        # Convert collector.
-        if "collector" in mc_spec:
-            collector_spec.kind = mc_spec["kind"]
-            # Convert custom collector container.
-            if "custom_collector" in mc_spec["collector"]:
-                collector_spec.custom_collector = V1Container(
-                    **mc_spec["collector"]["custom_collector"]
-                )
-
-        # Convert Source.
-        if "source" in mc_spec:
-            # Convert file system path.
-            if "file_system_path" in mc_spec["source"]:
-                source_spec.file_system_path = V1beta1FileSystemPath(
-                    kind=mc_spec["source"]["file_system_path"]["kind"],
-                    path=mc_spec["source"]["file_system_path"]["path"]
-                )
-            # Convert filters.
-            if "filter" in mc_spec["source"]:
-                source_spec.spec.filter = V1beta1FilterSpec(
-                    metrics_format=mc_spec["source"]["filter"]["metricsFormat"]
-                )
-            # Convert HTTP get.
-            if "http_get" in mc_spec["source"]:
-                source_spec.spec.http_get = V1HTTPGetAction(
-                    **mc_spec["source"]["http_get"]
-                )
-        experiment_spec.metrics_collector_spec = V1beta1MetricsCollectorSpec(
-            collector=collector_spec,
-            source=source_spec
-        )
-
-    # Set Trial template parameters.
-    if "trial_template" in experiment_spec_dict:
-        experiment_spec.trial_template = V1beta1TrialTemplate(
-            **experiment_spec_dict["trial_template"]
-        )
-        # Convert Trial parameters.
-        if experiment_spec.trial_template.trial_parameters is not None:
-            experiment_spec.trial_template.trial_parameters = []
-            for parameter in experiment_spec_dict["trial_template"]["trial_parameters"]:
-                experiment_spec.trial_template.trial_parameters.append(
-                    V1beta1TrialParameterSpec(
-                        **parameter
-                    )
-                )
-    return experiment_spec
+    def __init__(self, json):
+        self.data = json
 
 
 def wait_experiment_finish(katib_client, experiment, timeout):
@@ -227,7 +75,7 @@ if __name__ == "__main__":
                         help='Experiment name')
     parser.add_argument('--experiment-namespace', type=str, default='anonymous',
                         help='Experiment namespace')
-    parser.add_argument('--experiment-spec', type=json.loads, default='',
+    parser.add_argument('--experiment-spec', type=str, default='',
                         help='Experiment specification')
     parser.add_argument('--experiment-timeout-minutes', type=int, default=60*24,
                         help='Time in minutes to wait for the Experiment to complete')
@@ -244,10 +92,10 @@ if __name__ == "__main__":
 
     logger.info("Creating Experiment: {} in namespace: {}".format(experiment_name, experiment_namespace))
 
-    # Remove "None" values from the dict.
-    experiment_spec = remove_none_from_dict(args.experiment_spec)
-    # Convert Dict to V1beta1ExperimentSpec
-    experiment_spec = convert_dict_to_experiment_spec(experiment_spec)
+    # Create JSON object from experiment spec
+    experiment_spec = JSONObject(args.experiment_spec)
+    # Deserialize JSON to ExperimentSpec
+    experiment_spec = ApiClient().client.deserialize(experiment_spec, "V1beta1ExperimentSpec")
 
     # Create Experiment object.
     experiment = V1beta1Experiment(
