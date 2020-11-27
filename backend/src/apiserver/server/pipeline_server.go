@@ -26,6 +26,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	authorizationv1 "k8s.io/api/authorization/v1"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -125,7 +126,11 @@ func (s *PipelineServer) CreatePipeline(ctx context.Context, request *api.Create
 
 	resourceReferences := request.Pipeline.GetResourceReferences()
 	namespace := common.GetNamespaceFromAPIResourceReferences(resourceReferences)
-	err = isAuthorized(s.resourceManager, ctx, namespace)
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: namespace,
+		Verb:      common.RbacResourceVerbList,
+	}
+	err = isAuthorized(s.resourceManager, ctx, resourceAttributes)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize with API resource references")
 	}
@@ -191,7 +196,11 @@ func (s *PipelineServer) ListPipelines(ctx context.Context, request *api.ListPip
 		if len(namespace) == 0 {
 			return nil, util.NewInvalidInputError("Invalid resource references for pipelines. Namespace is empty.")
 		}
-		err = isAuthorized(s.resourceManager, ctx, namespace)
+		resourceAttributes := &authorizationv1.ResourceAttributes{
+			Namespace: namespace,
+			Verb:      common.RbacResourceVerbList,
+		}
+		err = isAuthorized(s.resourceManager, ctx, resourceAttributes)
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to authorize with API resource references")
 		}
@@ -347,7 +356,11 @@ func (s *PipelineServer) ListPipelineVersions(ctx context.Context, request *api.
 	}
 	// Only check if the namespace isn't empty.
 	if common.IsMultiUserMode() && namespace != "" {
-		err = isAuthorized(s.resourceManager, ctx, namespace)
+		resourceAttributes := &authorizationv1.ResourceAttributes{
+			Namespace: namespace,
+			Verb:      common.RbacResourceVerbList,
+		}
+		err = isAuthorized(s.resourceManager, ctx, resourceAttributes)
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to authorize with API resource references")
 		}
@@ -374,7 +387,11 @@ func (s *PipelineServer) DeletePipelineVersion(ctx context.Context, request *api
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to get namespace from Pipeline VersionId")
 	}
-	err = isAuthorized(s.resourceManager, ctx, namespace)
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: namespace,
+		Verb:      common.RbacResourceVerbList,
+	}
+	err = isAuthorized(s.resourceManager, ctx, resourceAttributes)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize with API resource references")
 	}
@@ -411,7 +428,11 @@ func (s *PipelineServer) CanAccessPipelineVersion(ctx context.Context, versionId
 	if err != nil {
 		return util.Wrap(err, "Failed to get namespace from Pipeline VersionId")
 	}
-	err = isAuthorized(s.resourceManager, ctx, namespace)
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: namespace,
+		Verb:      common.RbacResourceVerbList,
+	}
+	err = isAuthorized(s.resourceManager, ctx, resourceAttributes)
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize with API resource references")
 	}
@@ -430,7 +451,11 @@ func (s *PipelineServer) CanAccessPipeline(ctx context.Context, pipelineId strin
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize with the Pipeline ID.")
 	}
-	err = isAuthorized(s.resourceManager, ctx, namespace)
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: namespace,
+		Verb:      common.RbacResourceVerbList,
+	}
+	err = isAuthorized(s.resourceManager, ctx, resourceAttributes)
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize with API resource references")
 	}

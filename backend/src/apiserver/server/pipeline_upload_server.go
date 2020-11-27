@@ -29,6 +29,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
 // These are valid conditions of a ScheduledWorkflow.
@@ -221,12 +222,13 @@ func (s *PipelineUploadServer) canUploadVersionedPipeline(r *http.Request, names
 		return nil
 	}
 	userIdentityHeader := r.Header.Get(common.GetKubeflowUserIDHeader())
-	isAuthorized, err := s.resourceManager.IsRequestAuthorized(userIdentityHeader, namespace)
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: namespace,
+		Verb:      common.RbacResourceVerbList,
+	}
+	err := s.resourceManager.IsRequestAuthorized(userIdentityHeader, resourceAttributes)
 	if err != nil {
 		return util.Wrap(err, "Authorization Failure.")
-	}
-	if isAuthorized == false {
-		return util.Wrap(err, "Unauthorized access to namespace.")
 	}
 	return nil
 }
