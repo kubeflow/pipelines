@@ -15,6 +15,8 @@ The Kubeflow pipelines service has the following goals:
 
 ## Documentation
 
+Install Kubeflow Pipelines from [an overview of several options](https://www.kubeflow.org/docs/pipelines/installation/overview/).
+
 Get started with your first pipeline and read further information in the [Kubeflow Pipelines overview](https://www.kubeflow.org/docs/pipelines/overview/pipelines-overview/).
 
 See the various ways you can [use the Kubeflow Pipelines SDK](https://www.kubeflow.org/docs/pipelines/sdk/sdk-overview/).
