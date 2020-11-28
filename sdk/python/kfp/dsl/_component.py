@@ -131,7 +131,7 @@ def graph_component(func):
     graph_ops_group.arguments = bound_arguments.arguments
     for input in graph_ops_group.inputs:
       if not isinstance(input, PipelineParam, PipelineVolume):
-        raise ValueError('arguments to ' + func.__name__ + ' should be PipelineParams.')
+        raise ValueError('arguments to ' + func.__name__ + ' should be PipelineParams or PipelineVolumes.')
 
     # Entering the Graph Context
     with graph_ops_group:
