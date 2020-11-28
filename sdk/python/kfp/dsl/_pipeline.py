@@ -66,6 +66,7 @@ class PipelineConf():
     self.image_pull_policy = None
     self.parallelism = None
     self._data_passing_method = None
+    self.dns_config = None
 
   def set_image_pull_secrets(self, image_pull_secrets):
     """Configures the pipeline level imagepullsecret
@@ -148,6 +149,16 @@ class PipelineConf():
       transformer: A function that takes a kfp Op as input and returns a kfp Op
     """
     self.op_transformers.append(transformer)
+
+  def set_dns_config(self, dns_config):
+    """Set the dnsConfig to be given to each pod.
+
+    Args:
+      dns_config: Kubernetes V1PodDNSConfig
+        For detailed description, check Kubernetes V1PodDNSConfig definition
+        https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1PodDNSConfig.md
+    """
+    self.dns_config = dns_config
 
   @property
   def data_passing_method(self):
