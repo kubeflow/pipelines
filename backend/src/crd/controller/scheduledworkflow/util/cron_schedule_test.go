@@ -33,87 +33,88 @@ const (
 
 func TestCronSchedule_getNextScheduledEpoch_Cron_StartDate_EndDate(t *testing.T) {
 	// First job.
-	schedule := NewCronSchedule(&swfapi.CronSchedule{
+	schedule, err := NewCronSchedule(&swfapi.CronSchedule{
 		StartTime: commonutil.Metav1TimePointer(v1.NewTime(time.Unix(10*hour, 0).UTC())),
 		EndTime:   commonutil.Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
 		Cron:      "0 * * * * * ",
 	})
+	assert.Nil(t, err)
 	lastJobEpoch := int64(0)
-	location, _ := time.LoadLocation("UTC")
 	assert.Equal(t, int64(10*hour+minute),
-		schedule.getNextScheduledEpoch(time.Unix(lastJobEpoch, 0).UTC(), location))
+		schedule.getNextScheduledEpoch(time.Unix(lastJobEpoch, 0).UTC()))
 
 	// Not the first job.
 	lastJobEpoch = int64(10*hour + 5*minute)
 	assert.Equal(t, int64(10*hour+6*minute),
-		schedule.getNextScheduledEpoch(time.Unix(lastJobEpoch, 0).UTC(), location))
+		schedule.getNextScheduledEpoch(time.Unix(lastJobEpoch, 0).UTC()))
 
 	// Last job
 	lastJobEpoch = int64(13 * hour)
 	assert.Equal(t, time.Unix(1<<63-62135596801, 999999999).Unix(),
-		schedule.getNextScheduledEpoch(time.Unix(lastJobEpoch, 0).UTC(), location))
+		schedule.getNextScheduledEpoch(time.Unix(lastJobEpoch, 0).UTC()))
 
 }
 
 func TestCronSchedule_getNextScheduledEpoch_CronOnly(t *testing.T) {
-	schedule := NewCronSchedule(&swfapi.CronSchedule{
+	schedule, err := NewCronSchedule(&swfapi.CronSchedule{
 		Cron: "0 * * * * * ",
 	})
+	assert.Nil(t, err)
 	lastJobEpoch := int64(10 * hour)
-	location, _ := time.LoadLocation("UTC")
 	assert.Equal(t, int64(10*hour+minute),
-		schedule.getNextScheduledEpoch(time.Unix(lastJobEpoch, 0).UTC(), location))
+		schedule.getNextScheduledEpoch(time.Unix(lastJobEpoch, 0).UTC()))
 }
 
 func TestCronSchedule_getNextScheduledEpoch_NoCron(t *testing.T) {
-	schedule := NewCronSchedule(&swfapi.CronSchedule{
+	schedule, err := NewCronSchedule(&swfapi.CronSchedule{
 		StartTime: commonutil.Metav1TimePointer(v1.NewTime(time.Unix(10*hour, 0).UTC())),
 		EndTime:   commonutil.Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
 		Cron:      "",
 	})
+	assert.Nil(t, err)
 	lastJobEpoch := int64(0)
-	location, _ := time.LoadLocation("UTC")
 	assert.Equal(t, time.Unix(1<<63-62135596801, 999999999).Unix(),
-		schedule.getNextScheduledEpoch(time.Unix(lastJobEpoch, 0).UTC(), location))
+		schedule.getNextScheduledEpoch(time.Unix(lastJobEpoch, 0).UTC()))
 }
 
 func TestCronSchedule_getNextScheduledEpoch_InvalidCron(t *testing.T) {
-	schedule := NewCronSchedule(&swfapi.CronSchedule{
+	schedule, err := NewCronSchedule(&swfapi.CronSchedule{
 		StartTime: commonutil.Metav1TimePointer(v1.NewTime(time.Unix(10*hour, 0).UTC())),
 		EndTime:   commonutil.Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
 		Cron:      "*$&%*(W&",
 	})
+	assert.Nil(t, err)
 	lastJobEpoch := int64(0)
-	location, _ := time.LoadLocation("UTC")
 	assert.Equal(t, time.Unix(1<<63-62135596801, 999999999).Unix(),
-		schedule.getNextScheduledEpoch(time.Unix(lastJobEpoch, 0).UTC(), location))
+		schedule.getNextScheduledEpoch(time.Unix(lastJobEpoch, 0).UTC()))
 }
 
 func TestCronSchedule_GetNextScheduledEpoch(t *testing.T) {
 	// There was a previous job.
-	schedule := NewCronSchedule(&swfapi.CronSchedule{
+	schedule, err := NewCronSchedule(&swfapi.CronSchedule{
 		StartTime: commonutil.Metav1TimePointer(v1.NewTime(time.Unix(10*hour+10*minute, 0).UTC())),
 		EndTime:   commonutil.Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
 		Cron:      "0 * * * * * ",
 	})
+	assert.Nil(t, err)
 	lastJobTime := v1.Time{time.Unix(int64(10*hour+20*minute), 0).UTC()}
 	defaultStartTime := time.Unix(int64(10*hour+15*minute), 0).UTC()
-	location, _ := time.LoadLocation("UTC")
 	assert.Equal(t, int64(10*hour+20*minute+minute),
-		schedule.GetNextScheduledEpoch(&lastJobTime, defaultStartTime, location))
+		schedule.GetNextScheduledEpoch(&lastJobTime, defaultStartTime))
 
 	// There is no previous job, falling back on the start date of the schedule.
 	assert.Equal(t, int64(10*hour+10*minute+minute),
-		schedule.GetNextScheduledEpoch(nil, defaultStartTime, location))
+		schedule.GetNextScheduledEpoch(nil, defaultStartTime))
 
 	// There is no previous job, no schedule start date, falling back on the
 	// creation date of the workflow.
-	schedule = NewCronSchedule(&swfapi.CronSchedule{
+	schedule, err = NewCronSchedule(&swfapi.CronSchedule{
 		EndTime: commonutil.Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
 		Cron:    "0 * * * * * ",
 	})
+	assert.Nil(t, err)
 	assert.Equal(t, int64(10*hour+15*minute+minute),
-		schedule.GetNextScheduledEpoch(nil, defaultStartTime, location))
+		schedule.GetNextScheduledEpoch(nil, defaultStartTime))
 }
 
 func TestCronSchedule_GetNextScheduledEpoch_LocationsEnvSet(t *testing.T) {
@@ -121,8 +122,6 @@ func TestCronSchedule_GetNextScheduledEpoch_LocationsEnvSet(t *testing.T) {
 	viper.Set(TimeZone, locationString)
 	defer viper.Set(TimeZone, "")
 
-	location, err := time.LoadLocation(locationString)
-	assert.Nil(t, err)
 	startTime, err := time.Parse(time.RFC1123Z, "Mon, 11 Jan 2010 10:00:00 +0800")
 	assert.Nil(t, err)
 	endTime, err := time.Parse(time.RFC1123Z, "Mon, 11 Jan 2010 11:00:00 +0800")
@@ -130,67 +129,68 @@ func TestCronSchedule_GetNextScheduledEpoch_LocationsEnvSet(t *testing.T) {
 	lastJob, err := time.Parse(time.RFC1123Z, "Mon, 11 Jan 2010 10:20:00 +0800")
 	assert.Nil(t, err)
 	defaultStartTime, err := time.Parse(time.RFC1123Z, "Mon, 11 Jan 2010 10:15:00 +0800")
-	schedule := NewCronSchedule(&swfapi.CronSchedule{
+	schedule, err := NewCronSchedule(&swfapi.CronSchedule{
 		StartTime: commonutil.Metav1TimePointer(v1.NewTime(startTime)),
 		EndTime:   commonutil.Metav1TimePointer(v1.NewTime(endTime)),
 		Cron:      "0 * * * * * ",
 	})
+	assert.Nil(t, err)
 	lastJobTime := v1.Time{lastJob}
 
 	assert.Equal(t, lastJob.Add(time.Minute*1).Unix(),
-		schedule.GetNextScheduledEpoch(&lastJobTime, defaultStartTime, location))
+		schedule.GetNextScheduledEpoch(&lastJobTime, defaultStartTime))
 
 	// There is no previous job, falling back on the start date of the schedule.
 	assert.Equal(t, startTime.Add(time.Minute*1).Unix(),
-		schedule.GetNextScheduledEpoch(nil, defaultStartTime, location))
+		schedule.GetNextScheduledEpoch(nil, defaultStartTime))
 }
 
 func TestCronSchedule_GetNextScheduledEpochNoCatchup(t *testing.T) {
 	// There was a previous job, hasn't been time for next job
-	schedule := NewCronSchedule(&swfapi.CronSchedule{
+	schedule, err := NewCronSchedule(&swfapi.CronSchedule{
 		StartTime: commonutil.Metav1TimePointer(v1.NewTime(time.Unix(10*hour+10*minute, 0).UTC())),
 		EndTime:   commonutil.Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
 		Cron:      "0 * * * * * ",
 	})
-
+	assert.Nil(t, err)
 	lastJobTime := v1.Time{time.Unix(int64(10*hour+20*minute), 0).UTC()}
 	defaultStartTime := time.Unix(int64(10*hour+15*minute), 0).UTC()
 	nowTime := time.Unix(int64(10*hour+20*minute+30*second), 0).UTC()
-	location, _ := time.LoadLocation("UTC")
 
 	assert.Equal(t, int64(10*hour+20*minute+minute),
-		schedule.GetNextScheduledEpochNoCatchup(&lastJobTime, defaultStartTime, nowTime, location))
+		schedule.GetNextScheduledEpochNoCatchup(&lastJobTime, defaultStartTime, nowTime))
 
 	// Exactly now for next job
 	nowTime = time.Unix(int64(10*hour+20*minute+minute), 0).UTC()
 	assert.Equal(t, int64(10*hour+20*minute+minute),
-		schedule.GetNextScheduledEpochNoCatchup(&lastJobTime, defaultStartTime, nowTime, location))
+		schedule.GetNextScheduledEpochNoCatchup(&lastJobTime, defaultStartTime, nowTime))
 
 	// Shortly after next job's original schedule
 	nowTime = time.Unix(int64(10*hour+21*minute+30*second), 0).UTC()
 	assert.Equal(t, int64(10*hour+21*minute),
-		schedule.GetNextScheduledEpochNoCatchup(&lastJobTime, defaultStartTime, nowTime, location))
+		schedule.GetNextScheduledEpochNoCatchup(&lastJobTime, defaultStartTime, nowTime))
 
 	// We are behind schedule
 	nowTime = time.Unix(int64(10*hour+30*minute), 0).UTC()
 	assert.Equal(t, int64(10*hour+30*minute),
-		schedule.GetNextScheduledEpochNoCatchup(&lastJobTime, defaultStartTime, nowTime, location))
+		schedule.GetNextScheduledEpochNoCatchup(&lastJobTime, defaultStartTime, nowTime))
 
 	// We are way behind schedule (later than end time)
 	nowTime = time.Unix(int64(12*hour), 0).UTC()
 	assert.Equal(t, int64(11*hour),
-		schedule.GetNextScheduledEpochNoCatchup(&lastJobTime, defaultStartTime, nowTime, location))
+		schedule.GetNextScheduledEpochNoCatchup(&lastJobTime, defaultStartTime, nowTime))
 
 	// There is no previous job, falling back on the start date of the schedule
 	assert.Equal(t, int64(10*hour+10*minute+minute),
-		schedule.GetNextScheduledEpochNoCatchup(nil, defaultStartTime, time.Unix(0, 0), location))
+		schedule.GetNextScheduledEpochNoCatchup(nil, defaultStartTime, time.Unix(0, 0)))
 
 	// There is no previous job, no schedule start date, falling back on the
 	// creation date of the workflow.
-	schedule = NewCronSchedule(&swfapi.CronSchedule{
+	schedule, err = NewCronSchedule(&swfapi.CronSchedule{
 		EndTime: commonutil.Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
 		Cron:    "0 * * * * * ",
 	})
+	assert.Nil(t, err)
 	assert.Equal(t, int64(10*hour+15*minute+minute),
-		schedule.GetNextScheduledEpochNoCatchup(nil, defaultStartTime, time.Unix(0, 0), location))
+		schedule.GetNextScheduledEpochNoCatchup(nil, defaultStartTime, time.Unix(0, 0)))
 }

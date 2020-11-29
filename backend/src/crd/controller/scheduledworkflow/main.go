@@ -83,8 +83,7 @@ func main() {
 		workflowClient,
 		scheduleInformerFactory,
 		workflowInformerFactory,
-		commonutil.NewRealTime(),
-		location)
+		commonutil.NewRealTime())
 
 	go scheduleInformerFactory.Start(stopCh)
 	go workflowInformerFactory.Start(stopCh)

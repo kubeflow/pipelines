@@ -71,9 +71,6 @@ type Controller struct {
 
 	// An interface to generate the current time.
 	time commonutil.TimeInterface
-
-	// the timezone loation which the scheduled will use
-	location *time.Location
 }
 
 // NewController returns a new sample controller
@@ -83,8 +80,7 @@ func NewController(
 	workflowClientSet workflowclientset.Interface,
 	swfInformerFactory swfinformers.SharedInformerFactory,
 	workflowInformerFactory workflowinformers.SharedInformerFactory,
-	time commonutil.TimeInterface,
-	location *time.Location) *Controller {
+	time commonutil.TimeInterface) *Controller {
 
 	// obtain references to shared informers
 	swfInformer := swfInformerFactory.Scheduledworkflow().V1beta1().ScheduledWorkflows()
@@ -107,8 +103,7 @@ func NewController(
 		workflowClient: client.NewWorkflowClient(workflowClientSet, workflowInformer),
 		workqueue: workqueue.NewNamedRateLimitingQueue(
 			workqueue.NewItemExponentialFailureRateLimiter(DefaultJobBackOff, MaxJobBackOff), swfregister.Kind),
-		time:     time,
-		location: location,
+		time: time,
 	}
 
 	log.Info("Setting up event handlers")
@@ -447,8 +442,11 @@ func (c *Controller) submitNextWorkflowIfNeeded(swf *util.ScheduledWorkflow,
 	activeWorkflowCount int, nowEpoch int64) (
 	workflow *commonutil.Workflow, nextScheduledEpoch int64, err error) {
 	// Compute the next scheduled time.
-	nextScheduledEpoch, shouldRunNow := swf.GetNextScheduledEpoch(
-		int64(activeWorkflowCount), nowEpoch, *c.location)
+	nextScheduledEpoch, shouldRunNow, err := swf.GetNextScheduledEpoch(
+		int64(activeWorkflowCount), nowEpoch)
+	if err != nil {
+		return nil, 0, err
+	}
 
 	if !shouldRunNow {
 		log.WithFields(log.Fields{
@@ -520,8 +518,10 @@ func (c *Controller) updateStatus(
 	// You can use DeepCopy() to make a deep copy of original object and modify this copy
 	// Or create a copy manually for better performance
 	swfCopy := util.NewScheduledWorkflow(swf.Get().DeepCopy())
-	swfCopy.UpdateStatus(nowEpoch, workflow, nextScheduledEpoch, active, completed, c.location)
-
+	err := swfCopy.UpdateStatus(nowEpoch, workflow, nextScheduledEpoch, active, completed)
+	if err != nil {
+		return err
+	}
 	// Until #38113 is merged, we must use Update instead of UpdateStatus to
 	// update the Status block of the ScheduledWorkflow. UpdateStatus will not
 	// allow changes to the Spec of the resource, which is ideal for ensuring
