@@ -168,7 +168,11 @@ Do the following things before a release:
             console.log(Array.from(document.querySelectorAll('[id^="issue_"][id*="_link"]')).map(el => /issue_(.*)_link/.exec(el.id)[1]).join(' '))
         ```
 
-1. Verify cloudbuild and postsubmit tests are passing: visit https://github.com/kubeflow/pipelines/commits/master for master branch.  (https://screenshot.googleplex.com/3W7G2gE8DChojzx).
+1. Verify cloudbuild and postsubmit tests are passing: visit https://github.com/kubeflow/pipelines/commits/master for master branch.
+
+![Screenshot](release-status-check.png)
+
+If not, contact the KFP team to determine if the failure(s) would block the release.
 
 ### Releasing from release branch
 
@@ -192,8 +196,8 @@ Note, when releasing from master, all the below mentions of "release branch" mea
     Note, the script will clone kubeflow/pipelines repo into a temporary location on your computer, make those changes and attempt to push to upstream, so that it won't interfere with your current git repo.
 
 1. View related cloudbuild jobs' statuses by clicking the latest commit's status icon
-in the release branch. The page will look like https://github.com/kubeflow/pipelines/runs/775788343
-(way to the page https://screenshot.googleplex.com/3W7G2gE8DChojzx).
+in the release branch. The page will look like https://github.com/kubeflow/pipelines/runs/775788343.
+Refer to the above screenshot to find the page.
 
 1. Wait and make sure the `build-each-commit` cloudbuild job that builds all images
 in gcr.io/ml-pipeline-test succeeded. If it fails, please click "View more details
