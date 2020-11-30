@@ -95,7 +95,7 @@ if __name__ == "__main__":
     # Create JSON object from experiment spec
     experiment_spec = JSONObject(args.experiment_spec)
     # Deserialize JSON to ExperimentSpec
-    experiment_spec = ApiClient().client.deserialize(experiment_spec, "V1beta1ExperimentSpec")
+    experiment_spec = ApiClient().deserialize(experiment_spec, "V1beta1ExperimentSpec")
 
     # Create Experiment object.
     experiment = V1beta1Experiment(
