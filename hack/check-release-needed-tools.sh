@@ -36,10 +36,10 @@ python -c "import setuptools" || (echo "setuptools should be installed in python
 echo "go"
 which go >/dev/null || (echo "go not found in PATH" && exit 1)
 go_path=$(go env GOPATH)
-echo "$PATH" | grep "${go_path}/bin" > /dev/null || (
-    echo "\$GOPATH/bin: ${go_path}/bin should be in PATH"
-    echo "https://golang.org/cmd/go/#hdr-GOPATH_and_Modules"
-)
+echo "$PATH" | grep "${go_path}/bin" > /dev/null || ( \
+    echo "\$GOPATH/bin: ${go_path}/bin should be in PATH"; \
+    echo "https://golang.org/cmd/go/#hdr-GOPATH_and_Modules"; \
+    exit 1)
 
 echo "All tools installed"
 echo "Please add another needed tools if above list is not complete"
