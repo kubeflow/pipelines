@@ -1,0 +1,47 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "admission.go",
+        "client_manager_fake.go",
+        "mutation.go",
+        "watcher.go",
+    ],
+    importpath = "github.com/kubeflow/pipelines/backend/src/cache/server",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/src/cache/client:go_default_library",
+        "//backend/src/cache/model:go_default_library",
+        "//backend/src/cache/storage:go_default_library",
+        "//backend/src/common/util:go_default_library",
+        "@com_github_golang_glog//:go_default_library",
+        "@com_github_peterhellberg_duration//:go_default_library",
+        "@io_k8s_api//admission/v1beta1:go_default_library",
+        "@io_k8s_api//core/v1:go_default_library",
+        "@io_k8s_apimachinery//pkg/apis/meta/v1:go_default_library",
+        "@io_k8s_apimachinery//pkg/runtime:go_default_library",
+        "@io_k8s_apimachinery//pkg/runtime/serializer:go_default_library",
+        "@io_k8s_apimachinery//pkg/types:go_default_library",
+        "@io_k8s_apimachinery//pkg/watch:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "admission_test.go",
+        "mutation_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = [
+        "//backend/src/cache/model:go_default_library",
+        "//backend/src/common/util:go_default_library",
+        "@com_github_stretchr_testify//assert:go_default_library",
+        "@com_github_stretchr_testify//require:go_default_library",
+        "@io_k8s_api//admission/v1beta1:go_default_library",
+        "@io_k8s_api//core/v1:go_default_library",
+        "@io_k8s_apimachinery//pkg/apis/meta/v1:go_default_library",
+        "@io_k8s_apimachinery//pkg/runtime:go_default_library",
+    ],
+)

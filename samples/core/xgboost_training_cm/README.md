@@ -46,7 +46,7 @@ To do additional exploration you may change some of the parameters, or pipeline 
  
 * `output` is a Google Storage path which holds pipeline run results.
 Note that each pipeline run will create a unique directory under `output` so it will not override previous results.
-* `workers` is nubmer of worker notes used for this training. 
+* `workers` is number of worker nodes used for this training. 
 * `rounds` is the number of XGBoost training iterations. Set the value to 200 to get a reasonable trained model.
 * `train_data` points to a CSV file that contains the training data. For a sample see 'gs://ml-pipeline-playground/sfpd/train.csv'.
 * `eval_data` points to a CSV file that contains the training data. For a sample see 'gs://ml-pipeline-playground/sfpd/eval.csv'.

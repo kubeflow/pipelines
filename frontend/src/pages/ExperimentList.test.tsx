@@ -31,13 +31,24 @@ import { ButtonKeys } from '../lib/Buttons';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { render, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { ExperimentStorageState } from '../apis/experiment';
 
 // Default arguments for Apis.experimentServiceApi.listExperiment.
 const LIST_EXPERIMENT_DEFAULTS = [
   '', // page token
   10, // page size
   'created_at desc', // sort by
-  '', // filter
+  encodeURIComponent(
+    JSON.stringify({
+      predicates: [
+        {
+          key: 'storage_state',
+          op: PredicateOp.NOTEQUALS,
+          string_value: ExperimentStorageState.ARCHIVED.toString(),
+        },
+      ],
+    } as ApiFilter),
+  ), // filter
   undefined, // resource_reference_key_type
   undefined, // resource_reference_key_id
 ];

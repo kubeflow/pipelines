@@ -1,0 +1,272 @@
+name: Xgboost 5 fold cross validation for regression
+inputs:
+- {name: data, type: CSV}
+- {name: label_column, type: Integer, default: '0', optional: true}
+- {name: objective, type: String, default: 'reg:squarederror', optional: true}
+- {name: num_iterations, type: Integer, default: '200', optional: true}
+outputs:
+- {name: mean_absolute_error, type: Float}
+- {name: mean_squared_error, type: Float}
+- {name: root_mean_squared_error, type: Float}
+- {name: metrics, type: JsonObject}
+implementation:
+  graph:
+    tasks:
+      Split table into folds:
+        componentRef: {digest: 9956223bcecc7294ca1afac39b60ada4a935a571d817c3dfbf2ea4a211afe3d1,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/e9b4b29b22a5120daf95b581b0392cd461a906f0/components/dataset_manipulation/split_data_into_folds/in_CSV/component.yaml'}
+        arguments:
+          table:
+            graphInput: {inputName: data}
+      Xgboost train:
+        componentRef: {digest: 09b80053da29f8f51575b42e5d2e8ad4b7bdcc92a02c3744e189b1f597006b38,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/567c04c51ff00a1ee525b3458425b17adbe3df61/components/XGBoost/Train/component.yaml'}
+        arguments:
+          training_data:
+            taskOutput: {outputName: train_1, taskId: Split table into folds, type: CSV}
+          label_column:
+            graphInput: {inputName: label_column}
+          num_iterations:
+            graphInput: {inputName: num_iterations}
+          objective:
+            graphInput: {inputName: objective}
+      Xgboost predict:
+        componentRef: {digest: ecdfaf32cff15b6abc3d0dd80365ce00577f1a19a058fbe201f515431cea1357,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/567c04c51ff00a1ee525b3458425b17adbe3df61/components/XGBoost/Predict/component.yaml'}
+        arguments:
+          data:
+            taskOutput: {outputName: test_1, taskId: Split table into folds, type: CSV}
+          model:
+            taskOutput: {outputName: model, taskId: Xgboost train, type: XGBoostModel}
+          label_column:
+            graphInput: {inputName: label_column}
+      Pandas Transform DataFrame in CSV format:
+        componentRef: {digest: 58dc88349157bf128021708c316ce4eb60bc1de0a5a7dd3af45fabac3276d510,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/6162d55998b176b50267d351241100bb0ee715bc/components/pandas/Transform_DataFrame/in_CSV_format/component.yaml'}
+        arguments:
+          table:
+            taskOutput: {outputName: test_1, taskId: Split table into folds, type: CSV}
+          transform_code: df = df[["tips"]]
+      Remove header:
+        componentRef: {digest: ba35ffea863855b956c3c50aefa0420ba3823949a6c059e6e3971cde960dc5a3,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/02c9638287468c849632cf9f7885b51de4c66f86/components/tables/Remove_header/component.yaml'}
+        arguments:
+          table:
+            taskOutput: {outputName: transformed_table, taskId: Pandas Transform DataFrame
+                in CSV format, type: CSV}
+      Calculate regression metrics from csv:
+        componentRef: {digest: e3ecbfeb18032820edfee4255e2fb6d15d15ed224e166519d5e528e12053a995,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/7da1ac9464b4b3e7d95919faa2f1107a9635b7e4/components/ml_metrics/Calculate_regression_metrics/from_CSV/component.yaml'}
+        arguments:
+          true_values:
+            taskOutput: {outputName: table, taskId: Remove header}
+          predicted_values:
+            taskOutput: {outputName: predictions, taskId: Xgboost predict, type: Text}
+      Xgboost train 2:
+        componentRef: {digest: 09b80053da29f8f51575b42e5d2e8ad4b7bdcc92a02c3744e189b1f597006b38,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/567c04c51ff00a1ee525b3458425b17adbe3df61/components/XGBoost/Train/component.yaml'}
+        arguments:
+          training_data:
+            taskOutput: {outputName: train_2, taskId: Split table into folds, type: CSV}
+          label_column:
+            graphInput: {inputName: label_column}
+          num_iterations:
+            graphInput: {inputName: num_iterations}
+          objective:
+            graphInput: {inputName: objective}
+      Xgboost predict 2:
+        componentRef: {digest: ecdfaf32cff15b6abc3d0dd80365ce00577f1a19a058fbe201f515431cea1357,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/567c04c51ff00a1ee525b3458425b17adbe3df61/components/XGBoost/Predict/component.yaml'}
+        arguments:
+          data:
+            taskOutput: {outputName: test_2, taskId: Split table into folds, type: CSV}
+          model:
+            taskOutput: {outputName: model, taskId: Xgboost train 2, type: XGBoostModel}
+          label_column:
+            graphInput: {inputName: label_column}
+      Pandas Transform DataFrame in CSV format 2:
+        componentRef: {digest: 58dc88349157bf128021708c316ce4eb60bc1de0a5a7dd3af45fabac3276d510,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/6162d55998b176b50267d351241100bb0ee715bc/components/pandas/Transform_DataFrame/in_CSV_format/component.yaml'}
+        arguments:
+          table:
+            taskOutput: {outputName: test_2, taskId: Split table into folds, type: CSV}
+          transform_code: df = df[["tips"]]
+      Remove header 2:
+        componentRef: {digest: ba35ffea863855b956c3c50aefa0420ba3823949a6c059e6e3971cde960dc5a3,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/02c9638287468c849632cf9f7885b51de4c66f86/components/tables/Remove_header/component.yaml'}
+        arguments:
+          table:
+            taskOutput: {outputName: transformed_table, taskId: Pandas Transform DataFrame
+                in CSV format 2, type: CSV}
+      Calculate regression metrics from csv 2:
+        componentRef: {digest: e3ecbfeb18032820edfee4255e2fb6d15d15ed224e166519d5e528e12053a995,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/7da1ac9464b4b3e7d95919faa2f1107a9635b7e4/components/ml_metrics/Calculate_regression_metrics/from_CSV/component.yaml'}
+        arguments:
+          true_values:
+            taskOutput: {outputName: table, taskId: Remove header 2}
+          predicted_values:
+            taskOutput: {outputName: predictions, taskId: Xgboost predict 2, type: Text}
+      Xgboost train 3:
+        componentRef: {digest: 09b80053da29f8f51575b42e5d2e8ad4b7bdcc92a02c3744e189b1f597006b38,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/567c04c51ff00a1ee525b3458425b17adbe3df61/components/XGBoost/Train/component.yaml'}
+        arguments:
+          training_data:
+            taskOutput: {outputName: train_3, taskId: Split table into folds, type: CSV}
+          label_column:
+            graphInput: {inputName: label_column}
+          num_iterations:
+            graphInput: {inputName: num_iterations}
+          objective:
+            graphInput: {inputName: objective}
+      Xgboost predict 3:
+        componentRef: {digest: ecdfaf32cff15b6abc3d0dd80365ce00577f1a19a058fbe201f515431cea1357,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/567c04c51ff00a1ee525b3458425b17adbe3df61/components/XGBoost/Predict/component.yaml'}
+        arguments:
+          data:
+            taskOutput: {outputName: test_3, taskId: Split table into folds, type: CSV}
+          model:
+            taskOutput: {outputName: model, taskId: Xgboost train 3, type: XGBoostModel}
+          label_column:
+            graphInput: {inputName: label_column}
+      Pandas Transform DataFrame in CSV format 3:
+        componentRef: {digest: 58dc88349157bf128021708c316ce4eb60bc1de0a5a7dd3af45fabac3276d510,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/6162d55998b176b50267d351241100bb0ee715bc/components/pandas/Transform_DataFrame/in_CSV_format/component.yaml'}
+        arguments:
+          table:
+            taskOutput: {outputName: test_3, taskId: Split table into folds, type: CSV}
+          transform_code: df = df[["tips"]]
+      Remove header 3:
+        componentRef: {digest: ba35ffea863855b956c3c50aefa0420ba3823949a6c059e6e3971cde960dc5a3,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/02c9638287468c849632cf9f7885b51de4c66f86/components/tables/Remove_header/component.yaml'}
+        arguments:
+          table:
+            taskOutput: {outputName: transformed_table, taskId: Pandas Transform DataFrame
+                in CSV format 3, type: CSV}
+      Calculate regression metrics from csv 3:
+        componentRef: {digest: e3ecbfeb18032820edfee4255e2fb6d15d15ed224e166519d5e528e12053a995,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/7da1ac9464b4b3e7d95919faa2f1107a9635b7e4/components/ml_metrics/Calculate_regression_metrics/from_CSV/component.yaml'}
+        arguments:
+          true_values:
+            taskOutput: {outputName: table, taskId: Remove header 3}
+          predicted_values:
+            taskOutput: {outputName: predictions, taskId: Xgboost predict 3, type: Text}
+      Xgboost train 4:
+        componentRef: {digest: 09b80053da29f8f51575b42e5d2e8ad4b7bdcc92a02c3744e189b1f597006b38,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/567c04c51ff00a1ee525b3458425b17adbe3df61/components/XGBoost/Train/component.yaml'}
+        arguments:
+          training_data:
+            taskOutput: {outputName: train_4, taskId: Split table into folds, type: CSV}
+          label_column:
+            graphInput: {inputName: label_column}
+          num_iterations:
+            graphInput: {inputName: num_iterations}
+          objective:
+            graphInput: {inputName: objective}
+      Xgboost predict 4:
+        componentRef: {digest: ecdfaf32cff15b6abc3d0dd80365ce00577f1a19a058fbe201f515431cea1357,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/567c04c51ff00a1ee525b3458425b17adbe3df61/components/XGBoost/Predict/component.yaml'}
+        arguments:
+          data:
+            taskOutput: {outputName: test_4, taskId: Split table into folds, type: CSV}
+          model:
+            taskOutput: {outputName: model, taskId: Xgboost train 4, type: XGBoostModel}
+          label_column:
+            graphInput: {inputName: label_column}
+      Pandas Transform DataFrame in CSV format 4:
+        componentRef: {digest: 58dc88349157bf128021708c316ce4eb60bc1de0a5a7dd3af45fabac3276d510,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/6162d55998b176b50267d351241100bb0ee715bc/components/pandas/Transform_DataFrame/in_CSV_format/component.yaml'}
+        arguments:
+          table:
+            taskOutput: {outputName: test_4, taskId: Split table into folds, type: CSV}
+          transform_code: df = df[["tips"]]
+      Remove header 4:
+        componentRef: {digest: ba35ffea863855b956c3c50aefa0420ba3823949a6c059e6e3971cde960dc5a3,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/02c9638287468c849632cf9f7885b51de4c66f86/components/tables/Remove_header/component.yaml'}
+        arguments:
+          table:
+            taskOutput: {outputName: transformed_table, taskId: Pandas Transform DataFrame
+                in CSV format 4, type: CSV}
+      Calculate regression metrics from csv 4:
+        componentRef: {digest: e3ecbfeb18032820edfee4255e2fb6d15d15ed224e166519d5e528e12053a995,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/7da1ac9464b4b3e7d95919faa2f1107a9635b7e4/components/ml_metrics/Calculate_regression_metrics/from_CSV/component.yaml'}
+        arguments:
+          true_values:
+            taskOutput: {outputName: table, taskId: Remove header 4}
+          predicted_values:
+            taskOutput: {outputName: predictions, taskId: Xgboost predict 4, type: Text}
+      Xgboost train 5:
+        componentRef: {digest: 09b80053da29f8f51575b42e5d2e8ad4b7bdcc92a02c3744e189b1f597006b38,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/567c04c51ff00a1ee525b3458425b17adbe3df61/components/XGBoost/Train/component.yaml'}
+        arguments:
+          training_data:
+            taskOutput: {outputName: train_5, taskId: Split table into folds, type: CSV}
+          label_column:
+            graphInput: {inputName: label_column}
+          num_iterations:
+            graphInput: {inputName: num_iterations}
+          objective:
+            graphInput: {inputName: objective}
+      Xgboost predict 5:
+        componentRef: {digest: ecdfaf32cff15b6abc3d0dd80365ce00577f1a19a058fbe201f515431cea1357,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/567c04c51ff00a1ee525b3458425b17adbe3df61/components/XGBoost/Predict/component.yaml'}
+        arguments:
+          data:
+            taskOutput: {outputName: test_5, taskId: Split table into folds, type: CSV}
+          model:
+            taskOutput: {outputName: model, taskId: Xgboost train 5, type: XGBoostModel}
+          label_column:
+            graphInput: {inputName: label_column}
+      Pandas Transform DataFrame in CSV format 5:
+        componentRef: {digest: 58dc88349157bf128021708c316ce4eb60bc1de0a5a7dd3af45fabac3276d510,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/6162d55998b176b50267d351241100bb0ee715bc/components/pandas/Transform_DataFrame/in_CSV_format/component.yaml'}
+        arguments:
+          table:
+            taskOutput: {outputName: test_5, taskId: Split table into folds, type: CSV}
+          transform_code: df = df[["tips"]]
+      Remove header 5:
+        componentRef: {digest: ba35ffea863855b956c3c50aefa0420ba3823949a6c059e6e3971cde960dc5a3,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/02c9638287468c849632cf9f7885b51de4c66f86/components/tables/Remove_header/component.yaml'}
+        arguments:
+          table:
+            taskOutput: {outputName: transformed_table, taskId: Pandas Transform DataFrame
+                in CSV format 5, type: CSV}
+      Calculate regression metrics from csv 5:
+        componentRef: {digest: e3ecbfeb18032820edfee4255e2fb6d15d15ed224e166519d5e528e12053a995,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/7da1ac9464b4b3e7d95919faa2f1107a9635b7e4/components/ml_metrics/Calculate_regression_metrics/from_CSV/component.yaml'}
+        arguments:
+          true_values:
+            taskOutput: {outputName: table, taskId: Remove header 5}
+          predicted_values:
+            taskOutput: {outputName: predictions, taskId: Xgboost predict 5, type: Text}
+      Aggregate regression metrics from csv:
+        componentRef: {digest: 3e128130521eff8d43764f3dcb037316cdd6490ad2878df5adef416f7c2f3c19,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/7ea9363fe201918d419fecdc00d1275e657ff712/components/ml_metrics/Aggregate_regression_metrics/component.yaml'}
+        arguments:
+          metrics_1:
+            taskOutput: {outputName: metrics, taskId: Calculate regression metrics
+                from csv, type: JsonObject}
+          metrics_2:
+            taskOutput: {outputName: metrics, taskId: Calculate regression metrics
+                from csv 2, type: JsonObject}
+          metrics_3:
+            taskOutput: {outputName: metrics, taskId: Calculate regression metrics
+                from csv 3, type: JsonObject}
+          metrics_4:
+            taskOutput: {outputName: metrics, taskId: Calculate regression metrics
+                from csv 4, type: JsonObject}
+          metrics_5:
+            taskOutput: {outputName: metrics, taskId: Calculate regression metrics
+                from csv 5, type: JsonObject}
+    outputValues:
+      mean_absolute_error:
+        taskOutput: {outputName: mean_absolute_error, taskId: Aggregate regression
+            metrics from csv, type: Float}
+      mean_squared_error:
+        taskOutput: {outputName: mean_squared_error, taskId: Aggregate regression
+            metrics from csv, type: Float}
+      root_mean_squared_error:
+        taskOutput: {outputName: root_mean_squared_error, taskId: Aggregate regression
+            metrics from csv, type: Float}
+      metrics:
+        taskOutput: {outputName: metrics, taskId: Aggregate regression metrics from
+            csv, type: JsonObject}

@@ -1,13 +1,19 @@
 # Using the command line to deploy the application
 
+## Only For Development
+
+This CLI installation guide is **ONLY** for AI Platform Pipelines development. It's not suitable for users of Kubeflow Pipelines.
+
+For users, please refer to [Kubeflow Pipelines Standalone](https://www.kubeflow.org/docs/pipelines/installation/standalone-deployment/) on how to install via commandline using kustomize manifests. The installation is almost the same as AI Platform Pipelines.
+
+Refer to the [Installation Options for Kubeflow Pipelines](https://www.kubeflow.org/docs/pipelines/installation/overview/) doc for all installation options and their feature comparison.
+
+## Prerequisites
+
 You can use [Google Cloud Shell](https://cloud.google.com/shell/) or a local
 workstation to complete these steps.
 
-
 [![Open in Cloud Shell](http://gstatic.com/cloudssh/images/open-btn.svg)](https://console.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/kubeflow/pipelines&cloudshell_open_in_editor=README.md&cloudshell_working_dir=manifests/gcp_marketplace)
-
-
-## Prerequisites
 
 ### Set up command-line tools
 
@@ -38,12 +44,17 @@ Kubeflow Pipelines requires a minimum 3 node cluster with each node having a min
 Create a new cluster from the command line:
 
 ```shell
+# The following parameters can be customized based on your needs.
+
 export CLUSTER=kubeflow-pipelines-cluster
 export ZONE=us-west1-a
 export MACHINE_TYPE=n1-standard-2
+export SCOPES="cloud-platform" # This scope is needed for running some pipeline samples. Read the warning below for its security implications.
+
 
 gcloud config set project <your_project>
-gcloud container clusters create "$CLUSTER" --zone "$ZONE" --machine-type "$MACHINE_TYPE"
+gcloud container clusters create "$CLUSTER" --zone "$ZONE" --machine-type "$MACHINE_TYPE" \
+  --scopes $SCOPES
 ```
 
 Configure `kubectl` to connect to the new cluster:
@@ -51,6 +62,8 @@ Configure `kubectl` to connect to the new cluster:
 ```shell
 gcloud container clusters get-credentials "$CLUSTER" --zone "$ZONE"
 ```
+
+> **Warning**: Using `SCOPES="cloud-platform"` grants all GCP permissions to the cluster. For a more secure cluster setup, refer to [Authenticating Pipelines to GCP](https://www.kubeflow.org/docs/gke/authentication/#authentication-from-kubeflow-pipelines).
 
 ### <a name="install-application-resource-definition"></a>Install the application resource definition
 

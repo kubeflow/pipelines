@@ -1,61 +1,46 @@
 name: Automl create dataset for tables
-description: |
-  automl_create_dataset_for_tables creates an empty Dataset for AutoML tables
+description: automl_create_dataset_for_tables creates an empty Dataset for AutoML
+  tables
 inputs:
-- name: gcp_project_id
-  type: String
-- name: gcp_region
-  type: String
-- name: display_name
-  type: String
-- name: description
-  type: String
-  optional: true
-- name: tables_dataset_metadata
-  type: JsonObject
-  default: '{}'
-  optional: true
-- name: retry
-  optional: true
-- name: timeout
-  type: Float
-  optional: true
-- name: metadata
-  type: JsonObject
-  optional: true
+- {name: gcp_project_id, type: String}
+- {name: gcp_region, type: String}
+- {name: display_name, type: String}
+- {name: description, type: String, optional: true}
+- {name: tables_dataset_metadata, type: JsonObject, default: '{}', optional: true}
+- {name: retry, optional: true}
+- {name: timeout, type: Float, optional: true}
+- {name: metadata, type: JsonObject, optional: true}
 outputs:
-- name: dataset_path
-  type: String
-- name: create_time
-  type: String
-- name: dataset_id
-  type: String
+- {name: dataset_path, type: String}
+- {name: create_time, type: String}
+- {name: dataset_id, type: String}
+- {name: dataset_url, type: URI}
 implementation:
   container:
     image: python:3.7
     command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'google-cloud-automl==0.4.0' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip
+      install --quiet --no-warn-script-location 'google-cloud-automl==0.4.0' --user)
+      && "$0" "$@"
     - python3
     - -u
     - -c
     - |
-      from typing import NamedTuple
-
       def automl_create_dataset_for_tables(
-          gcp_project_id: str,
-          gcp_region: str,
-          display_name: str,
-          description: str = None,
-          tables_dataset_metadata: dict = {},
+          gcp_project_id ,
+          gcp_region ,
+          display_name ,
+          description  = None,
+          tables_dataset_metadata  = {},
           retry=None, #=google.api_core.gapic_v1.method.DEFAULT,
-          timeout: float = None, #=google.api_core.gapic_v1.method.DEFAULT,
-          metadata: dict = None,
-      ) -> NamedTuple('Outputs', [('dataset_path', str), ('create_time', str), ('dataset_id', str)]):
+          timeout  = None, #=google.api_core.gapic_v1.method.DEFAULT,
+          metadata  = None,
+      )          :
           '''automl_create_dataset_for_tables creates an empty Dataset for AutoML tables
           '''
-          import sys
-          import subprocess
-          subprocess.run([sys.executable, '-m', 'pip', 'install', 'google-cloud-automl==0.4.0', '--quiet', '--no-warn-script-location'], env={'PIP_DISABLE_PIP_VERSION_CHECK': '1'}, check=True)
-
           import google
           from google.cloud import automl
           client = automl.AutoMlClient()
@@ -75,28 +60,42 @@ implementation:
           )
           print(dataset)
           dataset_id = dataset.name.rsplit('/', 1)[-1]
-          return (dataset.name, dataset.create_time, dataset_id)
+          dataset_url = 'https://console.cloud.google.com/automl-tables/locations/{region}/datasets/{dataset_id}/schemav2?project={project_id}'.format(
+              project_id=gcp_project_id,
+              region=gcp_region,
+              dataset_id=dataset_id,
+          )
+          return (dataset.name, dataset.create_time, dataset_id, dataset_url)
 
       import json
+      def _serialize_str(str_value: str) -> str:
+          if not isinstance(str_value, str):
+              raise TypeError('Value "{}" has type "{}" instead of str.'.format(str(str_value), str(type(str_value))))
+          return str_value
+
       import argparse
-      _missing_arg = object()
-      _parser = argparse.ArgumentParser(prog='Automl create dataset for tables', description='automl_create_dataset_for_tables creates an empty Dataset for AutoML tables\n')
-      _parser.add_argument("--gcp-project-id", dest="gcp_project_id", type=str, required=True, default=_missing_arg)
-      _parser.add_argument("--gcp-region", dest="gcp_region", type=str, required=True, default=_missing_arg)
-      _parser.add_argument("--display-name", dest="display_name", type=str, required=True, default=_missing_arg)
-      _parser.add_argument("--description", dest="description", type=str, required=False, default=_missing_arg)
-      _parser.add_argument("--tables-dataset-metadata", dest="tables_dataset_metadata", type=json.loads, required=False, default=_missing_arg)
-      _parser.add_argument("--retry", dest="retry", type=str, required=False, default=_missing_arg)
-      _parser.add_argument("--timeout", dest="timeout", type=float, required=False, default=_missing_arg)
-      _parser.add_argument("--metadata", dest="metadata", type=json.loads, required=False, default=_missing_arg)
-      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=3)
-      _parsed_args = {k: v for k, v in vars(_parser.parse_args()).items() if v is not _missing_arg}
+      _parser = argparse.ArgumentParser(prog='Automl create dataset for tables', description='automl_create_dataset_for_tables creates an empty Dataset for AutoML tables')
+      _parser.add_argument("--gcp-project-id", dest="gcp_project_id", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--gcp-region", dest="gcp_region", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--display-name", dest="display_name", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--description", dest="description", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--tables-dataset-metadata", dest="tables_dataset_metadata", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--retry", dest="retry", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--timeout", dest="timeout", type=float, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--metadata", dest="metadata", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=4)
+      _parsed_args = vars(_parser.parse_args())
       _output_files = _parsed_args.pop("_output_paths", [])
 
       _outputs = automl_create_dataset_for_tables(**_parsed_args)
 
-      if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
-          _outputs = [_outputs]
+      _output_serializers = [
+          _serialize_str,
+          _serialize_str,
+          _serialize_str,
+          str,
+
+      ]
 
       import os
       for idx, output_file in enumerate(_output_files):
@@ -105,45 +104,41 @@ implementation:
           except OSError:
               pass
           with open(output_file, 'w') as f:
-              f.write(str(_outputs[idx]))
+              f.write(_output_serializers[idx](_outputs[idx]))
     args:
     - --gcp-project-id
-    - inputValue: gcp_project_id
+    - {inputValue: gcp_project_id}
     - --gcp-region
-    - inputValue: gcp_region
+    - {inputValue: gcp_region}
     - --display-name
-    - inputValue: display_name
+    - {inputValue: display_name}
     - if:
-        cond:
-          isPresent: description
+        cond: {isPresent: description}
         then:
         - --description
-        - inputValue: description
+        - {inputValue: description}
     - if:
-        cond:
-          isPresent: tables_dataset_metadata
+        cond: {isPresent: tables_dataset_metadata}
         then:
         - --tables-dataset-metadata
-        - inputValue: tables_dataset_metadata
+        - {inputValue: tables_dataset_metadata}
     - if:
-        cond:
-          isPresent: retry
+        cond: {isPresent: retry}
         then:
         - --retry
-        - inputValue: retry
+        - {inputValue: retry}
     - if:
-        cond:
-          isPresent: timeout
+        cond: {isPresent: timeout}
         then:
         - --timeout
-        - inputValue: timeout
+        - {inputValue: timeout}
     - if:
-        cond:
-          isPresent: metadata
+        cond: {isPresent: metadata}
         then:
         - --metadata
-        - inputValue: metadata
+        - {inputValue: metadata}
     - '----output-paths'
-    - outputPath: dataset_path
-    - outputPath: create_time
-    - outputPath: dataset_id
+    - {outputPath: dataset_path}
+    - {outputPath: create_time}
+    - {outputPath: dataset_id}
+    - {outputPath: dataset_url}

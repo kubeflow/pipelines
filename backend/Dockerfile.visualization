@@ -3,7 +3,7 @@
 # visualization. More details about this process can be found in the server.py
 # and exporter.py files in the directory specified above.
 
-# Copyright 2019 Google LLC
+# Copyright 2019-2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,11 +17,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM tensorflow/tensorflow:2.1.0-py3
+FROM tensorflow/tensorflow:2.2.0
 
 RUN apt-get update \
-  && apt-get install -y wget curl tar \
-  pkg-config libcairo2-dev libgirepository1.0-dev # For the pygobject and pycairo package setup due to licensing
+  && apt-get install -y wget curl tar
 
 RUN curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz > /tmp/google-cloud-sdk.tar.gz
 RUN mkdir -p /usr/local/gcloud
@@ -34,11 +33,6 @@ WORKDIR /src
 COPY backend/src/apiserver/visualization/requirements.txt /src
 
 RUN pip3 install -r requirements.txt
-
-COPY backend/src/apiserver/visualization/license.sh /src
-COPY backend/src/apiserver/visualization/third_party_licenses.csv /src
-
-RUN ./license.sh third_party_licenses.csv /usr/licenses
 
 COPY backend/src/apiserver/visualization /src
 

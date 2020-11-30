@@ -23,10 +23,19 @@ import (
 )
 
 const (
-	MultiUserMode string = "MULTIUSER"
-	PodNamespace  string = "POD_NAMESPACE"
-	CacheEnabled  string = "CacheEnabled"
+	MultiUserMode                       string = "MULTIUSER"
+	MultiUserModeSharedReadAccess       string = "MULTIUSER_SHARED_READ"
+	PodNamespace                        string = "POD_NAMESPACE"
+	CacheEnabled                        string = "CacheEnabled"
+	DefaultPipelineRunnerServiceAccount string = "DefaultPipelineRunnerServiceAccount"
+	KubeflowUserIDHeader                string = "KUBEFLOW_USERID_HEADER"
+	KubeflowUserIDPrefix                string = "KUBEFLOW_USERID_PREFIX"
+	UpdatePipelineVersionByDefault      string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
 )
+
+func IsPipelineVersionUpdatedByDefault() bool {
+	return GetBoolConfigWithDefault(UpdatePipelineVersionByDefault, true)
+}
 
 func GetStringConfig(configName string) string {
 	if !viper.IsSet(configName) {
@@ -72,6 +81,10 @@ func IsMultiUserMode() bool {
 	return GetBoolConfigWithDefault(MultiUserMode, false)
 }
 
+func IsMultiUserSharedReadMode() bool {
+	return GetBoolConfigWithDefault(MultiUserModeSharedReadAccess, false)
+}
+
 func GetPodNamespace() string {
 	return GetStringConfig(PodNamespace)
 }
@@ -86,4 +99,12 @@ func GetBoolFromStringWithDefault(value string, defaultValue bool) bool {
 
 func IsCacheEnabled() string {
 	return GetStringConfigWithDefault(CacheEnabled, "true")
+}
+
+func GetKubeflowUserIDHeader() string {
+	return GetStringConfigWithDefault(KubeflowUserIDHeader, GoogleIAPUserIdentityHeader)
+}
+
+func GetKubeflowUserIDPrefix() string {
+	return GetStringConfigWithDefault(KubeflowUserIDPrefix, GoogleIAPUserIdentityPrefix)
 }

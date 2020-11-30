@@ -21,6 +21,8 @@ get package updates.)
 Run `npm install --save <package>` (or `npm i -S <package>` for short) to install runtime dependencies and save them to package.json.
 Run `npm install --save-dev <package>` (or `npm i -D <package>` for short) to install dev dependencies and save them to package.json.
 
+To upgrade @kubeflow/frontend, run `npm i -S kubeflow/frontend#<commit-hash>`. Get the commit hash from https://github.com/kubeflow/frontend/commits/master.
+
 ### Daily workflow
 You will see a lot of `npm run xxx` commands in instructions below, the actual script being run is defined in the "scripts" field of [package.json](https://github.com/kubeflow/pipelines/blob/91db95a601fa7fffcb670cb744a5dcaeb08290ae/frontend/package.json#L32). Development common scripts are maintained in package.json, and we use npm to call them conveniently.
 
@@ -56,10 +58,12 @@ This requires you already have a real KFP cluster, you can proxy requests to it.
 Before you start, configure your `kubectl` to talk to your KFP cluster.
 
 Then it depends on what you want to develop:
+
 | What to develop?        | Script to run                                                  | Extra notes                                                        |
 | ----------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------ |
 | Client UI               | `NAMESPACE=kubeflow npm run start:proxy`            |                                                                    |
 | Client UI + Node server | `NAMESPACE=kubeflow npm run start:proxy-and-server` | You need to rerun the script every time you edit node server code. |
+| Client UI + Node server (debug mode) | `NAMESPACE=kubeflow npm run start:proxy-and-server-inspect` | Same as above, and you can use chrome to debug the server. |
 
 ## Unit testing FAQ
 There are a few typees of tests during presubmit:
@@ -110,7 +114,7 @@ To understand more what prettier is: [What is Prettier](https://prettier.io/docs
   },
   ```
   Also, vscode builtin trailing whitespace [conflicts with jest inline snapshot](https://github.com/Microsoft/vscode/issues/52711), so recommend disabling it.
-- For others, refer to https://prettier.io/docs/en/editors.html
+- For others, refer to https://prettier.io/docs/en/editors.html.
 
 ### Format Code Manually
 

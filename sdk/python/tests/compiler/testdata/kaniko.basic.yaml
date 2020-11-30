@@ -22,7 +22,7 @@ metadata:
     sidecar.istio.io/inject: 'false'
 spec:
   restartPolicy: Never
-  serviceAccountName: default
+  serviceAccountName: kubeflow-pipelines-container-builder
   containers:
   - name: kaniko
     image: gcr.io/kaniko-project/executor@sha256:78d44ec4e9cb5545d7f85c1924695c89503ded86a59f92c7ae658afa3cff5400

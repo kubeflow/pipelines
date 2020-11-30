@@ -83,7 +83,7 @@ def _serialize_json(obj) -> str:
             return obj.to_struct()
         else:
             raise TypeError("Object of type '%s' is not JSON serializable and does not have .to_struct() method." % obj.__class__.__name__)
-    return json.dumps(obj, default=default_serializer)
+    return json.dumps(obj, default=default_serializer, sort_keys=True)
 
 
 def _serialize_base64_pickle(obj) -> str:
@@ -108,7 +108,7 @@ _converters = [
     Converter([str], ['String', 'str'], _serialize_str, 'str', None),
     Converter([int], ['Integer', 'int'], _serialize_int, 'int', None),
     Converter([float], ['Float', 'float'], _serialize_float, 'float', None),
-    Converter([bool], ['Boolean', 'bool'], _serialize_bool, _bool_deserializer_code, _bool_deserializer_definitions),
+    Converter([bool], ['Boolean', 'Bool', 'bool'], _serialize_bool, _bool_deserializer_code, _bool_deserializer_definitions),
     Converter([list], ['JsonArray', 'List', 'list'], _serialize_json, 'json.loads', 'import json'), # ! JSON map keys are always strings. Python converts all keys to strings without warnings
     Converter([dict], ['JsonObject', 'Dictionary', 'Dict', 'dict'], _serialize_json, 'json.loads', 'import json'), # ! JSON map keys are always strings. Python converts all keys to strings without warnings
     Converter([], ['Json'], _serialize_json, 'json.loads', 'import json'),
@@ -182,10 +182,6 @@ def serialize_value(value, type_name: str) -> str:
                 str(e),
             ))
 
-    serialized_value = str(value)
-    warnings.warn('There are no registered serializers from type "{}" to type "{}", so the value will be serializers as string "{}".'.format(
-        str(type(value).__name__),
+    raise TypeError('There are no registered serializers for type "{}".'.format(
         str(type_name),
-        serialized_value),
-    )
-    return serialized_value
+    ))

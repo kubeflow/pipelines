@@ -1,4 +1,3 @@
-[![Build Status](https://travis-ci.org/kubeflow/pipelines.svg?branch=master)](https://travis-ci.org/kubeflow/pipelines)
 [![Coverage Status](https://coveralls.io/repos/github/kubeflow/pipelines/badge.svg?branch=master)](https://coveralls.io/github/kubeflow/pipelines?branch=master)
 SDK: [![Documentation Status](https://readthedocs.org/projects/kubeflow-pipelines/badge/?version=latest)](https://kubeflow-pipelines.readthedocs.io/en/latest/?badge=latest)
 
@@ -16,6 +15,8 @@ The Kubeflow pipelines service has the following goals:
 
 ## Documentation
 
+Install Kubeflow Pipelines from [an overview of several options](https://www.kubeflow.org/docs/pipelines/installation/overview/).
+
 Get started with your first pipeline and read further information in the [Kubeflow Pipelines overview](https://www.kubeflow.org/docs/pipelines/overview/pipelines-overview/).
 
 See the various ways you can [use the Kubeflow Pipelines SDK](https://www.kubeflow.org/docs/pipelines/sdk/sdk-overview/).
@@ -23,6 +24,8 @@ See the various ways you can [use the Kubeflow Pipelines SDK](https://www.kubefl
 See the Kubeflow [Pipelines API doc](https://www.kubeflow.org/docs/pipelines/reference/api/kubeflow-pipeline-api-spec/) for API specification.
 
 Consult the [Python SDK reference docs](https://kubeflow-pipelines.readthedocs.io/en/latest/) when writing pipelines using the Python SDK.
+
+Refer to the [versioning policy](./docs/release/versioning-policy.md) and [feature stages](./docs/release/feature-stages.md) documentation for more information about how we manage versions and feature stages (such as Alpha, Beta, and Stable).
 
 ## Kubeflow Pipelines Community Meeting
 
@@ -40,6 +43,7 @@ The meeting is happening every other Wed 10-11AM (PST)
 * How to create and deploy a Kubeflow Machine Learning Pipeline (By Lak Lakshmanan)
   * [Part 1: How to create and deploy a Kubeflow Machine Learning Pipeline](https://towardsdatascience.com/how-to-create-and-deploy-a-kubeflow-machine-learning-pipeline-part-1-efea7a4b650f) 
   * [Part 2: How to deploy Jupyter notebooks as components of a Kubeflow ML pipeline](https://towardsdatascience.com/how-to-deploy-jupyter-notebooks-as-components-of-a-kubeflow-ml-pipeline-part-2-b1df77f4e5b3)
+  * [Part 3: How to carry out CI/CD in Machine Learning (“MLOps”) using Kubeflow ML pipelines](https://medium.com/google-cloud/how-to-carry-out-ci-cd-in-machine-learning-mlops-using-kubeflow-ml-pipelines-part-3-bdaf68082112)
 
 ## Acknowledgments
 

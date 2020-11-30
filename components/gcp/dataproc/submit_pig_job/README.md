@@ -72,8 +72,7 @@ Follow these steps to use the component in a pipeline:
     ```python
     %%capture --no-stderr
 
-    KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar.gz'
-    !pip3 install $KFP_PACKAGE --upgrade
+    !pip3 install kfp --upgrade
     ```
 
 2. Load the component using the Kubeflow pipeline's SDK
@@ -82,7 +81,7 @@ Follow these steps to use the component in a pipeline:
     ```python
     import kfp.components as comp
 
-    dataproc_submit_pig_job_op = comp.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/2df775a28045bda15372d6dd4644f71dcfe41bfe/components/gcp/dataproc/submit_pig_job/component.yaml')
+    dataproc_submit_pig_job_op = comp.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/1.1.1-beta.1/components/gcp/dataproc/submit_pig_job/component.yaml')
     help(dataproc_submit_pig_job_op)
     ```
 

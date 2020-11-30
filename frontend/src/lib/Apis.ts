@@ -13,15 +13,16 @@
 // limitations under the License.
 
 import * as portableFetch from 'portable-fetch';
-import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
 import { ExperimentServiceApi, FetchAPI } from '../apis/experiment';
 import { JobServiceApi } from '../apis/job';
-import { ApiPipeline, PipelineServiceApi, ApiPipelineVersion } from '../apis/pipeline';
+import { ApiPipeline, ApiPipelineVersion, PipelineServiceApi } from '../apis/pipeline';
 import { RunServiceApi } from '../apis/run';
 import { ApiVisualization, VisualizationServiceApi } from '../apis/visualization';
+import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
 import { PlotType } from '../components/viewers/Viewer';
 import * as Utils from './Utils';
 import { StoragePath } from './WorkflowParser';
+import { buildQuery } from './Utils';
 
 const v1beta1Prefix = 'apis/v1beta1';
 
@@ -35,9 +36,11 @@ export interface ListRequest {
 
 export interface BuildInfo {
   apiServerCommitHash?: string;
+  apiServerTagName?: string;
   apiServerReady?: boolean;
   buildDate?: string;
   frontendCommitHash?: string;
+  frontendTagName?: string;
 }
 
 // Hack types from https://github.com/microsoft/TypeScript/issues/1897#issuecomment-557057387
@@ -67,8 +70,12 @@ export class Apis {
 
   public static async buildPythonVisualizationConfig(
     visualizationData: ApiVisualization,
+    namespace?: string,
   ): Promise<HTMLViewerConfig> {
-    const visualization = await Apis.visualizationServiceApi.createVisualization(visualizationData);
+    const visualization = await Apis.visualizationServiceApi.createVisualization(
+      namespace || '',
+      visualizationData,
+    );
     if (visualization.html) {
       const htmlContent = visualization.html
         // Fixes issue with TFX components (and other iframe based
@@ -91,8 +98,10 @@ export class Apis {
   /**
    * Get pod logs
    */
-  public static getPodLogs(podName: string, podNamespace?: string): Promise<string> {
-    let query = `k8s/pod/logs?podname=${encodeURIComponent(podName)}`;
+  public static getPodLogs(runId: string, podName: string, podNamespace: string): Promise<string> {
+    let query = `k8s/pod/logs?podname=${encodeURIComponent(podName)}&runid=${encodeURIComponent(
+      runId,
+    )}`;
     if (podNamespace) {
       query += `&podnamespace=${encodeURIComponent(podNamespace)}`;
     }
@@ -200,11 +209,46 @@ export class Apis {
   /**
    * Reads file from storage using server.
    */
-  public static readFile(path: StoragePath): Promise<string> {
-    return this._fetch(
-      'artifacts/get' +
-        `?source=${path.source}&bucket=${path.bucket}&key=${encodeURIComponent(path.key)}`,
-    );
+  public static readFile(path: StoragePath, namespace?: string, peek?: number): Promise<string> {
+    return this._fetch(this.buildReadFileUrl({ path, namespace, peek, isDownload: false }));
+  }
+
+  /**
+   * Builds an url for the readFile API to retrieve a workflow artifact.
+   * @param path object describing the artifact (e.g. source, bucket, and key)
+   * @param isDownload whether we download the artifact as is (e.g. skip extracting from *.tar.gz)
+   */
+  public static buildReadFileUrl({
+    path,
+    namespace,
+    peek,
+    isDownload,
+  }: {
+    path: StoragePath;
+    namespace?: string;
+    peek?: number;
+    isDownload?: boolean;
+  }) {
+    const { source, bucket, key } = path;
+    if (isDownload) {
+      return `artifacts/${source}/${bucket}/${key}${buildQuery({
+        namespace,
+        peek,
+      })}`;
+    } else {
+      return `artifacts/get${buildQuery({ source, namespace, peek, bucket, key })}`;
+    }
+  }
+
+  /**
+   * Builds an url to visually represents a workflow artifact location.
+   * @param param.source source of the artifact (e.g. minio, gcs, s3, http, or https)
+   * @param param.bucket name of the bucket with the artifact (or host for http/https)
+   * @param param.key key (i.e. path) of the artifact in the bucket
+   */
+  public static buildArtifactUrl({ source, bucket, key }: StoragePath) {
+    // TODO see https://github.com/kubeflow/pipelines/pull/3725
+    return `${source}://${bucket}/${key}`;
   }
 
   /**

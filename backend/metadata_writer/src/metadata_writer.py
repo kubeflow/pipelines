@@ -16,6 +16,7 @@ import json
 import hashlib
 import os
 import sys
+import re
 import kubernetes
 import yaml
 from time import sleep
@@ -66,6 +67,7 @@ print("Connected to the metadata store")
 ARGO_OUTPUTS_ANNOTATION_KEY = 'workflows.argoproj.io/outputs'
 ARGO_TEMPLATE_ANNOTATION_KEY = 'workflows.argoproj.io/template'
 KFP_COMPONENT_SPEC_ANNOTATION_KEY = 'pipelines.kubeflow.org/component_spec'
+KFP_PARAMETER_ARGUMENTS_ANNOTATION_KEY = 'pipelines.kubeflow.org/arguments.parameters'
 METADATA_EXECUTION_ID_LABEL_KEY = 'pipelines.kubeflow.org/metadata_execution_id'
 METADATA_CONTEXT_ID_LABEL_KEY = 'pipelines.kubeflow.org/metadata_context_id'
 METADATA_ARTIFACT_IDS_ANNOTATION_KEY = 'pipelines.kubeflow.org/metadata_artifact_ids'
@@ -79,13 +81,25 @@ METADATA_WRITTEN_LABEL_KEY = 'pipelines.kubeflow.org/metadata_written'
 
 def output_name_to_argo(name: str) -> str:
     import re
-    return re.sub('-+', '-', re.sub('[^-0-9a-z]+', '-', name.lower())).strip('-')
+    # This sanitization code should be kept in sync with the code in the DSL compiler.
+    # See https://github.com/kubeflow/pipelines/blob/39975e3cde7ba4dcea2bca835b92d0fe40b1ae3c/sdk/python/kfp/compiler/_k8s_helper.py#L33
+    return re.sub('-+', '-', re.sub('[^-_0-9A-Za-z]+', '-', name)).strip('-')
 
+def is_s3_endpoint(endpoint: str) -> bool:
+    return re.search('^.*s3.*amazonaws.com.*$', endpoint)
+
+def get_object_store_provider(endpoint: str) -> bool:
+    if is_s3_endpoint(endpoint):
+        return 's3'
+    else:
+        return 'minio'
 
 def argo_artifact_to_uri(artifact: dict) -> str:
+    # s3 here means s3 compatible object storage. not AWS S3.
     if 's3' in artifact:
         s3_artifact = artifact['s3']
-        return 'minio://{bucket}/{key}'.format(
+        return '{provider}://{bucket}/{key}'.format(
+            provider=get_object_store_provider(s3_artifact['endpoint']),
             bucket=s3_artifact.get('bucket', ''),
             key=s3_artifact.get('key', ''),
         )
@@ -118,12 +132,16 @@ while True:
         k8s_api.list_namespaced_pod,
         namespace=namespace_to_watch,
         label_selector=ARGO_WORKFLOW_LABEL_KEY,
+        timeout_seconds=1800,  # Sometimes watch gets stuck
+        _request_timeout=2000,  # Sometimes HTTP GET gets stuck
     ):
         try:
             obj = event['object']
             print('Kubernetes Pod event: ', event['type'], obj.metadata.name, obj.metadata.resource_version)
             if event['type'] == 'ERROR':
                 print(event)
+
+            pod_name = obj.metadata.name
 
             # Logging pod changes for debugging
             with open('/tmp/pod_' + obj.metadata.name + '_' + obj.metadata.resource_version, 'w') as f:
@@ -167,14 +185,27 @@ while True:
                     run_id=argo_workflow_name, # We can switch to internal run IDs once backend starts adding them
                 )
 
+                # Saving input paramater arguments
+                execution_custom_properties = {}
+                if KFP_PARAMETER_ARGUMENTS_ANNOTATION_KEY in obj.metadata.annotations:
+                    parameter_arguments_json = obj.metadata.annotations[KFP_PARAMETER_ARGUMENTS_ANNOTATION_KEY]
+                    try:
+                        parameter_arguments = json.loads(parameter_arguments_json)
+                        for paramater_name, parameter_value in parameter_arguments.items():
+                            execution_custom_properties['input:' + paramater_name] = parameter_value
+                    except Exception:
+                        pass
+
                 # Adding new execution to the database
                 execution = create_new_execution_in_existing_run_context(
                     store=mlmd_store,
                     context_id=run_context.id,
                     execution_type_name=KFP_EXECUTION_TYPE_NAME_PREFIX + component_version,
+                    pod_name=pod_name,
                     pipeline_name=argo_workflow_name,
                     run_id=argo_workflow_name,
                     instance_id=component_name,
+                    custom_properties=execution_custom_properties,
                 )
 
                 argo_input_artifacts = argo_template.get('inputs', {}).get('artifacts', [])
@@ -292,6 +323,7 @@ while True:
                             output_name=name,
                             #run_id='Context_' + str(context_id) + '_run',
                             run_id=argo_workflow_name,
+                            argo_artifact=art,
                         )
 
                         artifact_ids.append(dict(

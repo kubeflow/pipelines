@@ -12,12 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import os
 import sys
 import ml_metadata
 from time import sleep
 from ml_metadata.proto import metadata_store_pb2
 from ml_metadata.metadata_store import metadata_store
+
+
+def value_to_mlmd_value(value) -> metadata_store_pb2.Value:
+    if value is None:
+        return metadata_store_pb2.Value()
+    if isinstance(value, int):
+        return metadata_store_pb2.Value(int_value=value)
+    if isinstance(value, float):
+        return metadata_store_pb2.Value(double_value=value)
+    return metadata_store_pb2.Value(string_value=str(value))
 
 
 def connect_to_mlmd() -> metadata_store.MetadataStore:
@@ -96,6 +107,7 @@ def create_artifact_with_type(
     type_name: str,
     properties: dict = None,
     type_properties: dict = None,
+    custom_properties: dict = None,
 ) -> metadata_store_pb2.Artifact:
     artifact_type = get_or_create_artifact_type(
         store=store,
@@ -106,6 +118,7 @@ def create_artifact_with_type(
         uri=uri,
         type_id=artifact_type.id,
         properties=properties,
+        custom_properties=custom_properties,
     )
     artifact.id = store.put_artifacts([artifact])[0]
     return artifact
@@ -116,6 +129,7 @@ def create_execution_with_type(
     type_name: str,
     properties: dict = None,
     type_properties: dict = None,
+    custom_properties: dict = None,
 ) -> metadata_store_pb2.Execution:
     execution_type = get_or_create_execution_type(
         store=store,
@@ -125,6 +139,7 @@ def create_execution_with_type(
     execution = metadata_store_pb2.Execution(
         type_id=execution_type.id,
         properties=properties,
+        custom_properties=custom_properties,
     )
     execution.id = store.put_executions([execution])[0]
     return execution
@@ -136,6 +151,7 @@ def create_context_with_type(
     type_name: str,
     properties: dict = None,
     type_properties: dict = None,
+    custom_properties: dict = None,
 ) -> metadata_store_pb2.Context:
     # ! Context_name must be unique
     context_type = get_or_create_context_type(
@@ -147,6 +163,7 @@ def create_context_with_type(
         name=context_name,
         type_id=context_type.id,
         properties=properties,
+        custom_properties=custom_properties,
     )
     context.id = store.put_contexts([context])[0]
     return context
@@ -171,6 +188,7 @@ def get_or_create_context_with_type(
     type_name: str,
     properties: dict = None,
     type_properties: dict = None,
+    custom_properties: dict = None,
 ) -> metadata_store_pb2.Context:
     try:
         context = get_context_by_name(store, context_name)
@@ -181,6 +199,7 @@ def get_or_create_context_with_type(
             type_name=type_name,
             properties=properties,
             type_properties=type_properties,
+            custom_properties=custom_properties,
         )
         return context
 
@@ -198,10 +217,12 @@ def create_new_execution_in_existing_context(
     context_id: int,
     properties: dict = None,
     execution_type_properties: dict = None,
+    custom_properties: dict = None,
 ) -> metadata_store_pb2.Execution:
     execution = create_execution_with_type(
         store=store,
         properties=properties,
+        custom_properties=custom_properties,
         type_name=execution_type_name,
         type_properties=execution_type_properties,
     )
@@ -228,6 +249,10 @@ ARTIFACT_RUN_ID_PROPERTY_NAME = "run_id"
 EXECUTION_RUN_ID_PROPERTY_NAME = "run_id"
 CONTEXT_RUN_ID_PROPERTY_NAME = "run_id"
 
+KFP_POD_NAME_EXECUTION_PROPERTY_NAME = 'kfp_pod_name'
+
+ARTIFACT_ARGO_ARTIFACT_PROPERTY_NAME = 'argo_artifact'
+
 
 def get_or_create_run_context(
     store,
@@ -253,14 +278,20 @@ def create_new_execution_in_existing_run_context(
     store,
     execution_type_name: str,
     context_id: int,
+    pod_name: str,
     # TODO: Remove when UX stops relying on thsese properties
     pipeline_name: str = None,
     run_id: str = None,
     instance_id: str = None,
+    custom_properties = None,
 ) -> metadata_store_pb2.Execution:
     pipeline_name = pipeline_name or 'Context_' + str(context_id) + '_pipeline'
     run_id = run_id or 'Context_' + str(context_id) + '_run'
     instance_id = instance_id or execution_type_name
+    mlmd_custom_properties = {}
+    for property_name, property_value in (custom_properties or {}).items():
+        mlmd_custom_properties[property_name] = value_to_mlmd_value(property_value)
+    mlmd_custom_properties[KFP_POD_NAME_EXECUTION_PROPERTY_NAME] = metadata_store_pb2.Value(string_value=pod_name)
     return create_new_execution_in_existing_context(
         store=store,
         execution_type_name=execution_type_name,
@@ -276,6 +307,7 @@ def create_new_execution_in_existing_run_context(
             EXECUTION_RUN_ID_PROPERTY_NAME: metadata_store_pb2.Value(string_value=run_id),
             EXECUTION_COMPONENT_ID_PROPERTY_NAME: metadata_store_pb2.Value(string_value=instance_id), # should set to task ID, not component ID
         },
+        custom_properties=mlmd_custom_properties,
     )
 
 
@@ -288,6 +320,7 @@ def create_new_artifact_event_and_attribution(
     event_type: metadata_store_pb2.Event.Type,
     properties: dict = None,
     artifact_type_properties: dict = None,
+    custom_properties: dict = None,
     artifact_name_path: metadata_store_pb2.Event.Path = None,
     milliseconds_since_epoch: int = None,
 ) -> metadata_store_pb2.Artifact:
@@ -297,6 +330,7 @@ def create_new_artifact_event_and_attribution(
         type_name=type_name,
         type_properties=artifact_type_properties,
         properties=properties,
+        custom_properties=custom_properties,
     )
     event = metadata_store_pb2.Event(
         execution_id=execution_id,
@@ -355,13 +389,16 @@ def create_new_output_artifact(
     type_name: str,
     output_name: str,
     run_id: str = None,
+    argo_artifact: dict = None,
 ) -> metadata_store_pb2.Artifact:
-    properties = {
+    custom_properties = {
         ARTIFACT_IO_NAME_PROPERTY_NAME: metadata_store_pb2.Value(string_value=output_name),
     }
     if run_id:
-        properties[ARTIFACT_PIPELINE_NAME_PROPERTY_NAME] = metadata_store_pb2.Value(string_value=str(run_id))
-        properties[ARTIFACT_RUN_ID_PROPERTY_NAME] = metadata_store_pb2.Value(string_value=str(run_id))
+        custom_properties[ARTIFACT_PIPELINE_NAME_PROPERTY_NAME] = metadata_store_pb2.Value(string_value=str(run_id))
+        custom_properties[ARTIFACT_RUN_ID_PROPERTY_NAME] = metadata_store_pb2.Value(string_value=str(run_id))
+    if argo_artifact:
+        custom_properties[ARTIFACT_ARGO_ARTIFACT_PROPERTY_NAME] = metadata_store_pb2.Value(string_value=json.dumps(argo_artifact, sort_keys=True))
     return create_new_artifact_event_and_attribution(
         store=store,
         execution_id=execution_id,
@@ -377,11 +414,6 @@ def create_new_output_artifact(
                 ),
             ]
         ),
-        properties=properties,
-        artifact_type_properties={
-            ARTIFACT_IO_NAME_PROPERTY_NAME: metadata_store_pb2.STRING,
-            ARTIFACT_PIPELINE_NAME_PROPERTY_NAME: metadata_store_pb2.STRING,
-            ARTIFACT_RUN_ID_PROPERTY_NAME: metadata_store_pb2.STRING,
-        },
+        custom_properties=custom_properties,
         #milliseconds_since_epoch=int(datetime.now(timezone.utc).timestamp() * 1000), # Happens automatically
     )

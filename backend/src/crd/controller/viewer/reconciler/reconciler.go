@@ -260,6 +260,7 @@ func serviceFrom(v *viewerV1beta1.Viewer, deploymentName string) *corev1.Service
 			},
 			Ports: []corev1.ServicePort{
 				corev1.ServicePort{
+					Name:       "http",
 					Protocol:   corev1.ProtocolTCP,
 					Port:       80,
 					TargetPort: intstr.IntOrString{IntVal: viewerTargetPort}},
@@ -271,7 +272,7 @@ func serviceFrom(v *viewerV1beta1.Viewer, deploymentName string) *corev1.Service
 func (r *Reconciler) maybeDeleteOldestViewer(t viewerV1beta1.ViewerType, namespace string) error {
 	list := &viewerV1beta1.ViewerList{}
 
-	if err := r.Client.List(context.Background(), &client.ListOptions{Namespace: namespace}, list); err != nil {
+	if err := r.Client.List(context.Background(), list, &client.ListOptions{Namespace: namespace}); err != nil {
 		return fmt.Errorf("failed to list viewers: %v", err)
 	}
 

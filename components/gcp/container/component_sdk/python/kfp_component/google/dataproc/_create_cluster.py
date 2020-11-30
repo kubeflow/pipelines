@@ -21,7 +21,10 @@ from .. import common as gcp_common
 @decorators.SetParseFns(image_version=str)
 def create_cluster(project_id, region, name=None, name_prefix=None,
     initialization_actions=None, config_bucket=None, image_version=None,
-    cluster=None, wait_interval=30):
+    cluster=None, wait_interval=30,
+    cluster_name_output_path='/tmp/kfp/output/dataproc/cluster_name.txt',
+    cluster_object_output_path='/tmp/kfp/output/dataproc/cluster.json',
+):
     """Creates a DataProc cluster under a project.
 
     Args:
@@ -70,11 +73,6 @@ def create_cluster(project_id, region, name=None, name_prefix=None,
             cluster['config']['softwareConfig'] = {}
         cluster['config']['softwareConfig']['imageVersion'] = image_version
 
-    return _create_cluster_internal(project_id, region, cluster, name_prefix,
-        wait_interval)
-
-def _create_cluster_internal(project_id, region, cluster, name_prefix, 
-    wait_interval):
     client = DataprocClient()
     operation_name = None
     with KfpExecutionContext(
@@ -86,7 +84,10 @@ def _create_cluster_internal(project_id, region, cluster, name_prefix,
         operation_name = operation.get('name')
         operation = client.wait_for_operation_done(operation_name, 
             wait_interval)
-        return _dump_cluster(operation.get('response'))
+        cluster = operation.get('response')
+        gcp_common.dump_file(cluster_object_output_path, json.dumps(cluster))
+        gcp_common.dump_file(cluster_name_output_path, cluster.get('clusterName'))
+        return cluster
 
 def _set_cluster_name(cluster, context_id, name_prefix):
     if 'clusterName' in cluster:
@@ -101,10 +102,3 @@ def _dump_metadata(cluster, region):
             cluster.get('clusterName'), cluster.get('projectId'), region),
         'Cluster Details'
     ))
-
-def _dump_cluster(cluster):
-    gcp_common.dump_file('/tmp/kfp/output/dataproc/cluster.json', 
-        json.dumps(cluster))
-    gcp_common.dump_file('/tmp/kfp/output/dataproc/cluster_name.txt',
-        cluster.get('clusterName'))
-    return cluster

@@ -2,6 +2,7 @@ package integration
 
 import (
 	"io/ioutil"
+	"sort"
 	"testing"
 	"time"
 
@@ -40,6 +41,12 @@ type JobApiTestSuite struct {
 	runClient            *api_server.RunClient
 	jobClient            *api_server.JobClient
 }
+
+type JobResourceReferenceSorter []*job_model.APIResourceReference
+
+func (r JobResourceReferenceSorter) Len() int           { return len(r) }
+func (r JobResourceReferenceSorter) Less(i, j int) bool { return r[i].Name < r[j].Name }
+func (r JobResourceReferenceSorter) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 
 // Check the namespace have ML pipeline installed and ready
 func (s *JobApiTestSuite) SetupTest() {
@@ -130,6 +137,9 @@ func (s *JobApiTestSuite) TestJobApis() {
 	assert.Nil(t, err)
 
 	/* ---------- Create a new argument parameter job by uploading workflow manifest ---------- */
+	// Make sure the job is created at least 1 second later than the first one,
+	// because sort by created_at has precision of 1 second.
+	time.Sleep(1 * time.Second)
 	argParamsBytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
 	assert.Nil(t, err)
 	argParamsBytes, err = yaml.ToJSON(argParamsBytes)
@@ -327,7 +337,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	_, runsWhenCatchupTrue, _, err = s.runClient.List(&runParams.ListRunsParams{
 		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
 		ResourceReferenceKeyID:   util.StringPointer(cronCatchupTrueExperiment.ID)})
-
+	assert.Equal(t, 2, runsWhenCatchupTrue)
 	/* ---------- Assert number of runs when catchup = false ---------- */
 	_, runsWhenCatchupFalse, _, err := s.runClient.List(&runParams.ListRunsParams{
 		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
@@ -345,24 +355,20 @@ func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob
 	// Check workflow manifest is not empty
 	assert.Contains(t, job.PipelineSpec.WorkflowManifest, "whalesay")
 
-	// Check resource references contain experiment and pipeline version.
-	resourceReferences := []*job_model.APIResourceReference{
-		{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experimentID},
-			Name: experimentName, Relationship: job_model.APIRelationshipOWNER,
-		},
-		{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersionId},
-			Name: pipelineVersionName, Relationship: job_model.APIRelationshipCREATOR},
-	}
-	assert.ElementsMatch(t, job.ResourceReferences, resourceReferences)
-
-	// Check other fields in job object (other than resource references)
-	job.ResourceReferences = nil
 	expectedJob := &job_model.APIJob{
-		ID:          job.ID,
-		Name:        "hello world",
-		Description: "this is hello world",
+		ID:             job.ID,
+		Name:           "hello world",
+		Description:    "this is hello world",
+		ServiceAccount: "pipeline-runner",
 		PipelineSpec: &job_model.APIPipelineSpec{
 			WorkflowManifest: job.PipelineSpec.WorkflowManifest,
+		},
+		ResourceReferences: []*job_model.APIResourceReference{
+			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experimentID},
+				Name: experimentName, Relationship: job_model.APIRelationshipOWNER,
+			},
+			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersionId},
+				Name: pipelineVersionName, Relationship: job_model.APIRelationshipCREATOR},
 		},
 		MaxConcurrency: 10,
 		Enabled:        true,
@@ -371,6 +377,10 @@ func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob
 		Status:         job.Status,
 		Trigger:        &job_model.APITrigger{},
 	}
+
+	// Need to sort resource references before equality check as the order is non-deterministic
+	sort.Sort(JobResourceReferenceSorter(job.ResourceReferences))
+	sort.Sort(JobResourceReferenceSorter(expectedJob.ResourceReferences))
 	assert.Equal(t, expectedJob, job)
 }
 
@@ -382,9 +392,10 @@ func (s *JobApiTestSuite) checkArgParamsJob(t *testing.T, job *job_model.APIJob,
 	// Check runtime workflow manifest is not empty
 	assert.Contains(t, job.PipelineSpec.WorkflowManifest, "arguments-parameters-")
 	expectedJob := &job_model.APIJob{
-		ID:          job.ID,
-		Name:        "argument parameter",
-		Description: "this is argument parameter",
+		ID:             job.ID,
+		Name:           "argument parameter",
+		Description:    "this is argument parameter",
+		ServiceAccount: "pipeline-runner",
 		PipelineSpec: &job_model.APIPipelineSpec{
 			WorkflowManifest: job.PipelineSpec.WorkflowManifest,
 			Parameters: []*job_model.APIParameter{

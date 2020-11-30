@@ -60,19 +60,22 @@ describe('Apis', () => {
 
   it('getPodLogs', async () => {
     const spy = fetchSpy('http://some/address');
-    expect(await Apis.getPodLogs('some-pod-name')).toEqual('http://some/address');
-    expect(spy).toHaveBeenCalledWith('k8s/pod/logs?podname=some-pod-name', {
-      credentials: 'same-origin',
-    });
+    expect(await Apis.getPodLogs('a-run-id', 'some-pod-name', 'ns')).toEqual('http://some/address');
+    expect(spy).toHaveBeenCalledWith(
+      'k8s/pod/logs?podname=some-pod-name&runid=a-run-id&podnamespace=ns',
+      {
+        credentials: 'same-origin',
+      },
+    );
   });
 
   it('getPodLogs in a specific namespace', async () => {
     const spy = fetchSpy('http://some/address');
-    expect(await Apis.getPodLogs('some-pod-name', 'some-namespace-name')).toEqual(
+    expect(await Apis.getPodLogs('a-run-id', 'some-pod-name', 'some-namespace-name')).toEqual(
       'http://some/address',
     );
     expect(spy).toHaveBeenCalledWith(
-      'k8s/pod/logs?podname=some-pod-name&podnamespace=some-namespace-name',
+      'k8s/pod/logs?podname=some-pod-name&runid=a-run-id&podnamespace=some-namespace-name',
       {
         credentials: 'same-origin',
       },
@@ -87,10 +90,10 @@ describe('Apis', () => {
         text: () => 'bad response',
       }),
     );
-    expect(Apis.getPodLogs('some-pod-name')).rejects.toThrowError('bad response');
-    expect(Apis.getPodLogs('some-pod-name', 'some-namespace-name')).rejects.toThrowError(
-      'bad response',
-    );
+    expect(Apis.getPodLogs('a-run-id', 'some-pod-name', 'ns')).rejects.toThrowError('bad response');
+    expect(
+      Apis.getPodLogs('a-run-id', 'some-pod-name', 'some-namespace-name'),
+    ).rejects.toThrowError('bad response');
   });
 
   it('getBuildInfo returns build information', async () => {
@@ -133,6 +136,32 @@ describe('Apis', () => {
     expect(spy).toHaveBeenCalledWith('artifacts/get?source=gcs&bucket=testbucket&key=testkey', {
       credentials: 'same-origin',
     });
+  });
+
+  it('buildReadFileUrl', () => {
+    expect(
+      Apis.buildReadFileUrl({
+        path: {
+          bucket: 'testbucket',
+          key: 'testkey',
+          source: StorageService.GCS,
+        },
+        namespace: 'testnamespace',
+        peek: 255,
+      }),
+    ).toEqual(
+      'artifacts/get?source=gcs&namespace=testnamespace&peek=255&bucket=testbucket&key=testkey',
+    );
+  });
+
+  it('buildArtifactUrl', () => {
+    expect(
+      Apis.buildArtifactUrl({
+        bucket: 'testbucket',
+        key: 'testkey',
+        source: StorageService.GCS,
+      }),
+    ).toEqual('gcs://testbucket/testkey');
   });
 
   it('getTensorboardApp', async () => {

@@ -249,7 +249,7 @@ describe('WorkflowParser', () => {
         });
     });
 
-    it('deletes virtual nodes', () => {
+    it('deletes virtual nodes (Steps, StepGroup)', () => {
       const workflow = {
         metadata: { name: 'testWorkflow' },
         status: {
@@ -268,6 +268,40 @@ describe('WorkflowParser', () => {
               name: 'node2',
               phase: 'Succeeded',
               type: 'StepGroup',
+            },
+            node3: {
+              id: 'node3',
+              name: 'node3',
+              phase: 'Succeeded',
+              type: 'Pod',
+            },
+          },
+        },
+      };
+      const g = WorkflowParser.createRuntimeGraph(workflow as any);
+      expect(g.nodes()).toEqual(['node1', 'node3']);
+      expect(g.edges()).toEqual([{ v: 'node1', w: 'node3' }]);
+    });
+
+    it('deletes virtual nodes (Retry)', () => {
+      const workflow = {
+        metadata: { name: 'testWorkflow' },
+        status: {
+          nodes: {
+            node1: {
+              children: ['node2'],
+              id: 'node1',
+              name: 'node1',
+              phase: 'Succeeded',
+              type: 'Pod',
+            },
+            node2: {
+              boundaryID: 'node',
+              children: ['node3'],
+              id: 'node2',
+              name: 'node2',
+              phase: 'Succeeded',
+              type: 'Retry',
             },
             node3: {
               id: 'node3',
@@ -887,7 +921,7 @@ describe('WorkflowParser', () => {
       ]);
     });
 
-    it('returns the right bucket and key for a correct metadata artifact', () => {
+    it('returns the right bucket, key and source eq `minio` for a correct metadata artifact', () => {
       expect(
         WorkflowParser.loadNodeOutputPaths({
           outputs: {
@@ -907,6 +941,31 @@ describe('WorkflowParser', () => {
           bucket: 'test bucket',
           key: 'test key',
           source: 'minio',
+        },
+      ]);
+    });
+
+    it('returns the right bucket, key and source eq `s3` for a correct metadata artifact', () => {
+      expect(
+        WorkflowParser.loadNodeOutputPaths({
+          outputs: {
+            artifacts: [
+              {
+                name: 'mlpipeline-ui-metadata',
+                s3: {
+                  endpoint: 's3.amazonaws.com',
+                  bucket: 'test bucket',
+                  key: 'test key',
+                },
+              },
+            ],
+          },
+        } as any),
+      ).toEqual([
+        {
+          bucket: 'test bucket',
+          key: 'test key',
+          source: 's3',
         },
       ]);
     });
@@ -1081,6 +1140,22 @@ describe('WorkflowParser', () => {
         bucket: 'host:port',
         key: 'path/foo/bar',
         source: StorageService.HTTPS,
+      });
+    });
+
+    it('handles volume file without path', () => {
+      expect(WorkflowParser.parseStoragePath('volume://output')).toEqual({
+        bucket: 'output',
+        key: '',
+        source: StorageService.VOLUME,
+      });
+    });
+
+    it('handles volume file with path', () => {
+      expect(WorkflowParser.parseStoragePath('volume://output/path/foo/bar')).toEqual({
+        bucket: 'output',
+        key: 'path/foo/bar',
+        source: StorageService.VOLUME,
       });
     });
   });

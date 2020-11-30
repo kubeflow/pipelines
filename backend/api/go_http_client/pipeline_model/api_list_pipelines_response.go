@@ -32,13 +32,13 @@ import (
 // swagger:model apiListPipelinesResponse
 type APIListPipelinesResponse struct {
 
-	// next page token
+	// The token to list the next page of pipelines.
 	NextPageToken string `json:"next_page_token,omitempty"`
 
 	// pipelines
 	Pipelines []*APIPipeline `json:"pipelines"`
 
-	// total size
+	// The total number of pipelines for the given query.
 	TotalSize int32 `json:"total_size,omitempty"`
 }
 

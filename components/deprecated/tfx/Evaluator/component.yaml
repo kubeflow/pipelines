@@ -1,0 +1,245 @@
+name: Evaluator
+description: |-
+  A TFX component to evaluate models trained by a TFX Trainer component.
+
+      The Evaluator component performs model evaluations in the TFX pipeline and
+      the resultant metrics can be viewed in a Jupyter notebook.  It uses the
+      input examples generated from the
+      [ExampleGen](https://www.tensorflow.org/tfx/guide/examplegen)
+      component to evaluate the models.
+
+      Specifically, it can provide:
+          - metrics computed on entire training and eval dataset
+          - tracking metrics over time
+          - model quality performance on different feature slices
+
+      ## Exporting the EvalSavedModel in Trainer
+
+      In order to setup Evaluator in a TFX pipeline, an EvalSavedModel needs to be
+      exported during training, which is a special SavedModel containing
+      annotations for the metrics, features, labels, and so on in your model.
+      Evaluator uses this EvalSavedModel to compute metrics.
+
+      As part of this, the Trainer component creates eval_input_receiver_fn,
+      analogous to the serving_input_receiver_fn, which will extract the features
+      and labels from the input data. As with serving_input_receiver_fn, there are
+      utility functions to help with this.
+
+      Please see https://www.tensorflow.org/tfx/model_analysis for more details.
+
+      Args:
+          examples: A Channel of 'Examples' type, usually produced by ExampleGen
+              component. @Ark-kun: Must have the eval split. _required_
+          model: A Channel of 'Model' type, usually produced by
+              Trainer component.
+          feature_slicing_spec:
+              [evaluator_pb2.FeatureSlicingSpec](https://github.com/tensorflow/tfx/blob/master/tfx/proto/evaluator.proto)
+              instance that describes how Evaluator should slice the data.
+      Returns:
+          evaluation: Channel of `ModelEvaluation` to store the evaluation results.
+
+      Either `model_exports` or `model` must be present in the input arguments.
+inputs:
+- {name: examples, type: Examples}
+- {name: model, type: Model}
+- {name: baseline_model, type: Model, optional: true}
+- {name: schema, type: Schema, optional: true}
+- name: feature_slicing_spec
+  type:
+    JsonObject: {data_type: 'proto:tfx.components.evaluator.FeatureSlicingSpec'}
+  optional: true
+- name: eval_config
+  type:
+    JsonObject: {data_type: 'proto:tensorflow_model_analysis.EvalConfig'}
+  optional: true
+- {name: fairness_indicator_thresholds, type: JsonArray, optional: true}
+outputs:
+- {name: evaluation, type: ModelEvaluation}
+implementation:
+  container:
+    image: tensorflow/tfx:0.21.4
+    command:
+    - python3
+    - -u
+    - -c
+    - |
+      def _make_parent_dirs_and_return_path(file_path: str):
+          import os
+          os.makedirs(os.path.dirname(file_path), exist_ok=True)
+          return file_path
+
+      def Evaluator(
+          evaluation_path ,
+
+          examples_path ,
+          model_path ,
+          baseline_model_path  = None,
+          schema_path  = None,
+
+          feature_slicing_spec    = None,  # TODO: Replace feature_slicing_spec with eval_config
+          eval_config    = None,
+          fairness_indicator_thresholds  = None, # List[str]
+
+          #blessing_path: OutputPath('ModelBlessing') = None,  # Optional outputs are not supported yet
+      ):
+          """
+          A TFX component to evaluate models trained by a TFX Trainer component.
+
+          The Evaluator component performs model evaluations in the TFX pipeline and
+          the resultant metrics can be viewed in a Jupyter notebook.  It uses the
+          input examples generated from the
+          [ExampleGen](https://www.tensorflow.org/tfx/guide/examplegen)
+          component to evaluate the models.
+
+          Specifically, it can provide:
+              - metrics computed on entire training and eval dataset
+              - tracking metrics over time
+              - model quality performance on different feature slices
+
+          ## Exporting the EvalSavedModel in Trainer
+
+          In order to setup Evaluator in a TFX pipeline, an EvalSavedModel needs to be
+          exported during training, which is a special SavedModel containing
+          annotations for the metrics, features, labels, and so on in your model.
+          Evaluator uses this EvalSavedModel to compute metrics.
+
+          As part of this, the Trainer component creates eval_input_receiver_fn,
+          analogous to the serving_input_receiver_fn, which will extract the features
+          and labels from the input data. As with serving_input_receiver_fn, there are
+          utility functions to help with this.
+
+          Please see https://www.tensorflow.org/tfx/model_analysis for more details.
+
+          Args:
+              examples: A Channel of 'Examples' type, usually produced by ExampleGen
+                  component. @Ark-kun: Must have the eval split. _required_
+              model: A Channel of 'Model' type, usually produced by
+                  Trainer component.
+              feature_slicing_spec:
+                  [evaluator_pb2.FeatureSlicingSpec](https://github.com/tensorflow/tfx/blob/master/tfx/proto/evaluator.proto)
+                  instance that describes how Evaluator should slice the data.
+          Returns:
+              evaluation: Channel of `ModelEvaluation` to store the evaluation results.
+
+          Either `model_exports` or `model` must be present in the input arguments.
+
+          """
+          from tfx.components.evaluator.component import Evaluator as component_class
+
+          #Generated code
+          import json
+          import os
+          import tensorflow
+          from google.protobuf import json_format, message
+          from tfx.types import Artifact, channel_utils, artifact_utils
+
+          arguments = locals().copy()
+
+          component_class_args = {}
+
+          for name, execution_parameter in component_class.SPEC_CLASS.PARAMETERS.items():
+              argument_value_obj = argument_value = arguments.get(name, None)
+              if argument_value is None:
+                  continue
+              parameter_type = execution_parameter.type
+              if isinstance(parameter_type, type) and issubclass(parameter_type, message.Message): # Maybe FIX: execution_parameter.type can also be a tuple
+                  argument_value_obj = parameter_type()
+                  json_format.Parse(argument_value, argument_value_obj)
+              component_class_args[name] = argument_value_obj
+
+          for name, channel_parameter in component_class.SPEC_CLASS.INPUTS.items():
+              artifact_path = arguments[name + '_path']
+              if artifact_path:
+                  artifact = channel_parameter.type()
+                  artifact.uri = artifact_path + '/' # ?
+                  if channel_parameter.type.PROPERTIES and 'split_names' in channel_parameter.type.PROPERTIES:
+                      # Recovering splits
+                      subdirs = tensorflow.io.gfile.listdir(artifact_path)
+                      artifact.split_names = artifact_utils.encode_split_names(sorted(subdirs))
+                  component_class_args[name] = channel_utils.as_channel([artifact])
+
+          component_class_instance = component_class(**component_class_args)
+
+          input_dict = {name: channel.get() for name, channel in component_class_instance.inputs.get_all().items()}
+          output_dict = {name: channel.get() for name, channel in component_class_instance.outputs.get_all().items()}
+          exec_properties = component_class_instance.exec_properties
+
+          # Generating paths for output artifacts
+          for name, artifacts in output_dict.items():
+              base_artifact_path = arguments.get(name + '_path', None)
+              if base_artifact_path:
+                  # Are there still cases where output channel has multiple artifacts?
+                  for idx, artifact in enumerate(artifacts):
+                      subdir = str(idx + 1) if idx > 0 else ''
+                      artifact.uri = os.path.join(base_artifact_path, subdir)  # Ends with '/'
+
+          print('component instance: ' + str(component_class_instance))
+
+          #executor = component_class.EXECUTOR_SPEC.executor_class() # Same
+          executor = component_class_instance.executor_spec.executor_class()
+          executor.Do(
+              input_dict=input_dict,
+              output_dict=output_dict,
+              exec_properties=exec_properties,
+          )
+
+      import json
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Evaluator', description="A TFX component to evaluate models trained by a TFX Trainer component.\n\n    The Evaluator component performs model evaluations in the TFX pipeline and\n    the resultant metrics can be viewed in a Jupyter notebook.  It uses the\n    input examples generated from the\n    [ExampleGen](https://www.tensorflow.org/tfx/guide/examplegen)\n    component to evaluate the models.\n\n    Specifically, it can provide:\n        - metrics computed on entire training and eval dataset\n        - tracking metrics over time\n        - model quality performance on different feature slices\n\n    ## Exporting the EvalSavedModel in Trainer\n\n    In order to setup Evaluator in a TFX pipeline, an EvalSavedModel needs to be\n    exported during training, which is a special SavedModel containing\n    annotations for the metrics, features, labels, and so on in your model.\n    Evaluator uses this EvalSavedModel to compute metrics.\n\n    As part of this, the Trainer component creates eval_input_receiver_fn,\n    analogous to the serving_input_receiver_fn, which will extract the features\n    and labels from the input data. As with serving_input_receiver_fn, there are\n    utility functions to help with this.\n\n    Please see https://www.tensorflow.org/tfx/model_analysis for more details.\n\n    Args:\n        examples: A Channel of 'Examples' type, usually produced by ExampleGen\n            component. @Ark-kun: Must have the eval split. _required_\n        model: A Channel of 'Model' type, usually produced by\n            Trainer component.\n        feature_slicing_spec:\n            [evaluator_pb2.FeatureSlicingSpec](https://github.com/tensorflow/tfx/blob/master/tfx/proto/evaluator.proto)\n            instance that describes how Evaluator should slice the data.\n    Returns:\n        evaluation: Channel of `ModelEvaluation` to store the evaluation results.\n\n    Either `model_exports` or `model` must be present in the input arguments.")
+      _parser.add_argument("--examples", dest="examples_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--model", dest="model_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--baseline-model", dest="baseline_model_path", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--schema", dest="schema_path", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--feature-slicing-spec", dest="feature_slicing_spec", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--eval-config", dest="eval_config", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--fairness-indicator-thresholds", dest="fairness_indicator_thresholds", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--evaluation", dest="evaluation_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parsed_args = vars(_parser.parse_args())
+      _output_files = _parsed_args.pop("_output_paths", [])
+
+      _outputs = Evaluator(**_parsed_args)
+
+      _output_serializers = [
+
+      ]
+
+      import os
+      for idx, output_file in enumerate(_output_files):
+          try:
+              os.makedirs(os.path.dirname(output_file))
+          except OSError:
+              pass
+          with open(output_file, 'w') as f:
+              f.write(_output_serializers[idx](_outputs[idx]))
+    args:
+    - --examples
+    - {inputPath: examples}
+    - --model
+    - {inputPath: model}
+    - if:
+        cond: {isPresent: baseline_model}
+        then:
+        - --baseline-model
+        - {inputPath: baseline_model}
+    - if:
+        cond: {isPresent: schema}
+        then:
+        - --schema
+        - {inputPath: schema}
+    - if:
+        cond: {isPresent: feature_slicing_spec}
+        then:
+        - --feature-slicing-spec
+        - {inputValue: feature_slicing_spec}
+    - if:
+        cond: {isPresent: eval_config}
+        then:
+        - --eval-config
+        - {inputValue: eval_config}
+    - if:
+        cond: {isPresent: fairness_indicator_thresholds}
+        then:
+        - --fairness-indicator-thresholds
+        - {inputValue: fairness_indicator_thresholds}
+    - --evaluation
+    - {outputPath: evaluation}

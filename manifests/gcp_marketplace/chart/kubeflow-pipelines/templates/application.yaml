@@ -12,7 +12,7 @@ metadata:
 spec:
   descriptor:
     type: Kubeflow Pipelines
-    version: '0.3.0'
+    version: 1.1.1-beta.1
     description: |-
       Reusable end-to-end ML workflow
     maintainers:
@@ -25,10 +25,9 @@ spec:
         url: https://www.kubeflow.org/docs/pipelines/
     notes: |-
       Please go to [Hosted Kubeflow Pipelines Console](https://console.cloud.google.com/ai-platform/pipelines/clusters).
-
   info:
     - name: Application Namespace
-      value: {{ .Release.Namespace }}
+      value: "{{ .Release.Namespace }}"
     - name: Console
       value: 'https://console.cloud.google.com/ai-platform/pipelines/clusters'
   componentKinds:
@@ -41,11 +40,8 @@ spec:
     - group: v1
       kind: Service
     - group: v1
-      kind: PersistentVolumeClaim
-    - group: v1
       kind: ConfigMap
     - group: v1
       kind: Secret
-    - group: apps/v1beta2
+    - group: apps/v1
       kind: Deployment
-

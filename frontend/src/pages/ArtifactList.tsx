@@ -57,7 +57,7 @@ interface ArtifactListState {
 }
 
 const ARTIFACT_PROPERTY_REPOS = [ArtifactProperties, ArtifactCustomProperties];
-const PIPELINE_WORKSPACE_FIELDS = ['PIPELINE_NAME', 'WORKSPACE', 'RUN_ID'];
+const PIPELINE_WORKSPACE_FIELDS = ['RUN_ID', 'PIPELINE_NAME', 'WORKSPACE'];
 const NAME_FIELDS = ['NAME'];
 
 class ArtifactList extends Page<{}, ArtifactListState> {
@@ -156,12 +156,11 @@ class ArtifactList extends Page<{}, ArtifactListState> {
   private nameCustomRenderer: React.FC<CustomRendererProps<string>> = (
     props: CustomRendererProps<string>,
   ) => {
-    const [artifactType, artifactId] = props.id.split(':');
     return (
       <Link
         onClick={e => e.stopPropagation()}
         className={commonCss.link}
-        to={RoutePageFactory.artifactDetails(artifactType, Number(artifactId))}
+        to={RoutePageFactory.artifactDetails(Number(props.id))}
       >
         {props.value}
       </Link>
@@ -221,7 +220,7 @@ class ArtifactList extends Page<{}, ArtifactListState> {
             const artifactType = this.artifactTypesMap!.get(typeId);
             const type = artifactType ? artifactType.getName() : artifact.getTypeId();
             return {
-              id: `${type}:${artifact.getId()}`, // Join with colon so we can build the link
+              id: `${artifact.getId()}`,
               otherFields: [
                 getResourcePropertyViaFallBack(
                   artifact,

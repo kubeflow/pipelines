@@ -50,7 +50,7 @@ func (a *Client) CreateVisualization(params *CreateVisualizationParams, authInfo
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "CreateVisualization",
 		Method:             "POST",
-		PathPattern:        "/apis/v1beta1/visualizations",
+		PathPattern:        "/apis/v1beta1/visualizations/{namespace}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},

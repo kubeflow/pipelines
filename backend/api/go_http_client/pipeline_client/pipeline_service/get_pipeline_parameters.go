@@ -75,7 +75,10 @@ for the get pipeline operation typically these are written to a http.Request
 */
 type GetPipelineParams struct {
 
-	/*ID*/
+	/*ID
+	  The ID of the pipeline to be retrieved.
+
+	*/
 	ID string
 
 	timeout    time.Duration

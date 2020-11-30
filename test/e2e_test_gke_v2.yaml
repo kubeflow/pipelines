@@ -129,9 +129,9 @@ spec:
         withItems:
           - condition
           - exit_handler
+          - recursion
           - sequential
           - parallel_join
-          - recursion
           - volume_ops
 
   - name: upgrade-test-preparation

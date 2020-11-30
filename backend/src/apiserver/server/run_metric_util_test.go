@@ -76,12 +76,21 @@ func TestValidateRunMetric_InvalidNodeIDs(t *testing.T) {
 }
 
 func TestNewReportRunMetricResult_OK(t *testing.T) {
-	expected := newReportRunMetricResult("metric-1", "node-1")
-	expected.Status = api.ReportRunMetricsResponse_ReportRunMetricResult_OK
+	tests := []struct {
+		metricName string
+	}{
+		{"metric-1"},
+		{"Metric_2"},
+		{"Metric3Name"},
+	}
 
-	actual := NewReportRunMetricResult(expected.GetMetricName(), expected.GetMetricNodeId(), nil)
+	for _, tc := range tests {
+		expected := newReportRunMetricResult(tc.metricName, "node-1")
+		expected.Status = api.ReportRunMetricsResponse_ReportRunMetricResult_OK
+		actual := NewReportRunMetricResult(expected.GetMetricName(), expected.GetMetricNodeId(), nil)
 
-	assert.Equal(t, expected, actual)
+		assert.Equalf(t, expected, actual, "TestNewReportRunMetricResult_OK metric name '%s' should be OK", tc.metricName)
+	}
 }
 
 func TestNewReportRunMetricResult_UnknownError(t *testing.T) {

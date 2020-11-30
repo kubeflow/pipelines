@@ -80,7 +80,7 @@ outputs:
     type: UI metadata
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:be497983cda7a1d17f3883c67e39a969cf0868a9
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:1.1.1-beta.1
     args: [
       --ui_metadata_path, {outputPath: MLPipeline UI metadata},
       kfp_component.google.dataproc, submit_hadoop_job,
@@ -93,8 +93,7 @@ implementation:
       --hadoop_job, {inputValue: hadoop_job},
       --job, {inputValue: job},
       --wait_interval, {inputValue: wait_interval},
+      --job_id_output_path, {outputPath: job_id},
     ]
     env:
       KFP_POD_NAME: "{{pod.name}}"
-    fileOutputs:
-      job_id: /tmp/kfp/output/dataproc/job_id.txt

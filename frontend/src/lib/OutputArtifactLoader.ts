@@ -18,19 +18,14 @@ import {
   Api,
   Artifact,
   ArtifactType,
-  Context,
   Event,
   Execution,
   GetArtifactsByIDRequest,
   GetArtifactsByIDResponse,
   GetArtifactTypesRequest,
   GetArtifactTypesResponse,
-  GetContextByTypeAndNameRequest,
-  GetContextByTypeAndNameResponse,
   GetEventsByExecutionIDsRequest,
   GetEventsByExecutionIDsResponse,
-  GetExecutionsByContextRequest,
-  GetExecutionsByContextResponse,
 } from '@kubeflow/frontend';
 import { csvParseRows } from 'd3-dsv';
 import { ApiVisualization, ApiVisualizationType } from '../apis/visualization';
@@ -63,14 +58,13 @@ export interface OutputMetadata {
   outputs: PlotMetadata[];
 }
 
+type SourceContentGetter = (source: string, storage?: PlotMetadata['storage']) => Promise<string>;
+
 export class OutputArtifactLoader {
-  public static async load(
-    outputPath: StoragePath,
-    namespace: string | undefined,
-  ): Promise<ViewerConfig[]> {
+  public static async load(outputPath: StoragePath, namespace?: string): Promise<ViewerConfig[]> {
     let plotMetadataList: PlotMetadata[] = [];
     try {
-      const metadataFile = await Apis.readFile(outputPath);
+      const metadataFile = await Apis.readFile(outputPath, namespace);
       if (metadataFile) {
         try {
           plotMetadataList = (JSON.parse(metadataFile) as OutputMetadata).outputs;
@@ -88,21 +82,24 @@ export class OutputArtifactLoader {
       // TODO: error dialog
     }
 
+    const getSourceContent: SourceContentGetter = async (source, storage) =>
+      await readSourceContent(source, storage, namespace);
+
     const configs: Array<ViewerConfig | null> = await Promise.all(
       plotMetadataList.map(async metadata => {
         switch (metadata.type) {
           case PlotType.CONFUSION_MATRIX:
-            return await this.buildConfusionMatrixConfig(metadata);
+            return await this.buildConfusionMatrixConfig(metadata, getSourceContent);
           case PlotType.MARKDOWN:
-            return await this.buildMarkdownViewerConfig(metadata);
+            return await this.buildMarkdownViewerConfig(metadata, getSourceContent);
           case PlotType.TABLE:
-            return await this.buildPagedTableConfig(metadata);
+            return await this.buildPagedTableConfig(metadata, getSourceContent);
           case PlotType.TENSORBOARD:
             return await this.buildTensorboardConfig(metadata, namespace);
           case PlotType.WEB_APP:
-            return await this.buildHtmlViewerConfig(metadata);
+            return await this.buildHtmlViewerConfig(metadata, getSourceContent);
           case PlotType.ROC:
-            return await this.buildRocCurveConfig(metadata);
+            return await this.buildRocCurveConfig(metadata, getSourceContent);
           default:
             logger.error('Unknown plot type: ' + metadata.type);
             return null;
@@ -115,6 +112,7 @@ export class OutputArtifactLoader {
 
   public static async buildConfusionMatrixConfig(
     metadata: PlotMetadataContent,
+    getSourceContent: SourceContentGetter,
   ): Promise<ConfusionMatrixConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
@@ -145,9 +143,10 @@ export class OutputArtifactLoader {
     }
 
     const data = Array.from(Array(labels.length), () => new Array(labels.length));
-    csvRows.forEach(([target, predicted, count]) => {
-      const i = labelIndex[target.trim()];
-      const j = labelIndex[predicted.trim()];
+    csvRows.forEach(([labelX, labelY, count]) => {
+      const i = labelIndex[labelX.trim()];
+      const j = labelIndex[labelY.trim()];
+      // Note: data[i][j] means data(i, j) i on x-axis, j on y-axis
       data[i][j] = Number.parseInt(count, 10);
     });
 
@@ -169,6 +168,7 @@ export class OutputArtifactLoader {
 
   public static async buildPagedTableConfig(
     metadata: PlotMetadataContent,
+    getSourceContent: SourceContentGetter,
   ): Promise<PagedTableConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
@@ -200,7 +200,7 @@ export class OutputArtifactLoader {
 
   public static async buildTensorboardConfig(
     metadata: PlotMetadataContent,
-    namespace: string | undefined,
+    namespace?: string,
   ): Promise<TensorboardViewerConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
@@ -218,6 +218,7 @@ export class OutputArtifactLoader {
 
   public static async buildHtmlViewerConfig(
     metadata: PlotMetadataContent,
+    getSourceContent: SourceContentGetter,
   ): Promise<HTMLViewerConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
@@ -233,10 +234,15 @@ export class OutputArtifactLoader {
    * @throws error on exceptions
    * @returns config array, also returns empty array when expected erros happen
    */
-  public static async buildTFXArtifactViewerConfig(
-    argoPodName: string,
-    reportProgress: (progress: number) => void = () => null,
-  ): Promise<HTMLViewerConfig[]> {
+  public static async buildTFXArtifactViewerConfig({
+    namespace,
+    execution,
+    reportProgress = () => null,
+  }: {
+    namespace: string;
+    execution: Execution;
+    reportProgress: (progress: number) => void;
+  }): Promise<HTMLViewerConfig[]> {
     // Error handling assumptions:
     // * Context/execution/artifact nodes are not expected to be in MLMD. Thus, any
     // errors associated with the nodes not being found are expected.
@@ -250,33 +256,15 @@ export class OutputArtifactLoader {
     // Since artifact types don't change per run, this can be optimized further so
     // that we don't fetch them on every page load.
     reportProgress(10);
-    const artifactTypes = await getArtifactTypes();
-    if (artifactTypes.length === 0) {
-      // There are no artifact types data.
+    const [artifactTypes, artifacts] = await Promise.all([
+      getArtifactTypes(),
+      getOutputArtifactsInExecution(execution),
+    ]);
+    if (artifactTypes.length === 0 || artifacts.length === 0) {
+      // There are no artifact types data or no artifacts.
       return [];
     }
-    reportProgress(20);
-
-    const context = await getMlmdContext(argoPodName);
-    if (!context) {
-      // Failed finding corresponding MLMD context.
-      return [];
-    }
-    reportProgress(40);
-
-    const execution = await getExecutionInContextWithPodName(argoPodName, context);
-    if (!execution) {
-      // Failed finding corresponding MLMD execution.
-      return [];
-    }
-    reportProgress(60);
-
-    const artifacts = await getOutputArtifactsInExecution(execution);
-    if (artifacts.length === 0) {
-      // There are no artifacts in this execution.
-      return [];
-    }
-    reportProgress(80);
+    reportProgress(70);
 
     // TODO: Visualize non-TFDV artifacts, such as ModelEvaluation using TFMA
     let viewers: Array<Promise<HTMLViewerConfig>> = [];
@@ -290,7 +278,7 @@ export class OutputArtifactLoader {
       const trainUri = uri + '/train/stats_tfrecord';
       viewers = viewers.concat(
         [evalUri, trainUri].map(async specificUri => {
-          return buildArtifactViewerTfdvStatistics(specificUri);
+          return buildArtifactViewerTfdvStatistics(specificUri, namespace);
         }),
       );
     });
@@ -303,7 +291,7 @@ export class OutputArtifactLoader {
           `schema = tfdv.load_schema_text('${uri}')`,
           'tfdv.display_schema(schema)',
         ];
-        return buildArtifactViewer(script);
+        return buildArtifactViewer({ script, namespace });
       }),
     );
     const anomaliesArtifactUris = filterArtifactUrisByType(
@@ -319,7 +307,7 @@ export class OutputArtifactLoader {
           `anomalies = tfdv.load_anomalies_text('${uri}')`,
           'tfdv.display_anomalies(anomalies)',
         ];
-        return buildArtifactViewer(script);
+        return buildArtifactViewer({ script, namespace });
       }),
     );
     const EvaluatorArtifactUris = filterArtifactUrisByType(
@@ -351,7 +339,7 @@ export class OutputArtifactLoader {
           `embed_minimal_html(view, views=[slicing_metrics_view], title='Slicing Metrics')`,
           `display(HTML(view.getvalue()))`,
         ];
-        return buildArtifactViewer(script);
+        return buildArtifactViewer({ script, namespace });
       }),
     );
     // TODO(jingzhang36): maybe move the above built-in scripts to visualization server.
@@ -361,6 +349,7 @@ export class OutputArtifactLoader {
 
   public static async buildMarkdownViewerConfig(
     metadata: PlotMetadataContent,
+    getSourceContent: SourceContentGetter,
   ): Promise<MarkdownViewerConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
@@ -371,7 +360,10 @@ export class OutputArtifactLoader {
     };
   }
 
-  public static async buildRocCurveConfig(metadata: PlotMetadataContent): Promise<ROCCurveConfig> {
+  public static async buildRocCurveConfig(
+    metadata: PlotMetadataContent,
+    getSourceContent: SourceContentGetter,
+  ): Promise<ROCCurveConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
     }
@@ -409,82 +401,6 @@ export class OutputArtifactLoader {
       type: PlotType.ROC,
     };
   }
-}
-
-/**
- * @throws error when network error
- * @returns context, returns undefined when context with the pod name not found
- */
-async function getMlmdContext(argoPodName: string): Promise<Context | undefined> {
-  if (argoPodName.split('-').length < 3) {
-    throw new Error('argoPodName has fewer than 3 parts');
-  }
-
-  // argoPodName has the general form "pipelineName-workflowId-executionId".
-  // All components of a pipeline within a single run will have the same
-  // "pipelineName-workflowId" prefix.
-  const pipelineName = argoPodName
-    .split('-')
-    .slice(0, -2)
-    .join('_');
-  const runID = argoPodName
-    .split('-')
-    .slice(0, -1)
-    .join('-');
-  const contextName = pipelineName + '.' + runID;
-
-  const request = new GetContextByTypeAndNameRequest();
-  request.setTypeName('run');
-  request.setContextName(contextName);
-  let res: GetContextByTypeAndNameResponse;
-  try {
-    res = await Api.getInstance().metadataStoreService.getContextByTypeAndName(request);
-  } catch (err) {
-    err.message = 'Failed to getContextsByTypeAndName: ' + err.message;
-    throw err;
-  }
-
-  return res.getContext();
-}
-
-/**
- * @throws error when network error
- * @returns execution, returns undefined when not found or not yet complete
- */
-async function getExecutionInContextWithPodName(
-  argoPodName: string,
-  context: Context,
-): Promise<Execution | undefined> {
-  const contextId = context.getId();
-  if (!contextId) {
-    throw new Error('Context must have an ID');
-  }
-
-  const request = new GetExecutionsByContextRequest();
-  request.setContextId(contextId);
-  let res: GetExecutionsByContextResponse;
-  try {
-    res = await Api.getInstance().metadataStoreService.getExecutionsByContext(request);
-  } catch (err) {
-    err.message = 'Failed to getExecutionsByContext: ' + err.message;
-    throw err;
-  }
-
-  const executionList = res.getExecutionsList();
-  const foundExecution = executionList.find(execution => {
-    const executionPodName = execution.getPropertiesMap().get('kfp_pod_name');
-    return executionPodName && executionPodName.getStringValue() === argoPodName;
-  });
-  if (!foundExecution) {
-    return undefined; // Not found, this is expected to happen normally when there's no mlmd data.
-  }
-  const state = foundExecution.getPropertiesMap().get('state');
-  // Both complete and cached executions are considered valid.
-  if (state && ['complete', 'cached'].includes(state.getStringValue())) {
-    return foundExecution;
-  }
-  // No valid execution found.
-  return undefined;
 }
 
 /**
@@ -554,13 +470,19 @@ function filterArtifactUrisByType(
   return tfdvArtifactsPaths;
 }
 
-async function buildArtifactViewer(script: string[]): Promise<HTMLViewerConfig> {
+async function buildArtifactViewer({
+  script,
+  namespace,
+}: {
+  script: string[];
+  namespace: string;
+}): Promise<HTMLViewerConfig> {
   const visualizationData: ApiVisualization = {
     arguments: JSON.stringify({ code: script }),
     source: '',
     type: ApiVisualizationType.CUSTOM,
   };
-  const visualization = await Apis.buildPythonVisualizationConfig(visualizationData);
+  const visualization = await Apis.buildPythonVisualizationConfig(visualizationData, namespace);
   if (!visualization.htmlContent) {
     // TODO: Improve error message with details.
     throw new Error('Failed to build artifact viewer');
@@ -571,12 +493,15 @@ async function buildArtifactViewer(script: string[]): Promise<HTMLViewerConfig> 
   };
 }
 
-async function buildArtifactViewerTfdvStatistics(url: string): Promise<HTMLViewerConfig> {
+async function buildArtifactViewerTfdvStatistics(
+  url: string,
+  namespace: string,
+): Promise<HTMLViewerConfig> {
   const visualizationData: ApiVisualization = {
     source: url,
     type: ApiVisualizationType.TFDV,
   };
-  const visualization = await Apis.buildPythonVisualizationConfig(visualizationData);
+  const visualization = await Apis.buildPythonVisualizationConfig(visualizationData, namespace);
   if (!visualization.htmlContent) {
     throw new Error('Failed to build artifact viewer, no value in visualization.htmlContent');
   }
@@ -586,12 +511,17 @@ async function buildArtifactViewerTfdvStatistics(url: string): Promise<HTMLViewe
   };
 }
 
-async function getSourceContent(
+async function readSourceContent(
   source: PlotMetadata['source'],
-  storage?: PlotMetadata['storage'],
+  storage: PlotMetadata['storage'] | undefined,
+  namespace: string | undefined,
 ): Promise<string> {
   if (storage === 'inline') {
     return source;
   }
-  return await Apis.readFile(WorkflowParser.parseStoragePath(source));
+  return await Apis.readFile(WorkflowParser.parseStoragePath(source), namespace);
 }
+
+export const TEST_ONLY = {
+  readSourceContent,
+};

@@ -74,7 +74,6 @@ spec:
               - execution_order
               - imagepullsecrets
               - retry
-              - artifact_location
               - preemptible_tpu_gpu
               - volume_snapshot_ops
               - loop_output
@@ -82,6 +81,7 @@ spec:
               - loop_static
               - resource_ops
               - multiple_outputs
+              - caching
           - name: run-integration-tests-loop
             template: run-sample-tests
             arguments:
@@ -100,7 +100,9 @@ spec:
               - xgboost_training_cm
               - dataflow
               - ai_platform
-              - kubeflow_tf_serving
+              # TODO(#4361): Re-enable the kubeflow_tf_serving sample test after
+              # fixed the sample
+              # - kubeflow_tf_serving
               - container_build
               - parameterized_tfx_oss
               - iris

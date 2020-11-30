@@ -3,10 +3,14 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "go_default_library",
     srcs = [
+        "auth.pb.go",
+        "auth.pb.gw.go",
         "error.pb.go",
         "experiment.pb.go",
         "experiment.pb.gw.go",
         "filter.pb.go",
+        "healthz.pb.go",
+        "healthz.pb.gw.go",
         "job.pb.go",
         "job.pb.gw.go",
         "parameter.pb.go",

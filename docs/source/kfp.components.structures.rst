@@ -9,5 +9,6 @@ kfp.components.structures package
     :imported-members:
 
 .. toctree::
+    :maxdepth: 2
 
     kfp.components.structures.kubernetes

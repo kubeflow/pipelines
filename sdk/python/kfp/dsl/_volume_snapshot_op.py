@@ -26,9 +26,23 @@ class VolumeSnapshotOp(ResourceOp):
     """Represents an op which will be translated into a resource template
     which will be creating a VolumeSnapshot.
 
-    At the time that this feature is written, VolumeSnapshots are an Alpha
-    feature in Kubernetes. You should check with your Kubernetes Cluster admin
-    if they have it enabled.
+    TODO(https://github.com/kubeflow/pipelines/issues/4822): Determine the
+        stability level of this feature.
+
+    Args:
+        resource_name: A desired name for the VolumeSnapshot which will be created
+        pvc: The name of the PVC which will be snapshotted
+        snapshot_class: The snapshot class to use for the dynamically created VolumeSnapshot
+        annotations: Annotations to be patched in the VolumeSnapshot
+        volume: An instance of V1Volume
+        kwargs: See :py:class:`kfp.dsl.ResourceOp`
+
+    Raises:
+        ValueError: if k8s_resource is provided along with other arguments
+                    if k8s_resource is not a VolumeSnapshot
+                    if pvc and volume are None
+                    if pvc and volume are not None
+                    if volume does not reference a PVC
     """
 
     def __init__(self,
@@ -37,25 +51,8 @@ class VolumeSnapshotOp(ResourceOp):
                  snapshot_class: str = None,
                  annotations: Dict[str, str] = None,
                  volume: V1Volume = None,
+                 api_version: str = "snapshot.storage.k8s.io/v1alpha1",
                  **kwargs):
-        """Create a new instance of VolumeSnapshotOp.
-
-        Args:
-            resource_name: A desired name for the VolumeSnapshot which will be
-                created
-            pvc: The name of the PVC which will be snapshotted
-            snapshot_class: The snapshot class to use for the dynamically
-                created VolumeSnapshot
-            annotations: Annotations to be patched in the VolumeSnapshot
-            volume: An instance of V1Volume
-            kwargs: See ResourceOp definition
-        Raises:
-            ValueError: if k8s_resource is provided along with other arguments
-                        if k8s_resource is not a VolumeSnapshot
-                        if pvc and volume are None
-                        if pvc and volume are not None
-                        if volume does not reference a PVC
-        """
         # Add size to output params
         self.attribute_outputs = {"size": "{.status.restoreSize}"}
         # Add default success_condition if None provided
@@ -106,7 +103,7 @@ class VolumeSnapshotOp(ResourceOp):
             annotations=annotations
         )
         k8s_resource = {
-            "apiVersion": "snapshot.storage.k8s.io/v1alpha1",
+            "apiVersion": api_version,
             "kind": "VolumeSnapshot",
             "metadata": snapshot_metadata,
             "spec": {"source": source}

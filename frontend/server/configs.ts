@@ -13,6 +13,7 @@
 // limitations under the License.
 import * as path from 'path';
 import { loadJSON } from './utils';
+import { loadArtifactsProxyConfig, ArtifactsProxyConfig } from './handlers/artifacts';
 export const BASEPATH = '/pipeline';
 export const apiVersion = 'v1beta1';
 export const apiVersionPrefix = `apis/${apiVersion}`;
@@ -41,10 +42,9 @@ function parseArgs(argv: string[]) {
   return { staticDir, port };
 }
 
-export function loadConfigs(
-  argv: string[],
-  env: NodeJS.ProcessEnv | { [key: string]: string },
-): UIConfigs {
+export type ProcessEnv = NodeJS.ProcessEnv | { [key: string]: string };
+
+export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
   const { staticDir, port } = parseArgs(argv);
   /** All configurable environment variables can be found here. */
   const {
@@ -86,10 +86,26 @@ export function loadConfigs(
     ARGO_ARCHIVE_BUCKETNAME = 'mlpipeline',
     /** Prefix to logs. */
     ARGO_ARCHIVE_PREFIX = 'logs',
+    /** Should use server API for log streaming? */
+    STREAM_LOGS_FROM_SERVER_API = 'false',
     /** Disables GKE metadata endpoint. */
     DISABLE_GKE_METADATA = 'false',
+    /** Enable authorization checks for multi user mode. */
+    ENABLE_AUTHZ = 'false',
     /** Deployment type. */
     DEPLOYMENT: DEPLOYMENT_STR = '',
+    /**
+     * A header user requests have when authenticated. It carries user identity information.
+     * The default value works with Google Cloud IAP.
+     */
+    KUBEFLOW_USERID_HEADER = 'x-goog-authenticated-user-email',
+    /**
+     * KUBEFLOW_USERID_HEADER's value may have a prefix before user identity.
+     * Use this header to specify what the prefix is.
+     *
+     * e.g. a valid header value for default values can be like `accounts.google.com:user@gmail.com`.
+     */
+    KUBEFLOW_USERID_PREFIX = 'accounts.google.com:',
   } = env;
 
   return {
@@ -122,6 +138,8 @@ export function loadConfigs(
         secretKey: MINIO_SECRET_KEY,
         useSSL: asBool(MINIO_SSL),
       },
+      proxy: loadArtifactsProxyConfig(env),
+      streamLogsFromServerApi: asBool(STREAM_LOGS_FROM_SERVER_API),
     },
     metadata: {
       envoyService: {
@@ -156,6 +174,11 @@ export function loadConfigs(
     },
     gkeMetadata: {
       disabled: asBool(DISABLE_GKE_METADATA),
+    },
+    auth: {
+      enabled: asBool(ENABLE_AUTHZ),
+      kubeflowUserIdHeader: KUBEFLOW_USERID_HEADER,
+      kubeflowUserIdPrefix: KUBEFLOW_USERID_PREFIX,
     },
   };
 }
@@ -215,12 +238,19 @@ export interface ServerConfigs {
 export interface GkeMetadataConfigs {
   disabled: boolean;
 }
+export interface AuthConfigs {
+  enabled: boolean;
+  kubeflowUserIdHeader: string;
+  kubeflowUserIdPrefix: string;
+}
 export interface UIConfigs {
   server: ServerConfigs;
   artifacts: {
     aws: AWSConfigs;
     minio: MinioConfigs;
     http: HttpConfigs;
+    proxy: ArtifactsProxyConfig;
+    streamLogsFromServerApi: boolean;
   };
   argo: ArgoConfigs;
   metadata: MetadataConfigs;
@@ -228,4 +258,5 @@ export interface UIConfigs {
   viewer: ViewerConfigs;
   pipeline: PipelineConfigs;
   gkeMetadata: GkeMetadataConfigs;
+  auth: AuthConfigs;
 }

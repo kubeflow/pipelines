@@ -1,0 +1,22 @@
+name: kfp_test_env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.7.*
+  - pip=20.0.*
+  - awscli=1.18.141
+  - boto3=1.15.0
+  - pytest-xdist=2.1.0
+  - pyyaml=5.3.*
+  - flake8=3.7.*
+  - flake8-black=0.1.*
+  - filelock=3.0.*
+  - pip:
+    - kubernetes==11.0.*
+    - kfp==0.5.*
+    - minio==5.0.10
+    - sagemaker==2.1.*
+    - ruamel.yaml==0.16.*
+      
+      

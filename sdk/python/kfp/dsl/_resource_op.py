@@ -14,8 +14,9 @@
 
 
 from typing import Dict
+import warnings
 
-from ._container_op import BaseOp
+from ._container_op import BaseOp, ContainerOp
 from . import _pipeline_param
 
 
@@ -63,7 +64,30 @@ class Resource(object):
 
 
 class ResourceOp(BaseOp):
-    """Represents an op which will be translated into a resource template"""
+    """Represents an op which will be translated into a resource template.
+
+    TODO(https://github.com/kubeflow/pipelines/issues/4822): Determine the
+        stability level of this feature.
+
+    Args:
+        k8s_resource: A k8s resource which will be submitted to the cluster
+        action: One of "create"/"delete"/"apply"/"patch"
+            (default is "create")
+        merge_strategy: The merge strategy for the "apply" action
+        success_condition: The successCondition of the template
+        failure_condition: The failureCondition of the template
+            For more info see:
+            https://github.com/argoproj/argo/blob/master/examples/k8s-jobs.yaml
+        attribute_outputs: Maps output labels to resource's json paths,
+            similarly to file_outputs of ContainerOp
+        kwargs: name, sidecars. See BaseOp definition
+
+    Raises:
+        ValueError: if not inside a pipeline
+            if the name is an invalid string
+            if no k8s_resource is provided
+            if merge_strategy is set without "apply" action
+    """
 
     def __init__(self,
                  k8s_resource=None,
@@ -73,26 +97,6 @@ class ResourceOp(BaseOp):
                  failure_condition: str = None,
                  attribute_outputs: Dict[str, str] = None,
                  **kwargs):
-        """Create a new instance of ResourceOp.
-
-        Args:
-            k8s_resource: A k8s resource which will be submitted to the cluster
-            action: One of "create"/"delete"/"apply"/"patch"
-                (default is "create")
-            merge_strategy: The merge strategy for the "apply" action
-            success_condition: The successCondition of the template
-            failure_condition: The failureCondition of the template
-                For more info see:
-                https://github.com/argoproj/argo/blob/master/examples/k8s-jobs.yaml
-            attribute_outputs: Maps output labels to resource's json paths,
-                similarly to file_outputs of ContainerOp
-            kwargs: name, sidecars. See BaseOp definition
-        Raises:
-        ValueError: if not inside a pipeline
-                    if the name is an invalid string
-                    if no k8s_resource is provided
-                    if merge_strategy is set without "apply" action
-        """
 
         super().__init__(**kwargs)
         self.attrs_with_pipelineparams = list(self.attrs_with_pipelineparams)
@@ -102,6 +106,9 @@ class ResourceOp(BaseOp):
 
         if k8s_resource is None:
             raise ValueError("You need to provide a k8s_resource.")
+
+        if action == "delete":
+            warnings.warn('Please use `kubernetes_resource_delete_op` instead of `ResourceOp(action="delete")`', DeprecationWarning)
 
         if merge_strategy and action != "apply":
             raise ValueError("You can't set merge_strategy when action != 'apply'")
@@ -164,15 +171,37 @@ class ResourceOp(BaseOp):
         if self.resource.action == "delete":
             raise ValueError("This operation is already a resource deletion.")
 
-        k8s_resource = dict()
         if isinstance(self.k8s_resource, dict):
-            k8s_resource["apiVersion"] = self.k8s_resource["apiVersion"]
-            k8s_resource["kind"] = self.k8s_resource["kind"]
+            kind = self.k8s_resource["kind"]
         else:
-            k8s_resource["apiVersion"] = self.k8s_resource.api_version
-            k8s_resource["kind"] = self.k8s_resource.kind
-        k8s_resource["metadata"] = {"name": self.outputs["name"]}
+            kind = self.k8s_resource.kind
 
-        return ResourceOp(name="del-%s" % self.name,
-                          action="delete",
-                          k8s_resource=k8s_resource)
+        return kubernetes_resource_delete_op(
+            name=self.outputs["name"],
+            kind=kind
+        )
+
+
+def kubernetes_resource_delete_op(
+    name: str,
+    kind: str,
+    namespace: str = None,
+) -> ContainerOp:
+    """Operation that deletes a Kubernetes resource.
+    
+    Outputs:
+        name: The name of the deleted resource
+    """
+
+    command = [
+        'kubectl', 'delete', str(kind), str(name), '--ignore-not-found', '--output', 'name'
+    ]
+    if namespace:
+        command.extend(['--namespace', str(namespace)])
+
+    result = ContainerOp(
+        name='kubernetes_resource_delete',
+        image='gcr.io/cloud-builders/kubectl',
+        command=command,
+    )
+    return result

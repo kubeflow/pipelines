@@ -1,0 +1,5 @@
+# Any environment variable files
+**/*/.env
+
+# Unit test coverage
+.coverage

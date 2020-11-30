@@ -1,0 +1,291 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubeflow-pipelines-cache-deployer-sa
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubeflow-pipelines-cache
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app: kubeflow-pipelines-cache-deployer-clusterrole
+    app.kubernetes.io/name: {{ .Release.Name }}
+  name: kubeflow-pipelines-cache-deployer-clusterrole
+rules:
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - certificatesigningrequests
+  - certificatesigningrequests/approval
+  verbs:
+  - create
+  - delete
+  - get
+  - update
+- apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - mutatingwebhookconfigurations
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - signers
+  resourceNames:
+  - kubernetes.io/*
+  verbs:
+  - approve
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app: kubeflow-pipelines-cache-deployer-role
+    app.kubernetes.io/name: {{ .Release.Name }}
+  name: kubeflow-pipelines-cache-deployer-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - delete
+  - get
+  - patch
+  - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app: kubeflow-pipelines-cache-role
+    app.kubernetes.io/name: {{ .Release.Name }}
+  name: kubeflow-pipelines-cache-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - argoproj.io
+  resources:
+  - workflows
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubeflow-pipelines-cache-binding
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kubeflow-pipelines-cache-role
+subjects:
+- kind: ServiceAccount
+  name: kubeflow-pipelines-cache
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kubeflow-pipelines-cache-deployer-clusterrolebinding
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kubeflow-pipelines-cache-deployer-clusterrole
+subjects:
+- kind: ServiceAccount
+  name: kubeflow-pipelines-cache-deployer-sa
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubeflow-pipelines-cache-deployer-rolebinding
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kubeflow-pipelines-cache-deployer-role
+subjects:
+- kind: ServiceAccount
+  name: kubeflow-pipelines-cache-deployer-sa
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cache-deployer-deployment
+  labels:
+    app: cache-deployer
+    app.kubernetes.io/name: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cache-deployer
+      app.kubernetes.io/name: {{ .Release.Name }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: cache-deployer
+        app.kubernetes.io/name: {{ .Release.Name }}
+    spec:
+      containers:
+      - name: main
+        image: {{ .Values.images.cachedeployer }}
+        imagePullPolicy: Always
+        env:
+        - name: NAMESPACE_TO_WATCH
+          value: {{ .Release.Namespace }}
+      serviceAccountName: kubeflow-pipelines-cache-deployer-sa
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cache-configmap
+  labels:
+    component: cache-server
+data:
+  mysql_database: '{{ tpl .Values.managedstorage.databaseNamePrefix . }}_cachedb'
+  mysql_driver: "mysql"
+  mysql_host: "mysql"
+  mysql_port: "3306"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cache-server
+  labels:
+    app: cache-server
+    app.kubernetes.io/name: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cache-server
+      app.kubernetes.io/name: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: cache-server
+        app.kubernetes.io/name: {{ .Release.Name }}
+    spec:
+      containers:
+      - name: server
+        image: {{ .Values.images.cacheserver }}
+        env:
+          {{ if .Values.managedstorage.enabled }}
+          - name: DBCONFIG_USER
+            valueFrom:
+              secretKeyRef:
+                name: mysql-credential
+                key: username
+          - name: DBCONFIG_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mysql-credential
+                key: password
+          {{ else }}
+          - name: DBCONFIG_USER
+            value: 'root'
+          - name: DBCONFIG_PASSWORD
+            value: ''
+          {{ end }}
+          - name: DBCONFIG_DRIVER
+            valueFrom:
+              configMapKeyRef:
+                name: cache-configmap
+                key: mysql_driver
+          - name: DBCONFIG_DB_NAME
+            valueFrom:
+              configMapKeyRef:
+                name: cache-configmap
+                key: mysql_database
+          - name: DBCONFIG_HOST_NAME
+            valueFrom:
+              configMapKeyRef:
+                name: cache-configmap
+                key: mysql_host
+          - name: DBCONFIG_PORT
+            valueFrom:
+              configMapKeyRef:
+                name: cache-configmap
+                key: mysql_port
+          - name: NAMESPACE_TO_WATCH
+            value: {{ .Release.Namespace }}
+        args: ["--db_driver=$(DBCONFIG_DRIVER)",
+               "--db_host=$(DBCONFIG_HOST_NAME)",
+               "--db_port=$(DBCONFIG_PORT)",
+               "--db_name=$(DBCONFIG_DB_NAME)",
+               "--db_user=$(DBCONFIG_USER)",
+               "--db_password=$(DBCONFIG_PASSWORD)",
+               "--namespace_to_watch=$(NAMESPACE_TO_WATCH)",
+               ]
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8443
+          name: webhook-api
+        volumeMounts:
+        - name: webhook-tls-certs
+          mountPath: /etc/webhook/certs
+          readOnly: true
+      volumes:
+      - name: webhook-tls-certs
+        secret:
+          secretName: webhook-server-tls
+      serviceAccountName: kubeflow-pipelines-cache
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cache-server
+  labels:
+    app: cache-server
+    app.kubernetes.io/name: {{ .Release.Name }}
+spec:
+  selector:
+    app: cache-server
+    app.kubernetes.io/name: {{ .Release.Name }}
+  ports:
+    - port: 443
+      targetPort: webhook-api

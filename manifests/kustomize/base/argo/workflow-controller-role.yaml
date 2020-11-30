@@ -28,6 +28,7 @@ rules:
   - ""
   resources:
   - persistentvolumeclaims
+  - events
   verbs:
   - create
   - delete
@@ -36,6 +37,9 @@ rules:
   resources:
   - workflows
   - workflows/finalizers
+  - workflowtemplates
+  - workflowtemplates/finalizers
+  - cronworkflows
   verbs:
   - get
   - list

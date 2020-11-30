@@ -15,16 +15,18 @@
  */
 
 import * as React from 'react';
+import * as zlib from 'zlib';
 import { ApiRun } from '../apis/run';
 import { ApiTrigger } from '../apis/job';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { isFunction } from 'lodash';
 import { hasFinished, NodePhase } from './StatusUtils';
-import { ListRequest } from './Apis';
+import { ListRequest, Apis } from './Apis';
 import { Row, Column, ExpandState } from '../components/CustomTable';
 import { padding } from '../Css';
 import { classes } from 'typestyle';
 import { CustomTableRow, css } from '../components/CustomTableRow';
+import { StorageService } from './WorkflowParser';
 
 export const logger = {
   error: (...args: any[]) => {
@@ -292,17 +294,13 @@ export function generateGcsConsoleUri(gcsUri: string): string | undefined {
 
 const MINIO_URI_PREFIX = 'minio://';
 
-function generateArtifactUrl(source: string, bucket: string, key: string): string {
-  return `artifacts/get?source=${source}&bucket=${bucket}&key=${key}`;
-}
-
 /**
  * Generates an HTTPS API URL from minio:// uri
  *
  * @param minioUri Minio uri that starts with minio://, like minio://ml-pipeline/path/file
  * @returns A URL that leads to the artifact data. Returns undefined when minioUri is not valid.
  */
-export function generateMinioArtifactUrl(minioUri: string): string | undefined {
+export function generateMinioArtifactUrl(minioUri: string, peek?: number): string | undefined {
   if (!minioUri.startsWith(MINIO_URI_PREFIX)) {
     return undefined;
   }
@@ -312,5 +310,60 @@ export function generateMinioArtifactUrl(minioUri: string): string | undefined {
   if (matches == null) {
     return undefined;
   }
-  return generateArtifactUrl('minio', matches[1], matches[2]);
+  return Apis.buildReadFileUrl({
+    path: { source: StorageService.MINIO, bucket: matches[1], key: matches[2] },
+    peek,
+    isDownload: true,
+  });
+}
+
+const S3_URI_PREFIX = 's3://';
+/**
+ * Generates an HTTPS API URL from s3:// uri
+ *
+ * @param s3Uri S3 uri that starts with s3://, like s3://ml-pipeline/path/file
+ * @returns A URL that leads to the artifact data. Returns undefined when s3Uri is not valid.
+ */
+export function generateS3ArtifactUrl(s3Uri: string): string | undefined {
+  if (!s3Uri.startsWith(S3_URI_PREFIX)) {
+    return undefined;
+  }
+
+  // eslint-disable-next-line no-useless-escape
+  const matches = s3Uri.match(/^s3:\/\/([^\/]+)\/(.+)$/);
+  if (matches == null) {
+    return undefined;
+  }
+  return Apis.buildReadFileUrl({
+    path: { source: StorageService.S3, bucket: matches[1], key: matches[2] },
+    isDownload: true,
+  });
+}
+
+export function buildQuery(queriesMap: { [key: string]: string | number | undefined }): string {
+  const queryContent = Object.entries(queriesMap)
+    .filter((entry): entry is [string, string | number] => entry[1] != null)
+    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+    .join('&');
+  if (!queryContent) {
+    return '';
+  }
+  return `?${queryContent}`;
+}
+
+export async function decodeCompressedNodes(compressedNodes: string): Promise<object> {
+  return new Promise<object>((resolve, reject) => {
+    const compressedBuffer = Buffer.from(compressedNodes, 'base64');
+    zlib.gunzip(compressedBuffer, (error, result: Buffer) => {
+      if (error) {
+        const gz_error_msg = `failed to gunzip data ${error}`;
+        logger.error(gz_error_msg);
+        reject(gz_error_msg);
+      } else {
+        const nodesStr = result.toString('utf8');
+        const nodes = JSON.parse(nodesStr);
+        resolve(nodes);
+      }
+    });
+  });
 }

@@ -32,19 +32,21 @@ import (
 )
 
 const (
-	KFPAnnotation          string = "pipelines.kubeflow.org"
-	ArgoWorkflowNodeName   string = "workflows.argoproj.io/node-name"
-	ArgoWorkflowTemplate   string = "workflows.argoproj.io/template"
-	ExecutionKey           string = "pipelines.kubeflow.org/execution_cache_key"
-	CacheIDLabelKey        string = "pipelines.kubeflow.org/cache_id"
-	ArgoWorkflowOutputs    string = "workflows.argoproj.io/outputs"
-	MetadataWrittenKey     string = "pipelines.kubeflow.org/metadata_written"
-	AnnotationPath         string = "/metadata/annotations"
-	LabelPath              string = "/metadata/labels"
-	SpecContainersPath     string = "/spec/containers"
-	SpecInitContainersPath string = "/spec/initContainers"
-	TFXPodSuffix           string = "tfx/orchestration/kubeflow/container_entrypoint.py"
-	ArchiveLocationKey     string = "archiveLocation"
+	KFPCacheEnabledLabelKey   string = "pipelines.kubeflow.org/cache_enabled"
+	KFPCacheEnabledLabelValue string = "true"
+	KFPCachedLabelKey         string = "pipelines.kubeflow.org/reused_from_cache"
+	KFPCachedLabelValue       string = "true"
+	ArgoWorkflowNodeName      string = "workflows.argoproj.io/node-name"
+	ArgoWorkflowTemplate      string = "workflows.argoproj.io/template"
+	ExecutionKey              string = "pipelines.kubeflow.org/execution_cache_key"
+	CacheIDLabelKey           string = "pipelines.kubeflow.org/cache_id"
+	ArgoWorkflowOutputs       string = "workflows.argoproj.io/outputs"
+	MetadataWrittenKey        string = "pipelines.kubeflow.org/metadata_written"
+	AnnotationPath            string = "/metadata/annotations"
+	LabelPath                 string = "/metadata/labels"
+	SpecContainersPath        string = "/spec/containers"
+	SpecInitContainersPath    string = "/spec/initContainers"
+	TFXPodSuffix              string = "tfx/orchestration/kubeflow/container_entrypoint.py"
 )
 
 var (
@@ -74,8 +76,16 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 	}
 
 	// Pod filtering to only cache KFP argo pods except TFX pods
-	if !isValidPod(&pod) {
-		log.Printf("This pod %s is not a valid pod.", pod.ObjectMeta.Name)
+	// TODO: Switch to objectSelector once Kubernetes 1.15 hits the GKE stable channel. See
+	// https://github.com/kubernetes/kubernetes/pull/78505
+	// https://cloud.google.com/kubernetes-engine/docs/release-notes-stable
+	if !isKFPCacheEnabled(&pod) {
+		log.Printf("This pod %s does not enable cache.", pod.ObjectMeta.Name)
+		return nil, nil
+	}
+
+	if isTFXPod(&pod) {
+		log.Printf("This pod %s is created by tfx pipelines.", pod.ObjectMeta.Name)
 		return nil, nil
 	}
 
@@ -98,9 +108,14 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 
 	annotations[ExecutionKey] = executionHashKey
 	labels[CacheIDLabelKey] = ""
+	var maxCacheStalenessInSeconds int64 = -1
+	maxCacheStaleness, exists := annotations[MaxCacheStalenessKey]
+	if exists {
+		maxCacheStalenessInSeconds = getMaxCacheStaleness(maxCacheStaleness)
+	}
 
 	var cachedExecution *model.ExecutionCache
-	cachedExecution, err = clientMgr.CacheStore().GetExecutionCache(executionHashKey)
+	cachedExecution, err = clientMgr.CacheStore().GetExecutionCache(executionHashKey, maxCacheStalenessInSeconds)
 	if err != nil {
 		log.Println(err.Error())
 	}
@@ -110,6 +125,9 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 
 		annotations[ArgoWorkflowOutputs] = getValueFromSerializedMap(cachedExecution.ExecutionOutput, ArgoWorkflowOutputs)
 		labels[CacheIDLabelKey] = strconv.FormatInt(cachedExecution.ID, 10)
+		labels[KFPCachedLabelKey] = KFPCachedLabelValue // This label indicates the pod is taken from cache.
+		
+		// These labels cache results for metadata-writer.
 		labels[MetadataExecutionIDKey] = getValueFromSerializedMap(cachedExecution.ExecutionOutput, MetadataExecutionIDKey)
 		labels[MetadataWrittenKey] = "true"
 
@@ -151,6 +169,22 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 	return patches, nil
 }
 
+// intersectStructureWithSkeleton recursively intersects two maps
+// nil values in the skeleton map mean that the whole value (which can also be a map) should be kept.
+func intersectStructureWithSkeleton(src map[string]interface{}, skeleton map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+	for key, skeletonValue := range skeleton {
+		if value, ok := src[key]; ok {
+			if skeletonValue == nil {
+				result[key] = value
+			} else {
+				result[key] = intersectStructureWithSkeleton(value.(map[string]interface{}), skeletonValue.(map[string]interface{}))
+			}
+		}
+	}
+	return result
+}
+
 func generateCacheKeyFromTemplate(template string) (string, error) {
 	var templateMap map[string]interface{}
 	b := []byte(template)
@@ -159,14 +193,23 @@ func generateCacheKeyFromTemplate(template string) (string, error) {
 		return "", err
 	}
 
-	// template[archiveLocation] needs to be removed when calculating cache key.
-	// Because archiveLocation.key is different in every single run.
-	_, exists := templateMap[ArchiveLocationKey]
-	if exists {
-		log.Println("ArchiveLocation exists in template.")
-		delete(templateMap, ArchiveLocationKey)
+	// Selectively copying parts of the template that should affect the cache
+	templateSkeleton := map[string]interface{}{
+		"container": map[string]interface{}{
+			"image":        nil,
+			"command":      nil,
+			"args":         nil,
+			"env":          nil,
+			"volumeMounts": nil,
+		},
+		"inputs":         nil,
+		"volumes":        nil,
+		"initContainers": nil,
+		"sidecars":       nil,
 	}
-	b, err = json.Marshal(templateMap)
+	cacheKeyMap := intersectStructureWithSkeleton(templateMap, templateSkeleton)
+
+	b, err = json.Marshal(cacheKeyMap)
 	if err != nil {
 		return "", err
 	}
@@ -193,42 +236,23 @@ func getValueFromSerializedMap(serializedMap string, key string) string {
 	return value
 }
 
-func isValidPod(pod *corev1.Pod) bool {
-	annotations := pod.ObjectMeta.Annotations
-	if annotations == nil || len(annotations) == 0 {
-		log.Printf("The annotation of this pod %s is empty.", pod.ObjectMeta.Name)
-		return false
-	}
-	if !isKFPArgoPod(&annotations, pod.ObjectMeta.Name) {
+func isKFPCacheEnabled(pod *corev1.Pod) bool {
+	cacheEnabled, exists := pod.ObjectMeta.Labels[KFPCacheEnabledLabelKey]
+	if !exists {
 		log.Printf("This pod %s is not created by KFP.", pod.ObjectMeta.Name)
 		return false
 	}
+	return cacheEnabled == KFPCacheEnabledLabelValue
+}
+
+func isTFXPod(pod *corev1.Pod) bool {
 	containers := pod.Spec.Containers
-	if containers != nil && len(containers) != 0 && isTFXPod(&containers) {
-		log.Printf("This pod %s is created by TFX pipelines.", pod.ObjectMeta.Name)
-		return false
+	if containers == nil || len(containers) == 0 {
+		log.Printf("This pod container does not exist.")
+		return true
 	}
-	return true
-}
-
-func isKFPArgoPod(annotations *map[string]string, podName string) bool {
-	// is argo pod or not
-	if _, exists := (*annotations)[ArgoWorkflowNodeName]; !exists {
-		log.Printf("This pod %s is not created by Argo.", podName)
-		return false
-	}
-	// is KFP pod or not
-	for k := range *annotations {
-		if strings.Contains(k, KFPAnnotation) {
-			return true
-		}
-	}
-	return false
-}
-
-func isTFXPod(containers *[]corev1.Container) bool {
 	var mainContainers []corev1.Container
-	for _, c := range *containers {
+	for _, c := range containers {
 		if c.Name != "" && c.Name == "main" {
 			mainContainers = append(mainContainers, c)
 		}

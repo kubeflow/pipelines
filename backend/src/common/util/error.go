@@ -144,6 +144,15 @@ func NewInternalServerError(err error, internalMessageFormat string,
 		codes.Internal)
 }
 
+func NewNotFoundError(err error, externalMessageFormat string,
+	a ...interface{}) *UserError {
+	externalMessage := fmt.Sprintf(externalMessageFormat, a...)
+	return newUserError(
+		errors.Wrapf(err, fmt.Sprintf("NotFoundError: %v", externalMessage)),
+		externalMessage,
+		codes.NotFound)
+}
+
 func NewResourceNotFoundError(resourceType string, resourceName string) *UserError {
 	externalMessage := fmt.Sprintf("%s %s not found.", resourceType, resourceName)
 	return newUserError(
@@ -183,6 +192,22 @@ func NewBadRequestError(err error, externalFormat string, a ...interface{}) *Use
 		errors.Wrapf(err, fmt.Sprintf("BadRequestError: %v", externalMessage)),
 		externalMessage,
 		codes.Aborted)
+}
+
+func NewUnauthenticatedError(err error, externalFormat string, a ...interface{}) *UserError {
+	externalMessage := fmt.Sprintf(externalFormat, a...)
+	return newUserError(
+		errors.Wrapf(err, fmt.Sprintf("Unauthenticated: %v", externalMessage)),
+		externalMessage,
+		codes.Unauthenticated)
+}
+
+func NewPermissionDeniedError(err error, externalFormat string, a ...interface{}) *UserError {
+	externalMessage := fmt.Sprintf(externalFormat, a...)
+	return newUserError(
+		errors.Wrapf(err, fmt.Sprintf("PermissionDenied: %v", externalMessage)),
+		externalMessage,
+		codes.PermissionDenied)
 }
 
 func (e *UserError) ExternalMessage() string {

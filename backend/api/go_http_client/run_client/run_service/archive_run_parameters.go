@@ -75,7 +75,10 @@ for the archive run operation typically these are written to a http.Request
 */
 type ArchiveRunParams struct {
 
-	/*ID*/
+	/*ID
+	  The ID of the run to be archived.
+
+	*/
 	ID string
 
 	timeout    time.Duration
