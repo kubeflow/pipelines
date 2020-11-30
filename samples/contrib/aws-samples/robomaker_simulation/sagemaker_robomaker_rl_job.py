@@ -53,6 +53,7 @@ def get_job_name(
     job_name = ""
 
     try:
+        sleep(30)
         for retry_attempt in range(retry_attempts):
             client = boto3.client("sagemaker", region_name=region)
             jobs = client.list_training_jobs(NameContains=job_prefix)
