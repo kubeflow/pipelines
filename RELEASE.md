@@ -93,12 +93,12 @@ if you only want to use or contribute to this repo.
 * OS: Linux (MacOS not supported yet due to different behavior of sed)
 * Permissions needed
     * Can create a branch in github.com/kubeflow/pipelines.
-    * (Optional) if release from master branch, one would need the admin access to kubeflow/pipelines repo.
+    * (Before [#4840](https://github.com/kubeflow/pipelines/issues/4840) is resolved) one would need the admin access to kubeflow/pipelines repo.
     * Can trigger cloudbuild jobs in ml-pipeline-test GCP project.
 * Tools that should be in your `$PATH`
     * jq 1.6 https://stedolan.github.io/jq/download/
     * yq https://github.com/mikefarah/yq/releases/tag/3.3.0
-    * jdk 8 
+    * jdk 8
     * node 12
     * bazel 0.24.0 https://github.com/bazelbuild/bazel/releases/tag/0.24.0
     * python 3 (on linux, one would need the `python` to be `python3` by default instead of `python2`)
@@ -170,7 +170,7 @@ Do the following things before a release:
 
 1. Verify cloudbuild and postsubmit tests are passing: visit https://github.com/kubeflow/pipelines/commits/master for master branch.
 
-![Screenshot](release-status-check.png)
+![How to very cloudbuild and postsubmit status](release-status-check.png)
 
 If not, contact the KFP team to determine if the failure(s) would block the release.
 
@@ -187,6 +187,11 @@ Note, when releasing from master, all the below mentions of "release branch" mea
     * ...
     Contact @Bobgy if you are not sure what next version should be.
 
+1. Verify all the required tools are installed properly:
+    ```bash
+    ./hack/check-release-needed-tools.sh
+    ```
+
 1. Update all version refs in release branch by
     ```bash
     ./hack/release.sh $VERSION $BRANCH
@@ -194,8 +199,6 @@ Note, when releasing from master, all the below mentions of "release branch" mea
     It will prompt you whether to push it to release branch. Press `y` and hit `Enter`.
 
     Note, the script will clone kubeflow/pipelines repo into a temporary location on your computer, make those changes and attempt to push to upstream, so that it won't interfere with your current git repo.
-    
-    First time running this command may need to setup the PATH environmental variable to include XXX/go/bin.  Potential location of the XXX/go/bin are /usr/local/go/bin, ~/go/bin.  Once found, run ```export PATH=$PATH:~/go/bin``` before running ```release.sh```.
 
 1. View related cloudbuild jobs' statuses by clicking the latest commit's status icon
 in the release branch. The page will look like https://github.com/kubeflow/pipelines/runs/775788343.
@@ -224,22 +227,21 @@ and then "Retry", because after waiting for previous step, artifacts are now rea
     ```
 1. Release `kfp` python packages to PyPI.
     ```bash
-    export TAG_NAME=$VERSION
     pip3 install twine --user
-    gsutil cp gs://ml-pipeline/release/$TAG_NAME/kfp.tar.gz kfp-$TAG_NAME.tar.gz
-    python3 -m twine upload --username kubeflow-pipelines kfp-$TAG_NAME.tar.gz
+    gsutil cp gs://ml-pipeline/release/$VERSION/kfp.tar.gz kfp-$VERSION.tar.gz
+    python3 -m twine upload --username kubeflow-pipelines kfp-$VERSION.tar.gz
     ```
 
     !!! The file name must contain the version. See https://github.com/kubeflow/pipelines/issues/1292
 
-1. Create a GitHub release using `$TAG_NAME` git tag and title `Version $TAG_NAME`,
+1. Create a GitHub release using `$VERSION` git tag and title `Version $VERSION`,
 fill in the description. Detailed steps:
    
    1. [Draft a new release](https://github.com/kubeflow/pipelines/releases/new).
-   1. Typing in version tag field to search and select the "$TAG_NAME" tag published in release instructions above.
+   1. Typing in version tag field to search and select the "$VERSION" tag published in release instructions above.
    Its format is like `X.Y.Z` or `X.Y.Z-rc.N`.
 
-   1. Use this template for public releases and replace the `$TAG_NAME` with real values.
+   1. Use this template for public releases and replace the `$VERSION` with real values.
        <pre>
        To deploy Kubeflow Pipelines in an existing cluster, follow the instruction in [here](https://www.kubeflow.org/docs/pipelines/standalone-deployment-gcp/) or via UI [here](https://console.cloud.google.com/ai-platform/pipelines)
 
@@ -248,7 +250,7 @@ fill in the description. Detailed steps:
        python3 -m pip install kfp kfp-server-api --upgrade
        ```
 
-       See the [Change Log](https://github.com/kubeflow/pipelines/blob/$TAG_NAME/CHANGELOG.md)
+       See the [Change Log](https://github.com/kubeflow/pipelines/blob/$VERSION/CHANGELOG.md)
        </pre>
 
        Use this template for prereleases (release candidates) and **PLEASE CHECK** the
@@ -261,22 +263,21 @@ fill in the description. Detailed steps:
        python3 -m pip install kfp kfp-server-api --pre --upgrade
        ```
 
-       See the [Change Log](https://github.com/kubeflow/pipelines/blob/$TAG_NAME/CHANGELOG.md)
+       See the [Change Log](https://github.com/kubeflow/pipelines/blob/$VERSION/CHANGELOG.md)
        </pre>
 
-1. Update master branch to the same version.
+1. Update master branch to the same version and include latest changelog:
     ```bash
-    export TAG_NAME=<TAG_NAME>
     git checkout master
     git pull
     git checkout -b <your-branch-name>
     # This avoids line break at end of line.
-    echo -n $TAG_NAME > VERSION
+    echo -n $VERSION > VERSION
     # This takes a while.
     ./hack/release-imp.sh
-    git checkout $TAG_NAME -- CHANGELOG.md
+    git checkout $VERSION -- CHANGELOG.md
     git add -A
-    git commit -m "chore(release): bump version to $TAG_NAME on master branch"
+    git commit -m "chore(release): bump version to $VERSION on master branch"
     ```
 
 1. If current release is not a prerelease, create a PR to update version in kubeflow documentation website: 
