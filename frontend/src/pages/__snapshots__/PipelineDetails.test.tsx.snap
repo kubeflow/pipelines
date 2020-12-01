@@ -1150,7 +1150,7 @@ exports[`PipelineDetails shows pipeline source code when config tab is clicked 1
           enableSnippets={false}
           focus={false}
           fontSize={12}
-          height="100%"
+          height="640px"
           highlightActiveLine={true}
           maxLines={null}
           minLines={null}
@@ -1178,7 +1178,7 @@ exports[`PipelineDetails shows pipeline source code when config tab is clicked 1
           tabSize={4}
           theme="github"
           value="test template"
-          width="100%"
+          width="640px"
           wrapEnabled={false}
         />
       </div>
