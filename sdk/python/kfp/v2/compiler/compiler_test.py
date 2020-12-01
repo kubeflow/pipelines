@@ -350,6 +350,19 @@ class CompilerTest(unittest.TestCase):
               - {inputPath: data}
           """)
 
+  def test_compile_pipeline_with_invalid_name_should_raise_error(self):
+    def my_pipeline():
+      pass
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'Invalid pipeline name: .*\nPlease specify a pipeline name that matches'
+    ):
+      compiler.Compiler().compile(
+          pipeline_func=my_pipeline,
+          pipeline_root='dummy',
+          output_path='output.json')
+
 
 if __name__ == '__main__':
   unittest.main()
