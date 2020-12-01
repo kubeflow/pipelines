@@ -15,6 +15,7 @@
 
 source_root=$(pwd)
 
+# TODO(#4853) Skipping pip 20.3 due to a bad version resolution logic.
 python3 -m pip install --upgrade pip!=20.3.*
 python3 -m pip install -r "$source_root/sdk/python/requirements.txt"
 # Additional dependencies
@@ -43,7 +44,7 @@ chmod +x bazel_installer.sh
 cd $source_root
 git clone --depth 1 https://github.com/tensorflow/tfx.git
 cd $source_root/tfx
-python3 -m pip install . --upgrade \
+python3 -m pip install . --upgrade --use-feature=2020-resolver \
   --extra-index-url https://pypi-nightly.tensorflow.org/simple
 
 # Three KFP-related unittests
