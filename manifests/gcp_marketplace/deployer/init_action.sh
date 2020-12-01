@@ -62,9 +62,22 @@ NAME="$(/bin/print_config.py \
 NAMESPACE="$(/bin/print_config.py \
     --xtype NAMESPACE \
     --values_mode raw)"
+NEED_DEFAULT_BUCKET="$(/bin/print_config.py \
+    --xtype NEED_DEFAULT_BUCKET \
+    --values_mode raw)"
+
 export NAME
 export NAMESPACE
+export NEED_DEFAULT_BUCKET
 
-set_bucket_and_configmap
+if [ "${NEED_DEFAULT_BUCKET}" = true ]; then
+  set_bucket_and_configmap
+else
+  # Create a configmap where no default bucket is specified.
+  kubectl create configmap -n "${NAMESPACE}" "${CONFIG_NAME}" \
+      --from-literal bucket_name="<your-bucket>" \
+      --from-literal has_default_bucket="false" \
+      --from-literal project_id="${GCP_PROJECT_ID}"
+fi
 
 echo "init_action done"

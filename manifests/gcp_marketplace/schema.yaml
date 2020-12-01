@@ -114,6 +114,10 @@ properties:
     type: string
     x-google-marketplace:
       type: NAMESPACE
+  need-default-bucket:
+    type: boolean
+    x-google-marketplace:
+      type: NEED_DEFAULT_BUCKET
   managedstorage.enabled:
     type: boolean
     title: Use managed storage
