@@ -16,9 +16,12 @@ spec:
           - "--param1"
           - "{{inputs.parameters.produce-list-of-strings-Output}}"
         command: 
-          - python3
-          - "-u"
-          - "-c"
+          - sh
+          - "-ec"
+          - |
+              program_path=$(mktemp)
+              echo -n "$0" > "$program_path"
+              python3 -u "$program_path" "$@"
           - |
               def consume(param1):
                   print(param1)
@@ -44,9 +47,12 @@ spec:
           - "--param1"
           - "{{inputs.parameters.produce-list-of-strings-Output-loop-item}}"
         command: 
-          - python3
-          - "-u"
-          - "-c"
+          - sh
+          - "-ec"
+          - |
+              program_path=$(mktemp)
+              echo -n "$0" > "$program_path"
+              python3 -u "$program_path" "$@"
           - |
               def consume(param1):
                   print(param1)
@@ -72,9 +78,12 @@ spec:
           - "--param1"
           - "{{inputs.parameters.produce-str-Output}}"
         command: 
-          - python3
-          - "-u"
-          - "-c"
+          - sh
+          - "-ec"
+          - |
+              program_path=$(mktemp)
+              echo -n "$0" > "$program_path"
+              python3 -u "$program_path" "$@"
           - |
               def consume(param1):
                   print(param1)
@@ -100,9 +109,12 @@ spec:
           - "--param1"
           - "{{inputs.parameters.produce-list-of-ints-Output}}"
         command: 
-          - python3
-          - "-u"
-          - "-c"
+          - sh
+          - "-ec"
+          - |
+              program_path=$(mktemp)
+              echo -n "$0" > "$program_path"
+              python3 -u "$program_path" "$@"
           - |
               def consume(param1):
                   print(param1)
@@ -128,9 +140,12 @@ spec:
           - "--param1"
           - "{{inputs.parameters.produce-list-of-ints-Output-loop-item}}"
         command: 
-          - python3
-          - "-u"
-          - "-c"
+          - sh
+          - "-ec"
+          - |
+              program_path=$(mktemp)
+              echo -n "$0" > "$program_path"
+              python3 -u "$program_path" "$@"
           - |
               def consume(param1):
                   print(param1)
@@ -156,9 +171,12 @@ spec:
           - "--param1"
           - "{{inputs.parameters.produce-list-of-dicts-Output}}"
         command: 
-          - python3
-          - "-u"
-          - "-c"
+          - sh
+          - "-ec"
+          - |
+              program_path=$(mktemp)
+              echo -n "$0" > "$program_path"
+              python3 -u "$program_path" "$@"
           - |
               def consume(param1):
                   print(param1)
@@ -184,9 +202,12 @@ spec:
           - "--param1"
           - "{{inputs.parameters.produce-list-of-dicts-Output-loop-item-subvar-aaa}}"
         command: 
-          - python3
-          - "-u"
-          - "-c"
+          - sh
+          - "-ec"
+          - |
+              program_path=$(mktemp)
+              echo -n "$0" > "$program_path"
+              python3 -u "$program_path" "$@"
           - |
               def consume(param1):
                   print(param1)
@@ -362,9 +383,12 @@ spec:
           - "----output-paths"
           - /tmp/outputs/Output/data
         command: 
-          - python3
-          - "-u"
-          - "-c"
+          - sh
+          - "-ec"
+          - |
+              program_path=$(mktemp)
+              echo -n "$0" > "$program_path"
+              python3 -u "$program_path" "$@"
           - |
               def produce_list_of_dicts():
                   return ([{"aaa": "aaa1", "bbb": "bbb1"}, {"aaa": "aaa2", "bbb": "bbb2"}],)
@@ -424,9 +448,12 @@ spec:
           - "----output-paths"
           - /tmp/outputs/Output/data
         command: 
-          - python3
-          - "-u"
-          - "-c"
+          - sh
+          - "-ec"
+          - |
+              program_path=$(mktemp)
+              echo -n "$0" > "$program_path"
+              python3 -u "$program_path" "$@"
           - |
               def produce_list_of_ints():
                   return ([1234567890, 987654321],)
@@ -486,9 +513,12 @@ spec:
           - "----output-paths"
           - /tmp/outputs/Output/data
         command: 
-          - python3
-          - "-u"
-          - "-c"
+          - sh
+          - "-ec"
+          - |
+              program_path=$(mktemp)
+              echo -n "$0" > "$program_path"
+              python3 -u "$program_path" "$@"
           - |
               def produce_list_of_strings():
                   return (["a", "z"],)
@@ -548,9 +578,12 @@ spec:
           - "----output-paths"
           - /tmp/outputs/Output/data
         command: 
-          - python3
-          - "-u"
-          - "-c"
+          - sh
+          - "-ec"
+          - |
+              program_path=$(mktemp)
+              echo -n "$0" > "$program_path"
+              python3 -u "$program_path" "$@"
           - |
               def produce_str():
                   return "Hello"
