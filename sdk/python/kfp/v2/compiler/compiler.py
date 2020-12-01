@@ -73,8 +73,7 @@ class Compiler(object):
     Raises:
       NotImplementedError if the argument is of unsupported types.
     """
-    if not pipeline.name:
-      raise ValueError('Pipeline name is required.')
+    compiler_utils.validate_pipeline_name(pipeline.name)
 
     pipeline_spec = pipeline_spec_pb2.PipelineSpec(
         runtime_parameters=compiler_utils.build_runtime_parameter_spec(args))
