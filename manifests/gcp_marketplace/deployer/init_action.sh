@@ -21,7 +21,6 @@ function set_bucket_and_configmap() {
   #
   # Usage:
   # set_bucket_and_configmap
-  CONFIG_NAME="gcp-default-config"
 
   # Detect GCP project
   GCP_PROJECT_ID=$(curl -H "Metadata-Flavor: Google" -w '\n' "http://metadata.google.internal/computeMetadata/v1/project/project-id")
@@ -63,12 +62,14 @@ NAMESPACE="$(/bin/print_config.py \
     --xtype NAMESPACE \
     --values_mode raw)"
 NEED_DEFAULT_BUCKET="$(/bin/print_config.py \
-    --xtype NEED_DEFAULT_BUCKET \
+    --xtype STRING \
     --values_mode raw)"
 
 export NAME
 export NAMESPACE
 export NEED_DEFAULT_BUCKET
+
+export CONFIG_NAME="gcp-default-config"
 
 if [ "${NEED_DEFAULT_BUCKET}" = true ]; then
   set_bucket_and_configmap
