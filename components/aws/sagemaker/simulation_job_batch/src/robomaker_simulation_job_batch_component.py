@@ -68,9 +68,13 @@ class RoboMakerSimulationJobBatchComponent(SageMakerComponent):
         if batch_status in ["Failed"]:
             failure_message = f"Simulation batch job is in status:{batch_status}\n"
             if "failureReason" in batch_response:
-                failure_message += f"Simulation failed with reason:{batch_response['failureReason']}"
+                failure_message += (
+                    f"Simulation failed with reason:{batch_response['failureReason']}"
+                )
             if "failureCode" in batch_response:
-                failure_message += f"Simulation failed with errorCode:{batch_response['failureCode']}"
+                failure_message += (
+                    f"Simulation failed with errorCode:{batch_response['failureCode']}"
+                )
             return SageMakerJobStatus(
                 is_completed=True,
                 has_error=True,

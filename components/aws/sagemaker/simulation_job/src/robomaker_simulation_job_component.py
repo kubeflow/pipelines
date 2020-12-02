@@ -74,9 +74,13 @@ class RoboMakerSimulationJobComponent(SageMakerComponent):
         if status in ["Failed", "RunningFailed"]:
             failure_message = f"Simulation job is in status:{status}\n"
             if "failureReason" in response:
-                failure_message += f"Simulation failed with reason:{response['failureReason']}"
+                failure_message += (
+                    f"Simulation failed with reason:{response['failureReason']}"
+                )
             if "failureCode" in response:
-                failure_message += f"Simulation failed with errorCode:{response['failureCode']}"
+                failure_message += (
+                    f"Simulation failed with errorCode:{response['failureCode']}"
+                )
             return SageMakerJobStatus(
                 is_completed=True,
                 has_error=True,

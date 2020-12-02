@@ -196,15 +196,13 @@ class SageMakerRLEstimatorComponent(SageMakerComponent):
         estimator = RLEstimator(
             entry_point=inputs.entry_point,
             source_dir=inputs.source_dir,
-            image_uri=SpecInputParsers.nullable_argument(inputs.image),
+            image_uri=inputs.image,
             toolkit=self._get_toolkit(inputs.toolkit),
             toolkit_version=inputs.toolkit_version,
             framework=self._get_framework(inputs.framework),
             role=inputs.role,
-            debugger_hook_config=SpecInputParsers.nullable_argument(
-                inputs.debug_hook_config
-            ),
-            rules=SpecInputParsers.nullable_argument(inputs.debug_rule_config),
+            debugger_hook_config=self._nullable(inputs.debug_hook_config),
+            rules=self._nullable(inputs.debug_rule_config),
             instance_type=inputs.instance_type,
             instance_count=inputs.instance_count,
             output_path=inputs.model_artifact_path,
@@ -213,10 +211,8 @@ class SageMakerRLEstimatorComponent(SageMakerComponent):
             input_mode=inputs.training_input_mode,
             max_run=inputs.max_run,
             hyperparameters=self._validate_hyperparameters(inputs.hyperparameters),
-            subnets=SpecInputParsers.nullable_argument(inputs.vpc_subnets),
-            security_group_ids=SpecInputParsers.nullable_argument(
-                inputs.vpc_security_group_ids
-            ),
+            subnets=self._nullable(inputs.vpc_subnets),
+            security_group_ids=self._nullable(inputs.vpc_security_group_ids),
             use_spot_instances=inputs.spot_instance,
             enable_network_isolation=inputs.network_isolation,
             encrypt_inter_container_traffic=inputs.traffic_encryption,
@@ -264,6 +260,13 @@ class SageMakerRLEstimatorComponent(SageMakerComponent):
         if framework_type == "":
             return None
         return RLFramework[framework_type.upper()]
+
+    @staticmethod
+    def _nullable(value: str):
+        if value:
+            return value
+        else:
+            return None
 
 
 if __name__ == "__main__":

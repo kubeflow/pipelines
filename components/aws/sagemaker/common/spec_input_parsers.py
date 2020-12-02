@@ -32,14 +32,6 @@ class SpecInputParsers:
         return value
 
     @staticmethod
-    def nullable_argument(value):
-        """Returns None for empty strings, lists and dictionaries"""
-        if value:
-            return value
-        else:
-            return None
-
-    @staticmethod
     def _yaml_or_json_str(value):
         if value == "" or value == None:
             return None

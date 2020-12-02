@@ -130,23 +130,14 @@ class Boto3Manager(object):
             assume_role_arn: The ARN of a role for the boto3 client to assume.
 
         Returns:
-            object: A SageMaker boto3 client.
+            object: A SageMaker boto3 session.
         """
-        session = Boto3Manager._get_boto3_session(region, assume_role_arn)
-        session_config = Config(
-            user_agent=f"sagemaker-on-kubeflow-pipelines-v{component_version}",
-            retries={"max_attempts": 10, "mode": "standard"},
+        return SageMakerSession(
+            boto_session=Boto3Manager._get_boto3_session(region, assume_role_arn),
+            sagemaker_client=Boto3Manager.get_sagemaker_client(
+                component_version, region, endpoint_url, assume_role_arn
+            ),
         )
-        client = session.client(
-            "sagemaker",
-            region_name=region,
-            endpoint_url=endpoint_url,
-            config=session_config,
-        )
-        sagemaker_session = SageMakerSession(
-            boto_session=session, sagemaker_client=client
-        )
-        return sagemaker_session
 
     @staticmethod
     def get_robomaker_client(

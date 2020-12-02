@@ -44,7 +44,6 @@ def get_fsx_id():
 
 
 def get_robomaker_security_groups():
-    print(json.dumps(os.environ.get("ROBOMAKER_SECURITY_GROUPS").split(",")))
     return json.dumps(os.environ.get("ROBOMAKER_SECURITY_GROUPS").split(","))
 
 

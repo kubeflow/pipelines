@@ -22,9 +22,7 @@ output_bucket_name = "kf-pipelines-rlestimator-output"
 input_bucket_name = "kf-pipelines-rlestimator-input"
 input_key = "sourcedir.tar.gz"
 job_name_prefix = "rlestimator-pipeline-custom-image"
-image_uri = (
-    "your_sagemaker_image_name"
-)
+image_uri = "your_sagemaker_image_name"
 role = "your_sagemaker_role_name"
 security_groups = ["sg-0490601e83f220e82"]
 subnets = [

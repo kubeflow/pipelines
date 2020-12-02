@@ -134,7 +134,7 @@ class RoboMakerSimulationJobTestCase(unittest.TestCase):
                 is_completed=True,
                 raw_status="Failed",
                 has_error=True,
-                error_message="Simulation batch failed with reason:Big Reason and errorCode:InternalServiceError",
+                error_message="Simulation batch job is in status:Failed\nSimulation failed with reason:Big ReasonSimulation failed with errorCode:InternalServiceError",
             ),
         )
 
