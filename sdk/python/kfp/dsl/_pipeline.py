@@ -157,6 +157,17 @@ class PipelineConf():
       dns_config: Kubernetes V1PodDNSConfig
         For detailed description, check Kubernetes V1PodDNSConfig definition
         https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1PodDNSConfig.md
+
+    Example:
+
+      ::
+        import kfp
+        from kubernetes.client.models import V1PodDNSConfig, V1PodDNSConfigOption
+        pipeline_conf = kfp.dsl.PipelineConf()
+        pipeline_conf.set_dns_config(dns_config=V1PodDNSConfig(
+          nameservers=["1.2.3.4"],
+          options=[V1PodDNSConfigOption(name="ndots", value="2")]
+        ))
     """
     self.dns_config = dns_config
 
