@@ -31,6 +31,12 @@ T = TypeVar('T')
 # type alias: either a string or a list of string
 StringOrStringList = Union[str, List[str]]
 
+ALLOWED_RETRY_POLICIES = (
+    'Always',
+    'OnError',
+    'OnFailure',
+)
+
 
 # util functions
 def deprecation_warning(func: Callable, op_name: str,
@@ -878,6 +884,9 @@ class BaseOp(object):
         Args:
           policy: Retry policy name.
         """
+
+        if policy not in ALLOWED_RETRY_POLICIES:
+            raise ValueError('policy must be one of: %r' % (ALLOWED_RETRY_POLICIES, ))
 
         self.retry_policy = policy
         return self

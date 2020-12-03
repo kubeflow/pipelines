@@ -386,6 +386,13 @@ class TestCompiler(unittest.TestCase):
 
       self.assertEqual(template['retryStrategy']['retryPolicy'], policy)
 
+  def test_py_retry_policy_invalid(self):
+      def my_pipeline():
+          some_op().set_retry_policy('Invalid')
+
+      with self.assertRaises(ValueError):
+          kfp.compiler.Compiler()._compile(my_pipeline)
+
   def test_py_retry(self):
     """Test retry functionality."""
     number_of_retries = 137

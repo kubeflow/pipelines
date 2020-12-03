@@ -259,6 +259,8 @@ def _op_to_template(op: BaseOp):
             template['retryStrategy']['limit'] = processed_op.num_retries
         if processed_op.retry_policy:
             template['retryStrategy']['retryPolicy'] = processed_op.retry_policy
+            if not processed_op.num_retries:
+                warnings.warn('retry_policy is set, but num_retries is not')
 
     # timeout
     if processed_op.timeout:
