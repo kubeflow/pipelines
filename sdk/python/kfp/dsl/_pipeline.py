@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from typing import Union
+from kubernetes.client.models import V1PodDNSConfig
 from . import _container_op
 from . import _resource_op
 from . import _ops_group
@@ -150,7 +151,7 @@ class PipelineConf():
     """
     self.op_transformers.append(transformer)
 
-  def set_dns_config(self, dns_config):
+  def set_dns_config(self, dns_config: V1PodDNSConfig):
     """Set the dnsConfig to be given to each pod.
 
     Args:

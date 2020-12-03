@@ -43,4 +43,8 @@ if __name__ == '__main__':
         options=[V1PodDNSConfigOption(name="ndots", value="2")]
     ))
 
-    kfp.compiler.Compiler().compile(dns_config_pipeline, __file__ + '.yaml', pipeline_conf=pipeline_conf)
+    kfp.compiler.Compiler().compile(
+        dns_config_pipeline,
+        __file__ + '.yaml',
+        pipeline_conf=pipeline_conf
+    )
