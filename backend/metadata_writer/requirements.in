@@ -1,2 +1,2 @@
 kubernetes>=8.0.0,<11.0.0
-ml-metadata==0.22.0
+ml-metadata==0.25.1
