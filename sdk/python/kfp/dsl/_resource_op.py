@@ -64,7 +64,10 @@ class Resource(object):
 
 
 class ResourceOp(BaseOp):
-    """Represents an op which will be translated into a resource template
+    """Represents an op which will be translated into a resource template.
+
+    TODO(https://github.com/kubeflow/pipelines/issues/4822): Determine the
+        stability level of this feature.
 
     Args:
         k8s_resource: A k8s resource which will be submitted to the cluster

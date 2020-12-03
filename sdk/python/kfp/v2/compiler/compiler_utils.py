@@ -13,9 +13,11 @@
 # limitations under the License.
 """KFP v2 DSL compiler utility functions."""
 
+import re
 from typing import Any, List, Mapping, Optional, Union
+
 from kfp.v2 import dsl
-from kfp.v2.proto import pipeline_spec_pb2
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 
 def build_runtime_parameter_spec(
@@ -91,3 +93,22 @@ def build_runtime_config_spec(
   return pipeline_spec_pb2.PipelineJob.RuntimeConfig(
       gcs_output_directory=pipeline_root,
       parameters={k: _get_value(v) for k, v in parameter_values.items()})
+
+
+def validate_pipeline_name(name: str) -> None:
+  """Validate pipeline name.
+
+  A valid pipeline name should match ^[a-z0-9][a-z0-9-]{0,127}$.
+
+  Args:
+    name: The pipeline name.
+
+  Raises:
+    ValueError if the pipeline name doesn't conform to the regular expression.
+  """
+  pattern = re.compile(r'^[a-z0-9][a-z0-9-]{0,127}$')
+  if not pattern.match(name):
+    raise ValueError('Invalid pipeline name: %s.\n'
+                     'Please specify a pipeline name that matches the regular '
+                     'expression "^[a-z0-9][a-z0-9-]{0,127}$" using '
+                     '`dsl.pipeline(name=...)` decorator.' % name)

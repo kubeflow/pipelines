@@ -54,8 +54,8 @@ def pipeline(name : str = None, description : str = None):
   return _pipeline
 
 class PipelineConf():
-  """PipelineConf contains pipeline level settings
-  """
+  """PipelineConf contains pipeline level settings."""
+
   def __init__(self):
     self.image_pull_secrets = []
     self.timeout = 0

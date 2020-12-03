@@ -33,7 +33,7 @@ from .structures import *
 
 import inspect
 from pathlib import Path
-from typing import Callable, List, TypeVar
+from typing import Callable, List, Optional, TypeVar
 import warnings
 
 import docstring_parser
@@ -727,8 +727,16 @@ def func_to_component_file(func, output_component_file, base_image: str = None, 
     Path(output_component_file).write_text(component_yaml)
 
 
-def func_to_container_op(func, output_component_file=None, base_image: str = None, extra_code='', packages_to_install: List[str] = None, modules_to_capture: List[str] = None, use_code_pickling=False):
-    '''Converts a Python function to a component and returns a task (:class:`kfp.dsl.ContainerOp`) factory.
+def func_to_container_op(
+    func: Callable,
+    output_component_file: Optional[str] = None,
+    base_image: Optional[str] = None,
+    extra_code: Optional[str] = '',
+    packages_to_install: List[str] = None,
+    modules_to_capture: List[str] = None,
+    use_code_pickling: bool = False):
+    '''Converts a Python function to a component and returns a task
+      (:class:`kfp.dsl.ContainerOp`) factory.
 
     Function docstring is used as component description. Argument and return annotations are used as component input/output types.
 
@@ -776,7 +784,8 @@ def create_component_from_func(
     base_image: str = None,
     packages_to_install: List[str] = None,
 ):
-    '''Converts a Python function to a component and returns a task factory (a function that accepts arguments and returns a task object).
+    '''Converts a Python function to a component and returns a task factory
+    (a function that accepts arguments and returns a task object).
 
     Args:
         func: The python function to convert

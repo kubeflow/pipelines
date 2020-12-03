@@ -1,0 +1,21 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["log.go"],
+    importpath = "github.com/kubeflow/pipelines/backend/src/apiserver/archive",
+    visibility = ["//visibility:public"],
+    deps = ["//backend/src/common/util:go_default_library"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["log_test.go"],
+    embed = [":go_default_library"],
+    deps = [
+        "//backend/src/common/util:go_default_library",
+        "@com_github_argoproj_argo//pkg/apis/workflow/v1alpha1:go_default_library",
+        "@com_github_stretchr_testify//assert:go_default_library",
+        "@io_k8s_apimachinery//pkg/apis/meta/v1:go_default_library",
+    ],
+)

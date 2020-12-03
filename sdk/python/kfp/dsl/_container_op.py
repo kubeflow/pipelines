@@ -1024,7 +1024,7 @@ class ContainerOp(BaseOp):
                 " Please see the documentation: https://www.kubeflow.org/docs/pipelines/sdk/component-development/#writing-your-component-definition-file"
                 " The components can be created manually (or, in case of python, using kfp.components.create_component_from_func or func_to_container_op)"
                 " and then loaded using kfp.components.load_component_from_file, load_component_from_uri or load_component_from_text: "
-                "https://kubeflow-pipelines.readthedocs.io/en/latest/source/kfp.components.html#kfp.components.load_component_from_file",
+                "https://kubeflow-pipelines.readthedocs.io/en/stable/source/kfp.components.html#kfp.components.load_component_from_file",
                 category=FutureWarning,
             )
 

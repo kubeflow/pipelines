@@ -212,7 +212,7 @@ steps:
 # * manifests/kustomize/base/metadata/metadata-grpc-deployment.yaml
 # * test/tag_for_hosted.sh
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['pull', 'gcr.io/tfx-oss-public/ml_metadata_store_server:0.22.1']
+  args: ['pull', 'gcr.io/tfx-oss-public/ml_metadata_store_server:0.25.1']
   id:   'pullMetadataServer'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/ml-pipeline/minio:RELEASE.2019-08-14T20-37-41Z-license-compliance']

@@ -13,7 +13,7 @@
 # limitations under the License.
 """Utility function for building Importer Node spec."""
 
-from kfp.v2.proto import pipeline_spec_pb2
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 OUTPUT_KEY = 'result'
 

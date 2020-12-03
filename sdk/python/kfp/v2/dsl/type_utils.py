@@ -16,7 +16,7 @@
 import textwrap
 from typing import List, Optional
 from kfp.components import structures
-from kfp.v2.proto import pipeline_spec_pb2
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 # ComponentSpec I/O types to (IR) PipelineTaskSpec I/O types mapping.
 # The keys are normalized (lowercased). These are types viewed as Artifacts.

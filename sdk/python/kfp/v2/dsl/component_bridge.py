@@ -26,7 +26,7 @@ from kfp.v2.components.components import _resolve_command_line_and_paths
 from kfp.v2.dsl import container_op
 from kfp.v2.dsl import importer_node
 from kfp.v2.dsl import type_utils
-from kfp.v2.proto import pipeline_spec_pb2
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 
 # TODO: cleanup unused code.
@@ -45,9 +45,6 @@ def create_container_op_from_component_and_arguments(
   """
 
   pipeline_task_spec = pipeline_spec_pb2.PipelineTaskSpec()
-  pipeline_task_spec.task_info.name = component_spec.name
-  # might need to append suffix to exuector_label to ensure its uniqueness?
-  pipeline_task_spec.executor_label = component_spec.name
 
   # Keep track of auto-injected importer spec.
   importer_spec = {}
@@ -220,6 +217,10 @@ def create_container_op_from_component_and_arguments(
           ) for input_name, path in input_uris_and_paths.items()
       ],
   )
+
+  # task.name is unique at this point.
+  pipeline_task_spec.task_info.name = task.name
+  pipeline_task_spec.executor_label = task.name
 
   task.task_spec = pipeline_task_spec
   task.importer_spec = importer_spec
