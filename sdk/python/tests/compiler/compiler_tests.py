@@ -805,10 +805,16 @@ implementation:
     @dsl.pipeline()
     def some_pipeline():
       some_op()
-      dsl.get_pipeline_conf().set_dns_config(V1PodDNSConfig(nameservers=["1.2.3.4"], options=[V1PodDNSConfigOption(name="ndots", value="2")]))
+      dsl.get_pipeline_conf().set_dns_config(V1PodDNSConfig(
+        nameservers=["1.2.3.4"],
+        options=[V1PodDNSConfigOption(name="ndots", value="2")]
+      ))
 
     workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
-    self.assertEqual(workflow_dict['spec']['dnsConfig'], {"nameservers": ["1.2.3.4"], "options": [{"name": "ndots", "value": "2"}]})
+    self.assertEqual(
+      workflow_dict['spec']['dnsConfig'],
+      {"nameservers": ["1.2.3.4"], "options": [{"name": "ndots", "value": "2"}]}
+    )
 
   def test_container_op_output_error_when_no_or_multiple_outputs(self):
 
