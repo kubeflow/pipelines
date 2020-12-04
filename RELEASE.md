@@ -270,7 +270,8 @@ fill in the description. Detailed steps:
        See the [Change Log](https://github.com/kubeflow/pipelines/blob/$VERSION/CHANGELOG.md)
        </pre>
 
-1. Update master branch to the same version and include latest changelog:
+1. **(Do this step only when releasing from a NON-master release branch)**
+Update master branch to the same version and include latest changelog:
     ```bash
     git checkout master
     git pull
