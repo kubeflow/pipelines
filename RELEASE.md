@@ -215,6 +215,10 @@ and then "Retry", because after waiting for previous step, artifacts are now rea
 
     TODO: we should have an automation KFP cluster, and the waiting and submiting
     `release-on-tag` cloudbuild task should happen automatically.
+    
+    NOTE: postsubmit tests will most likely fail for the release commit, this is expected, postsubmit
+    tests start right after the commit is in GitHub repo, but some artifacts they depend on are still
+    being built by the processes in these two steps.
 1. Search "PyPI" in Google internal release doc for getting password of kubeflow-pipelines user.
 1. Release `kfp-server-api` python packages to PyPI.
     ```bash
