@@ -1,5 +1,17 @@
 # Changelog
 
+### [1.1.2-rc.1](https://github.com/kubeflow/pipelines/compare/1.1.1-beta.1...1.1.2-rc.1) (2020-12-04)
+
+
+### Bug Fixes
+
+* **frontend:** Fix the yaml cannot show in Safari browser issue. Fixes [\#4727](https://github.com/kubeflow/pipelines/issues/4727) ([\#4818](https://github.com/kubeflow/pipelines/issues/4818)) ([1108ad3](https://github.com/kubeflow/pipelines/commit/1108ad340bd7b0bda256ef657c01b4cfb68d1f00))
+
+
+### Other Pull Requests
+
+* [Doc] update docs that still refer to KFP latest SDK reference ([\#4845](https://github.com/kubeflow/pipelines/issues/4845)) ([518b8b8](https://github.com/kubeflow/pipelines/commit/518b8b886de54fe7ad16c523594ff2a0b07ce19c))
+
 ### [1.1.1-beta.1](https://github.com/kubeflow/pipelines/compare/1.1.0-alpha.1...1.1.1-beta.1) (2020-11-26)
 
 
