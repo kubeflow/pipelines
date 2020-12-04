@@ -207,6 +207,9 @@ Refer to the above screenshot to find the page.
 1. Wait and make sure the `build-each-commit` cloudbuild job that builds all images
 in gcr.io/ml-pipeline-test succeeded. If it fails, please click "View more details
 on Google Cloud Build" and then "Retry".
+    
+    NOTE: you can find your latest release commit in https://github.com/kubeflow/pipelines/commits/master and select your release branch.
+    ![How to very cloudbuild and postsubmit status](release-status-check.png)
 
 1. Select the `release-on-tag` cloudbuild job that copies built images and artifacts to
 public image registry and gcs bucket. This job should have already failed because
@@ -215,6 +218,10 @@ and then "Retry", because after waiting for previous step, artifacts are now rea
 
     TODO: we should have an automation KFP cluster, and the waiting and submiting
     `release-on-tag` cloudbuild task should happen automatically.
+    
+    NOTE: postsubmit tests will most likely fail for the release commit, this is expected, postsubmit
+    tests start right after the commit is in GitHub repo, but some artifacts they depend on are still
+    being built by the processes in these two steps.
 1. Search "PyPI" in Google internal release doc for getting password of kubeflow-pipelines user.
 1. Release `kfp-server-api` python packages to PyPI.
     ```bash
@@ -266,7 +273,8 @@ fill in the description. Detailed steps:
        See the [Change Log](https://github.com/kubeflow/pipelines/blob/$VERSION/CHANGELOG.md)
        </pre>
 
-1. Update master branch to the same version and include latest changelog:
+1. **(Do this step only when releasing from a NON-master release branch)**
+Update master branch to the same version and include latest changelog:
     ```bash
     git checkout master
     git pull
