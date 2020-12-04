@@ -33,14 +33,12 @@ from kfp.pipeline_spec import pipeline_spec_pb2
 def create_container_op_from_component_and_arguments(
     component_spec: structures.ComponentSpec,
     arguments: Mapping[str, Any],
-    component_ref: structures.ComponentReference = None,
 ) -> container_op.ContainerOp:
   """Instantiates ContainerOp object.
 
   Args:
     component_spec: The component spec object.
     arguments: The dictionary of component arguments.
-    component_ref: The component reference. Optional.
 
   Returns:
     A ContainerOp instance.
@@ -231,9 +229,6 @@ def create_container_op_from_component_and_arguments(
 
   component_meta = copy.copy(component_spec)
   task._set_metadata(component_meta)
-  component_ref_without_spec = copy.copy(component_ref)
-  component_ref_without_spec.spec = None
-  task._component_ref = component_ref_without_spec
 
   # Previously, ContainerOp had strict requirements for the output names, so we
   # had to convert all the names before passing them to the ContainerOp
