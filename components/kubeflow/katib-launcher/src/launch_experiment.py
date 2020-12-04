@@ -47,6 +47,7 @@ def wait_experiment_finish(katib_client, experiment, timeout):
     experiment_name = experiment.metadata.name
     experiment_namespace = experiment.metadata.namespace
     while True:
+        current_status = None
         try:
             current_status = katib_client.get_experiment_status(name=experiment_name, namespace=experiment_namespace)
         except Exception as e:
