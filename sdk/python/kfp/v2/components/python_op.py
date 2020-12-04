@@ -14,24 +14,14 @@
 
 __all__ = [
     'create_component_from_func',
-    'func_to_container_op',
-    'func_to_component_text',
     'default_base_image_or_builder',
-    'InputUri',
+    'func_to_component_text',
+    'func_to_container_op',
     'InputPath',
-    'InputTextFile',
-    'InputBinaryFile',
-    'OutputUri',
+    'InputUri',
     'OutputPath',
-    'OutputTextFile',
-    'OutputBinaryFile',
+    'OutputUri',
 ]
-
-from kfp.components._yaml_utils import dump_yaml
-from kfp.components._data_passing import serialize_value, get_deserializer_code_for_type_struct, get_serializer_func_for_type_struct, get_canonical_type_struct_for_type
-from kfp.components._naming import _make_name_unique_by_adding_index
-from kfp.v2.components.components import _create_task_factory_from_component_spec
-from kfp.v2.components.structures import *
 
 import inspect
 from pathlib import Path
@@ -39,61 +29,60 @@ from typing import Callable, List, TypeVar
 import warnings
 
 import docstring_parser
+from kfp.components._data_passing import serialize_value, get_deserializer_code_for_type_struct, get_serializer_func_for_type_struct, get_canonical_type_struct_for_type
+from kfp.components._naming import _make_name_unique_by_adding_index
+from kfp.components._yaml_utils import dump_yaml
+from kfp.v2.components.components import _create_task_factory_from_component_spec
+from kfp.v2.components.structures import *
 
 T = TypeVar('T')
 
 
 class InputUri:
-  """When creating component from function, :class:`.InputUri` should be used as function parameter annotation to tell the system to pass the *data file path* to the function instead of passing the actual data."""
+  """InputUri annotation type.
+
+  When creating component from function, :class:`.InputUri` should be used as
+  function parameter annotation to tell the system to pass the *data file path*
+  to the function instead of passing the actual data.
+  """
 
   def __init__(self, type=None):
     self.type = type
 
 
 class InputPath:
-  """When creating component from function, :class:`.InputPath` should be used as function parameter annotation to tell the system to pass the *data file path* to the function instead of passing the actual data."""
+  """InputPath annotation type.
 
-  def __init__(self, type=None):
-    self.type = type
-
-
-class InputTextFile:
-  """When creating component from function, :class:`.InputTextFile` should be used as function parameter annotation to tell the system to pass the *text data stream* object (`io.TextIOWrapper`) to the function instead of passing the actual data."""
-
-  def __init__(self, type=None):
-    self.type = type
-
-
-class InputBinaryFile:
-  """When creating component from function, :class:`.InputBinaryFile` should be used as function parameter annotation to tell the system to pass the *binary data stream* object (`io.BytesIO`) to the function instead of passing the actual data."""
+  When creating component from function, :class:`.InputPath` should be used as
+  function parameter annotation to tell the system to pass the *data file path*
+  to the function instead of passing the actual data.
+  """
 
   def __init__(self, type=None):
     self.type = type
 
 
 class OutputUri:
-  """When creating component from function, :class:`.OutputUri` should be used as function parameter annotation to tell the system that the function wants to output data by writing it into a file with the given path instead of returning the data from the function."""
+  """OuputUri annotation type.
+
+  When creating component from function, :class:`.OutputUri` should be used as
+  function parameter annotation to tell the system that the function wants to
+  output data by writing it into a file with the given path instead of returning
+  the data from the function.
+  """
 
   def __init__(self, type=None):
     self.type = type
 
 
 class OutputPath:
-  """When creating component from function, :class:`.OutputPath` should be used as function parameter annotation to tell the system that the function wants to output data by writing it into a file with the given path instead of returning the data from the function."""
+  """OutputPath annotation type.
 
-  def __init__(self, type=None):
-    self.type = type
-
-
-class OutputTextFile:
-  """When creating component from function, :class:`.OutputTextFile` should be used as function parameter annotation to tell the system that the function wants to output data by writing it into a given text file stream (`io.TextIOWrapper`) instead of returning the data from the function."""
-
-  def __init__(self, type=None):
-    self.type = type
-
-
-class OutputBinaryFile:
-  """When creating component from function, :class:`.OutputBinaryFile` should be used as function parameter annotation to tell the system that the function wants to output data by writing it into a given binary file stream (:code:`io.BytesIO`) instead of returning the data from the function."""
+  When creating component from function, :class:`.OutputPath` should be used as
+  function parameter annotation to tell the system that the function wants to
+  output data by writing it into a file with the given path instead of returning
+  the data from the function.
+  """
 
   def __init__(self, type=None):
     self.type = type
@@ -135,15 +124,20 @@ def _capture_function_code_using_cloudpickle(
   if modules_to_capture is None:
     modules_to_capture = [func.__module__]
 
-  # Hack to force cloudpickle to capture the whole function instead of just referencing the code file. See https://github.com/cloudpipe/cloudpickle/blob/74d69d759185edaeeac7bdcb7015cfc0c652f204/cloudpickle/cloudpickle.py#L490
+  # Hack to force cloudpickle to capture the whole function instead of just
+  # referencing the code file.
+  # See https://github.com/cloudpipe/cloudpickle/blob/74d69d759185edaeeac7bdcb7015cfc0c652f204/cloudpickle/cloudpickle.py#L490
   old_modules = {}
   old_sig = getattr(func, '__signature__', None)
   try:  # Try is needed to restore the state if something goes wrong
     for module_name in modules_to_capture:
       if module_name in sys.modules:
         old_modules[module_name] = sys.modules.pop(module_name)
-    # Hack to prevent cloudpickle from trying to pickle generic types that might be present in the signature. See https://github.com/cloudpipe/cloudpickle/issues/196
-    # Currently the __signature__ is only set by Airflow components as a means to spoof/pass the function signature to _func_to_component_spec
+    # Hack to prevent cloudpickle from trying to pickle generic types that might
+    # be present in the signature.
+    # See https://github.com/cloudpipe/cloudpickle/issues/196
+    # Currently the __signature__ is only set by Airflow components as a means
+    # to spoof/pass the function signature to _func_to_component_spec
     if hasattr(func, '__signature__'):
       del func.__signature__
     func_pickle = base64.b64encode(
@@ -215,7 +209,8 @@ def strip_type_hints(source_code: str) -> str:
 def _strip_type_hints_using_strip_hints(source_code: str) -> str:
   from strip_hints import strip_string_to_string
 
-  # Workaround for https://github.com/abarker/strip-hints/issues/4 , https://bugs.python.org/issue35107
+  # Workaround for https://github.com/abarker/strip-hints/issues/4 ,
+  # https://bugs.python.org/issue35107
   # I could not repro it though
   if source_code[-1] != '\n':
     source_code += '\n'
@@ -270,19 +265,20 @@ def _capture_function_code_using_source_copy(func) -> str:
   func_code = textwrap.dedent(func_code)
   func_code_lines = func_code.split('\n')
 
-  # Removing possible decorators (can be multiline) until the function definition is found
+  # Removing possible decorators (can be multiline) until the function
+  # definition is found
   while func_code_lines and not func_code_lines[0].startswith('def '):
     del func_code_lines[0]
 
   if not func_code_lines:
     raise ValueError(
-        'Failed to dedent and clean up the source of function "{}". It is probably not properly indented.'
-        .format(func.__name__))
+        'Failed to dedent and clean up the source of function "{}".'
+        'It is probably not properly indented.'.format(func.__name__))
 
   func_code = '\n'.join(func_code_lines)
 
   # Stripping type annotations to prevent import errors.
-  # The most common cases are InputPath/OutputPath and typing.NamedTuple annotations
+  # The most common cases are InputPath/OutputPath and NamedTuple annotations
   func_code = strip_type_hints(func_code)
 
   return func_code
@@ -332,8 +328,7 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
     passing_style = None
     io_name = parameter.name
     if isinstance(parameter_annotation,
-                  (InputUri, InputPath, InputTextFile, InputBinaryFile,
-                   OutputUri, OutputPath, OutputTextFile, OutputBinaryFile)):
+                  (InputUri, InputPath, OutputUri, OutputPath)):
       passing_style = type(parameter_annotation)
       parameter_annotation = parameter_annotation.type
       if parameter.default is not inspect.Parameter.empty and not (
@@ -354,8 +349,7 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
     type_struct = annotation_to_type_struct(parameter_annotation)
     #TODO: Humanize the input/output names
 
-    if isinstance(parameter.annotation,
-                  (OutputUri, OutputPath, OutputTextFile, OutputBinaryFile)):
+    if isinstance(parameter.annotation, (OutputUri, OutputPath)):
       io_name = _make_name_unique_by_adding_index(io_name, output_names, '_')
       output_names.add(io_name)
       output_spec = OutputSpec(
@@ -546,26 +540,11 @@ def _func_to_component_spec(func,
 
     if passing_style in (InputPath, InputUri, OutputUri):
       return 'str'
-    elif passing_style is InputTextFile:
-      return "argparse.FileType('rt')"
-    elif passing_style is InputBinaryFile:
-      return "argparse.FileType('rb')"
-    # For Output* we cannot use the build-in argparse.FileType objects since they do not create parent directories.
     elif passing_style is OutputPath:
       # ~= return 'str'
       pre_func_definitions.add(
           inspect.getsource(_make_parent_dirs_and_return_path))
       return _make_parent_dirs_and_return_path.__name__
-    elif passing_style is OutputTextFile:
-      # ~= return "argparse.FileType('wt')"
-      pre_func_definitions.add(
-          inspect.getsource(_parent_dirs_maker_that_returns_open_file))
-      return _parent_dirs_maker_that_returns_open_file.__name__ + "('wt')"
-    elif passing_style is OutputBinaryFile:
-      # ~= return "argparse.FileType('wb')"
-      pre_func_definitions.add(
-          inspect.getsource(_parent_dirs_maker_that_returns_open_file))
-      return _parent_dirs_maker_that_returns_open_file.__name__ + "('wb')"
     raise NotImplementedError('Unexpected data passing style: "{}".'.format(
         str(passing_style)))
 
@@ -615,11 +594,11 @@ def _func_to_component_spec(func,
     )
     arg_parse_code_lines.append(line)
 
-    if input._passing_style in [InputPath, InputTextFile, InputBinaryFile]:
+    if input._passing_style in [InputPath]:
       arguments_for_input = [param_flag, InputPathPlaceholder(input.name)]
     elif input._passing_style is InputUri:
       arguments_for_input = [param_flag, InputUriPlaceholder(input.name)]
-    elif input._passing_style in [OutputPath, OutputTextFile, OutputBinaryFile]:
+    elif input._passing_style in [OutputPath]:
       arguments_for_input = [param_flag, OutputPathPlaceholder(input.name)]
     elif input._passing_style is OutputUri:
       arguments_for_input = [param_flag, OutputUriPlaceholder(input.name)]

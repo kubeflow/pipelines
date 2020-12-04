@@ -16,10 +16,10 @@
 import collections
 from typing import Any, Callable
 
-from kfp.v2.components import components
-from kfp.v2.components import _naming
+from kfp.components import _naming
 from kfp.dsl import _container_op
 from kfp.dsl import _ops_group
+from kfp.v2.components import components
 from kfp.v2.dsl import component_bridge
 
 
