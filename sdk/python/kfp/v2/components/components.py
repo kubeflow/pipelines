@@ -47,9 +47,6 @@ def load_component(filename=None, url=None, text=None):
     Once called with the required arguments, the factory constructs a
     pipeline task instance (ContainerOp).
   """
-  # This function should be called load_task_factory since it returns a factory
-  # function. The real load_component function should produce an object with
-  # component properties (e.g. name, description, inputs/outputs).
   # TODO: Change this function to return component spec object but it should be
   # callable to construct tasks.
   non_null_args_count = len(
