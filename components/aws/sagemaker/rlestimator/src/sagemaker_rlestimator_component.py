@@ -206,7 +206,6 @@ class SageMakerRLEstimatorComponent(SageMakerComponent):
             instance_type=inputs.instance_type,
             instance_count=inputs.instance_count,
             output_path=inputs.model_artifact_path,
-            base_job_name=self._rlestimator_job_name,
             metric_definitions=inputs.metric_definitions,
             input_mode=inputs.training_input_mode,
             max_run=inputs.max_run,
@@ -224,7 +223,7 @@ class SageMakerRLEstimatorComponent(SageMakerComponent):
 
     def _submit_job_request(self, estimator: RLEstimator) -> object:
         # By setting wait to false we don't block the current thread.
-        estimator.fit(wait=False)
+        estimator.fit(job_name=self._rlestimator_job_name, wait=False)
         job_name = estimator.latest_training_job.job_name
         self._rlestimator_job_name = job_name
         response = self._sm_client.describe_training_job(TrainingJobName=job_name)

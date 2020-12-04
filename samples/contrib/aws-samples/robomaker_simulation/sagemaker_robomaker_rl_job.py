@@ -9,9 +9,7 @@ from kfp import components
 from kfp import dsl
 import random
 import string
-from typing import NamedTuple
 from kfp.aws import use_aws_secret
-from kfp.components import create_component_from_func
 
 cur_file_dir = os.path.dirname(__file__)
 components_dir = os.path.join(cur_file_dir, "../../../../components/aws/sagemaker/")
@@ -38,64 +36,6 @@ metric_definitions = [
     {"Name": "ppo-entropy", "Regex": "^Policy training>.*Entropy=(.*?),"},
     {"Name": "reward-testing", "Regex": "^Testing>.*Total reward=(.*?),"},
 ]
-
-
-def get_job_name(
-    region: str, job_prefix: str, retry_attempts: int
-) -> NamedTuple("Outputs", [("job_name", str)]):
-    import logging
-    import re
-    from datetime import datetime
-    from time import sleep
-    import boto3
-    from typing import NamedTuple
-
-    job_name = ""
-
-    try:
-        sleep(30)
-        for retry_attempt in range(retry_attempts):
-            client = boto3.client("sagemaker", region_name=region)
-            jobs = client.list_training_jobs(NameContains=job_prefix)
-            if not jobs["TrainingJobSummaries"]:
-                sleep(30)
-            else:
-                jobs = jobs["TrainingJobSummaries"]
-                for job in jobs:
-                    m = re.search(r"\d", job["TrainingJobName"])
-                    if m is not None:
-                        date_started = job["TrainingJobName"][m.start() :]
-                        print(date_started)
-                        date_entry = {
-                            "date_started": datetime.strptime(
-                                date_started, "%Y-%m-%d-%H-%M-%S-%f"
-                            )
-                        }
-                        job.update(date_entry)
-                    else:
-                        logging.error(
-                            "No date can be inferred from the training job name."
-                        )
-                        return
-                sorted_jobs = sorted(jobs, key=lambda k: k["date_started"])
-                current_job = sorted_jobs.pop()
-                job_name = current_job["TrainingJobName"]
-                break
-    except Exception as e:
-        logging.exception("An error occurred while attempting to submit the request")
-        return False
-
-    if job_name:
-        logging.info(f"Found job name {job_name} for job prefix {job_prefix}")
-        return NamedTuple("Outputs", [("job_name", str)])(job_name)
-    else:
-        logging.error("No date can be inferred from the training job name.")
-
-
-get_job_name_op = create_component_from_func(
-    get_job_name, base_image="amazon/aws-sagemaker-kfp-components:1.0.0",
-)
-
 
 # Simulation Application Inputs
 region = "us-east-1"
@@ -129,7 +69,7 @@ train_instance_count = 1
 toolkit = "coach"
 toolkit_version = "0.11"
 framework = "tensorflow"
-base_job_name = "rl-kf-pipeline-objecttracker" + "".join(
+job_name = "rl-kf-pipeline-objecttracker" + "".join(
     random.choice(string.ascii_lowercase) for i in range(10)
 )
 max_run = 300
@@ -180,7 +120,7 @@ def sagemaker_robomaker_rl_job(
     instance_type=train_instance_type,
     instance_count=train_instance_count,
     output_path=rl_output_path,
-    base_job_name=base_job_name,
+    job_name=job_name,
     metric_definitions=metric_definitions,
     max_run=max_run,
     hyperparameters=hyperparameters,
@@ -211,17 +151,12 @@ def sagemaker_robomaker_rl_job(
         instance_type=instance_type,
         instance_count=instance_count,
         model_artifact_path=output_path,
-        job_name=base_job_name,
+        job_name=job_name,
         max_run=max_run,
         hyperparameters=hyperparameters,
         metric_definitions=metric_definitions,
         vpc_subnets=vpc_subnets,
         vpc_security_group_ids=vpc_security_group_ids,
-    )
-    # .apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
-
-    get_job_name = get_job_name_op(
-        region=region, job_prefix=base_job_name, retry_attempts=5
     )
     # .apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
 
@@ -248,12 +183,12 @@ def sagemaker_robomaker_rl_job(
         vpc_security_group_ids=vpc_security_group_ids,
         vpc_subnets=vpc_subnets,
         use_public_ip="True",
-    ).after(get_job_name)
+    )
     # .apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
 
     robomaker_delete_sim_app = robomaker_delete_sim_app_op(
         region=region, arn=robomaker_create_sim_app.outputs["arn"],
-    ).after(robomaker_simulation_job, robomaker_create_sim_app,)
+    ).after(robomaker_simulation_job, robomaker_create_sim_app)
     # .apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
 
 

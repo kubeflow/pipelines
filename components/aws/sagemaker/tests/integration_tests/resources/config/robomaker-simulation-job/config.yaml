@@ -1,6 +1,6 @@
 PipelineDefinition: resources/definition/robomaker_simulation_job_pipeline.py
 TestName: robomaker-run-simulation-job-test
-Timeout: 900
+Timeout: 600
 Arguments:
   region: ((REGION))
   output_bucket: ((DATA_BUCKET))

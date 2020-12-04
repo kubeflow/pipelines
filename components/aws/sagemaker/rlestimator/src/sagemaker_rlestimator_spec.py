@@ -75,7 +75,7 @@ class SageMakerRLEstimatorSpec(
         job_name=InputValidator(
             input_type=str,
             required=False,
-            description="Prefix for training job name when the method launches.",
+            description="Training job name.",
             default="",
         ),
         role=InputValidator(
