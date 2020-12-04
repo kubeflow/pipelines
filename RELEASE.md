@@ -207,6 +207,9 @@ Refer to the above screenshot to find the page.
 1. Wait and make sure the `build-each-commit` cloudbuild job that builds all images
 in gcr.io/ml-pipeline-test succeeded. If it fails, please click "View more details
 on Google Cloud Build" and then "Retry".
+    
+    NOTE: you can find your latest release commit in https://github.com/kubeflow/pipelines/commits/master and select your release branch.
+    ![How to very cloudbuild and postsubmit status](release-status-check.png)
 
 1. Select the `release-on-tag` cloudbuild job that copies built images and artifacts to
 public image registry and gcs bucket. This job should have already failed because
