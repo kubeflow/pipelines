@@ -109,6 +109,8 @@ class SubGraph(OpsGroup):
   TYPE_NAME = 'subgraph'
 
   def __init__(self, parallelism: int):
+    if parallelism < 1:
+        raise ValueError('SubGraph parallism set to < 1, allowed values are > 0')
     super(SubGraph, self).__init__(self.TYPE_NAME, parallelism=parallelism)
 
 

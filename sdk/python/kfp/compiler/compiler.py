@@ -327,7 +327,8 @@ class Compiler(object):
     # Generate the input for SubGraph along with parallelfor
     for sub_graph in opsgroup_groups:
       if sub_graph in op_name_to_for_loop_op:
-        # get the parent of the current for-loop group
+        # The opsgroup list is sorted with the farthest group as the first and the opsgroup
+        # itself as the last. To get the latest opsgroup which is not the opsgroup itself -2 is used. 
         parent = opsgroup_groups[sub_graph][-2] 
         if parent and parent.startswith('subgraph'):
           # propagate only op's pipeline param from subgraph to parallelfor
@@ -499,7 +500,6 @@ class Compiler(object):
           else:
             param_name = '%s-%s' % (
               sanitize_k8s_name(pipeline_param.op_name), pipeline_param.name)
-            need_propagating_param = not [g.name for g in sub_groups if g.name == pipeline_param.op_name]
             if group.type == 'subgraph':
               withparam_value = '{{inputs.parameters.%s}}' % (param_name)
             else:
@@ -511,7 +511,7 @@ class Compiler(object):
             if 'dependencies' not in task or task['dependencies'] is None:
               task['dependencies'] = []
             if sanitize_k8s_name(
-                pipeline_param.op_name) not in task['dependencies'] and not need_propagating_param:
+                pipeline_param.op_name) not in task['dependencies'] and group.type != 'subgraph':
               task['dependencies'].append(
                   sanitize_k8s_name(pipeline_param.op_name))
 
