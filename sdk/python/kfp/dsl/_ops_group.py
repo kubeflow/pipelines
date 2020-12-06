@@ -194,8 +194,8 @@ class ParallelFor(OpsGroup):
     code = self._get_unique_id_code()
     group_name = 'for-loop-{}'.format(code)
     
-    if parallelism < 1:
-      raise ValueError('ParallelFor parallism set to < 1, allowed values are > 0')
+    if parallelism and parallelism < 1:
+      raise ValueError('ParallelFor parallism set to < 1, allowed values are > 0 or None')
 
     super().__init__(self.TYPE_NAME, name=group_name, parallelism=parallelism)
 
