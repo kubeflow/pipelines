@@ -1,4 +1,4 @@
-import { Metadata, NodeStatus, Workflow } from 'third_party/argo-ui/argo_template';
+import { Metadata, Workflow } from 'third_party/argo-ui/argo_template';
 
 export function parseTaskDisplayName(metadata?: Metadata): string | undefined {
   if (!metadata?.annotations) {
