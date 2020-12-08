@@ -26,3 +26,11 @@ def list_simulation_applications(client, sim_app_name):
     return client.list_simulation_applications(
         filters=[{"name": "name", "values": [sim_app_name]}]
     )
+
+
+def create_robot_application(client, app_name, sources, robot_software_suite):
+    return client.create_robot_application(
+        name=app_name,
+        sources=sources,
+        robotSoftwareSuite=robot_software_suite
+    )

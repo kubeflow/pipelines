@@ -9,12 +9,18 @@ Arguments:
   failure_behavior: "Fail"
   sim_app_arn:
   sim_app_launch_config:
-    packageName: "object_tracker_simulation"
-    launchFile: "evaluation.launch"
+    packageName: "hello_world_simulation"
+    launchFile: "empty_world.launch"
     environmentVariables:
       MODEL_S3_BUCKET: ((DATA_BUCKET))
       MODEL_S3_PREFIX: "prefix-path"
       ROS_AWS_REGION: ((REGION))
       MARKOV_PRESET_FILE: "object_tracker.py"
       NUMBER_OF_ROLLOUT_WORKERS: "1"
+  robot_app_arn:
+  robot_app_launch_config:
+    packageName: "hello_world_robot"
+    launchFile: "rotate.launch"
+    environmentVariables:
+      TURTLEBOT3_MODEL: "waffle_pi"
   role: ((ROBOMAKER_ROLE_ARN))

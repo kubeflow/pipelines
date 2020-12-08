@@ -20,8 +20,8 @@ def robomaker_simulation_job_test(
     failure_behavior="",
     sim_app_arn="",
     sim_app_launch_config="",
-    vpc_security_group_ids="",
-    vpc_subnets="",
+    robot_app_arn="",
+    robot_app_launch_config="",
 ):
 
     robomaker_sim_job_op(
@@ -33,8 +33,8 @@ def robomaker_simulation_job_test(
         failure_behavior=failure_behavior,
         sim_app_arn=sim_app_arn,
         sim_app_launch_config=sim_app_launch_config,
-        vpc_security_group_ids=vpc_security_group_ids,
-        vpc_subnets=vpc_subnets,
+        robot_app_arn=robot_app_arn,
+        robot_app_launch_config=robot_app_launch_config,
     )
 
 

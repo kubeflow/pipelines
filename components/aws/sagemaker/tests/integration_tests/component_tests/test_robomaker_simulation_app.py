@@ -5,6 +5,7 @@ import utils
 from utils import kfp_client_utils
 from utils import minio_utils
 from utils import robomaker_utils
+from utils import get_s3_data_bucket
 
 
 def create_simulation_app(kfp_client, experiment_id, creat_app_dir, app_name):
@@ -32,6 +33,21 @@ def create_simulation_app(kfp_client, experiment_id, creat_app_dir, app_name):
     )
 
     return workflow_json, sim_app_name
+
+
+def create_robot_app(client):
+    robomaker_sources = {
+        "s3Bucket": get_s3_data_bucket(),
+        "s3Key": "robomaker/robot_ws.tar",
+        "architecture": "X86_64"
+    }
+    robomaker_suite = {
+        "name": "ROS",
+        "version": "Melodic"
+    }
+
+    response = robomaker_utils.create_robot_application(client, robomaker_sources, robomaker_suite)
+    return response["arn"]
 
 
 @pytest.mark.parametrize(
@@ -186,8 +202,12 @@ def test_run_simulation_job(kfp_client, experiment_id, robomaker_client, test_fi
     )
     print(f"Simulation Application arn: {sim_app_arn}")
 
+    # Create Robot App by invoking api directly
+    robot_app_arn = create_robot_app(robomaker_client)
+
     # Here we run the simulation job
     test_params["Arguments"]["sim_app_arn"] = sim_app_arn
+    test_params["Arguments"]["robot_app_arn"] = robot_app_arn
 
     _, _, sim_job_workflow_json = kfp_client_utils.compile_run_monitor_pipeline(
         kfp_client,
