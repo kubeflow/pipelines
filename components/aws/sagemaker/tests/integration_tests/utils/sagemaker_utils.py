@@ -86,28 +86,3 @@ def stop_labeling_job(client, labeling_job_name):
 def describe_processing_job(client, processing_job_name):
     return client.describe_processing_job(ProcessingJobName=processing_job_name)
 
-
-def get_training_job_from_prefix(client, job_prefix, retry_attempts=5):
-    for retry_attempt in range(retry_attempts):
-        jobs = client.list_training_jobs(NameContains=job_prefix)
-        if not jobs["TrainingJobSummaries"]:
-            sleep(30)
-        else:
-            jobs = jobs["TrainingJobSummaries"]
-            for job in jobs:
-                m = re.search(r"\d", job["TrainingJobName"])
-                if m is not None:
-                    date_started = job["TrainingJobName"][m.start() :]
-                    print(date_started)
-                    date_entry = {
-                        "date_started": datetime.strptime(
-                            date_started, "%Y-%m-%d-%H-%M-%S-%f"
-                        )
-                    }
-                    job.update(date_entry)
-                else:
-                    logging.error("No date can be inferred from the training job name.")
-                    return
-            sorted_jobs = sorted(jobs, key=lambda k: k["date_started"])
-            current_job = sorted_jobs.pop()
-            return current_job["TrainingJobName"]

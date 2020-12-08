@@ -98,7 +98,7 @@ def test_terminate_trainingjob(kfp_client, experiment_id, sagemaker_client):
         )
     )
 
-    input_job_prefix = test_params["Arguments"]["job_name"] = (
+    input_job_name = test_params["Arguments"]["job_name"] = (
         "".join(random.choice(string.ascii_lowercase) for i in range(10))
         + "-terminate-job"
     )
@@ -114,15 +114,11 @@ def test_terminate_trainingjob(kfp_client, experiment_id, sagemaker_client):
         "running",
     )
     print(
-        f"Terminating run: {run_id} where Training job_name_prefix: {input_job_prefix}"
+        f"Terminating run: {run_id} where Training job_name: {input_job_name}"
     )
     kfp_client_utils.terminate_run(kfp_client, run_id)
 
-    job_name = sagemaker_utils.get_training_job_from_prefix(
-        sagemaker_client, input_job_prefix
-    )
-
-    response = sagemaker_utils.describe_training_job(sagemaker_client, job_name)
+    response = sagemaker_utils.describe_training_job(sagemaker_client, input_job_name)
     assert response["TrainingJobStatus"] in ["Stopping", "Stopped"]
 
     utils.remove_dir(download_dir)
