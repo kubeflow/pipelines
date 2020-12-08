@@ -15,8 +15,12 @@ def get_region():
     return os.environ.get("AWS_REGION")
 
 
-def get_role_arn():
-    return os.environ.get("ROLE_ARN")
+def get_sagemaker_role_arn():
+    return os.environ.get("SAGEMAKER_ROLE_ARN")
+
+
+def get_robomaker_role_arn():
+    return os.environ.get("ROBOMAKER_ROLE_ARN")
 
 
 def get_s3_data_bucket():
@@ -41,14 +45,6 @@ def get_fsx_security_group():
 
 def get_fsx_id():
     return os.environ.get("FSX_ID")
-
-
-def get_robomaker_security_groups():
-    return json.dumps(os.environ.get("ROBOMAKER_SECURITY_GROUPS").split(","))
-
-
-def get_robomaker_subnets():
-    return json.dumps(os.environ.get("ROBOMAKER_SUBNETS").split(","))
 
 
 def get_algorithm_image_registry(framework, region, version=None):
@@ -91,7 +87,7 @@ def replace_placeholders(input_filename, output_filename):
     region = get_region()
     variables_to_replace = {
         "((REGION))": region,
-        "((ROLE_ARN))": get_role_arn(),
+        "((SAGEMAKER_ROLE_ARN))": get_sagemaker_role_arn(),
         "((DATA_BUCKET))": get_s3_data_bucket(),
         "((KMEANS_REGISTRY))": get_algorithm_image_registry("kmeans", region, "1"),
         "((XGBOOST_REGISTRY))": get_algorithm_image_registry(
@@ -102,8 +98,7 @@ def replace_placeholders(input_filename, output_filename):
         "((FSX_SUBNET))": get_fsx_subnet(),
         "((FSX_SECURITY_GROUP))": get_fsx_security_group(),
         "((ASSUME_ROLE_ARN))": get_assume_role_arn(),
-        "((ROBOMAKER_SECURITY_GROUPS))": get_robomaker_security_groups(),
-        "((ROBOMAKER_SUBNETS))": get_robomaker_subnets(),
+        "((ROBOMAKER_ROLE_ARN))": get_robomaker_role_arn(),
     }
 
     filedata = ""

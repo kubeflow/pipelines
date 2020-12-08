@@ -17,6 +17,4 @@ Arguments:
       ROS_AWS_REGION: ((REGION))
       MARKOV_PRESET_FILE: "object_tracker.py"
       NUMBER_OF_ROLLOUT_WORKERS: "1"
-  role: ((ROLE_ARN))
-  vpc_security_group_ids: ((ROBOMAKER_SECURITY_GROUPS))
-  vpc_subnets: ((ROBOMAKER_SUBNETS))
+  role: ((ROBOMAKER_ROLE_ARN))

@@ -34,8 +34,7 @@ PYTEST_MARKER=${PYTEST_MARKER:-""}
 S3_DATA_BUCKET=${S3_DATA_BUCKET:-""}
 SAGEMAKER_EXECUTION_ROLE_ARN=${SAGEMAKER_EXECUTION_ROLE_ARN:-""}
 ASSUMED_ROLE_NAME=${ASSUMED_ROLE_NAME:-""}
-ROBOMAKER_SECURITY_GROUPS=${ROBOMAKER_SECURITY_GROUPS:-""}
-ROBOMAKER_SUBNETS=${ROBOMAKER_SUBNETS:-""}
+ROBOMAKER_EXECUTION_ROLE_ARN=${ROBOMAKER_EXECUTION_ROLE_ARN:-""}
 
 SKIP_FSX_TESTS=${SKIP_FSX_TESTS:-"false"}
 
@@ -259,9 +258,10 @@ install_kfp
 [ "${SKIP_KFP_OIDC_SETUP}" == "false" ] && install_oidc_role
 generate_assumed_role
 
-pytest_args=( --region "${REGION}" --role-arn "${SAGEMAKER_EXECUTION_ROLE_ARN}" \
+pytest_args=( --region "${REGION}" --sagemaker-role-arn "${SAGEMAKER_EXECUTION_ROLE_ARN}" \
   --s3-data-bucket "${S3_DATA_BUCKET}" --kfp-namespace "${KFP_NAMESPACE}" \
-  --minio-service-port "${MINIO_LOCAL_PORT}" --assume-role-arn "${ASSUMED_ROLE_ARN}")
+  --minio-service-port "${MINIO_LOCAL_PORT}" --assume-role-arn "${ASSUMED_ROLE_ARN}" \
+  --robomaker-role-arn "${ROBOMAKER_EXECUTION_ROLE_ARN}")
 
 if [[ "${SKIP_FSX_TESTS}" == "true" ]]; then
   pytest_args+=( -m "not fsx_test" )
