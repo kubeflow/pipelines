@@ -27,7 +27,6 @@
     1. Configure the AWS credentials fields with those of your IAM User.
     1. Update the `SAGEMAKER_EXECUTION_ROLE_ARN` with that of your role created earlier.
     1. Update the `S3_DATA_BUCKET` parameter with the name of the bucket created earlier.
-    1. (Optional) Update the `ROBOMAKER_SECURITY_GROUPS` and `ROBOMAKER_SUBNETS` parameters with the resources you have created to run the RoboMaker integration tests in.
     1. (Optional) If you have already created an EKS cluster for testing, replace the `EKS_EXISTING_CLUSTER` field with it's name.
 1. Build the image by doing the following:
     1. Navigate to the root of this github directory.
