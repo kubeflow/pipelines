@@ -767,14 +767,23 @@ func (r *ResourceManager) EnableJob(jobID string, enabled bool) error {
 }
 
 func (r *ResourceManager) DeleteJob(jobID string) error {
-	job, err := r.checkJobExist(jobID)
+	job, err := r.jobStore.GetJob(jobID)
 	if err != nil {
 		return util.Wrap(err, "Delete job failed")
 	}
 
 	err = r.getScheduledWorkflowClient(job.Namespace).Delete(job.Name, &v1.DeleteOptions{})
 	if err != nil {
-		return util.NewInternalServerError(err, "Delete job CRD failed.")
+		if !util.IsNotFound(err) {
+			// For any error other than NotFound
+			return util.NewInternalServerError(err, "Delete job CRD failed.")
+		}
+
+		// The ScheduledWorkflow was not found.
+		glog.Infof("Deleting job '%v', but skipped deleting ScheduledWorkflow '%v' in namespace '%v' because it was not found. jobID: %v", job.Name, job.Name, job.Namespace, jobID)
+		// Continue the execution, because we want to delete the
+		// ScheduledWorkflow. We can skip deleting the ScheduledWorkflow
+		// when it no longer exists.
 	}
 	err = r.jobStore.DeleteJob(jobID)
 	if err != nil {

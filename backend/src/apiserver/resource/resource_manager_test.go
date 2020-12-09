@@ -1298,12 +1298,13 @@ func TestDeleteJob_SwfNotFound(t *testing.T) {
 	// Explicitly delete it to simulate the situation.
 	manager.getScheduledWorkflowClient(job.Namespace).Delete(job.Name, &v1.DeleteOptions{})
 
-	// Now deleting job should succeed when the swf CR is already deleted.
+	// Now deleting job should still succeed when the swf CR is already deleted.
 	err := manager.DeleteJob(job.UUID)
 	assert.Nil(t, err)
 
 	// And verify Job has been deleted from DB too.
 	_, err = manager.GetJob(job.UUID)
+	require.NotNil(t, err)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), fmt.Sprintf("Job %v not found", job.UUID))
 }
