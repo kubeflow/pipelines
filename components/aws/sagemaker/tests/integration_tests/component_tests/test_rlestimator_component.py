@@ -30,6 +30,11 @@ def test_trainingjob(
         )
     )
 
+    test_params["Arguments"]["job_name"] = input_job_name = (
+        utils.generate_random_string(5) + "-" + test_params["Arguments"]["job_name"]
+    )
+    print(f"running test with job_name: {input_job_name}")
+
     _, _, workflow_json = kfp_client_utils.compile_run_monitor_pipeline(
         kfp_client,
         experiment_id,
