@@ -13,6 +13,8 @@ RUN pip3 install -r requirements.txt
 COPY ./components/aws/sagemaker/dev_requirements.txt .
 RUN pip3 install -r dev_requirements.txt
 
-ENTRYPOINT [ "bash" ]
+COPY . /app/
 
-CMD [ "" ]
+WORKDIR /app/components/aws/sagemaker/tests/unit_tests/
+
+ENTRYPOINT [ "bash", "./run_automated_test.sh" ]

@@ -38,4 +38,4 @@
     1. Navigate to the root of this github directory.
     1. Run `docker build . -f components/aws/sagemaker/tests/integration_tests/Dockerfile -t amazon/integration_test`
 1. Run the image, injecting your environment variable files and mounting the repo files into the container:
-    1. Run `docker run -v <path_to_this_repo_on_your_machine>:/pipelines -w /pipelines/components/aws/sagemaker/tests/integration_tests/scripts/ --env-file components/aws/sagemaker/tests/integration_tests/.env amazon/integration_test ./run_integration_tests`
+    1. Run `docker run -v <path_to_this_repo_on_your_machine>:/pipelines --env-file components/aws/sagemaker/tests/integration_tests/.env amazon/integration_test`
