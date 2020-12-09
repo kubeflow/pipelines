@@ -51,7 +51,12 @@ message PipelineSpec {
   // The deployment config of the pipeline.
   // The deployment config can be extended to provide platform specific configs.
   // The supported config is [PipelineDeploymentConifg]().
-  google.protobuf.Any deployment_config = 3;
+  // Deprecated in favor of deployment_spec.
+  google.protobuf.Any deployment_config = 3 [deprecated = true];
+
+  // The deployment config of the pipeline.
+  // The deployment config can be extended to provide platform specific configs.
+  google.protobuf.Struct deployment_spec = 7;
 
   // The version of the sdk, which compiles the spec.
   string sdk_version = 4;
