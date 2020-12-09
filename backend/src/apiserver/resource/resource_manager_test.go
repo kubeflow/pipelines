@@ -1291,6 +1291,23 @@ func TestDeleteJob_CrdFailure(t *testing.T) {
 	assert.Contains(t, err.Error(), "Check job exist failed: some error")
 }
 
+func TestDeleteJob_SwfNotFound(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	// The swf CR can be missing when user reinstalled KFP using existing DB data.
+	// Explicitly delete it to simulate the situation.
+	manager.getScheduledWorkflowClient(job.Namespace).Delete(job.Name, &v1.DeleteOptions{})
+
+	// Now deleting job should succeed when the swf CR is already deleted.
+	err := manager.DeleteJob(job.UUID)
+	assert.Nil(t, err)
+
+	// And verify Job has been deleted from DB too.
+	_, err = manager.GetJob(job.UUID)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), fmt.Sprintf("Job %v not found", job.UUID))
+}
+
 func TestDeleteJob_DbFailure(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
