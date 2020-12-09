@@ -113,9 +113,7 @@ def test_terminate_trainingjob(kfp_client, experiment_id, sagemaker_client):
         60,
         "running",
     )
-    print(
-        f"Terminating run: {run_id} where Training job_name: {input_job_name}"
-    )
+    print(f"Terminating run: {run_id} where Training job_name: {input_job_name}")
     kfp_client_utils.terminate_run(kfp_client, run_id)
 
     response = sagemaker_utils.describe_training_job(sagemaker_client, input_job_name)

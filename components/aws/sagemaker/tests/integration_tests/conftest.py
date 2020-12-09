@@ -80,6 +80,7 @@ def sagemaker_role_arn(request):
     os.environ["SAGEMAKER_ROLE_ARN"] = request.config.getoption("--sagemaker-role-arn")
     return request.config.getoption("--sagemaker-role-arn")
 
+
 @pytest.fixture(scope="session", autouse=True)
 def robomaker_role_arn(request):
     os.environ["ROBOMAKER_ROLE_ARN"] = request.config.getoption("--robomaker-role-arn")

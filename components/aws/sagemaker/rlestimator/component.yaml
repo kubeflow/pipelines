@@ -18,8 +18,7 @@ inputs:
     when connecting to SageMaker., default: ''}
 - {name: tags, type: JsonObject, description: 'An array of key-value pairs, to categorize
     AWS resources.', default: '{}'}
-- {name: job_name, type: String, description: Prefix for training job name when the
-    method launches., default: ''}
+- {name: job_name, type: String, description: Training job name., default: ''}
 - {name: role, type: String, description: The Amazon Resource Name (ARN) that Amazon
     SageMaker assumes to perform tasks on your behalf.}
 - {name: image, type: String, description: 'An ECR url. If specified, the estimator
@@ -77,7 +76,7 @@ outputs:
     the training algorithm.}
 implementation:
   container:
-    image: maniosullivan/aws-sagemaker-kfp-components:1.1.0
+    image: redbackthomson/aws-kubeflow-sagemaker:latest
     command: [python3]
     args:
     - rlestimator/src/sagemaker_rlestimator_component.py

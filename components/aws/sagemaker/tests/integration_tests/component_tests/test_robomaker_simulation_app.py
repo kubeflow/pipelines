@@ -36,18 +36,19 @@ def create_simulation_app(kfp_client, experiment_id, creat_app_dir, app_name):
 
 
 def create_robot_app(client):
-    robomaker_sources = [{
-        "s3Bucket": get_s3_data_bucket(),
-        "s3Key": "robomaker/robot_ws.tar",
-        "architecture": "X86_64"
-    }]
-    robomaker_suite = {
-        "name": "ROS",
-        "version": "Melodic"
-    }
+    robomaker_sources = [
+        {
+            "s3Bucket": get_s3_data_bucket(),
+            "s3Key": "robomaker/robot_ws.tar",
+            "architecture": "X86_64",
+        }
+    ]
+    robomaker_suite = {"name": "ROS", "version": "Melodic"}
     app_name = utils.generate_random_string(5) + "-test-robot-app"
 
-    response = robomaker_utils.create_robot_application(client, app_name, robomaker_sources, robomaker_suite)
+    response = robomaker_utils.create_robot_application(
+        client, app_name, robomaker_sources, robomaker_suite
+    )
     return response["arn"]
 
 

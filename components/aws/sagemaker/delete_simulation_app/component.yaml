@@ -16,7 +16,7 @@ outputs:
 - {name: arn, description: The Amazon Resource Name (ARN) of the simulation application.}
 implementation:
   container:
-    image: maniosullivan/aws-sagemaker-kfp-components:1.1.0
+    image: redbackthomson/aws-kubeflow-sagemaker:latest
     command: [python3]
     args:
     - delete_simulation_app/src/robomaker_delete_simulation_app_component.py

@@ -39,7 +39,8 @@ ENV MINIO_LOCAL_PORT=9000
 ENV KFP_NAMESPACE="kubeflow"
 
 RUN mkdir pipelines
+COPY ./ ./pipelines/
 
-ENTRYPOINT [ "/bin/bash" ]
+WORKDIR /pipelines/components/aws/sagemaker/tests/integration_tests/scripts/
 
-CMD [ "" ]
+ENTRYPOINT [ "/bin/bash", "./run_integration_tests" ]
