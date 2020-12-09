@@ -85,4 +85,3 @@ def stop_labeling_job(client, labeling_job_name):
 
 def describe_processing_job(client, processing_job_name):
     return client.describe_processing_job(ProcessingJobName=processing_job_name)
-
