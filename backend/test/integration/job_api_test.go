@@ -455,7 +455,7 @@ func (s *JobApiTestSuite) TestJobApis_SwfNotFound() {
 	/* ---------- Get job ---------- */
 	_, err = s.jobClient.Get(&jobparams.GetJobParams{ID: job.ID})
 	require.NotNil(t, err)
-	require.Error(t, err, "test")
+	require.Contains(t, err.Error(), "not found")
 }
 
 func (s *JobApiTestSuite) checkHelloWorldRun(t *testing.T, run *run_model.APIRun, experimentID string, experimentName string, jobID string, jobName string) {
