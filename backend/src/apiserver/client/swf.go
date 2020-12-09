@@ -57,7 +57,7 @@ func NewScheduledWorkflowClientOrFatal(initConnectionTimeout time.Duration) *Swf
 	if err == nil {
 		return swfClientInstance
 	}
-	glog.Infof("Failed to create scheduled workflow client by default kubeconfig. Error: %v", err)
+	glog.Infof("(Expected when in cluster) Failed to create scheduled workflow client by default kubeconfig. Error: %v", err)
 
 	b := backoff.NewExponentialBackOff()
 	b.MaxElapsedTime = initConnectionTimeout
