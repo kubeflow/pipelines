@@ -178,6 +178,7 @@ function delete_oidc_role() {
   aws iam detach-role-policy --role-name "${OIDC_ROLE_NAME}" --policy-arn arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
   aws iam detach-role-policy --role-name "${OIDC_ROLE_NAME}" --policy-arn arn:aws:iam::aws:policy/AWSRoboMaker_FullAccess
   aws iam delete-role-policy --role-name "${OIDC_ROLE_NAME}" --policy-name AllowAssumeRole
+  aws iam delete-role-policy --role-name "${OIDC_ROLE_NAME}" --policy-name AllowPassRole
   aws iam delete-role --role-name "${OIDC_ROLE_NAME}"
 }
 
