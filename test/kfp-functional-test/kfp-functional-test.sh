@@ -17,7 +17,7 @@ if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
   # activating the service account
   gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
 fi
-source_root=$(pwd)
+source_root="$(pwd)"
 
 # TODO(#4853) Skipping pip 20.3 due to a bad version resolution logic.
 python3 -m pip install --upgrade pip!=20.3.*
