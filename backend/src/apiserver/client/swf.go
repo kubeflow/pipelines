@@ -15,13 +15,17 @@
 package client
 
 import (
+	"path/filepath"
 	"time"
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	swfclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
 	"github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
+	"github.com/pkg/errors"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
 )
 
 type SwfClientInterface interface {
@@ -49,11 +53,38 @@ func NewScheduledWorkflowClientOrFatal(initConnectionTimeout time.Duration) *Swf
 		return nil
 	}
 
+	swfClientInstance, err := newOutOfClusterSwfClient()
+	if err == nil {
+		return swfClientInstance
+	}
+	glog.Infof("(Expected when in cluster) Failed to create scheduled workflow client by out of cluster kubeconfig. Error: %v", err)
+
+	glog.Infof("Starting to create scheduled workfloow client by in cluster config.")
 	b := backoff.NewExponentialBackOff()
 	b.MaxElapsedTime = initConnectionTimeout
 	if err := backoff.Retry(operation, b); err != nil {
+		// all failed
 		glog.Fatalf("Failed to create scheduled workflow client. Error: %v", err)
 	}
 
 	return &SwfClient{swfClient}
+}
+
+// Use out of cluster config for local testing purposes
+func newOutOfClusterSwfClient() (*SwfClient, error) {
+	home := homedir.HomeDir()
+	if home == "" {
+		return nil, errors.New("Cannot get home dir")
+	}
+
+	defaultKubeConfigPath := filepath.Join(home, ".kube", "config")
+	// use the current context in kubeconfig
+	config, err := clientcmd.BuildConfigFromFlags("", defaultKubeConfigPath)
+	if err != nil {
+		return nil, err
+	}
+
+	// create the clientset
+	swfClientSet, err := swfclient.NewForConfig(config)
+	return &SwfClient{swfClientSet.ScheduledworkflowV1beta1()}, nil
 }

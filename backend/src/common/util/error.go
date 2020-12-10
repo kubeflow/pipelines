@@ -222,6 +222,10 @@ func (e *UserError) Error() string {
 	return e.internalError.Error()
 }
 
+func (e *UserError) Cause() error {
+	return e.internalError
+}
+
 func (e *UserError) String() string {
 	return fmt.Sprintf("%v (code: %v): %+v", e.externalMessage, e.externalStatusCode,
 		e.internalError)

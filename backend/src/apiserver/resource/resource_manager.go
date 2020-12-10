@@ -179,7 +179,7 @@ func (r *ResourceManager) ArchiveExperiment(experimentId string) error {
 				[]byte(fmt.Sprintf(`{"spec":{"enabled":%s}}`, strconv.FormatBool(false))))
 			if err != nil {
 				return util.NewInternalServerError(err,
-					"Failed to disable job CRD. jobID: %v", job.UUID)
+					"Failed to disable job CR. jobID: %v", job.UUID)
 			}
 		}
 		if newToken == "" {
@@ -405,7 +405,7 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		return nil, err
 	}
 
-	// Create argo workflow CRD resource
+	// Create argo workflow CR resource
 	newWorkflow, err := r.getWorkflowClient(namespace).Create(workflow.Get())
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", workflow.Name)
@@ -450,7 +450,7 @@ func (r *ResourceManager) DeleteRun(runID string) error {
 	}
 	err = r.getWorkflowClient(namespace).Delete(runDetail.Name, &v1.DeleteOptions{})
 	if err != nil {
-		// API won't need to delete the workflow CRD
+		// API won't need to delete the workflow CR
 		// once persistent agent sync the state to DB and set TTL for it.
 		glog.Warningf("Failed to delete run %v. Error: %v", runDetail.Name, err.Error())
 	}
@@ -742,7 +742,15 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 }
 
 func (r *ResourceManager) EnableJob(jobID string, enabled bool) error {
-	job, err := r.checkJobExist(jobID)
+	var job *model.Job
+	var err error
+	if enabled {
+		job, err = r.checkJobExist(jobID)
+	} else {
+		// We can skip custom resource existence verification, because disabling
+		// the job do not need to care about it.
+		job, err = r.jobStore.GetJob(jobID)
+	}
 	if err != nil {
 		return util.Wrap(err, "Enable/Disable job failed")
 	}
@@ -753,7 +761,7 @@ func (r *ResourceManager) EnableJob(jobID string, enabled bool) error {
 		[]byte(fmt.Sprintf(`{"spec":{"enabled":%s}}`, strconv.FormatBool(enabled))))
 	if err != nil {
 		return util.NewInternalServerError(err,
-			"Failed to enable/disable job CRD. Enabled: %v, jobID: %v",
+			"Failed to enable/disable job CR. Enabled: %v, jobID: %v",
 			enabled, jobID)
 	}
 
@@ -767,14 +775,23 @@ func (r *ResourceManager) EnableJob(jobID string, enabled bool) error {
 }
 
 func (r *ResourceManager) DeleteJob(jobID string) error {
-	job, err := r.checkJobExist(jobID)
+	job, err := r.jobStore.GetJob(jobID)
 	if err != nil {
 		return util.Wrap(err, "Delete job failed")
 	}
 
 	err = r.getScheduledWorkflowClient(job.Namespace).Delete(job.Name, &v1.DeleteOptions{})
 	if err != nil {
-		return util.NewInternalServerError(err, "Delete job CRD failed.")
+		if !util.IsNotFound(err) {
+			// For any error other than NotFound
+			return util.NewInternalServerError(err, "Delete job CR failed")
+		}
+
+		// The ScheduledWorkflow was not found.
+		glog.Infof("Deleting job '%v', but skipped deleting ScheduledWorkflow '%v' in namespace '%v' because it was not found. jobID: %v", job.Name, job.Name, job.Namespace, jobID)
+		// Continue the execution, because we want to delete the
+		// ScheduledWorkflow. We can skip deleting the ScheduledWorkflow
+		// when it no longer exists.
 	}
 	err = r.jobStore.DeleteJob(jobID)
 	if err != nil {
@@ -813,7 +830,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 
 	if jobId == "" {
 		// If a run doesn't have job ID, it's a one-time run created by Pipeline API server.
-		// In this case the DB entry should already been created when argo workflow CRD is created.
+		// In this case the DB entry should already been created when argo workflow CR is created.
 
 		err := r.runStore.UpdateRun(runId, workflow.Condition(), workflow.FinishedAt(), workflow.ToStringForStore())
 		if err != nil {
@@ -920,8 +937,8 @@ func (r *ResourceManager) ReportScheduledWorkflowResource(swf *util.ScheduledWor
 }
 
 // checkJobExist The Kubernetes API doesn't support CRUD by UID. This method
-// retrieve the job metadata from the database, then retrieve the CRD
-// using the job name, and compare the given job id is same as the CRD.
+// retrieve the job metadata from the database, then retrieve the CR
+// using the job name, and compare the given job id is same as the CR.
 func (r *ResourceManager) checkJobExist(jobID string) (*model.Job, error) {
 	job, err := r.jobStore.GetJob(jobID)
 	if err != nil {
@@ -939,8 +956,8 @@ func (r *ResourceManager) checkJobExist(jobID string) (*model.Job, error) {
 }
 
 // checkRunExist The Kubernetes API doesn't support CRUD by UID. This method
-// retrieve the run metadata from the database, then retrieve the CRD
-// using the run name, and compare the given run id is same as the CRD.
+// retrieve the run metadata from the database, then retrieve the CR
+// using the run name, and compare the given run id is same as the CR.
 func (r *ResourceManager) checkRunExist(runID string) (*model.RunDetail, error) {
 	runDetail, err := r.runStore.GetRun(runID)
 	if err != nil {
