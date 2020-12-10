@@ -832,7 +832,15 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 		// If a run doesn't have job ID, it's a one-time run created by Pipeline API server.
 		// In this case the DB entry should already been created when argo workflow CR is created.
 
-		err := r.runStore.UpdateRun(runId, workflow.Condition(), workflow.FinishedAt(), workflow.ToStringForStore())
+		// If the run was Running and got terminated (activeDeadlineSeconds set to 0),
+		// ignore its condition and mark it as such
+		condition := workflow.Condition()
+		if workflow.Spec.ActiveDeadlineSeconds != nil &&
+			*workflow.Spec.ActiveDeadlineSeconds == 0 &&
+			!workflow.IsInFinalState() {
+			condition = "Terminating"
+		}
+		err := r.runStore.UpdateRun(runId, condition, workflow.FinishedAt(), workflow.ToStringForStore())
 		if err != nil {
 			return util.Wrap(err, "Failed to update the run.")
 		}
