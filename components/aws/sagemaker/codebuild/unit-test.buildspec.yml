@@ -1,5 +1,8 @@
 version: 0.2      
 phases:
+  pre_build:
+    commands:
+      - docker login -u $DOCKER_CONFIG_USERNAME -p $DOCKER_CONFIG_PASSWORD
   build:
     commands:
       - docker build . -f ./components/aws/sagemaker/tests/unit_tests/Dockerfile -t amazon/unit-test-image --quiet
