@@ -29,9 +29,8 @@ TEST_RESULT_FOLDER=kfp-functional-e2e-test
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${TEST_RESULT_FOLDER}
 HOST=https://5e682a68692ffad5-dot-datalab-vm-staging.googleusercontent.com
 
-cd $source_root
-mkdir -p ${TEST_RESULT_FOLDER}
+mkdir -p $source_root/${TEST_RESULT_FOLDER}
 
 cd $source_root/test/kfp-functional-test
 
-python3 run_kfp_functional_test.py --result_dir ${TEST_RESULT_FOLDER} --host host --gcs_dir gs://${TEST_RESULTS_GCS_DIR}
+python3 run_kfp_functional_test.py --result_dir $source_root/${TEST_RESULT_FOLDER} --host host --gcs_dir gs://${TEST_RESULTS_GCS_DIR}
