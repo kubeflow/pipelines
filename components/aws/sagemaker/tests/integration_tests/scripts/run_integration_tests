@@ -176,6 +176,7 @@ function install_oidc_role() {
 function delete_oidc_role() {
   # Delete the role associated with the cluster thats being deleted
   aws iam detach-role-policy --role-name "${OIDC_ROLE_NAME}" --policy-arn arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
+  aws iam detach-role-policy --role-name "${OIDC_ROLE_NAME}" --policy-arn arn:aws:iam::aws:policy/AWSRoboMaker_FullAccess
   aws iam delete-role-policy --role-name "${OIDC_ROLE_NAME}" --policy-name AllowAssumeRole
   aws iam delete-role --role-name "${OIDC_ROLE_NAME}"
 }
@@ -203,6 +204,7 @@ function generate_assumed_role() {
     }' > "${assumed_trust_file}"
     aws iam create-role --role-name "${ASSUMED_ROLE_NAME}" --assume-role-policy-document file://${assumed_trust_file} --output=text --query "Role.Arn"
     aws iam attach-role-policy --role-name ${ASSUMED_ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
+    aws iam attach-role-policy --role-name ${ASSUMED_ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/AWSRoboMaker_FullAccess
   fi
 
   # Generate the ARN using the role name
@@ -214,6 +216,7 @@ function delete_assumed_role() {
   if [[ ! -z "${ASSUMED_ROLE_NAME}" && "${CREATED_ASSUMED_ROLE:-false}" == "true" ]]; then
     # Delete the role associated with the cluster thats being deleted
     aws iam detach-role-policy --role-name "${ASSUMED_ROLE_NAME}" --policy-arn arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
+    aws iam detach-role-policy --role-name "${ASSUMED_ROLE_NAME}" --policy-arn arn:aws:iam::aws:policy/AWSRoboMaker_FullAccess
     aws iam delete-role --role-name "${ASSUMED_ROLE_NAME}"
   fi
 }

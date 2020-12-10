@@ -53,13 +53,7 @@ def create_robot_app(client):
 
 
 @pytest.mark.parametrize(
-    "test_file_dir",
-    [
-        pytest.param(
-            "resources/config/robomaker-create-simulation-app",
-            marks=pytest.mark.canary_test,
-        ),
-    ],
+    "test_file_dir", [ "resources/config/robomaker-create-simulation-app" ],
 )
 def test_create_simulation_app(
     kfp_client, experiment_id, robomaker_client, test_file_dir
@@ -105,13 +99,7 @@ def test_create_simulation_app(
 
 
 @pytest.mark.parametrize(
-    "test_file_dir",
-    [
-        pytest.param(
-            "resources/config/robomaker-delete-simulation-app",
-            marks=pytest.mark.canary_test,
-        ),
-    ],
+    "test_file_dir", [ "resources/config/robomaker-delete-simulation-app" ],
 )
 def test_delete_simulation_app(
     kfp_client, experiment_id, robomaker_client, test_file_dir
@@ -166,12 +154,7 @@ def test_delete_simulation_app(
 
 
 @pytest.mark.parametrize(
-    "test_file_dir",
-    [
-        pytest.param(
-            "resources/config/robomaker-simulation-job", marks=pytest.mark.canary_test
-        ),
-    ],
+    "test_file_dir", [ "resources/config/robomaker-simulation-job" ],
 )
 def test_run_simulation_job(kfp_client, experiment_id, robomaker_client, test_file_dir):
 
