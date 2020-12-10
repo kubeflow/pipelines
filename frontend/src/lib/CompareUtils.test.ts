@@ -429,7 +429,7 @@ describe('CompareUtils', () => {
           { name: 'some-metric-name', node_id: 'node-1', number_value: 0.12 },
           { name: 'some-metric-name', node_id: 'node-2', number_value: 0.34 },
         ],
-      } as ApiRun
+      } as ApiRun;
       const workflow = {
         spec: {
           templates: [
@@ -438,14 +438,14 @@ describe('CompareUtils', () => {
               metadata: {
                 annotations: {
                   'pipelines.kubeflow.org/task_display_name': 'Some display annotation',
-                }
-              }
+                },
+              },
             },
             {
               name: 'template-2',
               metadata: {
                 annotations: {},
-              }
+              },
             },
           ],
         },
@@ -463,12 +463,12 @@ describe('CompareUtils', () => {
             },
           },
         },
-      } as any
+      } as any;
       expect(CompareUtils.singleRunToMetricsCompareProps(run, workflow)).toEqual({
         rows: [['0.120'], ['0.340']],
         xLabels: ['some-metric-name'],
-        yLabels: ['Some display annotation', 'node-2-display']
-      })
-    })
+        yLabels: ['Some display annotation', 'node-2-display'],
+      });
+    });
   });
 });

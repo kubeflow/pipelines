@@ -90,7 +90,7 @@ export default class WorkflowParser {
 
     // Create dagre graph nodes from workflow nodes.
     (Object as any).values(workflowNodes).forEach((node: NodeStatus) => {
-      const nodeLabel = parseNodeDisplayName(node.id, workflow)
+      const nodeLabel = parseNodeDisplayName(node.id, workflow);
 
       g.setNode(node.id, {
         height: Constants.NODE_HEIGHT,
