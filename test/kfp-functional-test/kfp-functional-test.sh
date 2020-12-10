@@ -27,7 +27,7 @@ TEST_RESULT_BUCKET=ml-pipeline-test
 TEST_RESULT_FOLDER=kfp-functional-e2e-test
 
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${TEST_RESULT_FOLDER}
-HOST=https://5e682a68692ffad5-dot-datalab-vm-staging.googleusercontent.com/#/pipelines
+HOST=https://5e682a68692ffad5-dot-datalab-vm-staging.googleusercontent.com
 
 cd $source_root
 mkdir -p ${TEST_RESULT_FOLDER}
