@@ -25,14 +25,13 @@ python3 -m pip install -r "$source_root/test/kfp-functional-test/requirements.tx
 
 TEST_RESULT_BUCKET=ml-pipeline-test
 TEST_RESULT_FOLDER=kfp-functional-e2e-test
-
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${TEST_RESULT_FOLDER}
 HOST=https://5e682a68692ffad5-dot-datalab-vm-staging.googleusercontent.com
 
-mkdir $source_root/${TEST_RESULT_FOLDER}
+mkdir -p "$source_root"/${TEST_RESULT_FOLDER}
 
-cd $source_root/test/kfp-functional-test
+cd "$source_root"/test/kfp-functional-test
 
-python3 run_kfp_functional_test.py --result_dir $source_root/${TEST_RESULT_FOLDER} --host host --gcs_dir gs://${TEST_RESULTS_GCS_DIR}
+python3 run_kfp_functional_test.py --result_dir "$source_root"/${TEST_RESULT_FOLDER} --host ${HOST} --gcs_dir ${TEST_RESULTS_GCS_DIR}
 
-rm -rf $source_root/${TEST_RESULT_FOLDER}
+rm -rf "${source_root:?}"/${TEST_RESULT_FOLDER}
