@@ -1,13 +1,24 @@
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import argparse
-import os
 import random
 import string
 from datetime import datetime
 
 import kfp
-import utils
 from kfp import dsl
-from kfp.containers._gcs_helper import GCSHelper
 
 
 def echo_op():
@@ -32,61 +43,50 @@ def parse_arguments():
     """Parse command line arguments."""
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--result_dir',
-                        type=str,
-                        required=True,
-                        help='The path of the test result that will be exported.')
     parser.add_argument('--host',
                         type=str,
                         required=True,
                         help='The host of kfp.')
-    parser.add_argument('--gcs_dir',
-                        type=str,
-                        required=True,
-                        help='The gcs dir to store the test result.')
     args = parser.parse_args()
     return args
 
 
 def main():
     args = parse_arguments()
-    test_cases = []
-    test_name = 'KFP Functional Test'
 
     ###### Initialization ######
     client = kfp.Client(args.host)
-    print('host is %s' % args.host)
-    print('test results will be stored in %s' % args.result_dir)
+    print("host is {}".format(args.host))
 
     ###### Create Experiment ######
-    experiment_name = 'kfp-functional-e2e-expriment-' + ''.join(random.choices(string.ascii_uppercase +
+    print("Creating experiment")
+    experiment_name = "kfp-functional-e2e-expriment-" + "".join(random.choices(string.ascii_uppercase +
                                                                                string.digits, k=5))
     response = client.create_experiment(experiment_name)
     experiment_id = response.id
-    utils.add_junit_test(test_cases, 'create experiment', True)
+    print("Experiment with id {} created".format(experiment_id))
+    try:
+        ###### Create Run from Pipeline Func ######
+        print("Creating Run from Pipeline Func")
+        response = client.create_run_from_pipeline_func(hello_world_pipeline, arguments={}, experiment_name=experiment_name)
+        run_id = response.run_id
+        print("Run {} created".format(run_id))
 
-    ###### Create Run from Pipeline Func ######
-    response = client.create_run_from_pipeline_func(hello_world_pipeline, arguments={}, experiment_name=experiment_name)
-    utils.add_junit_test(test_cases, 'create run from pipeline func', True)
-    run_id = response.run_id
-
-    ###### Monitor Run ######
-    start_time = datetime.now()
-    response = client.wait_for_run_completion(run_id, 1800)
-    succ = (response.run.status.lower() == 'succeeded')
-    end_time = datetime.now()
-    elapsed_time = (end_time - start_time).seconds
-    utils.add_junit_test(test_cases, 'run completion', succ, 'waiting for run completion failure', elapsed_time)
-
-    ###### Archive Experiment ######
-    client.experiments.archive_experiment(experiment_id)
-    utils.add_junit_test(test_cases, 'archive experiment', True)
-
-    result = "junit_kfp_e2e%sOutput.xml" % experiment_name
-    result_path = args.result_dir + "/" + result
-    utils.write_junit_xml(test_name, result_path, test_cases)
-    print('Copy the test results to GCS %s' % args.gcs_dir)
-    GCSHelper.upload_gcs_file(result_path, os.path.join(args.gcs_dir, result))
+        ###### Monitor Run ######
+        start_time = datetime.now()
+        response = client.wait_for_run_completion(run_id, 1800)
+        succ = (response.run.status.lower() == 'succeeded')
+        end_time = datetime.now()
+        elapsed_time = (end_time - start_time).seconds
+        if succ:
+            print("Run succeeded in {} seconds".format(elapsed_time))
+        else:
+            print("Run can't complete in {} seconds".format(elapsed_time))
+    finally:
+        ###### Archive Experiment ######
+        print("Archiving experiment")
+        client.experiments.archive_experiment(experiment_id)
+        print("Archived experiment with id {}".format(experiment_id))
 
 
 if __name__ == "__main__":

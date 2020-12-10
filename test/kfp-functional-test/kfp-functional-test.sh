@@ -1,5 +1,5 @@
 #!/bin/bash -ex
-# Copyright 2020 Kubeflow Pipelines contributors
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,17 +21,8 @@ source_root=$(pwd)
 
 # TODO(#4853) Skipping pip 20.3 due to a bad version resolution logic.
 python3 -m pip install --upgrade pip!=20.3.*
-python3 -m pip install -r "$source_root/test/kfp-functional-test/requirements.txt"
+python3 -m pip install -r "${source_root}/test/kfp-functional-test/requirements.txt"
 
-TEST_RESULT_BUCKET=ml-pipeline-test
-TEST_RESULT_FOLDER=kfp-functional-e2e-test
-TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${TEST_RESULT_FOLDER}
 HOST=https://5e682a68692ffad5-dot-datalab-vm-staging.googleusercontent.com
 
-mkdir -p "$source_root"/${TEST_RESULT_FOLDER}
-
-cd "$source_root"/test/kfp-functional-test
-
-python3 run_kfp_functional_test.py --result_dir "$source_root"/${TEST_RESULT_FOLDER} --host ${HOST} --gcs_dir ${TEST_RESULTS_GCS_DIR}
-
-rm -rf "${source_root:?}"/${TEST_RESULT_FOLDER}
+python3 "${source_root}/test/kfp-functional-test/run_kfp_functional_test.py" --host "${HOST}"
