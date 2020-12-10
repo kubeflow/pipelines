@@ -83,10 +83,10 @@ def main():
     utils.add_junit_test(test_cases, 'archive experiment', True)
 
     result = "junit_kfp_e2e%sOutput.xml" % experiment_name
-    result_absolute_path = args.result_dir + "/" + result
-    utils.write_junit_xml(test_name, result_absolute_path, test_cases)
+    result_path = args.result_dir + "/" + result
+    utils.write_junit_xml(test_name, result_path, test_cases)
     print('Copy the test results to GCS %s' % args.gcs_dir)
-    GCSHelper.upload_gcs_file(result_absolute_path, os.path.join(args.gcs_dir, result))
+    GCSHelper.upload_gcs_file(result_path, os.path.join(args.gcs_dir, result))
 
 
 if __name__ == "__main__":
