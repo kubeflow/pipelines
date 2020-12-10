@@ -784,7 +784,7 @@ func (r *ResourceManager) DeleteJob(jobID string) error {
 	if err != nil {
 		if !util.IsNotFound(err) {
 			// For any error other than NotFound
-			return util.NewInternalServerError(err, "Delete job CR failed.")
+			return util.NewInternalServerError(err, "Delete job CR failed")
 		}
 
 		// The ScheduledWorkflow was not found.
