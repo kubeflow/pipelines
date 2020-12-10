@@ -100,3 +100,7 @@ func (FakeBadScheduledWorkflowClient) Get(name string, options v1.GetOptions) (*
 func (FakeBadScheduledWorkflowClient) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.ScheduledWorkflow, err error) {
 	return nil, errors.New("some error")
 }
+
+func (c *FakeBadScheduledWorkflowClient) Delete(name string, options *v1.DeleteOptions) error {
+	return errors.New("some error")
+}
