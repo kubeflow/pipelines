@@ -15,18 +15,18 @@ export function parseTaskDisplayName(metadata?: Metadata): string | undefined {
   return taskDisplayName || componentDisplayName;
 }
 
-export function parseNodeDisplayName(nodeId: string, workflow?: Workflow): string {
+export function parseTaskDisplayNameByNodeId(nodeId: string, workflow?: Workflow): string {
   const node = workflow?.status.nodes[nodeId];
   if (!node) {
     return nodeId;
   }
-  const workflowName = (workflow?.metadata && workflow?.metadata.name) || '';
+  const workflowName = workflow?.metadata?.name || '';
   let displayName = node.displayName || node.id;
   if (node.name === `${workflowName}.onExit`) {
     displayName = `onExit - ${node.templateName}`;
   }
   if (workflow?.spec && workflow?.spec.templates) {
-    const tmpl = workflow.spec.templates.find(t => !!t && !!t.name && t.name === node.templateName);
+    const tmpl = workflow.spec.templates.find(t => t?.name === node.templateName);
     displayName = parseTaskDisplayName(tmpl?.metadata) || displayName;
   }
   return displayName;
