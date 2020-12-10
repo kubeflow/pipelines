@@ -1263,7 +1263,6 @@ func TestEnableJob_CustomResourceNotFound(t *testing.T) {
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Check job exist failed")
 	assert.Contains(t, err.Error(), "not found")
-	assert.Contains(t, err.Error(), job.UUID)
 }
 
 func TestDisableJob_CustomResourceNotFound(t *testing.T) {
