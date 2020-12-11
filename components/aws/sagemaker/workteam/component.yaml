@@ -22,7 +22,7 @@ outputs:
 - {name: workteam_arn, description: The ARN of the workteam.}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:1.0.0
+    image: amazon/aws-sagemaker-kfp-components:1.1.0
     command: [python3]
     args:
     - workteam/src/sagemaker_workteam_component.py

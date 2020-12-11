@@ -1,0 +1,36 @@
+name: RoboMaker - Delete Simulation Application
+description: Delete a simulation application.
+inputs:
+- {name: region, type: String, description: The region for the SageMaker resource.}
+- {name: endpoint_url, type: String, description: The URL to use when communicating
+    with the SageMaker service., default: ''}
+- {name: assume_role, type: String, description: The ARN of an IAM role to assume
+    when connecting to SageMaker., default: ''}
+- {name: tags, type: JsonObject, description: 'An array of key-value pairs, to categorize
+    AWS resources.', default: '{}'}
+- {name: arn, type: String, description: The Amazon Resource Name (ARN) of the simulation
+    application., default: ''}
+- {name: version, type: String, description: The version of the simulation application.,
+  default: ''}
+outputs:
+- {name: arn, description: The Amazon Resource Name (ARN) of the simulation application.}
+implementation:
+  container:
+    image: amazon/aws-sagemaker-kfp-components:1.1.0
+    command: [python3]
+    args:
+    - delete_simulation_app/src/robomaker_delete_simulation_app_component.py
+    - --region
+    - {inputValue: region}
+    - --endpoint_url
+    - {inputValue: endpoint_url}
+    - --assume_role
+    - {inputValue: assume_role}
+    - --tags
+    - {inputValue: tags}
+    - --arn
+    - {inputValue: arn}
+    - --version
+    - {inputValue: version}
+    - --arn_output_path
+    - {outputPath: arn}

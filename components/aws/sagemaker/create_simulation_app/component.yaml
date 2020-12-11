@@ -1,0 +1,69 @@
+name: RoboMaker - Create Simulation Application
+description: Creates a simulation application.
+inputs:
+- {name: region, type: String, description: The region for the SageMaker resource.}
+- {name: endpoint_url, type: String, description: The URL to use when communicating
+    with the SageMaker service., default: ''}
+- {name: assume_role, type: String, description: The ARN of an IAM role to assume
+    when connecting to SageMaker., default: ''}
+- {name: tags, type: JsonObject, description: 'An array of key-value pairs, to categorize
+    AWS resources.', default: '{}'}
+- {name: app_name, type: String, description: The name of the simulation application.,
+  default: ''}
+- {name: sources, type: JsonArray, description: The code sources of the simulation
+    application., default: '{}'}
+- {name: simulation_software_name, type: String, description: The simulation software
+    used by the simulation application., default: ''}
+- {name: simulation_software_version, type: String, description: The simulation software
+    version used by the simulation application., default: ''}
+- {name: robot_software_name, type: String, description: The robot software used by
+    the simulation application., default: ''}
+- {name: robot_software_version, type: String, description: The robot software version
+    used by the simulation application., default: ''}
+- {name: rendering_engine_name, type: String, description: The rendering engine for
+    the simulation application., default: ''}
+- {name: rendering_engine_version, type: String, description: The rendering engine
+    version for the simulation application., default: ''}
+outputs:
+- {name: arn, description: The Amazon Resource Name (ARN) of the simulation application.}
+- {name: app_name, description: The name of the simulation application.}
+- {name: version, description: The version of the simulation application.}
+- {name: revision_id, description: The revision id of the simulation application.}
+implementation:
+  container:
+    image: amazon/aws-sagemaker-kfp-components:1.1.0
+    command: [python3]
+    args:
+    - create_simulation_app/src/robomaker_create_simulation_app_component.py
+    - --region
+    - {inputValue: region}
+    - --endpoint_url
+    - {inputValue: endpoint_url}
+    - --assume_role
+    - {inputValue: assume_role}
+    - --tags
+    - {inputValue: tags}
+    - --app_name
+    - {inputValue: app_name}
+    - --sources
+    - {inputValue: sources}
+    - --simulation_software_name
+    - {inputValue: simulation_software_name}
+    - --simulation_software_version
+    - {inputValue: simulation_software_version}
+    - --robot_software_name
+    - {inputValue: robot_software_name}
+    - --robot_software_version
+    - {inputValue: robot_software_version}
+    - --rendering_engine_name
+    - {inputValue: rendering_engine_name}
+    - --rendering_engine_version
+    - {inputValue: rendering_engine_version}
+    - --arn_output_path
+    - {outputPath: arn}
+    - --app_name_output_path
+    - {outputPath: app_name}
+    - --version_output_path
+    - {outputPath: version}
+    - --revision_id_output_path
+    - {outputPath: revision_id}

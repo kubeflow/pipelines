@@ -1,0 +1,52 @@
+name: RoboMaker - Create Simulation Job Batch
+description: Creates a simulation job batch.
+inputs:
+- {name: region, type: String, description: The region for the SageMaker resource.}
+- {name: endpoint_url, type: String, description: The URL to use when communicating
+    with the SageMaker service., default: ''}
+- {name: assume_role, type: String, description: The ARN of an IAM role to assume
+    when connecting to SageMaker., default: ''}
+- {name: tags, type: JsonObject, description: 'An array of key-value pairs, to categorize
+    AWS resources.', default: '{}'}
+- {name: role, type: String, description: The Amazon Resource Name (ARN) that Amazon
+    RoboMaker assumes to perform tasks on your behalf.}
+- {name: timeout_in_secs, type: Integer, description: 'The amount of time, in seconds,
+    to wait for the batch to complete.', default: '0'}
+- {name: max_concurrency, type: Integer, description: The number of active simulation
+    jobs create as part of the batch that can be in an active state at the same time.,
+  default: '0'}
+- {name: simulation_job_requests, type: JsonArray, description: A list of simulation
+    job requests to create in the batch., default: '[]'}
+- {name: sim_app_arn, type: String, description: The application ARN for the simulation
+    application., default: ''}
+outputs:
+- {name: arn, description: The Amazon Resource Name (ARN) of the simulation job.}
+- {name: batch_job_id, description: The simulation job batch id.}
+implementation:
+  container:
+    image: amazon/aws-sagemaker-kfp-components:1.1.0
+    command: [python3]
+    args:
+    - simulation_job_batch/src/robomaker_simulation_job_batch_component.py
+    - --region
+    - {inputValue: region}
+    - --endpoint_url
+    - {inputValue: endpoint_url}
+    - --assume_role
+    - {inputValue: assume_role}
+    - --tags
+    - {inputValue: tags}
+    - --role
+    - {inputValue: role}
+    - --timeout_in_secs
+    - {inputValue: timeout_in_secs}
+    - --max_concurrency
+    - {inputValue: max_concurrency}
+    - --simulation_job_requests
+    - {inputValue: simulation_job_requests}
+    - --sim_app_arn
+    - {inputValue: sim_app_arn}
+    - --arn_output_path
+    - {outputPath: arn}
+    - --batch_job_id_output_path
+    - {outputPath: batch_job_id}

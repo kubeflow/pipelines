@@ -1,0 +1,22 @@
+PipelineDefinition: resources/definition/robomaker_simulation_job_pipeline.py
+TestName: robomaker-run-simulation-job-test
+Timeout: 600
+Arguments:
+  region: ((REGION))
+  output_bucket: ((DATA_BUCKET))
+  output_path: "robomaker-output-key"
+  max_run: 300
+  failure_behavior: "Fail"
+  sim_app_arn:
+  sim_app_launch_config:
+    packageName: "hello_world_simulation"
+    launchFile: "empty_world.launch"
+    environmentVariables:
+      TURTLEBOT3_MODEL: "waffle_pi"
+  robot_app_arn:
+  robot_app_launch_config:
+    packageName: "hello_world_robot"
+    launchFile: "rotate.launch"
+    environmentVariables:
+      TURTLEBOT3_MODEL: "waffle_pi"
+  role: ((ROBOMAKER_ROLE_ARN))
