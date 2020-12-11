@@ -1,4 +1,4 @@
-#!/bin/bash -ex
+#!/bin/sh -ex
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,17 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
-  # activating the service account
-  gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
-fi
+apt-get update -y
+apt --no-install-recommends -y -q install curl
 source_root="$(pwd)"
 
 # TODO(#4853) Skipping pip 20.3 due to a bad version resolution logic.
 python3 -m pip install --upgrade pip!=20.3.*
 python3 -m pip install -r "${source_root}/test/kfp-functional-test/requirements.txt"
-
 HOST="https://$(curl https://raw.githubusercontent.com/kubeflow/testing/master/test-infra/kfp/endpoint)"
 
 python3 "${source_root}/test/kfp-functional-test/run_kfp_functional_test.py" --host "${HOST}"
