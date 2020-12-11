@@ -878,27 +878,18 @@ class BaseOp(object):
         self.pod_labels[name] = value
         return self
 
-    def set_retry_policy(self, policy: str):
-        """Sets the retry policy for a failed task. Possible values: Always, OnFailure, OnError.
-
-        Args:
-          policy: Retry policy name.
-        """
-
-        if policy not in ALLOWED_RETRY_POLICIES:
-            raise ValueError('policy must be one of: %r' % (ALLOWED_RETRY_POLICIES, ))
-
-        self.retry_policy = policy
-        return self
-
-    def set_retry(self, num_retries: int):
+    def set_retry(self, num_retries: int, policy: str = None):
         """Sets the number of times the task is retried until it's declared failed.
 
         Args:
           num_retries: Number of times to retry on failures.
+          policy: Retry policy name.
         """
+        if policy is not None and policy not in ALLOWED_RETRY_POLICIES:
+            raise ValueError('policy must be one of: %r' % (ALLOWED_RETRY_POLICIES, ))
 
         self.num_retries = num_retries
+        self.retry_policy = policy
         return self
 
     def set_timeout(self, seconds: int):

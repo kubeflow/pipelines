@@ -377,7 +377,7 @@ class TestCompiler(unittest.TestCase):
       policy = 'Always'
 
       def my_pipeline():
-        some_op().set_retry_policy(policy)
+        some_op().set_retry(2, policy)
 
       workflow = kfp.compiler.Compiler()._compile(my_pipeline)
       name_to_template = {template['name']: template for template in workflow['spec']['templates']}
@@ -388,7 +388,7 @@ class TestCompiler(unittest.TestCase):
 
   def test_py_retry_policy_invalid(self):
       def my_pipeline():
-          some_op().set_retry_policy('Invalid')
+          some_op().set_retry(2, 'Invalid')
 
       with self.assertRaises(ValueError):
           kfp.compiler.Compiler()._compile(my_pipeline)
