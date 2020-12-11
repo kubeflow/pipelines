@@ -19,6 +19,7 @@ from datetime import datetime
 
 import kfp
 from kfp import dsl
+import constants
 
 
 def echo_op():
@@ -74,7 +75,7 @@ def main():
 
         ###### Monitor Run ######
         start_time = datetime.now()
-        response = client.wait_for_run_completion(run_id, 1800)
+        response = client.wait_for_run_completion(run_id, constants.RUN_TIMEOUT_SECONDS)
         succ = (response.run.status.lower() == 'succeeded')
         end_time = datetime.now()
         elapsed_time = (end_time - start_time).seconds

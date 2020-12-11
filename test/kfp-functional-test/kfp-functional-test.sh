@@ -23,6 +23,6 @@ source_root="$(pwd)"
 python3 -m pip install --upgrade pip!=20.3.*
 python3 -m pip install -r "${source_root}/test/kfp-functional-test/requirements.txt"
 
-HOST=https://5e682a68692ffad5-dot-datalab-vm-staging.googleusercontent.com
+HOST="https://$(curl https://raw.githubusercontent.com/kubeflow/testing/master/test-infra/kfp/endpoint)"
 
 python3 "${source_root}/test/kfp-functional-test/run_kfp_functional_test.py" --host "${HOST}"
