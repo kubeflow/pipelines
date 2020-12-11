@@ -64,7 +64,7 @@ outputs:
 - {name: endpoint_name, description: The created endpoint name.}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:1.0.0
+    image: amazon/aws-sagemaker-kfp-components:1.1.0
     command: [python3]
     args:
     - deploy/src/sagemaker_deploy_component.py

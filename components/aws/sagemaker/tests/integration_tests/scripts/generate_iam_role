@@ -46,6 +46,19 @@ function create_namespaced_iam_role {
     echo "IAM Role does not exist, creating a new Role for the cluster"
     aws iam create-role --role-name ${ROLE_NAME} --assume-role-policy-document file://${trust_file_path} --output=text --query "Role.Arn"
     aws iam attach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
+    aws iam attach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/AWSRoboMaker_FullAccess
+
+    printf '{
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": "iam:PassRole",
+          "Resource": "*"
+        }
+      ]
+    }' > ${assume_role_file}
+    aws iam put-role-policy --role-name ${ROLE_NAME} --policy-name AllowPassRole --policy-document file://${assume_role_file}
 
     printf '{
       "Version": "2012-10-17",

@@ -118,7 +118,7 @@ class SageMakerTrainingSpec(
         instance_count=InputValidator(
             required=True,
             input_type=int,
-            description="The registry path of the Docker image that contains the training algorithm.",
+            description="The number of ML compute instances to use in the training job.",
             default=1,
         ),
         volume_size=InputValidator(

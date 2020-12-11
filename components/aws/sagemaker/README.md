@@ -18,6 +18,10 @@ There is no additional charge for using Amazon SageMaker Components for Kubeflow
 
 The Training component allows you to submit Amazon SageMaker Training jobs directly from a Kubeflow Pipelines workflow. For more information, see [SageMaker Training Kubeflow Pipelines component](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/train).
 
+#### RLEstimator
+
+The RLEstimator component allows you to submit RLEstimator (Reinforcement Learning) SageMaker Training jobs directly from a Kubeflow Pipelines workflow. For more information, see [SageMaker RLEstimator Kubeflow Pipelines component](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/rlestimator).
+
 #### Hyperparameter Optimization
 
 The Hyperparameter Optimization component enables you to submit hyperparameter tuning jobs to Amazon SageMaker directly from a Kubeflow Pipelines workflow. For more information, see [SageMaker Hyperparameter Optimization Kubeflow Pipeline component](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/hyperparameter_tuning).
@@ -49,3 +53,20 @@ The Ground Truth component enables you to to submit Amazon SageMaker Ground Trut
 The Workteam component enables you to create Amazon SageMaker private workteam jobs directly from a Kubeflow Pipelines workflow. For more information, see [SageMaker create private workteam Kubeflow Pipelines component](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/workteam).
 
 
+### RoboMaker components
+
+#### Create Simulation Application
+
+The Create Simulation Application component allows you to create a RoboMaker Simulation Application directly from a Kubeflow Pipelines workflow. For more information, see [RoboMaker Create Simulation app Kubeflow Pipelines component](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/create_simulation_app).
+
+#### Simulation Job
+
+The Simulation Job component allows you to run a RoboMaker Simulation Job directly from a Kubeflow Pipelines workflow. For more information, see [RoboMaker Simulation Job Kubeflow Pipelines component](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/simulation_job).
+
+#### Simulation Job Batch
+
+The Simulation Job Batch component allows you to run a RoboMaker Simulation Job Batch directly from a Kubeflow Pipelines workflow. For more information, see [RoboMaker Simulation Job Batch Kubeflow Pipelines component](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/simulation_job_batch).
+
+#### Delete Simulation Application
+
+The Delete Simulation Application component allows you to delete a RoboMaker Simulation Application directly from a Kubeflow Pipelines workflow. For more information, see [RoboMaker Delete Simulation app Kubeflow Pipelines component](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/delete_simulation_app).
