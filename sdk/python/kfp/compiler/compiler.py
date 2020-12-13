@@ -502,14 +502,9 @@ class Compiler(object):
           # Need to sanitize the dict keys for consistency.
           loop_tasks = sub_group.loop_args.to_list_for_task_yaml()
           nested_pipeline_params = extract_pipelineparams_from_any(loop_tasks)
-          # Need to sanitize names of pipeline params
-          for pipeline_param in nested_pipeline_params:
-            print(f"op_name '{pipeline_param.op_name}' | name: '{pipeline_param.name}' | pattern: '{pipeline_param.pattern}'")
-          print(f"loop_tasks: {loop_tasks}")
 
           # Set dependencies in case of nested pipeline_params
           map_to_tmpl_var = {str(p): self._resolve_task_pipeline_param(p) for p in nested_pipeline_params}
-          print(f"map_to_tmpl_var: {map_to_tmpl_var}")
           for pipeline_param in nested_pipeline_params:
             if pipeline_param.op_name:
               # these pipeline_param are the output of another task
@@ -517,7 +512,6 @@ class Compiler(object):
                 task['dependencies'] = []
               if sanitize_k8s_name(
                   pipeline_param.op_name) not in task['dependencies']:
-                print(f"add dependency: {sanitize_k8s_name(pipeline_param.op_name)}")
                 task['dependencies'].append(
                     sanitize_k8s_name(pipeline_param.op_name))
 
@@ -531,12 +525,7 @@ class Compiler(object):
           else:
             sanitized_tasks = loop_tasks
           # Replace pipeline param if map_to_tmpl_var not empty
-          print(f"sanitized_tasks: {sanitized_tasks}")
-          print(f"map_to_tmpl_var: {map_to_tmpl_var}")
           task['withItems'] = _process_obj(sanitized_tasks, map_to_tmpl_var) if map_to_tmpl_var else sanitized_tasks
-          print(f"withItems: {task['withItems']}")
-          if 'dependencies' in task:
-            print(f"task['dependencies']: {task['dependencies']}")
 
       tasks.append(task)
     tasks.sort(key=lambda x: x['name'])
