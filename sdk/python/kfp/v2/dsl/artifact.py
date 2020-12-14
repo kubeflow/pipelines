@@ -12,13 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Base class for MLMD artifact ontology in KFP SDK."""
+from typing import Any, Dict, Optional
 
+from absl import logging
 import enum
-from typing import Any, Optional
-from kfp.pipeline_spec import pipeline_spec_pb2
+import importlib
+from google.protobuf import json_format
 import yaml
 
+from kfp.pipeline_spec import pipeline_spec_pb2
+
 _KFP_ARTIFACT_TITLE_PATTERN = 'kfp.{}'
+_KFP_ARTIFACT_ONTOLOGY_MODULE = 'kfp.v2.dsl.artifacts'
 
 
 # Enum for property types.
@@ -109,6 +114,9 @@ class Artifact(object):
     self._type_schema = instance_schema
     # Instantiate a RuntimeArtifact pb message as the POD data structure.
     self._artifact = pipeline_spec_pb2.RuntimeArtifact()
+    self._artifact.type.CopyFrom(pipeline_spec_pb2.ArtifactTypeSchema(
+        instance_schema=instance_schema
+    ))
     # Initialization flag to prevent recursive getattr / setattr errors.
     self._initialized = True
 
@@ -262,5 +270,30 @@ class Artifact(object):
       return 0.0
     return self._artifact.custom_properties[key].double_value
 
+  @classmethod
+  def deserialize(cls, data: str) -> Any:
+    """Deserializes an Artifact object from JSON dict."""
+    artifact = pipeline_spec_pb2.RuntimeArtifact()
+    json_format.Parse(data, artifact, ignore_unknown_fields=True)
+    instance_schema = yaml.safe_load(artifact.type.instance_schema)
+    type_name = instance_schema['title'][len('kfp.')]
+    result = None
+    try:
+      artifact_cls = getattr(
+          importlib.import_module(_KFP_ARTIFACT_ONTOLOGY_MODULE), type_name)
+      result = artifact_cls()
+    except (AttributeError, ImportError, ValueError):
+      logging.warning((
+          'Could not load artifact class %s.%s; using fallback deserialization '
+          'for the relevant artifact. Please make sure that any artifact '
+          'classes can be imported within your container or environment.'),
+          _KFP_ARTIFACT_ONTOLOGY_MODULE, type_name)
+    if not result:
+      # Otherwise generate a generic Artifact object.
+      result = Artifact(instance_schema=artifact.type.instance_schema)
+    result.set_mlmd_artifact(artifact)
+    return result
 
-
+  def serialize(self) -> str:
+    """Serializes an Artifact to JSON dict format."""
+    return json_format.MessageToJson(self._artifact, sort_keys=True)

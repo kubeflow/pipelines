@@ -72,6 +72,9 @@ class ArtifactTest(unittest.TestCase):
 
     self.assertEqual(textwrap.dedent("""\
         Artifact(artifact: name: "1"
+        type {
+          instance_schema: "properties:\\n  float1:\\n    description: null\\n    type: double\\n  float2:\\n    description: null\\n    type: double\\n  int1:\\n    description: null\\n    type: int\\n  int2:\\n    description: null\\n    type: int\\n  string1:\\n    description: null\\n    type: string\\n  string2:\\n    description: null\\n    type: string\\ntitle: kfp.MyTypeName\\ntype: object\\n"
+        }
         uri: "/tmp/uri2"
         custom_properties {
           key: "int_key"
