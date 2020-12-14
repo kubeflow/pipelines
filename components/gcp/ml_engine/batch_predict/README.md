@@ -86,7 +86,7 @@ Follow these steps to use the component in a pipeline:
 import kfp.components as comp
 
 mlengine_batch_predict_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/1.1.2-rc.1/components/gcp/ml_engine/batch_predict/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/1.1.2/components/gcp/ml_engine/batch_predict/component.yaml')
 help(mlengine_batch_predict_op)
 ```
 
