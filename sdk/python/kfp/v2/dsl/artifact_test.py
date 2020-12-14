@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for kfp.v2.ds.artifact module."""
 import unittest
+import textwrap
 
 from kfp.v2.dsl import artifact
 
@@ -69,51 +70,40 @@ class ArtifactTest(unittest.TestCase):
         'string_value',
         instance.runtime_artifact.custom_properties['string_key'].string_value)
 
-    # self.assertEqual(
-    #     'Artifact(artifact: id: 1\n'
-    #     'type_id: 2\n'
-    #     'uri: "/tmp/uri2"\n'
-    #     'custom_properties {\n'
-    #     '  key: "int_key"\n'
-    #     '  value {\n'
-    #     '    int_value: 20\n'
-    #     '  }\n'
-    #     '}\n'
-    #     'custom_properties {\n'
-    #     '  key: "state"\n'
-    #     '  value {\n'
-    #     '    string_value: "deleted"\n'
-    #     '  }\n'
-    #     '}\n'
-    #     'custom_properties {\n'
-    #     '  key: "string_key"\n'
-    #     '  value {\n'
-    #     '    string_value: "string_value"\n'
-    #     '  }\n'
-    #     '}\n'
-    #     ', artifact_type: name: "MyTypeName"\n'
-    #     'properties {\n'
-    #     '  key: "float1"\n'
-    #     '  value: DOUBLE\n'
-    #     '}\n'
-    #     'properties {\n'
-    #     '  key: "float2"\n'
-    #     '  value: DOUBLE\n'
-    #     '}\n'
-    #     'properties {\n'
-    #     '  key: "int1"\n'
-    #     '  value: INT\n'
-    #     '}\n'
-    #     'properties {\n'
-    #     '  key: "int2"\n'
-    #     '  value: INT\n'
-    #     '}\n'
-    #     'properties {\n'
-    #     '  key: "string1"\n'
-    #     '  value: STRING\n'
-    #     '}\n'
-    #     'properties {\n'
-    #     '  key: "string2"\n'
-    #     '  value: STRING\n'
-    #     '}\n'
-    #     ')', str(instance))
+    self.assertEqual(textwrap.dedent("""\
+        Artifact(artifact: name: "1"
+        uri: "/tmp/uri2"
+        custom_properties {
+          key: "int_key"
+          value {
+            int_value: 20
+          }
+        }
+        custom_properties {
+          key: "string_key"
+          value {
+            string_value: "string_value"
+          }
+        }
+        , type_schema: properties:
+          float1:
+            description: null
+            type: double
+          float2:
+            description: null
+            type: double
+          int1:
+            description: null
+            type: int
+          int2:
+            description: null
+            type: int
+          string1:
+            description: null
+            type: string
+          string2:
+            description: null
+            type: string
+        title: kfp.MyTypeName
+        type: object
+        )"""), str(instance))
