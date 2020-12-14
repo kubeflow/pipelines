@@ -27,43 +27,36 @@ import (
 // CronSchedule is a type to help manipulate CronSchedule objects.
 type CronSchedule struct {
 	*swfapi.CronSchedule
-
-	// the timezone loation which the scheduled will use
-	location *time.Location
 }
 
 // NewCronSchedule creates a CronSchedule.
-func NewCronSchedule(cronSchedule *swfapi.CronSchedule) (*CronSchedule, error) {
+func NewCronSchedule(cronSchedule *swfapi.CronSchedule) *CronSchedule {
 	if cronSchedule == nil {
 		log.Fatalf("The cronSchedule should never be nil")
 	}
-	location, err := GetLocation()
-	if err != nil {
-		return nil, err
-	}
+
 	return &CronSchedule{
 		cronSchedule,
-		location,
-	}, nil
+	}
 }
 
 // GetNextScheduledEpoch returns the next epoch at which a workflow must be
 // scheduled.
 func (s *CronSchedule) GetNextScheduledEpoch(lastJobTime *v1.Time,
-	defaultStartTime time.Time) int64 {
-	effectiveLastJobTime := s.getEffectiveLastJobEpoch(lastJobTime, defaultStartTime)
-	return s.getNextScheduledEpoch(effectiveLastJobTime)
+	defaultStartTime time.Time, location *time.Location) int64 {
+	effectiveLastJobTime := s.getEffectiveLastJobEpoch(lastJobTime, defaultStartTime, location)
+	return s.getNextScheduledEpoch(effectiveLastJobTime, location)
 }
 
 func (s *CronSchedule) GetNextScheduledEpochNoCatchup(lastJobTime *v1.Time,
-	defaultStartTime time.Time, nowTime time.Time) int64 {
+	defaultStartTime time.Time, nowTime time.Time, location *time.Location) int64 {
 
-	effectiveLastJobTime := s.getEffectiveLastJobEpoch(lastJobTime, defaultStartTime)
-	return s.getNextScheduledEpochImp(effectiveLastJobTime, false, nowTime)
+	effectiveLastJobTime := s.getEffectiveLastJobEpoch(lastJobTime, defaultStartTime, location)
+	return s.getNextScheduledEpochImp(effectiveLastJobTime, false, nowTime, location)
 }
 
 func (s *CronSchedule) getEffectiveLastJobEpoch(lastJobTime *v1.Time,
-	defaultStartTime time.Time) time.Time {
+	defaultStartTime time.Time, location *time.Location) time.Time {
 
 	// Fallback to default start epoch, which will be passed the Job creation
 	// time.
@@ -78,12 +71,12 @@ func (s *CronSchedule) getEffectiveLastJobEpoch(lastJobTime *v1.Time,
 	return effectiveLastJobTime
 }
 
-func (s *CronSchedule) getNextScheduledEpoch(lastJobTime time.Time) int64 {
+func (s *CronSchedule) getNextScheduledEpoch(lastJobTime time.Time, location *time.Location) int64 {
 	return s.getNextScheduledEpochImp(lastJobTime,
-		true /* nowEpoch doesn't matter when catchup=true */, time.Unix(0, 0))
+		true /* nowEpoch doesn't matter when catchup=true */, time.Unix(0, 0), location)
 }
 
-func (s *CronSchedule) getNextScheduledEpochImp(lastJobTime time.Time, catchup bool, nowTime time.Time) int64 {
+func (s *CronSchedule) getNextScheduledEpochImp(lastJobTime time.Time, catchup bool, nowTime time.Time, location *time.Location) int64 {
 	schedule, err := cron.Parse(s.Cron)
 	if err != nil {
 		// This should never happen, validation should have caught this at resource creation.
@@ -97,7 +90,7 @@ func (s *CronSchedule) getNextScheduledEpochImp(lastJobTime time.Time, catchup b
 		startTime = s.StartTime.Time
 	}
 
-	result := schedule.Next(startTime.In(s.location))
+	result := schedule.Next(startTime.In(location))
 	var endTime time.Time = time.Unix(1<<63-62135596801, 0)
 	// math.int64 max will break the comparison.
 	// Examle playground https://play.golang.org/p/LERg0aq2mU6

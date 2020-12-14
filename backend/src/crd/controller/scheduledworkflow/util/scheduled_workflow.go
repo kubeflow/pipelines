@@ -207,34 +207,31 @@ func (s *ScheduledWorkflow) NewWorkflow(
 
 // GetNextScheduledEpoch returns the next epoch at which a workflow should be scheduled,
 // and whether it should be run now.
-func (s *ScheduledWorkflow) GetNextScheduledEpoch(activeWorkflowCount int64, nowEpoch int64) (
-	nextScheduleEpoch int64, shouldRunNow bool, err error) {
+func (s *ScheduledWorkflow) GetNextScheduledEpoch(activeWorkflowCount int64, nowEpoch int64, location time.Location) (
+	nextScheduleEpoch int64, shouldRunNow bool) {
 
 	// Get the next scheduled time.
-	nextScheduledEpoch, err := s.getNextScheduledEpoch(nowEpoch)
-	if err != nil {
-		return 0, false, err
-	}
+	nextScheduledEpoch := s.getNextScheduledEpoch(nowEpoch, location)
 
 	// If the schedule is not enabled, we should not schedule the workflow now.
 	if s.enabled() == false {
-		return nextScheduledEpoch, false, nil
+		return nextScheduledEpoch, false
 	}
 
 	// If the maxConcurrency is exceeded, return.
 	if activeWorkflowCount >= s.maxConcurrency() {
-		return nextScheduledEpoch, false, nil
+		return nextScheduledEpoch, false
 	}
 
 	// If it is not yet time to schedule the next workflow...
 	if nextScheduledEpoch > nowEpoch {
-		return nextScheduledEpoch, false, nil
+		return nextScheduledEpoch, false
 	}
 
-	return nextScheduledEpoch, true, nil
+	return nextScheduledEpoch, true
 }
 
-func (s *ScheduledWorkflow) getNextScheduledEpoch(nowEpoch int64) (int64, error) {
+func (s *ScheduledWorkflow) getNextScheduledEpoch(nowEpoch int64, location time.Location) int64 {
 	catchup := true
 	if s.Spec.NoCatchup != nil {
 		catchup = !*s.Spec.NoCatchup
@@ -245,32 +242,29 @@ func (s *ScheduledWorkflow) getNextScheduledEpoch(nowEpoch int64) (int64, error)
 		if catchup {
 			return schedule.GetNextScheduledEpoch(
 				commonutil.ToInt64Pointer(s.Status.Trigger.LastTriggeredTime),
-				s.creationEpoch()), nil
+				s.creationEpoch())
 		}
 		return schedule.GetNextScheduledEpochNoCatchup(
 			commonutil.ToInt64Pointer(s.Status.Trigger.LastTriggeredTime),
-			s.creationEpoch(), nowEpoch), nil
+			s.creationEpoch(), nowEpoch)
 
 	}
 
 	// Cron schedule
 	if s.Spec.Trigger.CronSchedule != nil {
 		nowTime := time.Unix(nowEpoch, 0)
-		schedule, err := NewCronSchedule(s.Spec.Trigger.CronSchedule)
-		if err != nil {
-			return 0, err
-		}
+		schedule := NewCronSchedule(s.Spec.Trigger.CronSchedule)
 		if catchup {
 			return schedule.GetNextScheduledEpoch(
 				s.Status.Trigger.LastTriggeredTime,
-				time.Unix(s.creationEpoch(), 0)), nil
+				time.Unix(s.creationEpoch(), 0).In(&location), &location)
 		}
 		return schedule.GetNextScheduledEpochNoCatchup(
 			s.Status.Trigger.LastTriggeredTime,
-			time.Unix(s.creationEpoch(), 0), nowTime), nil
+			time.Unix(s.creationEpoch(), 0).In(&location), nowTime, &location)
 	}
 
-	return s.getNextScheduledEpochForOneTimeRun(), nil
+	return s.getNextScheduledEpochForOneTimeRun()
 }
 
 func (s *ScheduledWorkflow) getNextScheduledEpochForOneTimeRun() int64 {
@@ -291,7 +285,7 @@ func (s *ScheduledWorkflow) setLabel(key string, value string) {
 // UpdateStatus updates the status of a workflow in the Kubernetes API server.
 func (s *ScheduledWorkflow) UpdateStatus(updatedEpoch int64, workflow *commonutil.Workflow,
 	scheduledEpoch int64, active []swfapi.WorkflowStatus,
-	completed []swfapi.WorkflowStatus) error {
+	completed []swfapi.WorkflowStatus, location *time.Location) {
 
 	updatedTime := metav1.NewTime(time.Unix(updatedEpoch, 0).UTC())
 
@@ -332,17 +326,13 @@ func (s *ScheduledWorkflow) UpdateStatus(updatedEpoch int64, workflow *commonuti
 	if workflow != nil {
 		s.updateLastTriggeredTime(scheduledEpoch)
 		s.Status.Trigger.LastIndex = commonutil.Int64Pointer(s.nextIndex())
-		nextTriggerTime, err := s.getNextScheduledEpoch(0)
-		if err != nil {
-			return err
-		}
+		nextTriggerTime := s.getNextScheduledEpoch(0, *location)
 		s.updateNextTriggeredTime(nextTriggerTime)
 	} else {
 		// LastTriggeredTime is unchanged.
 		s.updateNextTriggeredTime(scheduledEpoch)
 		// LastIndex is unchanged
 	}
-	return nil
 }
 
 func (s *ScheduledWorkflow) updateLastTriggeredTime(epoch int64) {
@@ -373,11 +363,14 @@ func (s *ScheduledWorkflow) getStatusAndMessage(activeCount int) (
 	if s.isOneOffRun() {
 		if s.hasRunAtLeastOnce() && activeCount == 0 {
 			return swfapi.ScheduledWorkflowSucceeded, core.ConditionTrue, ScheduleSucceededMessage
+		} else {
+			return swfapi.ScheduledWorkflowRunning, core.ConditionTrue, ScheduleRunningMessage
 		}
-		return swfapi.ScheduledWorkflowRunning, core.ConditionTrue, ScheduleRunningMessage
+	} else {
+		if s.enabled() {
+			return swfapi.ScheduledWorkflowEnabled, core.ConditionTrue, ScheduleEnabledMessage
+		} else {
+			return swfapi.ScheduledWorkflowDisabled, core.ConditionTrue, ScheduleDisabledMessage
+		}
 	}
-	if s.enabled() {
-		return swfapi.ScheduledWorkflowEnabled, core.ConditionTrue, ScheduleEnabledMessage
-	}
-	return swfapi.ScheduledWorkflowDisabled, core.ConditionTrue, ScheduleDisabledMessage
 }
