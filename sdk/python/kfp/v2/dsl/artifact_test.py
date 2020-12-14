@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for kfp.v2.ds.artifact module."""
+import importlib
+import mock
 import unittest
 import textwrap
 
@@ -21,16 +23,22 @@ from kfp.v2.dsl import artifact
 class _MyArtifact(artifact.Artifact):
   TYPE_NAME = 'MyTypeName'
   PROPERTIES = {
-      'int1': artifact.Property(type=artifact.PropertyType.INT),
+      'int1': artifact.Property(
+          type=artifact.PropertyType.INT,
+          description='An integer-typed property'),
       'int2': artifact.Property(type=artifact.PropertyType.INT),
-      'float1': artifact.Property(type=artifact.PropertyType.DOUBLE),
+      'float1': artifact.Property(
+          type=artifact.PropertyType.DOUBLE,
+          description='A float-typed property'),
       'float2': artifact.Property(type=artifact.PropertyType.DOUBLE),
-      'string1': artifact.Property(type=artifact.PropertyType.STRING),
+      'string1': artifact.Property(
+          type=artifact.PropertyType.STRING,
+          description='A string-typed property'),
       'string2': artifact.Property(type=artifact.PropertyType.STRING),
   }
 
 
-_SERIALIZED_INSTANCE = """
+_SERIALIZED_INSTANCE = """\
 {
   "properties": {
     "float1": {
@@ -44,10 +52,9 @@ _SERIALIZED_INSTANCE = """
     }
   },
   "type": {
-    "instanceSchema": "properties:\\n  float1:\\n    description: null\\n    type: double\\n  float2:\\n    description: null\\n    type: double\\n  int1:\\n    description: null\\n    type: int\\n  int2:\\n    description: null\\n    type: int\\n  string1:\\n    description: null\\n    type: string\\n  string2:\\n    description: null\\n    type: string\\ntitle: kfp.MyTypeName\\ntype: object\\n"
+    "instanceSchema": "properties:\\n  float1:\\n    description: A float-typed property\\n    type: double\\n  float2:\\n    description: null\\n    type: double\\n  int1:\\n    description: An integer-typed property\\n    type: int\\n  int2:\\n    description: null\\n    type: int\\n  string1:\\n    description: A string-typed property\\n    type: string\\n  string2:\\n    description: null\\n    type: string\\ntitle: kfp.MyTypeName\\ntype: object\\n"
   }
-}
-"""
+}"""
 
 
 class ArtifactTest(unittest.TestCase):
@@ -93,7 +100,7 @@ class ArtifactTest(unittest.TestCase):
     self.assertEqual(textwrap.dedent("""\
         Artifact(artifact: name: "1"
         type {
-          instance_schema: "properties:\\n  float1:\\n    description: null\\n    type: double\\n  float2:\\n    description: null\\n    type: double\\n  int1:\\n    description: null\\n    type: int\\n  int2:\\n    description: null\\n    type: int\\n  string1:\\n    description: null\\n    type: string\\n  string2:\\n    description: null\\n    type: string\\ntitle: kfp.MyTypeName\\ntype: object\\n"
+          instance_schema: "properties:\\n  float1:\\n    description: A float-typed property\\n    type: double\\n  float2:\\n    description: null\\n    type: double\\n  int1:\\n    description: An integer-typed property\\n    type: int\\n  int2:\\n    description: null\\n    type: int\\n  string1:\\n    description: A string-typed property\\n    type: string\\n  string2:\\n    description: null\\n    type: string\\ntitle: kfp.MyTypeName\\ntype: object\\n"
         }
         uri: "/tmp/uri2"
         custom_properties {
@@ -110,19 +117,19 @@ class ArtifactTest(unittest.TestCase):
         }
         , type_schema: properties:
           float1:
-            description: null
+            description: A float-typed property
             type: double
           float2:
             description: null
             type: double
           int1:
-            description: null
+            description: An integer-typed property
             type: int
           int2:
             description: null
             type: int
           string1:
-            description: null
+            description: A string-typed property
             type: string
           string2:
             description: null
@@ -178,5 +185,7 @@ class ArtifactTest(unittest.TestCase):
 
   def testDeserialize(self):
     instance = artifact.Artifact.deserialize(_SERIALIZED_INSTANCE)
-
-
+    self.assertEqual(1, instance.int1)
+    self.assertEqual('111', instance.string1)
+    self.assertEqual(1.11, instance.float1)
+    self.assertEqual('kfp.MyTypeName', instance.type_name)

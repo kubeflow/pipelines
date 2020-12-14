@@ -241,6 +241,10 @@ class Artifact(object):
     return self.__class__
 
   @property
+  def type_name(self):
+    return self.TYPE_NAME
+
+  @property
   def runtime_artifact(self) -> pipeline_spec_pb2.RuntimeArtifact:
     return self._artifact
 
@@ -309,6 +313,7 @@ class Artifact(object):
     try:
       artifact_cls = getattr(
           importlib.import_module(_KFP_ARTIFACT_ONTOLOGY_MODULE), type_name)
+      # TODO(numerology): Add deserialization tests for first party classes.
       result = artifact_cls()
     except (AttributeError, ImportError, ValueError):
       logging.warning((
