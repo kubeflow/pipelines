@@ -51,6 +51,25 @@ class Property(object):
     self.type = type
     self.description = description
 
+  @classmethod
+  def from_dict(cls, dict_data: Dict[str, Any]) -> 'Property':
+    """Deserializes the Property object from YAML dict."""
+    if not dict_data.get('type'):
+      raise TypeError('Missing type keyword in property dict.')
+    if dict_data['type'] == 'string':
+      kind = PropertyType.STRING
+    elif dict_data['type'] == 'int':
+      kind = PropertyType.INT
+    elif dict_data['type'] == 'double':
+      kind = PropertyType.DOUBLE
+    else:
+      raise TypeError('Got unknown type: %s' % dict_data['type'])
+
+    return Property(
+        type=kind,
+        description=dict_data['description']
+    )
+
   def ir_type(self):
     """Gets the IR primitive type."""
     return Property._ALLOWED_MLMD_TYPES[self.type]
@@ -103,6 +122,11 @@ class Artifact(object):
         raise ValueError(
             'The "instance_schema" argument must be passed to specify a '
             'type for this Artifact.')
+      schema = yaml.safe_load(instance_schema)['properties']
+      self.TYPE_NAME = yaml.safe_load(instance_schema)['title']
+      self.PROPERTIES = {}
+      for k, v in schema.items():
+        self.PROPERTIES[k] = Property.from_dict(v)
     else:
       if instance_schema:
         raise ValueError(
@@ -152,7 +176,7 @@ class Artifact(object):
     if name not in self.PROPERTIES:
       raise AttributeError(
           '%s artifact has no property %r.' % (self.TYPE_NAME, name))
-    property_type = self.PROPERTIES[name]
+    property_type = self.PROPERTIES[name].type
     if property_type == PropertyType.STRING:
       if name not in self._artifact.properties:
         # Avoid populating empty property protobuf with the [] operator.
@@ -189,7 +213,7 @@ class Artifact(object):
       # defined in the Artifact PROPERTIES dictionary.
       raise AttributeError('Cannot set unknown property %r on artifact %r.' %
                            (name, self))
-    property_type = self.PROPERTIES[name]
+    property_type = self.PROPERTIES[name].type
     if property_type == PropertyType.STRING:
       if not isinstance(value, str):
         raise Exception(
@@ -219,6 +243,10 @@ class Artifact(object):
   @property
   def runtime_artifact(self) -> pipeline_spec_pb2.RuntimeArtifact:
     return self._artifact
+
+  @runtime_artifact.setter
+  def runtime_artifact(self, artifact: pipeline_spec_pb2.RuntimeArtifact):
+    self._artifact = artifact
 
   @property
   def uri(self) -> str:
@@ -291,7 +319,7 @@ class Artifact(object):
     if not result:
       # Otherwise generate a generic Artifact object.
       result = Artifact(instance_schema=artifact.type.instance_schema)
-    result.set_mlmd_artifact(artifact)
+    result.runtime_artifact = artifact
     return result
 
   def serialize(self) -> str:

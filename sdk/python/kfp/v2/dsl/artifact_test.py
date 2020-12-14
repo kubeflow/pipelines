@@ -30,6 +30,26 @@ class _MyArtifact(artifact.Artifact):
   }
 
 
+_SERIALIZED_INSTANCE = """
+{
+  "properties": {
+    "float1": {
+      "doubleValue": 1.11
+    },
+    "int1": {
+      "intValue": "1"
+    },
+    "string1": {
+      "stringValue": "111"
+    }
+  },
+  "type": {
+    "instanceSchema": "properties:\\n  float1:\\n    description: null\\n    type: double\\n  float2:\\n    description: null\\n    type: double\\n  int1:\\n    description: null\\n    type: int\\n  int2:\\n    description: null\\n    type: int\\n  string1:\\n    description: null\\n    type: string\\n  string2:\\n    description: null\\n    type: string\\ntitle: kfp.MyTypeName\\ntype: object\\n"
+  }
+}
+"""
+
+
 class ArtifactTest(unittest.TestCase):
 
   def testArtifact(self):
@@ -110,3 +130,53 @@ class ArtifactTest(unittest.TestCase):
         title: kfp.MyTypeName
         type: object
         )"""), str(instance))
+
+  def testArtifactProperties(self):
+    my_artifact = _MyArtifact()
+
+    self.assertEqual(0, my_artifact.int1)
+    self.assertEqual(0, my_artifact.int2)
+    my_artifact.int1 = 111
+    my_artifact.int2 = 222
+    self.assertEqual('', my_artifact.string1)
+    self.assertEqual('', my_artifact.string2)
+    my_artifact.string1 = '111'
+    my_artifact.string2 = '222'
+    self.assertEqual(0.0, my_artifact.float1)
+    self.assertEqual(0.0, my_artifact.float2)
+    my_artifact.float1 = 1.11
+    my_artifact.float2 = 2.22
+    self.assertEqual(my_artifact.int1, 111)
+    self.assertEqual(my_artifact.int2, 222)
+    self.assertEqual(my_artifact.string1, '111')
+    self.assertEqual(my_artifact.string2, '222')
+    self.assertEqual(1.11, my_artifact.float1)
+    self.assertEqual(2.22, my_artifact.float2)
+    self.assertEqual(my_artifact.get_string_custom_property('invalid'), '')
+    self.assertEqual(my_artifact.get_int_custom_property('invalid'), 0)
+    self.assertNotIn('invalid', my_artifact._artifact.custom_properties)
+
+    with self.assertRaisesRegex(
+        AttributeError, "Cannot set unknown property 'invalid' on artifact"):
+      my_artifact.invalid = 1
+
+    with self.assertRaisesRegex(
+        AttributeError, "Cannot set unknown property 'invalid' on artifact"):
+      my_artifact.invalid = 'x'
+
+    with self.assertRaisesRegex(AttributeError,
+                                "\D+ artifact has no property 'invalid'"):
+      _ = my_artifact.invalid
+
+  def testSerialize(self):
+    instance = _MyArtifact()
+    instance.int1 = 1
+    instance.string1 = '111'
+    instance.float1 = 1.11
+
+    self.assertEqual(_SERIALIZED_INSTANCE, instance.serialize())
+
+  def testDeserialize(self):
+    instance = artifact.Artifact.deserialize(_SERIALIZED_INSTANCE)
+
+
