@@ -217,24 +217,25 @@ def build_python_component(component_func, target_image, base_image=None, depend
   component_spec = _func_to_component_spec(component_func, base_image=base_image)
   command_line_args = component_spec.implementation.container.command
 
-  dash_c_index = command_line_args.index('-c')
-  program_code_index = dash_c_index + 1
+  program_launcher_index = command_line_args.index('program_path=$(mktemp)\necho -n "$0" > "$program_path"\npython3 -u "$program_path" "$@"\n')
+  assert program_launcher_index in [2, 3]
+
+  program_code_index = program_launcher_index + 1
   program_code = command_line_args[program_code_index]
   program_rel_path = 'ml/main.py'
   program_container_path = '/' + program_rel_path
 
   # Replacing the inline code with calling a local program
-  # Before: python3 -u -c 'import sys ...' --param1 ...
+  # Before: sh -ec '... && python3 -u ...' 'import sys ...' --param1 ...
   # After:  python3 -u main.py --param1 ...
   command_line_args[program_code_index] = program_container_path
-  command_line_args.pop(dash_c_index)
+  command_line_args.pop(program_launcher_index)
+  command_line_args[program_launcher_index - 1] = '-u'  # -ec => -u
+  command_line_args[program_launcher_index - 2] = python_version  # sh => python3
 
   if python_version == 'python2':
     import warnings
     warnings.warn('Python2 is not longer supported')
-    # Replacing the python interpreter
-    python_interpreter_index = command_line_args.index('python3')
-    command_line_args[python_interpreter_index] = python_version
 
   arc_docker_filename = 'Dockerfile'
   arc_requirement_filename = 'requirements.txt'
