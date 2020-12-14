@@ -33,6 +33,7 @@ from .structures import *
 
 import inspect
 from pathlib import Path
+import textwrap
 from typing import Callable, List, Optional, TypeVar
 import warnings
 
@@ -234,8 +235,6 @@ def _strip_type_hints_using_lib2to3(source_code: str) -> str:
 
 
 def _capture_function_code_using_source_copy(func) -> str:	
-    import textwrap
-
     func_code = inspect.getsource(func)
 
     #Function might be defined in some indented scope (e.g. in another function).
@@ -640,7 +639,18 @@ _outputs = {func_name}(**_parsed_args)
     component_spec.implementation=ContainerImplementation(
         container=ContainerSpec(
             image=base_image,
-            command=package_preinstallation_command + ['python3', '-u', '-c', full_source],
+            command=package_preinstallation_command + [
+                'sh',
+                '-ec',
+                # Writing the program code to a file.
+                # This is needed for Python to show stack traces and for `inspect.getsource` to work (used by PyTorch JIT and this module for example).
+                textwrap.dedent('''\
+                    program_path=$(mktemp)
+                    echo -n "$0" > "$program_path"
+                    python3 -u "$program_path" "$@"
+                '''),
+                full_source,
+            ],
             args=arguments,
         )
     )
