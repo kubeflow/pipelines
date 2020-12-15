@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for kfp.v2.ds.artifact module."""
-import importlib
-import mock
 import unittest
 import textwrap
 
