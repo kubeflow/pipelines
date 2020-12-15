@@ -30,7 +30,7 @@ from kfp.dsl._component import component
 from kfp.dsl import ContainerOp, pipeline
 from kfp.dsl.types import Integer, InconsistentTypeException
 from kubernetes.client import V1Toleration, V1Affinity, V1NodeSelector, V1NodeSelectorRequirement, V1NodeSelectorTerm, \
-  V1NodeAffinity
+  V1NodeAffinity, V1PodDNSConfig, V1PodDNSConfigOption
 
 
 def some_op():
@@ -821,6 +821,22 @@ implementation:
 
     workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
     self.assertEqual(workflow_dict['spec']['nodeSelector'], {"cloud.google.com/gke-accelerator":"nvidia-tesla-p4"})
+
+  def test_set_dns_config(self):
+    """Test a pipeline with node selector."""
+    @dsl.pipeline()
+    def some_pipeline():
+      some_op()
+      dsl.get_pipeline_conf().set_dns_config(V1PodDNSConfig(
+        nameservers=["1.2.3.4"],
+        options=[V1PodDNSConfigOption(name="ndots", value="2")]
+      ))
+
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    self.assertEqual(
+      workflow_dict['spec']['dnsConfig'],
+      {"nameservers": ["1.2.3.4"], "options": [{"name": "ndots", "value": "2"}]}
+    )
 
   def test_container_op_output_error_when_no_or_multiple_outputs(self):
 
