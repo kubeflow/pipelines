@@ -702,6 +702,9 @@ class Compiler(object):
     if pipeline_conf.default_pod_node_selector:
       workflow['spec']['nodeSelector'] = pipeline_conf.default_pod_node_selector
 
+    if pipeline_conf.dns_config:
+      workflow['spec']['dnsConfig'] = convert_k8s_obj_to_json(pipeline_conf.dns_config)
+
     if pipeline_conf.image_pull_policy != None:
       if pipeline_conf.image_pull_policy in ["Always", "Never", "IfNotPresent"]:
         for template in workflow["spec"]["templates"]:
