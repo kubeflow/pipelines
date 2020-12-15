@@ -38,16 +38,16 @@ class Property(object):
   """Property specified for an Artifact."""
 
   # Mapping from Python enum to primitive type in the IR proto.
-  _ALLOWED_MLMD_TYPES = {
+  _ALLOWED_PROPERTY_TYPES = {
       PropertyType.INT: pipeline_spec_pb2.PrimitiveType.INT,
       PropertyType.DOUBLE: pipeline_spec_pb2.PrimitiveType.DOUBLE,
       PropertyType.STRING: pipeline_spec_pb2.PrimitiveType.STRING,
   }
 
-  def __init__(self, type, description: str = None):
-    if type not in Property._ALLOWED_MLMD_TYPES:
+  def __init__(self, type: PropertyType, description: Optional[str] = None):
+    if type not in Property._ALLOWED_PROPERTY_TYPES:
       raise ValueError('Property type must be one of %s.' %
-                       list(Property._ALLOWED_MLMD_TYPES.keys()))
+                       list(Property._ALLOWED_PROPERTY_TYPES.keys()))
     self.type = type
     self.description = description
 
@@ -70,9 +70,9 @@ class Property(object):
         description=dict_data['description']
     )
 
-  def ir_type(self):
+  def get_ir_type(self):
     """Gets the IR primitive type."""
-    return Property._ALLOWED_MLMD_TYPES[self.type]
+    return Property._ALLOWED_PROPERTY_TYPES[self.type]
 
   def get_type_name(self):
     """Gets the type name used in YAML instance."""
@@ -122,7 +122,11 @@ class Artifact(object):
         raise ValueError(
             'The "instance_schema" argument must be passed to specify a '
             'type for this Artifact.')
-      schema = yaml.safe_load(instance_schema)['properties']
+      schema_yaml = yaml.safe_load(instance_schema)
+      if 'properties' not in schema_yaml:
+        raise ValueError('Invalid instance_schema, properties must be present. '
+                         'Got %s' % instance_schema)
+      schema = schema_yaml['properties']
       self.TYPE_NAME = yaml.safe_load(instance_schema)['title']
       self.PROPERTIES = {}
       for k, v in schema.items():
@@ -161,10 +165,10 @@ class Artifact(object):
     return yaml.safe_dump(result_map)
 
   @property
-  def type_schema(self):
+  def type_schema(self) -> str:
     return self._type_schema
 
-  def __repr__(self):
+  def __repr__(self) -> str:
     return 'Artifact(artifact: {}, type_schema: {})'.format(
         str(self._artifact), str(self.type_schema))
 
