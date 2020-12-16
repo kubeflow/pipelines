@@ -66,6 +66,6 @@ def parallelfor_pipeline_param_in_items_resolving(fname1: str, fname2: str):
         consume(loop_item.message)
 
 
-compiler_instance = compiler.Compiler()
-compiler_instance.compile(pipeline_func=parallelfor_pipeline_param_in_items_resolving,
-                          package_path="parallelfor_pipeline_param_in_items_resolvin.yaml")
+if __name__ == '__main__':
+    import kfp.compiler as compiler
+    compiler.Compiler().compile(parallelfor_pipeline_param_in_items_resolving, __file__ + '.yaml')
