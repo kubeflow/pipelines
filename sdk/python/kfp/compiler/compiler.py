@@ -527,6 +527,10 @@ class Compiler(object):
           # Replace pipeline param if map_to_tmpl_var not empty
           task['withItems'] = _process_obj(sanitized_tasks, map_to_tmpl_var) if map_to_tmpl_var else sanitized_tasks
 
+        # We will sort dependencies to have determinitc yaml and thus stable tests
+        if task.get('dependencies'):
+            task['dependencies'].sort()
+
       tasks.append(task)
     tasks.sort(key=lambda x: x['name'])
     template['dag'] = {'tasks': tasks}
