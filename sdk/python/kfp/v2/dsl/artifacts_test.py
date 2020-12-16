@@ -30,7 +30,7 @@ _EXPECTED_SERIALIZATION = """\
     }
   },
   "type": {
-    "instanceSchema": "properties: null\\ntitle: kfp.Model\\ntype: object\\n"
+    "instanceSchema": "properties:\\ntitle: kfp.Model\\ntype: object\\n"
   }
 }"""
 
