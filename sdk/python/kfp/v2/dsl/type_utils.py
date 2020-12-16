@@ -17,15 +17,13 @@ import textwrap
 from typing import List, Optional
 from kfp.components import structures
 from kfp.pipeline_spec import pipeline_spec_pb2
+from kfp.v2.dsl import artifact
+from kfp.v2.dsl import artifacts
 
 # ComponentSpec I/O types to (IR) PipelineTaskSpec I/O types mapping.
 # The keys are normalized (lowercased). These are types viewed as Artifacts.
 # The values are the corresponding IR artifact type schemas.
-_GENERIC_ARTIFACT_TYPE = textwrap.dedent("""\
-        title: kfp.Artifact
-        type: object
-        properties:
-    """)
+_GENERIC_ARTIFACT_TYPE = artifact.Artifact
 
 _ARTIFACT_TYPES_MAPPING = {
     'model':

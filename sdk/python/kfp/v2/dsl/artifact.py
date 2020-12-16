@@ -136,7 +136,7 @@ class Artifact(object):
         raise ValueError(
             'The "mlmd_artifact_type" argument must not be passed for '
             'Artifact subclass %s.' % self.__class__)
-      instance_schema = self._get_artifact_type()
+      instance_schema = self.get_artifact_type()
 
     # MLMD artifact type schema string.
     self._type_schema = instance_schema
@@ -148,13 +148,14 @@ class Artifact(object):
     # Initialization flag to prevent recursive getattr / setattr errors.
     self._initialized = True
 
-  def _get_artifact_type(self) -> str:
+  @classmethod
+  def get_artifact_type(cls) -> str:
     """Gets the instance_schema according to the Python schema spec."""
-    title = _KFP_ARTIFACT_TITLE_PATTERN.format(self.TYPE_NAME)
+    title = _KFP_ARTIFACT_TITLE_PATTERN.format(cls.TYPE_NAME)
     schema_map = None
-    if self.PROPERTIES:
+    if cls.PROPERTIES:
       schema_map = {}
-      for k, v in self.PROPERTIES.items():
+      for k, v in cls.PROPERTIES.items():
         schema_map[k] = {
             'type': v.get_type_name(),
             'description': v.description
@@ -168,6 +169,7 @@ class Artifact(object):
 
   @property
   def type_schema(self) -> str:
+    """Gets the instance_schema specified for this Artifact object."""
     return self._type_schema
 
   def __repr__(self) -> str:
