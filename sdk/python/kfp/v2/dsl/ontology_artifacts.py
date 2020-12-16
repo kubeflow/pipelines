@@ -16,17 +16,10 @@ from kfp.v2.dsl import artifact
 
 
 # TODO(numerology): Add concrete property schema to each artifact types.
+#   Also consider adding Metrics class when the schema is hammered down.
 class Model(artifact.Artifact):
   TYPE_NAME = 'Model'
 
 
 class Dataset(artifact.Artifact):
   TYPE_NAME = 'Dataset'
-
-
-class Metrics(artifact.Artifact):
-  TYPE_NAME = 'Metrics'
-
-
-class Schema(artifact.Artifact):
-  TYPE_NAME = 'Schema'
