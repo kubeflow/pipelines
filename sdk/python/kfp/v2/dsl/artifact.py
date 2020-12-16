@@ -34,6 +34,13 @@ class PropertyType(enum.Enum):
   STRING = 3
 
 
+# Serialize None as blank instead of 'null'.
+def _represent_none(self, _):
+  return self.represent_scalar('tag:yaml.org,2002:null', '')
+
+yaml.SafeDumper.add_representer(type(None), _represent_none)
+
+
 class Property(object):
   """Property specified for an Artifact."""
 
@@ -100,7 +107,7 @@ class Artifact(object):
   """
 
   # Name of the Artifact type.
-  TYPE_NAME = None
+  TYPE_NAME = 'Artifact'
   # Property schema.
   # Example usage:
   #
