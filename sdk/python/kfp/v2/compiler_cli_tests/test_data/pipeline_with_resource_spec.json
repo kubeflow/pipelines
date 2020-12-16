@@ -18,12 +18,12 @@
           "artifacts": {
             "schema": {
               "artifactType": {
-                "instanceSchema": "title: kfp.Schema\ntype: object\nproperties:\n"
+                "instanceSchema": "properties:\ntitle: kfp.Schema\ntype: object\n"
               }
             },
             "examples": {
               "artifactType": {
-                "instanceSchema": "title: kfp.Dataset\ntype: object\nproperties:\n"
+                "instanceSchema": "properties:\ntitle: kfp.Dataset\ntype: object\n"
               }
             }
           }
@@ -35,12 +35,12 @@
           "artifacts": {
             "metrics": {
               "artifactType": {
-                "instanceSchema": "title: kfp.Metrics\ntype: object\nproperties:\n"
+                "instanceSchema": "properties:\ntitle: kfp.Metrics\ntype: object\n"
               }
             },
             "model": {
               "artifactType": {
-                "instanceSchema": "title: kfp.Model\ntype: object\nproperties:\n"
+                "instanceSchema": "properties:\ntitle: kfp.Model\ntype: object\n"
               }
             }
           }
