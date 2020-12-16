@@ -93,9 +93,10 @@ class OpsGroup(object):
   def __exit__(self, *args):
     _pipeline.Pipeline.get_default_pipeline().pop_ops_group()
 
-  def after(self, dependency):
-    """Specify explicit dependency on another op."""
-    self.dependencies.append(dependency)
+  def after(self, *ops):
+    """Specify explicit dependency on other ops."""
+    for op in ops:
+      self.dependencies.append(op)
     return self
 
   def remove_op_recursive(self, op):
