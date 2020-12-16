@@ -24,7 +24,7 @@ from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.v2.dsl import serialization_utils
 
 _KFP_ARTIFACT_TITLE_PATTERN = 'kfp.{}'
-_KFP_ARTIFACT_ONTOLOGY_MODULE = 'kfp.v2.dsl.artifacts'
+_KFP_ARTIFACT_ONTOLOGY_MODULE = 'kfp.v2.dsl.ontology_artifacts'
 
 
 # Enum for property types.
@@ -127,7 +127,7 @@ class Artifact(object):
       if 'properties' not in schema_yaml:
         raise ValueError('Invalid instance_schema, properties must be present. '
                          'Got %s' % instance_schema)
-      schema = schema_yaml['properties']
+      schema = schema_yaml['properties'] or {}
       self.TYPE_NAME = yaml.safe_load(instance_schema)['title']
       self.PROPERTIES = {}
       for k, v in schema.items():
