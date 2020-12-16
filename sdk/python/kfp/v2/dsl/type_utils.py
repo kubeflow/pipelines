@@ -18,17 +18,17 @@ from typing import List, Optional
 from kfp.components import structures
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.v2.dsl import artifact
-from kfp.v2.dsl import artifacts
+from kfp.v2.dsl import ontology_artifacts
 
 # ComponentSpec I/O types to (IR) PipelineTaskSpec I/O types mapping.
 # The keys are normalized (lowercased). These are types viewed as Artifacts.
 # The values are the corresponding IR artifact ontology types.
 
 _ARTIFACT_TYPES_MAPPING = {
-    'model': artifacts.Model.get_artifact_type(),
-    'dataset': artifacts.Dataset.get_artifact_type(),
-    'metrics': artifacts.Metrics.get_artifact_type(),
-    'schema': artifacts.Schema.get_artifact_type()
+    'model': ontology_artifacts.Model.get_artifact_type(),
+    'dataset': ontology_artifacts.Dataset.get_artifact_type(),
+    'metrics': ontology_artifacts.Metrics.get_artifact_type(),
+    'schema': ontology_artifacts.Schema.get_artifact_type()
 }
 
 # ComponentSpec I/O types to (IR) PipelineTaskSpec I/O types mapping.

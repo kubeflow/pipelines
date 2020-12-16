@@ -21,6 +21,7 @@ from google.protobuf import json_format
 import yaml
 
 from kfp.pipeline_spec import pipeline_spec_pb2
+from kfp.v2.dsl import serialization_utils
 
 _KFP_ARTIFACT_TITLE_PATTERN = 'kfp.{}'
 _KFP_ARTIFACT_ONTOLOGY_MODULE = 'kfp.v2.dsl.artifacts'
@@ -32,13 +33,6 @@ class PropertyType(enum.Enum):
   INT = 1
   DOUBLE = 2
   STRING = 3
-
-
-# Serialize None as blank instead of 'null'.
-def _represent_none(self, _):
-  return self.represent_scalar('tag:yaml.org,2002:null', '')
-
-yaml.SafeDumper.add_representer(type(None), _represent_none)
 
 
 class Property(object):
@@ -172,7 +166,7 @@ class Artifact(object):
         'type': 'object',
         'properties': schema_map
     }
-    return yaml.safe_dump(result_map)
+    return serialization_utils.yaml_dump(result_map)
 
   @property
   def type_schema(self) -> str:

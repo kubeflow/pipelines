@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for kfp.v2.ds.artifacts module."""
+"""Tests for kfp.v2.dsl.ontology_artifacts module."""
 import unittest
 from kfp.v2.dsl import artifact
-from kfp.v2.dsl import artifacts
+from kfp.v2.dsl import ontology_artifacts
 
 _EXPECTED_SERIALIZATION = """\
 {
@@ -38,7 +38,7 @@ _EXPECTED_SERIALIZATION = """\
 class ArtifactsTest(unittest.TestCase):
 
   def testSerialization(self):
-    my_model = artifacts.Model()
+    my_model = ontology_artifacts.Model()
     my_model.set_float_custom_property('float1', 1.1)
     my_model.set_int_custom_property('int1', 1)
     my_model.set_string_custom_property('string1', 'testString')
@@ -46,7 +46,7 @@ class ArtifactsTest(unittest.TestCase):
     self.assertEqual(_EXPECTED_SERIALIZATION, my_model.serialize())
 
     rehydrated_model = artifact.Artifact.deserialize(_EXPECTED_SERIALIZATION)
-    self.assertEqual(artifacts.Model, type(rehydrated_model))
+    self.assertEqual(ontology_artifacts.Model, type(rehydrated_model))
     self.assertEqual('testString',
                      rehydrated_model.get_string_custom_property('string1'))
     self.assertEqual(1, rehydrated_model.get_int_custom_property('int1'))
