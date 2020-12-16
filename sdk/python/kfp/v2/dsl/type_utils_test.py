@@ -81,12 +81,12 @@ class TypeUtilsTest(unittest.TestCase):
 
     # input found, and a matching artifact type schema returned.
     self.assertEqual(
-        'title: kfp.Model\ntype: object\nproperties:\n',
+        'properties:\ntitle: kfp.Model\ntype: object\n',
         type_utils.get_input_artifact_type_schema('input2', input_specs))
 
     # input found, and the default artifact type schema returned.
     self.assertEqual(
-        'title: kfp.Artifact\ntype: object\nproperties:\n',
+        'properties:\ntitle: kfp.Artifact\ntype: object\n',
         type_utils.get_input_artifact_type_schema('input3', input_specs))
 
 
