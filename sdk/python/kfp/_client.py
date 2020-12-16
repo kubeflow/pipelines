@@ -311,7 +311,7 @@ class Client(object):
       try:
         response = self._healthz_api.get_healthz()
         return response
-      except:
+      except Exception:
         logging.exception('Failed to get healthz info attempt {} of 5.'.format(count))
         time.sleep(5)
 
