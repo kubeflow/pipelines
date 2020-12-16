@@ -569,10 +569,10 @@ class Client(object):
         off to avoid duplicate backfill. (default: {False})
       pipeline_package_path: Local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
       params: A dictionary with key (string) as param name and value (string) as param value.
-      pipeline_id: The string ID of a pipeline.
-      version_id: The string ID of a pipeline version. 
-        If both pipeline_id and version_id are specified, pipeline_id will take precendence
-        This will change in a future version, so it is recommended to use version_id by itself.
+      pipeline_id: The id of a pipeline.
+      version_id: The id of a pipeline version.
+        If both pipeline_id and version_id are specified, version_id will take precendence.
+        If only pipeline_id is specified, the default version of this pipeline is used to create the run.
       enabled: A bool indicating whether the recurring run is enabled or disabled.
 
     Returns:
@@ -618,8 +618,8 @@ class Client(object):
       params: A dictionary with key (string) as param name and value (string) as param value.
       pipeline_id: The id of a pipeline.
       version_id: The id of a pipeline version. 
-        If both pipeline_id and version_id are specified, pipeline_id will take precendence
-        This will change in a future version, so it is recommended to use version_id by itself.
+        If both pipeline_id and version_id are specified, version_id will take precendence.
+        If only pipeline_id is specified, the default version of this pipeline is used to create the run.
 
     Returns:
       A JobConfig object with attributes spec and resource_reference.
