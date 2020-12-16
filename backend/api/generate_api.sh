@@ -33,7 +33,7 @@ TMP_DIR="$(mktemp -d)"
 BAZEL_BINDIR=$(bazel info bazel-bin)
 GENERATED_GO_PROTO_FILES="${BAZEL_BINDIR}/backend/api/api_generated_go_sources/src/github.com/kubeflow/pipelines/backend/api/go_client/*.go"
 
-# TODO this script should be able to be run from anywhere, not just within .../backend/api/
+cd ../..
 
 # Delete currently generated code.
 rm -r -f ${DIR}/go_http_client/*
