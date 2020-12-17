@@ -21,9 +21,10 @@ from google.protobuf import json_format
 import yaml
 
 from kfp.pipeline_spec import pipeline_spec_pb2
+from kfp.v2.dsl import serialization_utils
 
 _KFP_ARTIFACT_TITLE_PATTERN = 'kfp.{}'
-_KFP_ARTIFACT_ONTOLOGY_MODULE = 'kfp.v2.dsl.artifacts'
+_KFP_ARTIFACT_ONTOLOGY_MODULE = 'kfp.v2.dsl.ontology_artifacts'
 
 
 # Enum for property types.
@@ -100,7 +101,7 @@ class Artifact(object):
   """
 
   # Name of the Artifact type.
-  TYPE_NAME = None
+  TYPE_NAME = 'Artifact'
   # Property schema.
   # Example usage:
   #
@@ -126,8 +127,11 @@ class Artifact(object):
       if 'properties' not in schema_yaml:
         raise ValueError('Invalid instance_schema, properties must be present. '
                          'Got %s' % instance_schema)
-      schema = schema_yaml['properties']
-      self.TYPE_NAME = yaml.safe_load(instance_schema)['title']
+      schema = schema_yaml['properties'] or {}
+      if 'title' not in schema_yaml:
+        raise ValueError('Invalid instance_schema, title must be present. '
+                         'Got %s' % instance_schema)
+      self.TYPE_NAME = schema_yaml['title']
       self.PROPERTIES = {}
       for k, v in schema.items():
         self.PROPERTIES[k] = Property.from_dict(v)
@@ -136,7 +140,7 @@ class Artifact(object):
         raise ValueError(
             'The "mlmd_artifact_type" argument must not be passed for '
             'Artifact subclass %s.' % self.__class__)
-      instance_schema = self._get_artifact_type()
+      instance_schema = self.get_artifact_type()
 
     # MLMD artifact type schema string.
     self._type_schema = instance_schema
@@ -148,24 +152,28 @@ class Artifact(object):
     # Initialization flag to prevent recursive getattr / setattr errors.
     self._initialized = True
 
-  def _get_artifact_type(self) -> str:
+  @classmethod
+  def get_artifact_type(cls) -> str:
     """Gets the instance_schema according to the Python schema spec."""
-    title = _KFP_ARTIFACT_TITLE_PATTERN.format(self.TYPE_NAME)
-    schema_map = {}
-    for k, v in self.PROPERTIES.items():
-      schema_map[k] = {
-          'type': v.get_type_name(),
-          'description': v.description
-      }
+    title = _KFP_ARTIFACT_TITLE_PATTERN.format(cls.TYPE_NAME)
+    schema_map = None
+    if cls.PROPERTIES:
+      schema_map = {}
+      for k, v in cls.PROPERTIES.items():
+        schema_map[k] = {
+            'type': v.get_type_name(),
+            'description': v.description
+        }
     result_map = {
         'title': title,
         'type': 'object',
         'properties': schema_map
     }
-    return yaml.safe_dump(result_map)
+    return serialization_utils.yaml_dump(result_map)
 
   @property
   def type_schema(self) -> str:
+    """Gets the instance_schema specified for this Artifact object."""
     return self._type_schema
 
   def __repr__(self) -> str:
@@ -177,10 +185,11 @@ class Artifact(object):
     if name == '_artifact_type':
       # Prevent infinite recursion when used with copy.deepcopy().
       raise AttributeError()
-    if name not in self.PROPERTIES:
+    properties = self.PROPERTIES or {}
+    if name not in properties:
       raise AttributeError(
           '%s artifact has no property %r.' % (self.TYPE_NAME, name))
-    property_type = self.PROPERTIES[name].type
+    property_type = properties[name].type
     if property_type == PropertyType.STRING:
       if name not in self._artifact.properties:
         # Avoid populating empty property protobuf with the [] operator.
@@ -205,7 +214,8 @@ class Artifact(object):
     if not self._initialized:
       object.__setattr__(self, name, value)
       return
-    if name not in self.PROPERTIES:
+    properties = self.PROPERTIES or {}
+    if name not in properties:
       if (name in self.__dict__ or
           any(name in c.__dict__ for c in self.__class__.mro())):
         # Use any provided getter / setter if available.
@@ -217,7 +227,7 @@ class Artifact(object):
       # defined in the Artifact PROPERTIES dictionary.
       raise AttributeError('Cannot set unknown property %r on artifact %r.' %
                            (name, self))
-    property_type = self.PROPERTIES[name].type
+    property_type = properties[name].type
     if property_type == PropertyType.STRING:
       if not isinstance(value, str):
         raise Exception(
@@ -312,7 +322,7 @@ class Artifact(object):
     artifact = pipeline_spec_pb2.RuntimeArtifact()
     json_format.Parse(data, artifact, ignore_unknown_fields=True)
     instance_schema = yaml.safe_load(artifact.type.instance_schema)
-    type_name = instance_schema['title'][len('kfp.')]
+    type_name = instance_schema['title'][len('kfp.'):]
     result = None
     try:
       artifact_cls = getattr(

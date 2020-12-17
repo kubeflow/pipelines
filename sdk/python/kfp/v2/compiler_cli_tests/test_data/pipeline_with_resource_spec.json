@@ -16,14 +16,9 @@
         },
         "outputs": {
           "artifacts": {
-            "schema": {
-              "artifactType": {
-                "instanceSchema": "title: kfp.Schema\ntype: object\nproperties:\n"
-              }
-            },
             "examples": {
               "artifactType": {
-                "instanceSchema": "title: kfp.Dataset\ntype: object\nproperties:\n"
+                "instanceSchema": "properties:\ntitle: kfp.Dataset\ntype: object\n"
               }
             }
           }
@@ -33,14 +28,9 @@
       {
         "outputs": {
           "artifacts": {
-            "metrics": {
-              "artifactType": {
-                "instanceSchema": "title: kfp.Metrics\ntype: object\nproperties:\n"
-              }
-            },
             "model": {
               "artifactType": {
-                "instanceSchema": "title: kfp.Model\ntype: object\nproperties:\n"
+                "instanceSchema": "properties:\ntitle: kfp.Model\ntype: object\n"
               }
             }
           }
@@ -51,10 +41,6 @@
         "executorLabel": "Trainer",
         "inputs": {
           "artifacts": {
-            "schema": {
-              "producerTask": "Ingestion",
-              "outputArtifactKey": "schema"
-            },
             "examples": {
               "outputArtifactKey": "examples",
               "producerTask": "Ingestion"
@@ -85,9 +71,7 @@
               "--input-location",
               "{{$.inputs.parameters['input_location']}}",
               "--output-examples",
-              "{{$.outputs.artifacts['examples'].uri}}",
-              "--output-schema",
-              "{{$.outputs.artifacts['schema'].uri}}"
+              "{{$.outputs.artifacts['examples'].uri}}"
             ]
           }
         },
@@ -96,16 +80,12 @@
             "args": [
               "--input-examples",
               "{{$.inputs.artifacts['examples'].uri}}",
-              "--input-schema",
-              "{{$.inputs.artifacts['schema'].uri}}",
               "--optimizer",
               "{{$.inputs.parameters['optimizer']}}",
               "--n_epochs",
               "{{$.inputs.parameters['n_epochs']}}",
               "--output-model",
-              "{{$.outputs.artifacts['model'].uri}}",
-              "--output-metrics",
-              "{{$.outputs.artifacts['metrics'].uri}}"
+              "{{$.outputs.artifacts['model'].uri}}"
             ],
             "resources": {
               "accelerator": {

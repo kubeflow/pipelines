@@ -17,41 +17,16 @@ import textwrap
 from typing import List, Optional
 from kfp.components import structures
 from kfp.pipeline_spec import pipeline_spec_pb2
+from kfp.v2.dsl import artifact
+from kfp.v2.dsl import ontology_artifacts
 
 # ComponentSpec I/O types to (IR) PipelineTaskSpec I/O types mapping.
 # The keys are normalized (lowercased). These are types viewed as Artifacts.
-# The values are the corresponding IR artifact type schemas.
-_GENERIC_ARTIFACT_TYPE = textwrap.dedent("""\
-        title: kfp.Artifact
-        type: object
-        properties:
-    """)
+# The values are the corresponding IR artifact ontology types.
 
 _ARTIFACT_TYPES_MAPPING = {
-    'model':
-        textwrap.dedent("""\
-        title: kfp.Model
-        type: object
-        properties:
-    """),
-    'dataset':
-        textwrap.dedent("""\
-        title: kfp.Dataset
-        type: object
-        properties:
-    """),
-    'metrics':
-        textwrap.dedent("""\
-        title: kfp.Metrics
-        type: object
-        properties:
-    """),
-    'schema':
-        textwrap.dedent("""\
-        title: kfp.Schema
-        type: object
-        properties:
-    """)
+    'model': ontology_artifacts.Model.get_artifact_type(),
+    'dataset': ontology_artifacts.Dataset.get_artifact_type(),
 }
 
 # ComponentSpec I/O types to (IR) PipelineTaskSpec I/O types mapping.
@@ -94,9 +69,9 @@ def get_artifact_type_schema(type_name: str) -> str:
   """
   if isinstance(type_name, str):
     return _ARTIFACT_TYPES_MAPPING.get(type_name.lower(),
-                                       _GENERIC_ARTIFACT_TYPE)
+                                       artifact.Artifact.get_artifact_type())
   else:
-    return _GENERIC_ARTIFACT_TYPE
+    return artifact.Artifact.get_artifact_type()
 
 
 def get_parameter_type(

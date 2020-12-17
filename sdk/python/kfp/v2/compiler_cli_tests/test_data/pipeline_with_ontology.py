@@ -35,7 +35,6 @@ def my_pipeline(input_location='gs://test-bucket/pipeline_root',
   ingestor = ingestion_op(input_location=input_location)
   _ = training_op(
       examples=ingestor.outputs['examples'],
-      schema=ingestor.outputs['schema'],
       optimizer=optimizer,
       n_epochs=n_epochs)
 
