@@ -311,7 +311,10 @@ class Client(object):
       try:
         response = self._healthz_api.get_healthz()
         return response
-      except Exception:
+      # ApiException, including network errors, is the only type that may
+      # recover after retry.
+      except kfp_server_api.ApiException:
+        # logging.exception also logs detailed info about the ApiException
         logging.exception('Failed to get healthz info attempt {} of 5.'.format(count))
         time.sleep(5)
 
