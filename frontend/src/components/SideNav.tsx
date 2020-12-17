@@ -564,7 +564,8 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
     return (
       page.startsWith(RoutePage.RUNS) ||
       page.startsWith(RoutePrefix.RECURRING_RUN) ||
-      page.startsWith(RoutePage.COMPARE)
+      page.startsWith(RoutePage.COMPARE) ||
+      page === RoutePage.ARCHIVED_RUNS
     );
   }
 

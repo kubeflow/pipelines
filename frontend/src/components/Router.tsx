@@ -28,6 +28,7 @@ import ExecutionList from '../pages/ExecutionList';
 import ExecutionDetails from '../pages/ExecutionDetails';
 import ExperimentDetails from '../pages/ExperimentDetails';
 import ExperimentsAndRuns, { ExperimentsAndRunsTab } from '../pages/ExperimentsAndRuns';
+import AllRunsAndArchive, {AllRunsAndArchiveTab} from "../pages/AllRunsAndArchive";
 import ArchivedExperimentsAndRuns, {
   ArchivedExperimentsAndRunsTab,
 } from '../pages/ArchivedExperimentsAndRuns';
@@ -159,9 +160,9 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
   const routes: RouteConfig[] = configs || [
     { path: RoutePage.START, Component: GettingStarted },
     {
-      Component: ArchivedExperimentsAndRuns,
+      Component: AllRunsAndArchive,
       path: RoutePage.ARCHIVED_RUNS,
-      view: ArchivedExperimentsAndRunsTab.RUNS,
+      view: AllRunsAndArchiveTab.ARCHIVE,
     },
     {
       Component: ArchivedExperimentsAndRuns,
@@ -184,7 +185,7 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
     { path: RoutePage.PIPELINES, Component: PipelineList },
     { path: RoutePage.PIPELINE_DETAILS, Component: PipelineDetails },
     { path: RoutePage.PIPELINE_DETAILS_NO_VERSION, Component: PipelineDetails },
-    { path: RoutePage.RUNS, Component: ExperimentsAndRuns, view: ExperimentsAndRunsTab.RUNS },
+    { path: RoutePage.RUNS, Component: AllRunsAndArchive, view: AllRunsAndArchiveTab.RUNS },
     { path: RoutePage.RECURRING_RUN, Component: RecurringRunDetails },
     { path: RoutePage.RUN_DETAILS, Component: RunDetails },
     { path: RoutePage.COMPARE, Component: Compare },
