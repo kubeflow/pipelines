@@ -31,7 +31,7 @@ REQUIRES = [
     # Update the lower version when kfp sdk depends on new apis/fields in
     # kfp-server-api.
     # Note, please also update ./requirements.in
-    'kfp-server-api>=1.1.1b1, <2.0.0',
+    'kfp-server-api>=1.1.2, <2.0.0',
     'jsonschema >= 3.0.1',
     'tabulate',
     'click',
