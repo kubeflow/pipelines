@@ -22,7 +22,7 @@
           "artifacts": {
             "output_gcs_path": {
               "artifactType": {
-                "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
+                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
               }
             }
           }
