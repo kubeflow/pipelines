@@ -24,6 +24,7 @@ import JupyterhubIcon from '@material-ui/icons/Code';
 import DescriptionIcon from '@material-ui/icons/Description';
 import OpenInNewIcon from '@material-ui/icons/OpenInNew';
 import ExecutionsIcon from '@material-ui/icons/PlayArrow';
+import DirectionsRun from '@material-ui/icons/DirectionsRun';
 import * as React from 'react';
 import { RouterProps } from 'react-router';
 import { Link } from 'react-router-dom';
@@ -369,6 +370,33 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
           <div
             className={classes(
               css.indicator,
+              !this._highlightRunsButton(page) && css.indicatorHidden,
+            )}
+          />
+          <Tooltip
+            title={'Runs List'}
+            enterDelay={300}
+            placement={'right-start'}
+            disableFocusListener={!collapsed}
+            disableHoverListener={!collapsed}
+            disableTouchListener={!collapsed}
+          >
+            <Link id='experimentsBtn' to={RoutePage.RUNS} className={commonCss.unstyled}>
+              <Button
+                className={classes(
+                  css.button,
+                  this._highlightRunsButton(page) && css.active,
+                  collapsed && css.collapsedButton,
+                )}
+              >
+                <DirectionsRun />
+                <span className={classes(collapsed && css.collapsedLabel, css.label)}>Runs</span>
+              </Button>
+            </Link>
+          </Tooltip>
+          <div
+            className={classes(
+              css.indicator,
               !this._highlightArtifactsButton(page) && css.indicatorHidden,
             )}
           />
@@ -560,8 +588,11 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
   }
 
   private _highlightExperimentsButton(page: string): boolean {
+    return page.startsWith(RoutePage.EXPERIMENTS);
+  }
+
+  private _highlightRunsButton(page: string): boolean {
     return (
-      page.startsWith(RoutePage.EXPERIMENTS) ||
       page.startsWith(RoutePage.RUNS) ||
       page.startsWith(RoutePrefix.RECURRING_RUN) ||
       page.startsWith(RoutePage.COMPARE)
