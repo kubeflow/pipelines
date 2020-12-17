@@ -216,9 +216,25 @@ func ValidateExperimentResourceReference(resourceManager *resource.ResourceManag
 	return nil
 }
 
+func validatePipelineSpecAndCheckPipelineVersionReference(resourceManager *resource.ResourceManager, spec *api.PipelineSpec, resourceReferences []*api.ResourceReference) error {
+	pipelineVersionId, err := CheckPipelineVersionReference(resourceManager, resourceReferences)
+	if err != nil {
+		return err
+	}
+	if (spec == nil || (spec.GetPipelineId() == "" && spec.GetWorkflowManifest() == "")) && pipelineVersionId == "" {
+		return util.NewInvalidInputError("Please specify a pipeline by providing a pipeline spec or/and pipeline version.")
+	}
+	if spec != nil && spec.GetWorkflowManifest() != "" && pipelineVersionId != "" {
+		return util.NewInvalidInputError("Please either specify a pipeline version or a workflow manifest, not both.")
+	}
+	if err := ValidatePipelineSpec(resourceManager, spec); err != nil {
+		return err
+	}
+	return nil
+}
 func ValidatePipelineSpec(resourceManager *resource.ResourceManager, spec *api.PipelineSpec) error {
 	if spec == nil || (spec.GetPipelineId() == "" && spec.GetWorkflowManifest() == "") {
-		return util.NewInvalidInputError("Please specify a pipeline by providing a pipeline ID or workflow manifest.")
+		return nil
 	}
 	if spec.GetPipelineId() != "" && spec.GetWorkflowManifest() != "" {
 		return util.NewInvalidInputError("Please either specify a pipeline ID or a workflow manifest, not both.")
@@ -253,11 +269,7 @@ func ValidatePipelineSpec(resourceManager *resource.ResourceManager, spec *api.P
 // (1) a pipeline version is specified in references as a creator.
 // (2) the above pipeline version does exists in pipeline version store and is
 // in ready status.
-func CheckPipelineVersionReference(resourceManager *resource.ResourceManager, references []*api.ResourceReference) (*string, error) {
-	if references == nil {
-		return nil, util.NewInvalidInputError("Please specify a pipeline version in Run's resource references")
-	}
-
+func CheckPipelineVersionReference(resourceManager *resource.ResourceManager, references []*api.ResourceReference) (string, error) {
 	var pipelineVersionId = ""
 	for _, reference := range references {
 		if reference.Key.Type == api.ResourceType_PIPELINE_VERSION && reference.Relationship == api.Relationship_CREATOR {
@@ -265,15 +277,15 @@ func CheckPipelineVersionReference(resourceManager *resource.ResourceManager, re
 		}
 	}
 	if len(pipelineVersionId) == 0 {
-		return nil, util.NewInvalidInputError("Please specify a pipeline version in Run's resource references")
+		return pipelineVersionId, nil
 	}
 
 	// Verify pipeline version exists
 	if _, err := resourceManager.GetPipelineVersion(pipelineVersionId); err != nil {
-		return nil, util.Wrap(err, "Please specify a  valid pipeline version in Run's resource references.")
+		return pipelineVersionId, util.Wrap(err, "Pipeline version not found.")
 	}
 
-	return &pipelineVersionId, nil
+	return pipelineVersionId, nil
 }
 
 func getUserIdentityFromHeader(userIdentityHeader, prefix string) (string, error) {

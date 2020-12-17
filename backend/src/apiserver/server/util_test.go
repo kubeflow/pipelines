@@ -290,8 +290,7 @@ func TestValidatePipelineSpec_EmptySpec(t *testing.T) {
 	defer clients.Close()
 	spec := &api.PipelineSpec{}
 	err := ValidatePipelineSpec(manager, spec)
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Please specify a pipeline by providing a pipeline ID or workflow manifest")
+	assert.Nil(t, err)
 }
 
 func TestValidatePipelineSpec_MoreThanOneSpec(t *testing.T) {
@@ -334,6 +333,92 @@ func TestValidatePipelineSpec_ParameterTooLong(t *testing.T) {
 	err := ValidatePipelineSpec(manager, spec)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "The input parameter length exceed maximum size")
+}
+
+func TestCheckPipelineVersionReference_PipelineVersionReference(t *testing.T) {
+	clients, manager, pipeline := initWithPipeline(t)
+	defer clients.Close()
+	resourceReferences := []*api.ResourceReference{
+		{
+			Key:          &api.ResourceKey{Type: api.ResourceType_PIPELINE_VERSION, Id: pipeline.DefaultVersionId},
+			Relationship: api.Relationship_CREATOR,
+		},
+	}
+	pipelineVersionId, err := CheckPipelineVersionReference(manager, resourceReferences)
+	assert.Equal(t, pipeline.DefaultVersionId, pipelineVersionId)
+	assert.Nil(t, err)
+}
+
+func TestCheckPipelineVersionReference_NilResourceReferences(t *testing.T) {
+	clients, manager, _ := initWithPipeline(t)
+	defer clients.Close()
+	var resourceReferences []*api.ResourceReference = nil
+	pipelineVersionId, err := CheckPipelineVersionReference(manager, resourceReferences)
+	assert.Equal(t, "", pipelineVersionId)
+	assert.Nil(t, err)
+}
+func TestCheckPipelineVersionReference_EmptyResourceReferences(t *testing.T) {
+	clients, manager, _ := initWithPipeline(t)
+	defer clients.Close()
+	resourceReferences := make([]*api.ResourceReference, 0)
+	pipelineVersionId, err := CheckPipelineVersionReference(manager, resourceReferences)
+	assert.Equal(t, "", pipelineVersionId)
+	assert.Nil(t, err)
+}
+
+func TestCheckPipelineVersionReference_PipelineVersionNotFound(t *testing.T) {
+	clients, manager, _ := initWithPipeline(t)
+	defer clients.Close()
+	pipelineVersionId, err := CheckPipelineVersionReference(manager, referencesOfInvalidPipelineVersion)
+	assert.Equal(t, invalidPipelineVersionId, pipelineVersionId)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Pipeline version not found")
+}
+
+func TestValidatePipelineSpecAndCheckPipelineVersionReference_InvalidPipelineVersionReference(t *testing.T) {
+	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	defer clients.Close()
+	err := validatePipelineSpecAndCheckPipelineVersionReference(manager, nil, referencesOfInvalidPipelineVersion)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Pipeline version not found.")
+}
+
+func TestValidatePipelineSpecAndCheckPipelineVersionReference_NilPipelineSpecAndEmptyPipelineVersion(t *testing.T) {
+	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	defer clients.Close()
+	err := validatePipelineSpecAndCheckPipelineVersionReference(manager, nil, validReference)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Please specify a pipeline by providing a pipeline spec or/and pipeline version.")
+}
+
+func TestValidatePipelineSpecAndCheckPipelineVersionReference_EmptyPipelineSpecAndEmptyPipelineVersion(t *testing.T) {
+	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	defer clients.Close()
+	spec := &api.PipelineSpec{}
+	err := validatePipelineSpecAndCheckPipelineVersionReference(manager, spec, validReference)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Please specify a pipeline by providing a pipeline spec or/and pipeline version.")
+}
+
+func TestValidatePipelineSpecAndCheckPipelineVersionReference_WorkflowManifestAndPipelineVersion(t *testing.T) {
+	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	defer clients.Close()
+	spec := &api.PipelineSpec{
+		WorkflowManifest: testWorkflow.ToStringForStore()}
+	err := validatePipelineSpecAndCheckPipelineVersionReference(manager, spec, validReferencesOfExperimentAndPipelineVersion)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Please either specify a pipeline version or a workflow manifest, not both.")
+}
+
+func TestValidatePipelineSpecAndCheckPipelineVersionReference_InvalidPipelineSpec(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	spec := &api.PipelineSpec{
+		PipelineId:       resource.DefaultFakeUUID,
+		WorkflowManifest: testWorkflow.ToStringForStore()}
+	err := validatePipelineSpecAndCheckPipelineVersionReference(manager, spec, validReference)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Please either specify a pipeline ID or a workflow manifest, not both.")
 }
 
 func TestGetUserIdentity(t *testing.T) {

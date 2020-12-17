@@ -33,6 +33,10 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	invalidPipelineVersionId = "not_exist_pipeline"
+)
+
 var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
 	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow1", Namespace: "ns1"},
@@ -72,6 +76,27 @@ var validReferencesOfExperimentAndPipelineVersion = []*api.ResourceReference{
 			Type: api.ResourceType_PIPELINE_VERSION,
 			Id:   resource.DefaultFakeUUID,
 		},
+		Relationship: api.Relationship_CREATOR,
+	},
+}
+
+var referencesOfExperimentAndInvalidPipelineVersion = []*api.ResourceReference{
+	{
+		Key: &api.ResourceKey{
+			Type: api.ResourceType_EXPERIMENT,
+			Id:   resource.DefaultFakeUUID,
+		},
+		Relationship: api.Relationship_OWNER,
+	},
+	{
+		Key:          &api.ResourceKey{Type: api.ResourceType_PIPELINE_VERSION, Id: invalidPipelineVersionId},
+		Relationship: api.Relationship_CREATOR,
+	},
+}
+
+var referencesOfInvalidPipelineVersion = []*api.ResourceReference{
+	{
+		Key:          &api.ResourceKey{Type: api.ResourceType_PIPELINE_VERSION, Id: invalidPipelineVersionId},
 		Relationship: api.Relationship_CREATOR,
 	},
 }
