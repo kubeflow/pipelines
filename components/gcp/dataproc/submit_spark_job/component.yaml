@@ -76,7 +76,7 @@ outputs:
     type: UI metadata
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:fe6a10a4466f1e046b6b742652180c32795445f6
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:1.1.2
     args: [
       --ui_metadata_path, {outputPath: MLPipeline UI metadata},
       kfp_component.google.dataproc, submit_spark_job,

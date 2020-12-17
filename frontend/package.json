@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@kubeflow/frontend": "github:kubeflow/frontend#652270bd31291d106bfffca5e7627e4cfdd4266f",
+    "@kubeflow/frontend": "github:kubeflow/frontend#61966eefef771f6ae88dbbb090ffde24f6e5def0",
     "@material-ui/core": "3.7.1",
     "@material-ui/icons": "^3.0.1",
     "brace": "^0.11.1",

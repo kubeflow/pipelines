@@ -11,6 +11,7 @@ go_library(
     visibility = ["//visibility:private"],
     deps = [
         "//backend/api:go_default_library",
+        "//backend/src/apiserver/archive:go_default_library",
         "//backend/src/apiserver/client:go_default_library",
         "//backend/src/apiserver/common:go_default_library",
         "//backend/src/apiserver/model:go_default_library",
@@ -21,6 +22,7 @@ go_library(
         "@com_github_cenkalti_backoff//:go_default_library",
         "@com_github_fsnotify_fsnotify//:go_default_library",
         "@com_github_golang_glog//:go_default_library",
+        "@com_github_gorilla_mux//:go_default_library",
         "@com_github_grpc_ecosystem_grpc_gateway//runtime:go_default_library",
         "@com_github_jinzhu_gorm//:go_default_library",
         "@com_github_jinzhu_gorm//dialects/sqlite:go_default_library",

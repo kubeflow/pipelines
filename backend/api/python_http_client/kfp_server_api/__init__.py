@@ -28,10 +28,11 @@
 
 from __future__ import absolute_import
 
-__version__ = "1.0.1"
+__version__ = "1.1.2"
 
 # import apis into sdk package
 from kfp_server_api.api.experiment_service_api import ExperimentServiceApi
+from kfp_server_api.api.healthz_service_api import HealthzServiceApi
 from kfp_server_api.api.job_service_api import JobServiceApi
 from kfp_server_api.api.pipeline_service_api import PipelineServiceApi
 from kfp_server_api.api.pipeline_upload_service_api import PipelineUploadServiceApi
@@ -48,6 +49,7 @@ from kfp_server_api.exceptions import ApiException
 # import models into sdk package
 from kfp_server_api.models.api_cron_schedule import ApiCronSchedule
 from kfp_server_api.models.api_experiment import ApiExperiment
+from kfp_server_api.models.api_get_healthz_response import ApiGetHealthzResponse
 from kfp_server_api.models.api_get_template_response import ApiGetTemplateResponse
 from kfp_server_api.models.api_job import ApiJob
 from kfp_server_api.models.api_list_experiments_response import ApiListExperimentsResponse

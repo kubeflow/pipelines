@@ -1,0 +1,109 @@
+name: RoboMaker - Create Simulation Job
+description: Creates a simulation job.
+inputs:
+- {name: region, type: String, description: The region for the SageMaker resource.}
+- {name: endpoint_url, type: String, description: The URL to use when communicating
+    with the SageMaker service., default: ''}
+- {name: assume_role, type: String, description: The ARN of an IAM role to assume
+    when connecting to SageMaker., default: ''}
+- {name: tags, type: JsonObject, description: 'An array of key-value pairs, to categorize
+    AWS resources.', default: '{}'}
+- {name: role, type: String, description: The Amazon Resource Name (ARN) that Amazon
+    RoboMaker assumes to perform tasks on your behalf.}
+- {name: output_bucket, type: String, description: The bucket to place outputs from
+    the simulation job., default: ''}
+- {name: output_path, type: String, description: The S3 key where outputs from the
+    simulation job are placed., default: ''}
+- {name: max_run, type: Integer, description: 'Timeout in seconds for simulation job
+    (default: 8 * 60 * 60).', default: '28800'}
+- {name: failure_behavior, type: String, description: The failure behavior the simulation
+    job (Continue|Fail)., default: Fail}
+- {name: sim_app_arn, type: String, description: The application ARN for the simulation
+    application., default: ''}
+- {name: sim_app_version, type: String, description: The application version for the
+    simulation application., default: ''}
+- {name: sim_app_launch_config, type: JsonObject, description: The launch configuration
+    for the simulation application., default: '{}'}
+- {name: sim_app_world_config, type: JsonArray, description: A list of world configurations.,
+  default: '[]'}
+- {name: robot_app_arn, type: String, description: The application ARN for the robot
+    application., default: ''}
+- {name: robot_app_version, type: String, description: The application version for
+    the robot application., default: ''}
+- {name: robot_app_launch_config, type: JsonObject, description: The launch configuration
+    for the robot application., default: '{}'}
+- {name: data_sources, type: JsonArray, description: Specify data sources to mount
+    read-only files from S3 into your simulation., default: '[]'}
+- {name: vpc_security_group_ids, type: JsonArray, description: 'The VPC security group
+    IDs, in the form sg-xxxxxxxx.', default: '[]'}
+- {name: vpc_subnets, type: JsonArray, description: The ID of the subnets in the VPC
+    to which you want to connect your simulation job., default: '[]'}
+- name: use_public_ip
+  type: Bool
+  description: A boolean indicating whether to assign a public IP address.
+  default: "False"
+- {name: sim_unit_limit, type: Integer, description: The simulation unit limit., default: '15'}
+- name: record_ros_topics
+  type: Bool
+  description: A boolean indicating whether to record all ROS topics. Used for logging.
+  default: "False"
+outputs:
+- {name: arn, description: The Amazon Resource Name (ARN) of the simulation job.}
+- {name: output_artifacts, description: The simulation job artifacts URL.}
+- {name: job_id, description: The simulation job id.}
+implementation:
+  container:
+    image: amazon/aws-sagemaker-kfp-components:1.1.0
+    command: [python3]
+    args:
+    - simulation_job/src/robomaker_simulation_job_component.py
+    - --region
+    - {inputValue: region}
+    - --endpoint_url
+    - {inputValue: endpoint_url}
+    - --assume_role
+    - {inputValue: assume_role}
+    - --tags
+    - {inputValue: tags}
+    - --role
+    - {inputValue: role}
+    - --output_bucket
+    - {inputValue: output_bucket}
+    - --output_path
+    - {inputValue: output_path}
+    - --max_run
+    - {inputValue: max_run}
+    - --failure_behavior
+    - {inputValue: failure_behavior}
+    - --sim_app_arn
+    - {inputValue: sim_app_arn}
+    - --sim_app_version
+    - {inputValue: sim_app_version}
+    - --sim_app_launch_config
+    - {inputValue: sim_app_launch_config}
+    - --sim_app_world_config
+    - {inputValue: sim_app_world_config}
+    - --robot_app_arn
+    - {inputValue: robot_app_arn}
+    - --robot_app_version
+    - {inputValue: robot_app_version}
+    - --robot_app_launch_config
+    - {inputValue: robot_app_launch_config}
+    - --data_sources
+    - {inputValue: data_sources}
+    - --vpc_security_group_ids
+    - {inputValue: vpc_security_group_ids}
+    - --vpc_subnets
+    - {inputValue: vpc_subnets}
+    - --use_public_ip
+    - {inputValue: use_public_ip}
+    - --sim_unit_limit
+    - {inputValue: sim_unit_limit}
+    - --record_ros_topics
+    - {inputValue: record_ros_topics}
+    - --arn_output_path
+    - {outputPath: arn}
+    - --output_artifacts_output_path
+    - {outputPath: output_artifacts}
+    - --job_id_output_path
+    - {outputPath: job_id}

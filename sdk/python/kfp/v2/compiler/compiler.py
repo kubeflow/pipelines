@@ -19,15 +19,16 @@ https://docs.google.com/document/d/1PUDuSQ8vmeKSBloli53mp7GIvzekaY7sggg6ywy35Dk/
 """
 
 import inspect
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, List, Mapping, Optional
 
 import kfp
 from kfp.compiler._k8s_helper import sanitize_k8s_name
-from kfp.components import _python_op
 from kfp.v2 import dsl
-from kfp.v2.compiler import importer_node
+from kfp.v2.compiler import compiler_utils
+from kfp.v2.components import python_op
+from kfp.v2.dsl import importer_node
 from kfp.v2.dsl import type_utils
-from kfp.v2.proto import pipeline_spec_pb2
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 from google.protobuf import json_format
 
@@ -72,34 +73,14 @@ class Compiler(object):
     Raises:
       NotImplementedError if the argument is of unsupported types.
     """
-    pipeline_spec = pipeline_spec_pb2.PipelineSpec()
-    if not pipeline.name:
-      raise ValueError('Pipeline name is required.')
+    compiler_utils.validate_pipeline_name(pipeline.name)
+
+    pipeline_spec = pipeline_spec_pb2.PipelineSpec(
+        runtime_parameters=compiler_utils.build_runtime_parameter_spec(args))
+
     pipeline_spec.pipeline_info.name = pipeline.name
     pipeline_spec.sdk_version = 'kfp-{}'.format(kfp.__version__)
     pipeline_spec.schema_version = 'v2alpha1'
-
-    # Pipeline Parameters
-    for arg in args:
-      if arg.value is not None:
-        if isinstance(arg.value, int):
-          pipeline_spec.runtime_parameters[
-              arg.name].type = pipeline_spec_pb2.PrimitiveType.INT
-          pipeline_spec.runtime_parameters[
-              arg.name].default_value.int_value = arg.value
-        elif isinstance(arg.value, float):
-          pipeline_spec.runtime_parameters[
-              arg.name].type = pipeline_spec_pb2.PrimitiveType.DOUBLE
-          pipeline_spec.runtime_parameters[
-              arg.name].default_value.double_value = arg.value
-        elif isinstance(arg.value, str):
-          pipeline_spec.runtime_parameters[
-              arg.name].type = pipeline_spec_pb2.PrimitiveType.STRING
-          pipeline_spec.runtime_parameters[
-              arg.name].default_value.string_value = arg.value
-        else:
-          raise NotImplementedError(
-              'Unexpected parameter type with: "{}".'.format(str(arg.value)))
 
     deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
     importer_tasks = []
@@ -111,14 +92,21 @@ class Compiler(object):
       deployment_config.executors[task.executor_label].container.CopyFrom(
           op.container_spec)
 
+      # A task may have explicit depdency on other tasks even though they may
+      # not have inputs/outputs dependency. e.g.: op2.after(op1)
+      if op.dependent_names:
+        task.dependent_tasks.extend(op.dependent_names)
+
       # Check if need to insert importer node
       for input_name in task.inputs.artifacts:
         if not task.inputs.artifacts[input_name].producer_task:
-          artifact_type = type_utils.get_input_artifact_type_schema(
+          type_schema = type_utils.get_input_artifact_type_schema(
               input_name, component_spec.inputs)
 
-          importer_task, importer_spec = importer_node.build_importer_spec(
-              task, input_name, artifact_type)
+          importer_task = importer_node.build_importer_task_spec(
+              dependent_task=task,
+              input_name=input_name,
+              input_type_schema=type_schema)
           importer_tasks.append(importer_task)
 
           task.inputs.artifacts[
@@ -126,6 +114,8 @@ class Compiler(object):
           task.inputs.artifacts[
               input_name].output_artifact_key = importer_node.OUTPUT_KEY
 
+          # Retrieve the pre-built importer spec
+          importer_spec = op.importer_spec[input_name]
           deployment_config.executors[
               importer_task.executor_label].importer.CopyFrom(importer_spec)
 
@@ -151,7 +141,7 @@ class Compiler(object):
 
     # Create the arg list with no default values and call pipeline function.
     # Assign type information to the PipelineParam
-    pipeline_meta = _python_op._extract_component_interface(pipeline_func)
+    pipeline_meta = python_op._extract_component_interface(pipeline_func)
     pipeline_name = pipeline_name or pipeline_meta.name
 
     args_list = []
@@ -175,6 +165,7 @@ class Compiler(object):
       args_list_with_defaults = [
           dsl.PipelineParam(
               sanitize_k8s_name(input_spec.name, True),
+              param_type=input_spec.type,
               value=input_spec.default) for input_spec in pipeline_meta.inputs
       ]
 
@@ -185,41 +176,72 @@ class Compiler(object):
 
     return pipeline_spec
 
+  def _create_pipeline_job(
+      self,
+      pipeline_spec: pipeline_spec_pb2.PipelineSpec,
+      pipeline_root: str,
+      pipeline_parameters: Optional[Mapping[str, Any]] = None,
+  ) -> pipeline_spec_pb2.PipelineJob:
+    """Creates the pipeline job spec object.
+
+    Args:
+      pipeline_spec: The pipeline spec object.
+      pipeline_root: The root of the pipeline outputs.
+      pipeline_parameters: The mapping from parameter names to values. Optional.
+
+    Returns:
+      A PipelineJob proto representing the compiled pipeline.
+    """
+    runtime_config = compiler_utils.build_runtime_config_spec(
+        pipeline_root=pipeline_root)
+    pipeline_job = pipeline_spec_pb2.PipelineJob(runtime_config=runtime_config)
+    pipeline_job.pipeline_spec.update(json_format.MessageToDict(pipeline_spec))
+
+    return pipeline_job
+
   def compile(self,
               pipeline_func: Callable[..., Any],
+              pipeline_root: str,
               output_path: str,
-              type_check: bool = True,
-              pipeline_name: str = None) -> None:
-    """Compile the given pipeline function into workflow yaml.
+              pipeline_name: Optional[str] = None,
+              pipeline_parameters: Optional[Mapping[str, Any]] = None,
+              type_check: bool = True) -> None:
+    """Compile the given pipeline function into pipeline job json.
 
     Args:
       pipeline_func: Pipeline function with @dsl.pipeline decorator.
+      pipeline_root: The root of the pipeline ouputs.
       output_path: The output pipeline spec .json file path. for example,
         "~/a.json"
-      type_check: Whether to enable the type check or not, default: True.
       pipeline_name: The name of the pipeline. Optional.
+      pipeline_parameters: The mapping from parameter names to values. Optional.
+      type_check: Whether to enable the type check or not, default: True.
     """
     type_check_old_value = kfp.TYPE_CHECK
     try:
       kfp.TYPE_CHECK = type_check
       pipeline = self._create_pipeline(pipeline_func, pipeline_name)
-      self._write_pipeline(pipeline, output_path)
+      pipeline_job = self._create_pipeline_job(
+          pipeline_spec=pipeline,
+          pipeline_root=pipeline_root,
+          pipeline_parameters=pipeline_parameters)
+      self._write_pipeline(pipeline_job, output_path)
     finally:
       kfp.TYPE_CHECK = type_check_old_value
 
-  def _write_pipeline(self, pipeline_spec: pipeline_spec_pb2.PipelineSpec,
+  def _write_pipeline(self, pipeline_job: pipeline_spec_pb2.PipelineJob,
                       output_path: str) -> None:
     """Dump pipeline spec into json file.
 
     Args:
-      pipeline_spec: IR pipeline spec.
+      pipeline_job: IR pipeline job spec.
       ouput_path: The file path to be written.
 
     Raises:
       ValueError: if the specified output path doesn't end with the acceptable
       extentions.
     """
-    json_text = json_format.MessageToJson(pipeline_spec)
+    json_text = json_format.MessageToJson(pipeline_job)
 
     if output_path.endswith('.json'):
       with open(output_path, 'w') as json_file:

@@ -12,44 +12,39 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp
-from kfp import dsl
+from kfp.v2 import components
+from kfp.v2 import dsl
 import kfp.v2.compiler as compiler
 import pathlib
 
 test_data_dir = pathlib.Path(__file__).parent / 'component_yaml'
 
-ingestion_op = kfp.components.load_component_from_file(
-    str(test_data_dir / 'ingestion_component.yaml')
-)
+ingestion_op = components.load_component_from_file(
+    str(test_data_dir / 'ingestion_component.yaml'))
 
-training_op = kfp.components.load_component_from_file(
-    str(test_data_dir / 'fancy_trainer_component.yaml')
-)
+training_op = components.load_component_from_file(
+    str(test_data_dir / 'fancy_trainer_component.yaml'))
 
 
 @dsl.pipeline(
     name='two-step-pipeline-with-resource-spec',
-    description='A linear two-step pipeline with resource specification.'
-)
-def my_pipeline(
-    input_location='gs://test-bucket/pipeline_root',
-    optimizer: str = 'sgd',
-    n_epochs: int = 200
-):
+    description='A linear two-step pipeline with resource specification.')
+def my_pipeline(input_location='gs://test-bucket/pipeline_root',
+                optimizer: str = 'sgd',
+                n_epochs: int = 200):
   ingestor = ingestion_op(input_location=input_location)
-  _ = (training_op(
-      examples=ingestor.outputs['examples'],
-      schema=ingestor.outputs['schema'],
-      optimizer=optimizer,
-      n_epochs=n_epochs).
-       set_cpu_limit('4').
-       set_memory_limit('14Gi').
-       add_node_selector_constraint(
-      'cloud.google.com/gke-accelerator',
-      'tpu-v3').
-       set_gpu_limit(1))
+  _ = (
+      training_op(
+          examples=ingestor.outputs['examples'],
+          optimizer=optimizer,
+          n_epochs=n_epochs).set_cpu_limit('4').set_memory_limit(
+              '14Gi').add_node_selector_constraint(
+                  'cloud.google.com/gke-accelerator',
+                  'tpu-v3').set_gpu_limit(1))
 
 
 if __name__ == '__main__':
-  compiler.Compiler().compile(my_pipeline, __file__ + '.json')
+  compiler.Compiler().compile(
+      pipeline_func=my_pipeline,
+      pipeline_root='dummy_root',
+      output_path=__file__ + '.json')

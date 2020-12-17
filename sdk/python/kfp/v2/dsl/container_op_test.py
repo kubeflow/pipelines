@@ -15,7 +15,7 @@
 import unittest
 
 from kfp.v2.dsl import container_op
-from kfp.v2.proto import pipeline_spec_pb2
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 from google.protobuf import text_format
 from google.protobuf import json_format

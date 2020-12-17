@@ -12,6 +12,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//backend/api:go_default_library",
+        "//backend/src/apiserver/archive:go_default_library",
         "//backend/src/apiserver/client:go_default_library",
         "//backend/src/apiserver/common:go_default_library",
         "//backend/src/apiserver/list:go_default_library",
@@ -28,6 +29,8 @@ go_library(
         "@com_github_pkg_errors//:go_default_library",
         "@com_github_prometheus_client_golang//prometheus:go_default_library",
         "@com_github_prometheus_client_golang//prometheus/promauto:go_default_library",
+        "@io_k8s_api//authorization/v1:go_default_library",
+        "@io_k8s_api//core/v1:go_default_library",
         "@io_k8s_apimachinery//pkg/api/errors:go_default_library",
         "@io_k8s_apimachinery//pkg/apis/meta/v1:go_default_library",
         "@io_k8s_apimachinery//pkg/types:go_default_library",

@@ -30,6 +30,7 @@ from __future__ import absolute_import
 # import models into model package
 from kfp_server_api.models.api_cron_schedule import ApiCronSchedule
 from kfp_server_api.models.api_experiment import ApiExperiment
+from kfp_server_api.models.api_get_healthz_response import ApiGetHealthzResponse
 from kfp_server_api.models.api_get_template_response import ApiGetTemplateResponse
 from kfp_server_api.models.api_job import ApiJob
 from kfp_server_api.models.api_list_experiments_response import ApiListExperimentsResponse

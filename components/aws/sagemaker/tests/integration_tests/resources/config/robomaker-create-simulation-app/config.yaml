@@ -1,0 +1,16 @@
+PipelineDefinition: resources/definition/robomaker_create_simulation_app_pipeline.py
+TestName: robomaker-create-simulation-app-test
+Timeout: 300
+Arguments:
+  region: ((REGION))
+  app_name: robomaker-create-simulation-app-test
+  sources:
+    - s3Bucket: ((DATA_BUCKET))
+      s3Key: "robomaker/simulation_ws.tar"
+      architecture: "X86_64"
+  simulation_software_name: "Gazebo"
+  simulation_software_version: "9"
+  robot_software_name: "ROS"
+  robot_software_version: "Melodic"
+  rendering_engine_name: "OGRE"
+  rendering_engine_version: "1.x"

@@ -16,10 +16,10 @@
 import collections
 from typing import Any, Callable
 
-from kfp.components import _components
 from kfp.components import _naming
 from kfp.dsl import _container_op
 from kfp.dsl import _ops_group
+from kfp.v2.components import components
 from kfp.v2.dsl import component_bridge
 
 
@@ -78,8 +78,8 @@ class Pipeline():
 
     Pipeline._default_pipeline = self
     self._old_container_task_constructor = (
-        _components._container_task_constructor)
-    _components._container_task_constructor = (
+        components._container_task_constructor)
+    components._container_task_constructor = (
         component_bridge.create_container_op_from_component_and_arguments)
 
     def register_op_and_generate_id(op):
@@ -92,7 +92,7 @@ class Pipeline():
   def __exit__(self, *args):
     Pipeline._default_pipeline = None
     _container_op._register_op_handler = self._old__register_op_handler
-    _components._container_task_constructor = (
+    components._container_task_constructor = (
         self._old_container_task_constructor)
 
   def add_op(self, op: _container_op.BaseOp) -> str:

@@ -1,4 +1,4 @@
-# Copyright 2019 kubeflow.org.
+# Copyright 2020 The Kubeflow Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,123 +18,149 @@ from distutils.util import strtobool
 import json
 import os
 import logging
-import yaml
-import uuid
-import launch_crd
+import time
 
-from kubernetes import client as k8s_client
-from kubernetes import config
+from kubernetes.client import V1ObjectMeta
 
-def yamlOrJsonStr(str):
-    if str == "" or str == None:
-        return None
-    try:
-        return json.loads(str)
-    except:
-        return yaml.safe_load(str)
+from kubeflow.katib import KatibClient
+from kubeflow.katib import ApiClient
+from kubeflow.katib import V1beta1Experiment
 
-ExperimentGroup = "kubeflow.org"
-ExperimentPlural = "experiments"
+logger = logging.getLogger()
+logging.basicConfig(level=logging.INFO)
 
-class Experiment(launch_crd.K8sCR):
-  def __init__(self, version="v1alpha3", client=None):
-    super(Experiment, self).__init__(ExperimentGroup, ExperimentPlural, version, client)
+FINISH_CONDITIONS = ["Succeeded", "Failed"]
 
-  def is_expected_conditions(self, inst, expected_conditions):
-    conditions = inst.get('status', {}).get("conditions")
-    if not conditions:
-      return False, ""
-    if conditions[-1]["type"] in expected_conditions:
-      return True, conditions[-1]["type"]
+
+class JSONObject(object):
+    """ This class is needed to deserialize input JSON.
+    Katib API client expects JSON under .data attribute.
+    """
+
+    def __init__(self, json):
+        self.data = json
+
+
+def wait_experiment_finish(katib_client, experiment, timeout):
+    polling_interval = datetime.timedelta(seconds=30)
+    end_time = datetime.datetime.now() + datetime.timedelta(minutes=timeout)
+    experiment_name = experiment.metadata.name
+    experiment_namespace = experiment.metadata.namespace
+    while True:
+        current_status = None
+        try:
+            current_status = katib_client.get_experiment_status(name=experiment_name, namespace=experiment_namespace)
+        except Exception as e:
+            logger.info("Unable to get current status for the Experiment: {} in namespace: {}. Exception: {}".format(
+                experiment_name, experiment_namespace, e))
+        # If Experiment has reached complete condition, exit the loop.
+        if current_status in FINISH_CONDITIONS:
+            logger.info("Experiment: {} in namespace: {} has reached the end condition: {}".format(
+                experiment_name, experiment_namespace, current_status))
+            return
+        # Print the current condition.
+        logger.info("Current condition for Experiment: {} in namespace: {} is: {}".format(
+            experiment_name, experiment_namespace, current_status))
+        # If timeout has been reached, rise an exception.
+        if datetime.datetime.now() > end_time:
+            raise Exception("Timout waiting for Experiment: {} in namespace: {} "
+                            "to reach one of these conditions: {}".format(
+                                experiment_name, experiment_namespace, FINISH_CONDITIONS))
+        # Sleep for poll interval.
+        time.sleep(polling_interval.seconds)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Katib Experiment launcher')
+    parser.add_argument('--experiment-name', type=str,
+                        help='Experiment name')
+    parser.add_argument('--experiment-namespace', type=str, default='anonymous',
+                        help='Experiment namespace')
+    parser.add_argument('--experiment-spec', type=str, default='',
+                        help='Experiment specification')
+    parser.add_argument('--experiment-timeout-minutes', type=int, default=60*24,
+                        help='Time in minutes to wait for the Experiment to complete')
+    parser.add_argument('--delete-after-done', type=strtobool, default=True,
+                        help='Whether to delete the Experiment after it is finished')
+
+    parser.add_argument('--output-file', type=str, default='/output.txt',
+                        help='The file which stores the best hyperparameters of the Experiment')
+
+    args = parser.parse_args()
+
+    experiment_name = args.experiment_name
+    experiment_namespace = args.experiment_namespace
+
+    logger.info("Creating Experiment: {} in namespace: {}".format(experiment_name, experiment_namespace))
+
+    # Create JSON object from experiment spec
+    experiment_spec = JSONObject(args.experiment_spec)
+    # Deserialize JSON to ExperimentSpec
+    experiment_spec = ApiClient().deserialize(experiment_spec, "V1beta1ExperimentSpec")
+
+    # Create Experiment object.
+    experiment = V1beta1Experiment(
+        api_version="kubeflow.org/v1beta1",
+        kind="Experiment",
+        metadata=V1ObjectMeta(
+            name=experiment_name,
+            namespace=experiment_namespace
+        ),
+        spec=experiment_spec
+    )
+
+    # Create Katib client.
+    katib_client = KatibClient()
+    # Create Experiment in Kubernetes cluster.
+    output = katib_client.create_experiment(experiment, namespace=experiment_namespace)
+
+    # Wait until Experiment is created.
+    end_time = datetime.datetime.now() + datetime.timedelta(minutes=args.experiment_timeout_minutes)
+    while True:
+        current_status = None
+        # Try to get Experiment status.
+        try:
+            current_status = katib_client.get_experiment_status(name=experiment_name, namespace=experiment_namespace)
+        except Exception:
+            logger.info("Waiting until Experiment is created...")
+        # If current status is set, exit the loop.
+        if current_status is not None:
+            break
+        # If timeout has been reached, rise an exception.
+        if datetime.datetime.now() > end_time:
+            raise Exception("Timout waiting for Experiment: {} in namespace: {} to be created".format(
+                experiment_name, experiment_namespace))
+        time.sleep(1)
+
+    logger.info("Experiment is created")
+
+    # Wait for Experiment finish.
+    wait_experiment_finish(katib_client, experiment, args.experiment_timeout_minutes)
+
+    # Check if Experiment is successful.
+    if katib_client.is_experiment_succeeded(name=experiment_name, namespace=experiment_namespace):
+        logger.info("Experiment: {} in namespace: {} is successful".format(
+            experiment_name, experiment_namespace))
+
+        optimal_hp = katib_client.get_optimal_hyperparameters(
+            name=experiment_name, namespace=experiment_namespace)
+        logger.info("Optimal hyperparameters:\n{}".format(optimal_hp))
+
+        # Create dir if it doesn't exist.
+        if not os.path.exists(os.path.dirname(args.output_file)):
+            os.makedirs(os.path.dirname(args.output_file))
+        # Save HyperParameters to the file.
+        with open(args.output_file, 'w') as f:
+            f.write(json.dumps(optimal_hp))
     else:
-      return False, conditions[-1]["type"]
+        logger.info("Experiment: {} in namespace: {} is failed".format(
+            experiment_name, experiment_namespace))
+        # Print Experiment if it is failed.
+        experiment = katib_client.get_experiment(name=experiment_name, namespace=experiment_namespace)
+        logger.info(experiment)
 
-def main(argv=None):
-  parser = argparse.ArgumentParser(description='Kubeflow Experiment launcher')
-  parser.add_argument('--name', type=str,
-                      help='Experiment name.')
-  parser.add_argument('--namespace', type=str,
-                      default='kubeflow',
-                      help='Experiment namespace.')
-  parser.add_argument('--version', type=str,
-                      default='v1alpha3',
-                      help='Experiment version.')
-  parser.add_argument('--maxTrialCount', type=int,
-                      help='How many trial will be created for the experiment at most.')
-  parser.add_argument('--maxFailedTrialCount', type=int,
-                      help='Stop the experiment when $maxFailedTrialCount trials failed.')
-  parser.add_argument('--parallelTrialCount', type=int,
-                      default=3,
-                      help='How many trials can be running at most.')
-  parser.add_argument('--objectiveConfig', type=yamlOrJsonStr,
-                      default={},
-                      help='Experiment objective.')
-  parser.add_argument('--algorithmConfig', type=yamlOrJsonStr,
-                      default={},
-                      help='Experiment algorithm.')
-  parser.add_argument('--trialTemplate', type=yamlOrJsonStr,
-                      default={},
-                      help='Experiment trialTemplate.')
-  parser.add_argument('--parameters', type=yamlOrJsonStr,
-                      default=[],
-                      help='Experiment parameters.')
-  parser.add_argument('--metricsCollector', type=yamlOrJsonStr,
-                      default={},
-                      help='Experiment metricsCollectorSpec.')
-  parser.add_argument('--outputFile', type=str,
-                      default='/output.txt',
-                      help='The file which stores the best trial of the experiment.')
-  parser.add_argument('--deleteAfterDone', type=strtobool,
-                      default=True,
-                      help='When experiment done, delete the experiment automatically if it is True.')
-  parser.add_argument('--experimentTimeoutMinutes', type=int,
-                      default=60*24,
-                      help='Time in minutes to wait for the Experiment to reach end')
-
-  args = parser.parse_args()
-
-  logging.getLogger().setLevel(logging.INFO)
-
-  logging.info('Generating experiment template.')
-
-  config.load_incluster_config()
-  api_client = k8s_client.ApiClient()
-  experiment = Experiment(version=args.version, client=api_client)
-  exp_name = (args.name+'-'+uuid.uuid4().hex)[0:63]
-  
-  inst = {
-    "apiVersion": "%s/%s" % (ExperimentGroup, args.version),
-    "kind": "Experiment",
-    "metadata": {
-      "name": exp_name,
-      "namespace": args.namespace,
-    },
-    "spec": {
-      "algorithm": args.algorithmConfig,
-      "maxFailedTrialCount": args.maxFailedTrialCount,
-      "maxTrialCount": args.maxTrialCount,
-      "metricsCollectorSpec": args.metricsCollector,
-      "objective": args.objectiveConfig,
-      "parallelTrialCount": args.parallelTrialCount,
-      "parameters": args.parameters,
-      "trialTemplate": args.trialTemplate,
-    },
-  }
-  create_response = experiment.create(inst)
-
-  expected_conditions = ["Succeeded", "Failed"]
-  current_inst = experiment.wait_for_condition(
-      args.namespace, exp_name, expected_conditions,
-      timeout=datetime.timedelta(minutes=args.experimentTimeoutMinutes))
-  expected, conditon = experiment.is_expected_conditions(current_inst, ["Succeeded"])
-  if expected:
-    paramAssignments = current_inst["status"]["currentOptimalTrial"]["parameterAssignments"]
-    if not os.path.exists(os.path.dirname(args.outputFile)):
-      os.makedirs(os.path.dirname(args.outputFile))
-    with open(args.outputFile, 'w') as f:
-      f.write(json.dumps(paramAssignments))
-  if args.deleteAfterDone:
-    experiment.delete(exp_name, args.namespace)
-
-if __name__== "__main__":
-  main()
+    # Delete Experiment if it is needed.
+    if args.delete_after_done:
+        katib_client.delete_experiment(name=experiment_name, namespace=experiment_namespace)
+        logger.info("Experiment: {} in namespace: {} has been deleted".format(
+            experiment_name, experiment_namespace))

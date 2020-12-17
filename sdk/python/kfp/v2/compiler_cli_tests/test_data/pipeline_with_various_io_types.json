@@ -1,149 +1,327 @@
 {
-  "pipelineInfo": {
-    "name": "pipeline-with-various-types"
-  },
-  "tasks": [
-    {
-      "taskInfo": {
-        "name": "upstream"
+  "pipelineSpec": {
+    "runtimeParameters": {
+      "input8": {
+        "type": "STRING",
+        "defaultValue": {
+          "stringValue": "gs://path2"
+        }
       },
-      "inputs": {
-        "parameters": {
-          "input_7": {
-            "runtimeValue": {
+      "input3": {
+        "type": "STRING"
+      },
+      "input7": {
+        "type": "STRING",
+        "defaultValue": {
+          "stringValue": "arbitrary value"
+        }
+      },
+      "input5": {
+        "type": "STRING",
+        "defaultValue": {
+          "stringValue": "gs://bucket/metrics"
+        }
+      },
+      "input4": {
+        "type": "STRING"
+      },
+      "input6": {
+        "defaultValue": {
+          "stringValue": "gs://bucket/dataset"
+        },
+        "type": "STRING"
+      },
+      "input1": {
+        "type": "STRING"
+      }
+    },
+    "schemaVersion": "v2alpha1",
+    "tasks": [
+      {
+        "taskInfo": {
+          "name": "upstream"
+        },
+        "executorLabel": "upstream",
+        "outputs": {
+          "parameters": {
+            "output_1": {
+              "type": "INT"
+            }
+          },
+          "artifacts": {
+            "output_3": {
+              "artifactType": {
+                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              }
+            },
+            "output_2": {
+              "artifactType": {
+                "instanceSchema": "properties:\ntitle: kfp.Model\ntype: object\n"
+              }
+            }
+          }
+        },
+        "inputs": {
+          "parameters": {
+            "input_1": {
+              "runtimeValue": {
+                "runtimeParameter": "input1"
+              }
+            },
+            "input_2": {
+              "runtimeValue": {
+                "constantValue": {
+                  "doubleValue": 3.1415926
+                }
+              }
+            }
+          },
+          "artifacts": {
+            "input_3": {
+              "outputArtifactKey": "result",
+              "producerTask": "upstream_input_3_importer"
+            },
+            "input_4": {
+              "producerTask": "upstream_input_4_importer",
+              "outputArtifactKey": "result"
+            },
+            "input_8": {
+              "producerTask": "upstream_input_8_importer",
+              "outputArtifactKey": "result"
+            },
+            "input_7": {
+              "producerTask": "upstream_input_7_importer",
+              "outputArtifactKey": "result"
+            },
+            "input_5": {
+              "producerTask": "upstream_input_5_importer",
+              "outputArtifactKey": "result"
+            },
+            "input_6": {
+              "producerTask": "upstream_input_6_importer",
+              "outputArtifactKey": "result"
+            }
+          }
+        }
+      },
+      {
+        "executorLabel": "downstream",
+        "taskInfo": {
+          "name": "downstream"
+        },
+        "inputs": {
+          "parameters": {
+            "input_a": {
+              "taskOutputParameter": {
+                "outputParameterKey": "output_1",
+                "producerTask": "upstream"
+              }
+            }
+          },
+          "artifacts": {
+            "input_b": {
+              "producerTask": "upstream",
+              "outputArtifactKey": "output_2"
+            },
+            "input_c": {
+              "producerTask": "upstream",
+              "outputArtifactKey": "output_3"
+            }
+          }
+        }
+      },
+      {
+        "executorLabel": "upstream_input_8_importer",
+        "outputs": {
+          "artifacts": {
+            "result": {
+              "artifactType": {
+                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              }
+            }
+          }
+        },
+        "taskInfo": {
+          "name": "upstream_input_8_importer"
+        }
+      },
+      {
+        "taskInfo": {
+          "name": "upstream_input_7_importer"
+        },
+        "executorLabel": "upstream_input_7_importer",
+        "outputs": {
+          "artifacts": {
+            "result": {
+              "artifactType": {
+                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              }
+            }
+          }
+        }
+      },
+      {
+        "taskInfo": {
+          "name": "upstream_input_3_importer"
+        },
+        "outputs": {
+          "artifacts": {
+            "result": {
+              "artifactType": {
+                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              }
+            }
+          }
+        },
+        "executorLabel": "upstream_input_3_importer"
+      },
+      {
+        "executorLabel": "upstream_input_4_importer",
+        "taskInfo": {
+          "name": "upstream_input_4_importer"
+        },
+        "outputs": {
+          "artifacts": {
+            "result": {
+              "artifactType": {
+                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              }
+            }
+          }
+        }
+      },
+      {
+        "taskInfo": {
+          "name": "upstream_input_5_importer"
+        },
+        "executorLabel": "upstream_input_5_importer",
+        "outputs": {
+          "artifacts": {
+            "result": {
+              "artifactType": {
+                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              }
+            }
+          }
+        }
+      },
+      {
+        "taskInfo": {
+          "name": "upstream_input_6_importer"
+        },
+        "executorLabel": "upstream_input_6_importer",
+        "outputs": {
+          "artifacts": {
+            "result": {
+              "artifactType": {
+                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              }
+            }
+          }
+        }
+      }
+    ],
+    "sdkVersion": "kfp-1.1.0-alpha.1",
+    "pipelineInfo": {
+      "name": "pipeline-with-various-types"
+    },
+    "deploymentConfig": {
+      "@type": "type.googleapis.com/ml_pipelines.PipelineDeploymentConfig",
+      "executors": {
+        "upstream_input_3_importer": {
+          "importer": {
+            "artifactUri": {
+              "runtimeParameter": "input3"
+            },
+            "typeSchema": {
+              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+            }
+          }
+        },
+        "upstream_input_4_importer": {
+          "importer": {
+            "artifactUri": {
+              "runtimeParameter": "input4"
+            },
+            "typeSchema": {
+              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+            }
+          }
+        },
+        "downstream": {
+          "container": {
+            "image": "gcr.io/image",
+            "args": [
+              "{{$.inputs.parameters['input_a']}}",
+              "{{$.inputs.artifacts['input_b'].uri}}",
+              "{{$.inputs.artifacts['input_c'].path}}"
+            ]
+          }
+        },
+        "upstream_input_6_importer": {
+          "importer": {
+            "artifactUri": {
+              "runtimeParameter": "input6"
+            },
+            "typeSchema": {
+              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+            }
+          }
+        },
+        "upstream_input_8_importer": {
+          "importer": {
+            "typeSchema": {
+              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+            },
+            "artifactUri": {
+              "runtimeParameter": "input8"
+            }
+          }
+        },
+        "upstream_input_5_importer": {
+          "importer": {
+            "typeSchema": {
+              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+            },
+            "artifactUri": {
+              "constantValue": {
+                "stringValue": "gs://bucket/metrics"
+              }
+            }
+          }
+        },
+        "upstream_input_7_importer": {
+          "importer": {
+            "typeSchema": {
+              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+            },
+            "artifactUri": {
               "runtimeParameter": "input7"
             }
-          },
-          "input_1": {
-            "runtimeValue": {
-              "runtimeParameter": "input1"
-            }
-          },
-          "input_5": {
-            "runtimeValue": {
-              "constantValue": {
-                "stringValue": "gs://path"
-              }
-            }
-          },
-          "input_6": {
-            "runtimeValue": {
-              "runtimeParameter": "input6"
-            }
-          },
-          "input_4": {
-            "runtimeValue": {
-              "runtimeParameter": "input4"
-            }
-          },
-          "input_3": {
-            "runtimeValue": {
-              "runtimeParameter": "input3"
-            }
-          },
-          "input_2": {
-            "runtimeValue": {
-              "constantValue": {
-                "doubleValue": 3.1415926
-              }
-            }
-          }
-        }
-      },
-      "outputs": {
-        "parameters": {
-          "output_3": {
-            "type": "STRING"
-          },
-          "output_1": {
-            "type": "INT"
           }
         },
-        "artifacts": {
-          "output_2": {
-            "artifactType": {
-              "instanceSchema": "title: kfp.Model\ntype: object\nproperties:\n"
-            }
+        "upstream": {
+          "container": {
+            "image": "gcr.io/image",
+            "args": [
+              "{{$.inputs.parameters['input_1']}}",
+              "{{$.inputs.parameters['input_2']}}",
+              "{{$.inputs.artifacts['input_3'].uri}}",
+              "{{$.inputs.artifacts['input_4'].uri}}",
+              "{{$.inputs.artifacts['input_5'].uri}}",
+              "{{$.inputs.artifacts['input_6'].uri}}",
+              "{{$.inputs.artifacts['input_7'].uri}}",
+              "{{$.inputs.artifacts['input_8'].uri}}",
+              "{{$.outputs.parameters['output_1'].output_file}}",
+              "{{$.outputs.artifacts['output_2'].uri}}",
+              "{{$.outputs.artifacts['output_3'].path}}"
+            ]
           }
-        }
-      },
-      "executorLabel": "upstream"
-    },
-    {
-      "taskInfo": {
-        "name": "downstream"
-      },
-      "inputs": {
-        "parameters": {
-          "input_c": {
-            "taskOutputParameter": {
-              "producerTask": "upstream",
-              "outputParameterKey": "output_3"
-            }
-          },
-          "input_a": {
-            "taskOutputParameter": {
-              "producerTask": "upstream",
-              "outputParameterKey": "output_1"
-            }
-          }
-        },
-        "artifacts": {
-          "input_b": {
-            "producerTask": "upstream",
-            "outputArtifactKey": "output_2"
-          }
-        }
-      },
-      "executorLabel": "downstream"
-    }
-  ],
-  "deploymentConfig": {
-    "@type": "type.googleapis.com/ml_pipelines.PipelineDeploymentConfig",
-    "executors": {
-      "upstream": {
-        "container": {
-          "image": "gcr.io/image",
-          "args": [
-            "{{$.inputs.parameters['input_1']}}",
-            "{{$.inputs.parameters['input_2']}}",
-            "{{$.inputs.parameters['input_3']}}",
-            "{{$.inputs.parameters['input_4']}}",
-            "{{$.inputs.artifacts['input_5'].uri}}",
-            "{{$.inputs.artifacts['input_6'].uri}}",
-            "{{$.inputs.parameters['input_7']}}",
-            "{{$.outputs.parameters['output_1'].output_file}}",
-            "{{$.outputs.artifacts['output_2'].uri}}",
-            "{{$.outputs.parameters['output_3'].output_file}}"
-          ]
-        }
-      },
-      "downstream": {
-        "container": {
-          "image": "gcr.io/image",
-          "args": [
-            "{{$.inputs.parameters['input_a']}}",
-            "{{$.inputs.artifacts['input_b'].uri}}",
-            "{{$.inputs.parameters['input_c']}}"
-          ]
         }
       }
     }
   },
-  "sdkVersion": "kfp-1.0.1",
-  "schemaVersion": "v2alpha1",
-  "runtimeParameters": {
-    "input7": {
-      "type": "STRING",
-      "defaultValue": {
-        "stringValue": "arbitrary value"
-      }
-    },
-    "input6": {
-      "type": "STRING",
-      "defaultValue": {
-        "stringValue": "gs://bucket/dataset"
-      }
-    }
+  "runtimeConfig": {
+    "gcsOutputDirectory": "dummy_root"
   }
 }

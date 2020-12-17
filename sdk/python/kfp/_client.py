@@ -115,6 +115,11 @@ class Client(object):
   IN_CLUSTER_DNS_NAME = 'ml-pipeline.{}.svc.cluster.local:8888'
   KUBE_PROXY_PATH = 'api/v1/namespaces/{}/services/ml-pipeline:http/proxy/'
 
+  # Auto populated path in pods
+  # https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#accessing-the-api-from-a-pod
+  # https://kubernetes.io/docs/reference/access-authn-authz/service-accounts-admin/#serviceaccount-admission-controller
+  NAMESPACE_PATH = '/var/run/secrets/kubernetes.io/serviceaccount/namespace'
+
   LOCAL_KFP_CONTEXT = os.path.expanduser('~/.config/kfp/context.json')
 
   # TODO: Wrap the configurations for different authentication methods.
@@ -139,6 +144,14 @@ class Client(object):
     self._experiment_api = kfp_server_api.api.experiment_service_api.ExperimentServiceApi(api_client)
     self._pipelines_api = kfp_server_api.api.pipeline_service_api.PipelineServiceApi(api_client)
     self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
+    self._healthz_api = kfp_server_api.api.healthz_service_api.HealthzServiceApi(api_client)
+    if not self._context_setting['namespace'] and self.get_kfp_healthz().multi_user is True:
+      try:
+        with open(Client.NAMESPACE_PATH, 'r') as f:
+          current_namespace = f.read()
+          self.set_user_namespace(current_namespace)
+      except FileNotFoundError:
+        logging.info('Failed to automatically set namespace.', exc_info=True)
 
   def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy, ssl_ca_cert, kube_context):
     config = kfp_server_api.configuration.Configuration()
@@ -277,8 +290,33 @@ class Client(object):
       namespace: kubernetes namespace the user has access to.
     """
     self._context_setting['namespace'] = namespace
+    if not os.path.exists(os.path.dirname(Client.LOCAL_KFP_CONTEXT)):
+        os.makedirs(os.path.dirname(Client.LOCAL_KFP_CONTEXT))
     with open(Client.LOCAL_KFP_CONTEXT, 'w') as f:
       json.dump(self._context_setting, f)
+
+  def get_kfp_healthz(self):
+    """Gets healthz info of KFP deployment.
+
+    Returns:
+      response: json formatted response from the healtz endpoint.
+    """
+    count = 0
+    response = None
+    max_attempts = 5
+    while not response:
+      count += 1
+      if count > max_attempts:
+        raise TimeoutError('Failed getting healthz endpoint after {} attempts.'.format(max_attempts))
+      try:
+        response = self._healthz_api.get_healthz()
+        return response
+      # ApiException, including network errors, is the only type that may
+      # recover after retry.
+      except kfp_server_api.ApiException:
+        # logging.exception also logs detailed info about the ApiException
+        logging.exception('Failed to get healthz info attempt {} of 5.'.format(count))
+        time.sleep(5)
 
   def get_user_namespace(self):
     """Get user namespace in context config.
@@ -305,9 +343,10 @@ class Client(object):
     experiment = None
     try:
       experiment = self.get_experiment(experiment_name=name, namespace=namespace)
-    except:
+    except ValueError as error:
       # Ignore error if the experiment does not exist.
-      pass
+      if not str(error).startswith('No experiment is found with name'):
+        raise error
 
     if not experiment:
       logging.info('Creating experiment {}.'.format(name))
@@ -533,10 +572,10 @@ class Client(object):
         off to avoid duplicate backfill. (default: {False})
       pipeline_package_path: Local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
       params: A dictionary with key (string) as param name and value (string) as param value.
-      pipeline_id: The string ID of a pipeline.
-      version_id: The string ID of a pipeline version. 
-        If both pipeline_id and version_id are specified, pipeline_id will take precendence
-        This will change in a future version, so it is recommended to use version_id by itself.
+      pipeline_id: The id of a pipeline.
+      version_id: The id of a pipeline version.
+        If both pipeline_id and version_id are specified, version_id will take precendence.
+        If only pipeline_id is specified, the default version of this pipeline is used to create the run.
       enabled: A bool indicating whether the recurring run is enabled or disabled.
 
     Returns:
@@ -582,8 +621,8 @@ class Client(object):
       params: A dictionary with key (string) as param name and value (string) as param value.
       pipeline_id: The id of a pipeline.
       version_id: The id of a pipeline version. 
-        If both pipeline_id and version_id are specified, pipeline_id will take precendence
-        This will change in a future version, so it is recommended to use version_id by itself.
+        If both pipeline_id and version_id are specified, version_id will take precendence.
+        If only pipeline_id is specified, the default version of this pipeline is used to create the run.
 
     Returns:
       A JobConfig object with attributes spec and resource_reference.
@@ -789,6 +828,8 @@ class Client(object):
     status = 'Running:'
     start_time = datetime.datetime.now()
     last_token_refresh_time = datetime.datetime.now()
+    if isinstance(timeout, datetime.timedelta):
+      timeout = timeout.total_seconds()
     while (status is None or
            status.lower() not in ['succeeded', 'failed', 'skipped', 'error']):
       # Refreshes the access token before it hits the TTL.
@@ -799,7 +840,7 @@ class Client(object):
         
       get_run_response = self._run_api.get_run(run_id=run_id)
       status = get_run_response.run.status
-      elapsed_time = (datetime.datetime.now() - start_time).seconds
+      elapsed_time = (datetime.datetime.now() - start_time).total_seconds()
       logging.info('Waiting for the job to complete...')
       if elapsed_time > timeout:
         raise TimeoutError('Run timeout')

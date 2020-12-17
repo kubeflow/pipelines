@@ -20,6 +20,8 @@ import { Handler } from 'express';
 export interface HealthzStats {
   apiServerCommitHash: string;
   apiServerTagName: string;
+  apiServerMultiUser: boolean;
+  multi_user: boolean;
   apiServerReady: boolean;
   buildDate: string;
   frontendCommitHash: string;
@@ -79,6 +81,8 @@ export function getHealthzHandler(options: {
       const serverStatus = await response.json();
       healthzStats.apiServerCommitHash = serverStatus.commit_sha;
       healthzStats.apiServerTagName = serverStatus.tag_name;
+      healthzStats.apiServerMultiUser = serverStatus.multi_user;
+      healthzStats.multi_user = serverStatus.multi_user;
     } catch (e) {
       healthzStats.apiServerReady = false;
     }

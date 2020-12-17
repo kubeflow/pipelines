@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
 func TestCreateRun(t *testing.T) {
@@ -127,7 +128,7 @@ func TestCreateRun_Unauthorized(t *testing.T) {
 	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
-	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
+	clients, manager, _ := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	run := &api.Run{
@@ -140,7 +141,19 @@ func TestCreateRun_Unauthorized(t *testing.T) {
 	}
 	_, err := server.CreateRun(ctx, &api.CreateRunRequest{Run: run})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Unauthorized access")
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: "ns1",
+		Verb:      common.RbacResourceVerbCreate,
+		Group:     common.RbacPipelinesGroup,
+		Version:   common.RbacPipelinesVersion,
+		Resource:  common.RbacResourceTypeRuns,
+		Name:      "run1",
+	}
+	assert.EqualError(
+		t,
+		err,
+		wrapFailedAuthzRequestError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(ctx, resourceAttributes))).Error(),
+	)
 }
 
 func TestCreateRun_Multiuser(t *testing.T) {
@@ -245,7 +258,7 @@ func TestListRuns_Unauthorized(t *testing.T) {
 	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
-	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
+	clients, manager, _ := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	_, err := server.ListRuns(ctx, &api.ListRunsRequest{
@@ -255,7 +268,20 @@ func TestListRuns_Unauthorized(t *testing.T) {
 		},
 	})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Unauthorized access")
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: "ns1",
+		Verb:      common.RbacResourceVerbList,
+		Group:     common.RbacPipelinesGroup,
+		Version:   common.RbacPipelinesVersion,
+		Resource:  common.RbacResourceTypeRuns,
+	}
+	assert.EqualError(
+		t,
+		err,
+		util.Wrap(
+			wrapFailedAuthzApiResourcesError(getPermissionDeniedError(ctx, resourceAttributes)),
+			"Failed to authorize with namespace resource reference.").Error(),
+	)
 }
 
 func TestListRuns_Multiuser(t *testing.T) {
@@ -596,7 +622,7 @@ func TestCanAccessRun_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
-	clients, manager, experiment := initWithExperiment_KFAM_Unauthorized(t)
+	clients, manager, experiment := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
 	runServer := RunServer{resourceManager: manager, options: &RunServerOptions{CollectMetrics: false}}
 
@@ -624,9 +650,21 @@ func TestCanAccessRun_Unauthorized(t *testing.T) {
 	}
 	runDetail, _ := manager.CreateRun(apiRun)
 
-	err := runServer.canAccessRun(ctx, runDetail.UUID)
+	err := runServer.canAccessRun(ctx, runDetail.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Unauthorized access")
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: runDetail.Namespace,
+		Verb:      common.RbacResourceVerbGet,
+		Group:     common.RbacPipelinesGroup,
+		Version:   common.RbacPipelinesVersion,
+		Resource:  common.RbacResourceTypeRuns,
+		Name:      runDetail.Name,
+	}
+	assert.EqualError(
+		t,
+		err,
+		wrapFailedAuthzApiResourcesError(getPermissionDeniedError(ctx, resourceAttributes)).Error(),
+	)
 }
 
 func TestCanAccessRun_Authorized(t *testing.T) {
@@ -657,6 +695,6 @@ func TestCanAccessRun_Authorized(t *testing.T) {
 	}
 	runDetail, _ := manager.CreateRun(apiRun)
 
-	err := runServer.canAccessRun(ctx, runDetail.UUID)
+	err := runServer.canAccessRun(ctx, runDetail.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
 	assert.Nil(t, err)
 }

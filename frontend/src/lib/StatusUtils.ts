@@ -106,12 +106,11 @@ export function parseNodePhase(node: NodeStatus): NodePhase {
 
 function wasNodeCached(node: NodeStatus): boolean {
   const artifacts = node.outputs?.artifacts;
-  if (!artifacts || !node.id) {
-    return false;
-  }
   // HACK: There is a way to detect the skipped pods based on the WorkflowStatus alone.
   // All output artifacts have the pod name (same as node ID) in the URI. But for skipped
   // pods, the pod name does not match the URIs.
   // (And now there are always some output artifacts since we've enabled log archiving).
-  return artifacts.some(artifact => artifact.s3 && !artifact.s3.key.includes(node.id));
+  return !artifacts || !node.id || node.type !== 'Pod'
+    ? false
+    : artifacts.some(artifact => artifact.s3 && !artifact.s3.key.includes(node.id));
 }

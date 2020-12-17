@@ -1,0 +1,159 @@
+{
+  "pipelineSpec": {
+    "tasks": [
+      {
+        "inputs": {
+          "parameters": {
+            "op1": {
+              "runtimeValue": {
+                "runtimeParameter": "a"
+              }
+            },
+            "op2": {
+              "runtimeValue": {
+                "constantValue": {
+                  "intValue": "3"
+                }
+              }
+            }
+          }
+        },
+        "outputs": {
+          "parameters": {
+            "sum": {
+              "type": "INT"
+            }
+          }
+        },
+        "taskInfo": {
+          "name": "Add"
+        },
+        "executorLabel": "Add"
+      },
+      {
+        "executorLabel": "Add 2",
+        "outputs": {
+          "parameters": {
+            "sum": {
+              "type": "INT"
+            }
+          }
+        },
+        "taskInfo": {
+          "name": "Add 2"
+        },
+        "inputs": {
+          "parameters": {
+            "op1": {
+              "taskOutputParameter": {
+                "outputParameterKey": "sum",
+                "producerTask": "Add"
+              }
+            },
+            "op2": {
+              "runtimeValue": {
+                "runtimeParameter": "b"
+              }
+            }
+          }
+        }
+      },
+      {
+        "outputs": {
+          "parameters": {
+            "sum": {
+              "type": "INT"
+            }
+          }
+        },
+        "executorLabel": "Add 3",
+        "inputs": {
+          "parameters": {
+            "op1": {
+              "taskOutputParameter": {
+                "outputParameterKey": "sum",
+                "producerTask": "Add 2"
+              }
+            },
+            "op2": {
+              "runtimeValue": {
+                "constantValue": {
+                  "intValue": "7"
+                }
+              }
+            }
+          }
+        },
+        "taskInfo": {
+          "name": "Add 3"
+        }
+      }
+    ],
+    "pipelineInfo": {
+      "name": "add-pipeline"
+    },
+    "deploymentConfig": {
+      "executors": {
+        "Add": {
+          "container": {
+            "image": "google/cloud-sdk:latest",
+            "command": [
+              "sh",
+              "-c",
+              "set -e -x\necho \"$(($0+$1))\" | gsutil cp - \"$2\"\n",
+              "{{$.inputs.parameters['op1']}}",
+              "{{$.inputs.parameters['op2']}}",
+              "{{$.outputs.parameters['sum'].output_file}}"
+            ]
+          }
+        },
+        "Add 3": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "set -e -x\necho \"$(($0+$1))\" | gsutil cp - \"$2\"\n",
+              "{{$.inputs.parameters['op1']}}",
+              "{{$.inputs.parameters['op2']}}",
+              "{{$.outputs.parameters['sum'].output_file}}"
+            ],
+            "image": "google/cloud-sdk:latest"
+          }
+        },
+        "Add 2": {
+          "container": {
+            "image": "google/cloud-sdk:latest",
+            "command": [
+              "sh",
+              "-c",
+              "set -e -x\necho \"$(($0+$1))\" | gsutil cp - \"$2\"\n",
+              "{{$.inputs.parameters['op1']}}",
+              "{{$.inputs.parameters['op2']}}",
+              "{{$.outputs.parameters['sum'].output_file}}"
+            ]
+          }
+        }
+      },
+      "@type": "type.googleapis.com/ml_pipelines.PipelineDeploymentConfig"
+    },
+    "runtimeParameters": {
+      "b": {
+        "defaultValue": {
+          "intValue": "5"
+        },
+        "type": "INT"
+      },
+      "a": {
+        "defaultValue": {
+          "intValue": "2"
+        },
+        "type": "INT"
+      }
+    },
+    "schemaVersion": "v2alpha1",
+    "sdkVersion": "kfp-1.1.1"
+  },
+  "runtimeConfig": {
+    "gcsOutputDirectory": "dummy_root"
+  }
+}

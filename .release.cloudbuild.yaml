@@ -266,14 +266,14 @@ steps:
 # * manifests/kustomize/base/metadata/metadata-grpc-deployment.yaml
 # * test/tag_for_hosted.sh
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['pull', 'gcr.io/tfx-oss-public/ml_metadata_store_server:0.22.1']
+  args: ['pull', 'gcr.io/tfx-oss-public/ml_metadata_store_server:0.25.1']
   id:   'pullMetadataServer'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/tfx-oss-public/ml_metadata_store_server:0.22.1', 'gcr.io/ml-pipeline/google/pipelines/metadataserver:$TAG_NAME']
+  args: ['tag', 'gcr.io/tfx-oss-public/ml_metadata_store_server:0.25.1', 'gcr.io/ml-pipeline/google/pipelines/metadataserver:$TAG_NAME']
   id:   'tagMetadataServerForMarketplace'
   waitFor: ['pullMetadataServer']
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/tfx-oss-public/ml_metadata_store_server:0.22.1', 'gcr.io/ml-pipeline/google/pipelines-test/metadataserver:$TAG_NAME']
+  args: ['tag', 'gcr.io/tfx-oss-public/ml_metadata_store_server:0.25.1', 'gcr.io/ml-pipeline/google/pipelines-test/metadataserver:$TAG_NAME']
   id:   'tagMetadataServerForMarketplaceTest'
   waitFor: ['pullMetadataServer']
 - id:   'tagMetadataServerForMarketplaceMajorMinor'
@@ -283,8 +283,8 @@ steps:
   args:
   - -ceux
   - |
-    docker tag gcr.io/tfx-oss-public/ml_metadata_store_server:0.22.1 gcr.io/ml-pipeline/google/pipelines/metadataserver:$(cat /workspace/mm.ver)
-    docker tag gcr.io/tfx-oss-public/ml_metadata_store_server:0.22.1 gcr.io/ml-pipeline/google/pipelines-test/metadataserver:$(cat /workspace/mm.ver)
+    docker tag gcr.io/tfx-oss-public/ml_metadata_store_server:0.25.1 gcr.io/ml-pipeline/google/pipelines/metadataserver:$(cat /workspace/mm.ver)
+    docker tag gcr.io/tfx-oss-public/ml_metadata_store_server:0.25.1 gcr.io/ml-pipeline/google/pipelines-test/metadataserver:$(cat /workspace/mm.ver)
     docker push gcr.io/ml-pipeline/google/pipelines/metadataserver:$(cat /workspace/mm.ver)
     docker push gcr.io/ml-pipeline/google/pipelines-test/metadataserver:$(cat /workspace/mm.ver)
 

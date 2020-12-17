@@ -14,11 +14,11 @@
 
 import pathlib
 
-import kfp
+from kfp.v2 import components
 from kfp.v2 import dsl
 import kfp.v2.compiler as compiler
 
-component_op_1 = kfp.components.load_component_from_text("""
+component_op_1 = components.load_component_from_text("""
 name: Write to GCS
 inputs:
 - {name: text, type: String, description: 'Content to be written to GCS'}
@@ -34,10 +34,10 @@ implementation:
       set -e -x
       echo "$0" | gsutil cp - "$1"
     - {inputValue: text}
-    - {outputPath: output_gcs_path}
+    - {outputUri: output_gcs_path}
 """)
 
-component_op_2 = kfp.components.load_component_from_text("""
+component_op_2 = components.load_component_from_text("""
 name: Read from GCS
 inputs:
 - {name: input_gcs_path, type: GCSPath, description: 'GCS file path'}
@@ -50,15 +50,19 @@ implementation:
     - |
       set -e -x
       gsutil cat "$0"
-    - {inputPath: input_gcs_path}
+    - {inputUri: input_gcs_path}
 """)
 
+
 @dsl.pipeline(name='simple-two-step-pipeline')
-def simple_pipeline(text='Hello world!',):
+def my_pipeline(text='Hello world!',):
   component_1 = component_op_1(text=text)
   component_2 = component_op_2(
       input_gcs_path=component_1.outputs['output_gcs_path'])
 
 
 if __name__ == '__main__':
-  compiler.Compiler().compile(simple_pipeline, __file__ + '.json')
+  compiler.Compiler().compile(
+      pipeline_func=my_pipeline,
+      pipeline_root='dummy_root',
+      output_path=__file__ + '.json')

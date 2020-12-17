@@ -5,14 +5,14 @@ go_library(
     srcs = [
         "argo.go",
         "argo_fake.go",
-        "kfam.go",
-        "kfam_fake.go",
         "kubernetes_core.go",
         "kubernetes_core_fake.go",
         "minio.go",
         "pod_fake.go",
         "scheduled_workflow_fake.go",
         "sql.go",
+        "subject_access_review.go",
+        "subject_access_review_fake.go",
         "swf.go",
         "swf_fake.go",
         "workflow_fake.go",
@@ -33,6 +33,7 @@ go_library(
         "@com_github_minio_minio_go//:go_default_library",
         "@com_github_minio_minio_go//pkg/credentials:go_default_library",
         "@com_github_pkg_errors//:go_default_library",
+        "@io_k8s_api//authorization/v1:go_default_library",
         "@io_k8s_api//core/v1:go_default_library",
         "@io_k8s_api//policy/v1beta1:go_default_library",
         "@io_k8s_apimachinery//pkg/api/errors:go_default_library",
@@ -43,19 +44,15 @@ go_library(
         "@io_k8s_client_go//kubernetes:go_default_library",
         "@io_k8s_client_go//kubernetes/typed/core/v1:go_default_library",
         "@io_k8s_client_go//rest:go_default_library",
+        "@io_k8s_client_go//tools/clientcmd:go_default_library",
+        "@io_k8s_client_go//util/homedir:go_default_library",
     ],
 )
 
 go_test(
     name = "go_default_test",
-    srcs = [
-        "kfam_test.go",
-        "sql_test.go",
-    ],
+    srcs = ["sql_test.go"],
     data = glob(["test/**/*"]),  # keep
     embed = [":go_default_library"],
-    deps = [
-        "@com_github_go_sql_driver_mysql//:go_default_library",
-        "@com_github_stretchr_testify//assert:go_default_library",
-    ],
+    deps = ["@com_github_go_sql_driver_mysql//:go_default_library"],
 )

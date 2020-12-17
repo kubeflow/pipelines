@@ -1,149 +1,154 @@
 {
-  "pipelineInfo": {
-    "name": "two-step-pipeline-with-importer"
-  },
-  "tasks": [
-    {
-      "taskInfo": {
-        "name": "Trainer"
-      },
-      "inputs": {
-        "parameters": {
-          "num_epochs": {
-            "runtimeValue": {
-              "runtimeParameter": "epochs"
+  "pipelineSpec": {
+    "sdkVersion": "kfp-1.1.0-dev20201106",
+    "tasks": [
+      {
+        "outputs": {
+          "artifacts": {
+            "model_output": {
+              "artifactType": {
+                "instanceSchema": "properties:\ntitle: kfp.Model\ntype: object\n"
+              }
             }
           },
-          "train_optimizer": {
-            "runtimeValue": {
-              "runtimeParameter": "optimizer"
+          "parameters": {
+            "model_config": {
+              "type": "STRING"
             }
           }
         },
-        "artifacts": {
-          "input_location": {
-            "producerTask": "Trainer_input_location_importer",
-            "outputArtifactKey": "result"
-          }
-        }
-      },
-      "outputs": {
-        "parameters": {
-          "model_config": {
-            "type": "STRING"
-          }
+        "taskInfo": {
+          "name": "Trainer"
         },
-        "artifacts": {
-          "model_output": {
-            "artifactType": {
-              "instanceSchema": "title: kfp.Model\ntype: object\nproperties:\n"
+        "inputs": {
+          "artifacts": {
+            "input_location": {
+              "producerTask": "Trainer_input_location_importer",
+              "outputArtifactKey": "result"
             }
-          }
-        }
-      },
-      "executorLabel": "Trainer"
-    },
-    {
-      "taskInfo": {
-        "name": "Serving"
-      },
-      "inputs": {
-        "parameters": {
-          "model_cfg": {
-            "taskOutputParameter": {
-              "producerTask": "Trainer",
-              "outputParameterKey": "model_config"
-            }
-          }
-        },
-        "artifacts": {
-          "model": {
-            "producerTask": "Trainer",
-            "outputArtifactKey": "model_output"
-          }
-        }
-      },
-      "executorLabel": "Serving"
-    },
-    {
-      "taskInfo": {
-        "name": "Trainer_input_location_importer"
-      },
-      "outputs": {
-        "artifacts": {
-          "result": {
-            "artifactType": {
-              "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
-            }
-          }
-        }
-      },
-      "executorLabel": "Trainer_input_location_importer"
-    }
-  ],
-  "deploymentConfig": {
-    "@type": "type.googleapis.com/ml_pipelines.PipelineDeploymentConfig",
-    "executors": {
-      "Trainer": {
-        "container": {
-          "image": "gcr.io/my-project/my-training",
-          "args": [
-            "--input-location",
-            "{{$.inputs.artifacts['input_location'].uri}}",
-            "--optimizer",
-            "{{$.inputs.parameters['train_optimizer']}}",
-            "--epochs",
-            "{{$.inputs.parameters['num_epochs']}}",
-            "--model",
-            "{{$.outputs.artifacts['model_output'].uri}}",
-            "--model-config",
-            "{{$.outputs.parameters['model_config'].output_file}}"
-          ]
-        }
-      },
-      "Trainer_input_location_importer": {
-        "importer": {
-          "artifactUri": {
-            "runtimeParameter": "input_gcs"
           },
-          "typeSchema": {
-            "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
+          "parameters": {
+            "train_optimizer": {
+              "runtimeValue": {
+                "runtimeParameter": "optimizer"
+              }
+            },
+            "num_epochs": {
+              "runtimeValue": {
+                "runtimeParameter": "epochs"
+              }
+            }
+          }
+        },
+        "executorLabel": "Trainer"
+      },
+      {
+        "taskInfo": {
+          "name": "Serving"
+        },
+        "executorLabel": "Serving",
+        "inputs": {
+          "parameters": {
+            "model_cfg": {
+              "taskOutputParameter": {
+                "producerTask": "Trainer",
+                "outputParameterKey": "model_config"
+              }
+            }
+          },
+          "artifacts": {
+            "model": {
+              "outputArtifactKey": "model_output",
+              "producerTask": "Trainer"
+            }
           }
         }
       },
-      "Serving": {
-        "container": {
-          "image": "gcr.io/my-project/my-server",
-          "args": [
-            "--model-to-serve",
-            "{{$.inputs.artifacts['model'].uri}}",
-            "--model-config",
-            "{{$.inputs.parameters['model_cfg']}}"
-          ]
+      {
+        "taskInfo": {
+          "name": "Trainer_input_location_importer"
+        },
+        "outputs": {
+          "artifacts": {
+            "result": {
+              "artifactType": {
+                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              }
+            }
+          }
+        },
+        "executorLabel": "Trainer_input_location_importer"
+      }
+    ],
+    "runtimeParameters": {
+      "epochs": {
+        "type": "INT",
+        "defaultValue": {
+          "intValue": "200"
+        }
+      },
+      "optimizer": {
+        "type": "STRING",
+        "defaultValue": {
+          "stringValue": "sgd"
+        }
+      },
+      "input_gcs": {
+        "type": "STRING",
+        "defaultValue": {
+          "stringValue": "gs://test-bucket/pipeline_root"
         }
       }
-    }
+    },
+    "pipelineInfo": {
+      "name": "two-step-pipeline-with-importer"
+    },
+    "deploymentConfig": {
+      "@type": "type.googleapis.com/ml_pipelines.PipelineDeploymentConfig",
+      "executors": {
+        "Trainer_input_location_importer": {
+          "importer": {
+            "typeSchema": {
+              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+            },
+            "artifactUri": {
+              "runtimeParameter": "input_gcs"
+            }
+          }
+        },
+        "Trainer": {
+          "container": {
+            "image": "gcr.io/my-project/my-training",
+            "args": [
+              "--input-location",
+              "{{$.inputs.artifacts['input_location'].uri}}",
+              "--optimizer",
+              "{{$.inputs.parameters['train_optimizer']}}",
+              "--epochs",
+              "{{$.inputs.parameters['num_epochs']}}",
+              "--model",
+              "{{$.outputs.artifacts['model_output'].uri}}",
+              "--model-config",
+              "{{$.outputs.parameters['model_config'].output_file}}"
+            ]
+          }
+        },
+        "Serving": {
+          "container": {
+            "image": "gcr.io/my-project/my-server",
+            "args": [
+              "--model-to-serve",
+              "{{$.inputs.artifacts['model'].uri}}",
+              "--model-config",
+              "{{$.inputs.parameters['model_cfg']}}"
+            ]
+          }
+        }
+      }
+    },
+    "schemaVersion": "v2alpha1"
   },
-  "sdkVersion": "dummy`",
-  "schemaVersion": "v2alpha1",
-  "runtimeParameters": {
-    "input_gcs": {
-      "type": "STRING",
-      "defaultValue": {
-        "stringValue": "gs://test-bucket/pipeline_root"
-      }
-    },
-    "epochs": {
-      "type": "STRING",
-      "defaultValue": {
-        "stringValue": "200"
-      }
-    },
-    "optimizer": {
-      "type": "STRING",
-      "defaultValue": {
-        "stringValue": "sgd"
-      }
-    }
+  "runtimeConfig": {
+    "gcsOutputDirectory": "dummy_root"
   }
 }

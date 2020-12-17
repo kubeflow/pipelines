@@ -4,7 +4,7 @@ Timeout: 300
 StatusToCheck: 'running'
 Arguments:
   region: ((REGION))
-  role: ((ROLE_ARN))
+  role: ((SAGEMAKER_ROLE_ARN))
   ground_truth_train_job_name: 'image-labeling'
   ground_truth_label_attribute_name: 'category'
   ground_truth_train_manifest_location: 's3://((DATA_BUCKET))/mini-image-classification/ground-truth-demo/train.manifest'
