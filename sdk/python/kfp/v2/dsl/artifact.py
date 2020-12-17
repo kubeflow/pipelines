@@ -128,7 +128,10 @@ class Artifact(object):
         raise ValueError('Invalid instance_schema, properties must be present. '
                          'Got %s' % instance_schema)
       schema = schema_yaml['properties'] or {}
-      self.TYPE_NAME = yaml.safe_load(instance_schema)['title']
+      if 'title' not in schema_yaml:
+        raise ValueError('Invalid instance_schema, title must be present. '
+                         'Got %s' % instance_schema)
+      self.TYPE_NAME = schema_yaml['title']
       self.PROPERTIES = {}
       for k, v in schema.items():
         self.PROPERTIES[k] = Property.from_dict(v)
