@@ -27,8 +27,10 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 import ExecutionList from '../pages/ExecutionList';
 import ExecutionDetails from '../pages/ExecutionDetails';
 import ExperimentDetails from '../pages/ExperimentDetails';
-import ExperimentsAndRuns, { ExperimentsAndRunsTab } from '../pages/ExperimentsAndRuns';
-import AllRunsAndArchive, {AllRunsAndArchiveTab} from "../pages/AllRunsAndArchive";
+import AllExperimentsAndArchive, {
+  AllExperimentsAndArchiveTab,
+} from '../pages/AllExperimentsAndArchive';
+import AllRunsAndArchive, { AllRunsAndArchiveTab } from '../pages/AllRunsAndArchive';
 import ArchivedExperimentsAndRuns, {
   ArchivedExperimentsAndRunsTab,
 } from '../pages/ArchivedExperimentsAndRuns';
@@ -165,18 +167,18 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
       view: AllRunsAndArchiveTab.ARCHIVE,
     },
     {
-      Component: ArchivedExperimentsAndRuns,
+      Component: AllExperimentsAndArchive,
       path: RoutePage.ARCHIVED_EXPERIMENTS,
-      view: ArchivedExperimentsAndRunsTab.EXPERIMENTS,
+      view: AllExperimentsAndArchiveTab.ARCHIVE,
     },
     { path: RoutePage.ARTIFACTS, Component: ArtifactList },
     { path: RoutePage.ARTIFACT_DETAILS, Component: ArtifactDetails, notExact: true },
     { path: RoutePage.EXECUTIONS, Component: ExecutionList },
     { path: RoutePage.EXECUTION_DETAILS, Component: ExecutionDetails },
     {
-      Component: ExperimentsAndRuns,
+      Component: AllExperimentsAndArchive,
       path: RoutePage.EXPERIMENTS,
-      view: ExperimentsAndRunsTab.EXPERIMENTS,
+      view: AllExperimentsAndArchiveTab.EXPERIMENTS,
     },
     { path: RoutePage.EXPERIMENT_DETAILS, Component: ExperimentDetails },
     { path: RoutePage.NEW_EXPERIMENT, Component: NewExperiment },

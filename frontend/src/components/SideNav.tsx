@@ -557,7 +557,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
   }
 
   private _highlightExperimentsButton(page: string): boolean {
-    return page.startsWith(RoutePage.EXPERIMENTS);
+    return page.startsWith(RoutePage.EXPERIMENTS) || page === RoutePage.ARCHIVED_EXPERIMENTS;
   }
 
   private _highlightRunsButton(page: string): boolean {
