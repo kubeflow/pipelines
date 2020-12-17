@@ -21,7 +21,7 @@ def _represent_none(self, _):
   return self.represent_scalar('tag:yaml.org,2002:null', '')
 
 
-class NoneAsBlankDumper(yaml.SafeDumper):
+class _NoneAsBlankDumper(yaml.SafeDumper):
   """Alternative dumper to print YAML literal.
 
   The behavior is mostly identical to yaml.SafeDumper, except for this dumper
@@ -34,4 +34,4 @@ class NoneAsBlankDumper(yaml.SafeDumper):
 
 def yaml_dump(data: Dict[str, Any]) -> str:
   """Dumps YAML string. None will be represented as blank."""
-  return yaml.dump(data, Dumper=NoneAsBlankDumper)
+  return yaml.dump(data, Dumper=_NoneAsBlankDumper)
