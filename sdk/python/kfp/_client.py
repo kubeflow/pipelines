@@ -307,12 +307,15 @@ class Client(object):
     while not response:
       count += 1
       if count > max_attempts:
-        raise TimeoutError('API call timeout')
+        raise TimeoutError('Failed getting healthz endpoint after {} attempts.'.format(max_attempts))
       try:
         response = self._healthz_api.get_healthz()
         return response
-      except:
-        logging.info('Failed to get healthz info attempt {} of 5.'.format(count))
+      # ApiException, including network errors, is the only type that may
+      # recover after retry.
+      except kfp_server_api.ApiException:
+        # logging.exception also logs detailed info about the ApiException
+        logging.exception('Failed to get healthz info attempt {} of 5.'.format(count))
         time.sleep(5)
 
   def get_user_namespace(self):
