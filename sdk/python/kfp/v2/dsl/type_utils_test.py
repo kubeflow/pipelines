@@ -40,10 +40,6 @@ class TypeUtilsTest(unittest.TestCase):
                      type_utils.get_artifact_type_schema('Model'))
     self.assertEqual('properties:\ntitle: kfp.Dataset\ntype: object\n',
                      type_utils.get_artifact_type_schema('Dataset'))
-    self.assertEqual('properties:\ntitle: kfp.Metrics\ntype: object\n',
-                     type_utils.get_artifact_type_schema('Metrics'))
-    self.assertEqual('properties:\ntitle: kfp.Schema\ntype: object\n',
-                     type_utils.get_artifact_type_schema('Schema'))
     for type_name in _UNKNOWN_ARTIFACT_TYPES:
       self.assertEqual('properties:\ntitle: kfp.Artifact\ntype: object\n',
                        type_utils.get_artifact_type_schema(type_name))

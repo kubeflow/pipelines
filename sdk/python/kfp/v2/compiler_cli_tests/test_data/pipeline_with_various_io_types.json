@@ -199,7 +199,7 @@
           "artifacts": {
             "result": {
               "artifactType": {
-                "instanceSchema": "properties:\ntitle: kfp.Metrics\ntype: object\n"
+                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
               }
             }
           }
@@ -281,7 +281,7 @@
         "upstream_input_5_importer": {
           "importer": {
             "typeSchema": {
-              "instanceSchema": "properties:\ntitle: kfp.Metrics\ntype: object\n"
+              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
             },
             "artifactUri": {
               "constantValue": {

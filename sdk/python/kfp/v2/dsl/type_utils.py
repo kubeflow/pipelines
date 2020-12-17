@@ -27,8 +27,6 @@ from kfp.v2.dsl import ontology_artifacts
 _ARTIFACT_TYPES_MAPPING = {
     'model': ontology_artifacts.Model.get_artifact_type(),
     'dataset': ontology_artifacts.Dataset.get_artifact_type(),
-    'metrics': ontology_artifacts.Metrics.get_artifact_type(),
-    'schema': ontology_artifacts.Schema.get_artifact_type()
 }
 
 # ComponentSpec I/O types to (IR) PipelineTaskSpec I/O types mapping.

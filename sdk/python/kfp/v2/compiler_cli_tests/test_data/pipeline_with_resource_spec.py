@@ -36,7 +36,6 @@ def my_pipeline(input_location='gs://test-bucket/pipeline_root',
   _ = (
       training_op(
           examples=ingestor.outputs['examples'],
-          schema=ingestor.outputs['schema'],
           optimizer=optimizer,
           n_epochs=n_epochs).set_cpu_limit('4').set_memory_limit(
               '14Gi').add_node_selector_constraint(
