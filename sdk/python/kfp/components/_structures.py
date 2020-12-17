@@ -132,53 +132,35 @@ class OutputPathPlaceholder(ModelBase): #Non-standard attr names
         super().__init__(locals())
 
 
-class InputUriSpec(ModelBase):
-    '''Used in the InputUriPlaceholder.'''
+class InputUriPlaceholder(ModelBase):  # Non-standard attr names
+    """Represents a placeholder for the URI of an input artifact.
+
+    Represents the command-line argument placeholder that will be replaced at
+    run-time by the URI of the input artifact argument.
+    """
     _serialized_names = {
-        'input_name': 'inputName',
-        'supported_schemes': 'supportedSchemes'
+        'input_name': 'inputUri',
     }
 
     def __init__(self,
         input_name: str,
-        supported_schemes: Optional[List[str]],
     ):
         super().__init__(locals())
 
 
-class OutputUriSpec(ModelBase):
-    '''Used in the OutputUriPlaceholder.'''
+class OutputUriPlaceholder(ModelBase):  # Non-standard attr names
+    """Represents a placeholder for the URI of an output artifact.
+
+    Represents the command-line argument placeholder that will be replaced at
+    run-time by a URI of the output artifac where the program should write its
+    output data.
+    """
     _serialized_names = {
-        'output_name': 'outputName',
-        'supported_schemes': 'supportedSchemes'
+        'output_name': 'outputUri',
     }
 
     def __init__(self,
         output_name: str,
-        supported_schemes: Optional[List[str]],
-    ):
-        super().__init__(locals())
-
-class InputUriPlaceholder(ModelBase):
-    '''Represents the command-line argument placeholder that will be replaced at run-time by a URI pointing to a the input argument data.'''
-    _serialized_names = {
-        'input_uri_spec': 'inputUri',
-    }
-
-    def __init__(self,
-        input_uri_spec: InputUriSpec,
-    ):
-        super().__init__(locals())
-
-
-class OutputUriPlaceholder(ModelBase):
-    '''Represents the command-line argument placeholder that will be replaced at run-time by a URI pointing to a location where the program should write its output data.'''
-    _serialized_names = {
-        'output_uri_spec': 'outputUri',
-    }
-
-    def __init__(self,
-        output_uri_spec: OutputUriSpec,
     ):
         super().__init__(locals())
 
@@ -341,10 +323,10 @@ class ComponentSpec(ModelBase):
                     if arg.output_name not in self._outputs_dict:
                         raise TypeError('Argument "{}" references non-existing output.'.format(arg))
                 elif isinstance(arg, InputUriPlaceholder):
-                    if arg.input_uri_spec.input_name not in self._inputs_dict:
+                    if arg.input_name not in self._inputs_dict:
                         raise TypeError('Argument "{}" references non-existing input.'.format(arg))
                 elif isinstance(arg, OutputUriPlaceholder):
-                    if arg.output_uri_spec.output_name not in self._outputs_dict:
+                    if arg.output_name not in self._outputs_dict:
                         raise TypeError('Argument "{}" references non-existing output.'.format(arg))
                 elif isinstance(arg, ConcatPlaceholder):
                     for arg2 in arg.items:
@@ -355,7 +337,7 @@ class ComponentSpec(ModelBase):
                     verify_arg(arg.if_structure.else_value)
                 else:
                     raise TypeError('Unexpected argument "{}"'.format(arg))
-            
+
             verify_arg(container.command)
             verify_arg(container.args)
 

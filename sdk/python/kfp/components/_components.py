@@ -468,7 +468,7 @@ def _resolve_command_line_and_paths(
             return output_filename
 
         elif isinstance(arg, InputUriPlaceholder):
-            input_name = arg.input_uri_spec.input_name
+            input_name = arg.input_name
             input_argument = argument_values.get(input_name, None)
             if input_name in argument_values:
                 input_uri = input_uri_generator(input_name)
@@ -482,7 +482,7 @@ def _resolve_command_line_and_paths(
                     raise ValueError('No value provided for input {}'.format(input_name))
 
         elif isinstance(arg, OutputUriPlaceholder):
-            output_name = arg.output_uri_spec.output_name
+            output_name = arg.output_name
             output_uri = output_uri_generator(output_name)
             output_uris[output_name] = output_uri
             return output_uri

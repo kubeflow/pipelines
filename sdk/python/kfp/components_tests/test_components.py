@@ -732,9 +732,9 @@ implementation:
                 command:
                 - program
                 - --in1-uri
-                - {inputUri: {inputName: In1, supportedSchemes: [GoogleCloudStorage]}}
+                - {inputUri: In1}
                 - --out1-uri
-                - {outputUri: {outputName: Out1, supportedSchemes: [GoogleCloudStorage]}}
+                - {outputUri: Out1}
             '''
         )
         op = comp.load_component_from_text(text=component_text)
