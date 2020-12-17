@@ -1,6 +1,34 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`ExperimentsAndRuns renders experiments page 1`] = `
+exports[`ExperimentsAndArchive renders archive page 1`] = `
+<div
+  className="page"
+>
+  <MD2Tabs
+    onSwitch={[Function]}
+    selectedTab={1}
+    tabs={
+      Array [
+        "Active",
+        "Archived",
+      ]
+    }
+  />
+  <EnhancedArchivedExperiments
+    history={Object {}}
+    location=""
+    match=""
+    toolbarProps={Object {}}
+    updateBanner={[Function]}
+    updateDialog={[MockFunction]}
+    updateSnackbar={[MockFunction]}
+    updateToolbar={[Function]}
+    view={1}
+  />
+</div>
+`;
+
+exports[`ExperimentsAndArchive renders experiments page 1`] = `
 <div
   className="page"
 >
@@ -9,8 +37,8 @@ exports[`ExperimentsAndRuns renders experiments page 1`] = `
     selectedTab={0}
     tabs={
       Array [
-        "All experiments",
-        "All runs",
+        "Active",
+        "Archived",
       ]
     }
   />
@@ -24,34 +52,6 @@ exports[`ExperimentsAndRuns renders experiments page 1`] = `
     updateSnackbar={[MockFunction]}
     updateToolbar={[Function]}
     view={0}
-  />
-</div>
-`;
-
-exports[`ExperimentsAndRuns renders runs page 1`] = `
-<div
-  className="page"
->
-  <MD2Tabs
-    onSwitch={[Function]}
-    selectedTab={1}
-    tabs={
-      Array [
-        "All experiments",
-        "All runs",
-      ]
-    }
-  />
-  <EnhancedAllRunsList
-    history={Object {}}
-    location=""
-    match=""
-    toolbarProps={Object {}}
-    updateBanner={[Function]}
-    updateDialog={[MockFunction]}
-    updateSnackbar={[MockFunction]}
-    updateToolbar={[Function]}
-    view={1}
   />
 </div>
 `;
