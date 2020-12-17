@@ -17,7 +17,6 @@
 import Button from '@material-ui/core/Button';
 import IconButton from '@material-ui/core/IconButton';
 import Tooltip from '@material-ui/core/Tooltip';
-import ArchiveIcon from '@material-ui/icons/Archive';
 import ArtifactsIcon from '@material-ui/icons/BubbleChart';
 import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
 import JupyterhubIcon from '@material-ui/icons/Code';
@@ -478,36 +477,6 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
               </a>
             </Tooltip>
           )}
-          <hr className={classes(css.separator, collapsed && css.collapsedSeparator)} />
-          <div
-            className={classes(
-              css.indicator,
-              ![RoutePage.ARCHIVED_RUNS, RoutePage.ARCHIVED_EXPERIMENTS].includes(page) &&
-                css.indicatorHidden,
-            )}
-          />
-          <Tooltip
-            title={'Archive'}
-            enterDelay={300}
-            placement={'right-start'}
-            disableFocusListener={!collapsed}
-            disableHoverListener={!collapsed}
-            disableTouchListener={!collapsed}
-          >
-            <Link id='archiveBtn' to={RoutePage.ARCHIVED_RUNS} className={commonCss.unstyled}>
-              <Button
-                className={classes(
-                  css.button,
-                  (page === RoutePage.ARCHIVED_RUNS || page === RoutePage.ARCHIVED_EXPERIMENTS) &&
-                    css.active,
-                  collapsed && css.collapsedButton,
-                )}
-              >
-                <ArchiveIcon style={{ height: 20, width: 20 }} />
-                <span className={classes(collapsed && css.collapsedLabel, css.label)}>Archive</span>
-              </Button>
-            </Link>
-          </Tooltip>
           <hr className={classes(css.separator, collapsed && css.collapsedSeparator)} />
           <ExternalUri
             title={'Documentation'}
