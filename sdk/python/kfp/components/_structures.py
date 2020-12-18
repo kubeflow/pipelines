@@ -19,6 +19,8 @@ __all__ = [
     'InputValuePlaceholder',
     'InputPathPlaceholder',
     'OutputPathPlaceholder',
+    'InputUriPlaceholder',
+    'OutputUriPlaceholder',
     'ConcatPlaceholder',
     'IsPresentPlaceholder',
     'IfPlaceholderStructure',
@@ -130,11 +132,46 @@ class OutputPathPlaceholder(ModelBase): #Non-standard attr names
         super().__init__(locals())
 
 
+class InputUriPlaceholder(ModelBase):  # Non-standard attr names
+    """Represents a placeholder for the URI of an input artifact.
+
+    Represents the command-line argument placeholder that will be replaced at
+    run-time by the URI of the input artifact argument.
+    """
+    _serialized_names = {
+        'input_name': 'inputUri',
+    }
+
+    def __init__(self,
+        input_name: str,
+    ):
+        super().__init__(locals())
+
+
+class OutputUriPlaceholder(ModelBase):  # Non-standard attr names
+    """Represents a placeholder for the URI of an output artifact.
+
+    Represents the command-line argument placeholder that will be replaced at
+    run-time by a URI of the output artifac where the program should write its
+    output data.
+    """
+    _serialized_names = {
+        'output_name': 'outputUri',
+    }
+
+    def __init__(self,
+        output_name: str,
+    ):
+        super().__init__(locals())
+
+
 CommandlineArgumentType = Union[
     str,
     InputValuePlaceholder,
     InputPathPlaceholder,
     OutputPathPlaceholder,
+    InputUriPlaceholder,
+    OutputUriPlaceholder,
     'ConcatPlaceholder',
     'IfPlaceholder',
 ]
@@ -279,12 +316,15 @@ class ComponentSpec(ModelBase):
                 elif isinstance(arg, list):
                     for arg2 in arg:
                         verify_arg(arg2)
-                elif isinstance(arg, (InputValuePlaceholder, InputPathPlaceholder, IsPresentPlaceholder)):
+                elif isinstance(arg, (InputUriPlaceholder, InputValuePlaceholder,
+                                      InputPathPlaceholder, IsPresentPlaceholder)):
                     if arg.input_name not in self._inputs_dict:
-                        raise TypeError('Argument "{}" references non-existing input.'.format(arg))
-                elif isinstance(arg, OutputPathPlaceholder):
+                        raise TypeError(
+                            'Argument "{}" references non-existing input.'.format(arg))
+                elif isinstance(arg, (OutputUriPlaceholder, OutputPathPlaceholder)):
                     if arg.output_name not in self._outputs_dict:
-                        raise TypeError('Argument "{}" references non-existing output.'.format(arg))
+                        raise TypeError(
+                            'Argument "{}" references non-existing output.'.format(arg))
                 elif isinstance(arg, ConcatPlaceholder):
                     for arg2 in arg.items:
                         verify_arg(arg2)
@@ -294,7 +334,7 @@ class ComponentSpec(ModelBase):
                     verify_arg(arg.if_structure.else_value)
                 else:
                     raise TypeError('Unexpected argument "{}"'.format(arg))
-            
+
             verify_arg(container.command)
             verify_arg(container.args)
 

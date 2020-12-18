@@ -720,6 +720,43 @@ implementation:
         with self.assertRaises(TypeError):
             component(input_1="value 1", input_2=open)
 
+    def test_input_output_uri_resolving(self):
+        component_text = textwrap.dedent('''\
+            inputs:
+            - {name: In1}
+            outputs:
+            - {name: Out1}
+            implementation:
+              container:
+                image: busybox
+                command:
+                - program
+                - --in1-uri
+                - {inputUri: In1}
+                - --out1-uri
+                - {outputUri: Out1}
+            '''
+        )
+        op = comp.load_component_from_text(text=component_text)
+        task = op(in1='foo')
+        resolved_cmd = _resolve_command_line_and_paths(
+            component_spec=task.component_ref.spec,
+            arguments=task.arguments,
+            input_uri_generator=lambda name: f"{{{{inputs[{name}].uri}}}}",
+            output_uri_generator=lambda name: f"{{{{outputs[{name}].uri}}}}",
+        )
+
+        self.assertEqual(
+            resolved_cmd.command,
+            [
+                'program',
+                '--in1-uri',
+                '{{inputs[In1].uri}}',
+                '--out1-uri',
+                '{{outputs[Out1].uri}}',
+            ]
+        )
+
     def test_check_type_validation_of_task_spec_outputs(self):
         producer_component_text = '''\
 outputs:

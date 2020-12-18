@@ -22,7 +22,7 @@ __all__ = [
 import copy
 import sys
 from collections import OrderedDict
-from typing import Any, List, Mapping, NamedTuple, Sequence, Union
+from typing import Any, Callable, List, Mapping, NamedTuple, Sequence, Union
 from ._naming import _sanitize_file_name, _sanitize_python_function_name, generate_unique_name_conversion_table
 from ._yaml_utils import load_yaml
 from .structures import *
@@ -381,16 +381,24 @@ _ResolvedCommandLineAndPaths = NamedTuple(
         ('input_paths', Mapping[str, str]),
         ('output_paths', Mapping[str, str]),
         ('inputs_consumed_by_value', Mapping[str, str]),
+        ('input_uris', Mapping[str, str]),
+        ('output_uris', Mapping[str, str]),
     ],
 )
+
+
+def _not_implemented(name: str) -> str:
+    raise NotImplementedError
 
 
 def _resolve_command_line_and_paths(
     component_spec: ComponentSpec,
     arguments: Mapping[str, str],
-    input_path_generator=_generate_input_file_name,
-    output_path_generator=_generate_output_file_name,
-    argument_serializer=serialize_value,
+    input_path_generator: Callable[[str], str] = _generate_input_file_name,
+    output_path_generator: Callable[[str], str] = _generate_output_file_name,
+    argument_serializer: Callable[[str], str] = serialize_value,
+    input_uri_generator: Callable[[str], str] = _not_implemented,
+    output_uri_generator: Callable[[str], str] = _not_implemented,
 ) -> _ResolvedCommandLineAndPaths:
     """Resolves the command line argument placeholders. Also produces the maps of the generated inpuit/output paths."""
     argument_values = arguments
@@ -409,6 +417,8 @@ def _resolve_command_line_and_paths(
 
     input_paths = OrderedDict()
     inputs_consumed_by_value = {}
+    input_uris = OrderedDict()
+    output_uris = OrderedDict()
 
     def expand_command_part(arg) -> Union[str, List[str], None]:
         if arg is None:
@@ -457,6 +467,33 @@ def _resolve_command_line_and_paths(
 
             return output_filename
 
+        elif isinstance(arg, InputUriPlaceholder):
+            input_name = arg.input_name
+            input_argument = argument_values.get(input_name, None)
+            if input_name in argument_values:
+                input_uri = input_uri_generator(input_name)
+                input_uris[input_name] = input_uri
+                return input_uri
+            else:
+                input_spec = inputs_dict[input_name]
+                if input_spec.optional:
+                    return None
+                else:
+                    raise ValueError('No value provided for input {}'.format(input_name))
+
+        elif isinstance(arg, OutputUriPlaceholder):
+            output_name = arg.output_name
+            output_uri = output_uri_generator(output_name)
+            if arg.output_name in output_uris:
+                if output_uris[output_name] != output_uri:
+                    raise ValueError(
+                        'Conflicting output URIs specified for port {}: {} and {}'.format(
+                            output_name, output_uris[output_name], output_uri))
+            else:
+                output_uris[output_name] = output_uri
+
+            return output_uri
+
         elif isinstance(arg, ConcatPlaceholder):
             expanded_argument_strings = expand_argument_list(arg.items)
             return ''.join(expanded_argument_strings)
@@ -502,6 +539,8 @@ def _resolve_command_line_and_paths(
         input_paths=input_paths,
         output_paths=output_paths,
         inputs_consumed_by_value=inputs_consumed_by_value,
+        input_uris=input_uris,
+        output_uris=output_uris,
     )
 
 
