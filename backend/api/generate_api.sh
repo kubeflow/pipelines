@@ -21,6 +21,7 @@
 
 set -ex
 
+<<<<<<< HEAD
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 REPO_ROOT="$DIR/../.."
 VERSION="$(cat $REPO_ROOT/VERSION)"
@@ -140,3 +141,7 @@ sed -i -- 's/IntervalSecond string `json:"interval_second,omitempty"`/IntervalSe
 
 # Executes the //go:generate directives in the generated code.
 go generate ./...
+=======
+cd ../..
+docker run  --interactive --rm --mount type=bind,source="$(pwd)",target=/app/pipelines builder app/pipelines/backend/api/generator.sh
+>>>>>>> 9696224e (update the generation)
