@@ -316,18 +316,15 @@ class ComponentSpec(ModelBase):
                 elif isinstance(arg, list):
                     for arg2 in arg:
                         verify_arg(arg2)
-                elif isinstance(arg, (InputValuePlaceholder, InputPathPlaceholder, IsPresentPlaceholder)):
+                elif isinstance(arg, (InputUriPlaceholder, InputValuePlaceholder,
+                                      InputPathPlaceholder, IsPresentPlaceholder)):
                     if arg.input_name not in self._inputs_dict:
-                        raise TypeError('Argument "{}" references non-existing input.'.format(arg))
-                elif isinstance(arg, OutputPathPlaceholder):
+                        raise TypeError(
+                            'Argument "{}" references non-existing input.'.format(arg))
+                elif isinstance(arg, (OutputUriPlaceholder, OutputPathPlaceholder)):
                     if arg.output_name not in self._outputs_dict:
-                        raise TypeError('Argument "{}" references non-existing output.'.format(arg))
-                elif isinstance(arg, InputUriPlaceholder):
-                    if arg.input_name not in self._inputs_dict:
-                        raise TypeError('Argument "{}" references non-existing input.'.format(arg))
-                elif isinstance(arg, OutputUriPlaceholder):
-                    if arg.output_name not in self._outputs_dict:
-                        raise TypeError('Argument "{}" references non-existing output.'.format(arg))
+                        raise TypeError(
+                            'Argument "{}" references non-existing output.'.format(arg))
                 elif isinstance(arg, ConcatPlaceholder):
                     for arg2 in arg.items:
                         verify_arg(arg2)

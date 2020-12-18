@@ -22,7 +22,7 @@ __all__ = [
 import copy
 import sys
 from collections import OrderedDict
-from typing import Any, List, Mapping, NamedTuple, Sequence, Union
+from typing import Any, Callable, List, Mapping, NamedTuple, Sequence, Union
 from ._naming import _sanitize_file_name, _sanitize_python_function_name, generate_unique_name_conversion_table
 from ._yaml_utils import load_yaml
 from .structures import *
@@ -394,11 +394,11 @@ def _not_implemented(name: str) -> str:
 def _resolve_command_line_and_paths(
     component_spec: ComponentSpec,
     arguments: Mapping[str, str],
-    input_path_generator=_generate_input_file_name,
-    output_path_generator=_generate_output_file_name,
-    argument_serializer=serialize_value,
-    input_uri_generator=_not_implemented,
-    output_uri_generator=_not_implemented,
+    input_path_generator: Callable[[str], str] = _generate_input_file_name,
+    output_path_generator: Callable[[str], str] = _generate_output_file_name,
+    argument_serializer: Callable[[str], str] = serialize_value,
+    input_uri_generator: Callable[[str], str] = _not_implemented,
+    output_uri_generator: Callable[[str], str] = _not_implemented,
 ) -> _ResolvedCommandLineAndPaths:
     """Resolves the command line argument placeholders. Also produces the maps of the generated inpuit/output paths."""
     argument_values = arguments
@@ -484,7 +484,14 @@ def _resolve_command_line_and_paths(
         elif isinstance(arg, OutputUriPlaceholder):
             output_name = arg.output_name
             output_uri = output_uri_generator(output_name)
-            output_uris[output_name] = output_uri
+            if arg.output_name in output_uris:
+                if output_uris[output_name] != output_uri:
+                    raise ValueError(
+                        'Conflicting output URIs specified for port {}: {} and {}'.format(
+                            output_name, output_uris[output_name], output_uri))
+            else:
+                output_uris[output_name] = output_uri
+
             return output_uri
 
         elif isinstance(arg, ConcatPlaceholder):
