@@ -47,9 +47,13 @@ import Select from '@material-ui/core/Select';
 import FormControl from '@material-ui/core/FormControl';
 import InputLabel from '@material-ui/core/InputLabel';
 import MenuItem from '@material-ui/core/MenuItem';
+import { compareGraphEdges, transitiveReduction } from '../lib/StaticGraphParser';
+import { graphlib } from 'dagre';
+import SwitchWithLabel from '../atoms/SwitchWithLabel';
 
 interface PipelineDetailsState {
   graph: dagre.graphlib.Graph | null;
+  reducedGraph: dagre.graphlib.Graph | null;
   pipeline: ApiPipeline | null;
   selectedNodeId: string;
   selectedNodeInfo: JSX.Element | null;
@@ -59,6 +63,7 @@ interface PipelineDetailsState {
   template?: Workflow;
   templateString?: string;
   versions: ApiPipelineVersion[];
+  showReducedGraph: boolean;
 }
 
 const summaryCardWidth = 500;
@@ -114,12 +119,14 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
     this.state = {
       graph: null,
+      reducedGraph: null,
       pipeline: null,
       selectedNodeId: '',
       selectedNodeInfo: null,
       selectedTab: 0,
       summaryShown: true,
       versions: [],
+      showReducedGraph: true,
     };
   }
 
@@ -185,6 +192,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       summaryShown,
       templateString,
       versions,
+      showReducedGraph,
     } = this.state;
 
     // Since react-ace Editor doesn't support in Safari when height or width is a percentage.
@@ -198,9 +206,13 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         !window['safari'] || (typeof 'safari' !== 'undefined' && window['safari'].pushNotification),
       );
 
+    const _graph =
+      this.state.showReducedGraph && this.state.reducedGraph
+        ? this.state.reducedGraph
+        : this.state.graph;
     let selectedNodeInfo: StaticGraphParser.SelectedNodeInfo | null = null;
-    if (this.state.graph && this.state.graph.node(selectedNodeId)) {
-      selectedNodeInfo = this.state.graph.node(selectedNodeId).info;
+    if (_graph && _graph.node(selectedNodeId)) {
+      selectedNodeInfo = _graph.node(selectedNodeId).info;
       if (!!selectedNodeId && !selectedNodeInfo) {
         logger.error(`Node with ID: ${selectedNodeId} was not found in the graph`);
       }
@@ -223,7 +235,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           <div className={commonCss.page}>
             {selectedTab === 0 && (
               <div className={commonCss.page}>
-                {this.state.graph && (
+                {_graph && (
                   <div
                     className={commonCss.page}
                     style={{ position: 'relative', overflow: 'hidden' }}
@@ -288,13 +300,25 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                     )}
 
                     <Graph
-                      graph={this.state.graph}
+                      graph={_graph}
                       selectedNodeId={selectedNodeId}
                       onClick={id => this.setStateSafe({ selectedNodeId: id })}
                       onError={(message, additionalInfo) =>
                         this.props.updateBanner({ message, additionalInfo, mode: 'error' })
                       }
                     />
+
+                    <div className={commonCss.transitiveReductionSwitch}>
+                      <SwitchWithLabel
+                        label={'Simplify Graph'}
+                        labelPlacement={'end'}
+                        disabled={!this.state.reducedGraph}
+                        checked={showReducedGraph}
+                        onChange={_ => {
+                          this.setState({ showReducedGraph: !this.state.showReducedGraph });
+                        }}
+                      />
+                    </div>
 
                     <SidePanel
                       isOpen={!!selectedNodeId}
@@ -335,7 +359,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                     </div>
                   </div>
                 )}
-                {!this.state.graph && <span style={{ margin: '40px auto' }}>No graph to show</span>}
+                {!_graph && <span style={{ margin: '40px auto' }}>No graph to show</span>}
               </div>
             )}
             {selectedTab === 1 && !!templateString && (
@@ -369,8 +393,16 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       this.props.history.replace({
         pathname: `/pipelines/details/${this.state.pipeline.id}/version/${versionId}`,
       });
+      const graph = await this._createGraph(selectedVersionPipelineTemplate);
+      let reducedGraph = graph
+        ? transitiveReduction(graphlib.json.read(graphlib.json.write(graph)))
+        : undefined;
+      if (graph && reducedGraph && compareGraphEdges(graph, reducedGraph)) {
+        reducedGraph = undefined; // disable reduction switch
+      }
       this.setStateSafe({
-        graph: await this._createGraph(selectedVersionPipelineTemplate),
+        graph,
+        reducedGraph,
         selectedVersion,
         templateString: selectedVersionPipelineTemplate,
       });
@@ -521,8 +553,16 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
     this.props.updateToolbar({ breadcrumbs, actions: toolbarActions, pageTitle });
 
+    const graph = await this._createGraph(templateString);
+    let reducedGraph = graph
+      ? transitiveReduction(graphlib.json.read(graphlib.json.write(graph)))
+      : undefined;
+    if (graph && reducedGraph && compareGraphEdges(graph, reducedGraph)) {
+      reducedGraph = undefined; // disable reduction switch
+    }
     this.setStateSafe({
-      graph: await this._createGraph(templateString),
+      graph,
+      reducedGraph,
       pipeline,
       selectedVersion,
       templateString,
