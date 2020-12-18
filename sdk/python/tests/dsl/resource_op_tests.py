@@ -85,5 +85,8 @@ class TestResourceOp(unittest.TestCase):
 
         expected_name = str(res.outputs['name'])
 
-        self.assertEqual(delete_res.command, ['kubectl', 'delete', 'CustomResource', expected_name, '--ignore-not-found', '--output', 'name'])
+        self.assertEqual(delete_res.command,
+                         ['kubectl', 'delete', 'CustomResource', expected_name,
+                          '--ignore-not-found', '--output', 'name',
+                          '--wait=false'])
         self.assertEqual(delete_res.outputs, {})
