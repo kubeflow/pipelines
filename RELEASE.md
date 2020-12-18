@@ -216,6 +216,14 @@ public image registry and gcs bucket. This job should have already failed becaus
 artifacts haven't been built. Now, please click "View more details on Google Cloud Build"
 and then "Retry", because after waiting for previous step, artifacts are now ready.
 
+    NOTE: (To be verified) Do not click the "Re-run" button from GitHub Actions status page.
+    It will create a build with "Branch: $BRANCH" instead of "TAG: $VERSION".
+    Open "View more details on Google Cloud Build", and rerun from there.
+
+    ![Retry release-on-tag from the Google Cloud Build details page](retry-release-on-tag.png)
+
+    ![Verify that you're retrying the right build](verify-retry-the-right-build.png)
+
     TODO: we should have an automation KFP cluster, and the waiting and submiting
     `release-on-tag` cloudbuild task should happen automatically.
     
