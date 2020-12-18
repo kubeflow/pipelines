@@ -21,25 +21,5 @@
 
 set -ex
 
-DOCKERFILE="Dockerfile.buildapi"
-IMAGE="builder"
-RUNNER="dummy"
-DIR="backend/api/"
-
-## https://stackoverflow.com/questions/22049212/docker-copying-files-from-docker-container-to-host
-
 cd ../..
-
-# Delete currently generated code.
-rm -r -f $DIR/go_http_client/*
-rm -r -f $DIR/go_client/*
-
-# Build the image, and generate the API:s
-docker build . -f backend/$DOCKERFILE -t $IMAGE
-# Create writable container layer
-docker create -ti --name $RUNNER $IMAGE bash
-# Copy the gnerate code
-docker cp $RUNNER:/go/src/github.com/kubeflow/pipelines/backend/api/go_client/ ./backend/api/
-docker cp $RUNNER:/go/src/github.com/kubeflow/pipelines/backend/api/go_http_client/ ./backend/api/
-docker cp $RUNNER:/go/src/github.com/kubeflow/pipelines/backend/api/swagger/ ./backend/api/
-docker rm -f $RUNNER
+docker run  --interactive --rm --mount type=bind,source="$(pwd)",target=/app/pipelines builder app/pipelines/backend/api/generator.sh
