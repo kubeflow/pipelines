@@ -63,7 +63,7 @@ import Buttons, { ButtonKeys } from '../lib/Buttons';
 import CompareUtils from '../lib/CompareUtils';
 import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
 import RunUtils from '../lib/RunUtils';
-import { KeyValue } from '../lib/StaticGraphParser';
+import { KeyValue, transitiveReduction, compareGraphEdges } from '../lib/StaticGraphParser';
 import { hasFinished, NodePhase } from '../lib/StatusUtils';
 import {
   errorToMessage,
@@ -78,6 +78,8 @@ import { ExecutionDetailsContent } from './ExecutionDetails';
 import { Page, PageProps } from './Page';
 import { statusToIcon } from './Status';
 import { ExternalLink } from 'src/atoms/ExternalLink';
+import { graphlib } from 'dagre';
+import SwitchWithLabel from '../atoms/SwitchWithLabel';
 
 enum SidePaneTab {
   INPUT_OUTPUT,
@@ -125,6 +127,7 @@ interface RunDetailsState {
   logsBannerMessage: string;
   logsBannerMode: Mode;
   graph?: dagre.graphlib.Graph;
+  reducedGraph?: dagre.graphlib.Graph;
   runFinished: boolean;
   runMetadata?: ApiRun;
   selectedTab: number;
@@ -135,6 +138,7 @@ interface RunDetailsState {
   workflow?: Workflow;
   mlmdRunContext?: Context;
   mlmdExecutions?: Execution[];
+  showReducedGraph?: boolean;
 }
 
 export const css = stylesheet({
@@ -184,6 +188,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     sidepanelSelectedTab: SidePaneTab.INPUT_OUTPUT,
     mlmdRunContext: undefined,
     mlmdExecutions: undefined,
+    showReducedGraph: true,
   };
 
   private readonly AUTO_REFRESH_INTERVAL = 5000;
@@ -234,7 +239,6 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     const {
       allArtifactConfigs,
       allowCustomVisualizations,
-      graph,
       isGeneratingVisualization,
       runFinished,
       runMetadata,
@@ -244,6 +248,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       sidepanelSelectedTab,
       workflow,
       mlmdExecutions,
+      showReducedGraph,
     } = this.state;
     const { projectId, clusterName } = this.props.gkeMetadata;
     const selectedNodeId = selectedNodeDetails?.id || '';
@@ -277,6 +282,10 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       collapsedInitially: true,
     };
 
+    const _graph =
+      this.state.showReducedGraph && this.state.reducedGraph
+        ? this.state.reducedGraph
+        : this.state.graph;
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
         {!!workflow && (
@@ -290,16 +299,28 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
               {/* Graph tab */}
               {selectedTab === 0 && (
                 <div className={classes(commonCss.page, css.graphPane)}>
-                  {graph && (
+                  {_graph && (
                     <div className={commonCss.page}>
                       <Graph
-                        graph={graph}
+                        graph={_graph}
                         selectedNodeId={selectedNodeId}
                         onClick={id => this._selectNode(id)}
                         onError={(message, additionalInfo) =>
                           this.props.updateBanner({ message, additionalInfo, mode: 'error' })
                         }
                       />
+
+                      <div className={commonCss.transitiveReductionSwitch}>
+                        <SwitchWithLabel
+                          label={'Simplify Graph'}
+                          labelPlacement={'end'}
+                          disabled={!this.state.reducedGraph}
+                          checked={showReducedGraph}
+                          onChange={_ => {
+                            this.setState({ showReducedGraph: !this.state.showReducedGraph });
+                          }}
+                        />
+                      </div>
 
                       <SidePanel
                         isBusy={this.state.sidepanelBusy}
@@ -534,7 +555,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                       </div>
                     </div>
                   )}
-                  {!graph && (
+                  {!_graph && (
                     <div>
                       {runFinished && <span style={{ margin: '40px auto' }}>No graph to show</span>}
                       {!runFinished && (
@@ -730,6 +751,13 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         workflow && workflow.status && workflow.status.nodes
           ? WorkflowParser.createRuntimeGraph(workflow)
           : undefined;
+      let reducedGraph = graph
+        ? // copy graph before removing edges
+          transitiveReduction(graphlib.json.read(graphlib.json.write(graph)))
+        : undefined;
+      if (graph && reducedGraph && compareGraphEdges(graph, reducedGraph)) {
+        reducedGraph = undefined; // disable reduction switch
+      }
 
       const breadcrumbs: Array<{ displayName: string; href: string }> = [];
       // If this is an archived run, only show Archive in breadcrumbs, otherwise show
@@ -785,6 +813,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       this.setStateSafe({
         experiment,
         graph,
+        reducedGraph,
         runFinished,
         runMetadata,
         workflow,
