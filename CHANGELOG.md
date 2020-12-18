@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.2.0](https://github.com/kubeflow/pipelines/compare/1.1.2...1.2.0) (2020-12-18)
+
+
+### Features
+
+* **components:** Add v1beta1 Katib launcher and samples ([\#4798](https://github.com/kubeflow/pipelines/issues/4798)) ([89e4210](https://github.com/kubeflow/pipelines/commit/89e42105bd941e1d918d0bff9ba0c4f80b106ed4))
+* **sdk:** Add artifact ontology and migrate compiler utils to onboard artifact types ([\#4901](https://github.com/kubeflow/pipelines/issues/4901)) ([2386471](https://github.com/kubeflow/pipelines/commit/2386471cdf18456ec6e5d53d49b2bda74e078a6f))
+* **sdk:** Add settings of the dnsConfig field. Fixes [\#4836](https://github.com/kubeflow/pipelines/issues/4836) ([\#4837](https://github.com/kubeflow/pipelines/issues/4837)) ([5a4b70e](https://github.com/kubeflow/pipelines/commit/5a4b70e37c2c42cb0add0715e4a4037042e9d2d7))
+* **sdk:** allow calling GroupOp.after with multiple ops ([\#4788](https://github.com/kubeflow/pipelines/issues/4788)) ([5169489](https://github.com/kubeflow/pipelines/commit/5169489be5f73797490564685fe46d6bbf64908d))
+* **sdk:** Components - Restored stack traces in lightweight python components. Fixes [\#4273](https://github.com/kubeflow/pipelines/issues/4273), [\#4849](https://github.com/kubeflow/pipelines/issues/4849) ([\#4861](https://github.com/kubeflow/pipelines/issues/4861)) ([7a66414](https://github.com/kubeflow/pipelines/commit/7a66414cf72ba5c746cac7fc6c8ecad67fc5e885))
+* **SDK:** adds Artifact base class. ([\#4895](https://github.com/kubeflow/pipelines/issues/4895)) ([7591805](https://github.com/kubeflow/pipelines/commit/759180537788e01a7906432255ad663c296e9518))
+
+
+### Bug Fixes
+
+* **frontend:** fixed getting executions failure. Fixes [\#4903](https://github.com/kubeflow/pipelines/issues/4903) ([\#4907](https://github.com/kubeflow/pipelines/issues/4907)) ([df7a66f](https://github.com/kubeflow/pipelines/commit/df7a66f3b70dfc41c12fd14554c59c43c8a4dd2f))
+* **frontend:** Use task_display_name annotation when displaying run metrics ([\#4875](https://github.com/kubeflow/pipelines/issues/4875)) ([d4e8b87](https://github.com/kubeflow/pipelines/commit/d4e8b8736c3a468b73916ec5d00760999809d0da))
+* **sdk:** Do not wait for resource deletion ([\#4820](https://github.com/kubeflow/pipelines/issues/4820)) ([8f70bf3](https://github.com/kubeflow/pipelines/commit/8f70bf325ea779980ec1fbd0242b2b646bd6a70c))
+* **sdk:** make healthz exception visible in logs by default ([\#4904](https://github.com/kubeflow/pipelines/issues/4904)) ([44fcda7](https://github.com/kubeflow/pipelines/commit/44fcda7dca23dfdac4ead0195e5c005bb7b15115))
+
 ### [1.1.2](https://github.com/kubeflow/pipelines/compare/0.5.1...1.1.2) (2020-12-14)
 
 
