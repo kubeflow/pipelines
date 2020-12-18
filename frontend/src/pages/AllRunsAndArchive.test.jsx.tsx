@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import AllRunsAndArchive , {
+import AllRunsAndArchive, {
   AllRunsAndArchiveProps,
   AllRunsAndArchiveTab,
 } from './AllRunsAndArchive';
