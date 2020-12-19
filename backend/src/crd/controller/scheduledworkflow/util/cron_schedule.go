@@ -24,7 +24,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// The maximum epoch nbr that can be used in time.Unix
+// The maximum nbr of epochs that can be used in time.Unix
 // For more information check: https://stackoverflow.com/questions/25065055/what-is-the-maximum-time-time-in-go
 const maxEpoch = 1<<63 - 62135596801
 
@@ -115,7 +115,7 @@ func (s *CronSchedule) getNextScheduledEpochImp(lastJobTime time.Time, catchup b
 	var nextNext time.Time
 	for {
 		nextNext = schedule.Next(next)
-		if (nextNext.Before(nowTime) || nextNext.Equal(nowTime)) && (nextNext.Before(endTime) || nextNext.Equal(endTime)) {
+		if !nextNext.After(nowTime) && !nextNext.After(endTime) {
 			next = nextNext
 		} else {
 			break
