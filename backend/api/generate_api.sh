@@ -22,4 +22,4 @@
 set -ex
 
 cd ../..
-docker run  --interactive --rm --mount type=bind,source="$(pwd)",target=/app/pipelines builder app/pipelines/backend/api/generator.sh
+docker run  --interactive --rm --mount type=bind,source="$(pwd)",target=/app/pipelines buildapi app/pipelines/backend/api/generator.sh
