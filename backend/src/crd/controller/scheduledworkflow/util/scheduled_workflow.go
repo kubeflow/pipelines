@@ -341,7 +341,7 @@ func (s *ScheduledWorkflow) updateLastTriggeredTime(epoch int64) {
 }
 
 func (s *ScheduledWorkflow) updateNextTriggeredTime(epoch int64) {
-	if epoch != math.MaxInt64 && epoch != 1<<63-62135596801 {
+	if epoch < maxEpoch {
 		s.Status.Trigger.NextTriggeredTime = commonutil.Metav1TimePointer(
 			metav1.NewTime(time.Unix(epoch, 0).UTC()))
 	} else {

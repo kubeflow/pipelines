@@ -24,6 +24,10 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// The maximum epoch nbr that can be used in time.Unix
+// For more information check: https://stackoverflow.com/questions/25065055/what-is-the-maximum-time-time-in-go
+const maxEpoch = 1<<63 - 62135596801
+
 // CronSchedule is a type to help manipulate CronSchedule objects.
 type CronSchedule struct {
 	*swfapi.CronSchedule
@@ -44,19 +48,19 @@ func NewCronSchedule(cronSchedule *swfapi.CronSchedule) *CronSchedule {
 // scheduled.
 func (s *CronSchedule) GetNextScheduledEpoch(lastJobTime *v1.Time,
 	defaultStartTime time.Time, location *time.Location) int64 {
-	effectiveLastJobTime := s.getEffectiveLastJobEpoch(lastJobTime, defaultStartTime, location)
+	effectiveLastJobTime := s.getEffectiveLastJobEpoch(lastJobTime, defaultStartTime)
 	return s.getNextScheduledEpoch(effectiveLastJobTime, location)
 }
 
 func (s *CronSchedule) GetNextScheduledEpochNoCatchup(lastJobTime *v1.Time,
 	defaultStartTime time.Time, nowTime time.Time, location *time.Location) int64 {
 
-	effectiveLastJobTime := s.getEffectiveLastJobEpoch(lastJobTime, defaultStartTime, location)
+	effectiveLastJobTime := s.getEffectiveLastJobEpoch(lastJobTime, defaultStartTime)
 	return s.getNextScheduledEpochImp(effectiveLastJobTime, false, nowTime, location)
 }
 
 func (s *CronSchedule) getEffectiveLastJobEpoch(lastJobTime *v1.Time,
-	defaultStartTime time.Time, location *time.Location) time.Time {
+	defaultStartTime time.Time) time.Time {
 
 	// Fallback to default start epoch, which will be passed the Job creation
 	// time.
@@ -82,7 +86,7 @@ func (s *CronSchedule) getNextScheduledEpochImp(lastJobTime time.Time, catchup b
 		// This should never happen, validation should have caught this at resource creation.
 		log.Errorf("%+v", wraperror.Errorf(
 			"Found invalid schedule (%v): %v", s.Cron, err))
-		return time.Unix(1<<63-62135596801, 0).Unix()
+		return time.Unix(maxEpoch, 0).Unix()
 	}
 
 	startTime := lastJobTime
@@ -91,16 +95,13 @@ func (s *CronSchedule) getNextScheduledEpochImp(lastJobTime time.Time, catchup b
 	}
 
 	result := schedule.Next(startTime.In(location))
-	var endTime time.Time = time.Unix(1<<63-62135596801, 0)
-	// math.int64 max will break the comparison.
-	// Examle playground https://play.golang.org/p/LERg0aq2mU6
-	// Max date https://stackoverflow.com/questions/25065055/what-is-the-maximum-time-time-in-go
+	var endTime time.Time = time.Unix(maxEpoch, 0)
 	if s.EndTime != nil {
 		endTime = s.EndTime.Time
 	}
 
 	if endTime.Before(result) {
-		return time.Unix(1<<63-62135596801, 0).Unix()
+		return time.Unix(maxEpoch, 0).Unix()
 	}
 
 	// When we need to catch up with schedule, just run schedules one by one.
