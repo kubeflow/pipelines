@@ -380,7 +380,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
             disableHoverListener={!collapsed}
             disableTouchListener={!collapsed}
           >
-            <Link id='experimentsBtn' to={RoutePage.RUNS} className={commonCss.unstyled}>
+            <Link id='runsBtn' to={RoutePage.RUNS} className={commonCss.unstyled}>
               <Button
                 className={classes(
                   css.button,
