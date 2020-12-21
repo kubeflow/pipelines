@@ -87,7 +87,7 @@ exports[`SideNav populates the display build information using the response from
     >
       <Link
         className="unstyled"
-        id="experimentsBtn"
+        id="runsBtn"
         replace={false}
         to="/runs"
       >
@@ -319,7 +319,7 @@ exports[`SideNav renders Pipelines as active page 1`] = `
     >
       <Link
         className="unstyled"
-        id="experimentsBtn"
+        id="runsBtn"
         replace={false}
         to="/runs"
       >
@@ -530,7 +530,7 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
     >
       <Link
         className="unstyled"
-        id="experimentsBtn"
+        id="runsBtn"
         replace={false}
         to="/runs"
       >
@@ -741,7 +741,7 @@ exports[`SideNav renders collapsed state 1`] = `
     >
       <Link
         className="unstyled"
-        id="experimentsBtn"
+        id="runsBtn"
         replace={false}
         to="/runs"
       >
@@ -952,7 +952,7 @@ exports[`SideNav renders expanded state 1`] = `
     >
       <Link
         className="unstyled"
-        id="experimentsBtn"
+        id="runsBtn"
         replace={false}
         to="/runs"
       >
@@ -1163,7 +1163,7 @@ exports[`SideNav renders experiments as active page 1`] = `
     >
       <Link
         className="unstyled"
-        id="experimentsBtn"
+        id="runsBtn"
         replace={false}
         to="/runs"
       >
@@ -1374,7 +1374,7 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
     >
       <Link
         className="unstyled"
-        id="experimentsBtn"
+        id="runsBtn"
         replace={false}
         to="/runs"
       >
@@ -1585,7 +1585,7 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
     >
       <Link
         className="unstyled"
-        id="experimentsBtn"
+        id="runsBtn"
         replace={false}
         to="/runs"
       >
@@ -1796,7 +1796,7 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
     >
       <Link
         className="unstyled"
-        id="experimentsBtn"
+        id="runsBtn"
         replace={false}
         to="/runs"
       >
@@ -2007,7 +2007,7 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
     >
       <Link
         className="unstyled"
-        id="experimentsBtn"
+        id="runsBtn"
         replace={false}
         to="/runs"
       >
@@ -2218,7 +2218,7 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
     >
       <Link
         className="unstyled"
-        id="experimentsBtn"
+        id="runsBtn"
         replace={false}
         to="/runs"
       >
@@ -2429,7 +2429,7 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
     >
       <Link
         className="unstyled"
-        id="experimentsBtn"
+        id="runsBtn"
         replace={false}
         to="/runs"
       >
@@ -2640,7 +2640,7 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
     >
       <Link
         className="unstyled"
-        id="experimentsBtn"
+        id="runsBtn"
         replace={false}
         to="/runs"
       >
@@ -2851,7 +2851,7 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
     >
       <Link
         className="unstyled"
-        id="experimentsBtn"
+        id="runsBtn"
         replace={false}
         to="/runs"
       >
