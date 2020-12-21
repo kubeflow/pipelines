@@ -46,7 +46,8 @@ message PipelineSpec {
   PipelineInfo pipeline_info = 1;
 
   // A list of pipeline tasks, which form a DAG.
-  repeated PipelineTaskSpec tasks = 2;
+  // Deprecated, use [PipelineSpec.root][] instead.
+  repeated PipelineTaskSpec tasks = 2 [deprecated = true];
 
   // The deployment config of the pipeline.
   // The deployment config can be extended to provide platform specific configs.
@@ -74,7 +75,139 @@ message PipelineSpec {
     Value default_value = 2;
   }
   // The runtime parameters of the pipeline. Keyed by parameter name.
-  map<string, RuntimeParameter> runtime_parameters = 6;
+  // Deprecated, instead of defining the runtime_parameters, user can define
+  // [ComponentSpec.input_definitions][] field of the [PipelineSpec.root][] to
+  // define the pipeline parameters.
+  map<string, RuntimeParameter> runtime_parameters = 6 [deprecated = true];
+
+  // The map of name to definition of all components used in this pipeline.
+  map<string, ComponentSpec> components = 8;
+
+  // The definition of the main pipeline.  Execution of the pipeline is
+  // completed upon the completion of this component.
+  ComponentSpec root = 9;
+}
+
+// Definition of a component.
+message ComponentSpec {
+  // Definition of the input parameters and artifacts of the component.
+  ComponentInputsSpec input_definitions = 1;
+  // Definition of the output parameters and artifacts of the component.
+  ComponentOutputsSpec output_definitions = 2;
+  // Either a DAG or a single execution.
+  oneof implementation {
+    DagSpec dag = 3;
+    string executor_label = 4;
+  }
+}
+
+// A DAG contains multiple tasks.
+message DagSpec {
+  // The tasks inside the dag.
+  map<string, PipelineTaskSpec> tasks = 1;
+
+  // Defines how the outputs of the dag are linked to the sub tasks.
+  DagOutputsSpec outputs = 2;
+}
+
+// Definition of the output artifacts and parameters of the DAG component.
+message DagOutputsSpec {
+  // Selects a defined output artifact from a sub task of the DAG.
+  message ArtifactSelectorSpec {
+    // The name of the sub task which produces the output that matches with
+    // the `output_artifact_key`.
+    string producer_subtask = 1;
+
+    // The key of [ComponentOutputsSpec.artifacts][] map of the producer task.
+    string output_artifact_key = 2;
+  }
+
+  // Selects a list of output artifacts that will be aggregated to the single
+  // output artifact channel of the DAG.
+  message DagOutputArtifactSpec {
+    // The selected artifacts will be aggregated as output as a single
+    // output channel of the DAG.
+    repeated ArtifactSelectorSpec artifact_selectors = 1;
+  }
+
+  // Name to the output artifact channel of the DAG.
+  map<string, DagOutputArtifactSpec> artifacts = 1;
+
+  // Selects a defined output parameter from a sub task of the DAG.
+  message ParameterSelectorSpec {
+    // The name of the sub task which produces the output that matches with
+    // the `output_parameter_key`.
+    string producer_subtask = 1;
+
+    // The key of [ComponentOutputsSpec.parameters][] map of the producer task.
+    string output_parameter_key = 2;
+  }
+
+  // Aggregate output parameters from sub tasks into a list object.
+  message ParameterSelectorsSpec {
+    repeated ParameterSelectorSpec parameter_selectors = 1;
+  }
+
+  // Aggregates output parameters from sub tasks into a map object.
+  message MapParameterSelectorsSpec {
+    map<string, ParameterSelectorSpec> mapped_parameters = 2;
+  }
+
+  // We support four ways to fan-in output parameters from sub tasks to the DAG
+  // parent task.
+  // 1. Directly expose a single output parameter from a sub task,
+  // 2. (Conditional flow) Expose a list of output from multiple tasks
+  // (some might be skipped) but allows only one of the output being generated.
+  // 3. Expose a list of outputs from multiple tasks (e.g. iterator flow).
+  // 4. Expose the aggregation of output parameters as a name-value map.
+  message DagOutputParameterSpec {
+    oneof kind {
+      // Returns the sub-task parameter as a DAG parameter.  The selected
+      // parameter must have the same type as the DAG parameter type.
+      ParameterSelectorSpec value_from_parameter = 1;
+      // Returns one of the sub-task parameters as a DAG parameter. If there are
+      // multiple values are available to select, the DAG will fail. All the
+      // selected parameters must have the same type as the DAG parameter type.
+      ParameterSelectorsSpec value_from_oneof = 2;
+    }
+  }
+
+  // The name to the output parameter.
+  map<string, DagOutputParameterSpec> parameters = 2;
+}
+
+// Definition specification of the component input parameters and artifacts.
+message ComponentInputsSpec {
+  // Definition of an artifact input.
+  message ArtifactSpec {
+    ArtifactTypeSchema artifact_type = 1;
+  }
+  // Definition of a parameter input.
+  message ParameterSpec {
+    PrimitiveType.PrimitiveTypeEnum type = 1;
+  }
+  // Name to artifact input.
+  map<string, ArtifactSpec> artifacts = 1;
+  // Name to parameter input.
+  map<string, ParameterSpec> parameters = 2;
+}
+
+// Definition specification of the component output parameters and artifacts.
+message ComponentOutputsSpec {
+  // Definition of an artifact output.
+  message ArtifactSpec {
+    ArtifactTypeSchema artifact_type = 1;
+    map<string, ValueOrRuntimeParameter> properties = 2;
+    map<string, ValueOrRuntimeParameter> custom_properties = 3;
+  }
+  // Definition of a parameter output.
+  message ParameterSpec {
+    PrimitiveType.PrimitiveTypeEnum type = 1;
+  }
+  // Name to artifact output.
+  map<string, ArtifactSpec> artifacts = 1;
+  // Name to parameter output.
+  map<string, ParameterSpec> parameters = 2;
 }
 
 // The spec of task inputs.
@@ -83,10 +216,31 @@ message TaskInputsSpec {
   message InputArtifactSpec {
     // The name of the upstream task which produces the output that matches with
     // the `output_artifact_key`.
-    string producer_task = 1;
+    // Deprecated, use
+    // [TaskInputSpec.InputArtifactSpec.TaskOutputArtifactSpec][] instead.
+    string producer_task = 1 [deprecated = true];
 
     // The key of [TaskOutputsSpec.artifacts][] map of the producer task.
-    string output_artifact_key = 2;
+    // Deprecated, use
+    // [TaskInputSpec.InputArtifactSpec.TaskOutputArtifactSpec][] instead.
+    string output_artifact_key = 2 [deprecated = true];
+
+    message TaskOutputArtifactSpec {
+      // The name of the upstream task which produces the output that matches
+      // with the `output_artifact_key`.
+      string producer_task = 1;
+
+      // The key of [TaskOutputsSpec.artifacts][] map of the producer task.
+      string output_artifact_key = 2;
+    }
+
+    oneof kind {
+      // Pass the input artifact from another task within the same parent
+      // component.
+      TaskOutputArtifactSpec task_output_artifact = 3;
+      // Pass the input artifact from parent component input artifact.
+      string component_input_artifact = 4;
+    }
   }
 
   // Represents an input parameter. The value can be taken from an upstream
@@ -108,6 +262,8 @@ message TaskInputsSpec {
       TaskOutputParameterSpec task_output_parameter = 1;
       // A constant value or runtime parameter.
       ValueOrRuntimeParameter runtime_value = 2;
+      // Pass the input parameter from parent component input parameter.
+      string component_input_parameter = 3;
     }
   }
 
@@ -174,7 +330,8 @@ message PipelineTaskSpec {
   TaskInputsSpec inputs = 2;
 
   // Specification for task outputs.
-  TaskOutputsSpec outputs = 3;
+  // Deprecated, the output definition is moved to [ComponentSpec.outputs][].
+  TaskOutputsSpec outputs = 3 [deprecated = true];
 
   // Label for the executor of the task.
   // The specification will be specified in the deployment config.
@@ -192,7 +349,9 @@ message PipelineTaskSpec {
   //         image: gcr.io/tfx:latest
   //         args: []
   // ```
-  string executor_label = 4;
+  // Deprecated, the executor_label is moved to
+  // [ComponentSpec.executor_label][].
+  string executor_label = 4 [deprecated = true];
 
   // A list of names of upstream tasks that do not provide input
   // artifacts for this task, but nonetheless whose completion this task depends
@@ -204,6 +363,16 @@ message PipelineTaskSpec {
     bool enable_cache = 1;
   }
   CachingOptions caching_options = 6;
+
+  // Reference to a component.  Use this field to define either a DAG or an
+  // executor.
+  ComponentRef component_ref = 7;
+}
+
+message ComponentRef {
+  // The name of a component. Refer to the key of the
+  // [PipelineSpec.components][] map.
+  string name = 1;
 }
 
 // Basic info of a pipeline.
