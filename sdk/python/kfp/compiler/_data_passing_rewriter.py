@@ -1,7 +1,7 @@
 import copy
 import json
 import re
-from typing import List, Optional, Set
+from typing import Any, Dict, List, Optional, Set
 
 def fix_big_data_passing(workflow: dict) -> dict:
     '''fix_big_data_passing converts a workflow where some artifact data is passed as parameters and converts it to a workflow where this data is passed as artifacts.
@@ -381,3 +381,9 @@ def deconstruct_single_placeholder(s: str) -> List[str]:
     if not re.fullmatch('{{[-._a-zA-Z0-9]+}}', s):
         return None
     return s.lstrip('{').rstrip('}').split('.')
+
+
+def add_pod_name_passing(
+    workflow: Dict[str, Any],
+    output_directory: str) -> dict:
+    pass
