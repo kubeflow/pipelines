@@ -49,6 +49,17 @@ exports[`RunDetails closes side panel when close button is clicked 1`] = `
             onError={[Function]}
             selectedNodeId=""
           />
+          <div
+            className="transitiveReductionSwitch"
+          >
+            <SwitchWithLabel
+              checked={true}
+              disabled={true}
+              label="Simplify Graph"
+              labelPlacement="end"
+              onChange={[Function]}
+            />
+          </div>
           <SidePanel
             isBusy={false}
             isOpen={false}
@@ -551,6 +562,17 @@ exports[`RunDetails logs tab does not load logs if clicked node status is skippe
             onError={[Function]}
             selectedNodeId="node1"
           />
+          <div
+            className="transitiveReductionSwitch"
+          >
+            <SwitchWithLabel
+              checked={true}
+              disabled={true}
+              label="Simplify Graph"
+              labelPlacement="end"
+              onChange={[Function]}
+            />
+          </div>
           <SidePanel
             isBusy={false}
             isOpen={true}
@@ -653,6 +675,17 @@ exports[`RunDetails logs tab keeps side pane open and on same tab when logs chan
             onError={[Function]}
             selectedNodeId="node1"
           />
+          <div
+            className="transitiveReductionSwitch"
+          >
+            <SwitchWithLabel
+              checked={true}
+              disabled={true}
+              label="Simplify Graph"
+              labelPlacement="end"
+              onChange={[Function]}
+            />
+          </div>
           <SidePanel
             isBusy={false}
             isOpen={true}
@@ -771,6 +804,17 @@ exports[`RunDetails logs tab loads and shows logs in side pane 1`] = `
             onError={[Function]}
             selectedNodeId="node1"
           />
+          <div
+            className="transitiveReductionSwitch"
+          >
+            <SwitchWithLabel
+              checked={true}
+              disabled={true}
+              label="Simplify Graph"
+              labelPlacement="end"
+              onChange={[Function]}
+            />
+          </div>
           <SidePanel
             isBusy={false}
             isOpen={true}
@@ -889,6 +933,17 @@ exports[`RunDetails logs tab switches to logs tab in side pane 1`] = `
             onError={[Function]}
             selectedNodeId="node1"
           />
+          <div
+            className="transitiveReductionSwitch"
+          >
+            <SwitchWithLabel
+              checked={true}
+              disabled={true}
+              label="Simplify Graph"
+              labelPlacement="end"
+              onChange={[Function]}
+            />
+          </div>
           <SidePanel
             isBusy={true}
             isOpen={true}
@@ -1007,6 +1062,17 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
             onError={[Function]}
             selectedNodeId="node1"
           />
+          <div
+            className="transitiveReductionSwitch"
+          >
+            <SwitchWithLabel
+              checked={true}
+              disabled={true}
+              label="Simplify Graph"
+              labelPlacement="end"
+              onChange={[Function]}
+            />
+          </div>
           <SidePanel
             isBusy={false}
             isOpen={true}
@@ -1515,6 +1581,17 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
             onError={[Function]}
             selectedNodeId="node1"
           />
+          <div
+            className="transitiveReductionSwitch"
+          >
+            <SwitchWithLabel
+              checked={true}
+              disabled={true}
+              label="Simplify Graph"
+              labelPlacement="end"
+              onChange={[Function]}
+            />
+          </div>
           <SidePanel
             isBusy={false}
             isOpen={true}
@@ -1672,6 +1749,17 @@ exports[`RunDetails switches to manifest tab in side pane 1`] = `
             onError={[Function]}
             selectedNodeId="node1"
           />
+          <div
+            className="transitiveReductionSwitch"
+          >
+            <SwitchWithLabel
+              checked={true}
+              disabled={true}
+              label="Simplify Graph"
+              labelPlacement="end"
+              onChange={[Function]}
+            />
+          </div>
           <SidePanel
             isBusy={false}
             isOpen={true}
@@ -1823,6 +1911,17 @@ exports[`RunDetails switches to volumes tab in side pane 1`] = `
             onError={[Function]}
             selectedNodeId="node1"
           />
+          <div
+            className="transitiveReductionSwitch"
+          >
+            <SwitchWithLabel
+              checked={true}
+              disabled={true}
+              label="Simplify Graph"
+              labelPlacement="end"
+              onChange={[Function]}
+            />
+          </div>
           <SidePanel
             isBusy={false}
             isOpen={true}
