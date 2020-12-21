@@ -53,7 +53,7 @@ class OpsGroup(object):
   def _get_matching_opsgroup_already_in_pipeline(group_type, name):
     """Retrieves the opsgroup when the pipeline already contains it.
     the opsgroup might be already in the pipeline in case of recursive calls.
-  
+
     Args:
       group_type (str): one of 'pipeline', 'exit_handler', 'condition', and 'graph'.
       name (str): the name before conversion.
@@ -193,10 +193,6 @@ class ParallelFor(OpsGroup):
   """
   TYPE_NAME = 'for_loop'
 
-  @staticmethod
-  def _get_unique_id_code():
-    return uuid.uuid4().hex[:_for_loop.LoopArguments.NUM_CODE_CHARS]
-
   def __init__(self,  loop_args: Union[_for_loop.ItemList, _pipeline_param.PipelineParam],
                parallelism: int=None):
     if parallelism and parallelism < 1:
@@ -204,16 +200,16 @@ class ParallelFor(OpsGroup):
     
     self.items_is_pipeline_param = isinstance(loop_args, _pipeline_param.PipelineParam)
 
-    # use a random code to uniquely identify this loop
-    code = self._get_unique_id_code()
-    group_name = 'for-loop-{}'.format(code)
-    super().__init__(self.TYPE_NAME, name=group_name, parallelism=parallelism)
+    super().__init__(self.TYPE_NAME, parallelism=parallelism)
 
     if self.items_is_pipeline_param:
       loop_args = _for_loop.LoopArguments.from_pipeline_param(loop_args)
     elif not self.items_is_pipeline_param and not isinstance(loop_args, _for_loop.LoopArguments):
       # we were passed a raw list, wrap it in loop args
-      loop_args = _for_loop.LoopArguments(loop_args, code)
+      loop_args = _for_loop.LoopArguments(
+        loop_args,
+        code=str(_pipeline.Pipeline.get_default_pipeline().get_next_group_id()),
+      )
 
     self.loop_args = loop_args
 

@@ -66,7 +66,7 @@
           - "name": |-
               produce-list-data_list-loop-item
       "name": |-
-        for-loop-for-loop-00000001-1
+        for-loop-1
     - "dag":
         "tasks":
           - "arguments":
@@ -79,9 +79,9 @@
               - |-
                 produce-list
             "name": |-
-              for-loop-for-loop-00000001-1
+              for-loop-1
             "template": |-
-              for-loop-for-loop-00000001-1
+              for-loop-1
             "withParam": |-
               {{tasks.produce-list.outputs.parameters.produce-list-data_list}}
           - "name": |-
