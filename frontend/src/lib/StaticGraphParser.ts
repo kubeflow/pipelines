@@ -299,7 +299,15 @@ export function transitiveReduction(graph: dagre.graphlib.Graph) {
 
 export function compareGraphEdges(graph1: dagre.graphlib.Graph, graph2: dagre.graphlib.Graph) {
   return (
-    graph1.edges().map(e => `${e.name}${e.v}${e.w}`).sort().toString() ===
-    graph2.edges().map(e => `${e.name}${e.v}${e.w}`).sort().toString()
+    graph1
+      .edges()
+      .map(e => `${e.name}${e.v}${e.w}`)
+      .sort()
+      .toString() ===
+    graph2
+      .edges()
+      .map(e => `${e.name}${e.v}${e.w}`)
+      .sort()
+      .toString()
   );
 }
