@@ -191,7 +191,7 @@ def _generate_output_file_name(port_name):
 PIPELINE_ROOT_PLACEHOLDER = '{{kfp.pipeline_root}}'
 # Format of the Argo parameter used to pass the producer's Pod ID to
 # the consumer.
-PRODUCER_POD_NAME_INPUT = '{input_name}-producer-pod-id-'
+PRODUCER_POD_NAME_PARAMETER = '{}-producer-pod-id-'
 
 
 def _generate_output_uri(port_name: str) -> str:
@@ -225,7 +225,7 @@ def _generate_input_uri(port_name: str) -> str:
         PIPELINE_ROOT_PLACEHOLDER,
         '{{workflow.uid}}',
         '{{inputs.parameters.{input}}}'.format(
-            input=PRODUCER_POD_NAME_INPUT.format(input_name=port_name)),
+            input=PRODUCER_POD_NAME_PARAMETER.format(port_name)),
         port_name
     )
 
