@@ -399,14 +399,14 @@ def _replace_output_dir_placeholder(command_line: str,
 def _refactor_outputs_if_uri_placeholder(
     container_template: Dict[str, Any]) -> Dict[str, Any]:
     """Rewrites the output of the container in case of URI placeholder."""
-    assert container_template.get(
-        'outputs'), 'Expecting outputs section for container %s' % \
-                    container_template['name']
-    assert container_template['outputs'].get(
-        'artifacts'), 'Expecting artifact outputs for container %s' % \
-                      container_template['name']
 
     container_template = copy.deepcopy(container_template)
+
+    # If there's no artifact outputs then no refactor is needed.
+    if not container_template.get('outputs') or not container_template[
+        'outputs'].get('artifacts'):
+        return container_template
+
     parameter_outputs = container_template['outputs'].get('parameters') or []
     new_artifact_outputs = []
     for artifact_output in container_template['outputs']['artifacts']:
