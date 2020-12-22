@@ -20,9 +20,8 @@ google-cloud-storage==1.26.0  # via -r requirements.in
 google-resumable-media==0.5.0  # via google-cloud-storage
 googleapis-common-protos==1.51.0  # via google-api-core
 idna==2.9                 # via requests
-importlib-metadata==1.5.0  # via jsonschema
 jsonschema==3.2.0         # via -r requirements.in
-kfp-server-api==1.0.0     # via -r requirements.in
+kfp-server-api==1.2.0     # via -r requirements.in
 kubernetes==11.0.0        # via -r requirements.in
 oauthlib==3.1.0           # via requests-oauthlib
 protobuf==3.11.3          # via google-api-core, googleapis-common-protos
@@ -43,7 +42,6 @@ urllib3==1.25.8           # via kfp-server-api, kubernetes, requests
 websocket-client==0.57.0  # via kubernetes
 wheel==0.34.2             # via strip-hints
 wrapt==1.12.1             # via deprecated
-zipp==1.2.0               # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
