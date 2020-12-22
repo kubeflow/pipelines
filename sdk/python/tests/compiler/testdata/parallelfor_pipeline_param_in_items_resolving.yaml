@@ -2,11 +2,11 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: parallelfor-pipeline-param-in-items-resolving-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.1.2, pipelines.kubeflow.org/pipeline_compilation_time: '2020-12-16T12:40:47.864422',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.2.0, pipelines.kubeflow.org/pipeline_compilation_time: '2020-12-22T10:30:28.553559',
     pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"name": "fname1", "type":
       "String"}, {"name": "fname2", "type": "String"}], "name": "Parallelfor pipeline
       param in items resolving"}'}
-  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.1.2}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.2.0}
 spec:
   entrypoint: parallelfor-pipeline-param-in-items-resolving
   templates:
@@ -14,9 +14,12 @@ spec:
     container:
       args: [--param1, '{{inputs.parameters.loop-item-param-00000001}}']
       command:
-      - python3
-      - -u
-      - -c
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        echo -n "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
       - |
         def consume(param1):
             print(param1)
@@ -33,9 +36,10 @@ spec:
       - {name: loop-item-param-00000001}
     metadata:
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
-          {"args": ["--param1", {"inputValue": "param1"}], "command": ["python3",
-          "-u", "-c", "def consume(param1):\n    print(param1)\n\nimport argparse\n_parser
-          = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
+          {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
+          "program_path=$(mktemp)\necho -n \"$0\" > \"$program_path\"\npython3 -u
+          \"$program_path\" \"$@\"\n", "def consume(param1):\n    print(param1)\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
           dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
           = vars(_parser.parse_args())\n\n_outputs = consume(**_parsed_args)\n"],
           "image": "python:3.7"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
@@ -45,9 +49,12 @@ spec:
     container:
       args: [--param1, '{{inputs.parameters.loop-item-param-00000002-subvar-first_name}}']
       command:
-      - python3
-      - -u
-      - -c
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        echo -n "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
       - |
         def consume(param1):
             print(param1)
@@ -64,9 +71,10 @@ spec:
       - {name: loop-item-param-00000002-subvar-first_name}
     metadata:
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
-          {"args": ["--param1", {"inputValue": "param1"}], "command": ["python3",
-          "-u", "-c", "def consume(param1):\n    print(param1)\n\nimport argparse\n_parser
-          = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
+          {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
+          "program_path=$(mktemp)\necho -n \"$0\" > \"$program_path\"\npython3 -u
+          \"$program_path\" \"$@\"\n", "def consume(param1):\n    print(param1)\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
           dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
           = vars(_parser.parse_args())\n\n_outputs = consume(**_parsed_args)\n"],
           "image": "python:3.7"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
@@ -76,9 +84,12 @@ spec:
     container:
       args: [--param1, '{{inputs.parameters.loop-item-param-00000002-subvar-message}}']
       command:
-      - python3
-      - -u
-      - -c
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        echo -n "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
       - |
         def consume(param1):
             print(param1)
@@ -95,9 +106,10 @@ spec:
       - {name: loop-item-param-00000002-subvar-message}
     metadata:
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
-          {"args": ["--param1", {"inputValue": "param1"}], "command": ["python3",
-          "-u", "-c", "def consume(param1):\n    print(param1)\n\nimport argparse\n_parser
-          = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
+          {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
+          "program_path=$(mktemp)\necho -n \"$0\" > \"$program_path\"\npython3 -u
+          \"$program_path\" \"$@\"\n", "def consume(param1):\n    print(param1)\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
           dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
           = vars(_parser.parse_args())\n\n_outputs = consume(**_parsed_args)\n"],
           "image": "python:3.7"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
@@ -107,9 +119,12 @@ spec:
     container:
       args: [--param1, '{{inputs.parameters.loop-item-param-00000003-subvar-first_name}}']
       command:
-      - python3
-      - -u
-      - -c
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        echo -n "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
       - |
         def consume(param1):
             print(param1)
@@ -126,9 +141,10 @@ spec:
       - {name: loop-item-param-00000003-subvar-first_name}
     metadata:
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
-          {"args": ["--param1", {"inputValue": "param1"}], "command": ["python3",
-          "-u", "-c", "def consume(param1):\n    print(param1)\n\nimport argparse\n_parser
-          = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
+          {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
+          "program_path=$(mktemp)\necho -n \"$0\" > \"$program_path\"\npython3 -u
+          \"$program_path\" \"$@\"\n", "def consume(param1):\n    print(param1)\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
           dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
           = vars(_parser.parse_args())\n\n_outputs = consume(**_parsed_args)\n"],
           "image": "python:3.7"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
@@ -138,9 +154,12 @@ spec:
     container:
       args: [--param1, '{{inputs.parameters.loop-item-param-00000003-subvar-message}}']
       command:
-      - python3
-      - -u
-      - -c
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        echo -n "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
       - |
         def consume(param1):
             print(param1)
@@ -157,9 +176,10 @@ spec:
       - {name: loop-item-param-00000003-subvar-message}
     metadata:
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
-          {"args": ["--param1", {"inputValue": "param1"}], "command": ["python3",
-          "-u", "-c", "def consume(param1):\n    print(param1)\n\nimport argparse\n_parser
-          = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
+          {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
+          "program_path=$(mktemp)\necho -n \"$0\" > \"$program_path\"\npython3 -u
+          \"$program_path\" \"$@\"\n", "def consume(param1):\n    print(param1)\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
           dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
           = vars(_parser.parse_args())\n\n_outputs = consume(**_parsed_args)\n"],
           "image": "python:3.7"}}, "inputs": [{"name": "param1"}], "name": "Consume"}',
@@ -256,9 +276,12 @@ spec:
     container:
       args: [--fname1, '{{inputs.parameters.fname1}}', '----output-paths', /tmp/outputs/Output/data]
       command:
-      - python3
-      - -u
-      - -c
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        echo -n "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
       - |
         def produce_message(fname1):
             return "My name is %s" % fname1
@@ -305,7 +328,8 @@ spec:
     metadata:
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--fname1", {"inputValue": "fname1"}, "----output-paths", {"outputPath":
-          "Output"}], "command": ["python3", "-u", "-c", "def produce_message(fname1):\n    return
+          "Output"}], "command": ["sh", "-ec", "program_path=$(mktemp)\necho -n \"$0\"
+          > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n", "def produce_message(fname1):\n    return
           \"My name is %s\" % fname1\n\ndef _serialize_str(str_value: str) -> str:\n    if
           not isinstance(str_value, str):\n        raise TypeError(''Value \"{}\"
           has type \"{}\" instead of str.''.format(str(str_value), str(type(str_value))))\n    return
@@ -325,9 +349,12 @@ spec:
     container:
       args: [--fname1, '{{inputs.parameters.fname2}}', '----output-paths', /tmp/outputs/Output/data]
       command:
-      - python3
-      - -u
-      - -c
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        echo -n "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
       - |
         def produce_message(fname1):
             return "My name is %s" % fname1
@@ -374,7 +401,8 @@ spec:
     metadata:
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--fname1", {"inputValue": "fname1"}, "----output-paths", {"outputPath":
-          "Output"}], "command": ["python3", "-u", "-c", "def produce_message(fname1):\n    return
+          "Output"}], "command": ["sh", "-ec", "program_path=$(mktemp)\necho -n \"$0\"
+          > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n", "def produce_message(fname1):\n    return
           \"My name is %s\" % fname1\n\ndef _serialize_str(str_value: str) -> str:\n    if
           not isinstance(str_value, str):\n        raise TypeError(''Value \"{}\"
           has type \"{}\" instead of str.''.format(str(str_value), str(type(str_value))))\n    return
