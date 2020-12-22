@@ -29,8 +29,6 @@ const (
 	second = 1
 	minute = 60 * second
 	hour   = 60 * minute
-	// String representation of a cron experession that triggers every minute.
-	triggerEveryMinute = "0 * * * * * "
 )
 
 func TestCronSchedule_getNextScheduledEpoch_Cron_StartDate_EndDate(t *testing.T) {
@@ -38,7 +36,7 @@ func TestCronSchedule_getNextScheduledEpoch_Cron_StartDate_EndDate(t *testing.T)
 	schedule := NewCronSchedule(&swfapi.CronSchedule{
 		StartTime: commonutil.Metav1TimePointer(v1.NewTime(time.Unix(10*hour, 0).UTC())),
 		EndTime:   commonutil.Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
-		Cron:      triggerEveryMinute,
+		Cron:      "0 * * * * * ", // trigger every minute
 	})
 	lastJobEpoch := int64(0)
 	location, _ := time.LoadLocation("UTC")
@@ -59,7 +57,7 @@ func TestCronSchedule_getNextScheduledEpoch_Cron_StartDate_EndDate(t *testing.T)
 
 func TestCronSchedule_getNextScheduledEpoch_CronOnly(t *testing.T) {
 	schedule := NewCronSchedule(&swfapi.CronSchedule{
-		Cron: triggerEveryMinute,
+		Cron: "0 * * * * * ", // trigger every minute
 	})
 	lastJobEpoch := int64(10 * hour)
 	location, _ := time.LoadLocation("UTC")
@@ -96,7 +94,7 @@ func TestCronSchedule_GetNextScheduledEpoch(t *testing.T) {
 	schedule := NewCronSchedule(&swfapi.CronSchedule{
 		StartTime: commonutil.Metav1TimePointer(v1.NewTime(time.Unix(10*hour+10*minute, 0).UTC())),
 		EndTime:   commonutil.Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
-		Cron:      triggerEveryMinute,
+		Cron:      "0 * * * * * ", // trigger every minute
 	})
 	lastJobTime := v1.Time{time.Unix(int64(10*hour+20*minute), 0).UTC()}
 	defaultStartTime := time.Unix(int64(10*hour+15*minute), 0).UTC()
@@ -112,7 +110,7 @@ func TestCronSchedule_GetNextScheduledEpoch(t *testing.T) {
 	// creation date of the workflow.
 	schedule = NewCronSchedule(&swfapi.CronSchedule{
 		EndTime: commonutil.Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
-		Cron:    triggerEveryMinute,
+		Cron:    "0 * * * * * ", // trigger every minute
 	})
 	assert.Equal(t, int64(10*hour+15*minute+minute),
 		schedule.GetNextScheduledEpoch(nil, defaultStartTime, location))
@@ -135,7 +133,7 @@ func TestCronSchedule_GetNextScheduledEpoch_LocationsEnvSet(t *testing.T) {
 	schedule := NewCronSchedule(&swfapi.CronSchedule{
 		StartTime: commonutil.Metav1TimePointer(v1.NewTime(startTime)),
 		EndTime:   commonutil.Metav1TimePointer(v1.NewTime(endTime)),
-		Cron:      triggerEveryMinute,
+		Cron:      "0 * * * * * ", // trigger every minute
 	})
 	lastJobTime := v1.Time{lastJob}
 
@@ -152,7 +150,7 @@ func TestCronSchedule_GetNextScheduledEpochNoCatchup(t *testing.T) {
 	schedule := NewCronSchedule(&swfapi.CronSchedule{
 		StartTime: commonutil.Metav1TimePointer(v1.NewTime(time.Unix(10*hour+10*minute, 0).UTC())),
 		EndTime:   commonutil.Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
-		Cron:      triggerEveryMinute,
+		Cron:      "0 * * * * * ", // trigger every minute
 	})
 
 	lastJobTime := v1.Time{time.Unix(int64(10*hour+20*minute), 0).UTC()}
@@ -191,7 +189,7 @@ func TestCronSchedule_GetNextScheduledEpochNoCatchup(t *testing.T) {
 	// creation date of the workflow.
 	schedule = NewCronSchedule(&swfapi.CronSchedule{
 		EndTime: commonutil.Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
-		Cron:    triggerEveryMinute,
+		Cron:    "0 * * * * * ", // trigger every minute
 	})
 	assert.Equal(t, int64(10*hour+15*minute+minute),
 		schedule.GetNextScheduledEpochNoCatchup(nil, defaultStartTime, time.Unix(0, 0), location))
