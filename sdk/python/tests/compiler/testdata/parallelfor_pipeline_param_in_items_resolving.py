@@ -69,5 +69,3 @@ def parallelfor_pipeline_param_in_items_resolving(fname1: str, fname2: str):
 if __name__ == '__main__':
     import kfp.compiler as compiler
     compiler.Compiler().compile(parallelfor_pipeline_param_in_items_resolving, __file__ + '.yaml')
-    print(f"pipeline written in {__file__ + '.yaml'}")
-
