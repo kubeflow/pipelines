@@ -397,27 +397,25 @@ def _replace_output_dir_placeholder(command_line: str,
 
 
 def _refactor_outputs_if_uri_placeholder(
-    container_template: Dict[str, Any]) -> Dict[str, Any]:
+    container_template: Dict[str, Any]) -> None:
     """Rewrites the output of the container in case of URI placeholder."""
-
-    container_template = copy.deepcopy(container_template)
 
     # If there's no artifact outputs then no refactor is needed.
     if not container_template.get('outputs') or not container_template[
         'outputs'].get('artifacts'):
-        return container_template
+        return
 
     parameter_outputs = container_template['outputs'].get('parameters') or []
     new_artifact_outputs = []
     for artifact_output in container_template['outputs']['artifacts']:
-        # 1. Check if this is an output associated with URI placeholder based
+        # Check if this is an output associated with URI placeholder based
         # on its path.
         if _components.PIPELINE_ROOT_PLACEHOLDER in artifact_output['path']:
             # If so, we'll add a parameter output to output the pod name
             parameter_outputs.append(
                 {
-                    'name': '{{output_name}}-producer-pod-id-'.format(
-                        artifact_output['name']),
+                    'name': '{output_name}-producer-pod-id-'.format(
+                        output_name=artifact_output['name']),
                     'value': '{{pod.name}}'
                 })
         else:
@@ -427,12 +425,39 @@ def _refactor_outputs_if_uri_placeholder(
     container_template['outputs']['artifacts'] = new_artifact_outputs
     container_template['outputs']['parameters'] = parameter_outputs
 
-    return container_template
+
+def _refactor_inputs_if_uri_placeholder(
+    container_template: Dict[str, Any]) -> None:
+    """Rewrites the input of the container in case of URI placeholder."""
+
+    # If there's no artifact inputs then no refactor is needed.
+    if not container_template.get('inputs') or not container_template['inputs'].get('artifacts'):
+        return container_template
+
+    parameter_inputs = container_template['inputs'].get('parameters') or []
+    new_artifact_inputs = []
+    for artifact_input in container_template['inputs']['artifacts']:
+        # Check if this is an input artifact associated with URI placeholder,
+        # according to its path.
+        if _components.PIPELINE_ROOT_PLACEHOLDER in artifact_input['path']:
+            # If so, we'll add a parameter input to receive the producer's pod
+            # name.
+            parameter_inputs.append({
+                'name': _components.PRODUCER_POD_NAME_INPUT.format(
+                    input_name=artifact_input['name'])
+            })
+            # In the container implementation, the pod name is already connected
+            # to the input parameter per the implementation in _components.
+        else:
+            new_artifact_inputs.append(artifact_input)
+
+    container_template['inputs']['artifacts'] = new_artifact_inputs
+    container_template['inputs']['parameters'] = parameter_inputs
 
 
 def add_pod_name_passing(
     workflow: Dict[str, Any],
-    output_directory: Optional[str] = None) -> dict:
+    output_directory: Optional[str] = None) -> Dict[str, Any]:
     """Refactors the workflow structure to pass pod names when needded.
 
     Args:
@@ -452,7 +477,6 @@ def add_pod_name_passing(
     pp.pprint(workflow)
 
     workflow = copy.deepcopy(workflow)
-    templates = workflow['spec']['templates']
 
     container_templates = [template for template in
                            workflow['spec']['templates'] if
@@ -463,12 +487,14 @@ def add_pod_name_passing(
     # consumer. The name of the added output will be
     # {{output-name}}-producer-pod-id.
     # Also, eliminate the existing file artifact.
-    for template in container_templates:
+    for idx, template in enumerate(container_templates):
         _refactor_outputs_if_uri_placeholder(template)
 
     # 2. If there's an input using inputUri placeholder, then this container
     # template needs to declare an input to receive the pod name of the producer
     # task.
+    for template in container_templates:
+        _refactor_inputs_if_uri_placeholder(template)
 
     # 3. For all the container command/args, replace {{kfp.pipeline_root}}
     # placeholders with the actual output directory specified.
