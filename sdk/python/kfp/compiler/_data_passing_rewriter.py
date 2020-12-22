@@ -3,6 +3,9 @@ import json
 import re
 from typing import Any, Dict, List, Optional, Set
 
+from kfp.components import _components
+
+
 def fix_big_data_passing(workflow: dict) -> dict:
     '''fix_big_data_passing converts a workflow where some artifact data is passed as parameters and converts it to a workflow where this data is passed as artifacts.
     Args:
@@ -25,11 +28,6 @@ def fix_big_data_passing(workflow: dict) -> dict:
     3. Propagate the consumption information upstream to all inputs/outputs all the way up to the data producers.
     4. Convert the inputs, outputs and arguments based on how they're consumed downstream.
     '''
-
-    print('------------workflow prior to rewrite----------------')
-    import pprint
-    pp = pprint.PrettyPrinter(indent=4)
-    pp.pprint(workflow)
     workflow = copy.deepcopy(workflow)
 
     container_templates = [template for template in workflow['spec']['templates'] if 'container' in template]
@@ -335,8 +333,6 @@ def fix_big_data_passing(workflow: dict) -> dict:
         workflow_arguments['artifacts'] = artifact_arguments
 
     clean_up_empty_workflow_structures(workflow)
-    print('------------workflow after rewrite----------------')
-    pp.pprint(workflow)
     return workflow
 
 
@@ -388,6 +384,52 @@ def deconstruct_single_placeholder(s: str) -> List[str]:
     return s.lstrip('{').rstrip('}').split('.')
 
 
+def _replace_output_dir_placeholder(command_line: str,
+    output_directory: Optional[str] = None) -> str:
+    """Replaces the output directory placeholder."""
+    if _components.PIPELINE_ROOT_PLACEHOLDER in command_line:
+        if not output_directory:
+            raise ValueError('output_directory of a pipeline must be specified '
+                             'when URI placeholder is used.')
+        return command_line.replace(
+            _components.PIPELINE_ROOT_PLACEHOLDER, output_directory)
+    return command_line
+
+
+def _refactor_outputs_if_uri_placeholder(
+    container_template: Dict[str, Any]) -> Dict[str, Any]:
+    """Rewrites the output of the container in case of URI placeholder."""
+    assert container_template.get(
+        'outputs'), 'Expecting outputs section for container %s' % \
+                    container_template['name']
+    assert container_template['outputs'].get(
+        'artifacts'), 'Expecting artifact outputs for container %s' % \
+                      container_template['name']
+
+    container_template = copy.deepcopy(container_template)
+    parameter_outputs = container_template['outputs'].get('parameters') or []
+    new_artifact_outputs = []
+    for artifact_output in container_template['outputs']['artifacts']:
+        # 1. Check if this is an output associated with URI placeholder based
+        # on its path.
+        if _components.PIPELINE_ROOT_PLACEHOLDER in artifact_output['path']:
+            # If so, we'll add a parameter output to output the pod name
+            parameter_outputs.append(
+                {
+                    'name': '{{output_name}}-producer-pod-id-'.format(
+                        artifact_output['name']),
+                    'value': '{{pod.name}}'
+                })
+        else:
+            # Otherwise, this artifact output is preserved.
+            new_artifact_outputs.append(artifact_output)
+
+    container_template['outputs']['artifacts'] = new_artifact_outputs
+    container_template['outputs']['parameters'] = parameter_outputs
+
+    return container_template
+
+
 def add_pod_name_passing(
     workflow: Dict[str, Any],
     output_directory: Optional[str] = None) -> dict:
@@ -404,10 +446,44 @@ def add_pod_name_passing(
         ValueError: when uri placeholder is used in the workflow but no output
             directory was provided.
     """
+    print('------------workflow prior to rewrite----------------')
+    import pprint
+    pp = pprint.PrettyPrinter(indent=2)
+    pp.pprint(workflow)
+
     workflow = copy.deepcopy(workflow)
     templates = workflow['spec']['templates']
 
     container_templates = [template for template in
                            workflow['spec']['templates'] if
                            'container' in template]
+
+    # 1. If there's an output using outputUri placeholder, then this container
+    # template needs to declare an output to pass its pod name to the downstream
+    # consumer. The name of the added output will be
+    # {{output-name}}-producer-pod-id.
+    # Also, eliminate the existing file artifact.
+    for template in container_templates:
+        _refactor_outputs_if_uri_placeholder(template)
+
+    # 2. If there's an input using inputUri placeholder, then this container
+    # template needs to declare an input to receive the pod name of the producer
+    # task.
+
+    # 3. For all the container command/args, replace {{kfp.pipeline_root}}
+    # placeholders with the actual output directory specified.
+    for template in container_templates:
+        args = template['container'].get('args') or {}
+        new_args = [_replace_output_dir_placeholder(arg, output_directory) for
+                    arg in args]
+        template['container']['args'] = new_args
+
+        cmds = template['container'].get('command') or {}
+        new_cmds = [_replace_output_dir_placeholder(cmd, output_directory) for
+                    cmd in cmds]
+        template['container']['command'] = new_cmds
+
+    # 4. In the ops group, wire the pod name inputs/outputs together.
+    print('------------workflow after rewrite----------------')
+    pp.pprint(workflow)
     return workflow
