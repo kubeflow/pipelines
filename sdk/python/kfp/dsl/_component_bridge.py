@@ -46,12 +46,18 @@ def _create_container_op_from_component_and_arguments(
 
     old_warn_value = dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING
     dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = True
+
+    # Merge output_paths and output_uris to get the file_outputs.
+    file_outputs = resolved_cmd.output_paths or {}
+    for name, output_uri in resolved_cmd.output_uris.items():
+        file_outputs[name] = output_uri
+
     task = dsl.ContainerOp(
         name=component_spec.name or _default_component_name,
         image=container_spec.image,
         command=resolved_cmd.command,
         arguments=resolved_cmd.args,
-        file_outputs=resolved_cmd.output_paths,
+        file_outputs=file_outputs,
         artifact_argument_paths=[
             dsl.InputArgumentPath(
                 argument=arguments[input_name],

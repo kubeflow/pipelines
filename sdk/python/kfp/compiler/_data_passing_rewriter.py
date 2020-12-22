@@ -26,8 +26,11 @@ def fix_big_data_passing(workflow: dict) -> dict:
     4. Convert the inputs, outputs and arguments based on how they're consumed downstream.
     '''
 
+    print('------------workflow prior to rewrite----------------')
+    import pprint
+    pp = pprint.PrettyPrinter(indent=4)
+    pp.pprint(workflow)
     workflow = copy.deepcopy(workflow)
-    templates = workflow['spec']['templates']
 
     container_templates = [template for template in workflow['spec']['templates'] if 'container' in template]
     dag_templates = [template for template in workflow['spec']['templates'] if 'dag' in template]
@@ -332,6 +335,8 @@ def fix_big_data_passing(workflow: dict) -> dict:
         workflow_arguments['artifacts'] = artifact_arguments
 
     clean_up_empty_workflow_structures(workflow)
+    print('------------workflow after rewrite----------------')
+    pp.pprint(workflow)
     return workflow
 
 
@@ -385,5 +390,24 @@ def deconstruct_single_placeholder(s: str) -> List[str]:
 
 def add_pod_name_passing(
     workflow: Dict[str, Any],
-    output_directory: str) -> dict:
-    pass
+    output_directory: Optional[str] = None) -> dict:
+    """Refactors the workflow structure to pass pod names when needded.
+
+    Args:
+        workflow: The workflow structure.
+        output_directory: The specified output path.
+
+    Returns:
+        Modified workflow structure.
+
+    Raises:
+        ValueError: when uri placeholder is used in the workflow but no output
+            directory was provided.
+    """
+    workflow = copy.deepcopy(workflow)
+    templates = workflow['spec']['templates']
+
+    container_templates = [template for template in
+                           workflow['spec']['templates'] if
+                           'container' in template]
+    return workflow

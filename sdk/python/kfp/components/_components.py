@@ -509,7 +509,6 @@ def _resolve_command_line_and_paths(
 
         elif isinstance(arg, InputUriPlaceholder):
             input_name = arg.input_name
-            input_argument = argument_values.get(input_name, None)
             if input_name in argument_values:
                 input_uri = input_uri_generator(input_name)
                 input_uris[input_name] = input_uri

@@ -967,6 +967,7 @@ class ContainerOp(BaseOp):
             For each output in the file_outputs map there will be a corresponding output reference available in the task.outputs dictionary.
             These output references can be passed to the other tasks as arguments.
             The following output names are handled specially by the frontend and backend: "mlpipeline-ui-metadata" and "mlpipeline-metrics".
+        uri_outputs: Set of URI-based outputs.
         output_artifact_paths: Deprecated. Maps output artifact labels to local artifact file paths. Deprecated: Use file_outputs instead. It now supports big data outputs.
 
         is_exit_handler: Deprecated. This is no longer needed.
@@ -1011,19 +1012,19 @@ class ContainerOp(BaseOp):
     _DISABLE_REUSABLE_COMPONENT_WARNING = False
 
     def __init__(
-      self,
-      name: str,
-      image: str,
-      command: StringOrStringList = None,
-      arguments: StringOrStringList = None,
-      init_containers: List[UserContainer] = None,
-      sidecars: List[Sidecar] = None,
-      container_kwargs: Dict = None,
-      artifact_argument_paths: List[InputArgumentPath] = None,
-      file_outputs: Dict[str, str] = None,
-      output_artifact_paths: Dict[str, str]=None,
-      is_exit_handler=False,
-      pvolumes: Dict[str, V1Volume] = None,
+        self,
+        name: str,
+        image: str,
+        command: StringOrStringList = None,
+        arguments: StringOrStringList = None,
+        init_containers: List[UserContainer] = None,
+        sidecars: List[Sidecar] = None,
+        container_kwargs: Dict = None,
+        artifact_argument_paths: List[InputArgumentPath] = None,
+        file_outputs: Dict[str, str] = None,
+        output_artifact_paths: Dict[str, str] = None,
+        is_exit_handler=False,
+        pvolumes: Dict[str, V1Volume] = None,
     ):
         super().__init__(name=name, init_containers=init_containers, sidecars=sidecars, is_exit_handler=is_exit_handler)
 
