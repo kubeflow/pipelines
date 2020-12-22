@@ -224,7 +224,7 @@ def _generate_input_uri(port_name: str) -> str:
     return os.path.join(
         PIPELINE_ROOT_PLACEHOLDER,
         '{{workflow.uid}}',
-        '{{inputs.parameters.{input}}}'.format(
+        '{{{{inputs.parameters.{input}}}}}'.format(
             input=PRODUCER_POD_NAME_PARAMETER.format(port_name)),
         port_name
     )
