@@ -505,10 +505,12 @@ def _refactor_inputs_if_uri_placeholder(
                         new_command_lines.append(cmd)
                 return new_command_lines
 
-            container_template['container']['args'] = reconcile_filename(
-                container_template['container'].get('args') or [])
-            container_template['container']['command'] = reconcile_filename(
-                container_template['container'].get('command') or [])
+            if container_template['container'].get('args'):
+                container_template['container']['args'] = reconcile_filename(
+                    container_template['container']['args'])
+            if container_template['container'].get('command'):
+                container_template['container']['command'] = reconcile_filename(
+                    container_template['container']['command'])
         else:
             new_artifact_inputs.append(artifact_input)
 
@@ -701,14 +703,16 @@ def add_pod_name_passing(
     for template in container_templates:
         # Process {{kfp.pipeline_root}} placeholders.
         args = template['container'].get('args') or []
-        new_args = [_replace_output_dir_placeholder(arg, output_directory) for
-                    arg in args]
-        template['container']['args'] = new_args
+        if args:
+            new_args = [_replace_output_dir_placeholder(arg, output_directory) for
+                        arg in args]
+            template['container']['args'] = new_args
 
         cmds = template['container'].get('command') or []
-        new_cmds = [_replace_output_dir_placeholder(cmd, output_directory) for
-                    cmd in cmds]
-        template['container']['command'] = new_cmds
+        if cmds:
+            new_cmds = [_replace_output_dir_placeholder(cmd, output_directory) for
+                        cmd in cmds]
+            template['container']['command'] = new_cmds
 
     clean_up_empty_workflow_structures(workflow)
 
