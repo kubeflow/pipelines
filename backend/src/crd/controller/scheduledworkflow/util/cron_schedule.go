@@ -24,9 +24,9 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// The maximum nbr of epochs that can be used in time.Unix
+// The maximum time that can be used in time.Time
 // For more information check: https://stackoverflow.com/questions/25065055/what-is-the-maximum-time-time-in-go
-const maxEpoch = 1<<63 - 62135596801
+var maxTime = time.Unix(1<<63-62135596801, 999999999)
 
 // CronSchedule is a type to help manipulate CronSchedule objects.
 type CronSchedule struct {
@@ -44,22 +44,22 @@ func NewCronSchedule(cronSchedule *swfapi.CronSchedule) *CronSchedule {
 	}
 }
 
-// GetNextScheduledEpoch returns the next epoch at which a workflow must be
+// GetNextScheduledTime returns the next epoch at which a workflow must be
 // scheduled.
-func (s *CronSchedule) GetNextScheduledEpoch(lastJobTime *v1.Time,
-	defaultStartTime time.Time, location *time.Location) int64 {
-	effectiveLastJobTime := s.getEffectiveLastJobEpoch(lastJobTime, defaultStartTime)
-	return s.getNextScheduledEpoch(effectiveLastJobTime, location)
+func (s *CronSchedule) GetNextScheduledTime(lastJobTime *v1.Time,
+	defaultStartTime time.Time, location *time.Location) time.Time {
+	effectiveLastJobTime := s.getEffectiveLastJobTime(lastJobTime, defaultStartTime)
+	return s.getNextScheduledTime(effectiveLastJobTime, location)
 }
 
-func (s *CronSchedule) GetNextScheduledEpochNoCatchup(lastJobTime *v1.Time,
-	defaultStartTime time.Time, nowTime time.Time, location *time.Location) int64 {
+func (s *CronSchedule) GetNextScheduledTimeNoCatchup(lastJobTime *v1.Time,
+	defaultStartTime time.Time, nowTime time.Time, location *time.Location) time.Time {
 
-	effectiveLastJobTime := s.getEffectiveLastJobEpoch(lastJobTime, defaultStartTime)
-	return s.getNextScheduledEpochImp(effectiveLastJobTime, false, nowTime, location)
+	effectiveLastJobTime := s.getEffectiveLastJobTime(lastJobTime, defaultStartTime)
+	return s.getNextScheduledTimeImp(effectiveLastJobTime, false, nowTime, location)
 }
 
-func (s *CronSchedule) getEffectiveLastJobEpoch(lastJobTime *v1.Time,
+func (s *CronSchedule) getEffectiveLastJobTime(lastJobTime *v1.Time,
 	defaultStartTime time.Time) time.Time {
 
 	// Fallback to default start epoch, which will be passed the Job creation
@@ -75,18 +75,18 @@ func (s *CronSchedule) getEffectiveLastJobEpoch(lastJobTime *v1.Time,
 	return effectiveLastJobTime
 }
 
-func (s *CronSchedule) getNextScheduledEpoch(lastJobTime time.Time, location *time.Location) int64 {
-	return s.getNextScheduledEpochImp(lastJobTime,
+func (s *CronSchedule) getNextScheduledTime(lastJobTime time.Time, location *time.Location) time.Time {
+	return s.getNextScheduledTimeImp(lastJobTime,
 		true /* nowEpoch doesn't matter when catchup=true */, time.Unix(0, 0), location)
 }
 
-func (s *CronSchedule) getNextScheduledEpochImp(lastJobTime time.Time, catchup bool, nowTime time.Time, location *time.Location) int64 {
+func (s *CronSchedule) getNextScheduledTimeImp(lastJobTime time.Time, catchup bool, nowTime time.Time, location *time.Location) time.Time {
 	schedule, err := cron.Parse(s.Cron)
 	if err != nil {
 		// This should never happen, validation should have caught this at resource creation.
 		log.Errorf("%+v", wraperror.Errorf(
 			"Found invalid schedule (%v): %v", s.Cron, err))
-		return time.Unix(maxEpoch, 0).Unix()
+		return maxTime.In(location)
 	}
 
 	startTime := lastJobTime
@@ -95,18 +95,18 @@ func (s *CronSchedule) getNextScheduledEpochImp(lastJobTime time.Time, catchup b
 	}
 
 	result := schedule.Next(startTime.In(location))
-	var endTime time.Time = time.Unix(maxEpoch, 0)
+	var endTime time.Time = maxTime
 	if s.EndTime != nil {
 		endTime = s.EndTime.Time
 	}
 
 	if endTime.Before(result) {
-		return time.Unix(maxEpoch, 0).Unix()
+		return maxTime.In(location)
 	}
 
 	// When we need to catch up with schedule, just run schedules one by one.
 	if catchup == true {
-		return result.Unix()
+		return result
 	}
 
 	// When we don't need to catch up, find the last schedule we need to run
@@ -121,5 +121,5 @@ func (s *CronSchedule) getNextScheduledEpochImp(lastJobTime time.Time, catchup b
 			break
 		}
 	}
-	return next.Unix()
+	return next
 }

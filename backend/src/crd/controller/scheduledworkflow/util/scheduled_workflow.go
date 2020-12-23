@@ -255,13 +255,13 @@ func (s *ScheduledWorkflow) getNextScheduledEpoch(nowEpoch int64, location time.
 		nowTime := time.Unix(nowEpoch, 0)
 		schedule := NewCronSchedule(s.Spec.Trigger.CronSchedule)
 		if catchup {
-			return schedule.GetNextScheduledEpoch(
+			return schedule.GetNextScheduledTime(
 				s.Status.Trigger.LastTriggeredTime,
-				time.Unix(s.creationEpoch(), 0).In(&location), &location)
+				time.Unix(s.creationEpoch(), 0).In(&location), &location).Unix()
 		}
-		return schedule.GetNextScheduledEpochNoCatchup(
+		return schedule.GetNextScheduledTimeNoCatchup(
 			s.Status.Trigger.LastTriggeredTime,
-			time.Unix(s.creationEpoch(), 0).In(&location), nowTime, &location)
+			time.Unix(s.creationEpoch(), 0).In(&location), nowTime, &location).Unix()
 	}
 
 	return s.getNextScheduledEpochForOneTimeRun()
@@ -341,7 +341,7 @@ func (s *ScheduledWorkflow) updateLastTriggeredTime(epoch int64) {
 }
 
 func (s *ScheduledWorkflow) updateNextTriggeredTime(epoch int64) {
-	if epoch < maxEpoch {
+	if epoch < maxTime.Unix() {
 		s.Status.Trigger.NextTriggeredTime = commonutil.Metav1TimePointer(
 			metav1.NewTime(time.Unix(epoch, 0).UTC()))
 	} else {
