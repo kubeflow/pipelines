@@ -749,7 +749,7 @@ implementation:
             [
                 'program',
                 '--in1-uri',
-                '{{kfp.pipeline_root}}/{{workflow.uid}}/{inputs.parameters.In1-producer-pod-id-}/In1',
+                '{{kfp.pipeline_root}}/{{workflow.uid}}/{{inputs.parameters.In1-producer-pod-id-}}/In1',
                 '--out1-uri',
                 '{{kfp.pipeline_root}}/{{workflow.uid}}/{{pod.name}}/Out1',
             ]
