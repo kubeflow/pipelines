@@ -289,8 +289,7 @@ class CompilerTest(unittest.TestCase):
       component_op(value=value)
 
     with self.assertRaisesRegex(
-        TypeError,
-        ' type "Float" cannot be paired with InputUriPlaceholder.'):
+        TypeError, ' type "Float" cannot be paired with InputUriPlaceholder.'):
       compiler.Compiler().compile(
           pipeline_func=my_pipeline,
           pipeline_root='dummy',
@@ -351,6 +350,7 @@ class CompilerTest(unittest.TestCase):
           """)
 
   def test_compile_pipeline_with_invalid_name_should_raise_error(self):
+
     def my_pipeline():
       pass
 
@@ -358,6 +358,52 @@ class CompilerTest(unittest.TestCase):
         ValueError,
         'Invalid pipeline name: .*\nPlease specify a pipeline name that matches'
     ):
+      compiler.Compiler().compile(
+          pipeline_func=my_pipeline,
+          pipeline_root='dummy',
+          output_path='output.json')
+
+  def test_compile_pipeline_with_importer_on_inputpath_should_raise_error(self):
+
+    # YAML componet authoring
+    component_op = components.load_component_from_text("""
+        name: compoent with misused placeholder
+        inputs:
+        - {name: model, type: Model}
+        implementation:
+          container:
+            image: dummy
+            args:
+            - {inputPath: model}
+        """)
+
+    @dsl.pipeline(name='my-component')
+    def my_pipeline(model):
+      component_op(model=model)
+
+    with self.assertRaisesRegex(
+        TypeError,
+        'Input "model" with type "Model" is not connected to any upstream '
+        'output. However it is used with InputPathPlaceholder.'):
+      compiler.Compiler().compile(
+          pipeline_func=my_pipeline,
+          pipeline_root='dummy',
+          output_path='output.json')
+
+    # Python function based component authoring
+    def my_component(datasets: components.InputPath('Datasets')):
+      pass
+
+    component_op = components.create_component_from_func(my_component)
+
+    @dsl.pipeline(name='my-component')
+    def my_pipeline(datasets):
+      component_op(datasets=datasets)
+
+    with self.assertRaisesRegex(
+        TypeError,
+        'Input "datasets" with type "Datasets" is not connected to any upstream '
+        'output. However it is used with InputPathPlaceholder.'):
       compiler.Compiler().compile(
           pipeline_func=my_pipeline,
           pipeline_root='dummy',
