@@ -254,12 +254,9 @@ func (s *JobServer) DeleteJob(ctx context.Context, request *api.DeleteJobRequest
 func (s *JobServer) validateCreateJobRequest(request *api.CreateJobRequest) error {
 	job := request.Job
 
-	if err := ValidatePipelineSpec(s.resourceManager, job.PipelineSpec); err != nil {
-		if _, errResourceReference := CheckPipelineVersionReference(s.resourceManager, job.ResourceReferences); errResourceReference != nil {
-			return util.Wrap(err, "Neither pipeline spec nor pipeline version is valid."+errResourceReference.Error())
-		}
+	if err := ValidatePipelineSpecAndResourceReferences(s.resourceManager, job.PipelineSpec, job.ResourceReferences); err != nil {
+		return err
 	}
-
 	if job.MaxConcurrency > 10 || job.MaxConcurrency < 1 {
 		return util.NewInvalidInputError("The max concurrency of the job is out of range. Support 1-10. Received %v.", job.MaxConcurrency)
 	}
