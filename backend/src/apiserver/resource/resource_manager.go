@@ -981,7 +981,7 @@ func getWorkflowSpecManifestBytes(pipelineSpec *api.PipelineSpec, resourceRefere
 	if pipelineSpec != nil && pipelineSpec.WorkflowManifest != "" {
 		workflowSpecManifestBytes = []byte(pipelineSpec.GetWorkflowManifest())
 	} else {
-		err := ConvertPipelineIdToDefaultPipelineVersion(pipelineSpec, resourceReferences, r)
+		err := convertPipelineIdToDefaultPipelineVersion(pipelineSpec, resourceReferences, r)
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to find default version to create run with pipeline id.")
 		}
