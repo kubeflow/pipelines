@@ -319,6 +319,7 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	// (1) raw pipeline manifest in pipeline_spec
 	// (2) pipeline version in resource_references
 	// And the latter takes priority over the former when the pipeline manifest is from pipeline_spec.pipeline_id
+	// workflow manifest and pipeline id/version will not exist at the same time, guaranteed by the validation phase
 	workflowSpecManifestBytes, err := getWorkflowSpecManifestBytes(apiRun.PipelineSpec, &apiRun.ResourceReferences, r)
 	if err != nil {
 		return nil, err
@@ -639,6 +640,7 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 	// (1) raw pipeline manifest in pipeline_spec
 	// (2) pipeline version in resource_references
 	// 	And the latter takes priority over the former when the pipeline manifest is from pipeline_spec.pipeline_id
+	// workflow manifest and pipeline id/version will not exist at the same time, guaranteed by the validation phase
 	workflowSpecManifestBytes, err := getWorkflowSpecManifestBytes(apiJob.PipelineSpec, &apiJob.ResourceReferences, r)
 	if err != nil {
 		return nil, err
@@ -978,7 +980,7 @@ func (r *ResourceManager) getWorkflowSpecBytesFromPipelineVersion(references []*
 
 func getWorkflowSpecManifestBytes(pipelineSpec *api.PipelineSpec, resourceReferences *[]*api.ResourceReference, r *ResourceManager) ([]byte, error) {
 	var workflowSpecManifestBytes []byte
-	if pipelineSpec != nil && pipelineSpec.WorkflowManifest != "" {
+	if pipelineSpec.GetWorkflowManifest()  != "" {
 		workflowSpecManifestBytes = []byte(pipelineSpec.GetWorkflowManifest())
 	} else {
 		err := convertPipelineIdToDefaultPipelineVersion(pipelineSpec, resourceReferences, r)

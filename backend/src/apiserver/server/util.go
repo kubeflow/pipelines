@@ -217,14 +217,10 @@ func ValidateExperimentResourceReference(resourceManager *resource.ResourceManag
 }
 
 func ValidatePipelineSpecAndResourceReferences(resourceManager *resource.ResourceManager, spec *api.PipelineSpec, resourceReferences []*api.ResourceReference) error {
-	// centralize all the nil checks here
 	pipelineId := spec.GetPipelineId()
 	workflowManifest := spec.GetWorkflowManifest()
 	pipelineVersionId := getPipelineVersionIdFromResourceReferences(resourceManager, resourceReferences)
 
-	if err := validateParameters(spec.GetParameters()); err != nil {
-		return err
-	}
 	if workflowManifest != "" {
 		if pipelineId != "" || pipelineVersionId != "" {
 			return util.NewInvalidInputError("Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest.")
