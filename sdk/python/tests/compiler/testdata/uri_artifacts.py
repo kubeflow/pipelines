@@ -67,19 +67,19 @@ def flip_coin_op():
 
 @dsl.pipeline(
     name='uri-artifact-pipeline',
-    output_directory='gs://jxzheng-helloworld/kfp-uri-passing')
+    output_directory='gs://my-bucket/my-output-dir')
 def uri_artifact(text='Hello world!'):
   task_1 = write_to_gcs(text=text)
   task_2 = read_from_gcs(
       input_gcs_path=task_1.outputs['output_gcs_path'])
 
-  # Test use URI within ParFor loop
+  # Test use URI within ParFor loop.
   loop_args = [1, 2, 3, 4]
   with dsl.ParallelFor(loop_args) as loop_arg:
     loop_task_2 = read_from_gcs(
         input_gcs_path=task_1.outputs['output_gcs_path'])
 
-  # Test use URI within condition
+  # Test use URI within condition.
   flip = flip_coin_op()
   with dsl.Condition(flip.output == 'heads'):
     condition_task_2 = read_from_gcs(

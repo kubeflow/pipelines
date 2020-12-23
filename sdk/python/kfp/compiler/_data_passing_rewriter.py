@@ -2,7 +2,7 @@ import copy
 import json
 import os
 import re
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from kfp.components import _components
 
@@ -443,7 +443,7 @@ def _refactor_outputs_if_uri_placeholder(
 def _refactor_inputs_if_uri_placeholder(
     container_template: Dict[str, Any],
     output_to_filename: Dict[str, str],
-    refactored_inputs: Dict[str, str]
+    refactored_inputs: Dict[Tuple[str, str], str]
 ) -> None:
     """Rewrites the input of the container in case of URI placeholder.
 
@@ -456,7 +456,7 @@ def _refactor_inputs_if_uri_placeholder(
         container_template: Container template structure.
         output_to_filename: The mapping from output name to the file name.
         refactored_inputs: A mapping used to collect the input artifact being
-            refactored from its previous name to its new name.
+            refactored from (template name, previous name) to its new name.
     """
 
     # If there's no artifact inputs then no refactor is needed.
@@ -481,9 +481,10 @@ def _refactor_inputs_if_uri_placeholder(
                 artifact_input['path'])
             input_name = m.group('input_name')
             parameter_inputs.append({'name': input_name})
-            # Here we're use the previous artifact input name as key, because
-            # it will be refactored later at the DAG level.
-            refactored_inputs[artifact_input['name']] = input_name
+            # Here we're use the template name + previous artifact input name as
+            # key, because it will be refactored later at the DAG level.
+            refactored_inputs[(container_template['name'],
+                               artifact_input['name'])] = input_name
 
             # In the container implementation, the pod name is already connected
             # to the input parameter per the implementation in _components.
@@ -515,11 +516,49 @@ def _refactor_inputs_if_uri_placeholder(
     container_template['inputs']['parameters'] = parameter_inputs
 
 
-def _refactor_dag_template_uri_inputs(
-    dag_templates: Dict[str, Any],
-    refactored_inputs: Dict[str, str]
+def _refactor_dag_inputs(
+    dag_template: Dict[str, Any],
+    refactored_inputs: Dict[Tuple[str, str], str]
 ) -> None:
-    """Refactor the dag templates artifact inputs.
+    """Refactors the inputs of the DAG template
+
+    Args:
+        dag_template: The DAG template structure.
+        refactored_inputs: The mapping of template and input names to be
+            refactored, to its new name.
+    """
+    # One hacky way to do the refactoring is by looking at the name of the
+    # artifact argument. If the name appears in the refactored_inputs mapping,
+    # this should be changed to a parameter input regardless of the template
+    # name.
+    # The correctness of this approach is ensured by the data passing rewriting
+    # process that changed the artifact inputs' name to be
+    # '{{output_template}}-{{output_name}}', which is consistent across all
+    # templates.
+    artifact_to_new_name = {k[1] : v for k, v in refactored_inputs.items()}
+    if not dag_template.get('inputs', {}).get('artifacts'):
+        return
+
+    parameter_inputs = dag_template['inputs'].get('parameters') or []
+    new_artifact_inputs = []
+    for input_artifact in dag_template['inputs']['artifacts']:
+        if input_artifact['name'] in artifact_to_new_name:
+            parameter_inputs.append(
+                {'name': artifact_to_new_name[input_artifact['name']]})
+            refactored_inputs[(dag_template['name'],
+                               input_artifact['name'])] = artifact_to_new_name[
+                input_artifact['name']]
+        else:
+            new_artifact_inputs.append(input_artifact)
+    dag_template['inputs']['artifacts'] = new_artifact_inputs
+    dag_template['inputs']['parameters'] = parameter_inputs
+
+
+def _refactor_dag_template_uri_inputs(
+    dag_template: Dict[str, Any],
+    refactored_inputs: Dict[Tuple[str, str], str]
+) -> None:
+    """Refactors artifact inputs within the DAG template.
 
     An artifact input will be changed to a parameter input if it needs to be
     connected to the producer's pod name output. This is determined by whether
@@ -527,43 +566,72 @@ def _refactor_dag_template_uri_inputs(
     container template refactoring process `_refactor_inputs_if_uri_placeholder`
 
     Args:
-        dag_templates: The DAG template structure.
-        refactored_inputs: The mapping of input names to be refactored, to its
-            new name.
+        dag_template: The DAG template structure.
+        refactored_inputs: The mapping of template and input names to be
+            refactored, to its new name.
     """
     # Traverse the tasks in the DAG, and inspect the task arguments.
-    for task in dag_templates['dag'].get('tasks', []):
+    for task in dag_template['dag'].get('tasks', []):
         if not task.get('arguments') or not task['arguments'].get('artifacts'):
             continue
         artifact_args = task['arguments']['artifacts']
         new_artifact_args = []
+        template_name = task['name']
         parameter_args = task.get('arguments', {}).get('parameters', [])
         for artifact_arg in artifact_args:
             assert 'name' in artifact_arg, (
                     'Illegal artifact format: %s' % artifact_arg)
-            if artifact_arg['name'] in refactored_inputs:
+            if (template_name, artifact_arg['name']) in refactored_inputs:
                 # If this is an input artifact that has been refactored.
                 # It will be changed to an input parameter receiving the
                 # producer's pod name.
-                pod_parameter_name = refactored_inputs[artifact_arg['name']]
+                pod_parameter_name = refactored_inputs[
+                    (template_name, artifact_arg['name'])]
 
-                # Capture the original task name and output port name.
-                m = re.match(
-                    r'{{tasks\.(?P<task_name>.*)\.outputs\.artifacts'
-                    r'\.(?P<output_name>.*)}}',
-                    artifact_arg['from'])
-                task_name, output_name = m.group('task_name'), m.group(
-                    'output_name')
-
-                parameter_args.append({
-                    'name': pod_parameter_name,
-                    'value': '{{{{tasks.{task_name}.outputs.'
-                             'parameters.{output}}}}}'.format(
-                        task_name=task_name,
-                        output=_components.PRODUCER_POD_NAME_PARAMETER.format(
-                            output_name)
-                    )
-                })
+                # There are two cases for a DAG template.
+                assert (artifact_arg.get('from', '').startswith(
+                    '{{inputs.') or artifact_arg.get('from', '').startswith(
+                    '{{tasks.')), (
+                        "Illegal 'from' found for argument %s" % artifact_arg)
+                arg_from = artifact_arg['from']
+                if arg_from.startswith('{{tasks.'):
+                    # 1. The argument to refactor is from another task in the same
+                    # DAG.
+                    task_matches = re.match(
+                        r'{{tasks\.(?P<task_name>.*)\.outputs\.artifacts'
+                        r'\.(?P<output_name>.*)}}',
+                        arg_from)
+                    task_name, output_name = task_matches.group(
+                        'task_name'), task_matches.group('output_name')
+                    parameter_args.append({
+                        'name': pod_parameter_name,
+                        'value': '{{{{tasks.{task_name}.outputs.'
+                                 'parameters.{output}}}}}'.format(
+                            task_name=task_name,
+                            output=_components.PRODUCER_POD_NAME_PARAMETER.format(
+                                output_name)
+                        )})
+                else:
+                    # 2. The assert above ensures that the argument to refactor
+                    # is from an input of the current DAG template.
+                    # Then, we'll reconnect it to the DAG input, which has been
+                    # renamed.
+                    input_matches = re.match(
+                        r'{{inputs\.artifacts\.(?P<input_name>.*)}}',
+                        arg_from)
+                    assert input_matches, (
+                            'The matched input is expected to be artifact, '
+                            'get parameter instead: %s' % arg_from)
+                    # Get the corresponding refactored name of this DAG template
+                    new_input = refactored_inputs[(
+                        dag_template['name'],
+                        input_matches.group('input_name'))]
+                    parameter_args.append({
+                        'name': pod_parameter_name,
+                        'value': '{{{{inputs.parameters.{new_input}}}}}'.format(
+                            new_input=new_input,
+                        )
+                    })
             else:
                 # Otherwise this artifact input will be preserved
                 new_artifact_args.append(artifact_arg)
@@ -614,7 +682,13 @@ def add_pod_name_passing(
     # task.
     refactored_inputs = {}
     for template in container_templates:
-        _refactor_inputs_if_uri_placeholder(template, output_to_filename, refactored_inputs)
+        _refactor_inputs_if_uri_placeholder(
+            template, output_to_filename, refactored_inputs)
+
+    # For DAG templates, we need to figure out all the inputs that are
+    # eventually being refactored down to the container template level.
+    for template in dag_templates:
+        _refactor_dag_inputs(template, refactored_inputs)
 
     # 3. In the DAG templates, wire the pod name inputs/outputs together.
     for template in dag_templates:
