@@ -150,7 +150,7 @@ def create_container_op_from_component_and_arguments(
     elif input_key in importer_spec:
       raise TypeError(
           'Input "{}" with type "{}" is not connected to any upstream output. '
-          'But it is used with InputPathPlaceholder. '
+          'However it is used with InputPathPlaceholder. '
           'If you want to import an existing artifact using a system-connected '
           'importer node, use InputUriPlaceholder instead. '
           'Or if you just want to pass a string parameter, use string type and '

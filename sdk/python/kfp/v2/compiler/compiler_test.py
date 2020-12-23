@@ -384,7 +384,7 @@ class CompilerTest(unittest.TestCase):
     with self.assertRaisesRegex(
         TypeError,
         'Input "model" with type "Model" is not connected to any upstream '
-        'output. But it is used with InputPathPlaceholder.'):
+        'output. However it is used with InputPathPlaceholder.'):
       compiler.Compiler().compile(
           pipeline_func=my_pipeline,
           pipeline_root='dummy',
@@ -403,7 +403,7 @@ class CompilerTest(unittest.TestCase):
     with self.assertRaisesRegex(
         TypeError,
         'Input "datasets" with type "Datasets" is not connected to any upstream '
-        'output. But it is used with InputPathPlaceholder.'):
+        'output. However it is used with InputPathPlaceholder.'):
       compiler.Compiler().compile(
           pipeline_func=my_pipeline,
           pipeline_root='dummy',
