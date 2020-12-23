@@ -22,13 +22,13 @@ The Python part of the project will follow [Google Python style guide](http://go
 The frontend part of the project uses [prettier](https://prettier.io/) for formatting, read [frontend/README.md#code-style](frontend/README.md#code-style) for more details.
 ## Unit Testing Best Practices
 
-*Testing via Public APIs
+* Testing via Public APIs
 
 ### Golang
-* Put your tests in a different package：Moving your test code out of the package allows you to write tests as though you were a real user of the package. You cannot fiddle around with the internals, 
+* Put your tests in a different package: Moving your test code out of the package allows you to write tests as though you were a real user of the package. You cannot fiddle around with the internals,
 instead you focus on the exposed interface and are always thinking about any noise that you might be adding to your API.
-* Internal tests go in a different file：If you do need to unit test some internals, create another file with `_internal_test.go` 
-as the suffix. 
+* Internal tests go in a different file: If you do need to unit test some internals, create another file with `_internal_test.go`
+as the suffix.
 * Write table driven tests
 
 ## Code reviews
