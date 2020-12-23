@@ -119,6 +119,73 @@ func TestValidateApiJob_ValidateNoExperimentResourceReferenceSucceeds(t *testing
 	assert.Nil(t, err)
 }
 
+func TestValidateApiJob_WithInvalidPipelineVersionReference(t *testing.T) {
+	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	defer clients.Close()
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	apiJob := &api.Job{
+		Name:           "job1",
+		Enabled:        true,
+		MaxConcurrency: 1,
+		Trigger: &api.Trigger{
+			Trigger: &api.Trigger_CronSchedule{CronSchedule: &api.CronSchedule{
+				StartTime: &timestamp.Timestamp{Seconds: 1},
+				Cron:      "1 * * * *",
+			}}},
+		ResourceReferences: referencesOfExperimentAndInvalidPipelineVersion,
+	}
+	err := server.validateCreateJobRequest(&api.CreateJobRequest{Job: apiJob})
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Get pipelineVersionId failed.")
+}
+
+func TestValidateApiJob_NoValidPipelineSpecOrPipelineVersion(t *testing.T) {
+	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	defer clients.Close()
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	apiJob := &api.Job{
+		Name:           "job1",
+		Enabled:        true,
+		MaxConcurrency: 1,
+		Trigger: &api.Trigger{
+			Trigger: &api.Trigger_CronSchedule{CronSchedule: &api.CronSchedule{
+				StartTime: &timestamp.Timestamp{Seconds: 1},
+				Cron:      "1 * * * *",
+			}}},
+		ResourceReferences: validReference,
+	}
+	err := server.validateCreateJobRequest(&api.CreateJobRequest{Job: apiJob})
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Please specify a pipeline by providing a (workflow manifest) or (pipeline id or/and pipeline version).")
+}
+
+func TestValidateApiJob_WorkflowManifestAndPipelineVersion(t *testing.T) {
+	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	defer clients.Close()
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	apiJob := &api.Job{
+		Name:           "job1",
+		Enabled:        true,
+		MaxConcurrency: 1,
+		Trigger: &api.Trigger{
+			Trigger: &api.Trigger_CronSchedule{CronSchedule: &api.CronSchedule{
+				StartTime: &timestamp.Timestamp{Seconds: 1},
+				Cron:      "1 * * * *",
+			}}},
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters:       []*api.Parameter{{Name: "param2", Value: "world"}},
+		},
+		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
+	}
+	err := server.validateCreateJobRequest(&api.CreateJobRequest{Job: apiJob})
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest.")
+}
+
 func TestValidateApiJob_ValidatePipelineSpecFailed(t *testing.T) {
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
@@ -142,27 +209,8 @@ func TestValidateApiJob_ValidatePipelineSpecFailed(t *testing.T) {
 	}
 	err := server.validateCreateJobRequest(&api.CreateJobRequest{Job: apiJob})
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Pipeline not_exist_pipeline not found")
-}
-
-func TestValidateApiJob_NoValidPipelineSpecOrPipelineVersion(t *testing.T) {
-	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
-	defer clients.Close()
-	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
-	apiJob := &api.Job{
-		Name:           "job1",
-		Enabled:        true,
-		MaxConcurrency: 1,
-		Trigger: &api.Trigger{
-			Trigger: &api.Trigger_CronSchedule{CronSchedule: &api.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 1},
-				Cron:      "1 * * * *",
-			}}},
-		ResourceReferences: validReference,
-	}
-	err := server.validateCreateJobRequest(&api.CreateJobRequest{Job: apiJob})
-	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Neither pipeline spec nor pipeline version is valid")
 }
 
 func TestValidateApiJob_InvalidCron(t *testing.T) {
