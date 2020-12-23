@@ -137,7 +137,7 @@ func TestValidateApiJob_WithInvalidPipelineVersionReference(t *testing.T) {
 	err := server.validateCreateJobRequest(&api.CreateJobRequest{Job: apiJob})
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Pipeline version not found.")
+	assert.Contains(t, err.Error(), "Get pipelineVersionId failed.")
 }
 
 func TestValidateApiJob_NoValidPipelineSpecOrPipelineVersion(t *testing.T) {
@@ -183,7 +183,7 @@ func TestValidateApiJob_WorkflowManifestAndPipelineVersion(t *testing.T) {
 	err := server.validateCreateJobRequest(&api.CreateJobRequest{Job: apiJob})
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Please either specify a pipeline version or a workflow manifest, not both.")
+	assert.Contains(t, err.Error(), "Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest.")
 }
 
 func TestValidateApiJob_ValidatePipelineSpecFailed(t *testing.T) {

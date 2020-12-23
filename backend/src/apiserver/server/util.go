@@ -216,76 +216,88 @@ func ValidateExperimentResourceReference(resourceManager *resource.ResourceManag
 	return nil
 }
 
-func validatePipelineSpecAndCheckPipelineVersionReference(resourceManager *resource.ResourceManager, spec *api.PipelineSpec, resourceReferences []*api.ResourceReference) error {
-	pipelineVersionId, err := CheckPipelineVersionReference(resourceManager, resourceReferences)
-	if err != nil {
+func ValidatePipelineSpecAndResourceReferences(resourceManager *resource.ResourceManager, spec *api.PipelineSpec, resourceReferences []*api.ResourceReference) error {
+	// centralize all the nil checks here
+	pipelineId := spec.GetPipelineId()
+	workflowManifest := spec.GetWorkflowManifest()
+	pipelineVersionId := getPipelineVersionIdFromResourceReferences(resourceManager, resourceReferences)
+
+	if err := validateParameters(spec.GetParameters()); err != nil {
 		return err
 	}
-	if (spec == nil || (spec.GetPipelineId() == "" && spec.GetWorkflowManifest() == "")) && pipelineVersionId == "" {
-		return util.NewInvalidInputError("Please specify a pipeline by providing a pipeline spec or/and pipeline version.")
+	if workflowManifest != "" {
+		if pipelineId != "" || pipelineVersionId != "" {
+			return util.NewInvalidInputError("Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest.")
+		}
+		if err := validateWorkflowManifest(spec.GetWorkflowManifest()); err != nil {
+			return err
+		}
+	} else {
+		if pipelineId == "" && pipelineVersionId == "" {
+			return util.NewInvalidInputError("Please specify a pipeline by providing a pipeline spec or/and pipeline version.")
+		}
+		if err := validatePipelineId(resourceManager, pipelineId); err != nil {
+			return err
+		}
+		if pipelineVersionId != "" {
+			// verify pipelineVersionId exists
+			pipelineVersion, err := resourceManager.GetPipelineVersion(pipelineVersionId)
+			if err != nil {
+				return util.Wrap(err, "Get pipelineVersionId failed.")
+			}
+			// verify pipelineId should be parent of pipelineVersionId
+			if pipelineId != "" && pipelineVersion.PipelineId != pipelineId {
+				return util.NewInvalidInputError("pipeline ID should be parent of pipeline version.")
+			}
+		}
 	}
-	if spec != nil && spec.GetWorkflowManifest() != "" && pipelineVersionId != "" {
-		return util.NewInvalidInputError("Please either specify a pipeline version or a workflow manifest, not both.")
-	}
-	if err := ValidatePipelineSpec(resourceManager, spec); err != nil {
-		return err
+	return validateParameters(spec.GetParameters())
+}
+func validateParameters(parameters []*api.Parameter) error {
+	if parameters != nil {
+		paramsBytes, err := json.Marshal(parameters)
+		if err != nil {
+			return util.NewInternalServerError(err,
+				"Failed to Marshall the pipeline parameters into bytes. Parameters: %s",
+				printParameters(parameters))
+		}
+		if len(paramsBytes) > util.MaxParameterBytes {
+			return util.NewInvalidInputError("The input parameter length exceed maximum size of %v.", util.MaxParameterBytes)
+		}
 	}
 	return nil
 }
-func ValidatePipelineSpec(resourceManager *resource.ResourceManager, spec *api.PipelineSpec) error {
-	if spec == nil || (spec.GetPipelineId() == "" && spec.GetWorkflowManifest() == "") {
-		return nil
-	}
-	if spec.GetPipelineId() != "" && spec.GetWorkflowManifest() != "" {
-		return util.NewInvalidInputError("Please either specify a pipeline ID or a workflow manifest, not both.")
-	}
-	if spec.GetPipelineId() != "" {
+
+func validatePipelineId(resourceManager *resource.ResourceManager, pipelineId string) error {
+	if pipelineId != "" {
 		// Verify pipeline exist
-		if _, err := resourceManager.GetPipeline(spec.GetPipelineId()); err != nil {
-			return util.Wrap(err, "Get pipeline failed.")
+		if _, err := resourceManager.GetPipeline(pipelineId); err != nil {
+			return util.Wrap(err, "Get pipelineId failed.")
 		}
 	}
-	if spec.GetWorkflowManifest() != "" {
+	return nil
+}
+
+func validateWorkflowManifest(workflowManifest string) error {
+	if workflowManifest != "" {
 		// Verify valid workflow template
 		var workflow util.Workflow
-		if err := json.Unmarshal([]byte(spec.GetWorkflowManifest()), &workflow); err != nil {
+		if err := json.Unmarshal([]byte(workflowManifest), &workflow); err != nil {
 			return util.NewInvalidInputErrorWithDetails(err,
-				"Invalid argo workflow format. Workflow: "+spec.GetWorkflowManifest())
+				"Invalid argo workflow format. Workflow: "+workflowManifest)
 		}
-	}
-	paramsBytes, err := json.Marshal(spec.Parameters)
-	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to Marshall the pipeline parameters into bytes. Parameters: %s",
-			printParameters(spec.Parameters))
-	}
-	if len(paramsBytes) > util.MaxParameterBytes {
-		return util.NewInvalidInputError("The input parameter length exceed maximum size of %v.", util.MaxParameterBytes)
 	}
 	return nil
 }
 
-// Verify that
-// (1) a pipeline version is specified in references as a creator.
-// (2) the above pipeline version does exists in pipeline version store and is
-// in ready status.
-func CheckPipelineVersionReference(resourceManager *resource.ResourceManager, references []*api.ResourceReference) (string, error) {
+func getPipelineVersionIdFromResourceReferences(resourceManager *resource.ResourceManager, resourceReferences []*api.ResourceReference) string {
 	var pipelineVersionId = ""
-	for _, reference := range references {
-		if reference.Key.Type == api.ResourceType_PIPELINE_VERSION && reference.Relationship == api.Relationship_CREATOR {
-			pipelineVersionId = reference.Key.Id
+	for _, resourceReference := range resourceReferences {
+		if resourceReference.Key.Type == api.ResourceType_PIPELINE_VERSION && resourceReference.Relationship == api.Relationship_CREATOR {
+			pipelineVersionId = resourceReference.Key.Id
 		}
 	}
-	if len(pipelineVersionId) == 0 {
-		return pipelineVersionId, nil
-	}
-
-	// Verify pipeline version exists
-	if _, err := resourceManager.GetPipelineVersion(pipelineVersionId); err != nil {
-		return pipelineVersionId, util.Wrap(err, "Pipeline version not found.")
-	}
-
-	return pipelineVersionId, nil
+	return pipelineVersionId
 }
 
 func getUserIdentityFromHeader(userIdentityHeader, prefix string) (string, error) {

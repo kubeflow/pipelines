@@ -466,7 +466,7 @@ func TestValidateCreateRunRequest_InvalidPipelineVersionReference(t *testing.T) 
 	}
 	err := server.validateCreateRunRequest(&api.CreateRunRequest{Run: run})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Pipeline version not found.")
+	assert.Contains(t, err.Error(), "Get pipelineVersionId failed.")
 }
 
 func TestValidateCreateRunRequest_NoExperiment(t *testing.T) {
@@ -512,7 +512,7 @@ func TestValidateCreateRunRequest_WorkflowManifestAndPipelineVersion(t *testing.
 	}
 	err := server.validateCreateRunRequest(&api.CreateRunRequest{Run: run})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Please either specify a pipeline version or a workflow manifest, not both.")
+	assert.Contains(t, err.Error(), "Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest.")
 }
 
 func TestValidateCreateRunRequest_InvalidPipelineSpec(t *testing.T) {
@@ -530,7 +530,7 @@ func TestValidateCreateRunRequest_InvalidPipelineSpec(t *testing.T) {
 	}
 	err := server.validateCreateRunRequest(&api.CreateRunRequest{Run: run})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Please either specify a pipeline ID or a workflow manifest, not both.")
+	assert.Contains(t, err.Error(), "Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest.")
 }
 
 func TestValidateCreateRunRequest_TooMuchParameters(t *testing.T) {

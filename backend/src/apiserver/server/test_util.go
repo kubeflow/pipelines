@@ -34,7 +34,7 @@ import (
 )
 
 const (
-	invalidPipelineVersionId = "not_exist_pipeline"
+	invalidPipelineVersionId = "not_exist_pipeline_version"
 )
 
 var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
@@ -176,6 +176,54 @@ func initWithExperimentAndPipelineVersion(t *testing.T) (*resource.FakeClientMan
 	},
 		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"), true)
 
+	return clientManager, resourceManager, experiment
+}
+
+func initWithExperimentsAndTwoPipelineVersions(t *testing.T) (*resource.FakeClientManager, *resource.ResourceManager, *model.Experiment) {
+	initEnvVars()
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+
+	// Create an experiment.
+	apiExperiment := &api.Experiment{Name: "exp1"}
+	experiment, err := resourceManager.CreateExperiment(apiExperiment)
+	assert.Nil(t, err)
+
+	// Create a pipeline and then a pipeline version.
+	_, err = resourceManager.CreatePipeline("pipeline", "", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+	assert.Nil(t, err)
+	_, err = resourceManager.CreatePipelineVersion(&api.PipelineVersion{
+		Name: "pipeline_version",
+		ResourceReferences: []*api.ResourceReference{
+			&api.ResourceReference{
+				Key: &api.ResourceKey{
+					Id:   resource.DefaultFakeUUID,
+					Type: api.ResourceType_PIPELINE,
+				},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+	},
+		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"), true)
+
+	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(resource.NonDefaultFakeUUID, nil))
+	resourceManager = resource.NewResourceManager(clientManager)
+	// Create another pipeline and then pipeline version.
+	_, err = resourceManager.CreatePipeline("anpther-pipeline", "", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+	assert.Nil(t, err)
+	_, err =  resourceManager.CreatePipelineVersion(&api.PipelineVersion{
+		Name: "another_pipeline_version",
+		ResourceReferences: []*api.ResourceReference{
+			&api.ResourceReference{
+				Key: &api.ResourceKey{
+					Id:   resource.NonDefaultFakeUUID,
+					Type: api.ResourceType_PIPELINE,
+				},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+	},
+		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"), true)
 	return clientManager, resourceManager, experiment
 }
 
