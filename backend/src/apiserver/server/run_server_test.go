@@ -495,7 +495,7 @@ func TestValidateCreateRunRequest_NilPipelineSpecAndEmptyPipelineVersion(t *test
 	}
 	err := server.validateCreateRunRequest(&api.CreateRunRequest{Run: run})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Please specify a pipeline by providing a pipeline spec or/and pipeline version")
+	assert.Contains(t, err.Error(), "Please specify a pipeline by providing a (workflow manifest) or (pipeline id or/and pipeline version).")
 }
 
 func TestValidateCreateRunRequest_WorkflowManifestAndPipelineVersion(t *testing.T) {

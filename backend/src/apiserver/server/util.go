@@ -230,7 +230,7 @@ func ValidatePipelineSpecAndResourceReferences(resourceManager *resource.Resourc
 		}
 	} else {
 		if pipelineId == "" && pipelineVersionId == "" {
-			return util.NewInvalidInputError("Please specify a pipeline by providing a pipeline spec or/and pipeline version.")
+			return util.NewInvalidInputError("Please specify a pipeline by providing a (workflow manifest) or (pipeline id or/and pipeline version).")
 		}
 		if err := validatePipelineId(resourceManager, pipelineId); err != nil {
 			return err
