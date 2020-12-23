@@ -704,14 +704,14 @@ def add_pod_name_passing(
         # Process {{kfp.pipeline_root}} placeholders.
         args = template['container'].get('args') or []
         if args:
-            new_args = [_replace_output_dir_placeholder(arg, output_directory) for
-                        arg in args]
+            new_args = [_replace_output_dir_placeholder(arg, output_directory)
+                        for arg in args]
             template['container']['args'] = new_args
 
         cmds = template['container'].get('command') or []
         if cmds:
-            new_cmds = [_replace_output_dir_placeholder(cmd, output_directory) for
-                        cmd in cmds]
+            new_cmds = [_replace_output_dir_placeholder(cmd, output_directory)
+                        for cmd in cmds]
             template['container']['command'] = new_cmds
 
     clean_up_empty_workflow_structures(workflow)
