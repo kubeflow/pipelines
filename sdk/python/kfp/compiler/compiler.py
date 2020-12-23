@@ -853,6 +853,8 @@ class Compiler(object):
     from ._data_passing_rewriter import fix_big_data_passing
     workflow = fix_big_data_passing(workflow)
 
+    print(workflow)
+
     output_directory = getattr(pipeline_func, 'output_directory', None)
     workflow = _data_passing_rewriter.add_pod_name_passing(workflow,
                                                            output_directory)

@@ -53,13 +53,37 @@ implementation:
 """)
 
 
+def flip_coin_op():
+  """Flip a coin and output heads or tails randomly."""
+  return dsl.ContainerOp(
+      name='Flip coin',
+      image='python:alpine3.6',
+      command=['sh', '-c'],
+      arguments=['python -c "import random; result = \'heads\' if random.randint(0,1) == 0 '
+                 'else \'tails\'; print(result)" | tee /tmp/output'],
+      file_outputs={'output': '/tmp/output'}
+  )
+
+
 @dsl.pipeline(
     name='uri-artifact-pipeline',
     output_directory='gs://jxzheng-helloworld/kfp-uri-passing')
 def uri_artifact(text='Hello world!'):
-  component_1 = write_to_gcs(text=text)
-  component_2 = read_from_gcs(
-      input_gcs_path=component_1.outputs['output_gcs_path'])
+  task_1 = write_to_gcs(text=text)
+  task_2 = read_from_gcs(
+      input_gcs_path=task_1.outputs['output_gcs_path'])
+
+  # Test use URI within ParFor loop
+  loop_args = [1, 2, 3, 4]
+  with dsl.ParallelFor(loop_args) as loop_arg:
+    loop_task_2 = read_from_gcs(
+        input_gcs_path=task_1.outputs['output_gcs_path'])
+
+  # Test use URI within condition
+  flip = flip_coin_op()
+  with dsl.Condition(flip.output == 'heads'):
+    condition_task_2 = read_from_gcs(
+        input_gcs_path=task_1.outputs['output_gcs_path'])
 
 
 if __name__ == '__main__':
