@@ -17,6 +17,21 @@ from kfp import components
 from kfp import dsl
 
 
+# Patch to make the test result deterministic.
+class Coder:
+  def __init__(self, ):
+    self._code_id = 0
+
+  def get_code(self, ):
+    self._code_id += 1
+    return '{code:0{num_chars:}d}'.format(
+        code=self._code_id,
+        num_chars=dsl._for_loop.LoopArguments.NUM_CODE_CHARS)
+
+
+dsl.ParallelFor._get_unique_id_code = Coder().get_code
+
+
 write_to_gcs = components.load_component_from_text("""
 name: Write to GCS
 inputs:
@@ -88,5 +103,3 @@ def uri_artifact(text='Hello world!'):
 
 if __name__ == '__main__':
   compiler.Compiler().compile(uri_artifact, __file__ + '.tar.gz')
-
-
