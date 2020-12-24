@@ -404,7 +404,7 @@ class Client(object):
     Args:
       page_token: Token for starting of the page.
       page_size: Size of the page.
-      sort_by: Can be '[field_name]', '[field_name] des'. For example, 'name desc'.
+      sort_by: Can be '[field_name]', '[field_name] desc'. For example, 'name desc'.
       namespace: Kubernetes namespace where the experiment was created.
         For single user deployment, leave it as None;
         For multi user, input a namespace where the user is authorized.
@@ -958,7 +958,7 @@ class Client(object):
       pipeline_id: Id of the pipeline to list versions
       page_token: Token for starting of the page.
       page_size: Size of the page.
-      sort_by: One of 'field_name', 'field_name des'. For example, 'name des'.
+      sort_by: One of 'field_name', 'field_name desc'. For example, 'name desc'.
 
     Returns:
       A response object including a list of versions and next page token.
