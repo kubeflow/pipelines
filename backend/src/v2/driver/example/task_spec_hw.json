@@ -1,0 +1,4 @@
+{
+  "taskInfo": { "name": "hello-world-task" },
+  "inputs": { "parameters": { "text": { "componentInputParameter": "text" } } }
+}

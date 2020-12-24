@@ -1,0 +1,24 @@
+name: Hello world
+inputs:
+- {name: text, type: String}
+implementation:
+  container:
+    image: python:3.7
+    command:
+    - python3
+    - -u
+    - -c
+    - |
+      def hello_world(text):
+          print(text)
+          return text
+
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Hello world', description='')
+      _parser.add_argument("--text", dest="text", type=str, required=True, default=argparse.SUPPRESS)
+      _parsed_args = vars(_parser.parse_args())
+
+      _outputs = hello_world(**_parsed_args)
+    args:
+    - --text
+    - {inputValue: text}
