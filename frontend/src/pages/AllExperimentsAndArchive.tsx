@@ -15,8 +15,8 @@
  */
 
 import * as React from 'react';
-import AllRunsList from './AllRunsList';
 import ExperimentList from './ExperimentList';
+import ArchivedExperiments from './ArchivedExperiments';
 import MD2Tabs from '../atoms/MD2Tabs';
 import { Page, PageProps } from './Page';
 import { RoutePage } from '../components/Router';
@@ -24,20 +24,23 @@ import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 
-export enum ExperimentsAndRunsTab {
+export enum AllExperimentsAndArchiveTab {
   EXPERIMENTS = 0,
-  RUNS = 1,
+  ARCHIVE = 1,
 }
 
-export interface ExperimentAndRunsProps extends PageProps {
-  view: ExperimentsAndRunsTab;
+export interface AllExperimentsAndArchiveProps extends PageProps {
+  view: AllExperimentsAndArchiveTab;
 }
 
-interface ExperimentAndRunsState {
-  selectedTab: ExperimentsAndRunsTab;
+interface AllExperimentsAndArchiveState {
+  selectedTab: AllExperimentsAndArchiveTab;
 }
 
-class ExperimentsAndRuns extends Page<ExperimentAndRunsProps, ExperimentAndRunsState> {
+class AllExperimentsAndArchive extends Page<
+  AllExperimentsAndArchiveProps,
+  AllExperimentsAndArchiveState
+> {
   public getInitialToolbarState(): ToolbarProps {
     return { actions: {}, breadcrumbs: [], pageTitle: '' };
   }
@@ -46,13 +49,13 @@ class ExperimentsAndRuns extends Page<ExperimentAndRunsProps, ExperimentAndRunsS
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
         <MD2Tabs
-          tabs={['All experiments', 'All runs']}
+          tabs={['Active', 'Archived']}
           selectedTab={this.props.view}
           onSwitch={this._tabSwitched.bind(this)}
         />
         {this.props.view === 0 && <ExperimentList {...this.props} />}
 
-        {this.props.view === 1 && <AllRunsList {...this.props} />}
+        {this.props.view === 1 && <ArchivedExperiments {...this.props} />}
       </div>
     );
   }
@@ -61,11 +64,13 @@ class ExperimentsAndRuns extends Page<ExperimentAndRunsProps, ExperimentAndRunsS
     return;
   }
 
-  private _tabSwitched(newTab: ExperimentsAndRunsTab): void {
+  private _tabSwitched(newTab: AllExperimentsAndArchiveTab): void {
     this.props.history.push(
-      newTab === ExperimentsAndRunsTab.EXPERIMENTS ? RoutePage.EXPERIMENTS : RoutePage.RUNS,
+      newTab === AllExperimentsAndArchiveTab.EXPERIMENTS
+        ? RoutePage.EXPERIMENTS
+        : RoutePage.ARCHIVED_EXPERIMENTS,
     );
   }
 }
 
-export default ExperimentsAndRuns;
+export default AllExperimentsAndArchive;

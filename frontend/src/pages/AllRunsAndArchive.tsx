@@ -15,32 +15,29 @@
  */
 
 import * as React from 'react';
-import ArchivedRuns from './ArchivedRuns';
-import ArchivedExperiments from './ArchivedExperiments';
+import AllRunsList from './AllRunsList';
 import MD2Tabs from '../atoms/MD2Tabs';
 import { Page, PageProps } from './Page';
 import { RoutePage } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
+import ArchivedRuns from './ArchivedRuns';
 
-export enum ArchivedExperimentsAndRunsTab {
+export enum AllRunsAndArchiveTab {
   RUNS = 0,
-  EXPERIMENTS = 1,
+  ARCHIVE = 1,
 }
 
-export interface ArchivedExperimentAndRunsProps extends PageProps {
-  view: ArchivedExperimentsAndRunsTab;
+export interface AllRunsAndArchiveProps extends PageProps {
+  view: AllRunsAndArchiveTab;
 }
 
-interface ArchivedExperimentAndRunsState {
-  selectedTab: ArchivedExperimentsAndRunsTab;
+interface AllRunsAndArchiveState {
+  selectedTab: AllRunsAndArchiveTab;
 }
 
-class ArchivedExperimentsAndRuns extends Page<
-  ArchivedExperimentAndRunsProps,
-  ArchivedExperimentAndRunsState
-> {
+class AllRunsAndArchive extends Page<AllRunsAndArchiveProps, AllRunsAndArchiveState> {
   public getInitialToolbarState(): ToolbarProps {
     return { actions: {}, breadcrumbs: [], pageTitle: '' };
   }
@@ -49,15 +46,13 @@ class ArchivedExperimentsAndRuns extends Page<
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
         <MD2Tabs
-          tabs={['Runs', 'Experiments']}
+          tabs={['Active', 'Archived']}
           selectedTab={this.props.view}
           onSwitch={this._tabSwitched.bind(this)}
         />
-        {this.props.view === ArchivedExperimentsAndRunsTab.RUNS && <ArchivedRuns {...this.props} />}
+        {this.props.view === 0 && <AllRunsList {...this.props} />}
 
-        {this.props.view === ArchivedExperimentsAndRunsTab.EXPERIMENTS && (
-          <ArchivedExperiments {...this.props} />
-        )}
+        {this.props.view === 1 && <ArchivedRuns {...this.props} />}
       </div>
     );
   }
@@ -66,13 +61,11 @@ class ArchivedExperimentsAndRuns extends Page<
     return;
   }
 
-  private _tabSwitched(newTab: ArchivedExperimentsAndRunsTab): void {
+  private _tabSwitched(newTab: AllRunsAndArchiveTab): void {
     this.props.history.push(
-      newTab === ArchivedExperimentsAndRunsTab.EXPERIMENTS
-        ? RoutePage.ARCHIVED_EXPERIMENTS
-        : RoutePage.ARCHIVED_RUNS,
+      newTab === AllRunsAndArchiveTab.RUNS ? RoutePage.RUNS : RoutePage.ARCHIVED_RUNS,
     );
   }
 }
 
-export default ArchivedExperimentsAndRuns;
+export default AllRunsAndArchive;

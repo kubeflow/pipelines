@@ -43,7 +43,7 @@ exports[`ArchivedRuns renders archived runs 1`] = `
           },
         },
         "breadcrumbs": Array [],
-        "pageTitle": "Archive",
+        "pageTitle": "Runs",
       }
     }
     updateBanner={[MockFunction]}

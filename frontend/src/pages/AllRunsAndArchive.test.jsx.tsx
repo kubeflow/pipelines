@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Google LLC
+ * Copyright 2018 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,13 +15,13 @@
  */
 
 import * as React from 'react';
-import ArchivedExperimentsAndRuns, {
-  ArchivedExperimentAndRunsProps,
-  ArchivedExperimentsAndRunsTab,
-} from './ArchivedExperimentsAndRuns';
+import AllRunsAndArchive, {
+  AllRunsAndArchiveProps,
+  AllRunsAndArchiveTab,
+} from './AllRunsAndArchive';
 import { shallow } from 'enzyme';
 
-function generateProps(): ArchivedExperimentAndRunsProps {
+function generateProps(): AllRunsAndArchiveProps {
   return {
     history: {} as any,
     location: '' as any,
@@ -31,31 +31,31 @@ function generateProps(): ArchivedExperimentAndRunsProps {
     updateDialog: jest.fn(),
     updateSnackbar: jest.fn(),
     updateToolbar: () => null,
-    view: ArchivedExperimentsAndRunsTab.RUNS,
+    view: AllRunsAndArchiveTab.RUNS,
   };
 }
 
-describe('ArchivedExperimentsAndRuns', () => {
-  it('renders archived runs page', () => {
-    expect(shallow(<ArchivedExperimentsAndRuns {...(generateProps() as any)} />)).toMatchSnapshot();
+describe('RunsAndArchive', () => {
+  it('renders runs page', () => {
+    expect(shallow(<AllRunsAndArchive {...(generateProps() as any)} />)).toMatchSnapshot();
   });
 
-  it('renders archived experiments page', () => {
+  it('renders archive page', () => {
     const props = generateProps();
-    props.view = ArchivedExperimentsAndRunsTab.EXPERIMENTS;
-    expect(shallow(<ArchivedExperimentsAndRuns {...(props as any)} />)).toMatchSnapshot();
+    props.view = AllRunsAndArchiveTab.ARCHIVE;
+    expect(shallow(<AllRunsAndArchive {...(props as any)} />)).toMatchSnapshot();
   });
 
   it('switches to clicked page by pushing to history', () => {
     const spy = jest.fn();
     const props = generateProps();
     props.history.push = spy;
-    const tree = shallow(<ArchivedExperimentsAndRuns {...(props as any)} />);
+    const tree = shallow(<AllRunsAndArchive {...(props as any)} />);
 
-    tree.find('MD2Tabs').simulate('switch', ArchivedExperimentsAndRunsTab.RUNS);
+    tree.find('MD2Tabs').simulate('switch', 1);
     expect(spy).toHaveBeenCalledWith('/archive/runs');
 
-    tree.find('MD2Tabs').simulate('switch', ArchivedExperimentsAndRunsTab.EXPERIMENTS);
-    expect(spy).toHaveBeenCalledWith('/archive/experiments');
+    tree.find('MD2Tabs').simulate('switch', 0);
+    expect(spy).toHaveBeenCalledWith('/runs');
   });
 });
