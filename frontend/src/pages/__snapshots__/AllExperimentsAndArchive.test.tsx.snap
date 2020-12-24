@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`ArchivedExperimentsAndRuns renders archived experiments page 1`] = `
+exports[`ExperimentsAndArchive renders archive page 1`] = `
 <div
   className="page"
 >
@@ -9,8 +9,8 @@ exports[`ArchivedExperimentsAndRuns renders archived experiments page 1`] = `
     selectedTab={1}
     tabs={
       Array [
-        "Runs",
-        "Experiments",
+        "Active",
+        "Archived",
       ]
     }
   />
@@ -28,7 +28,7 @@ exports[`ArchivedExperimentsAndRuns renders archived experiments page 1`] = `
 </div>
 `;
 
-exports[`ArchivedExperimentsAndRuns renders archived runs page 1`] = `
+exports[`ExperimentsAndArchive renders experiments page 1`] = `
 <div
   className="page"
 >
@@ -37,12 +37,12 @@ exports[`ArchivedExperimentsAndRuns renders archived runs page 1`] = `
     selectedTab={0}
     tabs={
       Array [
-        "Runs",
-        "Experiments",
+        "Active",
+        "Archived",
       ]
     }
   />
-  <EnhancedArchivedRuns
+  <EnhancedExperimentList
     history={Object {}}
     location=""
     match=""

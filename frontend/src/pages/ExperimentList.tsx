@@ -73,7 +73,6 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
       actions: buttons
-        .newRun()
         .newExperiment()
         .compareRuns(() => this.state.selectedIds)
         .cloneRun(() => this.state.selectedIds, false)

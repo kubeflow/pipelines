@@ -15,13 +15,13 @@
  */
 
 import * as React from 'react';
-import ExperimentsAndRuns, {
-  ExperimentAndRunsProps,
-  ExperimentsAndRunsTab,
-} from './ExperimentsAndRuns';
+import AllExperimentsAndArchive, {
+  AllExperimentsAndArchiveProps,
+  AllExperimentsAndArchiveTab,
+} from './AllExperimentsAndArchive';
 import { shallow } from 'enzyme';
 
-function generateProps(): ExperimentAndRunsProps {
+function generateProps(): AllExperimentsAndArchiveProps {
   return {
     history: {} as any,
     location: '' as any,
@@ -31,29 +31,29 @@ function generateProps(): ExperimentAndRunsProps {
     updateDialog: jest.fn(),
     updateSnackbar: jest.fn(),
     updateToolbar: () => null,
-    view: ExperimentsAndRunsTab.EXPERIMENTS,
+    view: AllExperimentsAndArchiveTab.EXPERIMENTS,
   };
 }
 
-describe('ExperimentsAndRuns', () => {
+describe('ExperimentsAndArchive', () => {
   it('renders experiments page', () => {
-    expect(shallow(<ExperimentsAndRuns {...(generateProps() as any)} />)).toMatchSnapshot();
+    expect(shallow(<AllExperimentsAndArchive {...(generateProps() as any)} />)).toMatchSnapshot();
   });
 
-  it('renders runs page', () => {
+  it('renders archive page', () => {
     const props = generateProps();
-    props.view = ExperimentsAndRunsTab.RUNS;
-    expect(shallow(<ExperimentsAndRuns {...(props as any)} />)).toMatchSnapshot();
+    props.view = AllExperimentsAndArchiveTab.ARCHIVE;
+    expect(shallow(<AllExperimentsAndArchive {...(props as any)} />)).toMatchSnapshot();
   });
 
   it('switches to clicked page by pushing to history', () => {
     const spy = jest.fn();
     const props = generateProps();
     props.history.push = spy;
-    const tree = shallow(<ExperimentsAndRuns {...(props as any)} />);
+    const tree = shallow(<AllExperimentsAndArchive {...(props as any)} />);
 
     tree.find('MD2Tabs').simulate('switch', 1);
-    expect(spy).toHaveBeenCalledWith('/runs');
+    expect(spy).toHaveBeenCalledWith('/archive/experiments');
 
     tree.find('MD2Tabs').simulate('switch', 0);
     expect(spy).toHaveBeenCalledWith('/experiments');
