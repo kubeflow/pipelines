@@ -49,8 +49,6 @@ inputs:
       for details.
     default: ''
     type: Dict
-  - name: table
-    type: String
 outputs:
   - name: MLPipeline UI metadata
     type: UI metadata
