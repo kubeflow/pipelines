@@ -500,6 +500,7 @@ class Compiler(object):
           else:
             param_name = '%s-%s' % (
               sanitize_k8s_name(pipeline_param.op_name), pipeline_param.name)
+            # [TODO] create ENUM or string type to represent all well-known group types in the DSL. 
             if group.type == 'subgraph':
               withparam_value = '{{inputs.parameters.%s}}' % (param_name)
             else:

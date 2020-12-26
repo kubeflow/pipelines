@@ -14,9 +14,11 @@
 
 import kfp.dsl as dsl
 import kfp
+import time
 
 @kfp.components.create_component_from_func
 def print_op(s: str):
+    time.sleep(3)
     print(s)
 
 @dsl.pipeline(name='my-pipeline')
