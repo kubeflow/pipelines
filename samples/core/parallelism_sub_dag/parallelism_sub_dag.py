@@ -14,10 +14,10 @@
 
 import kfp.dsl as dsl
 import kfp
-import time
 
 @kfp.components.create_component_from_func
 def print_op(s: str):
+    import time
     time.sleep(3)
     print(s)
 
