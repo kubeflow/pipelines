@@ -17,7 +17,7 @@
 export TMP_OUTPUT=/tmp
 
 # Change directory\
-cd app/pipelines
+cd /app/pipelines
 # Delete currently generated code.
 rm -r -f backend/api/go_http_client/*
 rm -f -f backend/api/go_client/*
@@ -103,8 +103,6 @@ sed -i -- 's/MaxConcurrency string `json:"max_concurrency,omitempty"`/MaxConcurr
 sed -i -- 's/IntervalSecond string `json:"interval_second,omitempty"`/IntervalSecond int64 `json:"interval_second,omitempty,string"`/g' backend/api/go_http_client/job_model/api_periodic_schedule.go
 # Execute the //go:generate directives in the generated code.
 cd backend/api && go generate ./...
-# Add license info to generated files.
 cd ../..
-git clone https://github.com/mbrukman/autogen.git /tmp/autogen
-find backend/api/ -name "*.go" -exec /tmp/autogen/autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
-
+# Add license info to generated files.
+find backend/api/ -name "*.go" -exec /autogen/autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;

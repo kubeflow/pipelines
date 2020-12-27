@@ -29,3 +29,5 @@ RUN cd golang/protobuf && GO111MODULE=on go mod vendor
 RUN GOBIN=/go/bin go install github.com/golang/protobuf/protoc-gen-go
 # Need protobuffers/protobuf source code for -I in proto command.
 RUN mkdir protocolbuffers && cd protocolbuffers && git clone --depth 1 --branch v3.11.3 https://github.com/protocolbuffers/protobuf.git
+# Need autogen to add license info to generated files.
+RUN mkdir /autogen && git clone https://github.com/mbrukman/autogen.git /autogen
