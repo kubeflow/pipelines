@@ -105,6 +105,16 @@ class OpsGroup(object):
     for sub_group in self.groups or []:
       sub_group.remove_op_recursive(op)
 
+
+class SubGraph(OpsGroup):
+  TYPE_NAME = 'subgraph'
+
+  def __init__(self, parallelism: int):
+    if parallelism < 1:
+        raise ValueError('SubGraph parallism set to < 1, allowed values are > 0')
+    super(SubGraph, self).__init__(self.TYPE_NAME, parallelism=parallelism)
+
+
 class ExitHandler(OpsGroup):
   """Represents an exit handler that is invoked upon exiting a group of ops.
 

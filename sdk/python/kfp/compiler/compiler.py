@@ -324,6 +324,21 @@ class Compiler(object):
 
     _get_inputs_outputs_recursive_opsgroup(root_group)
 
+    # Generate the input for SubGraph along with parallelfor
+    for sub_graph in opsgroup_groups:
+      if sub_graph in op_name_to_for_loop_op:
+        # The opsgroup list is sorted with the farthest group as the first and the opsgroup
+        # itself as the last. To get the latest opsgroup which is not the opsgroup itself -2 is used. 
+        parent = opsgroup_groups[sub_graph][-2] 
+        if parent and parent.startswith('subgraph'):
+          # propagate only op's pipeline param from subgraph to parallelfor
+          loop_op = op_name_to_for_loop_op[sub_graph]
+          pipeline_param = loop_op.loop_args.items_or_pipeline_param
+          if loop_op.items_is_pipeline_param and pipeline_param.op_name:
+            param_name = '%s-%s' % (
+              sanitize_k8s_name(pipeline_param.op_name), pipeline_param.name)
+            inputs[parent].add((param_name, pipeline_param.op_name))
+
     return inputs, outputs
 
   def _get_dependencies(self, pipeline, root_group, op_groups, opsgroups_groups, opsgroups, condition_params):
@@ -438,7 +453,8 @@ class Compiler(object):
 
     # Generate tasks section.
     tasks = []
-    for sub_group in group.groups + group.ops:
+    sub_groups = group.groups + group.ops
+    for sub_group in sub_groups:
       is_recursive_subgroup = (isinstance(sub_group, OpsGroup) and sub_group.recursive_ref)
       # Special handling for recursive subgroup: use the existing opsgroup name
       if is_recursive_subgroup:
@@ -484,7 +500,11 @@ class Compiler(object):
           else:
             param_name = '%s-%s' % (
               sanitize_k8s_name(pipeline_param.op_name), pipeline_param.name)
-            withparam_value = '{{tasks.%s.outputs.parameters.%s}}' % (
+            # [TODO] create ENUM or string type to represent all well-known group types in the DSL. 
+            if group.type == 'subgraph':
+              withparam_value = '{{inputs.parameters.%s}}' % (param_name)
+            else:
+              withparam_value = '{{tasks.%s.outputs.parameters.%s}}' % (
                 sanitize_k8s_name(pipeline_param.op_name),
                 param_name)
 
@@ -492,7 +512,7 @@ class Compiler(object):
             if 'dependencies' not in task or task['dependencies'] is None:
               task['dependencies'] = []
             if sanitize_k8s_name(
-                pipeline_param.op_name) not in task['dependencies']:
+                pipeline_param.op_name) not in task['dependencies'] and group.type != 'subgraph':
               task['dependencies'].append(
                   sanitize_k8s_name(pipeline_param.op_name))
 
