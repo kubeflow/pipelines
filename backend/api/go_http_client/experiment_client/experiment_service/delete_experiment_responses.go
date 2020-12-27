@@ -38,14 +38,12 @@ type DeleteExperimentReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *DeleteExperimentReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewDeleteExperimentOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewDeleteExperimentDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -73,6 +71,10 @@ type DeleteExperimentOK struct {
 
 func (o *DeleteExperimentOK) Error() string {
 	return fmt.Sprintf("[DELETE /apis/v1beta1/experiments/{id}][%d] deleteExperimentOK  %+v", 200, o.Payload)
+}
+
+func (o *DeleteExperimentOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *DeleteExperimentOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -109,6 +111,10 @@ func (o *DeleteExperimentDefault) Code() int {
 
 func (o *DeleteExperimentDefault) Error() string {
 	return fmt.Sprintf("[DELETE /apis/v1beta1/experiments/{id}][%d] DeleteExperiment default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *DeleteExperimentDefault) GetPayload() *experiment_model.APIStatus {
+	return o.Payload
 }
 
 func (o *DeleteExperimentDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

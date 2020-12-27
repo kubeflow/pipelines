@@ -38,14 +38,12 @@ type RetryRunReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *RetryRunReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewRetryRunOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewRetryRunDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -73,6 +71,10 @@ type RetryRunOK struct {
 
 func (o *RetryRunOK) Error() string {
 	return fmt.Sprintf("[POST /apis/v1beta1/runs/{run_id}/retry][%d] retryRunOK  %+v", 200, o.Payload)
+}
+
+func (o *RetryRunOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *RetryRunOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -109,6 +111,10 @@ func (o *RetryRunDefault) Code() int {
 
 func (o *RetryRunDefault) Error() string {
 	return fmt.Sprintf("[POST /apis/v1beta1/runs/{run_id}/retry][%d] RetryRun default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *RetryRunDefault) GetPayload() *run_model.APIStatus {
+	return o.Payload
 }
 
 func (o *RetryRunDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

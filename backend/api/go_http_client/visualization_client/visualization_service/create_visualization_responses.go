@@ -38,14 +38,12 @@ type CreateVisualizationReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *CreateVisualizationReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewCreateVisualizationOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewCreateVisualizationDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -73,6 +71,10 @@ type CreateVisualizationOK struct {
 
 func (o *CreateVisualizationOK) Error() string {
 	return fmt.Sprintf("[POST /apis/v1beta1/visualizations/{namespace}][%d] createVisualizationOK  %+v", 200, o.Payload)
+}
+
+func (o *CreateVisualizationOK) GetPayload() *visualization_model.APIVisualization {
+	return o.Payload
 }
 
 func (o *CreateVisualizationOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -111,6 +113,10 @@ func (o *CreateVisualizationDefault) Code() int {
 
 func (o *CreateVisualizationDefault) Error() string {
 	return fmt.Sprintf("[POST /apis/v1beta1/visualizations/{namespace}][%d] CreateVisualization default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *CreateVisualizationDefault) GetPayload() *visualization_model.APIStatus {
+	return o.Payload
 }
 
 func (o *CreateVisualizationDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -38,14 +38,12 @@ type DeletePipelineReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *DeletePipelineReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewDeletePipelineOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewDeletePipelineDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -73,6 +71,10 @@ type DeletePipelineOK struct {
 
 func (o *DeletePipelineOK) Error() string {
 	return fmt.Sprintf("[DELETE /apis/v1beta1/pipelines/{id}][%d] deletePipelineOK  %+v", 200, o.Payload)
+}
+
+func (o *DeletePipelineOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *DeletePipelineOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -109,6 +111,10 @@ func (o *DeletePipelineDefault) Code() int {
 
 func (o *DeletePipelineDefault) Error() string {
 	return fmt.Sprintf("[DELETE /apis/v1beta1/pipelines/{id}][%d] DeletePipeline default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *DeletePipelineDefault) GetPayload() *pipeline_model.APIStatus {
+	return o.Payload
 }
 
 func (o *DeletePipelineDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

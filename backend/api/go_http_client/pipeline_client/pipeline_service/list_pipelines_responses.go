@@ -38,14 +38,12 @@ type ListPipelinesReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ListPipelinesReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewListPipelinesOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewListPipelinesDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -73,6 +71,10 @@ type ListPipelinesOK struct {
 
 func (o *ListPipelinesOK) Error() string {
 	return fmt.Sprintf("[GET /apis/v1beta1/pipelines][%d] listPipelinesOK  %+v", 200, o.Payload)
+}
+
+func (o *ListPipelinesOK) GetPayload() *pipeline_model.APIListPipelinesResponse {
+	return o.Payload
 }
 
 func (o *ListPipelinesOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -111,6 +113,10 @@ func (o *ListPipelinesDefault) Code() int {
 
 func (o *ListPipelinesDefault) Error() string {
 	return fmt.Sprintf("[GET /apis/v1beta1/pipelines][%d] ListPipelines default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *ListPipelinesDefault) GetPayload() *pipeline_model.APIStatus {
+	return o.Payload
 }
 
 func (o *ListPipelinesDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

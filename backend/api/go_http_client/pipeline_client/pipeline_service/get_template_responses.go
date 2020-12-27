@@ -38,14 +38,12 @@ type GetTemplateReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *GetTemplateReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewGetTemplateOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewGetTemplateDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -73,6 +71,10 @@ type GetTemplateOK struct {
 
 func (o *GetTemplateOK) Error() string {
 	return fmt.Sprintf("[GET /apis/v1beta1/pipelines/{id}/templates][%d] getTemplateOK  %+v", 200, o.Payload)
+}
+
+func (o *GetTemplateOK) GetPayload() *pipeline_model.APIGetTemplateResponse {
+	return o.Payload
 }
 
 func (o *GetTemplateOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -111,6 +113,10 @@ func (o *GetTemplateDefault) Code() int {
 
 func (o *GetTemplateDefault) Error() string {
 	return fmt.Sprintf("[GET /apis/v1beta1/pipelines/{id}/templates][%d] GetTemplate default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *GetTemplateDefault) GetPayload() *pipeline_model.APIStatus {
+	return o.Payload
 }
 
 func (o *GetTemplateDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

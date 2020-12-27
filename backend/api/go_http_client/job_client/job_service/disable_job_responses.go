@@ -38,14 +38,12 @@ type DisableJobReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *DisableJobReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewDisableJobOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewDisableJobDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -73,6 +71,10 @@ type DisableJobOK struct {
 
 func (o *DisableJobOK) Error() string {
 	return fmt.Sprintf("[POST /apis/v1beta1/jobs/{id}/disable][%d] disableJobOK  %+v", 200, o.Payload)
+}
+
+func (o *DisableJobOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *DisableJobOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -109,6 +111,10 @@ func (o *DisableJobDefault) Code() int {
 
 func (o *DisableJobDefault) Error() string {
 	return fmt.Sprintf("[POST /apis/v1beta1/jobs/{id}/disable][%d] DisableJob default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *DisableJobDefault) GetPayload() *job_model.APIStatus {
+	return o.Payload
 }
 
 func (o *DisableJobDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -38,14 +38,12 @@ type UpdatePipelineDefaultVersionReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *UpdatePipelineDefaultVersionReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewUpdatePipelineDefaultVersionOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewUpdatePipelineDefaultVersionDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -73,6 +71,10 @@ type UpdatePipelineDefaultVersionOK struct {
 
 func (o *UpdatePipelineDefaultVersionOK) Error() string {
 	return fmt.Sprintf("[POST /apis/v1beta1/pipelines/{pipeline_id}/default_version/{version_id}][%d] updatePipelineDefaultVersionOK  %+v", 200, o.Payload)
+}
+
+func (o *UpdatePipelineDefaultVersionOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *UpdatePipelineDefaultVersionOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -109,6 +111,10 @@ func (o *UpdatePipelineDefaultVersionDefault) Code() int {
 
 func (o *UpdatePipelineDefaultVersionDefault) Error() string {
 	return fmt.Sprintf("[POST /apis/v1beta1/pipelines/{pipeline_id}/default_version/{version_id}][%d] UpdatePipelineDefaultVersion default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *UpdatePipelineDefaultVersionDefault) GetPayload() *pipeline_model.APIStatus {
+	return o.Payload
 }
 
 func (o *UpdatePipelineDefaultVersionDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

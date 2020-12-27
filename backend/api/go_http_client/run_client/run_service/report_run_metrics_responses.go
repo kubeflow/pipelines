@@ -38,14 +38,12 @@ type ReportRunMetricsReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ReportRunMetricsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewReportRunMetricsOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewReportRunMetricsDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -73,6 +71,10 @@ type ReportRunMetricsOK struct {
 
 func (o *ReportRunMetricsOK) Error() string {
 	return fmt.Sprintf("[POST /apis/v1beta1/runs/{run_id}:reportMetrics][%d] reportRunMetricsOK  %+v", 200, o.Payload)
+}
+
+func (o *ReportRunMetricsOK) GetPayload() *run_model.APIReportRunMetricsResponse {
+	return o.Payload
 }
 
 func (o *ReportRunMetricsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -111,6 +113,10 @@ func (o *ReportRunMetricsDefault) Code() int {
 
 func (o *ReportRunMetricsDefault) Error() string {
 	return fmt.Sprintf("[POST /apis/v1beta1/runs/{run_id}:reportMetrics][%d] ReportRunMetrics default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *ReportRunMetricsDefault) GetPayload() *run_model.APIStatus {
+	return o.Payload
 }
 
 func (o *ReportRunMetricsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

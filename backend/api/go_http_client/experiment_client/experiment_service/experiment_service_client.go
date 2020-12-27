@@ -63,8 +63,13 @@ func (a *Client) ArchiveExperiment(params *ArchiveExperimentParams, authInfo run
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ArchiveExperimentOK), nil
-
+	success, ok := result.(*ArchiveExperimentOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ArchiveExperimentDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -92,8 +97,13 @@ func (a *Client) CreateExperiment(params *CreateExperimentParams, authInfo runti
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CreateExperimentOK), nil
-
+	success, ok := result.(*CreateExperimentOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*CreateExperimentDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -121,8 +131,13 @@ func (a *Client) DeleteExperiment(params *DeleteExperimentParams, authInfo runti
 	if err != nil {
 		return nil, err
 	}
-	return result.(*DeleteExperimentOK), nil
-
+	success, ok := result.(*DeleteExperimentOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*DeleteExperimentDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -150,8 +165,13 @@ func (a *Client) GetExperiment(params *GetExperimentParams, authInfo runtime.Cli
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GetExperimentOK), nil
-
+	success, ok := result.(*GetExperimentOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*GetExperimentDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -179,8 +199,13 @@ func (a *Client) ListExperiment(params *ListExperimentParams, authInfo runtime.C
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ListExperimentOK), nil
-
+	success, ok := result.(*ListExperimentOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ListExperimentDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -208,8 +233,13 @@ func (a *Client) UnarchiveExperiment(params *UnarchiveExperimentParams, authInfo
 	if err != nil {
 		return nil, err
 	}
-	return result.(*UnarchiveExperimentOK), nil
-
+	success, ok := result.(*UnarchiveExperimentOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*UnarchiveExperimentDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 // SetTransport changes the transport on the client

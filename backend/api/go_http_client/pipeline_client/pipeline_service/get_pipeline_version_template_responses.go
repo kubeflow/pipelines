@@ -38,14 +38,12 @@ type GetPipelineVersionTemplateReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *GetPipelineVersionTemplateReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewGetPipelineVersionTemplateOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewGetPipelineVersionTemplateDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -73,6 +71,10 @@ type GetPipelineVersionTemplateOK struct {
 
 func (o *GetPipelineVersionTemplateOK) Error() string {
 	return fmt.Sprintf("[GET /apis/v1beta1/pipeline_versions/{version_id}/templates][%d] getPipelineVersionTemplateOK  %+v", 200, o.Payload)
+}
+
+func (o *GetPipelineVersionTemplateOK) GetPayload() *pipeline_model.APIGetTemplateResponse {
+	return o.Payload
 }
 
 func (o *GetPipelineVersionTemplateOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -111,6 +113,10 @@ func (o *GetPipelineVersionTemplateDefault) Code() int {
 
 func (o *GetPipelineVersionTemplateDefault) Error() string {
 	return fmt.Sprintf("[GET /apis/v1beta1/pipeline_versions/{version_id}/templates][%d] GetPipelineVersionTemplate default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *GetPipelineVersionTemplateDefault) GetPayload() *pipeline_model.APIStatus {
+	return o.Payload
 }
 
 func (o *GetPipelineVersionTemplateDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

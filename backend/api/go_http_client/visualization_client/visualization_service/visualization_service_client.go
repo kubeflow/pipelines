@@ -63,8 +63,13 @@ func (a *Client) CreateVisualization(params *CreateVisualizationParams, authInfo
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CreateVisualizationOK), nil
-
+	success, ok := result.(*CreateVisualizationOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*CreateVisualizationDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 // SetTransport changes the transport on the client

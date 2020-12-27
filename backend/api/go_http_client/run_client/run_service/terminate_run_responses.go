@@ -38,14 +38,12 @@ type TerminateRunReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *TerminateRunReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewTerminateRunOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewTerminateRunDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -73,6 +71,10 @@ type TerminateRunOK struct {
 
 func (o *TerminateRunOK) Error() string {
 	return fmt.Sprintf("[POST /apis/v1beta1/runs/{run_id}/terminate][%d] terminateRunOK  %+v", 200, o.Payload)
+}
+
+func (o *TerminateRunOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *TerminateRunOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -109,6 +111,10 @@ func (o *TerminateRunDefault) Code() int {
 
 func (o *TerminateRunDefault) Error() string {
 	return fmt.Sprintf("[POST /apis/v1beta1/runs/{run_id}/terminate][%d] TerminateRun default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *TerminateRunDefault) GetPayload() *run_model.APIStatus {
+	return o.Payload
 }
 
 func (o *TerminateRunDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

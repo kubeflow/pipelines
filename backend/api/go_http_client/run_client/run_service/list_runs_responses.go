@@ -38,14 +38,12 @@ type ListRunsReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ListRunsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewListRunsOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewListRunsDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -73,6 +71,10 @@ type ListRunsOK struct {
 
 func (o *ListRunsOK) Error() string {
 	return fmt.Sprintf("[GET /apis/v1beta1/runs][%d] listRunsOK  %+v", 200, o.Payload)
+}
+
+func (o *ListRunsOK) GetPayload() *run_model.APIListRunsResponse {
+	return o.Payload
 }
 
 func (o *ListRunsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -111,6 +113,10 @@ func (o *ListRunsDefault) Code() int {
 
 func (o *ListRunsDefault) Error() string {
 	return fmt.Sprintf("[GET /apis/v1beta1/runs][%d] ListRuns default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *ListRunsDefault) GetPayload() *run_model.APIStatus {
+	return o.Payload
 }
 
 func (o *ListRunsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

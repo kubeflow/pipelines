@@ -38,14 +38,12 @@ type ListExperimentReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ListExperimentReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewListExperimentOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewListExperimentDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -73,6 +71,10 @@ type ListExperimentOK struct {
 
 func (o *ListExperimentOK) Error() string {
 	return fmt.Sprintf("[GET /apis/v1beta1/experiments][%d] listExperimentOK  %+v", 200, o.Payload)
+}
+
+func (o *ListExperimentOK) GetPayload() *experiment_model.APIListExperimentsResponse {
+	return o.Payload
 }
 
 func (o *ListExperimentOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -111,6 +113,10 @@ func (o *ListExperimentDefault) Code() int {
 
 func (o *ListExperimentDefault) Error() string {
 	return fmt.Sprintf("[GET /apis/v1beta1/experiments][%d] ListExperiment default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *ListExperimentDefault) GetPayload() *experiment_model.APIStatus {
+	return o.Payload
 }
 
 func (o *ListExperimentDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
