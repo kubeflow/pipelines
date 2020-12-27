@@ -24,14 +24,12 @@ type GetJobReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *GetJobReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewGetJobOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewGetJobDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type GetJobOK struct {
 
 func (o *GetJobOK) Error() string {
 	return fmt.Sprintf("[GET /apis/v1beta1/jobs/{id}][%d] getJobOK  %+v", 200, o.Payload)
+}
+
+func (o *GetJobOK) GetPayload() *job_model.APIJob {
+	return o.Payload
 }
 
 func (o *GetJobOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -97,6 +99,10 @@ func (o *GetJobDefault) Code() int {
 
 func (o *GetJobDefault) Error() string {
 	return fmt.Sprintf("[GET /apis/v1beta1/jobs/{id}][%d] GetJob default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *GetJobDefault) GetPayload() *job_model.APIStatus {
+	return o.Payload
 }
 
 func (o *GetJobDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

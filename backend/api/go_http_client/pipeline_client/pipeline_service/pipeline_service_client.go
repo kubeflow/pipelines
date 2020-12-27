@@ -49,8 +49,13 @@ func (a *Client) CreatePipeline(params *CreatePipelineParams, authInfo runtime.C
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CreatePipelineOK), nil
-
+	success, ok := result.(*CreatePipelineOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*CreatePipelineDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -78,8 +83,13 @@ func (a *Client) CreatePipelineVersion(params *CreatePipelineVersionParams, auth
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CreatePipelineVersionOK), nil
-
+	success, ok := result.(*CreatePipelineVersionOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*CreatePipelineVersionDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -107,8 +117,13 @@ func (a *Client) DeletePipeline(params *DeletePipelineParams, authInfo runtime.C
 	if err != nil {
 		return nil, err
 	}
-	return result.(*DeletePipelineOK), nil
-
+	success, ok := result.(*DeletePipelineOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*DeletePipelineDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -136,8 +151,13 @@ func (a *Client) DeletePipelineVersion(params *DeletePipelineVersionParams, auth
 	if err != nil {
 		return nil, err
 	}
-	return result.(*DeletePipelineVersionOK), nil
-
+	success, ok := result.(*DeletePipelineVersionOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*DeletePipelineVersionDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -165,8 +185,13 @@ func (a *Client) GetPipeline(params *GetPipelineParams, authInfo runtime.ClientA
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GetPipelineOK), nil
-
+	success, ok := result.(*GetPipelineOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*GetPipelineDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -194,8 +219,13 @@ func (a *Client) GetPipelineVersion(params *GetPipelineVersionParams, authInfo r
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GetPipelineVersionOK), nil
-
+	success, ok := result.(*GetPipelineVersionOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*GetPipelineVersionDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -223,8 +253,13 @@ func (a *Client) GetPipelineVersionTemplate(params *GetPipelineVersionTemplatePa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GetPipelineVersionTemplateOK), nil
-
+	success, ok := result.(*GetPipelineVersionTemplateOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*GetPipelineVersionTemplateDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -252,8 +287,13 @@ func (a *Client) GetTemplate(params *GetTemplateParams, authInfo runtime.ClientA
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GetTemplateOK), nil
-
+	success, ok := result.(*GetTemplateOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*GetTemplateDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -281,8 +321,13 @@ func (a *Client) ListPipelineVersions(params *ListPipelineVersionsParams, authIn
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ListPipelineVersionsOK), nil
-
+	success, ok := result.(*ListPipelineVersionsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ListPipelineVersionsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -310,8 +355,13 @@ func (a *Client) ListPipelines(params *ListPipelinesParams, authInfo runtime.Cli
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ListPipelinesOK), nil
-
+	success, ok := result.(*ListPipelinesOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*ListPipelinesDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
@@ -339,8 +389,13 @@ func (a *Client) UpdatePipelineDefaultVersion(params *UpdatePipelineDefaultVersi
 	if err != nil {
 		return nil, err
 	}
-	return result.(*UpdatePipelineDefaultVersionOK), nil
-
+	success, ok := result.(*UpdatePipelineDefaultVersionOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*UpdatePipelineDefaultVersionDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 // SetTransport changes the transport on the client

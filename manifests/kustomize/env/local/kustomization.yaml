@@ -1,0 +1,25 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+bases:
+  - ../platform-agnostic
+
+images:
+- name: gcr.io/ml-pipeline/api-server
+  newName: nikenano/api-server
+  newTag: "latest"
+- name: gcr.io/ml-pipeline/persistenceagent
+  newName: nikenano/persistenceagent-server
+  newTag: "latest"
+- name: gcr.io/ml-pipeline/scheduledworkflow
+  newName: nikenano/scheduledworkflow
+  newTag: "latest"
+- name: gcr.io/ml-pipeline/frontend
+  newName: nikenano/frontend-server
+  newTag: "latest"
+- name: gcr.io/ml-pipeline/viewer-crd-controller
+  newName: nikenano/viewerconroller-server
+  newTag: "latest"
+- name: gcr.io/ml-pipeline/visualization-server
+  newName: nikenano/visualization-server
+  newTag: "latest"

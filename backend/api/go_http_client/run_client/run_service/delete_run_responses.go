@@ -24,14 +24,12 @@ type DeleteRunReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *DeleteRunReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewDeleteRunOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewDeleteRunDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type DeleteRunOK struct {
 
 func (o *DeleteRunOK) Error() string {
 	return fmt.Sprintf("[DELETE /apis/v1beta1/runs/{id}][%d] deleteRunOK  %+v", 200, o.Payload)
+}
+
+func (o *DeleteRunOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *DeleteRunOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *DeleteRunDefault) Code() int {
 
 func (o *DeleteRunDefault) Error() string {
 	return fmt.Sprintf("[DELETE /apis/v1beta1/runs/{id}][%d] DeleteRun default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *DeleteRunDefault) GetPayload() *run_model.APIStatus {
+	return o.Payload
 }
 
 func (o *DeleteRunDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

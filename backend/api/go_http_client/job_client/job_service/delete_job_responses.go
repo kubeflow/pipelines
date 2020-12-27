@@ -24,14 +24,12 @@ type DeleteJobReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *DeleteJobReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewDeleteJobOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewDeleteJobDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type DeleteJobOK struct {
 
 func (o *DeleteJobOK) Error() string {
 	return fmt.Sprintf("[DELETE /apis/v1beta1/jobs/{id}][%d] deleteJobOK  %+v", 200, o.Payload)
+}
+
+func (o *DeleteJobOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *DeleteJobOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *DeleteJobDefault) Code() int {
 
 func (o *DeleteJobDefault) Error() string {
 	return fmt.Sprintf("[DELETE /apis/v1beta1/jobs/{id}][%d] DeleteJob default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *DeleteJobDefault) GetPayload() *job_model.APIStatus {
+	return o.Payload
 }
 
 func (o *DeleteJobDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

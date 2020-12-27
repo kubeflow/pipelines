@@ -24,14 +24,12 @@ type ArchiveRunReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *ArchiveRunReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewArchiveRunOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewArchiveRunDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -59,6 +57,10 @@ type ArchiveRunOK struct {
 
 func (o *ArchiveRunOK) Error() string {
 	return fmt.Sprintf("[POST /apis/v1beta1/runs/{id}:archive][%d] archiveRunOK  %+v", 200, o.Payload)
+}
+
+func (o *ArchiveRunOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *ArchiveRunOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -95,6 +97,10 @@ func (o *ArchiveRunDefault) Code() int {
 
 func (o *ArchiveRunDefault) Error() string {
 	return fmt.Sprintf("[POST /apis/v1beta1/runs/{id}:archive][%d] ArchiveRun default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *ArchiveRunDefault) GetPayload() *run_model.APIStatus {
+	return o.Payload
 }
 
 func (o *ArchiveRunDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
