@@ -2,7 +2,7 @@
 FROM golang:1.13.1-stretch as generator
 ENV KFP_VERSION 1.0.0
 ENV GRPC_GATEWAY_VERSION v1.9.0
-ENV GO_SWAGGER_VERSION v0.18.0
+ENV GO_SWAGGER_VERSION v0.21.0
 ENV GOLANG_PROTOBUF_VERSION v1.4.2
 ENV PROTOCOLBUFFERS_PROTOBUF_VERSION v3.11.3
 # protoc compiler version
@@ -12,22 +12,22 @@ ENV PROTOCCOMPILER /usr/bin/protoc
 ENV PROTOCINCLUDE /usr/include/google/protobuf
 # Need grpc-gateway source code for -I in protoc command.
 WORKDIR /go/src/github.com
-RUN mkdir grpc-ecosystem && cd grpc-ecosystem && git clone --depth 1 --branch v1.9.0 https://github.com/grpc-ecosystem/grpc-gateway.git
+RUN mkdir grpc-ecosystem && cd grpc-ecosystem && git clone --depth 1 --branch $GRPC_GATEWAY_VERSION https://github.com/grpc-ecosystem/grpc-gateway.git
 # Install protoc-gen-rpc-gateway && protoc-gen-swagger.
 RUN cd grpc-ecosystem/grpc-gateway && GO111MODULE=on go mod vendor
 RUN GOBIN=/go/bin go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
 RUN GOBIN=/go/bin go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
 # Need go-swagger source code for -I in protoc command.
-RUN mkdir go-swagger && cd go-swagger && git clone --depth 1 --branch v0.21.0 https://github.com/go-swagger/go-swagger.git
+RUN mkdir go-swagger && cd go-swagger && git clone --depth 1 --branch $GO_SWAGGER_VERSION https://github.com/go-swagger/go-swagger.git
 # Install swagger.
 RUN cd go-swagger/go-swagger && go mod vendor
 RUN GOBIN=/go/bin go install github.com/go-swagger/go-swagger/cmd/swagger
 # Need protobuf source code for -I in protoc command.
-RUN mkdir golang && cd golang && git clone --depth 1 --branch v1.4.2 https://github.com/golang/protobuf.git
+RUN mkdir golang && cd golang && git clone --depth 1 --branch $GOLANG_PROTOBUF_VERSION https://github.com/golang/protobuf.git
 # Install protoc-gen-go.
 RUN cd golang/protobuf && GO111MODULE=on go mod vendor
 RUN GOBIN=/go/bin go install github.com/golang/protobuf/protoc-gen-go
 # Need protobuffers/protobuf source code for -I in proto command.
-RUN mkdir protocolbuffers && cd protocolbuffers && git clone --depth 1 --branch v3.11.3 https://github.com/protocolbuffers/protobuf.git
+RUN mkdir protocolbuffers && cd protocolbuffers && git clone --depth 1 --branch $PROTOCOLBUFFERS_PROTOBUF_VERSION https://github.com/protocolbuffers/protobuf.git
 # Need autogen to add license info to generated files.
 RUN mkdir /autogen && git clone https://github.com/mbrukman/autogen.git /autogen
