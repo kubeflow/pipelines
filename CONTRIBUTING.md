@@ -26,10 +26,11 @@ The frontend part of the project uses [prettier](https://prettier.io/) for forma
 
 ### Golang
 * Put your tests in a different package: Moving your test code out of the package allows you to write tests as though you were a real user of the package. You cannot fiddle around with the internals,
-instead you focus on the exposed interface and are always thinking about any noise that you might be adding to your API.
+instead you focus on the exposed interface and are always thinking about any noise that you might be adding to your API. Usually the test code will be put under the same folder
+but with a package suffix of `_test`. https://golang.org/src/go/ast/example_test.go (example)
 * Internal tests go in a different file: If you do need to unit test some internals, create another file with `_internal_test.go`
 as the suffix.
-* Write table driven tests
+* Write table driven tests: https://github.com/golang/go/wiki/TableDrivenTests (example)
 
 ## Code reviews
 
