@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Union
+from typing import Callable, Optional, Union
 from kubernetes.client.models import V1PodDNSConfig
 from . import _container_op
 from . import _resource_op
@@ -29,8 +29,10 @@ import sys
 _pipeline_decorator_handler = None
 
 
-def pipeline(name: str = None, description: str = None,
-    output_directory: str = None):
+def pipeline(
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+    output_directory: Optional[str] = None):
   """Decorator of pipeline functions.
 
   Example

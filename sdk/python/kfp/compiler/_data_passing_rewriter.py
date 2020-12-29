@@ -388,12 +388,12 @@ def deconstruct_single_placeholder(s: str) -> List[str]:
 def _replace_output_dir_placeholder(command_line: str,
     output_directory: Optional[str] = None) -> str:
     """Replaces the output directory placeholder."""
-    if _components.PIPELINE_ROOT_PLACEHOLDER in command_line:
+    if _components.OUTPUT_DIR_PLACEHOLDER in command_line:
         if not output_directory:
             raise ValueError('output_directory of a pipeline must be specified '
                              'when URI placeholder is used.')
         return command_line.replace(
-            _components.PIPELINE_ROOT_PLACEHOLDER, output_directory)
+            _components.OUTPUT_DIR_PLACEHOLDER, output_directory)
     return command_line
 
 
@@ -406,8 +406,8 @@ def _refactor_outputs_if_uri_placeholder(
     Also, collects the mapping from the output names to output file name.
 
     Args:
-        container_template: Container template structure.
-        output_to_filename: Mapping from the artifact name, to the actual file
+        container_template: The container template structure.
+        output_to_filename: The mapping from the artifact name to the actual file
             name of the content. This will be used later when reconciling the
             URIs on the consumer side.
     """
@@ -422,7 +422,7 @@ def _refactor_outputs_if_uri_placeholder(
     for artifact_output in container_template['outputs']['artifacts']:
         # Check if this is an output associated with URI placeholder based
         # on its path.
-        if _components.PIPELINE_ROOT_PLACEHOLDER in artifact_output['path']:
+        if _components.OUTPUT_DIR_PLACEHOLDER in artifact_output['path']:
             # If so, we'll add a parameter output to output the pod name
             parameter_outputs.append(
                 {
@@ -453,9 +453,9 @@ def _refactor_inputs_if_uri_placeholder(
     by input URI placeholder will be reconciled with its corresponding producer.
 
     Args:
-        container_template: Container template structure.
+        container_template: The container template structure.
         output_to_filename: The mapping from output name to the file name.
-        refactored_inputs: A mapping used to collect the input artifact being
+        refactored_inputs: The mapping used to collect the input artifact being
             refactored from (template name, previous name) to its new name.
     """
 
@@ -469,7 +469,7 @@ def _refactor_inputs_if_uri_placeholder(
     for artifact_input in container_template['inputs']['artifacts']:
         # Check if this is an input artifact associated with URI placeholder,
         # according to its path.
-        if _components.PIPELINE_ROOT_PLACEHOLDER in artifact_input['path']:
+        if _components.OUTPUT_DIR_PLACEHOLDER in artifact_input['path']:
             # If so, we'll add a parameter input to receive the producer's pod
             # name.
             # The correct input parameter name should be parsed from the
@@ -522,7 +522,7 @@ def _refactor_dag_inputs(
     dag_template: Dict[str, Any],
     refactored_inputs: Dict[Tuple[str, str], str]
 ) -> None:
-    """Refactors the inputs of the DAG template
+    """Refactors the inputs of the DAG template.
 
     Args:
         dag_template: The DAG template structure.
@@ -537,9 +537,9 @@ def _refactor_dag_inputs(
     # process that changed the artifact inputs' name to be
     # '{{output_template}}-{{output_name}}', which is consistent across all
     # templates.
-    artifact_to_new_name = {k[1] : v for k, v in refactored_inputs.items()}
     if not dag_template.get('inputs', {}).get('artifacts'):
         return
+    artifact_to_new_name = {k[1] : v for k, v in refactored_inputs.items()}
 
     parameter_inputs = dag_template['inputs'].get('parameters') or []
     new_artifact_inputs = []
