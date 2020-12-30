@@ -481,8 +481,8 @@ def _refactor_inputs_if_uri_placeholder(
                 artifact_input['path'])
             input_name = m.group('input_name')
             parameter_inputs.append({'name': input_name})
-            # Here we're use the template name + previous artifact input name as
-            # key, because it will be refactored later at the DAG level.
+            # Here we're using the template name + previous artifact input name
+            # as key, because it will be refactored later at the DAG level.
             refactored_inputs[(container_template['name'],
                                artifact_input['name'])] = input_name
 
