@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import collections
 import copy
 from typing import Any, Mapping
 from ..components.structures import ComponentSpec, ComponentReference
@@ -48,7 +49,7 @@ def _create_container_op_from_component_and_arguments(
     dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = True
 
     # Merge output_paths and output_uris to get the file_outputs.
-    file_outputs = resolved_cmd.output_paths or {}
+    file_outputs = collections.OrderedDict(resolved_cmd.output_paths or {})
     for name, output_uri in resolved_cmd.output_uris.items():
         file_outputs[name] = output_uri
 
