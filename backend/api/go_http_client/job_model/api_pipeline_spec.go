@@ -22,13 +22,13 @@ package job_model
 import (
 	"strconv"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // APIPipelineSpec api pipeline spec
+//
 // swagger:model apiPipelineSpec
 type APIPipelineSpec struct {
 

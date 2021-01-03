@@ -21,12 +21,11 @@ package pipeline_upload_service
 
 import (
 	"github.com/go-openapi/runtime"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
 // New creates a new pipeline upload service API client.
-func New(transport runtime.ClientTransport, formats strfmt.Registry) *Client {
+func New(transport runtime.ClientTransport, formats strfmt.Registry) ClientService {
 	return &Client{transport: transport, formats: formats}
 }
 
@@ -38,8 +37,17 @@ type Client struct {
 	formats   strfmt.Registry
 }
 
+// ClientService is the interface for Client methods
+type ClientService interface {
+	UploadPipeline(params *UploadPipelineParams, authInfo runtime.ClientAuthInfoWriter) (*UploadPipelineOK, error)
+
+	UploadPipelineVersion(params *UploadPipelineVersionParams, authInfo runtime.ClientAuthInfoWriter) (*UploadPipelineVersionOK, error)
+
+	SetTransport(transport runtime.ClientTransport)
+}
+
 /*
-UploadPipeline upload pipeline API
+  UploadPipeline upload pipeline API
 */
 func (a *Client) UploadPipeline(params *UploadPipelineParams, authInfo runtime.ClientAuthInfoWriter) (*UploadPipelineOK, error) {
 	// TODO: Validate the params before sending
@@ -73,7 +81,7 @@ func (a *Client) UploadPipeline(params *UploadPipelineParams, authInfo runtime.C
 }
 
 /*
-UploadPipelineVersion upload pipeline version API
+  UploadPipelineVersion upload pipeline version API
 */
 func (a *Client) UploadPipelineVersion(params *UploadPipelineVersionParams, authInfo runtime.ClientAuthInfoWriter) (*UploadPipelineVersionOK, error) {
 	// TODO: Validate the params before sending

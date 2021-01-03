@@ -22,13 +22,13 @@ package run_model
 import (
 	"strconv"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // APIReportRunMetricsRequest api report run metrics request
+//
 // swagger:model apiReportRunMetricsRequest
 type APIReportRunMetricsRequest struct {
 

@@ -20,13 +20,13 @@ package visualization_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // APIVisualization api visualization
+//
 // swagger:model apiVisualization
 type APIVisualization struct {
 

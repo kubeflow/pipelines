@@ -22,14 +22,14 @@ package pipeline_upload_model
 import (
 	"strconv"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
 )
 
 // APIPipeline api pipeline
+//
 // swagger:model apiPipeline
 type APIPipeline struct {
 

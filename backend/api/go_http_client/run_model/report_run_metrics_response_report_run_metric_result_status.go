@@ -22,9 +22,8 @@ package run_model
 import (
 	"encoding/json"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
 )
 
@@ -33,6 +32,7 @@ import (
 //  - INVALID_ARGUMENT: Indicates that the payload of the metric is invalid.
 //  - DUPLICATE_REPORTING: Indicates that the metric has been reported before.
 //  - INTERNAL_ERROR: Indicates that something went wrong in the server.
+//
 // swagger:model ReportRunMetricsResponseReportRunMetricResultStatus
 type ReportRunMetricsResponseReportRunMetricResultStatus string
 
@@ -68,7 +68,7 @@ func init() {
 }
 
 func (m ReportRunMetricsResponseReportRunMetricResultStatus) validateReportRunMetricsResponseReportRunMetricResultStatusEnum(path, location string, value ReportRunMetricsResponseReportRunMetricResultStatus) error {
-	if err := validate.Enum(path, location, value, reportRunMetricsResponseReportRunMetricResultStatusEnum); err != nil {
+	if err := validate.EnumCase(path, location, value, reportRunMetricsResponseReportRunMetricResultStatusEnum, true); err != nil {
 		return err
 	}
 	return nil
