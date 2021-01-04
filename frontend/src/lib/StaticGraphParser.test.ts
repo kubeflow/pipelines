@@ -823,6 +823,9 @@ describe('StaticGraphParser', () => {
     it('reduces redundant workflow', () => {
       const g = createGraph(newRedundantWorkflow());
       const reduced = transitiveReduction(g);
+      expect(g.nodeCount()).toEqual(3)
+      expect(g.edgeCount()).toEqual(3)
+      expect(reduced).not.toBeUndefined()
       expect(reduced.nodeCount()).toEqual(3);
       expect(reduced.edgeCount()).toEqual(2);
     });
@@ -832,6 +835,7 @@ describe('StaticGraphParser', () => {
     it('compares graphs edges', () => {
       const g = createGraph(newRedundantWorkflow());
       const reduced = transitiveReduction(graphlib.json.read(graphlib.json.write(g)));
+      expect(reduced).not.toBeUndefined()
       expect(compareGraphEdges(g, reduced)).not.toBeTruthy();
     });
   });
