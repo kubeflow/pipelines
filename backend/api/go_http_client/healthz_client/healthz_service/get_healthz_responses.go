@@ -24,10 +24,16 @@ import (
 	"io"
 
 	"github.com/go-openapi/runtime"
+<<<<<<< HEAD
 
 	strfmt "github.com/go-openapi/strfmt"
 
 	healthz_model "github.com/kubeflow/pipelines/backend/api/go_http_client/healthz_model"
+=======
+	"github.com/go-openapi/strfmt"
+
+	"github.com/kubeflow/pipelines/backend/api/go_http_client/healthz_model"
+>>>>>>> c18a21eb (typo with folders fixed)
 )
 
 // GetHealthzReader is a Reader for the GetHealthz structure.
@@ -38,14 +44,20 @@ type GetHealthzReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *GetHealthzReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
+<<<<<<< HEAD
 
+=======
+>>>>>>> c18a21eb (typo with folders fixed)
 	case 200:
 		result := NewGetHealthzOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
+<<<<<<< HEAD
 
+=======
+>>>>>>> c18a21eb (typo with folders fixed)
 	default:
 		result := NewGetHealthzDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -75,6 +87,13 @@ func (o *GetHealthzOK) Error() string {
 	return fmt.Sprintf("[GET /apis/v1beta1/healthz][%d] getHealthzOK  %+v", 200, o.Payload)
 }
 
+<<<<<<< HEAD
+=======
+func (o *GetHealthzOK) GetPayload() *healthz_model.APIGetHealthzResponse {
+	return o.Payload
+}
+
+>>>>>>> c18a21eb (typo with folders fixed)
 func (o *GetHealthzOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(healthz_model.APIGetHealthzResponse)
@@ -113,6 +132,13 @@ func (o *GetHealthzDefault) Error() string {
 	return fmt.Sprintf("[GET /apis/v1beta1/healthz][%d] GetHealthz default  %+v", o._statusCode, o.Payload)
 }
 
+<<<<<<< HEAD
+=======
+func (o *GetHealthzDefault) GetPayload() *healthz_model.APIStatus {
+	return o.Payload
+}
+
+>>>>>>> c18a21eb (typo with folders fixed)
 func (o *GetHealthzDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(healthz_model.APIStatus)
