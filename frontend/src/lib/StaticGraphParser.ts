@@ -273,6 +273,9 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
  * pairs of vertices v, w a (directed) path from v to w in D exists if and only
  * if such a path exists in the reduction
  *
+ * The current implementation has a time complexity bound `O(n*m)`, where `n`
+ * are the nodes and `m` are the edges of the input graph.
+ *
  * [1]: https://en.wikipedia.org/wiki/Transitive_reduction
  *
  * @param graph The dagre graph object
