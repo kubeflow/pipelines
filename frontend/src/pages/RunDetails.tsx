@@ -78,7 +78,7 @@ import { ExecutionDetailsContent } from './ExecutionDetails';
 import { Page, PageProps } from './Page';
 import { statusToIcon } from './Status';
 import { ExternalLink } from 'src/atoms/ExternalLink';
-import SwitchWithLabel from '../atoms/SwitchWithLabel';
+import ReduceGraphSwitch from '../components/ReduceGraphSwitch';
 
 enum SidePaneTab {
   INPUT_OUTPUT,
@@ -309,17 +309,13 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                         }
                       />
 
-                      <div className={commonCss.transitiveReductionSwitch}>
-                        <SwitchWithLabel
-                          label={'Simplify Graph'}
-                          labelPlacement={'end'}
-                          disabled={!this.state.reducedGraph}
-                          checked={showReducedGraph}
-                          onChange={_ => {
-                            this.setState({ showReducedGraph: !this.state.showReducedGraph });
-                          }}
-                        />
-                      </div>
+                      <ReduceGraphSwitch
+                        disabled={!this.state.reducedGraph}
+                        checked={showReducedGraph}
+                        onChange={_ => {
+                          this.setState({ showReducedGraph: !this.state.showReducedGraph });
+                        }}
+                      />
 
                       <SidePanel
                         isBusy={this.state.sidepanelBusy}

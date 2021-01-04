@@ -48,7 +48,7 @@ import FormControl from '@material-ui/core/FormControl';
 import InputLabel from '@material-ui/core/InputLabel';
 import MenuItem from '@material-ui/core/MenuItem';
 import { compareGraphEdges, transitiveReduction } from '../lib/StaticGraphParser';
-import SwitchWithLabel from '../atoms/SwitchWithLabel';
+import ReduceGraphSwitch from '../components/ReduceGraphSwitch';
 
 interface PipelineDetailsState {
   graph: dagre.graphlib.Graph | null;
@@ -307,17 +307,13 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                       }
                     />
 
-                    <div className={commonCss.transitiveReductionSwitch}>
-                      <SwitchWithLabel
-                        label={'Simplify Graph'}
-                        labelPlacement={'end'}
-                        disabled={!this.state.reducedGraph}
-                        checked={showReducedGraph}
-                        onChange={_ => {
-                          this.setState({ showReducedGraph: !this.state.showReducedGraph });
-                        }}
-                      />
-                    </div>
+                    <ReduceGraphSwitch
+                      disabled={!this.state.reducedGraph}
+                      checked={showReducedGraph}
+                      onChange={_ => {
+                        this.setState({ showReducedGraph: !this.state.showReducedGraph });
+                      }}
+                    />
 
                     <SidePanel
                       isOpen={!!selectedNodeId}
