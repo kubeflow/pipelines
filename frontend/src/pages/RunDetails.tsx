@@ -78,7 +78,6 @@ import { ExecutionDetailsContent } from './ExecutionDetails';
 import { Page, PageProps } from './Page';
 import { statusToIcon } from './Status';
 import { ExternalLink } from 'src/atoms/ExternalLink';
-import { graphlib } from 'dagre';
 import SwitchWithLabel from '../atoms/SwitchWithLabel';
 
 enum SidePaneTab {
@@ -753,7 +752,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
           : undefined;
       let reducedGraph = graph
         ? // copy graph before removing edges
-          transitiveReduction(graphlib.json.read(graphlib.json.write(graph)))
+          transitiveReduction(graph)
         : undefined;
       if (graph && reducedGraph && compareGraphEdges(graph, reducedGraph)) {
         reducedGraph = undefined; // disable reduction switch

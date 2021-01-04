@@ -48,7 +48,6 @@ import FormControl from '@material-ui/core/FormControl';
 import InputLabel from '@material-ui/core/InputLabel';
 import MenuItem from '@material-ui/core/MenuItem';
 import { compareGraphEdges, transitiveReduction } from '../lib/StaticGraphParser';
-import { graphlib } from 'dagre';
 import SwitchWithLabel from '../atoms/SwitchWithLabel';
 
 interface PipelineDetailsState {
@@ -394,9 +393,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         pathname: `/pipelines/details/${this.state.pipeline.id}/version/${versionId}`,
       });
       const graph = await this._createGraph(selectedVersionPipelineTemplate);
-      let reducedGraph = graph
-        ? transitiveReduction(graphlib.json.read(graphlib.json.write(graph)))
-        : undefined;
+      let reducedGraph = graph ? transitiveReduction(graph) : undefined;
       if (graph && reducedGraph && compareGraphEdges(graph, reducedGraph)) {
         reducedGraph = undefined; // disable reduction switch
       }
@@ -554,9 +551,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     this.props.updateToolbar({ breadcrumbs, actions: toolbarActions, pageTitle });
 
     const graph = await this._createGraph(templateString);
-    let reducedGraph = graph
-      ? transitiveReduction(graphlib.json.read(graphlib.json.write(graph)))
-      : undefined;
+    let reducedGraph = graph ? transitiveReduction(graph) : undefined;
     if (graph && reducedGraph && compareGraphEdges(graph, reducedGraph)) {
       reducedGraph = undefined; // disable reduction switch
     }
