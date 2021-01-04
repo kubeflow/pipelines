@@ -95,6 +95,13 @@ jq -s 'reduce .[] as $item ({}; . * $item) | .info.title = "Kubeflow Pipelines A
     -c visualization_client \
     -m visualization_model \
     -t backend/api/go_http_client
+/go/bin/swagger generate client \
+  -f backend/api/swagger/visualization.swagger.json \
+  -A healthz \
+  --principal models.Principal \
+  -c healthz_client \
+  -m healthz_model \
+  -t backend/api/go_http_client
 # Hack to fix an issue with go-swagger
 # See https://github.com/go-swagger/go-swagger/issues/1381 for details.
 sed -i -- 's/MaxConcurrency int64 `json:"max_concurrency,omitempty"`/MaxConcurrency int64 `json:"max_concurrency,omitempty,string"`/g' backend/api/go_http_client/job_model/api_job.go
