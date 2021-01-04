@@ -282,7 +282,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       collapsedInitially: true,
     };
 
-    const _graph =
+    const graphToShow =
       this.state.showReducedGraph && this.state.reducedGraph
         ? this.state.reducedGraph
         : this.state.graph;
@@ -299,10 +299,10 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
               {/* Graph tab */}
               {selectedTab === 0 && (
                 <div className={classes(commonCss.page, css.graphPane)}>
-                  {_graph && (
+                  {graphToShow && (
                     <div className={commonCss.page}>
                       <Graph
-                        graph={_graph}
+                        graph={graphToShow}
                         selectedNodeId={selectedNodeId}
                         onClick={id => this._selectNode(id)}
                         onError={(message, additionalInfo) =>
@@ -555,7 +555,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                       </div>
                     </div>
                   )}
-                  {!_graph && (
+                  {!graphToShow && (
                     <div>
                       {runFinished && <span style={{ margin: '40px auto' }}>No graph to show</span>}
                       {!runFinished && (

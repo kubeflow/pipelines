@@ -206,13 +206,13 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         !window['safari'] || (typeof 'safari' !== 'undefined' && window['safari'].pushNotification),
       );
 
-    const _graph =
+    const graphToShow =
       this.state.showReducedGraph && this.state.reducedGraph
         ? this.state.reducedGraph
         : this.state.graph;
     let selectedNodeInfo: StaticGraphParser.SelectedNodeInfo | null = null;
-    if (_graph && _graph.node(selectedNodeId)) {
-      selectedNodeInfo = _graph.node(selectedNodeId).info;
+    if (graphToShow && graphToShow.node(selectedNodeId)) {
+      selectedNodeInfo = graphToShow.node(selectedNodeId).info;
       if (!!selectedNodeId && !selectedNodeInfo) {
         logger.error(`Node with ID: ${selectedNodeId} was not found in the graph`);
       }
@@ -235,7 +235,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           <div className={commonCss.page}>
             {selectedTab === 0 && (
               <div className={commonCss.page}>
-                {_graph && (
+                {graphToShow && (
                   <div
                     className={commonCss.page}
                     style={{ position: 'relative', overflow: 'hidden' }}
@@ -300,7 +300,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                     )}
 
                     <Graph
-                      graph={_graph}
+                      graph={graphToShow}
                       selectedNodeId={selectedNodeId}
                       onClick={id => this.setStateSafe({ selectedNodeId: id })}
                       onError={(message, additionalInfo) =>
@@ -359,7 +359,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                     </div>
                   </div>
                 )}
-                {!_graph && <span style={{ margin: '40px auto' }}>No graph to show</span>}
+                {!graphToShow && <span style={{ margin: '40px auto' }}>No graph to show</span>}
               </div>
             )}
             {selectedTab === 1 && !!templateString && (
