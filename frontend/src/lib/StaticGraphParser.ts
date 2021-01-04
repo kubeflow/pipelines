@@ -281,6 +281,12 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
  * @param graph The dagre graph object
  */
 export function transitiveReduction(graph: dagre.graphlib.Graph) {
+
+  // safeguard against too big graphs
+  if (graph.edgeCount() > 1000 || graph.nodeCount() > 1000) {
+    return undefined
+  }
+
   const result = graphlib.json.read(graphlib.json.write(graph))
   let visited: string[] = [];
   const dfs_with_removal = (current: string, parent: string) => {
