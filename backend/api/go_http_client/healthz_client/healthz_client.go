@@ -16,8 +16,12 @@ import (
 =======
 	"github.com/go-openapi/strfmt"
 
+<<<<<<< HEAD
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/healthz_client/visualization_service"
 >>>>>>> 4067f732 (added healthz)
+=======
+	"github.com/kubeflow/pipelines/backend/api/go_http_client/healthz_client/healthz_service"
+>>>>>>> c18a21eb (typo with folders fixed)
 )
 
 // Default healthz HTTP client.
@@ -63,12 +67,16 @@ func New(transport runtime.ClientTransport, formats strfmt.Registry) *Healthz {
 	cli := new(Healthz)
 	cli.Transport = transport
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 	cli.HealthzService = healthz_service.New(transport, formats)
 
 =======
 	cli.VisualizationService = visualization_service.New(transport, formats)
 >>>>>>> 4067f732 (added healthz)
+=======
+	cli.HealthzService = healthz_service.New(transport, formats)
+>>>>>>> c18a21eb (typo with folders fixed)
 	return cli
 }
 
@@ -114,10 +122,14 @@ func (cfg *TransportConfig) WithSchemes(schemes []string) *TransportConfig {
 // Healthz is a client for healthz
 type Healthz struct {
 <<<<<<< HEAD
+<<<<<<< HEAD
 	HealthzService *healthz_service.Client
 =======
 	VisualizationService visualization_service.ClientService
 >>>>>>> 4067f732 (added healthz)
+=======
+	HealthzService healthz_service.ClientService
+>>>>>>> c18a21eb (typo with folders fixed)
 
 	Transport runtime.ClientTransport
 }
@@ -126,10 +138,14 @@ type Healthz struct {
 func (c *Healthz) SetTransport(transport runtime.ClientTransport) {
 	c.Transport = transport
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 	c.HealthzService.SetTransport(transport)
 
 =======
 	c.VisualizationService.SetTransport(transport)
 >>>>>>> 4067f732 (added healthz)
+=======
+	c.HealthzService.SetTransport(transport)
+>>>>>>> c18a21eb (typo with folders fixed)
 }

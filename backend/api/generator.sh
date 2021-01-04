@@ -96,7 +96,7 @@ jq -s 'reduce .[] as $item ({}; . * $item) | .info.title = "Kubeflow Pipelines A
     -m visualization_model \
     -t backend/api/go_http_client
 /go/bin/swagger generate client \
-  -f backend/api/swagger/visualization.swagger.json \
+  -f backend/api/swagger/healthz.swagger.json \
   -A healthz \
   --principal models.Principal \
   -c healthz_client \
