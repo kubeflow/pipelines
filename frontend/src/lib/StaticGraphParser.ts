@@ -20,7 +20,7 @@ import { color } from '../Css';
 import { Constants } from './Constants';
 import { logger } from './Utils';
 import { parseTaskDisplayName } from './ParserUtils';
-import {graphlib} from "dagre";
+import { graphlib } from 'dagre';
 
 export type nodeType = 'container' | 'resource' | 'dag' | 'unknown';
 
@@ -281,13 +281,12 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
  * @param graph The dagre graph object
  */
 export function transitiveReduction(graph: dagre.graphlib.Graph) {
-
   // safeguard against too big graphs
   if (graph.edgeCount() > 1000 || graph.nodeCount() > 1000) {
-    return undefined
+    return undefined;
   }
 
-  const result = graphlib.json.read(graphlib.json.write(graph))
+  const result = graphlib.json.read(graphlib.json.write(graph));
   let visited: string[] = [];
   const dfs_with_removal = (current: string, parent: string) => {
     result.successors(current)?.forEach((node: any) => {

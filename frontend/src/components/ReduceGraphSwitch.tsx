@@ -24,7 +24,7 @@ import CardContent from '@material-ui/core/CardContent';
 import { withStyles } from '@material-ui/core/styles';
 import { stylesheet } from 'typestyle';
 import { color, fontsize } from '../Css';
-import {ExternalLink} from "../atoms/ExternalLink";
+import { ExternalLink } from '../atoms/ExternalLink';
 
 const css = stylesheet({
   reduceGraphPosition: {
@@ -53,22 +53,22 @@ const ReduceGraphSwitch = (props: ReduceGraphSwitchProps) => {
         title={
           <Card>
             <CardContent>
-                <div>
-                  <p>
-                    Enables a{' '}
-                    <ExternalLink href='https://en.wikipedia.org/wiki/Transitive_reduction'>
-                      transitive reduction
-                    </ExternalLink>{' '}
-                    of the pipeline graph, hiding all the redundant edges. This
-                    option is just a visualization helper and does not have any
-                    permanent effect on the pipeline itself.
-                  </p>
-                  <p>
-                    Note that edges are removed regardless of their function in
-                    the pipeline, so the reduced form might not provide enough
-                    details to understand how the pipeline really behaves.
-                  </p>
-                </div>
+              <div>
+                <p>
+                  Enables a{' '}
+                  <ExternalLink href='https://en.wikipedia.org/wiki/Transitive_reduction'>
+                    transitive reduction
+                  </ExternalLink>{' '}
+                  of the pipeline graph, hiding all the redundant edges. This option is just a
+                  visualization helper and does not have any permanent effect on the pipeline
+                  itself.
+                </p>
+                <p>
+                  Note that edges are removed regardless of their function in the pipeline, so the
+                  reduced form might not provide enough details to understand how the pipeline
+                  really behaves.
+                </p>
+              </div>
             </CardContent>
           </Card>
         }
