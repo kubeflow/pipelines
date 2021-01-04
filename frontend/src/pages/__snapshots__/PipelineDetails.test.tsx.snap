@@ -139,17 +139,11 @@ exports[`PipelineDetails closes side panel when close button is clicked 1`] = `
             onError={[Function]}
             selectedNodeId=""
           />
-          <div
-            className="transitiveReductionSwitch"
-          >
-            <SwitchWithLabel
-              checked={true}
-              disabled={true}
-              label="Simplify Graph"
-              labelPlacement="end"
-              onChange={[Function]}
-            />
-          </div>
+          <ReduceGraphSwitch
+            checked={false}
+            disabled={true}
+            onChange={[Function]}
+          />
           <SidePanel
             isOpen={false}
             onClose={[Function]}
@@ -242,17 +236,11 @@ exports[`PipelineDetails collapses summary card when summary shown state is fals
             onError={[Function]}
             selectedNodeId=""
           />
-          <div
-            className="transitiveReductionSwitch"
-          >
-            <SwitchWithLabel
-              checked={true}
-              disabled={true}
-              label="Simplify Graph"
-              labelPlacement="end"
-              onChange={[Function]}
-            />
-          </div>
+          <ReduceGraphSwitch
+            checked={false}
+            disabled={true}
+            onChange={[Function]}
+          />
           <SidePanel
             isOpen={false}
             onClose={[Function]}
@@ -436,17 +424,11 @@ exports[`PipelineDetails opens side panel on clicked node, shows message when no
             onError={[Function]}
             selectedNodeId="some-node-id"
           />
-          <div
-            className="transitiveReductionSwitch"
-          >
-            <SwitchWithLabel
-              checked={true}
-              disabled={true}
-              label="Simplify Graph"
-              labelPlacement="end"
-              onChange={[Function]}
-            />
-          </div>
+          <ReduceGraphSwitch
+            checked={false}
+            disabled={true}
+            onChange={[Function]}
+          />
           <SidePanel
             isOpen={true}
             onClose={[Function]}
@@ -676,17 +658,11 @@ exports[`PipelineDetails shows clicked node info in the side panel if it is in t
             onError={[Function]}
             selectedNodeId="node1"
           />
-          <div
-            className="transitiveReductionSwitch"
-          >
-            <SwitchWithLabel
-              checked={true}
-              disabled={true}
-              label="Simplify Graph"
-              labelPlacement="end"
-              onChange={[Function]}
-            />
-          </div>
+          <ReduceGraphSwitch
+            checked={false}
+            disabled={true}
+            onChange={[Function]}
+          />
           <SidePanel
             isOpen={true}
             onClose={[Function]}
@@ -906,17 +882,11 @@ exports[`PipelineDetails shows correct versions in version selector 1`] = `
             onError={[Function]}
             selectedNodeId=""
           />
-          <div
-            className="transitiveReductionSwitch"
-          >
-            <SwitchWithLabel
-              checked={true}
-              disabled={true}
-              label="Simplify Graph"
-              labelPlacement="end"
-              onChange={[Function]}
-            />
-          </div>
+          <ReduceGraphSwitch
+            checked={false}
+            disabled={true}
+            onChange={[Function]}
+          />
           <SidePanel
             isOpen={false}
             onClose={[Function]}
@@ -1094,17 +1064,11 @@ exports[`PipelineDetails shows empty pipeline details with empty graph 1`] = `
             onError={[Function]}
             selectedNodeId=""
           />
-          <div
-            className="transitiveReductionSwitch"
-          >
-            <SwitchWithLabel
-              checked={true}
-              disabled={true}
-              label="Simplify Graph"
-              labelPlacement="end"
-              onChange={[Function]}
-            />
-          </div>
+          <ReduceGraphSwitch
+            checked={false}
+            disabled={true}
+            onChange={[Function]}
+          />
           <SidePanel
             isOpen={false}
             onClose={[Function]}
