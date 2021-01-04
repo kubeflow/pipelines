@@ -125,7 +125,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       selectedTab: 0,
       summaryShown: true,
       versions: [],
-      showReducedGraph: true,
+      showReducedGraph: false,
     };
   }
 

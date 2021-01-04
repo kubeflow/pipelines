@@ -187,7 +187,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     sidepanelSelectedTab: SidePaneTab.INPUT_OUTPUT,
     mlmdRunContext: undefined,
     mlmdExecutions: undefined,
-    showReducedGraph: true,
+    showReducedGraph: false,
   };
 
   private readonly AUTO_REFRESH_INTERVAL = 5000;
