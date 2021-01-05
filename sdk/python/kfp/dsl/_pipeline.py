@@ -95,6 +95,9 @@ class PipelineConf():
     Args:
         max_num_pods: max number of total parallel pods.
     """
+    if parallelism < 1:
+        raise ValueError('SubGraph parallism set to < 1, allowed values are > 0')
+    
     self.parallelism = max_num_pods
     return self
 
