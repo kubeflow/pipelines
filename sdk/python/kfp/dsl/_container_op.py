@@ -927,11 +927,11 @@ class BaseOp(object):
         self.display_name = name
         return self
 
-    def set_template_handler(self, template_handler: Callable[['BaseOp'], Dict]):
+    def set_template_handler(self, template_handler: Callable[['BaseOp'], List[Dict]]):
         """Set the template handler for converting Op into Argo template.
 
         Args:
-          template_handler: A callable for converting the BaseOp into an Argo template during
+          template_handler: A callable for converting the BaseOp into Argo templates during
             pipeline compilation.
         """
         self.template_handler = template_handler
