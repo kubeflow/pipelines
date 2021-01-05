@@ -638,7 +638,8 @@ class Compiler(object):
       templates.append(template)
 
     for op in pipeline.ops.values():
-      templates.extend(op_to_templates_handler(op))
+      op_to_template_handler = op.template_handler or op_to_templates_handler
+      templates.extend(op_to_template_handler(op))
 
     return templates
 

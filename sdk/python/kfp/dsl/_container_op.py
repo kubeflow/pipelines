@@ -727,6 +727,7 @@ class BaseOp(object):
             warnings.warn('is_exit_handler=True is no longer needed.', DeprecationWarning)
 
         self.is_exit_handler = is_exit_handler
+        self.template_handler = None
 
         # human_name must exist to construct operator's name
         self.human_name = name
@@ -924,6 +925,16 @@ class BaseOp(object):
 
     def set_display_name(self, name: str):
         self.display_name = name
+        return self
+
+    def set_template_handler(self, template_handler: Callable[['BaseOp'], Dict]):
+        """Set the template handler for converting Op into Argo template.
+
+        Args:
+          template_handler: A callable for converting the BaseOp into an Argo template during
+            pipeline compilation.
+        """
+        self.template_handler = template_handler
         return self
 
     def __repr__(self):
