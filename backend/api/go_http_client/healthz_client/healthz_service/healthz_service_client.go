@@ -22,6 +22,7 @@ package healthz_service
 import (
 	"github.com/go-openapi/runtime"
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 	strfmt "github.com/go-openapi/strfmt"
 )
@@ -35,6 +36,14 @@ func New(transport runtime.ClientTransport, formats strfmt.Registry) *Client {
 // New creates a new healthz service API client.
 func New(transport runtime.ClientTransport, formats strfmt.Registry) ClientService {
 >>>>>>> c18a21eb (typo with folders fixed)
+=======
+
+	strfmt "github.com/go-openapi/strfmt"
+)
+
+// New creates a new healthz service API client.
+func New(transport runtime.ClientTransport, formats strfmt.Registry) *Client {
+>>>>>>> f41a406c (changed version)
 	return &Client{transport: transport, formats: formats}
 }
 
@@ -46,6 +55,7 @@ type Client struct {
 	formats   strfmt.Registry
 }
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 /*
 GetHealthz gets healthz data
@@ -60,6 +70,10 @@ type ClientService interface {
 /*
   GetHealthz gets healthz data
 >>>>>>> c18a21eb (typo with folders fixed)
+=======
+/*
+GetHealthz gets healthz data
+>>>>>>> f41a406c (changed version)
 */
 func (a *Client) GetHealthz(params *GetHealthzParams, authInfo runtime.ClientAuthInfoWriter) (*GetHealthzOK, error) {
 	// TODO: Validate the params before sending

@@ -20,12 +20,13 @@ package run_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"github.com/go-openapi/strfmt"
+	strfmt "github.com/go-openapi/strfmt"
+
+	"github.com/go-openapi/errors"
 	"github.com/go-openapi/swag"
 )
 
 // APIReadArtifactResponse api read artifact response
-//
 // swagger:model apiReadArtifactResponse
 type APIReadArtifactResponse struct {
 
@@ -36,6 +37,26 @@ type APIReadArtifactResponse struct {
 
 // Validate validates this api read artifact response
 func (m *APIReadArtifactResponse) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateData(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *APIReadArtifactResponse) validateData(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Data) { // not required
+		return nil
+	}
+
+	// Format "byte" (base64 string) is already validated when unmarshalled
+
 	return nil
 }
 

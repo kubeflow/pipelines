@@ -27,9 +27,10 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
-	"github.com/go-openapi/strfmt"
 
-	"github.com/kubeflow/pipelines/backend/api/go_http_client/visualization_model"
+	strfmt "github.com/go-openapi/strfmt"
+
+	visualization_model "github.com/kubeflow/pipelines/backend/api/go_http_client/visualization_model"
 )
 
 // NewCreateVisualizationParams creates a new CreateVisualizationParams object

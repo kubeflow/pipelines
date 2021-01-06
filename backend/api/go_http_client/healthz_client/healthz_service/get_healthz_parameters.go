@@ -28,11 +28,16 @@ import (
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 	strfmt "github.com/go-openapi/strfmt"
 =======
 	"github.com/go-openapi/strfmt"
 >>>>>>> c18a21eb (typo with folders fixed)
+=======
+
+	strfmt "github.com/go-openapi/strfmt"
+>>>>>>> f41a406c (changed version)
 )
 
 // NewGetHealthzParams creates a new GetHealthzParams object

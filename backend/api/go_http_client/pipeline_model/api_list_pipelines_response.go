@@ -22,13 +22,13 @@ package pipeline_model
 import (
 	"strconv"
 
+	strfmt "github.com/go-openapi/strfmt"
+
 	"github.com/go-openapi/errors"
-	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // APIListPipelinesResponse api list pipelines response
-//
 // swagger:model apiListPipelinesResponse
 type APIListPipelinesResponse struct {
 

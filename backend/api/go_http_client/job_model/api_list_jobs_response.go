@@ -22,13 +22,13 @@ package job_model
 import (
 	"strconv"
 
+	strfmt "github.com/go-openapi/strfmt"
+
 	"github.com/go-openapi/errors"
-	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // APIListJobsResponse api list jobs response
-//
 // swagger:model apiListJobsResponse
 type APIListJobsResponse struct {
 

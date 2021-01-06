@@ -20,20 +20,12 @@ package healthz_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-<<<<<<< HEAD
-	strfmt "github.com/go-openapi/strfmt"
-
-=======
 	"github.com/go-openapi/strfmt"
->>>>>>> c18a21eb (typo with folders fixed)
+	strfmt "github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // APIGetHealthzResponse api get healthz response
-<<<<<<< HEAD
-=======
-//
->>>>>>> c18a21eb (typo with folders fixed)
 // swagger:model apiGetHealthzResponse
 type APIGetHealthzResponse struct {
 

@@ -22,13 +22,13 @@ package pipeline_upload_model
 import (
 	"encoding/json"
 
+	strfmt "github.com/go-openapi/strfmt"
+
 	"github.com/go-openapi/errors"
-	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
 )
 
 // APIRelationship api relationship
-//
 // swagger:model apiRelationship
 type APIRelationship string
 
@@ -58,7 +58,7 @@ func init() {
 }
 
 func (m APIRelationship) validateAPIRelationshipEnum(path, location string, value APIRelationship) error {
-	if err := validate.EnumCase(path, location, value, apiRelationshipEnum, true); err != nil {
+	if err := validate.Enum(path, location, value, apiRelationshipEnum); err != nil {
 		return err
 	}
 	return nil

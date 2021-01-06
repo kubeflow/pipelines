@@ -22,7 +22,8 @@ package run_client
 import (
 	"github.com/go-openapi/runtime"
 	httptransport "github.com/go-openapi/runtime/client"
-	"github.com/go-openapi/strfmt"
+
+	strfmt "github.com/go-openapi/strfmt"
 
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/run_client/run_service"
 )
@@ -69,7 +70,9 @@ func New(transport runtime.ClientTransport, formats strfmt.Registry) *Run {
 
 	cli := new(Run)
 	cli.Transport = transport
+
 	cli.RunService = run_service.New(transport, formats)
+
 	return cli
 }
 
@@ -114,7 +117,7 @@ func (cfg *TransportConfig) WithSchemes(schemes []string) *TransportConfig {
 
 // Run is a client for run
 type Run struct {
-	RunService run_service.ClientService
+	RunService *run_service.Client
 
 	Transport runtime.ClientTransport
 }
@@ -122,5 +125,7 @@ type Run struct {
 // SetTransport changes the transport on the client and all its subresources
 func (c *Run) SetTransport(transport runtime.ClientTransport) {
 	c.Transport = transport
+
 	c.RunService.SetTransport(transport)
+
 }

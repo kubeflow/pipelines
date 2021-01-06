@@ -21,11 +21,12 @@ package experiment_service
 
 import (
 	"github.com/go-openapi/runtime"
-	"github.com/go-openapi/strfmt"
+
+	strfmt "github.com/go-openapi/strfmt"
 )
 
 // New creates a new experiment service API client.
-func New(transport runtime.ClientTransport, formats strfmt.Registry) ClientService {
+func New(transport runtime.ClientTransport, formats strfmt.Registry) *Client {
 	return &Client{transport: transport, formats: formats}
 }
 
@@ -37,25 +38,8 @@ type Client struct {
 	formats   strfmt.Registry
 }
 
-// ClientService is the interface for Client methods
-type ClientService interface {
-	ArchiveExperiment(params *ArchiveExperimentParams, authInfo runtime.ClientAuthInfoWriter) (*ArchiveExperimentOK, error)
-
-	CreateExperiment(params *CreateExperimentParams, authInfo runtime.ClientAuthInfoWriter) (*CreateExperimentOK, error)
-
-	DeleteExperiment(params *DeleteExperimentParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteExperimentOK, error)
-
-	GetExperiment(params *GetExperimentParams, authInfo runtime.ClientAuthInfoWriter) (*GetExperimentOK, error)
-
-	ListExperiment(params *ListExperimentParams, authInfo runtime.ClientAuthInfoWriter) (*ListExperimentOK, error)
-
-	UnarchiveExperiment(params *UnarchiveExperimentParams, authInfo runtime.ClientAuthInfoWriter) (*UnarchiveExperimentOK, error)
-
-	SetTransport(transport runtime.ClientTransport)
-}
-
 /*
-  ArchiveExperiment archives an experiment and the experiment s runs and jobs
+ArchiveExperiment archives an experiment and the experiment s runs and jobs
 */
 func (a *Client) ArchiveExperiment(params *ArchiveExperimentParams, authInfo runtime.ClientAuthInfoWriter) (*ArchiveExperimentOK, error) {
 	// TODO: Validate the params before sending
@@ -89,7 +73,7 @@ func (a *Client) ArchiveExperiment(params *ArchiveExperimentParams, authInfo run
 }
 
 /*
-  CreateExperiment creates a new experiment
+CreateExperiment creates a new experiment
 */
 func (a *Client) CreateExperiment(params *CreateExperimentParams, authInfo runtime.ClientAuthInfoWriter) (*CreateExperimentOK, error) {
 	// TODO: Validate the params before sending
@@ -123,7 +107,7 @@ func (a *Client) CreateExperiment(params *CreateExperimentParams, authInfo runti
 }
 
 /*
-  DeleteExperiment deletes an experiment without deleting the experiment s runs and jobs to avoid unexpected behaviors delete an experiment s runs and jobs before deleting the experiment
+DeleteExperiment deletes an experiment without deleting the experiment s runs and jobs to avoid unexpected behaviors delete an experiment s runs and jobs before deleting the experiment
 */
 func (a *Client) DeleteExperiment(params *DeleteExperimentParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteExperimentOK, error) {
 	// TODO: Validate the params before sending
@@ -157,7 +141,7 @@ func (a *Client) DeleteExperiment(params *DeleteExperimentParams, authInfo runti
 }
 
 /*
-  GetExperiment finds a specific experiment by ID
+GetExperiment finds a specific experiment by ID
 */
 func (a *Client) GetExperiment(params *GetExperimentParams, authInfo runtime.ClientAuthInfoWriter) (*GetExperimentOK, error) {
 	// TODO: Validate the params before sending
@@ -191,7 +175,7 @@ func (a *Client) GetExperiment(params *GetExperimentParams, authInfo runtime.Cli
 }
 
 /*
-  ListExperiment finds all experiments supports pagination and sorting on certain fields
+ListExperiment finds all experiments supports pagination and sorting on certain fields
 */
 func (a *Client) ListExperiment(params *ListExperimentParams, authInfo runtime.ClientAuthInfoWriter) (*ListExperimentOK, error) {
 	// TODO: Validate the params before sending
@@ -225,7 +209,7 @@ func (a *Client) ListExperiment(params *ListExperimentParams, authInfo runtime.C
 }
 
 /*
-  UnarchiveExperiment restores an archived experiment the experiment s archived runs and jobs will stay archived
+UnarchiveExperiment restores an archived experiment the experiment s archived runs and jobs will stay archived
 */
 func (a *Client) UnarchiveExperiment(params *UnarchiveExperimentParams, authInfo runtime.ClientAuthInfoWriter) (*UnarchiveExperimentOK, error) {
 	// TODO: Validate the params before sending
