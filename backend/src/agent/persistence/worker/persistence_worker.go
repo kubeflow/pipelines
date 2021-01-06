@@ -29,7 +29,7 @@ import (
 
 var (
 	// DefaultJobBackOff is the default backoff period
-	DefaultJobBackOff = 10 * time.Second
+	DefaultJobBackOff = 1 * time.Second
 	// MaxJobBackOff is the max backoff period
 	MaxJobBackOff = 360 * time.Second
 )
@@ -102,9 +102,8 @@ func (p *PersistenceWorker) RunWorker() {
 	}
 }
 
-// enqueue takes a ScheduledWorkflow and converts it into a namespace/name
-// string which is then put onto the work queue. This method should *not* be
-// passed resources of any type other than ScheduledWorkflow.
+// enqueue takes a Workflow or a ScheduledWorkflow and converts it
+// into a namespace/name string which is then put onto the work queue.
 func (p *PersistenceWorker) enqueue(obj interface{}) {
 	var key string
 	var err error
@@ -175,7 +174,7 @@ func (p *PersistenceWorker) processNextWorkItem() bool {
 		//   The item is reprocessed after the baseDelay
 		// - when using: workqueue.AddRateLimited()
 		//   The item is reprocessed folowing the exponential backoff strategy:
-		//   baseDelay * 10^(failure count)
+		//   baseDelay * 2^(failure count)
 		//   It is not reprocessed earlier due to SharedInformerFactory defaultResync.
 		//   It is not reprocessed earlier even if the resource is deleted/re-created.
 		// - when using: workqueue.Add()
@@ -186,7 +185,7 @@ func (p *PersistenceWorker) processNextWorkItem() bool {
 		//   The item is reprocessed using the exponential backoff strategy.
 
 		// Run the syncHandler, passing it the namespace/name string of the
-		// ScheduledWorkflow to be synced.
+		// resource to be synced.
 		err := p.syncHandler(key)
 		retryOnError := errorutil.HasCustomCode(err, errorutil.CUSTOM_CODE_TRANSIENT)
 		if err != nil && retryOnError {
@@ -214,9 +213,8 @@ func (p *PersistenceWorker) processNextWorkItem() bool {
 	}(obj)
 }
 
-// syncHandler compares the actual state with the desired, and attempts to
-// converge the two. It then updates the Status block of the ScheduledWorkflow
-// with the current status of the resource.
+// syncHandler picks items from the queue and passes them to the saver, which,
+// in turn, calls Report[Scheduled]Workflow to sync it with the DB
 func (p *PersistenceWorker) syncHandler(key string) error {
 
 	// Convert the namespace/name string into a distinct namespace and name
