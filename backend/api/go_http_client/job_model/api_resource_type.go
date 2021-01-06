@@ -8,13 +8,13 @@ package job_model
 import (
 	"encoding/json"
 
+	strfmt "github.com/go-openapi/strfmt"
+
 	"github.com/go-openapi/errors"
-	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
 )
 
 // APIResourceType api resource type
-//
 // swagger:model apiResourceType
 type APIResourceType string
 
@@ -53,7 +53,7 @@ func init() {
 }
 
 func (m APIResourceType) validateAPIResourceTypeEnum(path, location string, value APIResourceType) error {
-	if err := validate.EnumCase(path, location, value, apiResourceTypeEnum, true); err != nil {
+	if err := validate.Enum(path, location, value, apiResourceTypeEnum); err != nil {
 		return err
 	}
 	return nil

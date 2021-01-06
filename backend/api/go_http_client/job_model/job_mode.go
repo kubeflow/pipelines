@@ -8,15 +8,15 @@ package job_model
 import (
 	"encoding/json"
 
+	strfmt "github.com/go-openapi/strfmt"
+
 	"github.com/go-openapi/errors"
-	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
 )
 
 // JobMode Required input.
 //
 //  - DISABLED: The job won't schedule any run if disabled.
-//
 // swagger:model JobMode
 type JobMode string
 
@@ -46,7 +46,7 @@ func init() {
 }
 
 func (m JobMode) validateJobModeEnum(path, location string, value JobMode) error {
-	if err := validate.EnumCase(path, location, value, jobModeEnum, true); err != nil {
+	if err := validate.Enum(path, location, value, jobModeEnum); err != nil {
 		return err
 	}
 	return nil

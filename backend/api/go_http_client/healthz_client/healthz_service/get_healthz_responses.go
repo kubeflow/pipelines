@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-openapi/runtime"
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 	strfmt "github.com/go-openapi/strfmt"
 
@@ -20,6 +21,12 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/healthz_model"
 >>>>>>> c18a21eb (typo with folders fixed)
+=======
+
+	strfmt "github.com/go-openapi/strfmt"
+
+	healthz_model "github.com/kubeflow/pipelines/backend/api/go_http_client/healthz_model"
+>>>>>>> f41a406c (changed version)
 )
 
 // GetHealthzReader is a Reader for the GetHealthz structure.
