@@ -14,11 +14,19 @@
 
 FROM python:3.7-slim
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+	wget patch \
+	&& rm -rf /var/lib/apt/lists/*
+
 RUN pip install apache-beam[gcp]
 RUN pip install pandas
 
 ADD build /ml
 WORKDIR /ml
 RUN pip install .
+
+# The patch sets User Agent for telemetry purpose.
+# It is based on "google-api-python-client==1.7.8", and needs to be updated when upgrading the package.
+RUN patch /usr/local/lib/python3.7/site-packages/googleapiclient/http.py < /ml/patches/http.patch
 
 ENTRYPOINT ["python", "-u", "-m", "kfp_component.launcher"]
