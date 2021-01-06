@@ -20,7 +20,7 @@ __all__ = [
 ]
 
 import copy
-import sys
+import os
 from collections import OrderedDict
 from typing import Any, Callable, List, Mapping, NamedTuple, Sequence, Union
 from ._naming import _sanitize_file_name, _sanitize_python_function_name, generate_unique_name_conversion_table
@@ -184,6 +184,50 @@ def _generate_input_file_name(port_name):
 
 def _generate_output_file_name(port_name):
     return _outputs_dir + '/' + _sanitize_file_name(port_name) + '/' + _single_io_file_name
+
+
+# Placeholder to represent the output directory hosting all the generated URIs.
+# Its actual value will be specified during pipeline compilation.
+OUTPUT_DIR_PLACEHOLDER = '{{kfp.output_dir}}'
+# Format of the Argo parameter used to pass the producer's Pod ID to
+# the consumer.
+PRODUCER_POD_NAME_PARAMETER = '{}-producer-pod-id-'
+
+
+def _generate_output_uri(port_name: str) -> str:
+    """Generates a unique URI for an output.
+
+    Args:
+        port_name: The name of the output associated with this URI.
+
+    Returns:
+        The URI assigned to this output, which is unique within the pipeline.
+    """
+    return os.path.join(
+        OUTPUT_DIR_PLACEHOLDER,
+        '{{workflow.uid}}',
+        '{{pod.name}}',
+        port_name
+    )
+
+
+def _generate_input_uri(port_name: str) -> str:
+    """Generates the URI for an input.
+
+    Args:
+        port_name: The name of the input associated with this URI.
+
+    Returns:
+        The URI assigned to this input, will be consistent with the URI where
+        the actual content is written after compilation.
+    """
+    return os.path.join(
+        OUTPUT_DIR_PLACEHOLDER,
+        '{{workflow.uid}}',
+        '{{{{inputs.parameters.{input}}}}}'.format(
+            input=PRODUCER_POD_NAME_PARAMETER.format(port_name)),
+        port_name
+    )
 
 
 def _react_to_incompatible_reference_type(
@@ -387,18 +431,14 @@ _ResolvedCommandLineAndPaths = NamedTuple(
 )
 
 
-def _not_implemented(name: str) -> str:
-    raise NotImplementedError
-
-
 def _resolve_command_line_and_paths(
     component_spec: ComponentSpec,
     arguments: Mapping[str, str],
     input_path_generator: Callable[[str], str] = _generate_input_file_name,
     output_path_generator: Callable[[str], str] = _generate_output_file_name,
     argument_serializer: Callable[[str], str] = serialize_value,
-    input_uri_generator: Callable[[str], str] = _not_implemented,
-    output_uri_generator: Callable[[str], str] = _not_implemented,
+    input_uri_generator: Callable[[str], str] = _generate_input_uri,
+    output_uri_generator: Callable[[str], str] = _generate_output_uri,
 ) -> _ResolvedCommandLineAndPaths:
     """Resolves the command line argument placeholders. Also produces the maps of the generated inpuit/output paths."""
     argument_values = arguments
@@ -469,7 +509,6 @@ def _resolve_command_line_and_paths(
 
         elif isinstance(arg, InputUriPlaceholder):
             input_name = arg.input_name
-            input_argument = argument_values.get(input_name, None)
             if input_name in argument_values:
                 input_uri = input_uri_generator(input_name)
                 input_uris[input_name] = input_uri
