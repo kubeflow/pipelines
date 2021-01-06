@@ -741,9 +741,7 @@ implementation:
         task = op(in1='foo')
         resolved_cmd = _resolve_command_line_and_paths(
             component_spec=task.component_ref.spec,
-            arguments=task.arguments,
-            input_uri_generator=lambda name: f"{{{{inputs[{name}].uri}}}}",
-            output_uri_generator=lambda name: f"{{{{outputs[{name}].uri}}}}",
+            arguments=task.arguments
         )
 
         self.assertEqual(
@@ -751,9 +749,9 @@ implementation:
             [
                 'program',
                 '--in1-uri',
-                '{{inputs[In1].uri}}',
+                '{{kfp.output_dir}}/{{workflow.uid}}/{{inputs.parameters.In1-producer-pod-id-}}/In1',
                 '--out1-uri',
-                '{{outputs[Out1].uri}}',
+                '{{kfp.output_dir}}/{{workflow.uid}}/{{pod.name}}/Out1',
             ]
         )
 

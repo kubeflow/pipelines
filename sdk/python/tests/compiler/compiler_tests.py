@@ -1088,3 +1088,6 @@ implementation:
       parameter_arguments_json = template['metadata']['annotations']['pipelines.kubeflow.org/arguments.parameters']
       parameter_arguments = json.loads(parameter_arguments_json)
       self.assertEqual(set(parameter_arguments.keys()), {'Input 1'})
+
+  def test_uri_artifact_passing(self):
+    self._test_py_compile_yaml('uri_artifacts')

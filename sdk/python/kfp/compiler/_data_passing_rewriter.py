@@ -1,7 +1,11 @@
 import copy
 import json
+import os
 import re
-from typing import List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
+
+from kfp.components import _components
+
 
 def fix_big_data_passing(workflow: dict) -> dict:
     '''fix_big_data_passing converts a workflow where some artifact data is passed as parameters and converts it to a workflow where this data is passed as artifacts.
@@ -25,9 +29,7 @@ def fix_big_data_passing(workflow: dict) -> dict:
     3. Propagate the consumption information upstream to all inputs/outputs all the way up to the data producers.
     4. Convert the inputs, outputs and arguments based on how they're consumed downstream.
     '''
-
     workflow = copy.deepcopy(workflow)
-    templates = workflow['spec']['templates']
 
     container_templates = [template for template in workflow['spec']['templates'] if 'container' in template]
     dag_templates = [template for template in workflow['spec']['templates'] if 'dag' in template]
@@ -381,3 +383,337 @@ def deconstruct_single_placeholder(s: str) -> List[str]:
     if not re.fullmatch('{{[-._a-zA-Z0-9]+}}', s):
         return None
     return s.lstrip('{').rstrip('}').split('.')
+
+
+def _replace_output_dir_placeholder(command_line: str,
+    output_directory: Optional[str] = None) -> str:
+    """Replaces the output directory placeholder."""
+    if _components.OUTPUT_DIR_PLACEHOLDER in command_line:
+        if not output_directory:
+            raise ValueError('output_directory of a pipeline must be specified '
+                             'when URI placeholder is used.')
+        return command_line.replace(
+            _components.OUTPUT_DIR_PLACEHOLDER, output_directory)
+    return command_line
+
+
+def _refactor_outputs_if_uri_placeholder(
+    container_template: Dict[str, Any],
+    output_to_filename: Dict[str, str]
+) -> None:
+    """Rewrites the output of the container in case of URI placeholder.
+
+    Also, collects the mapping from the output names to output file name.
+
+    Args:
+        container_template: The container template structure.
+        output_to_filename: The mapping from the artifact name to the actual file
+            name of the content. This will be used later when reconciling the
+            URIs on the consumer side.
+    """
+
+    # If there's no artifact outputs then no refactor is needed.
+    if not container_template.get('outputs') or not container_template[
+        'outputs'].get('artifacts'):
+        return
+
+    parameter_outputs = container_template['outputs'].get('parameters') or []
+    new_artifact_outputs = []
+    for artifact_output in container_template['outputs']['artifacts']:
+        # Check if this is an output associated with URI placeholder based
+        # on its path.
+        if _components.OUTPUT_DIR_PLACEHOLDER in artifact_output['path']:
+            # If so, we'll add a parameter output to output the pod name
+            parameter_outputs.append(
+                {
+                    'name': _components.PRODUCER_POD_NAME_PARAMETER.format(
+                        artifact_output['name']),
+                    'value': '{{pod.name}}'
+                })
+            output_to_filename[artifact_output['name']] = os.path.basename(
+                artifact_output['path'])
+        else:
+            # Otherwise, this artifact output is preserved.
+            new_artifact_outputs.append(artifact_output)
+
+    container_template['outputs']['artifacts'] = new_artifact_outputs
+    container_template['outputs']['parameters'] = parameter_outputs
+
+
+def _refactor_inputs_if_uri_placeholder(
+    container_template: Dict[str, Any],
+    output_to_filename: Dict[str, str],
+    refactored_inputs: Dict[Tuple[str, str], str]
+) -> None:
+    """Rewrites the input of the container in case of URI placeholder.
+
+    Rewrites the artifact input of the container when it's used as a URI
+    placeholder. Also, collects the inputs being rewritten into a list, so that
+    it can be wired to correct task outputs later. Meanwhile, the filename used
+    by input URI placeholder will be reconciled with its corresponding producer.
+
+    Args:
+        container_template: The container template structure.
+        output_to_filename: The mapping from output name to the file name.
+        refactored_inputs: The mapping used to collect the input artifact being
+            refactored from (template name, previous name) to its new name.
+    """
+
+    # If there's no artifact inputs then no refactor is needed.
+    if not container_template.get('inputs') or not container_template[
+        'inputs'].get('artifacts'):
+        return
+
+    parameter_inputs = container_template['inputs'].get('parameters') or []
+    new_artifact_inputs = []
+    for artifact_input in container_template['inputs']['artifacts']:
+        # Check if this is an input artifact associated with URI placeholder,
+        # according to its path.
+        if _components.OUTPUT_DIR_PLACEHOLDER in artifact_input['path']:
+            # If so, we'll add a parameter input to receive the producer's pod
+            # name.
+            # The correct input parameter name should be parsed from the
+            # path field, which is given according to the component I/O
+            # definition.
+            m = re.match(
+                r'.*/{{workflow\.uid}}/{{inputs\.parameters\.(?P<input_name>.*)'
+                r'}}/.*',
+                artifact_input['path'])
+            input_name = m.group('input_name')
+            parameter_inputs.append({'name': input_name})
+            # Here we're using the template name + previous artifact input name
+            # as key, because it will be refactored later at the DAG level.
+            refactored_inputs[(container_template['name'],
+                               artifact_input['name'])] = input_name
+
+            # In the container implementation, the pod name is already connected
+            # to the input parameter per the implementation in _components.
+            # The only thing yet to be reconciled is the file name.
+
+            def reconcile_filename(
+                command_lines: List[str]) -> List[str]:
+                new_command_lines = []
+                for cmd in command_lines:
+                    matched = re.match(
+                        r'.*/{{workflow\.uid}}/{{inputs\.parameters\.'
+                        + input_name + r'}}/(?P<filename>.*)', cmd)
+                    if matched:
+                        new_command_lines.append(
+                            cmd[:-len(matched.group('filename'))] +
+                            output_to_filename[artifact_input['name']])
+                    else:
+                        new_command_lines.append(cmd)
+                return new_command_lines
+
+            if container_template['container'].get('args'):
+                container_template['container']['args'] = reconcile_filename(
+                    container_template['container']['args'])
+            if container_template['container'].get('command'):
+                container_template['container']['command'] = reconcile_filename(
+                    container_template['container']['command'])
+        else:
+            new_artifact_inputs.append(artifact_input)
+
+    container_template['inputs']['artifacts'] = new_artifact_inputs
+    container_template['inputs']['parameters'] = parameter_inputs
+
+
+def _refactor_dag_inputs(
+    dag_template: Dict[str, Any],
+    refactored_inputs: Dict[Tuple[str, str], str]
+) -> None:
+    """Refactors the inputs of the DAG template.
+
+    Args:
+        dag_template: The DAG template structure.
+        refactored_inputs: The mapping of template and input names to be
+            refactored, to its new name.
+    """
+    # One hacky way to do the refactoring is by looking at the name of the
+    # artifact argument. If the name appears in the refactored_inputs mapping,
+    # this should be changed to a parameter input regardless of the template
+    # name.
+    # The correctness of this approach is ensured by the data passing rewriting
+    # process that changed the artifact inputs' name to be
+    # '{{output_template}}-{{output_name}}', which is consistent across all
+    # templates.
+    if not dag_template.get('inputs', {}).get('artifacts'):
+        return
+    artifact_to_new_name = {k[1] : v for k, v in refactored_inputs.items()}
+
+    parameter_inputs = dag_template['inputs'].get('parameters') or []
+    new_artifact_inputs = []
+    for input_artifact in dag_template['inputs']['artifacts']:
+        if input_artifact['name'] in artifact_to_new_name:
+            parameter_inputs.append(
+                {'name': artifact_to_new_name[input_artifact['name']]})
+            refactored_inputs[(dag_template['name'],
+                               input_artifact['name'])] = artifact_to_new_name[
+                input_artifact['name']]
+        else:
+            new_artifact_inputs.append(input_artifact)
+    dag_template['inputs']['artifacts'] = new_artifact_inputs
+    dag_template['inputs']['parameters'] = parameter_inputs
+
+
+def _refactor_dag_template_uri_inputs(
+    dag_template: Dict[str, Any],
+    refactored_inputs: Dict[Tuple[str, str], str]
+) -> None:
+    """Refactors artifact inputs within the DAG template.
+
+    An artifact input will be changed to a parameter input if it needs to be
+    connected to the producer's pod name output. This is determined by whether
+    the input is present in refactored_inputs list, which is generated by the
+    container template refactoring process `_refactor_inputs_if_uri_placeholder`
+
+    Args:
+        dag_template: The DAG template structure.
+        refactored_inputs: The mapping of template and input names to be
+            refactored, to its new name.
+    """
+    # Traverse the tasks in the DAG, and inspect the task arguments.
+    for task in dag_template['dag'].get('tasks', []):
+        if not task.get('arguments') or not task['arguments'].get('artifacts'):
+            continue
+        artifact_args = task['arguments']['artifacts']
+        new_artifact_args = []
+        template_name = task['name']
+        parameter_args = task.get('arguments', {}).get('parameters', [])
+        for artifact_arg in artifact_args:
+            assert 'name' in artifact_arg, (
+                    'Illegal artifact format: %s' % artifact_arg)
+            if (template_name, artifact_arg['name']) in refactored_inputs:
+                # If this is an input artifact that has been refactored.
+                # It will be changed to an input parameter receiving the
+                # producer's pod name.
+                pod_parameter_name = refactored_inputs[
+                    (template_name, artifact_arg['name'])]
+
+                # There are two cases for a DAG template.
+                assert (artifact_arg.get('from', '').startswith(
+                    '{{inputs.') or artifact_arg.get('from', '').startswith(
+                    '{{tasks.')), (
+                        "Illegal 'from' found for argument %s" % artifact_arg)
+                arg_from = artifact_arg['from']
+                if arg_from.startswith('{{tasks.'):
+                    # 1. The argument to refactor is from another task in the same
+                    # DAG.
+                    task_matches = re.match(
+                        r'{{tasks\.(?P<task_name>.*)\.outputs\.artifacts'
+                        r'\.(?P<output_name>.*)}}',
+                        arg_from)
+                    task_name, output_name = task_matches.group(
+                        'task_name'), task_matches.group('output_name')
+                    parameter_args.append({
+                        'name': pod_parameter_name,
+                        'value': '{{{{tasks.{task_name}.outputs.'
+                                 'parameters.{output}}}}}'.format(
+                            task_name=task_name,
+                            output=_components.PRODUCER_POD_NAME_PARAMETER.format(
+                                output_name)
+                        )})
+                else:
+                    # 2. The assert above ensures that the argument to refactor
+                    # is from an input of the current DAG template.
+                    # Then, we'll reconnect it to the DAG input, which has been
+                    # renamed.
+                    input_matches = re.match(
+                        r'{{inputs\.artifacts\.(?P<input_name>.*)}}',
+                        arg_from)
+                    assert input_matches, (
+                            'The matched input is expected to be artifact, '
+                            'get parameter instead: %s' % arg_from)
+                    # Get the corresponding refactored name of this DAG template
+                    new_input = refactored_inputs[(
+                        dag_template['name'],
+                        input_matches.group('input_name'))]
+                    parameter_args.append({
+                        'name': pod_parameter_name,
+                        'value': '{{{{inputs.parameters.{new_input}}}}}'.format(
+                            new_input=new_input,
+                        )
+                    })
+            else:
+                # Otherwise this artifact input will be preserved
+                new_artifact_args.append(artifact_arg)
+
+        task['arguments']['artifacts'] = new_artifact_args
+        task['arguments']['parameters'] = parameter_args
+
+
+def add_pod_name_passing(
+    workflow: Dict[str, Any],
+    output_directory: Optional[str] = None) -> Dict[str, Any]:
+    """Refactors the workflow structure to pass pod names when needded.
+
+    Args:
+        workflow: The workflow structure.
+        output_directory: The specified output path.
+
+    Returns:
+        Modified workflow structure.
+
+    Raises:
+        ValueError: when uri placeholder is used in the workflow but no output
+            directory was provided.
+    """
+    workflow = copy.deepcopy(workflow)
+
+    # Sets of templates representing a container task.
+    container_templates = [template for template in
+                           workflow['spec']['templates'] if
+                           'container' in template]
+
+    # Sets of templates representing a (sub)DAG.
+    dag_templates = [template for template in
+                     workflow['spec']['templates'] if
+                     'dag' in template]
+
+    # 1. If there's an output using outputUri placeholder, then this container
+    # template needs to declare an output to pass its pod name to the downstream
+    # consumer. The name of the added output will be
+    # {{output-name}}-producer-pod-id.
+    # Also, eliminate the existing file artifact.
+    output_to_filename = {}
+    for idx, template in enumerate(container_templates):
+        _refactor_outputs_if_uri_placeholder(template, output_to_filename)
+
+    # 2. If there's an input using inputUri placeholder, then this container
+    # template needs to declare an input to receive the pod name of the producer
+    # task.
+    refactored_inputs = {}
+    for template in container_templates:
+        _refactor_inputs_if_uri_placeholder(
+            template, output_to_filename, refactored_inputs)
+
+    # For DAG templates, we need to figure out all the inputs that are
+    # eventually being refactored down to the container template level.
+    for template in dag_templates:
+        _refactor_dag_inputs(template, refactored_inputs)
+
+    # 3. In the DAG templates, wire the pod name inputs/outputs together.
+    for template in dag_templates:
+        _refactor_dag_template_uri_inputs(template, refactored_inputs)
+
+    # 4. For all the container command/args, replace {{kfp.pipeline_root}}
+    # placeholders with the actual output directory specified.
+    # Also, the file names need to be reconciled in the consumer to keep
+    # consistent with producer.
+    for template in container_templates:
+        # Process {{kfp.pipeline_root}} placeholders.
+        args = template['container'].get('args') or []
+        if args:
+            new_args = [_replace_output_dir_placeholder(arg, output_directory)
+                        for arg in args]
+            template['container']['args'] = new_args
+
+        cmds = template['container'].get('command') or []
+        if cmds:
+            new_cmds = [_replace_output_dir_placeholder(cmd, output_directory)
+                        for cmd in cmds]
+            template['container']['command'] = new_cmds
+
+    clean_up_empty_workflow_structures(workflow)
+
+    return workflow
