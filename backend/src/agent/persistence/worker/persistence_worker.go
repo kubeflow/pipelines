@@ -44,11 +44,10 @@ type EventHandler interface {
 
 // PersistenceWorker is a generic worker to persist objects from a queue.
 type PersistenceWorker struct {
-	// swfWorkqueue is a rate limited work queue. This is used to queue work to be
+	// workqueue is a rate limited work queue. This is used to queue work to be
 	// processed instead of performing it as soon as a change happens. This
 	// means we can ensure we only process a fixed amount of resources at a
-	// time, and makes it easy to ensure we are never processing the same item
-	// simultaneously in two different workers.
+	// time.
 	workqueue workqueue.RateLimitingInterface
 
 	// An interface to generate the current time.
