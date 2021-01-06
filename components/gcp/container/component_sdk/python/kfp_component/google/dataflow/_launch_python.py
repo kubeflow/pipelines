@@ -33,7 +33,8 @@ def launch_python(python_file_path, project_id, region, staging_dir=None, requir
 
     Args:
         python_file_path (str): The gcs or local path to the python file to run.
-        project_id (str): The ID of the parent project.
+        project_id (str): The ID of the GCP project to run the Dataflow job.
+        region (str): The GCP region to run the Dataflow job.
         staging_dir (str): Optional. The GCS directory for keeping staging files.
             A random subdirectory will be created under the directory to keep job info
             for resuming the job in case of failure and it will be passed as
