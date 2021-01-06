@@ -23,8 +23,11 @@ inputs:
     description: 'The gcs or local path to the python file to run.'
     type: String
   - name: project_id
-    description: 'The ID of the parent project.'
-    type: GCPProjectID
+    description: 'The ID of the GCP project to run the Dataflow job.'
+    type: String
+  - name: region
+    description: 'The GCP region to run the Dataflow job.'
+    type: String
   - name: staging_dir
     description: >-
       Optional. The GCS directory for keeping staging files.
@@ -59,6 +62,7 @@ implementation:
       kfp_component.google.dataflow, launch_python,
       --python_file_path, {inputValue: python_file_path},
       --project_id, {inputValue: project_id},
+      --region, {inputValue: region},
       --staging_dir, {inputValue: staging_dir},
       --requirements_file_path, {inputValue: requirements_file_path},
       --args, {inputValue: args},
