@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,9 +17,9 @@ from googleapiclient import errors
 
 class DataflowClient:
     def __init__(self):
-        self._df = discovery.build('dataflow', 'v1b3')
+        self._df = discovery.build('dataflow', 'v1b3', cache_discovery=False)
 
-    def launch_template(self, project_id, gcs_path, location, 
+    def launch_template(self, project_id, gcs_path, location,
         validate_only, launch_parameters):
         return self._df.projects().locations().templates().launch(
             projectId = project_id,
@@ -47,7 +47,7 @@ class DataflowClient:
             }
         ).execute()
 
-    def list_aggregated_jobs(self, project_id, filter=None, 
+    def list_aggregated_jobs(self, project_id, filter=None,
         view=None, page_size=None, page_token=None, location=None):
         return self._df.projects().jobs().aggregated(
             projectId = project_id,
