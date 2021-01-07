@@ -1,5 +1,55 @@
 # Changelog
 
+## [1.3.0](https://github.com/kubeflow/pipelines/compare/1.2.0...1.3.0) (2021-01-07)
+
+
+### Features
+
+* **backend:** Bump Go SQL driver to v1.5.0. Fixes [\#4910](https://github.com/kubeflow/pipelines/issues/4910) ([\#4911](https://github.com/kubeflow/pipelines/issues/4911)) ([aaa0779](https://github.com/kubeflow/pipelines/commit/aaa0779986fe4df8afd161455f987f34265af033))
+* **backend:** sync pipeline_spec.proto ([\#4927](https://github.com/kubeflow/pipelines/issues/4927)) ([bb0f330](https://github.com/kubeflow/pipelines/commit/bb0f33054ce217f48ccc1f02327cc8660eeb6596))
+* **compiler:** add dsl operation for parallelism on sub dag level ([\#4199](https://github.com/kubeflow/pipelines/issues/4199)) ([24732b9](https://github.com/kubeflow/pipelines/commit/24732b9dae989da56e66b332518fbc22b17c3767))
+* **frontend:** Reorganize Experiments, Runs, and Archive pages. Fixes [\#4918](https://github.com/kubeflow/pipelines/issues/4918) ([\#4919](https://github.com/kubeflow/pipelines/issues/4919)) ([c320a5d](https://github.com/kubeflow/pipelines/commit/c320a5d8fd1ecc1da2c1e54c95d6d2dc131cc346))
+* **sdk:** Implements artifact URI placeholder. ([\#4932](https://github.com/kubeflow/pipelines/issues/4932)) ([7540ba5](https://github.com/kubeflow/pipelines/commit/7540ba5c3bf003758a5c2f46ccc586a0367c4dee))
+
+
+### Bug Fixes
+
+* **backend:** fixed validation logic and resource manager logic when creating job and run ([\#4914](https://github.com/kubeflow/pipelines/issues/4914)) ([768317a](https://github.com/kubeflow/pipelines/commit/768317aee33d1c00a46637549fc2753aa357e0ab))
+* **components:** Update GCP component container to Python 3.7. Fixes [\#4959](https://github.com/kubeflow/pipelines/issues/4959)  ([\#4960](https://github.com/kubeflow/pipelines/issues/4960)) ([8463992](https://github.com/kubeflow/pipelines/commit/8463992aaafb2decefcc5527477291f4c8ccbd83))
+* **frontend:** Change CachedIcon to something more intuitive ([\#4912](https://github.com/kubeflow/pipelines/issues/4912)) ([e806f45](https://github.com/kubeflow/pipelines/commit/e806f45972a68481b8024dcf1e7fd98fd476ab96))
+* **sdk:** fixes typo of 'desc'. ([\#4938](https://github.com/kubeflow/pipelines/issues/4938)) ([e07ba45](https://github.com/kubeflow/pipelines/commit/e07ba451afefe99b9bd583d9987a95feb9a7bc2c))
+
+
+### Other Pull Requests
+
+* docs(backend)update docs of deploying apiserver ([\#4930](https://github.com/kubeflow/pipelines/issues/4930)) ([1791d8e](https://github.com/kubeflow/pipelines/commit/1791d8e185aac6136d369bdca1c504342795c5ca))
+* chore (sdk.v2): Error out on using InputPath placeholder for artifacts require importer. ([\#4929](https://github.com/kubeflow/pipelines/issues/4929)) ([a347765](https://github.com/kubeflow/pipelines/commit/a347765630579a49ed91a4ecf7392e078268f091))
+
+## [1.3.0](https://github.com/kubeflow/pipelines/compare/1.2.0...1.3.0) (2021-01-07)
+
+
+### Features
+
+* **backend:** Bump Go SQL driver to v1.5.0. Fixes [\#4910](https://github.com/kubeflow/pipelines/issues/4910) ([\#4911](https://github.com/kubeflow/pipelines/issues/4911)) ([aaa0779](https://github.com/kubeflow/pipelines/commit/aaa0779986fe4df8afd161455f987f34265af033))
+* **backend:** sync pipeline_spec.proto ([\#4927](https://github.com/kubeflow/pipelines/issues/4927)) ([bb0f330](https://github.com/kubeflow/pipelines/commit/bb0f33054ce217f48ccc1f02327cc8660eeb6596))
+* **compiler:** add dsl operation for parallelism on sub dag level ([\#4199](https://github.com/kubeflow/pipelines/issues/4199)) ([24732b9](https://github.com/kubeflow/pipelines/commit/24732b9dae989da56e66b332518fbc22b17c3767))
+* **frontend:** Reorganize Experiments, Runs, and Archive pages. Fixes [\#4918](https://github.com/kubeflow/pipelines/issues/4918) ([\#4919](https://github.com/kubeflow/pipelines/issues/4919)) ([c320a5d](https://github.com/kubeflow/pipelines/commit/c320a5d8fd1ecc1da2c1e54c95d6d2dc131cc346))
+* **sdk:** Implements artifact URI placeholder. ([\#4932](https://github.com/kubeflow/pipelines/issues/4932)) ([7540ba5](https://github.com/kubeflow/pipelines/commit/7540ba5c3bf003758a5c2f46ccc586a0367c4dee))
+
+
+### Bug Fixes
+
+* **backend:** fixed validation logic and resource manager logic when creating job and run ([\#4914](https://github.com/kubeflow/pipelines/issues/4914)) ([768317a](https://github.com/kubeflow/pipelines/commit/768317aee33d1c00a46637549fc2753aa357e0ab))
+* **components:** Update GCP component container to Python 3.7. Fixes [\#4959](https://github.com/kubeflow/pipelines/issues/4959)  ([\#4960](https://github.com/kubeflow/pipelines/issues/4960)) ([8463992](https://github.com/kubeflow/pipelines/commit/8463992aaafb2decefcc5527477291f4c8ccbd83))
+* **frontend:** Change CachedIcon to something more intuitive ([\#4912](https://github.com/kubeflow/pipelines/issues/4912)) ([e806f45](https://github.com/kubeflow/pipelines/commit/e806f45972a68481b8024dcf1e7fd98fd476ab96))
+* **sdk:** fixes typo of 'desc'. ([\#4938](https://github.com/kubeflow/pipelines/issues/4938)) ([e07ba45](https://github.com/kubeflow/pipelines/commit/e07ba451afefe99b9bd583d9987a95feb9a7bc2c))
+
+
+### Other Pull Requests
+
+* docs(backend)update docs of deploying apiserver ([\#4930](https://github.com/kubeflow/pipelines/issues/4930)) ([1791d8e](https://github.com/kubeflow/pipelines/commit/1791d8e185aac6136d369bdca1c504342795c5ca))
+* chore (sdk.v2): Error out on using InputPath placeholder for artifacts require importer. ([\#4929](https://github.com/kubeflow/pipelines/issues/4929)) ([a347765](https://github.com/kubeflow/pipelines/commit/a347765630579a49ed91a4ecf7392e078268f091))
+
 ## [1.2.0](https://github.com/kubeflow/pipelines/compare/1.1.2...1.2.0) (2020-12-18)
 
 
