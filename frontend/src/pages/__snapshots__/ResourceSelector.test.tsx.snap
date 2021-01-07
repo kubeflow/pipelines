@@ -6,6 +6,7 @@ exports[`ResourceSelector displays resource selector 1`] = `
     actions={Object {}}
     breadcrumbs={Array []}
     pageTitle="A test selector"
+    t={[Function]}
   />
   <CustomTable
     columns={
@@ -53,6 +54,7 @@ exports[`ResourceSelector displays resource selector 1`] = `
       ]
     }
     selectedIds={Array []}
+    t={[Function]}
     updateSelection={[Function]}
     useRadioButtons={true}
   />

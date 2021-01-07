@@ -21,6 +21,18 @@ import Toolbar, { ToolbarActionMap } from './Toolbar';
 import HelpIcon from '@material-ui/icons/Help';
 import InfoIcon from '@material-ui/icons/Info';
 
+jest.mock('react-i18next', () => ({
+  // this mock makes sure any components using the translate hook can use it without a warning being shown
+  withTranslation: () => (Component: { defaultProps: any }) => {
+    Component.defaultProps = { ...Component.defaultProps, t: (key: string) => key };
+    return Component;
+  },
+  useTranslation: () => {
+    return {
+      t: (key: string) => key,
+    };
+  },
+}));
 const action1 = jest.fn();
 const action2 = jest.fn();
 const actions: ToolbarActionMap = {

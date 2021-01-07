@@ -18,6 +18,14 @@ import * as React from 'react';
 import CollapseButton from './CollapseButton';
 import { shallow } from 'enzyme';
 
+jest.mock('react-i18next', () => ({
+  // this mock makes sure any components using the translate hook can use it without a warning being shown
+  withTranslation: () => (component: React.ComponentClass) => {
+    component.defaultProps = { ...component.defaultProps, t: (key: string) => key };
+    return component;
+  },
+}));
+
 describe('CollapseButton', () => {
   const compareComponent = {
     setState: jest.fn(),

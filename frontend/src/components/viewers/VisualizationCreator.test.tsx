@@ -21,10 +21,13 @@ import { PlotType } from './Viewer';
 import VisualizationCreator, { VisualizationCreatorConfig } from './VisualizationCreator';
 import { ApiVisualizationType } from '../../apis/visualization';
 import { diffHTML } from 'src/TestUtils';
+import { TFunction } from 'i18next';
+import { componentMap } from './ViewerContainer';
 
 describe('VisualizationCreator', () => {
+  let t: TFunction = (key: string) => key;
   it('does not render component when no config is provided', () => {
-    const tree = shallow(<VisualizationCreator configs={[]} />);
+    const tree = shallow(<VisualizationCreator t={t} configs={[]} />);
     expect(tree).toMatchSnapshot();
   });
 
@@ -32,7 +35,7 @@ describe('VisualizationCreator', () => {
     const config: VisualizationCreatorConfig = {
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
+    const tree = shallow(<VisualizationCreator t={t} configs={[config]} />);
     expect(tree).toMatchSnapshot();
   });
 
@@ -41,7 +44,7 @@ describe('VisualizationCreator', () => {
       onGenerate: jest.fn(),
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
+    const tree = shallow(<VisualizationCreator t={t} configs={[config]} />);
     expect(tree).toMatchSnapshot();
   });
 
@@ -50,7 +53,7 @@ describe('VisualizationCreator', () => {
       isBusy: false,
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
+    const tree = shallow(<VisualizationCreator t={t} configs={[config]} />);
     expect(tree).toMatchSnapshot();
   });
 
@@ -60,7 +63,7 @@ describe('VisualizationCreator', () => {
       onGenerate: jest.fn(),
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
+    const tree = shallow(<VisualizationCreator t={t} configs={[config]} />);
     expect(tree).toMatchSnapshot();
   });
 
@@ -70,7 +73,7 @@ describe('VisualizationCreator', () => {
       onGenerate: jest.fn(),
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
+    const tree = shallow(<VisualizationCreator t={t} configs={[config]} />);
     expect(tree).toMatchSnapshot();
   });
 
@@ -80,7 +83,7 @@ describe('VisualizationCreator', () => {
       onGenerate: jest.fn(),
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
+    const tree = shallow(<VisualizationCreator t={t} configs={[config]} />);
     tree.setState({
       // source by default is set to ''
       selectedType: ApiVisualizationType.ROCCURVE,
@@ -94,7 +97,7 @@ describe('VisualizationCreator', () => {
       onGenerate: jest.fn(),
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
+    const tree = shallow(<VisualizationCreator t={t} configs={[config]} />);
     tree.setState({
       // source by default is set to ''
       selectedType: ApiVisualizationType.CUSTOM,
@@ -108,7 +111,7 @@ describe('VisualizationCreator', () => {
       onGenerate: jest.fn(),
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
+    const tree = shallow(<VisualizationCreator t={t} configs={[config]} />);
     tree.setState({
       source: 'gs://ml-pipeline/data.csv',
     });
@@ -126,7 +129,7 @@ describe('VisualizationCreator', () => {
       onGenerate: jest.fn(),
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
+    const tree = shallow(<VisualizationCreator t={t} configs={[config]} />);
     tree.setState({
       // source by default is set to ''
       selectedType: ApiVisualizationType.ROCCURVE,
@@ -144,7 +147,7 @@ describe('VisualizationCreator', () => {
       isBusy: false,
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
+    const tree = shallow(<VisualizationCreator t={t} configs={[config]} />);
     tree.setState({
       selectedType: ApiVisualizationType.ROCCURVE,
       source: 'gs://ml-pipeline/data.csv',
@@ -163,7 +166,7 @@ describe('VisualizationCreator', () => {
       onGenerate: jest.fn(),
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
+    const tree = shallow(<VisualizationCreator t={t} configs={[config]} />);
     tree.setState({
       selectedType: ApiVisualizationType.ROCCURVE,
       source: 'gs://ml-pipeline/data.csv',
@@ -182,7 +185,7 @@ describe('VisualizationCreator', () => {
       onGenerate: jest.fn(),
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
+    const tree = shallow(<VisualizationCreator t={t} configs={[config]} />);
     tree.setState({
       selectedType: ApiVisualizationType.ROCCURVE,
       source: 'gs://ml-pipeline/data.csv',
@@ -202,7 +205,7 @@ describe('VisualizationCreator', () => {
       onGenerate,
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
+    const tree = shallow(<VisualizationCreator t={t} configs={[config]} />);
     tree.setState({
       arguments: '{}',
       selectedType: ApiVisualizationType.ROCCURVE,
@@ -222,7 +225,7 @@ describe('VisualizationCreator', () => {
       onGenerate,
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
+    const tree = shallow(<VisualizationCreator t={t} configs={[config]} />);
     tree.setState({
       arguments: '{}',
       selectedType: ApiVisualizationType.ROCCURVE,
@@ -243,7 +246,7 @@ describe('VisualizationCreator', () => {
     const config: VisualizationCreatorConfig = {
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
+    const tree = shallow(<VisualizationCreator t={t} configs={[config]} />);
     tree.setState({
       arguments: JSON.stringify({ is_generated: 'True' }),
       // selectedType is required to be set so that the argument editor
@@ -258,7 +261,7 @@ describe('VisualizationCreator', () => {
     const config: VisualizationCreatorConfig = {
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = mount(<VisualizationCreator configs={[config]} />);
+    const tree = mount(<VisualizationCreator t={t} configs={[config]} />);
     tree.setState({
       source,
     });
@@ -274,7 +277,7 @@ describe('VisualizationCreator', () => {
     const config: VisualizationCreatorConfig = {
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
+    const tree = shallow(<VisualizationCreator t={t} configs={[config]} />);
     tree.setState({
       selectedType: ApiVisualizationType.ROCCURVE,
     });
@@ -286,7 +289,7 @@ describe('VisualizationCreator', () => {
       allowCustomVisualizations: true,
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
+    const tree = shallow(<VisualizationCreator t={t} configs={[config]} />);
     expect(tree).toMatchSnapshot();
   });
 
@@ -295,7 +298,7 @@ describe('VisualizationCreator', () => {
       isBusy: true,
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
+    const tree = shallow(<VisualizationCreator t={t} configs={[config]} />);
     // toMatchSnapshot is used rather than three individual checks for the
     // disabled prop due to an issue where the Input components are not
     // selectable by tree.find().
@@ -313,7 +316,7 @@ describe('VisualizationCreator', () => {
       onGenerate: jest.fn(),
       type: PlotType.VISUALIZATION_CREATOR,
     };
-    const tree = shallow(<VisualizationCreator configs={[config]} />);
+    const tree = shallow(<VisualizationCreator t={t} configs={[config]} />);
     // Iterate through all selectable types to ensure a placeholder is set
     // for the argument editor for each type.
     for (const type of types) {
@@ -331,7 +334,7 @@ describe('VisualizationCreator', () => {
   });
 
   it('returns friendly display name', () => {
-    expect(VisualizationCreator.prototype.getDisplayName()).toBe('Visualization Creator');
+    expect((componentMap[PlotType.VISUALIZATION_CREATOR] = 'common:VisualizationCreator'));
   });
 
   it('can be configured as collapsed initially and clicks to open', () => {
@@ -341,9 +344,12 @@ describe('VisualizationCreator', () => {
       type: PlotType.VISUALIZATION_CREATOR,
       collapsedInitially: false,
     };
-    const { container: baseContainer } = render(<VisualizationCreator configs={[baseConfig]} />);
+    const { container: baseContainer } = render(
+      <VisualizationCreator t={t} configs={[baseConfig]} />,
+    );
     const { container } = render(
       <VisualizationCreator
+        t={t}
         configs={[
           {
             ...baseConfig,

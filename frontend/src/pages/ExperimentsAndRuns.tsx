@@ -23,6 +23,8 @@ import { RoutePage } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
+import { TFunction } from 'i18next';
+import { withTranslation } from 'react-i18next';
 
 export enum ExperimentsAndRunsTab {
   EXPERIMENTS = 0,
@@ -31,6 +33,7 @@ export enum ExperimentsAndRunsTab {
 
 export interface ExperimentAndRunsProps extends PageProps {
   view: ExperimentsAndRunsTab;
+  t: TFunction;
 }
 
 interface ExperimentAndRunsState {
@@ -39,14 +42,16 @@ interface ExperimentAndRunsState {
 
 class ExperimentsAndRuns extends Page<ExperimentAndRunsProps, ExperimentAndRunsState> {
   public getInitialToolbarState(): ToolbarProps {
-    return { actions: {}, breadcrumbs: [], pageTitle: '' };
+    const { t } = this.props;
+    return { actions: {}, breadcrumbs: [], pageTitle: '', t };
   }
 
   public render(): JSX.Element {
+    const { t } = this.props;
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
         <MD2Tabs
-          tabs={['All experiments', 'All runs']}
+          tabs={[t('allExperiments'), t('allRuns')]}
           selectedTab={this.props.view}
           onSwitch={this._tabSwitched.bind(this)}
         />
@@ -68,4 +73,4 @@ class ExperimentsAndRuns extends Page<ExperimentAndRunsProps, ExperimentAndRunsS
   }
 }
 
-export default ExperimentsAndRuns;
+export default withTranslation(['experiments', 'common'])(ExperimentsAndRuns);

@@ -15,9 +15,10 @@
  */
 
 import * as React from 'react';
-import Viewer, { ViewerConfig, PlotType } from './Viewer';
+import { ViewerConfig, PlotType } from './Viewer';
 import { color, commonCss, fontsize } from '../../Css';
 import { classes, stylesheet } from 'typestyle';
+import { TFunction } from 'i18next';
 
 const legendNotches = 5;
 
@@ -37,7 +38,7 @@ interface ConfusionMatrixState {
   activeCell: [number, number];
 }
 
-class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState> {
+class ConfusionMatrix extends React.Component<ConfusionMatrixProps, ConfusionMatrixState> {
   private _opacities: number[][] = [];
   private _config = this.props.configs[0];
   private _max =
@@ -193,8 +194,8 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
     }
   }
 
-  public getDisplayName(): string {
-    return 'Confusion matrix';
+  public getDisplayName(t: TFunction): string {
+    return t('common:confusionMatrix');
   }
 
   public render(): JSX.Element | null {

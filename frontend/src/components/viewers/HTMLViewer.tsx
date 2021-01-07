@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import Viewer, { ViewerConfig } from './Viewer';
+import { ViewerConfig } from './Viewer';
 import { color } from '../../Css';
 import { stylesheet } from 'typestyle';
 
@@ -28,7 +28,7 @@ interface HTMLViewerProps {
   maxDimension?: number;
 }
 
-class HTMLViewer extends Viewer<HTMLViewerProps, any> {
+class HTMLViewer extends React.Component<HTMLViewerProps, any> {
   private _iframeRef = React.createRef<HTMLIFrameElement>();
   private _config = this.props.configs[0];
 
@@ -42,10 +42,6 @@ class HTMLViewer extends Viewer<HTMLViewerProps, any> {
       width: this.props.maxDimension ? this.props.maxDimension : '100%',
     },
   });
-
-  public getDisplayName(): string {
-    return 'Static HTML';
-  }
 
   public componentDidMount(): void {
     // TODO: iframe.srcdoc doesn't work on Edge yet. It's been added, but not
@@ -76,5 +72,4 @@ class HTMLViewer extends Viewer<HTMLViewerProps, any> {
     );
   }
 }
-
 export default HTMLViewer;

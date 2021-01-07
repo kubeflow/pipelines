@@ -16,21 +16,22 @@
 
 import * as React from 'react';
 import NewPipelineVersion, { ImportMethod } from './NewPipelineVersion';
-import TestUtils from '../TestUtils';
+import TestUtils, { defaultToolbarProps } from '../TestUtils';
 import { shallow, ShallowWrapper, ReactWrapper } from 'enzyme';
-import { PageProps } from './Page';
 import { Apis } from '../lib/Apis';
 import { RoutePage, QUERY_PARAMS } from '../components/Router';
 import { ApiResourceType } from '../apis/pipeline';
 
-class TestNewPipelineVersion extends NewPipelineVersion {
-  public _pipelineSelectorClosed = super._pipelineSelectorClosed;
-  public _onDropForTest = super._onDropForTest;
-}
+jest.mock('react-i18next', () => ({
+  // this mock makes sure any components using the translate hook can use it without a warning being shown
+  withTranslation: () => (component: React.ComponentClass) => {
+    component.defaultProps = { ...component.defaultProps, t: (key: string) => key };
+    return component;
+  },
+}));
 
 describe('NewPipelineVersion', () => {
   let tree: ReactWrapper | ShallowWrapper;
-
   const historyPushSpy = jest.fn();
   const historyReplaceSpy = jest.fn();
   const updateBannerSpy = jest.fn();
@@ -75,15 +76,14 @@ describe('NewPipelineVersion', () => {
     ],
   };
 
-  function generateProps(search?: string): PageProps {
+  function generateProps(search?: string): any {
     return {
       history: { push: historyPushSpy, replace: historyReplaceSpy } as any,
       location: {
         pathname: RoutePage.NEW_PIPELINE_VERSION,
-        search: search,
-      } as any,
-      match: '' as any,
-      toolbarProps: TestNewPipelineVersion.prototype.getInitialToolbarState(),
+        search: search ?? '',
+      },
+      toolbarProps: defaultToolbarProps(),
       updateBanner: updateBannerSpy,
       updateDialog: updateDialogSpy,
       updateSnackbar: updateSnackbarSpy,
@@ -120,7 +120,7 @@ describe('NewPipelineVersion', () => {
 
   describe('switching between creating pipeline and creating pipeline version', () => {
     it('creates pipeline is default when landing from pipeline list page', () => {
-      tree = shallow(<TestNewPipelineVersion {...generateProps()} />);
+      tree = shallow(<NewPipelineVersion {...generateProps()} />);
 
       // When landing from pipeline list page, the default is to create pipeline
       expect(tree.state('newPipeline')).toBe(true);
@@ -136,7 +136,7 @@ describe('NewPipelineVersion', () => {
 
     it('creates pipeline version is default when landing from pipeline details page', () => {
       tree = shallow(
-        <TestNewPipelineVersion
+        <NewPipelineVersion
           {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`)}
         />,
       );
@@ -157,7 +157,8 @@ describe('NewPipelineVersion', () => {
   describe('creating version under an existing pipeline', () => {
     it('does not include any action buttons in the toolbar', async () => {
       tree = shallow(
-        <TestNewPipelineVersion
+        <NewPipelineVersion
+          t={(key: any) => key}
           {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`)}
         />,
       );
@@ -165,21 +166,24 @@ describe('NewPipelineVersion', () => {
 
       expect(updateToolbarSpy).toHaveBeenLastCalledWith({
         actions: {},
-        breadcrumbs: [{ displayName: 'Pipeline Versions', href: '/pipeline_versions/new' }],
-        pageTitle: 'Upload Pipeline or Pipeline Version',
+        breadcrumbs: [
+          { displayName: 'pipelines:pipelineVersions', href: '/pipeline_versions/new' },
+        ],
+        pageTitle: 'pipelines:uploadPipelineTitle',
+        t: expect.any(Function),
       });
       expect(getPipelineSpy).toHaveBeenCalledTimes(1);
     });
 
     it('allows updating pipeline version name', async () => {
       tree = shallow(
-        <TestNewPipelineVersion
+        <NewPipelineVersion
           {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`)}
         />,
       );
       await TestUtils.flushPromises();
 
-      (tree.instance() as TestNewPipelineVersion).handleChange('pipelineVersionName')({
+      (tree.instance() as any).handleChange('pipelineVersionName')({
         target: { value: 'version name' },
       });
 
@@ -189,13 +193,13 @@ describe('NewPipelineVersion', () => {
 
     it('allows updating package url', async () => {
       tree = shallow(
-        <TestNewPipelineVersion
+        <NewPipelineVersion
           {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`)}
         />,
       );
       await TestUtils.flushPromises();
 
-      (tree.instance() as TestNewPipelineVersion).handleChange('packageUrl')({
+      (tree.instance() as any).handleChange('packageUrl')({
         target: { value: 'https://dummy' },
       });
 
@@ -205,13 +209,13 @@ describe('NewPipelineVersion', () => {
 
     it('allows updating code source', async () => {
       tree = shallow(
-        <TestNewPipelineVersion
+        <NewPipelineVersion
           {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`)}
         />,
       );
       await TestUtils.flushPromises();
 
-      (tree.instance() as TestNewPipelineVersion).handleChange('codeSourceUrl')({
+      (tree.instance() as any).handleChange('codeSourceUrl')({
         target: { value: 'https://dummy' },
       });
 
@@ -221,16 +225,16 @@ describe('NewPipelineVersion', () => {
 
     it("sends a request to create a version when 'Create' is clicked", async () => {
       tree = shallow(
-        <TestNewPipelineVersion
+        <NewPipelineVersion
           {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`)}
         />,
       );
       await TestUtils.flushPromises();
 
-      (tree.instance() as TestNewPipelineVersion).handleChange('pipelineVersionName')({
+      (tree.instance() as any).handleChange('pipelineVersionName')({
         target: { value: 'test version name' },
       });
-      (tree.instance() as TestNewPipelineVersion).handleChange('packageUrl')({
+      (tree.instance() as any).handleChange('packageUrl')({
         target: { value: 'https://dummy_package_url' },
       });
       await TestUtils.flushPromises();
@@ -263,13 +267,13 @@ describe('NewPipelineVersion', () => {
 
   describe('creating new pipeline', () => {
     it('renders the new pipeline page', async () => {
-      tree = shallow(<TestNewPipelineVersion {...generateProps()} />);
+      tree = shallow(<NewPipelineVersion {...generateProps()} />);
       await TestUtils.flushPromises();
       expect(tree).toMatchSnapshot();
     });
 
     it('switches between import methods', () => {
-      tree = shallow(<TestNewPipelineVersion {...generateProps()} />);
+      tree = shallow(<NewPipelineVersion {...generateProps()} />);
 
       // Import method is URL by default
       expect(tree.state('importMethod')).toBe(ImportMethod.URL);
@@ -284,15 +288,15 @@ describe('NewPipelineVersion', () => {
     });
 
     it('creates pipeline from url', async () => {
-      tree = shallow(<TestNewPipelineVersion {...generateProps()} />);
+      tree = shallow(<NewPipelineVersion {...generateProps()} />);
 
-      (tree.instance() as TestNewPipelineVersion).handleChange('pipelineName')({
+      (tree.instance() as any).handleChange('pipelineName')({
         target: { value: 'test pipeline name' },
       });
-      (tree.instance() as TestNewPipelineVersion).handleChange('pipelineDescription')({
+      (tree.instance() as any).handleChange('pipelineDescription')({
         target: { value: 'test pipeline description' },
       });
-      (tree.instance() as TestNewPipelineVersion).handleChange('packageUrl')({
+      (tree.instance() as any).handleChange('packageUrl')({
         target: { value: 'https://dummy_package_url' },
       });
       await TestUtils.flushPromises();
@@ -318,14 +322,14 @@ describe('NewPipelineVersion', () => {
 
       // Set local file, pipeline name, pipeline description and click create
       tree.find('#localPackageBtn').simulate('change');
-      (tree.instance() as TestNewPipelineVersion).handleChange('pipelineName')({
+      (tree.instance() as any).handleChange('pipelineName')({
         target: { value: 'test pipeline name' },
       });
-      (tree.instance() as TestNewPipelineVersion).handleChange('pipelineDescription')({
+      (tree.instance() as any).handleChange('pipelineDescription')({
         target: { value: 'test pipeline description' },
       });
       const file = new File(['file contents'], 'file_name', { type: 'text/plain' });
-      (tree.instance() as TestNewPipelineVersion)._onDropForTest([file]);
+      (tree.instance() as any)._onDropForTest([file]);
       tree.find('#createNewPipelineOrVersionBtn').simulate('click');
 
       tree.update();

@@ -23,10 +23,26 @@ import { RoutePage, RouteParams } from '../components/Router';
 import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
 import { range } from 'lodash';
 import { ButtonKeys } from '../lib/Buttons';
+import { TFunction } from 'i18next';
+
+jest.mock('react-i18next', () => ({
+  // this mock makes sure any components using the translate hook can use it without a warning being shown
+  withTranslation: () => (Component: { defaultProps: any }) => {
+    Component.defaultProps = { ...Component.defaultProps, t: (key: string) => key };
+    return Component;
+  },
+  useTranslation: () => {
+    return {
+      t: (key: string) => key,
+      i18n: {
+        changeLanguage: () => new Promise(() => {}),
+      },
+    };
+  },
+}));
 
 describe('PipelineList', () => {
   let tree: ReactWrapper | ShallowWrapper;
-
   let updateBannerSpy: jest.Mock<{}>;
   let updateDialogSpy: jest.Mock<{}>;
   let updateSnackbarSpy: jest.Mock<{}>;
@@ -35,6 +51,7 @@ describe('PipelineList', () => {
   let listPipelineVersionsSpy: jest.SpyInstance<{}>;
   let deletePipelineSpy: jest.SpyInstance<{}>;
   let deletePipelineVersionSpy: jest.SpyInstance<{}>;
+  let t: TFunction = (key: string) => key;
 
   function spyInit() {
     updateBannerSpy = jest.fn();
@@ -49,7 +66,7 @@ describe('PipelineList', () => {
 
   function generateProps(): PageProps {
     return TestUtils.generatePageProps(
-      PipelineList,
+      PipelineList as any,
       '' as any,
       '' as any,
       null,
@@ -57,6 +74,7 @@ describe('PipelineList', () => {
       updateDialogSpy,
       updateToolbarSpy,
       updateSnackbarSpy,
+      { t },
     );
   }
 
@@ -161,7 +179,7 @@ describe('PipelineList', () => {
     await refreshBtn!.action();
     expect(listPipelinesSpy.mock.calls.length).toBe(2);
     expect(listPipelinesSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
-    expect(updateBannerSpy).toHaveBeenLastCalledWith({});
+    expect(updateBannerSpy).toHaveBeenLastCalledWith({ t });
   });
 
   it('shows error banner when listing pipelines fails', async () => {
@@ -172,7 +190,7 @@ describe('PipelineList', () => {
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'bad stuff happened',
-        message: 'Error: failed to retrieve list of pipelines. Click Details for more information.',
+        message: 'pipelineListError common:clickDetails',
         mode: 'error',
       }),
     );
@@ -190,7 +208,7 @@ describe('PipelineList', () => {
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'bad stuff happened',
-        message: 'Error: failed to retrieve list of pipelines. Click Details for more information.',
+        message: 'pipelineListError common:clickDetails',
         mode: 'error',
       }),
     );
@@ -205,7 +223,7 @@ describe('PipelineList', () => {
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'bad stuff happened',
-        message: 'Error: failed to retrieve list of pipelines. Click Details for more information.',
+        message: 'pipelineListError common:clickDetails',
         mode: 'error',
       }),
     );
@@ -215,7 +233,7 @@ describe('PipelineList', () => {
     listPipelinesSpy.mockImplementationOnce(() => ({ pipelines: [{ name: 'pipeline1' }] }));
     await refreshBtn!.action();
     expect(listPipelinesSpy.mock.calls.length).toBe(2);
-    expect(updateBannerSpy).toHaveBeenLastCalledWith({});
+    expect(updateBannerSpy).toHaveBeenLastCalledWith({ t });
   });
 
   it('renders pipeline names as links to their details pages', async () => {
@@ -285,7 +303,7 @@ describe('PipelineList', () => {
     ];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
-    expect(call).toHaveProperty('title', 'Delete 1 pipeline?');
+    expect(call).toHaveProperty('title', 'common:delete 1 common:pipeline?');
   });
 
   it('shows delete dialog when delete button is clicked, indicating several pipelines to delete', async () => {
@@ -307,7 +325,7 @@ describe('PipelineList', () => {
     ];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
-    expect(call).toHaveProperty('title', 'Delete 3 pipelines?');
+    expect(call).toHaveProperty('title', 'common:delete 3 common:pipelines?');
   });
 
   it('does not call delete API for selected pipeline when delete dialog is canceled', async () => {
@@ -321,7 +339,7 @@ describe('PipelineList', () => {
     ];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
-    const cancelBtn = call.buttons.find((b: any) => b.text === 'Cancel');
+    const cancelBtn = call.buttons.find((b: any) => b.text === 'common:cancel');
     await cancelBtn.onClick();
     expect(deletePipelineSpy).not.toHaveBeenCalled();
   });
@@ -337,7 +355,7 @@ describe('PipelineList', () => {
     ];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
-    const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'common:delete');
     await confirmBtn.onClick();
     expect(deletePipelineSpy).toHaveBeenLastCalledWith('test-pipeline-id0');
   });
@@ -355,8 +373,9 @@ describe('PipelineList', () => {
     ];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
-    const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'common:delete');
     await confirmBtn.onClick();
+    tree.state();
     expect(tree.state()).toHaveProperty('selectedIds', []);
   });
 
@@ -377,7 +396,7 @@ describe('PipelineList', () => {
     ];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
-    const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'common:delete');
     await confirmBtn.onClick();
     expect(tree.state()).toHaveProperty('selectedIds', []);
   });
@@ -401,7 +420,7 @@ describe('PipelineList', () => {
     ];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
-    const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'common:delete');
     await confirmBtn.onClick();
     expect(deletePipelineSpy).toHaveBeenCalledTimes(3);
     expect(deletePipelineSpy).toHaveBeenCalledWith('test-pipeline-id0');
@@ -421,10 +440,10 @@ describe('PipelineList', () => {
     ];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
-    const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'common:delete');
     await confirmBtn.onClick();
     expect(updateSnackbarSpy).toHaveBeenLastCalledWith({
-      message: 'Deletion succeeded for 1 pipeline',
+      message: 'common:deletionSucceeded 1 common:pipeline',
       open: true,
     });
   });
@@ -441,12 +460,12 @@ describe('PipelineList', () => {
     ];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
-    const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'common:delete');
     await confirmBtn.onClick();
     const lastCall = updateDialogSpy.mock.calls[1][0];
     expect(lastCall).toMatchObject({
-      content: 'Failed to delete pipeline: test-pipeline-id0 with error: "woops, failed"',
-      title: 'Failed to delete some pipelines and/or some pipeline versions',
+      content: 'common:deletePipelineFailed: test-pipeline-id0 common:withError: "woops, failed"',
+      title: 'common:deleteSomePipelinesFailed',
     });
   });
 
@@ -481,21 +500,21 @@ describe('PipelineList', () => {
     ];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
-    const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'common:delete');
     await confirmBtn.onClick();
     // Should show only one error dialog for both pipelines (plus once for confirmation)
     expect(updateDialogSpy).toHaveBeenCalledTimes(2);
     const lastCall = updateDialogSpy.mock.calls[1][0];
     expect(lastCall).toMatchObject({
       content:
-        'Failed to delete pipeline: test-pipeline-id0 with error: "woops, failed!"\n\n' +
-        'Failed to delete pipeline: test-pipeline-id1 with error: "woops, failed!"',
-      title: 'Failed to delete some pipelines and/or some pipeline versions',
+        'common:deletePipelineFailed: test-pipeline-id0 common:withError: "woops, failed!"\n\n' +
+        'common:deletePipelineFailed: test-pipeline-id1 common:withError: "woops, failed!"',
+      title: 'common:deleteSomePipelinesFailed',
     });
 
     // Should show snackbar for the one successful deletion
     expect(updateSnackbarSpy).toHaveBeenLastCalledWith({
-      message: 'Deletion succeeded for 2 pipelines',
+      message: 'common:deletionSucceeded 2 common:pipelines',
       open: true,
     });
   });
@@ -541,7 +560,7 @@ describe('PipelineList', () => {
     ];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
-    const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'common:delete');
     await confirmBtn.onClick();
 
     await deletePipelineSpy;
@@ -558,7 +577,7 @@ describe('PipelineList', () => {
 
     // Should show snackbar for the one successful deletion
     expect(updateSnackbarSpy).toHaveBeenLastCalledWith({
-      message: 'Deletion succeeded for 1 pipeline and 1 pipeline version',
+      message: 'common:deletionSucceeded 1 common:pipeline common:and 1 common:pipelineVersion',
       open: true,
     });
   });

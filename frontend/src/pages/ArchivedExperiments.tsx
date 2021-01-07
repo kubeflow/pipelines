@@ -23,9 +23,12 @@ import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
+import { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 interface ArchivedExperimentsProp {
   namespace?: string;
+  t: TFunction;
 }
 
 interface ArchivedExperimentsState {}
@@ -35,10 +38,12 @@ export class ArchivedExperiments extends Page<ArchivedExperimentsProp, ArchivedE
 
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
+    const { t } = this.props;
     return {
       actions: buttons.refresh(this.refresh.bind(this)).getToolbarActionMap(),
       breadcrumbs: [],
-      pageTitle: 'Archive',
+      pageTitle: t('common:archive'),
+      t,
     };
   }
 
@@ -66,7 +71,8 @@ export class ArchivedExperiments extends Page<ArchivedExperimentsProp, ArchivedE
 
 const EnhancedArchivedExperiments = (props: PageProps) => {
   const namespace = React.useContext(NamespaceContext);
-  return <ArchivedExperiments key={namespace} {...props} namespace={namespace} />;
+  const { t } = useTranslation('common');
+  return <ArchivedExperiments key={namespace} {...props} namespace={namespace} t={t} />;
 };
 
 export default EnhancedArchivedExperiments;

@@ -22,6 +22,7 @@ import { Router as ReactRouter } from 'react-router';
 import { Page } from '../pages/Page';
 import { ToolbarProps } from './Toolbar';
 import { createMemoryHistory } from 'history';
+import { TFunction } from 'i18next';
 
 describe('Router', () => {
   it('initial render', () => {

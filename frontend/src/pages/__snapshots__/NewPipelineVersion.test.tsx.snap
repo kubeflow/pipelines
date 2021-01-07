@@ -18,7 +18,7 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
           />
         }
         id="createNewPipelineBtn"
-        label="Create a new pipeline"
+        label="createPipeline"
         onChange={[Function]}
       />
       <WithStyles(WithFormControlContext(FormControlLabel))
@@ -29,14 +29,14 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
           />
         }
         id="createPipelineVersionUnderExistingPipelineBtn"
-        label="Create a new pipeline version under an existing pipeline"
+        label="createPipelineVersion"
         onChange={[Function]}
       />
     </div>
     <div
       className="explanation"
     >
-      Upload pipeline with the specified package.
+      common:uploadPipeline
     </div>
     <Input
       autoFocus={true}
@@ -46,7 +46,7 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
           "current": null,
         }
       }
-      label="Pipeline Name"
+      label="pipelineNameCaps"
       onChange={[Function]}
       required={true}
       value=""
@@ -60,7 +60,7 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
           "current": null,
         }
       }
-      label="Pipeline Description"
+      label="pipelineDescription"
       onChange={[Function]}
       required={true}
       value=""
@@ -69,9 +69,20 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
     <div
       className=""
     >
-      URL must be publicly accessible.
+      urlPublic
     </div>
-    <DocumentationCompilePipeline />
+    <div
+      className=""
+    >
+      expectedFileFormat
+       
+      <ExternalLink
+        href="https://www.kubeflow.org/docs/pipelines/sdk/build-component/#compile-the-pipeline"
+      >
+        compilePipelineDoc
+      </ExternalLink>
+      .
+    </div>
     <div
       className="flex"
     >
@@ -83,7 +94,7 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
           />
         }
         id="localPackageBtn"
-        label="Upload a file"
+        label="common:uploadFile"
         onChange={[Function]}
       />
       <n
@@ -128,7 +139,7 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
                     }
                   }
                 >
-                  Choose file
+                  common:chooseFile
                 </WithStyles(Button)>
               </WithStyles(InputAdornment)>,
               "readOnly": true,
@@ -139,7 +150,7 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
             }
           }
           disabled={true}
-          label="File"
+          label="common:file"
           onChange={[Function]}
           required={true}
           value=""
@@ -158,13 +169,13 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
           />
         }
         id="remotePackageBtn"
-        label="Import by url"
+        label="importByUrl"
         onChange={[Function]}
       />
       <Input
         disabled={false}
         id="pipelinePackageUrl"
-        label="Package Url"
+        label="packageUrl"
         multiline={true}
         onChange={[Function]}
         style={
@@ -179,7 +190,7 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
     </div>
     <Input
       id="pipelineVersionCodeSource"
-      label="Code Source (optional)"
+      label="codeSource"
       multiline={true}
       onChange={[Function]}
       value=""
@@ -194,18 +205,18 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
         disabled={true}
         id="createNewPipelineOrVersionBtn"
         onClick={[Function]}
-        title="Create"
+        title="common:create"
       />
       <WithStyles(Button)
         id="cancelNewPipelineOrVersionBtn"
         onClick={[Function]}
       >
-        Cancel
+        common:cancel
       </WithStyles(Button)>
       <div
         className="errorMessage"
       >
-        Must specify either package url  or file in .yaml, .zip, or .tar.gz
+        mustSpecifyUrlFileError
       </div>
     </div>
   </div>

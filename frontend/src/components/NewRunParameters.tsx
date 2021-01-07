@@ -23,11 +23,14 @@ import { ApiParameter } from '../apis/pipeline';
 import { classes, stylesheet } from 'typestyle';
 import { color, spacing } from '../Css';
 import Editor from './Editor';
+import { TFunction } from 'i18next';
+import { withTranslation } from 'react-i18next';
 
 export interface NewRunParametersProps {
   initialParams: ApiParameter[];
   titleMessage: string;
   handleParamChange: (index: number, value: string) => void;
+  t: TFunction;
 }
 
 const css = stylesheet({
@@ -56,11 +59,11 @@ const css = stylesheet({
 
 class NewRunParameters extends React.Component<NewRunParametersProps> {
   public render(): JSX.Element | null {
-    const { handleParamChange, initialParams, titleMessage } = this.props;
+    const { handleParamChange, initialParams, titleMessage, t } = this.props;
 
     return (
       <div>
-        <div className={commonCss.header}>Run parameters</div>
+        <div className={commonCss.header}>{t('runParams')}</div>
         <div>{titleMessage}</div>
         {!!initialParams.length && (
           <div>
@@ -71,6 +74,7 @@ class NewRunParameters extends React.Component<NewRunParametersProps> {
                   id={`newRunPipelineParam${i}`}
                   onChange={(value: string) => handleParamChange(i, value)}
                   param={param}
+                  t={t}
                 />
               );
             })}
@@ -85,6 +89,7 @@ interface ParamEditorProps {
   id: string;
   onChange: (value: string) => void;
   param: ApiParameter;
+  t: TFunction;
 }
 
 interface ParamEditorState {
@@ -122,7 +127,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
   };
 
   public render(): JSX.Element | null {
-    const { id, onChange, param } = this.props;
+    const { id, onChange, param, t } = this.props;
 
     const onClick = () => {
       if (this.state.isInJsonForm) {
@@ -154,7 +159,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
               endAdornment: (
                 <InputAdornment position='end'>
                   <Button className={css.button} color='secondary' onClick={onClick}>
-                    {this.state.isEditorOpen ? 'Close Json Editor' : 'Open Json Editor'}
+                    {this.state.isEditorOpen ? t('closeJsonEditor') : t('openJsonEditor')}
                   </Button>
                 </InputAdornment>
               ),
@@ -192,4 +197,4 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
   }
 }
 
-export default NewRunParameters;
+export default withTranslation('experiments')(NewRunParameters);

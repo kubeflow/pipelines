@@ -22,12 +22,13 @@ export enum TriggerType {
 }
 
 export enum PeriodicInterval {
-  MINUTE = 'Minute',
-  HOUR = 'Hour',
-  DAY = 'Day',
-  WEEK = 'Week',
-  MONTH = 'Month',
+  MINUTE = 'experiments:periodicIntervalEnum.minute',
+  HOUR = 'experiments:periodicIntervalEnum.hour',
+  DAY = 'experiments:periodicIntervalEnum.day',
+  WEEK = 'experiments:periodicIntervalEnum.week',
+  MONTH = 'experiments:periodicIntervalEnum.month',
 }
+
 const INTERVAL_SECONDS = {
   [PeriodicInterval.MINUTE]: 60,
   [PeriodicInterval.HOUR]: 60 * 60,
@@ -44,8 +45,8 @@ const PERIODIC_INTERVAL_DESCENDING = [
 ];
 
 export const triggers = new Map<TriggerType, { displayName: string }>([
-  [TriggerType.INTERVALED, { displayName: 'Periodic' }],
-  [TriggerType.CRON, { displayName: 'Cron' }],
+  [TriggerType.INTERVALED, { displayName: 'experiments:triggerTypeEnum.periodic' }],
+  [TriggerType.CRON, { displayName: 'experiments:triggerTypeEnum.cron' }],
 ]);
 
 export function getPeriodInSeconds(interval: PeriodicInterval, count: number): number {
@@ -281,6 +282,7 @@ export function triggerDisplayString(trigger?: ApiTrigger): string {
       const minutes = Math.floor((+intervalSecond % secInHour) / secInMin);
       const seconds = Math.floor(+intervalSecond % secInMin);
       let interval = 'Every';
+
       if (months) {
         interval += ` ${months} months,`;
       }

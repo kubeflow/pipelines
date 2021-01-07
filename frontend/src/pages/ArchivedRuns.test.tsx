@@ -22,6 +22,7 @@ import { RunStorageState } from '../apis/run';
 import { ShallowWrapper, shallow } from 'enzyme';
 import { ButtonKeys } from '../lib/Buttons';
 import { Apis } from '../lib/Apis';
+import { TFunction } from 'i18next';
 
 describe('ArchivedRuns', () => {
   const updateBannerSpy = jest.fn();
@@ -31,6 +32,7 @@ describe('ArchivedRuns', () => {
   const updateDialogSpy = jest.fn();
   const updateSnackbarSpy = jest.fn();
   let tree: ShallowWrapper;
+  let t: TFunction = (key: string) => key;
 
   function generateProps(): PageProps {
     return TestUtils.generatePageProps(
@@ -42,6 +44,7 @@ describe('ArchivedRuns', () => {
       updateDialogSpy,
       updateToolbarSpy,
       updateSnackbarSpy,
+      { t },
     );
   }
 
@@ -69,7 +72,7 @@ describe('ArchivedRuns', () => {
   it('removes error banner on unmount', () => {
     tree = shallow(<ArchivedRuns {...generateProps()} />);
     tree.unmount();
-    expect(updateBannerSpy).toHaveBeenCalledWith({});
+    expect(updateBannerSpy).toHaveBeenCalledWith({ t });
   });
 
   it('enables restore and delete button when at least one run is selected', () => {
@@ -123,13 +126,13 @@ describe('ArchivedRuns', () => {
     expect(updateDialogSpy).toHaveBeenCalledTimes(1);
     expect(updateDialogSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        content: 'Do you want to delete the selected runs? This action cannot be undone.',
+        content: 'common:deleteSelectedRuns',
       }),
     );
 
     // Cancel deletion.
     const call = updateDialogSpy.mock.calls[0][0];
-    const cancelBtn = call.buttons.find((b: any) => b.text === 'Cancel');
+    const cancelBtn = call.buttons.find((b: any) => b.text === 'common:cancel');
     await cancelBtn.onClick();
     expect(deleteRunSpy).not.toHaveBeenCalled();
   });
@@ -152,13 +155,13 @@ describe('ArchivedRuns', () => {
     expect(updateDialogSpy).toHaveBeenCalledTimes(1);
     expect(updateDialogSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        content: 'Do you want to delete the selected runs? This action cannot be undone.',
+        content: 'common:deleteSelectedRuns',
       }),
     );
 
     // Confirm.
     const call = updateDialogSpy.mock.calls[0][0];
-    const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'common:delete');
     await confirmBtn.onClick();
     await deleteRunSpy;
     await TestUtils.flushPromises();

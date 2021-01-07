@@ -10,17 +10,19 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
     <div
       className="header"
     >
-      Run details
+      runDetails
     </div>
     <div>
       <span>
-        Using pipeline from previous page
+        usePipelinePrevPage
       </span>
       <Link
         replace={false}
         to="/pipelines/details/?fromRun=some-mock-run-id"
       >
-        [View pipeline]
+        [
+        viewPipeline
+        ]
       </Link>
     </div>
     <WithStyles(Dialog)
@@ -44,23 +46,23 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Pipeline name",
+                "label": "common:pipelineName",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
                 "flex": 2,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Uploaded on",
+                "label": "common:uploadedOn",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No pipelines found. Upload a pipeline and then try again."
-          filterLabel="Filter pipelines"
+          emptyMessage="common:noPipelinesFoundTryAgain"
+          filterLabel="common:filterPipelines"
           history={
             Object {
               "push": [MockFunction],
@@ -73,11 +75,13 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
             Object {
               "pathname": "/runs/new",
               "search": "?fromRun=some-mock-run-id",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose a pipeline"
+          t={[Function]}
+          title="common:choosePipeline"
           toolbarActionMap={
             Object {
               "uploadPipeline": Object {
@@ -88,8 +92,8 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
                 "style": Object {
                   "minWidth": 160,
                 },
-                "title": "Upload pipeline",
-                "tooltip": "Upload pipeline",
+                "title": "common:uploadPipeline",
+                "tooltip": "common:uploadPipeline",
               },
             }
           }
@@ -98,11 +102,12 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -117,7 +122,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
           id="cancelPipelineSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -125,7 +130,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
           id="usePipelineBtn"
           onClick={[Function]}
         >
-          Use this pipeline
+          common:usePipeline
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
@@ -150,23 +155,23 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
               Object {
                 "customRenderer": [Function],
                 "flex": 2,
-                "label": "Version name",
+                "label": "common:versionName",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Uploaded on",
+                "label": "common:uploadedOn",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No pipeline versions found. Select or upload a pipeline then try again."
-          filterLabel="Filter pipeline versions"
+          emptyMessage="noPipelineVersionsFoundTryAgain"
+          filterLabel="filterPipelineVersions"
           history={
             Object {
               "push": [MockFunction],
@@ -179,11 +184,13 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
             Object {
               "pathname": "/runs/new",
               "search": "?fromRun=some-mock-run-id",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose a pipeline version"
+          t={[Function]}
+          title="choosePipelineVersion"
           toolbarActionMap={
             Object {
               "uploadPipeline": Object {
@@ -194,8 +201,8 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
                 "style": Object {
                   "minWidth": 160,
                 },
-                "title": "Upload pipeline",
-                "tooltip": "Upload pipeline",
+                "title": "common:uploadPipeline",
+                "tooltip": "common:uploadPipeline",
               },
             }
           }
@@ -204,11 +211,12 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -223,7 +231,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
           id="cancelPipelineVersionSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -231,13 +239,14 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
           id="usePipelineVersionBtn"
           onClick={[Function]}
         >
-          Use this pipeline version
+          usePipelineVersion
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <UploadPipelineDialog
       onClose={[Function]}
       open={false}
+      t={[Function]}
     />
     <WithStyles(Dialog)
       PaperProps={
@@ -260,22 +269,22 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Experiment name",
+                "label": "experimentName",
                 "sortKey": "name",
               },
               Object {
                 "flex": 2,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Created at",
+                "label": "common:createdAt",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No experiments found. Create an experiment and then try again."
-          filterLabel="Filter experiments"
+          emptyMessage="noExperimentsFoundTryAgain"
+          filterLabel="filterExperiments"
           history={
             Object {
               "push": [MockFunction],
@@ -288,21 +297,24 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
             Object {
               "pathname": "/runs/new",
               "search": "?fromRun=some-mock-run-id",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose an experiment"
+          t={[Function]}
+          title="chooseExperiment"
           toolbarProps={
             Object {
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -317,7 +329,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
           id="cancelExperimentSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -325,27 +337,27 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
           id="useExperimentBtn"
           onClick={[Function]}
         >
-          Use this experiment
+          useExperiment
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <Input
       autoFocus={true}
-      label="Run name"
+      label="runName"
       onChange={[Function]}
       required={true}
       value=""
       variant="outlined"
     />
     <Input
-      label="Description (optional)"
+      label="common:descriptionOptional"
       multiline={true}
       onChange={[Function]}
       value=""
       variant="outlined"
     />
     <div>
-      This run will be associated with the following experiment
+      runAssociatedWithExperiment
     </div>
     <Input
       InputProps={
@@ -367,39 +379,39 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Experiment"
+      label="common:experiment"
       required={true}
       value=""
       variant="outlined"
     />
     <div>
-      This run will use the following Kubernetes service account.
+      runUsesKubernetesAccount
        
       <HelpButton
         helpText={
           <div>
-            Note, the service account needs
+            noteAccountNeeds
              
             <ExternalLink
               href="https://github.com/argoproj/argo/blob/v2.3.0/docs/workflow-rbac.md"
             >
-              minimum permissions required by argo workflows
+              minPermissionsArgoWorkflow
             </ExternalLink>
              
-            and extra permissions the specific task requires.
+            extraPermissionsRequired
           </div>
         }
       />
     </div>
     <Input
-      label="Service Account (Optional)"
+      label="serviceAccountOptional"
       onChange={[Function]}
       value=""
       variant="outlined"
@@ -407,7 +419,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
     <div
       className="header"
     >
-      Run Type
+      runType
     </div>
     <WithStyles(WithFormControlContext(FormControlLabel))
       checked={true}
@@ -417,7 +429,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
         />
       }
       id="oneOffToggle"
-      label="One-off"
+      label="oneOff"
       onChange={[Function]}
     />
     <WithStyles(WithFormControlContext(FormControlLabel))
@@ -428,13 +440,14 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
         />
       }
       id="recurringToggle"
-      label="Recurring"
+      label="recurring"
       onChange={[Function]}
     />
     <NewRunParameters
       handleParamChange={[Function]}
       initialParams={Array []}
-      titleMessage="This pipeline has no parameters"
+      t={[Function]}
+      titleMessage="noParams"
     />
     <div
       className="flex"
@@ -445,13 +458,13 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
         disabled={true}
         id="startNewRunBtn"
         onClick={[Function]}
-        title="Start"
+        title="common:start"
       />
       <WithStyles(Button)
         id="exitNewRunPageBtn"
         onClick={[Function]}
       >
-        Cancel
+        common:cancel
       </WithStyles(Button)>
       <div
         className=""
@@ -461,7 +474,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
           }
         }
       >
-        Run name is required
+        runNameRequired
       </div>
     </div>
   </div>
@@ -478,7 +491,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
     <div
       className="header"
     >
-      Run details
+      runDetails
     </div>
     <Input
       InputProps={
@@ -500,14 +513,14 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Pipeline"
+      label="common:pipeline"
       required={true}
       value=""
       variant="outlined"
@@ -532,14 +545,14 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Pipeline Version"
+      label="common:pipelineVersion"
       required={true}
       value=""
       variant="outlined"
@@ -565,23 +578,23 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Pipeline name",
+                "label": "common:pipelineName",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
                 "flex": 2,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Uploaded on",
+                "label": "common:uploadedOn",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No pipelines found. Upload a pipeline and then try again."
-          filterLabel="Filter pipelines"
+          emptyMessage="common:noPipelinesFoundTryAgain"
+          filterLabel="common:filterPipelines"
           history={
             Object {
               "push": [MockFunction],
@@ -594,11 +607,13 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
             Object {
               "pathname": "/runs/new",
               "search": "?experimentId=some-mock-experiment-id&firstRunInExperiment=1",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose a pipeline"
+          t={[Function]}
+          title="common:choosePipeline"
           toolbarActionMap={
             Object {
               "uploadPipeline": Object {
@@ -609,8 +624,8 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
                 "style": Object {
                   "minWidth": 160,
                 },
-                "title": "Upload pipeline",
-                "tooltip": "Upload pipeline",
+                "title": "common:uploadPipeline",
+                "tooltip": "common:uploadPipeline",
               },
             }
           }
@@ -619,11 +634,12 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -638,7 +654,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
           id="cancelPipelineSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -646,7 +662,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
           id="usePipelineBtn"
           onClick={[Function]}
         >
-          Use this pipeline
+          common:usePipeline
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
@@ -671,23 +687,23 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
               Object {
                 "customRenderer": [Function],
                 "flex": 2,
-                "label": "Version name",
+                "label": "common:versionName",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Uploaded on",
+                "label": "common:uploadedOn",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No pipeline versions found. Select or upload a pipeline then try again."
-          filterLabel="Filter pipeline versions"
+          emptyMessage="noPipelineVersionsFoundTryAgain"
+          filterLabel="filterPipelineVersions"
           history={
             Object {
               "push": [MockFunction],
@@ -700,11 +716,13 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
             Object {
               "pathname": "/runs/new",
               "search": "?experimentId=some-mock-experiment-id&firstRunInExperiment=1",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose a pipeline version"
+          t={[Function]}
+          title="choosePipelineVersion"
           toolbarActionMap={
             Object {
               "uploadPipeline": Object {
@@ -715,8 +733,8 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
                 "style": Object {
                   "minWidth": 160,
                 },
-                "title": "Upload pipeline",
-                "tooltip": "Upload pipeline",
+                "title": "common:uploadPipeline",
+                "tooltip": "common:uploadPipeline",
               },
             }
           }
@@ -725,11 +743,12 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -744,7 +763,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
           id="cancelPipelineVersionSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -752,13 +771,14 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
           id="usePipelineVersionBtn"
           onClick={[Function]}
         >
-          Use this pipeline version
+          usePipelineVersion
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <UploadPipelineDialog
       onClose={[Function]}
       open={false}
+      t={[Function]}
     />
     <WithStyles(Dialog)
       PaperProps={
@@ -781,22 +801,22 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Experiment name",
+                "label": "experimentName",
                 "sortKey": "name",
               },
               Object {
                 "flex": 2,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Created at",
+                "label": "common:createdAt",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No experiments found. Create an experiment and then try again."
-          filterLabel="Filter experiments"
+          emptyMessage="noExperimentsFoundTryAgain"
+          filterLabel="filterExperiments"
           history={
             Object {
               "push": [MockFunction],
@@ -809,21 +829,24 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
             Object {
               "pathname": "/runs/new",
               "search": "?experimentId=some-mock-experiment-id&firstRunInExperiment=1",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose an experiment"
+          t={[Function]}
+          title="chooseExperiment"
           toolbarProps={
             Object {
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -838,7 +861,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
           id="cancelExperimentSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -846,27 +869,27 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
           id="useExperimentBtn"
           onClick={[Function]}
         >
-          Use this experiment
+          useExperiment
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <Input
       autoFocus={true}
-      label="Run name"
+      label="runName"
       onChange={[Function]}
       required={true}
       value=""
       variant="outlined"
     />
     <Input
-      label="Description (optional)"
+      label="common:descriptionOptional"
       multiline={true}
       onChange={[Function]}
       value=""
       variant="outlined"
     />
     <div>
-      This run will be associated with the following experiment
+      runAssociatedWithExperiment
     </div>
     <Input
       InputProps={
@@ -888,39 +911,39 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Experiment"
+      label="common:experiment"
       required={true}
       value="some mock experiment name"
       variant="outlined"
     />
     <div>
-      This run will use the following Kubernetes service account.
+      runUsesKubernetesAccount
        
       <HelpButton
         helpText={
           <div>
-            Note, the service account needs
+            noteAccountNeeds
              
             <ExternalLink
               href="https://github.com/argoproj/argo/blob/v2.3.0/docs/workflow-rbac.md"
             >
-              minimum permissions required by argo workflows
+              minPermissionsArgoWorkflow
             </ExternalLink>
              
-            and extra permissions the specific task requires.
+            extraPermissionsRequired
           </div>
         }
       />
     </div>
     <Input
-      label="Service Account (Optional)"
+      label="serviceAccountOptional"
       onChange={[Function]}
       value=""
       variant="outlined"
@@ -928,7 +951,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
     <div
       className="header"
     >
-      Run Type
+      runType
     </div>
     <WithStyles(WithFormControlContext(FormControlLabel))
       checked={true}
@@ -938,7 +961,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
         />
       }
       id="oneOffToggle"
-      label="One-off"
+      label="oneOff"
       onChange={[Function]}
     />
     <WithStyles(WithFormControlContext(FormControlLabel))
@@ -949,13 +972,14 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
         />
       }
       id="recurringToggle"
-      label="Recurring"
+      label="recurring"
       onChange={[Function]}
     />
     <NewRunParameters
       handleParamChange={[Function]}
       initialParams={Array []}
-      titleMessage="Parameters will appear after you select a pipeline"
+      t={[Function]}
+      titleMessage="parametersAppearSelectPipeline"
     />
     <div
       className="flex"
@@ -966,13 +990,13 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
         disabled={true}
         id="startNewRunBtn"
         onClick={[Function]}
-        title="Start"
+        title="common:start"
       />
       <WithStyles(Button)
         id="exitNewRunPageBtn"
         onClick={[Function]}
       >
-        Skip this step
+        skipStep
       </WithStyles(Button)>
       <div
         className=""
@@ -982,7 +1006,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
           }
         }
       >
-        A pipeline version must be selected
+        pipelineVersionSelected
       </div>
     </div>
   </div>
@@ -999,7 +1023,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
     <div
       className="header"
     >
-      Run details
+      runDetails
     </div>
     <Input
       InputProps={
@@ -1021,14 +1045,14 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Pipeline"
+      label="common:pipeline"
       required={true}
       value=""
       variant="outlined"
@@ -1053,14 +1077,14 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Pipeline Version"
+      label="common:pipelineVersion"
       required={true}
       value=""
       variant="outlined"
@@ -1086,23 +1110,23 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Pipeline name",
+                "label": "common:pipelineName",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
                 "flex": 2,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Uploaded on",
+                "label": "common:uploadedOn",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No pipelines found. Upload a pipeline and then try again."
-          filterLabel="Filter pipelines"
+          emptyMessage="common:noPipelinesFoundTryAgain"
+          filterLabel="common:filterPipelines"
           history={
             Object {
               "push": [MockFunction],
@@ -1114,12 +1138,14 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
           location={
             Object {
               "pathname": "/runs/new",
-              "search": "?experimentId=some-mock-experiment-id",
+              "search": "",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose a pipeline"
+          t={[Function]}
+          title="common:choosePipeline"
           toolbarActionMap={
             Object {
               "uploadPipeline": Object {
@@ -1130,8 +1156,8 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
                 "style": Object {
                   "minWidth": 160,
                 },
-                "title": "Upload pipeline",
-                "tooltip": "Upload pipeline",
+                "title": "common:uploadPipeline",
+                "tooltip": "common:uploadPipeline",
               },
             }
           }
@@ -1140,11 +1166,12 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -1159,7 +1186,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
           id="cancelPipelineSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -1167,7 +1194,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
           id="usePipelineBtn"
           onClick={[Function]}
         >
-          Use this pipeline
+          common:usePipeline
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
@@ -1192,23 +1219,23 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
               Object {
                 "customRenderer": [Function],
                 "flex": 2,
-                "label": "Version name",
+                "label": "common:versionName",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Uploaded on",
+                "label": "common:uploadedOn",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No pipeline versions found. Select or upload a pipeline then try again."
-          filterLabel="Filter pipeline versions"
+          emptyMessage="noPipelineVersionsFoundTryAgain"
+          filterLabel="filterPipelineVersions"
           history={
             Object {
               "push": [MockFunction],
@@ -1220,12 +1247,14 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
           location={
             Object {
               "pathname": "/runs/new",
-              "search": "?experimentId=some-mock-experiment-id",
+              "search": "",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose a pipeline version"
+          t={[Function]}
+          title="choosePipelineVersion"
           toolbarActionMap={
             Object {
               "uploadPipeline": Object {
@@ -1236,8 +1265,8 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
                 "style": Object {
                   "minWidth": 160,
                 },
-                "title": "Upload pipeline",
-                "tooltip": "Upload pipeline",
+                "title": "common:uploadPipeline",
+                "tooltip": "common:uploadPipeline",
               },
             }
           }
@@ -1246,11 +1275,12 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -1265,7 +1295,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
           id="cancelPipelineVersionSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -1273,13 +1303,14 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
           id="usePipelineVersionBtn"
           onClick={[Function]}
         >
-          Use this pipeline version
+          usePipelineVersion
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <UploadPipelineDialog
       onClose={[Function]}
       open={false}
+      t={[Function]}
     />
     <WithStyles(Dialog)
       PaperProps={
@@ -1302,22 +1333,22 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Experiment name",
+                "label": "experimentName",
                 "sortKey": "name",
               },
               Object {
                 "flex": 2,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Created at",
+                "label": "common:createdAt",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No experiments found. Create an experiment and then try again."
-          filterLabel="Filter experiments"
+          emptyMessage="noExperimentsFoundTryAgain"
+          filterLabel="filterExperiments"
           history={
             Object {
               "push": [MockFunction],
@@ -1329,22 +1360,25 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
           location={
             Object {
               "pathname": "/runs/new",
-              "search": "?experimentId=some-mock-experiment-id",
+              "search": "",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose an experiment"
+          t={[Function]}
+          title="chooseExperiment"
           toolbarProps={
             Object {
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -1359,7 +1393,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
           id="cancelExperimentSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -1367,27 +1401,27 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
           id="useExperimentBtn"
           onClick={[Function]}
         >
-          Use this experiment
+          useExperiment
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <Input
       autoFocus={true}
-      label="Recurring run config name"
+      label="recurringRunName"
       onChange={[Function]}
       required={true}
       value=""
       variant="outlined"
     />
     <Input
-      label="Description (optional)"
+      label="common:descriptionOptional"
       multiline={true}
       onChange={[Function]}
       value=""
       variant="outlined"
     />
     <div>
-      This run will be associated with the following experiment
+      runAssociatedWithExperiment
     </div>
     <Input
       InputProps={
@@ -1409,39 +1443,39 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Experiment"
+      label="common:experiment"
       required={true}
-      value="some mock experiment name"
+      value=""
       variant="outlined"
     />
     <div>
-      This run will use the following Kubernetes service account.
+      runUsesKubernetesAccount
        
       <HelpButton
         helpText={
           <div>
-            Note, the service account needs
+            noteAccountNeeds
              
             <ExternalLink
               href="https://github.com/argoproj/argo/blob/v2.3.0/docs/workflow-rbac.md"
             >
-              minimum permissions required by argo workflows
+              minPermissionsArgoWorkflow
             </ExternalLink>
              
-            and extra permissions the specific task requires.
+            extraPermissionsRequired
           </div>
         }
       />
     </div>
     <Input
-      label="Service Account (Optional)"
+      label="serviceAccountOptional"
       onChange={[Function]}
       value=""
       variant="outlined"
@@ -1449,7 +1483,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
     <div
       className="header"
     >
-      Run Type
+      runType
     </div>
     <WithStyles(WithFormControlContext(FormControlLabel))
       checked={false}
@@ -1459,7 +1493,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
         />
       }
       id="oneOffToggle"
-      label="One-off"
+      label="oneOff"
       onChange={[Function]}
     />
     <WithStyles(WithFormControlContext(FormControlLabel))
@@ -1470,16 +1504,16 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
         />
       }
       id="recurringToggle"
-      label="Recurring"
+      label="recurring"
       onChange={[Function]}
     />
     <div
       className="header"
     >
-      Run trigger
+      runTrigger
     </div>
     <div>
-      Choose a method by which new runs will be triggered
+      chooseTriggerMethod
     </div>
     <Trigger
       initialProps={
@@ -1490,11 +1524,13 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
         }
       }
       onChange={[Function]}
+      t={[Function]}
     />
     <NewRunParameters
       handleParamChange={[Function]}
       initialParams={Array []}
-      titleMessage="Parameters will appear after you select a pipeline"
+      t={[Function]}
+      titleMessage="parametersAppearSelectPipeline"
     />
     <div
       className="flex"
@@ -1505,13 +1541,13 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
         disabled={true}
         id="startNewRunBtn"
         onClick={[Function]}
-        title="Start"
+        title="common:start"
       />
       <WithStyles(Button)
         id="exitNewRunPageBtn"
         onClick={[Function]}
       >
-        Cancel
+        common:cancel
       </WithStyles(Button)>
       <div
         className=""
@@ -1521,7 +1557,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
           }
         }
       >
-        A pipeline version must be selected
+        pipelineVersionSelected
       </div>
     </div>
   </div>
@@ -1538,7 +1574,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
     <div
       className="header"
     >
-      Run details
+      runDetails
     </div>
     <Input
       InputProps={
@@ -1560,14 +1596,14 @@ exports[`NewRun changes title and form to default state if the new run is a one-
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Pipeline"
+      label="common:pipeline"
       required={true}
       value=""
       variant="outlined"
@@ -1592,14 +1628,14 @@ exports[`NewRun changes title and form to default state if the new run is a one-
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Pipeline Version"
+      label="common:pipelineVersion"
       required={true}
       value=""
       variant="outlined"
@@ -1625,23 +1661,23 @@ exports[`NewRun changes title and form to default state if the new run is a one-
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Pipeline name",
+                "label": "common:pipelineName",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
                 "flex": 2,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Uploaded on",
+                "label": "common:uploadedOn",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No pipelines found. Upload a pipeline and then try again."
-          filterLabel="Filter pipelines"
+          emptyMessage="common:noPipelinesFoundTryAgain"
+          filterLabel="common:filterPipelines"
           history={
             Object {
               "push": [MockFunction],
@@ -1654,11 +1690,13 @@ exports[`NewRun changes title and form to default state if the new run is a one-
             Object {
               "pathname": "/runs/new",
               "search": "?recurring=1",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose a pipeline"
+          t={[Function]}
+          title="common:choosePipeline"
           toolbarActionMap={
             Object {
               "uploadPipeline": Object {
@@ -1669,8 +1707,8 @@ exports[`NewRun changes title and form to default state if the new run is a one-
                 "style": Object {
                   "minWidth": 160,
                 },
-                "title": "Upload pipeline",
-                "tooltip": "Upload pipeline",
+                "title": "common:uploadPipeline",
+                "tooltip": "common:uploadPipeline",
               },
             }
           }
@@ -1679,11 +1717,12 @@ exports[`NewRun changes title and form to default state if the new run is a one-
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -1698,7 +1737,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
           id="cancelPipelineSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -1706,7 +1745,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
           id="usePipelineBtn"
           onClick={[Function]}
         >
-          Use this pipeline
+          common:usePipeline
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
@@ -1731,23 +1770,23 @@ exports[`NewRun changes title and form to default state if the new run is a one-
               Object {
                 "customRenderer": [Function],
                 "flex": 2,
-                "label": "Version name",
+                "label": "common:versionName",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Uploaded on",
+                "label": "common:uploadedOn",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No pipeline versions found. Select or upload a pipeline then try again."
-          filterLabel="Filter pipeline versions"
+          emptyMessage="noPipelineVersionsFoundTryAgain"
+          filterLabel="filterPipelineVersions"
           history={
             Object {
               "push": [MockFunction],
@@ -1760,11 +1799,13 @@ exports[`NewRun changes title and form to default state if the new run is a one-
             Object {
               "pathname": "/runs/new",
               "search": "?recurring=1",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose a pipeline version"
+          t={[Function]}
+          title="choosePipelineVersion"
           toolbarActionMap={
             Object {
               "uploadPipeline": Object {
@@ -1775,8 +1816,8 @@ exports[`NewRun changes title and form to default state if the new run is a one-
                 "style": Object {
                   "minWidth": 160,
                 },
-                "title": "Upload pipeline",
-                "tooltip": "Upload pipeline",
+                "title": "common:uploadPipeline",
+                "tooltip": "common:uploadPipeline",
               },
             }
           }
@@ -1785,11 +1826,12 @@ exports[`NewRun changes title and form to default state if the new run is a one-
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -1804,7 +1846,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
           id="cancelPipelineVersionSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -1812,13 +1854,14 @@ exports[`NewRun changes title and form to default state if the new run is a one-
           id="usePipelineVersionBtn"
           onClick={[Function]}
         >
-          Use this pipeline version
+          usePipelineVersion
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <UploadPipelineDialog
       onClose={[Function]}
       open={false}
+      t={[Function]}
     />
     <WithStyles(Dialog)
       PaperProps={
@@ -1841,22 +1884,22 @@ exports[`NewRun changes title and form to default state if the new run is a one-
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Experiment name",
+                "label": "experimentName",
                 "sortKey": "name",
               },
               Object {
                 "flex": 2,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Created at",
+                "label": "common:createdAt",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No experiments found. Create an experiment and then try again."
-          filterLabel="Filter experiments"
+          emptyMessage="noExperimentsFoundTryAgain"
+          filterLabel="filterExperiments"
           history={
             Object {
               "push": [MockFunction],
@@ -1869,21 +1912,24 @@ exports[`NewRun changes title and form to default state if the new run is a one-
             Object {
               "pathname": "/runs/new",
               "search": "?recurring=1",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose an experiment"
+          t={[Function]}
+          title="chooseExperiment"
           toolbarProps={
             Object {
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -1898,7 +1944,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
           id="cancelExperimentSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -1906,27 +1952,27 @@ exports[`NewRun changes title and form to default state if the new run is a one-
           id="useExperimentBtn"
           onClick={[Function]}
         >
-          Use this experiment
+          useExperiment
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <Input
       autoFocus={true}
-      label="Run name"
+      label="runName"
       onChange={[Function]}
       required={true}
       value=""
       variant="outlined"
     />
     <Input
-      label="Description (optional)"
+      label="common:descriptionOptional"
       multiline={true}
       onChange={[Function]}
       value=""
       variant="outlined"
     />
     <div>
-      This run will be associated with the following experiment
+      runAssociatedWithExperiment
     </div>
     <Input
       InputProps={
@@ -1948,39 +1994,39 @@ exports[`NewRun changes title and form to default state if the new run is a one-
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Experiment"
+      label="common:experiment"
       required={true}
       value=""
       variant="outlined"
     />
     <div>
-      This run will use the following Kubernetes service account.
+      runUsesKubernetesAccount
        
       <HelpButton
         helpText={
           <div>
-            Note, the service account needs
+            noteAccountNeeds
              
             <ExternalLink
               href="https://github.com/argoproj/argo/blob/v2.3.0/docs/workflow-rbac.md"
             >
-              minimum permissions required by argo workflows
+              minPermissionsArgoWorkflow
             </ExternalLink>
              
-            and extra permissions the specific task requires.
+            extraPermissionsRequired
           </div>
         }
       />
     </div>
     <Input
-      label="Service Account (Optional)"
+      label="serviceAccountOptional"
       onChange={[Function]}
       value=""
       variant="outlined"
@@ -1988,7 +2034,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
     <div
       className="header"
     >
-      Run Type
+      runType
     </div>
     <WithStyles(WithFormControlContext(FormControlLabel))
       checked={true}
@@ -1998,7 +2044,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
         />
       }
       id="oneOffToggle"
-      label="One-off"
+      label="oneOff"
       onChange={[Function]}
     />
     <WithStyles(WithFormControlContext(FormControlLabel))
@@ -2009,13 +2055,14 @@ exports[`NewRun changes title and form to default state if the new run is a one-
         />
       }
       id="recurringToggle"
-      label="Recurring"
+      label="recurring"
       onChange={[Function]}
     />
     <NewRunParameters
       handleParamChange={[Function]}
       initialParams={Array []}
-      titleMessage="Parameters will appear after you select a pipeline"
+      t={[Function]}
+      titleMessage="parametersAppearSelectPipeline"
     />
     <div
       className="flex"
@@ -2026,13 +2073,13 @@ exports[`NewRun changes title and form to default state if the new run is a one-
         disabled={true}
         id="startNewRunBtn"
         onClick={[Function]}
-        title="Start"
+        title="common:start"
       />
       <WithStyles(Button)
         id="exitNewRunPageBtn"
         onClick={[Function]}
       >
-        Cancel
+        common:cancel
       </WithStyles(Button)>
       <div
         className=""
@@ -2042,7 +2089,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
           }
         }
       >
-        A pipeline version must be selected
+        pipelineVersionSelected
       </div>
     </div>
   </div>
@@ -2059,7 +2106,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
     <div
       className="header"
     >
-      Run details
+      runDetails
     </div>
     <Input
       InputProps={
@@ -2081,14 +2128,14 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Pipeline"
+      label="common:pipeline"
       required={true}
       value="original mock pipeline name"
       variant="outlined"
@@ -2113,14 +2160,14 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Pipeline Version"
+      label="common:pipelineVersion"
       required={true}
       value="original mock pipeline version name"
       variant="outlined"
@@ -2146,23 +2193,23 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Pipeline name",
+                "label": "common:pipelineName",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
                 "flex": 2,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Uploaded on",
+                "label": "common:uploadedOn",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No pipelines found. Upload a pipeline and then try again."
-          filterLabel="Filter pipelines"
+          emptyMessage="common:noPipelinesFoundTryAgain"
+          filterLabel="common:filterPipelines"
           history={
             Object {
               "push": [MockFunction],
@@ -2175,11 +2222,13 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
             Object {
               "pathname": "/runs/new",
               "search": "?pipelineId=original-run-pipeline-id&pipelineVersionId=original-run-pipeline-version-id",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose a pipeline"
+          t={[Function]}
+          title="common:choosePipeline"
           toolbarActionMap={
             Object {
               "uploadPipeline": Object {
@@ -2190,8 +2239,8 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
                 "style": Object {
                   "minWidth": 160,
                 },
-                "title": "Upload pipeline",
-                "tooltip": "Upload pipeline",
+                "title": "common:uploadPipeline",
+                "tooltip": "common:uploadPipeline",
               },
             }
           }
@@ -2200,11 +2249,12 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -2219,7 +2269,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
           id="cancelPipelineSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -2227,7 +2277,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
           id="usePipelineBtn"
           onClick={[Function]}
         >
-          Use this pipeline
+          common:usePipeline
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
@@ -2252,23 +2302,23 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
               Object {
                 "customRenderer": [Function],
                 "flex": 2,
-                "label": "Version name",
+                "label": "common:versionName",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Uploaded on",
+                "label": "common:uploadedOn",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No pipeline versions found. Select or upload a pipeline then try again."
-          filterLabel="Filter pipeline versions"
+          emptyMessage="noPipelineVersionsFoundTryAgain"
+          filterLabel="filterPipelineVersions"
           history={
             Object {
               "push": [MockFunction],
@@ -2281,11 +2331,13 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
             Object {
               "pathname": "/runs/new",
               "search": "?pipelineId=original-run-pipeline-id&pipelineVersionId=original-run-pipeline-version-id",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose a pipeline version"
+          t={[Function]}
+          title="choosePipelineVersion"
           toolbarActionMap={
             Object {
               "uploadPipeline": Object {
@@ -2296,8 +2348,8 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
                 "style": Object {
                   "minWidth": 160,
                 },
-                "title": "Upload pipeline",
-                "tooltip": "Upload pipeline",
+                "title": "common:uploadPipeline",
+                "tooltip": "common:uploadPipeline",
               },
             }
           }
@@ -2306,11 +2358,12 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -2325,7 +2378,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
           id="cancelPipelineVersionSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -2333,13 +2386,14 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
           id="usePipelineVersionBtn"
           onClick={[Function]}
         >
-          Use this pipeline version
+          usePipelineVersion
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <UploadPipelineDialog
       onClose={[Function]}
       open={false}
+      t={[Function]}
     />
     <WithStyles(Dialog)
       PaperProps={
@@ -2362,22 +2416,22 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Experiment name",
+                "label": "experimentName",
                 "sortKey": "name",
               },
               Object {
                 "flex": 2,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Created at",
+                "label": "common:createdAt",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No experiments found. Create an experiment and then try again."
-          filterLabel="Filter experiments"
+          emptyMessage="noExperimentsFoundTryAgain"
+          filterLabel="filterExperiments"
           history={
             Object {
               "push": [MockFunction],
@@ -2390,21 +2444,24 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
             Object {
               "pathname": "/runs/new",
               "search": "?pipelineId=original-run-pipeline-id&pipelineVersionId=original-run-pipeline-version-id",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose an experiment"
+          t={[Function]}
+          title="chooseExperiment"
           toolbarProps={
             Object {
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -2419,7 +2476,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
           id="cancelExperimentSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -2427,27 +2484,27 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
           id="useExperimentBtn"
           onClick={[Function]}
         >
-          Use this experiment
+          useExperiment
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <Input
       autoFocus={true}
-      label="Run name"
+      label="runName"
       onChange={[Function]}
       required={true}
       value="Run of original mock pipeline version name (88888)"
       variant="outlined"
     />
     <Input
-      label="Description (optional)"
+      label="common:descriptionOptional"
       multiline={true}
       onChange={[Function]}
       value=""
       variant="outlined"
     />
     <div>
-      This run will be associated with the following experiment
+      runAssociatedWithExperiment
     </div>
     <Input
       InputProps={
@@ -2469,39 +2526,39 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Experiment"
+      label="common:experiment"
       required={true}
       value=""
       variant="outlined"
     />
     <div>
-      This run will use the following Kubernetes service account.
+      runUsesKubernetesAccount
        
       <HelpButton
         helpText={
           <div>
-            Note, the service account needs
+            noteAccountNeeds
              
             <ExternalLink
               href="https://github.com/argoproj/argo/blob/v2.3.0/docs/workflow-rbac.md"
             >
-              minimum permissions required by argo workflows
+              minPermissionsArgoWorkflow
             </ExternalLink>
              
-            and extra permissions the specific task requires.
+            extraPermissionsRequired
           </div>
         }
       />
     </div>
     <Input
-      label="Service Account (Optional)"
+      label="serviceAccountOptional"
       onChange={[Function]}
       value=""
       variant="outlined"
@@ -2509,7 +2566,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
     <div
       className="header"
     >
-      Run Type
+      runType
     </div>
     <WithStyles(WithFormControlContext(FormControlLabel))
       checked={true}
@@ -2519,7 +2576,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
         />
       }
       id="oneOffToggle"
-      label="One-off"
+      label="oneOff"
       onChange={[Function]}
     />
     <WithStyles(WithFormControlContext(FormControlLabel))
@@ -2530,13 +2587,14 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
         />
       }
       id="recurringToggle"
-      label="Recurring"
+      label="recurring"
       onChange={[Function]}
     />
     <NewRunParameters
       handleParamChange={[Function]}
       initialParams={Array []}
-      titleMessage="This pipeline has no parameters"
+      t={[Function]}
+      titleMessage="noParams"
     />
     <div
       className="flex"
@@ -2547,13 +2605,13 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
         disabled={false}
         id="startNewRunBtn"
         onClick={[Function]}
-        title="Start"
+        title="common:start"
       />
       <WithStyles(Button)
         id="exitNewRunPageBtn"
         onClick={[Function]}
       >
-        Cancel
+        common:cancel
       </WithStyles(Button)>
       <div
         className=""
@@ -2578,7 +2636,7 @@ exports[`NewRun renders the new run page 1`] = `
     <div
       className="header"
     >
-      Run details
+      runDetails
     </div>
     <Input
       InputProps={
@@ -2600,14 +2658,14 @@ exports[`NewRun renders the new run page 1`] = `
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Pipeline"
+      label="common:pipeline"
       required={true}
       value=""
       variant="outlined"
@@ -2632,14 +2690,14 @@ exports[`NewRun renders the new run page 1`] = `
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Pipeline Version"
+      label="common:pipelineVersion"
       required={true}
       value=""
       variant="outlined"
@@ -2665,23 +2723,23 @@ exports[`NewRun renders the new run page 1`] = `
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Pipeline name",
+                "label": "common:pipelineName",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
                 "flex": 2,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Uploaded on",
+                "label": "common:uploadedOn",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No pipelines found. Upload a pipeline and then try again."
-          filterLabel="Filter pipelines"
+          emptyMessage="common:noPipelinesFoundTryAgain"
+          filterLabel="common:filterPipelines"
           history={
             Object {
               "push": [MockFunction],
@@ -2693,12 +2751,14 @@ exports[`NewRun renders the new run page 1`] = `
           location={
             Object {
               "pathname": "/runs/new",
-              "search": "?experimentId=some-mock-experiment-id",
+              "search": "",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose a pipeline"
+          t={[Function]}
+          title="common:choosePipeline"
           toolbarActionMap={
             Object {
               "uploadPipeline": Object {
@@ -2709,8 +2769,8 @@ exports[`NewRun renders the new run page 1`] = `
                 "style": Object {
                   "minWidth": 160,
                 },
-                "title": "Upload pipeline",
-                "tooltip": "Upload pipeline",
+                "title": "common:uploadPipeline",
+                "tooltip": "common:uploadPipeline",
               },
             }
           }
@@ -2719,11 +2779,12 @@ exports[`NewRun renders the new run page 1`] = `
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -2738,7 +2799,7 @@ exports[`NewRun renders the new run page 1`] = `
           id="cancelPipelineSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -2746,7 +2807,7 @@ exports[`NewRun renders the new run page 1`] = `
           id="usePipelineBtn"
           onClick={[Function]}
         >
-          Use this pipeline
+          common:usePipeline
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
@@ -2771,23 +2832,23 @@ exports[`NewRun renders the new run page 1`] = `
               Object {
                 "customRenderer": [Function],
                 "flex": 2,
-                "label": "Version name",
+                "label": "common:versionName",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Uploaded on",
+                "label": "common:uploadedOn",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No pipeline versions found. Select or upload a pipeline then try again."
-          filterLabel="Filter pipeline versions"
+          emptyMessage="noPipelineVersionsFoundTryAgain"
+          filterLabel="filterPipelineVersions"
           history={
             Object {
               "push": [MockFunction],
@@ -2799,12 +2860,14 @@ exports[`NewRun renders the new run page 1`] = `
           location={
             Object {
               "pathname": "/runs/new",
-              "search": "?experimentId=some-mock-experiment-id",
+              "search": "",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose a pipeline version"
+          t={[Function]}
+          title="choosePipelineVersion"
           toolbarActionMap={
             Object {
               "uploadPipeline": Object {
@@ -2815,8 +2878,8 @@ exports[`NewRun renders the new run page 1`] = `
                 "style": Object {
                   "minWidth": 160,
                 },
-                "title": "Upload pipeline",
-                "tooltip": "Upload pipeline",
+                "title": "common:uploadPipeline",
+                "tooltip": "common:uploadPipeline",
               },
             }
           }
@@ -2825,11 +2888,12 @@ exports[`NewRun renders the new run page 1`] = `
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -2844,7 +2908,7 @@ exports[`NewRun renders the new run page 1`] = `
           id="cancelPipelineVersionSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -2852,13 +2916,14 @@ exports[`NewRun renders the new run page 1`] = `
           id="usePipelineVersionBtn"
           onClick={[Function]}
         >
-          Use this pipeline version
+          usePipelineVersion
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <UploadPipelineDialog
       onClose={[Function]}
       open={false}
+      t={[Function]}
     />
     <WithStyles(Dialog)
       PaperProps={
@@ -2881,22 +2946,22 @@ exports[`NewRun renders the new run page 1`] = `
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Experiment name",
+                "label": "experimentName",
                 "sortKey": "name",
               },
               Object {
                 "flex": 2,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Created at",
+                "label": "common:createdAt",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No experiments found. Create an experiment and then try again."
-          filterLabel="Filter experiments"
+          emptyMessage="noExperimentsFoundTryAgain"
+          filterLabel="filterExperiments"
           history={
             Object {
               "push": [MockFunction],
@@ -2908,22 +2973,25 @@ exports[`NewRun renders the new run page 1`] = `
           location={
             Object {
               "pathname": "/runs/new",
-              "search": "?experimentId=some-mock-experiment-id",
+              "search": "",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose an experiment"
+          t={[Function]}
+          title="chooseExperiment"
           toolbarProps={
             Object {
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -2938,7 +3006,7 @@ exports[`NewRun renders the new run page 1`] = `
           id="cancelExperimentSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -2946,27 +3014,27 @@ exports[`NewRun renders the new run page 1`] = `
           id="useExperimentBtn"
           onClick={[Function]}
         >
-          Use this experiment
+          useExperiment
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <Input
       autoFocus={true}
-      label="Run name"
+      label="runName"
       onChange={[Function]}
       required={true}
       value=""
       variant="outlined"
     />
     <Input
-      label="Description (optional)"
+      label="common:descriptionOptional"
       multiline={true}
       onChange={[Function]}
       value=""
       variant="outlined"
     />
     <div>
-      This run will be associated with the following experiment
+      runAssociatedWithExperiment
     </div>
     <Input
       InputProps={
@@ -2988,39 +3056,39 @@ exports[`NewRun renders the new run page 1`] = `
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Experiment"
+      label="common:experiment"
       required={true}
-      value="some mock experiment name"
+      value=""
       variant="outlined"
     />
     <div>
-      This run will use the following Kubernetes service account.
+      runUsesKubernetesAccount
        
       <HelpButton
         helpText={
           <div>
-            Note, the service account needs
+            noteAccountNeeds
              
             <ExternalLink
               href="https://github.com/argoproj/argo/blob/v2.3.0/docs/workflow-rbac.md"
             >
-              minimum permissions required by argo workflows
+              minPermissionsArgoWorkflow
             </ExternalLink>
              
-            and extra permissions the specific task requires.
+            extraPermissionsRequired
           </div>
         }
       />
     </div>
     <Input
-      label="Service Account (Optional)"
+      label="serviceAccountOptional"
       onChange={[Function]}
       value=""
       variant="outlined"
@@ -3028,7 +3096,7 @@ exports[`NewRun renders the new run page 1`] = `
     <div
       className="header"
     >
-      Run Type
+      runType
     </div>
     <WithStyles(WithFormControlContext(FormControlLabel))
       checked={true}
@@ -3038,7 +3106,7 @@ exports[`NewRun renders the new run page 1`] = `
         />
       }
       id="oneOffToggle"
-      label="One-off"
+      label="oneOff"
       onChange={[Function]}
     />
     <WithStyles(WithFormControlContext(FormControlLabel))
@@ -3049,13 +3117,14 @@ exports[`NewRun renders the new run page 1`] = `
         />
       }
       id="recurringToggle"
-      label="Recurring"
+      label="recurring"
       onChange={[Function]}
     />
     <NewRunParameters
       handleParamChange={[Function]}
       initialParams={Array []}
-      titleMessage="Parameters will appear after you select a pipeline"
+      t={[Function]}
+      titleMessage="parametersAppearSelectPipeline"
     />
     <div
       className="flex"
@@ -3066,13 +3135,13 @@ exports[`NewRun renders the new run page 1`] = `
         disabled={true}
         id="startNewRunBtn"
         onClick={[Function]}
-        title="Start"
+        title="common:start"
       />
       <WithStyles(Button)
         id="exitNewRunPageBtn"
         onClick={[Function]}
       >
-        Cancel
+        common:cancel
       </WithStyles(Button)>
       <div
         className=""
@@ -3082,7 +3151,7 @@ exports[`NewRun renders the new run page 1`] = `
           }
         }
       >
-        A pipeline version must be selected
+        pipelineVersionSelected
       </div>
     </div>
   </div>
@@ -3099,7 +3168,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
     <div
       className="header"
     >
-      Run details
+      runDetails
     </div>
     <Input
       InputProps={
@@ -3121,14 +3190,14 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Pipeline"
+      label="common:pipeline"
       required={true}
       value=""
       variant="outlined"
@@ -3153,14 +3222,14 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Pipeline Version"
+      label="common:pipelineVersion"
       required={true}
       value=""
       variant="outlined"
@@ -3186,23 +3255,23 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Pipeline name",
+                "label": "common:pipelineName",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
                 "flex": 2,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Uploaded on",
+                "label": "common:uploadedOn",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No pipelines found. Upload a pipeline and then try again."
-          filterLabel="Filter pipelines"
+          emptyMessage="common:noPipelinesFoundTryAgain"
+          filterLabel="common:filterPipelines"
           history={
             Object {
               "push": [MockFunction],
@@ -3215,11 +3284,13 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
             Object {
               "pathname": "/runs/new",
               "search": "?recurring=1",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose a pipeline"
+          t={[Function]}
+          title="common:choosePipeline"
           toolbarActionMap={
             Object {
               "uploadPipeline": Object {
@@ -3230,8 +3301,8 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
                 "style": Object {
                   "minWidth": 160,
                 },
-                "title": "Upload pipeline",
-                "tooltip": "Upload pipeline",
+                "title": "common:uploadPipeline",
+                "tooltip": "common:uploadPipeline",
               },
             }
           }
@@ -3240,11 +3311,12 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -3259,7 +3331,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
           id="cancelPipelineSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -3267,7 +3339,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
           id="usePipelineBtn"
           onClick={[Function]}
         >
-          Use this pipeline
+          common:usePipeline
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
@@ -3292,23 +3364,23 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
               Object {
                 "customRenderer": [Function],
                 "flex": 2,
-                "label": "Version name",
+                "label": "common:versionName",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Uploaded on",
+                "label": "common:uploadedOn",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No pipeline versions found. Select or upload a pipeline then try again."
-          filterLabel="Filter pipeline versions"
+          emptyMessage="noPipelineVersionsFoundTryAgain"
+          filterLabel="filterPipelineVersions"
           history={
             Object {
               "push": [MockFunction],
@@ -3321,11 +3393,13 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
             Object {
               "pathname": "/runs/new",
               "search": "?recurring=1",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose a pipeline version"
+          t={[Function]}
+          title="choosePipelineVersion"
           toolbarActionMap={
             Object {
               "uploadPipeline": Object {
@@ -3336,8 +3410,8 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
                 "style": Object {
                   "minWidth": 160,
                 },
-                "title": "Upload pipeline",
-                "tooltip": "Upload pipeline",
+                "title": "common:uploadPipeline",
+                "tooltip": "common:uploadPipeline",
               },
             }
           }
@@ -3346,11 +3420,12 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -3365,7 +3440,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
           id="cancelPipelineVersionSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -3373,13 +3448,14 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
           id="usePipelineVersionBtn"
           onClick={[Function]}
         >
-          Use this pipeline version
+          usePipelineVersion
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <UploadPipelineDialog
       onClose={[Function]}
       open={false}
+      t={[Function]}
     />
     <WithStyles(Dialog)
       PaperProps={
@@ -3402,22 +3478,22 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Experiment name",
+                "label": "experimentName",
                 "sortKey": "name",
               },
               Object {
                 "flex": 2,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Created at",
+                "label": "common:createdAt",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No experiments found. Create an experiment and then try again."
-          filterLabel="Filter experiments"
+          emptyMessage="noExperimentsFoundTryAgain"
+          filterLabel="filterExperiments"
           history={
             Object {
               "push": [MockFunction],
@@ -3430,21 +3506,24 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
             Object {
               "pathname": "/runs/new",
               "search": "?recurring=1",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose an experiment"
+          t={[Function]}
+          title="chooseExperiment"
           toolbarProps={
             Object {
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -3459,7 +3538,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
           id="cancelExperimentSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -3467,27 +3546,27 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
           id="useExperimentBtn"
           onClick={[Function]}
         >
-          Use this experiment
+          useExperiment
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <Input
       autoFocus={true}
-      label="Recurring run config name"
+      label="recurringRunName"
       onChange={[Function]}
       required={true}
       value=""
       variant="outlined"
     />
     <Input
-      label="Description (optional)"
+      label="common:descriptionOptional"
       multiline={true}
       onChange={[Function]}
       value=""
       variant="outlined"
     />
     <div>
-      This run will be associated with the following experiment
+      runAssociatedWithExperiment
     </div>
     <Input
       InputProps={
@@ -3509,39 +3588,39 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Experiment"
+      label="common:experiment"
       required={true}
       value=""
       variant="outlined"
     />
     <div>
-      This run will use the following Kubernetes service account.
+      runUsesKubernetesAccount
        
       <HelpButton
         helpText={
           <div>
-            Note, the service account needs
+            noteAccountNeeds
              
             <ExternalLink
               href="https://github.com/argoproj/argo/blob/v2.3.0/docs/workflow-rbac.md"
             >
-              minimum permissions required by argo workflows
+              minPermissionsArgoWorkflow
             </ExternalLink>
              
-            and extra permissions the specific task requires.
+            extraPermissionsRequired
           </div>
         }
       />
     </div>
     <Input
-      label="Service Account (Optional)"
+      label="serviceAccountOptional"
       onChange={[Function]}
       value=""
       variant="outlined"
@@ -3549,7 +3628,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
     <div
       className="header"
     >
-      Run Type
+      runType
     </div>
     <WithStyles(WithFormControlContext(FormControlLabel))
       checked={false}
@@ -3559,7 +3638,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
         />
       }
       id="oneOffToggle"
-      label="One-off"
+      label="oneOff"
       onChange={[Function]}
     />
     <WithStyles(WithFormControlContext(FormControlLabel))
@@ -3570,16 +3649,16 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
         />
       }
       id="recurringToggle"
-      label="Recurring"
+      label="recurring"
       onChange={[Function]}
     />
     <div
       className="header"
     >
-      Run trigger
+      runTrigger
     </div>
     <div>
-      Choose a method by which new runs will be triggered
+      chooseTriggerMethod
     </div>
     <Trigger
       initialProps={
@@ -3590,11 +3669,13 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
         }
       }
       onChange={[Function]}
+      t={[Function]}
     />
     <NewRunParameters
       handleParamChange={[Function]}
       initialParams={Array []}
-      titleMessage="Parameters will appear after you select a pipeline"
+      t={[Function]}
+      titleMessage="parametersAppearSelectPipeline"
     />
     <div
       className="flex"
@@ -3605,13 +3686,13 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
         disabled={true}
         id="startNewRunBtn"
         onClick={[Function]}
-        title="Start"
+        title="common:start"
       />
       <WithStyles(Button)
         id="exitNewRunPageBtn"
         onClick={[Function]}
       >
-        Cancel
+        common:cancel
       </WithStyles(Button)>
       <div
         className=""
@@ -3621,7 +3702,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
           }
         }
       >
-        A pipeline version must be selected
+        pipelineVersionSelected
       </div>
     </div>
   </div>
@@ -3638,7 +3719,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
     <div
       className="header"
     >
-      Run details
+      runDetails
     </div>
     <Input
       InputProps={
@@ -3660,14 +3741,14 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Pipeline"
+      label="common:pipeline"
       required={true}
       value=""
       variant="outlined"
@@ -3692,14 +3773,14 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Pipeline Version"
+      label="common:pipelineVersion"
       required={true}
       value=""
       variant="outlined"
@@ -3725,23 +3806,23 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Pipeline name",
+                "label": "common:pipelineName",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
                 "flex": 2,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Uploaded on",
+                "label": "common:uploadedOn",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No pipelines found. Upload a pipeline and then try again."
-          filterLabel="Filter pipelines"
+          emptyMessage="common:noPipelinesFoundTryAgain"
+          filterLabel="common:filterPipelines"
           history={
             Object {
               "push": [MockFunction],
@@ -3753,12 +3834,14 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           location={
             Object {
               "pathname": "/runs/new",
-              "search": "?experimentId=some-mock-experiment-id",
+              "search": "",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose a pipeline"
+          t={[Function]}
+          title="common:choosePipeline"
           toolbarActionMap={
             Object {
               "uploadPipeline": Object {
@@ -3769,8 +3852,8 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 "style": Object {
                   "minWidth": 160,
                 },
-                "title": "Upload pipeline",
-                "tooltip": "Upload pipeline",
+                "title": "common:uploadPipeline",
+                "tooltip": "common:uploadPipeline",
               },
             }
           }
@@ -3779,11 +3862,12 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -3798,7 +3882,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           id="cancelPipelineSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -3806,7 +3890,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           id="usePipelineBtn"
           onClick={[Function]}
         >
-          Use this pipeline
+          common:usePipeline
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
@@ -3831,23 +3915,23 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
               Object {
                 "customRenderer": [Function],
                 "flex": 2,
-                "label": "Version name",
+                "label": "common:versionName",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Uploaded on",
+                "label": "common:uploadedOn",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No pipeline versions found. Select or upload a pipeline then try again."
-          filterLabel="Filter pipeline versions"
+          emptyMessage="noPipelineVersionsFoundTryAgain"
+          filterLabel="filterPipelineVersions"
           history={
             Object {
               "push": [MockFunction],
@@ -3859,12 +3943,14 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           location={
             Object {
               "pathname": "/runs/new",
-              "search": "?experimentId=some-mock-experiment-id",
+              "search": "",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose a pipeline version"
+          t={[Function]}
+          title="choosePipelineVersion"
           toolbarActionMap={
             Object {
               "uploadPipeline": Object {
@@ -3875,8 +3961,8 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 "style": Object {
                   "minWidth": 160,
                 },
-                "title": "Upload pipeline",
-                "tooltip": "Upload pipeline",
+                "title": "common:uploadPipeline",
+                "tooltip": "common:uploadPipeline",
               },
             }
           }
@@ -3885,11 +3971,12 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -3904,7 +3991,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           id="cancelPipelineVersionSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -3912,13 +3999,14 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           id="usePipelineVersionBtn"
           onClick={[Function]}
         >
-          Use this pipeline version
+          usePipelineVersion
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <UploadPipelineDialog
       onClose={[Function]}
       open={false}
+      t={[Function]}
     />
     <WithStyles(Dialog)
       PaperProps={
@@ -3941,22 +4029,22 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Experiment name",
+                "label": "experimentName",
                 "sortKey": "name",
               },
               Object {
                 "flex": 2,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Created at",
+                "label": "common:createdAt",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No experiments found. Create an experiment and then try again."
-          filterLabel="Filter experiments"
+          emptyMessage="noExperimentsFoundTryAgain"
+          filterLabel="filterExperiments"
           history={
             Object {
               "push": [MockFunction],
@@ -3968,22 +4056,25 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           location={
             Object {
               "pathname": "/runs/new",
-              "search": "?experimentId=some-mock-experiment-id",
+              "search": "",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose an experiment"
+          t={[Function]}
+          title="chooseExperiment"
           toolbarProps={
             Object {
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -3998,7 +4089,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           id="cancelExperimentSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -4006,27 +4097,27 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           id="useExperimentBtn"
           onClick={[Function]}
         >
-          Use this experiment
+          useExperiment
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <Input
       autoFocus={true}
-      label="Run name"
+      label="runName"
       onChange={[Function]}
       required={true}
       value=""
       variant="outlined"
     />
     <Input
-      label="Description (optional)"
+      label="common:descriptionOptional"
       multiline={true}
       onChange={[Function]}
       value=""
       variant="outlined"
     />
     <div>
-      This run will be associated with the following experiment
+      runAssociatedWithExperiment
     </div>
     <Input
       InputProps={
@@ -4048,39 +4139,39 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Experiment"
+      label="common:experiment"
       required={true}
-      value="some mock experiment name"
+      value=""
       variant="outlined"
     />
     <div>
-      This run will use the following Kubernetes service account.
+      runUsesKubernetesAccount
        
       <HelpButton
         helpText={
           <div>
-            Note, the service account needs
+            noteAccountNeeds
              
             <ExternalLink
               href="https://github.com/argoproj/argo/blob/v2.3.0/docs/workflow-rbac.md"
             >
-              minimum permissions required by argo workflows
+              minPermissionsArgoWorkflow
             </ExternalLink>
              
-            and extra permissions the specific task requires.
+            extraPermissionsRequired
           </div>
         }
       />
     </div>
     <Input
-      label="Service Account (Optional)"
+      label="serviceAccountOptional"
       onChange={[Function]}
       value=""
       variant="outlined"
@@ -4088,7 +4179,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
     <div
       className="header"
     >
-      Run Type
+      runType
     </div>
     <WithStyles(WithFormControlContext(FormControlLabel))
       checked={true}
@@ -4098,7 +4189,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         />
       }
       id="oneOffToggle"
-      label="One-off"
+      label="oneOff"
       onChange={[Function]}
     />
     <WithStyles(WithFormControlContext(FormControlLabel))
@@ -4109,13 +4200,14 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         />
       }
       id="recurringToggle"
-      label="Recurring"
+      label="recurring"
       onChange={[Function]}
     />
     <NewRunParameters
       handleParamChange={[Function]}
       initialParams={Array []}
-      titleMessage="Parameters will appear after you select a pipeline"
+      t={[Function]}
+      titleMessage="parametersAppearSelectPipeline"
     />
     <div
       className="flex"
@@ -4126,13 +4218,13 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         disabled={true}
         id="startNewRunBtn"
         onClick={[Function]}
-        title="Start"
+        title="common:start"
       />
       <WithStyles(Button)
         id="exitNewRunPageBtn"
         onClick={[Function]}
       >
-        Cancel
+        common:cancel
       </WithStyles(Button)>
       <div
         className=""
@@ -4142,7 +4234,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           }
         }
       >
-        A pipeline version must be selected
+        pipelineVersionSelected
       </div>
     </div>
   </div>
@@ -4159,7 +4251,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
     <div
       className="header"
     >
-      Run details
+      runDetails
     </div>
     <Input
       InputProps={
@@ -4181,14 +4273,14 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Pipeline"
+      label="common:pipeline"
       required={true}
       value="original mock pipeline name"
       variant="outlined"
@@ -4213,14 +4305,14 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Pipeline Version"
+      label="common:pipelineVersion"
       required={true}
       value="original mock pipeline version name"
       variant="outlined"
@@ -4246,23 +4338,23 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Pipeline name",
+                "label": "common:pipelineName",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
                 "flex": 2,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Uploaded on",
+                "label": "common:uploadedOn",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No pipelines found. Upload a pipeline and then try again."
-          filterLabel="Filter pipelines"
+          emptyMessage="common:noPipelinesFoundTryAgain"
+          filterLabel="common:filterPipelines"
           history={
             Object {
               "push": [MockFunction],
@@ -4274,12 +4366,14 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           location={
             Object {
               "pathname": "/runs/new",
-              "search": "?experimentId=some-mock-experiment-id",
+              "search": "",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose a pipeline"
+          t={[Function]}
+          title="common:choosePipeline"
           toolbarActionMap={
             Object {
               "uploadPipeline": Object {
@@ -4290,8 +4384,8 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 "style": Object {
                   "minWidth": 160,
                 },
-                "title": "Upload pipeline",
-                "tooltip": "Upload pipeline",
+                "title": "common:uploadPipeline",
+                "tooltip": "common:uploadPipeline",
               },
             }
           }
@@ -4300,11 +4394,12 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -4319,7 +4414,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           id="cancelPipelineSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -4327,7 +4422,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           id="usePipelineBtn"
           onClick={[Function]}
         >
-          Use this pipeline
+          common:usePipeline
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
@@ -4352,23 +4447,23 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
               Object {
                 "customRenderer": [Function],
                 "flex": 2,
-                "label": "Version name",
+                "label": "common:versionName",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Uploaded on",
+                "label": "common:uploadedOn",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No pipeline versions found. Select or upload a pipeline then try again."
-          filterLabel="Filter pipeline versions"
+          emptyMessage="noPipelineVersionsFoundTryAgain"
+          filterLabel="filterPipelineVersions"
           history={
             Object {
               "push": [MockFunction],
@@ -4380,12 +4475,14 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           location={
             Object {
               "pathname": "/runs/new",
-              "search": "?experimentId=some-mock-experiment-id",
+              "search": "",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose a pipeline version"
+          t={[Function]}
+          title="choosePipelineVersion"
           toolbarActionMap={
             Object {
               "uploadPipeline": Object {
@@ -4396,8 +4493,8 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 "style": Object {
                   "minWidth": 160,
                 },
-                "title": "Upload pipeline",
-                "tooltip": "Upload pipeline",
+                "title": "common:uploadPipeline",
+                "tooltip": "common:uploadPipeline",
               },
             }
           }
@@ -4406,11 +4503,12 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -4425,7 +4523,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           id="cancelPipelineVersionSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -4433,13 +4531,14 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           id="usePipelineVersionBtn"
           onClick={[Function]}
         >
-          Use this pipeline version
+          usePipelineVersion
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <UploadPipelineDialog
       onClose={[Function]}
       open={false}
+      t={[Function]}
     />
     <WithStyles(Dialog)
       PaperProps={
@@ -4462,22 +4561,22 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Experiment name",
+                "label": "experimentName",
                 "sortKey": "name",
               },
               Object {
                 "flex": 2,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Created at",
+                "label": "common:createdAt",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No experiments found. Create an experiment and then try again."
-          filterLabel="Filter experiments"
+          emptyMessage="noExperimentsFoundTryAgain"
+          filterLabel="filterExperiments"
           history={
             Object {
               "push": [MockFunction],
@@ -4489,22 +4588,25 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           location={
             Object {
               "pathname": "/runs/new",
-              "search": "?experimentId=some-mock-experiment-id",
+              "search": "",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose an experiment"
+          t={[Function]}
+          title="chooseExperiment"
           toolbarProps={
             Object {
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -4519,7 +4621,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           id="cancelExperimentSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -4527,27 +4629,27 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           id="useExperimentBtn"
           onClick={[Function]}
         >
-          Use this experiment
+          useExperiment
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <Input
       autoFocus={true}
-      label="Run name"
+      label="runName"
       onChange={[Function]}
       required={true}
       value=""
       variant="outlined"
     />
     <Input
-      label="Description (optional)"
+      label="common:descriptionOptional"
       multiline={true}
       onChange={[Function]}
       value=""
       variant="outlined"
     />
     <div>
-      This run will be associated with the following experiment
+      runAssociatedWithExperiment
     </div>
     <Input
       InputProps={
@@ -4569,39 +4671,39 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Experiment"
+      label="common:experiment"
       required={true}
-      value="some mock experiment name"
+      value=""
       variant="outlined"
     />
     <div>
-      This run will use the following Kubernetes service account.
+      runUsesKubernetesAccount
        
       <HelpButton
         helpText={
           <div>
-            Note, the service account needs
+            noteAccountNeeds
              
             <ExternalLink
               href="https://github.com/argoproj/argo/blob/v2.3.0/docs/workflow-rbac.md"
             >
-              minimum permissions required by argo workflows
+              minPermissionsArgoWorkflow
             </ExternalLink>
              
-            and extra permissions the specific task requires.
+            extraPermissionsRequired
           </div>
         }
       />
     </div>
     <Input
-      label="Service Account (Optional)"
+      label="serviceAccountOptional"
       onChange={[Function]}
       value=""
       variant="outlined"
@@ -4609,7 +4711,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
     <div
       className="header"
     >
-      Run Type
+      runType
     </div>
     <WithStyles(WithFormControlContext(FormControlLabel))
       checked={true}
@@ -4619,7 +4721,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         />
       }
       id="oneOffToggle"
-      label="One-off"
+      label="oneOff"
       onChange={[Function]}
     />
     <WithStyles(WithFormControlContext(FormControlLabel))
@@ -4630,7 +4732,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         />
       }
       id="recurringToggle"
-      label="Recurring"
+      label="recurring"
       onChange={[Function]}
     />
     <NewRunParameters
@@ -4647,7 +4749,8 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           },
         ]
       }
-      titleMessage="Specify parameters required by the pipeline"
+      t={[Function]}
+      titleMessage="specifyParams"
     />
     <div
       className="flex"
@@ -4658,13 +4761,13 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         disabled={true}
         id="startNewRunBtn"
         onClick={[Function]}
-        title="Start"
+        title="common:start"
       />
       <WithStyles(Button)
         id="exitNewRunPageBtn"
         onClick={[Function]}
       >
-        Cancel
+        common:cancel
       </WithStyles(Button)>
       <div
         className=""
@@ -4674,7 +4777,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           }
         }
       >
-        Run name is required
+        runNameRequired
       </div>
     </div>
   </div>
@@ -4691,7 +4794,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
     <div
       className="header"
     >
-      Run details
+      runDetails
     </div>
     <Input
       InputProps={
@@ -4713,14 +4816,14 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Pipeline"
+      label="common:pipeline"
       required={true}
       value="original mock pipeline name"
       variant="outlined"
@@ -4745,14 +4848,14 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Pipeline Version"
+      label="common:pipelineVersion"
       required={true}
       value="original mock pipeline version name"
       variant="outlined"
@@ -4778,23 +4881,23 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Pipeline name",
+                "label": "common:pipelineName",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
                 "flex": 2,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Uploaded on",
+                "label": "common:uploadedOn",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No pipelines found. Upload a pipeline and then try again."
-          filterLabel="Filter pipelines"
+          emptyMessage="common:noPipelinesFoundTryAgain"
+          filterLabel="common:filterPipelines"
           history={
             Object {
               "push": [MockFunction],
@@ -4806,12 +4909,14 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           location={
             Object {
               "pathname": "/runs/new",
-              "search": "?experimentId=some-mock-experiment-id",
+              "search": "",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose a pipeline"
+          t={[Function]}
+          title="common:choosePipeline"
           toolbarActionMap={
             Object {
               "uploadPipeline": Object {
@@ -4822,8 +4927,8 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 "style": Object {
                   "minWidth": 160,
                 },
-                "title": "Upload pipeline",
-                "tooltip": "Upload pipeline",
+                "title": "common:uploadPipeline",
+                "tooltip": "common:uploadPipeline",
               },
             }
           }
@@ -4832,11 +4937,12 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -4851,7 +4957,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           id="cancelPipelineSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -4859,7 +4965,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           id="usePipelineBtn"
           onClick={[Function]}
         >
-          Use this pipeline
+          common:usePipeline
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
@@ -4884,23 +4990,23 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
               Object {
                 "customRenderer": [Function],
                 "flex": 2,
-                "label": "Version name",
+                "label": "common:versionName",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Uploaded on",
+                "label": "common:uploadedOn",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No pipeline versions found. Select or upload a pipeline then try again."
-          filterLabel="Filter pipeline versions"
+          emptyMessage="noPipelineVersionsFoundTryAgain"
+          filterLabel="filterPipelineVersions"
           history={
             Object {
               "push": [MockFunction],
@@ -4912,12 +5018,14 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           location={
             Object {
               "pathname": "/runs/new",
-              "search": "?experimentId=some-mock-experiment-id",
+              "search": "",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose a pipeline version"
+          t={[Function]}
+          title="choosePipelineVersion"
           toolbarActionMap={
             Object {
               "uploadPipeline": Object {
@@ -4928,8 +5036,8 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 "style": Object {
                   "minWidth": 160,
                 },
-                "title": "Upload pipeline",
-                "tooltip": "Upload pipeline",
+                "title": "common:uploadPipeline",
+                "tooltip": "common:uploadPipeline",
               },
             }
           }
@@ -4938,11 +5046,12 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -4957,7 +5066,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           id="cancelPipelineVersionSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -4965,13 +5074,14 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           id="usePipelineVersionBtn"
           onClick={[Function]}
         >
-          Use this pipeline version
+          usePipelineVersion
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <UploadPipelineDialog
       onClose={[Function]}
       open={false}
+      t={[Function]}
     />
     <WithStyles(Dialog)
       PaperProps={
@@ -4994,22 +5104,22 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Experiment name",
+                "label": "experimentName",
                 "sortKey": "name",
               },
               Object {
                 "flex": 2,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Created at",
+                "label": "common:createdAt",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No experiments found. Create an experiment and then try again."
-          filterLabel="Filter experiments"
+          emptyMessage="noExperimentsFoundTryAgain"
+          filterLabel="filterExperiments"
           history={
             Object {
               "push": [MockFunction],
@@ -5021,22 +5131,25 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           location={
             Object {
               "pathname": "/runs/new",
-              "search": "?experimentId=some-mock-experiment-id",
+              "search": "",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose an experiment"
+          t={[Function]}
+          title="chooseExperiment"
           toolbarProps={
             Object {
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -5051,7 +5164,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           id="cancelExperimentSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -5059,27 +5172,27 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           id="useExperimentBtn"
           onClick={[Function]}
         >
-          Use this experiment
+          useExperiment
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <Input
       autoFocus={true}
-      label="Run name"
+      label="runName"
       onChange={[Function]}
       required={true}
       value=""
       variant="outlined"
     />
     <Input
-      label="Description (optional)"
+      label="common:descriptionOptional"
       multiline={true}
       onChange={[Function]}
       value=""
       variant="outlined"
     />
     <div>
-      This run will be associated with the following experiment
+      runAssociatedWithExperiment
     </div>
     <Input
       InputProps={
@@ -5101,39 +5214,39 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Experiment"
+      label="common:experiment"
       required={true}
-      value="some mock experiment name"
+      value=""
       variant="outlined"
     />
     <div>
-      This run will use the following Kubernetes service account.
+      runUsesKubernetesAccount
        
       <HelpButton
         helpText={
           <div>
-            Note, the service account needs
+            noteAccountNeeds
              
             <ExternalLink
               href="https://github.com/argoproj/argo/blob/v2.3.0/docs/workflow-rbac.md"
             >
-              minimum permissions required by argo workflows
+              minPermissionsArgoWorkflow
             </ExternalLink>
              
-            and extra permissions the specific task requires.
+            extraPermissionsRequired
           </div>
         }
       />
     </div>
     <Input
-      label="Service Account (Optional)"
+      label="serviceAccountOptional"
       onChange={[Function]}
       value=""
       variant="outlined"
@@ -5141,7 +5254,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
     <div
       className="header"
     >
-      Run Type
+      runType
     </div>
     <WithStyles(WithFormControlContext(FormControlLabel))
       checked={true}
@@ -5151,7 +5264,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         />
       }
       id="oneOffToggle"
-      label="One-off"
+      label="oneOff"
       onChange={[Function]}
     />
     <WithStyles(WithFormControlContext(FormControlLabel))
@@ -5162,13 +5275,14 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         />
       }
       id="recurringToggle"
-      label="Recurring"
+      label="recurring"
       onChange={[Function]}
     />
     <NewRunParameters
       handleParamChange={[Function]}
       initialParams={Array []}
-      titleMessage="This pipeline has no parameters"
+      t={[Function]}
+      titleMessage="noParams"
     />
     <div
       className="flex"
@@ -5179,13 +5293,13 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         disabled={true}
         id="startNewRunBtn"
         onClick={[Function]}
-        title="Start"
+        title="common:start"
       />
       <WithStyles(Button)
         id="exitNewRunPageBtn"
         onClick={[Function]}
       >
-        Cancel
+        common:cancel
       </WithStyles(Button)>
       <div
         className=""
@@ -5195,7 +5309,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           }
         }
       >
-        Run name is required
+        runNameRequired
       </div>
     </div>
   </div>
@@ -5212,7 +5326,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
     <div
       className="header"
     >
-      Run details
+      runDetails
     </div>
     <Input
       InputProps={
@@ -5234,14 +5348,14 @@ exports[`NewRun updates the run's state with the associated experiment if one is
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Pipeline"
+      label="common:pipeline"
       required={true}
       value=""
       variant="outlined"
@@ -5266,14 +5380,14 @@ exports[`NewRun updates the run's state with the associated experiment if one is
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Pipeline Version"
+      label="common:pipelineVersion"
       required={true}
       value=""
       variant="outlined"
@@ -5299,23 +5413,23 @@ exports[`NewRun updates the run's state with the associated experiment if one is
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Pipeline name",
+                "label": "common:pipelineName",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
                 "flex": 2,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Uploaded on",
+                "label": "common:uploadedOn",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No pipelines found. Upload a pipeline and then try again."
-          filterLabel="Filter pipelines"
+          emptyMessage="common:noPipelinesFoundTryAgain"
+          filterLabel="common:filterPipelines"
           history={
             Object {
               "push": [MockFunction],
@@ -5328,11 +5442,13 @@ exports[`NewRun updates the run's state with the associated experiment if one is
             Object {
               "pathname": "/runs/new",
               "search": "?experimentId=some-mock-experiment-id",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose a pipeline"
+          t={[Function]}
+          title="common:choosePipeline"
           toolbarActionMap={
             Object {
               "uploadPipeline": Object {
@@ -5343,8 +5459,8 @@ exports[`NewRun updates the run's state with the associated experiment if one is
                 "style": Object {
                   "minWidth": 160,
                 },
-                "title": "Upload pipeline",
-                "tooltip": "Upload pipeline",
+                "title": "common:uploadPipeline",
+                "tooltip": "common:uploadPipeline",
               },
             }
           }
@@ -5353,11 +5469,12 @@ exports[`NewRun updates the run's state with the associated experiment if one is
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -5372,7 +5489,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
           id="cancelPipelineSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -5380,7 +5497,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
           id="usePipelineBtn"
           onClick={[Function]}
         >
-          Use this pipeline
+          common:usePipeline
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
@@ -5405,23 +5522,23 @@ exports[`NewRun updates the run's state with the associated experiment if one is
               Object {
                 "customRenderer": [Function],
                 "flex": 2,
-                "label": "Version name",
+                "label": "common:versionName",
                 "sortKey": "name",
               },
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Uploaded on",
+                "label": "common:uploadedOn",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No pipeline versions found. Select or upload a pipeline then try again."
-          filterLabel="Filter pipeline versions"
+          emptyMessage="noPipelineVersionsFoundTryAgain"
+          filterLabel="filterPipelineVersions"
           history={
             Object {
               "push": [MockFunction],
@@ -5434,11 +5551,13 @@ exports[`NewRun updates the run's state with the associated experiment if one is
             Object {
               "pathname": "/runs/new",
               "search": "?experimentId=some-mock-experiment-id",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose a pipeline version"
+          t={[Function]}
+          title="choosePipelineVersion"
           toolbarActionMap={
             Object {
               "uploadPipeline": Object {
@@ -5449,8 +5568,8 @@ exports[`NewRun updates the run's state with the associated experiment if one is
                 "style": Object {
                   "minWidth": 160,
                 },
-                "title": "Upload pipeline",
-                "tooltip": "Upload pipeline",
+                "title": "common:uploadPipeline",
+                "tooltip": "common:uploadPipeline",
               },
             }
           }
@@ -5459,11 +5578,12 @@ exports[`NewRun updates the run's state with the associated experiment if one is
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -5478,7 +5598,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
           id="cancelPipelineVersionSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -5486,13 +5606,14 @@ exports[`NewRun updates the run's state with the associated experiment if one is
           id="usePipelineVersionBtn"
           onClick={[Function]}
         >
-          Use this pipeline version
+          usePipelineVersion
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <UploadPipelineDialog
       onClose={[Function]}
       open={false}
+      t={[Function]}
     />
     <WithStyles(Dialog)
       PaperProps={
@@ -5515,22 +5636,22 @@ exports[`NewRun updates the run's state with the associated experiment if one is
               Object {
                 "customRenderer": [Function],
                 "flex": 1,
-                "label": "Experiment name",
+                "label": "experimentName",
                 "sortKey": "name",
               },
               Object {
                 "flex": 2,
-                "label": "Description",
+                "label": "common:description",
               },
               Object {
                 "flex": 1,
-                "label": "Created at",
+                "label": "common:createdAt",
                 "sortKey": "created_at",
               },
             ]
           }
-          emptyMessage="No experiments found. Create an experiment and then try again."
-          filterLabel="Filter experiments"
+          emptyMessage="noExperimentsFoundTryAgain"
+          filterLabel="filterExperiments"
           history={
             Object {
               "push": [MockFunction],
@@ -5543,21 +5664,24 @@ exports[`NewRun updates the run's state with the associated experiment if one is
             Object {
               "pathname": "/runs/new",
               "search": "?experimentId=some-mock-experiment-id",
+              "t": [Function],
             }
           }
           match=""
           selectionChanged={[Function]}
-          title="Choose an experiment"
+          t={[Function]}
+          title="chooseExperiment"
           toolbarProps={
             Object {
               "actions": Object {},
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
+                  "displayName": "",
+                  "href": "",
                 },
               ],
-              "pageTitle": "Start a new run",
+              "pageTitle": "",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -5572,7 +5696,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
           id="cancelExperimentSelectionBtn"
           onClick={[Function]}
         >
-          Cancel
+          common:cancel
         </WithStyles(Button)>
         <WithStyles(Button)
           color="secondary"
@@ -5580,27 +5704,27 @@ exports[`NewRun updates the run's state with the associated experiment if one is
           id="useExperimentBtn"
           onClick={[Function]}
         >
-          Use this experiment
+          useExperiment
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <Input
       autoFocus={true}
-      label="Run name"
+      label="runName"
       onChange={[Function]}
       required={true}
       value=""
       variant="outlined"
     />
     <Input
-      label="Description (optional)"
+      label="common:descriptionOptional"
       multiline={true}
       onChange={[Function]}
       value=""
       variant="outlined"
     />
     <div>
-      This run will be associated with the following experiment
+      runAssociatedWithExperiment
     </div>
     <Input
       InputProps={
@@ -5622,39 +5746,39 @@ exports[`NewRun updates the run's state with the associated experiment if one is
                 }
               }
             >
-              Choose
+              common:choose
             </WithStyles(Button)>
           </WithStyles(InputAdornment)>,
           "readOnly": true,
         }
       }
       disabled={true}
-      label="Experiment"
+      label="common:experiment"
       required={true}
       value="some mock experiment name"
       variant="outlined"
     />
     <div>
-      This run will use the following Kubernetes service account.
+      runUsesKubernetesAccount
        
       <HelpButton
         helpText={
           <div>
-            Note, the service account needs
+            noteAccountNeeds
              
             <ExternalLink
               href="https://github.com/argoproj/argo/blob/v2.3.0/docs/workflow-rbac.md"
             >
-              minimum permissions required by argo workflows
+              minPermissionsArgoWorkflow
             </ExternalLink>
              
-            and extra permissions the specific task requires.
+            extraPermissionsRequired
           </div>
         }
       />
     </div>
     <Input
-      label="Service Account (Optional)"
+      label="serviceAccountOptional"
       onChange={[Function]}
       value=""
       variant="outlined"
@@ -5662,7 +5786,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
     <div
       className="header"
     >
-      Run Type
+      runType
     </div>
     <WithStyles(WithFormControlContext(FormControlLabel))
       checked={true}
@@ -5672,7 +5796,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
         />
       }
       id="oneOffToggle"
-      label="One-off"
+      label="oneOff"
       onChange={[Function]}
     />
     <WithStyles(WithFormControlContext(FormControlLabel))
@@ -5683,13 +5807,14 @@ exports[`NewRun updates the run's state with the associated experiment if one is
         />
       }
       id="recurringToggle"
-      label="Recurring"
+      label="recurring"
       onChange={[Function]}
     />
     <NewRunParameters
       handleParamChange={[Function]}
       initialParams={Array []}
-      titleMessage="Parameters will appear after you select a pipeline"
+      t={[Function]}
+      titleMessage="parametersAppearSelectPipeline"
     />
     <div
       className="flex"
@@ -5700,13 +5825,13 @@ exports[`NewRun updates the run's state with the associated experiment if one is
         disabled={true}
         id="startNewRunBtn"
         onClick={[Function]}
-        title="Start"
+        title="common:start"
       />
       <WithStyles(Button)
         id="exitNewRunPageBtn"
         onClick={[Function]}
       >
-        Cancel
+        common:cancel
       </WithStyles(Button)>
       <div
         className=""
@@ -5716,7 +5841,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
           }
         }
       >
-        A pipeline version must be selected
+        pipelineVersionSelected
       </div>
     </div>
   </div>

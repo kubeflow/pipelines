@@ -21,8 +21,10 @@ import { RoutePage } from '../components/Router';
 import { RunStorageState } from '../apis/run';
 import { shallow, ShallowWrapper } from 'enzyme';
 import { ButtonKeys } from '../lib/Buttons';
+import { TFunction } from 'i18next';
 
 describe('AllRunsList', () => {
+  let t: TFunction = (key: string) => key;
   const updateBannerSpy = jest.fn();
   let _toolbarProps: any = {};
   const updateToolbarSpy = jest.fn(toolbarProps => (_toolbarProps = toolbarProps));
@@ -36,6 +38,7 @@ describe('AllRunsList', () => {
     updateDialog: jest.fn(),
     updateSnackbar: jest.fn(),
     updateToolbar: updateToolbarSpy,
+    t,
   };
   let tree: ShallowWrapper;
 
@@ -70,7 +73,7 @@ describe('AllRunsList', () => {
   it('removes error banner on unmount', () => {
     shallowMountComponent();
     tree.unmount();
-    expect(updateBannerSpy).toHaveBeenCalledWith({});
+    expect(updateBannerSpy).toHaveBeenCalledWith({ t });
   });
 
   it('only enables clone button when exactly one run is selected', () => {

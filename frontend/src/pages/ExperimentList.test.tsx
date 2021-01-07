@@ -17,7 +17,7 @@
 import * as React from 'react';
 import * as Utils from '../lib/Utils';
 import EnhancedExperimentList, { ExperimentList } from './ExperimentList';
-import TestUtils from '../TestUtils';
+import TestUtils, { defaultToolbarProps } from '../TestUtils';
 import { ApiFilter, PredicateOp } from '../apis/filter';
 import { RunStorageState } from '../apis/run';
 import { Apis } from '../lib/Apis';
@@ -32,7 +32,20 @@ import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { render, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ExperimentStorageState } from '../apis/experiment';
+import { TFunction } from 'i18next';
 
+jest.mock('react-i18next', () => ({
+  withTranslation: () => (Component: { defaultProps: any }) => {
+    Component.defaultProps = { ...Component.defaultProps, t: ((key: string) => key) as any };
+    return Component;
+  },
+
+  useTranslation: () => {
+    return {
+      t: (key: string) => key as any,
+    };
+  },
+}));
 // Default arguments for Apis.experimentServiceApi.listExperiment.
 const LIST_EXPERIMENT_DEFAULTS = [
   '', // page token
@@ -56,7 +69,7 @@ const LIST_EXPERIMENT_DEFAULTS_WITHOUT_RESOURCE_REFERENCE = LIST_EXPERIMENT_DEFA
 
 describe('ExperimentList', () => {
   let tree: ShallowWrapper | ReactWrapper;
-
+  let t: TFunction = (key: string) => key;
   jest.spyOn(console, 'log').mockImplementation(() => null);
 
   const updateBannerSpy = jest.fn();
@@ -80,6 +93,8 @@ describe('ExperimentList', () => {
       updateDialogSpy,
       updateToolbarSpy,
       updateSnackbarSpy,
+      { t },
+      t,
     );
   }
 
@@ -219,7 +234,7 @@ describe('ExperimentList', () => {
     await refreshBtn!.action();
     expect(listExperimentsSpy.mock.calls.length).toBe(2);
     expect(listExperimentsSpy).toHaveBeenLastCalledWith(...LIST_EXPERIMENT_DEFAULTS);
-    expect(updateBannerSpy).toHaveBeenLastCalledWith({});
+    expect(updateBannerSpy).toHaveBeenLastCalledWith({ t });
   });
 
   it('shows error banner when listing experiments fails', async () => {
@@ -230,8 +245,7 @@ describe('ExperimentList', () => {
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'bad stuff happened',
-        message:
-          'Error: failed to retrieve list of experiments. Click Details for more information.',
+        message: 'experimentListError common:clickDetails',
         mode: 'error',
       }),
     );
@@ -248,7 +262,7 @@ describe('ExperimentList', () => {
     await TestUtils.flushPromises();
     expect(tree.state()).toHaveProperty('displayExperiments', [
       {
-        error: 'Failed to load the last 5 runs of this experiment',
+        error: 'last5RunsFailed',
         expandState: 0,
         name: 'exp1',
       },
@@ -267,8 +281,7 @@ describe('ExperimentList', () => {
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'bad stuff happened',
-        message:
-          'Error: failed to retrieve list of experiments. Click Details for more information.',
+        message: 'experimentListError common:clickDetails',
         mode: 'error',
       }),
     );
@@ -283,8 +296,7 @@ describe('ExperimentList', () => {
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'bad stuff happened',
-        message:
-          'Error: failed to retrieve list of experiments. Click Details for more information.',
+        message: 'experimentListError common:clickDetails',
         mode: 'error',
       }),
     );
@@ -295,7 +307,7 @@ describe('ExperimentList', () => {
     listRunsSpy.mockImplementationOnce(() => ({ runs: [{ name: 'run1' }] }));
     await refreshBtn!.action();
     expect(listExperimentsSpy.mock.calls.length).toBe(2);
-    expect(updateBannerSpy).toHaveBeenLastCalledWith({});
+    expect(updateBannerSpy).toHaveBeenLastCalledWith({ t });
   });
 
   it('can expand an experiment to see its runs', async () => {
@@ -510,9 +522,11 @@ describe('ExperimentList', () => {
         </MemoryRouter>,
       );
       await act(TestUtils.flushPromises);
-      expect(updateBannerSpy).toHaveBeenLastCalledWith(
-        {}, // Empty object means banner has no error message
-      );
+      expect(updateBannerSpy.mock.calls.length).toBe(4);
+      expect(updateBannerSpy.mock.calls[0]).toEqual(expect.objectContaining({}));
+      expect(updateBannerSpy.mock.calls[1]).toEqual(expect.objectContaining({}));
+      expect(updateBannerSpy.mock.calls[3]).toEqual(expect.objectContaining({}));
+      expect(updateBannerSpy.mock.calls[4]).toEqual(expect.objectContaining({}));
     });
   });
 });

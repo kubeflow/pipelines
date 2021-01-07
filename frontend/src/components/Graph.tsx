@@ -20,6 +20,8 @@ import { classes, stylesheet } from 'typestyle';
 import { fontsize, color, fonts, zIndex } from '../Css';
 import { Constants } from '../lib/Constants';
 import Tooltip from '@material-ui/core/Tooltip';
+import { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 interface Segment {
   angle: number;
@@ -103,6 +105,7 @@ interface GraphProps {
   graph: dagre.graphlib.Graph;
   onClick?: (id: string) => void;
   selectedNodeId?: string;
+  t: TFunction;
 }
 
 interface GraphState {
@@ -111,6 +114,7 @@ interface GraphState {
 
 interface GraphErrorBoundaryProps {
   onError?: (message: string, additionalInfo: string) => void;
+  t: TFunction;
 }
 class GraphErrorBoundary extends React.Component<GraphErrorBoundaryProps> {
   state = {
@@ -118,8 +122,9 @@ class GraphErrorBoundary extends React.Component<GraphErrorBoundaryProps> {
   };
 
   componentDidCatch(error: Error): void {
-    const message = 'There was an error rendering the graph.';
-    const additionalInfo = `${message} This is likely a bug in Kubeflow Pipelines. Error message: '${error.message}'.`;
+    const { t } = this.props;
+    const message = t('errorRenderGraph');
+    const additionalInfo = `${message} ${t('bugKubeflowError')}: '${error.message}'.`;
     if (this.props.onError) {
       this.props.onError(message, additionalInfo);
     }
@@ -159,6 +164,7 @@ export class Graph extends React.Component<GraphProps, GraphState> {
     graph.edges().forEach(edgeInfo => {
       const edge = graph.edge(edgeInfo);
       const segments: Segment[] = [];
+      const { t } = this.props;
 
       if (edge.points.length > 1) {
         for (let i = 1; i < edge.points.length; i++) {
@@ -178,7 +184,7 @@ export class Graph extends React.Component<GraphProps, GraphState> {
             const sourceNode = graph.node(edgeInfo.v);
 
             if (!sourceNode) {
-              throw new Error(`Graph definition is invalid. Cannot get node by '${edgeInfo.v}'.`);
+              throw new Error(`${t('common:graphDefInvalid', { edgeInfo: edgeInfo.v })}`);
             }
 
             // Set the edge's first segment to start at the bottom or top of the source node.
@@ -408,11 +414,14 @@ export class Graph extends React.Component<GraphProps, GraphState> {
   }
 }
 
-const EnhancedGraph = (props: GraphProps & GraphErrorBoundaryProps) => (
-  <GraphErrorBoundary onError={props.onError}>
-    <Graph {...props} />
-  </GraphErrorBoundary>
-);
+const EnhancedGraph = (props: GraphProps & GraphErrorBoundaryProps) => {
+  const { t } = useTranslation('common');
+  return (
+    <GraphErrorBoundary onError={props.onError} t={t}>
+      <Graph {...props} />
+    </GraphErrorBoundary>
+  );
+};
 EnhancedGraph.displayName = 'EnhancedGraph';
 
 export default EnhancedGraph;

@@ -5,7 +5,8 @@ exports[`RecurringRunsManager calls API to load recurring runs 1`] = `
   <Toolbar
     actions={Object {}}
     breadcrumbs={Array []}
-    pageTitle="Recurring runs"
+    pageTitle=""
+    t={[Function]}
   />
   <CustomTable
     columns={
@@ -13,12 +14,12 @@ exports[`RecurringRunsManager calls API to load recurring runs 1`] = `
         Object {
           "customRenderer": [Function],
           "flex": 2,
-          "label": "Run name",
+          "label": "",
           "sortKey": "name",
         },
         Object {
           "flex": 2,
-          "label": "Created at",
+          "label": "",
           "sortKey": "created_at",
         },
         Object {
@@ -29,8 +30,8 @@ exports[`RecurringRunsManager calls API to load recurring runs 1`] = `
       ]
     }
     disableSelection={true}
-    emptyMessage="No recurring runs found in this experiment."
-    filterLabel="Filter recurring runs"
+    emptyMessage=""
+    filterLabel=""
     initialSortColumn="created_at"
     reload={[Function]}
     rows={
@@ -65,6 +66,7 @@ exports[`RecurringRunsManager calls API to load recurring runs 1`] = `
       ]
     }
     selectedIds={Array []}
+    t={[Function]}
     updateSelection={[Function]}
   />
 </Fragment>
@@ -165,7 +167,7 @@ exports[`RecurringRunsManager reloads the list of runs after enable/disabling 1`
           className="MuiButton-label-816"
         >
           <span>
-            Enabled
+            example1
           </span>
         </span>
         <NoSsr
@@ -305,7 +307,7 @@ exports[`RecurringRunsManager renders a disable button if the run is enabled, cl
           className="MuiButton-label-288"
         >
           <span>
-            Enabled
+            example1
           </span>
         </span>
         <NoSsr
@@ -445,7 +447,7 @@ exports[`RecurringRunsManager renders an enable button if the run is disabled, c
           className="MuiButton-label-464"
         >
           <span>
-            Disabled
+            example1
           </span>
         </span>
         <NoSsr
@@ -585,7 +587,7 @@ exports[`RecurringRunsManager renders an enable button if the run's enabled fiel
           className="MuiButton-label-640"
         >
           <span>
-            Disabled
+            example1
           </span>
         </span>
         <NoSsr

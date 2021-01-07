@@ -29,6 +29,8 @@ import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding, fontsize } from '../Css';
 import { logger, errorToMessage } from '../lib/Utils';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
+import { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 interface NewExperimentState {
   description: string;
@@ -48,7 +50,7 @@ const css = stylesheet({
   },
 });
 
-export class NewExperiment extends Page<{ namespace?: string }, NewExperimentState> {
+export class NewExperiment extends Page<{ namespace?: string; t: TFunction }, NewExperimentState> {
   private _experimentNameRef = React.createRef<HTMLInputElement>();
 
   constructor(props: any) {
@@ -63,29 +65,29 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
   }
 
   public getInitialToolbarState(): ToolbarProps {
+    const { t } = this.props;
     return {
       actions: {},
-      breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
-      pageTitle: 'New experiment',
+      breadcrumbs: [{ displayName: t('common:experiments'), href: RoutePage.EXPERIMENTS }],
+      pageTitle: t('newExperiment'),
+      t,
     };
   }
 
   public render(): JSX.Element {
     const { description, experimentName, isbeingCreated, validationError } = this.state;
+    const { t } = this.props;
 
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
         <div className={classes(commonCss.scrollContainer, padding(20, 'lr'))}>
-          <div className={commonCss.header}>Experiment details</div>
+          <div className={commonCss.header}>{t('experimentDetails')}</div>
           {/* TODO: this description needs work. */}
-          <div className={css.explanation}>
-            Think of an Experiment as a space that contains the history of all pipelines and their
-            associated runs
-          </div>
+          <div className={css.explanation}>{t('experimentDefinition')}</div>
 
           <Input
             id='experimentName'
-            label='Experiment name'
+            label={t('experimentName')}
             inputRef={this._experimentNameRef}
             required={true}
             onChange={this.handleChange('experimentName')}
@@ -95,7 +97,7 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
           />
           <Input
             id='experimentDescription'
-            label='Description (optional)'
+            label={t('common:descriptionOptional')}
             multiline={true}
             onChange={this.handleChange('description')}
             value={description}
@@ -108,14 +110,14 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
               disabled={!!validationError}
               busy={isbeingCreated}
               className={commonCss.buttonAction}
-              title={'Next'}
+              title={t('common:next')}
               onClick={this._create.bind(this)}
             />
             <Button
               id='cancelNewExperimentBtn'
               onClick={() => this.props.history.push(RoutePage.EXPERIMENTS)}
             >
-              Cancel
+              {t('common:cancel')}
             </Button>
             <div className={css.errorMessage}>{validationError}</div>
           </div>
@@ -179,12 +181,12 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
         this.props.history.push(RoutePage.NEW_RUN + searchString);
         this.props.updateSnackbar({
           autoHideDuration: 10000,
-          message: `Successfully created new Experiment: ${newExperiment.name}`,
+          message: `${this.props.t('newExperimentSuccess')}: ${newExperiment.name}`,
           open: true,
         });
       } catch (err) {
         const errorMessage = await errorToMessage(err);
-        await this.showErrorDialog('Experiment creation failed', errorMessage);
+        await this.showErrorDialog(this.props.t('experimentCreationFailed'), errorMessage);
         logger.error('Error creating experiment:', err);
         this.setState({ isbeingCreated: false });
       }
@@ -194,9 +196,10 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
   private _validate(): void {
     // Validate state
     const { experimentName } = this.state;
+    const { t } = this.props;
     try {
       if (!experimentName) {
-        throw new Error('Experiment name is required');
+        throw new Error(t('experimentNameRequired'));
       }
       this.setState({ validationError: '' });
     } catch (err) {
@@ -207,7 +210,8 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
 
 const EnhancedNewExperiment: React.FC<PageProps> = props => {
   const namespace = React.useContext(NamespaceContext);
-  return <NewExperiment {...props} namespace={namespace} />;
+  const { t } = useTranslation(['experiments', 'common']);
+  return <NewExperiment {...props} namespace={namespace} t={t} />;
 };
 
 export default EnhancedNewExperiment;

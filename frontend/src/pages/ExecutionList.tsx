@@ -44,6 +44,8 @@ import {
 } from '../lib/Utils';
 import { RoutePageFactory } from '../components/Router';
 import { ExecutionHelpers } from 'src/lib/MlmdUtils';
+import { TFunction } from 'i18next';
+import { withTranslation } from 'react-i18next';
 
 interface ExecutionListState {
   executions: Execution[];
@@ -52,30 +54,31 @@ interface ExecutionListState {
   columns: Column[];
 }
 
-class ExecutionList extends Page<{}, ExecutionListState> {
+class ExecutionList extends Page<{ t: TFunction }, ExecutionListState> {
   private tableRef = React.createRef<CustomTable>();
   private api = Api.getInstance();
   private executionTypesMap: Map<number, ExecutionType>;
 
   constructor(props: any) {
     super(props);
+    const { t } = this.props;
     this.state = {
       columns: [
         {
           customRenderer: this.nameCustomRenderer,
           flex: 2,
-          label: 'Run ID/Workspace/Pipeline',
+          label: t('runWorkspacePipeline'),
           sortKey: 'workspace',
         },
         {
           customRenderer: this.nameCustomRenderer,
           flex: 1,
-          label: 'Name',
+          label: t('common:name'),
           sortKey: 'name',
         },
-        { label: 'State', flex: 1, sortKey: 'state' },
-        { label: 'ID', flex: 1, sortKey: 'id' },
-        { label: 'Type', flex: 2, sortKey: 'type' },
+        { label: t('common:state'), flex: 1, sortKey: 'state' },
+        { label: t('common:id'), flex: 1, sortKey: 'id' },
+        { label: t('common:type'), flex: 2, sortKey: 'type' },
       ],
       executions: [],
       expandedRows: new Map(),
@@ -87,15 +90,18 @@ class ExecutionList extends Page<{}, ExecutionListState> {
   }
 
   public getInitialToolbarState(): ToolbarProps {
+    const { t } = this.props;
     return {
       actions: {},
       breadcrumbs: [],
-      pageTitle: 'Executions',
+      pageTitle: t('common:executions'),
+      t,
     };
   }
 
   public render(): JSX.Element {
     const { rows, columns } = this.state;
+    const { t } = this.props;
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
         <CustomTable
@@ -109,7 +115,8 @@ class ExecutionList extends Page<{}, ExecutionListState> {
           initialSortOrder='asc'
           getExpandComponent={this.getExpandedExecutionsRow}
           toggleExpansion={this.toggleRowExpand}
-          emptyMessage='No executions found.'
+          emptyMessage={t('noExecutionsFound')}
+          t={t}
         />
       </div>
     );
@@ -144,6 +151,7 @@ class ExecutionList extends Page<{}, ExecutionListState> {
   }
 
   private async getExecutions(): Promise<Execution[]> {
+    const { t } = this.props;
     try {
       const response = await this.api.metadataStoreService.getExecutions(
         new GetExecutionsRequest(),
@@ -153,7 +161,7 @@ class ExecutionList extends Page<{}, ExecutionListState> {
       // Code === 5 means no record found in backend. This is a temporary workaround.
       // TODO: remove err.code !== 5 check when backend is fixed.
       if (err.code !== 5) {
-        err.message = 'Failed getting executions: ' + err.message;
+        err.message = `${t('getExecutionsFailed')}: ` + err.message;
         throw err;
       }
     }
@@ -247,4 +255,4 @@ class ExecutionList extends Page<{}, ExecutionListState> {
   }
 }
 
-export default ExecutionList;
+export default withTranslation(['executions', 'common'])(ExecutionList);

@@ -23,6 +23,7 @@ import { PageProps } from '../pages/Page';
 import { Apis } from './Apis';
 import { URLParser } from './URLParser';
 import { errorToMessage, s } from './Utils';
+import { TFunction } from 'i18next';
 
 export enum ButtonKeys {
   ARCHIVE = 'archive',
@@ -48,11 +49,16 @@ export enum ButtonKeys {
 
 export default class Buttons {
   private _map: ToolbarActionMap;
-  private _props: PageProps;
+  private _props: PageProps & { t: TFunction };
   private _refresh: () => void;
   private _urlParser: URLParser;
+  onClick: any;
 
-  constructor(pageProps: PageProps, refresh: () => void, map?: ToolbarActionMap) {
+  constructor(
+    pageProps: PageProps & { t: TFunction },
+    refresh: () => void,
+    map?: ToolbarActionMap,
+  ) {
     this._props = pageProps;
     this._refresh = refresh;
     this._urlParser = new URLParser(pageProps);
@@ -75,10 +81,10 @@ export default class Buttons {
           ? this._archiveRun(getSelectedIds(), useCurrentResource, callback)
           : this._archiveExperiments(getSelectedIds(), useCurrentResource, callback),
       disabled: !useCurrentResource,
-      disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to archive',
+      disabledTitle: useCurrentResource ? undefined : this._props.t('common:selectResourceArchive'),
       id: 'archiveBtn',
-      title: 'Archive',
-      tooltip: 'Archive',
+      title: this._props.t('common:archive'),
+      tooltip: this._props.t('common:archive'),
     };
     return this;
   }
@@ -87,11 +93,11 @@ export default class Buttons {
     this._map[ButtonKeys.CLONE_RUN] = {
       action: () => this._cloneRun(getSelectedIds()),
       disabled: !useCurrentResource,
-      disabledTitle: useCurrentResource ? undefined : 'Select a run to clone',
+      disabledTitle: useCurrentResource ? undefined : this._props.t('common:selectRunClone'),
       id: 'cloneBtn',
       style: { minWidth: 100 },
-      title: 'Clone run',
-      tooltip: 'Create a copy from this runs initial state',
+      title: this._props.t('common:cloneRun'),
+      tooltip: this._props.t('common:copyRunInitialState'),
     };
     return this;
   }
@@ -100,10 +106,10 @@ export default class Buttons {
     this._map[ButtonKeys.CLONE_RECURRING_RUN] = {
       action: () => this._cloneRun(getSelectedIds(), true),
       disabled: !useCurrentResource,
-      disabledTitle: useCurrentResource ? undefined : 'Select a recurring run to clone',
+      disabledTitle: useCurrentResource ? undefined : this._props.t('common:selectRecurRunClone'),
       id: 'cloneBtn',
-      title: 'Clone recurring run',
-      tooltip: 'Create a copy from this runs initial state',
+      title: this._props.t('common:cloneRecurRun'),
+      tooltip: this._props.t('common:copyRunInitialState'),
     };
     return this;
   }
@@ -116,10 +122,10 @@ export default class Buttons {
     this._map[ButtonKeys.RETRY] = {
       action: () => this._retryRun(getSelectedIds(), useCurrentResource, callback),
       disabled: !useCurrentResource,
-      disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to retry',
+      disabledTitle: useCurrentResource ? undefined : this._props.t('common:selectResourceRetry'),
       id: 'retryBtn',
-      title: 'Retry',
-      tooltip: 'Retry',
+      title: this._props.t('common:retry'),
+      tooltip: this._props.t('common:retry'),
     };
     return this;
   }
@@ -129,8 +135,8 @@ export default class Buttons {
       action,
       icon: CollapseIcon,
       id: 'collapseBtn',
-      title: 'Collapse all',
-      tooltip: 'Collapse all sections',
+      title: this._props.t('common:collapseAll'),
+      tooltip: this._props.t('common:collapseAllSec'),
     };
     return this;
   }
@@ -139,11 +145,11 @@ export default class Buttons {
     this._map[ButtonKeys.COMPARE] = {
       action: () => this._compareRuns(getSelectedIds()),
       disabled: true,
-      disabledTitle: 'Select multiple runs to compare',
+      disabledTitle: this._props.t('common:selectRunsCompare'),
       id: 'compareBtn',
       style: { minWidth: 125 },
-      title: 'Compare runs',
-      tooltip: 'Compare up to 10 selected runs',
+      title: this._props.t('common:compareRuns'),
+      tooltip: this._props.t('common:compareUpToTenRuns'),
     };
     return this;
   }
@@ -168,10 +174,12 @@ export default class Buttons {
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource
         ? undefined
-        : `Select at least one ${resourceName} to delete`,
+        : `${this._props.t('common:selectOne')} ${resourceName} ${this._props.t(
+            'common:toDelete',
+          )}`,
       id: 'deleteBtn',
-      title: 'Delete',
-      tooltip: 'Delete',
+      title: this._props.t('common:delete'),
+      tooltip: this._props.t('common:delete'),
     };
     return this;
   }
@@ -194,10 +202,10 @@ export default class Buttons {
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource
         ? undefined
-        : `Select at least one pipeline and/or one pipeline version to delete`,
+        : `${this._props.t('common:selectPipelineDelete')}`,
       id: 'deletePipelinesAndPipelineVersionsBtn',
-      title: 'Delete',
-      tooltip: 'Delete',
+      title: this._props.t('common:delete'),
+      tooltip: this._props.t('common:delete'),
     };
     return this;
   }
@@ -206,10 +214,10 @@ export default class Buttons {
     this._map[ButtonKeys.DISABLE_RECURRING_RUN] = {
       action: () => this._setRecurringRunEnabledState(getId(), false),
       disabled: true,
-      disabledTitle: 'Run schedule already disabled',
+      disabledTitle: this._props.t('common:runSchedDisabled'),
       id: 'disableBtn',
-      title: 'Disable',
-      tooltip: "Disable the run's trigger",
+      title: this._props.t('common:disable'),
+      tooltip: this._props.t('common:disableRunsTrigger'),
     };
     return this;
   }
@@ -218,10 +226,10 @@ export default class Buttons {
     this._map[ButtonKeys.ENABLE_RECURRING_RUN] = {
       action: () => this._setRecurringRunEnabledState(getId(), true),
       disabled: true,
-      disabledTitle: 'Run schedule already enabled',
+      disabledTitle: this._props.t('common:runSchedEnabled'),
       id: 'enableBtn',
-      title: 'Enable',
-      tooltip: "Enable the run's trigger",
+      title: this._props.t('common:enable'),
+      tooltip: this._props.t('common:enableRunsTrigger'),
     };
     return this;
   }
@@ -231,8 +239,8 @@ export default class Buttons {
       action,
       icon: ExpandIcon,
       id: 'expandBtn',
-      title: 'Expand all',
-      tooltip: 'Expand all sections',
+      title: this._props.t('common:expandAll'),
+      tooltip: this._props.t('common:expandAllSections'),
     };
     return this;
   }
@@ -244,8 +252,8 @@ export default class Buttons {
       id: 'newExperimentBtn',
       outlined: true,
       style: { minWidth: 185 },
-      title: 'Create experiment',
-      tooltip: 'Create a new experiment',
+      title: this._props.t('common:createExperiment'),
+      tooltip: this._props.t('common:createNewExperiment'),
     };
     return this;
   }
@@ -258,8 +266,8 @@ export default class Buttons {
       outlined: true,
       primary: true,
       style: { minWidth: 130 },
-      title: 'Create run',
-      tooltip: 'Create a new run',
+      title: this._props.t('common:createRun'),
+      tooltip: this._props.t('common:createNewRun'),
     };
     return this;
   }
@@ -275,8 +283,8 @@ export default class Buttons {
       outlined: true,
       primary: true,
       style: { minWidth: 130 },
-      title: 'Create run',
-      tooltip: 'Create a new run',
+      title: this._props.t('common:createRun'),
+      tooltip: this._props.t('common:createNewRun'),
     };
     return this;
   }
@@ -288,8 +296,8 @@ export default class Buttons {
       id: 'createNewRecurringRunBtn',
       outlined: true,
       style: { minWidth: 195 },
-      title: 'Create recurring run',
-      tooltip: 'Create a new recurring run',
+      title: this._props.t('common:createRecurRun'),
+      tooltip: this._props.t('common:createNewRecurRun'),
     };
     return this;
   }
@@ -302,7 +310,7 @@ export default class Buttons {
       outlined: true,
       style: { minWidth: 160 },
       title: label,
-      tooltip: 'Upload pipeline version',
+      tooltip: this._props.t('common:uploadPipelineVersion'),
     };
     return this;
   }
@@ -311,8 +319,8 @@ export default class Buttons {
     this._map[ButtonKeys.REFRESH] = {
       action,
       id: 'refreshBtn',
-      title: 'Refresh',
-      tooltip: 'Refresh the list',
+      title: this._props.t('common:refresh'),
+      tooltip: this._props.t('common:refreshList'),
     };
     return this;
   }
@@ -329,10 +337,10 @@ export default class Buttons {
           ? this._restore(getSelectedIds(), useCurrentResource, callback)
           : this._restoreExperiments(getSelectedIds(), useCurrentResource, callback),
       disabled: !useCurrentResource,
-      disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to restore',
+      disabledTitle: useCurrentResource ? undefined : this._props.t('common:selectResourceRestore'),
       id: 'restoreBtn',
-      title: 'Restore',
-      tooltip: 'Restore',
+      title: this._props.t('common:restore'),
+      tooltip: this._props.t('common:restore'),
     };
     return this;
   }
@@ -345,10 +353,10 @@ export default class Buttons {
     this._map[ButtonKeys.TERMINATE_RUN] = {
       action: () => this._terminateRun(getSelectedIds(), useCurrentResource, callback),
       disabled: !useCurrentResource,
-      disabledTitle: useCurrentResource ? undefined : 'Select at least one run to terminate',
+      disabledTitle: useCurrentResource ? undefined : this._props.t('common:selectRunTerminate'),
       id: 'terminateRunBtn',
-      title: 'Terminate',
-      tooltip: 'Terminate execution of a run',
+      title: this._props.t('common:terminate'),
+      tooltip: this._props.t('common:terminateRun'),
     };
     return this;
   }
@@ -360,8 +368,8 @@ export default class Buttons {
       id: 'uploadBtn',
       outlined: true,
       style: { minWidth: 160 },
-      title: 'Upload pipeline',
-      tooltip: 'Upload pipeline',
+      title: this._props.t('common:uploadPipeline'),
+      tooltip: this._props.t('common:uploadPipeline'),
     };
     return this;
   }
@@ -390,12 +398,12 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       selectedIds,
-      'Retry this run?',
+      this._props.t('common:retryRun'),
       useCurrent,
       id => Apis.runServiceApi.retryRun(id),
       callback,
-      'Retry',
-      'run',
+      this._props.t('common:retry'),
+      this._props.t('common:run'),
     );
   }
 
@@ -406,17 +414,23 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       selectedIds,
-      `Run${s(selectedIds)} will be moved to the Archive section, where you can still view ` +
-        `${
-          selectedIds.length === 1 ? 'its' : 'their'
-        } details. Please note that the run will not ` +
-        `be stopped if it's running when it's archived. Use the Restore action to restore the ` +
-        `run${s(selectedIds)} to ${selectedIds.length === 1 ? 'its' : 'their'} original location.`,
+      ` ${this._props.t('experiments:run', {
+        count: selectedIds.length,
+      })} ${this._props.t('executions:archiveRun', { count: selectedIds.length })} ` +
+        `${this._props.t('experiments:its', { count: selectedIds.length })} ${this._props.t(
+          'executions:runArchiveText',
+        )}` +
+        `${this._props.t('executions:runArchiveTextSuite')} ` +
+        `${this._props.t('experiments:run', { count: selectedIds.length })} ${this._props.t(
+          'experiments:to',
+        )} ${this._props.t('experiments:its', { count: selectedIds.length })} ${this._props.t(
+          'experiments:originalLocation',
+        )}`,
       useCurrent,
       id => Apis.runServiceApi.archiveRun(id),
       callback,
       'Archive',
-      'run',
+      this._props.t('common:run'),
     );
   }
 
@@ -427,14 +441,16 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       selectedIds,
-      `Do you want to restore ${
-        selectedIds.length === 1 ? 'this run to its' : 'these runs to their'
-      } original location?`,
+      `${this._props.t('executions:restore')} ${this._props.t('executions:thisRunToIts', {
+        count: selectedIds.length,
+      })} ${this._props.t('executions:originalLocation', {
+        count: selectedIds.length,
+      })}`,
       useCurrent,
       id => Apis.runServiceApi.unarchiveRun(id),
       callback,
-      'Restore',
-      'run',
+      this._props.t('common:restore'),
+      this._props.t('common:run'),
     );
   }
 
@@ -445,20 +461,26 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       selectedIds,
-      `Do you want to restore ${
-        selectedIds.length === 1 ? 'this experiment to its' : 'these experiments to their'
-      } original location? All runs and jobs in ${
-        selectedIds.length === 1 ? 'this experiment' : 'these experiments'
-      } will stay at their current locations in spite that ${
-        selectedIds.length === 1 ? 'this experiment' : 'these experiments'
-      } will be moved to ${selectedIds.length === 1 ? 'its' : 'their'} original location${s(
-        selectedIds,
-      )}.`,
+      `${this._props.t('executions:restore')}${this._props.t('experiments:thisExperimentToIts', {
+        count: selectedIds.length,
+      })} ${this._props.t('experiments:RestoreExperimentText')}${this._props.t(
+        'experiments:thisexperiment',
+        {
+          count: selectedIds.length,
+        },
+      )} ${this._props.t('experiments:ExperimentTextsuite')} ${this._props.t(
+        'experiments:thisexperiment',
+        {
+          count: selectedIds.length,
+        },
+      )} ${this._props.t('experiments:WillbeMovedTo')}${this._props.t('experiments:its', {
+        count: selectedIds.length,
+      })} ${this._props.t('experiments:originalLocation')}${s(selectedIds)}.`,
       useCurrent,
       id => Apis.experimentServiceApi.unarchiveExperiment(id),
       callback,
-      'Restore',
-      'experiment',
+      this._props.t('common:restore'),
+      this._props.t('common:experiment'),
     );
   }
 
@@ -469,13 +491,13 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       selectedIds,
-      `Do you want to delete ${
-        selectedIds.length === 1 ? 'this Pipeline' : 'these Pipelines'
-      }? This action cannot be undone.`,
+      `${this._props.t('pipelines:deletePipeline')} ${this._props.t('pipelines:thisPipeline', {
+        count: selectedIds.length,
+      })}${this._props.t('pipelines:cannotBeDone')} `,
       useCurrentResource,
       id => Apis.pipelineServiceApi.deletePipeline(id),
       callback,
-      'Delete',
+      this._props.t('common:delete'),
       'pipeline',
     );
   }
@@ -487,14 +509,15 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       selectedIds,
-      `Do you want to delete ${
-        selectedIds.length === 1 ? 'this Pipeline Version' : 'these Pipeline Versions'
-      }? This action cannot be undone.`,
+      `${this._props.t('pipelines:deletePipeline')} ${this._props.t(
+        'pipelines:thisPipelineVersion',
+        { count: selectedIds.length },
+      )}${this._props.t('pipelines:cannotBeDone')} `,
       useCurrentResource,
       id => Apis.pipelineServiceApi.deletePipelineVersion(id),
       callback,
-      'Delete',
-      'pipeline version',
+      this._props.t('common:delete'),
+      this._props.t('common:pipelineVersion'),
     );
   }
 
@@ -505,11 +528,11 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       [id],
-      'Do you want to delete this recurring run config? This action cannot be undone.',
+      this._props.t('common:terminateRecurRunConfig'),
       useCurrentResource,
       jobId => Apis.jobServiceApi.deleteJob(jobId),
       callback,
-      'Delete',
+      this._props.t('common:delete'),
       'recurring run config',
     );
   }
@@ -521,13 +544,12 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       ids,
-      'Do you want to terminate this run? This action cannot be undone. This will terminate any' +
-        ' running pods, but they will not be deleted.',
+      this._props.t('pipelines:terminateRun') + this._props.t('pipelines:terminateRunSuite'),
       useCurrentResource,
       id => Apis.runServiceApi.terminateRun(id),
       callback,
-      'Terminate',
-      'run',
+      this._props.t('common:terminate'),
+      this._props.t('common:run'),
     );
   }
 
@@ -538,12 +560,12 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       ids,
-      'Do you want to delete the selected runs? This action cannot be undone.',
+      this._props.t('common:deleteSelectedRuns'),
       useCurrentResource,
       id => Apis.runServiceApi.deleteRun(id),
       callback,
-      'Delete',
-      'run',
+      this._props.t('common:delete'),
+      this._props.t('common:run'),
     );
   }
 
@@ -571,7 +593,7 @@ export default class Buttons {
       buttons: [
         {
           onClick: async () => await dialogClosedHandler(false),
-          text: 'Cancel',
+          text: this._props.t('common:cancel'),
         },
         {
           onClick: async () => await dialogClosedHandler(true),
@@ -580,9 +602,9 @@ export default class Buttons {
       ],
       content,
       onClose: async () => await dialogClosedHandler(false),
-      title: `${actionName} ${useCurrentResource ? 'this' : selectedIds.length} ${resourceName}${
-        useCurrentResource ? '' : s(selectedIds.length)
-      }?`,
+      title: `${actionName} ${
+        useCurrentResource ? this._props.t('common:this') : selectedIds.length
+      } ${resourceName}${useCurrentResource ? '' : s(selectedIds.length)}?`,
     });
   }
 
@@ -606,7 +628,11 @@ export default class Buttons {
             unsuccessfulIds.push(id);
             const errorMessage = await errorToMessage(err);
             errorMessages.push(
-              `Failed to ${actionName.toLowerCase()} ${resourceName}: ${id} with error: "${errorMessage}"`,
+              `${this._props.t(
+                'common:failedTo',
+              )} ${actionName.toLowerCase()} ${resourceName}: ${id} ${this._props.t(
+                'common:withError',
+              )}: "${errorMessage}"`,
             );
           }
         }),
@@ -615,8 +641,8 @@ export default class Buttons {
       const successfulOps = selectedIds.length - unsuccessfulIds.length;
       if (successfulOps > 0) {
         this._props.updateSnackbar({
-          message: `${actionName} succeeded for ${
-            useCurrentResource ? 'this' : successfulOps
+          message: `${actionName} ${this._props.t('common:succeededFor')} ${
+            useCurrentResource ? this._props.t('common:this') : successfulOps
           } ${resourceName}${useCurrentResource ? '' : s(successfulOps)}`,
           open: true,
         });
@@ -627,9 +653,9 @@ export default class Buttons {
 
       if (unsuccessfulIds.length > 0) {
         this._props.updateDialog({
-          buttons: [{ text: 'Dismiss' }],
+          buttons: [{ text: this._props.t('common:dismiss') }],
           content: errorMessages.join('\n\n'),
-          title: `Failed to ${actionName.toLowerCase()} ${
+          title: `${this._props.t('common:failedTo')} ${actionName.toLowerCase()} ${
             useCurrentResource ? '' : unsuccessfulIds.length + ' '
           }${resourceName}${useCurrentResource ? '' : s(unsuccessfulIds)}`,
         });
@@ -665,7 +691,6 @@ export default class Buttons {
     );
     this._props.history.push(RoutePage.NEW_RUN + searchString);
   }
-
   private _createNewRunFromPipelineVersion(pipelineId?: string, pipelineVersionId?: string): void {
     let searchString = '';
     const fromRunId = this._urlParser.get(QUERY_PARAMS.fromRunId);
@@ -699,9 +724,11 @@ export default class Buttons {
       } catch (err) {
         const errorMessage = await errorToMessage(err);
         this._props.updateDialog({
-          buttons: [{ text: 'Dismiss' }],
+          buttons: [{ text: this._props.t('common:dismiss') }],
           content: errorMessage,
-          title: `Failed to ${enabled ? 'enable' : 'disable'} recurring run`,
+          title: `${this._props.t('common:failedTo')} ${
+            enabled ? this._props.t('common:enable') : this._props.t('common:disable')
+          } ${this._props.t('common:recurringRun')}`,
         });
       } finally {
         toolbarActions[buttonKey].busy = false;
@@ -725,11 +752,15 @@ export default class Buttons {
     callback: (pipelineId: string | undefined, selectedIds: string[]) => void,
   ): void {
     const numVersionIds = this._deepCountDictionary(selectedVersionIds);
-    const pipelineMessage = this._nouns(selectedIds.length, `pipeline`, `pipelines`);
+    const pipelineMessage = this._nouns(
+      selectedIds.length,
+      `${this._props.t('common:pipeline')}`,
+      `${this._props.t('common:pipelines')}`,
+    );
     const pipelineVersionMessage = this._nouns(
       numVersionIds,
-      `pipeline version`,
-      `pipeline versions`,
+      `${this._props.t('common:pipelineVersion')}`,
+      `${this._props.t('common:pipelineVersions')}`,
     );
     const andMessage = pipelineMessage !== `` && pipelineVersionMessage !== `` ? ` and ` : ``;
     this._props.updateDialog({
@@ -742,7 +773,7 @@ export default class Buttons {
               selectedVersionIds,
               callback,
             ),
-          text: 'Cancel',
+          text: this._props.t('common:cancel'),
         },
         {
           onClick: async () =>
@@ -752,7 +783,7 @@ export default class Buttons {
               selectedVersionIds,
               callback,
             ),
-          text: 'Delete',
+          text: this._props.t('common:delete'),
         },
       ],
       onClose: async () =>
@@ -762,7 +793,12 @@ export default class Buttons {
           selectedVersionIds,
           callback,
         ),
-      title: `Delete ` + pipelineMessage + andMessage + pipelineVersionMessage + `?`,
+      title:
+        `${this._props.t('common:delete')} ` +
+        pipelineMessage +
+        andMessage +
+        pipelineVersionMessage +
+        `?`,
     });
   }
 
@@ -791,7 +827,11 @@ export default class Buttons {
           unsuccessfulIds.push(id);
           succeededfulIds.delete(id);
           const errorMessage = await errorToMessage(err);
-          errorMessages.push(`Failed to delete pipeline: ${id} with error: "${errorMessage}"`);
+          errorMessages.push(
+            `${this._props.t('common:deletePipelineFailed')}: ${id} ${this._props.t(
+              'common:withError',
+            )}: "${errorMessage}"`,
+          );
         }
       }),
     );
@@ -817,7 +857,9 @@ export default class Buttons {
             unsuccessfulVersionIds[pipelineId].push(versionId);
             const errorMessage = await errorToMessage(err);
             errorMessages.push(
-              `Failed to delete pipeline version: ${versionId} with error: "${errorMessage}"`,
+              `${this._props.t('common:deletePipelineVersionFailed')}: ${versionId} ${this._props.t(
+                'common:withError',
+              )}: "${errorMessage}"`,
             );
           }
         });
@@ -827,24 +869,35 @@ export default class Buttons {
     const unsuccessfulVersionIdsCt = this._deepCountDictionary(unsuccessfulVersionIds);
 
     // Display successful and/or unsuccessful messages.
-    const pipelineMessage = this._nouns(succeededfulIds.size, `pipeline`, `pipelines`);
+    const pipelineMessage = this._nouns(
+      succeededfulIds.size,
+      `${this._props.t('common:pipeline')}`,
+      `${this._props.t('common:pipelines')}`,
+    );
     const pipelineVersionMessage = this._nouns(
       selectedVersionIdsCt - unsuccessfulVersionIdsCt,
-      `pipeline version`,
-      `pipeline versions`,
+      `${this._props.t('common:pipelineVersion')}`,
+      `${this._props.t('common:pipelineVersions')}`,
     );
-    const andMessage = pipelineMessage !== `` && pipelineVersionMessage !== `` ? ` and ` : ``;
+    const andMessage =
+      pipelineMessage !== `` && pipelineVersionMessage !== ``
+        ? ` ${this._props.t('common:and')} `
+        : ``;
     if (pipelineMessage !== `` || pipelineVersionMessage !== ``) {
       this._props.updateSnackbar({
-        message: `Deletion succeeded for ` + pipelineMessage + andMessage + pipelineVersionMessage,
+        message:
+          `${this._props.t('common:deletionSucceeded')} ` +
+          pipelineMessage +
+          andMessage +
+          pipelineVersionMessage,
         open: true,
       });
     }
     if (unsuccessfulIds.length > 0 || unsuccessfulVersionIdsCt > 0) {
       this._props.updateDialog({
-        buttons: [{ text: 'Dismiss' }],
+        buttons: [{ text: this._props.t('common:dismiss') }],
         content: errorMessages.join('\n\n'),
-        title: `Failed to delete some pipelines and/or some pipeline versions`,
+        title: `${this._props.t('common:deleteSomePipelinesFailed')}`,
       });
     }
 
@@ -880,16 +933,20 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       selectedIds,
-      `Experiment${s(selectedIds)} will be moved to the Archive section, where you can still view${
-        selectedIds.length === 1 ? 'its' : 'their'
-      } details. All runs in this archived experiment will be archived. All jobs in this archived experiment will be disabled. Use the Restore action on the experiment details page to restore the experiment${s(
-        selectedIds,
-      )} to ${selectedIds.length === 1 ? 'its' : 'their'} original location.`,
+      `${this._props.t('experiments:experiment', {
+        count: selectedIds.length,
+      })} ${this._props.t('experiments:moveExperiment', {
+        count: selectedIds.length,
+      })} ${this._props.t('experiments:its', { count: selectedIds.length })} ${this._props.t(
+        'experiments:experimentTextArchive',
+      )} ${s(selectedIds)} ${this._props.t('experiments:to')} ${this._props.t('experiments:its', {
+        count: selectedIds.length,
+      })} ${this._props.t('experiments:originalLocation')}`,
       useCurrent,
       id => Apis.experimentServiceApi.archiveExperiment(id),
       callback,
-      'Archive',
-      'experiment',
+      this._props.t('common:archive'),
+      this._props.t('common:experiment'),
     );
   }
 }

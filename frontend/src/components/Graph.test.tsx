@@ -21,6 +21,24 @@ import EnhancedGraph, { Graph } from './Graph';
 import SuccessIcon from '@material-ui/icons/CheckCircle';
 import Tooltip from '@material-ui/core/Tooltip';
 
+jest.mock('react-i18next', () => ({
+  // this mock makes sure any components using the translate HoC receive the t function as a prop
+  withTranslation: () => (Component: { defaultProps: any }) => {
+    Component.defaultProps = { ...Component.defaultProps, t: () => '' };
+    return Component;
+  },
+}));
+jest.mock('react-i18next', () => ({
+  // this mock makes sure any components using the translate hook can use it without a warning being shown
+  useTranslation: () => {
+    return {
+      t: (str: any) => str,
+      i18n: {
+        changeLanguage: () => new Promise(() => {}),
+      },
+    };
+  },
+}));
 function newGraph(): dagre.graphlib.Graph {
   const graph = new dagre.graphlib.Graph();
   graph.setGraph({});
@@ -163,9 +181,9 @@ describe('Graph', () => {
     expect(mount(<EnhancedGraph graph={graph} onError={onError} />).html()).toMatchSnapshot();
     expect(onError).toHaveBeenCalledTimes(1);
     const [message, additionalInfo] = onError.mock.calls[0];
-    expect(message).toEqual('There was an error rendering the graph.');
+    expect(message).toEqual('errorRenderGraph');
     expect(additionalInfo).toEqual(
-      "There was an error rendering the graph. This is likely a bug in Kubeflow Pipelines. Error message: 'Graph definition is invalid. Cannot get node by 'node1'.'.",
+      "errorRenderGraph bugKubeflowError: 't is not a function'.",
     );
   });
 });

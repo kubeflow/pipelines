@@ -29,12 +29,14 @@ import { commonCss, padding } from '../Css';
 import { KeyValue } from '../lib/StaticGraphParser';
 import { formatDateString, enabledDisplayString, errorToMessage } from '../lib/Utils';
 import { triggerDisplayString } from '../lib/TriggerUtils';
+import { TFunction } from 'i18next';
+import { withTranslation } from 'react-i18next';
 
 interface RecurringRunConfigState {
   run: ApiJob | null;
 }
 
-class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
+class RecurringRunDetails extends Page<{ t: TFunction }, RecurringRunConfigState> {
   constructor(props: any) {
     super(props);
 
@@ -44,6 +46,7 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
   }
 
   public getInitialToolbarState(): ToolbarProps {
+    const { t } = this.props;
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
       actions: buttons
@@ -60,18 +63,20 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
         .getToolbarActionMap(),
       breadcrumbs: [],
       pageTitle: '',
+      t,
     };
   }
 
   public render(): JSX.Element {
     const { run } = this.state;
+    const { t } = this.props;
     let runDetails: Array<KeyValue<string>> = [];
     let inputParameters: Array<KeyValue<string>> = [];
     let triggerDetails: Array<KeyValue<string>> = [];
     if (run && run.pipeline_spec) {
       runDetails = [
-        ['Description', run.description!],
-        ['Created at', formatDateString(run.created_at)],
+        [t('common:description'), run.description!],
+        [t('common:createdAt'), formatDateString(run.created_at)],
       ];
       inputParameters = (run.pipeline_spec.parameters || []).map(p => [
         p.name || '',
@@ -79,29 +84,32 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
       ]);
       if (run.trigger) {
         triggerDetails = [
-          ['Enabled', enabledDisplayString(run.trigger, run.enabled!)],
-          ['Trigger', triggerDisplayString(run.trigger)],
+          [t('common:enabled'), enabledDisplayString(run.trigger, run.enabled!)],
+          [t('trigger'), triggerDisplayString(run.trigger)],
         ];
         if (run.max_concurrency) {
-          triggerDetails.push(['Max. concurrent runs', run.max_concurrency]);
+          triggerDetails.push([t('maxConcurrentRunsAbbr'), run.max_concurrency]);
         }
-        triggerDetails.push(['Catchup', `${!run.no_catchup}`]);
+        triggerDetails.push([t('catchup'), `${!run.no_catchup}`]);
         if (run.trigger.cron_schedule && run.trigger.cron_schedule.start_time) {
           triggerDetails.push([
-            'Start time',
+            t('common:startTime'),
             formatDateString(run.trigger.cron_schedule.start_time),
           ]);
         } else if (run.trigger.periodic_schedule && run.trigger.periodic_schedule.start_time) {
           triggerDetails.push([
-            'Start time',
+            t('common:startTime'),
             formatDateString(run.trigger.periodic_schedule.start_time),
           ]);
         }
         if (run.trigger.cron_schedule && run.trigger.cron_schedule.end_time) {
-          triggerDetails.push(['End time', formatDateString(run.trigger.cron_schedule.end_time)]);
+          triggerDetails.push([
+            t('common:endTime'),
+            formatDateString(run.trigger.cron_schedule.end_time),
+          ]);
         } else if (run.trigger.periodic_schedule && run.trigger.periodic_schedule.end_time) {
           triggerDetails.push([
-            'End time',
+            t('common:endTime'),
             formatDateString(run.trigger.periodic_schedule.end_time),
           ]);
         }
@@ -112,14 +120,14 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
         {run && (
           <div className={commonCss.page}>
-            <DetailsTable title='Recurring run details' fields={runDetails} />
+            <DetailsTable title={t('recurringRunDetails')} fields={runDetails} />
 
             {!!triggerDetails.length && (
-              <DetailsTable title='Run trigger' fields={triggerDetails} />
+              <DetailsTable title={t('runTrigger')} fields={triggerDetails} />
             )}
 
             {!!inputParameters.length && (
-              <DetailsTable title='Run parameters' fields={inputParameters} />
+              <DetailsTable title={t('runParams')} fields={inputParameters} />
             )}
           </div>
         )}
@@ -144,31 +152,29 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
       run = await Apis.jobServiceApi.getJob(runId);
     } catch (err) {
       const errorMessage = await errorToMessage(err);
-      await this.showPageError(
-        `Error: failed to retrieve recurring run: ${runId}.`,
-        new Error(errorMessage),
-      );
+      await this.showPageError(`${'errorRetrieveRecurrRun'}: ${runId}.`, new Error(errorMessage));
       return;
     }
 
     const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(run);
     let experiment: ApiExperiment | undefined;
+    const { t } = this.props;
     if (relatedExperimentId) {
       try {
         experiment = await Apis.experimentServiceApi.getExperiment(relatedExperimentId);
       } catch (err) {
         const errorMessage = await errorToMessage(err);
         await this.showPageError(
-          `Error: failed to retrieve this recurring run's experiment.`,
+          `${t('errorRetrieveExperimentRecurrRun')}'`,
           new Error(errorMessage),
-          'warning',
+          t('common:warning'),
         );
       }
     }
     const breadcrumbs: Breadcrumb[] = [];
     if (experiment) {
       breadcrumbs.push(
-        { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
+        { displayName: t('common:experiments'), href: RoutePage.EXPERIMENTS },
         {
           displayName: experiment.name!,
           href: RoutePage.EXPERIMENT_DETAILS.replace(
@@ -178,7 +184,7 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
         },
       );
     } else {
-      breadcrumbs.push({ displayName: 'All runs', href: RoutePage.RUNS });
+      breadcrumbs.push({ displayName: t('allRuns'), href: RoutePage.RUNS });
     }
     const pageTitle = run ? run.name! : runId;
 
@@ -202,4 +208,4 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
   }
 }
 
-export default RecurringRunDetails;
+export default withTranslation(['experiments', 'common'])(RecurringRunDetails);

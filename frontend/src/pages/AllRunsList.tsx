@@ -23,12 +23,14 @@ import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
+import { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 interface AllRunsListState {
   selectedIds: string[];
 }
 
-export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> {
+export class AllRunsList extends Page<{ namespace?: string; t: TFunction }, AllRunsListState> {
   private _runlistRef = React.createRef<RunList>();
 
   constructor(props: any) {
@@ -41,6 +43,7 @@ export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> 
 
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
+    const { t } = this.props;
     return {
       actions: buttons
         .newRun()
@@ -56,7 +59,8 @@ export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> 
         .refresh(this.refresh.bind(this))
         .getToolbarActionMap(),
       breadcrumbs: [],
-      pageTitle: 'Experiments',
+      pageTitle: t('common:experiments'),
+      t,
     };
   }
 
@@ -101,7 +105,8 @@ export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> 
 
 const EnhancedAllRunsList = (props: PageProps) => {
   const namespace = React.useContext(NamespaceContext);
-  return <AllRunsList key={namespace} {...props} namespace={namespace} />;
+  const { t } = useTranslation(['experiments', 'common']);
+  return <AllRunsList key={namespace} {...props} namespace={namespace} t={t} />;
 };
 
 export default EnhancedAllRunsList;

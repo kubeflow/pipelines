@@ -10,23 +10,23 @@ exports[`ExperimentList renders a list of one experiment 1`] = `
         Object {
           "customRenderer": [Function],
           "flex": 1,
-          "label": "Experiment name",
+          "label": "experimentName",
           "sortKey": "name",
         },
         Object {
           "flex": 2,
-          "label": "Description",
+          "label": "common:description",
         },
         Object {
           "customRenderer": [Function],
           "flex": 1,
-          "label": "Last 5 runs",
+          "label": "last5Runs",
         },
       ]
     }
     disableSelection={true}
-    emptyMessage="No experiments found. Click \\"Create experiment\\" to start."
-    filterLabel="Filter experiments"
+    emptyMessage="noExperimentsFound"
+    filterLabel="filterExperiments"
     getExpandComponent={[Function]}
     initialSortColumn="created_at"
     reload={[Function]}
@@ -44,6 +44,7 @@ exports[`ExperimentList renders a list of one experiment 1`] = `
         },
       ]
     }
+    t={[Function]}
     toggleExpansion={[Function]}
   />
 </div>
@@ -59,27 +60,28 @@ exports[`ExperimentList renders a list of one experiment with error 1`] = `
         Object {
           "customRenderer": [Function],
           "flex": 1,
-          "label": "Experiment name",
+          "label": "experimentName",
           "sortKey": "name",
         },
         Object {
           "flex": 2,
-          "label": "Description",
+          "label": "common:description",
         },
         Object {
           "customRenderer": [Function],
           "flex": 1,
-          "label": "Last 5 runs",
+          "label": "last5Runs",
         },
       ]
     }
     disableSelection={true}
-    emptyMessage="No experiments found. Click \\"Create experiment\\" to start."
-    filterLabel="Filter experiments"
+    emptyMessage="noExperimentsFound"
+    filterLabel="filterExperiments"
     getExpandComponent={[Function]}
     initialSortColumn="created_at"
     reload={[Function]}
     rows={Array []}
+    t={[Function]}
     toggleExpansion={[Function]}
   />
 </div>
@@ -95,27 +97,28 @@ exports[`ExperimentList renders a list of one experiment with no description 1`]
         Object {
           "customRenderer": [Function],
           "flex": 1,
-          "label": "Experiment name",
+          "label": "experimentName",
           "sortKey": "name",
         },
         Object {
           "flex": 2,
-          "label": "Description",
+          "label": "common:description",
         },
         Object {
           "customRenderer": [Function],
           "flex": 1,
-          "label": "Last 5 runs",
+          "label": "last5Runs",
         },
       ]
     }
     disableSelection={true}
-    emptyMessage="No experiments found. Click \\"Create experiment\\" to start."
-    filterLabel="Filter experiments"
+    emptyMessage="noExperimentsFound"
+    filterLabel="filterExperiments"
     getExpandComponent={[Function]}
     initialSortColumn="created_at"
     reload={[Function]}
     rows={Array []}
+    t={[Function]}
     toggleExpansion={[Function]}
   />
 </div>
@@ -131,27 +134,28 @@ exports[`ExperimentList renders an empty list with empty state message 1`] = `
         Object {
           "customRenderer": [Function],
           "flex": 1,
-          "label": "Experiment name",
+          "label": "experimentName",
           "sortKey": "name",
         },
         Object {
           "flex": 2,
-          "label": "Description",
+          "label": "common:description",
         },
         Object {
           "customRenderer": [Function],
           "flex": 1,
-          "label": "Last 5 runs",
+          "label": "last5Runs",
         },
       ]
     }
     disableSelection={true}
-    emptyMessage="No experiments found. Click \\"Create experiment\\" to start."
-    filterLabel="Filter experiments"
+    emptyMessage="noExperimentsFound"
+    filterLabel="filterExperiments"
     getExpandComponent={[Function]}
     initialSortColumn="created_at"
     reload={[Function]}
     rows={Array []}
+    t={[Function]}
     toggleExpansion={[Function]}
   />
 </div>
@@ -189,7 +193,7 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
       title={
         <div>
           <div>
-            Executed successfully
+            common:executionSuccess
           </div>
         </div>
       }
@@ -224,7 +228,7 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
       title={
         <div>
           <div>
-            Pending execution
+            common:executePending
           </div>
         </div>
       }
@@ -259,7 +263,7 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
       title={
         <div>
           <div>
-            Resource failed to execute
+            common:executeResourceFailed
           </div>
         </div>
       }
@@ -294,7 +298,7 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
       title={
         <div>
           <div>
-            Unknown status
+            common:unknownStatus
           </div>
         </div>
       }
@@ -329,7 +333,7 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
       title={
         <div>
           <div>
-            Executed successfully
+            common:executionSuccess
           </div>
         </div>
       }

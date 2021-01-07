@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import Viewer, { ViewerConfig } from './Viewer';
+import { ViewerConfig } from './Viewer';
 import { cssRaw } from 'typestyle';
 import Markdown from 'markdown-to-jsx';
 
@@ -62,12 +62,9 @@ interface MarkdownViewerProps {
   maxDimension?: number;
 }
 
-class MarkdownViewer extends Viewer<MarkdownViewerProps, any> {
+class MarkdownViewer extends React.Component<MarkdownViewerProps, any> {
   private _config = this.props.configs[0];
-
-  public getDisplayName(): string {
-    return 'Markdown';
-  }
+  private _props: MarkdownViewerProps;
 
   public render(): JSX.Element | null {
     if (!this._config) {

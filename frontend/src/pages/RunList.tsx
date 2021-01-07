@@ -29,6 +29,7 @@ import { commonCss, color } from '../Css';
 import { formatDateString, logger, errorToMessage, getRunDuration } from '../lib/Utils';
 import { statusToIcon } from './Status';
 import Tooltip from '@material-ui/core/Tooltip';
+import { TFunction } from 'i18next';
 
 interface PipelineVersionInfo {
   displayName?: string;
@@ -75,6 +76,7 @@ export type RunListProps = MaskProps &
     runIdListMask?: string[];
     selectedIds?: string[];
     storageState?: RunStorageState;
+    t: TFunction;
   };
 
 interface RunListState {
@@ -84,10 +86,8 @@ interface RunListState {
 
 class RunList extends React.PureComponent<RunListProps, RunListState> {
   private _tableRef = React.createRef<CustomTable>();
-
   constructor(props: any) {
     super(props);
-
     this.state = {
       metrics: [],
       runs: [],
@@ -96,26 +96,39 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
 
   public render(): JSX.Element {
     // Only show the two most prevalent metrics
+
     const metricMetadata: MetricMetadata[] = this.state.metrics.slice(0, 2);
     const columns: Column[] = [
       {
         customRenderer: this._nameCustomRenderer,
         flex: 1.5,
-        label: 'Run name',
+        label: this.props.t('experiments:runName'),
         sortKey: RunSortKeys.NAME,
       },
-      { customRenderer: this._statusCustomRenderer, flex: 0.5, label: 'Status' },
-      { label: 'Duration', flex: 0.5 },
-      { customRenderer: this._pipelineVersionCustomRenderer, label: 'Pipeline Version', flex: 1 },
-      { customRenderer: this._recurringRunCustomRenderer, label: 'Recurring Run', flex: 0.5 },
-      { label: 'Start time', flex: 1, sortKey: RunSortKeys.CREATED_AT },
+      {
+        customRenderer: this._statusCustomRenderer,
+        flex: 0.5,
+        label: this.props.t('common:status'),
+      },
+      { label: this.props.t('common:duration'), flex: 0.5 },
+      {
+        customRenderer: this._pipelineVersionCustomRenderer,
+        label: this.props.t('common:pipelineVersion'),
+        flex: 1,
+      },
+      {
+        customRenderer: this._recurringRunCustomRenderer,
+        label: this.props.t('common:recurringRun'),
+        flex: 0.5,
+      },
+      { label: this.props.t('common:startTime'), flex: 1, sortKey: RunSortKeys.CREATED_AT },
     ];
 
     if (!this.props.hideExperimentColumn) {
       columns.splice(3, 0, {
         customRenderer: this._experimentCustomRenderer,
         flex: 1,
-        label: 'Experiment',
+        label: this.props.t('common:experiment'),
       });
     }
 
@@ -138,7 +151,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
         }),
       );
     }
-
+    const { t } = this.props;
     const rows: Row[] = this.state.runs.map(r => {
       const displayMetrics = metricMetadata.map(metadata => {
         const displayMetric: DisplayMetric = { metadata };
@@ -175,12 +188,13 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     return (
       <div>
         <CustomTable
+          t={t}
           columns={columns}
           rows={rows}
           selectedIds={this.props.selectedIds}
           initialSortColumn={RunSortKeys.CREATED_AT}
           ref={this._tableRef}
-          filterLabel='Filter runs'
+          filterLabel={t('experiments:filterRuns')}
           updateSelection={this.props.onSelectionChange}
           reload={this._loadRuns.bind(this)}
           disablePaging={this.props.disablePaging}
@@ -188,14 +202,18 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           disableSelection={this.props.disableSelection}
           noFilterBox={this.props.noFilterBox}
           emptyMessage={
-            `No` +
-            `${this.props.storageState === RunStorageState.ARCHIVED ? ' archived' : ' available'}` +
-            ` runs found` +
+            `${t('common:no')}` +
+            `${
+              this.props.storageState === RunStorageState.ARCHIVED
+                ? t('common:archived')
+                : t('common:available')
+            }` +
+            ` ${t('common:runFound')}` +
             `${
               this.props.experimentIdMask
-                ? ' for this experiment'
+                ? t('common:forThisExperiment')
                 : this.props.namespaceMask
-                ? ' for this namespace'
+                ? t('common:forThisNamespace')
                 : ''
             }.`
           }
@@ -300,7 +318,8 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
   public _statusCustomRenderer: React.FC<CustomRendererProps<NodePhase>> = (
     props: CustomRendererProps<NodePhase>,
   ) => {
-    return statusToIcon(props.value);
+    const { t } = this.props;
+    return statusToIcon(t, props.value);
   };
 
   public _metricBufferCustomRenderer: React.FC<CustomRendererProps<{}>> = (
@@ -384,7 +403,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
         nextPageToken = response.next_page_token || '';
       } catch (err) {
         const error = new Error(await errorToMessage(err));
-        this.props.onError('Error: failed to fetch runs.', error);
+        this.props.onError(this.props.t('pipelines:errorFetchRuns'), error);
         // No point in continuing if we couldn't retrieve any runs.
         return '';
       }
@@ -515,5 +534,4 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     }
   }
 }
-
 export default RunList;

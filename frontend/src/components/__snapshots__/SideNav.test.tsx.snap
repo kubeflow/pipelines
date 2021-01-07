@@ -21,7 +21,7 @@ exports[`SideNav populates the display build information using the response from
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Pipeline List"
+      title="common:pipelineList"
     >
       <Link
         className="unstyled"
@@ -38,7 +38,7 @@ exports[`SideNav populates the display build information using the response from
           <span
             className="label"
           >
-            Pipelines
+            common:pipelines
           </span>
         </WithStyles(Button)>
       </Link>
@@ -52,7 +52,7 @@ exports[`SideNav populates the display build information using the response from
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Experiment List"
+      title="common:experimentList"
     >
       <Link
         className="unstyled"
@@ -69,7 +69,7 @@ exports[`SideNav populates the display build information using the response from
           <span
             className="label"
           >
-            Experiments
+            common:experiments
           </span>
         </WithStyles(Button)>
       </Link>
@@ -83,7 +83,7 @@ exports[`SideNav populates the display build information using the response from
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Artifacts List"
+      title="common:artifactsList"
     >
       <Link
         className="unstyled"
@@ -98,7 +98,7 @@ exports[`SideNav populates the display build information using the response from
           <span
             className="label"
           >
-            Artifacts
+            common:artifacts
           </span>
         </WithStyles(Button)>
       </Link>
@@ -112,7 +112,7 @@ exports[`SideNav populates the display build information using the response from
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Executions List"
+      title="common:executionsList"
     >
       <Link
         className="unstyled"
@@ -127,7 +127,7 @@ exports[`SideNav populates the display build information using the response from
           <span
             className="label"
           >
-            Executions
+            common:executions
           </span>
         </WithStyles(Button)>
       </Link>
@@ -144,7 +144,7 @@ exports[`SideNav populates the display build information using the response from
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Archive"
+      title="common:archive"
     >
       <Link
         className="unstyled"
@@ -166,7 +166,7 @@ exports[`SideNav populates the display build information using the response from
           <span
             className="label"
           >
-            Archive
+            common:archive
           </span>
         </WithStyles(Button)>
       </Link>
@@ -177,13 +177,13 @@ exports[`SideNav populates the display build information using the response from
     <ExternalUri
       collapsed={false}
       icon={[Function]}
-      title="Documentation"
+      title="common:documentation"
       to="https://www.kubeflow.org/docs/pipelines/"
     />
     <ExternalUri
       collapsed={false}
       icon={[Function]}
-      title="Github Repo"
+      title="common:githubRepo"
       to="https://github.com/kubeflow/pipelines"
     />
     <hr
@@ -202,13 +202,14 @@ exports[`SideNav populates the display build information using the response from
     <WithStyles(Tooltip)
       enterDelay={300}
       placement="top-start"
-      title="Build date: 10/23/2018, Commit hash: 0a7b9e3"
+      title="common:buildDate: 10/23/2018, common:commitHash: 0a7b9e3"
     >
       <div
         className="envMetadata"
       >
         <span>
-          Version: 
+          common:version
+          : 
         </span>
         <a
           className="link unstyled"
@@ -223,7 +224,7 @@ exports[`SideNav populates the display build information using the response from
     <WithStyles(Tooltip)
       enterDelay={300}
       placement="top-start"
-      title="Report an Issue"
+      title="common:reportIssue"
     >
       <div
         className="envMetadata"
@@ -234,7 +235,7 @@ exports[`SideNav populates the display build information using the response from
           rel="noopener"
           target="_blank"
         >
-          Report an Issue
+          common:reportIssue
         </a>
       </div>
     </WithStyles(Tooltip)>
@@ -263,7 +264,7 @@ exports[`SideNav renders Pipelines as active page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Pipeline List"
+      title="common:pipelineList"
     >
       <Link
         className="unstyled"
@@ -280,7 +281,7 @@ exports[`SideNav renders Pipelines as active page 1`] = `
           <span
             className="label"
           >
-            Pipelines
+            common:pipelines
           </span>
         </WithStyles(Button)>
       </Link>
@@ -294,7 +295,7 @@ exports[`SideNav renders Pipelines as active page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Experiment List"
+      title="common:experimentList"
     >
       <Link
         className="unstyled"
@@ -311,7 +312,7 @@ exports[`SideNav renders Pipelines as active page 1`] = `
           <span
             className="label"
           >
-            Experiments
+            common:experiments
           </span>
         </WithStyles(Button)>
       </Link>
@@ -325,7 +326,7 @@ exports[`SideNav renders Pipelines as active page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Artifacts List"
+      title="common:artifactsList"
     >
       <Link
         className="unstyled"
@@ -340,7 +341,7 @@ exports[`SideNav renders Pipelines as active page 1`] = `
           <span
             className="label"
           >
-            Artifacts
+            common:artifacts
           </span>
         </WithStyles(Button)>
       </Link>
@@ -354,7 +355,7 @@ exports[`SideNav renders Pipelines as active page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Executions List"
+      title="common:executionsList"
     >
       <Link
         className="unstyled"
@@ -369,7 +370,7 @@ exports[`SideNav renders Pipelines as active page 1`] = `
           <span
             className="label"
           >
-            Executions
+            common:executions
           </span>
         </WithStyles(Button)>
       </Link>
@@ -386,7 +387,7 @@ exports[`SideNav renders Pipelines as active page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Archive"
+      title="common:archive"
     >
       <Link
         className="unstyled"
@@ -408,7 +409,7 @@ exports[`SideNav renders Pipelines as active page 1`] = `
           <span
             className="label"
           >
-            Archive
+            common:archive
           </span>
         </WithStyles(Button)>
       </Link>
@@ -419,13 +420,13 @@ exports[`SideNav renders Pipelines as active page 1`] = `
     <ExternalUri
       collapsed={false}
       icon={[Function]}
-      title="Documentation"
+      title="common:documentation"
       to="https://www.kubeflow.org/docs/pipelines/"
     />
     <ExternalUri
       collapsed={false}
       icon={[Function]}
-      title="Github Repo"
+      title="common:githubRepo"
       to="https://github.com/kubeflow/pipelines"
     />
     <hr
@@ -444,7 +445,7 @@ exports[`SideNav renders Pipelines as active page 1`] = `
     <WithStyles(Tooltip)
       enterDelay={300}
       placement="top-start"
-      title="Report an Issue"
+      title="common:reportIssue"
     >
       <div
         className="envMetadata"
@@ -455,7 +456,7 @@ exports[`SideNav renders Pipelines as active page 1`] = `
           rel="noopener"
           target="_blank"
         >
-          Report an Issue
+          common:reportIssue
         </a>
       </div>
     </WithStyles(Tooltip)>
@@ -484,7 +485,7 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Pipeline List"
+      title="common:pipelineList"
     >
       <Link
         className="unstyled"
@@ -501,7 +502,7 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
           <span
             className="label"
           >
-            Pipelines
+            common:pipelines
           </span>
         </WithStyles(Button)>
       </Link>
@@ -515,7 +516,7 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Experiment List"
+      title="common:experimentList"
     >
       <Link
         className="unstyled"
@@ -532,7 +533,7 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
           <span
             className="label"
           >
-            Experiments
+            common:experiments
           </span>
         </WithStyles(Button)>
       </Link>
@@ -546,7 +547,7 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Artifacts List"
+      title="common:artifactsList"
     >
       <Link
         className="unstyled"
@@ -561,7 +562,7 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
           <span
             className="label"
           >
-            Artifacts
+            common:artifacts
           </span>
         </WithStyles(Button)>
       </Link>
@@ -575,7 +576,7 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Executions List"
+      title="common:executionsList"
     >
       <Link
         className="unstyled"
@@ -590,7 +591,7 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
           <span
             className="label"
           >
-            Executions
+            common:executions
           </span>
         </WithStyles(Button)>
       </Link>
@@ -607,7 +608,7 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Archive"
+      title="common:archive"
     >
       <Link
         className="unstyled"
@@ -629,7 +630,7 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
           <span
             className="label"
           >
-            Archive
+            common:archive
           </span>
         </WithStyles(Button)>
       </Link>
@@ -640,13 +641,13 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
     <ExternalUri
       collapsed={false}
       icon={[Function]}
-      title="Documentation"
+      title="common:documentation"
       to="https://www.kubeflow.org/docs/pipelines/"
     />
     <ExternalUri
       collapsed={false}
       icon={[Function]}
-      title="Github Repo"
+      title="common:githubRepo"
       to="https://github.com/kubeflow/pipelines"
     />
     <hr
@@ -665,7 +666,7 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
     <WithStyles(Tooltip)
       enterDelay={300}
       placement="top-start"
-      title="Report an Issue"
+      title="common:reportIssue"
     >
       <div
         className="envMetadata"
@@ -676,7 +677,7 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
           rel="noopener"
           target="_blank"
         >
-          Report an Issue
+          common:reportIssue
         </a>
       </div>
     </WithStyles(Tooltip)>
@@ -705,7 +706,7 @@ exports[`SideNav renders collapsed state 1`] = `
       disableTouchListener={false}
       enterDelay={300}
       placement="right-start"
-      title="Pipeline List"
+      title="common:pipelineList"
     >
       <Link
         className="unstyled"
@@ -722,7 +723,7 @@ exports[`SideNav renders collapsed state 1`] = `
           <span
             className="collapsedLabel label"
           >
-            Pipelines
+            common:pipelines
           </span>
         </WithStyles(Button)>
       </Link>
@@ -736,7 +737,7 @@ exports[`SideNav renders collapsed state 1`] = `
       disableTouchListener={false}
       enterDelay={300}
       placement="right-start"
-      title="Experiment List"
+      title="common:experimentList"
     >
       <Link
         className="unstyled"
@@ -753,7 +754,7 @@ exports[`SideNav renders collapsed state 1`] = `
           <span
             className="collapsedLabel label"
           >
-            Experiments
+            common:experiments
           </span>
         </WithStyles(Button)>
       </Link>
@@ -767,7 +768,7 @@ exports[`SideNav renders collapsed state 1`] = `
       disableTouchListener={false}
       enterDelay={300}
       placement="right-start"
-      title="Artifacts List"
+      title="common:artifactsList"
     >
       <Link
         className="unstyled"
@@ -782,7 +783,7 @@ exports[`SideNav renders collapsed state 1`] = `
           <span
             className="collapsedLabel label"
           >
-            Artifacts
+            common:artifacts
           </span>
         </WithStyles(Button)>
       </Link>
@@ -796,7 +797,7 @@ exports[`SideNav renders collapsed state 1`] = `
       disableTouchListener={false}
       enterDelay={300}
       placement="right-start"
-      title="Executions List"
+      title="common:executionsList"
     >
       <Link
         className="unstyled"
@@ -811,7 +812,7 @@ exports[`SideNav renders collapsed state 1`] = `
           <span
             className="collapsedLabel label"
           >
-            Executions
+            common:executions
           </span>
         </WithStyles(Button)>
       </Link>
@@ -828,7 +829,7 @@ exports[`SideNav renders collapsed state 1`] = `
       disableTouchListener={false}
       enterDelay={300}
       placement="right-start"
-      title="Archive"
+      title="common:archive"
     >
       <Link
         className="unstyled"
@@ -850,7 +851,7 @@ exports[`SideNav renders collapsed state 1`] = `
           <span
             className="collapsedLabel label"
           >
-            Archive
+            common:archive
           </span>
         </WithStyles(Button)>
       </Link>
@@ -861,13 +862,13 @@ exports[`SideNav renders collapsed state 1`] = `
     <ExternalUri
       collapsed={true}
       icon={[Function]}
-      title="Documentation"
+      title="common:documentation"
       to="https://www.kubeflow.org/docs/pipelines/"
     />
     <ExternalUri
       collapsed={true}
       icon={[Function]}
-      title="Github Repo"
+      title="common:githubRepo"
       to="https://github.com/kubeflow/pipelines"
     />
     <hr
@@ -886,7 +887,7 @@ exports[`SideNav renders collapsed state 1`] = `
     <WithStyles(Tooltip)
       enterDelay={300}
       placement="top-start"
-      title="Report an Issue"
+      title="common:reportIssue"
     >
       <div
         className="envMetadata"
@@ -897,7 +898,7 @@ exports[`SideNav renders collapsed state 1`] = `
           rel="noopener"
           target="_blank"
         >
-          Report an Issue
+          common:reportIssue
         </a>
       </div>
     </WithStyles(Tooltip)>
@@ -926,7 +927,7 @@ exports[`SideNav renders expanded state 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Pipeline List"
+      title="common:pipelineList"
     >
       <Link
         className="unstyled"
@@ -943,7 +944,7 @@ exports[`SideNav renders expanded state 1`] = `
           <span
             className="label"
           >
-            Pipelines
+            common:pipelines
           </span>
         </WithStyles(Button)>
       </Link>
@@ -957,7 +958,7 @@ exports[`SideNav renders expanded state 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Experiment List"
+      title="common:experimentList"
     >
       <Link
         className="unstyled"
@@ -974,7 +975,7 @@ exports[`SideNav renders expanded state 1`] = `
           <span
             className="label"
           >
-            Experiments
+            common:experiments
           </span>
         </WithStyles(Button)>
       </Link>
@@ -988,7 +989,7 @@ exports[`SideNav renders expanded state 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Artifacts List"
+      title="common:artifactsList"
     >
       <Link
         className="unstyled"
@@ -1003,7 +1004,7 @@ exports[`SideNav renders expanded state 1`] = `
           <span
             className="label"
           >
-            Artifacts
+            common:artifacts
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1017,7 +1018,7 @@ exports[`SideNav renders expanded state 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Executions List"
+      title="common:executionsList"
     >
       <Link
         className="unstyled"
@@ -1032,7 +1033,7 @@ exports[`SideNav renders expanded state 1`] = `
           <span
             className="label"
           >
-            Executions
+            common:executions
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1049,7 +1050,7 @@ exports[`SideNav renders expanded state 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Archive"
+      title="common:archive"
     >
       <Link
         className="unstyled"
@@ -1071,7 +1072,7 @@ exports[`SideNav renders expanded state 1`] = `
           <span
             className="label"
           >
-            Archive
+            common:archive
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1082,13 +1083,13 @@ exports[`SideNav renders expanded state 1`] = `
     <ExternalUri
       collapsed={false}
       icon={[Function]}
-      title="Documentation"
+      title="common:documentation"
       to="https://www.kubeflow.org/docs/pipelines/"
     />
     <ExternalUri
       collapsed={false}
       icon={[Function]}
-      title="Github Repo"
+      title="common:githubRepo"
       to="https://github.com/kubeflow/pipelines"
     />
     <hr
@@ -1107,7 +1108,7 @@ exports[`SideNav renders expanded state 1`] = `
     <WithStyles(Tooltip)
       enterDelay={300}
       placement="top-start"
-      title="Report an Issue"
+      title="common:reportIssue"
     >
       <div
         className="envMetadata"
@@ -1118,7 +1119,7 @@ exports[`SideNav renders expanded state 1`] = `
           rel="noopener"
           target="_blank"
         >
-          Report an Issue
+          common:reportIssue
         </a>
       </div>
     </WithStyles(Tooltip)>
@@ -1147,7 +1148,7 @@ exports[`SideNav renders experiments as active page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Pipeline List"
+      title="common:pipelineList"
     >
       <Link
         className="unstyled"
@@ -1164,7 +1165,7 @@ exports[`SideNav renders experiments as active page 1`] = `
           <span
             className="label"
           >
-            Pipelines
+            common:pipelines
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1178,7 +1179,7 @@ exports[`SideNav renders experiments as active page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Experiment List"
+      title="common:experimentList"
     >
       <Link
         className="unstyled"
@@ -1195,7 +1196,7 @@ exports[`SideNav renders experiments as active page 1`] = `
           <span
             className="label"
           >
-            Experiments
+            common:experiments
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1209,7 +1210,7 @@ exports[`SideNav renders experiments as active page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Artifacts List"
+      title="common:artifactsList"
     >
       <Link
         className="unstyled"
@@ -1224,7 +1225,7 @@ exports[`SideNav renders experiments as active page 1`] = `
           <span
             className="label"
           >
-            Artifacts
+            common:artifacts
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1238,7 +1239,7 @@ exports[`SideNav renders experiments as active page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Executions List"
+      title="common:executionsList"
     >
       <Link
         className="unstyled"
@@ -1253,7 +1254,7 @@ exports[`SideNav renders experiments as active page 1`] = `
           <span
             className="label"
           >
-            Executions
+            common:executions
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1270,7 +1271,7 @@ exports[`SideNav renders experiments as active page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Archive"
+      title="common:archive"
     >
       <Link
         className="unstyled"
@@ -1292,7 +1293,7 @@ exports[`SideNav renders experiments as active page 1`] = `
           <span
             className="label"
           >
-            Archive
+            common:archive
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1303,13 +1304,13 @@ exports[`SideNav renders experiments as active page 1`] = `
     <ExternalUri
       collapsed={false}
       icon={[Function]}
-      title="Documentation"
+      title="common:documentation"
       to="https://www.kubeflow.org/docs/pipelines/"
     />
     <ExternalUri
       collapsed={false}
       icon={[Function]}
-      title="Github Repo"
+      title="common:githubRepo"
       to="https://github.com/kubeflow/pipelines"
     />
     <hr
@@ -1328,7 +1329,7 @@ exports[`SideNav renders experiments as active page 1`] = `
     <WithStyles(Tooltip)
       enterDelay={300}
       placement="top-start"
-      title="Report an Issue"
+      title="common:reportIssue"
     >
       <div
         className="envMetadata"
@@ -1339,7 +1340,7 @@ exports[`SideNav renders experiments as active page 1`] = `
           rel="noopener"
           target="_blank"
         >
-          Report an Issue
+          common:reportIssue
         </a>
       </div>
     </WithStyles(Tooltip)>
@@ -1368,7 +1369,7 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Pipeline List"
+      title="common:pipelineList"
     >
       <Link
         className="unstyled"
@@ -1385,7 +1386,7 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
           <span
             className="label"
           >
-            Pipelines
+            common:pipelines
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1399,7 +1400,7 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Experiment List"
+      title="common:experimentList"
     >
       <Link
         className="unstyled"
@@ -1416,7 +1417,7 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
           <span
             className="label"
           >
-            Experiments
+            common:experiments
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1430,7 +1431,7 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Artifacts List"
+      title="common:artifactsList"
     >
       <Link
         className="unstyled"
@@ -1445,7 +1446,7 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
           <span
             className="label"
           >
-            Artifacts
+            common:artifacts
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1459,7 +1460,7 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Executions List"
+      title="common:executionsList"
     >
       <Link
         className="unstyled"
@@ -1474,7 +1475,7 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
           <span
             className="label"
           >
-            Executions
+            common:executions
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1491,7 +1492,7 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Archive"
+      title="common:archive"
     >
       <Link
         className="unstyled"
@@ -1513,7 +1514,7 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
           <span
             className="label"
           >
-            Archive
+            common:archive
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1524,13 +1525,13 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
     <ExternalUri
       collapsed={false}
       icon={[Function]}
-      title="Documentation"
+      title="common:documentation"
       to="https://www.kubeflow.org/docs/pipelines/"
     />
     <ExternalUri
       collapsed={false}
       icon={[Function]}
-      title="Github Repo"
+      title="common:githubRepo"
       to="https://github.com/kubeflow/pipelines"
     />
     <hr
@@ -1549,7 +1550,7 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
     <WithStyles(Tooltip)
       enterDelay={300}
       placement="top-start"
-      title="Report an Issue"
+      title="common:reportIssue"
     >
       <div
         className="envMetadata"
@@ -1560,7 +1561,7 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
           rel="noopener"
           target="_blank"
         >
-          Report an Issue
+          common:reportIssue
         </a>
       </div>
     </WithStyles(Tooltip)>
@@ -1589,7 +1590,7 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Pipeline List"
+      title="common:pipelineList"
     >
       <Link
         className="unstyled"
@@ -1606,7 +1607,7 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
           <span
             className="label"
           >
-            Pipelines
+            common:pipelines
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1620,7 +1621,7 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Experiment List"
+      title="common:experimentList"
     >
       <Link
         className="unstyled"
@@ -1637,7 +1638,7 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
           <span
             className="label"
           >
-            Experiments
+            common:experiments
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1651,7 +1652,7 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Artifacts List"
+      title="common:artifactsList"
     >
       <Link
         className="unstyled"
@@ -1666,7 +1667,7 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
           <span
             className="label"
           >
-            Artifacts
+            common:artifacts
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1680,7 +1681,7 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Executions List"
+      title="common:executionsList"
     >
       <Link
         className="unstyled"
@@ -1695,7 +1696,7 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
           <span
             className="label"
           >
-            Executions
+            common:executions
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1712,7 +1713,7 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Archive"
+      title="common:archive"
     >
       <Link
         className="unstyled"
@@ -1734,7 +1735,7 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
           <span
             className="label"
           >
-            Archive
+            common:archive
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1745,13 +1746,13 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
     <ExternalUri
       collapsed={false}
       icon={[Function]}
-      title="Documentation"
+      title="common:documentation"
       to="https://www.kubeflow.org/docs/pipelines/"
     />
     <ExternalUri
       collapsed={false}
       icon={[Function]}
-      title="Github Repo"
+      title="common:githubRepo"
       to="https://github.com/kubeflow/pipelines"
     />
     <hr
@@ -1770,7 +1771,7 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
     <WithStyles(Tooltip)
       enterDelay={300}
       placement="top-start"
-      title="Report an Issue"
+      title="common:reportIssue"
     >
       <div
         className="envMetadata"
@@ -1781,7 +1782,7 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
           rel="noopener"
           target="_blank"
         >
-          Report an Issue
+          common:reportIssue
         </a>
       </div>
     </WithStyles(Tooltip)>
@@ -1810,7 +1811,7 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Pipeline List"
+      title="common:pipelineList"
     >
       <Link
         className="unstyled"
@@ -1827,7 +1828,7 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
           <span
             className="label"
           >
-            Pipelines
+            common:pipelines
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1841,7 +1842,7 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Experiment List"
+      title="common:experimentList"
     >
       <Link
         className="unstyled"
@@ -1858,7 +1859,7 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
           <span
             className="label"
           >
-            Experiments
+            common:experiments
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1872,7 +1873,7 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Artifacts List"
+      title="common:artifactsList"
     >
       <Link
         className="unstyled"
@@ -1887,7 +1888,7 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
           <span
             className="label"
           >
-            Artifacts
+            common:artifacts
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1901,7 +1902,7 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Executions List"
+      title="common:executionsList"
     >
       <Link
         className="unstyled"
@@ -1916,7 +1917,7 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
           <span
             className="label"
           >
-            Executions
+            common:executions
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1933,7 +1934,7 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Archive"
+      title="common:archive"
     >
       <Link
         className="unstyled"
@@ -1955,7 +1956,7 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
           <span
             className="label"
           >
-            Archive
+            common:archive
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1966,13 +1967,13 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
     <ExternalUri
       collapsed={false}
       icon={[Function]}
-      title="Documentation"
+      title="common:documentation"
       to="https://www.kubeflow.org/docs/pipelines/"
     />
     <ExternalUri
       collapsed={false}
       icon={[Function]}
-      title="Github Repo"
+      title="common:githubRepo"
       to="https://github.com/kubeflow/pipelines"
     />
     <hr
@@ -1991,7 +1992,7 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
     <WithStyles(Tooltip)
       enterDelay={300}
       placement="top-start"
-      title="Report an Issue"
+      title="common:reportIssue"
     >
       <div
         className="envMetadata"
@@ -2002,7 +2003,7 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
           rel="noopener"
           target="_blank"
         >
-          Report an Issue
+          common:reportIssue
         </a>
       </div>
     </WithStyles(Tooltip)>
@@ -2031,7 +2032,7 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Pipeline List"
+      title="common:pipelineList"
     >
       <Link
         className="unstyled"
@@ -2048,7 +2049,7 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
           <span
             className="label"
           >
-            Pipelines
+            common:pipelines
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2062,7 +2063,7 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Experiment List"
+      title="common:experimentList"
     >
       <Link
         className="unstyled"
@@ -2079,7 +2080,7 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
           <span
             className="label"
           >
-            Experiments
+            common:experiments
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2093,7 +2094,7 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Artifacts List"
+      title="common:artifactsList"
     >
       <Link
         className="unstyled"
@@ -2108,7 +2109,7 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
           <span
             className="label"
           >
-            Artifacts
+            common:artifacts
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2122,7 +2123,7 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Executions List"
+      title="common:executionsList"
     >
       <Link
         className="unstyled"
@@ -2137,7 +2138,7 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
           <span
             className="label"
           >
-            Executions
+            common:executions
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2154,7 +2155,7 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Archive"
+      title="common:archive"
     >
       <Link
         className="unstyled"
@@ -2176,7 +2177,7 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
           <span
             className="label"
           >
-            Archive
+            common:archive
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2187,13 +2188,13 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
     <ExternalUri
       collapsed={false}
       icon={[Function]}
-      title="Documentation"
+      title="common:documentation"
       to="https://www.kubeflow.org/docs/pipelines/"
     />
     <ExternalUri
       collapsed={false}
       icon={[Function]}
-      title="Github Repo"
+      title="common:githubRepo"
       to="https://github.com/kubeflow/pipelines"
     />
     <hr
@@ -2212,7 +2213,7 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
     <WithStyles(Tooltip)
       enterDelay={300}
       placement="top-start"
-      title="Report an Issue"
+      title="common:reportIssue"
     >
       <div
         className="envMetadata"
@@ -2223,7 +2224,7 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
           rel="noopener"
           target="_blank"
         >
-          Report an Issue
+          common:reportIssue
         </a>
       </div>
     </WithStyles(Tooltip)>
@@ -2252,7 +2253,7 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Pipeline List"
+      title="common:pipelineList"
     >
       <Link
         className="unstyled"
@@ -2269,7 +2270,7 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
           <span
             className="label"
           >
-            Pipelines
+            common:pipelines
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2283,7 +2284,7 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Experiment List"
+      title="common:experimentList"
     >
       <Link
         className="unstyled"
@@ -2300,7 +2301,7 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
           <span
             className="label"
           >
-            Experiments
+            common:experiments
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2314,7 +2315,7 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Artifacts List"
+      title="common:artifactsList"
     >
       <Link
         className="unstyled"
@@ -2329,7 +2330,7 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
           <span
             className="label"
           >
-            Artifacts
+            common:artifacts
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2343,7 +2344,7 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Executions List"
+      title="common:executionsList"
     >
       <Link
         className="unstyled"
@@ -2358,7 +2359,7 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
           <span
             className="label"
           >
-            Executions
+            common:executions
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2375,7 +2376,7 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Archive"
+      title="common:archive"
     >
       <Link
         className="unstyled"
@@ -2397,7 +2398,7 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
           <span
             className="label"
           >
-            Archive
+            common:archive
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2408,13 +2409,13 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
     <ExternalUri
       collapsed={false}
       icon={[Function]}
-      title="Documentation"
+      title="common:documentation"
       to="https://www.kubeflow.org/docs/pipelines/"
     />
     <ExternalUri
       collapsed={false}
       icon={[Function]}
-      title="Github Repo"
+      title="common:githubRepo"
       to="https://github.com/kubeflow/pipelines"
     />
     <hr
@@ -2433,7 +2434,7 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
     <WithStyles(Tooltip)
       enterDelay={300}
       placement="top-start"
-      title="Report an Issue"
+      title="common:reportIssue"
     >
       <div
         className="envMetadata"
@@ -2444,7 +2445,7 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
           rel="noopener"
           target="_blank"
         >
-          Report an Issue
+          common:reportIssue
         </a>
       </div>
     </WithStyles(Tooltip)>
@@ -2473,7 +2474,7 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Pipeline List"
+      title="common:pipelineList"
     >
       <Link
         className="unstyled"
@@ -2490,7 +2491,7 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
           <span
             className="label"
           >
-            Pipelines
+            common:pipelines
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2504,7 +2505,7 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Experiment List"
+      title="common:experimentList"
     >
       <Link
         className="unstyled"
@@ -2521,7 +2522,7 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
           <span
             className="label"
           >
-            Experiments
+            common:experiments
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2535,7 +2536,7 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Artifacts List"
+      title="common:artifactsList"
     >
       <Link
         className="unstyled"
@@ -2550,7 +2551,7 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
           <span
             className="label"
           >
-            Artifacts
+            common:artifacts
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2564,7 +2565,7 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Executions List"
+      title="common:executionsList"
     >
       <Link
         className="unstyled"
@@ -2579,7 +2580,7 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
           <span
             className="label"
           >
-            Executions
+            common:executions
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2596,7 +2597,7 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Archive"
+      title="common:archive"
     >
       <Link
         className="unstyled"
@@ -2618,7 +2619,7 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
           <span
             className="label"
           >
-            Archive
+            common:archive
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2629,13 +2630,13 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
     <ExternalUri
       collapsed={false}
       icon={[Function]}
-      title="Documentation"
+      title="common:documentation"
       to="https://www.kubeflow.org/docs/pipelines/"
     />
     <ExternalUri
       collapsed={false}
       icon={[Function]}
-      title="Github Repo"
+      title="common:githubRepo"
       to="https://github.com/kubeflow/pipelines"
     />
     <hr
@@ -2654,7 +2655,7 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
     <WithStyles(Tooltip)
       enterDelay={300}
       placement="top-start"
-      title="Report an Issue"
+      title="common:reportIssue"
     >
       <div
         className="envMetadata"
@@ -2665,7 +2666,7 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
           rel="noopener"
           target="_blank"
         >
-          Report an Issue
+          common:reportIssue
         </a>
       </div>
     </WithStyles(Tooltip)>
@@ -2694,7 +2695,7 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Pipeline List"
+      title="common:pipelineList"
     >
       <Link
         className="unstyled"
@@ -2711,7 +2712,7 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
           <span
             className="label"
           >
-            Pipelines
+            common:pipelines
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2725,7 +2726,7 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Experiment List"
+      title="common:experimentList"
     >
       <Link
         className="unstyled"
@@ -2742,7 +2743,7 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
           <span
             className="label"
           >
-            Experiments
+            common:experiments
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2756,7 +2757,7 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Artifacts List"
+      title="common:artifactsList"
     >
       <Link
         className="unstyled"
@@ -2771,7 +2772,7 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
           <span
             className="label"
           >
-            Artifacts
+            common:artifacts
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2785,7 +2786,7 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Executions List"
+      title="common:executionsList"
     >
       <Link
         className="unstyled"
@@ -2800,7 +2801,7 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
           <span
             className="label"
           >
-            Executions
+            common:executions
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2817,7 +2818,7 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Archive"
+      title="common:archive"
     >
       <Link
         className="unstyled"
@@ -2839,7 +2840,7 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
           <span
             className="label"
           >
-            Archive
+            common:archive
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2850,13 +2851,13 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
     <ExternalUri
       collapsed={false}
       icon={[Function]}
-      title="Documentation"
+      title="common:documentation"
       to="https://www.kubeflow.org/docs/pipelines/"
     />
     <ExternalUri
       collapsed={false}
       icon={[Function]}
-      title="Github Repo"
+      title="common:githubRepo"
       to="https://github.com/kubeflow/pipelines"
     />
     <hr
@@ -2875,7 +2876,7 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
     <WithStyles(Tooltip)
       enterDelay={300}
       placement="top-start"
-      title="Report an Issue"
+      title="common:reportIssue"
     >
       <div
         className="envMetadata"
@@ -2886,7 +2887,7 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
           rel="noopener"
           target="_blank"
         >
-          Report an Issue
+          common:reportIssue
         </a>
       </div>
     </WithStyles(Tooltip)>
@@ -2915,7 +2916,7 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Pipeline List"
+      title="common:pipelineList"
     >
       <Link
         className="unstyled"
@@ -2932,7 +2933,7 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
           <span
             className="label"
           >
-            Pipelines
+            common:pipelines
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2946,7 +2947,7 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Experiment List"
+      title="common:experimentList"
     >
       <Link
         className="unstyled"
@@ -2963,7 +2964,7 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
           <span
             className="label"
           >
-            Experiments
+            common:experiments
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2977,7 +2978,7 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Artifacts List"
+      title="common:artifactsList"
     >
       <Link
         className="unstyled"
@@ -2992,7 +2993,7 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
           <span
             className="label"
           >
-            Artifacts
+            common:artifacts
           </span>
         </WithStyles(Button)>
       </Link>
@@ -3006,7 +3007,7 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Executions List"
+      title="common:executionsList"
     >
       <Link
         className="unstyled"
@@ -3021,7 +3022,7 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
           <span
             className="label"
           >
-            Executions
+            common:executions
           </span>
         </WithStyles(Button)>
       </Link>
@@ -3032,7 +3033,7 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Open Jupyter Notebook"
+      title="common:openJupyterNotebook"
     >
       <a
         className="unstyled"
@@ -3055,7 +3056,7 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
           <span
             className="label"
           >
-            Notebooks
+            common:notebooks
           </span>
           <pure(OpenInNewIcon)
             className="openInNewTabIcon"
@@ -3075,7 +3076,7 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Archive"
+      title="common:archive"
     >
       <Link
         className="unstyled"
@@ -3097,7 +3098,7 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
           <span
             className="label"
           >
-            Archive
+            common:archive
           </span>
         </WithStyles(Button)>
       </Link>
@@ -3108,13 +3109,13 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
     <ExternalUri
       collapsed={false}
       icon={[Function]}
-      title="Documentation"
+      title="common:documentation"
       to="https://www.kubeflow.org/docs/pipelines/"
     />
     <ExternalUri
       collapsed={false}
       icon={[Function]}
-      title="Github Repo"
+      title="common:githubRepo"
       to="https://github.com/kubeflow/pipelines"
     />
     <hr
@@ -3133,7 +3134,7 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
     <WithStyles(Tooltip)
       enterDelay={300}
       placement="top-start"
-      title="Report an Issue"
+      title="common:reportIssue"
     >
       <div
         className="envMetadata"
@@ -3144,7 +3145,7 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
           rel="noopener"
           target="_blank"
         >
-          Report an Issue
+          common:reportIssue
         </a>
       </div>
     </WithStyles(Tooltip)>

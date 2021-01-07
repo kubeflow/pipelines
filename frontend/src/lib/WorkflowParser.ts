@@ -30,6 +30,7 @@ import { KeyValue } from './StaticGraphParser';
 import { hasFinished, NodePhase, statusToBgColor, parseNodePhase } from './StatusUtils';
 import { parseTaskDisplayNameByNodeId } from './ParserUtils';
 import { isS3Endpoint } from './AwsHelper';
+import { TFunction } from 'i18next';
 
 export enum StorageService {
   GCS = 'gcs',
@@ -47,7 +48,7 @@ export interface StoragePath {
 }
 
 export default class WorkflowParser {
-  public static createRuntimeGraph(workflow: Workflow): dagre.graphlib.Graph {
+  public static createRuntimeGraph(t: TFunction, workflow: Workflow): dagre.graphlib.Graph {
     const g = new dagre.graphlib.Graph();
     g.setGraph({});
     g.setDefaultEdgeLabel(() => ({}));
@@ -91,10 +92,9 @@ export default class WorkflowParser {
     // Create dagre graph nodes from workflow nodes.
     (Object as any).values(workflowNodes).forEach((node: NodeStatus) => {
       const nodeLabel = parseTaskDisplayNameByNodeId(node.id, workflow);
-
       g.setNode(node.id, {
         height: Constants.NODE_HEIGHT,
-        icon: statusToIcon(parseNodePhase(node), node.startedAt, node.finishedAt, node.message),
+        icon: statusToIcon(t, parseNodePhase(node), node.startedAt, node.finishedAt, node.message),
         label: nodeLabel,
         statusColoring: statusToBgColor(node.phase as NodePhase, node.message),
         width: Constants.NODE_WIDTH,

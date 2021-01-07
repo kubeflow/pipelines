@@ -21,6 +21,15 @@ import { ListRequest } from '../lib/Apis';
 import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
 import { Row } from '../components/CustomTable';
 
+let mockedValue = '';
+jest.mock('react-i18next', () => ({
+  // this mock makes sure any components using the translate HoC receive the t function as a prop
+  withTranslation: () => (Component: { defaultProps: any }) => {
+    Component.defaultProps = { ...Component.defaultProps, t: () => mockedValue };
+    return Component;
+  },
+}));
+
 class TestResourceSelector extends ResourceSelector {
   public async _load(request: ListRequest): Promise<string> {
     return super._load(request);
@@ -80,7 +89,6 @@ describe('ResourceSelector', () => {
       updateDialog: updateDialogSpy,
     };
   }
-
   beforeEach(() => {
     listResourceSpy.mockReset();
     listResourceSpy.mockImplementation(() => ({
@@ -132,6 +140,7 @@ describe('ResourceSelector', () => {
   });
 
   it('shows error dialog if listing fails', async () => {
+    mockedValue = 'mockedT-value';
     TestUtils.makeErrorResponseOnce(listResourceSpy, 'woops!');
     jest.spyOn(console, 'error').mockImplementation();
 
@@ -141,8 +150,8 @@ describe('ResourceSelector', () => {
     expect(listResourceSpy).toHaveBeenCalledTimes(1);
     expect(updateDialogSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        content: 'List request failed with:\nwoops!',
-        title: 'Error retrieving resources',
+        content: 'mockedT-value:\nwoops!',
+        title: 'mockedT-value',
       }),
     );
     expect(tree.state('resources')).toEqual([]);
@@ -159,6 +168,7 @@ describe('ResourceSelector', () => {
   });
 
   it('logs error if more than one resource is selected', async () => {
+    mockedValue = 'resources were selected somehow';
     tree = shallow(<TestResourceSelector {...generateProps()} />);
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
     await (tree.instance() as TestResourceSelector)._load({});
@@ -179,6 +189,7 @@ describe('ResourceSelector', () => {
   });
 
   it('logs error if selected resource ID is not found in list', async () => {
+    mockedValue = 'Somehow no resource was found with ID';
     tree = shallow(<TestResourceSelector {...generateProps()} />);
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
     await (tree.instance() as TestResourceSelector)._load({});

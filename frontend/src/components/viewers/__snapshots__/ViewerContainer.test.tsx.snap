@@ -51,7 +51,7 @@ exports[`ViewerContainer renders a viewer of type TABLE 1`] = `
 `;
 
 exports[`ViewerContainer renders a viewer of type TENSORBOARD 1`] = `
-<TensorboardViewer
+<withI18nextTranslation(TensorBoardViewer)
   configs={
     Array [
       Object {

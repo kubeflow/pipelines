@@ -23,7 +23,7 @@ import TablePagination from '@material-ui/core/TablePagination';
 import TableRow from '@material-ui/core/TableRow';
 import TableSortLabel from '@material-ui/core/TableSortLabel';
 import Tooltip from '@material-ui/core/Tooltip';
-import Viewer, { ViewerConfig, PlotType } from './Viewer';
+import { ViewerConfig, PlotType } from './Viewer';
 import { color, fontsize, commonCss } from '../../Css';
 import { stylesheet } from 'typestyle';
 
@@ -50,7 +50,7 @@ interface PagedTableState {
   rowsPerPage: number;
 }
 
-class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
+class PagedTable extends React.Component<PagedTableProps, PagedTableState> {
   private _shrinkThreshold = 600;
   private _config = this.props.configs[0];
   private _rowHeight = 30;
@@ -83,10 +83,6 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
       page: 0,
       rowsPerPage: 10,
     };
-  }
-
-  public getDisplayName(): string {
-    return 'Table';
   }
 
   public render(): JSX.Element | null {

@@ -57,18 +57,18 @@ describe('Trigger', () => {
   const oneWeekLater = new Date(2018, 11, 28, 7, 53);
 
   it('renders periodic schedule controls for initial render', () => {
-    const tree = shallow(<Trigger />);
+    const tree = shallow(<Trigger t={(key: any) => key} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders periodic schedule controls if the trigger type is CRON', () => {
-    const tree = shallow(<Trigger />);
+    const tree = shallow(<Trigger t={(key: any) => key} />);
     (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
     expect(tree).toMatchSnapshot();
   });
 
   it('renders week days if the trigger type is CRON and interval is weekly', () => {
-    const tree = shallow(<Trigger />);
+    const tree = shallow(<Trigger t={(key: any) => key} />);
     (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
     (tree.instance() as Trigger).handleChange('intervalCategory')({
       target: { value: PeriodicInterval.WEEK },
@@ -77,7 +77,7 @@ describe('Trigger', () => {
   });
 
   it('renders all week days enabled', () => {
-    const tree = shallow(<Trigger />);
+    const tree = shallow(<Trigger t={(key: any) => key} />);
     (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
     (tree.instance() as Trigger).handleChange('intervalCategory')({
       target: { value: PeriodicInterval.WEEK },
@@ -87,7 +87,7 @@ describe('Trigger', () => {
   });
 
   it('enables a single day on click', () => {
-    const tree = shallow(<Trigger />);
+    const tree = shallow(<Trigger t={(key: any) => key} />);
     (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
     (tree.instance() as Trigger).handleChange('intervalCategory')({
       target: { value: PeriodicInterval.WEEK },
@@ -100,7 +100,7 @@ describe('Trigger', () => {
   describe('interval trigger', () => {
     it('builds an every-minute trigger by default', () => {
       const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
+      const tree = shallow(<Trigger t={(key: any) => key} onChange={spy} />);
       (tree.instance() as Trigger).handleChange('type')({
         target: { value: TriggerType.INTERVALED },
       });
@@ -114,7 +114,7 @@ describe('Trigger', () => {
 
     it('builds trigger with a start time if the checkbox is checked', () => {
       const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
+      const tree = shallow(<Trigger t={(key: any) => key} onChange={spy} />);
       (tree.instance() as Trigger).handleChange('type')({
         target: { value: TriggerType.INTERVALED },
       });
@@ -131,7 +131,7 @@ describe('Trigger', () => {
 
     it('builds trigger with the entered start date/time', () => {
       const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
+      const tree = shallow(<Trigger t={(key: any) => key} onChange={spy} />);
       (tree.instance() as Trigger).handleChange('type')({
         target: { value: TriggerType.INTERVALED },
       });
@@ -153,7 +153,7 @@ describe('Trigger', () => {
 
     it('builds trigger without the entered start date if no time is entered', () => {
       const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
+      const tree = shallow(<Trigger t={(key: any) => key} onChange={spy} />);
       (tree.instance() as Trigger).handleChange('type')({
         target: { value: TriggerType.INTERVALED },
       });
@@ -172,7 +172,7 @@ describe('Trigger', () => {
 
     it('builds trigger without the entered start time if no date is entered', () => {
       const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
+      const tree = shallow(<Trigger t={(key: any) => key} onChange={spy} />);
       (tree.instance() as Trigger).handleChange('type')({
         target: { value: TriggerType.INTERVALED },
       });
@@ -191,7 +191,7 @@ describe('Trigger', () => {
 
     it('builds trigger with a date if both start and end checkboxes are checked', () => {
       const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
+      const tree = shallow(<Trigger t={(key: any) => key} onChange={spy} />);
       (tree.instance() as Trigger).handleChange('type')({
         target: { value: TriggerType.INTERVALED },
       });
@@ -211,7 +211,7 @@ describe('Trigger', () => {
 
     it('resets trigger to no start date if it is added then removed', () => {
       const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
+      const tree = shallow(<Trigger t={(key: any) => key} onChange={spy} />);
       (tree.instance() as Trigger).handleChange('type')({
         target: { value: TriggerType.INTERVALED },
       });
@@ -231,7 +231,7 @@ describe('Trigger', () => {
 
     it('builds trigger with a weekly interval', () => {
       const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
+      const tree = shallow(<Trigger t={(key: any) => key} onChange={spy} />);
       (tree.instance() as Trigger).handleChange('type')({
         target: { value: TriggerType.INTERVALED },
       });
@@ -251,7 +251,7 @@ describe('Trigger', () => {
 
     it('builds trigger with an every-three-months interval', () => {
       const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
+      const tree = shallow(<Trigger t={(key: any) => key} onChange={spy} />);
       (tree.instance() as Trigger).handleChange('type')({
         target: { value: TriggerType.INTERVALED },
       });
@@ -272,7 +272,7 @@ describe('Trigger', () => {
 
     it('builds trigger with the specified max concurrency setting', () => {
       const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
+      const tree = shallow(<Trigger t={(key: any) => key} onChange={spy} />);
       (tree.instance() as Trigger).handleChange('type')({
         target: { value: TriggerType.INTERVALED },
       });
@@ -288,7 +288,7 @@ describe('Trigger', () => {
 
     it('builds trigger with the specified catchup setting', () => {
       const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
+      const tree = shallow(<Trigger t={(key: any) => key} onChange={spy} />);
       (tree.instance() as Trigger).handleChange('type')({
         target: { value: TriggerType.INTERVALED },
       });
@@ -309,6 +309,7 @@ describe('Trigger', () => {
       const startTime = new Date('2020-01-01T23:53:00.000Z');
       shallow(
         <Trigger
+          t={(key: any) => key}
           onChange={spy}
           initialProps={{
             maxConcurrentRuns: '3',
@@ -340,7 +341,7 @@ describe('Trigger', () => {
   describe('cron', () => {
     it('builds a 1-minute cron trigger by default', () => {
       const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
+      const tree = shallow(<Trigger t={(key: any) => key} onChange={spy} />);
       (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
@@ -352,7 +353,7 @@ describe('Trigger', () => {
 
     it('builds a 1-minute cron trigger with specified start date', () => {
       const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
+      const tree = shallow(<Trigger t={(key: any) => key} onChange={spy} />);
       (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
       (tree.instance() as Trigger).handleChange('hasStartDate')({
         target: { type: 'checkbox', checked: true },
@@ -368,7 +369,7 @@ describe('Trigger', () => {
 
     it('builds a daily cron trigger with specified end date/time', () => {
       const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
+      const tree = shallow(<Trigger t={(key: any) => key} onChange={spy} />);
       (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
       (tree.instance() as Trigger).handleChange('hasEndDate')({
         target: { type: 'checkbox', checked: true },
@@ -386,7 +387,7 @@ describe('Trigger', () => {
 
     it('builds a weekly cron trigger that runs every Monday, Friday, and Saturday', () => {
       const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
+      const tree = shallow(<Trigger t={(key: any) => key} onChange={spy} />);
       (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
       (tree.instance() as Trigger).handleChange('intervalCategory')({
         target: { value: PeriodicInterval.WEEK },
@@ -405,7 +406,7 @@ describe('Trigger', () => {
 
     it('builds a cron with the manually specified cron string, even if days are toggled', () => {
       const spy = jest.fn();
-      const tree = shallow(<Trigger onChange={spy} />);
+      const tree = shallow(<Trigger t={(key: any) => key} onChange={spy} />);
       (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
       (tree.instance() as Trigger).handleChange('intervalCategory')({
         target: { value: PeriodicInterval.WEEK },
@@ -434,6 +435,7 @@ describe('Trigger', () => {
       const endTime = new Date('2020-01-02T01:02:00.000Z');
       shallow(
         <Trigger
+          t={(key: any) => key}
           onChange={spy}
           initialProps={{
             maxConcurrentRuns: '4',

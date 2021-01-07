@@ -21,6 +21,13 @@ import ExperimentsAndRuns, {
 } from './ExperimentsAndRuns';
 import { shallow } from 'enzyme';
 
+jest.mock('react-i18next', () => ({
+  // this mock makes sure any components using the translate HoC receive the t function as a prop
+  withTranslation: () => (Component: { defaultProps: any }) => {
+    Component.defaultProps = { ...Component.defaultProps, t: () => '' };
+    return Component;
+  },
+}));
 function generateProps(): ExperimentAndRunsProps {
   return {
     history: {} as any,

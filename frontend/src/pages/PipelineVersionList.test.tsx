@@ -22,6 +22,14 @@ import { Apis, ListRequest } from '../lib/Apis';
 import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
 import { range } from 'lodash';
 
+jest.mock('react-i18next', () => ({
+  // this mock makes sure any components using the translate HoC receive the t function as a prop
+  withTranslation: () => (Component: { defaultProps: any }) => {
+    Component.defaultProps = { ...Component.defaultProps, t: () => '' };
+    return Component;
+  },
+}));
+
 class PipelineVersionListTest extends PipelineVersionList {
   public _loadPipelineVersions(request: ListRequest): Promise<string> {
     return super._loadPipelineVersions(request);

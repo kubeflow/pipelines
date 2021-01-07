@@ -23,6 +23,7 @@ import 'brace';
 import 'brace/ext/language_tools';
 import 'brace/mode/json';
 import 'brace/theme/github';
+import { useTranslation } from 'react-i18next';
 
 export const css = stylesheet({
   key: {
@@ -69,6 +70,7 @@ function isString(x: any): x is string {
 
 const DetailsTable = <T extends {}>(props: DetailsTableProps<T>) => {
   const { fields, title, valueComponent: ValueComponent, valueComponentProps } = props;
+  const { t } = useTranslation('common');
   return (
     <React.Fragment>
       {!!title && <div className={commonCss.header}>{title}</div>}
@@ -83,9 +85,7 @@ const DetailsTable = <T extends {}>(props: DetailsTableProps<T>) => {
               // Nulls, booleans, strings, and numbers can all be parsed as JSON, but we don't care
               // about rendering. Note that `typeOf null` returns 'object'
               if (parsedJson === null || typeof parsedJson !== 'object') {
-                throw new Error(
-                  'Parsed JSON was neither an array nor an object. Using default renderer',
-                );
+                throw new Error(t('parsedJsonNotArrayObject'));
               }
               return (
                 <div key={i} className={css.row}>

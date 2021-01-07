@@ -15,8 +15,11 @@ import RunList from '../pages/RunList';
 import { PredicateOp, ApiFilter } from '../apis/filter';
 import produce from 'immer';
 import Tooltip from '@material-ui/core/Tooltip';
+import { TFunction } from 'i18next';
+import { withTranslation } from 'react-i18next';
 
 export interface ExperimentListProps extends RouteComponentProps {
+  t: TFunction;
   namespace?: string;
   storageState?: ExperimentStorageState;
   onError: (message: string, error: Error) => void;
@@ -33,7 +36,6 @@ interface ExperimentListState {
 
 export class ExperimentList extends React.PureComponent<ExperimentListProps, ExperimentListState> {
   private _tableRef = React.createRef<CustomTable>();
-
   constructor(props: any) {
     super(props);
 
@@ -43,16 +45,17 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
   }
 
   public render(): JSX.Element {
+    const { t } = this.props;
     const columns: Column[] = [
       {
         customRenderer: this._nameCustomRenderer,
         flex: 1,
-        label: 'Experiment name',
+        label: t('experiments:experimentName'),
         sortKey: ExperimentSortKeys.NAME,
       },
       {
         flex: 2,
-        label: 'Description',
+        label: t('experiments:description'),
       },
     ];
 
@@ -76,8 +79,9 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
           reload={this._loadExperiments.bind(this)}
           toggleExpansion={this._toggleRowExpand.bind(this)}
           getExpandComponent={this._getExpandedExperimentComponent.bind(this)}
-          filterLabel='Filter experiments'
-          emptyMessage='No experiments found. Click "Create experiment" to start.'
+          filterLabel={t('experiments:filterExperiments')}
+          emptyMessage={t('experiments:noExperimentsFound')}
+          t={t}
         />
       </div>
     );
@@ -175,7 +179,6 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
       <RunList
         hideExperimentColumn={true}
         experimentIdMask={experiment.id}
-        onError={() => null}
         {...this.props}
         disablePaging={false}
         noFilterBox={true}
@@ -190,5 +193,5 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
     );
   }
 }
-
+withTranslation(['experiments', 'common'])(ExperimentList);
 export default ExperimentList;

@@ -18,8 +18,11 @@ import * as React from 'react';
 import { shallow } from 'enzyme';
 import PagedTable from './PagedTable';
 import { PlotType } from './Viewer';
+import { TFunction } from 'i18next';
+import { componentMap } from './ViewerContainer';
 
 describe('PagedTable', () => {
+  let t: TFunction = (key: string) => key;
   it('does not break on no config', () => {
     const tree = shallow(<PagedTable configs={[]} />);
     expect(tree).toMatchSnapshot();
@@ -71,6 +74,6 @@ describe('PagedTable', () => {
   });
 
   it('returns a user friendly display name', () => {
-    expect(PagedTable.prototype.getDisplayName()).toBe('Table');
+    expect((componentMap[PlotType.TABLE].displayNameKey = 'common:table'));
   });
 });

@@ -30,10 +30,20 @@ import { render } from '@testing-library/react';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
+import { TFunction } from 'i18next';
 
+jest.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: ((key: string) => key) as any,
+  }),
+  withTranslation: () => (Component: { defaultProps: any }) => {
+    Component.defaultProps = { ...Component.defaultProps, t: ((key: string) => key) as any };
+    return Component;
+  },
+}));
 describe('ExperimentDetails', () => {
   let tree: ReactWrapper | ShallowWrapper;
-
+  let t: TFunction = (key: string) => key;
   const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => null);
   const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => null);
 
@@ -56,7 +66,7 @@ describe('ExperimentDetails', () => {
     };
   }
 
-  function generateProps(): PageProps {
+  function generateProps(search?: string): any {
     const match = { params: { [RouteParams.experimentId]: MOCK_EXPERIMENT.id } } as any;
     return TestUtils.generatePageProps(
       ExperimentDetails,
@@ -67,6 +77,7 @@ describe('ExperimentDetails', () => {
       updateDialogSpy,
       updateToolbarSpy,
       updateSnackbarSpy,
+      { t },
     );
   }
 
@@ -121,7 +132,7 @@ describe('ExperimentDetails', () => {
     tree = shallow(<ExperimentDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(updateBannerSpy).toHaveBeenCalledTimes(1);
-    expect(updateBannerSpy).toHaveBeenLastCalledWith({});
+    expect(updateBannerSpy).toHaveBeenLastCalledWith({ t });
     expect(tree).toMatchSnapshot();
   });
 
@@ -195,7 +206,7 @@ describe('ExperimentDetails', () => {
     await TestUtils.flushPromises();
     expect(updateDialogSpy).toHaveBeenCalledWith({
       content: MOCK_EXPERIMENT.description,
-      title: 'Experiment description',
+      title: 'experimentDescription',
     });
   });
 
@@ -217,10 +228,7 @@ describe('ExperimentDetails', () => {
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'test error',
-        message:
-          'Error: failed to retrieve experiment: ' +
-          MOCK_EXPERIMENT.id +
-          '. Click Details for more information.',
+        message: 'errorRetrieveExperiment: some-mock-experiment-id. common:clickDetails',
         mode: 'error',
       }),
     );
@@ -264,10 +272,7 @@ describe('ExperimentDetails', () => {
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'test error',
-        message:
-          'Error: failed to retrieve recurring runs for experiment: ' +
-          MOCK_EXPERIMENT.id +
-          '. Click Details for more information.',
+        message: 'errorRetrieveRecurrRunsExperiment: some-mock-experiment-id. common:clickDetails',
         mode: 'error',
       }),
     );
@@ -371,7 +376,7 @@ describe('ExperimentDetails', () => {
     (tree.instance() as ExperimentDetails).refresh();
 
     // Error banner should be cleared
-    expect(updateBannerSpy).toHaveBeenLastCalledWith({});
+    expect(updateBannerSpy).toHaveBeenLastCalledWith({ t });
   });
 
   it('navigates to the compare runs page', async () => {

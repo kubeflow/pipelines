@@ -12,9 +12,9 @@ exports[`RunDetails closes side panel when close button is clicked 1`] = `
       selectedTab={0}
       tabs={
         Array [
-          "Graph",
-          "Run output",
-          "Config",
+          "common:graph",
+          "runOutput",
+          "common:config",
         ]
       }
     />
@@ -48,6 +48,7 @@ exports[`RunDetails closes side panel when close button is clicked 1`] = `
             onClick={[Function]}
             onError={[Function]}
             selectedNodeId=""
+            t={[Function]}
           />
           <SidePanel
             isBusy={false}
@@ -67,7 +68,7 @@ exports[`RunDetails closes side panel when close button is clicked 1`] = `
               <span
                 className="infoSpan"
               >
-                Runtime execution graph. Only steps that are currently running or have already completed are shown.
+                runtimeExecGraph
               </span>
             </div>
           </div>
@@ -90,9 +91,9 @@ exports[`RunDetails displays a message indicating there is no graph if graph is 
       selectedTab={0}
       tabs={
         Array [
-          "Graph",
-          "Run output",
-          "Config",
+          "common:graph",
+          "runOutput",
+          "common:config",
         ]
       }
     />
@@ -110,7 +111,7 @@ exports[`RunDetails displays a message indicating there is no graph if graph is 
               }
             }
           >
-            No graph to show
+            noGraph
           </span>
         </div>
       </div>
@@ -131,9 +132,9 @@ exports[`RunDetails displays a message indicating there is no graph if graph is 
       selectedTab={0}
       tabs={
         Array [
-          "Graph",
-          "Run output",
-          "Config",
+          "common:graph",
+          "runOutput",
+          "common:config",
         ]
       }
     />
@@ -151,7 +152,7 @@ exports[`RunDetails displays a message indicating there is no graph if graph is 
               }
             }
           >
-            No graph to show
+            noGraph
           </span>
         </div>
       </div>
@@ -172,9 +173,9 @@ exports[`RunDetails displays a message indicating there is no graph if graph is 
       selectedTab={0}
       tabs={
         Array [
-          "Graph",
-          "Run output",
-          "Config",
+          "common:graph",
+          "runOutput",
+          "common:config",
         ]
       }
     />
@@ -192,7 +193,7 @@ exports[`RunDetails displays a message indicating there is no graph if graph is 
               }
             }
           >
-            No graph to show
+            noGraph
           </span>
         </div>
       </div>
@@ -213,9 +214,9 @@ exports[`RunDetails displays a message indicating there is no graph if graph is 
       selectedTab={0}
       tabs={
         Array [
-          "Graph",
-          "Run output",
-          "Config",
+          "common:graph",
+          "runOutput",
+          "common:config",
         ]
       }
     />
@@ -233,7 +234,7 @@ exports[`RunDetails displays a message indicating there is no graph if graph is 
               }
             }
           >
-            No graph to show
+            noGraph
           </span>
         </div>
       </div>
@@ -254,9 +255,9 @@ exports[`RunDetails displays a spinner if graph is not defined and run has statu
       selectedTab={0}
       tabs={
         Array [
-          "Graph",
-          "Run output",
-          "Config",
+          "common:graph",
+          "runOutput",
+          "common:config",
         ]
       }
     />
@@ -290,9 +291,9 @@ exports[`RunDetails displays a spinner if graph is not defined and run has statu
       selectedTab={0}
       tabs={
         Array [
-          "Graph",
-          "Run output",
-          "Config",
+          "common:graph",
+          "runOutput",
+          "common:config",
         ]
       }
     />
@@ -326,9 +327,9 @@ exports[`RunDetails displays a spinner if graph is not defined and run has statu
       selectedTab={0}
       tabs={
         Array [
-          "Graph",
-          "Run output",
-          "Config",
+          "common:graph",
+          "runOutput",
+          "common:config",
         ]
       }
     />
@@ -358,10 +359,11 @@ exports[`RunDetails keeps side pane open and on same tab when run status changes
     title={
       <div>
         <div>
-          Executed successfully
+          common:executionSuccess
         </div>
         <div>
-          Start: 
+          common:start
+          : 
           1/2/2019, 12:34:56 PM
         </div>
       </div>
@@ -405,10 +407,11 @@ exports[`RunDetails keeps side pane open and on same tab when run status changes
     title={
       <div>
         <div>
-          Resource failed to execute
+          common:executeResourceFailed
         </div>
         <div>
-          Start: 
+          common:start
+          : 
           1/2/2019, 12:34:56 PM
         </div>
       </div>
@@ -456,9 +459,9 @@ exports[`RunDetails loads the run's outputs in the output tab 1`] = `
       selectedTab={1}
       tabs={
         Array [
-          "Graph",
-          "Run output",
-          "Config",
+          "common:graph",
+          "runOutput",
+          "common:config",
         ]
       }
     />
@@ -469,7 +472,7 @@ exports[`RunDetails loads the run's outputs in the output tab 1`] = `
         className=""
       >
         <span>
-          No metrics found for this run.
+          noMetricsFound
         </span>
         <Separator
           orientation="vertical"
@@ -478,7 +481,7 @@ exports[`RunDetails loads the run's outputs in the output tab 1`] = `
         <div
           key="0"
         >
-          <PlotCard
+          <withI18nextTranslation(PlotCard)
             configs={
               Array [
                 Object {
@@ -514,9 +517,9 @@ exports[`RunDetails logs tab does not load logs if clicked node status is skippe
       selectedTab={0}
       tabs={
         Array [
-          "Graph",
-          "Run output",
-          "Config",
+          "common:graph",
+          "runOutput",
+          "common:config",
         ]
       }
     />
@@ -550,6 +553,7 @@ exports[`RunDetails logs tab does not load logs if clicked node status is skippe
             onClick={[Function]}
             onError={[Function]}
             selectedNodeId="node1"
+            t={[Function]}
           />
           <SidePanel
             isBusy={false}
@@ -565,13 +569,13 @@ exports[`RunDetails logs tab does not load logs if clicked node status is skippe
                 selectedTab={4}
                 tabs={
                   Array [
-                    "Input/Output",
-                    "Visualizations",
-                    "ML Metadata",
-                    "Volumes",
-                    "Logs",
-                    "Pod",
-                    "Events",
+                    "inputOutput",
+                    "visualizations",
+                    "mlMetadata",
+                    "volumes",
+                    "logs",
+                    "pod",
+                    "events",
                   ]
                 }
               />
@@ -593,7 +597,7 @@ exports[`RunDetails logs tab does not load logs if clicked node status is skippe
               <span
                 className="infoSpan"
               >
-                Runtime execution graph. Only steps that are currently running or have already completed are shown.
+                runtimeExecGraph
               </span>
             </div>
           </div>
@@ -616,9 +620,9 @@ exports[`RunDetails logs tab keeps side pane open and on same tab when logs chan
       selectedTab={0}
       tabs={
         Array [
-          "Graph",
-          "Run output",
-          "Config",
+          "common:graph",
+          "runOutput",
+          "common:config",
         ]
       }
     />
@@ -652,6 +656,7 @@ exports[`RunDetails logs tab keeps side pane open and on same tab when logs chan
             onClick={[Function]}
             onError={[Function]}
             selectedNodeId="node1"
+            t={[Function]}
           />
           <SidePanel
             isBusy={false}
@@ -667,13 +672,13 @@ exports[`RunDetails logs tab keeps side pane open and on same tab when logs chan
                 selectedTab={4}
                 tabs={
                   Array [
-                    "Input/Output",
-                    "Visualizations",
-                    "ML Metadata",
-                    "Volumes",
-                    "Logs",
-                    "Pod",
-                    "Events",
+                    "inputOutput",
+                    "visualizations",
+                    "mlMetadata",
+                    "volumes",
+                    "logs",
+                    "pod",
+                    "events",
                   ]
                 }
               />
@@ -711,7 +716,7 @@ exports[`RunDetails logs tab keeps side pane open and on same tab when logs chan
               <span
                 className="infoSpan"
               >
-                Runtime execution graph. Only steps that are currently running or have already completed are shown.
+                runtimeExecGraph
               </span>
             </div>
           </div>
@@ -734,9 +739,9 @@ exports[`RunDetails logs tab loads and shows logs in side pane 1`] = `
       selectedTab={0}
       tabs={
         Array [
-          "Graph",
-          "Run output",
-          "Config",
+          "common:graph",
+          "runOutput",
+          "common:config",
         ]
       }
     />
@@ -770,6 +775,7 @@ exports[`RunDetails logs tab loads and shows logs in side pane 1`] = `
             onClick={[Function]}
             onError={[Function]}
             selectedNodeId="node1"
+            t={[Function]}
           />
           <SidePanel
             isBusy={false}
@@ -785,13 +791,13 @@ exports[`RunDetails logs tab loads and shows logs in side pane 1`] = `
                 selectedTab={4}
                 tabs={
                   Array [
-                    "Input/Output",
-                    "Visualizations",
-                    "ML Metadata",
-                    "Volumes",
-                    "Logs",
-                    "Pod",
-                    "Events",
+                    "inputOutput",
+                    "visualizations",
+                    "mlMetadata",
+                    "volumes",
+                    "logs",
+                    "pod",
+                    "events",
                   ]
                 }
               />
@@ -829,7 +835,7 @@ exports[`RunDetails logs tab loads and shows logs in side pane 1`] = `
               <span
                 className="infoSpan"
               >
-                Runtime execution graph. Only steps that are currently running or have already completed are shown.
+                runtimeExecGraph
               </span>
             </div>
           </div>
@@ -852,9 +858,9 @@ exports[`RunDetails logs tab switches to logs tab in side pane 1`] = `
       selectedTab={0}
       tabs={
         Array [
-          "Graph",
-          "Run output",
-          "Config",
+          "common:graph",
+          "runOutput",
+          "common:config",
         ]
       }
     />
@@ -888,6 +894,7 @@ exports[`RunDetails logs tab switches to logs tab in side pane 1`] = `
             onClick={[Function]}
             onError={[Function]}
             selectedNodeId="node1"
+            t={[Function]}
           />
           <SidePanel
             isBusy={true}
@@ -903,13 +910,13 @@ exports[`RunDetails logs tab switches to logs tab in side pane 1`] = `
                 selectedTab={4}
                 tabs={
                   Array [
-                    "Input/Output",
-                    "Visualizations",
-                    "ML Metadata",
-                    "Volumes",
-                    "Logs",
-                    "Pod",
-                    "Events",
+                    "inputOutput",
+                    "visualizations",
+                    "mlMetadata",
+                    "volumes",
+                    "logs",
+                    "pod",
+                    "events",
                   ]
                 }
               />
@@ -947,7 +954,7 @@ exports[`RunDetails logs tab switches to logs tab in side pane 1`] = `
               <span
                 className="infoSpan"
               >
-                Runtime execution graph. Only steps that are currently running or have already completed are shown.
+                runtimeExecGraph
               </span>
             </div>
           </div>
@@ -970,9 +977,9 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
       selectedTab={0}
       tabs={
         Array [
-          "Graph",
-          "Run output",
-          "Config",
+          "common:graph",
+          "runOutput",
+          "common:config",
         ]
       }
     />
@@ -1006,6 +1013,7 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
             onClick={[Function]}
             onError={[Function]}
             selectedNodeId="node1"
+            t={[Function]}
           />
           <SidePanel
             isBusy={false}
@@ -1021,13 +1029,13 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
                 selectedTab={0}
                 tabs={
                   Array [
-                    "Input/Output",
-                    "Visualizations",
-                    "ML Metadata",
-                    "Volumes",
-                    "Logs",
-                    "Pod",
-                    "Events",
+                    "inputOutput",
+                    "visualizations",
+                    "mlMetadata",
+                    "volumes",
+                    "logs",
+                    "pod",
+                    "events",
                   ]
                 }
               />
@@ -1041,12 +1049,12 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
                   <DetailsTable
                     fields={Array []}
                     key="input-parameters-node1"
-                    title="Input parameters"
+                    title="inputParameters"
                   />
                   <DetailsTable
                     fields={Array []}
                     key="input-artifacts-node1"
-                    title="Input artifacts"
+                    title="inputArtifacts"
                     valueComponent={[Function]}
                     valueComponentProps={
                       Object {
@@ -1057,12 +1065,12 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
                   <DetailsTable
                     fields={Array []}
                     key="output-parameters-node1"
-                    title="Output parameters"
+                    title="outputParameters"
                   />
                   <DetailsTable
                     fields={Array []}
                     key="output-artifacts-node1"
-                    title="Output artifacts"
+                    title="outputArtifacts"
                     valueComponent={[Function]}
                     valueComponentProps={
                       Object {
@@ -1086,7 +1094,7 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
               <span
                 className="infoSpan"
               >
-                Runtime execution graph. Only steps that are currently running or have already completed are shown.
+                runtimeExecGraph
               </span>
             </div>
           </div>
@@ -1109,9 +1117,9 @@ exports[`RunDetails renders an empty run 1`] = `
       selectedTab={0}
       tabs={
         Array [
-          "Graph",
-          "Run output",
-          "Config",
+          "common:graph",
+          "runOutput",
+          "common:config",
         ]
       }
     />
@@ -1129,7 +1137,7 @@ exports[`RunDetails renders an empty run 1`] = `
               }
             }
           >
-            No graph to show
+            noGraph
           </span>
         </div>
       </div>
@@ -1146,10 +1154,11 @@ exports[`RunDetails shows failure run status in page title 1`] = `
     title={
       <div>
         <div>
-          Resource failed to execute
+          common:executeResourceFailed
         </div>
         <div>
-          Start: 
+          common:start
+          : 
           1/2/2019, 12:34:56 PM
         </div>
       </div>
@@ -1197,9 +1206,9 @@ exports[`RunDetails shows run config fields - handles no description 1`] = `
       selectedTab={2}
       tabs={
         Array [
-          "Graph",
-          "Run output",
-          "Config",
+          "common:graph",
+          "runOutput",
+          "common:config",
         ]
       }
     />
@@ -1213,32 +1222,32 @@ exports[`RunDetails shows run config fields - handles no description 1`] = `
           fields={
             Array [
               Array [
-                "Status",
+                "common:status",
                 "Skipped",
               ],
               Array [
-                "Description",
+                "common:description",
                 undefined,
               ],
               Array [
-                "Created at",
+                "common:createdAt",
                 "1/2/2019, 12:34:56 PM",
               ],
               Array [
-                "Started at",
+                "common:startedAt",
                 "1/2/2019, 12:34:56 PM",
               ],
               Array [
-                "Finished at",
+                "common:finishedAt",
                 "1/2/2019, 12:34:56 PM",
               ],
               Array [
-                "Duration",
+                "common:duration",
                 "25:01:01",
               ],
             ]
           }
-          title="Run details"
+          title="runDetails"
         />
       </div>
     </div>
@@ -1258,9 +1267,9 @@ exports[`RunDetails shows run config fields - handles no metadata 1`] = `
       selectedTab={2}
       tabs={
         Array [
-          "Graph",
-          "Run output",
-          "Config",
+          "common:graph",
+          "runOutput",
+          "common:config",
         ]
       }
     />
@@ -1274,32 +1283,32 @@ exports[`RunDetails shows run config fields - handles no metadata 1`] = `
           fields={
             Array [
               Array [
-                "Status",
+                "common:status",
                 "Skipped",
               ],
               Array [
-                "Description",
+                "common:description",
                 "test run description",
               ],
               Array [
-                "Created at",
+                "common:createdAt",
                 "-",
               ],
               Array [
-                "Started at",
+                "common:startedAt",
                 "1/2/2019, 12:34:56 PM",
               ],
               Array [
-                "Finished at",
+                "common:finishedAt",
                 "1/2/2019, 12:34:56 PM",
               ],
               Array [
-                "Duration",
+                "common:duration",
                 "25:01:01",
               ],
             ]
           }
-          title="Run details"
+          title="runDetails"
         />
       </div>
     </div>
@@ -1319,9 +1328,9 @@ exports[`RunDetails shows run config fields 1`] = `
       selectedTab={2}
       tabs={
         Array [
-          "Graph",
-          "Run output",
-          "Config",
+          "common:graph",
+          "runOutput",
+          "common:config",
         ]
       }
     />
@@ -1335,32 +1344,32 @@ exports[`RunDetails shows run config fields 1`] = `
           fields={
             Array [
               Array [
-                "Status",
+                "common:status",
                 "Skipped",
               ],
               Array [
-                "Description",
+                "common:description",
                 "test run description",
               ],
               Array [
-                "Created at",
+                "common:createdAt",
                 "1/2/2019, 12:34:56 PM",
               ],
               Array [
-                "Started at",
+                "common:startedAt",
                 "1/2/2019, 12:34:56 PM",
               ],
               Array [
-                "Finished at",
+                "common:finishedAt",
                 "1/2/2019, 12:34:56 PM",
               ],
               Array [
-                "Duration",
+                "common:duration",
                 "25:01:01",
               ],
             ]
           }
-          title="Run details"
+          title="runDetails"
         />
         <div>
           <DetailsTable
@@ -1376,7 +1385,7 @@ exports[`RunDetails shows run config fields 1`] = `
                 ],
               ]
             }
-            title="Run parameters"
+            title="runParams"
           />
         </div>
       </div>
@@ -1393,10 +1402,11 @@ exports[`RunDetails shows success run status in page title 1`] = `
     title={
       <div>
         <div>
-          Executed successfully
+          common:executionSuccess
         </div>
         <div>
-          Start: 
+          common:start
+          : 
           1/2/2019, 12:34:56 PM
         </div>
       </div>
@@ -1444,9 +1454,9 @@ exports[`RunDetails switches to config tab 1`] = `
       selectedTab={2}
       tabs={
         Array [
-          "Graph",
-          "Run output",
-          "Config",
+          "common:graph",
+          "runOutput",
+          "common:config",
         ]
       }
     />
@@ -1458,7 +1468,7 @@ exports[`RunDetails switches to config tab 1`] = `
       >
         <DetailsTable
           fields={Array []}
-          title="Run details"
+          title="runDetails"
         />
       </div>
     </div>
@@ -1478,9 +1488,9 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
       selectedTab={0}
       tabs={
         Array [
-          "Graph",
-          "Run output",
-          "Config",
+          "common:graph",
+          "runOutput",
+          "common:config",
         ]
       }
     />
@@ -1514,6 +1524,7 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
             onClick={[Function]}
             onError={[Function]}
             selectedNodeId="node1"
+            t={[Function]}
           />
           <SidePanel
             isBusy={false}
@@ -1529,13 +1540,13 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
                 selectedTab={0}
                 tabs={
                   Array [
-                    "Input/Output",
-                    "Visualizations",
-                    "ML Metadata",
-                    "Volumes",
-                    "Logs",
-                    "Pod",
-                    "Events",
+                    "inputOutput",
+                    "visualizations",
+                    "mlMetadata",
+                    "volumes",
+                    "logs",
+                    "pod",
+                    "events",
                   ]
                 }
               />
@@ -1556,12 +1567,12 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
                       ]
                     }
                     key="input-parameters-node1"
-                    title="Input parameters"
+                    title="inputParameters"
                   />
                   <DetailsTable
                     fields={Array []}
                     key="input-artifacts-node1"
-                    title="Input artifacts"
+                    title="inputArtifacts"
                     valueComponent={[Function]}
                     valueComponentProps={
                       Object {
@@ -1583,12 +1594,12 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
                       ]
                     }
                     key="output-parameters-node1"
-                    title="Output parameters"
+                    title="outputParameters"
                   />
                   <DetailsTable
                     fields={Array []}
                     key="output-artifacts-node1"
-                    title="Output artifacts"
+                    title="outputArtifacts"
                     valueComponent={[Function]}
                     valueComponentProps={
                       Object {
@@ -1612,7 +1623,7 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
               <span
                 className="infoSpan"
               >
-                Runtime execution graph. Only steps that are currently running or have already completed are shown.
+                runtimeExecGraph
               </span>
             </div>
           </div>
@@ -1635,9 +1646,9 @@ exports[`RunDetails switches to manifest tab in side pane 1`] = `
       selectedTab={0}
       tabs={
         Array [
-          "Graph",
-          "Run output",
-          "Config",
+          "common:graph",
+          "runOutput",
+          "common:config",
         ]
       }
     />
@@ -1671,6 +1682,7 @@ exports[`RunDetails switches to manifest tab in side pane 1`] = `
             onClick={[Function]}
             onError={[Function]}
             selectedNodeId="node1"
+            t={[Function]}
           />
           <SidePanel
             isBusy={false}
@@ -1686,13 +1698,13 @@ exports[`RunDetails switches to manifest tab in side pane 1`] = `
                 selectedTab={7}
                 tabs={
                   Array [
-                    "Input/Output",
-                    "Visualizations",
-                    "ML Metadata",
-                    "Volumes",
-                    "Logs",
-                    "Pod",
-                    "Events",
+                    "inputOutput",
+                    "visualizations",
+                    "mlMetadata",
+                    "volumes",
+                    "logs",
+                    "pod",
+                    "events",
                   ]
                 }
               />
@@ -1705,7 +1717,7 @@ exports[`RunDetails switches to manifest tab in side pane 1`] = `
                 >
                   <DetailsTable
                     fields={Array []}
-                    title="Resource Manifest"
+                    title="resourceManifest"
                   />
                 </div>
               </div>
@@ -1723,7 +1735,7 @@ exports[`RunDetails switches to manifest tab in side pane 1`] = `
               <span
                 className="infoSpan"
               >
-                Runtime execution graph. Only steps that are currently running or have already completed are shown.
+                runtimeExecGraph
               </span>
             </div>
           </div>
@@ -1746,9 +1758,9 @@ exports[`RunDetails switches to run output tab, shows empty message 1`] = `
       selectedTab={1}
       tabs={
         Array [
-          "Graph",
-          "Run output",
-          "Config",
+          "common:graph",
+          "runOutput",
+          "common:config",
         ]
       }
     />
@@ -1759,14 +1771,14 @@ exports[`RunDetails switches to run output tab, shows empty message 1`] = `
         className=""
       >
         <span>
-          No metrics found for this run.
+          noMetricsFound
         </span>
         <Separator
           orientation="vertical"
         />
         <Hr />
         <span>
-          No output artifacts found for this run.
+          noOutputArtifactsFound
         </span>
       </div>
     </div>
@@ -1786,9 +1798,9 @@ exports[`RunDetails switches to volumes tab in side pane 1`] = `
       selectedTab={0}
       tabs={
         Array [
-          "Graph",
-          "Run output",
-          "Config",
+          "common:graph",
+          "runOutput",
+          "common:config",
         ]
       }
     />
@@ -1822,6 +1834,7 @@ exports[`RunDetails switches to volumes tab in side pane 1`] = `
             onClick={[Function]}
             onError={[Function]}
             selectedNodeId="node1"
+            t={[Function]}
           />
           <SidePanel
             isBusy={false}
@@ -1837,13 +1850,13 @@ exports[`RunDetails switches to volumes tab in side pane 1`] = `
                 selectedTab={3}
                 tabs={
                   Array [
-                    "Input/Output",
-                    "Visualizations",
-                    "ML Metadata",
-                    "Volumes",
-                    "Logs",
-                    "Pod",
-                    "Events",
+                    "inputOutput",
+                    "visualizations",
+                    "mlMetadata",
+                    "volumes",
+                    "logs",
+                    "pod",
+                    "events",
                   ]
                 }
               />
@@ -1856,7 +1869,7 @@ exports[`RunDetails switches to volumes tab in side pane 1`] = `
                 >
                   <DetailsTable
                     fields={Array []}
-                    title="Volume Mounts"
+                    title="volumeMounts"
                   />
                 </div>
               </div>
@@ -1874,7 +1887,7 @@ exports[`RunDetails switches to volumes tab in side pane 1`] = `
               <span
                 className="infoSpan"
               >
-                Runtime execution graph. Only steps that are currently running or have already completed are shown.
+                runtimeExecGraph
               </span>
             </div>
           </div>

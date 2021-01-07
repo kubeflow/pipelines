@@ -23,6 +23,15 @@ import { PageProps } from './Page';
 import { RouteParams, RoutePage, QUERY_PARAMS } from '../components/Router';
 import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
 import { ButtonKeys } from '../lib/Buttons';
+import { TFunction } from 'i18next';
+
+jest.mock('react-i18next', () => ({
+  // this mock makes sure any components using the translate hook can use it without a warning being shown
+  withTranslation: () => (component: React.ComponentClass) => {
+    component.defaultProps = { ...component.defaultProps, t: (key: string) => key };
+    return component;
+  },
+}));
 
 describe('RecurringRunDetails', () => {
   let tree: ReactWrapper<any> | ShallowWrapper<any>;
@@ -37,7 +46,7 @@ describe('RecurringRunDetails', () => {
   const enableJobSpy = jest.spyOn(Apis.jobServiceApi, 'enableJob');
   const disableJobSpy = jest.spyOn(Apis.jobServiceApi, 'disableJob');
   const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
-
+  let t: TFunction = (key: string) => key;
   let fullTestJob: ApiJob = {};
 
   function generateProps(): PageProps {
@@ -56,6 +65,7 @@ describe('RecurringRunDetails', () => {
       updateDialogSpy,
       updateToolbarSpy,
       updateSnackbarSpy,
+      { t },
     );
   }
 
@@ -129,7 +139,7 @@ describe('RecurringRunDetails', () => {
     await TestUtils.flushPromises();
     expect(updateToolbarSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        breadcrumbs: [{ displayName: 'All runs', href: RoutePage.RUNS }],
+        breadcrumbs: [{ displayName: 'allRuns', href: RoutePage.RUNS }],
         pageTitle: fullTestJob.name,
       }),
     );
@@ -155,7 +165,7 @@ describe('RecurringRunDetails', () => {
     expect(updateToolbarSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         breadcrumbs: [
-          { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
+          { displayName: 'common:experiments', href: RoutePage.EXPERIMENTS },
           {
             displayName: 'test experiment name',
             href: RoutePage.EXPERIMENT_DETAILS.replace(
@@ -177,7 +187,7 @@ describe('RecurringRunDetails', () => {
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'woops!',
-        message: `Error: failed to retrieve recurring run: ${fullTestJob.id}. Click Details for more information.`,
+        message: `errorRetrieveRecurrRun: test-job-id. common:clickDetails`,
         mode: 'error',
       }),
     );
@@ -194,8 +204,8 @@ describe('RecurringRunDetails', () => {
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'woops!',
-        message: `Error: failed to retrieve this recurring run's experiment. Click Details for more information.`,
-        mode: 'warning',
+        message: `errorRetrieveExperimentRecurrRun' common:clickDetails`,
+        mode: 'common:warning',
       }),
     );
     expect(tree.state('run')).toEqual(fullTestJob);
@@ -296,7 +306,7 @@ describe('RecurringRunDetails', () => {
     expect(updateDialogSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         content: 'could not disable',
-        title: 'Failed to disable recurring run',
+        title: 'common:failedTo common:disable common:recurringRun',
       }),
     );
   });
@@ -313,7 +323,7 @@ describe('RecurringRunDetails', () => {
     expect(updateDialogSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         content: 'could not enable',
-        title: 'Failed to enable recurring run',
+        title: 'common:failedTo common:enable common:recurringRun',
       }),
     );
   });
@@ -347,7 +357,7 @@ describe('RecurringRunDetails', () => {
     await deleteBtn!.action();
     expect(updateDialogSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        title: 'Delete this recurring run config?',
+        title: 'common:delete common:this recurring run config?',
       }),
     );
   });
@@ -359,7 +369,7 @@ describe('RecurringRunDetails', () => {
     const deleteBtn = instance.getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
-    const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'common:delete');
     await confirmBtn.onClick();
     expect(deleteJobSpy).toHaveBeenCalledTimes(1);
     expect(deleteJobSpy).toHaveBeenLastCalledWith('test-job-id');
@@ -372,7 +382,7 @@ describe('RecurringRunDetails', () => {
     const deleteBtn = instance.getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
-    const confirmBtn = call.buttons.find((b: any) => b.text === 'Cancel');
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'common:cancel');
     await confirmBtn.onClick();
     expect(deleteJobSpy).not.toHaveBeenCalled();
     // Should not reroute
@@ -390,7 +400,7 @@ describe('RecurringRunDetails', () => {
     ];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
-    const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'common:delete');
     await confirmBtn.onClick();
     expect(deleteJobSpy).toHaveBeenLastCalledWith('test-job-id');
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
@@ -405,11 +415,11 @@ describe('RecurringRunDetails', () => {
     ];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
-    const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'common:delete');
     await confirmBtn.onClick();
     expect(updateSnackbarSpy).toHaveBeenCalledTimes(1);
     expect(updateSnackbarSpy).toHaveBeenLastCalledWith({
-      message: 'Delete succeeded for this recurring run config',
+      message: 'common:delete common:succeededFor common:this recurring run config',
       open: true,
     });
   });
@@ -423,15 +433,15 @@ describe('RecurringRunDetails', () => {
     ];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
-    const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'common:delete');
     await confirmBtn.onClick();
     await TestUtils.flushPromises();
     expect(updateDialogSpy).toHaveBeenCalledTimes(2);
     expect(updateDialogSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         content:
-          'Failed to delete recurring run config: test-job-id with error: "could not delete"',
-        title: 'Failed to delete recurring run config',
+          'common:failedTo common:delete recurring run config: test-job-id common:withError: "could not delete"',
+        title: 'common:failedTo common:delete recurring run config',
       }),
     );
     // Should not reroute

@@ -18,8 +18,10 @@ import * as React from 'react';
 import { shallow } from 'enzyme';
 import ConfusionMatrix, { ConfusionMatrixConfig } from './ConfusionMatrix';
 import { PlotType } from './Viewer';
+import { TFunction } from 'i18next';
 
 describe('ConfusionMatrix', () => {
+  let t: TFunction = (key: string) => key;
   it('does not break on empty data', () => {
     const tree = shallow(<ConfusionMatrix configs={[]} />);
     expect(tree).toMatchSnapshot();
@@ -68,6 +70,6 @@ describe('ConfusionMatrix', () => {
   });
 
   it('returns a user friendly display name', () => {
-    expect(ConfusionMatrix.prototype.getDisplayName()).toBe('Confusion matrix');
+    expect(ConfusionMatrix.prototype.getDisplayName(t)).toBe('common:confusionMatrix');
   });
 });

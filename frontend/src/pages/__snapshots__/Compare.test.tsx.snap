@@ -7,15 +7,16 @@ exports[`Compare collapses all sections 1`] = `
   <CollapseButton
     collapseSections={
       Object {
-        "Metrics": true,
-        "Parameters": true,
-        "Run overview": true,
-        "Table": true,
-        "Tensorboard": true,
+        "common:table": true,
+        "common:tensorboard": true,
+        "experiments:metrics": true,
+        "experiments:parameters": true,
+        "experiments:runOverview": true,
       }
     }
     compareSetState={[Function]}
-    sectionName="Run overview"
+    sectionName="experiments:runOverview"
+    t={[Function]}
   />
   <Separator
     orientation="vertical"
@@ -23,28 +24,30 @@ exports[`Compare collapses all sections 1`] = `
   <CollapseButton
     collapseSections={
       Object {
-        "Metrics": true,
-        "Parameters": true,
-        "Run overview": true,
-        "Table": true,
-        "Tensorboard": true,
+        "common:table": true,
+        "common:tensorboard": true,
+        "experiments:metrics": true,
+        "experiments:parameters": true,
+        "experiments:runOverview": true,
       }
     }
     compareSetState={[Function]}
-    sectionName="Parameters"
+    sectionName="experiments:parameters"
+    t={[Function]}
   />
   <CollapseButton
     collapseSections={
       Object {
-        "Metrics": true,
-        "Parameters": true,
-        "Run overview": true,
-        "Table": true,
-        "Tensorboard": true,
+        "common:table": true,
+        "common:tensorboard": true,
+        "experiments:metrics": true,
+        "experiments:parameters": true,
+        "experiments:runOverview": true,
       }
     }
     compareSetState={[Function]}
-    sectionName="Metrics"
+    sectionName="experiments:metrics"
+    t={[Function]}
   />
   <Separator
     orientation="vertical"
@@ -55,15 +58,16 @@ exports[`Compare collapses all sections 1`] = `
     <CollapseButton
       collapseSections={
         Object {
-          "Metrics": true,
-          "Parameters": true,
-          "Run overview": true,
-          "Table": true,
-          "Tensorboard": true,
+          "common:table": true,
+          "common:tensorboard": true,
+          "experiments:metrics": true,
+          "experiments:parameters": true,
+          "experiments:runOverview": true,
         }
       }
       compareSetState={[Function]}
-      sectionName="Tensorboard"
+      sectionName="common:tensorboard"
+      t={[Function]}
     />
     <Separator
       orientation="vertical"
@@ -75,15 +79,16 @@ exports[`Compare collapses all sections 1`] = `
     <CollapseButton
       collapseSections={
         Object {
-          "Metrics": true,
-          "Parameters": true,
-          "Run overview": true,
-          "Table": true,
-          "Tensorboard": true,
+          "common:table": true,
+          "common:tensorboard": true,
+          "experiments:metrics": true,
+          "experiments:parameters": true,
+          "experiments:runOverview": true,
         }
       }
       compareSetState={[Function]}
-      sectionName="Table"
+      sectionName="common:table"
+      t={[Function]}
     />
     <Separator
       orientation="vertical"
@@ -99,7 +104,8 @@ exports[`Compare creates a map of viewers 1`] = `
   <CollapseButton
     collapseSections={Object {}}
     compareSetState={[Function]}
-    sectionName="Run overview"
+    sectionName="experiments:runOverview"
+    t={[Function]}
   />
   <div
     className="noShrink"
@@ -130,6 +136,7 @@ exports[`Compare creates a map of viewers 1`] = `
           "run-with-workflow",
         ]
       }
+      t={[Function]}
       toolbarProps={
         Object {
           "actions": Object {
@@ -137,30 +144,31 @@ exports[`Compare creates a map of viewers 1`] = `
               "action": [Function],
               "icon": [Function],
               "id": "collapseBtn",
-              "title": "Collapse all",
-              "tooltip": "Collapse all sections",
+              "title": "common:collapseAll",
+              "tooltip": "common:collapseAllSec",
             },
             "expand": Object {
               "action": [Function],
               "icon": [Function],
               "id": "expandBtn",
-              "title": "Expand all",
-              "tooltip": "Expand all sections",
+              "title": "common:expandAll",
+              "tooltip": "common:expandAllSections",
             },
             "refresh": Object {
               "action": [Function],
               "id": "refreshBtn",
-              "title": "Refresh",
-              "tooltip": "Refresh the list",
+              "title": "common:refresh",
+              "tooltip": "common:refreshList",
             },
           },
           "breadcrumbs": Array [
             Object {
-              "displayName": "Experiments",
+              "displayName": "common:experiments",
               "href": "/experiments",
             },
           ],
-          "pageTitle": "Compare runs",
+          "pageTitle": "compareRuns",
+          "t": [Function],
         }
       }
       updateBanner={[MockFunction]}
@@ -175,7 +183,8 @@ exports[`Compare creates a map of viewers 1`] = `
   <CollapseButton
     collapseSections={Object {}}
     compareSetState={[Function]}
-    sectionName="Parameters"
+    sectionName="experiments:parameters"
+    t={[Function]}
   />
   <div
     className="noShrink outputsRow"
@@ -197,7 +206,8 @@ exports[`Compare creates a map of viewers 1`] = `
   <CollapseButton
     collapseSections={Object {}}
     compareSetState={[Function]}
-    sectionName="Metrics"
+    sectionName="experiments:metrics"
+    t={[Function]}
   />
   <div
     className="noShrink outputsRow"
@@ -225,7 +235,8 @@ exports[`Compare creates a map of viewers 1`] = `
     <CollapseButton
       collapseSections={Object {}}
       compareSetState={[Function]}
-      sectionName="Tensorboard"
+      sectionName="common:tensorboard"
+      t={[Function]}
     />
     <div
       className="flex outputsRow"
@@ -241,6 +252,7 @@ exports[`Compare creates a map of viewers 1`] = `
         }
         key="0"
         maxDimension={400}
+        t={[Function]}
         title="test run run-with-workflow"
       />
       <Separator />
@@ -256,7 +268,8 @@ exports[`Compare creates a map of viewers 1`] = `
     <CollapseButton
       collapseSections={Object {}}
       compareSetState={[Function]}
-      sectionName="Table"
+      sectionName="common:table"
+      t={[Function]}
     />
     <div
       className="flex outputsRow"
@@ -279,6 +292,7 @@ exports[`Compare creates a map of viewers 1`] = `
         }
         key="0"
         maxDimension={400}
+        t={[Function]}
         title="test run run-with-workflow"
       />
       <Separator />
@@ -298,7 +312,8 @@ exports[`Compare creates an extra aggregation plot for compatible viewers 1`] = 
   <CollapseButton
     collapseSections={Object {}}
     compareSetState={[Function]}
-    sectionName="Run overview"
+    sectionName="experiments:runOverview"
+    t={[Function]}
   />
   <div
     className="noShrink"
@@ -331,6 +346,7 @@ exports[`Compare creates an extra aggregation plot for compatible viewers 1`] = 
           "run2-id",
         ]
       }
+      t={[Function]}
       toolbarProps={
         Object {
           "actions": Object {
@@ -338,30 +354,31 @@ exports[`Compare creates an extra aggregation plot for compatible viewers 1`] = 
               "action": [Function],
               "icon": [Function],
               "id": "collapseBtn",
-              "title": "Collapse all",
-              "tooltip": "Collapse all sections",
+              "title": "common:collapseAll",
+              "tooltip": "common:collapseAllSec",
             },
             "expand": Object {
               "action": [Function],
               "icon": [Function],
               "id": "expandBtn",
-              "title": "Expand all",
-              "tooltip": "Expand all sections",
+              "title": "common:expandAll",
+              "tooltip": "common:expandAllSections",
             },
             "refresh": Object {
               "action": [Function],
               "id": "refreshBtn",
-              "title": "Refresh",
-              "tooltip": "Refresh the list",
+              "title": "common:refresh",
+              "tooltip": "common:refreshList",
             },
           },
           "breadcrumbs": Array [
             Object {
-              "displayName": "Experiments",
+              "displayName": "common:experiments",
               "href": "/experiments",
             },
           ],
-          "pageTitle": "Compare runs",
+          "pageTitle": "compareRuns",
+          "t": [Function],
         }
       }
       updateBanner={[MockFunction]}
@@ -376,7 +393,8 @@ exports[`Compare creates an extra aggregation plot for compatible viewers 1`] = 
   <CollapseButton
     collapseSections={Object {}}
     compareSetState={[Function]}
-    sectionName="Parameters"
+    sectionName="experiments:parameters"
+    t={[Function]}
   />
   <div
     className="noShrink outputsRow"
@@ -399,7 +417,8 @@ exports[`Compare creates an extra aggregation plot for compatible viewers 1`] = 
   <CollapseButton
     collapseSections={Object {}}
     compareSetState={[Function]}
-    sectionName="Metrics"
+    sectionName="experiments:metrics"
+    t={[Function]}
   />
   <div
     className="noShrink outputsRow"
@@ -428,7 +447,8 @@ exports[`Compare creates an extra aggregation plot for compatible viewers 1`] = 
     <CollapseButton
       collapseSections={Object {}}
       compareSetState={[Function]}
-      sectionName="Tensorboard"
+      sectionName="common:tensorboard"
+      t={[Function]}
     />
     <div
       className="flex outputsRow"
@@ -447,7 +467,8 @@ exports[`Compare creates an extra aggregation plot for compatible viewers 1`] = 
           ]
         }
         maxDimension={400}
-        title="Aggregated view"
+        t={[Function]}
+        title="aggregatedView"
       />
       <PlotCard
         configs={
@@ -460,6 +481,7 @@ exports[`Compare creates an extra aggregation plot for compatible viewers 1`] = 
         }
         key="0"
         maxDimension={400}
+        t={[Function]}
         title="test run run1-id"
       />
       <PlotCard
@@ -473,6 +495,7 @@ exports[`Compare creates an extra aggregation plot for compatible viewers 1`] = 
         }
         key="1"
         maxDimension={400}
+        t={[Function]}
         title="test run run2-id"
       />
       <Separator />
@@ -488,7 +511,8 @@ exports[`Compare creates an extra aggregation plot for compatible viewers 1`] = 
     <CollapseButton
       collapseSections={Object {}}
       compareSetState={[Function]}
-      sectionName="ROC Curve"
+      sectionName="common:rocCurve"
+      t={[Function]}
     />
     <div
       className="flex outputsRow"
@@ -507,7 +531,8 @@ exports[`Compare creates an extra aggregation plot for compatible viewers 1`] = 
           ]
         }
         maxDimension={400}
-        title="Aggregated view"
+        t={[Function]}
+        title="aggregatedView"
       />
       <PlotCard
         configs={
@@ -520,6 +545,7 @@ exports[`Compare creates an extra aggregation plot for compatible viewers 1`] = 
         }
         key="0"
         maxDimension={400}
+        t={[Function]}
         title="test run run1-id"
       />
       <PlotCard
@@ -533,6 +559,7 @@ exports[`Compare creates an extra aggregation plot for compatible viewers 1`] = 
         }
         key="1"
         maxDimension={400}
+        t={[Function]}
         title="test run run2-id"
       />
       <Separator />
@@ -552,7 +579,8 @@ exports[`Compare displays a run's metrics if the run has any 1`] = `
   <CollapseButton
     collapseSections={Object {}}
     compareSetState={[Function]}
-    sectionName="Run overview"
+    sectionName="experiments:runOverview"
+    t={[Function]}
   />
   <div
     className="noShrink"
@@ -583,6 +611,7 @@ exports[`Compare displays a run's metrics if the run has any 1`] = `
           "run-with-metrics",
         ]
       }
+      t={[Function]}
       toolbarProps={
         Object {
           "actions": Object {
@@ -590,30 +619,31 @@ exports[`Compare displays a run's metrics if the run has any 1`] = `
               "action": [Function],
               "icon": [Function],
               "id": "collapseBtn",
-              "title": "Collapse all",
-              "tooltip": "Collapse all sections",
+              "title": "common:collapseAll",
+              "tooltip": "common:collapseAllSec",
             },
             "expand": Object {
               "action": [Function],
               "icon": [Function],
               "id": "expandBtn",
-              "title": "Expand all",
-              "tooltip": "Expand all sections",
+              "title": "common:expandAll",
+              "tooltip": "common:expandAllSections",
             },
             "refresh": Object {
               "action": [Function],
               "id": "refreshBtn",
-              "title": "Refresh",
-              "tooltip": "Refresh the list",
+              "title": "common:refresh",
+              "tooltip": "common:refreshList",
             },
           },
           "breadcrumbs": Array [
             Object {
-              "displayName": "Experiments",
+              "displayName": "common:experiments",
               "href": "/experiments",
             },
           ],
-          "pageTitle": "Compare runs",
+          "pageTitle": "compareRuns",
+          "t": [Function],
         }
       }
       updateBanner={[MockFunction]}
@@ -628,7 +658,8 @@ exports[`Compare displays a run's metrics if the run has any 1`] = `
   <CollapseButton
     collapseSections={Object {}}
     compareSetState={[Function]}
-    sectionName="Parameters"
+    sectionName="experiments:parameters"
+    t={[Function]}
   />
   <div
     className="noShrink outputsRow"
@@ -650,7 +681,8 @@ exports[`Compare displays a run's metrics if the run has any 1`] = `
   <CollapseButton
     collapseSections={Object {}}
     compareSetState={[Function]}
-    sectionName="Metrics"
+    sectionName="experiments:metrics"
+    t={[Function]}
   />
   <div
     className="noShrink outputsRow"
@@ -696,7 +728,8 @@ exports[`Compare displays metrics from multiple runs 1`] = `
   <CollapseButton
     collapseSections={Object {}}
     compareSetState={[Function]}
-    sectionName="Run overview"
+    sectionName="experiments:runOverview"
+    t={[Function]}
   />
   <div
     className="noShrink"
@@ -729,6 +762,7 @@ exports[`Compare displays metrics from multiple runs 1`] = `
           "run2",
         ]
       }
+      t={[Function]}
       toolbarProps={
         Object {
           "actions": Object {
@@ -736,30 +770,31 @@ exports[`Compare displays metrics from multiple runs 1`] = `
               "action": [Function],
               "icon": [Function],
               "id": "collapseBtn",
-              "title": "Collapse all",
-              "tooltip": "Collapse all sections",
+              "title": "common:collapseAll",
+              "tooltip": "common:collapseAllSec",
             },
             "expand": Object {
               "action": [Function],
               "icon": [Function],
               "id": "expandBtn",
-              "title": "Expand all",
-              "tooltip": "Expand all sections",
+              "title": "common:expandAll",
+              "tooltip": "common:expandAllSections",
             },
             "refresh": Object {
               "action": [Function],
               "id": "refreshBtn",
-              "title": "Refresh",
-              "tooltip": "Refresh the list",
+              "title": "common:refresh",
+              "tooltip": "common:refreshList",
             },
           },
           "breadcrumbs": Array [
             Object {
-              "displayName": "Experiments",
+              "displayName": "common:experiments",
               "href": "/experiments",
             },
           ],
-          "pageTitle": "Compare runs",
+          "pageTitle": "compareRuns",
+          "t": [Function],
         }
       }
       updateBanner={[MockFunction]}
@@ -774,7 +809,8 @@ exports[`Compare displays metrics from multiple runs 1`] = `
   <CollapseButton
     collapseSections={Object {}}
     compareSetState={[Function]}
-    sectionName="Parameters"
+    sectionName="experiments:parameters"
+    t={[Function]}
   />
   <div
     className="noShrink outputsRow"
@@ -797,7 +833,8 @@ exports[`Compare displays metrics from multiple runs 1`] = `
   <CollapseButton
     collapseSections={Object {}}
     compareSetState={[Function]}
-    sectionName="Metrics"
+    sectionName="experiments:metrics"
+    t={[Function]}
   />
   <div
     className="noShrink outputsRow"
@@ -846,7 +883,8 @@ exports[`Compare displays parameters from multiple runs 1`] = `
   <CollapseButton
     collapseSections={Object {}}
     compareSetState={[Function]}
-    sectionName="Run overview"
+    sectionName="experiments:runOverview"
+    t={[Function]}
   />
   <div
     className="noShrink"
@@ -879,6 +917,7 @@ exports[`Compare displays parameters from multiple runs 1`] = `
           "run2",
         ]
       }
+      t={[Function]}
       toolbarProps={
         Object {
           "actions": Object {
@@ -886,30 +925,31 @@ exports[`Compare displays parameters from multiple runs 1`] = `
               "action": [Function],
               "icon": [Function],
               "id": "collapseBtn",
-              "title": "Collapse all",
-              "tooltip": "Collapse all sections",
+              "title": "common:collapseAll",
+              "tooltip": "common:collapseAllSec",
             },
             "expand": Object {
               "action": [Function],
               "icon": [Function],
               "id": "expandBtn",
-              "title": "Expand all",
-              "tooltip": "Expand all sections",
+              "title": "common:expandAll",
+              "tooltip": "common:expandAllSections",
             },
             "refresh": Object {
               "action": [Function],
               "id": "refreshBtn",
-              "title": "Refresh",
-              "tooltip": "Refresh the list",
+              "title": "common:refresh",
+              "tooltip": "common:refreshList",
             },
           },
           "breadcrumbs": Array [
             Object {
-              "displayName": "Experiments",
+              "displayName": "common:experiments",
               "href": "/experiments",
             },
           ],
-          "pageTitle": "Compare runs",
+          "pageTitle": "compareRuns",
+          "t": [Function],
         }
       }
       updateBanner={[MockFunction]}
@@ -924,7 +964,8 @@ exports[`Compare displays parameters from multiple runs 1`] = `
   <CollapseButton
     collapseSections={Object {}}
     compareSetState={[Function]}
-    sectionName="Parameters"
+    sectionName="experiments:parameters"
+    t={[Function]}
   />
   <div
     className="noShrink outputsRow"
@@ -968,7 +1009,8 @@ exports[`Compare displays parameters from multiple runs 1`] = `
   <CollapseButton
     collapseSections={Object {}}
     compareSetState={[Function]}
-    sectionName="Metrics"
+    sectionName="experiments:metrics"
+    t={[Function]}
   />
   <div
     className="noShrink outputsRow"
@@ -1001,7 +1043,8 @@ exports[`Compare displays run's parameters if the run has any 1`] = `
   <CollapseButton
     collapseSections={Object {}}
     compareSetState={[Function]}
-    sectionName="Run overview"
+    sectionName="experiments:runOverview"
+    t={[Function]}
   />
   <div
     className="noShrink"
@@ -1032,6 +1075,7 @@ exports[`Compare displays run's parameters if the run has any 1`] = `
           "run-with-parameters",
         ]
       }
+      t={[Function]}
       toolbarProps={
         Object {
           "actions": Object {
@@ -1039,30 +1083,31 @@ exports[`Compare displays run's parameters if the run has any 1`] = `
               "action": [Function],
               "icon": [Function],
               "id": "collapseBtn",
-              "title": "Collapse all",
-              "tooltip": "Collapse all sections",
+              "title": "common:collapseAll",
+              "tooltip": "common:collapseAllSec",
             },
             "expand": Object {
               "action": [Function],
               "icon": [Function],
               "id": "expandBtn",
-              "title": "Expand all",
-              "tooltip": "Expand all sections",
+              "title": "common:expandAll",
+              "tooltip": "common:expandAllSections",
             },
             "refresh": Object {
               "action": [Function],
               "id": "refreshBtn",
-              "title": "Refresh",
-              "tooltip": "Refresh the list",
+              "title": "common:refresh",
+              "tooltip": "common:refreshList",
             },
           },
           "breadcrumbs": Array [
             Object {
-              "displayName": "Experiments",
+              "displayName": "common:experiments",
               "href": "/experiments",
             },
           ],
-          "pageTitle": "Compare runs",
+          "pageTitle": "compareRuns",
+          "t": [Function],
         }
       }
       updateBanner={[MockFunction]}
@@ -1077,7 +1122,8 @@ exports[`Compare displays run's parameters if the run has any 1`] = `
   <CollapseButton
     collapseSections={Object {}}
     compareSetState={[Function]}
-    sectionName="Parameters"
+    sectionName="experiments:parameters"
+    t={[Function]}
   />
   <div
     className="noShrink outputsRow"
@@ -1113,7 +1159,8 @@ exports[`Compare displays run's parameters if the run has any 1`] = `
   <CollapseButton
     collapseSections={Object {}}
     compareSetState={[Function]}
-    sectionName="Metrics"
+    sectionName="experiments:metrics"
+    t={[Function]}
   />
   <div
     className="noShrink outputsRow"
@@ -1145,7 +1192,8 @@ exports[`Compare does not show viewers for deselected runs 1`] = `
   <CollapseButton
     collapseSections={Object {}}
     compareSetState={[Function]}
-    sectionName="Run overview"
+    sectionName="experiments:runOverview"
+    t={[Function]}
   />
   <div
     className="noShrink"
@@ -1173,6 +1221,7 @@ exports[`Compare does not show viewers for deselected runs 1`] = `
         ]
       }
       selectedIds={Array []}
+      t={[Function]}
       toolbarProps={
         Object {
           "actions": Object {
@@ -1180,30 +1229,31 @@ exports[`Compare does not show viewers for deselected runs 1`] = `
               "action": [Function],
               "icon": [Function],
               "id": "collapseBtn",
-              "title": "Collapse all",
-              "tooltip": "Collapse all sections",
+              "title": "common:collapseAll",
+              "tooltip": "common:collapseAllSec",
             },
             "expand": Object {
               "action": [Function],
               "icon": [Function],
               "id": "expandBtn",
-              "title": "Expand all",
-              "tooltip": "Expand all sections",
+              "title": "common:expandAll",
+              "tooltip": "common:expandAllSections",
             },
             "refresh": Object {
               "action": [Function],
               "id": "refreshBtn",
-              "title": "Refresh",
-              "tooltip": "Refresh the list",
+              "title": "common:refresh",
+              "tooltip": "common:refreshList",
             },
           },
           "breadcrumbs": Array [
             Object {
-              "displayName": "Experiments",
+              "displayName": "common:experiments",
               "href": "/experiments",
             },
           ],
-          "pageTitle": "Compare runs",
+          "pageTitle": "compareRuns",
+          "t": [Function],
         }
       }
       updateBanner={[MockFunction]}
@@ -1218,7 +1268,8 @@ exports[`Compare does not show viewers for deselected runs 1`] = `
   <CollapseButton
     collapseSections={Object {}}
     compareSetState={[Function]}
-    sectionName="Parameters"
+    sectionName="experiments:parameters"
+    t={[Function]}
   />
   <div
     className="noShrink outputsRow"
@@ -1236,7 +1287,8 @@ exports[`Compare does not show viewers for deselected runs 1`] = `
   <CollapseButton
     collapseSections={Object {}}
     compareSetState={[Function]}
-    sectionName="Metrics"
+    sectionName="experiments:metrics"
+    t={[Function]}
   />
   <div
     className="noShrink outputsRow"
@@ -1264,7 +1316,8 @@ exports[`Compare expands all sections if they were collapsed 1`] = `
   <CollapseButton
     collapseSections={Object {}}
     compareSetState={[Function]}
-    sectionName="Run overview"
+    sectionName="experiments:runOverview"
+    t={[Function]}
   />
   <div
     className="noShrink"
@@ -1297,6 +1350,7 @@ exports[`Compare expands all sections if they were collapsed 1`] = `
           "run-with-workflow-2",
         ]
       }
+      t={[Function]}
       toolbarProps={
         Object {
           "actions": Object {
@@ -1304,30 +1358,31 @@ exports[`Compare expands all sections if they were collapsed 1`] = `
               "action": [Function],
               "icon": [Function],
               "id": "collapseBtn",
-              "title": "Collapse all",
-              "tooltip": "Collapse all sections",
+              "title": "common:collapseAll",
+              "tooltip": "common:collapseAllSec",
             },
             "expand": Object {
               "action": [Function],
               "icon": [Function],
               "id": "expandBtn",
-              "title": "Expand all",
-              "tooltip": "Expand all sections",
+              "title": "common:expandAll",
+              "tooltip": "common:expandAllSections",
             },
             "refresh": Object {
               "action": [Function],
               "id": "refreshBtn",
-              "title": "Refresh",
-              "tooltip": "Refresh the list",
+              "title": "common:refresh",
+              "tooltip": "common:refreshList",
             },
           },
           "breadcrumbs": Array [
             Object {
-              "displayName": "Experiments",
+              "displayName": "common:experiments",
               "href": "/experiments",
             },
           ],
-          "pageTitle": "Compare runs",
+          "pageTitle": "compareRuns",
+          "t": [Function],
         }
       }
       updateBanner={[MockFunction]}
@@ -1342,7 +1397,8 @@ exports[`Compare expands all sections if they were collapsed 1`] = `
   <CollapseButton
     collapseSections={Object {}}
     compareSetState={[Function]}
-    sectionName="Parameters"
+    sectionName="experiments:parameters"
+    t={[Function]}
   />
   <div
     className="noShrink outputsRow"
@@ -1365,7 +1421,8 @@ exports[`Compare expands all sections if they were collapsed 1`] = `
   <CollapseButton
     collapseSections={Object {}}
     compareSetState={[Function]}
-    sectionName="Metrics"
+    sectionName="experiments:metrics"
+    t={[Function]}
   />
   <div
     className="noShrink outputsRow"
@@ -1394,7 +1451,8 @@ exports[`Compare expands all sections if they were collapsed 1`] = `
     <CollapseButton
       collapseSections={Object {}}
       compareSetState={[Function]}
-      sectionName="Tensorboard"
+      sectionName="common:tensorboard"
+      t={[Function]}
     />
     <div
       className="flex outputsRow"
@@ -1413,7 +1471,8 @@ exports[`Compare expands all sections if they were collapsed 1`] = `
           ]
         }
         maxDimension={400}
-        title="Aggregated view"
+        t={[Function]}
+        title="aggregatedView"
       />
       <PlotCard
         configs={
@@ -1426,6 +1485,7 @@ exports[`Compare expands all sections if they were collapsed 1`] = `
         }
         key="0"
         maxDimension={400}
+        t={[Function]}
         title="test run run-with-workflow-1"
       />
       <PlotCard
@@ -1439,6 +1499,7 @@ exports[`Compare expands all sections if they were collapsed 1`] = `
         }
         key="1"
         maxDimension={400}
+        t={[Function]}
         title="test run run-with-workflow-2"
       />
       <Separator />
@@ -1454,7 +1515,8 @@ exports[`Compare expands all sections if they were collapsed 1`] = `
     <CollapseButton
       collapseSections={Object {}}
       compareSetState={[Function]}
-      sectionName="Table"
+      sectionName="common:table"
+      t={[Function]}
     />
     <div
       className="flex outputsRow"
@@ -1475,6 +1537,7 @@ exports[`Compare expands all sections if they were collapsed 1`] = `
         }
         key="0"
         maxDimension={400}
+        t={[Function]}
         title="test run run-with-workflow-1"
       />
       <PlotCard
@@ -1493,6 +1556,7 @@ exports[`Compare expands all sections if they were collapsed 1`] = `
         }
         key="1"
         maxDimension={400}
+        t={[Function]}
         title="test run run-with-workflow-2"
       />
       <Separator />
@@ -1512,7 +1576,8 @@ exports[`Compare renders a page with multiple runs 1`] = `
   <CollapseButton
     collapseSections={Object {}}
     compareSetState={[Function]}
-    sectionName="Run overview"
+    sectionName="experiments:runOverview"
+    t={[Function]}
   />
   <div
     className="noShrink"
@@ -1547,6 +1612,7 @@ exports[`Compare renders a page with multiple runs 1`] = `
           "mock-run-3-id",
         ]
       }
+      t={[Function]}
       toolbarProps={
         Object {
           "actions": Object {
@@ -1554,30 +1620,31 @@ exports[`Compare renders a page with multiple runs 1`] = `
               "action": [Function],
               "icon": [Function],
               "id": "collapseBtn",
-              "title": "Collapse all",
-              "tooltip": "Collapse all sections",
+              "title": "common:collapseAll",
+              "tooltip": "common:collapseAllSec",
             },
             "expand": Object {
               "action": [Function],
               "icon": [Function],
               "id": "expandBtn",
-              "title": "Expand all",
-              "tooltip": "Expand all sections",
+              "title": "common:expandAll",
+              "tooltip": "common:expandAllSections",
             },
             "refresh": Object {
               "action": [Function],
               "id": "refreshBtn",
-              "title": "Refresh",
-              "tooltip": "Refresh the list",
+              "title": "common:refresh",
+              "tooltip": "common:refreshList",
             },
           },
           "breadcrumbs": Array [
             Object {
-              "displayName": "Experiments",
+              "displayName": "common:experiments",
               "href": "/experiments",
             },
           ],
-          "pageTitle": "Compare runs",
+          "pageTitle": "compareRuns",
+          "t": [Function],
         }
       }
       updateBanner={[MockFunction]}
@@ -1592,7 +1659,8 @@ exports[`Compare renders a page with multiple runs 1`] = `
   <CollapseButton
     collapseSections={Object {}}
     compareSetState={[Function]}
-    sectionName="Parameters"
+    sectionName="experiments:parameters"
+    t={[Function]}
   />
   <div
     className="noShrink outputsRow"
@@ -1616,7 +1684,8 @@ exports[`Compare renders a page with multiple runs 1`] = `
   <CollapseButton
     collapseSections={Object {}}
     compareSetState={[Function]}
-    sectionName="Metrics"
+    sectionName="experiments:metrics"
+    t={[Function]}
   />
   <div
     className="noShrink outputsRow"
@@ -1650,7 +1719,8 @@ exports[`Compare renders a page with no runs 1`] = `
   <CollapseButton
     collapseSections={Object {}}
     compareSetState={[Function]}
-    sectionName="Run overview"
+    sectionName="experiments:runOverview"
+    t={[Function]}
   />
   <div
     className="noShrink"
@@ -1673,6 +1743,7 @@ exports[`Compare renders a page with no runs 1`] = `
       onSelectionChange={[Function]}
       runIdListMask={Array []}
       selectedIds={Array []}
+      t={[Function]}
       toolbarProps={
         Object {
           "actions": Object {
@@ -1680,30 +1751,31 @@ exports[`Compare renders a page with no runs 1`] = `
               "action": [Function],
               "icon": [Function],
               "id": "collapseBtn",
-              "title": "Collapse all",
-              "tooltip": "Collapse all sections",
+              "title": "common:collapseAll",
+              "tooltip": "common:collapseAllSec",
             },
             "expand": Object {
               "action": [Function],
               "icon": [Function],
               "id": "expandBtn",
-              "title": "Expand all",
-              "tooltip": "Expand all sections",
+              "title": "common:expandAll",
+              "tooltip": "common:expandAllSections",
             },
             "refresh": Object {
               "action": [Function],
               "id": "refreshBtn",
-              "title": "Refresh",
-              "tooltip": "Refresh the list",
+              "title": "common:refresh",
+              "tooltip": "common:refreshList",
             },
           },
           "breadcrumbs": Array [
             Object {
-              "displayName": "Experiments",
+              "displayName": "common:experiments",
               "href": "/experiments",
             },
           ],
-          "pageTitle": "Compare runs",
+          "pageTitle": "compareRuns",
+          "t": [Function],
         }
       }
       updateBanner={[MockFunction]}
@@ -1718,7 +1790,8 @@ exports[`Compare renders a page with no runs 1`] = `
   <CollapseButton
     collapseSections={Object {}}
     compareSetState={[Function]}
-    sectionName="Parameters"
+    sectionName="experiments:parameters"
+    t={[Function]}
   />
   <div
     className="noShrink outputsRow"
@@ -1736,7 +1809,8 @@ exports[`Compare renders a page with no runs 1`] = `
   <CollapseButton
     collapseSections={Object {}}
     compareSetState={[Function]}
-    sectionName="Metrics"
+    sectionName="experiments:metrics"
+    t={[Function]}
   />
   <div
     className="noShrink outputsRow"

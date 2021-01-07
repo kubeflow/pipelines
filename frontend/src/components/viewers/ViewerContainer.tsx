@@ -24,14 +24,48 @@ import TensorboardViewer from './Tensorboard';
 import { PlotType, ViewerConfig } from './Viewer';
 import VisualizationCreator from './VisualizationCreator';
 
-export const componentMap: Record<PlotType, ComponentType<any>> = {
-  [PlotType.CONFUSION_MATRIX]: ConfusionMatrix,
-  [PlotType.MARKDOWN]: MarkdownViewer,
-  [PlotType.ROC]: ROCCurve,
-  [PlotType.TABLE]: PagedTable,
-  [PlotType.TENSORBOARD]: TensorboardViewer,
-  [PlotType.VISUALIZATION_CREATOR]: VisualizationCreator,
-  [PlotType.WEB_APP]: HTMLViewer,
+type ViewerProperties = {
+  component: ComponentType<any>;
+  isAggregatable: boolean;
+  displayNameKey: string;
+};
+
+export const componentMap: Record<PlotType, ViewerProperties> = {
+  [PlotType.CONFUSION_MATRIX]: {
+    component: ConfusionMatrix,
+    isAggregatable: false,
+    displayNameKey: 'common:confusionMatrix',
+  },
+  [PlotType.MARKDOWN]: {
+    component: MarkdownViewer,
+    isAggregatable: false,
+    displayNameKey: 'common:markdown',
+  },
+  [PlotType.ROC]: {
+    component: ROCCurve,
+    isAggregatable: true,
+    displayNameKey: 'common:rocCurve',
+  },
+  [PlotType.TABLE]: {
+    component: PagedTable,
+    isAggregatable: false,
+    displayNameKey: 'common:table',
+  },
+  [PlotType.TENSORBOARD]: {
+    component: TensorboardViewer,
+    isAggregatable: true,
+    displayNameKey: 'common:tensorboard',
+  },
+  [PlotType.VISUALIZATION_CREATOR]: {
+    component: VisualizationCreator,
+    isAggregatable: false,
+    displayNameKey: 'common:VisualizationCreator',
+  },
+  [PlotType.WEB_APP]: {
+    component: HTMLViewer,
+    isAggregatable: false,
+    displayNameKey: 'common:staticHtml',
+  },
 };
 
 interface ViewerContainerProps {
@@ -46,7 +80,7 @@ class ViewerContainer extends React.Component<ViewerContainerProps> {
       return null;
     }
 
-    const Component = componentMap[configs[0].type];
+    const Component = componentMap[configs[0].type].component;
     return <Component configs={configs as any} maxDimension={maxDimension} />;
   }
 }

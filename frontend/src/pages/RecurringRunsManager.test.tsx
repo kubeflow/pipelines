@@ -21,6 +21,15 @@ import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
 import RecurringRunsManager, { RecurringRunListProps } from './RecurringRunsManager';
 import { ApiJob, ApiResourceType } from '../apis/job';
 
+let mockedValue = '';
+jest.mock('react-i18next', () => ({
+  // this mock makes sure any components using the translate HoC receive the t function as a prop
+  withTranslation: () => (Component: { defaultProps: any }) => {
+    Component.defaultProps = { ...Component.defaultProps, t: () => mockedValue };
+    return Component;
+  },
+}));
+
 describe('RecurringRunsManager', () => {
   class TestRecurringRunsManager extends RecurringRunsManager {
     public async _loadRuns(request: ListRequest): Promise<string> {
@@ -99,6 +108,7 @@ describe('RecurringRunsManager', () => {
   });
 
   it('shows error dialog if listing fails', async () => {
+    mockedValue = 'example1';
     TestUtils.makeErrorResponseOnce(listJobsSpy, 'woops!');
     jest.spyOn(console, 'error').mockImplementation();
     tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
@@ -106,8 +116,10 @@ describe('RecurringRunsManager', () => {
     expect(listJobsSpy).toHaveBeenCalledTimes(1);
     expect(updateDialogSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        content: 'List recurring run configs request failed with:\nwoops!',
-        title: 'Error retrieving recurring run configs',
+        //content: 'List recurring run configs request failed with:\nwoops!',
+        //title: 'Error retrieving recurring run configs',
+        content: 'example1:\nwoops!',
+        title: 'example1',
       }),
     );
     expect(tree.state('runs')).toEqual([]);
@@ -128,27 +140,33 @@ describe('RecurringRunsManager', () => {
   });
 
   it('shows error if enable API call fails', async () => {
+    mockedValue = 'example1';
     tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
     TestUtils.makeErrorResponseOnce(enableJobSpy, 'cannot enable');
     await (tree.instance() as TestRecurringRunsManager)._setEnabledState('test-run', true);
     expect(updateDialogSpy).toHaveBeenCalledTimes(1);
     expect(updateDialogSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        content: 'Error changing enabled state of recurring run:\ncannot enable',
-        title: 'Error',
+        //content: 'Error changing enabled state of recurring run:\ncannot enable',
+        //title: 'Error',
+        content: 'example1:\ncannot enable',
+        title: 'example1',
       }),
     );
   });
 
   it('shows error if disable API call fails', async () => {
+    mockedValue = 'example1';
     tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
     TestUtils.makeErrorResponseOnce(disableJobSpy, 'cannot disable');
     await (tree.instance() as TestRecurringRunsManager)._setEnabledState('test-run', false);
     expect(updateDialogSpy).toHaveBeenCalledTimes(1);
     expect(updateDialogSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        content: 'Error changing enabled state of recurring run:\ncannot disable',
-        title: 'Error',
+        //content: 'Error changing enabled state of recurring run:\ncannot disable',
+        //title: 'Error',
+        content: 'example1:\ncannot disable',
+        title: 'example1',
       }),
     );
   });

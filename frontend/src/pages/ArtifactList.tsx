@@ -48,6 +48,8 @@ import {
 } from '../lib/Utils';
 import { RoutePageFactory } from '../components/Router';
 import { ArtifactLink } from '../components/ArtifactLink';
+import { TFunction } from 'i18next';
+import { withTranslation } from 'react-i18next';
 
 interface ArtifactListState {
   artifacts: Artifact[];
@@ -60,32 +62,33 @@ const ARTIFACT_PROPERTY_REPOS = [ArtifactProperties, ArtifactCustomProperties];
 const PIPELINE_WORKSPACE_FIELDS = ['RUN_ID', 'PIPELINE_NAME', 'WORKSPACE'];
 const NAME_FIELDS = ['NAME'];
 
-class ArtifactList extends Page<{}, ArtifactListState> {
+class ArtifactList extends Page<{ t: TFunction }, ArtifactListState> {
   private tableRef = React.createRef<CustomTable>();
   private api = Api.getInstance();
   private artifactTypesMap: Map<number, ArtifactType>;
 
   constructor(props: any) {
     super(props);
+    const { t } = this.props;
     this.state = {
       artifacts: [],
       columns: [
         {
           customRenderer: this.nameCustomRenderer,
           flex: 2,
-          label: 'Pipeline/Workspace',
+          label: t('pipelineWorkspace'),
           sortKey: 'pipelineName',
         },
         {
           customRenderer: this.nameCustomRenderer,
           flex: 1,
-          label: 'Name',
+          label: t('common:name'),
           sortKey: 'name',
         },
-        { label: 'ID', flex: 1, sortKey: 'id' },
-        { label: 'Type', flex: 2, sortKey: 'type' },
-        { label: 'URI', flex: 2, sortKey: 'uri', customRenderer: this.uriCustomRenderer },
-        { label: 'Created at', flex: 1, sortKey: 'created_at' },
+        { label: t('common:id'), flex: 1, sortKey: 'id' },
+        { label: t('common:type'), flex: 2, sortKey: 'type' },
+        { label: t('common:uri'), flex: 2, sortKey: 'uri', customRenderer: this.uriCustomRenderer },
+        { label: t('common:createdAt'), flex: 1, sortKey: 'created_at' },
       ],
       expandedRows: new Map(),
       rows: [],
@@ -96,15 +99,18 @@ class ArtifactList extends Page<{}, ArtifactListState> {
   }
 
   public getInitialToolbarState(): ToolbarProps {
+    const { t } = this.props;
     return {
       actions: {},
       breadcrumbs: [],
-      pageTitle: 'Artifacts',
+      pageTitle: t('common:artifacts'),
+      t,
     };
   }
 
   public render(): JSX.Element {
     const { rows, columns } = this.state;
+    const { t } = this.props;
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
         <CustomTable
@@ -118,7 +124,8 @@ class ArtifactList extends Page<{}, ArtifactListState> {
           initialSortOrder='asc'
           getExpandComponent={this.getExpandedArtifactsRow}
           toggleExpansion={this.toggleRowExpand}
-          emptyMessage='No artifacts found.'
+          emptyMessage={t('noArtifactsFound')}
+          t={t}
         />
       </div>
     );
@@ -196,6 +203,7 @@ class ArtifactList extends Page<{}, ArtifactListState> {
     request: ListRequest,
     artifacts: Artifact[],
   ): Promise<CollapsedAndExpandedRows | undefined> {
+    const { t } = this.props;
     try {
       // TODO: When backend supports sending creation time back when we list
       // artifacts, let's use it directly.
@@ -242,7 +250,7 @@ class ArtifactList extends Page<{}, ArtifactListState> {
       if (err.message) {
         this.showPageError(err.message, err);
       } else {
-        this.showPageError('Unknown error', err);
+        this.showPageError(t('common:unknownError'), err);
       }
     }
     return;
@@ -269,4 +277,4 @@ class ArtifactList extends Page<{}, ArtifactListState> {
   }
 }
 
-export default ArtifactList;
+export default withTranslation(['artifacts', 'common'])(ArtifactList);

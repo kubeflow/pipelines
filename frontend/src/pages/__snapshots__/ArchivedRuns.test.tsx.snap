@@ -16,34 +16,36 @@ exports[`ArchivedRuns renders archived runs 1`] = `
     onSelectionChange={[Function]}
     selectedIds={Array []}
     storageState="STORAGESTATE_ARCHIVED"
+    t={[Function]}
     toolbarProps={
       Object {
         "actions": Object {
           "deleteRun": Object {
             "action": [Function],
             "disabled": true,
-            "disabledTitle": "Select at least one run to delete",
+            "disabledTitle": "common:selectOne run common:toDelete",
             "id": "deleteBtn",
-            "title": "Delete",
-            "tooltip": "Delete",
+            "title": "common:delete",
+            "tooltip": "common:delete",
           },
           "refresh": Object {
             "action": [Function],
             "id": "refreshBtn",
-            "title": "Refresh",
-            "tooltip": "Refresh the list",
+            "title": "common:refresh",
+            "tooltip": "common:refreshList",
           },
           "restore": Object {
             "action": [Function],
             "disabled": true,
-            "disabledTitle": "Select at least one resource to restore",
+            "disabledTitle": "common:selectResourceRestore",
             "id": "restoreBtn",
-            "title": "Restore",
-            "tooltip": "Restore",
+            "title": "common:restore",
+            "tooltip": "common:restore",
           },
         },
         "breadcrumbs": Array [],
-        "pageTitle": "Archive",
+        "pageTitle": "common:archive",
+        "t": [Function],
       }
     }
     updateBanner={[MockFunction]}

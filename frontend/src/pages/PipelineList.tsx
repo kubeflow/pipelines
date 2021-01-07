@@ -36,6 +36,8 @@ import { formatDateString, errorToMessage } from '../lib/Utils';
 import { Description } from '../components/Description';
 import produce from 'immer';
 import Tooltip from '@material-ui/core/Tooltip';
+import { TFunction } from 'i18next';
+import { withTranslation } from 'react-i18next';
 
 interface DisplayPipeline extends ApiPipeline {
   expandState?: ExpandState;
@@ -57,7 +59,7 @@ const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (
   return <Description description={props.value || ''} forceInline={true} />;
 };
 
-class PipelineList extends Page<{}, PipelineListState> {
+class PipelineList extends Page<{ t: TFunction }, PipelineListState> {
   private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
@@ -73,10 +75,11 @@ class PipelineList extends Page<{}, PipelineListState> {
   }
 
   public getInitialToolbarState(): ToolbarProps {
+    const { t } = this.props;
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
       actions: buttons
-        .newPipelineVersion('Upload pipeline')
+        .newPipelineVersion(t('uploadPipeline'))
         .refresh(this.refresh.bind(this))
         .deletePipelinesAndPipelineVersions(
           () => this.state.selectedIds,
@@ -86,20 +89,22 @@ class PipelineList extends Page<{}, PipelineListState> {
         )
         .getToolbarActionMap(),
       breadcrumbs: [],
-      pageTitle: 'Pipelines',
+      pageTitle: t('pipelines'),
+      t,
     };
   }
 
   public render(): JSX.Element {
+    const { t } = this.props;
     const columns: Column[] = [
       {
         customRenderer: this._nameCustomRenderer,
         flex: 1,
-        label: 'Pipeline name',
+        label: t('pipelineName'),
         sortKey: PipelineSortKeys.NAME,
       },
-      { label: 'Description', flex: 3, customRenderer: descriptionCustomRenderer },
-      { label: 'Uploaded on', sortKey: PipelineSortKeys.CREATED_AT, flex: 1 },
+      { label: t('description'), flex: 3, customRenderer: descriptionCustomRenderer },
+      { label: t('uploadedOn'), sortKey: PipelineSortKeys.CREATED_AT, flex: 1 },
     ];
 
     const rows: Row[] = this.state.displayPipelines.map(p => {
@@ -122,8 +127,9 @@ class PipelineList extends Page<{}, PipelineListState> {
           reload={this._reload.bind(this)}
           toggleExpansion={this._toggleRowExpand.bind(this)}
           getExpandComponent={this._getExpandedPipelineComponent.bind(this)}
-          filterLabel='Filter pipelines'
-          emptyMessage='No pipelines found. Click "Upload pipeline" to start.'
+          filterLabel={t('filterPipelines')}
+          emptyMessage={t('noPipelinesFound')}
+          t={t}
         />
 
         <UploadPipelineDialog
@@ -168,6 +174,7 @@ class PipelineList extends Page<{}, PipelineListState> {
   }
 
   private async _reload(request: ListRequest): Promise<string> {
+    const { t } = this.props;
     let response: ApiListPipelinesResponse | null = null;
     let displayPipelines: DisplayPipeline[];
     try {
@@ -181,7 +188,7 @@ class PipelineList extends Page<{}, PipelineListState> {
       displayPipelines.forEach(exp => (exp.expandState = ExpandState.COLLAPSED));
       this.clearBanner();
     } catch (err) {
-      await this.showPageError('Error: failed to retrieve list of pipelines.', err);
+      await this.showPageError(t('pipelineListError'), err);
     }
 
     this.setStateSafe({ displayPipelines: (response && response.pipelines) || [] });
@@ -244,7 +251,7 @@ class PipelineList extends Page<{}, PipelineListState> {
       this.setStateSafe({ uploadDialogOpen: false });
       return false;
     }
-
+    const { t } = this.props;
     try {
       method === ImportMethod.LOCAL
         ? await Apis.uploadPipeline(name, description || '', file!)
@@ -254,7 +261,7 @@ class PipelineList extends Page<{}, PipelineListState> {
       return true;
     } catch (err) {
       const errorMessage = await errorToMessage(err);
-      this.showErrorDialog('Failed to upload pipeline', errorMessage);
+      this.showErrorDialog(t('pipelineUploadError'), errorMessage);
       return false;
     }
   }
@@ -264,4 +271,4 @@ class PipelineList extends Page<{}, PipelineListState> {
   }
 }
 
-export default PipelineList;
+export default withTranslation('common')(PipelineList);

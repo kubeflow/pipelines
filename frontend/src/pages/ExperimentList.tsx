@@ -43,6 +43,8 @@ import { logger } from '../lib/Utils';
 import { statusToIcon } from './Status';
 import Tooltip from '@material-ui/core/Tooltip';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
+import { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 interface DisplayExperiment extends ApiExperiment {
   last5Runs?: ApiRun[];
@@ -56,7 +58,10 @@ interface ExperimentListState {
   selectedTab: number;
 }
 
-export class ExperimentList extends Page<{ namespace?: string }, ExperimentListState> {
+export class ExperimentList extends Page<
+  { namespace?: string; t: TFunction },
+  ExperimentListState
+> {
   private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
@@ -70,6 +75,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
   }
 
   public getInitialToolbarState(): ToolbarProps {
+    const { t } = this.props;
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
       actions: buttons
@@ -86,26 +92,28 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
         .refresh(this.refresh.bind(this))
         .getToolbarActionMap(),
       breadcrumbs: [],
-      pageTitle: 'Experiments',
+      pageTitle: t('common:experiments'),
+      t,
     };
   }
 
   public render(): JSX.Element {
+    const { t } = this.props;
     const columns: Column[] = [
       {
         customRenderer: this._nameCustomRenderer,
         flex: 1,
-        label: 'Experiment name',
+        label: t('experimentName'),
         sortKey: ExperimentSortKeys.NAME,
       },
       {
         flex: 2,
-        label: 'Description',
+        label: t('common:description'),
       },
       {
         customRenderer: this._last5RunsCustomRenderer,
         flex: 1,
-        label: 'Last 5 runs',
+        label: t('last5Runs'),
       },
     ];
 
@@ -133,8 +141,9 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
           reload={this._reload.bind(this)}
           toggleExpansion={this._toggleRowExpand.bind(this)}
           getExpandComponent={this._getExpandedExperimentComponent.bind(this)}
-          filterLabel='Filter experiments'
-          emptyMessage='No experiments found. Click "Create experiment" to start.'
+          filterLabel={t('filterExperiments')}
+          emptyMessage={t('noExperimentsFound')}
+          t={t}
         />
       </div>
     );
@@ -166,11 +175,12 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
   public _last5RunsCustomRenderer: React.FC<CustomRendererProps<ApiRun[]>> = (
     props: CustomRendererProps<ApiRun[]>,
   ) => {
+    const { t } = this.props;
     return (
       <div className={commonCss.flex}>
         {(props.value || []).map((run, i) => (
           <span key={i} style={{ margin: '0 1px' }}>
-            {statusToIcon((run.status as NodePhase) || NodePhase.UNKNOWN, run.created_at)}
+            {statusToIcon(t, (run.status as NodePhase) || NodePhase.UNKNOWN, run.created_at)}
           </span>
         ))}
       </div>
@@ -181,6 +191,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
     // Fetch the list of experiments
     let response: ApiListExperimentsResponse;
     let displayExperiments: DisplayExperiment[];
+    const { t } = this.props;
     try {
       // This ExperimentList page is used as the "All experiments" tab
       // inside ExperimentAndRuns. Here we only list unarchived experiments.
@@ -207,7 +218,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
       displayExperiments = response.experiments || [];
       displayExperiments.forEach(exp => (exp.expandState = ExpandState.COLLAPSED));
     } catch (err) {
-      await this.showPageError('Error: failed to retrieve list of experiments.', err);
+      await this.showPageError(t('experimentListError'), err);
       // No point in continuing if we couldn't retrieve any experiments.
       return '';
     }
@@ -216,6 +227,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
     await Promise.all(
       displayExperiments.map(async experiment => {
         // TODO: should we aggregate errors here? What if they fail for different reasons?
+        const { t } = this.props;
         try {
           const listRunsResponse = await Apis.runServiceApi.listRuns(
             undefined /* pageToken */,
@@ -237,11 +249,8 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
           );
           experiment.last5Runs = listRunsResponse.runs || [];
         } catch (err) {
-          experiment.error = 'Failed to load the last 5 runs of this experiment';
-          logger.error(
-            `Error: failed to retrieve run statuses for experiment: ${experiment.name}.`,
-            err,
-          );
+          experiment.error = t('last5RunsFailed');
+          logger.error(`${t('runStatusError')}: ${experiment.name}.`, err);
         }
       }),
     );
@@ -290,8 +299,9 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
 }
 
 const EnhancedExperimentList: React.FC<PageProps> = props => {
+  const { t } = useTranslation(['experiments', 'common']);
   const namespace = React.useContext(NamespaceContext);
-  return <ExperimentList key={namespace} {...props} namespace={namespace} />;
+  return <ExperimentList key={namespace} {...props} namespace={namespace} t={t} />;
 };
 
 export default EnhancedExperimentList;

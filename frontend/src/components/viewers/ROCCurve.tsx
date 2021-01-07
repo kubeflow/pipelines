@@ -28,9 +28,10 @@ import {
   // @ts-ignore
 } from 'react-vis';
 import 'react-vis/dist/style.css';
-import Viewer, { ViewerConfig } from './Viewer';
+import { ViewerConfig } from './Viewer';
 import { color, fontsize, commonCss } from '../../Css';
 import { stylesheet } from 'typestyle';
+import { TFunction } from 'i18next';
 
 const css = stylesheet({
   axis: {
@@ -79,6 +80,7 @@ export interface ROCCurveConfig extends ViewerConfig {
 interface ROCCurveProps {
   configs: ROCCurveConfig[];
   maxDimension?: number;
+  t: TFunction;
 }
 
 interface ROCCurveState {
@@ -86,7 +88,7 @@ interface ROCCurveState {
   lastDrawLocation: { left: number; right: number } | null;
 }
 
-class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
+class ROCCurve extends React.Component<ROCCurveProps, ROCCurveState> {
   constructor(props: any) {
     super(props);
 
@@ -94,14 +96,6 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
       hoveredValues: new Array(this.props.configs.length).fill(''),
       lastDrawLocation: null,
     };
-  }
-
-  public getDisplayName(): string {
-    return 'ROC Curve';
-  }
-
-  public isAggregatable(): boolean {
-    return true;
   }
 
   public render(): JSX.Element {
@@ -206,5 +200,4 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
     this.setState({ hoveredValues });
   }
 }
-
 export default ROCCurve;

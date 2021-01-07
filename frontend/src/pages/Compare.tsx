@@ -39,6 +39,8 @@ import { logger } from '../lib/Utils';
 import WorkflowParser from '../lib/WorkflowParser';
 import { Page, PageProps } from './Page';
 import RunList from './RunList';
+import { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 const css = stylesheet({
   outputsRow: {
@@ -64,11 +66,11 @@ export interface CompareState {
   workflowObjects: Workflow[];
 }
 
-const overviewSectionName = 'Run overview';
-const paramsSectionName = 'Parameters';
-const metricsSectionName = 'Metrics';
+const overviewSectionName = 'experiments:runOverview';
+const paramsSectionName = 'experiments:parameters';
+const metricsSectionName = 'experiments:metrics';
 
-class Compare extends Page<{}, CompareState> {
+class Compare extends Page<{ t: TFunction }, CompareState> {
   constructor(props: any) {
     super(props);
 
@@ -86,20 +88,22 @@ class Compare extends Page<{}, CompareState> {
 
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
+    const { t } = this.props;
     return {
       actions: buttons
         .expandSections(() => this.setState({ collapseSections: {} }))
         .collapseSections(this._collapseAllSections.bind(this))
         .refresh(this.refresh.bind(this))
         .getToolbarActionMap(),
-      breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
-      pageTitle: 'Compare runs',
+      breadcrumbs: [{ displayName: t('common:experiments'), href: RoutePage.EXPERIMENTS }],
+      pageTitle: t('compareRuns'),
+      t,
     };
   }
 
   public render(): JSX.Element {
+    const { t } = this.props;
     const { collapseSections, selectedIds, viewersMap } = this.state;
-
     const queryParamRunIds = new URLParser(this.props).get(QUERY_PARAMS.runlist);
     const runIds = queryParamRunIds ? queryParamRunIds.split(',') : [];
 
@@ -109,15 +113,21 @@ class Compare extends Page<{}, CompareState> {
         : [];
     };
 
+    const viewerDisplayNameEntries = Object.entries(componentMap).map(([key, props]) => [
+      key,
+      t(props.displayNameKey),
+    ]);
+    const viewerDisplayNames = Object.fromEntries(viewerDisplayNameEntries);
+
     return (
       <div className={classes(commonCss.page, padding(20, 'lrt'))}>
         {/* Overview section */}
         <CollapseButton
-          sectionName={overviewSectionName}
+          sectionName={t(overviewSectionName)}
           collapseSections={collapseSections}
           compareSetState={this.setStateSafe.bind(this)}
         />
-        {!collapseSections[overviewSectionName] && (
+        {!collapseSections[t(overviewSectionName)] && (
           <div className={commonCss.noShrink}>
             <RunList
               onError={this.showPageError.bind(this)}
@@ -134,11 +144,11 @@ class Compare extends Page<{}, CompareState> {
 
         {/* Parameters section */}
         <CollapseButton
-          sectionName={paramsSectionName}
+          sectionName={t(paramsSectionName)}
           collapseSections={collapseSections}
           compareSetState={this.setStateSafe.bind(this)}
         />
-        {!collapseSections[paramsSectionName] && (
+        {!collapseSections[t(paramsSectionName)] && (
           <div className={classes(commonCss.noShrink, css.outputsRow)}>
             <Separator orientation='vertical' />
             <CompareTable {...this.state.paramsCompareProps} />
@@ -148,11 +158,11 @@ class Compare extends Page<{}, CompareState> {
 
         {/* Metrics section */}
         <CollapseButton
-          sectionName={metricsSectionName}
+          sectionName={t(metricsSectionName)}
           collapseSections={collapseSections}
           compareSetState={this.setStateSafe.bind(this)}
         />
-        {!collapseSections[metricsSectionName] && (
+        {!collapseSections[t(metricsSectionName)] && (
           <div className={classes(commonCss.noShrink, css.outputsRow)}>
             <Separator orientation='vertical' />
             <CompareTable {...this.state.metricsCompareProps} />
@@ -169,20 +179,20 @@ class Compare extends Page<{}, CompareState> {
                 <CollapseButton
                   collapseSections={collapseSections}
                   compareSetState={this.setStateSafe.bind(this)}
-                  sectionName={componentMap[viewerType].prototype.getDisplayName()}
+                  sectionName={viewerDisplayNames[viewerType]}
                 />
-                {!collapseSections[componentMap[viewerType].prototype.getDisplayName()] && (
+                {!collapseSections[viewerDisplayNames[viewerType]] && (
                   <React.Fragment>
                     <div className={classes(commonCss.flex, css.outputsRow)}>
                       {/* If the component allows aggregation, add one more card for
                 its aggregated view. Only do this if there is more than one
                 output, filtering out any unselected runs. */}
-                      {componentMap[viewerType].prototype.isAggregatable() &&
+                      {componentMap[viewerType].isAggregatable &&
                         runsPerViewerType(viewerType).length > 1 && (
                           <PlotCard
                             configs={runsPerViewerType(viewerType).map(t => t.config)}
                             maxDimension={400}
-                            title='Aggregated view'
+                            title={t('aggregatedView')}
                           />
                         )}
 
@@ -224,6 +234,7 @@ class Compare extends Page<{}, CompareState> {
     const workflowObjects: Workflow[] = [];
     const failingRuns: string[] = [];
     let lastError: Error | null = null;
+    const { t } = this.props;
 
     await Promise.all(
       runIds.map(async id => {
@@ -239,7 +250,10 @@ class Compare extends Page<{}, CompareState> {
     );
 
     if (lastError) {
-      await this.showPageError(`Error: failed loading ${failingRuns.length} runs.`, lastError);
+      await this.showPageError(
+        `${t('errorLoadRuns1')} ${failingRuns.length}${t('errorLoadRuns2')}`,
+        lastError,
+      );
       logger.error(
         `Failed loading ${failingRuns.length} runs, last failed with the error: ${lastError}`,
       );
@@ -294,13 +308,14 @@ class Compare extends Page<{}, CompareState> {
   }
 
   private _collapseAllSections(): void {
+    const { t } = this.props;
     const collapseSections = {
-      [overviewSectionName]: true,
-      [paramsSectionName]: true,
-      [metricsSectionName]: true,
+      [t(overviewSectionName)]: true,
+      [t(paramsSectionName)]: true,
+      [t(metricsSectionName)]: true,
     };
-    Array.from(this.state.viewersMap.keys()).forEach(t => {
-      const sectionName = componentMap[t].prototype.getDisplayName();
+    Array.from(this.state.viewersMap.keys()).forEach(tz => {
+      const sectionName = t(componentMap[tz].displayNameKey);
       collapseSections[sectionName] = true;
     });
     this.setState({ collapseSections });
@@ -332,12 +347,13 @@ class Compare extends Page<{}, CompareState> {
 
 const EnhancedCompare: React.FC<PageProps> = props => {
   const namespaceChanged = useNamespaceChangeEvent();
+  const { t } = useTranslation(['common', 'experiments']);
   if (namespaceChanged) {
     // Compare page compares two runs, when namespace changes, the runs don't
     // exist in the new namespace, so we should redirect to experiment list page.
     return <Redirect to={RoutePage.EXPERIMENTS} />;
   }
-  return <Compare {...props} />;
+  return <Compare {...props} t={t} />;
 };
 
 export default EnhancedCompare;

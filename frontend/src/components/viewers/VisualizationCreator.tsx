@@ -23,13 +23,14 @@ import InputLabel from '@material-ui/core/InputLabel';
 import MenuItem from '@material-ui/core/MenuItem';
 import Select from '@material-ui/core/Select';
 import Editor from '../Editor';
-import Viewer, { ViewerConfig } from './Viewer';
+import { ViewerConfig } from './Viewer';
 import { ApiVisualizationType } from '../../apis/visualization';
 import 'brace/ext/language_tools';
 import 'brace/mode/json';
 import 'brace/mode/python';
 import 'brace/theme/github';
 import Button from '@material-ui/core/Button';
+import { TFunction } from 'i18next';
 
 export interface VisualizationCreatorConfig extends ViewerConfig {
   allowCustomVisualizations?: boolean;
@@ -44,6 +45,7 @@ export interface VisualizationCreatorConfig extends ViewerConfig {
 interface VisualizationCreatorProps {
   configs: VisualizationCreatorConfig[];
   maxWidth?: number;
+  t: TFunction;
 }
 
 interface VisualizationCreatorState {
@@ -55,17 +57,16 @@ interface VisualizationCreatorState {
   selectedType?: ApiVisualizationType;
 }
 
-class VisualizationCreator extends Viewer<VisualizationCreatorProps, VisualizationCreatorState> {
+class VisualizationCreator extends React.Component<
+  VisualizationCreatorProps,
+  VisualizationCreatorState
+> {
   public state: VisualizationCreatorState = {
     expanded: !this.props.configs[0]?.collapsedInitially,
     arguments: '',
     code: '',
     source: '',
   };
-
-  public getDisplayName(): string {
-    return 'Visualization Creator';
-  }
 
   public render(): JSX.Element | null {
     const { configs } = this.props;

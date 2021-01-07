@@ -24,8 +24,9 @@ import ErrorIcon from '@material-ui/icons/Error';
 import WarningIcon from '@material-ui/icons/Warning';
 import InfoIcon from '@material-ui/icons/Info';
 import { classes, stylesheet } from 'typestyle';
-
 import { color, commonCss, spacing } from '../Css';
+import { TFunction } from 'i18next';
+import { withTranslation } from 'react-i18next';
 
 export type Mode = 'error' | 'warning' | 'info';
 
@@ -72,6 +73,7 @@ export interface BannerProps {
   mode?: Mode;
   showTroubleshootingGuideLink?: boolean;
   refresh?: () => void;
+  t: TFunction;
 }
 
 interface BannerState {
@@ -89,6 +91,7 @@ class Banner extends React.Component<BannerProps, BannerState> {
 
   public render(): JSX.Element {
     // Default to error styles.
+
     let bannerModeCss = stylesheet({
       mode: { backgroundColor: color.errorBg, color: color.errorText },
     });
@@ -103,7 +106,7 @@ class Banner extends React.Component<BannerProps, BannerState> {
           mode: { backgroundColor: color.errorBg, color: color.errorText },
         });
         bannerIcon = <ErrorIcon className={css.icon} />;
-        dialogTitle = 'An error occurred';
+        dialogTitle = this.props.t('common:errorOccurred');
         showTroubleshootingGuideLink = this.props.showTroubleshootingGuideLink || false;
         break;
       case 'warning':
@@ -138,7 +141,7 @@ class Banner extends React.Component<BannerProps, BannerState> {
               className={css.troubleShootingLink}
               href='https://www.kubeflow.org/docs/pipelines/troubleshooting'
             >
-              Troubleshooting guide
+              {this.props.t('common:troubleshooting')}
             </a>
           )}
           {this.props.additionalInfo && (
@@ -146,7 +149,7 @@ class Banner extends React.Component<BannerProps, BannerState> {
               className={classes(css.button, css.detailsButton)}
               onClick={this._showAdditionalInfo.bind(this)}
             >
-              Details
+              {this.props.t('common:detailsLowercase')}
             </Button>
           )}
           {showRefreshButton && this.props.refresh && (
@@ -154,7 +157,7 @@ class Banner extends React.Component<BannerProps, BannerState> {
               className={classes(css.button, css.refreshButton)}
               onClick={this._refresh.bind(this)}
             >
-              Refresh
+              {this.props.t('common:refresh')}
             </Button>
           )}
         </div>
@@ -187,4 +190,4 @@ class Banner extends React.Component<BannerProps, BannerState> {
   }
 }
 
-export default Banner;
+export default withTranslation('common')(Banner);

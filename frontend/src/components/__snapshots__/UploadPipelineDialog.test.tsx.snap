@@ -11,9 +11,7 @@ exports[`UploadPipelineDialog renders alternate UI for uploading via URL 1`] = `
   onClose={[Function]}
   open={false}
 >
-  <WithStyles(DialogTitle)>
-    Upload and name your pipeline
-  </WithStyles(DialogTitle)>
+  <WithStyles(DialogTitle) />
   <div
     className=""
   >
@@ -28,7 +26,7 @@ exports[`UploadPipelineDialog renders alternate UI for uploading via URL 1`] = `
           />
         }
         id="uploadLocalFileBtn"
-        label="Upload a file"
+        label=""
         onChange={[Function]}
       />
       <WithStyles(WithFormControlContext(FormControlLabel))
@@ -39,18 +37,16 @@ exports[`UploadPipelineDialog renders alternate UI for uploading via URL 1`] = `
           />
         }
         id="uploadFromUrlBtn"
-        label="Import by URL"
+        label=""
         onChange={[Function]}
       />
     </div>
     <div
       className=""
-    >
-      URL must be publicly accessible.
-    </div>
+    />
     <DocumentationCompilePipeline />
     <Input
-      label="URL"
+      label=""
       onChange={[Function]}
       required={true}
       value=""
@@ -58,7 +54,7 @@ exports[`UploadPipelineDialog renders alternate UI for uploading via URL 1`] = `
     />
     <Input
       id="uploadFileName"
-      label="Pipeline name"
+      label=""
       onChange={[Function]}
       required={true}
       value=""
@@ -69,15 +65,13 @@ exports[`UploadPipelineDialog renders alternate UI for uploading via URL 1`] = `
     <WithStyles(Button)
       id="cancelUploadBtn"
       onClick={[Function]}
-    >
-      Cancel
-    </WithStyles(Button)>
+    />
     <BusyButton
       busy={false}
       disabled={true}
       id="confirmUploadBtn"
       onClick={[Function]}
-      title="Upload"
+      title=""
     />
   </WithStyles(DialogActions)>
 </WithStyles(Dialog)>
@@ -94,9 +88,7 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
   onClose={[Function]}
   open={false}
 >
-  <WithStyles(DialogTitle)>
-    Upload and name your pipeline
-  </WithStyles(DialogTitle)>
+  <WithStyles(DialogTitle) />
   <div
     className=""
   >
@@ -111,7 +103,7 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
           />
         }
         id="uploadLocalFileBtn"
-        label="Upload a file"
+        label=""
         onChange={[Function]}
       />
       <WithStyles(WithFormControlContext(FormControlLabel))
@@ -122,7 +114,7 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
           />
         }
         id="uploadFromUrlBtn"
-        label="Import by URL"
+        label=""
         onChange={[Function]}
       />
     </div>
@@ -152,15 +144,11 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
     >
       <div
         className="dropOverlay"
-      >
-        Drop files..
-      </div>
+      />
       <div
         className=""
       >
-        Choose a pipeline package file from your computer, and give the pipeline a unique name.
         <br />
-        You can also drag and drop the file here.
       </div>
       <DocumentationCompilePipeline />
       <Input
@@ -180,13 +168,13 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
                   }
                 }
               >
-                Choose file
+                
               </WithStyles(Button)>
             </WithStyles(InputAdornment)>,
             "readOnly": true,
           }
         }
-        label="File"
+        label=""
         onChange={[Function]}
         required={true}
         value=""
@@ -195,7 +183,7 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
     </n>
     <Input
       id="uploadFileName"
-      label="Pipeline name"
+      label=""
       onChange={[Function]}
       required={true}
       value=""
@@ -206,15 +194,13 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
     <WithStyles(Button)
       id="cancelUploadBtn"
       onClick={[Function]}
-    >
-      Cancel
-    </WithStyles(Button)>
+    />
     <BusyButton
       busy={false}
       disabled={true}
       id="confirmUploadBtn"
       onClick={[Function]}
-      title="Upload"
+      title=""
     />
   </WithStyles(DialogActions)>
 </WithStyles(Dialog)>
@@ -231,9 +217,7 @@ exports[`UploadPipelineDialog renders closed 1`] = `
   onClose={[Function]}
   open={false}
 >
-  <WithStyles(DialogTitle)>
-    Upload and name your pipeline
-  </WithStyles(DialogTitle)>
+  <WithStyles(DialogTitle) />
   <div
     className=""
   >
@@ -248,7 +232,7 @@ exports[`UploadPipelineDialog renders closed 1`] = `
           />
         }
         id="uploadLocalFileBtn"
-        label="Upload a file"
+        label=""
         onChange={[Function]}
       />
       <WithStyles(WithFormControlContext(FormControlLabel))
@@ -259,7 +243,7 @@ exports[`UploadPipelineDialog renders closed 1`] = `
           />
         }
         id="uploadFromUrlBtn"
-        label="Import by URL"
+        label=""
         onChange={[Function]}
       />
     </div>
@@ -290,9 +274,7 @@ exports[`UploadPipelineDialog renders closed 1`] = `
       <div
         className=""
       >
-        Choose a pipeline package file from your computer, and give the pipeline a unique name.
         <br />
-        You can also drag and drop the file here.
       </div>
       <DocumentationCompilePipeline />
       <Input
@@ -312,13 +294,13 @@ exports[`UploadPipelineDialog renders closed 1`] = `
                   }
                 }
               >
-                Choose file
+                
               </WithStyles(Button)>
             </WithStyles(InputAdornment)>,
             "readOnly": true,
           }
         }
-        label="File"
+        label=""
         onChange={[Function]}
         required={true}
         value=""
@@ -327,7 +309,7 @@ exports[`UploadPipelineDialog renders closed 1`] = `
     </n>
     <Input
       id="uploadFileName"
-      label="Pipeline name"
+      label=""
       onChange={[Function]}
       required={true}
       value=""
@@ -338,15 +320,13 @@ exports[`UploadPipelineDialog renders closed 1`] = `
     <WithStyles(Button)
       id="cancelUploadBtn"
       onClick={[Function]}
-    >
-      Cancel
-    </WithStyles(Button)>
+    />
     <BusyButton
       busy={false}
       disabled={true}
       id="confirmUploadBtn"
       onClick={[Function]}
-      title="Upload"
+      title=""
     />
   </WithStyles(DialogActions)>
 </WithStyles(Dialog)>
@@ -363,9 +343,7 @@ exports[`UploadPipelineDialog renders open 1`] = `
   onClose={[Function]}
   open={false}
 >
-  <WithStyles(DialogTitle)>
-    Upload and name your pipeline
-  </WithStyles(DialogTitle)>
+  <WithStyles(DialogTitle) />
   <div
     className=""
   >
@@ -380,7 +358,7 @@ exports[`UploadPipelineDialog renders open 1`] = `
           />
         }
         id="uploadLocalFileBtn"
-        label="Upload a file"
+        label=""
         onChange={[Function]}
       />
       <WithStyles(WithFormControlContext(FormControlLabel))
@@ -391,7 +369,7 @@ exports[`UploadPipelineDialog renders open 1`] = `
           />
         }
         id="uploadFromUrlBtn"
-        label="Import by URL"
+        label=""
         onChange={[Function]}
       />
     </div>
@@ -422,9 +400,7 @@ exports[`UploadPipelineDialog renders open 1`] = `
       <div
         className=""
       >
-        Choose a pipeline package file from your computer, and give the pipeline a unique name.
         <br />
-        You can also drag and drop the file here.
       </div>
       <DocumentationCompilePipeline />
       <Input
@@ -444,13 +420,13 @@ exports[`UploadPipelineDialog renders open 1`] = `
                   }
                 }
               >
-                Choose file
+                
               </WithStyles(Button)>
             </WithStyles(InputAdornment)>,
             "readOnly": true,
           }
         }
-        label="File"
+        label=""
         onChange={[Function]}
         required={true}
         value=""
@@ -459,7 +435,7 @@ exports[`UploadPipelineDialog renders open 1`] = `
     </n>
     <Input
       id="uploadFileName"
-      label="Pipeline name"
+      label=""
       onChange={[Function]}
       required={true}
       value=""
@@ -470,15 +446,13 @@ exports[`UploadPipelineDialog renders open 1`] = `
     <WithStyles(Button)
       id="cancelUploadBtn"
       onClick={[Function]}
-    >
-      Cancel
-    </WithStyles(Button)>
+    />
     <BusyButton
       busy={false}
       disabled={true}
       id="confirmUploadBtn"
       onClick={[Function]}
-      title="Upload"
+      title=""
     />
   </WithStyles(DialogActions)>
 </WithStyles(Dialog)>
@@ -495,9 +469,7 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
   onClose={[Function]}
   open={false}
 >
-  <WithStyles(DialogTitle)>
-    Upload and name your pipeline
-  </WithStyles(DialogTitle)>
+  <WithStyles(DialogTitle) />
   <div
     className=""
   >
@@ -512,7 +484,7 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
           />
         }
         id="uploadLocalFileBtn"
-        label="Upload a file"
+        label=""
         onChange={[Function]}
       />
       <WithStyles(WithFormControlContext(FormControlLabel))
@@ -523,7 +495,7 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
           />
         }
         id="uploadFromUrlBtn"
-        label="Import by URL"
+        label=""
         onChange={[Function]}
       />
     </div>
@@ -554,9 +526,7 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
       <div
         className=""
       >
-        Choose a pipeline package file from your computer, and give the pipeline a unique name.
         <br />
-        You can also drag and drop the file here.
       </div>
       <DocumentationCompilePipeline />
       <Input
@@ -576,13 +546,13 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
                   }
                 }
               >
-                Choose file
+                
               </WithStyles(Button)>
             </WithStyles(InputAdornment)>,
             "readOnly": true,
           }
         }
-        label="File"
+        label=""
         onChange={[Function]}
         required={true}
         value=""
@@ -591,7 +561,7 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
     </n>
     <Input
       id="uploadFileName"
-      label="Pipeline name"
+      label=""
       onChange={[Function]}
       required={true}
       value=""
@@ -602,15 +572,13 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
     <WithStyles(Button)
       id="cancelUploadBtn"
       onClick={[Function]}
-    >
-      Cancel
-    </WithStyles(Button)>
+    />
     <BusyButton
       busy={false}
       disabled={true}
       id="confirmUploadBtn"
       onClick={[Function]}
-      title="Upload"
+      title=""
     />
   </WithStyles(DialogActions)>
 </WithStyles(Dialog)>

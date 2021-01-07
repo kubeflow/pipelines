@@ -18,8 +18,18 @@ import * as React from 'react';
 import Page404 from './404';
 import { PageProps } from './Page';
 import { shallow } from 'enzyme';
+import { TFunction } from 'i18next';
+
+jest.mock('react-i18next', () => ({
+  // this mock makes sure any components using the translate HoC receive the t function as a prop
+  withTranslation: () => (Component: { defaultProps: any }) => {
+    Component.defaultProps = { ...Component.defaultProps, t: () => '' };
+    return Component;
+  },
+}));
 
 describe('404', () => {
+  let t: TFunction = (key: string) => key;
   function generateProps(): PageProps {
     return {
       history: {} as any,
@@ -30,6 +40,7 @@ describe('404', () => {
       updateDialog: jest.fn(),
       updateSnackbar: jest.fn(),
       updateToolbar: jest.fn(),
+      t,
     };
   }
 

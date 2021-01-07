@@ -11,47 +11,47 @@ exports[`RecurringRunDetails renders a recurring run with cron schedule 1`] = `
       fields={
         Array [
           Array [
-            "Description",
+            "common:description",
             "test job description",
           ],
           Array [
-            "Created at",
+            "common:createdAt",
             "9/5/2018, 4:03:02 AM",
           ],
         ]
       }
-      title="Recurring run details"
+      title="recurringRunDetails"
     />
     <DetailsTable
       fields={
         Array [
           Array [
-            "Enabled",
+            "common:enabled",
             "Yes",
           ],
           Array [
-            "Trigger",
+            "trigger",
             "* * * 0 0 !",
           ],
           Array [
-            "Max. concurrent runs",
+            "maxConcurrentRunsAbbr",
             "50",
           ],
           Array [
-            "Catchup",
+            "catchup",
             "true",
           ],
           Array [
-            "Start time",
+            "common:startTime",
             "10/8/2018, 7:06:00 AM",
           ],
           Array [
-            "End time",
+            "common:endTime",
             "11/9/2018, 8:07:06 AM",
           ],
         ]
       }
-      title="Run trigger"
+      title="runTrigger"
     />
     <DetailsTable
       fields={
@@ -62,7 +62,7 @@ exports[`RecurringRunDetails renders a recurring run with cron schedule 1`] = `
           ],
         ]
       }
-      title="Run parameters"
+      title="runParams"
     />
   </div>
 </div>
@@ -79,47 +79,47 @@ exports[`RecurringRunDetails renders a recurring run with periodic schedule 1`] 
       fields={
         Array [
           Array [
-            "Description",
+            "common:description",
             "test job description",
           ],
           Array [
-            "Created at",
+            "common:createdAt",
             "9/5/2018, 4:03:02 AM",
           ],
         ]
       }
-      title="Recurring run details"
+      title="recurringRunDetails"
     />
     <DetailsTable
       fields={
         Array [
           Array [
-            "Enabled",
+            "common:enabled",
             "Yes",
           ],
           Array [
-            "Trigger",
+            "trigger",
             "Every 1 hours",
           ],
           Array [
-            "Max. concurrent runs",
+            "maxConcurrentRunsAbbr",
             "50",
           ],
           Array [
-            "Catchup",
+            "catchup",
             "false",
           ],
           Array [
-            "Start time",
+            "common:startTime",
             "10/8/2018, 7:06:00 AM",
           ],
           Array [
-            "End time",
+            "common:endTime",
             "11/9/2018, 8:07:06 AM",
           ],
         ]
       }
-      title="Run trigger"
+      title="runTrigger"
     />
     <DetailsTable
       fields={
@@ -130,7 +130,7 @@ exports[`RecurringRunDetails renders a recurring run with periodic schedule 1`] 
           ],
         ]
       }
-      title="Run parameters"
+      title="runParams"
     />
   </div>
 </div>

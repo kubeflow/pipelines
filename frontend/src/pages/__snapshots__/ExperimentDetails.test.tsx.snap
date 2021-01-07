@@ -19,12 +19,12 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
           <div
             className="cardTitle"
           >
-            Recurring run configs
+            recurringRunConfigs
           </div>
           <div
             className="cardContent recurringRunsActive"
           >
-            1 active
+            1 experiments:active
           </div>
           <WithStyles(Button)
             className="cardBtn"
@@ -32,7 +32,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
             id="manageExperimentRecurringRunsBtn"
             onClick={[Function]}
           >
-            Manage
+            common:manage
           </WithStyles(Button)>
         </div>
       </WithStyles(Paper)>
@@ -45,7 +45,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
           className="cardTitle"
         >
           <span>
-            Experiment description
+            experimentDescription
           </span>
           <WithStyles(Button)
             className="popOutIcon popOutButton"
@@ -53,7 +53,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
             onClick={[Function]}
           >
             <WithStyles(Tooltip)
-              title="Read more"
+              title="common:readMore"
             >
               <pure(LaunchIcon)
                 style={
@@ -85,32 +85,32 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
           "archive": Object {
             "action": [Function],
             "disabled": true,
-            "disabledTitle": "Select at least one resource to archive",
+            "disabledTitle": "common:selectResourceArchive",
             "id": "archiveBtn",
-            "title": "Archive",
-            "tooltip": "Archive",
+            "title": "common:archive",
+            "tooltip": "common:archive",
           },
           "cloneRun": Object {
             "action": [Function],
             "disabled": true,
-            "disabledTitle": "Select a run to clone",
+            "disabledTitle": "common:selectRunClone",
             "id": "cloneBtn",
             "style": Object {
               "minWidth": 100,
             },
-            "title": "Clone run",
-            "tooltip": "Create a copy from this runs initial state",
+            "title": "common:cloneRun",
+            "tooltip": "common:copyRunInitialState",
           },
           "compare": Object {
             "action": [Function],
             "disabled": true,
-            "disabledTitle": "Select multiple runs to compare",
+            "disabledTitle": "common:selectRunsCompare",
             "id": "compareBtn",
             "style": Object {
               "minWidth": 125,
             },
-            "title": "Compare runs",
-            "tooltip": "Compare up to 10 selected runs",
+            "title": "common:compareRuns",
+            "tooltip": "common:compareUpToTenRuns",
           },
           "newRecurringRun": Object {
             "action": [Function],
@@ -120,8 +120,8 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
             "style": Object {
               "minWidth": 195,
             },
-            "title": "Create recurring run",
-            "tooltip": "Create a new recurring run",
+            "title": "common:createRecurRun",
+            "tooltip": "common:createNewRecurRun",
           },
           "newRun": Object {
             "action": [Function],
@@ -132,13 +132,14 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
             "style": Object {
               "minWidth": 130,
             },
-            "title": "Create run",
-            "tooltip": "Create a new run",
+            "title": "common:createRun",
+            "tooltip": "common:createNewRun",
           },
         }
       }
       breadcrumbs={Array []}
-      pageTitle="Runs"
+      pageTitle="runs"
+      t={[Function]}
       topLevelToolbar={false}
     />
     <RunList
@@ -161,23 +162,25 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
       onSelectionChange={[Function]}
       selectedIds={Array []}
       storageState="STORAGESTATE_AVAILABLE"
+      t={[Function]}
       toolbarProps={
         Object {
           "actions": Object {
             "refresh": Object {
               "action": [Function],
               "id": "refreshBtn",
-              "title": "Refresh",
-              "tooltip": "Refresh the list",
+              "title": "common:refresh",
+              "tooltip": "common:refreshList",
             },
           },
           "breadcrumbs": Array [
             Object {
-              "displayName": "Experiments",
+              "displayName": "common:experiments",
               "href": "/experiments",
             },
           ],
           "pageTitle": "some-mock-experiment-id",
+          "t": [Function],
         }
       }
       updateBanner={[MockFunction]}
@@ -210,23 +213,25 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
               },
             }
           }
+          t={[Function]}
           toolbarProps={
             Object {
               "actions": Object {
                 "refresh": Object {
                   "action": [Function],
                   "id": "refreshBtn",
-                  "title": "Refresh",
-                  "tooltip": "Refresh the list",
+                  "title": "common:refresh",
+                  "tooltip": "common:refreshList",
                 },
               },
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
+                  "displayName": "common:experiments",
                   "href": "/experiments",
                 },
               ],
               "pageTitle": "some-mock-experiment-id",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -241,7 +246,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
           id="closeExperimentRecurringRunManagerBtn"
           onClick={[Function]}
         >
-          Close
+          common:close
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
@@ -268,12 +273,12 @@ exports[`ExperimentDetails removes all description text after second newline and
           <div
             className="cardTitle"
           >
-            Recurring run configs
+            recurringRunConfigs
           </div>
           <div
             className="cardContent"
           >
-            0 active
+            0 experiments:active
           </div>
           <WithStyles(Button)
             className="cardBtn"
@@ -281,7 +286,7 @@ exports[`ExperimentDetails removes all description text after second newline and
             id="manageExperimentRecurringRunsBtn"
             onClick={[Function]}
           >
-            Manage
+            common:manage
           </WithStyles(Button)>
         </div>
       </WithStyles(Paper)>
@@ -294,7 +299,7 @@ exports[`ExperimentDetails removes all description text after second newline and
           className="cardTitle"
         >
           <span>
-            Experiment description
+            experimentDescription
           </span>
           <WithStyles(Button)
             className="popOutIcon popOutButton"
@@ -302,7 +307,7 @@ exports[`ExperimentDetails removes all description text after second newline and
             onClick={[Function]}
           >
             <WithStyles(Tooltip)
-              title="Read more"
+              title="common:readMore"
             >
               <pure(LaunchIcon)
                 style={
@@ -347,32 +352,32 @@ exports[`ExperimentDetails removes all description text after second newline and
           "archive": Object {
             "action": [Function],
             "disabled": true,
-            "disabledTitle": "Select at least one resource to archive",
+            "disabledTitle": "common:selectResourceArchive",
             "id": "archiveBtn",
-            "title": "Archive",
-            "tooltip": "Archive",
+            "title": "common:archive",
+            "tooltip": "common:archive",
           },
           "cloneRun": Object {
             "action": [Function],
             "disabled": true,
-            "disabledTitle": "Select a run to clone",
+            "disabledTitle": "common:selectRunClone",
             "id": "cloneBtn",
             "style": Object {
               "minWidth": 100,
             },
-            "title": "Clone run",
-            "tooltip": "Create a copy from this runs initial state",
+            "title": "common:cloneRun",
+            "tooltip": "common:copyRunInitialState",
           },
           "compare": Object {
             "action": [Function],
             "disabled": true,
-            "disabledTitle": "Select multiple runs to compare",
+            "disabledTitle": "common:selectRunsCompare",
             "id": "compareBtn",
             "style": Object {
               "minWidth": 125,
             },
-            "title": "Compare runs",
-            "tooltip": "Compare up to 10 selected runs",
+            "title": "common:compareRuns",
+            "tooltip": "common:compareUpToTenRuns",
           },
           "newRecurringRun": Object {
             "action": [Function],
@@ -382,8 +387,8 @@ exports[`ExperimentDetails removes all description text after second newline and
             "style": Object {
               "minWidth": 195,
             },
-            "title": "Create recurring run",
-            "tooltip": "Create a new recurring run",
+            "title": "common:createRecurRun",
+            "tooltip": "common:createNewRecurRun",
           },
           "newRun": Object {
             "action": [Function],
@@ -394,13 +399,14 @@ exports[`ExperimentDetails removes all description text after second newline and
             "style": Object {
               "minWidth": 130,
             },
-            "title": "Create run",
-            "tooltip": "Create a new run",
+            "title": "common:createRun",
+            "tooltip": "common:createNewRun",
           },
         }
       }
       breadcrumbs={Array []}
-      pageTitle="Runs"
+      pageTitle="runs"
+      t={[Function]}
       topLevelToolbar={false}
     />
     <RunList
@@ -423,23 +429,25 @@ exports[`ExperimentDetails removes all description text after second newline and
       onSelectionChange={[Function]}
       selectedIds={Array []}
       storageState="STORAGESTATE_AVAILABLE"
+      t={[Function]}
       toolbarProps={
         Object {
           "actions": Object {
             "refresh": Object {
               "action": [Function],
               "id": "refreshBtn",
-              "title": "Refresh",
-              "tooltip": "Refresh the list",
+              "title": "common:refresh",
+              "tooltip": "common:refreshList",
             },
           },
           "breadcrumbs": Array [
             Object {
-              "displayName": "Experiments",
+              "displayName": "common:experiments",
               "href": "/experiments",
             },
           ],
           "pageTitle": "some-mock-experiment-id",
+          "t": [Function],
         }
       }
       updateBanner={[MockFunction]}
@@ -472,23 +480,25 @@ exports[`ExperimentDetails removes all description text after second newline and
               },
             }
           }
+          t={[Function]}
           toolbarProps={
             Object {
               "actions": Object {
                 "refresh": Object {
                   "action": [Function],
                   "id": "refreshBtn",
-                  "title": "Refresh",
-                  "tooltip": "Refresh the list",
+                  "title": "common:refresh",
+                  "tooltip": "common:refreshList",
                 },
               },
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
+                  "displayName": "common:experiments",
                   "href": "/experiments",
                 },
               ],
               "pageTitle": "some-mock-experiment-id",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -503,7 +513,7 @@ exports[`ExperimentDetails removes all description text after second newline and
           id="closeExperimentRecurringRunManagerBtn"
           onClick={[Function]}
         >
-          Close
+          common:close
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
@@ -530,12 +540,12 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
           <div
             className="cardTitle"
           >
-            Recurring run configs
+            recurringRunConfigs
           </div>
           <div
             className="cardContent"
           >
-            0 active
+            0 experiments:active
           </div>
           <WithStyles(Button)
             className="cardBtn"
@@ -543,7 +553,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
             id="manageExperimentRecurringRunsBtn"
             onClick={[Function]}
           >
-            Manage
+            common:manage
           </WithStyles(Button)>
         </div>
       </WithStyles(Paper)>
@@ -556,7 +566,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
           className="cardTitle"
         >
           <span>
-            Experiment description
+            experimentDescription
           </span>
           <WithStyles(Button)
             className="popOutIcon popOutButton"
@@ -564,7 +574,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
             onClick={[Function]}
           >
             <WithStyles(Tooltip)
-              title="Read more"
+              title="common:readMore"
             >
               <pure(LaunchIcon)
                 style={
@@ -596,32 +606,32 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
           "archive": Object {
             "action": [Function],
             "disabled": true,
-            "disabledTitle": "Select at least one resource to archive",
+            "disabledTitle": "common:selectResourceArchive",
             "id": "archiveBtn",
-            "title": "Archive",
-            "tooltip": "Archive",
+            "title": "common:archive",
+            "tooltip": "common:archive",
           },
           "cloneRun": Object {
             "action": [Function],
             "disabled": true,
-            "disabledTitle": "Select a run to clone",
+            "disabledTitle": "common:selectRunClone",
             "id": "cloneBtn",
             "style": Object {
               "minWidth": 100,
             },
-            "title": "Clone run",
-            "tooltip": "Create a copy from this runs initial state",
+            "title": "common:cloneRun",
+            "tooltip": "common:copyRunInitialState",
           },
           "compare": Object {
             "action": [Function],
             "disabled": true,
-            "disabledTitle": "Select multiple runs to compare",
+            "disabledTitle": "common:selectRunsCompare",
             "id": "compareBtn",
             "style": Object {
               "minWidth": 125,
             },
-            "title": "Compare runs",
-            "tooltip": "Compare up to 10 selected runs",
+            "title": "common:compareRuns",
+            "tooltip": "common:compareUpToTenRuns",
           },
           "newRecurringRun": Object {
             "action": [Function],
@@ -631,8 +641,8 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
             "style": Object {
               "minWidth": 195,
             },
-            "title": "Create recurring run",
-            "tooltip": "Create a new recurring run",
+            "title": "common:createRecurRun",
+            "tooltip": "common:createNewRecurRun",
           },
           "newRun": Object {
             "action": [Function],
@@ -643,13 +653,14 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
             "style": Object {
               "minWidth": 130,
             },
-            "title": "Create run",
-            "tooltip": "Create a new run",
+            "title": "common:createRun",
+            "tooltip": "common:createNewRun",
           },
         }
       }
       breadcrumbs={Array []}
-      pageTitle="Runs"
+      pageTitle="runs"
+      t={[Function]}
       topLevelToolbar={false}
     />
     <RunList
@@ -672,23 +683,25 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
       onSelectionChange={[Function]}
       selectedIds={Array []}
       storageState="STORAGESTATE_AVAILABLE"
+      t={[Function]}
       toolbarProps={
         Object {
           "actions": Object {
             "refresh": Object {
               "action": [Function],
               "id": "refreshBtn",
-              "title": "Refresh",
-              "tooltip": "Refresh the list",
+              "title": "common:refresh",
+              "tooltip": "common:refreshList",
             },
           },
           "breadcrumbs": Array [
             Object {
-              "displayName": "Experiments",
+              "displayName": "common:experiments",
               "href": "/experiments",
             },
           ],
           "pageTitle": "some-mock-experiment-id",
+          "t": [Function],
         }
       }
       updateBanner={[MockFunction]}
@@ -721,23 +734,25 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
               },
             }
           }
+          t={[Function]}
           toolbarProps={
             Object {
               "actions": Object {
                 "refresh": Object {
                   "action": [Function],
                   "id": "refreshBtn",
-                  "title": "Refresh",
-                  "tooltip": "Refresh the list",
+                  "title": "common:refresh",
+                  "tooltip": "common:refreshList",
                 },
               },
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
+                  "displayName": "common:experiments",
                   "href": "/experiments",
                 },
               ],
               "pageTitle": "some-mock-experiment-id",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -752,7 +767,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
           id="closeExperimentRecurringRunManagerBtn"
           onClick={[Function]}
         >
-          Close
+          common:close
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
@@ -779,12 +794,12 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
           <div
             className="cardTitle"
           >
-            Recurring run configs
+            recurringRunConfigs
           </div>
           <div
             className="cardContent"
           >
-            0 active
+            0 experiments:active
           </div>
           <WithStyles(Button)
             className="cardBtn"
@@ -792,7 +807,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
             id="manageExperimentRecurringRunsBtn"
             onClick={[Function]}
           >
-            Manage
+            common:manage
           </WithStyles(Button)>
         </div>
       </WithStyles(Paper)>
@@ -805,7 +820,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
           className="cardTitle"
         >
           <span>
-            Experiment description
+            experimentDescription
           </span>
           <WithStyles(Button)
             className="popOutIcon popOutButton"
@@ -813,7 +828,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
             onClick={[Function]}
           >
             <WithStyles(Tooltip)
-              title="Read more"
+              title="common:readMore"
             >
               <pure(LaunchIcon)
                 style={
@@ -843,32 +858,32 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
           "archive": Object {
             "action": [Function],
             "disabled": true,
-            "disabledTitle": "Select at least one resource to archive",
+            "disabledTitle": "common:selectResourceArchive",
             "id": "archiveBtn",
-            "title": "Archive",
-            "tooltip": "Archive",
+            "title": "common:archive",
+            "tooltip": "common:archive",
           },
           "cloneRun": Object {
             "action": [Function],
             "disabled": true,
-            "disabledTitle": "Select a run to clone",
+            "disabledTitle": "common:selectRunClone",
             "id": "cloneBtn",
             "style": Object {
               "minWidth": 100,
             },
-            "title": "Clone run",
-            "tooltip": "Create a copy from this runs initial state",
+            "title": "common:cloneRun",
+            "tooltip": "common:copyRunInitialState",
           },
           "compare": Object {
             "action": [Function],
             "disabled": true,
-            "disabledTitle": "Select multiple runs to compare",
+            "disabledTitle": "common:selectRunsCompare",
             "id": "compareBtn",
             "style": Object {
               "minWidth": 125,
             },
-            "title": "Compare runs",
-            "tooltip": "Compare up to 10 selected runs",
+            "title": "common:compareRuns",
+            "tooltip": "common:compareUpToTenRuns",
           },
           "newRecurringRun": Object {
             "action": [Function],
@@ -878,8 +893,8 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
             "style": Object {
               "minWidth": 195,
             },
-            "title": "Create recurring run",
-            "tooltip": "Create a new recurring run",
+            "title": "common:createRecurRun",
+            "tooltip": "common:createNewRecurRun",
           },
           "newRun": Object {
             "action": [Function],
@@ -890,13 +905,14 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
             "style": Object {
               "minWidth": 130,
             },
-            "title": "Create run",
-            "tooltip": "Create a new run",
+            "title": "common:createRun",
+            "tooltip": "common:createNewRun",
           },
         }
       }
       breadcrumbs={Array []}
-      pageTitle="Runs"
+      pageTitle="runs"
+      t={[Function]}
       topLevelToolbar={false}
     />
     <RunList
@@ -919,23 +935,25 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
       onSelectionChange={[Function]}
       selectedIds={Array []}
       storageState="STORAGESTATE_AVAILABLE"
+      t={[Function]}
       toolbarProps={
         Object {
           "actions": Object {
             "refresh": Object {
               "action": [Function],
               "id": "refreshBtn",
-              "title": "Refresh",
-              "tooltip": "Refresh the list",
+              "title": "common:refresh",
+              "tooltip": "common:refreshList",
             },
           },
           "breadcrumbs": Array [
             Object {
-              "displayName": "Experiments",
+              "displayName": "common:experiments",
               "href": "/experiments",
             },
           ],
           "pageTitle": "some-mock-experiment-id",
+          "t": [Function],
         }
       }
       updateBanner={[MockFunction]}
@@ -968,23 +986,25 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
               },
             }
           }
+          t={[Function]}
           toolbarProps={
             Object {
               "actions": Object {
                 "refresh": Object {
                   "action": [Function],
                   "id": "refreshBtn",
-                  "title": "Refresh",
-                  "tooltip": "Refresh the list",
+                  "title": "common:refresh",
+                  "tooltip": "common:refreshList",
                 },
               },
               "breadcrumbs": Array [
                 Object {
-                  "displayName": "Experiments",
+                  "displayName": "common:experiments",
                   "href": "/experiments",
                 },
               ],
               "pageTitle": "some-mock-experiment-id",
+              "t": [Function],
             }
           }
           updateBanner={[MockFunction]}
@@ -999,7 +1019,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
           id="closeExperimentRecurringRunManagerBtn"
           onClick={[Function]}
         >
-          Close
+          common:close
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>

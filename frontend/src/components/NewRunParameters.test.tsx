@@ -17,13 +17,24 @@
 import * as React from 'react';
 import { mount, shallow } from 'enzyme';
 import NewRunParameters, { NewRunParametersProps } from './NewRunParameters';
+import { TFunction } from 'i18next';
+
+jest.mock('react-i18next', () => ({
+  // this mock makes sure any components using the translate hook can use it without a warning being shown
+  withTranslation: () => (component: React.ComponentClass) => {
+    component.defaultProps = { ...component.defaultProps, t: (key: string) => key };
+    return component;
+  },
+}));
 
 describe('NewRunParameters', () => {
+  let t: TFunction = (key: string) => key;
   it('shows parameters', () => {
     const props = {
       handleParamChange: jest.fn(),
       initialParams: [{ name: 'testParam', value: 'testVal' }],
       titleMessage: 'Specify parameters required by the pipeline',
+      t,
     } as NewRunParametersProps;
     expect(shallow(<NewRunParameters {...props} />)).toMatchSnapshot();
   });
@@ -33,6 +44,7 @@ describe('NewRunParameters', () => {
       handleParamChange: jest.fn(),
       initialParams: [],
       titleMessage: 'This pipeline has no parameters',
+      t,
     } as NewRunParametersProps;
     expect(shallow(<NewRunParameters {...props} />)).toMatchSnapshot();
   });
@@ -43,10 +55,11 @@ describe('NewRunParameters', () => {
       handleParamChange,
       initialParams: [{ name: 'testParam', value: '{"test":"value"}' }],
       titleMessage: 'Specify json parameters required by the pipeline',
+      t,
     } as NewRunParametersProps;
     const tree = mount(<NewRunParameters {...props} />);
     tree
-      .findWhere(el => el.text() === 'Open Json Editor')
+      .findWhere(el => el.text() === 'openJsonEditor')
       .hostNodes()
       .find('Button')
       .simulate('click');
@@ -64,6 +77,7 @@ describe('NewRunParameters', () => {
         { name: 'testParam2', value: 'testVal2' },
       ],
       titleMessage: 'Specify parameters required by the pipeline',
+      t,
     } as NewRunParametersProps;
 
     const tree = mount(<NewRunParameters {...props} />);

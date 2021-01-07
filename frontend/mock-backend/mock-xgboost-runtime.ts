@@ -13,6 +13,7 @@
 // limitations under the License.
 
 // tslint:disable:object-literal-sort-keys
+import i18next from 'i18next';
 export default {
   metadata: {
     name: 'xgboost-training-gzkm9',

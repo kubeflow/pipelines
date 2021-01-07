@@ -30,6 +30,17 @@ import { ButtonKeys } from '../lib/Buttons';
 import { render } from '@testing-library/react';
 import { Router } from 'react-router-dom';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
+import { TFunction } from 'i18next';
+
+jest.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: ((key: string) => key) as any,
+  }),
+  withTranslation: () => (Component: { defaultProps: any }) => {
+    Component.defaultProps = { ...Component.defaultProps, t: ((key: string) => key) as any };
+    return Component;
+  },
+}));
 
 const Compare = TEST_ONLY.Compare;
 class TestCompare extends Compare {
@@ -40,7 +51,7 @@ class TestCompare extends Compare {
 
 describe('Compare', () => {
   let tree: ReactWrapper | ShallowWrapper;
-
+  let t: TFunction = (key: string) => key;
   const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => null);
   const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => null);
 
@@ -66,6 +77,7 @@ describe('Compare', () => {
       updateDialogSpy,
       updateToolbarSpy,
       updateSnackbarSpy,
+      { t },
     );
   }
 
@@ -156,7 +168,7 @@ describe('Compare', () => {
   it('clears banner upon initial load', () => {
     tree = shallow(<Compare {...generateProps()} />);
     expect(updateBannerSpy).toHaveBeenCalledTimes(1);
-    expect(updateBannerSpy).toHaveBeenLastCalledWith({});
+    expect(updateBannerSpy).toHaveBeenLastCalledWith({ t });
   });
 
   it('renders a page with no runs', async () => {
@@ -167,7 +179,7 @@ describe('Compare', () => {
     await TestUtils.flushPromises();
 
     expect(updateBannerSpy).toHaveBeenCalledTimes(1);
-    expect(updateBannerSpy).toHaveBeenLastCalledWith({});
+    expect(updateBannerSpy).toHaveBeenLastCalledWith({ t });
 
     expect(tree).toMatchSnapshot();
   });
@@ -205,7 +217,7 @@ describe('Compare', () => {
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'test error',
-        message: 'Error: failed loading 1 runs. Click Details for more information.',
+        message: `errorLoadRuns1 1errorLoadRuns2 common:clickDetails`,
         mode: 'error',
       }),
     );
@@ -224,7 +236,7 @@ describe('Compare', () => {
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         additionalInfo: 'test error',
-        message: `Error: failed loading ${runs.length} runs. Click Details for more information.`,
+        message: `errorLoadRuns1 3errorLoadRuns2 common:clickDetails`,
         mode: 'error',
       }),
     );
@@ -242,7 +254,7 @@ describe('Compare', () => {
     (tree.instance() as Compare).refresh();
 
     // Error banner should be cleared
-    expect(updateBannerSpy).toHaveBeenLastCalledWith({});
+    expect(updateBannerSpy).toHaveBeenLastCalledWith({ t });
   });
 
   it("displays run's parameters if the run has any", async () => {
@@ -429,11 +441,11 @@ describe('Compare', () => {
     collapseBtn!.action();
 
     expect(tree.state('collapseSections')).toEqual({
-      Metrics: true,
-      Parameters: true,
-      'Run overview': true,
-      Table: true,
-      Tensorboard: true,
+      'common:table': true,
+      'common:tensorboard': true,
+      'experiments:metrics': true,
+      'experiments:parameters': true,
+      'experiments:runOverview': true,
     });
 
     expect(tree).toMatchSnapshot();
@@ -450,11 +462,11 @@ describe('Compare', () => {
     collapseBtn!.action();
 
     expect(tree.state('collapseSections')).toEqual({
-      Metrics: true,
-      Parameters: true,
-      'Run overview': true,
-      Table: true,
-      Tensorboard: true,
+      'common:table': true,
+      'common:tensorboard': true,
+      'experiments:metrics': true,
+      'experiments:parameters': true,
+      'experiments:runOverview': true,
     });
 
     expandBtn!.action();
@@ -477,7 +489,7 @@ describe('Compare', () => {
       .find('button')
       .simulate('click');
 
-    expect(tree.state('collapseSections')).toEqual({ 'Run overview': true });
+    expect(tree.state('collapseSections')).toEqual({ 'experiments:runOverview': true });
 
     // Collapse run parameters
     tree
@@ -487,8 +499,8 @@ describe('Compare', () => {
       .simulate('click');
 
     expect(tree.state('collapseSections')).toEqual({
-      Parameters: true,
-      'Run overview': true,
+      'experiments:parameters': true,
+      'experiments:runOverview': true,
     });
 
     // Re-expand run overview and parameters
@@ -504,8 +516,8 @@ describe('Compare', () => {
       .simulate('click');
 
     expect(tree.state('collapseSections')).toEqual({
-      Parameters: false,
-      'Run overview': false,
+      'experiments:parameters': false,
+      'experiments:runOverview': false,
     });
   });
 
@@ -580,7 +592,7 @@ describe('Compare', () => {
     const props = generateProps();
     props.location.search = `?${QUERY_PARAMS.runlist}=run1-id,run2-id`;
 
-    tree = shallow(<TestCompare {...props} />);
+    tree = shallow(<TestCompare t={(key: any) => key} {...props} />);
     await TestUtils.flushPromises();
 
     // 6 plot cards because there are (2 runs * 2 plots per run) + 2 aggregated plots, one for

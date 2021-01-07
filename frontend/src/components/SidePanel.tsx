@@ -98,5 +98,4 @@ class SidePanel extends React.Component<SidePanelProps> {
     );
   }
 }
-
 export default SidePanel;

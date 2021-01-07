@@ -29,6 +29,8 @@ import { TextFieldProps } from '@material-ui/core/TextField';
 import { padding, commonCss, zIndex, color } from '../Css';
 import { stylesheet, classes } from 'typestyle';
 import { ExternalLink } from '../atoms/ExternalLink';
+import { TFunction } from 'i18next';
+import { withTranslation, useTranslation } from 'react-i18next';
 
 const css = stylesheet({
   dropOverlay: {
@@ -63,6 +65,7 @@ interface UploadPipelineDialogProps {
     method: ImportMethod,
     description?: string,
   ) => Promise<boolean>;
+  t: TFunction;
 }
 
 interface UploadPipelineDialogState {
@@ -107,6 +110,7 @@ class UploadPipelineDialog extends React.Component<
       uploadPipelineName,
       busy,
     } = this.state;
+    const { t } = this.props;
 
     return (
       <Dialog
@@ -115,20 +119,20 @@ class UploadPipelineDialog extends React.Component<
         open={this.props.open}
         classes={{ paper: css.root }}
       >
-        <DialogTitle>Upload and name your pipeline</DialogTitle>
+        <DialogTitle>{t('uploadNamePipeline')}</DialogTitle>
 
         <div className={padding(20, 'lr')}>
           <div className={classes(commonCss.flex, padding(10, 'b'))}>
             <FormControlLabel
               id='uploadLocalFileBtn'
-              label='Upload a file'
+              label={t('common:uploadFile')}
               checked={importMethod === ImportMethod.LOCAL}
               control={<Radio color='primary' />}
               onChange={() => this.setState({ importMethod: ImportMethod.LOCAL })}
             />
             <FormControlLabel
               id='uploadFromUrlBtn'
-              label='Import by URL'
+              label={t('importByUrl')}
               checked={importMethod === ImportMethod.URL}
               control={<Radio color='primary' />}
               onChange={() => this.setState({ importMethod: ImportMethod.URL })}
@@ -147,20 +151,19 @@ class UploadPipelineDialog extends React.Component<
                 ref={this._dropzoneRef}
                 inputProps={{ tabIndex: -1 }}
               >
-                {dropzoneActive && <div className={css.dropOverlay}>Drop files..</div>}
+                {dropzoneActive && <div className={css.dropOverlay}>{t('dropFiles')}</div>}
 
                 <div className={padding(10, 'b')}>
-                  Choose a pipeline package file from your computer, and give the pipeline a unique
-                  name.
+                  {t('uploadPackagePipelineFileInstructions')}
                   <br />
-                  You can also drag and drop the file here.
+                  {t('dragAndDropFile')}
                 </div>
                 <DocumentationCompilePipeline />
                 <Input
                   onChange={this.handleChange('fileName')}
                   value={fileName}
                   required={true}
-                  label='File'
+                  label={t('common:file')}
                   variant='outlined'
                   InputProps={{
                     endAdornment: (
@@ -170,7 +173,7 @@ class UploadPipelineDialog extends React.Component<
                           onClick={() => this._dropzoneRef.current!.open()}
                           style={{ padding: '3px 5px', margin: 0, whiteSpace: 'nowrap' }}
                         >
-                          Choose file
+                          {t('common:chooseFile')}
                         </Button>
                       </InputAdornment>
                     ),
@@ -183,13 +186,13 @@ class UploadPipelineDialog extends React.Component<
 
           {importMethod === ImportMethod.URL && (
             <React.Fragment>
-              <div className={padding(10, 'b')}>URL must be publicly accessible.</div>
+              <div className={padding(10, 'b')}>{t('urlPublic')}</div>
               <DocumentationCompilePipeline />
               <Input
                 onChange={this.handleChange('fileUrl')}
                 value={fileUrl}
                 required={true}
-                label='URL'
+                label={t('common:url')}
                 variant='outlined'
               />
             </React.Fragment>
@@ -197,7 +200,7 @@ class UploadPipelineDialog extends React.Component<
 
           <Input
             id='uploadFileName'
-            label='Pipeline name'
+            label={t('common:pipelineName')}
             onChange={this.handleChange('uploadPipelineName')}
             required={true}
             value={uploadPipelineName}
@@ -211,12 +214,12 @@ class UploadPipelineDialog extends React.Component<
 
         <DialogActions>
           <Button id='cancelUploadBtn' onClick={() => this._uploadDialogClosed.bind(this)(false)}>
-            Cancel
+            {t('common:cancel')}
           </Button>
           <BusyButton
             id='confirmUploadBtn'
             onClick={() => this._uploadDialogClosed.bind(this)(true)}
-            title='Upload'
+            title={t('common:upload')}
             busy={busy}
             disabled={
               !uploadPipelineName || (importMethod === ImportMethod.LOCAL ? !file : !fileUrl)
@@ -279,14 +282,17 @@ class UploadPipelineDialog extends React.Component<
   }
 }
 
-export default UploadPipelineDialog;
+export default withTranslation(['pipelines', 'common'])(UploadPipelineDialog);
 
-const DocumentationCompilePipeline: React.FC = () => (
-  <div className={padding(10, 'b')}>
-    For expected file format, refer to{' '}
-    <ExternalLink href='https://www.kubeflow.org/docs/pipelines/sdk/build-component/#compile-the-pipeline'>
-      Compile Pipeline Documentation
-    </ExternalLink>
-    .
-  </div>
-);
+const DocumentationCompilePipeline: React.FC = () => {
+  const { t } = useTranslation('pipelines');
+  return (
+    <div className={padding(10, 'b')}>
+      {t('expectedFileFormat')}{' '}
+      <ExternalLink href='https://www.kubeflow.org/docs/pipelines/sdk/build-component/#compile-the-pipeline'>
+        {t('compilePipelineDoc')}
+      </ExternalLink>
+      .
+    </div>
+  );
+};

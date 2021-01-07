@@ -45,7 +45,7 @@ import { Route, Switch, Redirect } from 'react-router-dom';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss } from '../Css';
 import NewPipelineVersion from '../pages/NewPipelineVersion';
-import { GettingStarted } from '../pages/GettingStarted';
+import GettingStarted from '../pages/GettingStarted';
 import { KFP_FLAGS, Deployments } from '../lib/Flags';
 
 export type RouteConfig = {
@@ -232,7 +232,7 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
     super(props);
 
     this.state = {
-      bannerProps: {},
+      bannerProps: { t: {} as any },
       dialogProps: { open: false },
       snackbarProps: { autoHideDuration: 5000, open: false },
       toolbarProps: { breadcrumbs: [{ displayName: '', href: '' }], actions: [], ...props },

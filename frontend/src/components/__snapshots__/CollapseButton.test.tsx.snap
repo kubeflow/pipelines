@@ -5,7 +5,7 @@ exports[`CollapseButton initial render 1`] = `
   <WithStyles(Button)
     className="collapseBtn"
     onClick={[Function]}
-    title="Expand/Collapse this section"
+    title="expandCollapseSec"
   >
     <pure(ArrowDropUpIcon)
       className="icon"
@@ -20,7 +20,7 @@ exports[`CollapseButton renders the button collapsed if in collapsedSections 1`]
   <WithStyles(Button)
     className="collapseBtn"
     onClick={[Function]}
-    title="Expand/Collapse this section"
+    title="expandCollapseSec"
   >
     <pure(ArrowDropUpIcon)
       className="icon collapsed"

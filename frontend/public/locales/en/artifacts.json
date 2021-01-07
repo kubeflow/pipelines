@@ -1,0 +1,7 @@
+{
+  "artifactNum": "Artifact #({{id}}) details",
+  "multiArtifactsFoundById": "Found multiple artifacts with ID. ",
+  "noArtifactsFound": "No artifacts found.",
+  "noArtifactsFoundById": " No artifact identified by id ",
+  "pipelineWorkspace": "Pipeline/Workspace"
+}

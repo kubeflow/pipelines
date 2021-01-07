@@ -9,8 +9,8 @@ exports[`ArchivedExperimentsAndRuns renders archived experiments page 1`] = `
     selectedTab={1}
     tabs={
       Array [
-        "Runs",
-        "Experiments",
+        "runs",
+        "common:experiments",
       ]
     }
   />
@@ -18,6 +18,7 @@ exports[`ArchivedExperimentsAndRuns renders archived experiments page 1`] = `
     history={Object {}}
     location=""
     match=""
+    t={[Function]}
     toolbarProps={Object {}}
     updateBanner={[Function]}
     updateDialog={[MockFunction]}
@@ -37,8 +38,8 @@ exports[`ArchivedExperimentsAndRuns renders archived runs page 1`] = `
     selectedTab={0}
     tabs={
       Array [
-        "Runs",
-        "Experiments",
+        "runs",
+        "common:experiments",
       ]
     }
   />
@@ -46,6 +47,7 @@ exports[`ArchivedExperimentsAndRuns renders archived runs page 1`] = `
     history={Object {}}
     location=""
     match=""
+    t={[Function]}
     toolbarProps={Object {}}
     updateBanner={[Function]}
     updateDialog={[MockFunction]}

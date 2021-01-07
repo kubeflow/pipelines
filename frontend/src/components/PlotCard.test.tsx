@@ -19,6 +19,14 @@ import { shallow } from 'enzyme';
 import PlotCard from './PlotCard';
 import { ViewerConfig, PlotType } from './viewers/Viewer';
 
+jest.mock('react-i18next', () => ({
+  // this mock makes sure any components using the translate hook can use it without a warning being shown
+  withTranslation: () => (component: React.ComponentClass) => {
+    component.defaultProps = { ...component.defaultProps, t: (key: string) => key };
+    return component;
+  },
+}));
+
 describe('PlotCard', () => {
   it('handles no configs', () => {
     expect(shallow(<PlotCard title='' configs={[]} maxDimension={100} />)).toMatchSnapshot();

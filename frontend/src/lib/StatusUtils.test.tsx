@@ -22,7 +22,7 @@ import {
   checkIfTerminated,
   parseNodePhase,
 } from './StatusUtils';
-import { NodeStatus, S3Artifact, Artifact } from 'third_party/argo-ui/argo_template';
+import { NodeStatus, Artifact } from 'third_party/argo-ui/argo_template';
 
 describe('StatusUtils', () => {
   describe('hasFinished', () => {

@@ -59,6 +59,8 @@ import { NameWithTooltip } from '../components/CustomTableNameColumn';
 import { PredicateOp, ApiFilter } from '../apis/filter';
 import { HelpButton } from 'src/atoms/HelpButton';
 import { ExternalLink } from 'src/atoms/ExternalLink';
+import { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 interface NewRunState {
   description: string;
@@ -113,7 +115,7 @@ const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props =
   return <Description description={props.value || ''} forceInline={true} />;
 };
 
-export class NewRun extends Page<{ namespace?: string }, NewRunState> {
+export class NewRun extends Page<{ namespace?: string; t: TFunction }, NewRunState> {
   public state: NewRunState = {
     catchup: true,
     description: '',
@@ -132,7 +134,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
     pipelineVersionSelectorOpen: false,
     runName: '',
     uploadDialogOpen: false,
-    usePipelineFromRunLabel: 'Using pipeline from cloned run',
+    usePipelineFromRunLabel: this.props.t('usePipelineClonedRun'),
     useWorkflowFromRun: false,
   };
 
@@ -140,42 +142,58 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
     {
       customRenderer: NameWithTooltip,
       flex: 1,
-      label: 'Pipeline name',
+      label: this.props.t('common:pipelineName'),
       sortKey: PipelineSortKeys.NAME,
     },
-    { label: 'Description', flex: 2, customRenderer: descriptionCustomRenderer },
-    { label: 'Uploaded on', flex: 1, sortKey: PipelineSortKeys.CREATED_AT },
+    {
+      label: this.props.t('common:description'),
+      flex: 2,
+      customRenderer: descriptionCustomRenderer,
+    },
+    { label: this.props.t('common:uploadedOn'), flex: 1, sortKey: PipelineSortKeys.CREATED_AT },
   ];
 
   private pipelineVersionSelectorColumns = [
     {
       customRenderer: NameWithTooltip,
       flex: 2,
-      label: 'Version name',
+      label: this.props.t('common:versionName'),
       sortKey: PipelineVersionSortKeys.NAME,
     },
     // TODO(jingzhang36): version doesn't have description field; remove it and
     // fix the rendering.
-    { label: 'Description', flex: 1, customRenderer: descriptionCustomRenderer },
-    { label: 'Uploaded on', flex: 1, sortKey: PipelineVersionSortKeys.CREATED_AT },
+    {
+      label: this.props.t('common:description'),
+      flex: 1,
+      customRenderer: descriptionCustomRenderer,
+    },
+    {
+      label: this.props.t('common:uploadedOn'),
+      flex: 1,
+      sortKey: PipelineVersionSortKeys.CREATED_AT,
+    },
   ];
 
   private experimentSelectorColumns = [
     {
       customRenderer: NameWithTooltip,
       flex: 1,
-      label: 'Experiment name',
+      label: this.props.t('experimentName'),
       sortKey: ExperimentSortKeys.NAME,
     },
-    { label: 'Description', flex: 2 },
-    { label: 'Created at', flex: 1, sortKey: ExperimentSortKeys.CREATED_AT },
+    { label: this.props.t('common:description'), flex: 2 },
+    { label: this.props.t('common:createdAt'), flex: 1, sortKey: ExperimentSortKeys.CREATED_AT },
   ];
 
   public getInitialToolbarState(): ToolbarProps {
+    const { t } = this.props;
     return {
       actions: {},
-      breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
-      pageTitle: 'Start a new run',
+      breadcrumbs: [
+        { displayName: this.props.t('common:experiments'), href: RoutePage.EXPERIMENTS },
+      ],
+      pageTitle: this.props.t('startNewRun'),
+      t,
     };
   }
 
@@ -202,7 +220,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
       usePipelineFromRunLabel,
       useWorkflowFromRun,
     } = this.state;
-
+    const { t } = this.props;
     const urlParser = new URLParser(this.props);
     const originalRunId =
       urlParser.get(QUERY_PARAMS.cloneFromRun) || urlParser.get(QUERY_PARAMS.fromRunId);
@@ -218,20 +236,22 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
         <div className={commonCss.scrollContainer}>
-          <div className={commonCss.header}>Run details</div>
+          <div className={commonCss.header}>{this.props.t('runDetails')}</div>
 
           {/* Pipeline selection */}
           {!!workflowFromRun && (
             <div>
               <span>{usePipelineFromRunLabel}</span>
-              {!!originalRunId && <Link to={pipelineDetailsUrl}>[View pipeline]</Link>}
+              {!!originalRunId && (
+                <Link to={pipelineDetailsUrl}>[{this.props.t('viewPipeline')}]</Link>
+              )}
             </div>
           )}
           {!useWorkflowFromRun && (
             <Input
               value={pipelineName}
               required={true}
-              label='Pipeline'
+              label={this.props.t('common:pipeline')}
               disabled={true}
               variant='outlined'
               InputProps={{
@@ -244,7 +264,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                       onClick={() => this.setStateSafe({ pipelineSelectorOpen: true })}
                       style={{ padding: '3px 5px', margin: 0 }}
                     >
-                      Choose
+                      {this.props.t('common:choose')}
                     </Button>
                   </InputAdornment>
                 ),
@@ -256,7 +276,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
             <Input
               value={pipelineVersionName}
               required={true}
-              label='Pipeline Version'
+              label={this.props.t('common:pipelineVersion')}
               disabled={true}
               variant='outlined'
               InputProps={{
@@ -269,7 +289,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                       onClick={() => this.setStateSafe({ pipelineVersionSelectorOpen: true })}
                       style={{ padding: '3px 5px', margin: 0 }}
                     >
-                      Choose
+                      {this.props.t('common:choose')}
                     </Button>
                   </InputAdornment>
                 ),
@@ -288,8 +308,8 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
             <DialogContent>
               <ResourceSelector
                 {...this.props}
-                title='Choose a pipeline'
-                filterLabel='Filter pipelines'
+                title={this.props.t('common:choosePipeline')}
+                filterLabel={this.props.t('common:filterPipelines')}
                 listApi={async (...args) => {
                   const response = await Apis.pipelineServiceApi.listPipelines(...args);
                   return {
@@ -298,7 +318,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                   };
                 }}
                 columns={this.pipelineSelectorColumns}
-                emptyMessage='No pipelines found. Upload a pipeline and then try again.'
+                emptyMessage={this.props.t('common:noPipelinesFoundTryAgain')}
                 initialSortColumn={PipelineSortKeys.CREATED_AT}
                 selectionChanged={(selectedPipeline: ApiPipeline) =>
                   this.setStateSafe({ unconfirmedSelectedPipeline: selectedPipeline })
@@ -316,7 +336,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                 onClick={() => this._pipelineSelectorClosed(false)}
                 color='secondary'
               >
-                Cancel
+                {this.props.t('common:cancel')}
               </Button>
               <Button
                 id='usePipelineBtn'
@@ -324,7 +344,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                 color='secondary'
                 disabled={!unconfirmedSelectedPipeline}
               >
-                Use this pipeline
+                {this.props.t('common:usePipeline')}
               </Button>
             </DialogActions>
           </Dialog>
@@ -339,8 +359,8 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
             <DialogContent>
               <ResourceSelector
                 {...this.props}
-                title='Choose a pipeline version'
-                filterLabel='Filter pipeline versions'
+                title={this.props.t('choosePipelineVersion')}
+                filterLabel={this.props.t('filterPipelineVersions')}
                 listApi={async (...args) => {
                   const response = await Apis.pipelineServiceApi.listPipelineVersions(
                     'PIPELINE',
@@ -356,7 +376,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                   };
                 }}
                 columns={this.pipelineVersionSelectorColumns}
-                emptyMessage='No pipeline versions found. Select or upload a pipeline then try again.'
+                emptyMessage={this.props.t('noPipelineVersionsFoundTryAgain')}
                 initialSortColumn={PipelineVersionSortKeys.CREATED_AT}
                 selectionChanged={(selectedPipelineVersion: ApiPipelineVersion) =>
                   this.setStateSafe({ unconfirmedSelectedPipelineVersion: selectedPipelineVersion })
@@ -377,7 +397,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                 onClick={() => this._pipelineVersionSelectorClosed(false)}
                 color='secondary'
               >
-                Cancel
+                {this.props.t('common:cancel')}
               </Button>
               <Button
                 id='usePipelineVersionBtn'
@@ -385,7 +405,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                 color='secondary'
                 disabled={!unconfirmedSelectedPipelineVersion}
               >
-                Use this pipeline version
+                {this.props.t('usePipelineVersion')}
               </Button>
             </DialogActions>
           </Dialog>
@@ -405,8 +425,8 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
             <DialogContent>
               <ResourceSelector
                 {...this.props}
-                title='Choose an experiment'
-                filterLabel='Filter experiments'
+                title={this.props.t('chooseExperiment')}
+                filterLabel={this.props.t('filterExperiments')}
                 listApi={async (
                   page_token?: string,
                   page_size?: number,
@@ -440,7 +460,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                   };
                 }}
                 columns={this.experimentSelectorColumns}
-                emptyMessage='No experiments found. Create an experiment and then try again.'
+                emptyMessage={this.props.t('noExperimentsFoundTryAgain')}
                 initialSortColumn={ExperimentSortKeys.CREATED_AT}
                 selectionChanged={(selectedExperiment: ApiExperiment) =>
                   this.setStateSafe({ unconfirmedSelectedExperiment: selectedExperiment })
@@ -453,7 +473,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                 onClick={() => this._experimentSelectorClosed(false)}
                 color='secondary'
               >
-                Cancel
+                {this.props.t('common:cancel')}
               </Button>
               <Button
                 id='useExperimentBtn'
@@ -461,14 +481,14 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                 color='secondary'
                 disabled={!unconfirmedSelectedExperiment}
               >
-                Use this experiment
+                {this.props.t('useExperiment')}
               </Button>
             </DialogActions>
           </Dialog>
 
           {/* Run metadata inputs */}
           <Input
-            label={isRecurringRun ? 'Recurring run config name' : 'Run name'}
+            label={isRecurringRun ? this.props.t('recurringRunName') : this.props.t('runName')}
             required={true}
             onChange={this.handleChange('runName')}
             autoFocus={true}
@@ -476,7 +496,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
             variant='outlined'
           />
           <Input
-            label='Description (optional)'
+            label={this.props.t('common:descriptionOptional')}
             multiline={true}
             onChange={this.handleChange('description')}
             value={description}
@@ -484,11 +504,11 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
           />
 
           {/* Experiment selection */}
-          <div>This run will be associated with the following experiment</div>
+          <div>{this.props.t('runAssociatedWithExperiment')}</div>
           <Input
             value={experimentName}
             required={true}
-            label='Experiment'
+            label={this.props.t('common:experiment')}
             disabled={true}
             variant='outlined'
             InputProps={{
@@ -501,7 +521,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                     onClick={() => this.setStateSafe({ experimentSelectorOpen: true })}
                     style={{ padding: '3px 5px', margin: 0 }}
                   >
-                    Choose
+                    {this.props.t('common:choose')}
                   </Button>
                 </InputAdornment>
               ),
@@ -510,15 +530,15 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
           />
 
           <div>
-            This run will use the following Kubernetes service account.{' '}
+            {this.props.t('runUsesKubernetesAccount')}{' '}
             <HelpButton
               helpText={
                 <div>
-                  Note, the service account needs{' '}
+                  {this.props.t('noteAccountNeeds')}{' '}
                   <ExternalLink href='https://github.com/argoproj/argo/blob/v2.3.0/docs/workflow-rbac.md'>
-                    minimum permissions required by argo workflows
+                    {this.props.t('minPermissionsArgoWorkflow')}
                   </ExternalLink>{' '}
-                  and extra permissions the specific task requires.
+                  {this.props.t('extraPermissionsRequired')}
                 </div>
               }
             />
@@ -526,25 +546,27 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
           <Input
             value={serviceAccount}
             onChange={this.handleChange('serviceAccount')}
-            label='Service Account (Optional)'
+            label={this.props.t('serviceAccountOptional')}
             variant='outlined'
           />
 
           {/* One-off/Recurring Run Type */}
-          <div className={commonCss.header}>Run Type</div>
-          {isClone && <span>{isRecurringRun ? 'Recurring' : 'One-off'}</span>}
+          <div className={commonCss.header}>{this.props.t('runType')}</div>
+          {isClone && (
+            <span>{isRecurringRun ? this.props.t('recurring') : this.props.t('oneOff')}</span>
+          )}
           {!isClone && (
             <React.Fragment>
               <FormControlLabel
                 id='oneOffToggle'
-                label='One-off'
+                label={this.props.t('oneOff')}
                 control={<Radio color='primary' />}
                 onChange={() => this._updateRecurringRunState(false)}
                 checked={!isRecurringRun}
               />
               <FormControlLabel
                 id='recurringToggle'
-                label='Recurring'
+                label={this.props.t('recurring')}
                 control={<Radio color='primary' />}
                 onChange={() => this._updateRecurringRunState(true)}
                 checked={isRecurringRun}
@@ -555,8 +577,8 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
           {/* Recurring run controls */}
           {isRecurringRun && (
             <React.Fragment>
-              <div className={commonCss.header}>Run trigger</div>
-              <div>Choose a method by which new runs will be triggered</div>
+              <div className={commonCss.header}>{this.props.t('runTrigger')}</div>
+              <div>{this.props.t('chooseTriggerMethod')}</div>
 
               <Trigger
                 initialProps={{
@@ -574,6 +596,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                     this._validate.bind(this),
                   )
                 }
+                t={t}
               />
             </React.Fragment>
           )}
@@ -592,7 +615,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
               disabled={!!errorMessage}
               busy={this.state.isBeingStarted}
               className={commonCss.buttonAction}
-              title='Start'
+              title={this.props.t('common:start')}
               onClick={this._start.bind(this)}
             />
             <Button
@@ -608,14 +631,14 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                 );
               }}
             >
-              {isFirstRunInExperiment ? 'Skip this step' : 'Cancel'}
+              {isFirstRunInExperiment ? this.props.t('skipStep') : this.props.t('common:cancel')}
             </Button>
             <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
               {errorMessage}
             </div>
             {this._areParametersMissing() && (
               <div id='missing-parameters-message' style={{ color: 'orange' }}>
-                Some parameters are missing values
+                {this.props.t('parametersMissingValues')}
               </div>
             )}
           </div>
@@ -647,6 +670,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
     //    (Now you will be viewing a pipeline details page for a pipeline version that hasn't been uploaded)
     // 3. Click Create run
     const embeddedRunId = urlParser.get(QUERY_PARAMS.fromRunId);
+    const { t } = this.props;
     if (originalRunId) {
       // If we are cloning a run, fetch the original
       try {
@@ -657,7 +681,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
           experimentId = RunUtils.getFirstExperimentReferenceId(originalRun.run);
         }
       } catch (err) {
-        await this.showPageError(`Error: failed to retrieve original run: ${originalRunId}.`, err);
+        await this.showPageError(`${t('errorRetrieveOrigRun')}: ${originalRunId}.`, err);
         logger.error(`Failed to retrieve original run: ${originalRunId}`, err);
       }
     } else if (originalRecurringRunId) {
@@ -674,10 +698,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
           experimentId = RunUtils.getFirstExperimentReferenceId(originalJob);
         }
       } catch (err) {
-        await this.showPageError(
-          `Error: failed to retrieve original recurring run: ${originalRunId}.`,
-          err,
-        );
+        await this.showPageError(`${t('errorRetrieveOrigRecurrRun')}: ${originalRunId}.`, err);
         logger.error(`Failed to retrieve original recurring run: ${originalRunId}`, err);
       }
     } else if (embeddedRunId) {
@@ -714,7 +735,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
             } catch (err) {
               urlParser.clear(QUERY_PARAMS.pipelineVersionId);
               await this.showPageError(
-                `Error: failed to retrieve pipeline version: ${possiblePipelineVersionId}.`,
+                `${t('errorRetrievePipelineVersion')}: ${possiblePipelineVersionId}.`,
                 err,
               );
               logger.error(
@@ -729,10 +750,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
           }
         } catch (err) {
           urlParser.clear(QUERY_PARAMS.pipelineId);
-          await this.showPageError(
-            `Error: failed to retrieve pipeline: ${possiblePipelineId}.`,
-            err,
-          );
+          await this.showPageError(`${t('errorRetrievePipeline')}: ${possiblePipelineId}.`, err);
           logger.error(`Failed to retrieve pipeline: ${possiblePipelineId}`, err);
         }
       }
@@ -740,7 +758,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
 
     let experiment: ApiExperiment | undefined;
     let experimentName = '';
-    const breadcrumbs = [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }];
+    const breadcrumbs = [{ displayName: t('common:experiments'), href: RoutePage.EXPERIMENTS }];
     if (experimentId) {
       try {
         experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
@@ -750,17 +768,16 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
           href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experimentId),
         });
       } catch (err) {
-        await this.showPageError(
-          `Error: failed to retrieve associated experiment: ${experimentId}.`,
-          err,
-        );
+        await this.showPageError(`${t('errorRetrieveAssocExperiment')}: ${experimentId}.`, err);
         logger.error(`Failed to retrieve associated experiment: ${experimentId}`, err);
       }
     }
 
     const isRecurringRun = urlParser.get(QUERY_PARAMS.isRecurring) === '1';
-    const titleVerb = originalRunId ? 'Clone' : 'Start';
-    const pageTitle = isRecurringRun ? `${titleVerb} a recurring run` : `${titleVerb} a run`;
+    const titleVerb = originalRunId ? t('common:clone') : t('common:start');
+    const pageTitle = isRecurringRun
+      ? `${titleVerb} ${t('aRecurringRun')}`
+      : `${titleVerb} ${t('aRun')}`;
 
     this.props.updateToolbar({ actions: this.props.toolbarProps.actions, breadcrumbs, pageTitle });
 
@@ -840,8 +857,9 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
   }
 
   protected _updateRecurringRunState(isRecurringRun: boolean): void {
+    const { t } = this.props;
     this.props.updateToolbar({
-      pageTitle: isRecurringRun ? 'Start a recurring run' : 'Start a new run',
+      pageTitle: isRecurringRun ? t('startRecurringRun') : t('startNewRun'),
     });
     this.setStateSafe({ isRecurringRun });
   }
@@ -868,7 +886,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
       this.setStateSafe({ pipelineSelectorOpen: true, uploadDialogOpen: false });
       return false;
     }
-
+    const { t } = this.props;
     try {
       const uploadedPipeline =
         method === ImportMethod.LOCAL
@@ -886,7 +904,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
       return true;
     } catch (err) {
       const errorMessage = await errorToMessage(err);
-      this.showErrorDialog('Failed to upload pipeline', errorMessage);
+      this.showErrorDialog(t('common:pipelineUploadError'), errorMessage);
       return false;
     }
   }
@@ -894,22 +912,19 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
   private async _prepareFormFromEmbeddedPipeline(embeddedRunId: string): Promise<void> {
     let embeddedPipelineSpec: string | null;
     let runWithEmbeddedPipeline: ApiRunDetail;
-
+    const { t } = this.props;
     try {
       runWithEmbeddedPipeline = await Apis.runServiceApi.getRun(embeddedRunId);
       embeddedPipelineSpec = RunUtils.getWorkflowManifest(runWithEmbeddedPipeline.run);
     } catch (err) {
-      await this.showPageError(
-        `Error: failed to retrieve the specified run: ${embeddedRunId}.`,
-        err,
-      );
+      await this.showPageError(`${t('errorRetrieveSpecRun')}: ${embeddedRunId}.`, err);
       logger.error(`Failed to retrieve the specified run: ${embeddedRunId}`, err);
       return;
     }
 
     if (!embeddedPipelineSpec) {
       await this.showPageError(
-        `Error: somehow the run provided in the query params: ${embeddedRunId} had no embedded pipeline.`,
+        `${t('errorRunProvided')}: ${embeddedRunId} ${t('noEmbeddedPipeline')}.`,
       );
       return;
     }
@@ -919,15 +934,12 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
       const parameters = RunUtils.getParametersFromRun(runWithEmbeddedPipeline);
       this.setStateSafe({
         parameters,
-        usePipelineFromRunLabel: 'Using pipeline from previous page',
+        usePipelineFromRunLabel: t('usePipelinePrevPage'),
         useWorkflowFromRun: true,
         workflowFromRun: workflow,
       });
     } catch (err) {
-      await this.showPageError(
-        `Error: failed to parse the embedded pipeline's spec: ${embeddedPipelineSpec}.`,
-        err,
-      );
+      await this.showPageError(`${t('errorParsePipeline')}: ${embeddedPipelineSpec}.`, err);
       logger.error(`Failed to parse the embedded pipeline's spec from run: ${embeddedRunId}`, err);
       return;
     }
@@ -939,8 +951,9 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
     originalRun?: ApiRun | ApiJob,
     runtime?: ApiPipelineRuntime,
   ): Promise<void> {
+    const { t } = this.props;
     if (!originalRun) {
-      logger.error('Could not get cloned run details');
+      logger.error(t('clonedRunDetails'));
       return;
     }
 
@@ -972,11 +985,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
         );
         name = pipeline.name || '';
       } catch (err) {
-        await this.showPageError(
-          'Error: failed to find a pipeline version corresponding to that of the original run:' +
-            ` ${originalRun.id}.`,
-          err,
-        );
+        await this.showPageError(t('errorFindPipelineVersion') + ` ${originalRun.id}.`, err);
         return;
       }
     } else if (referencePipelineId) {
@@ -984,11 +993,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
         pipeline = await Apis.pipelineServiceApi.getPipeline(referencePipelineId);
         name = pipeline.name || '';
       } catch (err) {
-        await this.showPageError(
-          'Error: failed to find a pipeline corresponding to that of the original run:' +
-            ` ${originalRun.id}.`,
-          err,
-        );
+        await this.showPageError(t('errorFindPipeline') + ` ${originalRun.id}.`, err);
         return;
       }
     } else if (embeddedPipelineSpec) {
@@ -996,18 +1001,18 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
         workflowFromRun = JSON.parse(embeddedPipelineSpec);
         name = workflowFromRun!.metadata.name || '';
       } catch (err) {
-        await this.showPageError("Error: failed to read the clone run's pipeline definition.", err);
+        await this.showPageError(t('errorReadPipelineDef'), err);
         return;
       }
       useWorkflowFromRun = true;
-      usePipelineFromRunLabel = 'Using pipeline from cloned run';
+      usePipelineFromRunLabel = t('usePipelineClonedRun');
     } else {
-      await this.showPageError("Could not find the cloned run's pipeline definition.");
+      await this.showPageError(t('clonedRunPipelineDef'));
       return;
     }
 
     if (!originalRun.pipeline_spec || !originalRun.pipeline_spec.workflow_manifest) {
-      await this.showPageError(`Error: run ${originalRun.id} had no workflow manifest`);
+      await this.showPageError(`${t('errorRun')} ${originalRun.id} ${t('noWorkflowManifest')}`);
       return;
     }
 
@@ -1033,19 +1038,21 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
   }
 
   private _runParametersMessage(): string {
+    const { t } = this.props;
     if (this.state.pipeline || this.state.workflowFromRun) {
       if (this.state.parameters.length) {
-        return 'Specify parameters required by the pipeline';
+        return t('specifyParams');
       } else {
-        return 'This pipeline has no parameters';
+        return t('noParams');
       }
     }
-    return 'Parameters will appear after you select a pipeline';
+    return t('parametersAppearSelectPipeline');
   }
 
   private _start(): void {
+    const { t } = this.props;
     if (!this.state.pipelineVersion && !this.state.workflowFromRun) {
-      this.showErrorDialog('Run creation failed', 'Cannot start run without pipeline version');
+      this.showErrorDialog(t('runCreationFailed'), t('cannotStartRun'));
       logger.error('Cannot start run without pipeline version');
       return;
     }
@@ -1103,7 +1110,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
           : await Apis.runServiceApi.createRun(newRun);
       } catch (err) {
         const errorMessage = await errorToMessage(err);
-        this.showErrorDialog('Run creation failed', errorMessage);
+        this.showErrorDialog(t('runCreationFailed'), errorMessage);
         logger.error('Error creating Run:', err);
         return;
       } finally {
@@ -1121,7 +1128,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
         this.props.history.push(RoutePage.RUNS);
       }
       this.props.updateSnackbar({
-        message: `Successfully started new Run: ${newRun.name}`,
+        message: `${t('startNewRunSuccess')}: ${newRun.name}`,
         open: true,
       });
     });
@@ -1130,12 +1137,13 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
   private _getCloneName(oldName: string): string {
     const numberRegex = /Clone(?: \(([0-9]*)\))? of (.*)/;
     const match = oldName.match(numberRegex);
+    const { t } = this.props;
     if (!match) {
       // No match, add Clone prefix
-      return 'Clone of ' + oldName;
+      return `${t('common:cloneOf')} ` + oldName;
     } else {
       const cloneNumber = match[1] ? +match[1] : 1;
-      return `Clone (${cloneNumber + 1}) of ${match[2]}`;
+      return `${t('common:cloneMatcher', { numberClone: cloneNumber + 1 })} ${match[2]}`;
     }
   }
 
@@ -1158,14 +1166,15 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
   }
 
   private _validate(): void {
+    const { t } = this.props;
     // Validate state
     const { pipelineVersion, workflowFromRun, maxConcurrentRuns, runName, trigger } = this.state;
     try {
       if (!pipelineVersion && !workflowFromRun) {
-        throw new Error('A pipeline version must be selected');
+        throw new Error(t('pipelineVersionSelected'));
       }
       if (!runName) {
-        throw new Error('Run name is required');
+        throw new Error(t('runNameRequired'));
       }
 
       const hasTrigger = trigger && (!!trigger.cron_schedule || !!trigger.periodic_schedule);
@@ -1177,13 +1186,13 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
           ? trigger!.cron_schedule!.end_time
           : trigger!.periodic_schedule!.end_time;
         if (startDate && endDate && startDate > endDate) {
-          throw new Error('End date/time cannot be earlier than start date/time');
+          throw new Error(t('endDateBeforeStartDate'));
         }
         const validMaxConcurrentRuns = (input: string) =>
           !isNaN(Number.parseInt(input, 10)) && +input > 0;
 
         if (maxConcurrentRuns !== undefined && !validMaxConcurrentRuns(maxConcurrentRuns)) {
-          throw new Error('For triggered runs, maximum concurrent runs must be a positive number');
+          throw new Error(t('maxConcurrentRunsPositive'));
         }
       }
 
@@ -1200,8 +1209,9 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
 }
 
 const EnhancedNewRun: React.FC<PageProps> = props => {
+  const { t } = useTranslation(['experiments', 'common']);
   const namespace = React.useContext(NamespaceContext);
-  return <NewRun {...props} namespace={namespace} />;
+  return <NewRun {...props} namespace={namespace} t={t} />;
 };
 
 export default EnhancedNewRun;

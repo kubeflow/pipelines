@@ -17,38 +17,39 @@ exports[`AllRunsList renders all runs 1`] = `
     onSelectionChange={[Function]}
     selectedIds={Array []}
     storageState="STORAGESTATE_AVAILABLE"
+    t={[Function]}
     toolbarProps={
       Object {
         "actions": Object {
           "archive": Object {
             "action": [Function],
             "disabled": true,
-            "disabledTitle": "Select at least one resource to archive",
+            "disabledTitle": "common:selectResourceArchive",
             "id": "archiveBtn",
-            "title": "Archive",
-            "tooltip": "Archive",
+            "title": "common:archive",
+            "tooltip": "common:archive",
           },
           "cloneRun": Object {
             "action": [Function],
             "disabled": true,
-            "disabledTitle": "Select a run to clone",
+            "disabledTitle": "common:selectRunClone",
             "id": "cloneBtn",
             "style": Object {
               "minWidth": 100,
             },
-            "title": "Clone run",
-            "tooltip": "Create a copy from this runs initial state",
+            "title": "common:cloneRun",
+            "tooltip": "common:copyRunInitialState",
           },
           "compare": Object {
             "action": [Function],
             "disabled": true,
-            "disabledTitle": "Select multiple runs to compare",
+            "disabledTitle": "common:selectRunsCompare",
             "id": "compareBtn",
             "style": Object {
               "minWidth": 125,
             },
-            "title": "Compare runs",
-            "tooltip": "Compare up to 10 selected runs",
+            "title": "common:compareRuns",
+            "tooltip": "common:compareUpToTenRuns",
           },
           "newExperiment": Object {
             "action": [Function],
@@ -58,8 +59,8 @@ exports[`AllRunsList renders all runs 1`] = `
             "style": Object {
               "minWidth": 185,
             },
-            "title": "Create experiment",
-            "tooltip": "Create a new experiment",
+            "title": "common:createExperiment",
+            "tooltip": "common:createNewExperiment",
           },
           "newRun": Object {
             "action": [Function],
@@ -70,18 +71,19 @@ exports[`AllRunsList renders all runs 1`] = `
             "style": Object {
               "minWidth": 130,
             },
-            "title": "Create run",
-            "tooltip": "Create a new run",
+            "title": "common:createRun",
+            "tooltip": "common:createNewRun",
           },
           "refresh": Object {
             "action": [Function],
             "id": "refreshBtn",
-            "title": "Refresh",
-            "tooltip": "Refresh the list",
+            "title": "common:refresh",
+            "tooltip": "common:refreshList",
           },
         },
         "breadcrumbs": Array [],
-        "pageTitle": "Experiments",
+        "pageTitle": "common:experiments",
+        "t": [Function],
       }
     }
     updateBanner={[MockFunction]}

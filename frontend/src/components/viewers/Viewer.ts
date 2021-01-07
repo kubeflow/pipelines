@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-
 export enum PlotType {
   CONFUSION_MATRIX = 'confusion_matrix',
   MARKDOWN = 'markdown',
@@ -31,13 +29,3 @@ export enum PlotType {
 export interface ViewerConfig {
   type: PlotType;
 }
-
-abstract class Viewer<P, S> extends React.Component<P, S> {
-  public isAggregatable(): boolean {
-    return false;
-  }
-
-  public abstract getDisplayName(): string;
-}
-
-export default Viewer;

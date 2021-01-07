@@ -20,6 +20,8 @@ import Button from '@material-ui/core/Button';
 import ExpandedIcon from '@material-ui/icons/ArrowDropUp';
 import { stylesheet, classes } from 'typestyle';
 import { color, fontsize } from '../Css';
+import { TFunction } from 'i18next';
+import { withTranslation } from 'react-i18next';
 
 const css = stylesheet({
   collapseBtn: {
@@ -41,11 +43,12 @@ interface CollapseButtonProps {
   collapseSections: { [key: string]: boolean };
   compareSetState: (state: Partial<CompareState>) => void;
   sectionName: string;
+  t: TFunction;
 }
 
 class CollapseButton extends React.Component<CollapseButtonProps> {
   public render(): JSX.Element {
-    const { collapseSections, compareSetState } = this.props;
+    const { collapseSections, compareSetState, t } = this.props;
     const sectionName = this.props.sectionName;
     return (
       <div>
@@ -54,7 +57,7 @@ class CollapseButton extends React.Component<CollapseButtonProps> {
             collapseSections[sectionName] = !collapseSections[sectionName];
             compareSetState({ collapseSections });
           }}
-          title='Expand/Collapse this section'
+          title={t('expandCollapseSec')}
           className={css.collapseBtn}
         >
           <ExpandedIcon
@@ -67,4 +70,4 @@ class CollapseButton extends React.Component<CollapseButtonProps> {
   }
 }
 
-export default CollapseButton;
+export default withTranslation('common')(CollapseButton);

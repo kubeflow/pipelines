@@ -26,6 +26,9 @@ import ViewerContainer, { componentMap } from '../components/viewers/ViewerConta
 import { ViewerConfig } from '../components/viewers/Viewer';
 import { color, fontsize } from '../Css';
 import { stylesheet, classes } from 'typestyle';
+import { isEqual } from 'lodash';
+import { TFunction } from 'i18next';
+import { withTranslation } from 'react-i18next';
 
 const css = stylesheet({
   dialogTitle: {
@@ -84,6 +87,7 @@ export interface PlotCardProps {
   title: string;
   configs: ViewerConfig[];
   maxDimension: number;
+  t: TFunction;
 }
 
 interface PlotCardState {
@@ -101,13 +105,13 @@ class PlotCard extends React.Component<PlotCardProps, PlotCardState> {
 
   public shouldComponentUpdate(nextProps: PlotCardProps, nextState: PlotCardState): boolean {
     return (
-      JSON.stringify(nextProps) !== JSON.stringify(this.props) ||
+      !isEqual(nextProps, this.props) ||
       nextState.fullscreenDialogOpen !== this.state.fullscreenDialogOpen
     );
   }
 
   public render(): JSX.Element | null {
-    const { title, configs, maxDimension, ...otherProps } = this.props;
+    const { title, configs, maxDimension, t, ...otherProps } = this.props;
 
     if (!configs || !configs.length) {
       return null;
@@ -126,7 +130,7 @@ class PlotCard extends React.Component<PlotCardProps, PlotCardState> {
                 style={{ padding: 4, minHeight: 0, minWidth: 0 }}
                 className='popOutButton'
               >
-                <Tooltip title='Pop out'>
+                <Tooltip title={t('popOut')}>
                   <PopOutIcon classes={{ root: css.popoutIcon }} />
                 </Tooltip>
               </Button>
@@ -147,7 +151,7 @@ class PlotCard extends React.Component<PlotCardProps, PlotCardState> {
             >
               <CloseIcon />
             </Button>
-            {componentMap[configs[0].type].prototype.getDisplayName()}
+            {t(componentMap[configs[0].type].displayNameKey)}
             <Separator />
             <span style={{ color: color.inactive }}>({title})</span>
           </div>
@@ -159,5 +163,4 @@ class PlotCard extends React.Component<PlotCardProps, PlotCardState> {
     );
   }
 }
-
-export default PlotCard;
+export default withTranslation('common')(PlotCard);

@@ -21,6 +21,7 @@ import { BannerProps } from '../components/Banner';
 import { SnackbarProps } from '@material-ui/core/Snackbar';
 import { DialogProps } from '../components/Router';
 import { errorToMessage } from '../lib/Utils';
+import { TFunction } from 'i18next';
 
 export interface PageProps extends RouteComponentProps {
   toolbarProps: ToolbarProps;
@@ -28,6 +29,7 @@ export interface PageProps extends RouteComponentProps {
   updateDialog: (dialogProps: DialogProps) => void;
   updateSnackbar: (snackbarProps: SnackbarProps) => void;
   updateToolbar: (toolbarProps: Partial<ToolbarProps>) => void;
+  t: TFunction;
 }
 
 export type PageErrorHandler = (
@@ -38,6 +40,7 @@ export type PageErrorHandler = (
 ) => Promise<void>;
 
 export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
+  [x: string]: any;
   protected _isMounted = true;
 
   constructor(props: any) {
@@ -61,22 +64,25 @@ export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
   }
 
   public clearBanner(): void {
+    const { t } = this.props;
     if (!this._isMounted) {
       return;
     }
-    this.props.updateBanner({});
+    this.props.updateBanner({ t });
   }
 
   public showPageError: PageErrorHandler = async (message, error, mode, refresh): Promise<void> => {
+    const { t } = this.props;
     const errorMessage = await errorToMessage(error);
     if (!this._isMounted) {
       return;
     }
     this.props.updateBanner({
       additionalInfo: errorMessage ? errorMessage : undefined,
-      message: message + (errorMessage ? ' Click Details for more information.' : ''),
+      message: message + ' ' + (errorMessage ? t('common:clickDetails') : ''),
       mode: mode || 'error',
       refresh: refresh || this.refresh.bind(this),
+      t,
     });
   };
 

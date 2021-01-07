@@ -20,7 +20,16 @@ import ArchivedExperimentsAndRuns, {
   ArchivedExperimentsAndRunsTab,
 } from './ArchivedExperimentsAndRuns';
 import { shallow } from 'enzyme';
+import { TFunction } from 'i18next';
 
+jest.mock('react-i18next', () => ({
+  // this mock makes sure any components using the translate HoC receive the t function as a prop
+  withTranslation: () => (Component: { defaultProps: any }) => {
+    Component.defaultProps = { ...Component.defaultProps, t: () => '' };
+    return Component;
+  },
+}));
+let t: TFunction = (key: string) => key;
 function generateProps(): ArchivedExperimentAndRunsProps {
   return {
     history: {} as any,
@@ -32,6 +41,7 @@ function generateProps(): ArchivedExperimentAndRunsProps {
     updateSnackbar: jest.fn(),
     updateToolbar: () => null,
     view: ArchivedExperimentsAndRunsTab.RUNS,
+    t,
   };
 }
 

@@ -38,6 +38,8 @@ import { commonCss, padding } from '../Css';
 import { logger, serviceErrorToString } from '../lib/Utils';
 import { Page, PageProps } from './Page';
 import { GetArtifactTypesByIDRequest } from '@kubeflow/frontend/src/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
+import { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 export enum ArtifactDetailsTab {
   OVERVIEW = 0,
@@ -60,7 +62,7 @@ interface ArtifactDetailsState {
   artifactType?: ArtifactType;
 }
 
-class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
+class ArtifactDetails extends Page<{ t: TFunction }, ArtifactDetailsState> {
   private get fullTypeName(): string {
     return this.state.artifactType?.getName() || '';
   }
@@ -153,10 +155,12 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
   }
 
   public getInitialToolbarState(): ToolbarProps {
+    const { t } = this.props;
     return {
       actions: {},
-      breadcrumbs: [{ displayName: 'Artifacts', href: RoutePage.ARTIFACTS }],
-      pageTitle: `Artifact #${this.id} details`,
+      breadcrumbs: [{ displayName: t('common:artifacts'), href: RoutePage.ARTIFACTS }],
+      pageTitle: `${t('artifactNum', { id: this.id })}`,
+      t,
     };
   }
 
@@ -166,16 +170,17 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
 
   private load = async (): Promise<void> => {
     const request = new GetArtifactsByIDRequest();
+    const { t } = this.props;
     request.setArtifactIdsList([Number(this.id)]);
 
     try {
       const response = await this.api.metadataStoreService.getArtifactsByID(request);
       if (response.getArtifactsList().length === 0) {
-        this.showPageError(`No artifact identified by id: ${this.id}`);
+        this.showPageError(`${t('noArtifactsFoundById')}: ${this.id}`);
         return;
       }
       if (response.getArtifactsList().length > 1) {
-        this.showPageError(`Found multiple artifacts with ID: ${this.id}`);
+        this.showPageError(`${t('multiArtifactsFoundById')}: ${this.id}`);
         return;
       }
       const artifact = response.getArtifactsList()[0];
@@ -190,7 +195,7 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
       let title = artifactName ? artifactName.toString() : '';
       const version = getResourceProperty(artifact, ArtifactProperties.VERSION);
       if (version) {
-        title += ` (version: ${version})`;
+        title += ` (${t('common:version')}: ${version})`;
       }
       this.props.updateToolbar({
         pageTitle: title,
@@ -215,7 +220,8 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
 
 // This guarantees that each artifact renders a different <ArtifactDetails /> instance.
 const EnhancedArtifactDetails = (props: PageProps) => {
-  return <ArtifactDetails {...props} key={props.match.params[RouteParams.ID]} />;
+  const { t } = useTranslation('common');
+  return <ArtifactDetails {...props} key={props.match.params[RouteParams.ID]} t={t} />;
 };
 
 export default EnhancedArtifactDetails;

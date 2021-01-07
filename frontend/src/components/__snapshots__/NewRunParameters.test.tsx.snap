@@ -57,7 +57,7 @@ exports[`NewRunParameters does not display any text fields if there are no param
   <div
     className="header"
   >
-    Run parameters
+    runParams
   </div>
   <div>
     This pipeline has no parameters
@@ -70,7 +70,7 @@ exports[`NewRunParameters shows parameters 1`] = `
   <div
     className="header"
   >
-    Run parameters
+    runParams
   </div>
   <div>
     Specify parameters required by the pipeline
@@ -86,6 +86,7 @@ exports[`NewRunParameters shows parameters 1`] = `
           "value": "testVal",
         }
       }
+      t={[Function]}
     />
   </div>
 </div>

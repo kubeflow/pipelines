@@ -17,7 +17,7 @@
 import * as React from 'react';
 import BusyButton from '../../atoms/BusyButton';
 import Button from '@material-ui/core/Button';
-import Viewer, { ViewerConfig } from './Viewer';
+import { ViewerConfig } from './Viewer';
 import { Apis } from '../../lib/Apis';
 import { commonCss, padding, color } from '../../Css';
 import InputLabel from '@material-ui/core/InputLabel';
@@ -32,6 +32,8 @@ import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import { classes, stylesheet } from 'typestyle';
+import { TFunction } from 'i18next';
+import { withTranslation } from 'react-i18next';
 
 export const css = stylesheet({
   button: {
@@ -64,6 +66,7 @@ interface TensorboardViewerProps {
   configs: TensorboardViewerConfig[];
   // Interval in ms. If not specified, default to 5000.
   intervalOfCheckingTensorboardPodStatus?: number;
+  t: TFunction;
 }
 
 interface TensorboardViewerState {
@@ -79,7 +82,7 @@ interface TensorboardViewerState {
 // TODO(jingzhang36): we'll later parse Tensorboard version from mlpipeline-ui-metadata.json file.
 const DEFAULT_TENSORBOARD_VERSION = '2.0.0';
 
-class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewerState> {
+class TensorBoardViewer extends React.Component<TensorboardViewerProps, TensorboardViewerState> {
   timerID: NodeJS.Timeout;
 
   constructor(props: any) {
@@ -93,14 +96,6 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
       tensorboardReady: false,
       errorMessage: undefined,
     };
-  }
-
-  public getDisplayName(): string {
-    return 'Tensorboard';
-  }
-
-  public isAggregatable(): boolean {
-    return true;
   }
 
   public componentDidMount(): void {
@@ -123,14 +118,15 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   };
 
   public render(): JSX.Element {
+    const { t } = this.props;
     return (
       <div>
         {this.state.errorMessage && <div className={css.errorText}>{this.state.errorMessage}</div>}
         {this.state.podAddress && (
           <div>
-            <div
-              className={padding(20, 'b')}
-            >{`Tensorboard ${this.state.tensorflowVersion} is running for this output.`}</div>
+            <div className={padding(20, 'b')}>{`Tensorboard ${this.state.tensorflowVersion}${t(
+              'common:runningForOutput',
+            )}.`}</div>
             <a
               href={makeProxyUrl(this.state.podAddress)}
               target='_blank'
@@ -142,14 +138,12 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                 disabled={this.state.busy}
                 color={'primary'}
               >
-                Open Tensorboard
+                ${t('common:openTensorboard')}
               </Button>
               {this.state.tensorboardReady ? (
                 ``
               ) : (
-                <div className={css.warningText}>
-                  Tensorboard is starting, and you may need to wait for a few minutes.
-                </div>
+                <div className={css.warningText}>${t('common:tensorboardStarting')}</div>
               )}
             </a>
 
@@ -158,11 +152,11 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                 className={css.button}
                 disabled={this.state.busy}
                 id={'delete'}
-                title={`stop tensorboard and delete its instance`}
+                title={`${t('common:stopTensorboardDelete')}`}
                 onClick={this._handleDeleteOpen}
                 color={'default'}
               >
-                Delete Tensorboard
+                ${t('common:deleteTensorboard')}
               </Button>
               <Dialog
                 open={this.state.deleteDialogOpen}
@@ -170,13 +164,10 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                 aria-labelledby='dialog-title'
               >
                 <DialogTitle id='dialog-title'>
-                  {`Stop Tensorboard ${this.state.tensorflowVersion}?`}
+                  {`${t('common:stopTensorboard')} ${this.state.tensorflowVersion}?`}
                 </DialogTitle>
                 <DialogContent>
-                  <DialogContentText>
-                    You can stop the current running tensorboard. The tensorboard viewer will also
-                    be deleted from your workloads.
-                  </DialogContentText>
+                  <DialogContentText>${t('common:deleteRunningTensorboard')}</DialogContentText>
                 </DialogContent>
                 <DialogActions>
                   <Button
@@ -186,7 +177,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                     onClick={this._handleDeleteClose}
                     color='primary'
                   >
-                    Cancel
+                    ${t('common:cancel')}
                   </Button>
                   <BusyButton
                     className={classes(commonCss.buttonAction, css.shortButton)}
@@ -236,7 +227,10 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                 disabled={!this.state.tensorflowVersion}
                 onClick={this._startTensorboard}
                 busy={this.state.busy}
-                title={`Start ${this.props.configs.length > 1 ? 'Combined ' : ''}Tensorboard`}
+                //testing
+                title={`${t('common:start')} ${
+                  this.props.configs.length > 1 ? t('common:combined') : ''
+                }Tensorboard`}
               />
             </div>
           </div>
@@ -340,4 +334,4 @@ function makeProxyUrl(podAddress: string) {
   return 'apis/v1beta1/_proxy/' + podAddress.replace(/(^\w+:|^)\/\//, '');
 }
 
-export default TensorboardViewer;
+export default withTranslation('common')(TensorBoardViewer);

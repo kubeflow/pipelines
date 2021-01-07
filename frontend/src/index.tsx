@@ -29,6 +29,7 @@ import { theme, fonts } from './Css';
 import { HashRouter } from 'react-router-dom';
 import { KFP_FLAGS, Deployments } from './lib/Flags';
 import { GkeMetadataProvider } from './lib/GkeMetadata';
+import './i18n';
 
 // TODO: license headers
 
@@ -47,21 +48,25 @@ cssRule('html, body, #root', {
 });
 
 const app = (
-  <MuiThemeProvider theme={theme}>
-    <GkeMetadataProvider>
-      <HashRouter>
-        <Router />
-      </HashRouter>
-    </GkeMetadataProvider>
-  </MuiThemeProvider>
+  <React.Suspense fallback="loading">
+    <MuiThemeProvider theme={theme}>
+      <GkeMetadataProvider>
+        <HashRouter>
+          <Router />
+        </HashRouter>
+      </GkeMetadataProvider>
+    </MuiThemeProvider>
+  </React.Suspense>
 );
-ReactDOM.render(
-  KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW ? (
-    <NamespaceContextProvider>{app}</NamespaceContextProvider>
-  ) : (
-    // Uncomment the following for namespace switch during development.
-    // <NamespaceContext.Provider value='your-namespace'>{app}</NamespaceContext.Provider>
-    <NamespaceContext.Provider value={undefined}>{app}</NamespaceContext.Provider>
-  ),
-  document.getElementById('root'),
-);
+
+  ReactDOM.render(
+    KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW ? (
+      <NamespaceContextProvider>{app}</NamespaceContextProvider>
+    ) : (
+      // Uncomment the following for namespace switch during development.
+      // <NamespaceContext.Provider value='your-namespace'>{app}</NamespaceContext.Provider>
+      <NamespaceContext.Provider value={undefined}>{app}</NamespaceContext.Provider>
+    ),
+    document.getElementById('root'),
+  );
+
