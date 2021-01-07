@@ -11,11 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for kfp.v2.ds.artifact module."""
+"""Tests for kfp.dsl.artifact module."""
 import unittest
 import textwrap
 
-from kfp.v2.dsl import artifact
+from kfp.dsl import artifact
 
 
 class _MyArtifact(artifact.Artifact):

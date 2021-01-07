@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """MLMD artifact ontology in KFP SDK."""
-from kfp.v2.dsl import artifact
+from kfp.dsl import artifact
 
 
 # TODO(numerology): Add concrete property schema to each artifact types.
