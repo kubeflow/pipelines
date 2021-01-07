@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@
 from setuptools import setup, find_packages  # noqa: H301
 
 NAME = "kfp-server-api"
-VERSION = "1.2.0"
+VERSION = "1.3.0"
 # To install the library, run the following
 #
 # python setup.py install
