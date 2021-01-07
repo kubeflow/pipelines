@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
+from typing import Optional, Union
 
 from absl import logging
 import collections
@@ -27,6 +27,7 @@ _ARTIFACT_METADATA_SUFFIX = '_artifact_param_metadata_file'
 _FIELD_NAME_SUFFIX = '_input_field_name'
 _ARGO_PARAM_SUFFIX = '_input_argo_param'
 _INPUT_PATH_SUFFIX = '_input_path'
+_OUTPUT_NAME_SUFFIX = '_input_output_name'
 
 _OUTPUT_PARAM_PATH_SUFFIX = '_parameter_output_path'
 _OUTPUT_ARTIFACT_PATH_SUFFIX = '_artifact_output_path'
@@ -73,15 +74,15 @@ class InputParam(object):
 
   # Following attributes are read-only
   @property
-  def value(self):
+  def value(self) -> Union[float, str, int]:
     return self._value
 
   @property
-  def metadata_file(self):
+  def metadata_file(self) -> str:
     return self._metadata_file
 
   @property
-  def field_name(self):
+  def field_name(self) -> str:
     return self._field_name
 
 
@@ -90,35 +91,48 @@ class InputArtifact(object):
 
   def __init__(self,
       uri: Optional[str] = None,
-      metadata_file: Optional[str] = None):
+      metadata_file: Optional[str] = None,
+      output_name: Optional[str] = None
+  ):
     """Instantiates an InputParam object.
 
     Args:
       uri: The uri holds the input artifact.
       metadata_file: The location of the metadata JSON file output by the
         producer step.
+      output_name: The output name of the artifact in producer step.
 
     Raises:
-      ValueError: when neither or both uri and metadata_file are specified.
+      ValueError: when neither of the following is true:
+        1) uri is provided, and metadata_file and output_name are not; or
+        2) both metadata_file and output_name are provided, and uri is not.
     """
-    if bool(uri) == bool(metadata_file):
-      raise ValueError('Exactly one of uri and metadata_file is expected. '
-                       'Get uri={uri}, metadata_file={metadata_file}'.format(
+    if not (not uri and not (metadata_file or output_name) or (
+        metadata_file and output_name and not uri)):
+      raise ValueError('Either uri or both metadata_file and output_name '
+                       'needs to be provided. Get uri={uri}, output_name='
+                       '{output_name}, metadata_file={metadata_file}'.format(
           uri=uri,
+          output_name=output_name,
           metadata_file=metadata_file
       ))
 
     self._uri = uri
     self._metadata_file = metadata_file
+    self._output_name = output_name
 
   # Following attributes are read-only.
   @property
-  def uri(self):
+  def uri(self) -> str:
     return self._uri
 
   @property
-  def metadata_file(self):
+  def metadata_file(self) -> str:
     return self._metadata_file
+
+  @property
+  def output_name(self) -> str:
+    return self._output_name
 
   def get_artifact(self):
     """Gets an artifact object by parsing metadata or creating one from uri."""
@@ -153,12 +167,14 @@ def main(**kwargs):
   populated, and when it's a conventional KFP Python component, 3 will be in
   use.
 
-  For each declared artifact input of the user function, two command line args
+  For each declared artifact input of the user function, three command line args
   will be recognized:
   1. {name of the artifact}_input_path: The actual path, or uri, of the input
      artifact.
   2. {name of the artifact}_input_artifact_metadata_file: The metadata JSON file
      path output by the producer.
+  3. {name of the artifact}_input_output_name: The output name of the artifact,
+     by which the artifact can be found in the producer metadata JSON file.
   If the producer is a new-styled KFP Python component, 2 will be used to give
   user code access to MLMD (custom) properties associated with this artifact;
   if the producer is a conventional KFP Python component, 1 will be used to
@@ -177,6 +193,7 @@ def main(**kwargs):
   input_params_value = collections.defaultdict(lambda: None)
   input_artifacts_metadata = collections.defaultdict(lambda: None)
   input_artifacts_uri = collections.defaultdict(lambda: None)
+  input_artifacts_output_name = collections.defaultdict(lambda: None)
   output_params = collections.defaultdict(lambda: None)
   output_artifacts = collections.defaultdict(lambda: None)
   for k, v in kwargs.items():
@@ -195,6 +212,9 @@ def main(**kwargs):
     elif k.endswith(_INPUT_PATH_SUFFIX):
       artifact_name = k[:-len(_INPUT_PATH_SUFFIX)]
       input_artifacts_uri[artifact_name] = v
+    elif k.endswith(_OUTPUT_NAME_SUFFIX):
+      artifact_name = k[:-len(_OUTPUT_NAME_SUFFIX)]
+      input_artifacts_output_name[artifact_name] = v
     elif k.endswith(_OUTPUT_PARAM_PATH_SUFFIX):
       param_name = k[:-len(_OUTPUT_PARAM_PATH_SUFFIX)]
     elif k.endswith(_OUTPUT_ARTIFACT_PATH_SUFFIX):

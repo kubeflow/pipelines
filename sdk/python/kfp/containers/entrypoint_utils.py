@@ -25,3 +25,19 @@ def get_parameter_from_output(file_path: str, param_name: str):
       message=output)
   value = output.parameters[param_name]
   return getattr(value, value.Whichone('value'))
+
+def get_artifact_from_output(file_path: str, output_name: str):
+  """Gets an artifact object from output metadata JSON."""
+  output = pipeline_spec_pb2.ExecutorOutput()
+  json_format.Parse(
+      text=tf.io.gfile.GFile(file_path, 'r').read(),
+      message=output
+  )
+  # Currently we bear the assumption that each output contains only one artifact
+  runtime_artifact = output.artifacts[output_name][0]
+
+  # Convert runtime_artifact to Python artifact
+  # TODO(numerology): Implement this
+
+def get_artifact(runtime_artifact: pipeline_spec_pb2.RuntimeArtifact):
+  pass
