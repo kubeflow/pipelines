@@ -102,7 +102,7 @@ def customEndpointSpec(custom_model_spec, service_account):
         else None
     )
     ports = (
-        [client.V1ContainerPort(container_port=int(custom_model_spec.get("port", "")))]
+        [client.V1ContainerPort(container_port=int(custom_model_spec.get("port", "")), protocol="TCP")]
         if custom_model_spec.get("port", "")
         else None
     )
