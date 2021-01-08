@@ -21,7 +21,7 @@ import fire
 from kfp.containers import entrypoint_utils
 from kfp.dsl import artifact
 
-_FN_SOURCE_ARG = 'function_source'
+_FN_SOURCE = 'ml/main.py'
 _FN_NAME_ARG = 'function_name'
 
 _PARAM_METADATA_SUFFIX = '_input_param_metadata_file'
@@ -266,13 +266,15 @@ def main(**kwargs):
     input_artifacts[artifact_name] = input_artifact
 
   # Import and invoke the user-provided function.
-  # TODO(numerology): Discuss the contract for packing and importing the user
-  # code when authoring a component.
+  # Currently the actual user code is built into container as /ml/main.py
+  # which is specified in
+  # kfp.containers._component_builder.build_python_component.
+
   # Also, determine a way to inspect the function signature to decide the type
   # of output artifacts.
-  fn_source, fn_name = kwargs[_FN_SOURCE_ARG], kwargs[_FN_NAME_ARG]
+  fn_name = kwargs[_FN_NAME_ARG]
 
-  fn = entrypoint_utils.import_func_from_source(fn_source, fn_name)
+  fn = entrypoint_utils.import_func_from_source(_FN_SOURCE, fn_name)
   invoking_kwargs = {}
   for k, v in input_params.items():
     invoking_kwargs[k] = v.value
