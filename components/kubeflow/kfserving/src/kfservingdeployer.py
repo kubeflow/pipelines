@@ -152,7 +152,8 @@ def deploy_model(
     service_account,
     autoscaling_target=0,
     enable_istio_sidecar=True,
-    inferenceservice_yaml={}
+    inferenceservice_yaml={},
+    watch_timeout=120,
 ):
     KFServing = KFServingClient()
 
@@ -203,12 +204,12 @@ def deploy_model(
     def create(kfsvc, model_name, namespace):
         KFServing.create(kfsvc, namespace=namespace)
         time.sleep(1)
-        KFServing.get(model_name, namespace=namespace, watch=True, timeout_seconds=120)
+        KFServing.get(model_name, namespace=namespace, watch=True, timeout_seconds=watch_timeout)
 
     def update(kfsvc, model_name, namespace):
         KFServing.patch(model_name, kfsvc, namespace=namespace)
         time.sleep(1)
-        KFServing.get(model_name, namespace=namespace, watch=True, timeout_seconds=120)
+        KFServing.get(model_name, namespace=namespace, watch=True, timeout_seconds=watch_timeout)
 
     if action == "create":
         create(kfsvc, model_name, namespace)
@@ -228,11 +229,11 @@ def deploy_model(
             percent=canary_model_traffic,
             namespace=namespace,
             watch=True,
-            timeout_seconds=120,
+            timeout_seconds=watch_timeout,
         )
     elif action == "promote":
         KFServing.promote(
-            model_name, namespace=namespace, watch=True, timeout_seconds=120
+            model_name, namespace=namespace, watch=True, timeout_seconds=watch_timeout
         )
     elif action == "delete":
         KFServing.delete(model_name, namespace=namespace)
@@ -317,6 +318,10 @@ if __name__ == "__main__":
         default={}
     )
     parser.add_argument("--output-path", type=str, help="Path to store URI output")
+    parser.add_argument("--watch-timeout",
+                        type=str,
+                        help="Timeout seconds for watching until InferenceService becomes ready.",
+                        default="120")
     args = parser.parse_args()
 
     url = re.compile(r"https?://")
@@ -336,6 +341,7 @@ if __name__ == "__main__":
     service_account = args.service_account
     enable_istio_sidecar = args.enable_istio_sidecar
     inferenceservice_yaml = args.inferenceservice_yaml
+    watch_timeout = int(args.watch_timeout)
 
     if kfserving_endpoint:
         formData = {
@@ -371,7 +377,8 @@ if __name__ == "__main__":
             autoscaling_target=autoscaling_target,
             service_account=service_account,
             enable_istio_sidecar=enable_istio_sidecar,
-            inferenceservice_yaml=inferenceservice_yaml
+            inferenceservice_yaml=inferenceservice_yaml,
+            watch_timeout=watch_timeout
         )
     print(model_status)
     # Check whether the model is ready
