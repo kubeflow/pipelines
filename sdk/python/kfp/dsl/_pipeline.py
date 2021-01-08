@@ -112,6 +112,9 @@ class PipelineConf():
     Args:
         max_num_pods: max number of total parallel pods.
     """
+    if max_num_pods < 1:
+        raise ValueError('Pipeline max_num_pods set to < 1, allowed values are > 0')
+    
     self.parallelism = max_num_pods
     return self
 
