@@ -18,9 +18,11 @@ from absl import logging
 import collections
 import fire
 
-from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.containers import entrypoint_utils
+from kfp.dsl import artifact
 
+_FN_SOURCE_ARG = 'function_source'
+_FN_NAME_ARG = 'function_name'
 
 _PARAM_METADATA_SUFFIX = '_input_param_metadata_file'
 _ARTIFACT_METADATA_SUFFIX = '_artifact_param_metadata_file'
@@ -134,18 +136,35 @@ class InputArtifact(object):
   def output_name(self) -> str:
     return self._output_name
 
-  def get_artifact(self):
+  def get_artifact(self) -> artifact.Artifact:
     """Gets an artifact object by parsing metadata or creating one from uri."""
-    # TODO(numerology): Implement this
-    pass
+    return entrypoint_utils.get_artifact_from_output(
+        self.metadata_file, self.output_name)
 
 
 class OutputParameter(object):
   pass
 
 class OutputArtifact(object):
-  pass
+  """POD that holds an output artifact."""
 
+  def __init__(self, uri: str, output_name: str):
+    """Instantiates an InputParam object.
+
+    Args:
+      uri: The uri holds this artifact.
+      output_name: The output name of the artifact.
+
+    Raises:
+      ValueError: when either uri or output_name is not provided.
+    """
+    if not (uri and output_name):
+      raise ValueError('Both uri and output_name should be provided.')
+    self._uri = uri
+    self._output_name = output_name
+
+  def get_artifact(self) -> artifact.Artifact:
+    pass
 
 
 def main(**kwargs):
@@ -234,6 +253,33 @@ def main(**kwargs):
         field_name=input_params_field_name[param_name])
     input_params[param_name] = input_param
 
+  input_artifacts = {}
+  for artifact_name in (
+      input_artifacts_uri.keys() |
+      input_artifacts_metadata.keys() |
+      input_artifacts_output_name.keys()
+  ):
+    input_artifact = InputArtifact(
+        uri=input_artifacts_uri[artifact_name],
+        metadata_file=input_artifacts_metadata[artifact_name],
+        output_name=input_artifacts_output_name[artifact_name])
+    input_artifacts[artifact_name] = input_artifact
+
+  # Import and invoke the user-provided function.
+  # TODO(numerology): Discuss the contract for packing and importing the user
+  # code when authoring a component.
+  # Also, determine a way to inspect the function signature to decide the type
+  # of output artifacts.
+  fn_source, fn_name = kwargs[_FN_SOURCE_ARG], kwargs[_FN_NAME_ARG]
+
+  fn = entrypoint_utils.import_func_from_source(fn_source, fn_name)
+  invoking_kwargs = {}
+  for k, v in input_params.items():
+    invoking_kwargs[k] = v.value
+  for k, v in input_artifacts.items():
+    invoking_kwargs[k] = v.get_artifact()
+
+  #
 
 
 

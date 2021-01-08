@@ -13,8 +13,12 @@
 # limitations under the License.
 
 import tensorflow as tf
+from typing import Callable, Dict
 from google.protobuf import json_format
+
 from kfp.pipeline_spec import pipeline_spec_pb2
+from kfp.dsl import artifact
+
 
 
 def get_parameter_from_output(file_path: str, param_name: str):
@@ -26,7 +30,9 @@ def get_parameter_from_output(file_path: str, param_name: str):
   value = output.parameters[param_name]
   return getattr(value, value.Whichone('value'))
 
-def get_artifact_from_output(file_path: str, output_name: str):
+
+def get_artifact_from_output(
+    file_path: str, output_name: str) -> artifact.Artifact:
   """Gets an artifact object from output metadata JSON."""
   output = pipeline_spec_pb2.ExecutorOutput()
   json_format.Parse(
@@ -34,10 +40,29 @@ def get_artifact_from_output(file_path: str, output_name: str):
       message=output
   )
   # Currently we bear the assumption that each output contains only one artifact
-  runtime_artifact = output.artifacts[output_name][0]
+  json_str = json_format.MessageToJson(
+      output.artifacts[output_name][0], sort_keys=True)
 
   # Convert runtime_artifact to Python artifact
-  # TODO(numerology): Implement this
+  return artifact.Artifact.deserialize(json_str)
 
-def get_artifact(runtime_artifact: pipeline_spec_pb2.RuntimeArtifact):
+
+def import_func_from_source(source_path: str, fn_name: str) -> Callable:
+  """Imports a function from a Python file."""
+  # TODO(numerology): Implement this.
+  pass
+
+
+def get_output_artifacts(fn: Callable, output_uris: Dict[str, str]) -> Dict[
+  str, artifact.Artifact]:
+  """Gets the output artifacts from function signature and provided URIs.
+
+  Args:
+    fn: A user-provided function, whose signature annotates the type of output
+      artifacts.
+    output_uris: The mapping from output artifact name to its URI.
+
+  Returns:
+    A mapping from output artifact name to Python artifact objects.
+  """
   pass
