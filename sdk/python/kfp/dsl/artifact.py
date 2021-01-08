@@ -21,10 +21,10 @@ from google.protobuf import json_format
 import yaml
 
 from kfp.pipeline_spec import pipeline_spec_pb2
-from kfp.v2.dsl import serialization_utils
+from kfp.dsl import serialization_utils
 
 _KFP_ARTIFACT_TITLE_PATTERN = 'kfp.{}'
-_KFP_ARTIFACT_ONTOLOGY_MODULE = 'kfp.v2.dsl.ontology_artifacts'
+_KFP_ARTIFACT_ONTOLOGY_MODULE = 'kfp.dsl.ontology_artifacts'
 
 
 # Enum for property types.

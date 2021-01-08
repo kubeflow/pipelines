@@ -12,23 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union
+from typing import Callable, Optional, Union
 from kubernetes.client.models import V1PodDNSConfig
 from . import _container_op
 from . import _resource_op
 from . import _ops_group
-from ._component_bridge import _create_container_op_from_component_and_arguments, _sanitize_python_function_name
+from ._component_bridge import \
+  _create_container_op_from_component_and_arguments, \
+  _sanitize_python_function_name
 from ..components import _components
 from ..components._naming import _make_name_unique_by_adding_index
 import sys
-
 
 # This handler is called whenever the @pipeline decorator is applied.
 # It can be used by command-line DSL compiler to inject code that runs for every pipeline definition.
 _pipeline_decorator_handler = None
 
 
-def pipeline(name : str = None, description : str = None):
+def pipeline(
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+    output_directory: Optional[str] = None):
   """Decorator of pipeline functions.
 
   Example
@@ -37,15 +41,27 @@ def pipeline(name : str = None, description : str = None):
       @pipeline(
         name='my awesome pipeline',
         description='Is it really awesome?'
+        output_directory='gs://my-bucket/my-output-path'
       )
       def my_pipeline(a: PipelineParam, b: PipelineParam):
         ...
+
+  Args:
+    name: The pipeline name. Default to a sanitized version of the function
+      name.
+    description: Optionally, a human-readable description of the pipeline.
+    output_directory: The root directory to generate input/output URI under this
+      pipeline. This is required if input/output URI placeholder is used in this
+      pipeline.
   """
-  def _pipeline(func):
+
+  def _pipeline(func: Callable):
     if name:
       func._component_human_name = name
     if description:
       func._component_description = description
+    if output_directory:
+      func.output_directory = output_directory
 
     if _pipeline_decorator_handler:
       return _pipeline_decorator_handler(func) or func
@@ -53,6 +69,7 @@ def pipeline(name : str = None, description : str = None):
       return func
 
   return _pipeline
+
 
 class PipelineConf():
   """PipelineConf contains pipeline level settings."""
@@ -131,7 +148,6 @@ class PipelineConf():
     self.default_pod_node_selector[label_name] = value
     return self
 
-
   def set_image_pull_policy(self, policy: str):
     """Configures the default image pull policy
 
@@ -196,13 +212,15 @@ class PipelineConf():
     """
     self._data_passing_method = value
 
+
 def get_pipeline_conf():
   """Configure the pipeline level setting to the current pipeline
     Note: call the function inside the user defined pipeline function.
   """
   return Pipeline.get_default_pipeline().conf
 
-#TODO: Pipeline is in fact an opsgroup, refactor the code.
+
+# TODO: Pipeline is in fact an opsgroup, refactor the code.
 class Pipeline():
   """A pipeline contains a list of operators.
 

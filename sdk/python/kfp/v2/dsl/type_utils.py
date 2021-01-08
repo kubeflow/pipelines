@@ -13,12 +13,11 @@
 # limitations under the License.
 """Utilities for component I/O type mapping."""
 
-import textwrap
 from typing import List, Optional
 from kfp.components import structures
 from kfp.pipeline_spec import pipeline_spec_pb2
-from kfp.v2.dsl import artifact
-from kfp.v2.dsl import ontology_artifacts
+from kfp.dsl import artifact
+from kfp.dsl import ontology_artifacts
 
 # ComponentSpec I/O types to (IR) PipelineTaskSpec I/O types mapping.
 # The keys are normalized (lowercased). These are types viewed as Artifacts.

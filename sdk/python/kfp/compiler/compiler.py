@@ -24,6 +24,7 @@ from typing import Callable, Set, List, Text, Dict, Tuple, Any, Union, Optional
 
 import kfp
 from kfp.dsl import _for_loop
+from kfp.compiler import _data_passing_rewriter
 
 from .. import dsl
 from ._k8s_helper import convert_k8s_obj_to_json, sanitize_k8s_name
@@ -871,6 +872,10 @@ class Compiler(object):
 
     from ._data_passing_rewriter import fix_big_data_passing
     workflow = fix_big_data_passing(workflow)
+
+    output_directory = getattr(pipeline_func, 'output_directory', None)
+    workflow = _data_passing_rewriter.add_pod_name_passing(workflow,
+                                                           output_directory)
 
     if pipeline_conf and pipeline_conf.data_passing_method != None:
       workflow = pipeline_conf.data_passing_method(workflow)
