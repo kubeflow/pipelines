@@ -12,10 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from absl import logging
+import importlib
 import tensorflow as tf
 from typing import Callable, Dict
 from google.protobuf import json_format
 
+from kfp.components import _python_op
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.dsl import artifact
 
@@ -53,8 +56,8 @@ def import_func_from_source(source_path: str, fn_name: str) -> Callable:
   pass
 
 
-def get_output_artifacts(fn: Callable, output_uris: Dict[str, str]) -> Dict[
-  str, artifact.Artifact]:
+def get_output_artifacts(
+    fn: Callable, output_uris: Dict[str, str]) -> Dict[str, artifact.Artifact]:
   """Gets the output artifacts from function signature and provided URIs.
 
   Args:
@@ -65,4 +68,32 @@ def get_output_artifacts(fn: Callable, output_uris: Dict[str, str]) -> Dict[
   Returns:
     A mapping from output artifact name to Python artifact objects.
   """
-  pass
+  # Inspect the function signature to determine the set of output artifact.
+  spec = _python_op._extract_component_interface(fn)
+
+  result = {} # Mapping from output name to artifacts.
+  for output in spec.outputs:
+    if (getattr(output, '_passing_style', None) == _python_op.OutputArtifact):
+      # Creates an artifact according to its name
+      type_name = getattr(output, 'type', None)
+      if not type_name:
+        continue
+
+      try:
+        artifact_cls = getattr(
+            importlib.import_module(artifact.KFP_ARTIFACT_ONTOLOGY_MODULE),
+            type_name)
+
+      except (AttributeError, ImportError, ValueError):
+        logging.warning((
+            'Could not load artifact class %s.%s; using fallback deserialization'
+            ' for the relevant artifact. Please make sure that any artifact '
+            'classes can be imported within your container or environment.'),
+            artifact.KFP_ARTIFACT_ONTOLOGY_MODULE, type_name)
+        artifact_cls = artifact.Artifact
+
+      art = artifact_cls()
+      art.uri = output_uris[output.name]
+      result[output.name] = art
+
+  return result

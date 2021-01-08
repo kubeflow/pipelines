@@ -24,7 +24,7 @@ from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.dsl import serialization_utils
 
 _KFP_ARTIFACT_TITLE_PATTERN = 'kfp.{}'
-_KFP_ARTIFACT_ONTOLOGY_MODULE = 'kfp.dsl.ontology_artifacts'
+KFP_ARTIFACT_ONTOLOGY_MODULE = 'kfp.dsl.ontology_artifacts'
 
 
 # Enum for property types.
@@ -326,7 +326,7 @@ class Artifact(object):
     result = None
     try:
       artifact_cls = getattr(
-          importlib.import_module(_KFP_ARTIFACT_ONTOLOGY_MODULE), type_name)
+          importlib.import_module(KFP_ARTIFACT_ONTOLOGY_MODULE), type_name)
       # TODO(numerology): Add deserialization tests for first party classes.
       result = artifact_cls()
     except (AttributeError, ImportError, ValueError):
@@ -334,7 +334,7 @@ class Artifact(object):
           'Could not load artifact class %s.%s; using fallback deserialization '
           'for the relevant artifact. Please make sure that any artifact '
           'classes can be imported within your container or environment.'),
-          _KFP_ARTIFACT_ONTOLOGY_MODULE, type_name)
+          KFP_ARTIFACT_ONTOLOGY_MODULE, type_name)
     if not result:
       # Otherwise generate a generic Artifact object.
       result = Artifact(instance_schema=artifact.type.instance_schema)
