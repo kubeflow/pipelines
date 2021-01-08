@@ -2,7 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 bases:
-  - ../platform-agnostic-pns
+  - ../platform-agnostic
   - ../gcp/inverse-proxy
 
 # Identifier for application manager to apply ownerReference.
