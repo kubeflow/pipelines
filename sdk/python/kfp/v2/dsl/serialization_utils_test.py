@@ -14,7 +14,7 @@
 """Tests for kfp.dsl.v2.serialization_utils module."""
 import unittest
 
-from kfp.v2.dsl import serialization_utils
+from kfp.dsl import serialization_utils
 
 _DICT_DATA = {
     'int1': 1,
