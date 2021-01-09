@@ -12,14 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Union
+from typing import NamedTuple, Optional, Union
 
 from absl import logging
 import collections
 import fire
+import os
 
 from kfp.containers import entrypoint_utils
 from kfp.dsl import artifact
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 _FN_SOURCE = 'ml/main.py'
 _FN_NAME_ARG = 'function_name'
@@ -213,8 +215,8 @@ def main(**kwargs):
   input_artifacts_metadata = collections.defaultdict(lambda: None)
   input_artifacts_uri = collections.defaultdict(lambda: None)
   input_artifacts_output_name = collections.defaultdict(lambda: None)
-  output_params = collections.defaultdict(lambda: None)
-  output_artifacts = collections.defaultdict(lambda: None)
+  output_artifacts_uri = collections.defaultdict(lambda: None)
+  output_params_path = {}
   for k, v in kwargs.items():
     if k.endswith(_PARAM_METADATA_SUFFIX):
       param_name = k[:-len(_PARAM_METADATA_SUFFIX)]
@@ -236,8 +238,10 @@ def main(**kwargs):
       input_artifacts_output_name[artifact_name] = v
     elif k.endswith(_OUTPUT_PARAM_PATH_SUFFIX):
       param_name = k[:-len(_OUTPUT_PARAM_PATH_SUFFIX)]
+      output_params_path[param_name] = v
     elif k.endswith(_OUTPUT_ARTIFACT_PATH_SUFFIX):
       artifact_name = k[:-len(_OUTPUT_ARTIFACT_PATH_SUFFIX)]
+      output_artifacts_uri[artifact_name] = v
     else:
       logging.warning(
           'Got unexpected command line argument: %s=%s Ignoring', k, v)
@@ -275,13 +279,61 @@ def main(**kwargs):
   fn_name = kwargs[_FN_NAME_ARG]
 
   fn = entrypoint_utils.import_func_from_source(_FN_SOURCE, fn_name)
-  invoking_kwargs = {}
+  # Get the output artifacts and combine them with the provided URIs.
+  invoking_kwargs = entrypoint_utils.get_output_artifacts(
+      fn, output_artifacts_uri)
   for k, v in input_params.items():
     invoking_kwargs[k] = v.value
   for k, v in input_artifacts.items():
     invoking_kwargs[k] = v.get_artifact()
 
-  #
+  # Execute the user function. fn_res is expected to contain output parameters
+  # only. It's either an namedtuple or a single primitive value.
+  fn_res = fn(**invoking_kwargs)
+
+  if not isinstance(fn_res, (NamedTuple, int, float, str)):
+    raise TypeError('The execution result of the user function needs to be '
+                    'either a NamedTuple or primitive value. Got %s' % fn_res)
+
+  if isinstance(fn_res, (int, float, str)) and len(output_params_path) != 1:
+    raise RuntimeError('For primitive output a single output param path is '
+                       'expected. Got %s' % output_params_path)
+
+  if isinstance(fn_res, (int, float, str)):
+    output_name = list(output_params_path.keys())[0]
+    # Write the output to the provided path.
+    try:
+      os.makedirs(os.path.dirname(output_params_path[output_name]))
+    except OSError:
+      # Ignore the error when creating parent dirs.
+      pass
+    with open(output_params_path[output_name], 'w') as file:
+      file.write(str(fn_res))
+  else:
+    # When multiple outputs, we'll need to match each field to the output paths.
+    for idx, output_name in enumerate(fn_res._fields):
+      path = output_params_path[output_name]
+      try:
+        os.makedirs(os.path.dirname(path))
+      except OSError:
+        # Ignore the error when creating parent dirs.
+        pass
+      with open(path, 'w') as file:
+        file.write(str(fn_res[idx]))
+
+  # Write output metadata JSON file.
+  output_parameters = None
+  if isinstance(fn_res, (int, float, str)):
+    output_parameters['output'] = fn_res
+  else:
+    for idx, output_name in enumerate(fn_res._fields):
+      output_parameters[output_name] = fn_res[idx]
+
+  executor_output = pipeline_spec_pb2.ExecutorOutput()
+  executor_output.parameters
+  executor_output.artifacts
+
+
 
 
 
