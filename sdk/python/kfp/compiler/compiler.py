@@ -24,6 +24,7 @@ from typing import Callable, Set, List, Text, Dict, Tuple, Any, Union, Optional
 
 import kfp
 from kfp.dsl import _for_loop
+from kfp.compiler import _data_passing_rewriter
 
 from .. import dsl
 from ._k8s_helper import convert_k8s_obj_to_json, sanitize_k8s_name
@@ -325,6 +326,21 @@ class Compiler(object):
 
     _get_inputs_outputs_recursive_opsgroup(root_group)
 
+    # Generate the input for SubGraph along with parallelfor
+    for sub_graph in opsgroup_groups:
+      if sub_graph in op_name_to_for_loop_op:
+        # The opsgroup list is sorted with the farthest group as the first and the opsgroup
+        # itself as the last. To get the latest opsgroup which is not the opsgroup itself -2 is used. 
+        parent = opsgroup_groups[sub_graph][-2] 
+        if parent and parent.startswith('subgraph'):
+          # propagate only op's pipeline param from subgraph to parallelfor
+          loop_op = op_name_to_for_loop_op[sub_graph]
+          pipeline_param = loop_op.loop_args.items_or_pipeline_param
+          if loop_op.items_is_pipeline_param and pipeline_param.op_name:
+            param_name = '%s-%s' % (
+              sanitize_k8s_name(pipeline_param.op_name), pipeline_param.name)
+            inputs[parent].add((param_name, pipeline_param.op_name))
+
     return inputs, outputs
 
   def _get_dependencies(self, pipeline, root_group, op_groups, opsgroups_groups, opsgroups, condition_params):
@@ -408,10 +424,12 @@ class Compiler(object):
       return str(value_or_reference)
 
   @staticmethod
-  def _resolve_task_pipeline_param(pipeline_param: PipelineParam) -> str:
+  def _resolve_task_pipeline_param(pipeline_param: PipelineParam, group_type) -> str:
     if pipeline_param.op_name is None:
       return '{{workflow.parameters.%s}}' % pipeline_param.name
     param_name = '%s-%s' % (sanitize_k8s_name(pipeline_param.op_name), pipeline_param.name)
+    if group_type == 'subgraph':
+      return '{{inputs.parameters.%s}}' % (param_name)
     return '{{tasks.%s.outputs.parameters.%s}}' % (sanitize_k8s_name(pipeline_param.op_name), param_name)
 
   def _group_to_dag_template(self, group, inputs, outputs, dependencies):
@@ -446,7 +464,8 @@ class Compiler(object):
 
     # Generate tasks section.
     tasks = []
-    for sub_group in group.groups + group.ops:
+    sub_groups = group.groups + group.ops
+    for sub_group in sub_groups:
       is_recursive_subgroup = (isinstance(sub_group, OpsGroup) and sub_group.recursive_ref)
       # Special handling for recursive subgroup: use the existing opsgroup name
       if is_recursive_subgroup:
@@ -487,13 +506,13 @@ class Compiler(object):
           # as global pipeline parameters
 
           pipeline_param = sub_group.loop_args.items_or_pipeline_param
-          withparam_value = self._resolve_task_pipeline_param(pipeline_param)
+          withparam_value = self._resolve_task_pipeline_param(pipeline_param, group.type)
           if pipeline_param.op_name:
             # these loop args are the output of another task
             if 'dependencies' not in task or task['dependencies'] is None:
               task['dependencies'] = []
             if sanitize_k8s_name(
-                pipeline_param.op_name) not in task['dependencies']:
+                pipeline_param.op_name) not in task['dependencies'] and group.type != 'subgraph':
               task['dependencies'].append(
                   sanitize_k8s_name(pipeline_param.op_name))
 
@@ -504,7 +523,7 @@ class Compiler(object):
           nested_pipeline_params = extract_pipelineparams_from_any(loop_tasks)
 
           # Set dependencies in case of nested pipeline_params
-          map_to_tmpl_var = {str(p): self._resolve_task_pipeline_param(p) for p in nested_pipeline_params}
+          map_to_tmpl_var = {str(p): self._resolve_task_pipeline_param(p, group.type) for p in nested_pipeline_params}
           for pipeline_param in nested_pipeline_params:
             if pipeline_param.op_name:
               # these pipeline_param are the output of another task
@@ -871,6 +890,10 @@ class Compiler(object):
 
     from ._data_passing_rewriter import fix_big_data_passing
     workflow = fix_big_data_passing(workflow)
+
+    output_directory = getattr(pipeline_func, 'output_directory', None)
+    workflow = _data_passing_rewriter.add_pod_name_passing(workflow,
+                                                           output_directory)
 
     if pipeline_conf and pipeline_conf.data_passing_method != None:
       workflow = pipeline_conf.data_passing_method(workflow)

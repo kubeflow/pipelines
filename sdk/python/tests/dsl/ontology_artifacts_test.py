@@ -13,8 +13,8 @@
 # limitations under the License.
 """Tests for kfp.v2.dsl.ontology_artifacts module."""
 import unittest
-from kfp.v2.dsl import artifact
-from kfp.v2.dsl import ontology_artifacts
+from kfp.dsl import artifact
+from kfp.dsl import ontology_artifacts
 
 _EXPECTED_SERIALIZATION = """\
 {

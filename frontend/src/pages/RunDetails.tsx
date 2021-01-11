@@ -857,6 +857,8 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     return !workflow.status
       ? []
       : [
+          ['Run ID', runMetadata?.id || '-'],
+          ['Workflow name', workflow.metadata?.name || '-'],
           ['Status', workflow.status.phase],
           ['Description', runMetadata ? runMetadata!.description! : ''],
           [

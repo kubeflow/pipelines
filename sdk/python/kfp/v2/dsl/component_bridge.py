@@ -147,6 +147,15 @@ def create_container_op_from_component_and_arguments(
       raise TypeError(
           'Input "{}" with type "{}" cannot be paired with InputPathPlaceholder.'
           .format(input_key, inputs_dict[input_key].type))
+    elif input_key in importer_spec:
+      raise TypeError(
+          'Input "{}" with type "{}" is not connected to any upstream output. '
+          'However it is used with InputPathPlaceholder. '
+          'If you want to import an existing artifact using a system-connected '
+          'importer node, use InputUriPlaceholder instead. '
+          'Or if you just want to pass a string parameter, use string type and '
+          'InputValuePlaceholder instead.'
+          .format(input_key, inputs_dict[input_key].type))
     else:
       return "{{{{$.inputs.artifacts['{}'].path}}}}".format(input_key)
 

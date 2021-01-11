@@ -22,6 +22,14 @@ The API server image can be built from the root folder of the repo using:
 export API_SERVER_IMAGE=api_server
 docker build -f backend/Dockerfile . --tag $API_SERVER_IMAGE
 ```
+## Deploy APIServer with the image you own build
+
+Run
+```
+kubectl edit deployment.v1.apps/ml-pipeline -n kubeflow
+```
+You'll see the field reference the api server docker image.
+Change it to point to your own build, after saving and closing the file, apiserver will restart with your change.
 
 ## Building Go client library and swagger files
 

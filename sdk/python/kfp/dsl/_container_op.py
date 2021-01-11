@@ -1011,19 +1011,19 @@ class ContainerOp(BaseOp):
     _DISABLE_REUSABLE_COMPONENT_WARNING = False
 
     def __init__(
-      self,
-      name: str,
-      image: str,
-      command: StringOrStringList = None,
-      arguments: StringOrStringList = None,
-      init_containers: List[UserContainer] = None,
-      sidecars: List[Sidecar] = None,
-      container_kwargs: Dict = None,
-      artifact_argument_paths: List[InputArgumentPath] = None,
-      file_outputs: Dict[str, str] = None,
-      output_artifact_paths: Dict[str, str]=None,
-      is_exit_handler=False,
-      pvolumes: Dict[str, V1Volume] = None,
+        self,
+        name: str,
+        image: str,
+        command: Optional[StringOrStringList] = None,
+        arguments: Optional[StringOrStringList] = None,
+        init_containers: Optional[List[UserContainer]] = None,
+        sidecars: Optional[List[Sidecar]] = None,
+        container_kwargs: Optional[Dict] = None,
+        artifact_argument_paths: Optional[List[InputArgumentPath]] = None,
+        file_outputs: Optional[Dict[str, str]] = None,
+        output_artifact_paths: Optional[Dict[str, str]] = None,
+        is_exit_handler: bool = False,
+        pvolumes: Optional[Dict[str, V1Volume]] = None,
     ):
         super().__init__(name=name, init_containers=init_containers, sidecars=sidecars, is_exit_handler=is_exit_handler)
 

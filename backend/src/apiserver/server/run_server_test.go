@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"strings"
 	"testing"
 
@@ -455,6 +456,19 @@ func TestValidateCreateRunRequest_EmptyName(t *testing.T) {
 	assert.Contains(t, err.Error(), "The run name is empty")
 }
 
+func TestValidateCreateRunRequest_InvalidPipelineVersionReference(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+	run := &api.Run{
+		Name:               "run1",
+		ResourceReferences:referencesOfExperimentAndInvalidPipelineVersion,
+	}
+	err := server.validateCreateRunRequest(&api.CreateRunRequest{Run: run})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Get pipelineVersionId failed.")
+}
+
 func TestValidateCreateRunRequest_NoExperiment(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
@@ -471,7 +485,7 @@ func TestValidateCreateRunRequest_NoExperiment(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestValidateCreateRunRequest_EmptyPipelineSpecAndEmptyPipelineVersion(t *testing.T) {
+func TestValidateCreateRunRequest_NilPipelineSpecAndEmptyPipelineVersion(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
@@ -481,7 +495,42 @@ func TestValidateCreateRunRequest_EmptyPipelineSpecAndEmptyPipelineVersion(t *te
 	}
 	err := server.validateCreateRunRequest(&api.CreateRunRequest{Run: run})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Neither pipeline spec nor pipeline version is valid")
+	assert.Contains(t, err.Error(), "Please specify a pipeline by providing a (workflow manifest) or (pipeline id or/and pipeline version).")
+}
+
+func TestValidateCreateRunRequest_WorkflowManifestAndPipelineVersion(t *testing.T) {
+	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	defer clients.Close()
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+	run := &api.Run{
+		Name:               "run1",
+		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+		},
+	}
+	err := server.validateCreateRunRequest(&api.CreateRunRequest{Run: run})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest.")
+}
+
+func TestValidateCreateRunRequest_InvalidPipelineSpec(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+	run := &api.Run{
+		Name:               "run1",
+		ResourceReferences: validReference,
+		PipelineSpec: &api.PipelineSpec{
+			PipelineId: resource.DefaultFakeUUID,
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+		},
+	}
+	err := server.validateCreateRunRequest(&api.CreateRunRequest{Run: run})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest.")
 }
 
 func TestValidateCreateRunRequest_TooMuchParameters(t *testing.T) {

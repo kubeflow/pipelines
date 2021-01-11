@@ -11,15 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""MLMD artifact ontology in KFP SDK."""
-from kfp.v2.dsl import artifact
 
-
-# TODO(numerology): Add concrete property schema to each artifact types.
-#   Also consider adding Metrics class when the schema is hammered down.
-class Model(artifact.Artifact):
-  TYPE_NAME = 'Model'
-
-
-class Dataset(artifact.Artifact):
-  TYPE_NAME = 'Dataset'
+test_name: parallelism_sub_dag
+run_pipeline: True

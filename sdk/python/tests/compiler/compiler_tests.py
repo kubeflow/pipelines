@@ -1101,3 +1101,6 @@ implementation:
     p = PipelineParam(name='param1', op_name='op1')
     resolved = Compiler._resolve_task_pipeline_param(p)
     self.assertEqual(resolved, "{{tasks.op1.outputs.parameters.op1-param1}}")
+
+  def test_uri_artifact_passing(self):
+    self._test_py_compile_yaml('uri_artifacts')

@@ -20,7 +20,7 @@ import PendingIcon from '@material-ui/icons/Schedule';
 import RunningIcon from '../icons/statusRunning';
 import SkippedIcon from '@material-ui/icons/SkipNext';
 import SuccessIcon from '@material-ui/icons/CheckCircle';
-import CachedIcon from '@material-ui/icons/Cached';
+import CachedIcon from '../icons/statusCached';
 import TerminatedIcon from '../icons/statusTerminated';
 import Tooltip from '@material-ui/core/Tooltip';
 import UnknownIcon from '@material-ui/icons/Help';
