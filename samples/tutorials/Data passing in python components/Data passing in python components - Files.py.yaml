@@ -1,0 +1,491 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: file-passing-pipelines-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.1.1-beta.1, pipelines.kubeflow.org/pipeline_compilation_time: '2021-01-26T21:41:36.568689',
+    pipelines.kubeflow.org/pipeline_spec: '{"name": "File passing pipelines"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.1.1-beta.1}
+spec:
+  entrypoint: file-passing-pipelines
+  templates:
+  - name: file-passing-pipelines
+    dag:
+      tasks:
+      - name: print-text
+        template: print-text
+        dependencies: [repeat-line]
+        arguments:
+          artifacts:
+          - {name: repeat-line-output_text, from: '{{tasks.repeat-line.outputs.artifacts.repeat-line-output_text}}'}
+      - name: print-text-2
+        template: print-text-2
+        dependencies: [split-text-lines]
+        arguments:
+          artifacts:
+          - {name: split-text-lines-odd_lines, from: '{{tasks.split-text-lines.outputs.artifacts.split-text-lines-odd_lines}}'}
+      - name: print-text-3
+        template: print-text-3
+        dependencies: [split-text-lines]
+        arguments:
+          artifacts:
+          - {name: split-text-lines-even_lines, from: '{{tasks.split-text-lines.outputs.artifacts.split-text-lines-even_lines}}'}
+      - name: print-text-4
+        template: print-text-4
+        dependencies: [write-numbers]
+        arguments:
+          artifacts:
+          - {name: write-numbers-numbers, from: '{{tasks.write-numbers.outputs.artifacts.write-numbers-numbers}}'}
+      - name: print-text-5
+        template: print-text-5
+        dependencies: [sum-numbers]
+        arguments:
+          artifacts:
+          - {name: sum-numbers-Output, from: '{{tasks.sum-numbers.outputs.artifacts.sum-numbers-Output}}'}
+      - {name: repeat-line, template: repeat-line}
+      - {name: split-text-lines, template: split-text-lines}
+      - name: sum-numbers
+        template: sum-numbers
+        dependencies: [write-numbers]
+        arguments:
+          artifacts:
+          - {name: write-numbers-numbers, from: '{{tasks.write-numbers.outputs.artifacts.write-numbers-numbers}}'}
+      - {name: write-numbers, template: write-numbers}
+  - name: print-text
+    container:
+      args: [--text, /tmp/inputs/text/data]
+      command:
+      - python3
+      - -u
+      - -c
+      - |
+        def print_text(text_path): # The "text" input is untyped so that any data can be printed
+            '''Print text'''
+            with open(text_path, 'r') as reader:
+                for line in reader:
+                    print(line, end = '')
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Print text', description='Print text')
+        _parser.add_argument("--text", dest="text_path", type=str, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = print_text(**_parsed_args)
+      image: python:3.7
+    inputs:
+      artifacts:
+      - {name: repeat-line-output_text, path: /tmp/inputs/text/data}
+    metadata:
+      annotations: {pipelines.kubeflow.org/component_spec: '{"description": "Print
+          text", "implementation": {"container": {"args": ["--text", {"inputPath":
+          "text"}], "command": ["python3", "-u", "-c", "def print_text(text_path):
+          # The \"text\" input is untyped so that any data can be printed\n    ''''''Print
+          text''''''\n    with open(text_path, ''r'') as reader:\n        for line
+          in reader:\n            print(line, end = '''')\n\nimport argparse\n_parser
+          = argparse.ArgumentParser(prog=''Print text'', description=''Print text'')\n_parser.add_argument(\"--text\",
+          dest=\"text_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
+          = vars(_parser.parse_args())\n\n_outputs = print_text(**_parsed_args)\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "text"}], "name": "Print text"}',
+        pipelines.kubeflow.org/component_ref: '{}'}
+  - name: print-text-2
+    container:
+      args: [--text, /tmp/inputs/text/data]
+      command:
+      - python3
+      - -u
+      - -c
+      - |
+        def print_text(text_path): # The "text" input is untyped so that any data can be printed
+            '''Print text'''
+            with open(text_path, 'r') as reader:
+                for line in reader:
+                    print(line, end = '')
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Print text', description='Print text')
+        _parser.add_argument("--text", dest="text_path", type=str, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = print_text(**_parsed_args)
+      image: python:3.7
+    inputs:
+      artifacts:
+      - {name: split-text-lines-odd_lines, path: /tmp/inputs/text/data}
+    metadata:
+      annotations: {pipelines.kubeflow.org/component_spec: '{"description": "Print
+          text", "implementation": {"container": {"args": ["--text", {"inputPath":
+          "text"}], "command": ["python3", "-u", "-c", "def print_text(text_path):
+          # The \"text\" input is untyped so that any data can be printed\n    ''''''Print
+          text''''''\n    with open(text_path, ''r'') as reader:\n        for line
+          in reader:\n            print(line, end = '''')\n\nimport argparse\n_parser
+          = argparse.ArgumentParser(prog=''Print text'', description=''Print text'')\n_parser.add_argument(\"--text\",
+          dest=\"text_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
+          = vars(_parser.parse_args())\n\n_outputs = print_text(**_parsed_args)\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "text"}], "name": "Print text"}',
+        pipelines.kubeflow.org/component_ref: '{}'}
+  - name: print-text-3
+    container:
+      args: [--text, /tmp/inputs/text/data]
+      command:
+      - python3
+      - -u
+      - -c
+      - |
+        def print_text(text_path): # The "text" input is untyped so that any data can be printed
+            '''Print text'''
+            with open(text_path, 'r') as reader:
+                for line in reader:
+                    print(line, end = '')
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Print text', description='Print text')
+        _parser.add_argument("--text", dest="text_path", type=str, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = print_text(**_parsed_args)
+      image: python:3.7
+    inputs:
+      artifacts:
+      - {name: split-text-lines-even_lines, path: /tmp/inputs/text/data}
+    metadata:
+      annotations: {pipelines.kubeflow.org/component_spec: '{"description": "Print
+          text", "implementation": {"container": {"args": ["--text", {"inputPath":
+          "text"}], "command": ["python3", "-u", "-c", "def print_text(text_path):
+          # The \"text\" input is untyped so that any data can be printed\n    ''''''Print
+          text''''''\n    with open(text_path, ''r'') as reader:\n        for line
+          in reader:\n            print(line, end = '''')\n\nimport argparse\n_parser
+          = argparse.ArgumentParser(prog=''Print text'', description=''Print text'')\n_parser.add_argument(\"--text\",
+          dest=\"text_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
+          = vars(_parser.parse_args())\n\n_outputs = print_text(**_parsed_args)\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "text"}], "name": "Print text"}',
+        pipelines.kubeflow.org/component_ref: '{}'}
+  - name: print-text-4
+    container:
+      args: [--text, /tmp/inputs/text/data]
+      command:
+      - python3
+      - -u
+      - -c
+      - |
+        def print_text(text_path): # The "text" input is untyped so that any data can be printed
+            '''Print text'''
+            with open(text_path, 'r') as reader:
+                for line in reader:
+                    print(line, end = '')
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Print text', description='Print text')
+        _parser.add_argument("--text", dest="text_path", type=str, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = print_text(**_parsed_args)
+      image: python:3.7
+    inputs:
+      artifacts:
+      - {name: write-numbers-numbers, path: /tmp/inputs/text/data}
+    metadata:
+      annotations: {pipelines.kubeflow.org/component_spec: '{"description": "Print
+          text", "implementation": {"container": {"args": ["--text", {"inputPath":
+          "text"}], "command": ["python3", "-u", "-c", "def print_text(text_path):
+          # The \"text\" input is untyped so that any data can be printed\n    ''''''Print
+          text''''''\n    with open(text_path, ''r'') as reader:\n        for line
+          in reader:\n            print(line, end = '''')\n\nimport argparse\n_parser
+          = argparse.ArgumentParser(prog=''Print text'', description=''Print text'')\n_parser.add_argument(\"--text\",
+          dest=\"text_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
+          = vars(_parser.parse_args())\n\n_outputs = print_text(**_parsed_args)\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "text"}], "name": "Print text"}',
+        pipelines.kubeflow.org/component_ref: '{}'}
+  - name: print-text-5
+    container:
+      args: [--text, /tmp/inputs/text/data]
+      command:
+      - python3
+      - -u
+      - -c
+      - |
+        def print_text(text_path): # The "text" input is untyped so that any data can be printed
+            '''Print text'''
+            with open(text_path, 'r') as reader:
+                for line in reader:
+                    print(line, end = '')
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Print text', description='Print text')
+        _parser.add_argument("--text", dest="text_path", type=str, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = print_text(**_parsed_args)
+      image: python:3.7
+    inputs:
+      artifacts:
+      - {name: sum-numbers-Output, path: /tmp/inputs/text/data}
+    metadata:
+      annotations: {pipelines.kubeflow.org/component_spec: '{"description": "Print
+          text", "implementation": {"container": {"args": ["--text", {"inputPath":
+          "text"}], "command": ["python3", "-u", "-c", "def print_text(text_path):
+          # The \"text\" input is untyped so that any data can be printed\n    ''''''Print
+          text''''''\n    with open(text_path, ''r'') as reader:\n        for line
+          in reader:\n            print(line, end = '''')\n\nimport argparse\n_parser
+          = argparse.ArgumentParser(prog=''Print text'', description=''Print text'')\n_parser.add_argument(\"--text\",
+          dest=\"text_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
+          = vars(_parser.parse_args())\n\n_outputs = print_text(**_parsed_args)\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "text"}], "name": "Print text"}',
+        pipelines.kubeflow.org/component_ref: '{}'}
+  - name: repeat-line
+    container:
+      args: [--line, Hello, --count, '5000', --output-text, /tmp/outputs/output_text/data]
+      command:
+      - python3
+      - -u
+      - -c
+      - |
+        def _make_parent_dirs_and_return_path(file_path: str):
+            import os
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            return file_path
+
+        def repeat_line(line, output_text_path, count = 10):
+            '''Repeat the line specified number of times'''
+            with open(output_text_path, 'w') as writer:
+                for i in range(count):
+                    writer.write(line + '\n')
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Repeat line', description='Repeat the line specified number of times')
+        _parser.add_argument("--line", dest="line", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--count", dest="count", type=int, required=False, default=argparse.SUPPRESS)
+        _parser.add_argument("--output-text", dest="output_text_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = repeat_line(**_parsed_args)
+      image: python:3.7
+    outputs:
+      artifacts:
+      - {name: repeat-line-output_text, path: /tmp/outputs/output_text/data}
+    metadata:
+      annotations: {pipelines.kubeflow.org/component_spec: '{"description": "Repeat
+          the line specified number of times", "implementation": {"container": {"args":
+          ["--line", {"inputValue": "line"}, {"if": {"cond": {"isPresent": "count"},
+          "then": ["--count", {"inputValue": "count"}]}}, "--output-text", {"outputPath":
+          "output_text"}], "command": ["python3", "-u", "-c", "def _make_parent_dirs_and_return_path(file_path:
+          str):\n    import os\n    os.makedirs(os.path.dirname(file_path), exist_ok=True)\n    return
+          file_path\n\ndef repeat_line(line, output_text_path, count = 10):\n    ''''''Repeat
+          the line specified number of times''''''\n    with open(output_text_path,
+          ''w'') as writer:\n        for i in range(count):\n            writer.write(line
+          + ''\\n'')\n\nimport argparse\n_parser = argparse.ArgumentParser(prog=''Repeat
+          line'', description=''Repeat the line specified number of times'')\n_parser.add_argument(\"--line\",
+          dest=\"line\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--count\",
+          dest=\"count\", type=int, required=False, default=argparse.SUPPRESS)\n_parser.add_argument(\"--output-text\",
+          dest=\"output_text_path\", type=_make_parent_dirs_and_return_path, required=True,
+          default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs
+          = repeat_line(**_parsed_args)\n"], "image": "python:3.7"}}, "inputs": [{"name":
+          "line", "type": "String"}, {"default": "10", "name": "count", "optional":
+          true, "type": "Integer"}], "name": "Repeat line", "outputs": [{"name": "output_text",
+          "type": "String"}]}', pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"count":
+          "5000", "line": "Hello"}'}
+  - name: split-text-lines
+    container:
+      args: [--source, /tmp/inputs/source/data, --odd-lines, /tmp/outputs/odd_lines/data,
+        --even-lines, /tmp/outputs/even_lines/data]
+      command:
+      - python3
+      - -u
+      - -c
+      - |
+        def _make_parent_dirs_and_return_path(file_path: str):
+            import os
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            return file_path
+
+        def split_text_lines(source_path, odd_lines_path, even_lines_path):
+            with open(source_path, 'r') as reader:
+                with open(odd_lines_path, 'w') as odd_writer:
+                    with open(even_lines_path, 'w') as even_writer:
+                        while True:
+                            line = reader.readline()
+                            if line == "":
+                                break
+                            odd_writer.write(line)
+                            line = reader.readline()
+                            if line == "":
+                                break
+                            even_writer.write(line)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Split text lines', description='')
+        _parser.add_argument("--source", dest="source_path", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--odd-lines", dest="odd_lines_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--even-lines", dest="even_lines_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = split_text_lines(**_parsed_args)
+      image: python:3.7
+    inputs:
+      artifacts:
+      - name: source
+        path: /tmp/inputs/source/data
+        raw:
+          data: |-
+            one
+            two
+            three
+            four
+            five
+            six
+            seven
+            eight
+            nine
+            ten
+    outputs:
+      artifacts:
+      - {name: split-text-lines-even_lines, path: /tmp/outputs/even_lines/data}
+      - {name: split-text-lines-odd_lines, path: /tmp/outputs/odd_lines/data}
+    metadata:
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--source", {"inputPath": "source"}, "--odd-lines", {"outputPath":
+          "odd_lines"}, "--even-lines", {"outputPath": "even_lines"}], "command":
+          ["python3", "-u", "-c", "def _make_parent_dirs_and_return_path(file_path:
+          str):\n    import os\n    os.makedirs(os.path.dirname(file_path), exist_ok=True)\n    return
+          file_path\n\ndef split_text_lines(source_path, odd_lines_path, even_lines_path):\n    with
+          open(source_path, ''r'') as reader:\n        with open(odd_lines_path, ''w'')
+          as odd_writer:\n            with open(even_lines_path, ''w'') as even_writer:\n                while
+          True:\n                    line = reader.readline()\n                    if
+          line == \"\":\n                        break\n                    odd_writer.write(line)\n                    line
+          = reader.readline()\n                    if line == \"\":\n                        break\n                    even_writer.write(line)\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Split text lines'', description='''')\n_parser.add_argument(\"--source\",
+          dest=\"source_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--odd-lines\",
+          dest=\"odd_lines_path\", type=_make_parent_dirs_and_return_path, required=True,
+          default=argparse.SUPPRESS)\n_parser.add_argument(\"--even-lines\", dest=\"even_lines_path\",
+          type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)\n_parsed_args
+          = vars(_parser.parse_args())\n\n_outputs = split_text_lines(**_parsed_args)\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "source", "type": "String"}],
+          "name": "Split text lines", "outputs": [{"name": "odd_lines", "type": "String"},
+          {"name": "even_lines", "type": "String"}]}', pipelines.kubeflow.org/component_ref: '{}'}
+  - name: sum-numbers
+    container:
+      args: [--numbers, /tmp/inputs/numbers/data, '----output-paths', /tmp/outputs/Output/data]
+      command:
+      - python3
+      - -u
+      - -c
+      - |
+        def sum_numbers(numbers_path):
+            sum = 0
+            import time
+            time.sleep(60*60*24)
+            with open(numbers_path, 'r') as reader:
+                for line in reader:
+                    sum = sum + int(line)
+            return sum
+
+        def _serialize_int(int_value: int) -> str:
+            if isinstance(int_value, str):
+                return int_value
+            if not isinstance(int_value, int):
+                raise TypeError('Value "{}" has type "{}" instead of int.'.format(str(int_value), str(type(int_value))))
+            return str(int_value)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Sum numbers', description='')
+        _parser.add_argument("--numbers", dest="numbers_path", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = sum_numbers(**_parsed_args)
+
+        _outputs = [_outputs]
+
+        _output_serializers = [
+            _serialize_int,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      image: python:3.7
+    inputs:
+      artifacts:
+      - {name: write-numbers-numbers, path: /tmp/inputs/numbers/data}
+    outputs:
+      artifacts:
+      - {name: sum-numbers-Output, path: /tmp/outputs/Output/data}
+    metadata:
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--numbers", {"inputPath": "numbers"}, "----output-paths", {"outputPath":
+          "Output"}], "command": ["python3", "-u", "-c", "def sum_numbers(numbers_path):\n    sum
+          = 0\n    import time\n    time.sleep(60*60*24)\n    with open(numbers_path,
+          ''r'') as reader:\n        for line in reader:\n            sum = sum +
+          int(line)\n    return sum\n\ndef _serialize_int(int_value: int) -> str:\n    if
+          isinstance(int_value, str):\n        return int_value\n    if not isinstance(int_value,
+          int):\n        raise TypeError(''Value \"{}\" has type \"{}\" instead of
+          int.''.format(str(int_value), str(type(int_value))))\n    return str(int_value)\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Sum numbers'', description='''')\n_parser.add_argument(\"--numbers\",
+          dest=\"numbers_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"----output-paths\",
+          dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files
+          = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = sum_numbers(**_parsed_args)\n\n_outputs
+          = [_outputs]\n\n_output_serializers = [\n    _serialize_int,\n\n]\n\nimport
+          os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except
+          OSError:\n        pass\n    with open(output_file, ''w'') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "numbers", "type": "String"}],
+          "name": "Sum numbers", "outputs": [{"name": "Output", "type": "Integer"}]}',
+        pipelines.kubeflow.org/component_ref: '{}'}
+  - name: write-numbers
+    container:
+      args: [--count, '100000', --numbers, /tmp/outputs/numbers/data]
+      command:
+      - python3
+      - -u
+      - -c
+      - |
+        def _make_parent_dirs_and_return_path(file_path: str):
+            import os
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            return file_path
+
+        def write_numbers(numbers_path, start = 0, count = 10):
+            with open(numbers_path, 'w') as writer:
+                for i in range(start, count):
+                    writer.write(str(i) + '\n')
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Write numbers', description='')
+        _parser.add_argument("--start", dest="start", type=int, required=False, default=argparse.SUPPRESS)
+        _parser.add_argument("--count", dest="count", type=int, required=False, default=argparse.SUPPRESS)
+        _parser.add_argument("--numbers", dest="numbers_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = write_numbers(**_parsed_args)
+      image: python:3.7
+    outputs:
+      artifacts:
+      - {name: write-numbers-numbers, path: /tmp/outputs/numbers/data}
+    metadata:
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": [{"if": {"cond": {"isPresent": "start"}, "then": ["--start", {"inputValue":
+          "start"}]}}, {"if": {"cond": {"isPresent": "count"}, "then": ["--count",
+          {"inputValue": "count"}]}}, "--numbers", {"outputPath": "numbers"}], "command":
+          ["python3", "-u", "-c", "def _make_parent_dirs_and_return_path(file_path:
+          str):\n    import os\n    os.makedirs(os.path.dirname(file_path), exist_ok=True)\n    return
+          file_path\n\ndef write_numbers(numbers_path, start = 0, count = 10):\n    with
+          open(numbers_path, ''w'') as writer:\n        for i in range(start, count):\n            writer.write(str(i)
+          + ''\\n'')\n\nimport argparse\n_parser = argparse.ArgumentParser(prog=''Write
+          numbers'', description='''')\n_parser.add_argument(\"--start\", dest=\"start\",
+          type=int, required=False, default=argparse.SUPPRESS)\n_parser.add_argument(\"--count\",
+          dest=\"count\", type=int, required=False, default=argparse.SUPPRESS)\n_parser.add_argument(\"--numbers\",
+          dest=\"numbers_path\", type=_make_parent_dirs_and_return_path, required=True,
+          default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs
+          = write_numbers(**_parsed_args)\n"], "image": "python:3.7"}}, "inputs":
+          [{"default": "0", "name": "start", "optional": true, "type": "Integer"},
+          {"default": "10", "name": "count", "optional": true, "type": "Integer"}],
+          "name": "Write numbers", "outputs": [{"name": "numbers", "type": "String"}]}',
+        pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"count":
+          "100000"}'}
+  arguments:
+    parameters: []
+  serviceAccountName: pipeline-runner

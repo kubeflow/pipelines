@@ -1,0 +1,9 @@
+FROM python:3.7-stretch
+# Install mysql
+RUN apt-get update
+RUN apt-get install mysql-server -y
+RUN apt-get install default-libmysqlclient-dev -y
+COPY  . /app
+WORKDIR /app
+# Install python packages
+RUN pip3 install -r requirements.txt
