@@ -15,13 +15,14 @@
 from typing import NamedTuple, Optional, Union
 
 from absl import logging
-import collections
 import fire
+from google.protobuf import json_format
 import os
+# TODO: Get rid of TF dependency by implementing file IO utilities.
+import tensorflow as tf
 
 from kfp.containers import entrypoint_utils
 from kfp.dsl import artifact
-from kfp.pipeline_spec import pipeline_spec_pb2
 
 _FN_SOURCE = 'ml/main.py'
 _FN_NAME_ARG = 'function_name'
@@ -35,6 +36,8 @@ _OUTPUT_NAME_SUFFIX = '_input_output_name'
 
 _OUTPUT_PARAM_PATH_SUFFIX = '_parameter_output_path'
 _OUTPUT_ARTIFACT_PATH_SUFFIX = '_artifact_output_path'
+
+_METADATA_FILE_ARG = 'executor_metadata_json_file'
 
 
 class InputParam(object):
@@ -144,31 +147,6 @@ class InputArtifact(object):
         self.metadata_file, self.output_name)
 
 
-class OutputParameter(object):
-  pass
-
-class OutputArtifact(object):
-  """POD that holds an output artifact."""
-
-  def __init__(self, uri: str, output_name: str):
-    """Instantiates an InputParam object.
-
-    Args:
-      uri: The uri holds this artifact.
-      output_name: The output name of the artifact.
-
-    Raises:
-      ValueError: when either uri or output_name is not provided.
-    """
-    if not (uri and output_name):
-      raise ValueError('Both uri and output_name should be provided.')
-    self._uri = uri
-    self._output_name = output_name
-
-  def get_artifact(self) -> artifact.Artifact:
-    pass
-
-
 def main(**kwargs):
   """Container entrypoint used by KFP Python function based component.
 
@@ -208,14 +186,17 @@ def main(**kwargs):
   In addition, `executor_metadata_json_file` specifies the location where the
   output metadata JSON file will be written.
   """
+  assert (
+      _METADATA_FILE_ARG in kwargs, 'Must specify executor_metadata_json_file.')
+
   # Group arguments according to suffixes.
-  input_params_metadata = collections.defaultdict(lambda: None)
-  input_params_field_name = collections.defaultdict(lambda: None)
-  input_params_value = collections.defaultdict(lambda: None)
-  input_artifacts_metadata = collections.defaultdict(lambda: None)
-  input_artifacts_uri = collections.defaultdict(lambda: None)
-  input_artifacts_output_name = collections.defaultdict(lambda: None)
-  output_artifacts_uri = collections.defaultdict(lambda: None)
+  input_params_metadata = {}
+  input_params_field_name = {}
+  input_params_value = {}
+  input_artifacts_metadata = {}
+  input_artifacts_uri = {}
+  input_artifacts_output_name = {}
+  output_artifacts_uri = {}
   output_params_path = {}
   for k, v in kwargs.items():
     if k.endswith(_PARAM_METADATA_SUFFIX):
@@ -280,8 +261,11 @@ def main(**kwargs):
 
   fn = entrypoint_utils.import_func_from_source(_FN_SOURCE, fn_name)
   # Get the output artifacts and combine them with the provided URIs.
-  invoking_kwargs = entrypoint_utils.get_output_artifacts(
+  output_artifacts = entrypoint_utils.get_output_artifacts(
       fn, output_artifacts_uri)
+  invoking_kwargs = {}
+  for k, v in output_artifacts.items():
+    invoking_kwargs[k] = v
   for k, v in input_params.items():
     invoking_kwargs[k] = v.value
   for k, v in input_artifacts.items():
@@ -303,38 +287,36 @@ def main(**kwargs):
     output_name = list(output_params_path.keys())[0]
     # Write the output to the provided path.
     try:
-      os.makedirs(os.path.dirname(output_params_path[output_name]))
+      tf.io.gfile.makedirs(os.path.dirname(output_params_path[output_name]))
     except OSError:
       # Ignore the error when creating parent dirs.
       pass
-    with open(output_params_path[output_name], 'w') as file:
-      file.write(str(fn_res))
+    tf.io.gfile.GFile(output_params_path[output_name], 'w').write(str(fn_res))
   else:
     # When multiple outputs, we'll need to match each field to the output paths.
     for idx, output_name in enumerate(fn_res._fields):
       path = output_params_path[output_name]
       try:
-        os.makedirs(os.path.dirname(path))
+        tf.io.gfile.makedirs(os.path.dirname(path))
       except OSError:
         # Ignore the error when creating parent dirs.
         pass
-      with open(path, 'w') as file:
-        file.write(str(fn_res[idx]))
+      tf.io.gfile.GFile(path, 'w').write(str(fn_res[idx]))
 
   # Write output metadata JSON file.
-  output_parameters = None
+  output_parameters = {}
   if isinstance(fn_res, (int, float, str)):
     output_parameters['output'] = fn_res
   else:
     for idx, output_name in enumerate(fn_res._fields):
       output_parameters[output_name] = fn_res[idx]
 
-  executor_output = pipeline_spec_pb2.ExecutorOutput()
-  executor_output.parameters
-  executor_output.artifacts
+  executor_output = entrypoint_utils.get_executor_output(
+      output_artifacts=output_artifacts,
+      output_params=output_parameters)
 
-
-
+  tf.io.gfile.GFile(kwargs[_METADATA_FILE_ARG], 'w').write(
+      json_format.MessageToJson(executor_output))
 
 
 if __name__ == '__main__':

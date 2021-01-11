@@ -14,14 +14,20 @@
 
 from absl import logging
 import importlib
+import sys
 import tensorflow as tf
-from typing import Callable, Dict
+from typing import Callable, Dict, Optional, Union
 from google.protobuf import json_format
 
 from kfp.components import _python_op
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.dsl import artifact
 
+# If path starts with one of those, consider files are in remote filesystem.
+_REMOTE_FS_PREFIX = ['gs://', 'hdfs://', 's3://']
+
+# Constant user module name when importing the function from a Python file.
+_USER_MODULE = 'user_module'
 
 
 def get_parameter_from_output(file_path: str, param_name: str):
@@ -51,9 +57,36 @@ def get_artifact_from_output(
 
 
 def import_func_from_source(source_path: str, fn_name: str) -> Callable:
-  """Imports a function from a Python file."""
-  # TODO(numerology): Implement this.
-  pass
+  """Imports a function from a Python file.
+
+  The implementation is borrowed from
+  https://github.com/tensorflow/tfx/blob/8f25a4d1cc92dfc8c3a684dfc8b82699513cafb5/tfx/utils/import_utils.py#L50
+
+  Args:
+    source_path: The local path to the Python source file.
+    fn_name: The function name, which can be found in the source file.
+
+  Return: A Python function object.
+  """
+  if any([source_path.startswith(prefix) for prefix in _REMOTE_FS_PREFIX]):
+    raise RuntimeError('Only local source file can be imported. Please make '
+                       'sure the user code is built into executor container. '
+                       'Got file path: %s' % source_path)
+  try:
+    loader = importlib.machinery.SourceFileLoader(
+        fullname=_USER_MODULE,
+        path=source_path,
+    )
+    spec = importlib.util.spec_from_loader(
+        loader.name, loader, origin=source_path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[loader.name] = module
+    loader.exec_module(module)
+  except IOError:
+    raise ImportError('{} in {} not found in import_func_from_source()'.format(
+        fn_name, source_path
+    ))
+  return getattr(module, fn_name)
 
 
 def get_output_artifacts(
@@ -95,5 +128,42 @@ def get_output_artifacts(
       art = artifact_cls()
       art.uri = output_uris[output.name]
       result[output.name] = art
+
+  return result
+
+
+def _get_pipeline_value(value: Union[int, float, str]) -> Optional[
+  pipeline_spec_pb2.Value]:
+  """Converts Python primitive value to pipeline value pb."""
+  if value is None:
+    return None
+
+  result = pipeline_spec_pb2.Value()
+  if isinstance(value, int):
+    result.int_value = value
+  elif isinstance(value, float):
+    result.double_value = value
+  elif isinstance(value, str):
+    result.string_value = value
+  else:
+    raise TypeError('Got unknown type of value: {}'.format(value))
+
+  return result
+
+
+def get_executor_output(
+    output_artifacts: Dict[str, artifact.Artifact],
+    output_params: Dict[str, Union[int, float, str]]
+) -> pipeline_spec_pb2.ExecutorOutput:
+  """Gets the output metadata message."""
+  result = pipeline_spec_pb2.ExecutorOutput()
+
+  for name, art in output_artifacts.items():
+    result.artifacts[name].CopyFrom(pipeline_spec_pb2.ArtifactList(
+        artifacts=[art.runtime_artifact]
+    ))
+
+  for name, param in output_params.items():
+    result.parameters[name].CopyFrom(_get_pipeline_value(param))
 
   return result
