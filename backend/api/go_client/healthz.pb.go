@@ -18,12 +18,16 @@
 package go_client
 
 import (
+	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
-	_ "github.com/golang/protobuf/ptypes/empty"
+	empty "github.com/golang/protobuf/ptypes/empty"
 	_ "github.com/golang/protobuf/ptypes/timestamp"
 	_ "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
+	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -110,4 +114,86 @@ var fileDescriptor_499453e9dc64832b = []byte{
 	0x73, 0x97, 0x84, 0x5c, 0x95, 0xd1, 0xce, 0x25, 0x90, 0x16, 0xea, 0x70, 0xd9, 0x86, 0x8d, 0x9a,
 	0xba, 0x32, 0x15, 0xf3, 0x42, 0x80, 0xc4, 0xa4, 0xeb, 0xff, 0xb3, 0xb8, 0x09, 0x00, 0x00, 0xff,
 	0xff, 0xd1, 0xc1, 0x9c, 0x02, 0x3f, 0x02, 0x00, 0x00,
+}
+
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion4
+
+// HealthzServiceClient is the client API for HealthzService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type HealthzServiceClient interface {
+	// Get healthz data.
+	GetHealthz(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*GetHealthzResponse, error)
+}
+
+type healthzServiceClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewHealthzServiceClient(cc *grpc.ClientConn) HealthzServiceClient {
+	return &healthzServiceClient{cc}
+}
+
+func (c *healthzServiceClient) GetHealthz(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*GetHealthzResponse, error) {
+	out := new(GetHealthzResponse)
+	err := c.cc.Invoke(ctx, "/api.HealthzService/GetHealthz", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// HealthzServiceServer is the server API for HealthzService service.
+type HealthzServiceServer interface {
+	// Get healthz data.
+	GetHealthz(context.Context, *empty.Empty) (*GetHealthzResponse, error)
+}
+
+// UnimplementedHealthzServiceServer can be embedded to have forward compatible implementations.
+type UnimplementedHealthzServiceServer struct {
+}
+
+func (*UnimplementedHealthzServiceServer) GetHealthz(ctx context.Context, req *empty.Empty) (*GetHealthzResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetHealthz not implemented")
+}
+
+func RegisterHealthzServiceServer(s *grpc.Server, srv HealthzServiceServer) {
+	s.RegisterService(&_HealthzService_serviceDesc, srv)
+}
+
+func _HealthzService_GetHealthz_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(empty.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HealthzServiceServer).GetHealthz(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.HealthzService/GetHealthz",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HealthzServiceServer).GetHealthz(ctx, req.(*empty.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _HealthzService_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "api.HealthzService",
+	HandlerType: (*HealthzServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GetHealthz",
+			Handler:    _HealthzService_GetHealthz_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "backend/api/healthz.proto",
 }

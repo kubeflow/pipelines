@@ -18,12 +18,16 @@
 package go_client
 
 import (
+	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
-	_ "github.com/golang/protobuf/ptypes/empty"
+	empty "github.com/golang/protobuf/ptypes/empty"
 	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	_ "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
+	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -1292,4 +1296,434 @@ var fileDescriptor_50e61ed8e40fd87e = []byte{
 	0xe8, 0x54, 0x6d, 0x6f, 0x58, 0xbb, 0x0b, 0x3a, 0x24, 0xdc, 0x37, 0x46, 0x1f, 0x8a, 0xac, 0x96,
 	0xfc, 0x3a, 0xec, 0x7b, 0xa6, 0x3d, 0x70, 0x88, 0xcb, 0x3b, 0x19, 0xf1, 0x08, 0x6f, 0x7e, 0x0a,
 	0x00, 0x00, 0xff, 0xff, 0xd6, 0x6b, 0x76, 0xde, 0xef, 0x0e, 0x00, 0x00,
+}
+
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion4
+
+// RunServiceClient is the client API for RunService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type RunServiceClient interface {
+	// Creates a new run.
+	CreateRun(ctx context.Context, in *CreateRunRequest, opts ...grpc.CallOption) (*RunDetail, error)
+	// Finds a specific run by ID.
+	GetRun(ctx context.Context, in *GetRunRequest, opts ...grpc.CallOption) (*RunDetail, error)
+	// Finds all runs.
+	ListRuns(ctx context.Context, in *ListRunsRequest, opts ...grpc.CallOption) (*ListRunsResponse, error)
+	// Archives a run.
+	ArchiveRun(ctx context.Context, in *ArchiveRunRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	// Restores an archived run.
+	UnarchiveRun(ctx context.Context, in *UnarchiveRunRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	// Deletes a run.
+	DeleteRun(ctx context.Context, in *DeleteRunRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	// ReportRunMetrics reports metrics of a run. Each metric is reported in its
+	// own transaction, so this API accepts partial failures. Metric can be
+	// uniquely identified by (run_id, node_id, name). Duplicate reporting will be
+	// ignored by the API. First reporting wins.
+	ReportRunMetrics(ctx context.Context, in *ReportRunMetricsRequest, opts ...grpc.CallOption) (*ReportRunMetricsResponse, error)
+	// Finds a run's artifact data.
+	ReadArtifact(ctx context.Context, in *ReadArtifactRequest, opts ...grpc.CallOption) (*ReadArtifactResponse, error)
+	// Terminates an active run.
+	TerminateRun(ctx context.Context, in *TerminateRunRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	// Re-initiates a failed or terminated run.
+	RetryRun(ctx context.Context, in *RetryRunRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+}
+
+type runServiceClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewRunServiceClient(cc *grpc.ClientConn) RunServiceClient {
+	return &runServiceClient{cc}
+}
+
+func (c *runServiceClient) CreateRun(ctx context.Context, in *CreateRunRequest, opts ...grpc.CallOption) (*RunDetail, error) {
+	out := new(RunDetail)
+	err := c.cc.Invoke(ctx, "/api.RunService/CreateRun", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runServiceClient) GetRun(ctx context.Context, in *GetRunRequest, opts ...grpc.CallOption) (*RunDetail, error) {
+	out := new(RunDetail)
+	err := c.cc.Invoke(ctx, "/api.RunService/GetRun", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runServiceClient) ListRuns(ctx context.Context, in *ListRunsRequest, opts ...grpc.CallOption) (*ListRunsResponse, error) {
+	out := new(ListRunsResponse)
+	err := c.cc.Invoke(ctx, "/api.RunService/ListRuns", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runServiceClient) ArchiveRun(ctx context.Context, in *ArchiveRunRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+	out := new(empty.Empty)
+	err := c.cc.Invoke(ctx, "/api.RunService/ArchiveRun", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runServiceClient) UnarchiveRun(ctx context.Context, in *UnarchiveRunRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+	out := new(empty.Empty)
+	err := c.cc.Invoke(ctx, "/api.RunService/UnarchiveRun", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runServiceClient) DeleteRun(ctx context.Context, in *DeleteRunRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+	out := new(empty.Empty)
+	err := c.cc.Invoke(ctx, "/api.RunService/DeleteRun", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runServiceClient) ReportRunMetrics(ctx context.Context, in *ReportRunMetricsRequest, opts ...grpc.CallOption) (*ReportRunMetricsResponse, error) {
+	out := new(ReportRunMetricsResponse)
+	err := c.cc.Invoke(ctx, "/api.RunService/ReportRunMetrics", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runServiceClient) ReadArtifact(ctx context.Context, in *ReadArtifactRequest, opts ...grpc.CallOption) (*ReadArtifactResponse, error) {
+	out := new(ReadArtifactResponse)
+	err := c.cc.Invoke(ctx, "/api.RunService/ReadArtifact", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runServiceClient) TerminateRun(ctx context.Context, in *TerminateRunRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+	out := new(empty.Empty)
+	err := c.cc.Invoke(ctx, "/api.RunService/TerminateRun", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runServiceClient) RetryRun(ctx context.Context, in *RetryRunRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+	out := new(empty.Empty)
+	err := c.cc.Invoke(ctx, "/api.RunService/RetryRun", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// RunServiceServer is the server API for RunService service.
+type RunServiceServer interface {
+	// Creates a new run.
+	CreateRun(context.Context, *CreateRunRequest) (*RunDetail, error)
+	// Finds a specific run by ID.
+	GetRun(context.Context, *GetRunRequest) (*RunDetail, error)
+	// Finds all runs.
+	ListRuns(context.Context, *ListRunsRequest) (*ListRunsResponse, error)
+	// Archives a run.
+	ArchiveRun(context.Context, *ArchiveRunRequest) (*empty.Empty, error)
+	// Restores an archived run.
+	UnarchiveRun(context.Context, *UnarchiveRunRequest) (*empty.Empty, error)
+	// Deletes a run.
+	DeleteRun(context.Context, *DeleteRunRequest) (*empty.Empty, error)
+	// ReportRunMetrics reports metrics of a run. Each metric is reported in its
+	// own transaction, so this API accepts partial failures. Metric can be
+	// uniquely identified by (run_id, node_id, name). Duplicate reporting will be
+	// ignored by the API. First reporting wins.
+	ReportRunMetrics(context.Context, *ReportRunMetricsRequest) (*ReportRunMetricsResponse, error)
+	// Finds a run's artifact data.
+	ReadArtifact(context.Context, *ReadArtifactRequest) (*ReadArtifactResponse, error)
+	// Terminates an active run.
+	TerminateRun(context.Context, *TerminateRunRequest) (*empty.Empty, error)
+	// Re-initiates a failed or terminated run.
+	RetryRun(context.Context, *RetryRunRequest) (*empty.Empty, error)
+}
+
+// UnimplementedRunServiceServer can be embedded to have forward compatible implementations.
+type UnimplementedRunServiceServer struct {
+}
+
+func (*UnimplementedRunServiceServer) CreateRun(ctx context.Context, req *CreateRunRequest) (*RunDetail, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateRun not implemented")
+}
+func (*UnimplementedRunServiceServer) GetRun(ctx context.Context, req *GetRunRequest) (*RunDetail, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRun not implemented")
+}
+func (*UnimplementedRunServiceServer) ListRuns(ctx context.Context, req *ListRunsRequest) (*ListRunsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListRuns not implemented")
+}
+func (*UnimplementedRunServiceServer) ArchiveRun(ctx context.Context, req *ArchiveRunRequest) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ArchiveRun not implemented")
+}
+func (*UnimplementedRunServiceServer) UnarchiveRun(ctx context.Context, req *UnarchiveRunRequest) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UnarchiveRun not implemented")
+}
+func (*UnimplementedRunServiceServer) DeleteRun(ctx context.Context, req *DeleteRunRequest) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteRun not implemented")
+}
+func (*UnimplementedRunServiceServer) ReportRunMetrics(ctx context.Context, req *ReportRunMetricsRequest) (*ReportRunMetricsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReportRunMetrics not implemented")
+}
+func (*UnimplementedRunServiceServer) ReadArtifact(ctx context.Context, req *ReadArtifactRequest) (*ReadArtifactResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReadArtifact not implemented")
+}
+func (*UnimplementedRunServiceServer) TerminateRun(ctx context.Context, req *TerminateRunRequest) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TerminateRun not implemented")
+}
+func (*UnimplementedRunServiceServer) RetryRun(ctx context.Context, req *RetryRunRequest) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RetryRun not implemented")
+}
+
+func RegisterRunServiceServer(s *grpc.Server, srv RunServiceServer) {
+	s.RegisterService(&_RunService_serviceDesc, srv)
+}
+
+func _RunService_CreateRun_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateRunRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RunServiceServer).CreateRun(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.RunService/CreateRun",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RunServiceServer).CreateRun(ctx, req.(*CreateRunRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RunService_GetRun_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRunRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RunServiceServer).GetRun(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.RunService/GetRun",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RunServiceServer).GetRun(ctx, req.(*GetRunRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RunService_ListRuns_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListRunsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RunServiceServer).ListRuns(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.RunService/ListRuns",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RunServiceServer).ListRuns(ctx, req.(*ListRunsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RunService_ArchiveRun_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ArchiveRunRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RunServiceServer).ArchiveRun(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.RunService/ArchiveRun",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RunServiceServer).ArchiveRun(ctx, req.(*ArchiveRunRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RunService_UnarchiveRun_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UnarchiveRunRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RunServiceServer).UnarchiveRun(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.RunService/UnarchiveRun",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RunServiceServer).UnarchiveRun(ctx, req.(*UnarchiveRunRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RunService_DeleteRun_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteRunRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RunServiceServer).DeleteRun(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.RunService/DeleteRun",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RunServiceServer).DeleteRun(ctx, req.(*DeleteRunRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RunService_ReportRunMetrics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReportRunMetricsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RunServiceServer).ReportRunMetrics(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.RunService/ReportRunMetrics",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RunServiceServer).ReportRunMetrics(ctx, req.(*ReportRunMetricsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RunService_ReadArtifact_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReadArtifactRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RunServiceServer).ReadArtifact(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.RunService/ReadArtifact",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RunServiceServer).ReadArtifact(ctx, req.(*ReadArtifactRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RunService_TerminateRun_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TerminateRunRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RunServiceServer).TerminateRun(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.RunService/TerminateRun",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RunServiceServer).TerminateRun(ctx, req.(*TerminateRunRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RunService_RetryRun_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RetryRunRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RunServiceServer).RetryRun(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.RunService/RetryRun",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RunServiceServer).RetryRun(ctx, req.(*RetryRunRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _RunService_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "api.RunService",
+	HandlerType: (*RunServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "CreateRun",
+			Handler:    _RunService_CreateRun_Handler,
+		},
+		{
+			MethodName: "GetRun",
+			Handler:    _RunService_GetRun_Handler,
+		},
+		{
+			MethodName: "ListRuns",
+			Handler:    _RunService_ListRuns_Handler,
+		},
+		{
+			MethodName: "ArchiveRun",
+			Handler:    _RunService_ArchiveRun_Handler,
+		},
+		{
+			MethodName: "UnarchiveRun",
+			Handler:    _RunService_UnarchiveRun_Handler,
+		},
+		{
+			MethodName: "DeleteRun",
+			Handler:    _RunService_DeleteRun_Handler,
+		},
+		{
+			MethodName: "ReportRunMetrics",
+			Handler:    _RunService_ReportRunMetrics_Handler,
+		},
+		{
+			MethodName: "ReadArtifact",
+			Handler:    _RunService_ReadArtifact_Handler,
+		},
+		{
+			MethodName: "TerminateRun",
+			Handler:    _RunService_TerminateRun_Handler,
+		},
+		{
+			MethodName: "RetryRun",
+			Handler:    _RunService_RetryRun_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "backend/api/run.proto",
 }

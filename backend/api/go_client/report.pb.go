@@ -18,10 +18,14 @@
 package go_client
 
 import (
+	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
-	_ "github.com/golang/protobuf/ptypes/empty"
+	empty "github.com/golang/protobuf/ptypes/empty"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
+	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -145,4 +149,120 @@ var fileDescriptor_cf464d903a9c793e = []byte{
 	0x3c, 0x91, 0x90, 0xb6, 0xb9, 0x51, 0x06, 0x22, 0xa5, 0xc1, 0xf2, 0xf5, 0x97, 0x11, 0xe2, 0x38,
 	0x88, 0x14, 0x68, 0x27, 0x77, 0x33, 0x88, 0xe1, 0x5f, 0x00, 0x00, 0x00, 0xff, 0xff, 0x12, 0xe5,
 	0x5d, 0x89, 0x39, 0x02, 0x00, 0x00,
+}
+
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion4
+
+// ReportServiceClient is the client API for ReportService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type ReportServiceClient interface {
+	ReportWorkflow(ctx context.Context, in *ReportWorkflowRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	ReportScheduledWorkflow(ctx context.Context, in *ReportScheduledWorkflowRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+}
+
+type reportServiceClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewReportServiceClient(cc *grpc.ClientConn) ReportServiceClient {
+	return &reportServiceClient{cc}
+}
+
+func (c *reportServiceClient) ReportWorkflow(ctx context.Context, in *ReportWorkflowRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+	out := new(empty.Empty)
+	err := c.cc.Invoke(ctx, "/api.ReportService/ReportWorkflow", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *reportServiceClient) ReportScheduledWorkflow(ctx context.Context, in *ReportScheduledWorkflowRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+	out := new(empty.Empty)
+	err := c.cc.Invoke(ctx, "/api.ReportService/ReportScheduledWorkflow", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ReportServiceServer is the server API for ReportService service.
+type ReportServiceServer interface {
+	ReportWorkflow(context.Context, *ReportWorkflowRequest) (*empty.Empty, error)
+	ReportScheduledWorkflow(context.Context, *ReportScheduledWorkflowRequest) (*empty.Empty, error)
+}
+
+// UnimplementedReportServiceServer can be embedded to have forward compatible implementations.
+type UnimplementedReportServiceServer struct {
+}
+
+func (*UnimplementedReportServiceServer) ReportWorkflow(ctx context.Context, req *ReportWorkflowRequest) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReportWorkflow not implemented")
+}
+func (*UnimplementedReportServiceServer) ReportScheduledWorkflow(ctx context.Context, req *ReportScheduledWorkflowRequest) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReportScheduledWorkflow not implemented")
+}
+
+func RegisterReportServiceServer(s *grpc.Server, srv ReportServiceServer) {
+	s.RegisterService(&_ReportService_serviceDesc, srv)
+}
+
+func _ReportService_ReportWorkflow_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReportWorkflowRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ReportServiceServer).ReportWorkflow(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.ReportService/ReportWorkflow",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ReportServiceServer).ReportWorkflow(ctx, req.(*ReportWorkflowRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ReportService_ReportScheduledWorkflow_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReportScheduledWorkflowRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ReportServiceServer).ReportScheduledWorkflow(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.ReportService/ReportScheduledWorkflow",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ReportServiceServer).ReportScheduledWorkflow(ctx, req.(*ReportScheduledWorkflowRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _ReportService_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "api.ReportService",
+	HandlerType: (*ReportServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ReportWorkflow",
+			Handler:    _ReportService_ReportWorkflow_Handler,
+		},
+		{
+			MethodName: "ReportScheduledWorkflow",
+			Handler:    _ReportService_ReportScheduledWorkflow_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "backend/api/report.proto",
 }
