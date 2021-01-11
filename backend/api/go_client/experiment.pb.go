@@ -18,12 +18,16 @@
 package go_client
 
 import (
+	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
-	_ "github.com/golang/protobuf/ptypes/empty"
+	empty "github.com/golang/protobuf/ptypes/empty"
 	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	_ "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
+	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -567,4 +571,282 @@ var fileDescriptor_2acb5110e2ac785b = []byte{
 	0xb0, 0x83, 0xbd, 0x01, 0x7f, 0xe7, 0x04, 0x2c, 0xc0, 0x01, 0xf3, 0x51, 0x3a, 0xc9, 0xcf, 0x79,
 	0x9f, 0xb7, 0xbd, 0x01, 0x43, 0x5f, 0x75, 0xb2, 0x9a, 0xc9, 0xb3, 0xff, 0x03, 0x00, 0x00, 0xff,
 	0xff, 0x0b, 0x8f, 0xfa, 0xad, 0x2a, 0x08, 0x00, 0x00,
+}
+
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion4
+
+// ExperimentServiceClient is the client API for ExperimentService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type ExperimentServiceClient interface {
+	// Creates a new experiment.
+	CreateExperiment(ctx context.Context, in *CreateExperimentRequest, opts ...grpc.CallOption) (*Experiment, error)
+	// Finds a specific experiment by ID.
+	GetExperiment(ctx context.Context, in *GetExperimentRequest, opts ...grpc.CallOption) (*Experiment, error)
+	// Finds all experiments. Supports pagination, and sorting on certain fields.
+	ListExperiment(ctx context.Context, in *ListExperimentsRequest, opts ...grpc.CallOption) (*ListExperimentsResponse, error)
+	// Deletes an experiment without deleting the experiment's runs and jobs. To
+	// avoid unexpected behaviors, delete an experiment's runs and jobs before
+	// deleting the experiment.
+	DeleteExperiment(ctx context.Context, in *DeleteExperimentRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	// Archives an experiment and the experiment's runs and jobs.
+	ArchiveExperiment(ctx context.Context, in *ArchiveExperimentRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	// Restores an archived experiment. The experiment's archived runs and jobs
+	// will stay archived.
+	UnarchiveExperiment(ctx context.Context, in *UnarchiveExperimentRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+}
+
+type experimentServiceClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewExperimentServiceClient(cc *grpc.ClientConn) ExperimentServiceClient {
+	return &experimentServiceClient{cc}
+}
+
+func (c *experimentServiceClient) CreateExperiment(ctx context.Context, in *CreateExperimentRequest, opts ...grpc.CallOption) (*Experiment, error) {
+	out := new(Experiment)
+	err := c.cc.Invoke(ctx, "/api.ExperimentService/CreateExperiment", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *experimentServiceClient) GetExperiment(ctx context.Context, in *GetExperimentRequest, opts ...grpc.CallOption) (*Experiment, error) {
+	out := new(Experiment)
+	err := c.cc.Invoke(ctx, "/api.ExperimentService/GetExperiment", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *experimentServiceClient) ListExperiment(ctx context.Context, in *ListExperimentsRequest, opts ...grpc.CallOption) (*ListExperimentsResponse, error) {
+	out := new(ListExperimentsResponse)
+	err := c.cc.Invoke(ctx, "/api.ExperimentService/ListExperiment", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *experimentServiceClient) DeleteExperiment(ctx context.Context, in *DeleteExperimentRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+	out := new(empty.Empty)
+	err := c.cc.Invoke(ctx, "/api.ExperimentService/DeleteExperiment", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *experimentServiceClient) ArchiveExperiment(ctx context.Context, in *ArchiveExperimentRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+	out := new(empty.Empty)
+	err := c.cc.Invoke(ctx, "/api.ExperimentService/ArchiveExperiment", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *experimentServiceClient) UnarchiveExperiment(ctx context.Context, in *UnarchiveExperimentRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+	out := new(empty.Empty)
+	err := c.cc.Invoke(ctx, "/api.ExperimentService/UnarchiveExperiment", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ExperimentServiceServer is the server API for ExperimentService service.
+type ExperimentServiceServer interface {
+	// Creates a new experiment.
+	CreateExperiment(context.Context, *CreateExperimentRequest) (*Experiment, error)
+	// Finds a specific experiment by ID.
+	GetExperiment(context.Context, *GetExperimentRequest) (*Experiment, error)
+	// Finds all experiments. Supports pagination, and sorting on certain fields.
+	ListExperiment(context.Context, *ListExperimentsRequest) (*ListExperimentsResponse, error)
+	// Deletes an experiment without deleting the experiment's runs and jobs. To
+	// avoid unexpected behaviors, delete an experiment's runs and jobs before
+	// deleting the experiment.
+	DeleteExperiment(context.Context, *DeleteExperimentRequest) (*empty.Empty, error)
+	// Archives an experiment and the experiment's runs and jobs.
+	ArchiveExperiment(context.Context, *ArchiveExperimentRequest) (*empty.Empty, error)
+	// Restores an archived experiment. The experiment's archived runs and jobs
+	// will stay archived.
+	UnarchiveExperiment(context.Context, *UnarchiveExperimentRequest) (*empty.Empty, error)
+}
+
+// UnimplementedExperimentServiceServer can be embedded to have forward compatible implementations.
+type UnimplementedExperimentServiceServer struct {
+}
+
+func (*UnimplementedExperimentServiceServer) CreateExperiment(ctx context.Context, req *CreateExperimentRequest) (*Experiment, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateExperiment not implemented")
+}
+func (*UnimplementedExperimentServiceServer) GetExperiment(ctx context.Context, req *GetExperimentRequest) (*Experiment, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetExperiment not implemented")
+}
+func (*UnimplementedExperimentServiceServer) ListExperiment(ctx context.Context, req *ListExperimentsRequest) (*ListExperimentsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListExperiment not implemented")
+}
+func (*UnimplementedExperimentServiceServer) DeleteExperiment(ctx context.Context, req *DeleteExperimentRequest) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteExperiment not implemented")
+}
+func (*UnimplementedExperimentServiceServer) ArchiveExperiment(ctx context.Context, req *ArchiveExperimentRequest) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ArchiveExperiment not implemented")
+}
+func (*UnimplementedExperimentServiceServer) UnarchiveExperiment(ctx context.Context, req *UnarchiveExperimentRequest) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UnarchiveExperiment not implemented")
+}
+
+func RegisterExperimentServiceServer(s *grpc.Server, srv ExperimentServiceServer) {
+	s.RegisterService(&_ExperimentService_serviceDesc, srv)
+}
+
+func _ExperimentService_CreateExperiment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateExperimentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ExperimentServiceServer).CreateExperiment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.ExperimentService/CreateExperiment",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ExperimentServiceServer).CreateExperiment(ctx, req.(*CreateExperimentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ExperimentService_GetExperiment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetExperimentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ExperimentServiceServer).GetExperiment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.ExperimentService/GetExperiment",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ExperimentServiceServer).GetExperiment(ctx, req.(*GetExperimentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ExperimentService_ListExperiment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListExperimentsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ExperimentServiceServer).ListExperiment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.ExperimentService/ListExperiment",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ExperimentServiceServer).ListExperiment(ctx, req.(*ListExperimentsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ExperimentService_DeleteExperiment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteExperimentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ExperimentServiceServer).DeleteExperiment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.ExperimentService/DeleteExperiment",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ExperimentServiceServer).DeleteExperiment(ctx, req.(*DeleteExperimentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ExperimentService_ArchiveExperiment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ArchiveExperimentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ExperimentServiceServer).ArchiveExperiment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.ExperimentService/ArchiveExperiment",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ExperimentServiceServer).ArchiveExperiment(ctx, req.(*ArchiveExperimentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ExperimentService_UnarchiveExperiment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UnarchiveExperimentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ExperimentServiceServer).UnarchiveExperiment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.ExperimentService/UnarchiveExperiment",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ExperimentServiceServer).UnarchiveExperiment(ctx, req.(*UnarchiveExperimentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _ExperimentService_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "api.ExperimentService",
+	HandlerType: (*ExperimentServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "CreateExperiment",
+			Handler:    _ExperimentService_CreateExperiment_Handler,
+		},
+		{
+			MethodName: "GetExperiment",
+			Handler:    _ExperimentService_GetExperiment_Handler,
+		},
+		{
+			MethodName: "ListExperiment",
+			Handler:    _ExperimentService_ListExperiment_Handler,
+		},
+		{
+			MethodName: "DeleteExperiment",
+			Handler:    _ExperimentService_DeleteExperiment_Handler,
+		},
+		{
+			MethodName: "ArchiveExperiment",
+			Handler:    _ExperimentService_ArchiveExperiment_Handler,
+		},
+		{
+			MethodName: "UnarchiveExperiment",
+			Handler:    _ExperimentService_UnarchiveExperiment_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "backend/api/experiment.proto",
 }

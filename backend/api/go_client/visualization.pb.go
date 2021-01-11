@@ -18,10 +18,14 @@
 package go_client
 
 import (
+	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
 	_ "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
+	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -246,4 +250,84 @@ var fileDescriptor_e22487dd6aa91c3b = []byte{
 	0x82, 0x09, 0x4c, 0x59, 0x86, 0x2a, 0xd8, 0x4c, 0x6d, 0xc2, 0xcf, 0xe3, 0x94, 0x61, 0xa6, 0xa3,
 	0xaa, 0x09, 0xe3, 0xd1, 0xbf, 0x00, 0x00, 0x00, 0xff, 0xff, 0xf8, 0x50, 0x9c, 0xbc, 0x19, 0x03,
 	0x00, 0x00,
+}
+
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion4
+
+// VisualizationServiceClient is the client API for VisualizationService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type VisualizationServiceClient interface {
+	CreateVisualization(ctx context.Context, in *CreateVisualizationRequest, opts ...grpc.CallOption) (*Visualization, error)
+}
+
+type visualizationServiceClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewVisualizationServiceClient(cc *grpc.ClientConn) VisualizationServiceClient {
+	return &visualizationServiceClient{cc}
+}
+
+func (c *visualizationServiceClient) CreateVisualization(ctx context.Context, in *CreateVisualizationRequest, opts ...grpc.CallOption) (*Visualization, error) {
+	out := new(Visualization)
+	err := c.cc.Invoke(ctx, "/api.VisualizationService/CreateVisualization", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// VisualizationServiceServer is the server API for VisualizationService service.
+type VisualizationServiceServer interface {
+	CreateVisualization(context.Context, *CreateVisualizationRequest) (*Visualization, error)
+}
+
+// UnimplementedVisualizationServiceServer can be embedded to have forward compatible implementations.
+type UnimplementedVisualizationServiceServer struct {
+}
+
+func (*UnimplementedVisualizationServiceServer) CreateVisualization(ctx context.Context, req *CreateVisualizationRequest) (*Visualization, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateVisualization not implemented")
+}
+
+func RegisterVisualizationServiceServer(s *grpc.Server, srv VisualizationServiceServer) {
+	s.RegisterService(&_VisualizationService_serviceDesc, srv)
+}
+
+func _VisualizationService_CreateVisualization_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateVisualizationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VisualizationServiceServer).CreateVisualization(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.VisualizationService/CreateVisualization",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VisualizationServiceServer).CreateVisualization(ctx, req.(*CreateVisualizationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _VisualizationService_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "api.VisualizationService",
+	HandlerType: (*VisualizationServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "CreateVisualization",
+			Handler:    _VisualizationService_CreateVisualization_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "backend/api/visualization.proto",
 }

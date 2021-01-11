@@ -18,10 +18,14 @@
 package go_client
 
 import (
+	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
 	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
+	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -507,4 +511,84 @@ var fileDescriptor_aab96529e99c2762 = []byte{
 	0xa7, 0x35, 0xde, 0x26, 0xf4, 0x8f, 0xcf, 0x08, 0xc3, 0x09, 0x49, 0x71, 0xe6, 0xd7, 0x7f, 0xcd,
 	0x1d, 0x5d, 0x6d, 0x12, 0x82, 0x53, 0xbe, 0x36, 0x8a, 0x53, 0xbc, 0xfb, 0x1f, 0x00, 0x00, 0xff,
 	0xff, 0xf8, 0x38, 0x00, 0xb0, 0xba, 0x03, 0x00, 0x00,
+}
+
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion4
+
+// DummyFilterServiceClient is the client API for DummyFilterService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type DummyFilterServiceClient interface {
+	GetFilter(ctx context.Context, in *Filter, opts ...grpc.CallOption) (*Filter, error)
+}
+
+type dummyFilterServiceClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewDummyFilterServiceClient(cc *grpc.ClientConn) DummyFilterServiceClient {
+	return &dummyFilterServiceClient{cc}
+}
+
+func (c *dummyFilterServiceClient) GetFilter(ctx context.Context, in *Filter, opts ...grpc.CallOption) (*Filter, error) {
+	out := new(Filter)
+	err := c.cc.Invoke(ctx, "/api.DummyFilterService/GetFilter", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// DummyFilterServiceServer is the server API for DummyFilterService service.
+type DummyFilterServiceServer interface {
+	GetFilter(context.Context, *Filter) (*Filter, error)
+}
+
+// UnimplementedDummyFilterServiceServer can be embedded to have forward compatible implementations.
+type UnimplementedDummyFilterServiceServer struct {
+}
+
+func (*UnimplementedDummyFilterServiceServer) GetFilter(ctx context.Context, req *Filter) (*Filter, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetFilter not implemented")
+}
+
+func RegisterDummyFilterServiceServer(s *grpc.Server, srv DummyFilterServiceServer) {
+	s.RegisterService(&_DummyFilterService_serviceDesc, srv)
+}
+
+func _DummyFilterService_GetFilter_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Filter)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DummyFilterServiceServer).GetFilter(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.DummyFilterService/GetFilter",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DummyFilterServiceServer).GetFilter(ctx, req.(*Filter))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _DummyFilterService_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "api.DummyFilterService",
+	HandlerType: (*DummyFilterServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GetFilter",
+			Handler:    _DummyFilterService_GetFilter_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "backend/api/filter.proto",
 }
