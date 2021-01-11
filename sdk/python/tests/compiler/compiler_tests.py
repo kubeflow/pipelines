@@ -1095,12 +1095,16 @@ implementation:
 
   def test__resolve_task_pipeline_param(self):
     p = PipelineParam(name='param2')
-    resolved = Compiler._resolve_task_pipeline_param(p)
+    resolved = Compiler._resolve_task_pipeline_param(p, group_type=None)
     self.assertEqual(resolved, "{{workflow.parameters.param2}}")
 
     p = PipelineParam(name='param1', op_name='op1')
-    resolved = Compiler._resolve_task_pipeline_param(p)
+    resolved = Compiler._resolve_task_pipeline_param(p, group_type=None)
     self.assertEqual(resolved, "{{tasks.op1.outputs.parameters.op1-param1}}")
+
+    p = PipelineParam(name='param1', op_name='op1')
+    resolved = Compiler._resolve_task_pipeline_param(p, group_type="subgraph")
+    self.assertEqual(resolved, "{{inputs.parameters.op1-param1}}")
 
   def test_uri_artifact_passing(self):
     self._test_py_compile_yaml('uri_artifacts')
