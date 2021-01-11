@@ -37,7 +37,7 @@ def get_parameter_from_output(file_path: str, param_name: str):
       text=tf.io.gfile.GFile(file_path, 'r').read(),
       message=output)
   value = output.parameters[param_name]
-  return getattr(value, value.Whichone('value'))
+  return getattr(value, value.WhichOneof('value'))
 
 
 def get_artifact_from_output(
@@ -50,7 +50,7 @@ def get_artifact_from_output(
   )
   # Currently we bear the assumption that each output contains only one artifact
   json_str = json_format.MessageToJson(
-      output.artifacts[output_name][0], sort_keys=True)
+      output.artifacts[output_name].artifacts[0], sort_keys=True)
 
   # Convert runtime_artifact to Python artifact
   return artifact.Artifact.deserialize(json_str)
@@ -67,6 +67,10 @@ def import_func_from_source(source_path: str, fn_name: str) -> Callable:
     fn_name: The function name, which can be found in the source file.
 
   Return: A Python function object.
+
+  Raises:
+    ImportError when failed to load the source file or cannot find the function
+      with the given name.
   """
   if any([source_path.startswith(prefix) for prefix in _REMOTE_FS_PREFIX]):
     raise RuntimeError('Only local source file can be imported. Please make '
@@ -86,7 +90,12 @@ def import_func_from_source(source_path: str, fn_name: str) -> Callable:
     raise ImportError('{} in {} not found in import_func_from_source()'.format(
         fn_name, source_path
     ))
-  return getattr(module, fn_name)
+  try:
+    return getattr(module, fn_name)
+  except AttributeError:
+    raise ImportError('{} in {} not found in import_func_from_source()'.format(
+        fn_name, source_path
+    ))
 
 
 def get_output_artifacts(
@@ -125,7 +134,13 @@ def get_output_artifacts(
             artifact.KFP_ARTIFACT_ONTOLOGY_MODULE, type_name)
         artifact_cls = artifact.Artifact
 
-      art = artifact_cls()
+      if artifact_cls == artifact.Artifact:
+        # Provide an empty schema if instantiating an bare-metal artifact.
+        art = artifact_cls(
+            instance_schema='title: kfp.Artifact\ntype: object\nproperties:\n')
+      else:
+        art = artifact_cls()
+
       art.uri = output_uris[output.name]
       result[output.name] = art
 
