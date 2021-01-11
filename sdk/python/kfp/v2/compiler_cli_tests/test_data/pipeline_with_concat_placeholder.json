@@ -1,43 +1,60 @@
 {
   "pipelineSpec": {
-    "pipelineInfo": {
-      "name": "one-step-pipeline-with-concat-placeholder"
-    },
-    "deploymentConfig": {
-      "@type": "type.googleapis.com/ml_pipelines.PipelineDeploymentConfig",
-      "executors": {
-        "Component with concat placeholder": {
-          "container": {
-            "image": "gcr.io/my-project/my-image",
-            "args": [
-              "--arg0",
-              "{{$.inputs.parameters['input_prefix']}}some value"
-            ]
-          }
-        }
-      }
-    },
-    "schemaVersion": "v2alpha1",
-    "sdkVersion": "kfp-1.1.0-dev20201106",
-    "tasks": [
-      {
-        "taskInfo": {
-          "name": "Component with concat placeholder"
-        },
-        "inputs": {
-          "parameters": {
-            "input_prefix": {
-              "runtimeValue": {
-                "constantValue": {
-                  "stringValue": "some prefix:"
+    "root": {
+      "dag": {
+        "tasks": {
+          "task-component-with-concat-placeholder": {
+            "taskInfo": {
+              "name": "task-component-with-concat-placeholder"
+            },
+            "componentRef": {
+              "name": "comp-component-with-concat-placeholder"
+            },
+            "inputs": {
+              "parameters": {
+                "input_prefix": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "some prefix:"
+                    }
+                  }
                 }
               }
             }
           }
-        },
-        "executorLabel": "Component with concat placeholder"
+        }
       }
-    ]
+    },
+    "schemaVersion": "2.0.0",
+    "deploymentSpec": {
+      "executors": {
+        "exec-component-with-concat-placeholder": {
+          "container": {
+            "args": [
+              "--arg0",
+              "{{$.inputs.parameters['input_prefix']}}some value"
+            ],
+            "image": "gcr.io/my-project/my-image"
+          }
+        }
+      }
+    },
+    "sdkVersion": "kfp-1.3.0",
+    "components": {
+      "comp-component-with-concat-placeholder": {
+        "executorLabel": "exec-component-with-concat-placeholder",
+        "inputDefinitions": {
+          "parameters": {
+            "input_prefix": {
+              "type": "STRING"
+            }
+          }
+        }
+      }
+    },
+    "pipelineInfo": {
+      "name": "one-step-pipeline-with-concat-placeholder"
+    }
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"

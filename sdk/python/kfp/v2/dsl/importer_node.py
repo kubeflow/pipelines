@@ -13,6 +13,9 @@
 # limitations under the License.
 """Utility function for building Importer Node spec."""
 
+from typing import Optional
+
+from kfp.v2.dsl import dsl_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 OUTPUT_KEY = 'result'
@@ -20,8 +23,8 @@ OUTPUT_KEY = 'result'
 
 def build_importer_spec(
     input_type_schema: str,
-    pipeline_param_name: str = None,
-    constant_value: str = None
+    pipeline_param_name: Optional[str] = None,
+    constant_value: Optional[str] = None
 ) -> pipeline_spec_pb2.PipelineDeploymentConfig.ImporterSpec:
   """Builds an importer executor spec.
 
@@ -42,6 +45,7 @@ def build_importer_spec(
       'constant_value.')
   importer_spec = pipeline_spec_pb2.PipelineDeploymentConfig.ImporterSpec()
   importer_spec.type_schema.instance_schema = input_type_schema
+  # TODO: subject to IR change on artifact_uri message type.
   if pipeline_param_name:
     importer_spec.artifact_uri.runtime_parameter = pipeline_param_name
   elif constant_value:
@@ -50,27 +54,62 @@ def build_importer_spec(
 
 
 def build_importer_task_spec(
-    dependent_task: pipeline_spec_pb2.PipelineTaskSpec,
-    input_name: str,
-    input_type_schema: str,
+    importer_base_name: str,
 ) -> pipeline_spec_pb2.PipelineTaskSpec:
   """Builds an importer task spec.
 
   Args:
+    importer_base_name: The base name of the importer node.
+
+  Returns:
+    An importer node task spec.
+  """
+  result = pipeline_spec_pb2.PipelineTaskSpec()
+  result.task_info.name = dsl_utils.sanitize_task_name(importer_base_name)
+  result.component_ref.name = dsl_utils.sanitize_component_name(
+      importer_base_name)
+
+  return result
+
+
+def build_importer_component_spec(
+    importer_base_name: str,
+    input_name: str,
+    input_type_schema: str,
+) -> pipeline_spec_pb2.ComponentSpec:
+  """Builds an importer component spec.
+
+  Args:
+    importer_base_name: The base name of the importer node.
     dependent_task: The task requires importer node.
     input_name: The name of the input artifact needs to be imported.
     input_type_schema: The type of the input artifact.
 
   Returns:
-    An importer node task spec.
+    An importer node component spec.
   """
-  dependent_task_name = dependent_task.task_info.name
+  result = pipeline_spec_pb2.ComponentSpec()
+  result.executor_label = dsl_utils.sanitize_executor_label(importer_base_name)
+  result.input_definitions.parameters[
+      input_name].type = pipeline_spec_pb2.PrimitiveType.STRING
+  result.output_definitions.artifacts[
+      OUTPUT_KEY].artifact_type.instance_schema = input_type_schema
 
-  task_spec = pipeline_spec_pb2.PipelineTaskSpec()
-  task_spec.task_info.name = '{}_{}_importer'.format(dependent_task_name,
-                                                     input_name)
-  task_spec.outputs.artifacts[OUTPUT_KEY].artifact_type.instance_schema = (
-      input_type_schema)
-  task_spec.executor_label = task_spec.task_info.name
+  return result
 
-  return task_spec
+
+def generate_importer_base_name(dependent_task_name: str,
+                                input_name: str) -> str:
+  """Generates the base name of an importer node.
+
+  The base name is formed by connecting the dependent task name and the input
+  artifact name. It's used to form task name, component ref, and executor label.
+
+  Args:
+    dependent_task_name: The name of the task requires importer node.
+    input_name: The name of the input artifact needs to be imported.
+
+  Returns:
+    A base importer node name.
+  """
+  return 'importer-{}-{}'.format(dependent_task_name, input_name)

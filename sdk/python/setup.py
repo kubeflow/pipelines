@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,12 +38,12 @@ REQUIRES = [
     'Deprecated',
     'strip-hints',
     'docstring-parser>=0.7.3',
-    'kfp-pipeline-spec>=0.1.0, <0.2.0',
+    'kfp-pipeline-spec>=0.1.4, <0.2.0',
 ]
 
 TESTS_REQUIRE = [
     'mock',
-    'kfp-pipeline-spec>=0.1.0, <0.2.0',
+    'kfp-pipeline-spec>=0.1.4, <0.2.0',
 ]
 
 

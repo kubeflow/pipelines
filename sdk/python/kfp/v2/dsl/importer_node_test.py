@@ -20,45 +20,20 @@ from google.protobuf import json_format
 
 class ImporterNodeTest(unittest.TestCase):
 
-  def test_build_importer_task(self):
-    dependent_task = {
-        'taskInfo': {
-            'name': 'task1'
-        },
-        'inputs': {
-            'artifacts': {
-                'input1': {
-                    'producerTask': '',
-                }
-            }
-        },
-        'executorLabel': 'task1_input1_importer'
-    }
-    dependent_task_spec = pb.PipelineTaskSpec()
-    json_format.ParseDict(dependent_task, dependent_task_spec)
-
+  def test_build_importer_task_spec(self):
     expected_task = {
         'taskInfo': {
-            'name': 'task1_input1_importer'
+            'name': 'task-importer-task0-input1'
         },
-        'outputs': {
-            'artifacts': {
-                'result': {
-                    'artifactType': {
-                        'instanceSchema': 'title: kfp.Artifact'
-                    }
-                }
-            }
+        'componentRef': {
+            'name': 'comp-importer-task0-input1'
         },
-        'executorLabel': 'task1_input1_importer'
     }
     expected_task_spec = pb.PipelineTaskSpec()
     json_format.ParseDict(expected_task, expected_task_spec)
 
     task_spec = importer_node.build_importer_task_spec(
-        dependent_task=dependent_task_spec,
-        input_name='input1',
-        input_type_schema='title: kfp.Artifact')
+        importer_base_name='importer-task0-input1')
 
     self.maxDiff = None
     self.assertEqual(expected_task_spec, task_spec)
@@ -100,7 +75,7 @@ class ImporterNodeTest(unittest.TestCase):
     self.assertEqual(expected_importer_spec, importer_spec)
 
   def test_build_importer_spec_with_invalid_inputs_should_fail(self):
-    with self.assertRaisesRegexp(
+    with self.assertRaisesRegex(
         AssertionError,
         'importer spec should be built using either pipeline_param_name or '
         'constant_value'):
@@ -109,11 +84,48 @@ class ImporterNodeTest(unittest.TestCase):
           pipeline_param_name='param1',
           constant_value='some_uri')
 
-    with self.assertRaisesRegexp(
+    with self.assertRaisesRegex(
         AssertionError,
         'importer spec should be built using either pipeline_param_name or '
         'constant_value'):
       importer_node.build_importer_spec(input_type_schema='title: kfp.Artifact')
+
+  def test_build_importer_component_spec(self):
+    expected_importer_component = {
+        'inputDefinitions': {
+            'parameters': {
+                'input1': {
+                    'type': 'STRING'
+                }
+            }
+        },
+        'outputDefinitions': {
+            'artifacts': {
+                'result': {
+                    'artifactType': {
+                        'instanceSchema': 'title: kfp.Artifact'
+                    }
+                }
+            }
+        },
+        'executorLabel': 'exec-importer-task0-input1'
+    }
+    expected_importer_comp_spec = pb.ComponentSpec()
+    json_format.ParseDict(expected_importer_component,
+                          expected_importer_comp_spec)
+    importer_comp_spec = importer_node.build_importer_component_spec(
+        importer_base_name='importer-task0-input1',
+        input_name='input1',
+        input_type_schema='title: kfp.Artifact')
+
+    self.maxDiff = None
+    self.assertEqual(expected_importer_comp_spec, importer_comp_spec)
+
+  def test_generate_importer_base_name(self):
+    self.assertEqual(
+        'importer-task0-input1',
+        importer_node.generate_importer_base_name(
+            dependent_task_name='task0', input_name='input1'))
 
 
 if __name__ == '__main__':
