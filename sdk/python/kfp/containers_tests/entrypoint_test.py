@@ -71,12 +71,12 @@ class EntrypointTest(unittest.TestCase):
     self._import_func = mock.patch.object(
         entrypoint_utils,
         'import_func_from_source').start()
-    _ = mock.patch.object(tf.io.gfile, 'makedirs').start()
-    self._mock_gfile = mock.patch(
-        'tensorflow.io.gfile.GFile',
-        autospec=True,
+    self._mock_gcs_read = mock.patch(
+        'kfp.containers._gcs_helper.GCSHelper.read_from_gcs_path',
     ).start()
-    self._mock_gfile_instance = self._mock_gfile.return_value
+    self._mock_gcs_write = mock.patch(
+        'kfp.containers._gcs_helper.GCSHelper.write_to_gcs_path',
+    ).start()
 
     self.addCleanup(mock.patch.stopall)
 
@@ -105,8 +105,9 @@ class EntrypointTest(unittest.TestCase):
         test_output2_parameter_output_path='gs://root/consumer/output2'
     )
 
-    self._mock_gfile_instance.write.assert_called_with(
-        file_content=_EXPECTED_EXECUTOR_OUTPUT_1)
+    self._mock_gcs_write.assert_called_with(
+        path=_OUTPUT_METADATA_JSON_LOCATION,
+        content=_EXPECTED_EXECUTOR_OUTPUT_1)
 
   def testMainWithV2Producer(self):
     """Tests the entrypoint with data passing with new-styled KFP components.
@@ -118,7 +119,7 @@ class EntrypointTest(unittest.TestCase):
     # Set mocked user function.
     self._import_func.return_value = main.test_func2
     # Set GFile read function
-    self._mock_gfile_instance.read.return_value = _PRODUCER_EXECUTOR_OUTPUT
+    self._mock_gcs_read.return_value = _PRODUCER_EXECUTOR_OUTPUT
 
     entrypoint.main(
         executor_metadata_json_file=_OUTPUT_METADATA_JSON_LOCATION,
@@ -131,5 +132,6 @@ class EntrypointTest(unittest.TestCase):
         test_output2_parameter_output_path='gs://root/consumer/output2'
     )
 
-    self._mock_gfile_instance.write.assert_called_with(
-        file_content=_EXPECTED_EXECUTOR_OUTPUT_1)
+    self._mock_gcs_write.assert_called_with(
+        path=_OUTPUT_METADATA_JSON_LOCATION,
+        content=_EXPECTED_EXECUTOR_OUTPUT_1)

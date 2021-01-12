@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 from pathlib import PurePath
 
 class GCSHelper(object):
@@ -45,6 +46,26 @@ class GCSHelper(object):
     blob.upload_from_filename(local_path)
 
   @staticmethod
+  def write_to_gcs_path(path: str, content: str) -> None:
+    """Writes serialized content to a GCS location.
+
+    Args:
+      path: GCS path to write to.
+      content: The content to be written.
+    """
+    temp_local_path = '/tmp/tmp_file'
+    with open(temp_local_path, 'w') as f:
+      f.write(content)
+
+    if not GCSHelper.get_blob_from_gcs_uri(path):
+      pure_path = PurePath(path)
+      gcs_bucket = pure_path.parts[1]
+      GCSHelper.create_gcs_bucket_if_not_exist(gcs_bucket)
+
+    GCSHelper.upload_gcs_file(temp_local_path, path)
+    os.remove(temp_local_path)
+
+  @staticmethod
   def remove_gcs_blob(gcs_path):
     """
     Args:
@@ -62,6 +83,14 @@ class GCSHelper(object):
     """
     blob = GCSHelper.get_blob_from_gcs_uri(gcs_path)
     blob.download_to_filename(local_path)
+
+  @staticmethod
+  def read_from_gcs_path(gcs_path: str) -> str:
+    """Reads the content of a file hosted on GCS."""
+    temp_local_path = '/tmp/tmp_file'
+    GCSHelper.download_gcs_blob(temp_local_path, gcs_path)
+    with open(temp_local_path, 'r') as f:
+      return f.read()
 
   @staticmethod
   def create_gcs_bucket_if_not_exist(gcs_bucket):

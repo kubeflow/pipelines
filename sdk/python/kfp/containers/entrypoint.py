@@ -12,15 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import NamedTuple, Optional, Union
+from typing import Optional, Union
 
 from absl import logging
 import fire
 from google.protobuf import json_format
 import os
-# TODO: Get rid of TF dependency by implementing file IO utilities.
-import tensorflow as tf
 
+from kfp.containers import _gcs_helper
 from kfp.containers import entrypoint_utils
 from kfp.dsl import artifact
 
@@ -290,22 +289,16 @@ def main(**kwargs):
   if isinstance(fn_res, (int, float, str)):
     output_name = list(output_params_path.keys())[0]
     # Write the output to the provided path.
-    try:
-      tf.io.gfile.makedirs(os.path.dirname(output_params_path[output_name]))
-    except OSError:
-      # Ignore the error when creating parent dirs.
-      pass
-    tf.io.gfile.GFile(output_params_path[output_name], 'w').write(str(fn_res))
+    _gcs_helper.GCSHelper.write_to_gcs_path(
+        path=output_params_path[output_name],
+        content=str(fn_res))
   else:
     # When multiple outputs, we'll need to match each field to the output paths.
     for idx, output_name in enumerate(fn_res._fields):
       path = output_params_path[output_name]
-      try:
-        tf.io.gfile.makedirs(os.path.dirname(path))
-      except OSError:
-        # Ignore the error when creating parent dirs.
-        pass
-      tf.io.gfile.GFile(path, 'w').write(str(fn_res[idx]))
+      _gcs_helper.GCSHelper.write_to_gcs_path(
+          path=path,
+          content=str(fn_res[idx]))
 
   # Write output metadata JSON file.
   output_parameters = {}
@@ -319,8 +312,9 @@ def main(**kwargs):
       output_artifacts=output_artifacts,
       output_params=output_parameters)
 
-  tf.io.gfile.GFile(kwargs[_METADATA_FILE_ARG], 'w').write(
-      file_content=json_format.MessageToJson(executor_output))
+  _gcs_helper.GCSHelper.write_to_gcs_path(
+      path=kwargs[_METADATA_FILE_ARG],
+      content=json_format.MessageToJson(executor_output))
 
 
 if __name__ == '__main__':

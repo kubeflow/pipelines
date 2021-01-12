@@ -15,11 +15,11 @@
 from absl import logging
 import importlib
 import sys
-import tensorflow as tf
 from typing import Callable, Dict, Optional, Union
 from google.protobuf import json_format
 
 from kfp.components import _python_op
+from kfp.containers import _gcs_helper
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.dsl import artifact
 
@@ -34,7 +34,7 @@ def get_parameter_from_output(file_path: str, param_name: str):
   """Gets a parameter value by its name from output metadata JSON."""
   output = pipeline_spec_pb2.ExecutorOutput()
   json_format.Parse(
-      text=tf.io.gfile.GFile(file_path, 'r').read(),
+      text=_gcs_helper.GCSHelper.read_from_gcs_path(file_path),
       message=output)
   value = output.parameters[param_name]
   return getattr(value, value.WhichOneof('value'))
@@ -45,7 +45,7 @@ def get_artifact_from_output(
   """Gets an artifact object from output metadata JSON."""
   output = pipeline_spec_pb2.ExecutorOutput()
   json_format.Parse(
-      text=tf.io.gfile.GFile(file_path, 'r').read(),
+      text=_gcs_helper.GCSHelper.read_from_gcs_path(file_path),
       message=output
   )
   # Currently we bear the assumption that each output contains only one artifact
