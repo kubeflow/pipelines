@@ -274,8 +274,6 @@ def main(**kwargs):
   for k, v in output_artifacts.items():
     invoking_kwargs[k] = v
 
-  # TODO(numerology): Validate input artifact has a compatible type when
-  # producer is a V2 component.
   for k, v in input_params.items():
     invoking_kwargs[k] = v.value
   for k, v in input_artifacts.items():
