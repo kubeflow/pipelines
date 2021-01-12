@@ -49,7 +49,9 @@ class EntrypointUtilsTest(unittest.TestCase):
 
   @mock.patch('kfp.containers._gcs_helper.GCSHelper.read_from_gcs_path')
   def testGetParameterFromOutput(self, mock_read):
-    with open(os.path.join('testdata', 'executor_output.json'), 'r') as f:
+    with open(
+        os.path.join(os.path.dirname(__file__),
+                     'testdata', 'executor_output.json'), 'r') as f:
       mock_read.return_value = f.read()
 
     self.assertEqual(entrypoint_utils.get_parameter_from_output(
@@ -67,7 +69,9 @@ class EntrypointUtilsTest(unittest.TestCase):
 
   @mock.patch('kfp.containers._gcs_helper.GCSHelper.read_from_gcs_path')
   def testGetArtifactFromOutput(self, mock_read):
-    with open(os.path.join('testdata', 'executor_output.json'), 'r') as f:
+    with open(
+        os.path.join(os.path.dirname(__file__),
+                     'testdata', 'executor_output.json'), 'r') as f:
       mock_read.return_value = f.read()
 
     art = entrypoint_utils.get_artifact_from_output(
@@ -116,7 +120,8 @@ class EntrypointUtilsTest(unittest.TestCase):
 
   def testImportFuncFromSource(self):
     fn = entrypoint_utils.import_func_from_source(
-        source_path=os.path.join('testdata', 'test_source.py'),
+        source_path=os.path.join(
+            os.path.dirname(__file__), 'testdata', 'test_source.py'),
         fn_name='test_func'
     )
     self.assertEqual(fn(1, 2), 3)

@@ -13,7 +13,6 @@
 # limitations under the License.
 """Tests for kfp.containers.entrypoint module."""
 import mock
-import tensorflow as tf
 import unittest
 
 from kfp.containers import entrypoint
