@@ -45,6 +45,7 @@ REQUIRES = [
 TESTS_REQUIRE = [
     'mock',
     'kfp-pipeline-spec>=0.1.0, <0.2.0',
+    'fire>=0.3.1'
 ]
 
 
