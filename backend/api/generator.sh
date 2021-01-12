@@ -27,17 +27,17 @@ ${PROTOCCOMPILER} -I. -Ibackend/api \
     -I/go/src/github.com/protocolbuffers/protobuf/src \
     -I/go/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
     -I/go/src/github.com/grpc-ecosystem/grpc-gateway/ \
-    --plugin=protoc-gen-go=/go/bin/protoc-gen-go \
+    --plugin=protoc-gen-go=/go/bin/protoc-gen-go  \
     --go_out=plugins=grpc:${TMP_OUTPUT} \
     backend/api/*.proto
 # Generate *.pb.gw.go (grpc api rest client) from *.proto.
 ${PROTOCCOMPILER} -I. -Ibackend/api \
     -I/go/src/github.com/protocolbuffers/protobuf/src \
-    -I/go/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
-    -I/go/src/github.com/grpc-ecosystem/grpc-gateway/ \
-    --plugin=protoc-gen-grpc-gateway=/go/bin/protoc-gen-grpc-gateway \
-    --grpc-gateway_out=logtostderr=true:${TMP_OUTPUT} \
-    backend/api/*.proto
+     -I/go/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
+     -I/go/src/github.com/grpc-ecosystem/grpc-gateway/ \
+     --plugin=protoc-gen-grpc-gateway=/go/bin/protoc-gen-grpc-gateway \
+     --grpc-gateway_out=logtostderr=true:${TMP_OUTPUT} \
+     backend/api/*.proto
 # Move *.pb.go and *.gw.go to go_client folder.
 cp ${TMP_OUTPUT}/github.com/kubeflow/pipelines/backend/api/go_client/* ./backend/api/go_client
 # Generate *.swagger.json from *.proto into swagger folder.
