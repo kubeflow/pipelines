@@ -16,5 +16,5 @@
   "InitConnectionTimeout": "6m",
   "DefaultPipelineRunnerServiceAccount": "pipeline-runner",
   "CacheEnabled": "true",
-  "CRON_SCHEDULE_TIMEZONE": "cronScheduleTimezone"
+  "CRON_SCHEDULE_TIMEZONE": "UTC"
 }
