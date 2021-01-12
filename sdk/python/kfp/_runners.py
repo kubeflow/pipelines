@@ -13,24 +13,28 @@
 # limitations under the License.
 
 __all__ = [
-    'run_pipeline_func_on_cluster',
+    "run_pipeline_func_on_cluster",
+    "run_pipeline_func_locally",
 ]
 
 
-from typing import Mapping, Callable
+from typing import Callable
+from typing import Mapping
 
 from . import Client
+from . import LocalClient
 from . import dsl
 
 
 def run_pipeline_func_on_cluster(
     pipeline_func: Callable,
     arguments: Mapping[str, str],
-    run_name : str = None,
-    experiment_name : str = None,
-    kfp_client : Client = None,
-    pipeline_conf: dsl.PipelineConf = None):
-    '''Runs pipeline on KFP-enabled Kubernetes cluster.
+    run_name: str = None,
+    experiment_name: str = None,
+    kfp_client: Client = None,
+    pipeline_conf: dsl.PipelineConf = None,
+):
+    """Runs pipeline on KFP-enabled Kubernetes cluster.
 
     This command compiles the pipeline function, creates or gets an experiment
     and submits the pipeline for execution.
@@ -49,6 +53,32 @@ def run_pipeline_func_on_cluster(
       pipeline_conf: Optional. kfp.dsl.PipelineConf instance. Can specify op
         transforms, image pull secrets and other pipeline-level configuration
         options.
-    '''
+    """
     kfp_client = kfp_client or Client()
-    return kfp_client.create_run_from_pipeline_func(pipeline_func, arguments, run_name, experiment_name, pipeline_conf)
+    return kfp_client.create_run_from_pipeline_func(
+        pipeline_func, arguments, run_name, experiment_name, pipeline_conf
+    )
+
+
+def run_pipeline_func_locally(
+    pipeline_func: Callable,
+    arguments: Mapping[str, str],
+    local_client: LocalClient = None,
+    local_env_image: str = None,
+):
+    """Run kubeflow pipeline locally
+
+    Parameters:
+    pipeline_func: pipeline function
+    arguments: Arguments to the pipeline function provided as a dict,
+     reference to `kfp.client.create_run_from_pipeline_func`
+    local_client: Optional. An instance of kfp.LocalClient
+    local_env_image: image name
+        If the image of component equals to `local_env_image`, local runner will run
+        this component locally in forked process, otherwise, local runner will run this
+        component on docker.
+    """
+    local_client = local_client or LocalClient()
+    return local_client.create_run_from_pipeline_func(
+        pipeline_func, arguments, local_env_image
+    )
