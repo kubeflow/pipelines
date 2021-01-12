@@ -12,7 +12,124 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for kfp.containers.entrypoint module."""
+import mock
+import tensorflow as tf
 import unittest
 
+from kfp.containers import entrypoint
+from kfp.containers import entrypoint_utils
+# Import testdata to mock entrypoint_utils.import_func_from_source function.
+from kfp.containers_tests.testdata import main
+
+_OUTPUT_METADATA_JSON_LOCATION = 'executor_output_metadata.json'
+
+_PRODUCER_EXECUTOR_OUTPUT = """{
+  "parameters": {
+    "param_output": {
+      "stringValue": "hello from producer"
+    }
+  },
+  "artifacts": {
+    "artifact_output": {
+      "artifacts": [
+        {
+          "type": {
+            "instanceSchema": "properties:\\ntitle: kfp.Dataset\\ntype: object\\n"
+          },
+          "uri": "gs://root/producer/artifact_output"
+        }
+      ]
+    }
+  }
+}"""
+
+_EXPECTED_EXECUTOR_OUTPUT_1 = """{
+  "parameters": {
+    "test_output2": {
+      "stringValue": "bye world"
+    }
+  },
+  "artifacts": {
+    "test_output1": {
+      "artifacts": [
+        {
+          "type": {
+            "instanceSchema": "properties:\\ntitle: kfp.Model\\ntype: object\\n"
+          },
+          "uri": "gs://root/consumer/output1"
+        }
+      ]
+    }
+  }
+}"""
+
+
 class EntrypointTest(unittest.TestCase):
-  pass
+
+  def setUp(self):
+    # Prepare mock
+    self._import_func = mock.patch.object(
+        entrypoint_utils,
+        'import_func_from_source').start()
+    _ = mock.patch.object(tf.io.gfile, 'makedirs').start()
+    self._mock_gfile = mock.patch(
+        'tensorflow.io.gfile.GFile',
+        autospec=True,
+    ).start()
+    self._mock_gfile_instance = self._mock_gfile.return_value
+
+    self.addCleanup(mock.patch.stopall)
+
+
+  def testMainWithV1Producer(self):
+    """Tests the entrypoint with data passing with conventional KFP components.
+
+    This test case emulates the following scenario:
+    - User provides a function, namely `test_func`.
+    - In test function, there are an input parameter (`test_param`) and an input
+      artifact (`test_artifact`). And the user code generates an output
+      artifact (`test_output1`) and an output parameter (`test_output2`).
+    - The specified metadata JSON file location is at
+      'executor_output_metadata.json'
+    - The inputs of this step are all provided by conventional KFP components.
+    """
+    # Set mocked user function.
+    self._import_func.return_value = main.test_func
+
+    entrypoint.main(
+        executor_metadata_json_file=_OUTPUT_METADATA_JSON_LOCATION,
+        function_name='test_func',
+        test_param_input_argo_param='hello from producer',
+        test_artifact_input_path='gs://root/producer/output',
+        test_output1_artifact_output_path='gs://root/consumer/output1',
+        test_output2_parameter_output_path='gs://root/consumer/output2'
+    )
+
+    self._mock_gfile_instance.write.assert_called_with(
+        file_content=_EXPECTED_EXECUTOR_OUTPUT_1)
+
+  def testMainWithV2Producer(self):
+    """Tests the entrypoint with data passing with new-styled KFP components.
+
+    This test case emulates a similar scenario as testMainWithV1Producer, except
+    for that the inputs of this step are all provided by a new-styled KFP
+    component.
+    """
+    # Set mocked user function.
+    self._import_func.return_value = main.test_func2
+    # Set GFile read function
+    self._mock_gfile_instance.read.return_value = _PRODUCER_EXECUTOR_OUTPUT
+
+    entrypoint.main(
+        executor_metadata_json_file=_OUTPUT_METADATA_JSON_LOCATION,
+        function_name='test_func2',
+        test_param_input_param_metadata_file='gs://root/producer/executor_output_metadata.json',
+        test_param_input_field_name='param_output',
+        test_artifact_input_artifact_metadata_file='gs://root/producer/executor_output_metadata.json',
+        test_artifact_input_output_name='artifact_output',
+        test_output1_artifact_output_path='gs://root/consumer/output1',
+        test_output2_parameter_output_path='gs://root/consumer/output2'
+    )
+
+    self._mock_gfile_instance.write.assert_called_with(
+        file_content=_EXPECTED_EXECUTOR_OUTPUT_1)

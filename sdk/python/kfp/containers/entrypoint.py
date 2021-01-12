@@ -28,7 +28,7 @@ _FN_SOURCE = 'ml/main.py'
 _FN_NAME_ARG = 'function_name'
 
 _PARAM_METADATA_SUFFIX = '_input_param_metadata_file'
-_ARTIFACT_METADATA_SUFFIX = '_artifact_param_metadata_file'
+_ARTIFACT_METADATA_SUFFIX = '_input_artifact_metadata_file'
 _FIELD_NAME_SUFFIX = '_input_field_name'
 _ARGO_PARAM_SUFFIX = '_input_argo_param'
 _INPUT_PATH_SUFFIX = '_input_path'
@@ -114,8 +114,8 @@ class InputArtifact(object):
         1) uri is provided, and metadata_file and output_name are not; or
         2) both metadata_file and output_name are provided, and uri is not.
     """
-    if not (not uri and not (metadata_file or output_name) or (
-        metadata_file and output_name and not uri)):
+    if not ((uri and not (metadata_file or output_name) or (
+        metadata_file and output_name and not uri))):
       raise ValueError('Either uri or both metadata_file and output_name '
                        'needs to be provided. Get uri={uri}, output_name='
                        '{output_name}, metadata_file={metadata_file}'.format(
@@ -143,8 +143,15 @@ class InputArtifact(object):
 
   def get_artifact(self) -> artifact.Artifact:
     """Gets an artifact object by parsing metadata or creating one from uri."""
-    return entrypoint_utils.get_artifact_from_output(
-        self.metadata_file, self.output_name)
+    if self.metadata_file and self.output_name:
+      return entrypoint_utils.get_artifact_from_output(
+          self.metadata_file, self.output_name)
+    else:
+      # Provide an empty schema when returning a raw Artifact.
+      result = artifact.Artifact(
+          'title: kfp.Artifact\ntype: object\nproperties:\n')
+      result.uri = self.uri
+      return result
 
 
 def main(**kwargs):
@@ -174,7 +181,7 @@ def main(**kwargs):
      path output by the producer.
   3. {name of the artifact}_input_output_name: The output name of the artifact,
      by which the artifact can be found in the producer metadata JSON file.
-  If the producer is a new-styled KFP Python component, 2 will be used to give
+  If the producer is a new-styled KFP Python component, 2+3 will be used to give
   user code access to MLMD (custom) properties associated with this artifact;
   if the producer is a conventional KFP Python component, 1 will be used to
   access only the content of the artifact.
@@ -186,8 +193,8 @@ def main(**kwargs):
   In addition, `executor_metadata_json_file` specifies the location where the
   output metadata JSON file will be written.
   """
-  assert (
-      _METADATA_FILE_ARG in kwargs, 'Must specify executor_metadata_json_file.')
+  if _METADATA_FILE_ARG not in kwargs:
+    raise RuntimeError('Must specify executor_metadata_json_file')
 
   # Group arguments according to suffixes.
   input_params_metadata = {}
@@ -223,7 +230,7 @@ def main(**kwargs):
     elif k.endswith(_OUTPUT_ARTIFACT_PATH_SUFFIX):
       artifact_name = k[:-len(_OUTPUT_ARTIFACT_PATH_SUFFIX)]
       output_artifacts_uri[artifact_name] = v
-    else:
+    elif k not in (_METADATA_FILE_ARG, _FN_NAME_ARG):
       logging.warning(
           'Got unexpected command line argument: %s=%s Ignoring', k, v)
 
@@ -233,9 +240,9 @@ def main(**kwargs):
       input_params_value.keys() |
       input_params_field_name.keys() | input_params_metadata.keys()):
     input_param = InputParam(
-        value=input_params_value[param_name],
-        metadata_file=input_params_metadata[param_name],
-        field_name=input_params_field_name[param_name])
+        value=input_params_value.get(param_name),
+        metadata_file=input_params_metadata.get(param_name),
+        field_name=input_params_field_name.get(param_name))
     input_params[param_name] = input_param
 
   input_artifacts = {}
@@ -245,9 +252,9 @@ def main(**kwargs):
       input_artifacts_output_name.keys()
   ):
     input_artifact = InputArtifact(
-        uri=input_artifacts_uri[artifact_name],
-        metadata_file=input_artifacts_metadata[artifact_name],
-        output_name=input_artifacts_output_name[artifact_name])
+        uri=input_artifacts_uri.get(artifact_name),
+        metadata_file=input_artifacts_metadata.get(artifact_name),
+        output_name=input_artifacts_output_name.get(artifact_name))
     input_artifacts[artifact_name] = input_artifact
 
   # Import and invoke the user-provided function.
@@ -266,6 +273,9 @@ def main(**kwargs):
   invoking_kwargs = {}
   for k, v in output_artifacts.items():
     invoking_kwargs[k] = v
+
+  # TODO(numerology): Validate input artifact has a compatible type when
+  # producer is a V2 component.
   for k, v in input_params.items():
     invoking_kwargs[k] = v.value
   for k, v in input_artifacts.items():
@@ -274,10 +284,6 @@ def main(**kwargs):
   # Execute the user function. fn_res is expected to contain output parameters
   # only. It's either an namedtuple or a single primitive value.
   fn_res = fn(**invoking_kwargs)
-
-  if not isinstance(fn_res, (NamedTuple, int, float, str)):
-    raise TypeError('The execution result of the user function needs to be '
-                    'either a NamedTuple or primitive value. Got %s' % fn_res)
 
   if isinstance(fn_res, (int, float, str)) and len(output_params_path) != 1:
     raise RuntimeError('For primitive output a single output param path is '
@@ -316,7 +322,7 @@ def main(**kwargs):
       output_params=output_parameters)
 
   tf.io.gfile.GFile(kwargs[_METADATA_FILE_ARG], 'w').write(
-      json_format.MessageToJson(executor_output))
+      file_content=json_format.MessageToJson(executor_output))
 
 
 if __name__ == '__main__':
