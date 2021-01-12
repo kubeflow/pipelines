@@ -318,7 +318,7 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_CronScheduleTimeZone(t *testing
 			MaxConcurrency: commonutil.Int64Pointer(int64(10)),
 			Trigger: swfapi.Trigger{
 				CronSchedule: &swfapi.CronSchedule{
-					Cron: "* * 15 * * *", // trigger 15:00 every day
+					Cron: "* 15 * * *", // trigger 15:00 every day
 				},
 			},
 		},
@@ -362,7 +362,7 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_CronScheduleTimeZoneEndTime(t *
 			MaxConcurrency: commonutil.Int64Pointer(int64(10)),
 			Trigger: swfapi.Trigger{
 				CronSchedule: &swfapi.CronSchedule{
-					Cron:    "* * 15 * * *", // trigger 15:00 every day
+					Cron:    "* 15 * * *", // trigger 15:00 every day
 					EndTime: &endTimestamp,
 				},
 			},
