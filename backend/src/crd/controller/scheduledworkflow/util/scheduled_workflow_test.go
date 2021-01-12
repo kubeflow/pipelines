@@ -395,7 +395,7 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_CronSchedule(t *testing.T) {
 			MaxConcurrency: commonutil.Int64Pointer(int64(10)),
 			Trigger: swfapi.Trigger{
 				CronSchedule: &swfapi.CronSchedule{
-					Cron: "0 * * * * *", // trigger every minute
+					Cron: "* * * * *",
 				},
 			},
 		},
@@ -450,7 +450,7 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_CronSchedule_Fail(t *testing.T)
 			MaxConcurrency: commonutil.Int64Pointer(int64(10)),
 			Trigger: swfapi.Trigger{
 				CronSchedule: &swfapi.CronSchedule{
-					Cron: "* * 15 * * *", // trigger 15:00 every day
+					Cron: "* 15 * * *", // trigger 15:00 every day
 				},
 			},
 		},

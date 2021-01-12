@@ -34,6 +34,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.0.0
 	github.com/robfig/cron v1.2.0
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/viper v1.3.2
 	github.com/stretchr/testify v1.5.1
@@ -51,5 +52,6 @@ require (
 	sigs.k8s.io/controller-runtime v0.5.11
 	sigs.k8s.io/testing_frameworks v0.1.1 // indirect
 )
+
 
 go 1.13

@@ -19,7 +19,7 @@ import (
 
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	wraperror "github.com/pkg/errors"
-	"github.com/robfig/cron"
+	"github.com/robfig/cron/v3"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -81,7 +81,9 @@ func (s *CronSchedule) getNextScheduledTime(lastJobTime time.Time, location *tim
 }
 
 func (s *CronSchedule) getNextScheduledTimeImp(lastJobTime time.Time, catchup bool, nowTime time.Time, location *time.Location) time.Time {
-	schedule, err := cron.Parse(s.Cron)
+	parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
+	schedule, err := parser.Parse(s.Cron)
+
 	if err != nil {
 		// This should never happen, validation should have caught this at resource creation.
 		log.Errorf("%+v", wraperror.Errorf(
