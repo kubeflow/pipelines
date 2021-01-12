@@ -26,7 +26,8 @@ from kfp.pipeline_spec import pipeline_spec_pb2
 
 def _get_text_from_testdata(filename: str) -> str:
   """Reads the content of a file under testdata."""
-  with open(os.path.join('testdata', filename), 'r') as f:
+  with open(
+      os.path.join(os.path.dirname(__file__), 'testdata', filename), 'r') as f:
     return f.read()
 
 
@@ -49,10 +50,7 @@ class EntrypointUtilsTest(unittest.TestCase):
 
   @mock.patch('kfp.containers._gcs_helper.GCSHelper.read_from_gcs_path')
   def testGetParameterFromOutput(self, mock_read):
-    with open(
-        os.path.join(os.path.dirname(__file__),
-                     'testdata', 'executor_output.json'), 'r') as f:
-      mock_read.return_value = f.read()
+    mock_read.return_value = _get_text_from_testdata('executor_output.json')
 
     self.assertEqual(entrypoint_utils.get_parameter_from_output(
         file_path=os.path.join('testdata', 'executor_output.json'),
@@ -69,10 +67,7 @@ class EntrypointUtilsTest(unittest.TestCase):
 
   @mock.patch('kfp.containers._gcs_helper.GCSHelper.read_from_gcs_path')
   def testGetArtifactFromOutput(self, mock_read):
-    with open(
-        os.path.join(os.path.dirname(__file__),
-                     'testdata', 'executor_output.json'), 'r') as f:
-      mock_read.return_value = f.read()
+    mock_read.return_value = _get_text_from_testdata('executor_output.json')
 
     art = entrypoint_utils.get_artifact_from_output(
         file_path=os.path.join('testdata', 'executor_output.json'),
