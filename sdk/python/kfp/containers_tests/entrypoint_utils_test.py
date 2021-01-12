@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for kfp.containers.entrypoint_utils module."""
 from google.protobuf import json_format
+import mock
 import os
 import unittest
 
@@ -46,7 +47,11 @@ _OUTPUT_URIS = {
 
 class EntrypointUtilsTest(unittest.TestCase):
 
-  def testGetParameterFromOutput(self):
+  @mock.patch('kfp.containers._gcs_helper.GCSHelper.read_from_gcs_path')
+  def testGetParameterFromOutput(self, mock_read):
+    with open(os.path.join('testdata', 'executor_output.json'), 'r') as f:
+      mock_read.return_value = f.read()
+
     self.assertEqual(entrypoint_utils.get_parameter_from_output(
         file_path=os.path.join('testdata', 'executor_output.json'),
         param_name='int_output'
@@ -60,7 +65,11 @@ class EntrypointUtilsTest(unittest.TestCase):
         param_name='float_output'
     ), 12.12)
 
-  def testGetArtifactFromOutput(self):
+  @mock.patch('kfp.containers._gcs_helper.GCSHelper.read_from_gcs_path')
+  def testGetArtifactFromOutput(self, mock_read):
+    with open(os.path.join('testdata', 'executor_output.json'), 'r') as f:
+      mock_read.return_value = f.read()
+
     art = entrypoint_utils.get_artifact_from_output(
         file_path=os.path.join('testdata', 'executor_output.json'),
         output_name='output'
