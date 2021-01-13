@@ -20,7 +20,7 @@ spec:
           - "-ec"
           - |
               program_path=$(mktemp)
-              echo -n "$0" > "$program_path"
+              printf "%s" "$0" > "$program_path"
               python3 -u "$program_path" "$@"
           - |
               def consume(param1):
@@ -51,7 +51,7 @@ spec:
           - "-ec"
           - |
               program_path=$(mktemp)
-              echo -n "$0" > "$program_path"
+              printf "%s" "$0" > "$program_path"
               python3 -u "$program_path" "$@"
           - |
               def consume(param1):
@@ -82,7 +82,7 @@ spec:
           - "-ec"
           - |
               program_path=$(mktemp)
-              echo -n "$0" > "$program_path"
+              printf "%s" "$0" > "$program_path"
               python3 -u "$program_path" "$@"
           - |
               def consume(param1):
@@ -113,7 +113,7 @@ spec:
           - "-ec"
           - |
               program_path=$(mktemp)
-              echo -n "$0" > "$program_path"
+              printf "%s" "$0" > "$program_path"
               python3 -u "$program_path" "$@"
           - |
               def consume(param1):
@@ -144,7 +144,7 @@ spec:
           - "-ec"
           - |
               program_path=$(mktemp)
-              echo -n "$0" > "$program_path"
+              printf "%s" "$0" > "$program_path"
               python3 -u "$program_path" "$@"
           - |
               def consume(param1):
@@ -175,7 +175,7 @@ spec:
           - "-ec"
           - |
               program_path=$(mktemp)
-              echo -n "$0" > "$program_path"
+              printf "%s" "$0" > "$program_path"
               python3 -u "$program_path" "$@"
           - |
               def consume(param1):
@@ -206,7 +206,7 @@ spec:
           - "-ec"
           - |
               program_path=$(mktemp)
-              echo -n "$0" > "$program_path"
+              printf "%s" "$0" > "$program_path"
               python3 -u "$program_path" "$@"
           - |
               def consume(param1):
@@ -387,7 +387,7 @@ spec:
           - "-ec"
           - |
               program_path=$(mktemp)
-              echo -n "$0" > "$program_path"
+              printf "%s" "$0" > "$program_path"
               python3 -u "$program_path" "$@"
           - |
               def produce_list_of_dicts():
@@ -452,7 +452,7 @@ spec:
           - "-ec"
           - |
               program_path=$(mktemp)
-              echo -n "$0" > "$program_path"
+              printf "%s" "$0" > "$program_path"
               python3 -u "$program_path" "$@"
           - |
               def produce_list_of_ints():
@@ -517,7 +517,7 @@ spec:
           - "-ec"
           - |
               program_path=$(mktemp)
-              echo -n "$0" > "$program_path"
+              printf "%s" "$0" > "$program_path"
               python3 -u "$program_path" "$@"
           - |
               def produce_list_of_strings():
@@ -582,7 +582,7 @@ spec:
           - "-ec"
           - |
               program_path=$(mktemp)
-              echo -n "$0" > "$program_path"
+              printf "%s" "$0" > "$program_path"
               python3 -u "$program_path" "$@"
           - |
               def produce_str():
