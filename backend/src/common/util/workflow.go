@@ -67,7 +67,11 @@ func (w *Workflow) GetWorkflowParametersAsMap() map[string]string {
 	resultAsArray := w.Spec.Arguments.Parameters
 	resultAsMap := make(map[string]string)
 	for _, param := range resultAsArray {
-		resultAsMap[param.Name] = *param.Value
+		if param.Value == nil {
+			resultAsMap[param.Name] = ""
+		} else {
+			resultAsMap[param.Name] = *param.Value
+		}
 	}
 	return resultAsMap
 }
