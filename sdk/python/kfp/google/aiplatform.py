@@ -86,4 +86,65 @@ def custom_job(
   Raises:
     TBD
   """
-  pass
+  # Check the sanity of the provided parameters.
+  input_artifacts = input_artifacts or {}
+  input_parameters = input_parameters or {}
+  output_artifacts = output_artifacts or {}
+  output_parameters = output_parameters or {}
+  if bool(set(input_artifacts.keys()) & set(input_parameters.keys())):
+    raise KeyError('Input key conflict between input parameters and artifacts.')
+  if bool(set(output_artifacts.keys()) & set(output_parameters.keys())):
+    raise KeyError('Output key conflict between output parameters and '
+                   'artifacts.')
+
+  if bool(image_uri) == bool(executor_image_uri):
+    raise ValueError('The user program needs to be either a custom container '
+                     'training job, or a custom Python training job')
+
+  # For Python custom training job, package URIs and modules are also required.
+  if executor_image_uri:
+    if not package_uris or not python_module or len(package_uris) > 100:
+      raise ValueError('For custom Python training, package_uris with length < '
+                       '100 and python_module are expected.')
+
+  # Check and scaffold the parameter to form the custom job request spec.
+  custom_job_spec = additional_job_spec or {}
+  if not custom_job_spec.get('workerPoolSpecs'):
+    # Single node training, deriving job spec from top-level parameters.
+    if image_uri:
+      # Single node custom container training
+      worker_pool_spec = {
+          "machineSpec": {
+              "machineType": "n1-standard-4"
+          },
+          "replicaCount": "1",
+          "containerSpec": {
+              "imageUri": image_uri,
+              "command": commands,
+              "args": args
+          }
+      }
+      custom_job_spec['workerPoolSpecs'] = [worker_pool_spec]
+    if executor_image_uri:
+      worker_pool_spec = {
+          "machineSpec": {
+              "machineType": "n1-standard-4"
+          },
+          "replicaCount": "1",
+          "pythonPackageSpec": {
+              "executorImageUri": executor_image_uri,
+              "packageUris": package_uris,
+              "pythonModule": python_module,
+              "args": args
+          }
+      }
+      custom_job_spec['workerPoolSpecs'] = [worker_pool_spec]
+  else:
+    # If the full-fledged job spec is provided. We'll use it as much as
+    # possible, and patch some top-level parameters.
+    for spec in custom_job_spec['workerPoolSpecs']:
+      if image_uri:
+        pass
+
+
+
