@@ -27,7 +27,7 @@ from ..components._python_op import _func_to_component_spec
 from ._container_builder import ContainerBuilder
 from kfp.components import _structures
 
-NEW_STYLED_COMPONENT_ANNOTATION = 'pipelines.kubeflow.org/new_styled_component'
+V2_COMPONENT_ANNOTATION = 'pipelines.kubeflow.org/component_v2'
 
 
 class VersionedDependency(object):
@@ -179,7 +179,7 @@ def build_python_component(
     namespace: Optional[str] = None,
     target_component_file: Optional[str] = None,
     python_version: str = 'python3',
-    is_new_style: bool = False
+    is_v2: bool = False
 ):
   """build_component automatically builds a container image for the
   component_func based on the base_image and pushes to the target_image.
@@ -201,7 +201,7 @@ def build_python_component(
     target_component_file (str): The path to save the generated component YAML
       spec.
     python_version (str): Choose python2 or python3, default is python3
-    is_new_style: Whether or not generating a new-styled KFP component, default
+    is_v2: Whether or not generating a v2 KFP component, default
       is false.
 
   Raises:
@@ -238,19 +238,19 @@ def build_python_component(
   component_spec = _func_to_component_spec(
       component_func, base_image=base_image)
 
-  if is_new_style:
-    # Annotate the component to be a new-styled one.
+  if is_v2:
+    # Annotate the component to be a V2 one.
     if getattr(component_spec, 'metadata', None) and getattr(
         component_spec.metadata, 'annotations', None):
       component_spec.metadata.annotations[
-        NEW_STYLED_COMPONENT_ANNOTATION] = 'true'
+        V2_COMPONENT_ANNOTATION] = 'true'
     elif getattr(component_spec, 'metadata', None):
       component_spec.metadata.annotations = {
-          NEW_STYLED_COMPONENT_ANNOTATION: 'true'}
+          V2_COMPONENT_ANNOTATION: 'true'}
     else:
       component_spec.metadata = _structures.MetadataSpec(
           annotations={
-              NEW_STYLED_COMPONENT_ANNOTATION: 'true'
+              V2_COMPONENT_ANNOTATION: 'true'
           })
 
   command_line_args = component_spec.implementation.container.command
