@@ -62,7 +62,7 @@ class InputParam(object):
     if not (value is not None and not (metadata_file or field_name) or (
         metadata_file and field_name and value is None)):
       raise ValueError('Either value or both metadata_file and field_name '
-                       'needs to be provided. Get value={value}, field_name='
+                       'needs to be provided. Got value={value}, field_name='
                        '{field_name}, metadata_file={metadata_file}'.format(
           value=value,
           field_name=field_name,
@@ -116,16 +116,19 @@ class InputArtifact(object):
     if not ((uri and not (metadata_file or output_name) or (
         metadata_file and output_name and not uri))):
       raise ValueError('Either uri or both metadata_file and output_name '
-                       'needs to be provided. Get uri={uri}, output_name='
+                       'needs to be provided. Got uri={uri}, output_name='
                        '{output_name}, metadata_file={metadata_file}'.format(
           uri=uri,
           output_name=output_name,
           metadata_file=metadata_file
       ))
 
-    self._uri = uri
     self._metadata_file = metadata_file
     self._output_name = output_name
+    if uri:
+      self._uri = uri
+    else:
+      self._uri = self.get_artifact().uri
 
   # Following properties are read-only.
   @property
@@ -183,7 +186,7 @@ def main(**kwargs):
   If the producer is a new-styled KFP Python component, 2+3 will be used to give
   user code access to MLMD (custom) properties associated with this artifact;
   if the producer is a conventional KFP Python component, 1 will be used to
-  access only the content of the artifact.
+  construct an Artifact with only the URI populated.
 
   For each declared artifact or parameter output of the user function, a command
   line arg, namely, `{name of the artifact|parameter}_(artifact|parameter)_output_path`,
