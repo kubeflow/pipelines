@@ -25,7 +25,7 @@ from kfp.dsl import serialization_utils
 
 _KFP_ARTIFACT_TITLE_PATTERN = 'kfp.{}'
 KFP_ARTIFACT_ONTOLOGY_MODULE = 'kfp.dsl.ontology_artifacts'
-_DEFAULT_ARTIFACT_SCHEMA = 'title: kfp.Artifact\ntype: object\nproperties:\n'
+DEFAULT_ARTIFACT_SCHEMA = 'title: kfp.Artifact\ntype: object\nproperties:\n'
 
 
 # Enum for property types.
@@ -117,12 +117,12 @@ class Artifact(object):
   # Initialization flag to support setattr / getattr behavior.
   _initialized = False
 
-  def __init__(self, instance_schema: Optional[str] = _DEFAULT_ARTIFACT_SCHEMA):
+  def __init__(self, instance_schema: Optional[str] = None):
     """Constructs an instance of Artifact"""
     if self.__class__ == Artifact:
       if not instance_schema:
         raise ValueError(
-            'The "instance_schema" argument cannot be set as None.')
+            'The "instance_schema" argument must be set.')
       schema_yaml = yaml.safe_load(instance_schema)
       if 'properties' not in schema_yaml:
         raise ValueError('Invalid instance_schema, properties must be present. '
@@ -138,7 +138,7 @@ class Artifact(object):
     else:
       if instance_schema:
         raise ValueError(
-            'The "mlmd_artifact_type" argument must not be passed for '
+            'The "instance_schema" argument must not be passed for '
             'Artifact subclass %s.' % self.__class__)
       instance_schema = self.get_artifact_type()
 

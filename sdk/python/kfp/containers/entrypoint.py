@@ -147,7 +147,8 @@ class InputArtifact(object):
           self.metadata_file, self.output_name)
     else:
       # Provide an empty schema when returning a raw Artifact.
-      result = artifact.Artifact()
+      result = artifact.Artifact(
+          instance_schema=artifact.DEFAULT_ARTIFACT_SCHEMA)
       result.uri = self.uri
       return result
 

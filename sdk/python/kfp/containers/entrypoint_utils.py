@@ -136,7 +136,7 @@ def get_output_artifacts(
 
       if artifact_cls == artifact.Artifact:
         # Provide an empty schema if instantiating an bare-metal artifact.
-        art = artifact_cls()
+        art = artifact_cls(instance_schema=artifact.DEFAULT_ARTIFACT_SCHEMA)
       else:
         art = artifact_cls()
 
