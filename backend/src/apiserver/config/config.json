@@ -15,5 +15,6 @@
   "ARCHIVE_CONFIG_LOG_PATH_PREFIX": "/artifacts",
   "InitConnectionTimeout": "6m",
   "DefaultPipelineRunnerServiceAccount": "pipeline-runner",
-  "CacheEnabled": "true"
+  "CacheEnabled": "true",
+  "CRON_SCHEDULE_TIMEZONE": "UTC"
 }
