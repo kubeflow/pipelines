@@ -38,6 +38,12 @@ from ..dsl._ops_group import OpsGroup
 from ..dsl._pipeline_param import extract_pipelineparams_from_any, PipelineParam
 
 
+class Group(Enum):
+  CONDITION = "condition"
+  EXIT_HANDLER = "exit_handler"
+  SUBGRAPH = "subgraph"
+
+
 class Compiler(object):
   """DSL Compiler that compiles pipeline functions into workflow yaml.
   
@@ -171,7 +177,7 @@ class Compiler(object):
 
     def _get_condition_params_for_ops_helper(group, current_conditions_params):
       new_current_conditions_params = current_conditions_params
-      if group.type == 'condition':
+      if group.type == Group.CONDITION:
         new_current_conditions_params = list(current_conditions_params)
         if isinstance(group.condition.operand1, dsl.PipelineParam):
           new_current_conditions_params.append(group.condition.operand1)
@@ -332,7 +338,7 @@ class Compiler(object):
         # The opsgroup list is sorted with the farthest group as the first and the opsgroup
         # itself as the last. To get the latest opsgroup which is not the opsgroup itself -2 is used. 
         parent = opsgroup_groups[sub_graph][-2] 
-        if parent and parent.startswith('subgraph'):
+        if parent and parent.startswith(Group.SUBGRAPH):
           # propagate only op's pipeline param from subgraph to parallelfor
           loop_op = op_name_to_for_loop_op[sub_graph]
           pipeline_param = loop_op.loop_args.items_or_pipeline_param
@@ -428,7 +434,7 @@ class Compiler(object):
     if pipeline_param.op_name is None:
       return '{{workflow.parameters.%s}}' % pipeline_param.name
     param_name = '%s-%s' % (sanitize_k8s_name(pipeline_param.op_name), pipeline_param.name)
-    if group_type == 'subgraph':
+    if group_type == Group.SUBGRAPH:
       return '{{inputs.parameters.%s}}' % (param_name)
     return '{{tasks.%s.outputs.parameters.%s}}' % (sanitize_k8s_name(pipeline_param.op_name), param_name)
 
@@ -478,7 +484,7 @@ class Compiler(object):
           'name': sub_group.name,
           'template': sub_group.name,
         }
-      if isinstance(sub_group, dsl.OpsGroup) and sub_group.type == 'condition':
+      if isinstance(sub_group, dsl.OpsGroup) and sub_group.type == Group.CONDITION:
         subgroup_inputs = inputs.get(sub_group.name, [])
         condition = sub_group.condition
         operand1_value = self._resolve_value_or_reference(condition.operand1, subgroup_inputs)
@@ -512,7 +518,7 @@ class Compiler(object):
             if 'dependencies' not in task or task['dependencies'] is None:
               task['dependencies'] = []
             if sanitize_k8s_name(
-                pipeline_param.op_name) not in task['dependencies'] and group.type != 'subgraph':
+                pipeline_param.op_name) not in task['dependencies'] and group.type != Group.SUBGRAPH:
               task['dependencies'].append(
                   sanitize_k8s_name(pipeline_param.op_name))
 
@@ -684,7 +690,7 @@ class Compiler(object):
     exit_handler = None
     if pipeline.groups[0].groups:
       first_group = pipeline.groups[0].groups[0]
-      if first_group.type == 'exit_handler':
+      if first_group.type == Group.EXIT_HANDLER:
         exit_handler = first_group.exit_op
 
     # The whole pipeline workflow
@@ -763,7 +769,7 @@ class Compiler(object):
     """
 
     def _validate_exit_handler_helper(group, exiting_op_names, handler_exists):
-      if group.type == 'exit_handler':
+      if group.type == Group.EXIT_HANDLER:
         if handler_exists or len(exiting_op_names) > 1:
           raise ValueError('Only one global exit_handler is allowed and all ops need to be included.')
         handler_exists = True
