@@ -436,6 +436,7 @@ class Compiler(object):
       return '{{workflow.parameters.%s}}' % pipeline_param.name
     param_name = '%s-%s' % (sanitize_k8s_name(pipeline_param.op_name), pipeline_param.name)
     if group_type == Group.SUBGRAPH:
+      print("HERE HERE ")
       return '{{inputs.parameters.%s}}' % (param_name)
     return '{{tasks.%s.outputs.parameters.%s}}' % (sanitize_k8s_name(pipeline_param.op_name), param_name)
 
