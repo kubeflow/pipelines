@@ -748,9 +748,9 @@ implementation:
             [
                 'program',
                 '--in1-uri',
-                '{{kfp.output_dir}}/{{workflow.uid}}/{{inputs.parameters.In1-producer-pod-id-}}/In1',
+                '{{kfp.output_dir}}/{{kfp.run_uid}}/{{inputs.parameters.In1-producer-pod-id-}}/In1',
                 '--out1-uri',
-                '{{kfp.output_dir}}/{{workflow.uid}}/{{pod.name}}/Out1',
+                '{{kfp.output_dir}}/{{kfp.run_uid}}/{{pod.name}}/Out1',
             ],
             resolved_cmd.command
         )
