@@ -61,7 +61,7 @@ spec:
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"command": ["sh", "-c", "set -e -x\ngsutil cat \"$0\"\n", {"inputUri":
           "input_gcs_path"}], "image": "google/cloud-sdk:slim"}}, "inputs": [{"description":
-          "GCS file path", "name": "input_gcs_path", "type": "GCSPath"}], "name":
+          "GCS file path", "name": "input_gcs_path", "type": "String"}], "name":
           "Read from GCS"}', pipelines.kubeflow.org/component_ref: '{"digest": "03872dc24d4e846635a06a596d840649f9f9d0744862c7762c0151d0cd65d60b"}'}
   - name: read-from-gcs-2
     container:
@@ -81,7 +81,7 @@ spec:
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"command": ["sh", "-c", "set -e -x\ngsutil cat \"$0\"\n", {"inputUri":
           "input_gcs_path"}], "image": "google/cloud-sdk:slim"}}, "inputs": [{"description":
-          "GCS file path", "name": "input_gcs_path", "type": "GCSPath"}], "name":
+          "GCS file path", "name": "input_gcs_path", "type": "String"}], "name":
           "Read from GCS"}', pipelines.kubeflow.org/component_ref: '{"digest": "03872dc24d4e846635a06a596d840649f9f9d0744862c7762c0151d0cd65d60b"}'}
   - name: read-from-gcs-3
     container:
@@ -101,7 +101,7 @@ spec:
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"command": ["sh", "-c", "set -e -x\ngsutil cat \"$0\"\n", {"inputUri":
           "input_gcs_path"}], "image": "google/cloud-sdk:slim"}}, "inputs": [{"description":
-          "GCS file path", "name": "input_gcs_path", "type": "GCSPath"}], "name":
+          "GCS file path", "name": "input_gcs_path", "type": "String"}], "name":
           "Read from GCS"}', pipelines.kubeflow.org/component_ref: '{"digest": "03872dc24d4e846635a06a596d840649f9f9d0744862c7762c0151d0cd65d60b"}'}
   - name: uri-artifact-pipeline
     inputs:
@@ -159,7 +159,7 @@ spec:
           {"inputValue": "text"}, {"outputUri": "output_gcs_path"}], "image": "google/cloud-sdk:slim"}},
           "inputs": [{"description": "Content to be written to GCS", "name": "text",
           "type": "String"}], "name": "Write to GCS", "outputs": [{"description":
-          "GCS file path", "name": "output_gcs_path", "type": "GCSPath"}]}', pipelines.kubeflow.org/component_ref: '{"digest":
+          "GCS file path", "name": "output_gcs_path", "type": "String"}]}', pipelines.kubeflow.org/component_ref: '{"digest":
           "8ec42d2ddcbbce0607719e277bbe8e40f3649a894e46c8e92309951733bc7766"}', pipelines.kubeflow.org/arguments.parameters: '{"text":
           "{{inputs.parameters.text}}"}'}
   arguments:

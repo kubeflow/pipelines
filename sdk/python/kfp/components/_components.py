@@ -189,6 +189,9 @@ def _generate_output_file_name(port_name):
 # Placeholder to represent the output directory hosting all the generated URIs.
 # Its actual value will be specified during pipeline compilation.
 OUTPUT_DIR_PLACEHOLDER = '{{kfp.output_dir}}'
+# Placeholder to represent to UID of the current pipeline at runtime.
+# Will be replaced by engine-specific placeholder during compilation.
+RUN_ID_PLACEHOLDER = '{{kfp.run_uid}}'
 # Format of the Argo parameter used to pass the producer's Pod ID to
 # the consumer.
 PRODUCER_POD_NAME_PARAMETER = '{}-producer-pod-id-'
@@ -203,12 +206,10 @@ def _generate_output_uri(port_name: str) -> str:
     Returns:
         The URI assigned to this output, which is unique within the pipeline.
     """
-    return os.path.join(
-        OUTPUT_DIR_PLACEHOLDER,
-        '{{workflow.uid}}',
-        '{{pod.name}}',
-        port_name
-    )
+    # Use hand-crafted path since the behavior of os.path.join varies across
+    # different OSs, making tests difficult.
+    return '{}/{}/{{{{pod.name}}}}/{}'.format(
+        OUTPUT_DIR_PLACEHOLDER, RUN_ID_PLACEHOLDER, port_name)
 
 
 def _generate_input_uri(port_name: str) -> str:
@@ -221,9 +222,11 @@ def _generate_input_uri(port_name: str) -> str:
         The URI assigned to this input, will be consistent with the URI where
         the actual content is written after compilation.
     """
-    return os.path.join(
+    # Use hand-crafted path since the behavior of os.path.join varies across
+    # different OSs, making tests difficult.
+    return '{}/{}/{}/{}'.format(
         OUTPUT_DIR_PLACEHOLDER,
-        '{{workflow.uid}}',
+        RUN_ID_PLACEHOLDER,
         '{{{{inputs.parameters.{input}}}}}'.format(
             input=PRODUCER_POD_NAME_PARAMETER.format(port_name)),
         port_name

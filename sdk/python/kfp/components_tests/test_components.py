@@ -745,14 +745,14 @@ implementation:
         )
 
         self.assertEqual(
-            resolved_cmd.command,
             [
                 'program',
                 '--in1-uri',
                 '{{kfp.output_dir}}/{{workflow.uid}}/{{inputs.parameters.In1-producer-pod-id-}}/In1',
                 '--out1-uri',
                 '{{kfp.output_dir}}/{{workflow.uid}}/{{pod.name}}/Out1',
-            ]
+            ],
+            resolved_cmd.command
         )
 
     def test_check_type_validation_of_task_spec_outputs(self):
