@@ -43,7 +43,7 @@ class InputParam(object):
   """POD that holds an input parameter."""
 
   def __init__(self,
-      value: Optional[str] = None,
+      value: Optional[Union[str, float, int]] = None,
       metadata_file: Optional[str] = None,
       field_name: Optional[str] = None):
     """Instantiates an InputParam object.
@@ -68,7 +68,7 @@ class InputParam(object):
           field_name=field_name,
           metadata_file=metadata_file
       ))
-    if value:
+    if value is not None:
       self._value = value
     else:
       # Parse the value by inspecting the producer's metadata JSON file.
