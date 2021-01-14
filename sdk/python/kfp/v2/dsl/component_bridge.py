@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@ from kfp.v2.components import structures
 from kfp.v2.components.components import _default_component_name
 from kfp.v2.components.components import _resolve_command_line_and_paths
 from kfp.v2.dsl import component_spec as dsl_component_spec
-from kfp.v2.dsl import container_spec as dsl_container_spec
 from kfp.v2.dsl import container_op
 from kfp.v2.dsl import dsl_utils
 from kfp.v2.dsl import importer_node
@@ -227,10 +226,11 @@ def create_container_op_from_component_and_arguments(
   task.importer_specs = importer_specs
   task.component_spec = dsl_component_spec.build_component_spec_from_structure(
       component_spec)
-  task.container_spec = dsl_container_spec.build_container_spec(
-      image=container_spec.image,
-      command=resolved_cmd.command,
-      arguments=resolved_cmd.args)
+  task.container_spec = (
+      pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec(
+          image=container_spec.image,
+          command=resolved_cmd.command,
+          args=resolved_cmd.args))
 
   dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = old_warn_value
 

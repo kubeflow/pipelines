@@ -63,6 +63,10 @@ def build_component_spec_from_pipeline_params(
 ) -> pipeline_spec_pb2.ComponentSpec:
   """Builds an IR ComponentSpec instance from pipeline params.
 
+  This is useful when building the component spec for a pipeline (aka piipeline
+  root). Such a component spec doesn't need output_definitions, and its
+  implementation field will be filled in later.
+
   Args:
     pipeline_params: The list of pipeline params.
 

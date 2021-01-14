@@ -32,7 +32,7 @@ def sanitize_executor_label(label: str):
 
 
 def _sanitize_name(name: str):
-  """Sanitizes_name.
+  """Sanitizes name to comply with IR naming convention.
 
   The sanitized name contains only lower case alphanumeric characters and
   dashes.
