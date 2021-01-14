@@ -21,6 +21,7 @@ import uuid
 import warnings
 import zipfile
 from typing import Callable, Set, List, Text, Dict, Tuple, Any, Union, Optional
+from enum import Enum
 
 import kfp
 from kfp.dsl import _for_loop
