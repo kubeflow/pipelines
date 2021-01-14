@@ -25,6 +25,7 @@ from deprecated.sphinx import deprecated
 from ..components._components import _create_task_factory_from_component_spec
 from ..components._python_op import _func_to_component_spec
 from ._container_builder import ContainerBuilder
+from kfp.components import _structures
 
 NEW_STYLED_COMPONENT_ANNOTATION = 'pipelines.kubeflow.org/new_styled_component'
 
@@ -234,7 +235,24 @@ def build_python_component(
                                   ' and push the image to ' +
                                   target_image)
 
-  component_spec = _func_to_component_spec(component_func, base_image=base_image)
+  component_spec = _func_to_component_spec(
+      component_func, base_image=base_image)
+
+  if is_new_style:
+    # Annotate the component to be a new-styled one.
+    if getattr(component_spec, 'metadata', None) and getattr(
+        component_spec.metadata, 'annotations', None):
+      component_spec.metadata.annotations[
+        NEW_STYLED_COMPONENT_ANNOTATION] = 'true'
+    elif getattr(component_spec, 'metadata', None):
+      component_spec.metadata.annotations = {
+          NEW_STYLED_COMPONENT_ANNOTATION: 'true'}
+    else:
+      component_spec.metadata = _structures.MetadataSpec(
+          annotations={
+              NEW_STYLED_COMPONENT_ANNOTATION: 'true'
+          })
+
   command_line_args = component_spec.implementation.container.command
 
   program_launcher_index = command_line_args.index('program_path=$(mktemp)\necho -n "$0" > "$program_path"\npython3 -u "$program_path" "$@"\n')
@@ -280,11 +298,6 @@ def build_python_component(
     image_name_with_digest = container_builder.build(local_build_dir, arc_docker_filename, target_image, timeout)
 
   component_spec.implementation.container.image = image_name_with_digest
-
-  if is_new_style:
-    # Annotate the component to be a new-styled one.
-    component_spec.metadata.annotations[
-      NEW_STYLED_COMPONENT_ANNOTATION] = 'true'
 
   # Optionally writing the component definition to a local file for sharing
   target_component_file = target_component_file or getattr(component_func, '_component_target_component_file', None)
