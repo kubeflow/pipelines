@@ -13,21 +13,21 @@
 # limitations under the License.
 
 import os
-import inspect
-import re
 import sys
 import tempfile
 import logging
 import shutil
 from collections import OrderedDict
-from pathlib import Path
-from typing import Callable
+from typing import Callable, List, Optional
 
 from deprecated.sphinx import deprecated
 
 from ..components._components import _create_task_factory_from_component_spec
 from ..components._python_op import _func_to_component_spec
 from ._container_builder import ContainerBuilder
+
+NEW_STYLED_COMPONENT_ANNOTATION = 'pipelines.kubeflow.org/new_styled_component'
+
 
 class VersionedDependency(object):
   """ DependencyVersion specifies the versions """
@@ -168,24 +168,44 @@ def _configure_logger(logger):
   logger.addHandler(error_handler)
 
 
-@deprecated(version='0.1.32', reason='`build_python_component` is deprecated. Use `kfp.containers.build_image_from_working_dir` + `kfp.components.func_to_container_op` instead.')
-def build_python_component(component_func, target_image, base_image=None, dependency=[], staging_gcs_path=None, timeout=600, namespace=None, target_component_file=None, python_version='python3'):
-  """build_component automatically builds a container image for the component_func based on the base_image and pushes to the target_image.
+def build_python_component(
+    component_func: Callable,
+    target_image: str,
+    base_image: Optional[str] = None,
+    dependency: List[str] = [],
+    staging_gcs_path: Optional[str] = None,
+    timeout: int = 600,
+    namespace: Optional[str] = None,
+    target_component_file: Optional[str] = None,
+    python_version: str = 'python3',
+    is_new_style: bool = False
+):
+  """build_component automatically builds a container image for the
+  component_func based on the base_image and pushes to the target_image.
 
   Args:
-    component_func (python function): The python function to build components upon
-    base_image (str): Docker image to use as a base image
-    target_image (str): Full URI to push the target image
-    staging_gcs_path (str): GCS blob that can store temporary build files
-    target_image (str): target image path
-    timeout (int): the timeout for the image build(in secs), default is 600 seconds
-    namespace (str): the namespace within which to run the kubernetes kaniko job. If the
-    job is running on GKE and value is None the underlying functions will use the default namespace from GKE.  .
-    dependency (list): a list of VersionedDependency, which includes the package name and versions, default is empty
-    python_version (str): choose python2 or python3, default is python3
+    component_func (python function): The python function to build components
+      upon.
+    base_image (str): Docker image to use as a base image.
+    target_image (str): Full URI to push the target image.
+    staging_gcs_path (str): GCS blob that can store temporary build files.
+    target_image (str): The target image path.
+    timeout (int): The timeout for the image build(in secs), default is 600
+      seconds.
+    namespace (str): The namespace within which to run the kubernetes Kaniko
+      job. If the job is running on GKE and value is None the underlying
+      functions will use the default namespace from GKE.
+    dependency (list): The list of VersionedDependency, which includes the
+      package name and versions, default is empty.
+    target_component_file (str): The path to save the generated component YAML
+      spec.
+    python_version (str): Choose python2 or python3, default is python3
+    is_new_style: Whether or not generating a new-styled KFP component, default
+      is false.
 
   Raises:
-    ValueError: The function is not decorated with python_component decorator or the python_version is neither python2 nor python3
+    ValueError: The function is not decorated with python_component decorator or
+      the python_version is neither python2 nor python3
   """
 
   _configure_logger(logging.getLogger())
@@ -260,6 +280,11 @@ def build_python_component(component_func, target_image, base_image=None, depend
     image_name_with_digest = container_builder.build(local_build_dir, arc_docker_filename, target_image, timeout)
 
   component_spec.implementation.container.image = image_name_with_digest
+
+  if is_new_style:
+    # Annotate the component to be a new-styled one.
+    component_spec.metadata.annotations[
+      NEW_STYLED_COMPONENT_ANNOTATION] = 'true'
 
   # Optionally writing the component definition to a local file for sharing
   target_component_file = target_component_file or getattr(component_func, '_component_target_component_file', None)
