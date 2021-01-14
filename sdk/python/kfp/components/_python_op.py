@@ -70,7 +70,7 @@ class InputArtifact:
     When creating component from function. InputArtifact indicates that the
     associated input parameter should be tracked as an MLMD artifact.
     """
-    def __init__(self, type: str = None):
+    def __init__(self, type: Optional[str] = None):
         self.type = type
 
 
@@ -99,7 +99,7 @@ class OutputArtifact:
     associated input parameter should be treated as an MLMD artifact, whose
     underlying content, together with metadata will be updated by this component
     """
-    def __init__(self, type: str = None):
+    def __init__(self, type: Optional[str] = None):
         self.type = type
 
 

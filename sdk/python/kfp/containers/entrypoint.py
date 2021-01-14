@@ -78,7 +78,7 @@ class InputParam(object):
     self._metadata_file = metadata_file
     self._field_name = field_name
 
-  # Following attributes are read-only
+  # Following properties are read-only
   @property
   def value(self) -> Union[float, str, int]:
     return self._value
@@ -127,7 +127,7 @@ class InputArtifact(object):
     self._metadata_file = metadata_file
     self._output_name = output_name
 
-  # Following attributes are read-only.
+  # Following properties are read-only.
   @property
   def uri(self) -> str:
     return self._uri
@@ -147,8 +147,7 @@ class InputArtifact(object):
           self.metadata_file, self.output_name)
     else:
       # Provide an empty schema when returning a raw Artifact.
-      result = artifact.Artifact(
-          'title: kfp.Artifact\ntype: object\nproperties:\n')
+      result = artifact.Artifact()
       result.uri = self.uri
       return result
 
