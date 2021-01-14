@@ -217,7 +217,7 @@ def build_python_component(component_func, target_image, base_image=None, depend
   component_spec = _func_to_component_spec(component_func, base_image=base_image)
   command_line_args = component_spec.implementation.container.command
 
-  program_launcher_index = command_line_args.index('program_path=$(mktemp)\necho -n "$0" > "$program_path"\npython3 -u "$program_path" "$@"\n')
+  program_launcher_index = command_line_args.index('program_path=$(mktemp)\nprintf "%s" "$0" > "$program_path"\npython3 -u "$program_path" "$@"\n')
   assert program_launcher_index in [2, 3]
 
   program_code_index = program_launcher_index + 1
