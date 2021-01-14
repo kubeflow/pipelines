@@ -45,7 +45,7 @@ def list(ctx, experiment_id, max_size):
             msg = json.dumps([])
         else:
             msg = 'No runs found.'
-        print(msg)
+        click.echo(msg)
 
 
 @run.command()
@@ -73,14 +73,13 @@ def submit(ctx, experiment_name, run_name, package_file, pipeline_id, pipeline_n
         pipeline_id = client.get_pipeline_id(name=pipeline_name)
 
     if not package_file and not pipeline_id and not version:
-        print('You must provide one of [package_file, pipeline_id, version].')
+        click.echo('You must provide one of [package_file, pipeline_id, version].', err=True)
         sys.exit(1)
 
     arg_dict = dict(arg.split('=') for arg in args)
     experiment = client.create_experiment(experiment_name)
     run = client.run_pipeline(experiment.id, run_name, package_file, arg_dict, pipeline_id,
                               version_id=version)
-    print('Run {} is submitted'.format(run.id))
     _display_run(client, namespace, run.id, watch, output_format)
 
 
@@ -120,7 +119,7 @@ def _display_run(client, namespace, run_id, watch, output_format):
                 argo_workflow_name = manifest['metadata']['name']
                 break
         if run_detail.run.status in ['Succeeded', 'Skipped', 'Failed', 'Error']:
-            print('Run is finished with status {}.'.format(run_detail.run.status))
+            click.echo('Run is finished with status {}.'.format(run_detail.run.status))
             return
     if argo_workflow_name:
         subprocess.run([argo_path, 'watch', argo_workflow_name, '-n', namespace])
