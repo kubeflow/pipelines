@@ -933,6 +933,12 @@ class PythonOpTestCase(unittest.TestCase):
         with self.assertRaises(Exception):
             self.helper_test_component_using_local_call(task_factory2, arguments={}, expected_output_values={})
 
+    def test_code_with_escapes(self):
+        def my_func():
+            "Hello \n world"
+
+        task_factory = comp.create_component_from_func(my_func)
+        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={})
 
     def test_end_to_end_python_component_pipeline(self):
         #Defining the Python function
