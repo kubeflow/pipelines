@@ -26,8 +26,9 @@ import tempfile
 import unittest
 import yaml
 
+from kfp.compiler import Compiler
 from kfp.dsl._component import component
-from kfp.dsl import ContainerOp, pipeline
+from kfp.dsl import ContainerOp, pipeline, PipelineParam
 from kfp.dsl.types import Integer, InconsistentTypeException
 from kubernetes.client import V1Toleration, V1Affinity, V1NodeSelector, V1NodeSelectorRequirement, V1NodeSelectorTerm, \
   V1NodeAffinity, V1PodDNSConfig, V1PodDNSConfigOption
@@ -938,6 +939,9 @@ implementation:
   def test_withparam_lightweight_out(self):
     self._test_py_compile_yaml('loop_over_lightweight_output')
 
+  def test_parallelfor_pipeline_param_in_items_resolving(self):
+    self._test_py_compile_yaml('parallelfor_pipeline_param_in_items_resolving')
+
   def test_parallelfor_item_argument_resolving(self):
     self._test_py_compile_yaml('parallelfor_item_argument_resolving')
 
@@ -1088,6 +1092,19 @@ implementation:
       parameter_arguments_json = template['metadata']['annotations']['pipelines.kubeflow.org/arguments.parameters']
       parameter_arguments = json.loads(parameter_arguments_json)
       self.assertEqual(set(parameter_arguments.keys()), {'Input 1'})
+
+  def test__resolve_task_pipeline_param(self):
+    p = PipelineParam(name='param2')
+    resolved = Compiler._resolve_task_pipeline_param(p, group_type=None)
+    self.assertEqual(resolved, "{{workflow.parameters.param2}}")
+
+    p = PipelineParam(name='param1', op_name='op1')
+    resolved = Compiler._resolve_task_pipeline_param(p, group_type=None)
+    self.assertEqual(resolved, "{{tasks.op1.outputs.parameters.op1-param1}}")
+
+    p = PipelineParam(name='param1', op_name='op1')
+    resolved = Compiler._resolve_task_pipeline_param(p, group_type="subgraph")
+    self.assertEqual(resolved, "{{inputs.parameters.op1-param1}}")
 
   def test_uri_artifact_passing(self):
     self._test_py_compile_yaml('uri_artifacts')
