@@ -168,7 +168,13 @@ class LocalClient:
         return dag
 
     def _alter_output_file_path(self, run_name: str, op_name: str, output_file: str):
-        return re.sub("/tmp", f"/tmp/{run_name}/{op_name.lower()}", output_file)
+        return re.sub(
+            "/tmp",
+            "/tmp/{run_name}/{op_name}".format(
+                run_name=run_name, op_name=op_name.lower()
+            ),
+            output_file,
+        )
 
     def get_output_file_path(
         self,
