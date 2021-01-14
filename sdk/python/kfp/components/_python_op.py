@@ -496,7 +496,8 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
 
     pre_func_definitions = set()
     def get_argparse_type_for_input_file(passing_style):
-        if passing_style is None:
+        # Bypass InputArtifact and OutputArtifact.
+        if passing_style in (None, InputArtifact, OutputArtifact):
             return None
 
         if passing_style is InputPath:
