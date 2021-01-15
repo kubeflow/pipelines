@@ -18,7 +18,7 @@ spec:
       - -ec
       - |
         program_path=$(mktemp)
-        echo -n "$0" > "$program_path"
+        printf "%s" "$0" > "$program_path"
         python3 -u "$program_path" "$@"
       - |
         def consume(param1):
@@ -37,7 +37,7 @@ spec:
     metadata:
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
-          "program_path=$(mktemp)\necho -n \"$0\" > \"$program_path\"\npython3 -u
+          "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u
           \"$program_path\" \"$@\"\n", "def consume(param1):\n    print(param1)\n\nimport
           argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
           dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
@@ -53,7 +53,7 @@ spec:
       - -ec
       - |
         program_path=$(mktemp)
-        echo -n "$0" > "$program_path"
+        printf "%s" "$0" > "$program_path"
         python3 -u "$program_path" "$@"
       - |
         def consume(param1):
@@ -72,7 +72,7 @@ spec:
     metadata:
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
-          "program_path=$(mktemp)\necho -n \"$0\" > \"$program_path\"\npython3 -u
+          "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u
           \"$program_path\" \"$@\"\n", "def consume(param1):\n    print(param1)\n\nimport
           argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
           dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
@@ -88,7 +88,7 @@ spec:
       - -ec
       - |
         program_path=$(mktemp)
-        echo -n "$0" > "$program_path"
+        printf "%s" "$0" > "$program_path"
         python3 -u "$program_path" "$@"
       - |
         def consume(param1):
@@ -107,7 +107,7 @@ spec:
     metadata:
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
-          "program_path=$(mktemp)\necho -n \"$0\" > \"$program_path\"\npython3 -u
+          "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u
           \"$program_path\" \"$@\"\n", "def consume(param1):\n    print(param1)\n\nimport
           argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
           dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
@@ -123,7 +123,7 @@ spec:
       - -ec
       - |
         program_path=$(mktemp)
-        echo -n "$0" > "$program_path"
+        printf "%s" "$0" > "$program_path"
         python3 -u "$program_path" "$@"
       - |
         def consume(param1):
@@ -142,7 +142,7 @@ spec:
     metadata:
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
-          "program_path=$(mktemp)\necho -n \"$0\" > \"$program_path\"\npython3 -u
+          "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u
           \"$program_path\" \"$@\"\n", "def consume(param1):\n    print(param1)\n\nimport
           argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
           dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
@@ -158,7 +158,7 @@ spec:
       - -ec
       - |
         program_path=$(mktemp)
-        echo -n "$0" > "$program_path"
+        printf "%s" "$0" > "$program_path"
         python3 -u "$program_path" "$@"
       - |
         def consume(param1):
@@ -177,7 +177,7 @@ spec:
     metadata:
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--param1", {"inputValue": "param1"}], "command": ["sh", "-ec",
-          "program_path=$(mktemp)\necho -n \"$0\" > \"$program_path\"\npython3 -u
+          "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u
           \"$program_path\" \"$@\"\n", "def consume(param1):\n    print(param1)\n\nimport
           argparse\n_parser = argparse.ArgumentParser(prog=''Consume'', description='''')\n_parser.add_argument(\"--param1\",
           dest=\"param1\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args
@@ -280,7 +280,7 @@ spec:
       - -ec
       - |
         program_path=$(mktemp)
-        echo -n "$0" > "$program_path"
+        printf "%s" "$0" > "$program_path"
         python3 -u "$program_path" "$@"
       - |
         def produce_message(fname1):
@@ -328,7 +328,7 @@ spec:
     metadata:
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--fname1", {"inputValue": "fname1"}, "----output-paths", {"outputPath":
-          "Output"}], "command": ["sh", "-ec", "program_path=$(mktemp)\necho -n \"$0\"
+          "Output"}], "command": ["sh", "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\"
           > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n", "def produce_message(fname1):\n    return
           \"My name is %s\" % fname1\n\ndef _serialize_str(str_value: str) -> str:\n    if
           not isinstance(str_value, str):\n        raise TypeError(''Value \"{}\"
@@ -353,7 +353,7 @@ spec:
       - -ec
       - |
         program_path=$(mktemp)
-        echo -n "$0" > "$program_path"
+        printf "%s" "$0" > "$program_path"
         python3 -u "$program_path" "$@"
       - |
         def produce_message(fname1):
@@ -401,7 +401,7 @@ spec:
     metadata:
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--fname1", {"inputValue": "fname1"}, "----output-paths", {"outputPath":
-          "Output"}], "command": ["sh", "-ec", "program_path=$(mktemp)\necho -n \"$0\"
+          "Output"}], "command": ["sh", "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\"
           > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n", "def produce_message(fname1):\n    return
           \"My name is %s\" % fname1\n\ndef _serialize_str(str_value: str) -> str:\n    if
           not isinstance(str_value, str):\n        raise TypeError(''Value \"{}\"
