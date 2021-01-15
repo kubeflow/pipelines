@@ -11,16 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""KFP SDK compiler CLI tool."""
 
 import argparse
+import json
+import os
+import sys
+
 import kfp.dsl as dsl
 import kfp.v2.compiler as compiler
-import os
-import shutil
-import subprocess
-import sys
-import tempfile
-from deprecated.sphinx import deprecated
 
 
 def parse_arguments():
@@ -35,6 +34,10 @@ def parse_arguments():
       help='The name of the function to compile if there are multiple.')
   parser.add_argument(
       '--pipeline-root', type=str, help='The root of the pipeline outputs.')
+  parser.add_argument(
+      '--pipeline-parameters',
+      type=json.loads,
+      help='The pipeline parameters in JSON dict format.')
   parser.add_argument(
       '--namespace', type=str, help='The namespace for the pipeline function')
   parser.add_argument(
@@ -52,7 +55,7 @@ def parse_arguments():
 
 
 def _compile_pipeline_function(pipeline_funcs, function_name, pipeline_root,
-                               output_path, type_check):
+                               pipeline_parameters, output_path, type_check):
   if len(pipeline_funcs) == 0:
     raise ValueError(
         'A function with @dsl.pipeline decorator is required in the py file.')
@@ -81,6 +84,7 @@ def _compile_pipeline_function(pipeline_funcs, function_name, pipeline_root,
   compiler.Compiler().compile(
       pipeline_func=pipeline_func,
       pipeline_root=pipeline_root,
+      pipeline_parameters=pipeline_parameters,
       output_path=output_path,
       type_check=type_check)
 
@@ -102,14 +106,20 @@ class PipelineCollectorContext():
     dsl._pipeline._pipeline_decorator_handler = self.old_handler
 
 
-def compile_pyfile(pyfile, function_name, pipeline_root, output_path, type_check):
+def compile_pyfile(pyfile, function_name, pipeline_root, pipeline_parameters,
+                   output_path, type_check):
   sys.path.insert(0, os.path.dirname(pyfile))
   try:
     filename = os.path.basename(pyfile)
     with PipelineCollectorContext() as pipeline_funcs:
       __import__(os.path.splitext(filename)[0])
-    _compile_pipeline_function(pipeline_funcs, function_name, pipeline_root,
-                               output_path, type_check)
+    _compile_pipeline_function(
+        pipeline_funcs=pipeline_funcs,
+        function_name=function_name,
+        pipeline_root=pipeline_root,
+        pipeline_parameters=pipeline_parameters,
+        output_path=output_path,
+        type_check=type_check)
   finally:
     del sys.path[0]
 
@@ -119,9 +129,10 @@ def main():
   if args.py is None:
     raise ValueError('The --py option must be specified.')
   compile_pyfile(
-      args.py,
-      args.function,
-      args.pipeline_root,
-      args.output,
-      not args.disable_type_check,
+      pyfile=args.py,
+      function_name=args.function,
+      pipeline_root=args.pipeline_root,
+      pipeline_parameters=args.pipeline_parameters,
+      output_path=args.output,
+      type_check=not args.disable_type_check,
   )
