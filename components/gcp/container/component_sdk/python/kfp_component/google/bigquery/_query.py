@@ -52,7 +52,7 @@ def query(query, project_id, dataset_id=None, table_id=None,
         output_path (str): The path to where query result will be stored
         output_filename (str): The name of the file where the results will be stored
         output_destination_format (str): The name of the output destination format.
-            Defaults to `CSV`. or NEWLINE_DELIMITED_JSON, AVRO
+            Default is CSV, and you can also choose NEWLINE_DELIMITED_JSON and AVRO.
     Returns:
         The API representation of the completed query job.
     """

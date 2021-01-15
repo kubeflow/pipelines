@@ -42,6 +42,10 @@ inputs:
     description: 'The path to the Cloud Storage bucket to store the query output.'
     default: ''
     type: GCSPath
+  - name: output_destination_format
+    description: 'The name of the output destination format. Default is CSV, and you can also choose NEWLINE_DELIMITED_JSON and AVRO.'
+    default: 'CSV'
+    type: String
   - name: dataset_location
     description: 'The location to create the dataset. Defaults to `US`.'
     default: 'US'
