@@ -23,20 +23,20 @@ from kfp.containers import _gcs_helper
 from kfp.containers import entrypoint_utils
 from kfp.dsl import artifact
 
-_FN_SOURCE = 'ml/main.py'
-_FN_NAME_ARG = 'function_name'
+FN_SOURCE = 'ml/main.py'
+FN_NAME_ARG = 'function_name'
 
-_PARAM_METADATA_SUFFIX = '_input_param_metadata_file'
-_ARTIFACT_METADATA_SUFFIX = '_input_artifact_metadata_file'
-_FIELD_NAME_SUFFIX = '_input_field_name'
-_ARGO_PARAM_SUFFIX = '_input_argo_param'
-_INPUT_PATH_SUFFIX = '_input_path'
-_OUTPUT_NAME_SUFFIX = '_input_output_name'
+PARAM_METADATA_SUFFIX = '_input_param_metadata_file'
+ARTIFACT_METADATA_SUFFIX = '_input_artifact_metadata_file'
+FIELD_NAME_SUFFIX = '_input_field_name'
+ARGO_PARAM_SUFFIX = '_input_argo_param'
+INPUT_PATH_SUFFIX = '_input_path'
+OUTPUT_NAME_SUFFIX = '_input_output_name'
 
-_OUTPUT_PARAM_PATH_SUFFIX = '_parameter_output_path'
-_OUTPUT_ARTIFACT_PATH_SUFFIX = '_artifact_output_path'
+OUTPUT_PARAM_PATH_SUFFIX = '_parameter_output_path'
+OUTPUT_ARTIFACT_PATH_SUFFIX = '_artifact_output_path'
 
-_METADATA_FILE_ARG = 'executor_metadata_json_file'
+METADATA_FILE_ARG = 'executor_metadata_json_file'
 
 
 class InputParam(object):
@@ -195,7 +195,7 @@ def main(**kwargs):
   In addition, `executor_metadata_json_file` specifies the location where the
   output metadata JSON file will be written.
   """
-  if _METADATA_FILE_ARG not in kwargs:
+  if METADATA_FILE_ARG not in kwargs:
     raise RuntimeError('Must specify executor_metadata_json_file')
 
   # Group arguments according to suffixes.
@@ -208,31 +208,31 @@ def main(**kwargs):
   output_artifacts_uri = {}
   output_params_path = {}
   for k, v in kwargs.items():
-    if k.endswith(_PARAM_METADATA_SUFFIX):
-      param_name = k[:-len(_PARAM_METADATA_SUFFIX)]
+    if k.endswith(PARAM_METADATA_SUFFIX):
+      param_name = k[:-len(PARAM_METADATA_SUFFIX)]
       input_params_metadata[param_name] = v
-    elif k.endswith(_FIELD_NAME_SUFFIX):
-      param_name = k[:-len(_FIELD_NAME_SUFFIX)]
+    elif k.endswith(FIELD_NAME_SUFFIX):
+      param_name = k[:-len(FIELD_NAME_SUFFIX)]
       input_params_field_name[param_name] = v
-    elif k.endswith(_ARGO_PARAM_SUFFIX):
-      param_name = k[:-len(_ARGO_PARAM_SUFFIX)]
+    elif k.endswith(ARGO_PARAM_SUFFIX):
+      param_name = k[:-len(ARGO_PARAM_SUFFIX)]
       input_params_value[param_name] = v
-    elif k.endswith(_ARTIFACT_METADATA_SUFFIX):
-      artifact_name = k[:-len(_ARTIFACT_METADATA_SUFFIX)]
+    elif k.endswith(ARTIFACT_METADATA_SUFFIX):
+      artifact_name = k[:-len(ARTIFACT_METADATA_SUFFIX)]
       input_artifacts_metadata[artifact_name] = v
-    elif k.endswith(_INPUT_PATH_SUFFIX):
-      artifact_name = k[:-len(_INPUT_PATH_SUFFIX)]
+    elif k.endswith(INPUT_PATH_SUFFIX):
+      artifact_name = k[:-len(INPUT_PATH_SUFFIX)]
       input_artifacts_uri[artifact_name] = v
-    elif k.endswith(_OUTPUT_NAME_SUFFIX):
-      artifact_name = k[:-len(_OUTPUT_NAME_SUFFIX)]
+    elif k.endswith(OUTPUT_NAME_SUFFIX):
+      artifact_name = k[:-len(OUTPUT_NAME_SUFFIX)]
       input_artifacts_output_name[artifact_name] = v
-    elif k.endswith(_OUTPUT_PARAM_PATH_SUFFIX):
-      param_name = k[:-len(_OUTPUT_PARAM_PATH_SUFFIX)]
+    elif k.endswith(OUTPUT_PARAM_PATH_SUFFIX):
+      param_name = k[:-len(OUTPUT_PARAM_PATH_SUFFIX)]
       output_params_path[param_name] = v
-    elif k.endswith(_OUTPUT_ARTIFACT_PATH_SUFFIX):
-      artifact_name = k[:-len(_OUTPUT_ARTIFACT_PATH_SUFFIX)]
+    elif k.endswith(OUTPUT_ARTIFACT_PATH_SUFFIX):
+      artifact_name = k[:-len(OUTPUT_ARTIFACT_PATH_SUFFIX)]
       output_artifacts_uri[artifact_name] = v
-    elif k not in (_METADATA_FILE_ARG, _FN_NAME_ARG):
+    elif k not in (METADATA_FILE_ARG, FN_NAME_ARG):
       logging.warning(
           'Got unexpected command line argument: %s=%s Ignoring', k, v)
 
@@ -266,9 +266,9 @@ def main(**kwargs):
 
   # Also, determine a way to inspect the function signature to decide the type
   # of output artifacts.
-  fn_name = kwargs[_FN_NAME_ARG]
+  fn_name = kwargs[FN_NAME_ARG]
 
-  fn = entrypoint_utils.import_func_from_source(_FN_SOURCE, fn_name)
+  fn = entrypoint_utils.import_func_from_source(FN_SOURCE, fn_name)
   # Get the output artifacts and combine them with the provided URIs.
   output_artifacts = entrypoint_utils.get_output_artifacts(
       fn, output_artifacts_uri)
@@ -316,7 +316,7 @@ def main(**kwargs):
       output_params=output_parameters)
 
   _gcs_helper.GCSHelper.write_to_gcs_path(
-      path=kwargs[_METADATA_FILE_ARG],
+      path=kwargs[METADATA_FILE_ARG],
       content=json_format.MessageToJson(executor_output))
 
 
