@@ -933,6 +933,18 @@ class PythonOpTestCase(unittest.TestCase):
         with self.assertRaises(Exception):
             self.helper_test_component_using_local_call(task_factory2, arguments={}, expected_output_values={})
 
+    def test_component_annotations(self):
+        def some_func():
+            pass
+
+        annotations = {
+            'key1': 'value1',
+            'key2': 'value2',
+        }
+        task_factory = comp.create_component_from_func(some_func, annotations=annotations)
+        component_spec = task_factory.component_spec
+        self.assertEqual(component_spec.metadata.annotations, annotations)
+
     def test_code_with_escapes(self):
         def my_func():
             "Hello \n world"
