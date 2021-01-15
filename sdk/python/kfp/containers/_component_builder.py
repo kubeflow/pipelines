@@ -240,18 +240,11 @@ def build_python_component(
 
   if is_v2:
     # Annotate the component to be a V2 one.
-    if getattr(component_spec, 'metadata', None) and getattr(
-        component_spec.metadata, 'annotations', None):
-      component_spec.metadata.annotations[
-        V2_COMPONENT_ANNOTATION] = 'true'
-    elif getattr(component_spec, 'metadata', None):
-      component_spec.metadata.annotations = {
-          V2_COMPONENT_ANNOTATION: 'true'}
-    else:
-      component_spec.metadata = _structures.MetadataSpec(
-          annotations={
-              V2_COMPONENT_ANNOTATION: 'true'
-          })
+    if not component_spec.metadata:
+      component_spec.metadata = _structures.MetadataSpec()
+    if not component_spec.metadata.annotations:
+      component_spec.metadata.annotations = {}
+    component_spec.metadata.annotations[V2_COMPONENT_ANNOTATION] = 'true'
 
   command_line_args = component_spec.implementation.container.command
 
