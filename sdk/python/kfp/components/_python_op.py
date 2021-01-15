@@ -675,7 +675,7 @@ _outputs = {func_name}(**_parsed_args)
                 # This is needed for Python to show stack traces and for `inspect.getsource` to work (used by PyTorch JIT and this module for example).
                 textwrap.dedent('''\
                     program_path=$(mktemp)
-                    echo -n "$0" > "$program_path"
+                    printf "%s" "$0" > "$program_path"
                     python3 -u "$program_path" "$@"
                 '''),
                 full_source,
