@@ -17,9 +17,11 @@ __all__ = [
     'func_to_container_op',
     'func_to_component_text',
     'default_base_image_or_builder',
+    'InputArtifact',
     'InputPath',
     'InputTextFile',
     'InputBinaryFile',
+    'OutputArtifact',
     'OutputPath',
     'OutputTextFile',
     'OutputBinaryFile',
@@ -63,6 +65,16 @@ class InputBinaryFile:
         self.type = type
 
 
+class InputArtifact:
+    """InputArtifact function parameter annotation.
+
+    When creating component from function. InputArtifact indicates that the
+    associated input parameter should be tracked as an MLMD artifact.
+    """
+    def __init__(self, type: Optional[str] = None):
+        self.type = type
+
+
 class OutputPath:
     '''When creating component from function, :class:`.OutputPath` should be used as function parameter annotation to tell the system that the function wants to output data by writing it into a file with the given path instead of returning the data from the function.'''
     def __init__(self, type=None):
@@ -78,6 +90,17 @@ class OutputTextFile:
 class OutputBinaryFile:
     '''When creating component from function, :class:`.OutputBinaryFile` should be used as function parameter annotation to tell the system that the function wants to output data by writing it into a given binary file stream (:code:`io.BytesIO`) instead of returning the data from the function.'''
     def __init__(self, type=None):
+        self.type = type
+
+
+class OutputArtifact:
+    """OutputArtifact function parameter annotation.
+
+    When creating component from function. OutputArtifact indicates that the
+    associated input parameter should be treated as an MLMD artifact, whose
+    underlying content, together with metadata will be updated by this component
+    """
+    def __init__(self, type: Optional[str] = None):
         self.type = type
 
 
@@ -300,7 +323,10 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
         parameter_annotation = parameter.annotation
         passing_style = None
         io_name = parameter.name
-        if isinstance(parameter_annotation, (InputPath, InputTextFile, InputBinaryFile, OutputPath, OutputTextFile, OutputBinaryFile)):
+        if isinstance(
+            parameter_annotation,
+            (InputArtifact, InputPath, InputTextFile, InputBinaryFile,
+             OutputArtifact, OutputPath, OutputTextFile, OutputBinaryFile)):
             passing_style = type(parameter_annotation)
             parameter_annotation = parameter_annotation.type
             if parameter.default is not inspect.Parameter.empty and not (passing_style == InputPath and parameter.default is None):
@@ -317,7 +343,9 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
         type_struct = annotation_to_type_struct(parameter_annotation)
         #TODO: Humanize the input/output names
 
-        if isinstance(parameter.annotation, (OutputPath, OutputTextFile, OutputBinaryFile)):
+        if isinstance(
+            parameter.annotation,
+            (OutputArtifact, OutputPath, OutputTextFile, OutputBinaryFile)):
             io_name = _make_name_unique_by_adding_index(io_name, output_names, '_')
             output_names.add(io_name)
             output_spec = OutputSpec(
