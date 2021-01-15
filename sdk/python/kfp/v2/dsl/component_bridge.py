@@ -68,7 +68,7 @@ def create_container_op_from_component_and_arguments(
         if argument_value.op_name:
           pipeline_task_spec.inputs.parameters[
               input_name].task_output_parameter.producer_task = (
-                  argument_value.op_name)
+                  dsl_utils.sanitize_task_name(argument_value.op_name))
           pipeline_task_spec.inputs.parameters[
               input_name].task_output_parameter.output_parameter_key = (
                   argument_value.name)
@@ -79,7 +79,7 @@ def create_container_op_from_component_and_arguments(
         if argument_value.op_name:
           pipeline_task_spec.inputs.artifacts[
               input_name].task_output_artifact.producer_task = (
-                  argument_value.op_name)
+                  dsl_utils.sanitize_task_name(argument_value.op_name))
           pipeline_task_spec.inputs.artifacts[
               input_name].task_output_artifact.output_artifact_key = (
                   argument_value.name)

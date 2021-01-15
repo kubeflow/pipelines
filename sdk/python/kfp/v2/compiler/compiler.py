@@ -151,16 +151,20 @@ class Compiler(object):
   def _create_pipeline(
       self,
       pipeline_func: Callable[..., Any],
+      output_directory: str,
       pipeline_name: Optional[str] = None,
-  ) -> pipeline_spec_pb2.PipelineSpec:
+      pipeline_parameters: Optional[Mapping[str, Any]] = None,
+  ) -> pipeline_spec_pb2.PipelineJob:
     """Creates a pipeline instance and constructs the pipeline spec from it.
 
     Args:
       pipeline_func: Pipeline function with @dsl.pipeline decorator.
       pipeline_name: The name of the pipeline. Optional.
+      output_directory: The root of the pipeline outputs.
+      pipeline_parameters: The mapping from parameter names to values. Optional.
 
     Returns:
-      The IR representation (pipeline spec) of the pipeline.
+      A PipelineJob proto representing the compiled pipeline.
     """
 
     # Create the arg list with no default values and call pipeline function.
@@ -198,26 +202,12 @@ class Compiler(object):
         dsl_pipeline,
     )
 
-    return pipeline_spec
-
-  def _create_pipeline_job(
-      self,
-      pipeline_spec: pipeline_spec_pb2.PipelineSpec,
-      pipeline_root: str,
-      pipeline_parameters: Optional[Mapping[str, Any]] = None,
-  ) -> pipeline_spec_pb2.PipelineJob:
-    """Creates the pipeline job spec object.
-
-    Args:
-      pipeline_spec: The pipeline spec object.
-      pipeline_root: The root of the pipeline outputs.
-      pipeline_parameters: The mapping from parameter names to values. Optional.
-
-    Returns:
-      A PipelineJob proto representing the compiled pipeline.
-    """
+    pipeline_parameters = {
+        arg.name: arg.value for arg in args_list_with_defaults
+    }
     runtime_config = compiler_utils.build_runtime_config_spec(
-        pipeline_root=pipeline_root)
+        output_directory=output_directory,
+        pipeline_parameters=pipeline_parameters)
     pipeline_job = pipeline_spec_pb2.PipelineJob(runtime_config=runtime_config)
     pipeline_job.pipeline_spec.update(json_format.MessageToDict(pipeline_spec))
 
@@ -244,10 +234,10 @@ class Compiler(object):
     type_check_old_value = kfp.TYPE_CHECK
     try:
       kfp.TYPE_CHECK = type_check
-      pipeline = self._create_pipeline(pipeline_func, pipeline_name)
-      pipeline_job = self._create_pipeline_job(
-          pipeline_spec=pipeline,
-          pipeline_root=pipeline_root,
+      pipeline_job = self._create_pipeline(
+          pipeline_func=pipeline_func,
+          output_directory=pipeline_root,
+          pipeline_name=pipeline_name,
           pipeline_parameters=pipeline_parameters)
       self._write_pipeline(pipeline_job, output_path)
     finally:

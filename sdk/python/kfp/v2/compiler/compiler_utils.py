@@ -21,13 +21,13 @@ from kfp.pipeline_spec import pipeline_spec_pb2
 
 
 def build_runtime_config_spec(
-    pipeline_root: str,
+    output_directory: str,
     pipeline_parameters: Optional[Mapping[str, Any]] = None,
 ) -> pipeline_spec_pb2.PipelineJob.RuntimeConfig:
   """Converts pipeine parameters to runtime parameters mapping.
 
   Args:
-    pipeline_root: The root of pipeline outputs.
+    output_directory: The root of pipeline outputs.
     pipeline_parameters: The mapping from parameter names to values. Optional.
 
   Returns:
@@ -54,7 +54,7 @@ def build_runtime_config_spec(
 
   parameter_values = pipeline_parameters or {}
   return pipeline_spec_pb2.PipelineJob.RuntimeConfig(
-      gcs_output_directory=pipeline_root,
+      gcs_output_directory=output_directory,
       parameters={k: _get_value(v) for k, v in parameter_values.items()})
 
 
