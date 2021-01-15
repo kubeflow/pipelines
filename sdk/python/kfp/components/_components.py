@@ -195,6 +195,10 @@ RUN_ID_PLACEHOLDER = '{{kfp.run_uid}}'
 # Format of the Argo parameter used to pass the producer's Pod ID to
 # the consumer.
 PRODUCER_POD_NAME_PARAMETER = '{}-producer-pod-id-'
+# Format of the input output port name placeholder.
+INPUT_OUTPUT_NAME_PATTERN = '{{{{kfp.input-output-name.{}}}}}'
+# Fixed name for per-task output metadata json file.
+OUTPUT_METADATA_JSON = 'executor_output.json'
 
 
 def _generate_output_uri(port_name: str) -> str:
@@ -231,6 +235,40 @@ def _generate_input_uri(port_name: str) -> str:
             input=PRODUCER_POD_NAME_PARAMETER.format(port_name)),
         port_name
     )
+
+
+def _generate_output_metadata_path() -> str:
+    """Generates the URI to write the output metadata JSON file."""
+
+    # Use hand-crafted path since the behavior of os.path.join varies across
+    # different OSs, making tests difficult.
+    return '{}/{}/{}'.format(
+        OUTPUT_DIR_PLACEHOLDER,
+        RUN_ID_PLACEHOLDER,
+        OUTPUT_METADATA_JSON
+    )
+
+
+def _generate_input_metadata_path(port_name: str) -> str:
+    """Generates the placeholder for input artifact metadata file."""
+
+    # Return a placeholder for path to input artifact metadata, which will be
+    # rewritten during pipeline compilation.
+    return '{}/{}/{}/{}'.format(
+        OUTPUT_DIR_PLACEHOLDER,
+        RUN_ID_PLACEHOLDER,
+        '{{{{inputs.parameters.{input}}}}}'.format(
+            input=PRODUCER_POD_NAME_PARAMETER.format(port_name)),
+        OUTPUT_METADATA_JSON
+    )
+
+
+def _generate_input_output_name(port_name: str) -> str:
+    """Generates the placeholder for input artifact's output name."""
+
+    # Return a placeholder for the output port name of the input artifact, which
+    # will be rewritten during pipeline compilation.
+    return INPUT_OUTPUT_NAME_PATTERN.format(port_name)
 
 
 def _react_to_incompatible_reference_type(
@@ -442,6 +480,12 @@ def _resolve_command_line_and_paths(
     argument_serializer: Callable[[str], str] = serialize_value,
     input_uri_generator: Callable[[str], str] = _generate_input_uri,
     output_uri_generator: Callable[[str], str] = _generate_output_uri,
+    input_metadata_path_generator: Callable[
+        [str], str] = _generate_input_metadata_path,
+    output_metadata_path_generator: Callable[
+        [], str] = _generate_output_metadata_path,
+    input_output_name_generator: Callable[
+        [str], str] = _generate_input_output_name,
 ) -> _ResolvedCommandLineAndPaths:
     """Resolves the command line argument placeholders. Also produces the maps of the generated inpuit/output paths."""
     argument_values = arguments
@@ -523,6 +567,12 @@ def _resolve_command_line_and_paths(
                 else:
                     raise ValueError('No value provided for input {}'.format(input_name))
 
+        elif isinstance(arg, InputMetadataPlaceholder):
+            pass
+
+        elif isinstance(arg, InputOutputPortNamePlaceholder):
+            pass
+
         elif isinstance(arg, OutputUriPlaceholder):
             output_name = arg.output_name
             output_uri = output_uri_generator(output_name)
@@ -535,6 +585,9 @@ def _resolve_command_line_and_paths(
                 output_uris[output_name] = output_uri
 
             return output_uri
+
+        elif isinstance(arg, OutputMetadataPlaceholder):
+            pass
 
         elif isinstance(arg, ConcatPlaceholder):
             expanded_argument_strings = expand_argument_list(arg.items)

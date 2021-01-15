@@ -21,6 +21,9 @@ __all__ = [
     'OutputPathPlaceholder',
     'InputUriPlaceholder',
     'OutputUriPlaceholder',
+    'InputMetadataPlaceholder',
+    'InputOutputPortNamePlaceholder',
+    'OutputMetadataPlaceholder',
     'ConcatPlaceholder',
     'IsPresentPlaceholder',
     'IfPlaceholderStructure',
@@ -165,6 +168,55 @@ class OutputUriPlaceholder(ModelBase):  # Non-standard attr names
         super().__init__(locals())
 
 
+class InputMetadataPlaceholder(ModelBase):  # Non-standard attr names
+    """Represents the file path to an input artifact metadata.
+
+    During runtime, this command-line argument placeholder will be replaced
+    by the path where the metadata file associated with this artifact has been
+    written to. Currently only supported in v2 components.
+    """
+    _serialized_names = {
+        'input_name': 'inputMetadata',
+    }
+
+    def __init__(self, input_name: str):
+        super().__init__(locals())
+
+
+class InputOutputPortNamePlaceholder(ModelBase):  # Non-standard attr names
+    """Represents the output port name of an input artifact.
+
+    During compile time, this command-line argument placeholder will be replaced
+    by the actual output port name used by the producer task. Currently only
+    supported in v2 components.
+    """
+    _serialized_names = {
+        'input_name': 'inputOutputPortName',
+    }
+
+    def __init__(self, input_name: str):
+        super().__init__(locals())
+
+
+class OutputMetadataPlaceholder(ModelBase):  # Non-standard attr names
+    """Represents the output metadata JSON file location of this task.
+
+    This file will encode the metadata information produced by this task:
+    - Artifacts metadata, but not the content of the artifact, and
+    - output parameters.
+
+    Only supported in v2 components.
+    """
+    _serialized_names = {
+        'input_name': 'inputOutputPortName',
+    }
+
+    def __init__(self):
+        # TODO: Currently the output metadata is generated in a per-task manner.
+        # Consider changing this to per-artifact for better sustainability.
+        super().__init__(locals())
+
+
 CommandlineArgumentType = Union[
     str,
     InputValuePlaceholder,
@@ -172,6 +224,9 @@ CommandlineArgumentType = Union[
     OutputPathPlaceholder,
     InputUriPlaceholder,
     OutputUriPlaceholder,
+    InputMetadataPlaceholder,
+    InputOutputPortNamePlaceholder,
+    OutputMetadataPlaceholder,
     'ConcatPlaceholder',
     'IfPlaceholder',
 ]
