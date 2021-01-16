@@ -506,7 +506,6 @@ def _resolve_command_line_and_paths(
     inputs_consumed_by_value = {}
     input_uris = OrderedDict()
     input_metadata_paths = OrderedDict()
-    input_output_name = OrderedDict()
     output_uris = OrderedDict()
 
     def expand_command_part(arg) -> Union[str, List[str], None]:
