@@ -505,6 +505,8 @@ def _resolve_command_line_and_paths(
     input_paths = OrderedDict()
     inputs_consumed_by_value = {}
     input_uris = OrderedDict()
+    input_metadata_paths = OrderedDict()
+    input_output_name = OrderedDict()
     output_uris = OrderedDict()
 
     def expand_command_part(arg) -> Union[str, List[str], None]:
@@ -568,10 +570,30 @@ def _resolve_command_line_and_paths(
                     raise ValueError('No value provided for input {}'.format(input_name))
 
         elif isinstance(arg, InputMetadataPlaceholder):
-            pass
+            input_name = arg.input_name
+            if input_name in argument_values:
+                input_metadata_path = input_metadata_path_generator(input_name)
+                input_metadata_paths[input_name] = input_metadata_path
+                return input_metadata_path
+            else:
+                input_spec = inputs_dict[input_name]
+                if input_spec.optional:
+                    return None
+                else:
+                    raise ValueError(
+                        'No value provided for input {}'.format(input_name))
 
         elif isinstance(arg, InputOutputPortNamePlaceholder):
-            pass
+            input_name = arg.input_name
+            if input_name in argument_values:
+                return input_output_name_generator(input_name)
+            else:
+                input_spec = inputs_dict[input_name]
+                if input_spec.optional:
+                    return None
+                else:
+                    raise ValueError(
+                        'No value provided for input {}'.format(input_name))
 
         elif isinstance(arg, OutputUriPlaceholder):
             output_name = arg.output_name
@@ -587,7 +609,8 @@ def _resolve_command_line_and_paths(
             return output_uri
 
         elif isinstance(arg, OutputMetadataPlaceholder):
-            pass
+            # TODO: Consider making the output metadata per-artifact.
+            return output_metadata_path_generator()
 
         elif isinstance(arg, ConcatPlaceholder):
             expanded_argument_strings = expand_argument_list(arg.items)
