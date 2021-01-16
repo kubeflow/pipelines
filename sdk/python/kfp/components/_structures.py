@@ -208,12 +208,10 @@ class OutputMetadataPlaceholder(ModelBase):  # Non-standard attr names
     Only supported in v2 components.
     """
     _serialized_names = {
-        'input_name': 'inputOutputPortName',
+        'output_name': 'outputMetadata',
     }
 
-    def __init__(self):
-        # TODO: Currently the output metadata is generated in a per-task manner.
-        # Consider changing this to per-artifact for better sustainability.
+    def __init__(self, output_name):
         super().__init__(locals())
 
 

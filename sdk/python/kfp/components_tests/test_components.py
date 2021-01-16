@@ -776,6 +776,8 @@ implementation:
             - {inputValue: c}
             - --b
             - {inputOutputPortName: a}
+            - --metadata-location
+            - {outputMetadata}
         """)
 
         op = comp.load_component_from_text(text=component_text)
@@ -791,7 +793,9 @@ implementation:
              '--c',
              'bar',
              '--b',
-             '{{kfp.input-output-name.a}}'],
+             '{{kfp.input-output-name.a}}',
+             '--metadata-location',
+             '{{kfp.output_dir}}/{{kfp.run_uid}}/executor_output.json'],
             resolved_cmd.args
         )
 
