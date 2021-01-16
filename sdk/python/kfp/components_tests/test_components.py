@@ -755,6 +755,46 @@ implementation:
             resolved_cmd.command
         )
 
+    def test_metadata_placeholder_resolving(self):
+        component_text = textwrap.dedent("""\
+        name: Example function
+        inputs:
+        - {name: a, type: Dataset}
+        - {name: c, type: String}
+        outputs:
+        - {name: b, type: Model}
+        implementation:
+          container:
+            image: python:3.7
+            command:
+            - python3
+            - -u
+            args:
+            - --a
+            - {inputMetadata: a}
+            - --c
+            - {inputValue: c}
+            - --b
+            - {inputOutputPortName: a}
+        """)
+
+        op = comp.load_component_from_text(text=component_text)
+        task = op(a='foo', c='bar')
+        resolved_cmd = _resolve_command_line_and_paths(
+            component_spec=task.component_ref.spec,
+            arguments=task.arguments
+        )
+
+        self.assertEqual(
+            ['--a',
+             '{{kfp.output_dir}}/{{kfp.run_uid}}/{{inputs.parameters.a-producer-pod-id-}}/executor_output.json',
+             '--c',
+             'bar',
+             '--b',
+             '{{kfp.input-output-name.a}}'],
+            resolved_cmd.args
+        )
+
     def test_check_type_validation_of_task_spec_outputs(self):
         producer_component_text = '''\
 outputs:
