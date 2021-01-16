@@ -366,13 +366,17 @@ class ComponentSpec(ModelBase):
             def verify_arg(arg):
                 if arg is None:
                     pass
-                elif isinstance(arg, (str, int, float, bool)):
+                elif isinstance(
+                    arg, (str, int, float, bool, OutputMetadataPlaceholder)):
                     pass
                 elif isinstance(arg, list):
                     for arg2 in arg:
                         verify_arg(arg2)
-                elif isinstance(arg, (InputUriPlaceholder, InputValuePlaceholder,
-                                      InputPathPlaceholder, IsPresentPlaceholder)):
+                elif isinstance(
+                    arg, (InputUriPlaceholder, InputValuePlaceholder,
+                          InputPathPlaceholder, IsPresentPlaceholder,
+                          InputMetadataPlaceholder,
+                          InputOutputPortNamePlaceholder)):
                     if arg.input_name not in self._inputs_dict:
                         raise TypeError(
                             'Argument "{}" references non-existing input.'.format(arg))
