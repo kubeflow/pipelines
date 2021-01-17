@@ -770,7 +770,7 @@ class Compiler(object):
     """
 
     def _validate_exit_handler_helper(group, exiting_op_names, handler_exists):
-      if group.type == Group.EXIT_HANDLER:
+      if group.type == Group.EXIT_HANDLER.value:
         if handler_exists or len(exiting_op_names) > 1:
           raise ValueError('Only one global exit_handler is allowed and all ops need to be included.')
         handler_exists = True
