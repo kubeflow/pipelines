@@ -21,29 +21,12 @@ package healthz_service
 
 import (
 	"github.com/go-openapi/runtime"
-<<<<<<< HEAD
-<<<<<<< HEAD
 
 	strfmt "github.com/go-openapi/strfmt"
 )
 
 // New creates a new healthz service API client.
 func New(transport runtime.ClientTransport, formats strfmt.Registry) *Client {
-=======
-	"github.com/go-openapi/strfmt"
-)
-
-// New creates a new healthz service API client.
-func New(transport runtime.ClientTransport, formats strfmt.Registry) ClientService {
->>>>>>> c18a21eb (typo with folders fixed)
-=======
-
-	strfmt "github.com/go-openapi/strfmt"
-)
-
-// New creates a new healthz service API client.
-func New(transport runtime.ClientTransport, formats strfmt.Registry) *Client {
->>>>>>> f41a406c (changed version)
 	return &Client{transport: transport, formats: formats}
 }
 
@@ -55,25 +38,8 @@ type Client struct {
 	formats   strfmt.Registry
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 /*
 GetHealthz gets healthz data
-=======
-// ClientService is the interface for Client methods
-type ClientService interface {
-	GetHealthz(params *GetHealthzParams, authInfo runtime.ClientAuthInfoWriter) (*GetHealthzOK, error)
-
-	SetTransport(transport runtime.ClientTransport)
-}
-
-/*
-  GetHealthz gets healthz data
->>>>>>> c18a21eb (typo with folders fixed)
-=======
-/*
-GetHealthz gets healthz data
->>>>>>> f41a406c (changed version)
 */
 func (a *Client) GetHealthz(params *GetHealthzParams, authInfo runtime.ClientAuthInfoWriter) (*GetHealthzOK, error) {
 	// TODO: Validate the params before sending
@@ -97,10 +63,6 @@ func (a *Client) GetHealthz(params *GetHealthzParams, authInfo runtime.ClientAut
 	if err != nil {
 		return nil, err
 	}
-<<<<<<< HEAD
-	return result.(*GetHealthzOK), nil
-
-=======
 	success, ok := result.(*GetHealthzOK)
 	if ok {
 		return success, nil
@@ -108,7 +70,6 @@ func (a *Client) GetHealthz(params *GetHealthzParams, authInfo runtime.ClientAut
 	// unexpected success response
 	unexpectedSuccess := result.(*GetHealthzDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
->>>>>>> c18a21eb (typo with folders fixed)
 }
 
 // SetTransport changes the transport on the client

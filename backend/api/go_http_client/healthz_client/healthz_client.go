@@ -22,25 +22,10 @@ package healthz_client
 import (
 	"github.com/go-openapi/runtime"
 	httptransport "github.com/go-openapi/runtime/client"
-<<<<<<< HEAD
-<<<<<<< HEAD
 
 	strfmt "github.com/go-openapi/strfmt"
 
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/healthz_client/healthz_service"
-=======
-	"github.com/go-openapi/strfmt"
-=======
-
-	strfmt "github.com/go-openapi/strfmt"
->>>>>>> f41a406c (changed version)
-
-<<<<<<< HEAD
-	"github.com/kubeflow/pipelines/backend/api/go_http_client/healthz_client/visualization_service"
->>>>>>> 4067f732 (added healthz)
-=======
-	"github.com/kubeflow/pipelines/backend/api/go_http_client/healthz_client/healthz_service"
->>>>>>> c18a21eb (typo with folders fixed)
 )
 
 // Default healthz HTTP client.
@@ -85,23 +70,9 @@ func New(transport runtime.ClientTransport, formats strfmt.Registry) *Healthz {
 
 	cli := new(Healthz)
 	cli.Transport = transport
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
 
 	cli.HealthzService = healthz_service.New(transport, formats)
 
-=======
-	cli.VisualizationService = visualization_service.New(transport, formats)
->>>>>>> 4067f732 (added healthz)
-=======
-	cli.HealthzService = healthz_service.New(transport, formats)
->>>>>>> c18a21eb (typo with folders fixed)
-=======
-
-	cli.HealthzService = healthz_service.New(transport, formats)
-
->>>>>>> f41a406c (changed version)
 	return cli
 }
 
@@ -146,19 +117,7 @@ func (cfg *TransportConfig) WithSchemes(schemes []string) *TransportConfig {
 
 // Healthz is a client for healthz
 type Healthz struct {
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
 	HealthzService *healthz_service.Client
-=======
-	VisualizationService visualization_service.ClientService
->>>>>>> 4067f732 (added healthz)
-=======
-	HealthzService healthz_service.ClientService
->>>>>>> c18a21eb (typo with folders fixed)
-=======
-	HealthzService *healthz_service.Client
->>>>>>> f41a406c (changed version)
 
 	Transport runtime.ClientTransport
 }
@@ -166,21 +125,7 @@ type Healthz struct {
 // SetTransport changes the transport on the client and all its subresources
 func (c *Healthz) SetTransport(transport runtime.ClientTransport) {
 	c.Transport = transport
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
 
 	c.HealthzService.SetTransport(transport)
 
-=======
-	c.VisualizationService.SetTransport(transport)
->>>>>>> 4067f732 (added healthz)
-=======
-	c.HealthzService.SetTransport(transport)
->>>>>>> c18a21eb (typo with folders fixed)
-=======
-
-	c.HealthzService.SetTransport(transport)
-
->>>>>>> f41a406c (changed version)
 }

@@ -22,31 +22,13 @@ package healthz_model
 import (
 	"strconv"
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 	strfmt "github.com/go-openapi/strfmt"
 
 	"github.com/go-openapi/errors"
-=======
-	"github.com/go-openapi/errors"
-	"github.com/go-openapi/strfmt"
->>>>>>> 4067f732 (added healthz)
-=======
-	strfmt "github.com/go-openapi/strfmt"
-
-	"github.com/go-openapi/errors"
->>>>>>> f41a406c (changed version)
 	"github.com/go-openapi/swag"
 )
 
 // APIStatus api status
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-//
->>>>>>> 4067f732 (added healthz)
-=======
->>>>>>> f41a406c (changed version)
 // swagger:model apiStatus
 type APIStatus struct {
 
