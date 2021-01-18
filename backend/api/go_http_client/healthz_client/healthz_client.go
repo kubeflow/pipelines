@@ -22,8 +22,7 @@ package healthz_client
 import (
 	"github.com/go-openapi/runtime"
 	httptransport "github.com/go-openapi/runtime/client"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/healthz_client/healthz_service"
 )
@@ -70,9 +69,7 @@ func New(transport runtime.ClientTransport, formats strfmt.Registry) *Healthz {
 
 	cli := new(Healthz)
 	cli.Transport = transport
-
 	cli.HealthzService = healthz_service.New(transport, formats)
-
 	return cli
 }
 
@@ -117,7 +114,7 @@ func (cfg *TransportConfig) WithSchemes(schemes []string) *TransportConfig {
 
 // Healthz is a client for healthz
 type Healthz struct {
-	HealthzService *healthz_service.Client
+	HealthzService healthz_service.ClientService
 
 	Transport runtime.ClientTransport
 }
@@ -125,7 +122,5 @@ type Healthz struct {
 // SetTransport changes the transport on the client and all its subresources
 func (c *Healthz) SetTransport(transport runtime.ClientTransport) {
 	c.Transport = transport
-
 	c.HealthzService.SetTransport(transport)
-
 }

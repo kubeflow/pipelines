@@ -22,15 +22,15 @@ package run_model
 import (
 	"encoding/json"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
 )
 
 // RunMetricFormat  - UNSPECIFIED: Default value if not present.
 //  - RAW: Display value as its raw format.
 //  - PERCENTAGE: Display value in percentage format.
+//
 // swagger:model RunMetricFormat
 type RunMetricFormat string
 
@@ -60,7 +60,7 @@ func init() {
 }
 
 func (m RunMetricFormat) validateRunMetricFormatEnum(path, location string, value RunMetricFormat) error {
-	if err := validate.Enum(path, location, value, runMetricFormatEnum); err != nil {
+	if err := validate.EnumCase(path, location, value, runMetricFormatEnum, true); err != nil {
 		return err
 	}
 	return nil

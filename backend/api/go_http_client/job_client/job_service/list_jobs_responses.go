@@ -24,10 +24,9 @@ import (
 	"io"
 
 	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/strfmt"
 
-	strfmt "github.com/go-openapi/strfmt"
-
-	job_model "github.com/kubeflow/pipelines/backend/api/go_http_client/job_model"
+	"github.com/kubeflow/pipelines/backend/api/go_http_client/job_model"
 )
 
 // ListJobsReader is a Reader for the ListJobs structure.

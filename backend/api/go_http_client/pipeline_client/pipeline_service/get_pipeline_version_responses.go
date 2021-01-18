@@ -24,10 +24,9 @@ import (
 	"io"
 
 	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/strfmt"
 
-	strfmt "github.com/go-openapi/strfmt"
-
-	pipeline_model "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
+	"github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
 )
 
 // GetPipelineVersionReader is a Reader for the GetPipelineVersion structure.

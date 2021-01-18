@@ -22,8 +22,7 @@ package visualization_client
 import (
 	"github.com/go-openapi/runtime"
 	httptransport "github.com/go-openapi/runtime/client"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/visualization_client/visualization_service"
 )
@@ -70,9 +69,7 @@ func New(transport runtime.ClientTransport, formats strfmt.Registry) *Visualizat
 
 	cli := new(Visualization)
 	cli.Transport = transport
-
 	cli.VisualizationService = visualization_service.New(transport, formats)
-
 	return cli
 }
 
@@ -117,7 +114,7 @@ func (cfg *TransportConfig) WithSchemes(schemes []string) *TransportConfig {
 
 // Visualization is a client for visualization
 type Visualization struct {
-	VisualizationService *visualization_service.Client
+	VisualizationService visualization_service.ClientService
 
 	Transport runtime.ClientTransport
 }
@@ -125,7 +122,5 @@ type Visualization struct {
 // SetTransport changes the transport on the client and all its subresources
 func (c *Visualization) SetTransport(transport runtime.ClientTransport) {
 	c.Transport = transport
-
 	c.VisualizationService.SetTransport(transport)
-
 }
