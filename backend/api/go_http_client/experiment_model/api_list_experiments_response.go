@@ -8,13 +8,13 @@ package experiment_model
 import (
 	"strconv"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // APIListExperimentsResponse api list experiments response
+//
 // swagger:model apiListExperimentsResponse
 type APIListExperimentsResponse struct {
 

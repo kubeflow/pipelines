@@ -22,13 +22,13 @@ package run_model
 import (
 	"encoding/json"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
 )
 
 // APIRunStorageState api run storage state
+//
 // swagger:model apiRunStorageState
 type APIRunStorageState string
 
@@ -55,7 +55,7 @@ func init() {
 }
 
 func (m APIRunStorageState) validateAPIRunStorageStateEnum(path, location string, value APIRunStorageState) error {
-	if err := validate.Enum(path, location, value, apiRunStorageStateEnum); err != nil {
+	if err := validate.EnumCase(path, location, value, apiRunStorageStateEnum, true); err != nil {
 		return err
 	}
 	return nil

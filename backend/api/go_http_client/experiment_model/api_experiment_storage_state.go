@@ -22,13 +22,13 @@ package experiment_model
 import (
 	"encoding/json"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
 )
 
 // APIExperimentStorageState api experiment storage state
+//
 // swagger:model apiExperimentStorageState
 type APIExperimentStorageState string
 
@@ -58,7 +58,7 @@ func init() {
 }
 
 func (m APIExperimentStorageState) validateAPIExperimentStorageStateEnum(path, location string, value APIExperimentStorageState) error {
-	if err := validate.Enum(path, location, value, apiExperimentStorageStateEnum); err != nil {
+	if err := validate.EnumCase(path, location, value, apiExperimentStorageStateEnum, true); err != nil {
 		return err
 	}
 	return nil
