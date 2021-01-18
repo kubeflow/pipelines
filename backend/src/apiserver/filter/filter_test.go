@@ -330,7 +330,9 @@ func TestUnmarshalJSON(t *testing.T) {
 
 	got := &Filter{}
 	err := json.Unmarshal([]byte(in), got)
-	if err != nil || !cmp.Equal(got, want, cmp.AllowUnexported(Filter{})) {
+	if err != nil || !cmp.Equal(got, want, cmp.AllowUnexported(Filter{}),
+		cmpopts.IgnoreFields(api.Filter{}, "state", "sizeCache", "unknownFields"),
+		cmpopts.IgnoreFields(api.Predicate{}, "state", "sizeCache", "unknownFields")) {
 		t.Errorf("json.Unmarshal(%+v):\nGot: %v, Error: %v\nWant:\n%+v, Error: nil\nDiff:%s\n", in, got, err, want, cmp.Diff(want, got, cmp.AllowUnexported(Filter{})))
 	}
 }
