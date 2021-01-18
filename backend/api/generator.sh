@@ -27,14 +27,18 @@ ${PROTOCCOMPILER} -I. -Ibackend/api \
     -I/go/src/github.com/protocolbuffers/protobuf/src \
     -I/go/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
     -I/go/src/github.com/grpc-ecosystem/grpc-gateway/ \
+    -I/go/src/github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options/ \
+    -I/go/src/github.com/protocolbuffers/protobuf/src/google/protobuf \
     --plugin=protoc-gen-go=/go/bin/protoc-gen-go  \
     --go_out=plugins=grpc:${TMP_OUTPUT} \
     backend/api/*.proto
 # Generate *.pb.gw.go (grpc api rest client) from *.proto.
 ${PROTOCCOMPILER} -I. -Ibackend/api \
     -I/go/src/github.com/protocolbuffers/protobuf/src \
-     -I/go/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
-     -I/go/src/github.com/grpc-ecosystem/grpc-gateway/ \
+    -I/go/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
+    -I/go/src/github.com/grpc-ecosystem/grpc-gateway/ \
+    -I/go/src/github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options/ \
+    -I/go/src/github.com/protocolbuffers/protobuf/src/google/protobuf \
      --plugin=protoc-gen-grpc-gateway=/go/bin/protoc-gen-grpc-gateway \
      --grpc-gateway_out=logtostderr=true:${TMP_OUTPUT} \
      backend/api/*.proto
@@ -45,6 +49,8 @@ ${PROTOCCOMPILER} -I. -Ibackend/api \
     -I/go/src/github.com/protocolbuffers/protobuf/src \
     -I/go/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
     -I/go/src/github.com/grpc-ecosystem/grpc-gateway/ \
+    -I/go/src/github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options/ \
+    -I/go/src/github.com/protocolbuffers/protobuf/src/google/protobuf \
     --plugin=protoc-gen-swagger=/go/bin/protoc-gen-swagger \
     --swagger_out=logtostderr=true:${TMP_OUTPUT} \
     backend/api/*.proto
