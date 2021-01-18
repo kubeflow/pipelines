@@ -9,6 +9,8 @@ spec:
       - name: proxy-agent
         # Uncomment the following to use staging proxy endpoint
         # for tests, so that we can discover problems earlier.
-        env:
-        - name: PROXY_URL
-          value: https://datalab-staging.cloud.google.com/tun/m/4592f092208ecc84946b8f8f8016274df1b36a14
+        # We have kfp functional periodic tests using staging inverse proxy, so there's no longer a need to
+        # use staging in presubmit tests.
+        # env:
+        # - name: PROXY_URL
+        #   value: https://datalab-staging.cloud.google.com/tun/m/4592f092208ecc84946b8f8f8016274df1b36a14
