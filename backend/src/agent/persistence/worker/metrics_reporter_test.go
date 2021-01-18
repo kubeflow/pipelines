@@ -15,6 +15,7 @@
 package worker
 
 import (
+	"fmt"
 	"testing"
 
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
@@ -189,6 +190,8 @@ func TestReportMetrics_Succeed(t *testing.T) {
 			},
 		},
 	}
+	fmt.Println(expectedMetricsRequest)
+	fmt.Println(pipelineFake.GetReportedMetricsRequest())
 	assert.Equal(t, expectedMetricsRequest, pipelineFake.GetReportedMetricsRequest())
 }
 
@@ -391,6 +394,8 @@ func TestReportMetrics_InvalidMetricsJSON_PartialFail(t *testing.T) {
 			},
 		},
 	}
+	fmt.Println(expectedMetricsRequest)
+	fmt.Println(pipelineFake.GetReportedMetricsRequest())
 	assert.Equal(t, expectedMetricsRequest, pipelineFake.GetReportedMetricsRequest())
 }
 
