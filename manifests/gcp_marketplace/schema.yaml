@@ -149,6 +149,7 @@ properties:
       Warning, if the provided bucket doesn't exist, the deployer will
       automatically create a bucket for you in us-central1, but you won't be
       able to customize the bucket's parameters.
+    default: ""
   managedstorage.cloudsqlInstanceConnectionName:
     type: string
     title: Cloud SQL instance connection name (Managed storage only)
@@ -159,6 +160,7 @@ properties:
       the Cloud SQL console. The instance connection name uses the format
       "<project>:<region>:<instance-name>", for example: myproject:us-central1:myinstance.
       Learn more about setting up your Cloud SQL instance, see https://cloud.google.com/sql/docs/mysql/quickstart.
+    default: ""
   managedstorage.dbUsername:
     type: string
     title: Database username (Managed storage only)
@@ -167,6 +169,7 @@ properties:
       database username for Kubeflow Pipelines to use when connecting to your
       MySQL instance on Cloud SQL. If you leave this field empty, this value
       defaults to 'root'. Learn more about MySQL users, see https://cloud.google.com/sql/docs/mysql/users.
+    default: ""
   managedstorage.dbPassword:
     type: string
     title: Database password (Managed storage only)
@@ -179,6 +182,7 @@ properties:
       Pipelines connects to your Cloud SQL instance without providing a
       password. This will fail if a password is required for the username you
       specified.
+    default: ""
   managedstorage.databaseNamePrefix:
     type: string
     title: Database name prefix (Managed storage only)
@@ -192,6 +196,7 @@ properties:
       matches a previous deployment, this deployment will reuse the existing
       databases. If this value is not specified, the application instance name
       is used.
+    default: ""
 required:
 - name
 - namespace
