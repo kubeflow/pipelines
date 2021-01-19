@@ -8,7 +8,8 @@ package experiment_client
 import (
 	"github.com/go-openapi/runtime"
 	httptransport "github.com/go-openapi/runtime/client"
-	"github.com/go-openapi/strfmt"
+
+	strfmt "github.com/go-openapi/strfmt"
 
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_client/experiment_service"
 )
@@ -55,7 +56,9 @@ func New(transport runtime.ClientTransport, formats strfmt.Registry) *Experiment
 
 	cli := new(Experiment)
 	cli.Transport = transport
+
 	cli.ExperimentService = experiment_service.New(transport, formats)
+
 	return cli
 }
 
@@ -100,7 +103,7 @@ func (cfg *TransportConfig) WithSchemes(schemes []string) *TransportConfig {
 
 // Experiment is a client for experiment
 type Experiment struct {
-	ExperimentService experiment_service.ClientService
+	ExperimentService *experiment_service.Client
 
 	Transport runtime.ClientTransport
 }
@@ -108,5 +111,7 @@ type Experiment struct {
 // SetTransport changes the transport on the client and all its subresources
 func (c *Experiment) SetTransport(transport runtime.ClientTransport) {
 	c.Transport = transport
+
 	c.ExperimentService.SetTransport(transport)
+
 }

@@ -8,7 +8,8 @@ package pipeline_upload_client
 import (
 	"github.com/go-openapi/runtime"
 	httptransport "github.com/go-openapi/runtime/client"
-	"github.com/go-openapi/strfmt"
+
+	strfmt "github.com/go-openapi/strfmt"
 
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service"
 )
@@ -55,7 +56,9 @@ func New(transport runtime.ClientTransport, formats strfmt.Registry) *PipelineUp
 
 	cli := new(PipelineUpload)
 	cli.Transport = transport
+
 	cli.PipelineUploadService = pipeline_upload_service.New(transport, formats)
+
 	return cli
 }
 
@@ -100,7 +103,7 @@ func (cfg *TransportConfig) WithSchemes(schemes []string) *TransportConfig {
 
 // PipelineUpload is a client for pipeline upload
 type PipelineUpload struct {
-	PipelineUploadService pipeline_upload_service.ClientService
+	PipelineUploadService *pipeline_upload_service.Client
 
 	Transport runtime.ClientTransport
 }
@@ -108,5 +111,7 @@ type PipelineUpload struct {
 // SetTransport changes the transport on the client and all its subresources
 func (c *PipelineUpload) SetTransport(transport runtime.ClientTransport) {
 	c.Transport = transport
+
 	c.PipelineUploadService.SetTransport(transport)
+
 }

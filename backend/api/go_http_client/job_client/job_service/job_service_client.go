@@ -7,11 +7,12 @@ package job_service
 
 import (
 	"github.com/go-openapi/runtime"
-	"github.com/go-openapi/strfmt"
+
+	strfmt "github.com/go-openapi/strfmt"
 )
 
 // New creates a new job service API client.
-func New(transport runtime.ClientTransport, formats strfmt.Registry) ClientService {
+func New(transport runtime.ClientTransport, formats strfmt.Registry) *Client {
 	return &Client{transport: transport, formats: formats}
 }
 
@@ -23,25 +24,8 @@ type Client struct {
 	formats   strfmt.Registry
 }
 
-// ClientService is the interface for Client methods
-type ClientService interface {
-	CreateJob(params *CreateJobParams, authInfo runtime.ClientAuthInfoWriter) (*CreateJobOK, error)
-
-	DeleteJob(params *DeleteJobParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteJobOK, error)
-
-	DisableJob(params *DisableJobParams, authInfo runtime.ClientAuthInfoWriter) (*DisableJobOK, error)
-
-	EnableJob(params *EnableJobParams, authInfo runtime.ClientAuthInfoWriter) (*EnableJobOK, error)
-
-	GetJob(params *GetJobParams, authInfo runtime.ClientAuthInfoWriter) (*GetJobOK, error)
-
-	ListJobs(params *ListJobsParams, authInfo runtime.ClientAuthInfoWriter) (*ListJobsOK, error)
-
-	SetTransport(transport runtime.ClientTransport)
-}
-
 /*
-  CreateJob creates a new job
+CreateJob creates a new job
 */
 func (a *Client) CreateJob(params *CreateJobParams, authInfo runtime.ClientAuthInfoWriter) (*CreateJobOK, error) {
 	// TODO: Validate the params before sending
@@ -75,7 +59,7 @@ func (a *Client) CreateJob(params *CreateJobParams, authInfo runtime.ClientAuthI
 }
 
 /*
-  DeleteJob deletes a job
+DeleteJob deletes a job
 */
 func (a *Client) DeleteJob(params *DeleteJobParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteJobOK, error) {
 	// TODO: Validate the params before sending
@@ -109,7 +93,7 @@ func (a *Client) DeleteJob(params *DeleteJobParams, authInfo runtime.ClientAuthI
 }
 
 /*
-  DisableJob stops a job and all its associated runs the job is not deleted
+DisableJob stops a job and all its associated runs the job is not deleted
 */
 func (a *Client) DisableJob(params *DisableJobParams, authInfo runtime.ClientAuthInfoWriter) (*DisableJobOK, error) {
 	// TODO: Validate the params before sending
@@ -143,7 +127,7 @@ func (a *Client) DisableJob(params *DisableJobParams, authInfo runtime.ClientAut
 }
 
 /*
-  EnableJob restarts a job that was previously stopped all runs associated with the job will continue
+EnableJob restarts a job that was previously stopped all runs associated with the job will continue
 */
 func (a *Client) EnableJob(params *EnableJobParams, authInfo runtime.ClientAuthInfoWriter) (*EnableJobOK, error) {
 	// TODO: Validate the params before sending
@@ -177,7 +161,7 @@ func (a *Client) EnableJob(params *EnableJobParams, authInfo runtime.ClientAuthI
 }
 
 /*
-  GetJob finds a specific job by ID
+GetJob finds a specific job by ID
 */
 func (a *Client) GetJob(params *GetJobParams, authInfo runtime.ClientAuthInfoWriter) (*GetJobOK, error) {
 	// TODO: Validate the params before sending
@@ -211,7 +195,7 @@ func (a *Client) GetJob(params *GetJobParams, authInfo runtime.ClientAuthInfoWri
 }
 
 /*
-  ListJobs finds all jobs
+ListJobs finds all jobs
 */
 func (a *Client) ListJobs(params *ListJobsParams, authInfo runtime.ClientAuthInfoWriter) (*ListJobsOK, error) {
 	// TODO: Validate the params before sending
