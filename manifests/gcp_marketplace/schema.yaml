@@ -85,6 +85,7 @@ x-google-marketplace:
         images.cachedeployer:
           type: FULL
   deployerServiceAccount:
+    description: Service account used to deploy cluster-wide Kubeflow Pipelines objects
     roles:
     - type: ClusterRole # This is a cluster-wide ClusterRole
       rulesType: CUSTOM # We specify our own custom RBAC roles

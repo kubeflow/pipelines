@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,15 +11,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""MLMD artifact ontology in KFP SDK."""
-from kfp.v2.dsl import artifact
-
-
-# TODO(numerology): Add concrete property schema to each artifact types.
-#   Also consider adding Metrics class when the schema is hammered down.
-class Model(artifact.Artifact):
-  TYPE_NAME = 'Model'
-
-
-class Dataset(artifact.Artifact):
-  TYPE_NAME = 'Dataset'

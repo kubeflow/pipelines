@@ -1213,6 +1213,14 @@ exports[`RunDetails shows run config fields - handles no description 1`] = `
           fields={
             Array [
               Array [
+                "Run ID",
+                "test-run-id",
+              ],
+              Array [
+                "Workflow name",
+                "-",
+              ],
+              Array [
                 "Status",
                 "Skipped",
               ],
@@ -1274,6 +1282,14 @@ exports[`RunDetails shows run config fields - handles no metadata 1`] = `
           fields={
             Array [
               Array [
+                "Run ID",
+                "test-run-id",
+              ],
+              Array [
+                "Workflow name",
+                "-",
+              ],
+              Array [
                 "Status",
                 "Skipped",
               ],
@@ -1334,6 +1350,14 @@ exports[`RunDetails shows run config fields 1`] = `
         <DetailsTable
           fields={
             Array [
+              Array [
+                "Run ID",
+                "test-run-id",
+              ],
+              Array [
+                "Workflow name",
+                "-",
+              ],
               Array [
                 "Status",
                 "Skipped",
