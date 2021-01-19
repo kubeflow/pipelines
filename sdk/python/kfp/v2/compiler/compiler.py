@@ -193,7 +193,7 @@ class Compiler(object):
       A PipelineJob proto representing the compiled pipeline.
     """
     runtime_config = compiler_utils.build_runtime_config_spec(
-        pipeline_root=pipeline_root)
+        pipeline_root=pipeline_root, pipeline_parameters=pipeline_parameters)
     pipeline_job = pipeline_spec_pb2.PipelineJob(runtime_config=runtime_config)
     pipeline_job.pipeline_spec.update(json_format.MessageToDict(pipeline_spec))
 
