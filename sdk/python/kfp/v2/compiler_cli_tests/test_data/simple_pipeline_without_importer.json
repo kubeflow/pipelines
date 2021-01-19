@@ -83,6 +83,11 @@
     "schemaVersion": "v2alpha1"
   },
   "runtimeConfig": {
-    "gcsOutputDirectory": "dummy_root"
-  }
+    "gcsOutputDirectory": "dummy_root",
+    "parameters": {
+      "text": {
+        "stringValue": "Hello KFP!"
+      }
+    }
+ }
 }
