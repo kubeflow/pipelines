@@ -248,7 +248,7 @@ def _generate_output_metadata_path() -> str:
     return str(pathlib.PurePosixPath(
         OUTPUT_DIR_PLACEHOLDER,
         RUN_ID_PLACEHOLDER,
-        OUTPUT_DIR_PLACEHOLDER
+        OUTPUT_METADATA_JSON
     ))
 
 
