@@ -26,6 +26,10 @@
       "url": "https://raw.githubusercontent.com/kubeflow/pipelines/master/LICENSE"
     }
   },
+  "schemes": [
+    "http",
+    "https"
+  ],
   "consumes": [
     "application/json"
   ],
@@ -2123,9 +2127,5 @@
     {
       "Bearer": []
     }
-  ],
-  "schemes": [
-    "http",
-    "https"
   ]
 }

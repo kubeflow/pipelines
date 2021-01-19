@@ -4,6 +4,10 @@
     "title": "backend/api/job.proto",
     "version": "version not set"
   },
+  "schemes": [
+    "http",
+    "https"
+  ],
   "consumes": [
     "application/json"
   ],
