@@ -226,6 +226,13 @@ func (w *Workflow) SetOwnerReferences(schedule *swfapi.ScheduledWorkflow) {
 	}
 }
 
+func (w *Workflow) SetArtifactRepositoryRef(configMap string, key string) {
+	w.Spec.ArtifactRepositoryRef = &workflowapi.ArtifactRepositoryRef{
+		ConfigMap: configMap,
+		Key: key,
+	}
+}
+
 func (w *Workflow) SetLabels(key string, value string) {
 	if w.Labels == nil {
 		w.Labels = make(map[string]string)

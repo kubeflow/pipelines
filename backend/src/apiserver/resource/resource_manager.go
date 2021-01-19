@@ -364,6 +364,9 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		return nil, err
 	}
 
+	//  Add artifactRepositoryRef so that artifact repository can have namespace separation
+	workflow.SetArtifactRepositoryRef(util.ArtifactRepositoryRefConfigMap, util.ArtifactRepositoryRefKey)
+
 	// Add label to the workflow so it can be persisted by persistent agent later.
 	workflow.SetLabels(util.LabelKeyWorkflowRunId, runId)
 	// Add run name annotation to the workflow so that it can be logged by the Metadata Writer.
@@ -668,6 +671,9 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 
 	// Disable istio sidecar injection
 	workflow.SetAnnotationsToAllTemplates(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
+
+	//  Add artifactRepositoryRef so that artifact repository can have namespace separation
+	workflow.SetArtifactRepositoryRef(util.ArtifactRepositoryRefConfigMap, util.ArtifactRepositoryRefKey)
 
 	swfGeneratedName, err := toSWFCRDResourceGeneratedName(apiJob.Name)
 	if err != nil {
