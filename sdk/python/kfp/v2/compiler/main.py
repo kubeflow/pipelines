@@ -17,23 +17,27 @@ import argparse
 import json
 import os
 import sys
+from typing import Any, Callable, List, Mapping, Optional
 
 import kfp.dsl as dsl
 import kfp.v2.compiler as compiler
 
 
-def parse_arguments():
+def parse_arguments() -> argparse.Namespace:
   """Parse command line arguments."""
 
   parser = argparse.ArgumentParser()
   parser.add_argument(
-      '--py', type=str, help='local absolute path to a py file.')
+      '--py', type=str, required=True, help='local absolute path to a py file.')
   parser.add_argument(
       '--function',
       type=str,
       help='The name of the function to compile if there are multiple.')
   parser.add_argument(
-      '--pipeline-root', type=str, help='The root of the pipeline outputs.')
+      '--pipeline-root',
+      type=str,
+      required=True,
+      help='The root of the pipeline outputs.')
   parser.add_argument(
       '--pipeline-parameters',
       type=json.loads,
@@ -54,8 +58,21 @@ def parse_arguments():
   return args
 
 
-def _compile_pipeline_function(pipeline_funcs, function_name, pipeline_root,
-                               pipeline_parameters, output_path, type_check):
+def _compile_pipeline_function(pipeline_funcs: List[Callable],
+                               function_name: Optional[str], pipeline_root: str,
+                               pipeline_parameters: Optional[Mapping[str, Any]],
+                               output_path: str, type_check: bool) -> None:
+  """Compiles a pipeline function.
+
+  Args:
+    pipeline_funcs: A list of pipeline_functions.
+    function_name: The name of the pipeline function to compile if there were
+      multiple.
+    pipeline_root: The root output directory for pipeline runtime.
+    pipeline_parameters: The pipeline parameters as a dict of {name: value}.
+    output_path: The output path of the compiled result.
+    type_check: Whether to enable the type checking.
+  """
   if len(pipeline_funcs) == 0:
     raise ValueError(
         'A function with @dsl.pipeline decorator is required in the py file.')
@@ -94,7 +111,7 @@ class PipelineCollectorContext():
   def __enter__(self):
     pipeline_funcs = []
 
-    def add_pipeline(func):
+    def add_pipeline(func: Callable) -> Callable:
       pipeline_funcs.append(func)
       return func
 
@@ -106,8 +123,20 @@ class PipelineCollectorContext():
     dsl._pipeline._pipeline_decorator_handler = self.old_handler
 
 
-def compile_pyfile(pyfile, function_name, pipeline_root, pipeline_parameters,
-                   output_path, type_check):
+def compile_pyfile(pyfile: str, function_name: Optional[str],
+                   pipeline_root: str,
+                   pipeline_parameters: Optional[Mapping[str, Any]],
+                   output_path: str, type_check: bool) -> None:
+  """Compiles a pipeline written in a .py file.
+
+  Args:
+    pyfile: The path to the .py file that contains the pipeline definition.
+    function_name: The name of the pipeline function.
+    pipeline_root: The root output directory for pipeline runtime.
+    pipeline_parameters: The pipeline parameters as a dict of {name: value}.
+    output_path: The output path of the compiled result.
+    type_check: Whether to enable the type checking.
+  """
   sys.path.insert(0, os.path.dirname(pyfile))
   try:
     filename = os.path.basename(pyfile)
