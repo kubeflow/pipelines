@@ -22,15 +22,15 @@ package visualization_model
 import (
 	"encoding/json"
 
+	strfmt "github.com/go-openapi/strfmt"
+
 	"github.com/go-openapi/errors"
-	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
 )
 
 // APIVisualizationType Type of visualization to be generated.
 // This is required when creating the pipeline through CreateVisualization
 // API.
-//
 // swagger:model apiVisualizationType
 type APIVisualizationType string
 
@@ -66,7 +66,7 @@ func init() {
 }
 
 func (m APIVisualizationType) validateAPIVisualizationTypeEnum(path, location string, value APIVisualizationType) error {
-	if err := validate.EnumCase(path, location, value, apiVisualizationTypeEnum, true); err != nil {
+	if err := validate.Enum(path, location, value, apiVisualizationTypeEnum); err != nil {
 		return err
 	}
 	return nil

@@ -21,11 +21,12 @@ package run_service
 
 import (
 	"github.com/go-openapi/runtime"
-	"github.com/go-openapi/strfmt"
+
+	strfmt "github.com/go-openapi/strfmt"
 )
 
 // New creates a new run service API client.
-func New(transport runtime.ClientTransport, formats strfmt.Registry) ClientService {
+func New(transport runtime.ClientTransport, formats strfmt.Registry) *Client {
 	return &Client{transport: transport, formats: formats}
 }
 
@@ -37,33 +38,8 @@ type Client struct {
 	formats   strfmt.Registry
 }
 
-// ClientService is the interface for Client methods
-type ClientService interface {
-	ArchiveRun(params *ArchiveRunParams, authInfo runtime.ClientAuthInfoWriter) (*ArchiveRunOK, error)
-
-	CreateRun(params *CreateRunParams, authInfo runtime.ClientAuthInfoWriter) (*CreateRunOK, error)
-
-	DeleteRun(params *DeleteRunParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteRunOK, error)
-
-	GetRun(params *GetRunParams, authInfo runtime.ClientAuthInfoWriter) (*GetRunOK, error)
-
-	ListRuns(params *ListRunsParams, authInfo runtime.ClientAuthInfoWriter) (*ListRunsOK, error)
-
-	ReadArtifact(params *ReadArtifactParams, authInfo runtime.ClientAuthInfoWriter) (*ReadArtifactOK, error)
-
-	ReportRunMetrics(params *ReportRunMetricsParams, authInfo runtime.ClientAuthInfoWriter) (*ReportRunMetricsOK, error)
-
-	RetryRun(params *RetryRunParams, authInfo runtime.ClientAuthInfoWriter) (*RetryRunOK, error)
-
-	TerminateRun(params *TerminateRunParams, authInfo runtime.ClientAuthInfoWriter) (*TerminateRunOK, error)
-
-	UnarchiveRun(params *UnarchiveRunParams, authInfo runtime.ClientAuthInfoWriter) (*UnarchiveRunOK, error)
-
-	SetTransport(transport runtime.ClientTransport)
-}
-
 /*
-  ArchiveRun archives a run
+ArchiveRun archives a run
 */
 func (a *Client) ArchiveRun(params *ArchiveRunParams, authInfo runtime.ClientAuthInfoWriter) (*ArchiveRunOK, error) {
 	// TODO: Validate the params before sending
@@ -97,7 +73,7 @@ func (a *Client) ArchiveRun(params *ArchiveRunParams, authInfo runtime.ClientAut
 }
 
 /*
-  CreateRun creates a new run
+CreateRun creates a new run
 */
 func (a *Client) CreateRun(params *CreateRunParams, authInfo runtime.ClientAuthInfoWriter) (*CreateRunOK, error) {
 	// TODO: Validate the params before sending
@@ -131,7 +107,7 @@ func (a *Client) CreateRun(params *CreateRunParams, authInfo runtime.ClientAuthI
 }
 
 /*
-  DeleteRun deletes a run
+DeleteRun deletes a run
 */
 func (a *Client) DeleteRun(params *DeleteRunParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteRunOK, error) {
 	// TODO: Validate the params before sending
@@ -165,7 +141,7 @@ func (a *Client) DeleteRun(params *DeleteRunParams, authInfo runtime.ClientAuthI
 }
 
 /*
-  GetRun finds a specific run by ID
+GetRun finds a specific run by ID
 */
 func (a *Client) GetRun(params *GetRunParams, authInfo runtime.ClientAuthInfoWriter) (*GetRunOK, error) {
 	// TODO: Validate the params before sending
@@ -199,7 +175,7 @@ func (a *Client) GetRun(params *GetRunParams, authInfo runtime.ClientAuthInfoWri
 }
 
 /*
-  ListRuns finds all runs
+ListRuns finds all runs
 */
 func (a *Client) ListRuns(params *ListRunsParams, authInfo runtime.ClientAuthInfoWriter) (*ListRunsOK, error) {
 	// TODO: Validate the params before sending
@@ -233,7 +209,7 @@ func (a *Client) ListRuns(params *ListRunsParams, authInfo runtime.ClientAuthInf
 }
 
 /*
-  ReadArtifact finds a run s artifact data
+ReadArtifact finds a run s artifact data
 */
 func (a *Client) ReadArtifact(params *ReadArtifactParams, authInfo runtime.ClientAuthInfoWriter) (*ReadArtifactOK, error) {
 	// TODO: Validate the params before sending
@@ -267,7 +243,7 @@ func (a *Client) ReadArtifact(params *ReadArtifactParams, authInfo runtime.Clien
 }
 
 /*
-  ReportRunMetrics reports run metrics reports metrics of a run each metric is reported in its own transaction so this API accepts partial failures metric can be uniquely identified by run id node id name duplicate reporting will be ignored by the API first reporting wins
+ReportRunMetrics reports run metrics reports metrics of a run each metric is reported in its own transaction so this API accepts partial failures metric can be uniquely identified by run id node id name duplicate reporting will be ignored by the API first reporting wins
 */
 func (a *Client) ReportRunMetrics(params *ReportRunMetricsParams, authInfo runtime.ClientAuthInfoWriter) (*ReportRunMetricsOK, error) {
 	// TODO: Validate the params before sending
@@ -301,7 +277,7 @@ func (a *Client) ReportRunMetrics(params *ReportRunMetricsParams, authInfo runti
 }
 
 /*
-  RetryRun res initiates a failed or terminated run
+RetryRun res initiates a failed or terminated run
 */
 func (a *Client) RetryRun(params *RetryRunParams, authInfo runtime.ClientAuthInfoWriter) (*RetryRunOK, error) {
 	// TODO: Validate the params before sending
@@ -335,7 +311,7 @@ func (a *Client) RetryRun(params *RetryRunParams, authInfo runtime.ClientAuthInf
 }
 
 /*
-  TerminateRun terminates an active run
+TerminateRun terminates an active run
 */
 func (a *Client) TerminateRun(params *TerminateRunParams, authInfo runtime.ClientAuthInfoWriter) (*TerminateRunOK, error) {
 	// TODO: Validate the params before sending
@@ -369,7 +345,7 @@ func (a *Client) TerminateRun(params *TerminateRunParams, authInfo runtime.Clien
 }
 
 /*
-  UnarchiveRun restores an archived run
+UnarchiveRun restores an archived run
 */
 func (a *Client) UnarchiveRun(params *UnarchiveRunParams, authInfo runtime.ClientAuthInfoWriter) (*UnarchiveRunOK, error) {
 	// TODO: Validate the params before sending

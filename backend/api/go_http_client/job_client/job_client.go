@@ -22,7 +22,8 @@ package job_client
 import (
 	"github.com/go-openapi/runtime"
 	httptransport "github.com/go-openapi/runtime/client"
-	"github.com/go-openapi/strfmt"
+
+	strfmt "github.com/go-openapi/strfmt"
 
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/job_client/job_service"
 )
@@ -69,7 +70,9 @@ func New(transport runtime.ClientTransport, formats strfmt.Registry) *Job {
 
 	cli := new(Job)
 	cli.Transport = transport
+
 	cli.JobService = job_service.New(transport, formats)
+
 	return cli
 }
 
@@ -114,7 +117,7 @@ func (cfg *TransportConfig) WithSchemes(schemes []string) *TransportConfig {
 
 // Job is a client for job
 type Job struct {
-	JobService job_service.ClientService
+	JobService *job_service.Client
 
 	Transport runtime.ClientTransport
 }
@@ -122,5 +125,7 @@ type Job struct {
 // SetTransport changes the transport on the client and all its subresources
 func (c *Job) SetTransport(transport runtime.ClientTransport) {
 	c.Transport = transport
+
 	c.JobService.SetTransport(transport)
+
 }

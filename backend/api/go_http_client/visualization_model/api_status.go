@@ -22,13 +22,13 @@ package visualization_model
 import (
 	"strconv"
 
+	strfmt "github.com/go-openapi/strfmt"
+
 	"github.com/go-openapi/errors"
-	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // APIStatus api status
-//
 // swagger:model apiStatus
 type APIStatus struct {
 

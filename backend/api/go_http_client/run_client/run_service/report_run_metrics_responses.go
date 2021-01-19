@@ -24,9 +24,10 @@ import (
 	"io"
 
 	"github.com/go-openapi/runtime"
-	"github.com/go-openapi/strfmt"
 
-	"github.com/kubeflow/pipelines/backend/api/go_http_client/run_model"
+	strfmt "github.com/go-openapi/strfmt"
+
+	run_model "github.com/kubeflow/pipelines/backend/api/go_http_client/run_model"
 )
 
 // ReportRunMetricsReader is a Reader for the ReportRunMetrics structure.

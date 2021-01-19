@@ -24,9 +24,10 @@ import (
 	"io"
 
 	"github.com/go-openapi/runtime"
-	"github.com/go-openapi/strfmt"
 
-	"github.com/kubeflow/pipelines/backend/api/go_http_client/visualization_model"
+	strfmt "github.com/go-openapi/strfmt"
+
+	visualization_model "github.com/kubeflow/pipelines/backend/api/go_http_client/visualization_model"
 )
 
 // CreateVisualizationReader is a Reader for the CreateVisualization structure.

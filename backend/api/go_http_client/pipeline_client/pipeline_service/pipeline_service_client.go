@@ -21,11 +21,12 @@ package pipeline_service
 
 import (
 	"github.com/go-openapi/runtime"
-	"github.com/go-openapi/strfmt"
+
+	strfmt "github.com/go-openapi/strfmt"
 )
 
 // New creates a new pipeline service API client.
-func New(transport runtime.ClientTransport, formats strfmt.Registry) ClientService {
+func New(transport runtime.ClientTransport, formats strfmt.Registry) *Client {
 	return &Client{transport: transport, formats: formats}
 }
 
@@ -37,35 +38,8 @@ type Client struct {
 	formats   strfmt.Registry
 }
 
-// ClientService is the interface for Client methods
-type ClientService interface {
-	CreatePipeline(params *CreatePipelineParams, authInfo runtime.ClientAuthInfoWriter) (*CreatePipelineOK, error)
-
-	CreatePipelineVersion(params *CreatePipelineVersionParams, authInfo runtime.ClientAuthInfoWriter) (*CreatePipelineVersionOK, error)
-
-	DeletePipeline(params *DeletePipelineParams, authInfo runtime.ClientAuthInfoWriter) (*DeletePipelineOK, error)
-
-	DeletePipelineVersion(params *DeletePipelineVersionParams, authInfo runtime.ClientAuthInfoWriter) (*DeletePipelineVersionOK, error)
-
-	GetPipeline(params *GetPipelineParams, authInfo runtime.ClientAuthInfoWriter) (*GetPipelineOK, error)
-
-	GetPipelineVersion(params *GetPipelineVersionParams, authInfo runtime.ClientAuthInfoWriter) (*GetPipelineVersionOK, error)
-
-	GetPipelineVersionTemplate(params *GetPipelineVersionTemplateParams, authInfo runtime.ClientAuthInfoWriter) (*GetPipelineVersionTemplateOK, error)
-
-	GetTemplate(params *GetTemplateParams, authInfo runtime.ClientAuthInfoWriter) (*GetTemplateOK, error)
-
-	ListPipelineVersions(params *ListPipelineVersionsParams, authInfo runtime.ClientAuthInfoWriter) (*ListPipelineVersionsOK, error)
-
-	ListPipelines(params *ListPipelinesParams, authInfo runtime.ClientAuthInfoWriter) (*ListPipelinesOK, error)
-
-	UpdatePipelineDefaultVersion(params *UpdatePipelineDefaultVersionParams, authInfo runtime.ClientAuthInfoWriter) (*UpdatePipelineDefaultVersionOK, error)
-
-	SetTransport(transport runtime.ClientTransport)
-}
-
 /*
-  CreatePipeline creates a pipeline
+CreatePipeline creates a pipeline
 */
 func (a *Client) CreatePipeline(params *CreatePipelineParams, authInfo runtime.ClientAuthInfoWriter) (*CreatePipelineOK, error) {
 	// TODO: Validate the params before sending
@@ -99,7 +73,7 @@ func (a *Client) CreatePipeline(params *CreatePipelineParams, authInfo runtime.C
 }
 
 /*
-  CreatePipelineVersion adds a pipeline version to the specified pipeline
+CreatePipelineVersion adds a pipeline version to the specified pipeline
 */
 func (a *Client) CreatePipelineVersion(params *CreatePipelineVersionParams, authInfo runtime.ClientAuthInfoWriter) (*CreatePipelineVersionOK, error) {
 	// TODO: Validate the params before sending
@@ -133,7 +107,7 @@ func (a *Client) CreatePipelineVersion(params *CreatePipelineVersionParams, auth
 }
 
 /*
-  DeletePipeline deletes a pipeline and its pipeline versions
+DeletePipeline deletes a pipeline and its pipeline versions
 */
 func (a *Client) DeletePipeline(params *DeletePipelineParams, authInfo runtime.ClientAuthInfoWriter) (*DeletePipelineOK, error) {
 	// TODO: Validate the params before sending
@@ -167,7 +141,7 @@ func (a *Client) DeletePipeline(params *DeletePipelineParams, authInfo runtime.C
 }
 
 /*
-  DeletePipelineVersion deletes a pipeline version by pipeline version ID if the deleted pipeline version is the default pipeline version the pipeline s default version changes to the pipeline s most recent pipeline version if there are no remaining pipeline versions the pipeline will have no default version examines the run service api ipynb notebook to learn more about creating a run using a pipeline version https github com kubeflow pipelines blob master tools benchmarks run service api ipynb
+DeletePipelineVersion deletes a pipeline version by pipeline version ID if the deleted pipeline version is the default pipeline version the pipeline s default version changes to the pipeline s most recent pipeline version if there are no remaining pipeline versions the pipeline will have no default version examines the run service api ipynb notebook to learn more about creating a run using a pipeline version https github com kubeflow pipelines blob master tools benchmarks run service api ipynb
 */
 func (a *Client) DeletePipelineVersion(params *DeletePipelineVersionParams, authInfo runtime.ClientAuthInfoWriter) (*DeletePipelineVersionOK, error) {
 	// TODO: Validate the params before sending
@@ -201,7 +175,7 @@ func (a *Client) DeletePipelineVersion(params *DeletePipelineVersionParams, auth
 }
 
 /*
-  GetPipeline finds a specific pipeline by ID
+GetPipeline finds a specific pipeline by ID
 */
 func (a *Client) GetPipeline(params *GetPipelineParams, authInfo runtime.ClientAuthInfoWriter) (*GetPipelineOK, error) {
 	// TODO: Validate the params before sending
@@ -235,7 +209,7 @@ func (a *Client) GetPipeline(params *GetPipelineParams, authInfo runtime.ClientA
 }
 
 /*
-  GetPipelineVersion gets a pipeline version by pipeline version ID
+GetPipelineVersion gets a pipeline version by pipeline version ID
 */
 func (a *Client) GetPipelineVersion(params *GetPipelineVersionParams, authInfo runtime.ClientAuthInfoWriter) (*GetPipelineVersionOK, error) {
 	// TODO: Validate the params before sending
@@ -269,7 +243,7 @@ func (a *Client) GetPipelineVersion(params *GetPipelineVersionParams, authInfo r
 }
 
 /*
-  GetPipelineVersionTemplate returns a y a m l template that contains the specified pipeline version s description parameters and metadata
+GetPipelineVersionTemplate returns a y a m l template that contains the specified pipeline version s description parameters and metadata
 */
 func (a *Client) GetPipelineVersionTemplate(params *GetPipelineVersionTemplateParams, authInfo runtime.ClientAuthInfoWriter) (*GetPipelineVersionTemplateOK, error) {
 	// TODO: Validate the params before sending
@@ -303,7 +277,7 @@ func (a *Client) GetPipelineVersionTemplate(params *GetPipelineVersionTemplatePa
 }
 
 /*
-  GetTemplate returns a single y a m l template that contains the description parameters and metadata associated with the pipeline provided
+GetTemplate returns a single y a m l template that contains the description parameters and metadata associated with the pipeline provided
 */
 func (a *Client) GetTemplate(params *GetTemplateParams, authInfo runtime.ClientAuthInfoWriter) (*GetTemplateOK, error) {
 	// TODO: Validate the params before sending
@@ -337,7 +311,7 @@ func (a *Client) GetTemplate(params *GetTemplateParams, authInfo runtime.ClientA
 }
 
 /*
-  ListPipelineVersions lists all pipeline versions of a given pipeline
+ListPipelineVersions lists all pipeline versions of a given pipeline
 */
 func (a *Client) ListPipelineVersions(params *ListPipelineVersionsParams, authInfo runtime.ClientAuthInfoWriter) (*ListPipelineVersionsOK, error) {
 	// TODO: Validate the params before sending
@@ -371,7 +345,7 @@ func (a *Client) ListPipelineVersions(params *ListPipelineVersionsParams, authIn
 }
 
 /*
-  ListPipelines finds all pipelines
+ListPipelines finds all pipelines
 */
 func (a *Client) ListPipelines(params *ListPipelinesParams, authInfo runtime.ClientAuthInfoWriter) (*ListPipelinesOK, error) {
 	// TODO: Validate the params before sending
@@ -405,7 +379,7 @@ func (a *Client) ListPipelines(params *ListPipelinesParams, authInfo runtime.Cli
 }
 
 /*
-  UpdatePipelineDefaultVersion updates the default pipeline version of a specific pipeline
+UpdatePipelineDefaultVersion updates the default pipeline version of a specific pipeline
 */
 func (a *Client) UpdatePipelineDefaultVersion(params *UpdatePipelineDefaultVersionParams, authInfo runtime.ClientAuthInfoWriter) (*UpdatePipelineDefaultVersionOK, error) {
 	// TODO: Validate the params before sending

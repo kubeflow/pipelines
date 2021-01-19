@@ -21,11 +21,12 @@ package visualization_service
 
 import (
 	"github.com/go-openapi/runtime"
-	"github.com/go-openapi/strfmt"
+
+	strfmt "github.com/go-openapi/strfmt"
 )
 
 // New creates a new visualization service API client.
-func New(transport runtime.ClientTransport, formats strfmt.Registry) ClientService {
+func New(transport runtime.ClientTransport, formats strfmt.Registry) *Client {
 	return &Client{transport: transport, formats: formats}
 }
 
@@ -37,15 +38,8 @@ type Client struct {
 	formats   strfmt.Registry
 }
 
-// ClientService is the interface for Client methods
-type ClientService interface {
-	CreateVisualization(params *CreateVisualizationParams, authInfo runtime.ClientAuthInfoWriter) (*CreateVisualizationOK, error)
-
-	SetTransport(transport runtime.ClientTransport)
-}
-
 /*
-  CreateVisualization create visualization API
+CreateVisualization create visualization API
 */
 func (a *Client) CreateVisualization(params *CreateVisualizationParams, authInfo runtime.ClientAuthInfoWriter) (*CreateVisualizationOK, error) {
 	// TODO: Validate the params before sending
