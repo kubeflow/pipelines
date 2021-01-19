@@ -21,6 +21,9 @@ __all__ = [
     'OutputPathPlaceholder',
     'InputUriPlaceholder',
     'OutputUriPlaceholder',
+    'InputMetadataPlaceholder',
+    'InputOutputPortNamePlaceholder',
+    'OutputMetadataPlaceholder',
     'ConcatPlaceholder',
     'IsPresentPlaceholder',
     'IfPlaceholderStructure',
@@ -165,6 +168,53 @@ class OutputUriPlaceholder(ModelBase):  # Non-standard attr names
         super().__init__(locals())
 
 
+class InputMetadataPlaceholder(ModelBase):  # Non-standard attr names
+    """Represents the file path to an input artifact metadata.
+
+    During runtime, this command-line argument placeholder will be replaced
+    by the path where the metadata file associated with this artifact has been
+    written to. Currently only supported in v2 components.
+    """
+    _serialized_names = {
+        'input_name': 'inputMetadata',
+    }
+
+    def __init__(self, input_name: str):
+        super().__init__(locals())
+
+
+class InputOutputPortNamePlaceholder(ModelBase):  # Non-standard attr names
+    """Represents the output port name of an input artifact.
+
+    During compile time, this command-line argument placeholder will be replaced
+    by the actual output port name used by the producer task. Currently only
+    supported in v2 components.
+    """
+    _serialized_names = {
+        'input_name': 'inputOutputPortName',
+    }
+
+    def __init__(self, input_name: str):
+        super().__init__(locals())
+
+
+class OutputMetadataPlaceholder(ModelBase):  # Non-standard attr names
+    """Represents the output metadata JSON file location of this task.
+
+    This file will encode the metadata information produced by this task:
+    - Artifacts metadata, but not the content of the artifact, and
+    - output parameters.
+
+    Only supported in v2 components.
+    """
+    _serialized_names = {
+        'output_name': 'outputMetadata',
+    }
+
+    def __init__(self, output_name):
+        super().__init__(locals())
+
+
 CommandlineArgumentType = Union[
     str,
     InputValuePlaceholder,
@@ -172,6 +222,9 @@ CommandlineArgumentType = Union[
     OutputPathPlaceholder,
     InputUriPlaceholder,
     OutputUriPlaceholder,
+    InputMetadataPlaceholder,
+    InputOutputPortNamePlaceholder,
+    OutputMetadataPlaceholder,
     'ConcatPlaceholder',
     'IfPlaceholder',
 ]
@@ -311,13 +364,17 @@ class ComponentSpec(ModelBase):
             def verify_arg(arg):
                 if arg is None:
                     pass
-                elif isinstance(arg, (str, int, float, bool)):
+                elif isinstance(
+                    arg, (str, int, float, bool, OutputMetadataPlaceholder)):
                     pass
                 elif isinstance(arg, list):
                     for arg2 in arg:
                         verify_arg(arg2)
-                elif isinstance(arg, (InputUriPlaceholder, InputValuePlaceholder,
-                                      InputPathPlaceholder, IsPresentPlaceholder)):
+                elif isinstance(
+                    arg, (InputUriPlaceholder, InputValuePlaceholder,
+                          InputPathPlaceholder, IsPresentPlaceholder,
+                          InputMetadataPlaceholder,
+                          InputOutputPortNamePlaceholder)):
                     if arg.input_name not in self._inputs_dict:
                         raise TypeError(
                             'Argument "{}" references non-existing input.'.format(arg))
