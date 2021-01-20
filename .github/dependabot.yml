@@ -219,11 +219,6 @@ updates:
       interval: daily
     open-pull-requests-limit: 10
   - package-ecosystem: docker
-    directory: /frontend/server/node_modules/jsonpath
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
     directory: /manifests/gcp_marketplace/deployer
     schedule:
       interval: daily
