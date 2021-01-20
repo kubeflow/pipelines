@@ -59,18 +59,9 @@ serve basic api calls with mock data.
 
 This requires you already have a real KFP cluster, you can proxy requests to it.
 
-Configure your `kubectl` to talk to your KFP cluster:
-
-#### Option: Deploy KFP to a GKE cluster
-
-1.  Make sure you have a [Google Cloud project](https://cloud.google.com/resource-manager/docs/creating-managing-projects).
-1.  Download `gcloud` sdk, see [Instruction](https://cloud.google.com/sdk/docs/install).
-1.  Create configuration: Run `gcloud init` and select a Compute Engine Zone for kubeconfig.
-1.  Create a new cluster named **kfp-cluster**: Run `gcloud container clusters create kfp-cluster`
-1.  Generate kubeconfig entry: Run `gcloud container clusters get-credentials kfp-cluster`
-1.  Deploy KFP to **kfp-cluster** by following Step #1 at [Deploying Kubeflow Pipelines](https://www.kubeflow.org/docs/pipelines/installation/localcluster-deployment/#deploying-kubeflow-pipelines).
-
-Then it depends on what you want to develop:
+1. [Install Kubeflow Pipelines](https://www.kubeflow.org/docs/pipelines/installation/overview/) based on your use case and environment.
+1. Configure your `kubectl` to [access your KFP cluster](https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl).
+1. Then it depends on what you want to develop, start up proxy:
 
 | What to develop?                     | Script to run                                               | Extra notes                                                        |
 | ------------------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------ |
