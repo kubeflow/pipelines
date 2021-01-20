@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,12 +18,7 @@ import json
 import logging
 import re
 import subprocess
-from typing import Any
-from typing import Callable
-from typing import Dict
-from typing import List
-from typing import Mapping
-from typing import cast
+from typing import Any, Callable, Dict, List, Mapping, Tuple, Union, cast
 
 import kfp
 
@@ -73,7 +68,8 @@ class _Dag:
 
 
 class LocalClient:
-    def _extract_pipeline_param(self, param: str):
+    def _extract_pipeline_param(self, param: str) -> kfp.dsl.PipelineParam:
+        """ Extract PipelineParam from string """
         matches = re.findall(
             r"{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+)}}", param
         )
@@ -81,7 +77,8 @@ class LocalClient:
         output_file_name = matches[0][1]
         return kfp.dsl.PipelineParam(output_file_name, op_dependency_name)
 
-    def _pair_arguments(self, cmd: List):
+    def _get_keyword_arguments(self, cmd: List[str]) -> List[Tuple[str, str]]:
+        """ Convert command arguments into list of (keyworkd, argument) tuples. """
         arg_pairs = []
         for i in range(len(cmd)):
             if cmd[i].startswith("--"):
@@ -89,7 +86,8 @@ class LocalClient:
 
         return arg_pairs
 
-    def _replace_file_args(self, cmd, file_args):
+    def _replace_file_args(self, cmd: List[str], file_args: Dict[str, str]) -> str:
+        """ Replace the placeholder of file in cmd with actual file path. """
         for i in range(len(cmd)):
             if cmd[i].startswith("--"):
                 arg = cmd[i].strip("--")
@@ -98,7 +96,10 @@ class LocalClient:
 
         return cmd
 
-    def _find_base_group(self, groups: List[kfp.dsl.OpsGroup], op_name: str):
+    def _find_base_group(
+        self, groups: List[kfp.dsl.OpsGroup], op_name: str
+    ) -> Union[kfp.dsl.OpsGroup, None]:
+        """ Find the base group of op in candidate group list. """
         if groups is None or len(groups) == 0:
             return None
         for group in groups:
@@ -111,21 +112,26 @@ class LocalClient:
 
         return None
 
-    def _get_op(self, ops: List[kfp.dsl.ContainerOp], op_name: str):
+    def _get_op(
+        self, ops: List[kfp.dsl.ContainerOp], op_name: str
+    ) -> Union[kfp.dsl.ContainerOp, None]:
+        """ Get the first op with specified op name """
         return next(filter(lambda op: op.name == op_name, ops), None)
 
-    def _get_subgroup(self, groups: List[kfp.dsl.OpsGroup], group_name: str):
+    def _get_subgroup(
+        self, groups: List[kfp.dsl.OpsGroup], group_name: str
+    ) -> Union[kfp.dsl.OpsGroup, None]:
+        """ Get the frist OpsGroup with specified group name """
         return next(filter(lambda g: g.name == group_name, groups), None)
 
-    def _create_group_dag(self, pipeline_dag: _Dag, group: kfp.dsl.OpsGroup):
+    def _create_group_dag(self, pipeline_dag: _Dag, group: kfp.dsl.OpsGroup) -> _Dag:
         """Create DAG within current group, it's a DAG of direct ops and direct subgroups.
 
         Each node of the DAG is either an op or a subgroup.
-        For each node in current group, if one of its DAG follows is also an op in current
-        group, add an edge to this follow op, otherwise, if this follow belongs to subgroups,
-        add an edge to its subgroup. If this node has dependency from subgroups, then add an
-        edge from this subgroup to current node.
-
+        For each node in current group, if one of its DAG follows is also an op in
+        current group, add an edge to this follow op, otherwise, if this follow belongs
+        to subgroups, add an edge to its subgroup. If this node has dependency from
+        subgroups, then add an edge from this subgroup to current node.
         """
         group_dag = _Dag([op.name for op in group.ops] + [g.name for g in group.groups])
 
@@ -149,7 +155,8 @@ class LocalClient:
 
         return group_dag
 
-    def _create_op_dag(self, p: kfp.dsl.Pipeline):
+    def _create_op_dag(self, p: kfp.dsl.Pipeline) -> _Dag:
+        """ Create the DAG of the pipeline ops. """
         dag = _Dag(p.ops.keys())
 
         for op in p.ops.values():
@@ -167,7 +174,15 @@ class LocalClient:
                 dag.add_edge(dependent, op.name)
         return dag
 
-    def _alter_output_file_path(self, run_name: str, op_name: str, output_file: str):
+    def _alter_output_file_path(
+        self, run_name: str, op_name: str, output_file: str
+    ) -> str:
+        """Alter the file path of output artifact to make sure it's unique in local runner.
+
+        kfp compiler will bound a tmp file for each component output, which is unique
+        in kfp runtime, but not unique in local runner. We alter the file path of the
+        name of current run and op, to make it unique in local runner.
+        """
         return re.sub(
             "/tmp",
             "/tmp/{run_name}/{op_name}".format(
@@ -182,7 +197,9 @@ class LocalClient:
         pipeline: kfp.dsl.Pipeline,
         op_name: str,
         output_name: str = None,
-    ):
+    ) -> str:
+        """ Get the file path of component output. """
+
         op_dependency = pipeline.ops[op_name]
         if output_name is None and len(op_dependency.file_outputs) == 1:
             output_name = next(iter(op_dependency.file_outputs.keys()))
@@ -198,7 +215,8 @@ class LocalClient:
         pipeline: kfp.dsl.Pipeline,
         op: kfp.dsl.ContainerOp,
         stack: Dict[str, Any],
-    ):
+    ) -> List[str]:
+        """ Generate shell command to run the op locally. """
         cmd = op.command + op.arguments
 
         # In debug mode, for `python -c cmd` format command, pydev will insert code before
@@ -208,7 +226,7 @@ class LocalClient:
             if cmd[i] == "-c":
                 cmd[i + 1] = "\n" + cmd[i + 1]
 
-        _arg_pairs = self._pair_arguments(cmd)
+        _arg_pairs = self._get_keyword_arguments(cmd)
         _fixed_arg_value = {}
         for arg_name, arg_value in _arg_pairs:
             if arg_value in stack:  # Argument is LoopArguments item
@@ -250,7 +268,8 @@ class LocalClient:
         pipeline: kfp.dsl.Pipeline,
         op: kfp.dsl.ContainerOp,
         stack: Dict[str, Any],
-    ):
+    ) -> List[str]:
+        """ Generate the command to run the op in docker locally. """
         cmd = self._op_cmd_locally(run_name, pipeline, op, stack)
 
         docker_cmd = ["docker", "run", "-v", "/tmp:/tmp", op.image] + cmd
