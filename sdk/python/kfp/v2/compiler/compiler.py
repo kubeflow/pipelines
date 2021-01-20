@@ -85,7 +85,7 @@ class Compiler(object):
     pipeline_spec.schema_version = '2.0.0'
 
     pipeline_spec.root.CopyFrom(
-        dsl_component_spec.build_component_spec_from_pipeline_params(args))
+        dsl_component_spec.build_root_spec_from_pipeline_params(args))
 
     deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
 
@@ -153,7 +153,7 @@ class Compiler(object):
       pipeline_func: Callable[..., Any],
       output_directory: str,
       pipeline_name: Optional[str] = None,
-      pipeline_parameters: Optional[Mapping[str, Any]] = None,
+      pipeline_parameters_override: Optional[Mapping[str, Any]] = None,
   ) -> pipeline_spec_pb2.PipelineJob:
     """Creates a pipeline instance and constructs the pipeline spec from it.
 
@@ -161,7 +161,8 @@ class Compiler(object):
       pipeline_func: Pipeline function with @dsl.pipeline decorator.
       pipeline_name: The name of the pipeline. Optional.
       output_directory: The root of the pipeline outputs.
-      pipeline_parameters: The mapping from parameter names to values. Optional.
+      pipeline_parameters_override: The mapping from parameter names to values.
+        Optional.
 
     Returns:
       A PipelineJob proto representing the compiled pipeline.
@@ -205,6 +206,8 @@ class Compiler(object):
     pipeline_parameters = {
         arg.name: arg.value for arg in args_list_with_defaults
     }
+    # Update pipeline parameters override if there were any.
+    pipeline_parameters.update(pipeline_parameters_override or {})
     runtime_config = compiler_utils.build_runtime_config_spec(
         output_directory=output_directory,
         pipeline_parameters=pipeline_parameters)
@@ -238,7 +241,7 @@ class Compiler(object):
           pipeline_func=pipeline_func,
           output_directory=pipeline_root,
           pipeline_name=pipeline_name,
-          pipeline_parameters=pipeline_parameters)
+          pipeline_parameters_override=pipeline_parameters)
       self._write_pipeline(pipeline_job, output_path)
     finally:
       kfp.TYPE_CHECK = type_check_old_value

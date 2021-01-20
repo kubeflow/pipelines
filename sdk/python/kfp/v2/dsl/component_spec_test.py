@@ -81,7 +81,7 @@ class ComponentSpecTest(unittest.TestCase):
 
     self.assertEqual(expected_spec, component_spec)
 
-  def test_build_component_spec_from_pipeline_params(self):
+  def test_build_root_spec_from_pipeline_params(self):
     pipeline_params = [
         dsl.PipelineParam(name='input1', param_type='Dataset'),
         dsl.PipelineParam(name='input2', param_type='Integer'),
@@ -115,7 +115,7 @@ class ComponentSpecTest(unittest.TestCase):
     json_format.ParseDict(expected_dict, expected_spec)
 
     component_spec = (
-        dsl_component_spec.build_component_spec_from_pipeline_params(
+        dsl_component_spec.build_root_spec_from_pipeline_params(
             pipeline_params))
 
     self.assertEqual(expected_spec, component_spec)

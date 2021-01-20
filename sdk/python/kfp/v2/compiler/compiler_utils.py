@@ -34,11 +34,8 @@ def build_runtime_config_spec(
     A pipeline job RuntimeConfig object.
   """
 
-  def _get_value(
-      value: Optional[Union[int, float,
-                            str]]) -> Optional[pipeline_spec_pb2.Value]:
-    if value is None:
-      return None
+  def _get_value(value: Union[int, float, str]) -> pipeline_spec_pb2.Value:
+    assert value is not None, 'None values should be filterd out.'
 
     result = pipeline_spec_pb2.Value()
     if isinstance(value, int):
@@ -55,7 +52,9 @@ def build_runtime_config_spec(
   parameter_values = pipeline_parameters or {}
   return pipeline_spec_pb2.PipelineJob.RuntimeConfig(
       gcs_output_directory=output_directory,
-      parameters={k: _get_value(v) for k, v in parameter_values.items()})
+      parameters={
+          k: _get_value(v) for k, v in parameter_values.items() if v is not None
+      })
 
 
 def validate_pipeline_name(name: str) -> None:

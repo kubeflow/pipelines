@@ -36,7 +36,7 @@ class CompilerUtilsTest(unittest.TestCase):
     json_format.ParseDict(expected_dict, expected_spec)
 
     runtime_config = compiler_utils.build_runtime_config_spec(
-        'gs://path', {'input1': 'test'})
+        'gs://path', {'input1': 'test', 'input2': None})
     self.assertEqual(expected_spec, runtime_config)
 
   def test_validate_pipeline_name(self):
