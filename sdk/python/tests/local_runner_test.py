@@ -51,11 +51,6 @@ def hello(name: str):
     print(f"hello {name}")
 
 
-@light_component(base_image="python:3.7")
-def hello_with_custom_image(name: str):
-    print(f"hello {name}")
-
-
 @light_component()
 def local_loader(src: str, dst: kfp.components.OutputPath()):
     import os
@@ -105,20 +100,22 @@ class LocalRunnerTest(unittest.TestCase):
         def _pipeline(name: str):
             hello(name)
 
-        run_pipeline_func_locally(_pipeline, {"name": "world"})
+        run_pipeline_func_locally(
+            _pipeline, {"name": "world"}, local_env_image=BASE_IMAGE
+        )
 
-    def test_run_docker(self):
-        def _pipeline(name: str):
-            hello_with_custom_image(name)
+    # def test_run_docker(self):
+    #     def _pipeline(name: str):
+    #         hello(name)
 
-        run_pipeline_func_locally(_pipeline, {"name": "world"})
+    #     run_pipeline_func_locally(_pipeline, {"name": "world"})
 
     def test_local_file(self):
         def _pipeline(file_path: str):
             local_loader(file_path)
 
         run_result = run_pipeline_func_locally(
-            _pipeline, {"file_path": self.temp_file.name}
+            _pipeline, {"file_path": self.temp_file.name}, local_env_image=BASE_IMAGE
         )
         output_file_path = run_result.get_output_file("local-loader")
 
@@ -135,21 +132,23 @@ class LocalRunnerTest(unittest.TestCase):
             with kfp.dsl.Condition(_flip.output == "tail"):
                 hello("tail")
 
-        run_pipeline_func_locally(_pipeline, {})
+        run_pipeline_func_locally(_pipeline, {}, local_env_image=BASE_IMAGE)
 
     def test_for(self):
         def _pipeline():
             with kfp.dsl.ParallelFor(list().output) as item:
                 hello(item)
 
-        run_pipeline_func_locally(_pipeline, {})
+        run_pipeline_func_locally(_pipeline, {}, local_env_image=BASE_IMAGE)
 
     def test_connect(self):
         def _pipeline():
             _local_loader = local_loader(self.temp_file.name)
             component_connect_demo(_local_loader.output)
 
-        run_result = run_pipeline_func_locally(_pipeline, {})
+        run_result = run_pipeline_func_locally(
+            _pipeline, {}, local_env_image=BASE_IMAGE
+        )
         output_file_path = run_result.get_output_file("component-connect-demo")
 
         with open(output_file_path, "r") as f:
