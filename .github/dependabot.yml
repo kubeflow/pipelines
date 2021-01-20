@@ -1,0 +1,480 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    # Disable version updates for npm dependencies
+    open-pull-requests-limit: 10
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    # Allow up to 10 open pull requests for pip dependencies
+    open-pull-requests-limit: 10
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    # Allow up to 10 open pull requests for pip dependencies
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /backend
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /backend/metadata_writer
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /backend/src/cache/deployer
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/arena/docker
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/aws/athena
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/aws/emr
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/aws/sagemaker
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/aws/sagemaker/tests/integration_tests
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/aws/sagemaker/tests/unit_tests
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/azure/azuredevops/queue-pipeline
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/azure/azureml/aml-register-model
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/gcp/container
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/ibm-components/commons/config
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/ibm-components/ffdl/serve
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/ibm-components/ffdl/train
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/ibm-components/spark/data_preprocess_spark
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/ibm-components/spark/store_spark_model
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/ibm-components/spark/train_spark
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/ibm-components/watson/deploy
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/ibm-components/watson/manage/monitor_fairness
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/ibm-components/watson/manage/monitor_quality
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/ibm-components/watson/manage/subscribe
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/ibm-components/watson/store
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/ibm-components/watson/train
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/kubeflow/deployer
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/kubeflow/dnntrainer
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/kubeflow/katib-launcher
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/kubeflow/kfserving
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/kubeflow/launcher
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/local/base
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/local/confusion_matrix
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/local/roc
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/presto/query
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /components/sample/keras/train_classifier
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /contrib/components/openvino/model_convert/containers
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /contrib/components/openvino/ovms-deployer/containers
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /contrib/components/openvino/predict/containers
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /contrib/components/openvino/tf-slim/containers
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /frontend
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /frontend/server/node_modules/jsonpath
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /manifests/gcp_marketplace/deployer
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /proxy
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /samples/contrib/image-captioning-gcp/src
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /samples/contrib/nvidia-resnet/components/inference_server_launcher
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /samples/contrib/nvidia-resnet/components/preprocess
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /samples/contrib/nvidia-resnet/components/train
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /samples/contrib/nvidia-resnet/components/webapp
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /samples/contrib/nvidia-resnet/components/webapp_launcher
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /samples/contrib/nvidia-resnet/pipeline
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /samples/contrib/versioned-pipeline-ci-samples/helloworld-ci-sample/helloworld
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /samples/contrib/versioned-pipeline-ci-samples/kaggle-ci-sample/download_dataset
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /samples/contrib/versioned-pipeline-ci-samples/kaggle-ci-sample/submit_result
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /samples/contrib/versioned-pipeline-ci-samples/kaggle-ci-sample/train_model
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /samples/contrib/versioned-pipeline-ci-samples/kaggle-ci-sample/visualize_html
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /samples/contrib/versioned-pipeline-ci-samples/kaggle-ci-sample/visualize_table
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /samples/contrib/versioned-pipeline-ci-samples/mnist-ci-sample/tensorboard
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /samples/contrib/versioned-pipeline-ci-samples/mnist-ci-sample/train
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /test/api-integration-test
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /test/frontend-integration-test
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /test/frontend-integration-test/selenium-standalone-chrome-gcloud-nodejs.Docker
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /test/imagebuilder
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /test/images
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /test/initialization-test
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /test/sample-test
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /third_party/argo
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /third_party/metadata_envoy
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /third_party/minio
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directory: /tools/bazel_builder
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: npm
+    directory: /frontend/mock-backend
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: npm
+    directory: /frontend/server
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: npm
+    directory: /test/frontend-integration-test
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: pip
+    directory: /backend
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: pip
+    directory: /backend/api/python_http_client
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: pip
+    directory: /backend/metadata_writer
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: pip
+    directory: /backend/src/apiserver/visualization
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: pip
+    directory: /components/arena/docker
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: pip
+    directory: /components/aws/sagemaker
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: pip
+    directory: /components/azure/azureml/aml-register-model
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: pip
+    directory: /components/gcp/container/component_sdk/python
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: pip
+    directory: /components/kubeflow/katib-launcher
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: pip
+    directory: /contrib/components/openvino/ovms-deployer/containers
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: pip
+    directory: /contrib/components/openvino/predict/containers
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: pip
+    directory: /docs
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: pip
+    directory: /samples/contrib/azure-samples/databricks-pipelines
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: pip
+    directory: /samples/contrib/ibm-samples/ffdl-seldon/source/seldon-pytorch-serving-image
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: pip
+    directory: /samples/core/ai_platform/training
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: pip
+    directory: /samples/core/container_build
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: pip
+    directory: /sdk/python
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: pip
+    directory: /test/kfp-functional-test
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+  - package-ecosystem: pip
+    directory: /test/sample-test
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
