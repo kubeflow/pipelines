@@ -20,4 +20,3 @@
 # be checked-in.
 
 docker run  --interactive --rm --mount type=bind,source="$(pwd)",target=/app/pipelines builder app/pipelines/backend/api/generator.sh
-

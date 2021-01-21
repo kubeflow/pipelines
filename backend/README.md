@@ -35,7 +35,11 @@ Change it to point to your own build, after saving and closing the file, apiserv
 
 After making changes to proto files, the Go client libraries and swagger files
 need to be regenerated and checked-in. The `backend/api/generate_api.sh` script
-takes care of this. It should be noted that this requires [Bazel](https://bazel.build/), version 0.24.0` 
+takes care of this. In order for the generated code to be owned by root, root credentials has to be provided. 
+
+```bash
+sh generate_api.sh
+```
 
 # Visualization Server Instructions
 
