@@ -8,6 +8,8 @@ import (
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+
+	//"github.com/google/go-cmp/cmp/cmpopts"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -428,11 +430,12 @@ func TestListExperiment_Multiuser(t *testing.T) {
 		} else {
 			if err != nil {
 				t.Errorf("TestListExperiment_Multiuser(%v) expect no error but got %v", tc.name, err)
-			} else if !cmp.Equal(tc.expectedExperiments, response.Experiments,
-				cmpopts.IgnoreFields(api.Experiment{}, "CreatedAt", "state", "sizeCache", "unknownFields"),
+			} else if !cmp.Equal(tc.expectedExperiments, response.Experiments, cmpopts.IgnoreFields(api.Experiment{}, "CreatedAt")) {
+				/*, "state", "sizeCache", "unknownFields"),
 				cmpopts.IgnoreFields(api.ResourceReference{}, "state", "sizeCache", "unknownFields"),
 				cmpopts.IgnoreFields(api.ResourceKey{}, "state", "sizeCache", "unknownFields"),
-				cmpopts.IgnoreFields(api.Parameter{}, "state", "sizeCache", "unknownFields")) {
+				cmpopts.IgnoreFields(api.Parameter{}, "state", "sizeCache", "unknownFields")
+				*/
 				t.Errorf("TestListExperiment_Multiuser(%v) expect (%+v) but got (%+v)", tc.name, tc.expectedExperiments, response.Experiments)
 			}
 		}

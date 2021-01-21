@@ -53,7 +53,7 @@ func (a *Client) GetHealthz(params *GetHealthzParams, authInfo runtime.ClientAut
 		PathPattern:        "/apis/v1beta1/healthz",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
+		Schemes:            []string{"http", "https"},
 		Params:             params,
 		Reader:             &GetHealthzReader{formats: a.formats},
 		AuthInfo:           authInfo,

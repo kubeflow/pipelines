@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -212,8 +211,8 @@ func TestParseAPIFilter_DecodesEncodedString(t *testing.T) {
 	}
 
 	got, err := parseAPIFilter(in)
-	if !cmp.Equal(got, want, cmpopts.IgnoreFields(api.Filter{}, "state", "sizeCache", "unknownFields"),
-		cmpopts.IgnoreFields(api.Predicate{}, "state", "sizeCache", "unknownFields")) || err != nil {
+	if !cmp.Equal(got, want) || /* cmpopts.IgnoreFields(api.Filter{}, "state", "sizeCache", "unknownFields"),
+		cmpopts.IgnoreFields(api.Predicate{}, "state", "sizeCache", "unknownFields")*/err != nil {
 		t.Errorf("parseAPIString(%q) =\nGot %+v, %v\n Want %+v, <nil>\nDiff: %s",
 			in, got, err, want, cmp.Diff(want, got))
 	}

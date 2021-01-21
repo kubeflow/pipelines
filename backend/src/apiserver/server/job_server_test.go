@@ -521,11 +521,11 @@ func TestListJobs_Multiuser(t *testing.T) {
 		} else {
 			if err != nil {
 				t.Errorf("TestListJobs_Multiuser(%v) expect no error but got %v", tc.name, err)
-			} else if !cmp.Equal(tc.expectedJobs, response.Jobs, cmpopts.IgnoreFields(api.Job{}, "Trigger", "UpdatedAt", "CreatedAt", "state", "sizeCache", "unknownFields"),
-				cmpopts.IgnoreFields(api.PipelineSpec{}, "state", "sizeCache", "unknownFields"),
+			} else if !cmp.Equal(tc.expectedJobs, response.Jobs, cmpopts.IgnoreFields(api.Job{}, "Trigger", "UpdatedAt", "CreatedAt"),
+				/*cmpopts.IgnoreFields(api.PipelineSpec{}, "state", "sizeCache", "unknownFields"),
 				cmpopts.IgnoreFields(api.Parameter{}, "state", "sizeCache", "unknownFields"),
 				cmpopts.IgnoreFields(api.ResourceReference{}, "state", "sizeCache", "unknownFields"),
-				cmpopts.IgnoreFields(api.ResourceKey{}, "state", "sizeCache", "unknownFields"),
+				cmpopts.IgnoreFields(api.ResourceKey{}, "state", "sizeCache", "unknownFields"),*/
 				cmpopts.IgnoreFields(api.Run{}, "CreatedAt")) {
 				t.Errorf("TestListJobs_Multiuser(%v) expect (%+v) but got (%+v)", tc.name, tc.expectedJobs, response.Jobs)
 			}
