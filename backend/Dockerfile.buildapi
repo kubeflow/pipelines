@@ -1,11 +1,11 @@
 # 0. Generate client code (go & json) from API protocol buffers
 FROM golang:1.13.1-stretch as generator
 ENV KFP_VERSION 1.0.0
-ENV GRPC_GATEWAY_VERSION v1.12.0
+ENV GRPC_GATEWAY_VERSION v1.12.1
 ENV GO_SWAGGER_VERSION v0.21.0
-ENV GOLANG_PROTOBUF_VERSION v1.4.2
+ENV GOLANG_PROTOBUF_VERSION v1.3.2
 ENV PROTOCOLBUFFERS_PROTOBUF_VERSION v3.11.3
-ENV GRPC_VERSION v1.28.0
+ENV GRPC_VERSION v1.23.0
 
 # Install protoc.
 RUN apt-get update -y && apt-get install -y jq sed unzip
@@ -21,6 +21,7 @@ ENV PROTOCINCLUDE /usr/include/google/protobuf
 WORKDIR /go/src/github.com
 RUN mkdir grpc-ecosystem && cd grpc-ecosystem && git clone --depth 1 --branch $GRPC_GATEWAY_VERSION https://github.com/grpc-ecosystem/grpc-gateway.git
 RUN mkdir grpc && git clone --depth 1 --branch $GRPC_VERSION https://github.com/grpc/grpc-go 
+
 # Install protoc-gen-rpc-gateway && protoc-gen-swagger.
 RUN cd grpc-ecosystem/grpc-gateway && GO111MODULE=on go mod vendor
 RUN GOBIN=/go/bin go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
@@ -29,8 +30,7 @@ RUN GOBIN=/go/bin go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-s
 # Need go-swagger source code for -I in protoc command.
 RUN mkdir go-swagger && cd go-swagger && git clone --depth 1 --branch $GO_SWAGGER_VERSION https://github.com/go-swagger/go-swagger.git
 # Install swagger.
-RUN cd go-swagger/go-swagger && go mod vendor
-RUN GOBIN=/go/bin go install github.com/go-swagger/go-swagger/cmd/swagger
+RUN cd go-swagger/go-swagger && go install ./cmd/swagger
 
 # Need protobuf source code for -I in protoc command.
 RUN mkdir golang && cd golang && git clone --depth 1 --branch $GOLANG_PROTOBUF_VERSION https://github.com/golang/protobuf.git

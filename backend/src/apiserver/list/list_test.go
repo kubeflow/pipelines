@@ -196,9 +196,8 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 	for _, test := range tests {
 		got, err := test.inOpts.nextPageToken(l)
 
-		if !cmp.Equal(got, test.want, cmp.AllowUnexported(filter.Filter{}),
-			cmpopts.IgnoreFields(api.Filter{}, "state", "sizeCache", "unknownFields"),
-			cmpopts.IgnoreFields(api.Predicate{}, "state", "sizeCache", "unknownFields")) || err != nil {
+		if !cmp.Equal(got, test.want, cmp.AllowUnexported(filter.Filter{})) || /*cmpopts.IgnoreFields(api.Filter{}, "state", "sizeCache", "unknownFields"),
+			cmpopts.IgnoreFields(api.Predicate{}, "state", "sizeCache", "unknownFields")*/err != nil {
 			t.Errorf("nextPageToken(%+v, %+v) =\nGot: %+v, %+v\nWant: %+v, <nil>\nDiff:\n%s",
 				test.inOpts, l, got, err, test.want, cmp.Diff(test.want, got))
 		}
@@ -471,8 +470,8 @@ func TestNewOptions_ValidFilter(t *testing.T) {
 	opts := []cmp.Option{
 		cmp.AllowUnexported(Options{}),
 		cmp.AllowUnexported(filter.Filter{}),
-		cmpopts.IgnoreFields(api.Filter{}, "state", "sizeCache", "unknownFields"),
-		cmpopts.IgnoreFields(api.Predicate{}, "state", "sizeCache", "unknownFields"),
+		/*cmpopts.IgnoreFields(api.Filter{}, "state", "sizeCache", "unknownFields"),
+		cmpopts.IgnoreFields(api.Predicate{}, "state", "sizeCache", "unknownFields"),*/
 	}
 
 	if !cmp.Equal(got, want, opts...) || err != nil {
@@ -715,9 +714,8 @@ func TestTokenSerialization(t *testing.T) {
 
 		got := &token{}
 		got.unmarshal(s)
-		if !cmp.Equal(got, test.want, cmp.AllowUnexported(filter.Filter{}),
-			cmpopts.IgnoreFields(api.Filter{}, "state", "sizeCache", "unknownFields"),
-			cmpopts.IgnoreFields(api.Predicate{}, "state", "sizeCache", "unknownFields")) {
+		if !cmp.Equal(got, test.want, cmp.AllowUnexported(filter.Filter{})) { /*cmpopts.IgnoreFields(api.Filter{}, "state", "sizeCache", "unknownFields"),
+			cmpopts.IgnoreFields(api.Predicate{}, "state", "sizeCache", "unknownFields")*/
 			t.Errorf("token.unmarshal(%q) =\nGot: %+v\nWant: %+v\nDiff:\n%s",
 				s, got, test.want, cmp.Diff(test.want, got, cmp.AllowUnexported(filter.Filter{})))
 		}
