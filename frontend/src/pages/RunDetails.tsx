@@ -72,6 +72,7 @@ import {
   logger,
   serviceErrorToString,
   decodeCompressedNodes,
+  getRunDurationFromNode,
 } from '../lib/Utils';
 import WorkflowParser from '../lib/WorkflowParser';
 import { ExecutionDetailsContent } from './ExecutionDetails';
@@ -81,6 +82,7 @@ import { ExternalLink } from 'src/atoms/ExternalLink';
 
 enum SidePaneTab {
   INPUT_OUTPUT,
+  TASK_DETAIL,
   VISUALIZATIONS,
   ML_METADATA,
   VOLUMES,
@@ -319,6 +321,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                               <MD2Tabs
                                 tabs={[
                                   'Input/Output',
+                                  'Detail',
                                   'Visualizations',
                                   'ML Metadata',
                                   'Volumes',
@@ -394,6 +397,15 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                       valueComponentProps={{
                                         namespace: this.state.workflow?.metadata?.namespace,
                                       }}
+                                    />
+                                  </div>
+                                )}
+
+                                {sidepanelSelectedTab === SidePaneTab.TASK_DETAIL && (
+                                  <div className={padding(20)}>
+                                    <DetailsTable
+                                      title='Task Detail'
+                                      fields={this._getTaskDetailsFields(workflow, selectedNodeId)}
                                     />
                                   </div>
                                 )}
@@ -868,6 +880,19 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
           ['Started at', formatDateString(workflow.status.startedAt)],
           ['Finished at', formatDateString(workflow.status.finishedAt)],
           ['Duration', getRunDurationFromWorkflow(workflow)],
+        ];
+  }
+
+  private _getTaskDetailsFields(workflow: Workflow, nodeId: string): Array<KeyValue<string>> {
+    return !workflow.status || !workflow.status.nodes || !workflow.status.nodes[nodeId]
+      ? []
+      : [
+          ['Task ID', workflow.status.nodes[nodeId].id || '-'],
+          ['Task name', workflow.status.nodes[nodeId].displayName || '-'],
+          ['Status', workflow.status.nodes[nodeId].phase || '-'],
+          ['Started at', formatDateString(workflow.status.nodes[nodeId].startedAt) || '-'],
+          ['Finished at', formatDateString(workflow.status.nodes[nodeId].finishedAt) || '-'],
+          ['Duration', getRunDurationFromNode(workflow, nodeId) || '-'],
         ];
   }
 

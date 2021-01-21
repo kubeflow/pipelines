@@ -117,6 +117,24 @@ export function getRunDurationFromWorkflow(workflow?: Workflow): string {
   return getDuration(new Date(workflow.status.startedAt), new Date(workflow.status.finishedAt));
 }
 
+export function getRunDurationFromNode(workflow: Workflow, nodeId: string): string {
+  if (
+    !workflow ||
+    !workflow.status ||
+    !workflow.status.nodes ||
+    !workflow.status.nodes[nodeId] ||
+    !workflow.status.nodes[nodeId].startedAt ||
+    !workflow.status.nodes[nodeId].finishedAt
+  ) {
+    return '-';
+  }
+
+  return getDuration(
+    new Date(workflow.status.nodes[nodeId].startedAt),
+    new Date(workflow.status.nodes[nodeId].finishedAt),
+  );
+}
+
 export function s(items: any[] | number): string {
   const length = Array.isArray(items) ? items.length : items;
   return length === 1 ? '' : 's';
