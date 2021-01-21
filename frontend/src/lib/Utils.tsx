@@ -117,6 +117,13 @@ export function getRunDurationFromWorkflow(workflow?: Workflow): string {
   return getDuration(new Date(workflow.status.startedAt), new Date(workflow.status.finishedAt));
 }
 
+/**
+ * Calculate the time duration a task has taken as a node in workflow. If start time or end time
+ * is not available, return '-'.
+ *
+ * @param workflow
+ * @param nodeId
+ */
 export function getRunDurationFromNode(workflow: Workflow, nodeId: string): string {
   if (
     !workflow ||

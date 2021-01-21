@@ -1419,7 +1419,7 @@ describe('RunDetails', () => {
     });
   });
 
-  describe.only('task details tab', () => {
+  describe('task details tab', () => {
     it('shows node detail info', async () => {
       testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
         status: {
