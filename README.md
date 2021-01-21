@@ -27,14 +27,9 @@ Consult the [Python SDK reference docs](https://kubeflow-pipelines.readthedocs.i
 
 Refer to the [versioning policy](./docs/release/versioning-policy.md) and [feature stages](./docs/release/feature-stages.md) documentation for more information about how we manage versions and feature stages (such as Alpha, Beta, and Stable).
 
-## Development
+## Development and Contribution
 
-Kubeflow Pipelines consists of multiple components. To start development, follow [ML Pipeline Development Guideline](./developer_guide.md) to learn how to build images for each component. For development guide of each component, go to corresponding folder for detail:
-
-- [Frontend development guide](./frontend/README.md)
-- [Backend development guide](./backend/README.md)
-
-Follow [CONTRIBUTING.md](./CONTRIBUTING.md) to make changes to Kubeflow Pipelines.
+For guideline on developing and contributing on Kubeflow Pipelines, please following [How to Contribute](./CONTRIBUTING.md) to make your change. For building and deploying Kubeflow Pipelines from source code, follow [ML Pipeline Development Guideline](./developer_guide.md)
 
 ## Kubeflow Pipelines Community Meeting
 

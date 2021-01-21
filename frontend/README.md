@@ -60,7 +60,7 @@ serve basic api calls with mock data.
 This requires you already have a real KFP cluster, you can proxy requests to it.
 
 1. [Install Kubeflow Pipelines](https://www.kubeflow.org/docs/pipelines/installation/overview/) based on your use case and environment.
-1. Configure your `kubectl` to [access your KFP cluster](https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl).
+1. Configure your `kubectl` to access your KFP cluster. (For GCP, follow [Access to GCP cluster](https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl) guide).
 1. Then it depends on what you want to develop, start up proxy:
 
 | What to develop?                     | Script to run                                               | Extra notes                                                        |
