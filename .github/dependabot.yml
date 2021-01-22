@@ -1,475 +1,1116 @@
-version: 2
 updates:
-  - package-ecosystem: "npm"
-    directory: "/"
-    schedule:
-      interval: "daily"
-    # Disable version updates for npm dependencies
-    open-pull-requests-limit: 10
-  - package-ecosystem: "pip"
-    directory: "/"
-    schedule:
-      interval: "daily"
-    # Allow up to 10 open pull requests for pip dependencies
-    open-pull-requests-limit: 10
-  - package-ecosystem: "gomod"
-    directory: "/"
-    schedule:
-      interval: "daily"
-    # Allow up to 10 open pull requests for pip dependencies
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: "/"
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /backend
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /backend/metadata_writer
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /backend/src/cache/deployer
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/arena/docker
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/aws/athena
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/aws/emr
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/aws/sagemaker
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/aws/sagemaker/tests/integration_tests
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/aws/sagemaker/tests/unit_tests
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/azure/azuredevops/queue-pipeline
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/azure/azureml/aml-register-model
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/gcp/container
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/ibm-components/commons/config
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/ibm-components/ffdl/serve
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/ibm-components/ffdl/train
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/ibm-components/spark/data_preprocess_spark
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/ibm-components/spark/store_spark_model
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/ibm-components/spark/train_spark
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/ibm-components/watson/deploy
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/ibm-components/watson/manage/monitor_fairness
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/ibm-components/watson/manage/monitor_quality
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/ibm-components/watson/manage/subscribe
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/ibm-components/watson/store
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/ibm-components/watson/train
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/kubeflow/deployer
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/kubeflow/dnntrainer
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/kubeflow/katib-launcher
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/kubeflow/kfserving
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/kubeflow/launcher
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/local/base
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/local/confusion_matrix
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/local/roc
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/presto/query
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /components/sample/keras/train_classifier
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /contrib/components/openvino/model_convert/containers
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /contrib/components/openvino/ovms-deployer/containers
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /contrib/components/openvino/predict/containers
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /contrib/components/openvino/tf-slim/containers
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /frontend
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /manifests/gcp_marketplace/deployer
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /proxy
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /samples/contrib/image-captioning-gcp/src
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /samples/contrib/nvidia-resnet/components/inference_server_launcher
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /samples/contrib/nvidia-resnet/components/preprocess
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /samples/contrib/nvidia-resnet/components/train
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /samples/contrib/nvidia-resnet/components/webapp
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /samples/contrib/nvidia-resnet/components/webapp_launcher
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /samples/contrib/nvidia-resnet/pipeline
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /samples/contrib/versioned-pipeline-ci-samples/helloworld-ci-sample/helloworld
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /samples/contrib/versioned-pipeline-ci-samples/kaggle-ci-sample/download_dataset
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /samples/contrib/versioned-pipeline-ci-samples/kaggle-ci-sample/submit_result
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /samples/contrib/versioned-pipeline-ci-samples/kaggle-ci-sample/train_model
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /samples/contrib/versioned-pipeline-ci-samples/kaggle-ci-sample/visualize_html
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /samples/contrib/versioned-pipeline-ci-samples/kaggle-ci-sample/visualize_table
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /samples/contrib/versioned-pipeline-ci-samples/mnist-ci-sample/tensorboard
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /samples/contrib/versioned-pipeline-ci-samples/mnist-ci-sample/train
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /test/api-integration-test
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /test/frontend-integration-test
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /test/frontend-integration-test/selenium-standalone-chrome-gcloud-nodejs.Docker
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /test/imagebuilder
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /test/images
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /test/initialization-test
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /test/sample-test
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /third_party/argo
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /third_party/metadata_envoy
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /third_party/minio
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: docker
-    directory: /tools/bazel_builder
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: npm
-    directory: /frontend
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: npm
-    directory: /frontend/mock-backend
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: npm
-    directory: /frontend/server
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: npm
-    directory: /test/frontend-integration-test
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: pip
-    directory: /backend
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: pip
-    directory: /backend/api/python_http_client
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: pip
-    directory: /backend/metadata_writer
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: pip
-    directory: /backend/src/apiserver/visualization
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: pip
-    directory: /components/arena/docker
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: pip
-    directory: /components/aws/sagemaker
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: pip
-    directory: /components/azure/azureml/aml-register-model
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: pip
-    directory: /components/gcp/container/component_sdk/python
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: pip
-    directory: /components/kubeflow/katib-launcher
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: pip
-    directory: /contrib/components/openvino/ovms-deployer/containers
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: pip
-    directory: /contrib/components/openvino/predict/containers
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: pip
-    directory: /docs
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: pip
-    directory: /samples/contrib/azure-samples/databricks-pipelines
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: pip
-    directory: /samples/contrib/ibm-samples/ffdl-seldon/source/seldon-pytorch-serving-image
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: pip
-    directory: /samples/core/ai_platform/training
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: pip
-    directory: /samples/core/container_build
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: pip
-    directory: /sdk/python
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: pip
-    directory: /test/kfp-functional-test
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
-  - package-ecosystem: pip
-    directory: /test/sample-test
-    schedule:
-      interval: daily
-    open-pull-requests-limit: 10
+- assignees:
+  - Ark-kun
+  - hongye-sun
+  - numerology
+  directory: components/local/base
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Ark-kun
+  - numerology
+  - animeshsingh
+  schedule:
+    interval: daily
+- assignees:
+  - Ark-kun
+  - hongye-sun
+  - numerology
+  directory: components/local/roc
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Ark-kun
+  - numerology
+  - animeshsingh
+  schedule:
+    interval: daily
+- assignees:
+  - Ark-kun
+  - hongye-sun
+  - numerology
+  directory: components/local/confusion_matrix
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Ark-kun
+  - numerology
+  - animeshsingh
+  schedule:
+    interval: daily
+- assignees:
+  - Ark-kun
+  - hongye-sun
+  - numerology
+  directory: components/arena/docker
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Ark-kun
+  - numerology
+  - animeshsingh
+  schedule:
+    interval: daily
+- assignees:
+  - eedorenko
+  - sudivate
+  - dtzar
+  directory: components/azure/azureml/aml-register-model
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - eedorenko
+  - sudivate
+  - dtzar
+  schedule:
+    interval: daily
+- assignees:
+  - eedorenko
+  - sudivate
+  - dtzar
+  directory: components/azure/azuredevops/queue-pipeline
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - eedorenko
+  - sudivate
+  - dtzar
+  schedule:
+    interval: daily
+- assignees:
+  - jeffwan
+  - mameshini
+  directory: components/aws/emr
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - jeffwan
+  - mameshini
+  schedule:
+    interval: daily
+- assignees:
+  - surajkota
+  - RedbackThomson
+  - akartsky
+  directory: components/aws/sagemaker
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  schedule:
+    interval: daily
+- assignees:
+  - surajkota
+  - RedbackThomson
+  - akartsky
+  directory: components/aws/sagemaker/tests/unit_tests
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  schedule:
+    interval: daily
+- assignees:
+  - surajkota
+  - RedbackThomson
+  - akartsky
+  directory: components/aws/sagemaker/tests/integration_tests
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  schedule:
+    interval: daily
+- assignees:
+  - jeffwan
+  - mameshini
+  directory: components/aws/athena
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - jeffwan
+  - mameshini
+  schedule:
+    interval: daily
+- assignees:
+  - Ark-kun
+  - hongye-sun
+  - numerology
+  directory: components/kubeflow/deployer
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Ark-kun
+  - numerology
+  - animeshsingh
+  schedule:
+    interval: daily
+- assignees:
+  - andreyvelich
+  - gaocegege
+  - hougangliu
+  - johnugeorge
+  directory: components/kubeflow/katib-launcher
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  schedule:
+    interval: daily
+- assignees:
+  - hougangliu
+  directory: components/kubeflow/launcher
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - hougangliu
+  schedule:
+    interval: daily
+- assignees:
+  - Ark-kun
+  - hongye-sun
+  - numerology
+  directory: components/kubeflow/dnntrainer
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Ark-kun
+  - numerology
+  - animeshsingh
+  schedule:
+    interval: daily
+- assignees:
+  - animeshsingh
+  directory: components/kubeflow/kfserving
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - animeshsingh
+  - Tomcli
+  schedule:
+    interval: daily
+- assignees:
+  - animeshsingh
+  - tomcli
+  directory: components/ibm-components/ffdl/serve
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - animeshsingh
+  - tomcli
+  - adrian555
+  schedule:
+    interval: daily
+- assignees:
+  - animeshsingh
+  - tomcli
+  directory: components/ibm-components/ffdl/train
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - animeshsingh
+  - tomcli
+  - adrian555
+  schedule:
+    interval: daily
+- assignees:
+  - animeshsingh
+  - tomcli
+  directory: components/ibm-components/watson/deploy
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - animeshsingh
+  - tomcli
+  - adrian555
+  schedule:
+    interval: daily
+- assignees:
+  - animeshsingh
+  - tomcli
+  directory: components/ibm-components/watson/store
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - animeshsingh
+  - tomcli
+  - adrian555
+  schedule:
+    interval: daily
+- assignees:
+  - animeshsingh
+  - tomcli
+  directory: components/ibm-components/watson/manage/subscribe
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - animeshsingh
+  - tomcli
+  - adrian555
+  schedule:
+    interval: daily
+- assignees:
+  - animeshsingh
+  - tomcli
+  directory: components/ibm-components/watson/manage/monitor_quality
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - animeshsingh
+  - tomcli
+  - adrian555
+  schedule:
+    interval: daily
+- assignees:
+  - animeshsingh
+  - tomcli
+  directory: components/ibm-components/watson/manage/monitor_fairness
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - animeshsingh
+  - tomcli
+  - adrian555
+  schedule:
+    interval: daily
+- assignees:
+  - animeshsingh
+  - tomcli
+  directory: components/ibm-components/watson/train
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - animeshsingh
+  - tomcli
+  - adrian555
+  schedule:
+    interval: daily
+- assignees:
+  - animeshsingh
+  - tomcli
+  directory: components/ibm-components/spark/data_preprocess_spark
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - animeshsingh
+  - tomcli
+  - adrian555
+  schedule:
+    interval: daily
+- assignees:
+  - animeshsingh
+  - tomcli
+  directory: components/ibm-components/spark/train_spark
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - animeshsingh
+  - tomcli
+  - adrian555
+  schedule:
+    interval: daily
+- assignees:
+  - animeshsingh
+  - tomcli
+  directory: components/ibm-components/spark/store_spark_model
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - animeshsingh
+  - tomcli
+  - adrian555
+  schedule:
+    interval: daily
+- assignees:
+  - animeshsingh
+  - tomcli
+  directory: components/ibm-components/commons/config
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - animeshsingh
+  - tomcli
+  - adrian555
+  schedule:
+    interval: daily
+- assignees:
+  - Ark-kun
+  - hongye-sun
+  - numerology
+  directory: components/presto/query
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Ark-kun
+  - numerology
+  - animeshsingh
+  schedule:
+    interval: daily
+- assignees:
+  - Ark-kun
+  - hongye-sun
+  - numerology
+  directory: components/gcp/container
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Ark-kun
+  - numerology
+  - animeshsingh
+  schedule:
+    interval: daily
+- assignees:
+  - Ark-kun
+  - hongye-sun
+  - numerology
+  directory: components/sample/keras/train_classifier
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Ark-kun
+  - numerology
+  - animeshsingh
+  schedule:
+    interval: daily
+- assignees:
+  - animeshsingh
+  - Ark-kun
+  - hongye-sun
+  - numerology
+  directory: samples/contrib/nvidia-resnet/components/webapp
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Ark-kun
+  - animeshsingh
+  - numerology
+  schedule:
+    interval: daily
+- assignees:
+  - animeshsingh
+  - Ark-kun
+  - hongye-sun
+  - numerology
+  directory: samples/contrib/nvidia-resnet/components/webapp_launcher
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Ark-kun
+  - animeshsingh
+  - numerology
+  schedule:
+    interval: daily
+- assignees:
+  - animeshsingh
+  - Ark-kun
+  - hongye-sun
+  - numerology
+  directory: samples/contrib/nvidia-resnet/components/inference_server_launcher
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Ark-kun
+  - animeshsingh
+  - numerology
+  schedule:
+    interval: daily
+- assignees:
+  - animeshsingh
+  - Ark-kun
+  - hongye-sun
+  - numerology
+  directory: samples/contrib/nvidia-resnet/components/preprocess
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Ark-kun
+  - animeshsingh
+  - numerology
+  schedule:
+    interval: daily
+- assignees:
+  - animeshsingh
+  - Ark-kun
+  - hongye-sun
+  - numerology
+  directory: samples/contrib/nvidia-resnet/components/train
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Ark-kun
+  - animeshsingh
+  - numerology
+  schedule:
+    interval: daily
+- assignees:
+  - animeshsingh
+  - Ark-kun
+  - hongye-sun
+  - numerology
+  directory: samples/contrib/nvidia-resnet/pipeline
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Ark-kun
+  - animeshsingh
+  - numerology
+  schedule:
+    interval: daily
+- assignees:
+  - animeshsingh
+  - Ark-kun
+  - hongye-sun
+  - numerology
+  directory: samples/contrib/image-captioning-gcp/src
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Ark-kun
+  - animeshsingh
+  - numerology
+  schedule:
+    interval: daily
+- assignees:
+  - animeshsingh
+  - Ark-kun
+  - hongye-sun
+  - numerology
+  directory: samples/contrib/versioned-pipeline-ci-samples/mnist-ci-sample/tensorboard
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Ark-kun
+  - animeshsingh
+  - numerology
+  schedule:
+    interval: daily
+- assignees:
+  - animeshsingh
+  - Ark-kun
+  - hongye-sun
+  - numerology
+  directory: samples/contrib/versioned-pipeline-ci-samples/mnist-ci-sample/train
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Ark-kun
+  - animeshsingh
+  - numerology
+  schedule:
+    interval: daily
+- assignees:
+  - animeshsingh
+  - Ark-kun
+  - hongye-sun
+  - numerology
+  directory: samples/contrib/versioned-pipeline-ci-samples/helloworld-ci-sample/helloworld
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Ark-kun
+  - animeshsingh
+  - numerology
+  schedule:
+    interval: daily
+- assignees:
+  - animeshsingh
+  - Ark-kun
+  - hongye-sun
+  - numerology
+  directory: samples/contrib/versioned-pipeline-ci-samples/kaggle-ci-sample/submit_result
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Ark-kun
+  - animeshsingh
+  - numerology
+  schedule:
+    interval: daily
+- assignees:
+  - animeshsingh
+  - Ark-kun
+  - hongye-sun
+  - numerology
+  directory: samples/contrib/versioned-pipeline-ci-samples/kaggle-ci-sample/download_dataset
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Ark-kun
+  - animeshsingh
+  - numerology
+  schedule:
+    interval: daily
+- assignees:
+  - animeshsingh
+  - Ark-kun
+  - hongye-sun
+  - numerology
+  directory: samples/contrib/versioned-pipeline-ci-samples/kaggle-ci-sample/visualize_html
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Ark-kun
+  - animeshsingh
+  - numerology
+  schedule:
+    interval: daily
+- assignees:
+  - animeshsingh
+  - Ark-kun
+  - hongye-sun
+  - numerology
+  directory: samples/contrib/versioned-pipeline-ci-samples/kaggle-ci-sample/visualize_table
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Ark-kun
+  - animeshsingh
+  - numerology
+  schedule:
+    interval: daily
+- assignees:
+  - animeshsingh
+  - Ark-kun
+  - hongye-sun
+  - numerology
+  directory: samples/contrib/versioned-pipeline-ci-samples/kaggle-ci-sample/train_model
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Ark-kun
+  - animeshsingh
+  - numerology
+  schedule:
+    interval: daily
+- assignees:
+  - bobgy
+  directory: frontend
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - bobgy
+  schedule:
+    interval: daily
+- assignees:
+  - Bobgy
+  - IronPan
+  - paveldournov
+  - neuromage
+  - Ark-kun
+  directory: contrib/components/openvino/predict/containers
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Bobgy
+  - Ark-kun
+  schedule:
+    interval: daily
+- assignees:
+  - Bobgy
+  - IronPan
+  - paveldournov
+  - neuromage
+  - Ark-kun
+  directory: contrib/components/openvino/model_convert/containers
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Bobgy
+  - Ark-kun
+  schedule:
+    interval: daily
+- assignees:
+  - Bobgy
+  - IronPan
+  - paveldournov
+  - neuromage
+  - Ark-kun
+  directory: contrib/components/openvino/tf-slim/containers
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Bobgy
+  - Ark-kun
+  schedule:
+    interval: daily
+- assignees:
+  - Bobgy
+  - IronPan
+  - paveldournov
+  - neuromage
+  - Ark-kun
+  directory: contrib/components/openvino/ovms-deployer/containers
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Bobgy
+  - Ark-kun
+  schedule:
+    interval: daily
+- assignees:
+  - neuromage
+  - IronPan
+  directory: tools/bazel_builder
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - neuromage
+  - IronPan
+  schedule:
+    interval: daily
+- assignees:
+  - Bobgy
+  - dushyanthsc
+  - IronPan
+  directory: third_party/minio
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Bobgy
+  - dushyanthsc
+  schedule:
+    interval: daily
+- assignees:
+  - Bobgy
+  - dushyanthsc
+  - IronPan
+  directory: third_party/argo
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Bobgy
+  - dushyanthsc
+  schedule:
+    interval: daily
+- assignees:
+  - Bobgy
+  - dushyanthsc
+  - IronPan
+  directory: third_party/metadata_envoy
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Bobgy
+  - dushyanthsc
+  schedule:
+    interval: daily
+- assignees:
+  - Bobgy
+  - IronPan
+  directory: manifests/gcp_marketplace/deployer
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Bobgy
+  schedule:
+    interval: daily
+- assignees:
+  - Bobgy
+  - chensun
+  - IronPan
+  directory: backend
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Bobgy
+  - capri-xiyue
+  schedule:
+    interval: daily
+- assignees:
+  - Ark-kun
+  directory: backend/metadata_writer
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Ark-kun
+  schedule:
+    interval: daily
+- assignees:
+  - Ark-kun
+  - rui5i
+  directory: backend/src/cache/deployer
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Ark-kun
+  - rui5i
+  schedule:
+    interval: daily
+- assignees:
+  - IronPan
+  - rileyjbauer
+  directory: test/initialization-test
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - IronPan
+  - rileyjbauer
+  schedule:
+    interval: daily
+- assignees:
+  - Ark-kun
+  - gaoning777
+  - numerology
+  directory: test/sample-test
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Ark-kun
+  - gaoning777
+  - numerology
+  schedule:
+    interval: daily
+- assignees:
+  - IronPan
+  directory: test/imagebuilder
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - IronPan
+  schedule:
+    interval: daily
+- assignees:
+  - rileyjbauer
+  directory: test/frontend-integration-test
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - rileyjbauer
+  schedule:
+    interval: daily
+- assignees:
+  - rileyjbauer
+  directory: test/frontend-integration-test/selenium-standalone-chrome-gcloud-nodejs.Docker
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - rileyjbauer
+  schedule:
+    interval: daily
+- assignees:
+  - Ark-kun
+  - Bobgy
+  - IronPan
+  - numerology
+  directory: test/images
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Ark-kun
+  - Bobgy
+  - numerology
+  schedule:
+    interval: daily
+- assignees:
+  - Bobgy
+  directory: test/api-integration-test
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Bobgy
+  - capri-xiyue
+  schedule:
+    interval: daily
+- assignees:
+  - Bobgy
+  - IronPan
+  directory: proxy
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - Bobgy
+  - ojarjur
+  schedule:
+    interval: daily
+- assignees:
+  - Bobgy
+  - IronPan
+  - paveldournov
+  - neuromage
+  - Ark-kun
+  directory: .
+  open-pull-requests-limit: 10
+  package-ecosystem: npm
+  reviewers:
+  - Bobgy
+  - Ark-kun
+  schedule:
+    interval: daily
+- assignees:
+  - bobgy
+  directory: frontend
+  open-pull-requests-limit: 10
+  package-ecosystem: npm
+  reviewers:
+  - bobgy
+  schedule:
+    interval: daily
+- assignees:
+  - bobgy
+  directory: frontend/server
+  open-pull-requests-limit: 10
+  package-ecosystem: npm
+  reviewers:
+  - bobgy
+  schedule:
+    interval: daily
+- assignees:
+  - bobgy
+  directory: frontend/mock-backend
+  open-pull-requests-limit: 10
+  package-ecosystem: npm
+  reviewers:
+  - bobgy
+  schedule:
+    interval: daily
+- assignees:
+  - rileyjbauer
+  directory: test/frontend-integration-test
+  open-pull-requests-limit: 10
+  package-ecosystem: npm
+  reviewers:
+  - rileyjbauer
+  schedule:
+    interval: daily
+- assignees:
+  - Ark-kun
+  - hongye-sun
+  - numerology
+  directory: components/arena/docker
+  open-pull-requests-limit: 10
+  package-ecosystem: pip
+  reviewers:
+  - Ark-kun
+  - numerology
+  - animeshsingh
+  schedule:
+    interval: daily
+- assignees:
+  - eedorenko
+  - sudivate
+  - dtzar
+  directory: components/azure/azureml/aml-register-model
+  open-pull-requests-limit: 10
+  package-ecosystem: pip
+  reviewers:
+  - eedorenko
+  - sudivate
+  - dtzar
+  schedule:
+    interval: daily
+- assignees:
+  - surajkota
+  - RedbackThomson
+  - akartsky
+  directory: components/aws/sagemaker
+  open-pull-requests-limit: 10
+  package-ecosystem: pip
+  schedule:
+    interval: daily
+- assignees:
+  - andreyvelich
+  - gaocegege
+  - hougangliu
+  - johnugeorge
+  directory: components/kubeflow/katib-launcher
+  open-pull-requests-limit: 10
+  package-ecosystem: pip
+  schedule:
+    interval: daily
+- assignees:
+  - hongye-sun
+  directory: components/gcp/container/component_sdk/python
+  open-pull-requests-limit: 10
+  package-ecosystem: pip
+  reviewers:
+  - Ark-kun
+  - gaoning777
+  - hongye-sun
+  schedule:
+    interval: daily
+- assignees:
+  - Ark-kun
+  - hongye-sun
+  - numerology
+  directory: samples/core/ai_platform/training
+  open-pull-requests-limit: 10
+  package-ecosystem: pip
+  reviewers:
+  - Ark-kun
+  - animeshsingh
+  - numerology
+  schedule:
+    interval: daily
+- assignees:
+  - Ark-kun
+  - hongye-sun
+  - numerology
+  directory: samples/core/container_build
+  open-pull-requests-limit: 10
+  package-ecosystem: pip
+  reviewers:
+  - Ark-kun
+  - animeshsingh
+  - numerology
+  schedule:
+    interval: daily
+- assignees:
+  - animeshsingh
+  - Ark-kun
+  - hongye-sun
+  - numerology
+  directory: samples/contrib/azure-samples/databricks-pipelines
+  open-pull-requests-limit: 10
+  package-ecosystem: pip
+  reviewers:
+  - Ark-kun
+  - animeshsingh
+  - numerology
+  schedule:
+    interval: daily
+- assignees:
+  - animeshsingh
+  - tomcli
+  directory: samples/contrib/ibm-samples/ffdl-seldon/source/seldon-pytorch-serving-image
+  open-pull-requests-limit: 10
+  package-ecosystem: pip
+  reviewers:
+  - animeshsingh
+  - tomcli
+  - adrian555
+  schedule:
+    interval: daily
+- assignees:
+  - Bobgy
+  - IronPan
+  - paveldournov
+  - neuromage
+  - Ark-kun
+  directory: contrib/components/openvino/predict/containers
+  open-pull-requests-limit: 10
+  package-ecosystem: pip
+  reviewers:
+  - Bobgy
+  - Ark-kun
+  schedule:
+    interval: daily
+- assignees:
+  - Bobgy
+  - IronPan
+  - paveldournov
+  - neuromage
+  - Ark-kun
+  directory: contrib/components/openvino/ovms-deployer/containers
+  open-pull-requests-limit: 10
+  package-ecosystem: pip
+  reviewers:
+  - Bobgy
+  - Ark-kun
+  schedule:
+    interval: daily
+- assignees:
+  - Ark-kun
+  - chensun
+  - hongye-sun
+  - numerology
+  directory: sdk/python
+  open-pull-requests-limit: 10
+  package-ecosystem: pip
+  reviewers:
+  - Ark-kun
+  - chensun
+  - numerology
+  schedule:
+    interval: daily
+- assignees:
+  - Bobgy
+  - chensun
+  - IronPan
+  directory: backend
+  open-pull-requests-limit: 10
+  package-ecosystem: pip
+  reviewers:
+  - Bobgy
+  - capri-xiyue
+  schedule:
+    interval: daily
+- assignees:
+  - Bobgy
+  - chensun
+  - IronPan
+  directory: backend/api/python_http_client
+  open-pull-requests-limit: 10
+  package-ecosystem: pip
+  reviewers:
+  - Bobgy
+  - capri-xiyue
+  schedule:
+    interval: daily
+- assignees:
+  - Ark-kun
+  directory: backend/metadata_writer
+  open-pull-requests-limit: 10
+  package-ecosystem: pip
+  reviewers:
+  - Ark-kun
+  schedule:
+    interval: daily
+- assignees:
+  - Bobgy
+  - chensun
+  - IronPan
+  directory: backend/src/apiserver/visualization
+  open-pull-requests-limit: 10
+  package-ecosystem: pip
+  reviewers:
+  - Bobgy
+  - capri-xiyue
+  schedule:
+    interval: daily
+- assignees:
+  - Ark-kun
+  - gaoning777
+  - numerology
+  directory: test/sample-test
+  open-pull-requests-limit: 10
+  package-ecosystem: pip
+  reviewers:
+  - Ark-kun
+  - gaoning777
+  - numerology
+  schedule:
+    interval: daily
+- assignees:
+  - Ark-kun
+  - Bobgy
+  - IronPan
+  - numerology
+  directory: test/kfp-functional-test
+  open-pull-requests-limit: 10
+  package-ecosystem: pip
+  reviewers:
+  - Ark-kun
+  - Bobgy
+  - numerology
+  schedule:
+    interval: daily
+- assignees:
+  - Ark-kun
+  - gaoning777
+  - hongye-sun
+  directory: docs
+  open-pull-requests-limit: 10
+  package-ecosystem: pip
+  reviewers:
+  - Ark-kun
+  - gaoning777
+  - hongye-sun
+  schedule:
+    interval: daily
+- assignees:
+  - Bobgy
+  - IronPan
+  - paveldournov
+  - neuromage
+  - Ark-kun
+  directory: .
+  open-pull-requests-limit: 10
+  package-ecosystem: gomod
+  reviewers:
+  - Bobgy
+  - Ark-kun
+  schedule:
+    interval: daily
+version: 2

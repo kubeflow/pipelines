@@ -23,3 +23,6 @@ build:
 	licext --mode merge --source vendor/ --target third_party/license.txt --overwrite
 	# Delete vendor directory
 	rm -rf vendor
+
+build-dependabot:
+	python3 hack/create_dependabot.py
