@@ -15,7 +15,6 @@
 package util
 
 import (
-	"fmt"
 	"math"
 
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
@@ -55,7 +54,6 @@ func (s *PeriodicSchedule) getNextScheduledEpoch(lastJobEpoch int64) int64 {
 	startEpoch := lastJobEpoch
 	if s.StartTime != nil && s.StartTime.Unix() > startEpoch {
 		startEpoch = s.StartTime.Unix()
-		fmt.Println("HERE HERE HERE")
 		return startEpoch
 
 	}
