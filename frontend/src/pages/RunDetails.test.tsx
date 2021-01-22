@@ -57,7 +57,7 @@ jest.mock('../components/Graph', () => {
 
 const STEP_TABS = {
   INPUT_OUTPUT: 0,
-  TASK_DETAIL: 1,
+  TASK_DETAILS: 1,
   VISUALIZATIONS: 2,
   ML_METADATA: 3,
   VOLUMES: 4,
@@ -1442,7 +1442,7 @@ describe('RunDetails', () => {
       tree
         .find('MD2Tabs')
         .at(1)
-        .simulate('switch', STEP_TABS.TASK_DETAIL);
+        .simulate('switch', STEP_TABS.TASK_DETAILS);
       await getRunSpy;
       await TestUtils.flushPromises();
 
@@ -1483,7 +1483,7 @@ describe('RunDetails', () => {
                   ],
                 ]
               }
-              title="Task Detail"
+              title="Task Details"
             />
           </div>
         </div>

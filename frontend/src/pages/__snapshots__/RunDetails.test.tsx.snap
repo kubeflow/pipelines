@@ -566,7 +566,7 @@ exports[`RunDetails logs tab does not load logs if clicked node status is skippe
                 tabs={
                   Array [
                     "Input/Output",
-                    "Detail",
+                    "Details",
                     "Visualizations",
                     "ML Metadata",
                     "Volumes",
@@ -669,7 +669,7 @@ exports[`RunDetails logs tab keeps side pane open and on same tab when logs chan
                 tabs={
                   Array [
                     "Input/Output",
-                    "Detail",
+                    "Details",
                     "Visualizations",
                     "ML Metadata",
                     "Volumes",
@@ -788,7 +788,7 @@ exports[`RunDetails logs tab loads and shows logs in side pane 1`] = `
                 tabs={
                   Array [
                     "Input/Output",
-                    "Detail",
+                    "Details",
                     "Visualizations",
                     "ML Metadata",
                     "Volumes",
@@ -907,7 +907,7 @@ exports[`RunDetails logs tab switches to logs tab in side pane 1`] = `
                 tabs={
                   Array [
                     "Input/Output",
-                    "Detail",
+                    "Details",
                     "Visualizations",
                     "ML Metadata",
                     "Volumes",
@@ -1026,7 +1026,7 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
                 tabs={
                   Array [
                     "Input/Output",
-                    "Detail",
+                    "Details",
                     "Visualizations",
                     "ML Metadata",
                     "Volumes",
@@ -1559,7 +1559,7 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
                 tabs={
                   Array [
                     "Input/Output",
-                    "Detail",
+                    "Details",
                     "Visualizations",
                     "ML Metadata",
                     "Volumes",
@@ -1717,7 +1717,7 @@ exports[`RunDetails switches to manifest tab in side pane 1`] = `
                 tabs={
                   Array [
                     "Input/Output",
-                    "Detail",
+                    "Details",
                     "Visualizations",
                     "ML Metadata",
                     "Volumes",
@@ -1869,7 +1869,7 @@ exports[`RunDetails switches to volumes tab in side pane 1`] = `
                 tabs={
                   Array [
                     "Input/Output",
-                    "Detail",
+                    "Details",
                     "Visualizations",
                     "ML Metadata",
                     "Volumes",

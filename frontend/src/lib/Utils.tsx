@@ -125,14 +125,8 @@ export function getRunDurationFromWorkflow(workflow?: Workflow): string {
  * @param nodeId
  */
 export function getRunDurationFromNode(workflow: Workflow, nodeId: string): string {
-  if (
-    !workflow ||
-    !workflow.status ||
-    !workflow.status.nodes ||
-    !workflow.status.nodes[nodeId] ||
-    !workflow.status.nodes[nodeId].startedAt ||
-    !workflow.status.nodes[nodeId].finishedAt
-  ) {
+  const node = workflow?.status?.nodes[nodeId];
+  if (!node || !node.startedAt || !node.finishedAt) {
     return '-';
   }
 

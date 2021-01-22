@@ -82,7 +82,7 @@ import { ExternalLink } from 'src/atoms/ExternalLink';
 
 enum SidePaneTab {
   INPUT_OUTPUT,
-  TASK_DETAIL,
+  TASK_DETAILS,
   VISUALIZATIONS,
   ML_METADATA,
   VOLUMES,
@@ -321,7 +321,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                               <MD2Tabs
                                 tabs={[
                                   'Input/Output',
-                                  'Detail',
+                                  'Details',
                                   'Visualizations',
                                   'ML Metadata',
                                   'Volumes',
@@ -401,10 +401,10 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                   </div>
                                 )}
 
-                                {sidepanelSelectedTab === SidePaneTab.TASK_DETAIL && (
+                                {sidepanelSelectedTab === SidePaneTab.TASK_DETAILS && (
                                   <div className={padding(20)}>
                                     <DetailsTable
-                                      title='Task Detail'
+                                      title='Task Details'
                                       fields={this._getTaskDetailsFields(workflow, selectedNodeId)}
                                     />
                                   </div>
