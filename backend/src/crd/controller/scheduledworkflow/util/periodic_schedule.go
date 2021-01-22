@@ -55,7 +55,6 @@ func (s *PeriodicSchedule) getNextScheduledEpoch(lastJobEpoch int64) int64 {
 	if s.StartTime != nil && s.StartTime.Unix() > startEpoch {
 		startEpoch = s.StartTime.Unix()
 		return startEpoch
-
 	}
 
 	result := startEpoch + s.getInterval()
