@@ -1,0 +1,89 @@
+kind: Job
+apiVersion: batch/v1
+metadata:
+  name: test-pytorch-launcher
+  namespace: launcher-test
+  annotations:
+    sidecar.istio.io/inject: "false"
+spec:
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      serviceAccountName: launcher-test
+      restartPolicy: Never
+      containers:
+        - name: test-pytorch-launcher
+          image: docker.io/chongchuanbing/kubeflow-launcher-component:v1
+          imagePullPolicy: Always
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          args:
+            - --group
+            - "kubeflow.org"
+            - --plural
+            - "pytorchjobs"
+            - --version
+            - "v1"
+            - --spec
+            - |
+              apiVersion: "kubeflow.org/v1"
+              kind: "PyTorchJob"
+              metadata:
+                generateName: mnist-player-pytorchjob-demo-
+              spec:
+                pytorchReplicaSpecs:
+                  Master:
+                    replicas: 1
+                    restartPolicy: Never
+                    template:
+                      metadata:
+                        annotations:
+                          sidecar.istio.io/inject: "false"
+                      spec:
+                        containers:
+                          - name: pytorch
+                            image: docker.io/chongchuanbing/pytorch-mnist-player:v1
+                            imagePullPolicy: Always
+                            args:
+                              - "--backend=nccl"
+                              - "--workers=1"
+                              - "--epochs=1"
+                            # Comment out the below resources to use the CPU.
+                            env:
+                              - name: NVIDIA_VISIBLE_DEVICES
+                                value: "all"
+                            resources:
+                              limits:
+                                aliyun.com/gpu-mem: 1
+                  Worker:
+                    replicas: 1
+                    restartPolicy: Never
+                    template:
+                      metadata:
+                        annotations:
+                          sidecar.istio.io/inject: "false"
+                      spec:
+                        containers:
+                          - name: pytorch
+                            image: docker.io/chongchuanbing/pytorch-mnist-player:v1
+                            imagePullPolicy: Always
+                            args:
+                              - "--backend=nccl"
+                              - "--workers=1"
+                              - "--epochs=1"
+                            # Comment out the below resources to use the CPU.
+                            env:
+                              - name: NVIDIA_VISIBLE_DEVICES
+                                value: "all"
+                            resources:
+                              limits:
+                                aliyun.com/gpu-mem: 1
