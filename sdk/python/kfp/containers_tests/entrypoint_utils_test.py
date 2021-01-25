@@ -116,13 +116,13 @@ class EntrypointUtilsTest(unittest.TestCase):
   def testImportFuncFromSource(self):
     fn = entrypoint_utils.import_func_from_source(
         source_path=os.path.join(
-            os.path.dirname(__file__), 'testdata', 'test_source.py'),
+            os.path.dirname(__file__), 'testdata', 'pipeline_source.py'),
         fn_name='test_func'
     )
     self.assertEqual(fn(1, 2), 3)
 
     with self.assertRaisesRegexp(ImportError, '\D+ in \D+ not found in '):
       _ = entrypoint_utils.import_func_from_source(
-          source_path=os.path.join('testdata', 'test_source.py'),
+          source_path=os.path.join('testdata', 'pipeline_source.py'),
           fn_name='non_existing_fn'
       )
