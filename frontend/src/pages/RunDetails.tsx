@@ -82,9 +82,9 @@ import { ExternalLink } from 'src/atoms/ExternalLink';
 
 enum SidePaneTab {
   INPUT_OUTPUT,
-  TASK_DETAILS,
   VISUALIZATIONS,
   ML_METADATA,
+  TASK_DETAILS,
   VOLUMES,
   LOGS,
   POD,
@@ -321,9 +321,9 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                               <MD2Tabs
                                 tabs={[
                                   'Input/Output',
-                                  'Details',
                                   'Visualizations',
                                   'ML Metadata',
+                                  'Details',
                                   'Volumes',
                                   'Logs',
                                   'Pod',
@@ -884,16 +884,16 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
   }
 
   private _getTaskDetailsFields(workflow: Workflow, nodeId: string): Array<KeyValue<string>> {
-    return !workflow.status || !workflow.status.nodes || !workflow.status.nodes[nodeId]
-      ? []
-      : [
+    return workflow?.status?.nodes?.[nodeId]
+      ? [
           ['Task ID', workflow.status.nodes[nodeId].id || '-'],
           ['Task name', workflow.status.nodes[nodeId].displayName || '-'],
           ['Status', workflow.status.nodes[nodeId].phase || '-'],
           ['Started at', formatDateString(workflow.status.nodes[nodeId].startedAt) || '-'],
           ['Finished at', formatDateString(workflow.status.nodes[nodeId].finishedAt) || '-'],
           ['Duration', getRunDurationFromNode(workflow, nodeId) || '-'],
-        ];
+        ]
+      : [];
   }
 
   private async _selectNode(id: string): Promise<void> {

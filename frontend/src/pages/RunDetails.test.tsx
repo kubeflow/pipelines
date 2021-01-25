@@ -57,9 +57,9 @@ jest.mock('../components/Graph', () => {
 
 const STEP_TABS = {
   INPUT_OUTPUT: 0,
-  TASK_DETAILS: 1,
-  VISUALIZATIONS: 2,
-  ML_METADATA: 3,
+  VISUALIZATIONS: 1,
+  ML_METADATA: 2,
+  TASK_DETAILS: 3,
   VOLUMES: 4,
   LOGS: 5,
   POD: 6,
