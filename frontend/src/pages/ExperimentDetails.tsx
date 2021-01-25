@@ -23,6 +23,7 @@ import DialogContent from '@material-ui/core/DialogContent';
 import Paper from '@material-ui/core/Paper';
 import PopOutIcon from '@material-ui/icons/Launch';
 import RecurringRunsManager from './RecurringRunsManager';
+import RunListsRouter, { RunListsGroupTab, RunListsRouterProps } from './RunListsRouter';
 import RunList from '../pages/RunList';
 import Toolbar, { ToolbarProps } from '../components/Toolbar';
 import Tooltip from '@material-ui/core/Tooltip';
@@ -110,6 +111,7 @@ interface ExperimentDetailsState {
 
 export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   private _runlistRef = React.createRef<RunList>();
+  private _runlistsRouterRef = React.createRef<RunListsRouter>();
 
   constructor(props: any) {
     super(props);
@@ -227,6 +229,17 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
               </Paper>
             </div>
             <Toolbar {...this.state.runListToolbarProps} />
+            <RunListsRouter
+              view={RunListsGroupTab.ACTIVE}
+              onError={this.showPageError.bind(this)}
+              hideExperimentColumn={true}
+              experimentIdMask={experiment.id}
+              ref={this._runlistsRouterRef}
+              selectedIds={this.state.selectedIds}
+              onSelectionChange={this._selectionChanged.bind(this)}
+              {...this.props}
+            />
+            {/* 
             <RunList
               onError={this.showPageError.bind(this)}
               hideExperimentColumn={true}
@@ -236,7 +249,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
               storageState={RunStorageState.AVAILABLE}
               onSelectionChange={this._selectionChanged.bind(this)}
               {...this.props}
-            />
+            /> */}
 
             <Dialog
               open={this.state.recurringRunsManagerOpen}
@@ -267,8 +280,11 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
 
   public async refresh(): Promise<void> {
     await this.load();
-    if (this._runlistRef.current) {
-      await this._runlistRef.current.refresh();
+    // if (this._runlistRef.current) {
+    //   await this._runlistRef.current.refresh();
+    // }
+    if (this._runlistsRouterRef.current) {
+      await this._runlistsRouterRef.current.refresh();
     }
     return;
   }
