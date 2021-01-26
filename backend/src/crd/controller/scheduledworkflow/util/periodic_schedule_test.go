@@ -22,7 +22,7 @@ import (
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestPeriodicSchedule_getNextScheduledEpoch_StartDate_EndDate(t *testing.T) {
@@ -33,7 +33,7 @@ func TestPeriodicSchedule_getNextScheduledEpoch_StartDate_EndDate(t *testing.T) 
 		IntervalSecond: minute,
 	})
 	lastJobEpoch := int64(0)
-	assert.Equal(t, int64(10*hour+minute),
+	assert.Equal(t, int64(10*hour),
 		schedule.getNextScheduledEpoch(lastJobEpoch))
 
 	// Not the first job.
@@ -143,4 +143,22 @@ func TestPeriodicSchedule_GetNextScheduledEpochNoCatchup(t *testing.T) {
 	})
 	assert.Equal(t, int64(10*hour+15*minute+minute),
 		schedule.GetNextScheduledEpochNoCatchup(nil, defaultStartEpoch, 0))
+}
+
+func TestPeriodicSchedule_TestStarttime(t *testing.T) {
+	// First job.
+
+	t1, err := time.Parse(
+		time.RFC3339,
+		"2012-11-01T22:00:00+00:00")
+	assert.Nil(t, err)
+
+	schedule := NewPeriodicSchedule(&swfapi.PeriodicSchedule{
+		StartTime:      commonutil.Metav1TimePointer(v1.NewTime(t1)),
+		IntervalSecond: minute * 60 * 24,
+	})
+
+	lastJobEpoch := int64(0)
+	val := schedule.getNextScheduledEpoch(lastJobEpoch)
+	assert.Equal(t, t1.Unix(), val)
 }
