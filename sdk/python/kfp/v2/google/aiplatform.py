@@ -107,7 +107,7 @@ def custom_job(
       raise ValueError('For custom Python training, package_uris with length < '
                        '100 and python_module are expected.')
 
-  # Check and scaffold the parameter to form the custom job request spec.
+  # Check and scaffold the parameters to form the custom job request spec.
   custom_job_spec = additional_job_spec or {}
   if not custom_job_spec.get('workerPoolSpecs'):
     # Single node training, deriving job spec from top-level parameters.
@@ -144,7 +144,37 @@ def custom_job(
     # possible, and patch some top-level parameters.
     for spec in custom_job_spec['workerPoolSpecs']:
       if image_uri:
-        pass
+        if (not spec.get('pythonPackageSpec')
+            and not spec.get('containerSpec', {}).get('imageUri')):
+          spec['containerSpec'] = spec.get('containerSpec', {})
+          spec['containerSpec']['imageUri'] = image_uri
+      if commands:
+        if (not spec.get('pythonPackageSpec')
+            and not spec.get('containerSpec', {}).get('commands')):
+          spec['containerSpec'] = spec.get('containerSpec', {})
+          spec['containerSpec']['commands'] = commands
+      if executor_image_uri:
+        if (not spec.get('containerSpec')
+            and not spec.get('pythonPackageSpec', {}).get('executorImageUri')):
+          spec['pythonPackageSpec'] = spec.get('pythonPackageSpec', {})
+          spec['pythonPackageSpec']['executorImageUri'] = executor_image_uri
+      if package_uris:
+        if (not spec.get('containerSpec')
+            and not spec.get('pythonPackageSpec', {}).get('packageUris')):
+          spec['pythonPackageSpec'] = spec.get('pythonPackageSpec', {})
+          spec['pythonPackageSpec']['packageUris'] = package_uris
+      if python_module:
+        if (not spec.get('containerSpec')
+            and not spec.get('pythonPackageSpec', {}).get('pythonModule')):
+          spec['pythonPackageSpec'] = spec.get('pythonPackageSpec', {})
+          spec['pythonPackageSpec']['pythonModule'] = python_module
+      if args:
+        if spec.get('containerSpec') and not spec['containerSpec'].get('args'):
+          spec['containerSpec']['args'] = args
+        if (spec.get('pythonPackageSpec')
+            and not spec['pythonPackageSpec'].get('args')):
+          spec['pythonPackageSpec']['args'] = args
+
 
 
 
