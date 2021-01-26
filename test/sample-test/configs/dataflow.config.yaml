@@ -16,4 +16,5 @@ test_name: dataflow
 notebook_params:
   output:
   project: ml-pipeline-test
+  region: us-central1
 run_pipeline: True
