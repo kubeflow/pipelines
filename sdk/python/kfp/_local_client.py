@@ -18,6 +18,7 @@ import json
 import logging
 import re
 import subprocess
+from collections import deque
 from typing import Any, Callable, Dict, List, Mapping, Tuple, Union, cast
 
 import kfp
@@ -40,6 +41,14 @@ class _Dag:
         """
         self._graph = {node: [] for node in nodes}
         self._reverse_graph = {node: [] for node in nodes}
+
+    @property
+    def graph(self):
+        return self._graph
+
+    @property
+    def reverse_graph(self):
+        return self._reverse_graph
 
     def add_edge(self, edge_source: str, edge_target: str) -> None:
         """Add an edge between DAG nodes.
@@ -76,7 +85,7 @@ class _Dag:
             for j in self._graph[i]:
                 in_degree[j] += 1
 
-        queue = []
+        queue = deque()
         for node, degree in in_degree.items():
             if degree == 0:
                 queue.append(node)
@@ -84,7 +93,7 @@ class _Dag:
         top_order = []
 
         while queue:
-            u = queue.pop(0)
+            u = queue.popleft()
             top_order.append(u)
 
             for node in self._graph[u]:
