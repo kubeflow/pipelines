@@ -8,7 +8,7 @@ RUN go mod vendor
 RUN GO111MODULE=on go build -o /bin/apiserver backend/src/apiserver/*.go
 
 # 2. Compile preloaded pipeline samples
-FROM python:3.5 as compiler
+FROM python:3.7 as compiler
 RUN apt-get update -y && apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev jq
 RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
 COPY backend/requirements.txt .
@@ -32,10 +32,10 @@ COPY backend/src/apiserver/config/sample_config.json /samples/
 # The default image is replaced with the GCR-hosted python image.
 RUN set -e; \
     < /samples/sample_config.json jq .[].file --raw-output | while read pipeline_yaml; do \
-        pipeline_py="${pipeline_yaml%.yaml}"; \
-        mv "$pipeline_py" "${pipeline_py}.tmp"; \
-        echo 'import kfp; kfp.components.default_base_image_or_builder="gcr.io/google-appengine/python:2020-03-31-141326"' | cat - "${pipeline_py}.tmp" > "$pipeline_py"; \
-        python3 "$pipeline_py"; \
+    pipeline_py="${pipeline_yaml%.yaml}"; \
+    mv "$pipeline_py" "${pipeline_py}.tmp"; \
+    echo 'import kfp; kfp.components.default_base_image_or_builder="gcr.io/google-appengine/python:2020-03-31-141326"' | cat - "${pipeline_py}.tmp" > "$pipeline_py"; \
+    python3 "$pipeline_py"; \
     done
 
 # 3. Start api web server
