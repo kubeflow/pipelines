@@ -25,6 +25,7 @@
 
 import argparse
 import os
+from pathlib import Path
 
 from common import _utils
 
@@ -37,6 +38,10 @@ def main(argv=None):
   parser.add_argument('--output', type=str, help='GCS path to use for output.')
   parser.add_argument('--train', type=str, help='GCS path of the training csv file.')
   parser.add_argument('--schema', type=str, help='GCS path of the json schema file.')
+  parser.add_argument('--output-dir-uri-output-path',
+                      type=str,
+                      default='/output.txt',
+                      help='Local output path for the file containing the output dir URI.')
   args = parser.parse_args()
 
   code_path = os.path.dirname(os.path.realpath(__file__))
@@ -50,8 +55,8 @@ def main(argv=None):
         api, args.project, args.region, args.cluster, dest_files[0], spark_args)
     print('Job request submitted. Waiting for completion...')
     _utils.wait_for_job(api, args.project, args.region, job_id)
-    with open('/output.txt', 'w') as f:
-      f.write(args.output)
+    Path(args.output_dir_uri_output_path).parent.mkdir(parents=True, exist_ok=True)
+    Path(args.output_dir_uri_output_path).write_text(args.output)
 
     print('Job completed.')
   finally:
