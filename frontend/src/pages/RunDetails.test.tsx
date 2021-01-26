@@ -59,11 +59,12 @@ const STEP_TABS = {
   INPUT_OUTPUT: 0,
   VISUALIZATIONS: 1,
   ML_METADATA: 2,
-  VOLUMES: 3,
-  LOGS: 4,
-  POD: 5,
-  EVENTS: 6,
-  MANIFEST: 7,
+  TASK_DETAILS: 3,
+  VOLUMES: 4,
+  LOGS: 5,
+  POD: 6,
+  EVENTS: 7,
+  MANIFEST: 8,
 };
 
 const WORKFLOW_TEMPLATE = {
@@ -1414,6 +1415,78 @@ describe('RunDetails', () => {
           className="page"
           data-testid="run-details-node-details"
         />
+      `);
+    });
+  });
+
+  describe('task details tab', () => {
+    it('shows node detail info', async () => {
+      testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+        status: {
+          nodes: {
+            node1: {
+              id: 'node1',
+              displayName: 'Task',
+              phase: 'Succeeded',
+              startedAt: '1/19/2021, 4:00:00 PM',
+              finishedAt: '1/19/2021, 4:00:02 PM',
+            },
+          },
+        },
+        metadata: { namespace: 'ns' },
+      });
+      tree = shallow(<RunDetails {...generateProps()} />);
+      await getRunSpy;
+      await TestUtils.flushPromises();
+      clickGraphNode(tree, 'node1');
+      tree
+        .find('MD2Tabs')
+        .at(1)
+        .simulate('switch', STEP_TABS.TASK_DETAILS);
+      await getRunSpy;
+      await TestUtils.flushPromises();
+
+      expect(tree.find(NODE_DETAILS_SELECTOR)).toMatchInlineSnapshot(`
+        <div
+          className="page"
+          data-testid="run-details-node-details"
+        >
+          <div
+            className=""
+          >
+            <DetailsTable
+              fields={
+                Array [
+                  Array [
+                    "Task ID",
+                    "node1",
+                  ],
+                  Array [
+                    "Task name",
+                    "Task",
+                  ],
+                  Array [
+                    "Status",
+                    "Succeeded",
+                  ],
+                  Array [
+                    "Started at",
+                    "1/2/2019, 12:34:56 PM",
+                  ],
+                  Array [
+                    "Finished at",
+                    "1/2/2019, 12:34:56 PM",
+                  ],
+                  Array [
+                    "Duration",
+                    "0:00:02",
+                  ],
+                ]
+              }
+              title="Task Details"
+            />
+          </div>
+        </div>
       `);
     });
   });
