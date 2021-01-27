@@ -23,7 +23,7 @@ import DialogContent from '@material-ui/core/DialogContent';
 import Paper from '@material-ui/core/Paper';
 import PopOutIcon from '@material-ui/icons/Launch';
 import RecurringRunsManager from './RecurringRunsManager';
-import RunListsRouter, { RunListsGroupTab, RunListsRouterProps } from './RunListsRouter';
+import RunListsRouter, { RunListsGroupTab } from './RunListsRouter';
 import RunList from '../pages/RunList';
 import Toolbar, { ToolbarProps } from '../components/Toolbar';
 import Tooltip from '@material-ui/core/Tooltip';
@@ -31,7 +31,6 @@ import { ApiExperiment, ExperimentStorageState } from '../apis/experiment';
 import { Apis } from '../lib/Apis';
 import { Page, PageProps } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
-import { RunStorageState } from '../apis/run';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding } from '../Css';
 import { logger } from '../lib/Utils';
@@ -105,7 +104,7 @@ interface ExperimentDetailsState {
   experiment: ApiExperiment | null;
   recurringRunsManagerOpen: boolean;
   selectedIds: string[];
-  selectedTab: number;
+  selectedTab: RunListsGroupTab;
   runListToolbarProps: ToolbarProps;
 }
 
@@ -116,32 +115,30 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   constructor(props: any) {
     super(props);
 
-    const buttons = new Buttons(this.props, this.refresh.bind(this));
     this.state = {
       activeRecurringRunsCount: 0,
       experiment: null,
       recurringRunsManagerOpen: false,
       runListToolbarProps: {
-        actions: buttons
-          .newRun(() => this.props.match.params[RouteParams.experimentId])
-          .newRecurringRun(this.props.match.params[RouteParams.experimentId])
-          .compareRuns(() => this.state.selectedIds)
-          .cloneRun(() => this.state.selectedIds, false)
-          .archive(
-            'run',
-            () => this.state.selectedIds,
-            false,
-            ids => this._selectionChanged(ids),
-          )
-          .getToolbarActionMap(),
+        actions: this._getRunInitialToolBarButtons().getToolbarActionMap(),
         breadcrumbs: [],
         pageTitle: 'Runs',
         topLevelToolbar: false,
       },
       // TODO: remove
       selectedIds: [],
-      selectedTab: 0,
+      selectedTab: RunListsGroupTab.ACTIVE,
     };
+  }
+
+  private _getRunInitialToolBarButtons(): Buttons {
+    const buttons = new Buttons(this.props, this.refresh.bind(this));
+    buttons
+      .newRun(() => this.props.match.params[RouteParams.experimentId])
+      .newRecurringRun(this.props.match.params[RouteParams.experimentId])
+      .compareRuns(() => this.state.selectedIds)
+      .cloneRun(() => this.state.selectedIds, false);
+    return buttons;
   }
 
   public getInitialToolbarState(): ToolbarProps {
@@ -230,13 +227,14 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
             </div>
             <Toolbar {...this.state.runListToolbarProps} />
             <RunListsRouter
-              view={RunListsGroupTab.ACTIVE}
+              view={this.state.selectedTab}
               onError={this.showPageError.bind(this)}
               hideExperimentColumn={true}
               experimentIdMask={experiment.id}
               ref={this._runlistsRouterRef}
               selectedIds={this.state.selectedIds}
               onSelectionChange={this._selectionChanged.bind(this)}
+              onTabSwitch={this._onRunTabSwitch.bind(this)}
               {...this.props}
             />
             {/* 
@@ -312,6 +310,8 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       experiment.storage_state === ExperimentStorageState.ARCHIVED
         ? buttons.restore('experiment', idGetter, true, () => this.refresh())
         : buttons.archive('experiment', idGetter, true, () => this.refresh());
+      const selectedTab = this._getDefaultRunListGroupTab(experiment.storage_state);
+
       const actions = buttons.getToolbarActionMap();
       this.props.updateToolbar({
         actions,
@@ -342,19 +342,56 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
         logger.error(`Error fetching recurring runs for experiment: ${experimentId}`, err);
       }
 
-      this.setStateSafe({ activeRecurringRunsCount, experiment });
+      this.setStateSafe({ activeRecurringRunsCount, experiment, selectedTab });
+      this._selectionChanged([]);
     } catch (err) {
       await this.showPageError(`Error: failed to retrieve experiment: ${experimentId}.`, err);
       logger.error(`Error loading experiment: ${experimentId}`, err);
     }
   }
 
+  private _onRunTabSwitch(tab: RunListsGroupTab, cb?: () => void): void {
+    this.setStateSafe(
+      {
+        selectedTab: tab,
+      },
+      () => {
+        this._selectionChanged([]);
+        if (cb) {
+          cb();
+        }
+      },
+    );
+    return;
+  }
+
   private _selectionChanged(selectedIds: string[]): void {
-    const toolbarActions = this.state.runListToolbarProps.actions;
+    const toolbarButtons = this._getRunInitialToolBarButtons();
+    if (this.state.selectedTab === RunListsGroupTab.ACTIVE) {
+      toolbarButtons.archive(
+        'run',
+        () => this.state.selectedIds,
+        false,
+        ids => this._selectionChanged(ids),
+      );
+    } else {
+      toolbarButtons.restore(
+        'run',
+        () => this.state.selectedIds,
+        false,
+        ids => this._selectionChanged(ids),
+      );
+    }
+    const toolbarActions = toolbarButtons.getToolbarActionMap();
     toolbarActions[ButtonKeys.COMPARE].disabled =
       selectedIds.length <= 1 || selectedIds.length > 10;
     toolbarActions[ButtonKeys.CLONE_RUN].disabled = selectedIds.length !== 1;
-    toolbarActions[ButtonKeys.ARCHIVE].disabled = !selectedIds.length;
+    if (toolbarActions[ButtonKeys.ARCHIVE]) {
+      toolbarActions[ButtonKeys.ARCHIVE].disabled = !selectedIds.length;
+    }
+    if (toolbarActions[ButtonKeys.RESTORE]) {
+      toolbarActions[ButtonKeys.RESTORE].disabled = !selectedIds.length;
+    }
     this.setState({
       runListToolbarProps: {
         actions: toolbarActions,
@@ -370,6 +407,14 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     this.setState({ recurringRunsManagerOpen: false });
     // Reload the details to get any updated recurring runs
     this.refresh();
+  }
+
+  private _getDefaultRunListGroupTab(storage_state?: ExperimentStorageState): RunListsGroupTab {
+    let tabNum = RunListsGroupTab.ACTIVE;
+    if (storage_state === ExperimentStorageState.ARCHIVED) {
+      tabNum = RunListsGroupTab.ARCHIVE;
+    }
+    return tabNum;
   }
 }
 
