@@ -53,9 +53,9 @@ require (
 	sigs.k8s.io/controller-runtime v0.5.11
 	sigs.k8s.io/testing_frameworks v0.1.1 // indirect
 )
-require k8s.io/kubernetes 8c3b7d7679ccf368
-replace (
-	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.2.9
-)
+
+require k8s.io/kubernetes v1.16.0-alpha.0.0.20190623232353-8c3b7d7679cc
+
+replace sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.2.9
 
 go 1.13
