@@ -692,8 +692,8 @@ func TestScheduledWorkflow_NewWorkflow(t *testing.T) {
 					ServiceAccountName: "SERVICE_ACCOUNT",
 					Arguments: workflowapi.Arguments{
 						Parameters: []workflowapi.Parameter{
-							{Name: "PARAM1", Value: commonutil.StringPointer("VALUE1")},
-							{Name: "PARAM2", Value: commonutil.StringPointer("VALUE2")},
+							{Name: "PARAM1", Value: workflowapi.AnyStringPtr("VALUE1")},
+							{Name: "PARAM2", Value: workflowapi.AnyStringPtr("VALUE2")},
 						},
 					},
 				},
@@ -729,8 +729,8 @@ func TestScheduledWorkflow_NewWorkflow(t *testing.T) {
 			ServiceAccountName: "SERVICE_ACCOUNT",
 			Arguments: workflowapi.Arguments{
 				Parameters: []workflowapi.Parameter{
-					{Name: "PARAM1", Value: commonutil.StringPointer("NEW_VALUE1")},
-					{Name: "PARAM2", Value: commonutil.StringPointer("VALUE2")},
+					{Name: "PARAM1", Value: workflowapi.AnyStringPtr("NEW_VALUE1")},
+					{Name: "PARAM2", Value: workflowapi.AnyStringPtr("VALUE2")},
 				},
 			},
 		},
@@ -767,8 +767,8 @@ func TestScheduledWorkflow_NewWorkflow_Parameterized(t *testing.T) {
 					ServiceAccountName: "SERVICE_ACCOUNT",
 					Arguments: workflowapi.Arguments{
 						Parameters: []workflowapi.Parameter{
-							{Name: "PARAM1", Value: commonutil.StringPointer("VALUE1")},
-							{Name: "PARAM2", Value: commonutil.StringPointer("VALUE2")},
+							{Name: "PARAM1", Value: workflowapi.AnyStringPtr("VALUE1")},
+							{Name: "PARAM2", Value: workflowapi.AnyStringPtr("VALUE2")},
 						},
 					},
 				},
@@ -803,8 +803,8 @@ func TestScheduledWorkflow_NewWorkflow_Parameterized(t *testing.T) {
 			ServiceAccountName: "SERVICE_ACCOUNT",
 			Arguments: workflowapi.Arguments{
 				Parameters: []workflowapi.Parameter{
-					{Name: "PARAM1", Value: commonutil.StringPointer("NEW_VALUE1_19700101100000")},
-					{Name: "PARAM2", Value: commonutil.StringPointer("NEW_VALUE2_1")},
+					{Name: "PARAM1", Value: workflowapi.AnyStringPtr("NEW_VALUE1_19700101100000")},
+					{Name: "PARAM2", Value: workflowapi.AnyStringPtr("NEW_VALUE2_1")},
 				},
 			},
 		},

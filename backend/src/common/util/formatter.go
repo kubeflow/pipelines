@@ -94,14 +94,14 @@ func (p *WorkflowFormatter) formatWorkflowParameters(workflow *v1alpha1.Workflow
 }
 
 func (p *WorkflowFormatter) formatParameter(param v1alpha1.Parameter) (*v1alpha1.Parameter, error) {
-	formatted, err := p.formatString(*param.Value)
+	formatted, err := p.formatString(param.Value.String())
 	if err != nil {
 		return nil, err
 	}
 
 	return &v1alpha1.Parameter{
 		Name:  param.Name,
-		Value: &formatted,
+		Value: v1alpha1.AnyStringPtr(formatted),
 	}, nil
 }
 

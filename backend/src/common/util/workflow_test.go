@@ -17,6 +17,7 @@ package util
 import (
 	"testing"
 
+	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/ghodss/yaml"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
@@ -157,7 +158,7 @@ func TestToStringForStore(t *testing.T) {
 		},
 	})
 	assert.Equal(t,
-		"{\"metadata\":{\"name\":\"WORKFLOW_NAME\",\"creationTimestamp\":null},\"spec\":{\"templates\":null,\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
+		"{\"metadata\":{\"name\":\"WORKFLOW_NAME\",\"creationTimestamp\":null},\"spec\":{\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
 		workflow.ToStringForStore())
 }
 
@@ -187,11 +188,11 @@ func TestWorkflow_OverrideParameters(t *testing.T) {
 		Spec: workflowapi.WorkflowSpec{
 			Arguments: workflowapi.Arguments{
 				Parameters: []workflowapi.Parameter{
-					{Name: "PARAM1", Value: StringPointer("VALUE1")},
-					{Name: "PARAM2", Value: StringPointer("VALUE2")},
-					{Name: "PARAM3", Value: StringPointer("VALUE3")},
-					{Name: "PARAM4", Value: StringPointer("")},
-					{Name: "PARAM5", Value: StringPointer("VALUE5")},
+					{Name: "PARAM1", Value: v1alpha1.AnyStringPtr("VALUE1")},
+					{Name: "PARAM2", Value: v1alpha1.AnyStringPtr("VALUE2")},
+					{Name: "PARAM3", Value: v1alpha1.AnyStringPtr("VALUE3")},
+					{Name: "PARAM4", Value: v1alpha1.AnyStringPtr("")},
+					{Name: "PARAM5", Value: v1alpha1.AnyStringPtr("VALUE5")},
 				},
 			},
 		},
@@ -212,11 +213,11 @@ func TestWorkflow_OverrideParameters(t *testing.T) {
 		Spec: workflowapi.WorkflowSpec{
 			Arguments: workflowapi.Arguments{
 				Parameters: []workflowapi.Parameter{
-					{Name: "PARAM1", Value: StringPointer("NEW_VALUE1")},
-					{Name: "PARAM2", Value: StringPointer("VALUE2")},
-					{Name: "PARAM3", Value: StringPointer("NEW_VALUE3")},
-					{Name: "PARAM4", Value: StringPointer("NEW_VALUE4")},
-					{Name: "PARAM5", Value: StringPointer("")},
+					{Name: "PARAM1", Value: v1alpha1.AnyStringPtr("NEW_VALUE1")},
+					{Name: "PARAM2", Value: v1alpha1.AnyStringPtr("VALUE2")},
+					{Name: "PARAM3", Value: v1alpha1.AnyStringPtr("NEW_VALUE3")},
+					{Name: "PARAM4", Value: v1alpha1.AnyStringPtr("NEW_VALUE4")},
+					{Name: "PARAM5", Value: v1alpha1.AnyStringPtr("")},
 				},
 			},
 		},
@@ -315,7 +316,7 @@ func TestGetWorkflowSpec(t *testing.T) {
 		Spec: workflowapi.WorkflowSpec{
 			Arguments: workflowapi.Arguments{
 				Parameters: []workflowapi.Parameter{
-					{Name: "PARAM", Value: StringPointer("VALUE")},
+					{Name: "PARAM", Value: v1alpha1.AnyStringPtr("VALUE")},
 				},
 			},
 		},
@@ -331,7 +332,7 @@ func TestGetWorkflowSpec(t *testing.T) {
 		Spec: workflowapi.WorkflowSpec{
 			Arguments: workflowapi.Arguments{
 				Parameters: []workflowapi.Parameter{
-					{Name: "PARAM", Value: StringPointer("VALUE")},
+					{Name: "PARAM", Value: v1alpha1.AnyStringPtr("VALUE")},
 				},
 			},
 		},
@@ -349,7 +350,7 @@ func TestGetWorkflowSpecTruncatesNameIfLongerThan200Runes(t *testing.T) {
 		Spec: workflowapi.WorkflowSpec{
 			Arguments: workflowapi.Arguments{
 				Parameters: []workflowapi.Parameter{
-					{Name: "PARAM", Value: StringPointer("VALUE")},
+					{Name: "PARAM", Value: v1alpha1.AnyStringPtr("VALUE")},
 				},
 			},
 		},
@@ -365,7 +366,7 @@ func TestGetWorkflowSpecTruncatesNameIfLongerThan200Runes(t *testing.T) {
 		Spec: workflowapi.WorkflowSpec{
 			Arguments: workflowapi.Arguments{
 				Parameters: []workflowapi.Parameter{
-					{Name: "PARAM", Value: StringPointer("VALUE")},
+					{Name: "PARAM", Value: v1alpha1.AnyStringPtr("VALUE")},
 				},
 			},
 		},
@@ -382,10 +383,10 @@ func TestVerifyParameters(t *testing.T) {
 		Spec: workflowapi.WorkflowSpec{
 			Arguments: workflowapi.Arguments{
 				Parameters: []workflowapi.Parameter{
-					{Name: "PARAM1", Value: StringPointer("NEW_VALUE1")},
-					{Name: "PARAM2", Value: StringPointer("VALUE2")},
-					{Name: "PARAM3", Value: StringPointer("NEW_VALUE3")},
-					{Name: "PARAM5", Value: StringPointer("")},
+					{Name: "PARAM1", Value: v1alpha1.AnyStringPtr("NEW_VALUE1")},
+					{Name: "PARAM2", Value: v1alpha1.AnyStringPtr("VALUE2")},
+					{Name: "PARAM3", Value: v1alpha1.AnyStringPtr("NEW_VALUE3")},
+					{Name: "PARAM5", Value: v1alpha1.AnyStringPtr("")},
 				},
 			},
 		},
@@ -401,10 +402,10 @@ func TestVerifyParameters_Failed(t *testing.T) {
 		Spec: workflowapi.WorkflowSpec{
 			Arguments: workflowapi.Arguments{
 				Parameters: []workflowapi.Parameter{
-					{Name: "PARAM1", Value: StringPointer("NEW_VALUE1")},
-					{Name: "PARAM2", Value: StringPointer("VALUE2")},
-					{Name: "PARAM3", Value: StringPointer("NEW_VALUE3")},
-					{Name: "PARAM5", Value: StringPointer("")},
+					{Name: "PARAM1", Value: v1alpha1.AnyStringPtr("NEW_VALUE1")},
+					{Name: "PARAM2", Value: v1alpha1.AnyStringPtr("VALUE2")},
+					{Name: "PARAM3", Value: v1alpha1.AnyStringPtr("NEW_VALUE3")},
+					{Name: "PARAM5", Value: v1alpha1.AnyStringPtr("")},
 				},
 			},
 		},

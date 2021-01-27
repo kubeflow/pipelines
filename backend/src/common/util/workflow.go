@@ -17,6 +17,7 @@ package util
 import (
 	"strings"
 
+	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
 	swfregister "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
@@ -51,11 +52,17 @@ func (w *Workflow) OverrideParameters(desiredParams map[string]string) {
 		if param, ok := desiredParams[currentParam.Name]; ok {
 			desiredValue = &param
 		} else {
-			desiredValue = currentParam.Value
+			val := currentParam.Value.String()
+			desiredValue = &val
+		}
+		val := ""
+		if desiredValue != nil {
+			val = *desiredValue
 		}
 		desiredSlice = append(desiredSlice, workflowapi.Parameter{
+
 			Name:  currentParam.Name,
-			Value: desiredValue,
+			Value: v1alpha1.AnyStringPtr(val),
 		})
 	}
 	w.Spec.Arguments.Parameters = desiredSlice
@@ -64,7 +71,12 @@ func (w *Workflow) OverrideParameters(desiredParams map[string]string) {
 func (w *Workflow) VerifyParameters(desiredParams map[string]string) error {
 	templateParamsMap := make(map[string]*string)
 	for _, param := range w.Spec.Arguments.Parameters {
-		templateParamsMap[param.Name] = param.Value
+		var val string
+		if param.Value != nil {
+			val = param.Value.String()
+		}
+
+		templateParamsMap[param.Name] = &val
 	}
 	for k := range desiredParams {
 		_, ok := templateParamsMap[k]
