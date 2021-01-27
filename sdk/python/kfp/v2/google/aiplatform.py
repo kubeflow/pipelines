@@ -15,7 +15,12 @@
 from typing import Any, Dict, List, Optional, Type
 
 from kfp import dsl
+from kfp.v2.components import components
 from kfp.dsl import artifact
+from kfp.pipeline_spec import pipeline_spec_pb2
+
+_AiPlatformCustomJobSpec = pipeline_spec_pb2.PipelineDeploymentConfig.AiPlatformCustomJobSpec
+_DUMMY_CONTAINER_OP_IMAGE = 'dummy/image'
 
 
 def custom_job(
@@ -175,6 +180,23 @@ def custom_job(
             and not spec['pythonPackageSpec'].get('args')):
           spec['pythonPackageSpec']['args'] = args
 
+# TODO(numerology):
+# Need a task spec to carry IO info
+# and a compiler change to recognize this executor spec.
+class AiPlatformCustomJobOp(dsl.ContainerOp):
+  """V2 AiPlatformCustomJobOp class.
 
+  This class inherits V1 ContainerOp class so that it can be correctly picked
+  by compiler. The implementation of the task is a AiPlatformCustomJobSpec
+  proto message.
+  """
+  def __init__(self, ):
+    # Instantiate the ContainerOp object.
+    super().__init__(
+        name=components._default_component_name,
+        image=_DUMMY_CONTAINER_OP_IMAGE
+    )
+    self.task_spec = None
+    self._ai_platform_custom_job_spec = None
 
 
