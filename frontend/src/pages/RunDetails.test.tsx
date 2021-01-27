@@ -1588,6 +1588,49 @@ describe('RunDetails', () => {
       expect(history.location.pathname).toEqual('/initial-path');
     });
   });
+
+  describe('ReducedGraphSwitch', () => {
+    it('shows a simplified graph', async () => {
+      testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+        ...WORKFLOW_TEMPLATE,
+        status: {
+          nodes: {
+            node1: { id: 'node1', children: ['node2', 'node3'] },
+            node2: { id: 'node2', children: ['node3'] },
+            node3: { id: 'node3' },
+          },
+        },
+      });
+      const tree = render(<RunDetails {...generateProps()} />);
+      await getRunSpy;
+      await TestUtils.flushPromises();
+      const snap = `
+      <pre
+        data-testid="graph"
+      >
+        Node node1
+        Node node1-running-placeholder
+        Node node2
+        Node node2-running-placeholder
+        Node node3
+        Node node3-running-placeholder
+        Edge node1 to node1-running-placeholder
+        Edge node2 to node2-running-placeholder
+        Edge node3 to node3-running-placeholder
+        Edge node1 to node2
+        Edge node1 to node3
+        Edge node2 to node3
+      </pre>
+    `;
+      expect(tree.getByTestId('graph')).toMatchInlineSnapshot(snap);
+
+      // Simplify graph
+      tree.getByLabelText('Simplify Graph').click();
+      expect(tree.getByTestId('graph')).toMatchInlineSnapshot(
+        snap.replace(/\s*Edge node1 to node3/m, ''),
+      );
+    });
+  });
 });
 
 function clickGraphNode(wrapper: ShallowWrapper, nodeId: string) {
