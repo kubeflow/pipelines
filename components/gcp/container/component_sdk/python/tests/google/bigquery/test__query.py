@@ -14,6 +14,7 @@ import mock
 import unittest
 
 from google.cloud import bigquery
+from google.cloud.bigquery.job import ExtractJobConfig, DestinationFormat
 from google.api_core import exceptions
 from kfp_component.google.bigquery import query
 
@@ -57,9 +58,9 @@ class TestQuery(unittest.TestCase):
             expected_job_config.to_api_repr(),
             actual_job_config.to_api_repr()
         )
-        mock_client().extract_table.assert_called_with(
-            mock_dataset.table('query_ctx1'),
-            'gs://output/path')
+        extract = mock_client().extract_table.call_args_list[0]
+        self.assertEqual(extract[0], (mock_dataset.table('query_ctx1'), 'gs://output/path',))
+        self.assertEqual(extract[1]["job_config"].destination_format, "CSV",)
 
     def test_query_no_output_path(self, mock_client,
         mock_kfp_context, mock_dump_json, mock_display):
@@ -95,3 +96,28 @@ class TestQuery(unittest.TestCase):
             actual_job_config.to_api_repr()
         )
 
+    def test_query_output_json_format(self, mock_client,
+                           mock_kfp_context, mock_dump_json, mock_display):
+        mock_kfp_context().__enter__().context_id.return_value = 'ctx1'
+        mock_client().get_job.side_effect = exceptions.NotFound('not found')
+        mock_dataset = bigquery.DatasetReference('project-1', 'dataset-1')
+        mock_client().dataset.return_value = mock_dataset
+        mock_client().get_dataset.side_effect = exceptions.NotFound('not found')
+        mock_response = {
+            'configuration': {
+                'query': {
+                    'query': 'SELECT * FROM table_1'
+                }
+            }
+        }
+        mock_client().query.return_value.to_api_repr.return_value = mock_response
+
+        result = query('SELECT * FROM table_1', 'project-1', 'dataset-1',
+                       output_gcs_path='gs://output/path',
+                       output_destination_format="NEWLINE_DELIMITED_JSON")
+
+        self.assertEqual(mock_response, result)
+        mock_client().create_dataset.assert_called()
+        extract = mock_client().extract_table.call_args_list[0]
+        self.assertEqual(extract[0], (mock_dataset.table('query_ctx1'), 'gs://output/path',))
+        self.assertEqual(extract[1]["job_config"].destination_format, "NEWLINE_DELIMITED_JSON",)

@@ -24,7 +24,8 @@ from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.dsl import serialization_utils
 
 _KFP_ARTIFACT_TITLE_PATTERN = 'kfp.{}'
-_KFP_ARTIFACT_ONTOLOGY_MODULE = 'kfp.dsl.ontology_artifacts'
+KFP_ARTIFACT_ONTOLOGY_MODULE = 'kfp.dsl.ontology_artifacts'
+DEFAULT_ARTIFACT_SCHEMA = 'title: kfp.Artifact\ntype: object\nproperties:\n'
 
 
 # Enum for property types.
@@ -121,8 +122,7 @@ class Artifact(object):
     if self.__class__ == Artifact:
       if not instance_schema:
         raise ValueError(
-            'The "instance_schema" argument must be passed to specify a '
-            'type for this Artifact.')
+            'The "instance_schema" argument must be set.')
       schema_yaml = yaml.safe_load(instance_schema)
       if 'properties' not in schema_yaml:
         raise ValueError('Invalid instance_schema, properties must be present. '
@@ -138,7 +138,7 @@ class Artifact(object):
     else:
       if instance_schema:
         raise ValueError(
-            'The "mlmd_artifact_type" argument must not be passed for '
+            'The "instance_schema" argument must not be passed for '
             'Artifact subclass %s.' % self.__class__)
       instance_schema = self.get_artifact_type()
 
@@ -326,7 +326,7 @@ class Artifact(object):
     result = None
     try:
       artifact_cls = getattr(
-          importlib.import_module(_KFP_ARTIFACT_ONTOLOGY_MODULE), type_name)
+          importlib.import_module(KFP_ARTIFACT_ONTOLOGY_MODULE), type_name)
       # TODO(numerology): Add deserialization tests for first party classes.
       result = artifact_cls()
     except (AttributeError, ImportError, ValueError):
@@ -334,7 +334,7 @@ class Artifact(object):
           'Could not load artifact class %s.%s; using fallback deserialization '
           'for the relevant artifact. Please make sure that any artifact '
           'classes can be imported within your container or environment.'),
-          _KFP_ARTIFACT_ONTOLOGY_MODULE, type_name)
+          KFP_ARTIFACT_ONTOLOGY_MODULE, type_name)
     if not result:
       # Otherwise generate a generic Artifact object.
       result = Artifact(instance_schema=artifact.type.instance_schema)

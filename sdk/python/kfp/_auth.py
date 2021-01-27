@@ -178,7 +178,7 @@ def get_auth_code(client_id):
     auth_url = "https://accounts.google.com/o/oauth2/v2/auth?client_id=%s&response_type=code&scope=openid%%20email&access_type=offline&redirect_uri=urn:ietf:wg:oauth:2.0:oob"%client_id
     print(auth_url)
     open_new_tab(auth_url)
-    return input("Authorization code: ")
+    return input("If there's no browser window prompt, please direct to the URL above, then copy and paste the authorization code here: ")
 
 def get_refresh_token_from_code(auth_code, client_id, client_secret):
     payload = {"code": auth_code, "client_id": client_id, "client_secret": client_secret,

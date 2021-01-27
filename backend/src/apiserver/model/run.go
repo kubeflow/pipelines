@@ -18,6 +18,10 @@ import (
 	"strings"
 )
 
+const (
+	RunTerminatingConditions string = "Terminating"
+)
+
 type Run struct {
 	UUID               string `gorm:"column:UUID; not null; primary_key"`
 	ExperimentUUID     string `gorm:"column:ExperimentUUID; not null;"`

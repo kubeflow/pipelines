@@ -39,6 +39,7 @@ REQUIRES = [
     'strip-hints',
     'docstring-parser>=0.7.3',
     'kfp-pipeline-spec>=0.1.0, <0.2.0',
+    'fire>=0.3.1'
 ]
 
 TESTS_REQUIRE = [

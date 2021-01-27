@@ -22,7 +22,7 @@ except ImportError:
   from shutil import which as find_executable
 
 NAME = "kfp-pipeline-spec"
-VERSION = "0.1.3.1"
+VERSION = "0.1.4"
 
 PROTO_DIR = os.path.realpath(
     os.path.join(os.path.dirname(__file__), os.pardir))

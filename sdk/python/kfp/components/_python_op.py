@@ -17,9 +17,11 @@ __all__ = [
     'func_to_container_op',
     'func_to_component_text',
     'default_base_image_or_builder',
+    'InputArtifact',
     'InputPath',
     'InputTextFile',
     'InputBinaryFile',
+    'OutputArtifact',
     'OutputPath',
     'OutputTextFile',
     'OutputBinaryFile',
@@ -30,11 +32,12 @@ from ._components import _create_task_factory_from_component_spec
 from ._data_passing import serialize_value, get_deserializer_code_for_type_struct, get_serializer_func_for_type_struct, get_canonical_type_struct_for_type
 from ._naming import _make_name_unique_by_adding_index
 from .structures import *
+from . import _structures as structures
 
 import inspect
 from pathlib import Path
 import textwrap
-from typing import Callable, List, Optional, TypeVar
+from typing import Callable, List, Mapping, Optional, TypeVar
 import warnings
 
 import docstring_parser
@@ -62,6 +65,16 @@ class InputBinaryFile:
         self.type = type
 
 
+class InputArtifact:
+    """InputArtifact function parameter annotation.
+
+    When creating component from function. InputArtifact indicates that the
+    associated input parameter should be tracked as an MLMD artifact.
+    """
+    def __init__(self, type: Optional[str] = None):
+        self.type = type
+
+
 class OutputPath:
     '''When creating component from function, :class:`.OutputPath` should be used as function parameter annotation to tell the system that the function wants to output data by writing it into a file with the given path instead of returning the data from the function.'''
     def __init__(self, type=None):
@@ -77,6 +90,17 @@ class OutputTextFile:
 class OutputBinaryFile:
     '''When creating component from function, :class:`.OutputBinaryFile` should be used as function parameter annotation to tell the system that the function wants to output data by writing it into a given binary file stream (:code:`io.BytesIO`) instead of returning the data from the function.'''
     def __init__(self, type=None):
+        self.type = type
+
+
+class OutputArtifact:
+    """OutputArtifact function parameter annotation.
+
+    When creating component from function. OutputArtifact indicates that the
+    associated input parameter should be treated as an MLMD artifact, whose
+    underlying content, together with metadata will be updated by this component
+    """
+    def __init__(self, type: Optional[str] = None):
         self.type = type
 
 
@@ -299,7 +323,10 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
         parameter_annotation = parameter.annotation
         passing_style = None
         io_name = parameter.name
-        if isinstance(parameter_annotation, (InputPath, InputTextFile, InputBinaryFile, OutputPath, OutputTextFile, OutputBinaryFile)):
+        if isinstance(
+            parameter_annotation,
+            (InputArtifact, InputPath, InputTextFile, InputBinaryFile,
+             OutputArtifact, OutputPath, OutputTextFile, OutputBinaryFile)):
             passing_style = type(parameter_annotation)
             parameter_annotation = parameter_annotation.type
             if parameter.default is not inspect.Parameter.empty and not (passing_style == InputPath and parameter.default is None):
@@ -316,7 +343,9 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
         type_struct = annotation_to_type_struct(parameter_annotation)
         #TODO: Humanize the input/output names
 
-        if isinstance(parameter.annotation, (OutputPath, OutputTextFile, OutputBinaryFile)):
+        if isinstance(
+            parameter.annotation,
+            (OutputArtifact, OutputPath, OutputTextFile, OutputBinaryFile)):
             io_name = _make_name_unique_by_adding_index(io_name, output_names, '_')
             output_names.add(io_name)
             output_spec = OutputSpec(
@@ -646,7 +675,7 @@ _outputs = {func_name}(**_parsed_args)
                 # This is needed for Python to show stack traces and for `inspect.getsource` to work (used by PyTorch JIT and this module for example).
                 textwrap.dedent('''\
                     program_path=$(mktemp)
-                    echo -n "$0" > "$program_path"
+                    printf "%s" "$0" > "$program_path"
                     python3 -u "$program_path" "$@"
                 '''),
                 full_source,
@@ -744,7 +773,9 @@ def func_to_container_op(
     extra_code: Optional[str] = '',
     packages_to_install: List[str] = None,
     modules_to_capture: List[str] = None,
-    use_code_pickling: bool = False):
+    use_code_pickling: bool = False,
+    annotations: Optional[Mapping[str, str]] = None,
+):
     '''Converts a Python function to a component and returns a task
       (:class:`kfp.dsl.ContainerOp`) factory.
 
@@ -765,6 +796,7 @@ def func_to_container_op(
         packages_to_install: Optional. List of [versioned] python packages to pip install before executing the user function.
         modules_to_capture: Optional. List of module names that will be captured (instead of just referencing) during the dependency scan. By default the :code:`func.__module__` is captured. The actual algorithm: Starting with the initial function, start traversing dependencies. If the :code:`dependency.__module__` is in the :code:`modules_to_capture` list then it's captured and it's dependencies are traversed. Otherwise the dependency is only referenced instead of capturing and its dependencies are not traversed.
         use_code_pickling: Specifies whether the function code should be captured using pickling as opposed to source code manipulation. Pickling has better support for capturing dependencies, but is sensitive to version mismatch between python in component creation environment and runtime image.
+        annotations: Optional. Allows adding arbitrary key-value data to the component specification.
 
     Returns:
         A factory function with a strongly-typed signature taken from the python function.
@@ -779,6 +811,10 @@ def func_to_container_op(
         modules_to_capture=modules_to_capture,
         use_code_pickling=use_code_pickling,
     )
+    if annotations:
+        component_spec.metadata = structures.MetadataSpec(
+            annotations=annotations,
+        )
 
     output_component_file = output_component_file or getattr(func, '_component_target_component_file', None)
     if output_component_file:
@@ -793,6 +829,7 @@ def create_component_from_func(
     output_component_file: str=None,
     base_image: str = None,
     packages_to_install: List[str] = None,
+    annotations: Optional[Mapping[str, str]] = None,
 ):
     '''Converts a Python function to a component and returns a task factory
     (a function that accepts arguments and returns a task object).
@@ -802,6 +839,7 @@ def create_component_from_func(
         base_image: Optional. Specify a custom Docker container image to use in the component. For lightweight components, the image needs to have python 3.5+. Default is the python image corresponding to the current python environment.
         output_component_file: Optional. Write a component definition to a local file. The produced component file can be loaded back by calling :code:`load_component_from_file` or :code:`load_component_from_uri`.
         packages_to_install: Optional. List of [versioned] python packages to pip install before executing the user function.
+        annotations: Optional. Allows adding arbitrary key-value data to the component specification.
 
     Returns:
         A factory function with a strongly-typed signature taken from the python function.
@@ -891,6 +929,10 @@ def create_component_from_func(
         base_image=base_image,
         packages_to_install=packages_to_install,
     )
+    if annotations:
+        component_spec.metadata = structures.MetadataSpec(
+            annotations=annotations,
+        )
 
     if output_component_file:
         component_spec.save(output_component_file)
