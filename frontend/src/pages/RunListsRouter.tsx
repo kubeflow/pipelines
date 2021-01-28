@@ -15,6 +15,7 @@
  */
 
 import * as React from 'react';
+import { BrowserRouter } from 'react-router-dom';
 import { RunStorageState } from 'src/apis/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import { commonCss, padding } from 'src/Css';
@@ -55,27 +56,29 @@ class RunListsRouter extends React.PureComponent<RunListsRouterProps, RunListsRo
 
   public render(): JSX.Element {
     return (
-      <div className={classes(commonCss.page, padding(20, 't'))}>
-        <MD2Tabs
-          tabs={['Active', 'Archived']}
-          selectedTab={this._getSelectedTab()}
-          onSwitch={this._switchTab.bind(this)}
-        />
-
-        {
-          <RunList
-            hideExperimentColumn={true}
-            experimentIdMask={this.props.experimentIdMask}
-            ref={this._runlistRef}
-            onSelectionChange={this.props.onSelectionChange}
-            selectedIds={this.props.selectedIds}
-            noFilterBox={false}
-            disablePaging={false}
-            disableSorting={true}
-            {...this.props}
+      <BrowserRouter>
+        <div className={classes(commonCss.page, padding(20, 't'))}>
+          <MD2Tabs
+            tabs={['Active', 'Archived']}
+            selectedTab={this._getSelectedTab()}
+            onSwitch={this._switchTab.bind(this)}
           />
-        }
-      </div>
+
+          {
+            <RunList
+              hideExperimentColumn={true}
+              experimentIdMask={this.props.experimentIdMask}
+              ref={this._runlistRef}
+              onSelectionChange={this.props.onSelectionChange}
+              selectedIds={this.props.selectedIds}
+              noFilterBox={false}
+              disablePaging={false}
+              disableSorting={true}
+              {...this.props}
+            />
+          }
+        </div>
+      </BrowserRouter>
     );
   }
 
