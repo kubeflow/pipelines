@@ -553,9 +553,9 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
         )
         arg_parse_code_lines.append(line)
 
-        if input._passing_style in [InputPath, InputTextFile, InputBinaryFile]:
+        if input._passing_style in [InputPath, InputTextFile, InputBinaryFile, InputArtifact]:
             arguments_for_input = [param_flag, InputPathPlaceholder(input.name)]
-        elif input._passing_style in [OutputPath, OutputTextFile, OutputBinaryFile]:
+        elif input._passing_style in [OutputPath, OutputTextFile, OutputBinaryFile, OutputArtifact]:
             arguments_for_input = [param_flag, OutputPathPlaceholder(input.name)]
         else:
             arguments_for_input = [param_flag, InputValuePlaceholder(input.name)]

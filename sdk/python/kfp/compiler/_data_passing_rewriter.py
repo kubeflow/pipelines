@@ -5,6 +5,7 @@ import re
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from kfp.components import _components
+from kfp.containers import _component_builder
 from kfp import dsl
 
 
@@ -462,6 +463,8 @@ def _refactor_inputs_if_uri_placeholder(
         refactored_inputs: The mapping used to collect the input artifact being
             refactored from (template name, previous name) to its new name.
     """
+    is_v2 = bool(container_template.get('metadata', {}).get(
+        'annotations', {}).get(_component_builder.V2_COMPONENT_ANNOTATION))
 
     # If there's no artifact inputs then no refactor is needed.
     if not container_template.get('inputs') or not container_template[
@@ -494,27 +497,38 @@ def _refactor_inputs_if_uri_placeholder(
             # to the input parameter per the implementation in _components.
             # The only thing yet to be reconciled is the file name.
 
-            def reconcile_filename(
-                command_lines: List[str]) -> List[str]:
+            def reconcile_output_name(
+                command_lines: List[str],
+                is_v2: bool = False
+            ) -> List[str]:
                 new_command_lines = []
                 for cmd in command_lines:
-                    matched = re.match(
+                    matched_uri_pattern = re.match(
                         r'.*/{{kfp\.run_uid}}/{{inputs\.parameters\.'
                         + input_name + r'}}/(?P<filename>.*)', cmd)
-                    if matched:
+                    matched_output_name_pattern = re.match(
+                        r'{{kfp\.input-output-name\.(?P<input_name>.*)}}',
+                        cmd)
+                    if matched_uri_pattern:
                         new_command_lines.append(
-                            cmd[:-len(matched.group('filename'))] +
+                            cmd[:-len(matched_uri_pattern.group('filename'))] +
+                            output_to_filename[artifact_input['name']])
+                    elif matched_output_name_pattern and is_v2:
+                        # If this is a v2 component, we need to replace the
+                        # input output name placeholder as well.
+                        new_command_lines.append(
                             output_to_filename[artifact_input['name']])
                     else:
                         new_command_lines.append(cmd)
+
                 return new_command_lines
 
             if container_template['container'].get('args'):
-                container_template['container']['args'] = reconcile_filename(
-                    container_template['container']['args'])
+                container_template['container']['args'] = reconcile_output_name(
+                    container_template['container']['args'], is_v2)
             if container_template['container'].get('command'):
-                container_template['container']['command'] = reconcile_filename(
-                    container_template['container']['command'])
+                container_template['container']['command'] = reconcile_output_name(
+                    container_template['container']['command'], is_v2)
         else:
             new_artifact_inputs.append(artifact_input)
 
