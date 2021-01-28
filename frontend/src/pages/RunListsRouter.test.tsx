@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { cleanup, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import produce from 'immer';
 import RunListsRouter, { RunListsRouterProps } from './RunListsRouter';
 import React from 'react';
@@ -98,7 +98,6 @@ describe('RunListsRouter', () => {
   });
 
   afterEach(() => {
-    cleanup;
     jest.resetAllMocks();
   });
 
