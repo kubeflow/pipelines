@@ -17,7 +17,7 @@
 import * as React from 'react';
 import EnhancedExperimentDetails, { ExperimentDetails } from './ExperimentDetails';
 import TestUtils from '../TestUtils';
-import { ApiExperiment } from '../apis/experiment';
+import { ApiExperiment, ExperimentStorageState } from '../apis/experiment';
 import { Apis } from '../lib/Apis';
 import { PageProps } from './Page';
 import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
@@ -30,6 +30,7 @@ import { render } from '@testing-library/react';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
+import { RunListsGroupTab } from './RunListsRouter';
 
 describe('ExperimentDetails', () => {
   let tree: ReactWrapper | ShallowWrapper;
@@ -234,7 +235,22 @@ describe('ExperimentDetails', () => {
     tree = shallow(<ExperimentDetails {...generateProps()} />);
     await TestUtils.flushPromises();
 
-    expect(tree.find('RunList').prop('storageState')).toBe(RunStorageState.AVAILABLE.toString());
+    expect(tree.find('RunListsRouter').prop('storageState')).toBe(ExperimentStorageState.AVAILABLE);
+  });
+
+  it('shows a list of archived runs', async () => {
+    await mockNJobs(1);
+
+    getExperimentSpy.mockImplementation(() => {
+      let apiExperiment = newMockExperiment();
+      apiExperiment['storage_state'] = ExperimentStorageState.ARCHIVED;
+      return apiExperiment;
+    });
+
+    tree = shallow(<ExperimentDetails {...generateProps()} />);
+    await TestUtils.flushPromises();
+
+    expect(tree.find('RunListsRouter').prop('storageState')).toBe(ExperimentStorageState.ARCHIVED);
   });
 
   it("fetches this experiment's recurring runs", async () => {
@@ -466,11 +482,10 @@ describe('ExperimentDetails', () => {
     await TestUtils.flushPromises();
     tree.update();
 
-    const compareBtn = (tree.state('runListToolbarProps') as ToolbarProps).actions[
-      ButtonKeys.COMPARE
-    ];
-
     for (let i = 0; i < 12; i++) {
+      const compareBtn = (tree.state('runListToolbarProps') as ToolbarProps).actions[
+        ButtonKeys.COMPARE
+      ];
       if (i < 2 || i > 10) {
         expect(compareBtn!.disabled).toBe(true);
       } else {
@@ -490,11 +505,10 @@ describe('ExperimentDetails', () => {
     await TestUtils.flushPromises();
     tree.update();
 
-    const cloneBtn = (tree.state('runListToolbarProps') as ToolbarProps).actions[
-      ButtonKeys.CLONE_RUN
-    ];
-
     for (let i = 0; i < 4; i++) {
+      const cloneBtn = (tree.state('runListToolbarProps') as ToolbarProps).actions[
+        ButtonKeys.CLONE_RUN
+      ];
       if (i === 1) {
         expect(cloneBtn!.disabled).toBe(false);
       } else {
@@ -505,6 +519,127 @@ describe('ExperimentDetails', () => {
         .at(i)
         .simulate('click');
     }
+  });
+
+  it('enables Archive button when at least one run is selected', async () => {
+    await mockNRuns(4);
+
+    tree = TestUtils.mountWithRouter(<ExperimentDetails {...generateProps()} />);
+    await TestUtils.flushPromises();
+    tree.update();
+
+    for (let i = 0; i < 4; i++) {
+      const archiveButton = (tree.state('runListToolbarProps') as ToolbarProps).actions[
+        ButtonKeys.ARCHIVE
+      ];
+      if (i === 0) {
+        expect(archiveButton!.disabled).toBe(true);
+      } else {
+        expect(archiveButton!.disabled).toBe(false);
+      }
+      tree
+        .find('.tableRow')
+        .at(i)
+        .simulate('click');
+    }
+  });
+
+  it('enables Restore button when at least one run is selected', async () => {
+    await mockNRuns(4);
+
+    tree = TestUtils.mountWithRouter(<ExperimentDetails {...generateProps()} />);
+    await TestUtils.flushPromises();
+    tree.update();
+
+    tree
+      .find('MD2Tabs')
+      .find('Button')
+      .at(1) // `Archived` tab button
+      .simulate('click');
+    await TestUtils.flushPromises();
+
+    for (let i = 0; i < 4; i++) {
+      const restoreButton = (tree.state('runListToolbarProps') as ToolbarProps).actions[
+        ButtonKeys.RESTORE
+      ];
+      if (i === 0) {
+        expect(restoreButton!.disabled).toBe(true);
+      } else {
+        expect(restoreButton!.disabled).toBe(false);
+      }
+      tree
+        .find('.tableRow')
+        .at(i)
+        .simulate('click');
+    }
+  });
+
+  it('switches to another tab will change Archive/Restore button', async () => {
+    await mockNRuns(4);
+
+    tree = TestUtils.mountWithRouter(<ExperimentDetails {...generateProps()} />);
+    await TestUtils.flushPromises();
+    tree.update();
+
+    tree
+      .find('MD2Tabs')
+      .find('Button')
+      .at(1) // `Archived` tab button
+      .simulate('click');
+    await TestUtils.flushPromises();
+    expect(
+      (tree.state('runListToolbarProps') as ToolbarProps).actions[ButtonKeys.ARCHIVE],
+    ).toBeUndefined();
+    expect(
+      (tree.state('runListToolbarProps') as ToolbarProps).actions[ButtonKeys.RESTORE],
+    ).toBeDefined();
+
+    tree
+      .find('MD2Tabs')
+      .find('Button')
+      .at(0) // `Active` tab button
+      .simulate('click');
+    await TestUtils.flushPromises();
+    expect(
+      (tree.state('runListToolbarProps') as ToolbarProps).actions[ButtonKeys.ARCHIVE],
+    ).toBeDefined();
+    expect(
+      (tree.state('runListToolbarProps') as ToolbarProps).actions[ButtonKeys.RESTORE],
+    ).toBeUndefined();
+  });
+
+  it('switches to another tab will change Archive/Restore button', async () => {
+    await mockNRuns(4);
+
+    tree = TestUtils.mountWithRouter(<ExperimentDetails {...generateProps()} />);
+    await TestUtils.flushPromises();
+    tree.update();
+
+    tree
+      .find('MD2Tabs')
+      .find('Button')
+      .at(1) // `Archived` tab button
+      .simulate('click');
+    await TestUtils.flushPromises();
+    expect(
+      (tree.state('runListToolbarProps') as ToolbarProps).actions[ButtonKeys.ARCHIVE],
+    ).toBeUndefined();
+    expect(
+      (tree.state('runListToolbarProps') as ToolbarProps).actions[ButtonKeys.RESTORE],
+    ).toBeDefined();
+
+    tree
+      .find('MD2Tabs')
+      .find('Button')
+      .at(0) // `Active` tab button
+      .simulate('click');
+    await TestUtils.flushPromises();
+    expect(
+      (tree.state('runListToolbarProps') as ToolbarProps).actions[ButtonKeys.ARCHIVE],
+    ).toBeDefined();
+    expect(
+      (tree.state('runListToolbarProps') as ToolbarProps).actions[ButtonKeys.RESTORE],
+    ).toBeUndefined();
   });
 
   describe('EnhancedExperimentDetails', () => {

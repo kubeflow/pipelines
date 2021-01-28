@@ -36,6 +36,7 @@ import { color, commonCss, padding } from '../Css';
 import { logger } from '../lib/Utils';
 import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { Redirect } from 'react-router-dom';
+import { RunStorageState } from 'src/apis/run';
 
 const css = stylesheet({
   card: {
@@ -104,12 +105,11 @@ interface ExperimentDetailsState {
   experiment: ApiExperiment | null;
   recurringRunsManagerOpen: boolean;
   selectedIds: string[];
-  selectedTab: RunListsGroupTab;
+  runStorageState: RunStorageState;
   runListToolbarProps: ToolbarProps;
 }
 
 export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
-  private _runlistRef = React.createRef<RunList>();
   private _runlistsRouterRef = React.createRef<RunListsRouter>();
 
   constructor(props: any) {
@@ -127,7 +127,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       },
       // TODO: remove
       selectedIds: [],
-      selectedTab: RunListsGroupTab.ACTIVE,
+      runStorageState: RunStorageState.AVAILABLE,
     };
   }
 
@@ -227,7 +227,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
             </div>
             <Toolbar {...this.state.runListToolbarProps} />
             <RunListsRouter
-              view={this.state.selectedTab}
+              storageState={this.state.runStorageState}
               onError={this.showPageError.bind(this)}
               hideExperimentColumn={true}
               experimentIdMask={experiment.id}
@@ -237,17 +237,6 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
               onTabSwitch={this._onRunTabSwitch.bind(this)}
               {...this.props}
             />
-            {/* 
-            <RunList
-              onError={this.showPageError.bind(this)}
-              hideExperimentColumn={true}
-              experimentIdMask={experiment.id}
-              ref={this._runlistRef}
-              selectedIds={this.state.selectedIds}
-              storageState={RunStorageState.AVAILABLE}
-              onSelectionChange={this._selectionChanged.bind(this)}
-              {...this.props}
-            /> */}
 
             <Dialog
               open={this.state.recurringRunsManagerOpen}
@@ -278,9 +267,6 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
 
   public async refresh(): Promise<void> {
     await this.load();
-    // if (this._runlistRef.current) {
-    //   await this._runlistRef.current.refresh();
-    // }
     if (this._runlistsRouterRef.current) {
       await this._runlistsRouterRef.current.refresh();
     }
@@ -310,7 +296,12 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       experiment.storage_state === ExperimentStorageState.ARCHIVED
         ? buttons.restore('experiment', idGetter, true, () => this.refresh())
         : buttons.archive('experiment', idGetter, true, () => this.refresh());
-      const selectedTab = this._getDefaultRunListGroupTab(experiment.storage_state);
+      // If experiment is archived, shows archived runs list by default.
+      // If experiment is active, shows active runs list by default.
+      const runStorageState =
+        experiment.storage_state === ExperimentStorageState.ARCHIVED
+          ? RunStorageState.ARCHIVED
+          : RunStorageState.AVAILABLE;
 
       const actions = buttons.getToolbarActionMap();
       this.props.updateToolbar({
@@ -342,7 +333,11 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
         logger.error(`Error fetching recurring runs for experiment: ${experimentId}`, err);
       }
 
-      this.setStateSafe({ activeRecurringRunsCount, experiment, selectedTab });
+      this.setStateSafe({
+        activeRecurringRunsCount,
+        experiment,
+        runStorageState,
+      });
       this._selectionChanged([]);
     } catch (err) {
       await this.showPageError(`Error: failed to retrieve experiment: ${experimentId}.`, err);
@@ -350,10 +345,20 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     }
   }
 
+  /**
+   * Users can choose to show runs list in different run storage states. After finish changing storage state, call cb to notify child component for new props.
+   *
+   * @param tab selected by user for run storage state
+   * @param cb callback to notify child component
+   */
   private _onRunTabSwitch(tab: RunListsGroupTab, cb?: () => void): void {
+    let runStorageState = RunStorageState.AVAILABLE;
+    if (tab === RunListsGroupTab.ARCHIVE) {
+      runStorageState = RunStorageState.ARCHIVED;
+    }
     this.setStateSafe(
       {
-        selectedTab: tab,
+        runStorageState,
       },
       () => {
         this._selectionChanged([]);
@@ -362,12 +367,15 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
         }
       },
     );
+
     return;
   }
 
   private _selectionChanged(selectedIds: string[]): void {
     const toolbarButtons = this._getRunInitialToolBarButtons();
-    if (this.state.selectedTab === RunListsGroupTab.ACTIVE) {
+    // If user selects to show Active runs list, shows `Archive` button for selected runs.
+    // If user selects to show Archive runs list, shows `Restore` button for selected runs.
+    if (this.state.runStorageState === RunStorageState.AVAILABLE) {
       toolbarButtons.archive(
         'run',
         () => this.state.selectedIds,
@@ -407,14 +415,6 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     this.setState({ recurringRunsManagerOpen: false });
     // Reload the details to get any updated recurring runs
     this.refresh();
-  }
-
-  private _getDefaultRunListGroupTab(storage_state?: ExperimentStorageState): RunListsGroupTab {
-    let tabNum = RunListsGroupTab.ACTIVE;
-    if (storage_state === ExperimentStorageState.ARCHIVED) {
-      tabNum = RunListsGroupTab.ARCHIVE;
-    }
-    return tabNum;
   }
 }
 
