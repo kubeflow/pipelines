@@ -19,7 +19,6 @@ import logging
 import shutil
 from collections import OrderedDict
 from typing import Callable, Dict, List, Optional
-import warnings
 
 from deprecated.sphinx import deprecated
 
@@ -185,7 +184,8 @@ def _configure_logger(logger):
 def _purge_program_launching_code(
     commands: List[str],
     python_version: str,
-    entrypoint_container_path: str
+    entrypoint_container_path: str,
+    is_v2: bool = False
 ) -> str:
   """Replaces the inline Python code with calling a local program.
 
@@ -198,22 +198,32 @@ def _purge_program_launching_code(
     python_version: The version of Python binary.
     entrypoint_container_path: The path to the entrypoint program in the
       container.
+    is_v2: Whether the component being generated is a v2 component. Default is
+      False.
 
   Returns:
     The originally generated inline Python code.
   """
-  print(commands)
   program_launcher_index = commands.index(_PROGRAM_LAUNCHER_CMD)
   # When there're preinstallation package specified when converting to component
   # spec the index will be 3, otherwise it'll be 2.
   assert program_launcher_index in [2, 3]
   program_code_index = program_launcher_index + 1
   result = commands[program_code_index]
+  if is_v2:
+    # For v2 component, the container will call
+    # python3 -m kfp.containers.mlmd_wrapper -- ......
+    commands[program_code_index] = 'kfp.containers.mlmd_wrapper'
+    commands.pop(program_launcher_index)
+    commands[program_launcher_index - 1] = '-m'
+    commands[program_launcher_index - 2] = python_version
+  else:
+    commands[program_code_index] = entrypoint_container_path
+    commands.pop(program_launcher_index)
+    commands[program_launcher_index - 1] = '-u'  # -ec => -u
+    # sh => python3 or python2
+    commands[program_launcher_index - 2] = python_version
 
-  commands[program_code_index] = entrypoint_container_path
-  commands.pop(program_launcher_index)
-  commands[program_launcher_index - 1] = '-u'  # -ec => -u
-  commands[program_launcher_index - 2] = python_version  # sh => python3 or python2
   return result
 
 
@@ -247,7 +257,6 @@ def build_python_component(
       package name and versions, default is empty.
     target_component_file (str): The path to save the generated component YAML
       spec.
-    python_version (str): Choose python2 or python3, default is python3
     is_v2: Whether or not generating a v2 KFP component, default
       is false.
 
@@ -284,7 +293,6 @@ def build_python_component(
   component_spec = _func_to_component_spec(
       component_func, base_image=base_image)
 
-
   if is_v2:
     # Annotate the component to be a V2 one.
     if not component_spec.metadata:
@@ -305,14 +313,13 @@ def build_python_component(
   python_version = 'python3'
 
   if is_v2:
-    v2_entrypoint_path = 'ml/entrypoint.py'
+    v2_entrypoint_path = 'ml/mlmd_wrapper.py'
 
     program_code = _purge_program_launching_code(
         commands=command_line_args,
         python_version=python_version,
         entrypoint_container_path='/' + v2_entrypoint_path)
 
-    print(component_spec.implementation.container.args)
     # Override user program args for new-styled component.
     program_args = []
     for component_input in component_spec.inputs or []:
@@ -459,7 +466,7 @@ def build_python_component(
     container_builder = ContainerBuilder(staging_gcs_path, target_image, namespace)
     image_name_with_digest = container_builder.build(local_build_dir, arc_docker_filename, target_image, timeout)
 
-  component_spec.implementation.container.image = 'dummy-image' # image_name_with_digest
+  component_spec.implementation.container.image = image_name_with_digest
 
   # Optionally writing the component definition to a local file for sharing
   target_component_file = target_component_file or getattr(component_func, '_component_target_component_file', None)
