@@ -9,31 +9,29 @@
     "group:linters",
     "group:googleapis",
     "group:goOpenapi",
-    "group:reactMonorepo",
-    "group:reactrouterMonorepo"
   ],
   "packageRules": [
     {
       "datasources": ["docker"],
       "updateTypes": ["patch"],
-      "groupName": "docker patch & minor updates"
+      "groupName": "docker patch updates"
     },
     {
       "datasources": ["go"],
       "updateTypes": ["patch", "minor"],
-      "groupName": "go.mod patch & minor updates"
+      "groupName": "go.mod non-major updates"
     },
     {
       "datasources": ["npm"],
       "updateTypes": ["patch", "minor"],
-      "groupName": "npm updates"
+      "groupName": "npm non-major updates"
     },
     {
-      "datasources": ["pip"],
+      "languages": ["python"],
       "enabled": false
     },
     {
-      "depTypeList": ["go_repository"],
+      "managers": ["bazel"],
       "enabled": false
     }
   ],
@@ -47,7 +45,6 @@
     "backend/api/python_http_client/",
     "manifests/kustomize/"
   ],
-  "dependencyDashboard": true,
   "dependencyDashboardApproval": true,
   "separateMinorPatch": true
 }
