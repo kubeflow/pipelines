@@ -7,11 +7,10 @@
     ":rebaseStalePrs",
     ":semanticCommits",
     ":semanticCommitScope(deps)",
-    ":masterIssue",
     "group:linters",
     "group:polymer",
     "group:googleapis",
-    "group:goOpenapi",
+    "group:goOpenapi"
   ],
   "lockFileMaintenance": {
     "enabled": true,
