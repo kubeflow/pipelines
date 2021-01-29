@@ -250,7 +250,7 @@ def xgb_train_pipeline(
               os.path.join(_PYSRC_PREFIX,
                            'initialization_actions.sh'),
             ],
-            image_version='1.2'
+            image_version='1.5'
         ).after(_diagnose_me_op)
 
         _analyze_op = dataproc_analyze_op(
