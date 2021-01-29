@@ -1,5 +1,37 @@
 {
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:base"
-  ]
+    "config:base",
+    "schedule:daily",
+    ":dependencyDashboard",
+    ":rebaseStalePrs",
+    ":semanticCommits",
+    ":semanticCommitScope(deps)",
+    ":masterIssue",
+    "group:linters",
+    "group:polymer",
+    "group:googleapis",
+    "group:goOpenapi",
+  ],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "dependencyDashboardApproval": true
+  },
+  "packageRules": [
+    {
+        "datasources": ["docker"],
+        "updateTypes": ["patch", "minor"],
+        "groupName": "docker patch & minor updates"
+    },
+    {
+        "depTypeList": ["go_repository"],
+        "updateTypes": ["patch", "minor"],
+        "groupName": "Go module dependencies"
+
+    }
+  ],
+  "ignorePaths": ["components/deprecated/", "third_party"],
+  "dependencyDashboard": true,
+  "dependencyDashboardApproval": true,
+  "separateMinorPatch": true
 }
