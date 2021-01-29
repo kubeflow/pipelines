@@ -14,7 +14,7 @@
 
 import collections
 import copy
-from typing import Any, Mapping
+from typing import Any, Mapping, Optional
 from ..components.structures import ComponentSpec, ComponentReference
 from ..components._components import _default_component_name, _resolve_command_line_and_paths
 from ..components._naming import _sanitize_python_function_name, generate_unique_name_conversion_table
@@ -24,7 +24,7 @@ from .. import dsl
 def _create_container_op_from_component_and_arguments(
     component_spec: ComponentSpec,
     arguments: Mapping[str, Any],
-    component_ref: ComponentReference = None,
+    component_ref: Optional[ComponentReference] = None,
 ) -> 'dsl.ContainerOp':
     # Check types of the reference arguments and serialize PipelineParams
     arguments = arguments.copy()
