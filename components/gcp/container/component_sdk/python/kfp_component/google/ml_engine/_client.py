@@ -23,7 +23,7 @@ class MLEngineClient:
     """ Client for calling MLEngine APIs.
     """
     def __init__(self):
-        self._ml_client = discovery.build('ml', 'v1')
+        self._ml_client = discovery.build('ml', 'v1', cache_discovery=False)
 
     def create_job(self, project_id, job):
         """Create a new job.
