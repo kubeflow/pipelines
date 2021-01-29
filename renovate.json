@@ -26,7 +26,10 @@
         "depTypeList": ["go_repository"],
         "updateTypes": ["patch", "minor"],
         "groupName": "Go module dependencies"
-    }
+    },
+    {
+        "languages": ["bazel"],
+        "enabled": false
   ],
   "ignorePaths": [
     "components/deprecated/",
