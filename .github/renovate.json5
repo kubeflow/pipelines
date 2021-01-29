@@ -6,6 +6,7 @@
     ":dependencyDashboard",
     ":semanticCommits",
     ":semanticCommitScope(deps)",
+    ":disableMajorUpdates",
     "group:linters",
     "group:googleapis",
     "group:goOpenapi"
