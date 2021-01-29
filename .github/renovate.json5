@@ -6,7 +6,6 @@
     ":dependencyDashboard",
     ":semanticCommits",
     ":semanticCommitScope(deps)",
-    ":disableMajorUpdates",
     "group:linters",
     "group:googleapis",
     "group:goOpenapi"
@@ -27,11 +26,15 @@
       "updateTypes": ["patch", "minor"],
       "groupName": "npm dependencies"
     },
+    { // major updates do not create PRs automatically
+      "updateTypes": ["major"],
+      "dependencyDashboardApproval": true,
+    },
     { // disable python package updates initially, because they are not stable
       "languages": ["python"],
       "enabled": false
     },
-    {
+    { // we've deprecated bazel
       "managers": ["bazel"],
       "enabled": false
     }
@@ -46,6 +49,6 @@
     "backend/api/python_http_client/",
     "manifests/kustomize/"
   ],
-  "dependencyDashboardApproval": true,
+  "dependencyDashboardApproval": true, // require approval for all updates initially
   "separateMinorPatch": true
 }
