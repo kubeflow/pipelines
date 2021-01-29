@@ -27,10 +27,17 @@
         "depTypeList": ["go_repository"],
         "updateTypes": ["patch", "minor"],
         "groupName": "Go module dependencies"
-
     }
   ],
-  "ignorePaths": ["components/deprecated/", "third_party"],
+  "ignorePaths": [
+    "components/deprecated/",
+    "third_party/",
+    "components/ibm-components/",
+    "components/azure/",
+    "components/presto/",
+    "components/arena/",
+    "backend/api/python_http_client/"
+  ],
   "dependencyDashboard": true,
   "dependencyDashboardApproval": true,
   "separateMinorPatch": true
