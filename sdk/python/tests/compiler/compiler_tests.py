@@ -802,7 +802,7 @@ implementation:
       def some_pipeline():
         task1 = some_op()
         task2 = some_op()
-        dsl.get_pipeline_conf().set_image_pull_policy(policy="Alwayss")
+        dsl.get_pipeline_conf().set_image_pull_policy(policy="Always")
 
       workflow_dict = compiler.Compiler()._compile(some_pipeline)
 
