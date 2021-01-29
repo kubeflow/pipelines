@@ -8,7 +8,7 @@
     ":semanticCommitScope(deps)",
     "group:linters",
     "group:googleapis",
-    "group:goOpenapi",
+    "group:goOpenapi"
   ],
   "packageRules": [
     {
