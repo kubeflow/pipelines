@@ -25,7 +25,7 @@
     {
       "datasources": ["npm"],
       "updateTypes": ["patch", "minor"],
-      "groupName": "npm non-major updates"
+      "groupName": "npm dependencies"
     },
     { // disable python package updates initially, because they are not stable
       "languages": ["python"],
