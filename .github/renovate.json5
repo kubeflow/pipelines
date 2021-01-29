@@ -19,7 +19,7 @@
     {
       "datasources": ["go"],
       "updateTypes": ["patch", "minor"],
-      "groupName": "go.mod non-major updates"
+      "groupName": "go.mod dependencies"
     },
     {
       "datasources": ["npm"],
