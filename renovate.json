@@ -30,6 +30,7 @@
     {
         "languages": ["bazel"],
         "enabled": false
+    }
   ],
   "ignorePaths": [
     "components/deprecated/",
