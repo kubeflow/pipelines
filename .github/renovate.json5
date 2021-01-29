@@ -14,17 +14,20 @@
     {
       "datasources": ["docker"],
       "updateTypes": ["patch"],
-      "groupName": "docker patch updates"
+      "groupName": "docker patch updates",
+      "groupSlug": "docker-updates"
     },
     {
       "datasources": ["go"],
       "updateTypes": ["patch", "minor"],
-      "groupName": "go.mod dependencies"
+      "groupName": "go.mod dependencies",
+      "groupSlug": "go-mod-updates"
     },
     {
       "datasources": ["npm"],
       "updateTypes": ["patch", "minor"],
-      "groupName": "npm dependencies"
+      "groupName": "npm dependencies",
+      "groupSlug": "npm-updates"
     },
     { // major updates do not create PRs automatically
       "updateTypes": ["major"],
