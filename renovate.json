@@ -4,27 +4,37 @@
     "config:base",
     "schedule:daily",
     ":dependencyDashboard",
-    ":rebaseStalePrs",
     ":semanticCommits",
     ":semanticCommitScope(deps)",
     "group:linters",
-    "group:polymer",
     "group:googleapis",
-    "group:goOpenapi"
+    "group:goOpenapi",
+    "group:reactMonorepo",
+    "group:reactrouterMonorepo"
   ],
-  "lockFileMaintenance": {
-    "enabled": true,
-    "dependencyDashboardApproval": true
-  },
   "packageRules": [
     {
-        "datasources": ["docker"],
-        "updateTypes": ["patch", "minor"],
-        "groupName": "docker patch & minor updates"
+      "datasources": ["docker"],
+      "updateTypes": ["patch"],
+      "groupName": "docker patch & minor updates"
     },
     {
-        "languages": ["bazel"],
-        "enabled": false
+      "datasources": ["go"],
+      "updateTypes": ["patch", "minor"],
+      "groupName": "go.mod patch & minor updates"
+    },
+    {
+      "datasources": ["npm"],
+      "updateTypes": ["patch", "minor"],
+      "groupName": "npm updates"
+    },
+    {
+      "datasources": ["pip"],
+      "enabled": false
+    },
+    {
+      "depTypeList": ["go_repository"],
+      "enabled": false
     }
   ],
   "ignorePaths": [
@@ -34,7 +44,8 @@
     "components/azure/",
     "components/presto/",
     "components/arena/",
-    "backend/api/python_http_client/"
+    "backend/api/python_http_client/",
+    "manifests/kustomize/"
   ],
   "dependencyDashboard": true,
   "dependencyDashboardApproval": true,
