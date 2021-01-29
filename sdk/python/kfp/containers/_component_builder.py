@@ -184,7 +184,7 @@ def _configure_logger(logger):
 def _purge_program_launching_code(
     commands: List[str],
     python_version: str,
-    entrypoint_container_path: str,
+    entrypoint_container_path: Optional[str] = None,
     is_v2: bool = False
 ) -> str:
   """Replaces the inline Python code with calling a local program.
@@ -204,6 +204,8 @@ def _purge_program_launching_code(
   Returns:
     The originally generated inline Python code.
   """
+  if not (is_v2 or entrypoint_container_path):
+    raise ValueError('Only v2 component has default entrypoint path.')
   program_launcher_index = commands.index(_PROGRAM_LAUNCHER_CMD)
   # When there're preinstallation package specified when converting to component
   # spec the index will be 3, otherwise it'll be 2.
@@ -313,12 +315,11 @@ def build_python_component(
   python_version = 'python3'
 
   if is_v2:
-    v2_entrypoint_path = 'ml/mlmd_wrapper.py'
 
     program_code = _purge_program_launching_code(
         commands=command_line_args,
         python_version=python_version,
-        entrypoint_container_path='/' + v2_entrypoint_path)
+        is_v2=True)
 
     # Override user program args for new-styled component.
     program_args = []
@@ -328,8 +329,7 @@ def build_python_component(
         # the user program:
         # 1. {name of the artifact}_input_path: The actual path, or uri, of the
         #    input artifact.
-        # 2. {name of the artifact}_input_artifact_metadata_file: The metadata
-        #    JSON file path output by the producer.
+        # 2. {name of the artifact}_input_pod_name: The pod ID of the producer.
         # 3. {name of the artifact}_input_output_name: The output name of the
         #    artifact, by which the artifact can be found in the producer
         #    metadata JSON file.
@@ -342,19 +342,12 @@ def build_python_component(
                 input_name=component_input.name))
         program_args.append('--{}{}'.format(
             component_input.name,
-            '_pod_name'
+            '_pod_id'
         ))
         program_args.append(
             '{{{{inputs.parameters.{input}}}}}'.format(
                 input=_components.PRODUCER_POD_NAME_PARAMETER.format(
                     component_input.name)))
-        # program_args.append('--{}{}'.format(
-        #     component_input.name,
-        #     entrypoint.ARTIFACT_METADATA_SUFFIX
-        # ))
-        # program_args.append(
-        #     _structures.InputMetadataPlaceholder(
-        #         input_name=component_input.name))
         # TODO(numerology): Consider removing the need of output name
         # placeholder by letting v2 component output two metadata files per
         # output.
@@ -366,32 +359,6 @@ def build_python_component(
             input_name=component_input.name))
 
       elif component_input._passing_style is None:
-        # When passing style is not set, it ought to be a parameter.
-        # For each input parameter, there'll be possibly 3 arguments passed to
-        # the user program:
-        # 1. {name of the parameter}_input_param_metadata_file: The metadata
-        #    JSON file output by the producer.
-        # 2. {name of the parameter}_input_field_name: The output name of the
-        #    parameter, by which the parameter can be found in the producer
-        #    metadata JSON file.
-        # 3. {name of the parameter}_input_argo_param: The actual runtime value
-        #    of the input parameter.
-        program_args.append('--{}{}'.format(
-            component_input.name,
-            entrypoint.PARAM_METADATA_SUFFIX
-        ))
-        program_args.append(
-            _structures.InputMetadataPlaceholder(
-                input_name=component_input.name))
-        # TODO(numerology): Consider removing the need of output name
-        # placeholder by letting v2 component output two metadata files per
-        # output.
-        program_args.append('--{}{}'.format(
-            component_input.name,
-            entrypoint.FIELD_NAME_SUFFIX
-        ))
-        program_args.append(_structures.InputOutputPortNamePlaceholder(
-            input_name=component_input.name))
         program_args.append('--{}{}'.format(
             component_input.name,
             entrypoint.ARGO_PARAM_SUFFIX
@@ -403,6 +370,7 @@ def build_python_component(
             'Only Input/OutputArtifact and parameter annotations '
             'are supported in V2 components. '
             'Got %s' % component_input._passing_style)
+
     for component_output in component_spec.outputs or []:
       if component_output._passing_style == components.OutputArtifact:
         # For each output artifact, there'll be possibly 3 arguments passed to
@@ -416,6 +384,12 @@ def build_python_component(
         program_args.append(
             _structures.OutputUriPlaceholder(
                 output_name=component_output.name))
+      elif component_output._passing_style is not None:
+        raise TypeError(
+            'Only Input/OutputArtifact and parameter annotations '
+            'are supported in V2 components. '
+            'Got %s' % component_output._passing_style)
+
     program_args.append('--pipeline_context')
     program_args.append(dsl.RUN_ID_PLACEHOLDER)
 
@@ -433,12 +407,6 @@ def build_python_component(
     # Write the program code to a file in the context directory
     local_python_filepath = os.path.join(local_build_dir, program_path)
     os.makedirs(os.path.dirname(local_python_filepath), exist_ok=True)
-    if is_v2:
-      # If this is a v2 component, use the predefined entrypoint.
-      local_entrypoint_filepath = os.path.join(
-          local_build_dir, v2_entrypoint_path)
-      shutil.copyfile(os.path.join(os.path.dirname(__file__), 'entrypoint.py'),
-                      local_entrypoint_filepath)
 
     with open(local_python_filepath, 'w') as f:
       f.write(program_code)
@@ -454,8 +422,6 @@ def build_python_component(
     # Generate Dockerfile in the context directory
     local_docker_filepath = os.path.join(local_build_dir, arc_docker_filename)
     add_files = {program_path: '/' + program_path}
-    if is_v2:
-      add_files[v2_entrypoint_path] = '/' + v2_entrypoint_path
 
     _generate_dockerfile(
         local_docker_filepath, base_image, python_version,
