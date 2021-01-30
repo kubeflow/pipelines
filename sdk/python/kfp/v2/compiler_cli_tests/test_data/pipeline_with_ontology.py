@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.v2 import components
+from kfp import components
 from kfp.v2 import dsl
 import kfp.v2.compiler as compiler
 import pathlib
@@ -35,7 +35,6 @@ def my_pipeline(input_location='gs://test-bucket/pipeline_root',
   ingestor = ingestion_op(input_location=input_location)
   _ = training_op(
       examples=ingestor.outputs['examples'],
-      schema=ingestor.outputs['schema'],
       optimizer=optimizer,
       n_epochs=n_epochs)
 

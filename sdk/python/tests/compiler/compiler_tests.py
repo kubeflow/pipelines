@@ -27,11 +27,12 @@ import tempfile
 import unittest
 import yaml
 
+from kfp.compiler import Compiler
 from kfp.dsl._component import component
-from kfp.dsl import ContainerOp, pipeline
+from kfp.dsl import ContainerOp, pipeline, PipelineParam
 from kfp.dsl.types import Integer, InconsistentTypeException
 from kubernetes.client import V1Toleration, V1Affinity, V1NodeSelector, V1NodeSelectorRequirement, V1NodeSelectorTerm, \
-  V1NodeAffinity
+  V1NodeAffinity, V1PodDNSConfig, V1PodDNSConfigOption
 
 
 def some_op():
@@ -371,6 +372,28 @@ class TestCompiler(unittest.TestCase):
   def test_py_volume(self):
     """Test a pipeline with a volume and volume mount."""
     self._test_py_compile_yaml('volume')
+
+  def test_py_retry_policy(self):
+      """Test retry policy is set."""
+
+      policy = 'Always'
+
+      def my_pipeline():
+        some_op().set_retry(2, policy)
+
+      workflow = kfp.compiler.Compiler()._compile(my_pipeline)
+      name_to_template = {template['name']: template for template in workflow['spec']['templates']}
+      main_dag_tasks = name_to_template[workflow['spec']['entrypoint']]['dag']['tasks']
+      template = name_to_template[main_dag_tasks[0]['template']]
+
+      self.assertEqual(template['retryStrategy']['retryPolicy'], policy)
+
+  def test_py_retry_policy_invalid(self):
+      def my_pipeline():
+          some_op().set_retry(2, 'Invalid')
+
+      with self.assertRaises(ValueError):
+          kfp.compiler.Compiler()._compile(my_pipeline)
 
   def test_py_retry(self):
     """Test retry functionality."""
@@ -713,7 +736,7 @@ implementation:
       container = template.get('container', None)
       if container:
         self.assertEqual(template['retryStrategy']['limit'], 5)
-  
+
   def test_image_pull_policy(self):
     def some_op():
       return dsl.ContainerOp(
@@ -735,7 +758,7 @@ implementation:
       if container:
         self.assertEqual(template['container']['imagePullPolicy'], "Always")
 
-  
+
   def test_image_pull_policy_step_spec(self):
     def some_op():
       return dsl.ContainerOp(
@@ -800,6 +823,22 @@ implementation:
 
     workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
     self.assertEqual(workflow_dict['spec']['nodeSelector'], {"cloud.google.com/gke-accelerator":"nvidia-tesla-p4"})
+
+  def test_set_dns_config(self):
+    """Test a pipeline with node selector."""
+    @dsl.pipeline()
+    def some_pipeline():
+      some_op()
+      dsl.get_pipeline_conf().set_dns_config(V1PodDNSConfig(
+        nameservers=["1.2.3.4"],
+        options=[V1PodDNSConfigOption(name="ndots", value="2")]
+      ))
+
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    self.assertEqual(
+      workflow_dict['spec']['dnsConfig'],
+      {"nameservers": ["1.2.3.4"], "options": [{"name": "ndots", "value": "2"}]}
+    )
 
   def test_container_op_output_error_when_no_or_multiple_outputs(self):
 
@@ -900,6 +939,9 @@ implementation:
 
   def test_withparam_lightweight_out(self):
     self._test_py_compile_yaml('loop_over_lightweight_output')
+
+  def test_parallelfor_pipeline_param_in_items_resolving(self):
+    self._test_py_compile_yaml('parallelfor_pipeline_param_in_items_resolving')
 
   def test_parallelfor_item_argument_resolving(self):
     self._test_py_compile_yaml('parallelfor_item_argument_resolving')
@@ -1051,6 +1093,22 @@ implementation:
       parameter_arguments_json = template['metadata']['annotations']['pipelines.kubeflow.org/arguments.parameters']
       parameter_arguments = json.loads(parameter_arguments_json)
       self.assertEqual(set(parameter_arguments.keys()), {'Input 1'})
+
+  def test__resolve_task_pipeline_param(self):
+    p = PipelineParam(name='param2')
+    resolved = Compiler._resolve_task_pipeline_param(p, group_type=None)
+    self.assertEqual(resolved, "{{workflow.parameters.param2}}")
+
+    p = PipelineParam(name='param1', op_name='op1')
+    resolved = Compiler._resolve_task_pipeline_param(p, group_type=None)
+    self.assertEqual(resolved, "{{tasks.op1.outputs.parameters.op1-param1}}")
+
+    p = PipelineParam(name='param1', op_name='op1')
+    resolved = Compiler._resolve_task_pipeline_param(p, group_type="subgraph")
+    self.assertEqual(resolved, "{{inputs.parameters.op1-param1}}")
+
+  def test_uri_artifact_passing(self):
+    self._test_py_compile_yaml('uri_artifacts')
 
   def test_keyword_only_argument_for_pipeline_func(self):
     def some_pipeline(casual_argument: str, *, keyword_only_argument: str):

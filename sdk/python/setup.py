@@ -31,7 +31,7 @@ REQUIRES = [
     # Update the lower version when kfp sdk depends on new apis/fields in
     # kfp-server-api.
     # Note, please also update ./requirements.in
-    'kfp-server-api>=0.2.5, <2.0.0',
+    'kfp-server-api>=1.1.2, <2.0.0',
     'jsonschema >= 3.0.1',
     'tabulate',
     'click',
@@ -39,6 +39,7 @@ REQUIRES = [
     'strip-hints',
     'docstring-parser>=0.7.3',
     'kfp-pipeline-spec>=0.1.0, <0.2.0',
+    'fire>=0.3.1'
 ]
 
 TESTS_REQUIRE = [
@@ -83,7 +84,6 @@ setup(
         'kfp.notebook',
         'kfp.v2',
         'kfp.v2.compiler',
-        'kfp.v2.components',
         'kfp.v2.dsl',
     ],
     classifiers=[

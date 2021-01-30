@@ -32,7 +32,7 @@ def _process_obj(obj: Any, map_to_tmpl_var: dict):
     """Recursively sanitize and replace any PipelineParam (instances and serialized strings)
     in the object with the corresponding template variables
     (i.e. '{{inputs.parameters.<PipelineParam.full_name>}}').
-    
+
     Args:
       obj: any obj that may have PipelineParam
       map_to_tmpl_var: a dict that maps an unsanitized pipeline
@@ -253,8 +253,14 @@ def _op_to_template(op: BaseOp):
         if processed_op.pod_labels:
             template['metadata']['labels'] = processed_op.pod_labels
     # retries
-    if processed_op.num_retries:
-        template['retryStrategy'] = {'limit': processed_op.num_retries}
+    if processed_op.num_retries or processed_op.retry_policy:
+        template['retryStrategy'] = {}
+        if processed_op.num_retries:
+            template['retryStrategy']['limit'] = processed_op.num_retries
+        if processed_op.retry_policy:
+            template['retryStrategy']['retryPolicy'] = processed_op.retry_policy
+            if not processed_op.num_retries:
+                warnings.warn('retry_policy is set, but num_retries is not')
 
     # timeout
     if processed_op.timeout:

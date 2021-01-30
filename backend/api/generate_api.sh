@@ -66,7 +66,7 @@ jq -s '
     .info.version = "'$VERSION'" |
     .info.contact = { "name": "google", "email": "kubeflow-pipelines@google.com", "url": "https://www.google.com" } |
     .info.license = { "name": "Apache 2.0", "url": "https://raw.githubusercontent.com/kubeflow/pipelines/master/LICENSE" }
-' ${DIR}/swagger/{run,job,pipeline,experiment,pipeline.upload}.swagger.json > "${DIR}/swagger/kfp_api_single_file.swagger.json"
+' ${DIR}/swagger/{run,job,pipeline,experiment,pipeline.upload,healthz}.swagger.json > "${DIR}/swagger/kfp_api_single_file.swagger.json"
 
 # Generate Go HTTP client from the swagger files.
 ${SWAGGER_CMD} generate client \
@@ -115,6 +115,14 @@ ${SWAGGER_CMD} generate client \
   --principal models.Principal \
   -c visualization_client \
   -m visualization_model \
+  -t ${DIR}/go_http_client
+
+${SWAGGER_CMD} generate client \
+  -f ${DIR}/swagger/healthz.swagger.json \
+  -A healthz \
+  --principal models.Principal \
+  -c healthz_client \
+  -m healthz_model \
   -t ${DIR}/go_http_client
 
 # Hack to fix an issue with go-swagger

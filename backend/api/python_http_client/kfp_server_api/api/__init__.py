@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ from __future__ import absolute_import
 
 # import apis into api package
 from kfp_server_api.api.experiment_service_api import ExperimentServiceApi
+from kfp_server_api.api.healthz_service_api import HealthzServiceApi
 from kfp_server_api.api.job_service_api import JobServiceApi
 from kfp_server_api.api.pipeline_service_api import PipelineServiceApi
 from kfp_server_api.api.pipeline_upload_service_api import PipelineUploadServiceApi

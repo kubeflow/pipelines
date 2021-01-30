@@ -11,7 +11,7 @@ jsonschema>=3.0.1
 kubernetes>=8.0.0, <12.0.0
 
 # kfp.Client
-kfp-server-api>=0.2.5, <2.0.0
+kfp-server-api>=1.1.2, <2.0.0
 
 # kfp.Client GCP auth
 google-cloud-storage>=1.13.0
@@ -21,3 +21,6 @@ requests_toolbelt>=0.8.0
 # CLI
 tabulate
 click
+
+# kfp.v2
+absl-py>=0.11.0,<1

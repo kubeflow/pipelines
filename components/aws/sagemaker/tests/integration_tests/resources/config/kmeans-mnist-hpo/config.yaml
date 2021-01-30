@@ -53,4 +53,4 @@ Arguments:
   output_location: s3://((DATA_BUCKET))/mnist_kmeans_example/output
   network_isolation: "True"
   max_wait_time: 3600
-  role: ((ROLE_ARN))
+  role: ((SAGEMAKER_ROLE_ARN))

@@ -25,7 +25,7 @@ import kfp
 from kfp.compiler._k8s_helper import sanitize_k8s_name
 from kfp.v2 import dsl
 from kfp.v2.compiler import compiler_utils
-from kfp.v2.components import python_op
+from kfp.components import _python_op
 from kfp.v2.dsl import importer_node
 from kfp.v2.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
@@ -73,8 +73,7 @@ class Compiler(object):
     Raises:
       NotImplementedError if the argument is of unsupported types.
     """
-    if not pipeline.name:
-      raise ValueError('Pipeline name is required.')
+    compiler_utils.validate_pipeline_name(pipeline.name)
 
     pipeline_spec = pipeline_spec_pb2.PipelineSpec(
         runtime_parameters=compiler_utils.build_runtime_parameter_spec(args))
@@ -92,6 +91,11 @@ class Compiler(object):
       task.CopyFrom(op.task_spec)
       deployment_config.executors[task.executor_label].container.CopyFrom(
           op.container_spec)
+
+      # A task may have explicit depdency on other tasks even though they may
+      # not have inputs/outputs dependency. e.g.: op2.after(op1)
+      if op.dependent_names:
+        task.dependent_tasks.extend(op.dependent_names)
 
       # Check if need to insert importer node
       for input_name in task.inputs.artifacts:
@@ -137,7 +141,7 @@ class Compiler(object):
 
     # Create the arg list with no default values and call pipeline function.
     # Assign type information to the PipelineParam
-    pipeline_meta = python_op._extract_component_interface(pipeline_func)
+    pipeline_meta = _python_op._extract_component_interface(pipeline_func)
     pipeline_name = pipeline_name or pipeline_meta.name
 
     args_list = []
@@ -189,7 +193,7 @@ class Compiler(object):
       A PipelineJob proto representing the compiled pipeline.
     """
     runtime_config = compiler_utils.build_runtime_config_spec(
-        pipeline_root=pipeline_root)
+        pipeline_root=pipeline_root, pipeline_parameters=pipeline_parameters)
     pipeline_job = pipeline_spec_pb2.PipelineJob(runtime_config=runtime_config)
     pipeline_job.pipeline_spec.update(json_format.MessageToDict(pipeline_spec))
 

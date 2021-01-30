@@ -57,7 +57,7 @@ outputs:
 - {name: output_artifacts, description: A dictionary containing the output S3 artifacts.}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:1.0.0
+    image: amazon/aws-sagemaker-kfp-components:1.1.0
     command: [python3]
     args:
     - process/src/sagemaker_process_component.py

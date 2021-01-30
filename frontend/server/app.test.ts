@@ -125,6 +125,7 @@ describe('UIServer apis', () => {
           Promise.resolve({
             commit_sha: 'commit_sha',
             tag_name: '1.0.0',
+            multi_user: false,
           }),
       }));
 
@@ -137,6 +138,8 @@ describe('UIServer apis', () => {
           {
             apiServerCommitHash: 'commit_sha',
             apiServerTagName: '1.0.0',
+            apiServerMultiUser: false,
+            multi_user: false,
             apiServerReady: true,
             buildDate,
             frontendCommitHash: commitHash,

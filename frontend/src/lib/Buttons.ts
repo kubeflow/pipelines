@@ -243,6 +243,7 @@ export default class Buttons {
       icon: AddIcon,
       id: 'newExperimentBtn',
       outlined: true,
+      primary: true,
       style: { minWidth: 185 },
       title: 'Create experiment',
       tooltip: 'Create a new experiment',

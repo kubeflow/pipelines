@@ -93,9 +93,10 @@ class OpsGroup(object):
   def __exit__(self, *args):
     _pipeline.Pipeline.get_default_pipeline().pop_ops_group()
 
-  def after(self, dependency):
-    """Specify explicit dependency on another op."""
-    self.dependencies.append(dependency)
+  def after(self, *ops):
+    """Specify explicit dependency on other ops."""
+    for op in ops:
+      self.dependencies.append(op)
     return self
 
   def remove_op_recursive(self, op):
@@ -103,6 +104,16 @@ class OpsGroup(object):
       self.ops.remove(op)
     for sub_group in self.groups or []:
       sub_group.remove_op_recursive(op)
+
+
+class SubGraph(OpsGroup):
+  TYPE_NAME = 'subgraph'
+
+  def __init__(self, parallelism: int):
+    if parallelism < 1:
+        raise ValueError('SubGraph parallism set to < 1, allowed values are > 0')
+    super(SubGraph, self).__init__(self.TYPE_NAME, parallelism=parallelism)
+
 
 class ExitHandler(OpsGroup):
   """Represents an exit handler that is invoked upon exiting a group of ops.
@@ -188,6 +199,9 @@ class ParallelFor(OpsGroup):
 
   def __init__(self,  loop_args: Union[_for_loop.ItemList, _pipeline_param.PipelineParam],
                parallelism: int=None):
+    if parallelism and parallelism < 1:
+        raise ValueError('ParallelFor parallism set to < 1, allowed values are > 0')
+    
     self.items_is_pipeline_param = isinstance(loop_args, _pipeline_param.PipelineParam)
 
     # use a random code to uniquely identify this loop

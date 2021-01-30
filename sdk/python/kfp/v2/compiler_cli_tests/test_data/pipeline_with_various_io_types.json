@@ -51,12 +51,12 @@
           "artifacts": {
             "output_3": {
               "artifactType": {
-                "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
+                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
               }
             },
             "output_2": {
               "artifactType": {
-                "instanceSchema": "title: kfp.Model\ntype: object\nproperties:\n"
+                "instanceSchema": "properties:\ntitle: kfp.Model\ntype: object\n"
               }
             }
           }
@@ -136,7 +136,7 @@
           "artifacts": {
             "result": {
               "artifactType": {
-                "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
+                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
               }
             }
           }
@@ -154,7 +154,7 @@
           "artifacts": {
             "result": {
               "artifactType": {
-                "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
+                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
               }
             }
           }
@@ -168,7 +168,7 @@
           "artifacts": {
             "result": {
               "artifactType": {
-                "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
+                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
               }
             }
           }
@@ -184,7 +184,7 @@
           "artifacts": {
             "result": {
               "artifactType": {
-                "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
+                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
               }
             }
           }
@@ -199,7 +199,7 @@
           "artifacts": {
             "result": {
               "artifactType": {
-                "instanceSchema": "title: kfp.Metrics\ntype: object\nproperties:\n"
+                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
               }
             }
           }
@@ -214,7 +214,7 @@
           "artifacts": {
             "result": {
               "artifactType": {
-                "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
+                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
               }
             }
           }
@@ -234,7 +234,7 @@
               "runtimeParameter": "input3"
             },
             "typeSchema": {
-              "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
+              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
             }
           }
         },
@@ -244,7 +244,7 @@
               "runtimeParameter": "input4"
             },
             "typeSchema": {
-              "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
+              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
             }
           }
         },
@@ -264,14 +264,14 @@
               "runtimeParameter": "input6"
             },
             "typeSchema": {
-              "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
+              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
             }
           }
         },
         "upstream_input_8_importer": {
           "importer": {
             "typeSchema": {
-              "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
+              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
             },
             "artifactUri": {
               "runtimeParameter": "input8"
@@ -281,7 +281,7 @@
         "upstream_input_5_importer": {
           "importer": {
             "typeSchema": {
-              "instanceSchema": "title: kfp.Metrics\ntype: object\nproperties:\n"
+              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
             },
             "artifactUri": {
               "constantValue": {
@@ -293,7 +293,7 @@
         "upstream_input_7_importer": {
           "importer": {
             "typeSchema": {
-              "instanceSchema": "title: kfp.Artifact\ntype: object\nproperties:\n"
+              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
             },
             "artifactUri": {
               "runtimeParameter": "input7"

@@ -20,6 +20,17 @@ again.
 The Python part of the project will follow [Google Python style guide](http://google.github.io/styleguide/pyguide.html). We provide a [yapf](https://github.com/google/yapf) configuration file to help contributors auto-format their code to adopt the Google Python style. Also, it is encouraged to lint python docstrings by [docformatter](https://github.com/myint/docformatter).
 
 The frontend part of the project uses [prettier](https://prettier.io/) for formatting, read [frontend/README.md#code-style](frontend/README.md#code-style) for more details.
+## Unit Testing Best Practices
+
+* Testing via Public APIs
+
+### Golang
+* Put your tests in a different package: Moving your test code out of the package allows you to write tests as though you were a real user of the package. You cannot fiddle around with the internals,
+instead you focus on the exposed interface and are always thinking about any noise that you might be adding to your API. Usually the test code will be put under the same folder
+but with a package suffix of `_test`. https://golang.org/src/go/ast/example_test.go (example)
+* Internal tests go in a different file: If you do need to unit test some internals, create another file with `_internal_test.go`
+as the suffix.
+* Write table driven tests: https://github.com/golang/go/wiki/TableDrivenTests (example)
 
 ## Code reviews
 

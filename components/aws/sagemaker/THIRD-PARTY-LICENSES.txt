@@ -1,4 +1,4 @@
-** Amazon SageMaker Components for Kubeflow Pipelines; version 1.0.0 --
+** Amazon SageMaker Components for Kubeflow Pipelines; version 1.1.0 --
 https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker
 Copyright 2019-2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 ** boto3; version 1.14.12 -- https://github.com/boto/boto3/

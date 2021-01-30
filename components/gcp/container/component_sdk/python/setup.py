@@ -15,7 +15,7 @@
 from setuptools import setup
 
 PACKAGE_NAME = 'kfp-component'
-VERSION = '1.1.0-alpha.1'
+VERSION = '1.3.0'
 
 setup(
     name=PACKAGE_NAME,
@@ -36,8 +36,6 @@ setup(
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',

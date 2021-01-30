@@ -88,6 +88,22 @@ class CompilerUtilsTest(unittest.TestCase):
         'gs://path', {'input1': 'test'})
     self.assertEqual(expected_spec, runtime_config)
 
+  def test_validate_pipeline_name(self):
+    compiler_utils.validate_pipeline_name('my-pipeline')
+
+    compiler_utils.validate_pipeline_name('p' * 128)
+
+    with self.assertRaisesRegex(ValueError, 'Invalid pipeline name: '):
+      compiler_utils.validate_pipeline_name('my_pipeline')
+
+    with self.assertRaisesRegex(ValueError, 'Invalid pipeline name: '):
+      compiler_utils.validate_pipeline_name('My pipeline')
+
+    with self.assertRaisesRegex(ValueError, 'Invalid pipeline name: '):
+      compiler_utils.validate_pipeline_name('-my-pipeline')
+
+    with self.assertRaisesRegex(ValueError, 'Invalid pipeline name: '):
+      compiler_utils.validate_pipeline_name('p' * 129)
 
 if __name__ == '__main__':
   unittest.main()

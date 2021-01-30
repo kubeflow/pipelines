@@ -1,5 +1,5 @@
 [![Coverage Status](https://coveralls.io/repos/github/kubeflow/pipelines/badge.svg?branch=master)](https://coveralls.io/github/kubeflow/pipelines?branch=master)
-SDK: [![Documentation Status](https://readthedocs.org/projects/kubeflow-pipelines/badge/?version=latest)](https://kubeflow-pipelines.readthedocs.io/en/latest/?badge=latest)
+SDK: [![Documentation Status](https://readthedocs.org/projects/kubeflow-pipelines/badge/?version=latest)](https://kubeflow-pipelines.readthedocs.io/en/stable/?badge=latest)
 
 ## Overview of the Kubeflow pipelines service
 
@@ -15,15 +15,17 @@ The Kubeflow pipelines service has the following goals:
 
 ## Documentation
 
+Install Kubeflow Pipelines from [an overview of several options](https://www.kubeflow.org/docs/pipelines/installation/overview/).
+
 Get started with your first pipeline and read further information in the [Kubeflow Pipelines overview](https://www.kubeflow.org/docs/pipelines/overview/pipelines-overview/).
 
 See the various ways you can [use the Kubeflow Pipelines SDK](https://www.kubeflow.org/docs/pipelines/sdk/sdk-overview/).
 
 See the Kubeflow [Pipelines API doc](https://www.kubeflow.org/docs/pipelines/reference/api/kubeflow-pipeline-api-spec/) for API specification.
 
-Consult the [Python SDK reference docs](https://kubeflow-pipelines.readthedocs.io/en/latest/) when writing pipelines using the Python SDK.
+Consult the [Python SDK reference docs](https://kubeflow-pipelines.readthedocs.io/en/stable/) when writing pipelines using the Python SDK.
 
-Refer to the [versioning policy](./docs/release/versioning-policy.md) and [feature stages](./docs/release/feature-status.md) documentation for more information about how we manage versions and feature stages (such as Alpha, Beta, and Stable).
+Refer to the [versioning policy](./docs/release/versioning-policy.md) and [feature stages](./docs/release/feature-stages.md) documentation for more information about how we manage versions and feature stages (such as Alpha, Beta, and Stable).
 
 ## Kubeflow Pipelines Community Meeting
 

@@ -14,7 +14,8 @@ inputs:
   - {name: KFServing Endpoint,              type: String, default: '', description: 'KFServing remote deployer API endpoint'}
   - {name: Service Account,                 type: String, default: '', description: 'Model Service Account'}
   - {name: Enable Istio Sidecar,            type: Bool,   default: 'True',     description: 'Whether to enable istio sidecar injection'}
-  - {name: InferenceService YAML,           type: String, default: '{}',         description: 'Raw InferenceService serialized YAML for deployment'} 
+  - {name: InferenceService YAML,           type: String, default: '{}',         description: 'Raw InferenceService serialized YAML for deployment'}
+  - {name: Watch Timeout,                   type: String, default: '120', description: "Timeout seconds for watching until InferenceService becomes ready."}
 outputs:
   - {name: Service Endpoint URI, type: String,                      description: 'URI of the deployed prediction service..'}
 implementation:
@@ -37,5 +38,6 @@ implementation:
       --service-account,          {inputValue: Service Account},
       --enable-istio-sidecar,     {inputValue: Enable Istio Sidecar},
       --output-path,              {outputPath: Service Endpoint URI},
-      --inferenceservice_yaml,    {inputValue: InferenceService YAML}
+      --inferenceservice_yaml,    {inputValue: InferenceService YAML},
+      --watch-timeout,            {inputValue: Watch Timeout}
     ]

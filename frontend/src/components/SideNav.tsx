@@ -17,13 +17,13 @@
 import Button from '@material-ui/core/Button';
 import IconButton from '@material-ui/core/IconButton';
 import Tooltip from '@material-ui/core/Tooltip';
-import ArchiveIcon from '@material-ui/icons/Archive';
 import ArtifactsIcon from '@material-ui/icons/BubbleChart';
 import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
 import JupyterhubIcon from '@material-ui/icons/Code';
 import DescriptionIcon from '@material-ui/icons/Description';
 import OpenInNewIcon from '@material-ui/icons/OpenInNew';
 import ExecutionsIcon from '@material-ui/icons/PlayArrow';
+import DirectionsRun from '@material-ui/icons/DirectionsRun';
 import * as React from 'react';
 import { RouterProps } from 'react-router';
 import { Link } from 'react-router-dom';
@@ -369,6 +369,33 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
           <div
             className={classes(
               css.indicator,
+              !this._highlightRunsButton(page) && css.indicatorHidden,
+            )}
+          />
+          <Tooltip
+            title={'Runs List'}
+            enterDelay={300}
+            placement={'right-start'}
+            disableFocusListener={!collapsed}
+            disableHoverListener={!collapsed}
+            disableTouchListener={!collapsed}
+          >
+            <Link id='runsBtn' to={RoutePage.RUNS} className={commonCss.unstyled}>
+              <Button
+                className={classes(
+                  css.button,
+                  this._highlightRunsButton(page) && css.active,
+                  collapsed && css.collapsedButton,
+                )}
+              >
+                <DirectionsRun />
+                <span className={classes(collapsed && css.collapsedLabel, css.label)}>Runs</span>
+              </Button>
+            </Link>
+          </Tooltip>
+          <div
+            className={classes(
+              css.indicator,
               !this._highlightArtifactsButton(page) && css.indicatorHidden,
             )}
           />
@@ -451,36 +478,6 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
             </Tooltip>
           )}
           <hr className={classes(css.separator, collapsed && css.collapsedSeparator)} />
-          <div
-            className={classes(
-              css.indicator,
-              ![RoutePage.ARCHIVED_RUNS, RoutePage.ARCHIVED_EXPERIMENTS].includes(page) &&
-                css.indicatorHidden,
-            )}
-          />
-          <Tooltip
-            title={'Archive'}
-            enterDelay={300}
-            placement={'right-start'}
-            disableFocusListener={!collapsed}
-            disableHoverListener={!collapsed}
-            disableTouchListener={!collapsed}
-          >
-            <Link id='archiveBtn' to={RoutePage.ARCHIVED_RUNS} className={commonCss.unstyled}>
-              <Button
-                className={classes(
-                  css.button,
-                  (page === RoutePage.ARCHIVED_RUNS || page === RoutePage.ARCHIVED_EXPERIMENTS) &&
-                    css.active,
-                  collapsed && css.collapsedButton,
-                )}
-              >
-                <ArchiveIcon style={{ height: 20, width: 20 }} />
-                <span className={classes(collapsed && css.collapsedLabel, css.label)}>Archive</span>
-              </Button>
-            </Link>
-          </Tooltip>
-          <hr className={classes(css.separator, collapsed && css.collapsedSeparator)} />
           <ExternalUri
             title={'Documentation'}
             to={ExternalLinks.DOCUMENTATION}
@@ -493,18 +490,6 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
             collapsed={collapsed}
             icon={className => (
               <img src={GitHubIcon} className={classes(className, css.iconImage)} alt='Github' />
-            )}
-          />
-          <ExternalUri
-            title={'AI Hub Samples'}
-            to={ExternalLinks.AI_HUB}
-            collapsed={collapsed}
-            icon={className => (
-              <img
-                src='https://www.gstatic.com/aihub/aihub_favicon.png'
-                className={classes(className, css.iconImage)}
-                alt='AI Hub'
-              />
             )}
           />
           <hr className={classes(css.separator, collapsed && css.collapsedSeparator)} />
@@ -557,7 +542,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
           <Tooltip title='Report an Issue' enterDelay={300} placement={'top-start'}>
             <div className={css.envMetadata}>
               <a
-                href='https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md'
+                href={ExternalLinks.GITHUB_ISSUE}
                 className={classes(css.link, commonCss.unstyled)}
                 rel='noopener'
                 target='_blank'
@@ -572,11 +557,15 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
   }
 
   private _highlightExperimentsButton(page: string): boolean {
+    return page.startsWith(RoutePage.EXPERIMENTS) || page === RoutePage.ARCHIVED_EXPERIMENTS;
+  }
+
+  private _highlightRunsButton(page: string): boolean {
     return (
-      page.startsWith(RoutePage.EXPERIMENTS) ||
       page.startsWith(RoutePage.RUNS) ||
       page.startsWith(RoutePrefix.RECURRING_RUN) ||
-      page.startsWith(RoutePage.COMPARE)
+      page.startsWith(RoutePage.COMPARE) ||
+      page === RoutePage.ARCHIVED_RUNS
     );
   }
 

@@ -81,6 +81,9 @@ spec:
               - loop_static
               - resource_ops
               - multiple_outputs
+              - caching
+              - parallelism_sub_dag
+              - parallelism_sub_dag_with_op_output
           - name: run-integration-tests-loop
             template: run-sample-tests
             arguments:

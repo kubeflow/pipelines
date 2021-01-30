@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ from __future__ import absolute_import
 # import models into model package
 from kfp_server_api.models.api_cron_schedule import ApiCronSchedule
 from kfp_server_api.models.api_experiment import ApiExperiment
+from kfp_server_api.models.api_get_healthz_response import ApiGetHealthzResponse
 from kfp_server_api.models.api_get_template_response import ApiGetTemplateResponse
 from kfp_server_api.models.api_job import ApiJob
 from kfp_server_api.models.api_list_experiments_response import ApiListExperimentsResponse

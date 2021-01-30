@@ -14,15 +14,15 @@
 """Function for creating ContainerOp instances from component spec."""
 
 import copy
-from typing import Any, Mapping
+from typing import Any, Mapping, Optional
 
 from kfp import dsl
 from kfp.components._naming import _sanitize_python_function_name
 from kfp.components._naming import generate_unique_name_conversion_table
 from kfp.dsl import types
-from kfp.v2.components import structures
-from kfp.v2.components.components import _default_component_name
-from kfp.v2.components.components import _resolve_command_line_and_paths
+from kfp.components import _structures as structures
+from kfp.components._components import _default_component_name
+from kfp.components._components import _resolve_command_line_and_paths
 from kfp.v2.dsl import container_op
 from kfp.v2.dsl import importer_node
 from kfp.v2.dsl import type_utils
@@ -33,23 +33,20 @@ from kfp.pipeline_spec import pipeline_spec_pb2
 def create_container_op_from_component_and_arguments(
     component_spec: structures.ComponentSpec,
     arguments: Mapping[str, Any],
-    component_ref: structures.ComponentReference = None,
+    component_ref: Optional[structures.ComponentReference] = None,
 ) -> container_op.ContainerOp:
   """Instantiates ContainerOp object.
 
   Args:
     component_spec: The component spec object.
     arguments: The dictionary of component arguments.
-    component_ref: The component reference. Optional.
+    component_ref: (not used in v2)
 
   Returns:
     A ContainerOp instance.
   """
 
   pipeline_task_spec = pipeline_spec_pb2.PipelineTaskSpec()
-  pipeline_task_spec.task_info.name = component_spec.name
-  # might need to append suffix to exuector_label to ensure its uniqueness?
-  pipeline_task_spec.executor_label = component_spec.name
 
   # Keep track of auto-injected importer spec.
   importer_spec = {}
@@ -152,6 +149,15 @@ def create_container_op_from_component_and_arguments(
       raise TypeError(
           'Input "{}" with type "{}" cannot be paired with InputPathPlaceholder.'
           .format(input_key, inputs_dict[input_key].type))
+    elif input_key in importer_spec:
+      raise TypeError(
+          'Input "{}" with type "{}" is not connected to any upstream output. '
+          'However it is used with InputPathPlaceholder. '
+          'If you want to import an existing artifact using a system-connected '
+          'importer node, use InputUriPlaceholder instead. '
+          'Or if you just want to pass a string parameter, use string type and '
+          'InputValuePlaceholder instead.'
+          .format(input_key, inputs_dict[input_key].type))
     else:
       return "{{{{$.inputs.artifacts['{}'].path}}}}".format(input_key)
 
@@ -223,6 +229,10 @@ def create_container_op_from_component_and_arguments(
       ],
   )
 
+  # task.name is unique at this point.
+  pipeline_task_spec.task_info.name = task.name
+  pipeline_task_spec.executor_label = task.name
+
   task.task_spec = pipeline_task_spec
   task.importer_spec = importer_spec
   task.container_spec = pipeline_container_spec
@@ -230,9 +240,6 @@ def create_container_op_from_component_and_arguments(
 
   component_meta = copy.copy(component_spec)
   task._set_metadata(component_meta)
-  component_ref_without_spec = copy.copy(component_ref)
-  component_ref_without_spec.spec = None
-  task._component_ref = component_ref_without_spec
 
   # Previously, ContainerOp had strict requirements for the output names, so we
   # had to convert all the names before passing them to the ContainerOp

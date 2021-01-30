@@ -9,6 +9,8 @@ go_library(
         "experiment.pb.go",
         "experiment.pb.gw.go",
         "filter.pb.go",
+        "healthz.pb.go",
+        "healthz.pb.gw.go",
         "job.pb.go",
         "job.pb.gw.go",
         "parameter.pb.go",

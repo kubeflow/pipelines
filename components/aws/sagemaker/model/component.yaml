@@ -37,7 +37,7 @@ outputs:
 - {name: model_name, description: The name of the model created by SageMaker.}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:1.0.0
+    image: amazon/aws-sagemaker-kfp-components:1.1.0
     command: [python3]
     args:
     - model/src/sagemaker_model_component.py

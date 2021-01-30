@@ -65,7 +65,7 @@ implementation:
               region=gcp_region,
               dataset_id=dataset_id,
           )
-          return (dataset.name, dataset.create_time, dataset_id, dataset_url)
+          return (dataset.name, str(dataset.create_time), dataset_id, dataset_url)
 
       import json
       def _serialize_str(str_value: str) -> str:

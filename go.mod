@@ -15,7 +15,7 @@ require (
 	github.com/go-openapi/strfmt v0.19.3
 	github.com/go-openapi/swag v0.19.8
 	github.com/go-openapi/validate v0.19.5
-	github.com/go-sql-driver/mysql v1.4.1
+	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/golang/protobuf v1.4.2
 	github.com/google/addlicense v0.0.0-20200906110928-a0294312aa76 // indirect
@@ -38,7 +38,7 @@ require (
 	github.com/spf13/viper v1.3.2
 	github.com/stretchr/testify v1.5.1
 	golang.org/x/net v0.0.0-20200520004742-59133d7f0dd7
-	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9 // indirect
+	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a // indirect
 	google.golang.org/api v0.20.0
 	google.golang.org/genproto v0.0.0-20200317114155-1f3552e48f24
 	google.golang.org/grpc v1.28.0

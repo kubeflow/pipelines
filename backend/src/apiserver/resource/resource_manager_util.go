@@ -244,8 +244,8 @@ func OverrideParameterWithSystemDefault(workflow util.Workflow, apiRun *api.Run)
 // Convert PipelineId in PipelineSpec to the pipeline's default pipeline version.
 // This is for legacy usage of pipeline id to create run. The standard way to
 // create run is by specifying the pipeline version.
-func ConvertPipelineIdToDefaultPipelineVersion(pipelineSpec *api.PipelineSpec, resourceReferences *[]*api.ResourceReference, r *ResourceManager) error {
-	if pipelineSpec.GetPipelineId() == "" {
+func convertPipelineIdToDefaultPipelineVersion(pipelineSpec *api.PipelineSpec, resourceReferences *[]*api.ResourceReference, r *ResourceManager) error {
+	if pipelineSpec == nil || pipelineSpec.GetPipelineId() == "" {
 		return nil
 	}
 	// If there is already a pipeline version in resource references, don't convert pipeline id.

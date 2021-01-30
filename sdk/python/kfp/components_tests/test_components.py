@@ -720,6 +720,85 @@ implementation:
         with self.assertRaises(TypeError):
             component(input_1="value 1", input_2=open)
 
+    def test_input_output_uri_resolving(self):
+        component_text = textwrap.dedent('''\
+            inputs:
+            - {name: In1}
+            outputs:
+            - {name: Out1}
+            implementation:
+              container:
+                image: busybox
+                command:
+                - program
+                - --in1-uri
+                - {inputUri: In1}
+                - --out1-uri
+                - {outputUri: Out1}
+            '''
+        )
+        op = comp.load_component_from_text(text=component_text)
+        task = op(in1='foo')
+        resolved_cmd = _resolve_command_line_and_paths(
+            component_spec=task.component_ref.spec,
+            arguments=task.arguments
+        )
+
+        self.assertEqual(
+            [
+                'program',
+                '--in1-uri',
+                '{{kfp.output_dir}}/{{kfp.run_uid}}/{{inputs.parameters.In1-producer-pod-id-}}/In1',
+                '--out1-uri',
+                '{{kfp.output_dir}}/{{kfp.run_uid}}/{{pod.name}}/Out1',
+            ],
+            resolved_cmd.command
+        )
+
+    def test_metadata_placeholder_resolving(self):
+        component_text = textwrap.dedent("""\
+        name: Example function
+        inputs:
+        - {name: a, type: Dataset}
+        - {name: c, type: String}
+        outputs:
+        - {name: b, type: Model}
+        implementation:
+          container:
+            image: python:3.7
+            command:
+            - python3
+            - -u
+            args:
+            - --a
+            - {inputMetadata: a}
+            - --c
+            - {inputValue: c}
+            - --b
+            - {inputOutputPortName: a}
+            - --metadata-location
+            - {outputMetadata}
+        """)
+
+        op = comp.load_component_from_text(text=component_text)
+        task = op(a='foo', c='bar')
+        resolved_cmd = _resolve_command_line_and_paths(
+            component_spec=task.component_ref.spec,
+            arguments=task.arguments
+        )
+
+        self.assertEqual(
+            ['--a',
+             '{{kfp.output_dir}}/{{kfp.run_uid}}/{{inputs.parameters.a-producer-pod-id-}}/executor_output.json',
+             '--c',
+             'bar',
+             '--b',
+             '{{kfp.input-output-name.a}}',
+             '--metadata-location',
+             '{{kfp.output_dir}}/{{kfp.run_uid}}/executor_output.json'],
+            resolved_cmd.args
+        )
+
     def test_check_type_validation_of_task_spec_outputs(self):
         producer_component_text = '''\
 outputs:

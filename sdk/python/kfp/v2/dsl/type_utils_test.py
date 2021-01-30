@@ -36,16 +36,12 @@ class TypeUtilsTest(unittest.TestCase):
       self.assertFalse(type_utils.is_parameter_type(type_name))
 
   def test_get_artifact_type_schema(self):
-    self.assertEqual('title: kfp.Model\ntype: object\nproperties:\n',
+    self.assertEqual('properties:\ntitle: kfp.Model\ntype: object\n',
                      type_utils.get_artifact_type_schema('Model'))
-    self.assertEqual('title: kfp.Dataset\ntype: object\nproperties:\n',
+    self.assertEqual('properties:\ntitle: kfp.Dataset\ntype: object\n',
                      type_utils.get_artifact_type_schema('Dataset'))
-    self.assertEqual('title: kfp.Metrics\ntype: object\nproperties:\n',
-                     type_utils.get_artifact_type_schema('Metrics'))
-    self.assertEqual('title: kfp.Schema\ntype: object\nproperties:\n',
-                     type_utils.get_artifact_type_schema('Schema'))
     for type_name in _UNKNOWN_ARTIFACT_TYPES:
-      self.assertEqual('title: kfp.Artifact\ntype: object\nproperties:\n',
+      self.assertEqual('properties:\ntitle: kfp.Artifact\ntype: object\n',
                        type_utils.get_artifact_type_schema(type_name))
 
   def test_get_parameter_type(self):
@@ -81,12 +77,12 @@ class TypeUtilsTest(unittest.TestCase):
 
     # input found, and a matching artifact type schema returned.
     self.assertEqual(
-        'title: kfp.Model\ntype: object\nproperties:\n',
+        'properties:\ntitle: kfp.Model\ntype: object\n',
         type_utils.get_input_artifact_type_schema('input2', input_specs))
 
     # input found, and the default artifact type schema returned.
     self.assertEqual(
-        'title: kfp.Artifact\ntype: object\nproperties:\n',
+        'properties:\ntitle: kfp.Artifact\ntype: object\n',
         type_utils.get_input_artifact_type_schema('input3', input_specs))
 
 

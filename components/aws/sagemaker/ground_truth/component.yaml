@@ -79,7 +79,7 @@ outputs:
     SageMaker model trained as part of automated data labeling.}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:1.0.0
+    image: amazon/aws-sagemaker-kfp-components:1.1.0
     command: [python3]
     args:
     - ground_truth/src/sagemaker_ground_truth_component.py

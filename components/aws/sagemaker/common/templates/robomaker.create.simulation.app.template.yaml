@@ -1,0 +1,15 @@
+name: ''
+sources:
+  s3Bucket:
+  s3Key:
+  architecture:
+simulationSoftwareSuite:
+  name: ''
+  version: ''
+robotSoftwareSuite:
+  name: ''
+  version: ''
+renderingEngine:
+  name: ''
+  version: ''
+tags: {}

@@ -187,12 +187,29 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       versions,
     } = this.state;
 
+    // Since react-ace Editor doesn't support in Safari when height or width is a percentage.
+    // Fix the Yaml file cannot display issue via defining “width/height” does not not take percentage if it's Safari browser.
+    // The code of detecting wether isSafari is from: https://stackoverflow.com/questions/9847580/how-to-detect-safari-chrome-ie-firefox-and-opera-browser/9851769#9851769
+    const isSafari =
+      /constructor/i.test(window.HTMLElement.toString()) ||
+      (function(p) {
+        return p.toString() === '[object SafariRemoteNotification]';
+      })(
+        !window['safari'] || (typeof 'safari' !== 'undefined' && window['safari'].pushNotification),
+      );
+
     let selectedNodeInfo: StaticGraphParser.SelectedNodeInfo | null = null;
     if (this.state.graph && this.state.graph.node(selectedNodeId)) {
       selectedNodeInfo = this.state.graph.node(selectedNodeId).info;
       if (!!selectedNodeId && !selectedNodeInfo) {
         logger.error(`Node with ID: ${selectedNodeId} was not found in the graph`);
       }
+    }
+
+    let editorHeightWidth = '100%';
+
+    if (isSafari) {
+      editorHeightWidth = '640px';
     }
 
     return (
@@ -325,8 +342,8 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
               <div className={css.containerCss}>
                 <Editor
                   value={templateString || ''}
-                  height='100%'
-                  width='100%'
+                  height={editorHeightWidth}
+                  width={editorHeightWidth}
                   mode='yaml'
                   theme='github'
                   editorProps={{ $blockScrolling: true }}

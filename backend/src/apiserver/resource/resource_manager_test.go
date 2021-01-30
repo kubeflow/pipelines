@@ -593,6 +593,104 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
 }
 
+func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
+	// Create experiment, pipeline, and pipeline version.
+	store, manager, experiment, pipeline := initWithExperimentAndPipeline(t)
+	defer store.Close()
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	assert.True(t, ok)
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	version, err := manager.CreatePipelineVersion(&api.PipelineVersion{
+		Name: "version_for_run",
+		ResourceReferences: []*api.ResourceReference{
+			&api.ResourceReference{
+				Key: &api.ResourceKey{
+					Id:   pipeline.UUID,
+					Type: api.ResourceType_PIPELINE,
+				},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+	}, []byte(testWorkflow.ToStringForStore()), true)
+	assert.Nil(t, err)
+
+	apiRun := &api.Run{
+		Name: "run1",
+		PipelineSpec: &api.PipelineSpec{
+			PipelineId: pipeline.UUID,
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
+				Relationship: api.Relationship_OWNER,
+			},
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_PIPELINE_VERSION, Id: version.UUID},
+				Relationship: api.Relationship_CREATOR,
+			},
+		},
+		ServiceAccount: "sa1",
+	}
+	runDetail, err := manager.CreateRun(apiRun)
+	assert.Nil(t, err)
+
+	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
+		{Name: "param1", Value: util.StringPointer("world")}}
+	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
+	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
+	expectedRuntimeWorkflow.Spec.ServiceAccountName = "sa1"
+
+	expectedRunDetail := &model.RunDetail{
+		Run: model.Run{
+			UUID:           "123e4567-e89b-12d3-a456-426655440000",
+			ExperimentUUID: experiment.UUID,
+			DisplayName:    "run1",
+			Name:           "workflow-name",
+			Namespace:      "ns1",
+			ServiceAccount: "sa1",
+			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
+			CreatedAtInSec: 4,
+			Conditions:     "Running",
+			PipelineSpec: model.PipelineSpec{
+				PipelineId:           pipeline.UUID,
+				PipelineName:         "p1",
+				WorkflowSpecManifest: testWorkflow.ToStringForStore(),
+				Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			},
+			ResourceReferences: []*model.ResourceReference{
+				{
+					ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
+					ResourceType:  common.Run,
+					ReferenceUUID: experiment.UUID,
+					ReferenceName: "e1",
+					ReferenceType: common.Experiment,
+					Relationship:  common.Owner,
+				},
+				{
+					ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
+					ResourceType:  common.Run,
+					ReferenceUUID: version.UUID,
+					ReferenceName: "version_for_run",
+					ReferenceType: common.PipelineVersion,
+					Relationship:  common.Creator,
+				},
+			},
+		},
+		PipelineRuntime: model.PipelineRuntime{
+			WorkflowRuntimeManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
+		},
+	}
+	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value.")
+	assert.Equal(t, 1, store.ArgoClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
+	runDetail, err = manager.GetRun(runDetail.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
+}
+
 func TestCreateRun_NoExperiment(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
@@ -1113,6 +1211,87 @@ func TestCreateJob_ThroughPipelineVersion(t *testing.T) {
 	assert.Equal(t, expectedJob, newJob)
 }
 
+func TestCreateJob_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
+	// Create experiment, pipeline and pipeline version.
+	store, manager, experiment, pipeline := initWithExperimentAndPipeline(t)
+	defer store.Close()
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	assert.True(t, ok)
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	version, err := manager.CreatePipelineVersion(&api.PipelineVersion{
+		Name: "version_for_job",
+		ResourceReferences: []*api.ResourceReference{
+			&api.ResourceReference{
+				Key: &api.ResourceKey{
+					Id:   pipeline.UUID,
+					Type: api.ResourceType_PIPELINE,
+				},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+	}, []byte(testWorkflow.ToStringForStore()), true)
+	assert.Nil(t, err)
+
+	job := &api.Job{
+		Name:    "j1",
+		Enabled: true,
+		PipelineSpec: &api.PipelineSpec{
+			PipelineId: pipeline.UUID,
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
+				Relationship: api.Relationship_OWNER,
+			},
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_PIPELINE_VERSION, Id: version.UUID},
+				Relationship: api.Relationship_CREATOR,
+			},
+		},
+	}
+	newJob, err := manager.CreateJob(job)
+	expectedJob := &model.Job{
+		UUID:           "123e4567-e89b-12d3-a456-426655440000",
+		DisplayName:    "j1",
+		Name:           "j1",
+		Namespace:      "ns1",
+		ServiceAccount: "pipeline-runner",
+		Enabled:        true,
+		CreatedAtInSec: 4,
+		UpdatedAtInSec: 4,
+		Conditions:     "NO_STATUS",
+		PipelineSpec: model.PipelineSpec{
+			PipelineName:         "p1",
+			PipelineId:           pipeline.UUID,
+			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
+			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+		},
+		ResourceReferences: []*model.ResourceReference{
+			{
+				ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
+				ResourceType:  common.Job,
+				ReferenceUUID: experiment.UUID,
+				ReferenceName: "e1",
+				ReferenceType: common.Experiment,
+				Relationship:  common.Owner,
+			},
+			{
+				ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
+				ResourceType:  common.Job,
+				ReferenceUUID: version.UUID,
+				ReferenceName: "version_for_job",
+				ReferenceType: common.PipelineVersion,
+				Relationship:  common.Creator,
+			},
+		},
+	}
+	assert.Nil(t, err)
+	assert.Equal(t, expectedJob, newJob)
+}
+
 func TestCreateJob_EmptyPipelineSpec(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
@@ -1243,13 +1422,41 @@ func TestEnableJob_JobNotExist(t *testing.T) {
 	assert.Contains(t, err.Error(), "Job 1 not found")
 }
 
-func TestEnableJob_CrdFailure(t *testing.T) {
+func TestEnableJob_CustomResourceFailure(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
 	manager.swfClient = client.NewFakeSwfClientWithBadWorkflow()
-	err := manager.EnableJob(job.UUID, false)
+	err := manager.EnableJob(job.UUID, true)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Check job exist failed: some error")
+}
+
+func TestEnableJob_CustomResourceNotFound(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	// The swf CR can be missing when user reinstalled KFP using existing DB data.
+	// Explicitly delete it to simulate the situation.
+	manager.getScheduledWorkflowClient(job.Namespace).Delete(job.Name, &v1.DeleteOptions{})
+	// When swf CR is missing, enabling the job needs to fail.
+	err := manager.EnableJob(job.UUID, true)
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "Check job exist failed")
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestDisableJob_CustomResourceNotFound(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	require.Equal(t, job.Enabled, true)
+
+	// The swf CR can be missing when user reinstalled KFP using existing DB data.
+	// Explicitly delete it to simulate the situation.
+	manager.getScheduledWorkflowClient(job.Namespace).Delete(job.Name, &v1.DeleteOptions{})
+	err := manager.EnableJob(job.UUID, false)
+	require.Nil(t, err, "Disabling the job should succeed even when the custom resource is missing.")
+	job, err = manager.GetJob(job.UUID)
+	require.Nil(t, err)
+	require.Equal(t, job.Enabled, false)
 }
 
 func TestEnableJob_DbFailure(t *testing.T) {
@@ -1281,14 +1488,32 @@ func TestDeleteJob_JobNotExist(t *testing.T) {
 	assert.Contains(t, err.Error(), "Job 1 not found")
 }
 
-func TestDeleteJob_CrdFailure(t *testing.T) {
+func TestDeleteJob_CustomResourceFailure(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
 
 	manager.swfClient = client.NewFakeSwfClientWithBadWorkflow()
 	err := manager.DeleteJob(job.UUID)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Check job exist failed: some error")
+	assert.Contains(t, err.Error(), "Delete job CR failed: some error")
+}
+
+func TestDeleteJob_CustomResourceNotFound(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	// The swf CR can be missing when user reinstalled KFP using existing DB data.
+	// Explicitly delete it to simulate the situation.
+	manager.getScheduledWorkflowClient(job.Namespace).Delete(job.Name, &v1.DeleteOptions{})
+
+	// Now deleting job should still succeed when the swf CR is already deleted.
+	err := manager.DeleteJob(job.UUID)
+	assert.Nil(t, err)
+
+	// And verify Job has been deleted from DB too.
+	_, err = manager.GetJob(job.UUID)
+	require.NotNil(t, err)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), fmt.Sprintf("Job %v not found", job.UUID))
 }
 
 func TestDeleteJob_DbFailure(t *testing.T) {

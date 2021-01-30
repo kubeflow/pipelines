@@ -36,8 +36,8 @@ inputs:
     channels. Must have at least one.}
 - {name: instance_type, type: String, description: The ML compute instance type.,
   default: ml.m4.xlarge}
-- {name: instance_count, type: Integer, description: The registry path of the Docker
-    image that contains the training algorithm., default: '1'}
+- {name: instance_count, type: Integer, description: The number of ML compute instances
+    to use in the training job., default: '1'}
 - {name: volume_size, type: Integer, description: The size of the ML storage volume
     that you want to provision., default: '30'}
 - {name: resource_encryption_key, type: String, description: The AWS KMS key that
@@ -72,7 +72,7 @@ outputs:
     the training algorithm.}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:1.0.0
+    image: amazon/aws-sagemaker-kfp-components:1.1.0
     command: [python3]
     args:
     - train/src/sagemaker_training_component.py

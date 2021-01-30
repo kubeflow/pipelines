@@ -28,7 +28,7 @@ import { statusToIcon } from '../pages/Status';
 import { Constants } from './Constants';
 import { KeyValue } from './StaticGraphParser';
 import { hasFinished, NodePhase, statusToBgColor, parseNodePhase } from './StatusUtils';
-import { parseTaskDisplayName } from './ParserUtils';
+import { parseTaskDisplayNameByNodeId } from './ParserUtils';
 import { isS3Endpoint } from './AwsHelper';
 
 export enum StorageService {
@@ -90,17 +90,7 @@ export default class WorkflowParser {
 
     // Create dagre graph nodes from workflow nodes.
     (Object as any).values(workflowNodes).forEach((node: NodeStatus) => {
-      let nodeLabel = node.displayName || node.id;
-      if (node.name === `${workflowName}.onExit`) {
-        nodeLabel = `onExit - ${node.templateName}`;
-      }
-
-      if (workflow.spec && workflow.spec.templates) {
-        const tmpl = workflow.spec.templates.find(
-          t => !!t && !!t.name && t.name === node.templateName,
-        );
-        nodeLabel = parseTaskDisplayName(tmpl?.metadata) || nodeLabel;
-      }
+      const nodeLabel = parseTaskDisplayNameByNodeId(node.id, workflow);
 
       g.setNode(node.id, {
         height: Constants.NODE_HEIGHT,
