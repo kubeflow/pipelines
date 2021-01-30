@@ -266,10 +266,14 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
 
   public async refresh(): Promise<void> {
     await this.load();
+    await this.refreshRunListsRouter();
+    return;
+  }
+
+  private async refreshRunListsRouter() {
     if (this._runlistsRouterRef.current) {
       await this._runlistsRouterRef.current.refresh();
     }
-    return;
   }
 
   public async componentDidMount(): Promise<void> {
@@ -350,7 +354,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
    * @param tab selected by user for run storage state
    * @param cb callback to notify child component
    */
-  private _onRunTabSwitch(tab: RunListsGroupTab, cb?: () => void): void {
+  private _onRunTabSwitch(tab: RunListsGroupTab): void {
     let runStorageState = RunStorageState.AVAILABLE;
     if (tab === RunListsGroupTab.ARCHIVE) {
       runStorageState = RunStorageState.ARCHIVED;
@@ -361,9 +365,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       },
       () => {
         this._selectionChanged([]);
-        if (cb) {
-          cb();
-        }
+        this.refreshRunListsRouter();
       },
     );
 

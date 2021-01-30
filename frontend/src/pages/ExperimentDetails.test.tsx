@@ -22,15 +22,13 @@ import { Apis } from '../lib/Apis';
 import { PageProps } from './Page';
 import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
-import { RunStorageState } from '../apis/run';
 import { ToolbarProps } from '../components/Toolbar';
 import { range } from 'lodash';
 import { ButtonKeys } from '../lib/Buttons';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
-import { RunListsGroupTab } from './RunListsRouter';
 
 describe('ExperimentDetails', () => {
   let tree: ReactWrapper | ShallowWrapper;
@@ -606,6 +604,25 @@ describe('ExperimentDetails', () => {
     expect(
       (tree.state('runListToolbarProps') as ToolbarProps).actions[ButtonKeys.RESTORE],
     ).toBeUndefined();
+  });
+
+  it('switches to active/archive tab will show active/archive runs', async () => {
+    await mockNRuns(4);
+
+    tree = TestUtils.mountWithRouter(<ExperimentDetails {...generateProps()} />);
+    await TestUtils.flushPromises();
+    tree.update();
+    expect(tree.find('.tableRow').length).toEqual(4);
+
+    await mockNRuns(2);
+    tree
+      .find('MD2Tabs')
+      .find('Button')
+      .at(1) // `Archived` tab button
+      .simulate('click');
+    await TestUtils.flushPromises();
+    tree.update();
+    expect(tree.find('.tableRow').length).toEqual(2);
   });
 
   it('switches to another tab will change Archive/Restore button', async () => {

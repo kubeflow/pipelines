@@ -15,7 +15,6 @@
  */
 
 import * as React from 'react';
-import { BrowserRouter } from 'react-router-dom';
 import { RunStorageState } from 'src/apis/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import { commonCss, padding } from 'src/Css';
@@ -29,25 +28,18 @@ export enum RunListsGroupTab {
 
 export type RunListsRouterProps = RunListProps & {
   storageState: RunStorageState;
-  onTabSwitch?: (tab: RunListsGroupTab, cb?: () => void) => void;
+  onTabSwitch?: (tab: RunListsGroupTab) => void;
 };
 
-interface RunListsRouterState {
-  storageState: RunStorageState;
-}
 /**
  * Contains two tab buttons which allows user to see Active or Archived runs list.
  */
-class RunListsRouter extends React.PureComponent<RunListsRouterProps, RunListsRouterState> {
+class RunListsRouter extends React.PureComponent<RunListsRouterProps> {
   protected _isMounted = true;
   private _runlistRef = React.createRef<RunList>();
 
   constructor(props: any) {
     super(props);
-
-    this.state = {
-      storageState: props.storageState,
-    };
   }
 
   public componentWillUnmount(): void {
@@ -56,29 +48,27 @@ class RunListsRouter extends React.PureComponent<RunListsRouterProps, RunListsRo
 
   public render(): JSX.Element {
     return (
-      <BrowserRouter>
-        <div className={classes(commonCss.page, padding(20, 't'))}>
-          <MD2Tabs
-            tabs={['Active', 'Archived']}
-            selectedTab={this._getSelectedTab()}
-            onSwitch={this._switchTab.bind(this)}
-          />
+      <div className={classes(commonCss.page, padding(20, 't'))}>
+        <MD2Tabs
+          tabs={['Active', 'Archived']}
+          selectedTab={this._getSelectedTab()}
+          onSwitch={this._switchTab.bind(this)}
+        />
 
-          {
-            <RunList
-              hideExperimentColumn={true}
-              experimentIdMask={this.props.experimentIdMask}
-              ref={this._runlistRef}
-              onSelectionChange={this.props.onSelectionChange}
-              selectedIds={this.props.selectedIds}
-              noFilterBox={false}
-              disablePaging={false}
-              disableSorting={true}
-              {...this.props}
-            />
-          }
-        </div>
-      </BrowserRouter>
+        {
+          <RunList
+            hideExperimentColumn={true}
+            experimentIdMask={this.props.experimentIdMask}
+            ref={this._runlistRef}
+            onSelectionChange={this.props.onSelectionChange}
+            selectedIds={this.props.selectedIds}
+            noFilterBox={false}
+            disablePaging={false}
+            disableSorting={true}
+            {...this.props}
+          />
+        }
+      </div>
     );
   }
 
@@ -93,18 +83,13 @@ class RunListsRouter extends React.PureComponent<RunListsRouterProps, RunListsRo
     if (this._getSelectedTab() === newTab) {
       return;
     }
-    this.setState({
-      storageState: this._getStorageState(newTab),
-    });
     if (this.props.onTabSwitch) {
-      this.props.onTabSwitch(newTab, () => {
-        this.refresh();
-      });
+      this.props.onTabSwitch(newTab);
     }
   }
 
   private _getSelectedTab(): number {
-    return this.state.storageState === RunStorageState.ARCHIVED
+    return this.props.storageState === RunStorageState.ARCHIVED
       ? RunListsGroupTab.ARCHIVE
       : RunListsGroupTab.ACTIVE;
   }

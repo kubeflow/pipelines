@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import produce from 'immer';
 import RunListsRouter, { RunListsRouterProps } from './RunListsRouter';
 import React from 'react';
@@ -23,10 +23,23 @@ import { ApiRunDetail, RunStorageState } from 'src/apis/run';
 import { ApiExperiment } from 'src/apis/experiment';
 import { Apis } from 'src/lib/Apis';
 import * as Utils from '../lib/Utils';
+import { BrowserRouter, MemoryRouter } from 'react-router-dom';
+import { ApiFilter, PredicateOp } from 'src/apis/filter';
+import TestUtils from 'src/TestUtils';
 
 describe('RunListsRouter', () => {
   let historyPushSpy: any;
-  const onTabSwitchMock = jest.fn();
+  let runStorageState = RunStorageState.AVAILABLE;
+  let runlistsRouterRef = React.createRef<RunListsRouter>();
+
+  const onTabSwitchMock = jest.fn((newTab: number) => {
+    // this.refresh();
+    if (newTab === 1) {
+      runStorageState = RunStorageState.ARCHIVED;
+    } else {
+      runStorageState = RunStorageState.AVAILABLE;
+    }
+  });
   const onSelectionChangeMock = jest.fn();
   const listRunsSpy = jest.spyOn(Apis.runServiceApi, 'listRuns');
   const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
@@ -36,6 +49,8 @@ describe('RunListsRouter', () => {
   const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => null);
 
   const MOCK_EXPERIMENT = newMockExperiment();
+  const archiveRunDisplayName = 'run with id: achiverunid';
+  const activeRunDisplayName = 'run with id: activerunid';
 
   function newMockExperiment(): ApiExperiment {
     return {
@@ -47,20 +62,27 @@ describe('RunListsRouter', () => {
 
   function generateProps(): RunListsRouterProps {
     const runListsRouterProps: RunListsRouterProps = {
-      onTabSwitch: onTabSwitchMock(),
+      onTabSwitch: jest.fn((newTab: number) => {
+        // this.refresh();
+        if (newTab === 1) {
+          runStorageState = RunStorageState.ARCHIVED;
+        } else {
+          runStorageState = RunStorageState.AVAILABLE;
+        }
+      }),
       hideExperimentColumn: true,
       history: { push: historyPushSpy } as any,
       location: '' as any,
       match: { params: { [RouteParams.experimentId]: MOCK_EXPERIMENT.id } } as any,
-      onSelectionChange: onSelectionChangeMock(),
-      selectedIds: ['runId1'],
-      storageState: RunStorageState.AVAILABLE,
+      onSelectionChange: onSelectionChangeMock,
+      selectedIds: [],
+      storageState: runStorageState,
       noFilterBox: false,
       disablePaging: false,
       disableSorting: true,
       disableSelection: false,
       hideMetricMetadata: false,
-      onError: consoleErrorSpy(),
+      onError: consoleErrorSpy,
     };
     return runListsRouterProps;
   }
@@ -75,12 +97,34 @@ describe('RunListsRouter', () => {
         }),
       ),
     );
-    listRunsSpy.mockImplementation(() => {
+    listRunsSpy.mockImplementation((pageToken, pageSize, sortBy, keyType, keyId, filter) => {
+      let filterForArchive = JSON.parse(decodeURIComponent('{"predicates": []}'));
+      filterForArchive = encodeURIComponent(
+        JSON.stringify({
+          predicates: [
+            {
+              key: 'storage_state',
+              op: PredicateOp.EQUALS,
+              string_value: RunStorageState.ARCHIVED.toString(),
+            },
+          ],
+        }),
+      );
+      if (filter === filterForArchive) {
+        return Promise.resolve({
+          runs: [
+            {
+              id: 'achiverunid',
+              name: archiveRunDisplayName,
+            },
+          ],
+        });
+      }
       return Promise.resolve({
         runs: [
           {
-            id: 'achiverunid',
-            name: 'run with id: achiverunid',
+            id: 'activerunid',
+            name: activeRunDisplayName,
           },
         ],
       });
@@ -90,11 +134,6 @@ describe('RunListsRouter', () => {
     formatDateStringSpy.mockImplementation((date?: Date) => {
       return date ? '1/2/2019, 12:34:56 PM' : '-';
     });
-    onTabSwitchMock.mockImplementation((newTab, cb) => {
-      if (cb) {
-        cb();
-      }
-    });
   });
 
   afterEach(() => {
@@ -102,17 +141,40 @@ describe('RunListsRouter', () => {
   });
 
   it('shows Active and Archive tabs', () => {
-    render(<RunListsRouter {...generateProps()} />);
+    render(
+      <BrowserRouter>
+        <RunListsRouter {...generateProps()} />
+      </BrowserRouter>,
+    );
 
-    expect(screen.getByText('Active')).toMatchInlineSnapshot(`
-      <span>
-        Active
-      </span>
-    `);
-    expect(screen.getByText('Archived')).toMatchInlineSnapshot(`
-      <span>
-        Archived
-      </span>
-    `);
+    screen.getByText('Active');
+    screen.getByText('Archived');
+  });
+
+  it('changes runlist by clicking tabs', async () => {
+    const { rerender } = render(
+      <MemoryRouter>
+        <RunListsRouter ref={runlistsRouterRef} {...generateProps()} />
+      </MemoryRouter>,
+    );
+    await TestUtils.flushPromises();
+    screen.getByText(/run with id: activerunid/);
+
+    fireEvent.click(screen.getByText('Archived').closest('Button')!);
+    await TestUtils.flushPromises();
+    rerender(
+      <MemoryRouter>
+        <RunListsRouter
+          ref={runlistsRouterRef}
+          {...generateProps()}
+          storageState={RunStorageState.ARCHIVED}
+        />
+      </MemoryRouter>,
+    );
+    await act(TestUtils.flushPromises);
+    await runlistsRouterRef.current?.refresh();
+    // await TestUtils.flushPromises();
+
+    expect(screen.queryByText(/run with id: archiverunid/)).toBeInTheDocument();
   });
 });
