@@ -392,6 +392,8 @@ def build_python_component(
 
     program_args.append('--pipeline_context')
     program_args.append(dsl.RUN_ID_PLACEHOLDER)
+    program_args.append('--{}'.format(entrypoint.FN_NAME_ARG))
+    program_args.append(component_func.__name__)
 
     component_spec.implementation.container.args = program_args
   else:

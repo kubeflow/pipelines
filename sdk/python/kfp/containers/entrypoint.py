@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Union
+from typing import Dict, NamedTuple, Optional, Union
 
 from absl import logging
 import fire
@@ -22,6 +22,7 @@ import os
 from kfp.containers import _gcs_helper
 from kfp.containers import entrypoint_utils
 from kfp.dsl import artifact
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 FN_SOURCE = 'ml/main.py'
 FN_NAME_ARG = 'function_name'
@@ -156,7 +157,79 @@ class InputArtifact(object):
       return result
 
 
-def main(**kwargs):
+def _write_output_metadata_file(
+    fn_res: Union[int, str, float, NamedTuple],
+    output_artifacts: Dict[str, artifact.Artifact],
+    output_metadata_path: str
+):
+  """Writes the output metadata file to the designated place."""
+  # If output_params is a singleton value, needs to transform it to a mapping.
+  output_parameters = {}
+  if isinstance(fn_res, (int, str, float)):
+    output_parameters['output'] = fn_res
+  else:
+    # When multiple outputs, we'll need to match each field to the output paths.
+    for idx, output_name in enumerate(fn_res._fields):
+      output_parameters[output_name] = fn_res[idx]
+
+  executor_output = entrypoint_utils.get_executor_output(
+      output_artifacts=output_artifacts,
+      output_params=output_parameters)
+
+  with open(output_metadata_path, 'w') as f:
+    f.write(json_format.MessageToJson(executor_output))
+
+  return executor_output
+
+
+def main(
+    executor_input_str: str,
+    function_name: str,
+    output_metadata_path: str):
+  """Container entrypoint used by KFP Python function based component
+
+  executor_input_str: A serialized ExecutorInput proto message.
+  function_name: The name of the user-defined function.
+  output_metadata_path: A local path where the output metadata JSON file should
+    be written to.
+  """
+  executor_input = pipeline_spec_pb2.ExecutorInput()
+  json_format.Parse(text=executor_input_str, message=executor_input)
+  parameter_dict = {}  # kwargs to be passed to UDF.
+  for name, input_param in executor_input.inputs.parameters.items():
+    parameter_dict[name] = entrypoint_utils.get_python_value(input_param)
+
+  for name, input_artifacts in executor_input.inputs.artifacts.items():
+    parameter_dict[name] = artifact.Artifact.get_from_runtime_artifact(
+      input_artifacts.artifacts[0])
+
+  # Also, determine a way to inspect the function signature to decide the type
+  # of output artifacts.
+  fn = entrypoint_utils.import_func_from_source(FN_SOURCE, function_name)
+
+  # In the ExeuctorInput message passed into the entrypoint, the output artifact
+  # URIs are already specified. The output artifact is constructed according to
+  # the specified URIs + type information retrieved from function signature.
+  output_uris = {}
+  for name, output_artifacts in executor_input.outputs.artifacts.items():
+    output_uris[name] = output_artifacts.artifacts[0].uri
+
+  output_artifacts = entrypoint_utils.get_output_artifacts(
+      fn, output_uris)
+  for name, art in output_artifacts.items():
+    parameter_dict[name] = art
+
+  # Execute the user function. fn_res is expected to contain output parameters
+  # only. It's either an namedtuple or a single primitive value.
+  fn_res = fn(**parameter_dict)
+
+  _write_output_metadata_file(
+      fn_res=fn_res,
+      output_artifacts=output_artifacts,
+      output_metadata_path=output_metadata_path)
+
+
+def main_2(**kwargs):
   """Container entrypoint used by KFP Python function based component.
 
   This function has a dynamic signature, which will be interpreted according to
