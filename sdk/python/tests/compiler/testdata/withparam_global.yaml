@@ -24,7 +24,7 @@ spec:
     inputs:
       parameters:
       - name: loopidy_doop-loop-item
-    name: for-loop-for-loop-00000001-1
+    name: for-loop-1
   - container:
       args:
       - 'echo no output global op1, item: {{inputs.parameters.loopidy_doop-loop-item}}'
@@ -72,8 +72,8 @@ spec:
             value: '{{item}}'
         dependencies:
         - my-out-cop0
-        name: for-loop-for-loop-00000001-1
-        template: for-loop-for-loop-00000001-1
+        name: for-loop-1
+        template: for-loop-1
         withParam: '{{workflow.parameters.loopidy_doop}}'
       - name: my-out-cop0
         template: my-out-cop0
