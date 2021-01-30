@@ -842,17 +842,22 @@ class Compiler(object):
       raise ValueError('Either specify pipeline params in the pipeline function, or in "params_list", but not both.')
 
     args_list = []
+    kwargs_dict = dict()
     signature = inspect.signature(pipeline_func)
-    for arg_name in signature.parameters:
+    for arg_name, arg in signature.parameters.items():
       arg_type = None
       for input in pipeline_meta.inputs or []:
         if arg_name == input.name:
           arg_type = input.type
           break
-      args_list.append(dsl.PipelineParam(sanitize_k8s_name(arg_name, True), param_type=arg_type))
+      param = dsl.PipelineParam(sanitize_k8s_name(arg_name, True), param_type=arg_type)
+      if arg.kind == inspect.Parameter.KEYWORD_ONLY:
+        kwargs_dict[arg_name] = param
+      else:
+        args_list.append(param)
 
     with dsl.Pipeline(pipeline_name) as dsl_pipeline:
-      pipeline_func(*args_list)
+      pipeline_func(*args_list, **kwargs_dict)
 
     pipeline_conf = pipeline_conf or dsl_pipeline.conf # Configuration passed to the compiler is overriding. Unfortunately, it's not trivial to detect whether the dsl_pipeline.conf was ever modified.
 
