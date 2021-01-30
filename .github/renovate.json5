@@ -49,6 +49,7 @@
     "components/azure/",
     "components/presto/",
     "components/arena/",
+    "components/aws/",
     "backend/api/python_http_client/",
     "manifests/kustomize/"
   ],
