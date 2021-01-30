@@ -608,7 +608,6 @@ describe('ExperimentDetails', () => {
 
   it('switches to active/archive tab will show active/archive runs', async () => {
     await mockNRuns(4);
-
     tree = TestUtils.mountWithRouter(<ExperimentDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     tree.update();

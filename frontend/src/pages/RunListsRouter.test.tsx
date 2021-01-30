@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 import '@testing-library/jest-dom';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import produce from 'immer';
 import RunListsRouter, { RunListsRouterProps } from './RunListsRouter';
 import React from 'react';
@@ -23,23 +23,13 @@ import { ApiRunDetail, RunStorageState } from 'src/apis/run';
 import { ApiExperiment } from 'src/apis/experiment';
 import { Apis } from 'src/lib/Apis';
 import * as Utils from '../lib/Utils';
-import { BrowserRouter, MemoryRouter } from 'react-router-dom';
-import { ApiFilter, PredicateOp } from 'src/apis/filter';
-import TestUtils from 'src/TestUtils';
+import { BrowserRouter } from 'react-router-dom';
+import { PredicateOp } from 'src/apis/filter';
 
 describe('RunListsRouter', () => {
   let historyPushSpy: any;
   let runStorageState = RunStorageState.AVAILABLE;
-  let runlistsRouterRef = React.createRef<RunListsRouter>();
 
-  const onTabSwitchMock = jest.fn((newTab: number) => {
-    // this.refresh();
-    if (newTab === 1) {
-      runStorageState = RunStorageState.ARCHIVED;
-    } else {
-      runStorageState = RunStorageState.AVAILABLE;
-    }
-  });
   const onSelectionChangeMock = jest.fn();
   const listRunsSpy = jest.spyOn(Apis.runServiceApi, 'listRuns');
   const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
@@ -149,32 +139,5 @@ describe('RunListsRouter', () => {
 
     screen.getByText('Active');
     screen.getByText('Archived');
-  });
-
-  it('changes runlist by clicking tabs', async () => {
-    const { rerender } = render(
-      <MemoryRouter>
-        <RunListsRouter ref={runlistsRouterRef} {...generateProps()} />
-      </MemoryRouter>,
-    );
-    await TestUtils.flushPromises();
-    screen.getByText(/run with id: activerunid/);
-
-    fireEvent.click(screen.getByText('Archived').closest('Button')!);
-    await TestUtils.flushPromises();
-    rerender(
-      <MemoryRouter>
-        <RunListsRouter
-          ref={runlistsRouterRef}
-          {...generateProps()}
-          storageState={RunStorageState.ARCHIVED}
-        />
-      </MemoryRouter>,
-    );
-    await act(TestUtils.flushPromises);
-    await runlistsRouterRef.current?.refresh();
-    // await TestUtils.flushPromises();
-
-    expect(screen.queryByText(/run with id: archiverunid/)).toBeInTheDocument();
   });
 });
