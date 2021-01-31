@@ -211,8 +211,7 @@ func TestParseAPIFilter_DecodesEncodedString(t *testing.T) {
 	}
 
 	got, err := parseAPIFilter(in)
-	if !cmp.Equal(got, want) || /* cmpopts.IgnoreFields(api.Filter{}, "state", "sizeCache", "unknownFields"),
-		cmpopts.IgnoreFields(api.Predicate{}, "state", "sizeCache", "unknownFields")*/err != nil {
+	if !cmp.Equal(got, want) || err != nil {
 		t.Errorf("parseAPIString(%q) =\nGot %+v, %v\n Want %+v, <nil>\nDiff: %s",
 			in, got, err, want, cmp.Diff(want, got))
 	}
