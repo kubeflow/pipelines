@@ -11,12 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import importlib
 import ml_metadata as mlmd
 from ml_metadata.proto import metadata_store_pb2
 from ml_metadata.proto import metadata_store_service_pb2
 import random
+import re
 import time
 from typing import Dict, List, Optional
+
+from kfp.dsl import artifact
+from kfp.dsl import ontology_artifacts
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 # Number of times to retry initialization of connection.
 _MAX_INIT_RETRY = 10
@@ -59,6 +65,33 @@ def _get_artifact_state(
     return artifact.custom_properties[_ARTIFACT_TYPE_KEY_STATE].string_value
   else:
     return None
+
+
+def get_artifact_type_schema(
+    mlmd_type: metadata_store_pb2.ArtifactType
+) -> pipeline_spec_pb2.ArtifactTypeSchema:
+  """Converts MLMD ArtifactType message to ArtifactTypeSchema."""
+  # TODO(numerology): Also converts the property schema after hammering down a
+  # plan for supporting that in KFP.
+  matches = re.match(
+      r'kfp\.(?P<type_name>.*)',
+      mlmd_type.name)
+  if matches:
+    type_name = matches.group('type_name')
+    if not hasattr(importlib.import_module(
+        artifact.KFP_ARTIFACT_ONTOLOGY_MODULE), type_name):
+      raise TypeError(
+          'Got unexpected KFP ontology artifact type: %s' % type_name)
+
+    artifact_cls = getattr(
+        importlib.import_module(
+            artifact.KFP_ARTIFACT_ONTOLOGY_MODULE), type_name)
+    return pipeline_spec_pb2.ArtifactTypeSchema(
+        instance_schema = artifact_cls.get_artifact_type())
+  else:
+    # Otherwise, convert it to a plain Artifact
+    return pipeline_spec_pb2.ArtifactTypeSchema(
+        instance_schema = artifact.Artifact.get_artifact_type())
 
 
 class Metadata(object):
@@ -162,12 +195,30 @@ class Metadata(object):
     # Gets the candidate artifacts from output events.
     candidate_artifacts = self.store.get_artifacts_by_id(
         list(set(ev.artifact_id for ev in qualified_output_events)))
-    # Filters the artifacts that have the right artifact type and state.
+    # Filters the artifacts that have already been published.
     qualified_artifacts = [
         a for a in candidate_artifacts if
         (_get_artifact_state(a) == ArtifactState.PUBLISHED)]
 
-    return qualified_artifacts
+    if not qualified_artifacts:
+      return []
+    type_id = qualified_artifacts[0].type_id
+    # Check if the qualified artifacts have consistent types.
+    for a in qualified_artifacts:
+      if not a.type_id == type_id:
+        raise TypeError('Got inconsistent types when querying qualified '
+                        'artifacts: %s' % qualified_artifacts)
+
+    artifact_types = self.store.get_artifact_types_by_id([type_id])
+    if not artifact_types or len(artifact_types) != 1:
+      raise RuntimeError('Expecting a unique type registered in MLMD store. Got'
+                         '%s' % artifact_types)
+
+    return [
+        metadata_store_service_pb2.ArtifactAndType(
+            artifact=a, type=artifact_types[0]) for a in qualified_artifacts
+    ]
+
 
 
 

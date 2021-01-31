@@ -12,15 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import fire
+from google.protobuf import json_format
 import logging
 from ml_metadata.proto import metadata_store_pb2
+from ml_metadata.proto import metadata_store_service_pb2
 import os
 import sys
-from typing import Dict
+from typing import Dict, List, Union
 
 from kfp.containers import entrypoint
 from kfp.containers import mlmd_utils
 from kfp.dsl import artifact
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 MLMD_HOST_ENV = 'METADATA_GRPC_SERVICE_HOST'
 MLMD_PORT_ENV = 'METADATA_GRPC_SERVICE_PORT'
@@ -33,6 +36,8 @@ INPUT_URI_SUFFIX = '_input_uri'
 PRODUCER_POD_ID_SUFFIX = '_pod_id'
 OUTPUT_NAME_SUFFIX = '_input_output_name'
 OUTPUT_ARTIFACT_PATH_SUFFIX = '_artifact_output_path'
+
+METADATA_JSON_PATH = 'executor_output.json'
 
 
 def _get_metadata_connection_config(
@@ -49,13 +54,69 @@ def _get_metadata_connection_config(
   return connection_config
 
 
+def _get_pipeline_value(
+    value: Union[
+      metadata_store_pb2.Value, int, str, float]) -> pipeline_spec_pb2.Value:
+  result = pipeline_spec_pb2.Value()
+  if isinstance(value, metadata_store_pb2.Value):
+    if not value.HasField('value'):
+      raise RuntimeError('value must specified for a MLMD value message.')
+    if value.WhichOneof('value') == 'int_value':
+      result.int_value = value.int_value
+    elif value.WhichOneof('value') == 'double_value':
+      result.double_value = value.double_value
+    elif value.WhichOneof('value') == 'string_value':
+      result.string_value = value.string_value
+    else:
+      raise TypeError('Get unknown type of value: {}'.format(value))
+  elif isinstance(value, int):
+    result.int_value = value
+  elif isinstance(value, float):
+    result.double_value = value
+  elif isinstance(value, str):
+    result.string_value = value
+  else:
+    raise TypeError('Get unknown type of value: {}'.format(value))
+  return result
+
+
+def _get_pipeline_value_mapping(
+    mlmd_value_mapping) -> Dict[str, pipeline_spec_pb2.Value]:
+  """Converts a mapping field with MLMD Value to Kubeflow Value."""
+  return {k: _get_pipeline_value(v) for k, v in mlmd_value_mapping.items()}
+
+
+def _get_runtime_artifact(
+    mlmd_artifact_and_type: metadata_store_service_pb2.ArtifactAndType
+) -> pipeline_spec_pb2.RuntimeArtifact:
+  """Converts MLMD artifacts to pipeline RuntimeArtifact proto."""
+  result = pipeline_spec_pb2.RuntimeArtifact(
+      uri=mlmd_artifact_and_type.artifact.uri,
+      type=mlmd_utils.get_artifact_type_schema(mlmd_artifact_and_type.type),
+      properties=_get_pipeline_value_mapping(
+          mlmd_artifact_and_type.artifact.properties),
+      custom_properties=_get_pipeline_value_mapping(
+          mlmd_artifact_and_type.artifact.custom_properties))
+  return result
+
+
+def _get_pipeline_artifact_list(
+    mlmd_artifacts: List[metadata_store_service_pb2.ArtifactAndType]
+) -> pipeline_spec_pb2.ArtifactList:
+  """Converts MLMD artifacts to pipeline ArtifactList proto."""
+  artifacts = [
+      _get_runtime_artifact(a) for a in mlmd_artifacts]
+  return pipeline_spec_pb2.ArtifactList(
+      artifacts=artifacts)
+
+
 def _get_artifacts_mapping(
     metadata_client: mlmd_utils.Metadata,
     producer_execution_id: Dict[str, str],
     artifacts_name: Dict[str, str],
     artifacts_uri: Dict[str, str],
     run_context: str
-) -> Dict[str, artifact.Artifact]:
+) -> Dict[str, pipeline_spec_pb2.ArtifactList]:
   """Gets the artifacts mapping by query metadata store."""
   # 1. Sanity check the input:
   #    - artifacts_name and producer_execution_id should have the same key set.
@@ -85,12 +146,23 @@ def _get_artifacts_mapping(
           output_key=artifacts_name[name])
       assert len(
         qualified_artifacts) == 1, 'Got multiple artifacts for a single output'
-      result[name] = qualified_artifacts[0]
+      result[name] = _get_pipeline_artifact_list(qualified_artifacts)
     else:
       # 2b. If not, simply construct a raw Artifact object with its uri.
-      result[name] = artifact.Artifact()
-      result[name].uri = uri
+      result[name] = pipeline_spec_pb2.ArtifactList(
+          artifacts=[
+              _get_runtime_artifact(metadata_store_pb2.Artifact(uri=uri))])
 
+  return result
+
+
+def _prepare_output_artifacts_by_uris(
+    output_uris: Dict[str, str]) -> Dict[str, pipeline_spec_pb2.ArtifactList]:
+  """Gets output artifacts by specifying their URIs."""
+  result = {}
+  for name, uri in output_uris.items():
+    artifacts = [pipeline_spec_pb2.RuntimeArtifact(uri=uri)]
+    result[name] = pipeline_spec_pb2.ArtifactList(artifacts=artifacts)
   return result
 
 
@@ -169,6 +241,22 @@ def main(**kwargs):
       artifacts_uri=input_artifacts_uri,
       run_context=pipeline_context)
 
+  output_artifacts = _prepare_output_artifacts_by_uris(
+      output_uris=output_artifacts_uri)
+
+  executor_input = pipeline_spec_pb2.ExecutorInput()
+  for k, v in input_params_value.items():
+    executor_input.inputs.parameters[k].CopyFrom(_get_pipeline_value(v))
+  for k, v in input_artifacts.items():
+    executor_input.inputs.artifacts[k].CopyFrom(v)
+  for k, v in output_artifacts.items():
+    executor_input.outputs.artifacts[k].CopyFrom(v)
+
+  function_name = kwargs[entrypoint.FN_NAME_ARG]
+  entrypoint.main(
+      executor_input_str=json_format.MessageToJson(executor_input),
+      function_name=function_name,
+      output_metadata_path=METADATA_JSON_PATH)
 
 
 if __name__ == '__main__':
