@@ -17,7 +17,8 @@ RUN apt-get update -y && apt-get install --no-install-recommends -y -q ca-certif
 
 RUN easy_install pip
 
-RUN pip install boto3==1.9.130 pathlib2
+COPY requirements.txt .
+RUN pip3 install -r requirements.txt
 
 COPY create_cluster/src/create_cluster.py .
 COPY delete_cluster/src/delete_cluster.py .
