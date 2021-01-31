@@ -19,6 +19,7 @@ import sys
 from typing import Dict
 
 from kfp.containers import entrypoint
+from kfp.containers import mlmd_utils
 from kfp.dsl import artifact
 
 MLMD_HOST_ENV = 'METADATA_GRPC_SERVICE_HOST'
@@ -49,10 +50,11 @@ def _get_metadata_connection_config(
 
 
 def _get_artifacts_mapping(
+    metadata_client: mlmd_utils.Metadata,
     producer_execution_id: Dict[str, str],
     artifacts_name: Dict[str, str],
     artifacts_uri: Dict[str, str],
-    pipeline_context: str
+    run_context: str
 ) -> Dict[str, artifact.Artifact]:
   """Gets the artifacts mapping by query metadata store."""
   # 1. Sanity check the input:
@@ -77,7 +79,13 @@ def _get_artifacts_mapping(
     if name in artifacts_name:
       # 2a. If artifact name and producer ID are provided, query metadata store
       # to get its metadata.
-      pass
+      qualified_artifacts = metadata_client.get_qualified_artifacts(
+          run_name=run_context,
+          producer_component_id=producer_execution_id[name],
+          output_key=artifacts_name[name])
+      assert len(
+        qualified_artifacts) == 1, 'Got multiple artifacts for a single output'
+      result[name] = qualified_artifacts[0]
     else:
       # 2b. If not, simply construct a raw Artifact object with its uri.
       result[name] = artifact.Artifact()
@@ -151,11 +159,15 @@ def main(**kwargs):
           'Got unexpected command line argument: %s=%s Ignoring', k, v)
 
   pipeline_context = kwargs[PIPELINE_CONTEXT_ARG]
+  metadata_client = mlmd_utils.Metadata(
+      connection_config=_get_metadata_connection_config())
+
   input_artifacts = _get_artifacts_mapping(
+      metadata_client=metadata_client,
       producer_execution_id=input_artifacts_pod_id,
       artifacts_name=input_artifacts_name,
       artifacts_uri=input_artifacts_uri,
-      pipeline_context=pipeline_context)
+      run_context=pipeline_context)
 
 
 
