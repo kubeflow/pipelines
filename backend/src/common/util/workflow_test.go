@@ -17,7 +17,6 @@ package util
 import (
 	"testing"
 
-	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/ghodss/yaml"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
@@ -188,11 +187,11 @@ func TestWorkflow_OverrideParameters(t *testing.T) {
 		Spec: workflowapi.WorkflowSpec{
 			Arguments: workflowapi.Arguments{
 				Parameters: []workflowapi.Parameter{
-					{Name: "PARAM1", Value: v1alpha1.AnyStringPtr("VALUE1")},
-					{Name: "PARAM2", Value: v1alpha1.AnyStringPtr("VALUE2")},
-					{Name: "PARAM3", Value: v1alpha1.AnyStringPtr("VALUE3")},
-					{Name: "PARAM4", Value: v1alpha1.AnyStringPtr("")},
-					{Name: "PARAM5", Value: v1alpha1.AnyStringPtr("VALUE5")},
+					{Name: "PARAM1", Value: workflowapi.AnyStringPtr("VALUE1")},
+					{Name: "PARAM2", Value: workflowapi.AnyStringPtr("VALUE2")},
+					{Name: "PARAM3", Value: workflowapi.AnyStringPtr("VALUE3")},
+					{Name: "PARAM4", Value: workflowapi.AnyStringPtr("")},
+					{Name: "PARAM5", Value: workflowapi.AnyStringPtr("VALUE5")},
 				},
 			},
 		},
@@ -213,11 +212,11 @@ func TestWorkflow_OverrideParameters(t *testing.T) {
 		Spec: workflowapi.WorkflowSpec{
 			Arguments: workflowapi.Arguments{
 				Parameters: []workflowapi.Parameter{
-					{Name: "PARAM1", Value: v1alpha1.AnyStringPtr("NEW_VALUE1")},
-					{Name: "PARAM2", Value: v1alpha1.AnyStringPtr("VALUE2")},
-					{Name: "PARAM3", Value: v1alpha1.AnyStringPtr("NEW_VALUE3")},
-					{Name: "PARAM4", Value: v1alpha1.AnyStringPtr("NEW_VALUE4")},
-					{Name: "PARAM5", Value: v1alpha1.AnyStringPtr("")},
+					{Name: "PARAM1", Value: workflowapi.AnyStringPtr("NEW_VALUE1")},
+					{Name: "PARAM2", Value: workflowapi.AnyStringPtr("VALUE2")},
+					{Name: "PARAM3", Value: workflowapi.AnyStringPtr("NEW_VALUE3")},
+					{Name: "PARAM4", Value: workflowapi.AnyStringPtr("NEW_VALUE4")},
+					{Name: "PARAM5", Value: workflowapi.AnyStringPtr("")},
 				},
 			},
 		},
@@ -316,7 +315,7 @@ func TestGetWorkflowSpec(t *testing.T) {
 		Spec: workflowapi.WorkflowSpec{
 			Arguments: workflowapi.Arguments{
 				Parameters: []workflowapi.Parameter{
-					{Name: "PARAM", Value: v1alpha1.AnyStringPtr("VALUE")},
+					{Name: "PARAM", Value: workflowapi.AnyStringPtr("VALUE")},
 				},
 			},
 		},
@@ -332,7 +331,7 @@ func TestGetWorkflowSpec(t *testing.T) {
 		Spec: workflowapi.WorkflowSpec{
 			Arguments: workflowapi.Arguments{
 				Parameters: []workflowapi.Parameter{
-					{Name: "PARAM", Value: v1alpha1.AnyStringPtr("VALUE")},
+					{Name: "PARAM", Value: workflowapi.AnyStringPtr("VALUE")},
 				},
 			},
 		},
@@ -350,7 +349,7 @@ func TestGetWorkflowSpecTruncatesNameIfLongerThan200Runes(t *testing.T) {
 		Spec: workflowapi.WorkflowSpec{
 			Arguments: workflowapi.Arguments{
 				Parameters: []workflowapi.Parameter{
-					{Name: "PARAM", Value: v1alpha1.AnyStringPtr("VALUE")},
+					{Name: "PARAM", Value: workflowapi.AnyStringPtr("VALUE")},
 				},
 			},
 		},
@@ -366,7 +365,7 @@ func TestGetWorkflowSpecTruncatesNameIfLongerThan200Runes(t *testing.T) {
 		Spec: workflowapi.WorkflowSpec{
 			Arguments: workflowapi.Arguments{
 				Parameters: []workflowapi.Parameter{
-					{Name: "PARAM", Value: v1alpha1.AnyStringPtr("VALUE")},
+					{Name: "PARAM", Value: workflowapi.AnyStringPtr("VALUE")},
 				},
 			},
 		},
@@ -383,10 +382,10 @@ func TestVerifyParameters(t *testing.T) {
 		Spec: workflowapi.WorkflowSpec{
 			Arguments: workflowapi.Arguments{
 				Parameters: []workflowapi.Parameter{
-					{Name: "PARAM1", Value: v1alpha1.AnyStringPtr("NEW_VALUE1")},
-					{Name: "PARAM2", Value: v1alpha1.AnyStringPtr("VALUE2")},
-					{Name: "PARAM3", Value: v1alpha1.AnyStringPtr("NEW_VALUE3")},
-					{Name: "PARAM5", Value: v1alpha1.AnyStringPtr("")},
+					{Name: "PARAM1", Value: workflowapi.AnyStringPtr("NEW_VALUE1")},
+					{Name: "PARAM2", Value: workflowapi.AnyStringPtr("VALUE2")},
+					{Name: "PARAM3", Value: workflowapi.AnyStringPtr("NEW_VALUE3")},
+					{Name: "PARAM5", Value: workflowapi.AnyStringPtr("")},
 				},
 			},
 		},
@@ -402,10 +401,10 @@ func TestVerifyParameters_Failed(t *testing.T) {
 		Spec: workflowapi.WorkflowSpec{
 			Arguments: workflowapi.Arguments{
 				Parameters: []workflowapi.Parameter{
-					{Name: "PARAM1", Value: v1alpha1.AnyStringPtr("NEW_VALUE1")},
-					{Name: "PARAM2", Value: v1alpha1.AnyStringPtr("VALUE2")},
-					{Name: "PARAM3", Value: v1alpha1.AnyStringPtr("NEW_VALUE3")},
-					{Name: "PARAM5", Value: v1alpha1.AnyStringPtr("")},
+					{Name: "PARAM1", Value: workflowapi.AnyStringPtr("NEW_VALUE1")},
+					{Name: "PARAM2", Value: workflowapi.AnyStringPtr("VALUE2")},
+					{Name: "PARAM3", Value: workflowapi.AnyStringPtr("NEW_VALUE3")},
+					{Name: "PARAM5", Value: workflowapi.AnyStringPtr("")},
 				},
 			},
 		},

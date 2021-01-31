@@ -15,7 +15,6 @@
 package util
 
 import (
-	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
@@ -116,7 +115,7 @@ func (s *ScheduledWorkflow) ParametersAsString() (string, error) {
 	for _, param := range params {
 		workflowParam := workflowapi.Parameter{
 			Name:  param.Name,
-			Value: v1alpha1.AnyStringPtr(param.Value),
+			Value: workflowapi.AnyStringPtr(param.Value),
 		}
 		workflowParams = append(workflowParams, workflowParam)
 	}

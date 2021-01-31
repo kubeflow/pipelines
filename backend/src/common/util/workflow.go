@@ -17,7 +17,6 @@ package util
 import (
 	"strings"
 
-	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
 	swfregister "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
@@ -62,7 +61,7 @@ func (w *Workflow) OverrideParameters(desiredParams map[string]string) {
 		desiredSlice = append(desiredSlice, workflowapi.Parameter{
 
 			Name:  currentParam.Name,
-			Value: v1alpha1.AnyStringPtr(val),
+			Value: workflowapi.AnyStringPtr(val),
 		})
 	}
 	w.Spec.Arguments.Parameters = desiredSlice

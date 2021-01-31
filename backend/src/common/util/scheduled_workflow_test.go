@@ -18,7 +18,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
@@ -128,8 +127,8 @@ func TestScheduledWorkflow_ParametersAsString(t *testing.T) {
 					ServiceAccountName: "SERVICE_ACCOUNT",
 					Arguments: workflowapi.Arguments{
 						Parameters: []workflowapi.Parameter{
-							{Name: "PARAM3", Value: v1alpha1.AnyStringPtr("VALUE3")},
-							{Name: "PARAM4", Value: v1alpha1.AnyStringPtr("VALUE4")},
+							{Name: "PARAM3", Value: workflowapi.AnyStringPtr("VALUE3")},
+							{Name: "PARAM4", Value: workflowapi.AnyStringPtr("VALUE4")},
 						},
 					},
 				},
