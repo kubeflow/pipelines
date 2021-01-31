@@ -31,7 +31,8 @@ PARAM_METADATA_SUFFIX = '_input_param_metadata_file'
 ARTIFACT_METADATA_SUFFIX = '_input_artifact_metadata_file'
 FIELD_NAME_SUFFIX = '_input_field_name'
 ARGO_PARAM_SUFFIX = '_input_argo_param'
-INPUT_PATH_SUFFIX = '_input_path'
+INPUT_URI_SUFFIX = '_input_uri'
+PRODUCER_POD_ID_SUFFIX = '_pod_id'
 OUTPUT_NAME_SUFFIX = '_input_output_name'
 
 OUTPUT_PARAM_PATH_SUFFIX = '_parameter_output_path'
@@ -293,8 +294,8 @@ def main_2(**kwargs):
     elif k.endswith(ARTIFACT_METADATA_SUFFIX):
       artifact_name = k[:-len(ARTIFACT_METADATA_SUFFIX)]
       input_artifacts_metadata[artifact_name] = v
-    elif k.endswith(INPUT_PATH_SUFFIX):
-      artifact_name = k[:-len(INPUT_PATH_SUFFIX)]
+    elif k.endswith(INPUT_URI_SUFFIX):
+      artifact_name = k[:-len(INPUT_URI_SUFFIX)]
       input_artifacts_uri[artifact_name] = v
     elif k.endswith(OUTPUT_NAME_SUFFIX):
       artifact_name = k[:-len(OUTPUT_NAME_SUFFIX)]

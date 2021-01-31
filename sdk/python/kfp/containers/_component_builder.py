@@ -335,14 +335,14 @@ def build_python_component(
         #    metadata JSON file.
         program_args.append('--{}{}'.format(
             component_input.name,
-            entrypoint.INPUT_PATH_SUFFIX
+            entrypoint.INPUT_URI_SUFFIX
         ))
         program_args.append(
             _structures.InputUriPlaceholder(
                 input_name=component_input.name))
         program_args.append('--{}{}'.format(
             component_input.name,
-            '_pod_id'
+            entrypoint.PRODUCER_POD_ID_SUFFIX
         ))
         program_args.append(
             '{{{{inputs.parameters.{input}}}}}'.format(
