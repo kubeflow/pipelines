@@ -1,0 +1,4 @@
+gcsfs
+pandas
+matplotlib
+seaborn

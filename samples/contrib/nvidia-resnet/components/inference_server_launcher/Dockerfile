@@ -16,8 +16,9 @@ FROM ubuntu:16.04
 
 RUN apt-get update -y && \
     apt-get install --no-install-recommends -y -q ca-certificates curl python-dev python-setuptools wget unzip
+COPY requirements.txt .
 RUN easy_install pip && \
-    pip install pyyaml six requests
+    pip install -r requirements.txt
 
 # Install kubectl
 RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl

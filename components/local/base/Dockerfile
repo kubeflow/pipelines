@@ -14,9 +14,8 @@
 
 FROM python:3.7
 
-RUN pip install --no-cache-dir pandas==0.24.2
-RUN pip install --no-cache-dir scikit-learn==0.21.2
-RUN pip install --no-cache-dir scipy==1.4.1
-RUN pip install --no-cache-dir tensorflow==2.2.0
+
+COPY requirements.txt .
+RUN pip install -r requirements.txt --no-cache-dir
 
 ADD build /ml

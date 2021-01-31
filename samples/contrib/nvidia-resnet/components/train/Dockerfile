@@ -14,7 +14,8 @@
 
 FROM nvcr.io/nvidia/tensorflow:19.03-py3
 
-RUN pip install keras
+COPY requirements.txt .
+RUN pip3 install -r requirements.txt
 ADD src /workspace
 WORKDIR /workspace
 

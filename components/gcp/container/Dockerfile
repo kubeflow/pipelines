@@ -18,8 +18,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	wget patch \
 	&& rm -rf /var/lib/apt/lists/*
 
-RUN pip install apache-beam[gcp]
-RUN pip install pandas
+COPY requirements.txt .
+RUN pip3 install -r requirements.txt
 
 ADD build /ml
 WORKDIR /ml

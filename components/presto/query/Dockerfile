@@ -12,6 +12,7 @@
 
 FROM python:3.7
 
-RUN python3 -m pip install pyhive[presto]
+COPY requirements.txt .
+RUN python3 -m pip install -r requirements.txt
 
 COPY ./src /pipelines/component/src

@@ -1,6 +1,7 @@
 FROM python:3.6-slim
 
-RUN pip install kubernetes Flask flask-cors requests
+COPY requirements.txt .
+RUN pip3 install -r requirements.txt
 
 ENV APP_HOME /app
 COPY src $APP_HOME

@@ -14,7 +14,8 @@
 
 FROM python:3.6
 
-RUN pip install --no-cache-dir pyyaml kubernetes
+COPY requirements.txt .
+RUN pip3 install -r requirements.txt --no-cache-dir
 
 ADD build /ml
 
