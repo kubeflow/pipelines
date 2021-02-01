@@ -15,8 +15,8 @@
 
 import unittest
 
+from kfp.components import _structures as structures
 from kfp.v2 import dsl
-from kfp.v2.components import structures
 from kfp.v2.dsl import component_spec as dsl_component_spec
 from kfp.pipeline_spec import pipeline_spec_pb2
 

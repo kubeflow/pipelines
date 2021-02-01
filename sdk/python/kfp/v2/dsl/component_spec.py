@@ -15,8 +15,8 @@
 
 from typing import List
 
+from kfp.components import _structures as structures
 from kfp.v2 import dsl
-from kfp.v2.components import structures
 from kfp.v2.dsl import dsl_utils
 from kfp.v2.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
