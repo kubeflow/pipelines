@@ -1604,31 +1604,44 @@ describe('RunDetails', () => {
       const tree = render(<RunDetails {...generateProps()} />);
       await getRunSpy;
       await TestUtils.flushPromises();
-      const snap = `
-      <pre
-        data-testid="graph"
-      >
-        Node node1
-        Node node1-running-placeholder
-        Node node2
-        Node node2-running-placeholder
-        Node node3
-        Node node3-running-placeholder
-        Edge node1 to node1-running-placeholder
-        Edge node2 to node2-running-placeholder
-        Edge node3 to node3-running-placeholder
-        Edge node1 to node2
-        Edge node1 to node3
-        Edge node2 to node3
-      </pre>
-    `;
-      expect(tree.getByTestId('graph')).toMatchInlineSnapshot(snap);
+      expect(tree.getByTestId('graph')).toMatchInlineSnapshot(`
+        <pre
+          data-testid="graph"
+        >
+          Node node1
+          Node node1-running-placeholder
+          Node node2
+          Node node2-running-placeholder
+          Node node3
+          Node node3-running-placeholder
+          Edge node1 to node1-running-placeholder
+          Edge node2 to node2-running-placeholder
+          Edge node3 to node3-running-placeholder
+          Edge node1 to node2
+          Edge node1 to node3
+          Edge node2 to node3
+        </pre>
+      `);
 
       // Simplify graph
       tree.getByLabelText('Simplify Graph').click();
-      expect(tree.getByTestId('graph')).toMatchInlineSnapshot(
-        snap.replace(/\s*Edge node1 to node3/m, ''),
-      );
+      expect(tree.getByTestId('graph')).toMatchInlineSnapshot(`
+        <pre
+          data-testid="graph"
+        >
+          Node node1
+          Node node1-running-placeholder
+          Node node2
+          Node node2-running-placeholder
+          Node node3
+          Node node3-running-placeholder
+          Edge node1 to node1-running-placeholder
+          Edge node2 to node2-running-placeholder
+          Edge node3 to node3-running-placeholder
+          Edge node1 to node2
+          Edge node2 to node3
+        </pre>
+      `);
     });
   });
 });
