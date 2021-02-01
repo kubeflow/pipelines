@@ -62,7 +62,8 @@ implementation:
         imageVulnerabilityRequirements:
           maximumFixableSeverity: MEDIUM
           maximumUnfixableSeverity: HIGH
-          allowlistCVEs: []
+          allowlistCVEs:
+          - projects/goog-vulnz/notes/CVE-2019-19814
       EOF
       cat policy.yaml
 
