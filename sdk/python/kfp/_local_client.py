@@ -106,6 +106,15 @@ class _Dag:
 
 
 class LocalClient:
+    def __init__(self, artifact_root: str = "/tmp") -> None:
+        """Construct the instance of LocalClient
+
+        Args：
+            artifact_root: The root directory where the output artifact of component
+              will be savad.
+        """
+        self._artifact_root = artifact_root
+
     @staticmethod
     def _extract_pipeline_param(param: str) -> dsl.PipelineParam:
         """ Extract PipelineParam from string """
@@ -217,8 +226,9 @@ class LocalClient:
                 dag.add_edge(dependent, op.name)
         return dag
 
-    @staticmethod
-    def _alter_output_file_path(run_name: str, op_name: str, output_file: str) -> str:
+    def _alter_output_file_path(
+        self, run_name: str, op_name: str, output_file: str
+    ) -> str:
         """Alter the file path of output artifact to make sure it's unique in local runner.
 
         kfp compiler will bound a tmp file for each component output, which is unique
@@ -227,8 +237,10 @@ class LocalClient:
         """
         return re.sub(
             "/tmp",
-            "/tmp/{run_name}/{op_name}".format(
-                run_name=run_name, op_name=op_name.lower()
+            "/{artifact_root}/{run_name}/{op_name}".format(
+                artifact_root=self._artifact_root,
+                run_name=run_name,
+                op_name=op_name.lower(),
             ),
             output_file,
         )
@@ -314,7 +326,13 @@ class LocalClient:
         """ Generate the command to run the op in docker locally. """
         cmd = self._op_cmd_locally(run_name, pipeline, op, stack)
 
-        docker_cmd = ["docker", "run", "-v", "/tmp:/tmp", op.image] + cmd
+        docker_cmd = [
+            "docker",
+            "run",
+            "-v",
+            "{artifact_root}:/tmp".format(artifact_root=self._artifact_root),
+            op.image,
+        ] + cmd
         return docker_cmd
 
     def _run_group_dag(
