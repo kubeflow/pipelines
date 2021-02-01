@@ -282,7 +282,7 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
  */
 export function transitiveReduction(graph: dagre.graphlib.Graph): dagre.graphlib.Graph | undefined {
   // safeguard against too big graphs
-  if (graph.edgeCount() > 1000 || graph.nodeCount() > 1000) {
+  if (!graph || graph.edgeCount() > 1000 || graph.nodeCount() > 1000) {
     return undefined;
   }
 
