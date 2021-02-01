@@ -22,7 +22,7 @@ __all__ = [
 import copy
 from collections import OrderedDict
 import pathlib
-from typing import Any, Callable, List, Mapping, NamedTuple, Sequence, Union
+from typing import Any, Callable, List, Mapping, NamedTuple, Optional, Sequence, Union
 from ._naming import _sanitize_file_name, _sanitize_python_function_name, generate_unique_name_conversion_table
 from ._yaml_utils import load_yaml
 from .structures import *
@@ -483,6 +483,7 @@ def _resolve_command_line_and_paths(
     argument_serializer: Callable[[str], str] = serialize_value,
     input_uri_generator: Callable[[str], str] = _generate_input_uri,
     output_uri_generator: Callable[[str], str] = _generate_output_uri,
+    input_value_generator: Optional[Callable[[str], str]] = None,
     input_metadata_path_generator: Callable[
         [str], str] = _generate_input_metadata_path,
     output_metadata_path_generator: Callable[
@@ -522,9 +523,11 @@ def _resolve_command_line_and_paths(
             input_spec = inputs_dict[input_name]
             input_value = argument_values.get(input_name, None)
             if input_value is not None:
-                serialized_argument = argument_serializer(input_value, input_spec.type)
-                inputs_consumed_by_value[input_name] = serialized_argument
-                return serialized_argument
+                if input_value_generator is not None:
+                    inputs_consumed_by_value[input_name] = input_value_generator(input_name)
+                else:
+                    inputs_consumed_by_value[input_name] = argument_serializer(input_value, input_spec.type)
+                return inputs_consumed_by_value[input_name]
             else:
                 if input_spec.optional:
                     return None

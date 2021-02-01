@@ -1,11 +1,11 @@
 x-google-marketplace:
   schemaVersion: v2
   applicationApiVersion: v1beta1
-  publishedVersion: 1.3.0
+  publishedVersion: 1.4.0-rc.1
   publishedVersionMetadata:
-    releaseNote: Based on 1.3.0 version.
+    releaseNote: Based on 1.4.0-rc.1 version.
     releaseTypes:
-    - Feature
+      - Feature
     recommended: false
   managedUpdates:
     kalmSupported: false
@@ -87,25 +87,25 @@ x-google-marketplace:
   deployerServiceAccount:
     description: Service account used to deploy cluster-wide Kubeflow Pipelines objects
     roles:
-    - type: ClusterRole # This is a cluster-wide ClusterRole
-      rulesType: CUSTOM # We specify our own custom RBAC roles
-      rules:
-      - apiGroups: ['apiextensions.k8s.io', 'rbac.authorization.k8s.io']
-        resources: ['customresourcedefinitions', 'clusterroles', 'clusterrolebindings']
-        verbs: ['*']
+      - type: ClusterRole # This is a cluster-wide ClusterRole
+        rulesType: CUSTOM # We specify our own custom RBAC roles
+        rules:
+          - apiGroups: ['apiextensions.k8s.io', 'rbac.authorization.k8s.io']
+            resources: ['customresourcedefinitions', 'clusterroles', 'clusterrolebindings']
+            verbs: ['*']
   clusterConstraints:
     resources:
-    - replicas: 3
-      requests:
-        cpu: 1
-        memory: 2Gi
-      affinity:
-        simpleNodeAffinity:
-          type: REQUIRE_ONE_NODE_PER_REPLICA
+      - replicas: 3
+        requests:
+          cpu: 1
+          memory: 2Gi
+        affinity:
+          simpleNodeAffinity:
+            type: REQUIRE_ONE_NODE_PER_REPLICA
     gcp:
       nodes:
         requiredOauthScopes:
-        - https://www.googleapis.com/auth/cloud-platform
+          - https://www.googleapis.com/auth/cloud-platform
 properties:
   name:
     type: string
@@ -198,5 +198,5 @@ properties:
       is used.
     default: ""
 required:
-- name
-- namespace
+  - name
+  - namespace

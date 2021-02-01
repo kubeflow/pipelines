@@ -13,22 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import NamedTuple
-
 import kfp
 from kfp.components import func_to_container_op
-
-
-# Stabilizing the test output
-class StableIDGenerator:
-    def __init__(self, ):
-        self._index = 0
-
-    def get_next_id(self, ):
-        self._index += 1
-        return '{code:0{num_chars:}d}'.format(code=self._index, num_chars=kfp.dsl._for_loop.LoopArguments.NUM_CODE_CHARS)
-
-kfp.dsl.ParallelFor._get_unique_id_code = StableIDGenerator().get_next_id
 
 
 @func_to_container_op
@@ -76,6 +62,11 @@ def parallelfor_item_argument_resolving():
         consume(produce_list_of_dicts_task.output)
         #consume(loop_item) # Cannot use the full loop item when it's a dict
         consume(loop_item.aaa)
+
+    loop_args = [{'a': 1, 'b': 2}, {'a': 10, 'b': 20}]
+    with kfp.dsl.ParallelFor(loop_args) as loop_item:
+        consume(loop_args)
+        consume(loop_item)
 
 
 if __name__ == '__main__':

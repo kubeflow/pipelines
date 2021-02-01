@@ -9,7 +9,7 @@ metadata:
 spec:
   entrypoint: uri-artifact-pipeline
   templates:
-  - name: condition-2
+  - name: condition-3
     inputs:
       parameters:
       - {name: input_gcs_path-producer-pod-id-}
@@ -32,7 +32,7 @@ spec:
         valueFrom: {path: /tmp/output}
       artifacts:
       - {name: flip-coin-output, path: /tmp/output}
-  - name: for-loop-for-loop-00000001-1
+  - name: for-loop-2
     inputs:
       parameters:
       - {name: input_gcs_path-producer-pod-id-}
@@ -109,16 +109,16 @@ spec:
       - {name: text}
     dag:
       tasks:
-      - name: condition-2
-        template: condition-2
+      - name: condition-3
+        template: condition-3
         when: '"{{tasks.flip-coin.outputs.parameters.flip-coin-output}}" == "heads"'
         dependencies: [flip-coin, write-to-gcs]
         arguments:
           parameters:
           - {name: input_gcs_path-producer-pod-id-, value: '{{tasks.write-to-gcs.outputs.parameters.write-to-gcs-output_gcs_path-producer-pod-id-}}'}
       - {name: flip-coin, template: flip-coin}
-      - name: for-loop-for-loop-00000001-1
-        template: for-loop-for-loop-00000001-1
+      - name: for-loop-2
+        template: for-loop-2
         dependencies: [write-to-gcs]
         arguments:
           parameters:

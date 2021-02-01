@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import List
 
 import kfp
 import kfp.compiler as compiler
@@ -1108,3 +1109,39 @@ implementation:
 
   def test_uri_artifact_passing(self):
     self._test_py_compile_yaml('uri_artifacts')
+
+  def test_keyword_only_argument_for_pipeline_func(self):
+    def some_pipeline(casual_argument: str, *, keyword_only_argument: str):
+      pass
+    kfp.compiler.Compiler()._create_workflow(some_pipeline)
+
+  def test_keyword_only_argument_for_pipeline_func_identity(self):
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+    sys.path.append(test_data_dir)
+
+    # `@pipeline` is needed to make name the same for both functions
+
+    @pipeline(name="pipeline_func")
+    def pipeline_func_arg(foo_arg: str, bar_arg: str):
+      dsl.ContainerOp(
+        name='foo',
+        image='foo',
+        command=['bar'],
+        arguments=[foo_arg, ' and ', bar_arg]
+      )
+
+    @pipeline(name="pipeline_func")
+    def pipeline_func_kwarg(foo_arg: str, *, bar_arg: str):
+      return pipeline_func_arg(foo_arg, bar_arg)
+
+    pipeline_yaml_arg   = kfp.compiler.Compiler()._create_workflow(pipeline_func_arg)
+    pipeline_yaml_kwarg = kfp.compiler.Compiler()._create_workflow(pipeline_func_kwarg)
+
+    # the yamls may differ in metadata
+    def remove_metadata(yaml) -> None:
+      del yaml['metadata']
+    remove_metadata(pipeline_yaml_arg)
+    remove_metadata(pipeline_yaml_kwarg)
+
+    # compare
+    self.assertEqual(pipeline_yaml_arg, pipeline_yaml_kwarg)

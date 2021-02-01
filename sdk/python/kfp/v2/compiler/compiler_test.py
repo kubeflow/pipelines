@@ -17,8 +17,8 @@ import shutil
 import tempfile
 import unittest
 
+from kfp import components
 from kfp.v2 import compiler
-from kfp.v2 import components
 from kfp.v2 import dsl
 
 
@@ -318,36 +318,6 @@ class CompilerTest(unittest.TestCase):
           pipeline_func=my_pipeline,
           pipeline_root='dummy',
           output_path='output.json')
-
-  def test_compile_pipeline_with_outputpath_should_warn(self):
-
-    with self.assertWarnsRegex(
-        UserWarning, 'Local file paths are currently unsupported for I/O.'):
-      component_op = components.load_component_from_text("""
-          name: compoent use outputPath
-          outputs:
-          - {name: metrics, type: Metrics}
-          implementation:
-            container:
-              image: dummy
-              args:
-              - {outputPath: metrics}
-          """)
-
-  def test_compile_pipeline_with_inputpath_should_warn(self):
-
-    with self.assertWarnsRegex(
-        UserWarning, 'Local file paths are currently unsupported for I/O.'):
-      component_op = components.load_component_from_text("""
-          name: compoent use inputPath
-          inputs:
-          - {name: data, type: Datasets}
-          implementation:
-            container:
-              image: dummy
-              args:
-              - {inputPath: data}
-          """)
 
   def test_compile_pipeline_with_invalid_name_should_raise_error(self):
 
