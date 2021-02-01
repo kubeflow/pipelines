@@ -20,7 +20,7 @@
 FROM tensorflow/tensorflow:2.2.0
 
 RUN apt-get update \
-  && apt-get install -y wget curl tar
+  && apt-get install -y wget curl tar openssl
 
 RUN curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz > /tmp/google-cloud-sdk.tar.gz
 RUN mkdir -p /usr/local/gcloud
