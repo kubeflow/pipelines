@@ -106,7 +106,8 @@ class _Dag:
 
 
 class LocalClient:
-    def _extract_pipeline_param(self, param: str) -> kfp.dsl.PipelineParam:
+    @staticmethod
+    def _extract_pipeline_param(param: str) -> kfp.dsl.PipelineParam:
         """ Extract PipelineParam from string """
         matches = re.findall(
             r"{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+)}}", param
@@ -115,7 +116,8 @@ class LocalClient:
         output_file_name = matches[0][1]
         return kfp.dsl.PipelineParam(output_file_name, op_dependency_name)
 
-    def _get_keyword_arguments(self, cmd: List[str]) -> List[Tuple[str, str]]:
+    @staticmethod
+    def _get_keyword_arguments(cmd: List[str]) -> List[Tuple[str, str]]:
         """ Convert command arguments into list of (keyworkd, argument) tuples. """
         arg_pairs = []
         for i in range(len(cmd)):
@@ -124,7 +126,8 @@ class LocalClient:
 
         return arg_pairs
 
-    def _replace_file_args(self, cmd: List[str], file_args: Dict[str, str]) -> str:
+    @staticmethod
+    def _replace_file_args(cmd: List[str], file_args: Dict[str, str]) -> str:
         """ Replace the placeholder of file in cmd with actual file path. """
         for i in range(len(cmd)):
             if cmd[i].startswith("--"):
@@ -150,14 +153,16 @@ class LocalClient:
 
         return None
 
+    @staticmethod
     def _get_op(
-        self, ops: List[kfp.dsl.ContainerOp], op_name: str
+        ops: List[kfp.dsl.ContainerOp], op_name: str
     ) -> Union[kfp.dsl.ContainerOp, None]:
         """ Get the first op with specified op name """
         return next(filter(lambda op: op.name == op_name, ops), None)
 
+    @staticmethod
     def _get_subgroup(
-        self, groups: List[kfp.dsl.OpsGroup], group_name: str
+        groups: List[kfp.dsl.OpsGroup], group_name: str
     ) -> Union[kfp.dsl.OpsGroup, None]:
         """ Get the frist OpsGroup with specified group name """
         return next(filter(lambda g: g.name == group_name, groups), None)
@@ -212,9 +217,8 @@ class LocalClient:
                 dag.add_edge(dependent, op.name)
         return dag
 
-    def _alter_output_file_path(
-        self, run_name: str, op_name: str, output_file: str
-    ) -> str:
+    @staticmethod
+    def _alter_output_file_path(run_name: str, op_name: str, output_file: str) -> str:
         """Alter the file path of output artifact to make sure it's unique in local runner.
 
         kfp compiler will bound a tmp file for each component output, which is unique
