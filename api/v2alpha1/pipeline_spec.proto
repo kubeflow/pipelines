@@ -534,6 +534,17 @@ message PipelineDeploymentConfig {
     map<string, ArtifactQuerySpec> output_artifact_queries = 1;
   }
 
+  message AIPlatformCustomJobSpec {
+    // API Specification for invoking a Google Cloud AI Platform CustomJob.
+    // The fields must match the field names and structures of CustomJob
+    // defined in
+    // https://cloud.google.com/ai-platform-unified/docs/reference/rest/v1beta1/projects.locations.customJobs.
+    // The field types must be either the same, or be a string containing the
+    // string based placeholder contract defined in [ExecutorInput](). The
+    // placeholders will be replaced with the actual value during the runtime
+    // before the job is launched.
+    google.protobuf.Struct custom_job = 1;
+  }
 
   // The specification of the executor.
   message ExecutorSpec {
@@ -544,6 +555,8 @@ message PipelineDeploymentConfig {
       ImporterSpec importer = 2;
       // Resolves an existing artifact.
       ResolverSpec resolver = 3;
+      // Starts a Google Cloud AI Platform CustomJob.
+      AIPlatformCustomJobSpec custom_job = 4;
     }
   }
   // Map from executor label to executor spec.

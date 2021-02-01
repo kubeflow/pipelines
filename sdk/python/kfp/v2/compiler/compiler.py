@@ -23,9 +23,9 @@ from typing import Any, Callable, List, Mapping, Optional
 
 import kfp
 from kfp.compiler._k8s_helper import sanitize_k8s_name
+from kfp.components import _python_op
 from kfp.v2 import dsl
 from kfp.v2.compiler import compiler_utils
-from kfp.v2.components import python_op
 from kfp.v2.dsl import component_spec as dsl_component_spec
 from kfp.v2.dsl import dsl_utils
 from kfp.v2.dsl import importer_node
@@ -170,7 +170,7 @@ class Compiler(object):
 
     # Create the arg list with no default values and call pipeline function.
     # Assign type information to the PipelineParam
-    pipeline_meta = python_op._extract_component_interface(pipeline_func)
+    pipeline_meta = _python_op._extract_component_interface(pipeline_func)
     pipeline_name = pipeline_name or pipeline_meta.name
 
     args_list = []

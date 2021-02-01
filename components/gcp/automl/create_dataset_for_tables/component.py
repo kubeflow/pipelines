@@ -51,7 +51,7 @@ def automl_create_dataset_for_tables(
         region=gcp_region,
         dataset_id=dataset_id,
     )
-    return (dataset.name, dataset.create_time, dataset_id, dataset_url)
+    return (dataset.name, str(dataset.create_time), dataset_id, dataset_url)
 
 
 if __name__ == '__main__':

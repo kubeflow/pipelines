@@ -16,7 +16,7 @@
 from typing import Callable, Text
 
 from kfp import dsl
-from kfp.v2.components import structures
+from kfp.components import _structures as structures
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 
