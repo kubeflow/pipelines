@@ -21,7 +21,7 @@ import subprocess
 from collections import deque
 from typing import Any, Callable, Dict, List, Mapping, Tuple, Union, cast
 
-import kfp
+from . import dsl
 
 
 class _Dag:
@@ -107,14 +107,14 @@ class _Dag:
 
 class LocalClient:
     @staticmethod
-    def _extract_pipeline_param(param: str) -> kfp.dsl.PipelineParam:
+    def _extract_pipeline_param(param: str) -> dsl.PipelineParam:
         """ Extract PipelineParam from string """
         matches = re.findall(
             r"{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+)}}", param
         )
         op_dependency_name = matches[0][0]
         output_file_name = matches[0][1]
-        return kfp.dsl.PipelineParam(output_file_name, op_dependency_name)
+        return dsl.PipelineParam(output_file_name, op_dependency_name)
 
     @staticmethod
     def _get_keyword_arguments(cmd: List[str]) -> List[Tuple[str, str]]:
@@ -138,8 +138,8 @@ class LocalClient:
         return cmd
 
     def _find_base_group(
-        self, groups: List[kfp.dsl.OpsGroup], op_name: str
-    ) -> Union[kfp.dsl.OpsGroup, None]:
+        self, groups: List[dsl.OpsGroup], op_name: str
+    ) -> Union[dsl.OpsGroup, None]:
         """ Find the base group of op in candidate group list. """
         if groups is None or len(groups) == 0:
             return None
@@ -155,19 +155,19 @@ class LocalClient:
 
     @staticmethod
     def _get_op(
-        ops: List[kfp.dsl.ContainerOp], op_name: str
-    ) -> Union[kfp.dsl.ContainerOp, None]:
+        ops: List[dsl.ContainerOp], op_name: str
+    ) -> Union[dsl.ContainerOp, None]:
         """ Get the first op with specified op name """
         return next(filter(lambda op: op.name == op_name, ops), None)
 
     @staticmethod
     def _get_subgroup(
-        groups: List[kfp.dsl.OpsGroup], group_name: str
-    ) -> Union[kfp.dsl.OpsGroup, None]:
+        groups: List[dsl.OpsGroup], group_name: str
+    ) -> Union[dsl.OpsGroup, None]:
         """ Get the frist OpsGroup with specified group name """
         return next(filter(lambda g: g.name == group_name, groups), None)
 
-    def _create_group_dag(self, pipeline_dag: _Dag, group: kfp.dsl.OpsGroup) -> _Dag:
+    def _create_group_dag(self, pipeline_dag: _Dag, group: dsl.OpsGroup) -> _Dag:
         """Create DAG within current group, it's a DAG of direct ops and direct subgroups.
 
         Each node of the DAG is either an op or a subgroup.
@@ -198,14 +198,14 @@ class LocalClient:
 
         return group_dag
 
-    def _create_op_dag(self, p: kfp.dsl.Pipeline) -> _Dag:
+    def _create_op_dag(self, p: dsl.Pipeline) -> _Dag:
         """ Create the DAG of the pipeline ops. """
         dag = _Dag(p.ops.keys())
 
         for op in p.ops.values():
             # dependencies defined by inputs
             for input_value in op.inputs:
-                if isinstance(input_value, kfp.dsl.PipelineParam):
+                if isinstance(input_value, dsl.PipelineParam):
                     input_param = self._extract_pipeline_param(input_value.pattern)
                     if input_param.op_name:
                         dag.add_edge(input_param.op_name, op.name)
@@ -236,7 +236,7 @@ class LocalClient:
     def get_output_file_path(
         self,
         run_name: str,
-        pipeline: kfp.dsl.Pipeline,
+        pipeline: dsl.Pipeline,
         op_name: str,
         output_name: str = None,
     ) -> str:
@@ -254,8 +254,8 @@ class LocalClient:
     def _op_cmd_locally(
         self,
         run_name: str,
-        pipeline: kfp.dsl.Pipeline,
-        op: kfp.dsl.ContainerOp,
+        pipeline: dsl.Pipeline,
+        op: dsl.ContainerOp,
         stack: Dict[str, Any],
     ) -> List[str]:
         """ Generate shell command to run the op locally. """
@@ -307,8 +307,8 @@ class LocalClient:
     def _op_cmd_on_docker(
         self,
         run_name: str,
-        pipeline: kfp.dsl.Pipeline,
-        op: kfp.dsl.ContainerOp,
+        pipeline: dsl.Pipeline,
+        op: dsl.ContainerOp,
         stack: Dict[str, Any],
     ) -> List[str]:
         """ Generate the command to run the op in docker locally. """
@@ -320,9 +320,9 @@ class LocalClient:
     def _run_group_dag(
         self,
         run_name: str,
-        pipeline: kfp.dsl.Pipeline,
+        pipeline: dsl.Pipeline,
         pipeline_dag: _Dag,
-        current_group: kfp.dsl.OpsGroup,
+        current_group: dsl.OpsGroup,
         stack: Dict[str, Any],
         local_env_image: str = None,
     ):
@@ -375,9 +375,9 @@ class LocalClient:
     def _run_group(
         self,
         run_name: str,
-        pipeline: kfp.dsl.Pipeline,
+        pipeline: dsl.Pipeline,
         pipeline_dag: _Dag,
-        current_group: kfp.dsl.OpsGroup,
+        current_group: dsl.OpsGroup,
         stack: Dict[str, Any],
         local_env_image: str = None,
     ):
@@ -394,8 +394,8 @@ class LocalClient:
                 this component locally in forked process, otherwise, local runner will run
                 this component on docker.
         """
-        if current_group.type == kfp.dsl.ParallelFor.TYPE_NAME:
-            current_group = cast(kfp.dsl.ParallelFor, current_group)
+        if current_group.type == dsl.ParallelFor.TYPE_NAME:
+            current_group = cast(dsl.ParallelFor, current_group)
 
             if current_group.items_is_pipeline_param:
                 _loop_args = current_group.loop_args
@@ -450,7 +450,7 @@ class LocalClient:
 
         class RunPipelineResult:
             def __init__(
-                self, client: LocalClient, pipeline: kfp.dsl.Pipeline, run_id: str
+                self, client: LocalClient, pipeline: dsl.Pipeline, run_id: str
             ):
                 self._client = client
                 self._pipeline = pipeline
@@ -469,7 +469,7 @@ class LocalClient:
             if hasattr(pipeline_func, "_component_human_name")
             else "local_pipeline"
         )
-        with kfp.dsl.Pipeline(pipeline_name) as pipeline:
+        with dsl.Pipeline(pipeline_name) as pipeline:
             pipeline_func(**arguments)
 
         run_version = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
