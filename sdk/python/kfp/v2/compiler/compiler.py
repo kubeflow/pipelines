@@ -81,7 +81,7 @@ class Compiler(object):
 
     pipeline_spec.pipeline_info.name = pipeline.name
     pipeline_spec.sdk_version = 'kfp-{}'.format(kfp.__version__)
-    # Sechma version 2.0.0 is required for kfp-pipeline-spec>0.1.3.1
+    # Schema version 2.0.0 is required for kfp-pipeline-spec>0.1.3.1
     pipeline_spec.schema_version = '2.0.0'
 
     pipeline_spec.root.CopyFrom(
