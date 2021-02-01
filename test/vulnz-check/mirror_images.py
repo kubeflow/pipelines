@@ -1,5 +1,6 @@
 # %%
 from typing import NamedTuple
+import os
 
 import kfp
 from kfp.components import func_to_container_op, InputPath, OutputPath
@@ -51,10 +52,10 @@ def mirror_images_pipeline(
 # %%
 if __name__ == '__main__':
     # Submit the pipeline for execution:
-    kfp.Client(
-        host=
-        'https://1fee7064345e6fc9-dot-asia-east1.pipelines.googleusercontent.com'
-    ).create_run_from_pipeline_func(
+    if os.getenv('KFP_HOST') is None:
+        print('KFP_HOST env var is not set')
+        exit(1)
+    kfp.Client(host=os.getenv('KFP_HOST')).create_run_from_pipeline_func(
         mirror_images_pipeline, arguments={'version': '1.3.0'}
     )
 

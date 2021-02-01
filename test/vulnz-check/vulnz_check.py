@@ -1,5 +1,6 @@
 # %%
 from typing import NamedTuple, List
+import os
 
 import kfp
 from kfp.components import func_to_container_op, InputPath, OutputPath
@@ -107,14 +108,17 @@ def vulnz_check_pipeline(
 
 # %%
 if __name__ == '__main__':
+    kfp_host = os.getenv('KFP_HOST')
+    if kfp_host is None:
+        print('KFP_HOST env var is not set')
+        exit(1)
+    client = kfp.Client(host=kfp_host)
     # Submit the pipeline for execution:
-    client = kfp.Client(
-        host=
-        'https://1fee7064345e6fc9-dot-asia-east1.pipelines.googleusercontent.com'
-    )
     run = client.create_run_from_pipeline_func(
         vulnz_check_pipeline, arguments={'version': '1.3.0'}
     )
+    print('Run details:')
+    print('{}/#/runs/details/{}'.format(kfp_host, run.run_id))
     timeout_in_seconds = 5 * 60
     run_result = client.wait_for_run_completion(run.run_id, timeout_in_seconds)
     print(run_result.run.status)  # Failed or ...
