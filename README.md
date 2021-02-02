@@ -9,9 +9,9 @@ SDK: [![Documentation Status](https://readthedocs.org/projects/kubeflow-pipeline
 
 The Kubeflow pipelines service has the following goals:
 
-- End to end orchestration: enabling and simplifying the orchestration of end to end machine learning pipelines
-- Easy experimentation: making it easy for you to try numerous ideas and techniques, and manage your various trials/experiments.
-- Easy re-use: enabling you to re-use components and pipelines to quickly cobble together end to end solutions, without having to re-build each time.
+* End to end orchestration: enabling and simplifying the orchestration of end to end machine learning pipelines
+* Easy experimentation: making it easy for you to try numerous ideas and techniques, and manage your various trials/experiments.
+* Easy re-use: enabling you to re-use components and pipelines to quickly cobble together end to end solutions, without having to re-build each time.
 
 ## Documentation
 
@@ -27,9 +27,10 @@ Consult the [Python SDK reference docs](https://kubeflow-pipelines.readthedocs.i
 
 Refer to the [versioning policy](./docs/release/versioning-policy.md) and [feature stages](./docs/release/feature-stages.md) documentation for more information about how we manage versions and feature stages (such as Alpha, Beta, and Stable).
 
-## Development and Contribution
+## Contributing to Kubeflow Pipelines
 
-For guideline on developing and contributing on Kubeflow Pipelines, please following [How to Contribute](./CONTRIBUTING.md) to make your change. For building and deploying Kubeflow Pipelines from source code, follow [ML Pipeline Development Guideline](./developer_guide.md)
+Before you start contributing to Kubeflow Pipelines, read the guidelines in [How to Contribute](./CONTRIBUTING.md). To learn how to build and deploy Kubeflow Pipelines from source code, read the [developer guide](./developer_guide.md).
+
 
 ## Kubeflow Pipelines Community Meeting
 
@@ -44,11 +45,11 @@ The meeting is happening every other Wed 10-11AM (PST)
 
 ## Blog posts
 
-- [Getting started with Kubeflow Pipelines](https://cloud.google.com/blog/products/ai-machine-learning/getting-started-kubeflow-pipelines) (By Amy Unruh)
-- How to create and deploy a Kubeflow Machine Learning Pipeline (By Lak Lakshmanan)
-  - [Part 1: How to create and deploy a Kubeflow Machine Learning Pipeline](https://towardsdatascience.com/how-to-create-and-deploy-a-kubeflow-machine-learning-pipeline-part-1-efea7a4b650f)
-  - [Part 2: How to deploy Jupyter notebooks as components of a Kubeflow ML pipeline](https://towardsdatascience.com/how-to-deploy-jupyter-notebooks-as-components-of-a-kubeflow-ml-pipeline-part-2-b1df77f4e5b3)
-  - [Part 3: How to carry out CI/CD in Machine Learning (“MLOps”) using Kubeflow ML pipelines](https://medium.com/google-cloud/how-to-carry-out-ci-cd-in-machine-learning-mlops-using-kubeflow-ml-pipelines-part-3-bdaf68082112)
+* [Getting started with Kubeflow Pipelines](https://cloud.google.com/blog/products/ai-machine-learning/getting-started-kubeflow-pipelines) (By Amy Unruh)
+* How to create and deploy a Kubeflow Machine Learning Pipeline (By Lak Lakshmanan)
+  * [Part 1: How to create and deploy a Kubeflow Machine Learning Pipeline](https://towardsdatascience.com/how-to-create-and-deploy-a-kubeflow-machine-learning-pipeline-part-1-efea7a4b650f)
+  * [Part 2: How to deploy Jupyter notebooks as components of a Kubeflow ML pipeline](https://towardsdatascience.com/how-to-deploy-jupyter-notebooks-as-components-of-a-kubeflow-ml-pipeline-part-2-b1df77f4e5b3)
+  * [Part 3: How to carry out CI/CD in Machine Learning (“MLOps”) using Kubeflow ML pipelines](https://medium.com/google-cloud/how-to-carry-out-ci-cd-in-machine-learning-mlops-using-kubeflow-ml-pipelines-part-3-bdaf68082112)
 
 ## Acknowledgments
 

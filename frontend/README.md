@@ -60,8 +60,8 @@ serve basic api calls with mock data.
 This requires you already have a real KFP cluster, you can proxy requests to it.
 
 1. [Install Kubeflow Pipelines](https://www.kubeflow.org/docs/pipelines/installation/overview/) based on your use case and environment.
-1. Configure your `kubectl` to access your KFP cluster. (For GCP, follow [Access to GCP cluster](https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl) guide).
-1. Then it depends on what you want to develop, start up proxy:
+1. Configure `kubectl` with access to your KFP cluster. (For GCP, follow [Access to GCP cluster](https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl) guide).
+1. Use the following table to determine which script to run.
 
 | What to develop?                     | Script to run                                               | Extra notes                                                        |
 | ------------------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------ |
@@ -73,10 +73,10 @@ This requires you already have a real KFP cluster, you can proxy requests to it.
 
 There are a few typees of tests during presubmit:
 
-- formatting, refer to [Code Style Section](#code-style)
-- linting, you can also run locally with `npm run lint`
-- client UI unit tests, you can run locally with `npm test`
-- UI node server unit tests, you can run locally with `cd server && npm test`
+* formatting, refer to [Code Style Section](#code-style)
+* linting, you can also run locally with `npm run lint`
+* client UI unit tests, you can run locally with `npm test`
+* UI node server unit tests, you can run locally with `cd server && npm test`
 
 There is a special type of unit test called [snapshot tests](https://jestjs.io/docs/en/snapshot-testing). When
 snapshot tests are failing, you can update them automatically with `npm test -u` and run all tests. Then commit
@@ -107,7 +107,7 @@ To understand more what prettier is: [What is Prettier](https://prettier.io/docs
 
 ### IDE Integration
 
-- For vscode, install the plugin "Prettier - Code formatter" and it will pick
+* For vscode, install the plugin "Prettier - Code formatter" and it will pick
   this project's config automatically.
   Recommend setting the following in [settings.json](https://code.visualstudio.com/docs/getstarted/settings#_settings-file-locations) for vscode to autoformat on save.
   ```
@@ -121,7 +121,7 @@ To understand more what prettier is: [What is Prettier](https://prettier.io/docs
   },
   ```
   Also, vscode builtin trailing whitespace [conflicts with jest inline snapshot](https://github.com/Microsoft/vscode/issues/52711), so recommend disabling it.
-- For others, refer to https://prettier.io/docs/en/editors.html.
+* For others, refer to https://prettier.io/docs/en/editors.html.
 
 ### Format Code Manually
 

@@ -1,6 +1,6 @@
 # ML Pipeline Development Guideline
 
-This document describes the development guideline to develop on ML pipeline project. Please check the [main page](https://github.com/kubeflow/pipelines/blob/master/README.md) for instruction on how to deploy a ML pipeline system.
+This document describes the development guideline to contribute to ML pipeline project. Please check the [main page](https://github.com/kubeflow/pipelines/blob/master/README.md) for instruction on how to deploy a ML pipeline system.
 
 ## ML pipeline deployment
 
