@@ -3,7 +3,7 @@ SDK: [![Documentation Status](https://readthedocs.org/projects/kubeflow-pipeline
 
 ## Overview of the Kubeflow pipelines service
 
-[Kubeflow](https://www.kubeflow.org/) is a machine learning (ML) toolkit that is dedicated to making deployments of ML workflows on Kubernetes simple, portable, and scalable. 
+[Kubeflow](https://www.kubeflow.org/) is a machine learning (ML) toolkit that is dedicated to making deployments of ML workflows on Kubernetes simple, portable, and scalable.
 
 **Kubeflow pipelines** are reusable end-to-end ML workflows built using the Kubeflow Pipelines SDK.
 
@@ -27,21 +27,27 @@ Consult the [Python SDK reference docs](https://kubeflow-pipelines.readthedocs.i
 
 Refer to the [versioning policy](./docs/release/versioning-policy.md) and [feature stages](./docs/release/feature-stages.md) documentation for more information about how we manage versions and feature stages (such as Alpha, Beta, and Stable).
 
+## Contributing to Kubeflow Pipelines
+
+Before you start contributing to Kubeflow Pipelines, read the guidelines in [How to Contribute](./CONTRIBUTING.md). To learn how to build and deploy Kubeflow Pipelines from source code, read the [developer guide](./developer_guide.md).
+
+
 ## Kubeflow Pipelines Community Meeting
 
-The meeting is happening every other Wed 10-11AM (PST) 
+The meeting is happening every other Wed 10-11AM (PST)
 [Calendar Invite](https://calendar.google.com/event?action=TEMPLATE&tmeid=NTdoNG5uMDBtcnJlYmdlOWt1c2lkY25jdmlfMjAxOTExMTNUMTgwMDAwWiBqZXNzaWV6aHVAZ29vZ2xlLmNvbQ&tmsrc=jessiezhu%40google.com&scp=ALL) or [Join Meeting Directly](https://meet.google.com/phd-ixfj-kcr/)
 
 [Meeting notes](http://bit.ly/kfp-meeting-notes)
 
 ## Kubeflow Pipelines Slack Channel
+
 [#kubeflow-pipelines](https://kubeflow.slack.com)
 
 ## Blog posts
 
 * [Getting started with Kubeflow Pipelines](https://cloud.google.com/blog/products/ai-machine-learning/getting-started-kubeflow-pipelines) (By Amy Unruh)
 * How to create and deploy a Kubeflow Machine Learning Pipeline (By Lak Lakshmanan)
-  * [Part 1: How to create and deploy a Kubeflow Machine Learning Pipeline](https://towardsdatascience.com/how-to-create-and-deploy-a-kubeflow-machine-learning-pipeline-part-1-efea7a4b650f) 
+  * [Part 1: How to create and deploy a Kubeflow Machine Learning Pipeline](https://towardsdatascience.com/how-to-create-and-deploy-a-kubeflow-machine-learning-pipeline-part-1-efea7a4b650f)
   * [Part 2: How to deploy Jupyter notebooks as components of a Kubeflow ML pipeline](https://towardsdatascience.com/how-to-deploy-jupyter-notebooks-as-components-of-a-kubeflow-ml-pipeline-part-2-b1df77f4e5b3)
   * [Part 3: How to carry out CI/CD in Machine Learning (“MLOps”) using Kubeflow ML pipelines](https://medium.com/google-cloud/how-to-carry-out-ci-cd-in-machine-learning-mlops-using-kubeflow-ml-pipelines-part-3-bdaf68082112)
 
