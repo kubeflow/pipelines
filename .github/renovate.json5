@@ -25,10 +25,13 @@
     },
     {
       "datasources": ["npm"],
+      "rangeStrategy": "update-lockfile",
+    },
+    {
+      "datasources": ["npm"],
       "updateTypes": ["patch", "minor"],
       "groupName": "npm dependencies",
       "groupSlug": "npm-updates",
-      "rangeStrategy": "update-lockfile",
     },
     { // major updates do not create PRs automatically
       "updateTypes": ["major"],
