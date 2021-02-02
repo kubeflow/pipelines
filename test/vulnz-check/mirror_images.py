@@ -3,6 +3,7 @@ from typing import NamedTuple
 import os
 
 import kfp
+from kfp import dsl
 from kfp.components import func_to_container_op, InputPath, OutputPath
 
 # %%
@@ -25,11 +26,16 @@ def mirror_image(
 
 
 mirror_image_component = kfp.components.create_component_from_func(
-    mirror_image_imp, base_image='google/cloud-sdk:alpine'
+    mirror_image, base_image='google/cloud-sdk:alpine'
 )
 
 
 # Combining all pipelines together in a single pipeline
+@dsl.pipeline(
+    name='Mirror Images',
+    description=
+    'A pipeline that mirrors gcr images from one repository to another.'
+)
 def mirror_images_pipeline(
         version: str = '1.3.0',
         source_registry: str = 'gcr.io/ml-pipeline',
