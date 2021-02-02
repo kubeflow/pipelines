@@ -13,11 +13,11 @@ inputs:
 - {name: subscription_id, type: String}
 - {name: resource_group, type: String}
 - {name: tenant_id, type: String}
-- {name: command_line_arguments, type: String, default: 'not_specified', optional: true}
-- {name: configuration, type: String, default: 'not_specified', optional: true}
-- {name: language, type: String, default: 'not_specified', optional: true}
-- {name: reference_files, type: String, default: 'not_specified', optional: true}
-- {name: tags, type: String, default: 'not_specified', optional: true}
+- {name: command_line_arguments, type: String, default: '', optional: true}
+- {name: configuration, type: String, default: '', optional: true}
+- {name: language, type: String, default: '', optional: true}
+- {name: reference_files, type: String, default: '', optional: true}
+- {name: tags, type: String, default: '', optional: true}
 - {name: spark_pool_config_file, type: String, default: './src/spark_pool_config.yaml', optional: true}
 - {name: wait_until_job_finished, type: Bool, default: True, optional: true}
 - {name: waiting_timeout_in_seconds, type: Integer, default: 3600, optional: true}

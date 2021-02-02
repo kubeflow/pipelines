@@ -36,28 +36,49 @@ This component submit a spark job in [Azure Syanpse workspace](https://docs.micr
 | tenant_id | String | Y | The Azure tenant id for the service principal |
 
 ## Prerequisites
-- Create an AKS cluster
-- Install Kubeflow on AKS following [instructions for deploying Kubeflow on Azure](https://www.kubeflow.org/docs/azure/).
-- Create AAD service principal (TODO: document details)
+- [Create an AKS cluster](https://docs.microsoft.com/en-us/azure/aks/kubernetes-walkthrough-portal).
+- [Install Kubeflow on AKS](https://www.kubeflow.org/docs/azure/).
+- [Create AAD service principal](https://docs.microsoft.com/en-us/azure/active-directory/develop/howto-create-service-principal-portal).
 - Create a Azure Synapse Workspace and grant following permissions to the service principal:
-  - Azure Owner or Contributor for the Synapse workspace
-  - bigDataPools/useCompute in Synapse RBAC
+  - Azure Owner or Contributor for the Synapse workspace (Azure RBAC)
+  - Synapse Apache Spark Administrator in Synapse RBAC
   - Storage blob data owner for the attached ADSL account (storing job 
   definition file)
 
   See [Synapse RBAC Roles documentation](https://docs.microsoft.com/en-us/azure/synapse-analytics/security/synapse-workspace-understand-what-role-you-need) for more details
-- Create a Azure Container Registry and grant access to the AKS cluster (TODO: document steps)
-- Create a secret for service principal authentication (TODO: document details)
+- [Create a Azure Container Registry](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-get-started-portal) and grant access to the AKS cluster by running:
+```shell
+az login
+az aks update -n <aks-name> -g <aks-resource-group-name> --attach-acr <acr-name>
+```
+- Create a secret for service principal authentication in AKS by running:
+```shell
+kubectl create secret generic azcreds \
+  --from-literal=AZ_TENANT_ID='<tenant-id>' \
+  --from-literal=AZ_CLIENT_ID='<client-id>' \
+  --from-literal=AZ_CLIENT_SECRET='<client-secret>' \
+  --from-literal=AZ_SUBSCRIPTION_ID='<azure-subscription-id>' \
+  -n kubeflow
+```
 
 ## Usage
 ### Step 1. Build the docker image and upload to Azure Container Registry
+First, login to your Azure container registry by running:
+```shell
+az login
+sudo az acr login -n <acr-name>
+``` 
 You can run the following command to build and upload the image
 ```shell
-docker build . -t {your_ACR_name}.azurecr.io/deploy/{your_image_name}:latest
-docker push {your_ACR_name}.azurecr.io/deploy/{your_image_name}:latest
+docker build . -t <acr-name>.azurecr.io/deploy/<image-name>:latest
+docker push <acr-name>.azurecr.io/deploy/<image-name>:latest
 ``` 
+### Step 2. Update the parameters
+In sample.py, we set *main_definition_file* and *command_line_arguments* as pipeline input parameters. You can update the pipeline input parameters and component parameters as needed before building the sample pipeline.
 
-### Step 2. Build the sample pipeline using sample.py
+If you need the Azure Synapse Spark job component to create new Spark pool, make sure you review and update the [Spark pool configuration file](./src/spark_pool_config.yaml). 
+
+### Step 3. Build the sample pipeline using sample.py
 First install kfp package
 ```shell
 pip install kfp
@@ -65,7 +86,7 @@ pip install kfp
 
 Run the sample.py script to build and compile sample pipeline
 ```shell
-python sample.py --image_name <your-image-name> --image_repo_name <your-acr-name>
+python sample.py --image_name <image-name> --image_repo_name <acr-name>
 ```
 
-### Step 3. Download the .gz file and upload the pipeline in Kubeflow UI
+### Step 4. Download the .gz file and upload the pipeline in Kubeflow UI

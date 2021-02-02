@@ -37,7 +37,7 @@ OUTPUT=$(az synapse workspace show --name ${WORKSPACE_NAME} \
 
 if [[ $OUTPUT == *"ResourceNotFoundError"* ]]; then
     echo "The workspace doesn't exist. Cannot schedule the job."
-    exit 0
+    exit 1
 fi
 
 # Check if the spark pool exists
@@ -56,7 +56,7 @@ if [[ $OUTPUT == *"ResourceNotFoundError"* ]]; then
                                 --node-size ${SPARK_POOL_NODE_SIZE} \
                                 --resource-group ${RESOURCE_GROUP} \
                                 --workspace-name ${WORKSPACE_NAME} \
-                                --spark-version ${SPARK_POOL_SPARK_VERSION}
+                                --spark-version ${SPARK_POOL_SPARK_VERSION} \
                                 --enable-auto-pause ${SPARK_POOL_ENABLE_AUTO_PAUSE} \
                                 --enable-auto-scale ${SPARK_POOL_ENABLE_AUTO_SCALE} \
                                 --delay ${SPARK_POOL_DELAY} \
@@ -73,12 +73,13 @@ if [[ $OUTPUT == *"ResourceNotFoundError"* ]]; then
 
     # If cannot get Livy id from the output, return -1 and the error output
     if [[ "$pool_name" == "" ]]; then
-        echo "Failed to create spark cluster. See output for more details."
-        echo "Output: ${OUTPUT}"
+        echo "Failed to create spark cluster. See errors above for more details."
         exit 1
     else
-        echo "Created spark pool ${SPARK_POOL_NAME} in workspace ${WORKSPACE_NAME}"
+        echo "Created spark pool ${SPARK_POOL_NAME} in workspace ${WORKSPACE_NAME}."
     fi
+else
+    echo "Found spark pool ${SPARK_POOL_NAME} in workspace ${WORKSPACE_NAME}."
 fi
 
 # Run az synapse spark job submit to submit spark job
@@ -95,23 +96,23 @@ else
     command="${command} --main-class-name ${MAIN_CLASS_NAME}"
 fi
 
-if [[ "$COMMAND_LINE_ARGUMENTS" != "not_specified" ]]; then 
+if [[ "$COMMAND_LINE_ARGUMENTS" != "" ]]; then 
     command="${command} --command-line-arguments ${COMMAND_LINE_ARGUMENTS}"
 fi
 
-if [[ "$CONFIGURATION" != "not_specified" ]]; then 
+if [[ "$CONFIGURATION" != "" ]]; then 
     command="${command} --configuration ${CONFIGURATION}"
 fi
 
-if [[ "$LANGUAGE" != "not_specified" ]]; then 
+if [[ "$LANGUAGE" != "" ]]; then 
     command="${command} --language ${LANGUAGE}"
 fi
 
-if [[ "$REFERENCE_FILE" != "not_specified" ]]; then 
+if [[ "$REFERENCE_FILE" != "" ]]; then 
     command="${command} --reference-files ${REFERENCE_FILE}"
 fi
 
-if [[ "$TAGS" != "not_specified" ]]; then 
+if [[ "$TAGS" != "" ]]; then 
     command="${command} --tags ${TAGS}"
 fi
 
@@ -122,8 +123,7 @@ job_id=$( echo $OUTPUT | jq ".id")
 
 # If cannot get Livy id from the output, return -1 and the error output
 if [[ "$job_id" == "" ]]; then
-    echo "Failed to schedule spark job. See output for more details."
-    echo "Output: ${OUTPUT}"
+    echo "Failed to schedule spark job. See errors above for more details."
     exit 1
 fi
 

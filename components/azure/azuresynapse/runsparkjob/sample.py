@@ -7,7 +7,7 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Process inputs.')
 parser.add_argument('--image_name', type=str, default='kubeflow_synapse_component')
-parser.add_argument('--image_repo_name', type=str, default='xiwutest5f386e67')
+parser.add_argument('--image_repo_name', type=str, default='kubeflowdemo')
 args = parser.parse_args()
 
 component_root = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".")
@@ -36,29 +36,28 @@ def use_image(image_name):
 )
 def run_spark_job(
     main_definition_file,
-    spark_pool_name
+    command_line_arguments
 ):
-
     operation = run_job_operation(executor_size='Small',
                                 executors=1,
                                 main_class_name='""',
                                 main_definition_file=main_definition_file,
-                                name='xiwutest',
+                                name='kubeflowsynapsetest',
                                 tenant_id='$(AZ_TENANT_ID)',
                                 service_principal_id='$(AZ_CLIENT_ID)',
                                 service_principal_password='$(AZ_CLIENT_SECRET)',
                                 subscription_id='$(AZ_SUBSCRIPTION_ID)',
-                                resource_group='eddi-rg',
-                                command_line_arguments='not_specified',
-                                spark_pool_name=spark_pool_name,
-                                language='not_specified',
-                                reference_files='not_specified',
-                                configuration='not_specified',
-                                tags='not_specified',
+                                resource_group='kubeflow-demo-rg',
+                                command_line_arguments=command_line_arguments,
+                                spark_pool_name='kubeflowsynapse',
+                                language='',
+                                reference_files='',
+                                configuration='',
+                                tags='',
                                 spark_pool_config_file='./src/spark_pool_config.yaml',
                                 wait_until_job_finished=True,
                                 waiting_timeout_in_seconds=3600,
-                                workspace_name='eddidemo'). \
+                                workspace_name='kubeflow-demo'). \
                                 apply(use_azure_secret()). \
                                 apply(use_image(run_job_image_name))
 
