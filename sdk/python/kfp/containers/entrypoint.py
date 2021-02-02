@@ -186,7 +186,7 @@ def _write_output_metadata_file(
 def main(
     executor_input_str: str,
     function_name: str,
-    output_metadata_path: str):
+    output_metadata_path: Optional[str] = None):
   """Container entrypoint used by KFP Python function based component
 
   executor_input_str: A serialized ExecutorInput proto message.
@@ -196,6 +196,7 @@ def main(
   """
   executor_input = pipeline_spec_pb2.ExecutorInput()
   json_format.Parse(text=executor_input_str, message=executor_input)
+  output_metadata_path = output_metadata_path or executor_input.outputs.output_file
   parameter_dict = {}  # kwargs to be passed to UDF.
   for name, input_param in executor_input.inputs.parameters.items():
     parameter_dict[name] = entrypoint_utils.get_python_value(input_param)
