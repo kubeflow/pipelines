@@ -305,6 +305,11 @@ export const commonCss = stylesheet({
     outline: 'none',
     textDecoration: 'none',
   },
+  transitiveReductionSwitch: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
 });
 
 export function _paddingInternal(units?: number, directions?: string): NestedCSSProperties {
