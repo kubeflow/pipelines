@@ -1,0 +1,58 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base",
+    "schedule:weekly",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":semanticCommitScope(deps)",
+    "group:linters",
+    "group:googleapis",
+    "group:goOpenapi"
+  ],
+  "packageRules": [
+    {
+      "datasources": ["docker"],
+      "updateTypes": ["patch"],
+      "groupName": "docker patch updates",
+      "groupSlug": "docker-updates"
+    },
+    {
+      "datasources": ["go"],
+      "updateTypes": ["patch", "minor"],
+      "groupName": "go.mod dependencies",
+      "groupSlug": "go-mod-updates"
+    },
+    {
+      "datasources": ["npm"],
+      "updateTypes": ["patch", "minor"],
+      "groupName": "npm dependencies",
+      "groupSlug": "npm-updates"
+    },
+    { // major updates do not create PRs automatically
+      "updateTypes": ["major"],
+      "dependencyDashboardApproval": true,
+    },
+    { // disable python package updates initially, because they are not stable
+      "languages": ["python"],
+      "enabled": false
+    },
+    { // we've deprecated bazel
+      "managers": ["bazel"],
+      "enabled": false
+    }
+  ],
+  "ignorePaths": [
+    "components/deprecated/",
+    "third_party/",
+    "components/ibm-components/",
+    "components/azure/",
+    "components/presto/",
+    "components/arena/",
+    "components/aws/",
+    "backend/api/python_http_client/",
+    "manifests/kustomize/"
+  ],
+  "dependencyDashboardApproval": true, // require approval for all updates initially
+  "separateMinorPatch": true
+}
