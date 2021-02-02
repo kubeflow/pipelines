@@ -20,6 +20,7 @@ import { color } from '../Css';
 import { Constants } from './Constants';
 import { logger } from './Utils';
 import { parseTaskDisplayName } from './ParserUtils';
+import { graphlib } from 'dagre';
 
 export type nodeType = 'container' | 'resource' | 'dag' | 'unknown';
 
@@ -262,4 +263,61 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
   }
 
   return graph;
+}
+
+/**
+ * Perform a transitive reduction over the input graph.
+ *
+ * From [1]: Transitive reduction of a directed graph D is another directed
+ * graph with the same vertices and as few edges as possible, such that for all
+ * pairs of vertices v, w a (directed) path from v to w in D exists if and only
+ * if such a path exists in the reduction
+ *
+ * The current implementation has a time complexity bound `O(n*m)`, where `n`
+ * are the nodes and `m` are the edges of the input graph.
+ *
+ * [1]: https://en.wikipedia.org/wiki/Transitive_reduction
+ *
+ * @param graph The dagre graph object
+ */
+export function transitiveReduction(graph: dagre.graphlib.Graph): dagre.graphlib.Graph | undefined {
+  // safeguard against too big graphs
+  if (!graph || graph.edgeCount() > 1000 || graph.nodeCount() > 1000) {
+    return undefined;
+  }
+
+  const result = graphlib.json.read(graphlib.json.write(graph));
+  let visited: string[] = [];
+  const dfs_with_removal = (current: string, parent: string) => {
+    result.successors(current)?.forEach((node: any) => {
+      if (visited.includes(node)) return;
+      visited.push(node);
+      if (result.successors(parent)?.includes(node)) {
+        result.removeEdge(parent, node);
+      }
+      dfs_with_removal(node, parent);
+    });
+  };
+
+  result.nodes().forEach(node => {
+    visited = []; // clean this up before each new DFS
+    // start a DFS from each successor of `node`
+    result.successors(node)?.forEach((successor: any) => dfs_with_removal(successor, node));
+  });
+  return result;
+}
+
+export function compareGraphEdges(graph1: dagre.graphlib.Graph, graph2: dagre.graphlib.Graph) {
+  return (
+    graph1
+      .edges()
+      .map(e => `${e.name}${e.v}${e.w}`)
+      .sort()
+      .toString() ===
+    graph2
+      .edges()
+      .map(e => `${e.name}${e.v}${e.w}`)
+      .sort()
+      .toString()
+  );
 }
