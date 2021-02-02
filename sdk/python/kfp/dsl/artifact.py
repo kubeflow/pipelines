@@ -317,10 +317,9 @@ class Artifact(object):
     return self._artifact.custom_properties[key].double_value
 
   @classmethod
-  def deserialize(cls, data: str) -> Any:
-    """Deserializes an Artifact object from JSON dict."""
-    artifact = pipeline_spec_pb2.RuntimeArtifact()
-    json_format.Parse(data, artifact, ignore_unknown_fields=True)
+  def get_from_runtime_artifact(
+      cls, artifact: pipeline_spec_pb2.RuntimeArtifact) -> Any:
+    """Deserializes an Artifact object from RuntimeArtifact message."""
     instance_schema = yaml.safe_load(artifact.type.instance_schema)
     type_name = instance_schema['title'][len('kfp.'):]
     result = None
@@ -340,6 +339,13 @@ class Artifact(object):
       result = Artifact(instance_schema=artifact.type.instance_schema)
     result.runtime_artifact = artifact
     return result
+
+  @classmethod
+  def deserialize(cls, data: str) -> Any:
+    """Deserializes an Artifact object from JSON dict."""
+    artifact = pipeline_spec_pb2.RuntimeArtifact()
+    json_format.Parse(data, artifact, ignore_unknown_fields=True)
+    return cls.get_from_runtime_artifact(artifact)
 
   def serialize(self) -> str:
     """Serializes an Artifact to JSON dict format."""

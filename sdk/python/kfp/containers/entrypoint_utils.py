@@ -165,6 +165,11 @@ def _get_pipeline_value(value: Union[int, float, str]) -> Optional[
   return result
 
 
+def get_python_value(value: pipeline_spec_pb2.Value) -> Union[int, float, str]:
+  """Gets Python value from pipeline value pb message."""
+  return getattr(value, value.WhichOneof('value'))
+
+
 def get_executor_output(
     output_artifacts: Dict[str, artifact.Artifact],
     output_params: Dict[str, Union[int, float, str]]
