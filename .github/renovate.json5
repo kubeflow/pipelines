@@ -6,6 +6,7 @@
     ":dependencyDashboard",
     ":semanticCommits",
     ":semanticCommitScope(deps)",
+    ":preserveSemverRanges", // TODO: we should discuss this option in https://github.com/kubeflow/pipelines/issues/4682#issuecomment-771329309.
     "group:linters",
     "group:googleapis",
     "group:goOpenapi"
