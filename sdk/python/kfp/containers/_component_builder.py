@@ -325,6 +325,8 @@ def build_python_component(
         is_v2=True)
 
     # Override user program args for new-styled component.
+    # TODO: The actual program args will be changed after we support v2
+    # component on KFP.
     program_args = []
     for component_input in component_spec.inputs or []:
       if component_input._passing_style == components.InputArtifact:
