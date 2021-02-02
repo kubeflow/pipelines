@@ -6,7 +6,6 @@
     ":dependencyDashboard",
     ":semanticCommits",
     ":semanticCommitScope(deps)",
-    ":preserveSemverRanges", // TODO: we should discuss this option in https://github.com/kubeflow/pipelines/issues/4682#issuecomment-771329309.
     "group:linters",
     "group:googleapis",
     "group:goOpenapi"
@@ -28,7 +27,8 @@
       "datasources": ["npm"],
       "updateTypes": ["patch", "minor"],
       "groupName": "npm dependencies",
-      "groupSlug": "npm-updates"
+      "groupSlug": "npm-updates",
+      "rangeStrategy": "update-lockfile",
     },
     { // major updates do not create PRs automatically
       "updateTypes": ["major"],
