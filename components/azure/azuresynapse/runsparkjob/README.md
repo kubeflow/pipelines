@@ -38,7 +38,14 @@ This component submit a spark job in [Azure Syanpse workspace](https://docs.micr
 ## Prerequisites
 - Create an AKS cluster
 - Install Kubeflow on AKS following [instructions for deploying Kubeflow on Azure](https://www.kubeflow.org/docs/azure/).
-- Create a Azure Synapse Workspace and grant permissions (TODO: document the min privilege)
+- Create AAD service principal (TODO: document details)
+- Create a Azure Synapse Workspace and grant following permissions to the service principal:
+  - Azure Owner or Contributor for the Synapse workspace
+  - bigDataPools/useCompute in Synapse RBAC
+  - Storage blob data owner for the attached ADSL account (storing job 
+  definition file)
+
+  See [Synapse RBAC Roles documentation](https://docs.microsoft.com/en-us/azure/synapse-analytics/security/synapse-workspace-understand-what-role-you-need) for more details
 - Create a Azure Container Registry and grant access to the AKS cluster (TODO: document steps)
 - Create a secret for service principal authentication (TODO: document details)
 
