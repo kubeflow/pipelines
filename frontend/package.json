@@ -96,7 +96,6 @@
     "ts-node-dev": "^1.0.0-pre.30",
     "tslint-config-prettier": "^1.18.0",
     "typescript": "^3.7.5",
-    "webpack": "4.42.0",
     "webpack-bundle-analyzer": "^3.6.1"
   },
   "homepage": "./",
