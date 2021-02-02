@@ -3,6 +3,7 @@ from typing import NamedTuple, List
 import os
 
 import kfp
+from kfp import dsl
 from kfp.components import func_to_container_op, InputPath, OutputPath
 
 # %%
@@ -96,6 +97,10 @@ def kfp_images(version: str, registry_url: str) -> str:
 
 
 # Combining all pipelines together in a single pipeline
+@dsl.pipeline(
+   name='Vulnerability Checking',
+   description='A pipeline to check vulnerability for all Kubeflow Pipelines images'
+)
 def vulnz_check_pipeline(
         version: str = '1.3.0',
         registry_url: str = 'gcr.io/gongyuan-pipeline-test/dev'
