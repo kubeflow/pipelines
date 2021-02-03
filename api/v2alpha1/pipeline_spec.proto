@@ -367,6 +367,21 @@ message PipelineTaskSpec {
   // Reference to a component.  Use this field to define either a DAG or an
   // executor.
   ComponentRef component_ref = 7;
+
+  // Trigger policy defines how the task gets triggered. If a task is not
+  // triggered, it will run into NOT_TRIGGERED state.
+  message TriggerPolicy {
+    // An expression which will be evaluated into a boolean value. True to
+    // trigger the task to run. The expression follows the language of
+    // [CEL Spec][https://github.com/google/cel-spec]. It can access the data
+    // from [ExecutorInput][] message of the task.
+    // For example:
+    // - `inputs.artifacts['model'][0].properties['accuracy']*100 > 90`
+    // - `inputs.parameters['type'] == 'foo' && inputs.parameters['num'] == 1`
+    string condition = 1;
+  }
+  // Trigger policy of the task.
+  TriggerPolicy trigger_policy = 8;
 }
 
 message ComponentRef {
