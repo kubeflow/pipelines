@@ -241,6 +241,7 @@ message TaskInputsSpec {
       // Pass the input artifact from parent component input artifact.
       string component_input_artifact = 4;
     }
+    reserved 5;
   }
 
   // Represents an input parameter. The value can be taken from an upstream
@@ -265,6 +266,7 @@ message TaskInputsSpec {
       // Pass the input parameter from parent component input parameter.
       string component_input_parameter = 3;
     }
+    reserved 4;
   }
 
   // A map of input parameters which are small values, stored by the system and
@@ -382,6 +384,74 @@ message PipelineTaskSpec {
   }
   // Trigger policy of the task.
   TriggerPolicy trigger_policy = 8;
+
+  // Iterator supports fanning out the task into multiple sub-tasks based on the
+  // values of input artifact or parameter. The current task will become the
+  // parent of all the fan-out tasks. The output of the current task follows
+  // the following conventions:
+  // * Output artifacts with the same name of each iteration will be merged
+  //   into one output artifact channel of the parent iterator task.
+  // * Output parameters with the same name of each iteration will be merged
+  //   into a string output parameter with the same name with content being a
+  //   JSON array.
+  //
+  // For example, if an iterator starts two sub-tasks (t1 and t2) with the
+  // following outputs.
+  //
+  // t1.outputs.parameters = { 'p': 'v1' }
+  // t1.outputs.artifacts = { 'a': [a1] }
+  // t2.outputs.parameters = { 'p': 'v2' }
+  // t2.outputs.artifacts = { 'a': [a2] }
+  // parent_task.outputs.parameters = { 'p': '["v1", "v2"]' }
+  // parent_task.outputs.aritfacts = { 'a': [a1, a2] }
+  oneof iterator {
+    // Iterator to iterate over an artifact input.
+    ArtifactIteratorSpec artifact_iterator = 9;
+    // Iterator to iterate over a parameter input.
+    ParameterIteratorSpec parameter_iterator = 10;
+  }
+}
+
+// The spec of an artifact iterator. It supports fan-out a workflow from a list
+// of artifacts.
+message ArtifactIteratorSpec {
+  // Specifies the name of the artifact channel which contains the collection of
+  // items to iterate. The iterator will create a sub-task for each item of
+  // the collection and pass the item as a new input artifact channel as
+  // specified by [item_input][].
+  message ItemsSpec {
+    // The name of the input artifact.
+    string input_artifact = 1;
+  }
+  // The items to iterate.
+  ItemsSpec items = 1;
+  // The name of the input artifact channel which has the artifact item from the
+  // [items][] collection.
+  string item_input = 2;
+}
+
+// The spec of a parameter iterator. It supports fan-out a workflow from a
+// string parameter which contains a JSON array.
+message ParameterIteratorSpec {
+  // Specifies the spec to decribe the parameter items to iterate.
+  message ItemsSpec {
+    // Specifies where to get the collection of items to iterate. The iterator
+    // will create a sub-task for each item of the collection and pass the item
+    // as a new input parameter as specified by [item_input][].
+    oneof kind {
+      // The raw JSON array.
+      string raw = 1;
+      // The name of the input parameter whose value has the items collection.
+      // The parameter must be in STRING type and its content can be parsed
+      // as a JSON array.
+      string input_parameter = 2;
+    }
+  }
+  // The items to iterate.
+  ItemsSpec items = 1;
+  // The name of the input parameter which has the item value from the
+  // [items][] collection.
+  string item_input = 2;
 }
 
 message ComponentRef {
