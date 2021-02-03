@@ -12,9 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import warnings
-warnings.simplefilter('always', DeprecationWarning)
-warnings.warn(
-    'Module `kfp.v2.compoennts` is deprecated, use `kfp.components` instead.',
-    DeprecationWarning)
 from kfp.components import *
