@@ -17,13 +17,15 @@ import copy
 from typing import Any, Mapping, Optional
 
 from kfp import dsl
-from kfp.components._naming import _sanitize_python_function_name
-from kfp.components._naming import generate_unique_name_conversion_table
-from kfp.dsl import types
 from kfp.components import _structures as structures
 from kfp.components._components import _default_component_name
 from kfp.components._components import _resolve_command_line_and_paths
+from kfp.components._naming import _sanitize_python_function_name
+from kfp.components._naming import generate_unique_name_conversion_table
+from kfp.dsl import types
+from kfp.v2.dsl import component_spec as dsl_component_spec
 from kfp.v2.dsl import container_op
+from kfp.v2.dsl import dsl_utils
 from kfp.v2.dsl import importer_node
 from kfp.v2.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
@@ -49,7 +51,7 @@ def create_container_op_from_component_and_arguments(
   pipeline_task_spec = pipeline_spec_pb2.PipelineTaskSpec()
 
   # Keep track of auto-injected importer spec.
-  importer_spec = {}
+  importer_specs = {}
 
   # Check types of the reference arguments and serialize PipelineParams
   arguments = arguments.copy()
@@ -68,27 +70,29 @@ def create_container_op_from_component_and_arguments(
         if argument_value.op_name:
           pipeline_task_spec.inputs.parameters[
               input_name].task_output_parameter.producer_task = (
-                  argument_value.op_name)
+                  dsl_utils.sanitize_task_name(argument_value.op_name))
           pipeline_task_spec.inputs.parameters[
               input_name].task_output_parameter.output_parameter_key = (
                   argument_value.name)
         else:
           pipeline_task_spec.inputs.parameters[
-              input_name].runtime_value.runtime_parameter = argument_value.name
+              input_name].component_input_parameter = argument_value.name
       else:
         if argument_value.op_name:
-          pipeline_task_spec.inputs.artifacts[input_name].producer_task = (
-              argument_value.op_name)
           pipeline_task_spec.inputs.artifacts[
-              input_name].output_artifact_key = (
+              input_name].task_output_artifact.producer_task = (
+                  dsl_utils.sanitize_task_name(argument_value.op_name))
+          pipeline_task_spec.inputs.artifacts[
+              input_name].task_output_artifact.output_artifact_key = (
                   argument_value.name)
         else:
           # argument_value.op_name could be none, in which case an importer node
           # will be inserted later.
-          pipeline_task_spec.inputs.artifacts[input_name].producer_task = ''
+          pipeline_task_spec.inputs.artifacts[
+              input_name].task_output_artifact.producer_task = ''
           type_schema = type_utils.get_input_artifact_type_schema(
               input_name, component_spec.inputs)
-          importer_spec[input_name] = importer_node.build_importer_spec(
+          importer_specs[input_name] = importer_node.build_importer_spec(
               input_type_schema=type_schema,
               pipeline_param_name=argument_value.name)
     elif isinstance(argument_value, str):
@@ -99,10 +103,11 @@ def create_container_op_from_component_and_arguments(
                 argument_value)
       else:
         # An importer node with constant value artifact_uri will be inserted.
-        pipeline_task_spec.inputs.artifacts[input_name].producer_task = ''
+        pipeline_task_spec.inputs.artifacts[
+            input_name].task_output_artifact.producer_task = ''
         type_schema = type_utils.get_input_artifact_type_schema(
             input_name, component_spec.inputs)
-        importer_spec[input_name] = importer_node.build_importer_spec(
+        importer_specs[input_name] = importer_node.build_importer_spec(
             input_type_schema=type_schema, constant_value=argument_value)
     elif isinstance(argument_value, int):
       pipeline_task_spec.inputs.parameters[
@@ -118,15 +123,6 @@ def create_container_op_from_component_and_arguments(
       raise NotImplementedError(
           'Input argument supports only the following types: PipelineParam'
           ', str, int, float. Got: "{}".'.format(argument_value))
-
-  for output in component_spec.outputs or []:
-    if type_utils.is_parameter_type(output.type):
-      pipeline_task_spec.outputs.parameters[
-          output.name].type = type_utils.get_parameter_type(output.type)
-    else:
-      pipeline_task_spec.outputs.artifacts[
-          output.name].artifact_type.instance_schema = (
-              type_utils.get_artifact_type_schema(output.type))
 
   inputs_dict = {
       input_spec.name: input_spec for input_spec in component_spec.inputs or []
@@ -149,15 +145,15 @@ def create_container_op_from_component_and_arguments(
       raise TypeError(
           'Input "{}" with type "{}" cannot be paired with InputPathPlaceholder.'
           .format(input_key, inputs_dict[input_key].type))
-    elif input_key in importer_spec:
+    elif input_key in importer_specs:
       raise TypeError(
           'Input "{}" with type "{}" is not connected to any upstream output. '
           'However it is used with InputPathPlaceholder. '
           'If you want to import an existing artifact using a system-connected '
           'importer node, use InputUriPlaceholder instead. '
           'Or if you just want to pass a string parameter, use string type and '
-          'InputValuePlaceholder instead.'
-          .format(input_key, inputs_dict[input_key].type))
+          'InputValuePlaceholder instead.'.format(input_key,
+                                                  inputs_dict[input_key].type))
     else:
       return "{{{{$.inputs.artifacts['{}'].path}}}}".format(input_key)
 
@@ -201,12 +197,6 @@ def create_container_op_from_component_and_arguments(
 
   container_spec = component_spec.implementation.container
 
-  pipeline_container_spec = (
-      pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec())
-  pipeline_container_spec.image = container_spec.image
-  pipeline_container_spec.command.extend(resolved_cmd.command)
-  pipeline_container_spec.args.extend(resolved_cmd.args)
-
   output_uris_and_paths = resolved_cmd.output_uris.copy()
   output_uris_and_paths.update(resolved_cmd.output_paths)
   input_uris_and_paths = resolved_cmd.input_uris.copy()
@@ -230,12 +220,20 @@ def create_container_op_from_component_and_arguments(
   )
 
   # task.name is unique at this point.
-  pipeline_task_spec.task_info.name = task.name
-  pipeline_task_spec.executor_label = task.name
+  pipeline_task_spec.task_info.name = (dsl_utils.sanitize_task_name(task.name))
+  pipeline_task_spec.component_ref.name = (
+      dsl_utils.sanitize_component_name(component_spec.name))
 
   task.task_spec = pipeline_task_spec
-  task.importer_spec = importer_spec
-  task.container_spec = pipeline_container_spec
+  task.importer_specs = importer_specs
+  task.component_spec = dsl_component_spec.build_component_spec_from_structure(
+      component_spec)
+  task.container_spec = (
+      pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec(
+          image=container_spec.image,
+          command=resolved_cmd.command,
+          args=resolved_cmd.args))
+
   dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = old_warn_value
 
   component_meta = copy.copy(component_spec)

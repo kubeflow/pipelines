@@ -1,122 +1,116 @@
 {
   "pipelineSpec": {
-    "sdkVersion": "kfp-1.1.0-dev20201106",
-    "tasks": [
-      {
-        "outputs": {
-          "artifacts": {
-            "model_output": {
-              "artifactType": {
-                "instanceSchema": "properties:\ntitle: kfp.Model\ntype: object\n"
-              }
-            }
-          },
-          "parameters": {
-            "model_config": {
-              "type": "STRING"
-            }
-          }
-        },
-        "taskInfo": {
-          "name": "Trainer"
-        },
-        "inputs": {
-          "artifacts": {
-            "input_location": {
-              "producerTask": "Trainer_input_location_importer",
-              "outputArtifactKey": "result"
-            }
-          },
-          "parameters": {
-            "train_optimizer": {
-              "runtimeValue": {
-                "runtimeParameter": "optimizer"
-              }
+    "sdkVersion": "kfp-1.3.0",
+    "root": {
+      "dag": {
+        "tasks": {
+          "task-trainer": {
+            "componentRef": {
+              "name": "comp-trainer"
             },
-            "num_epochs": {
-              "runtimeValue": {
-                "runtimeParameter": "epochs"
-              }
-            }
-          }
-        },
-        "executorLabel": "Trainer"
-      },
-      {
-        "taskInfo": {
-          "name": "Serving"
-        },
-        "executorLabel": "Serving",
-        "inputs": {
-          "parameters": {
-            "model_cfg": {
-              "taskOutputParameter": {
-                "producerTask": "Trainer",
-                "outputParameterKey": "model_config"
+            "taskInfo": {
+              "name": "task-trainer"
+            },
+            "inputs": {
+              "parameters": {
+                "num_epochs": {
+                  "componentInputParameter": "epochs"
+                },
+                "train_optimizer": {
+                  "componentInputParameter": "optimizer"
+                }
+              },
+              "artifacts": {
+                "input_location": {
+                  "taskOutputArtifact": {
+                    "producerTask": "task-importer-task-trainer-input-location",
+                    "outputArtifactKey": "result"
+                  }
+                }
               }
             }
           },
-          "artifacts": {
-            "model": {
-              "outputArtifactKey": "model_output",
-              "producerTask": "Trainer"
-            }
-          }
-        }
-      },
-      {
-        "taskInfo": {
-          "name": "Trainer_input_location_importer"
-        },
-        "outputs": {
-          "artifacts": {
-            "result": {
-              "artifactType": {
-                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+          "task-serving": {
+            "taskInfo": {
+              "name": "task-serving"
+            },
+            "componentRef": {
+              "name": "comp-serving"
+            },
+            "inputs": {
+              "parameters": {
+                "model_cfg": {
+                  "taskOutputParameter": {
+                    "producerTask": "task-trainer",
+                    "outputParameterKey": "model_config"
+                  }
+                }
+              },
+              "artifacts": {
+                "model": {
+                  "taskOutputArtifact": {
+                    "producerTask": "task-trainer",
+                    "outputArtifactKey": "model_output"
+                  }
+                }
               }
             }
+          },
+          "task-importer-task-trainer-input-location": {
+            "taskInfo": {
+              "name": "task-importer-task-trainer-input-location"
+            },
+            "componentRef": {
+              "name": "comp-importer-task-trainer-input-location"
+            }
+          }
+        }
+      },
+      "inputDefinitions": {
+        "artifacts": {
+          "input_gcs": {
+            "artifactType": {
+              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+            }
           }
         },
-        "executorLabel": "Trainer_input_location_importer"
-      }
-    ],
-    "runtimeParameters": {
-      "epochs": {
-        "type": "INT",
-        "defaultValue": {
-          "intValue": "200"
-        }
-      },
-      "optimizer": {
-        "type": "STRING",
-        "defaultValue": {
-          "stringValue": "sgd"
-        }
-      },
-      "input_gcs": {
-        "type": "STRING",
-        "defaultValue": {
-          "stringValue": "gs://test-bucket/pipeline_root"
+        "parameters": {
+          "epochs": {
+            "type": "INT"
+          },
+          "optimizer": {
+            "type": "STRING"
+          }
         }
       }
     },
     "pipelineInfo": {
       "name": "two-step-pipeline-with-importer"
     },
-    "deploymentConfig": {
-      "@type": "type.googleapis.com/ml_pipelines.PipelineDeploymentConfig",
+    "deploymentSpec": {
       "executors": {
-        "Trainer_input_location_importer": {
+        "exec-importer-task-trainer-input-location": {
           "importer": {
-            "typeSchema": {
-              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
-            },
             "artifactUri": {
               "runtimeParameter": "input_gcs"
+            },
+            "typeSchema": {
+              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
             }
           }
         },
-        "Trainer": {
+        "exec-serving": {
+          "container": {
+            "args": [
+              "--model-to-serve",
+              "{{$.inputs.artifacts['model'].uri}}",
+              "--model-config",
+              "{{$.inputs.parameters['model_cfg']}}"
+            ],
+            "image": "gcr.io/my-project/my-server"
+          }
+        },
+        "exec-trainer": {
           "container": {
             "image": "gcr.io/my-project/my-training",
             "args": [
@@ -132,23 +126,95 @@
               "{{$.outputs.parameters['model_config'].output_file}}"
             ]
           }
+        }
+      }
+    },
+    "components": {
+      "comp-serving": {
+        "inputDefinitions": {
+          "parameters": {
+            "model_cfg": {
+              "type": "STRING"
+            }
+          },
+          "artifacts": {
+            "model": {
+              "artifactType": {
+                "instanceSchema": "properties:\ntitle: kfp.Model\ntype: object\n"
+              }
+            }
+          }
         },
-        "Serving": {
-          "container": {
-            "image": "gcr.io/my-project/my-server",
-            "args": [
-              "--model-to-serve",
-              "{{$.inputs.artifacts['model'].uri}}",
-              "--model-config",
-              "{{$.inputs.parameters['model_cfg']}}"
-            ]
+        "executorLabel": "exec-serving"
+      },
+      "comp-trainer": {
+        "executorLabel": "exec-trainer",
+        "outputDefinitions": {
+          "artifacts": {
+            "model_output": {
+              "artifactType": {
+                "instanceSchema": "properties:\ntitle: kfp.Model\ntype: object\n"
+              }
+            }
+          },
+          "parameters": {
+            "model_config": {
+              "type": "STRING"
+            }
+          }
+        },
+        "inputDefinitions": {
+          "parameters": {
+            "num_epochs": {
+              "type": "INT"
+            },
+            "train_optimizer": {
+              "type": "STRING"
+            }
+          },
+          "artifacts": {
+            "input_location": {
+              "artifactType": {
+                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              }
+            }
+          }
+        }
+      },
+      "comp-importer-task-trainer-input-location": {
+        "executorLabel": "exec-importer-task-trainer-input-location",
+        "inputDefinitions": {
+          "parameters": {
+            "input_location": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "result": {
+              "artifactType": {
+                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              }
+            }
           }
         }
       }
     },
-    "schemaVersion": "v2alpha1"
+    "schemaVersion": "2.0.0"
   },
   "runtimeConfig": {
+    "parameters": {
+      "epochs": {
+        "stringValue": "200"
+      },
+      "optimizer": {
+        "stringValue": "sgd"
+      },
+      "input_gcs": {
+        "stringValue": "gs://test-bucket/pipeline_root"
+      }
+    },
     "gcsOutputDirectory": "dummy_root"
   }
 }

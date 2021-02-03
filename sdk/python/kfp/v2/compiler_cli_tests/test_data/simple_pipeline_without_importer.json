@@ -3,50 +3,59 @@
     "pipelineInfo": {
       "name": "simple-two-step-pipeline"
     },
-    "tasks": [
-      {
-        "inputs": {
-          "parameters": {
-            "text": {
-              "runtimeValue": {
-                "runtimeParameter": "text"
+    "schemaVersion": "2.0.0",
+    "root": {
+      "dag": {
+        "tasks": {
+          "task-write-to-gcs": {
+            "taskInfo": {
+              "name": "task-write-to-gcs"
+            },
+            "inputs": {
+              "parameters": {
+                "text": {
+                  "componentInputParameter": "text"
+                }
               }
+            },
+            "componentRef": {
+              "name": "comp-write-to-gcs"
             }
-          }
-        },
-        "taskInfo": {
-          "name": "Write to GCS"
-        },
-        "executorLabel": "Write to GCS",
-        "outputs": {
-          "artifacts": {
-            "output_gcs_path": {
-              "artifactType": {
-                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+          },
+          "task-read-from-gcs": {
+            "inputs": {
+              "artifacts": {
+                "input_gcs_path": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "output_gcs_path",
+                    "producerTask": "task-write-to-gcs"
+                  }
+                }
               }
+            },
+            "componentRef": {
+              "name": "comp-read-from-gcs"
+            },
+            "taskInfo": {
+              "name": "task-read-from-gcs"
             }
           }
         }
       },
-      {
-        "taskInfo": {
-          "name": "Read from GCS"
-        },
-        "executorLabel": "Read from GCS",
-        "inputs": {
-          "artifacts": {
-            "input_gcs_path": {
-              "producerTask": "Write to GCS",
-              "outputArtifactKey": "output_gcs_path"
+      "inputDefinitions": {
+        "artifacts": {
+          "text": {
+            "artifactType": {
+              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
             }
           }
         }
       }
-    ],
-    "deploymentConfig": {
-      "@type": "type.googleapis.com/ml_pipelines.PipelineDeploymentConfig",
+    },
+    "sdkVersion": "kfp-1.3.0",
+    "deploymentSpec": {
       "executors": {
-        "Read from GCS": {
+        "exec-read-from-gcs": {
           "container": {
             "command": [
               "sh",
@@ -57,7 +66,7 @@
             "image": "google/cloud-sdk:slim"
           }
         },
-        "Write to GCS": {
+        "exec-write-to-gcs": {
           "container": {
             "image": "google/cloud-sdk:slim",
             "command": [
@@ -71,23 +80,46 @@
         }
       }
     },
-    "sdkVersion": "kfp-1.1.0-dev20201106",
-    "runtimeParameters": {
-      "text": {
-        "defaultValue": {
-          "stringValue": "Hello world!"
+    "components": {
+      "comp-read-from-gcs": {
+        "executorLabel": "exec-read-from-gcs",
+        "inputDefinitions": {
+          "artifacts": {
+            "input_gcs_path": {
+              "artifactType": {
+                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              }
+            }
+          }
+        }
+      },
+      "comp-write-to-gcs": {
+        "inputDefinitions": {
+          "parameters": {
+            "text": {
+              "type": "STRING"
+            }
+          }
         },
-        "type": "STRING"
+        "outputDefinitions": {
+          "artifacts": {
+            "output_gcs_path": {
+              "artifactType": {
+                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              }
+            }
+          }
+        },
+        "executorLabel": "exec-write-to-gcs"
       }
-    },
-    "schemaVersion": "v2alpha1"
+    }
   },
   "runtimeConfig": {
-    "gcsOutputDirectory": "dummy_root",
     "parameters": {
       "text": {
         "stringValue": "Hello KFP!"
       }
-    }
- }
+    },
+    "gcsOutputDirectory": "dummy_root"
+  }
 }
