@@ -379,6 +379,11 @@ class CompilerTest(unittest.TestCase):
           pipeline_root='dummy',
           output_path='output.json')
 
+  def test_import_kfp_v2_component_raise_warning(self):
+    with self.assertWarnsRegex(DeprecationWarning,
+                               'Module `kfp.v2.compoennts` is deprecated'):
+      from kfp.v2 import components
+
 
 if __name__ == '__main__':
   unittest.main()
