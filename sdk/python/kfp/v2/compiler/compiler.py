@@ -23,9 +23,11 @@ from typing import Any, Callable, List, Mapping, Optional
 
 import kfp
 from kfp.compiler._k8s_helper import sanitize_k8s_name
+from kfp.components import _python_op
 from kfp.v2 import dsl
 from kfp.v2.compiler import compiler_utils
-from kfp.components import _python_op
+from kfp.v2.dsl import component_spec as dsl_component_spec
+from kfp.v2.dsl import dsl_utils
 from kfp.v2.dsl import importer_node
 from kfp.v2.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
@@ -75,68 +77,95 @@ class Compiler(object):
     """
     compiler_utils.validate_pipeline_name(pipeline.name)
 
-    pipeline_spec = pipeline_spec_pb2.PipelineSpec(
-        runtime_parameters=compiler_utils.build_runtime_parameter_spec(args))
+    pipeline_spec = pipeline_spec_pb2.PipelineSpec()
 
     pipeline_spec.pipeline_info.name = pipeline.name
     pipeline_spec.sdk_version = 'kfp-{}'.format(kfp.__version__)
-    pipeline_spec.schema_version = 'v2alpha1'
+    # Schema version 2.0.0 is required for kfp-pipeline-spec>0.1.3.1
+    pipeline_spec.schema_version = '2.0.0'
+
+    pipeline_spec.root.CopyFrom(
+        dsl_component_spec.build_root_spec_from_pipeline_params(args))
 
     deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
-    importer_tasks = []
 
     for op in pipeline.ops.values():
-      component_spec = op._metadata
-      task = pipeline_spec.tasks.add()
-      task.CopyFrom(op.task_spec)
-      deployment_config.executors[task.executor_label].container.CopyFrom(
+      task_name = op.task_spec.task_info.name
+      component_name = op.task_spec.component_ref.name
+      executor_label = op.component_spec.executor_label
+
+      pipeline_spec.root.dag.tasks[task_name].CopyFrom(op.task_spec)
+      pipeline_spec.components[component_name].CopyFrom(op.component_spec)
+      deployment_config.executors[executor_label].container.CopyFrom(
           op.container_spec)
 
+      task = pipeline_spec.root.dag.tasks[task_name]
       # A task may have explicit depdency on other tasks even though they may
       # not have inputs/outputs dependency. e.g.: op2.after(op1)
       if op.dependent_names:
+        op.dependent_names = [
+            dsl_utils.sanitize_task_name(name) for name in op.dependent_names
+        ]
         task.dependent_tasks.extend(op.dependent_names)
 
       # Check if need to insert importer node
       for input_name in task.inputs.artifacts:
-        if not task.inputs.artifacts[input_name].producer_task:
+        if not task.inputs.artifacts[
+            input_name].task_output_artifact.producer_task:
           type_schema = type_utils.get_input_artifact_type_schema(
-              input_name, component_spec.inputs)
+              input_name, op._metadata.inputs)
 
-          importer_task = importer_node.build_importer_task_spec(
-              dependent_task=task,
+          importer_name = importer_node.generate_importer_base_name(
+              dependent_task_name=task_name, input_name=input_name)
+          importer_task_spec = importer_node.build_importer_task_spec(
+              importer_name)
+          importer_comp_spec = importer_node.build_importer_component_spec(
+              importer_base_name=importer_name,
               input_name=input_name,
               input_type_schema=type_schema)
-          importer_tasks.append(importer_task)
+          importer_task_name = importer_task_spec.task_info.name
+          importer_comp_name = importer_task_spec.component_ref.name
+          importer_exec_label = importer_comp_spec.executor_label
+          pipeline_spec.root.dag.tasks[importer_task_name].CopyFrom(
+              importer_task_spec)
+          pipeline_spec.components[importer_comp_name].CopyFrom(
+              importer_comp_spec)
 
           task.inputs.artifacts[
-              input_name].producer_task = importer_task.task_info.name
+              input_name].task_output_artifact.producer_task = (
+                  importer_task_name)
           task.inputs.artifacts[
-              input_name].output_artifact_key = importer_node.OUTPUT_KEY
+              input_name].task_output_artifact.output_artifact_key = (
+                  importer_node.OUTPUT_KEY)
 
           # Retrieve the pre-built importer spec
-          importer_spec = op.importer_spec[input_name]
-          deployment_config.executors[
-              importer_task.executor_label].importer.CopyFrom(importer_spec)
+          importer_spec = op.importer_specs[input_name]
+          deployment_config.executors[importer_exec_label].importer.CopyFrom(
+              importer_spec)
 
-    pipeline_spec.deployment_config.Pack(deployment_config)
-    pipeline_spec.tasks.extend(importer_tasks)
+    pipeline_spec.deployment_spec.update(
+        json_format.MessageToDict(deployment_config))
 
     return pipeline_spec
 
   def _create_pipeline(
       self,
       pipeline_func: Callable[..., Any],
+      output_directory: str,
       pipeline_name: Optional[str] = None,
-  ) -> pipeline_spec_pb2.PipelineSpec:
+      pipeline_parameters_override: Optional[Mapping[str, Any]] = None,
+  ) -> pipeline_spec_pb2.PipelineJob:
     """Creates a pipeline instance and constructs the pipeline spec from it.
 
     Args:
       pipeline_func: Pipeline function with @dsl.pipeline decorator.
       pipeline_name: The name of the pipeline. Optional.
+      output_directory: The root of the pipeline outputs.
+      pipeline_parameters_override: The mapping from parameter names to values.
+        Optional.
 
     Returns:
-      The IR representation (pipeline spec) of the pipeline.
+      A PipelineJob proto representing the compiled pipeline.
     """
 
     # Create the arg list with no default values and call pipeline function.
@@ -174,26 +203,14 @@ class Compiler(object):
         dsl_pipeline,
     )
 
-    return pipeline_spec
-
-  def _create_pipeline_job(
-      self,
-      pipeline_spec: pipeline_spec_pb2.PipelineSpec,
-      pipeline_root: str,
-      pipeline_parameters: Optional[Mapping[str, Any]] = None,
-  ) -> pipeline_spec_pb2.PipelineJob:
-    """Creates the pipeline job spec object.
-
-    Args:
-      pipeline_spec: The pipeline spec object.
-      pipeline_root: The root of the pipeline outputs.
-      pipeline_parameters: The mapping from parameter names to values. Optional.
-
-    Returns:
-      A PipelineJob proto representing the compiled pipeline.
-    """
+    pipeline_parameters = {
+        arg.name: arg.value for arg in args_list_with_defaults
+    }
+    # Update pipeline parameters override if there were any.
+    pipeline_parameters.update(pipeline_parameters_override or {})
     runtime_config = compiler_utils.build_runtime_config_spec(
-        pipeline_root=pipeline_root, pipeline_parameters=pipeline_parameters)
+        output_directory=output_directory,
+        pipeline_parameters=pipeline_parameters)
     pipeline_job = pipeline_spec_pb2.PipelineJob(runtime_config=runtime_config)
     pipeline_job.pipeline_spec.update(json_format.MessageToDict(pipeline_spec))
 
@@ -220,11 +237,11 @@ class Compiler(object):
     type_check_old_value = kfp.TYPE_CHECK
     try:
       kfp.TYPE_CHECK = type_check
-      pipeline = self._create_pipeline(pipeline_func, pipeline_name)
-      pipeline_job = self._create_pipeline_job(
-          pipeline_spec=pipeline,
-          pipeline_root=pipeline_root,
-          pipeline_parameters=pipeline_parameters)
+      pipeline_job = self._create_pipeline(
+          pipeline_func=pipeline_func,
+          output_directory=pipeline_root,
+          pipeline_name=pipeline_name,
+          pipeline_parameters_override=pipeline_parameters)
       self._write_pipeline(pipeline_job, output_path)
     finally:
       kfp.TYPE_CHECK = type_check_old_value
