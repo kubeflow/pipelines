@@ -16,6 +16,7 @@ import json
 from collections import defaultdict, OrderedDict
 from deprecated import deprecated
 import inspect
+import re
 import tarfile
 import uuid
 import warnings
@@ -1067,10 +1068,24 @@ def _run_argo_lint(yaml_text: str):
   if argo_path:
     result = subprocess.run([argo_path, 'lint', '/dev/stdin'], input=yaml_text.encode('utf-8'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if result.returncode:
+      if re.match(
+          pattern=r'.+failed to resolve {{tasks\..+\.outputs\.artifacts\..+}}.+',
+          string=result.stderr.decode('utf-8')
+      ):
+        raise RuntimeError(
+            'Compiler has produced Argo-incompatible workflow due to '
+            'unresolvable input artifact(s). Please check whether inputPath has'
+            ' been connected to outputUri placeholder, which is not supported '
+            'yet. Otherwise, please create a new issue at '
+            'https://github.com/kubeflow/pipelines/issues attaching the '
+            'pipeline code and the pipeline package. Error: {}'.format(
+                result.stderr.decode('utf-8'))
+        )
       raise RuntimeError(
         '''Internal compiler error: Compiler has produced Argo-incompatible workflow.
 Please create a new issue at https://github.com/kubeflow/pipelines/issues attaching the pipeline code and the pipeline package.
 Error: {}'''.format(result.stderr.decode('utf-8'))
       )
+
     return True
   return False
