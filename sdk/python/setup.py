@@ -20,6 +20,7 @@ NAME = 'kfp'
 #VERSION = .... Change the version in kfp/__init__.py
 
 REQUIRES = [
+    'absl-py',
     'PyYAML>=5.3',
     'google-cloud-storage>=1.13.0',
     'kubernetes>=8.0.0, <12.0.0',
