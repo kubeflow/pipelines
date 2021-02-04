@@ -85,6 +85,7 @@ setup(
         'kfp.notebook',
         'kfp.v2',
         'kfp.v2.compiler',
+        'kfp.v2.components',
         'kfp.v2.dsl',
     ],
     classifiers=[
