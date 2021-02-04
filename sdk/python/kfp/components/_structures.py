@@ -309,7 +309,20 @@ class ContainerImplementation(ModelBase):
         super().__init__(locals())
 
 
-ImplementationType = Union[ContainerImplementation, 'GraphImplementation']
+class CustomJobSpec(ModelBase):
+    """Describes the AI Platform (Unified) custom job implementation."""
+    def __init__(self, spec: Dict[str, Any]):
+        super().__init__(locals())
+
+
+class CustomJobImplementation(ModelBase):
+    """Represents the AI Platform (Unified) custom job."""
+    def __init__(self, custom_job: CustomJobSpec):
+        super().__init__(locals())
+
+
+ImplementationType = Union[
+    ContainerImplementation, CustomJobImplementation, 'GraphImplementation']
 
 
 class MetadataSpec(ModelBase):

@@ -16,9 +16,8 @@ from typing import Any, Dict, List, Optional, Type
 
 from absl import logging
 from kfp import dsl
-from kfp.v2.components import components
+from kfp.components import _structures as structures
 from kfp.dsl import artifact
-from kfp.dsl import _container_op
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 _AiPlatformCustomJobSpec = pipeline_spec_pb2.PipelineDeploymentConfig.AiPlatformCustomJobSpec
@@ -87,7 +86,7 @@ def custom_job(
     # Full-fledged custom job API spec. For details please see:
     # https://cloud.google.com/ai-platform-unified/docs/reference/rest/v1beta1/CustomJobSpec
     additional_job_spec: Optional[Dict[str, Any]] = None
-) -> AiPlatformCustomJobOp:
+) -> structures.ComponentSpec:
   """DSL representation of a AI Platform (Unified) custom training job.
 
   For detailed doc of the service, please refer to
