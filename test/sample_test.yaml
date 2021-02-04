@@ -99,7 +99,9 @@ spec:
                 - name: test-name
                   value: "{{item}}"
             withItems:
-              - xgboost_training_cm
+              # TODO(#5089): Re-enable the xgboost sample test after fixed the
+              # component and sample.
+              # - xgboost_training_cm
               - dataflow
               - ai_platform
               # TODO(#4361): Re-enable the kubeflow_tf_serving sample test after
