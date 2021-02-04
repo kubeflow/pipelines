@@ -13,6 +13,9 @@
 # limitations under the License.
 """Tests for kfp.containers.entrypoint module."""
 import mock
+import os
+import shutil
+import tempfile
 import unittest
 
 from kfp.containers import entrypoint
@@ -22,27 +25,87 @@ from kfp.containers_tests.testdata import main
 
 _OUTPUT_METADATA_JSON_LOCATION = 'executor_output_metadata.json'
 
-_PRODUCER_EXECUTOR_OUTPUT = """{
-  "parameters": {
-    "param_output": {
-      "stringValue": "hello from producer"
+_TEST_EXECUTOR_INPUT_V1_PRODUCER = """
+{
+  "inputs": {
+    "artifacts": {
+      "test_artifact": {
+        "artifacts": [
+          {
+            "uri": "gs://root/test_artifact/",
+            "name": "test_artifact",
+            "type": { 
+              "instanceSchema": "properties:\\ntitle: kfp.Artifact\\ntype: object\\n" 
+            }
+          }
+        ]
+      }
+    },
+    "parameters": {
+      "test_param": {
+        "stringValue": "hello from producer"
+      }
     }
   },
-  "artifacts": {
-    "artifact_output": {
-      "artifacts": [
-        {
-          "type": {
-            "instanceSchema": "properties:\\ntitle: kfp.Dataset\\ntype: object\\n"
-          },
-          "uri": "gs://root/producer/artifact_output"
-        }
-      ]
+  "outputs": {
+    "artifacts": {
+      "test_output1": {
+        "artifacts": [
+          {
+            "uri": "gs://root/test_output1/",
+            "name": "test_output1",
+            "type": { 
+              "instanceSchema": "properties:\\ntitle: kfp.Model\\ntype: object\\n" 
+            }
+          }
+        ]
+      }
     }
   }
-}"""
+}
+"""
 
-_EXPECTED_EXECUTOR_OUTPUT_1 = """{
+_TEST_EXECUTOR_INPUT_V2_PRODUCER = """
+{
+  "inputs": {
+    "artifacts": {
+      "test_artifact": {
+        "artifacts": [
+          {
+            "uri": "gs://root/test_artifact/",
+            "name": "test_artifact",
+            "type": { 
+              "instanceSchema": "properties:\\ntitle: kfp.Dataset\\ntype: object\\n" 
+            }
+          }
+        ]
+      }
+    },
+    "parameters": {
+      "test_param": {
+        "stringValue": "hello from producer"
+      }
+    }
+  },
+  "outputs": {
+    "artifacts": {
+      "test_output1": {
+        "artifacts": [
+          {
+            "uri": "gs://root/test_output1/",
+            "name": "test_output1",
+            "type": { 
+              "instanceSchema": "properties:\\ntitle: kfp.Model\\ntype: object\\n" 
+            }
+          }
+        ]
+      }
+    }
+  }
+}
+"""
+
+_EXPECTED_EXECUTOR_OUTPUT = """{
   "parameters": {
     "test_output2": {
       "stringValue": "bye world"
@@ -55,7 +118,7 @@ _EXPECTED_EXECUTOR_OUTPUT_1 = """{
           "type": {
             "instanceSchema": "properties:\\ntitle: kfp.Model\\ntype: object\\n"
           },
-          "uri": "gs://root/consumer/output1"
+          "uri": "gs://root/test_output1/"
         }
       ]
     }
@@ -70,13 +133,13 @@ class EntrypointTest(unittest.TestCase):
     self._import_func = mock.patch.object(
         entrypoint_utils,
         'import_func_from_source').start()
-    self._mock_gcs_read = mock.patch(
-        'kfp.containers._gcs_helper.GCSHelper.read_from_gcs_path',
-    ).start()
-    self._mock_gcs_write = mock.patch(
-        'kfp.containers._gcs_helper.GCSHelper.write_to_gcs_path',
-    ).start()
 
+    # Create a temporary directory
+    self._test_dir = tempfile.mkdtemp()
+    self.addCleanup(shutil.rmtree, self._test_dir)
+    self._old_dir = os.getcwd()
+    os.chdir(self._test_dir)
+    self.addCleanup(os.chdir, self._old_dir)
     self.addCleanup(mock.patch.stopall)
 
 
@@ -96,17 +159,14 @@ class EntrypointTest(unittest.TestCase):
     self._import_func.return_value = main.test_func
 
     entrypoint.main(
-        executor_metadata_json_file=_OUTPUT_METADATA_JSON_LOCATION,
+        executor_input_str=_TEST_EXECUTOR_INPUT_V1_PRODUCER,
         function_name='test_func',
-        test_param_input_argo_param='hello from producer',
-        test_artifact_input_path='gs://root/producer/output',
-        test_output1_artifact_output_path='gs://root/consumer/output1',
-        test_output2_parameter_output_path='gs://root/consumer/output2'
+        output_metadata_path=_OUTPUT_METADATA_JSON_LOCATION
     )
 
-    self._mock_gcs_write.assert_called_with(
-        path=_OUTPUT_METADATA_JSON_LOCATION,
-        content=_EXPECTED_EXECUTOR_OUTPUT_1)
+    # Check the actual executor output.
+    with open(_OUTPUT_METADATA_JSON_LOCATION, 'r') as f:
+      self.assertEqual(f.read(), _EXPECTED_EXECUTOR_OUTPUT)
 
   def testMainWithV2Producer(self):
     """Tests the entrypoint with data passing with new-styled KFP components.
@@ -117,20 +177,13 @@ class EntrypointTest(unittest.TestCase):
     """
     # Set mocked user function.
     self._import_func.return_value = main.test_func2
-    # Set GFile read function
-    self._mock_gcs_read.return_value = _PRODUCER_EXECUTOR_OUTPUT
 
     entrypoint.main(
-        executor_metadata_json_file=_OUTPUT_METADATA_JSON_LOCATION,
+        executor_input_str=_TEST_EXECUTOR_INPUT_V2_PRODUCER,
         function_name='test_func2',
-        test_param_input_param_metadata_file='gs://root/producer/executor_output_metadata.json',
-        test_param_input_field_name='param_output',
-        test_artifact_input_artifact_metadata_file='gs://root/producer/executor_output_metadata.json',
-        test_artifact_input_output_name='artifact_output',
-        test_output1_artifact_output_path='gs://root/consumer/output1',
-        test_output2_parameter_output_path='gs://root/consumer/output2'
+        output_metadata_path=_OUTPUT_METADATA_JSON_LOCATION
     )
 
-    self._mock_gcs_write.assert_called_with(
-        path=_OUTPUT_METADATA_JSON_LOCATION,
-        content=_EXPECTED_EXECUTOR_OUTPUT_1)
+    # Check the actual executor output.
+    with open(_OUTPUT_METADATA_JSON_LOCATION, 'r') as f:
+      self.assertEqual(f.read(), _EXPECTED_EXECUTOR_OUTPUT)
