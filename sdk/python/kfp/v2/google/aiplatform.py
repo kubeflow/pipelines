@@ -14,13 +14,59 @@
 """Connector components of Google AI Platform (Unified) services."""
 from typing import Any, Dict, List, Optional, Type
 
+from absl import logging
 from kfp import dsl
 from kfp.v2.components import components
 from kfp.dsl import artifact
+from kfp.dsl import _container_op
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 _AiPlatformCustomJobSpec = pipeline_spec_pb2.PipelineDeploymentConfig.AiPlatformCustomJobSpec
 _DUMMY_CONTAINER_OP_IMAGE = 'dummy/image'
+
+
+# TODO(numerology):
+# Need a task spec to carry IO info
+# and a compiler change to recognize this executor spec.
+class AiPlatformCustomJobOp(dsl.ContainerOp):
+  """V2 AiPlatformCustomJobOp class.
+
+  This class inherits V1 ContainerOp class so that it can be correctly picked
+  by compiler. The implementation of the task is a AiPlatformCustomJobSpec
+  proto message.
+  """
+
+  def __init__(self,
+      name: str,
+      custom_job_spec: Dict[str, Any],
+      task_inputs: Optional[List[dsl.InputArgumentPath]] = None,
+      task_outputs: Optional[Dict[str, str]] = None):
+    """Instantiates the AiPlatformCustomJobOp object.
+
+    Args:
+      name: Name of the task.
+      custom_job_spec: JSON struct of the CustomJob spec, representing the job
+        that will be submitted to AI Platform (Unified) service. See
+        https://cloud.google.com/ai-platform-unified/docs/reference/rest/v1beta1/CustomJobSpec
+        for detailed reference.
+      task_inputs: Optional. List of InputArgumentPath of this task. The path
+        will be ignored.
+      task_outputs: Optional. Mapping of task outputs to its URL.
+    """
+
+    for i in task_inputs:
+      if i.path:
+        logging.warning(
+            'Path information is ignored for input: %s' % i.input)
+
+    super().__init__(
+        name=name,
+        image=_DUMMY_CONTAINER_OP_IMAGE,
+        artifact_argument_paths=task_inputs,
+        file_outputs=task_outputs
+    )
+    self.task_spec = None
+    self.custom_job_spec = custom_job_spec
 
 
 def custom_job(
@@ -41,7 +87,7 @@ def custom_job(
     # Full-fledged custom job API spec. For details please see:
     # https://cloud.google.com/ai-platform-unified/docs/reference/rest/v1beta1/CustomJobSpec
     additional_job_spec: Optional[Dict[str, Any]] = None
-) -> dsl.ContainerOp:
+) -> AiPlatformCustomJobOp:
   """DSL representation of a AI Platform (Unified) custom training job.
 
   For detailed doc of the service, please refer to
@@ -120,7 +166,7 @@ def custom_job(
       # Single node custom container training
       worker_pool_spec = {
           "machineSpec": {
-              "machineType": "n1-standard-4"
+              "machineType": machine_type or "n1-standard-4"
           },
           "replicaCount": "1",
           "containerSpec": {
@@ -133,7 +179,7 @@ def custom_job(
     if executor_image_uri:
       worker_pool_spec = {
           "machineSpec": {
-              "machineType": "n1-standard-4"
+              "machineType": machine_type or "n1-standard-4"
           },
           "replicaCount": "1",
           "pythonPackageSpec": {
@@ -180,23 +226,64 @@ def custom_job(
             and not spec['pythonPackageSpec'].get('args')):
           spec['pythonPackageSpec']['args'] = args
 
-# TODO(numerology):
-# Need a task spec to carry IO info
-# and a compiler change to recognize this executor spec.
-class AiPlatformCustomJobOp(dsl.ContainerOp):
-  """V2 AiPlatformCustomJobOp class.
 
-  This class inherits V1 ContainerOp class so that it can be correctly picked
-  by compiler. The implementation of the task is a AiPlatformCustomJobSpec
-  proto message.
-  """
-  def __init__(self, ):
-    # Instantiate the ContainerOp object.
-    super().__init__(
-        name=components._default_component_name,
-        image=_DUMMY_CONTAINER_OP_IMAGE
-    )
-    self.task_spec = None
-    self._ai_platform_custom_job_spec = None
+  old_warn_value = dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING
+  dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = True
+  task = container_op.ContainerOp(
+      name=component_spec.name or _default_component_name,
+      image=container_spec.image,
+      command=resolved_cmd.command,
+      arguments=resolved_cmd.args,
+      file_outputs=output_uris_and_paths,
+      artifact_argument_paths=[
+          dsl.InputArgumentPath(
+              argument=arguments[input_name],
+              input=input_name,
+              path=path,
+          ) for input_name, path in input_uris_and_paths.items()
+      ],
+  )
 
+  # task.name is unique at this point.
+  pipeline_task_spec.task_info.name = task.name
+  pipeline_task_spec.executor_label = task.name
+
+  task.task_spec = pipeline_task_spec
+  task.importer_spec = importer_spec
+  task.container_spec = pipeline_container_spec
+  dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = old_warn_value
+
+  component_meta = copy.copy(component_spec)
+  task._set_metadata(component_meta)
+
+  # Previously, ContainerOp had strict requirements for the output names, so we
+  # had to convert all the names before passing them to the ContainerOp
+  # constructor. Outputs with non-pythonic names could not be accessed using
+  # their original names. Now ContainerOp supports any output names, so we're
+  # now using the original output names. However to support legacy pipelines,
+  # we're also adding output references with pythonic names.
+  # TODO: Add warning when people use the legacy output names.
+  output_names = [
+      output_spec.name for output_spec in component_spec.outputs or []
+  ]  # Stabilizing the ordering
+  output_name_to_python = generate_unique_name_conversion_table(
+      output_names, _sanitize_python_function_name)
+  for output_name in output_names:
+    pythonic_output_name = output_name_to_python[output_name]
+    # Note: Some component outputs are currently missing from task.outputs
+    # (e.g. MLPipeline UI Metadata)
+    if pythonic_output_name not in task.outputs and output_name in task.outputs:
+      task.outputs[pythonic_output_name] = task.outputs[output_name]
+
+  if component_spec.metadata:
+    annotations = component_spec.metadata.annotations or {}
+    for key, value in annotations.items():
+      task.add_pod_annotation(key, value)
+    for key, value in (component_spec.metadata.labels or {}).items():
+      task.add_pod_label(key, value)
+      # Disabling the caching for the volatile components by default
+    if annotations.get('volatile_component', 'false') == 'true':
+      task.execution_options.caching_strategy.max_cache_staleness = 'P0D'
+
+  return task
 
