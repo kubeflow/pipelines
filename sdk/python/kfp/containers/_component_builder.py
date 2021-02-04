@@ -130,7 +130,6 @@ def _dependency_to_requirements(dependency=[], filename='requirements.txt'):
 def _generate_dockerfile(
     filename: str,
     base_image: str,
-    python_version: str,
     requirement_filename: Optional[str] = None,
     add_files: Optional[Dict[str, str]] = None):
   """
@@ -138,24 +137,15 @@ def _generate_dockerfile(
     Args:
       filename (str): target file name for the dockerfile.
       base_image (str): the base image name.
-      python_version (str): choose python2 or python3
       requirement_filename (str): requirement file name
       add_files (Dict[str, str]): Map containing the files thats should be added to the container. add_files maps the build context relative source paths to the container destination paths.
   """
-  if python_version not in ['python2', 'python3']:
-    raise ValueError('python_version has to be either python2 or python3')
   with open(filename, 'w') as f:
     f.write('FROM ' + base_image + '\n')
-    if python_version == 'python3':
-      f.write('RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools\n')
-    else:
-      f.write('RUN apt-get update -y && apt-get install --no-install-recommends -y -q python python-pip python-setuptools\n')
+    f.write('RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools\n')
     if requirement_filename is not None:
       f.write('ADD ' + requirement_filename + ' /ml/requirements.txt\n')
-      if python_version == 'python3':
-        f.write('RUN python3 -m pip install -r /ml/requirements.txt\n')
-      else:
-        f.write('RUN python -m pip install -r /ml/requirements.txt\n')
+      f.write('RUN python3 -m pip install -r /ml/requirements.txt\n')
 
     for src_path, dst_path in (add_files or {}).items():
       f.write('ADD ' + src_path + ' ' + dst_path + '\n')
@@ -183,7 +173,6 @@ def _configure_logger(logger):
 
 def _purge_program_launching_code(
     commands: List[str],
-    python_version: str,
     entrypoint_container_path: Optional[str] = None,
     is_v2: bool = False
 ) -> str:
@@ -191,11 +180,10 @@ def _purge_program_launching_code(
 
   For example,
   Before: sh -ec '... && python3 -u ...' 'import sys ...' --param1 ...
-  After:  python3 -u /ml/main.py --param1 ...
+  After:  python -u /ml/main.py --param1 ...
 
   Args:
     commands: The container commands to be replaced.
-    python_version: The version of Python binary.
     entrypoint_container_path: The path to the entrypoint program in the
       container.
     is_v2: Whether the component being generated is a v2 component. Default is
@@ -218,13 +206,13 @@ def _purge_program_launching_code(
     commands[program_code_index] = 'kfp.containers.entrypoint'
     commands.pop(program_launcher_index)
     commands[program_launcher_index - 1] = '-m'
-    commands[program_launcher_index - 2] = python_version
+    commands[program_launcher_index - 2] = 'python'
   else:
     commands[program_code_index] = entrypoint_container_path
     commands.pop(program_launcher_index)
     commands[program_launcher_index - 1] = '-u'  # -ec => -u
     # sh => python3 or python2
-    commands[program_launcher_index - 2] = python_version
+    commands[program_launcher_index - 2] = 'python'
 
   return result
 
@@ -314,14 +302,11 @@ def build_python_component(
   v2_entrypoint_path = None
   # Python program code extracted from the component spec.
   program_code = None
-  # Python version used in the container program.
-  python_version = 'python3'
 
   if is_v2:
 
     program_code = _purge_program_launching_code(
         commands=command_line_args,
-        python_version=python_version,
         is_v2=True)
 
     # Override user program args for new-styled component.
@@ -404,7 +389,6 @@ def build_python_component(
   else:
     program_code = _purge_program_launching_code(
         commands=command_line_args,
-        python_version=python_version,
         entrypoint_container_path='/' + program_path)
 
   arc_docker_filename = 'Dockerfile'
@@ -431,7 +415,7 @@ def build_python_component(
     add_files = {program_path: '/' + program_path}
 
     _generate_dockerfile(
-        local_docker_filepath, base_image, python_version,
+        local_docker_filepath, base_image,
         arc_requirement_filename,
         add_files=add_files)
 
