@@ -10,7 +10,7 @@ outputs:
 implementation:
   container:
     image: gcr.io/my-project/my-image:123456
-    command: [python3, -m, kfp.containers.entrypoint]
+    command: [python, -m, kfp.containers.entrypoint]
     args:
     - --test_param_input_argo_param
     - {inputValue: test_param}

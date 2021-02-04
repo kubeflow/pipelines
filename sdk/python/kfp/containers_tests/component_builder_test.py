@@ -52,6 +52,7 @@ class ComponentBuilderTest(unittest.TestCase):
       autospec=True
   )
   def testBuildV2PythonComponent(self, mock_build):
+    self.maxDiff=2400
     _component_builder.build_python_component(
         component_func=test_function,
         target_image=_TEST_TARGET_IMAGE,
