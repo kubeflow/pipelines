@@ -27,13 +27,12 @@ import { Apis } from '../lib/Apis';
 import Buttons from '../lib/Buttons';
 import { Page } from './Page';
 
-const DEMO_PIPELINES: string[] = SAMPLE_CONFIG.slice(0, 4);
+const DEMO_PIPELINES: string[] = SAMPLE_CONFIG;
 const DEMO_PIPELINES_ID_MAP = {
-  control: 4,
-  data: 3,
-  tfxKeras: 2,
-  tfx: 1,
-  xgboost: 0,
+  control: 3,
+  data: 2,
+  tfxKeras: 1,
+  tfx: 0,
 };
 
 const PAGE_CONTENT_MD = ({
@@ -41,13 +40,11 @@ const PAGE_CONTENT_MD = ({
   data,
   tfxKeras,
   tfx,
-  xgboost,
 }: {
   control: string;
   data: string;
   tfxKeras: string;
   tfx: string;
-  xgboost: string;
 }) => `
 <br/>
 
@@ -65,7 +62,6 @@ This section contains demo and tutorial pipelines.
 
   * [TFX pipeline demo with Keras](${tfxKeras}) - Classification pipeline based on Keras. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/iris)
   * [TFX pipeline demo with Estimator](${tfx}) - Classification pipeline with model analysis, based on a public BigQuery dataset of taxicab trips. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/parameterized_tfx_oss)
-  * [XGBoost Pipeline demo](${xgboost}) - An example of end-to-end distributed training for an XGBoost model. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost_training_cm)
 
 <br/>
 
@@ -151,7 +147,6 @@ export class GettingStarted extends Page<{}, { links: string[] }> {
             data: this.state.links[DEMO_PIPELINES_ID_MAP.data],
             tfxKeras: this.state.links[DEMO_PIPELINES_ID_MAP.tfxKeras],
             tfx: this.state.links[DEMO_PIPELINES_ID_MAP.tfx],
-            xgboost: this.state.links[DEMO_PIPELINES_ID_MAP.xgboost],
           })}
         </Markdown>
       </div>
