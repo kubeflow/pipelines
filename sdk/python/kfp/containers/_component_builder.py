@@ -365,9 +365,9 @@ def build_python_component(
 
     for component_output in component_spec.outputs or []:
       if component_output._passing_style == components.OutputArtifact:
-        # For each output artifact, there'll be possibly 3 arguments passed to
+        # For each output artifact, there'll be one arguments passed to
         # the user program:
-        # 1. {name of the artifact}_output_path: The actual path, or uri, of the
+        # - {name of the artifact}_output_path: The actual path, or uri, of the
         #    input artifact.
         program_args.append('--{}{}'.format(
             component_output.name,
