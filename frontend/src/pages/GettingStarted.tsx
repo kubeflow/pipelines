@@ -27,7 +27,7 @@ import { Apis } from '../lib/Apis';
 import Buttons from '../lib/Buttons';
 import { Page } from './Page';
 
-const DEMO_PIPELINES: string[] = SAMPLE_CONFIG.slice(0, 3);
+const DEMO_PIPELINES: string[] = SAMPLE_CONFIG;
 const DEMO_PIPELINES_ID_MAP = {
   control: 3,
   data: 2,

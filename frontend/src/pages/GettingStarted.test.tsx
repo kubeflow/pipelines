@@ -119,7 +119,7 @@ describe('GettingStarted page', () => {
               </li>
               <li>
       -         <a href="#/pipelines" class="link">DSL - Control structures</a>
-      +         <a href="undefined" class="link" target="_blank" rel="noopener"
+      +         <a href="#/pipelines/details/pipeline-id-4?" class="link"
       +           >DSL - Control structures</a
       +         >
                 <ul>
@@ -165,7 +165,7 @@ describe('GettingStarted page', () => {
               </li>
               <li>
       -         <a href="#/pipelines" class="link">DSL - Control structures</a>
-      +         <a href="undefined" class="link" target="_blank" rel="noopener"
+      +         <a href="#/pipelines/details/pipeline-id-4?" class="link"
       +           >DSL - Control structures</a
       +         >
                 <ul>
