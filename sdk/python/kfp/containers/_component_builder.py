@@ -193,7 +193,9 @@ def _purge_program_launching_code(
     The originally generated inline Python code.
   """
   if not (is_v2 or entrypoint_container_path):
-    raise ValueError('Only v2 component has default entrypoint path.')
+    raise ValueError('Only v2 component has default entrypoint path. '
+                     'Conventional KFP component needs to specify container '
+                     'entrypoint explicitly. For example, /ml/main.py')
   program_launcher_index = commands.index(_PROGRAM_LAUNCHER_CMD)
   # When there're preinstallation package specified when converting to component
   # spec the index will be 3, otherwise it'll be 2.
