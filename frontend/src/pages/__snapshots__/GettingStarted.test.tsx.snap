@@ -106,28 +106,6 @@ exports[`GettingStarted page initially renders documentation 1`] = `
             </li>
           </ul>
         </li>
-        <li>
-          <a
-            class="link"
-            href="#/pipelines"
-          >
-            XGBoost Pipeline demo
-          </a>
-           
-          <ul>
-            <li>
-              An example of end-to-end distributed training for an XGBoost model. 
-              <a
-                class="link"
-                href="https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost_training_cm"
-                rel="noopener"
-                target="_blank"
-              >
-                source code
-              </a>
-            </li>
-          </ul>
-        </li>
       </ul>
       <br />
       <p>
@@ -162,9 +140,7 @@ exports[`GettingStarted page initially renders documentation 1`] = `
         <li>
           <a
             class="link"
-            href="undefined"
-            rel="noopener"
-            target="_blank"
+            href="#/pipelines"
           >
             DSL - Control structures
           </a>
@@ -202,12 +178,6 @@ exports[`GettingStarted page initially renders documentation 1`] = `
 
 exports[`GettingStarted page renders documentation with pipeline deep link after querying demo pipelines 1`] = `
 Array [
-  Array [
-    undefined,
-    10,
-    undefined,
-    "%7B%22predicates%22%3A%5B%7B%22key%22%3A%22name%22%2C%22op%22%3A%22EQUALS%22%2C%22string_value%22%3A%22%5BDemo%5D%20XGBoost%20-%20Training%20with%20confusion%20matrix%22%7D%5D%7D",
-  ],
   Array [
     undefined,
     10,
