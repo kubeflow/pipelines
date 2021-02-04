@@ -178,21 +178,22 @@ func (s *ScheduledWorkflow) NewWorkflow(
 	workflow.APIVersion = workflowApiVersion
 	result := commonutil.NewWorkflow(workflow)
 
+	uuid, err := s.uuid.NewRandom()
+	if err != nil {
+		return nil, err
+	}
+
 	// Set the name of the workflow.
 	result.OverrideName(s.NextResourceName())
 
 	// Get the workflow parameters and format them.
-	formatter := NewParameterFormatter(nextScheduledEpoch, nowEpoch, s.nextIndex())
+	formatter := NewParameterFormatter(uuid.String(), nextScheduledEpoch, nowEpoch, s.nextIndex())
 	formattedParams := s.getFormattedWorkflowParametersAsMap(formatter)
 
 	// Set the parameters.
 	result.OverrideParameters(formattedParams)
 
 	result.SetCannonicalLabels(s.Name, nextScheduledEpoch, s.nextIndex())
-	uuid, err := s.uuid.NewRandom()
-	if err != nil {
-		return nil, err
-	}
 	result.SetLabels(commonutil.LabelKeyWorkflowRunId, uuid.String())
 	// Replace {{workflow.uid}} with runId
 	err = result.ReplaceUID(uuid.String())
