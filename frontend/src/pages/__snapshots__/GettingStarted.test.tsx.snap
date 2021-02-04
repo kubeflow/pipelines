@@ -1,0 +1,230 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`GettingStarted page initially renders documentation 1`] = `
+<div>
+  <div
+    class="page kfp-start-page"
+  >
+    <div>
+      <br />
+      <h2
+        id="build-your-own-pipeline-with"
+      >
+        Build your own pipeline with
+      </h2>
+      <ul>
+        <li>
+          TensorFlow Extended (TFX) 
+          <a
+            class="link"
+            href="https://www.tensorflow.org/tfx/guide"
+            rel="noopener"
+            target="_blank"
+          >
+            SDK
+          </a>
+           with end-to-end ML Pipeline Template (
+          <a
+            class="link"
+            href="https://console.cloud.google.com/mlengine/notebooks/deploy-notebook?q=download_url%3Dhttps%253A%252F%252Fraw.githubusercontent.com%252Ftensorflow%252Ftfx%252Fmaster%252Fdocs%252Ftutorials%252Ftfx%252Ftemplate.ipynb"
+            rel="noopener"
+            target="_blank"
+          >
+            Open TF 2.1 Notebook
+          </a>
+          )
+        </li>
+        <li>
+          Kubeflow Pipelines 
+          <a
+            class="link"
+            href="https://www.kubeflow.org/docs/pipelines/sdk/"
+            rel="noopener"
+            target="_blank"
+          >
+            SDK
+          </a>
+        </li>
+      </ul>
+      <br />
+      <h2
+        id="demonstrations-and-tutorials"
+      >
+        Demonstrations and Tutorials
+      </h2>
+      <p>
+        This section contains demo and tutorial pipelines.
+      </p>
+      <p>
+        <strong>
+          Demos
+        </strong>
+         - Try an end-to-end demonstration pipeline.
+      </p>
+      <ul>
+        <li>
+          <a
+            class="link"
+            href="#/pipelines"
+          >
+            TFX pipeline demo with Keras
+          </a>
+           
+          <ul>
+            <li>
+              Classification pipeline based on Keras. 
+              <a
+                class="link"
+                href="https://github.com/kubeflow/pipelines/tree/master/samples/core/iris"
+                rel="noopener"
+                target="_blank"
+              >
+                source code
+              </a>
+            </li>
+          </ul>
+        </li>
+        <li>
+          <a
+            class="link"
+            href="#/pipelines"
+          >
+            TFX pipeline demo with Estimator
+          </a>
+           
+          <ul>
+            <li>
+              Classification pipeline with model analysis, based on a public BigQuery dataset of taxicab trips. 
+              <a
+                class="link"
+                href="https://github.com/kubeflow/pipelines/tree/master/samples/core/parameterized_tfx_oss"
+                rel="noopener"
+                target="_blank"
+              >
+                source code
+              </a>
+            </li>
+          </ul>
+        </li>
+        <li>
+          <a
+            class="link"
+            href="#/pipelines"
+          >
+            XGBoost Pipeline demo
+          </a>
+           
+          <ul>
+            <li>
+              An example of end-to-end distributed training for an XGBoost model. 
+              <a
+                class="link"
+                href="https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost_training_cm"
+                rel="noopener"
+                target="_blank"
+              >
+                source code
+              </a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+      <br />
+      <p>
+        <strong>
+          Tutorials
+        </strong>
+         - Learn pipeline concepts by following a tutorial.
+      </p>
+      <ul>
+        <li>
+          <a
+            class="link"
+            href="#/pipelines"
+          >
+            Data passing in python components
+          </a>
+           
+          <ul>
+            <li>
+              Shows how to pass data between python components. 
+              <a
+                class="link"
+                href="https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components"
+                rel="noopener"
+                target="_blank"
+              >
+                source code
+              </a>
+            </li>
+          </ul>
+        </li>
+        <li>
+          <a
+            class="link"
+            href="undefined"
+            rel="noopener"
+            target="_blank"
+          >
+            DSL - Control structures
+          </a>
+           
+          <ul>
+            <li>
+              Shows how to use conditional execution and exit handlers. 
+              <a
+                class="link"
+                href="https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures"
+                rel="noopener"
+                target="_blank"
+              >
+                source code
+              </a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+      <p>
+        Want to learn more? 
+        <a
+          class="link"
+          href="https://www.kubeflow.org/docs/pipelines/tutorials/"
+          rel="noopener"
+          target="_blank"
+        >
+          Learn from sample and tutorial pipelines.
+        </a>
+      </p>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`GettingStarted page renders documentation with pipeline deep link after querying demo pipelines 1`] = `
+Array [
+  Array [
+    undefined,
+    10,
+    undefined,
+    "%7B%22predicates%22%3A%5B%7B%22key%22%3A%22name%22%2C%22op%22%3A%22EQUALS%22%2C%22string_value%22%3A%22%5BDemo%5D%20XGBoost%20-%20Training%20with%20confusion%20matrix%22%7D%5D%7D",
+  ],
+  Array [
+    undefined,
+    10,
+    undefined,
+    "%7B%22predicates%22%3A%5B%7B%22key%22%3A%22name%22%2C%22op%22%3A%22EQUALS%22%2C%22string_value%22%3A%22%5BDemo%5D%20TFX%20-%20Taxi%20tip%20prediction%20model%20trainer%22%7D%5D%7D",
+  ],
+  Array [
+    undefined,
+    10,
+    undefined,
+    "%7B%22predicates%22%3A%5B%7B%22key%22%3A%22name%22%2C%22op%22%3A%22EQUALS%22%2C%22string_value%22%3A%22%5BDemo%5D%20TFX%20-%20Iris%20classification%20pipeline%22%7D%5D%7D",
+  ],
+  Array [
+    undefined,
+    10,
+    undefined,
+    "%7B%22predicates%22%3A%5B%7B%22key%22%3A%22name%22%2C%22op%22%3A%22EQUALS%22%2C%22string_value%22%3A%22%5BTutorial%5D%20Data%20passing%20in%20python%20components%22%7D%5D%7D",
+  ],
+]
+`;
