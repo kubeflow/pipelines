@@ -408,7 +408,7 @@ def build_python_component(
     local_requirement_filepath = os.path.join(local_build_dir, arc_requirement_filename)
     if is_v2:
       # For v2 components, KFP are expected to be packed in the container.
-      dependency.append(VersionedDependency(name='kfp'))
+      dependency.append(VersionedDependency(name='kfp', min_version='1.4.0'))
 
     _dependency_to_requirements(dependency, local_requirement_filepath)
 
