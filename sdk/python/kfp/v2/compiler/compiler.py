@@ -96,6 +96,9 @@ class Compiler(object):
 
       pipeline_spec.root.dag.tasks[task_name].CopyFrom(op.task_spec)
       pipeline_spec.components[component_name].CopyFrom(op.component_spec)
+      if compiler_utils.is_v2_component(op):
+        compiler_utils.refactor_v2_container_spec(op.container_spec)
+
       deployment_config.executors[executor_label].container.CopyFrom(
           op.container_spec)
 
@@ -217,12 +220,12 @@ class Compiler(object):
     return pipeline_job
 
   def compile(self,
-              pipeline_func: Callable[..., Any],
-              pipeline_root: str,
-              output_path: str,
-              pipeline_name: Optional[str] = None,
-              pipeline_parameters: Optional[Mapping[str, Any]] = None,
-              type_check: bool = True) -> None:
+      pipeline_func: Callable[..., Any],
+      pipeline_root: str,
+      output_path: str,
+      pipeline_name: Optional[str] = None,
+      pipeline_parameters: Optional[Mapping[str, Any]] = None,
+      type_check: bool = True) -> None:
     """Compile the given pipeline function into pipeline job json.
 
     Args:
@@ -247,7 +250,7 @@ class Compiler(object):
       kfp.TYPE_CHECK = type_check_old_value
 
   def _write_pipeline(self, pipeline_job: pipeline_spec_pb2.PipelineJob,
-                      output_path: str) -> None:
+      output_path: str) -> None:
     """Dump pipeline spec into json file.
 
     Args:
