@@ -220,12 +220,12 @@ class Compiler(object):
     return pipeline_job
 
   def compile(self,
-      pipeline_func: Callable[..., Any],
-      pipeline_root: str,
-      output_path: str,
-      pipeline_name: Optional[str] = None,
-      pipeline_parameters: Optional[Mapping[str, Any]] = None,
-      type_check: bool = True) -> None:
+              pipeline_func: Callable[..., Any],
+              pipeline_root: str,
+              output_path: str,
+              pipeline_name: Optional[str] = None,
+              pipeline_parameters: Optional[Mapping[str, Any]] = None,
+              type_check: bool = True) -> None:
     """Compile the given pipeline function into pipeline job json.
 
     Args:
