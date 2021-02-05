@@ -66,14 +66,18 @@ def run_pipeline_func_locally(
     local_client: LocalClient = None,
     local_env_image: str = None,
 ):
-    """Run kubeflow pipeline locally
+    """Run kubeflow pipeline in docker or locally
 
-    Parameters:
-    pipeline_func: pipeline function
-    arguments: Arguments to the pipeline function provided as a dict,
-     reference to `kfp.client.create_run_from_pipeline_func`
-    local_client: Optional. An instance of kfp.LocalClient
-    local_env_image: image name
+    Feature stage:
+    [Alpha](https://github.com/kubeflow/pipelines/blob/master/docs/release/feature-stages.md#alpha)
+
+    Args:
+      pipeline_func: A function that describes a pipeline by calling components
+        and composing them into execution graph.
+      arguments: Arguments to the pipeline function provided as a dict.
+        reference to `kfp.client.create_run_from_pipeline_func`
+      local_client: Optional. An instance of kfp.LocalClient
+      local_env_image: image name
         If the image of component equals to `local_env_image`, local runner will run
         this component locally in forked process, otherwise, local runner will run this
         component on docker.
