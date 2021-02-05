@@ -81,7 +81,7 @@ def validate_pipeline_name(name: str) -> None:
 
 def is_v2_component(op: _container_op.ContainerOp) -> bool:
   """Determines whether a component is a KFP v2 component."""
-  if not op._metadata:
+  if not op._metadata or not op._metadata.metadata:
     return False
   if not (op._metadata.metadata.annotations
           or _component_builder.V2_COMPONENT_ANNOTATION
