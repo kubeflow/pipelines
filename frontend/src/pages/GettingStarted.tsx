@@ -65,7 +65,7 @@ This section contains demo and tutorial pipelines.
 
   * [TFX pipeline demo with Keras](${tfxKeras}) - Classification pipeline based on Keras. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/iris)
   * [TFX pipeline demo with Estimator](${tfx}) - Classification pipeline with model analysis, based on a public BigQuery dataset of taxicab trips. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/parameterized_tfx_oss)
-  * [XGBoost Pipeline demo](${xgboost}) - An example of end-to-end distributed training for an XGBoost model. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost_training_cm)
+  * [XGBoost Pipeline demo](${xgboost}) - An example of end-to-end iterative XGBoost model training. [source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/train_until_good)
 
 <br/>
 

@@ -116,10 +116,10 @@ exports[`GettingStarted page initially renders documentation 1`] = `
            
           <ul>
             <li>
-              An example of end-to-end distributed training for an XGBoost model. 
+              An example of end-to-end iterative XGBoost model training. 
               <a
                 class="link"
-                href="https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost_training_cm"
+                href="https://github.com/kubeflow/pipelines/tree/master/samples/core/train_until_good"
                 rel="noopener"
                 target="_blank"
               >
@@ -206,7 +206,7 @@ Array [
     undefined,
     10,
     undefined,
-    "%7B%22predicates%22%3A%5B%7B%22key%22%3A%22name%22%2C%22op%22%3A%22EQUALS%22%2C%22string_value%22%3A%22%5BDemo%5D%20XGBoost%20-%20Training%20with%20confusion%20matrix%22%7D%5D%7D",
+    "%7B%22predicates%22%3A%5B%7B%22key%22%3A%22name%22%2C%22op%22%3A%22EQUALS%22%2C%22string_value%22%3A%22%5BDemo%5D%20XGBoost%20-%20Iterative%20model%20training%22%7D%5D%7D",
   ],
   Array [
     undefined,

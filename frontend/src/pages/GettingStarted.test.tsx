@@ -109,9 +109,9 @@ describe('GettingStarted page', () => {
       +         >
                 <ul>
                   <li>
-                    An example of end-to-end distributed training for an XGBoost model.
+                    An example of end-to-end iterative XGBoost model training.
                     <a
-                      href="https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost_training_cm"
+                      href="https://github.com/kubeflow/pipelines/tree/master/samples/core/train_until_good"
       @@ --- --- @@
               <strong>Tutorials</strong> - Learn pipeline concepts by following a
               tutorial.
