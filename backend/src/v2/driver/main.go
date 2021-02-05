@@ -253,11 +253,11 @@ func initExecution(
 			return nil, err
 		}
 		if len(parentExecutionResponse.GetExecutions()) != 1 {
-			return nil, errors.Errorf("Unexpected number of executions in get executions by ID response: (ID=%s response: %v)", parentExecutionId, parentExecutionResponse)
+			return nil, errors.Errorf("Unexpected number of executions in get executions by ID response: (ID=%v response: %v)", parentExecutionId, parentExecutionResponse)
 		}
 		parentExecution = parentExecutionResponse.GetExecutions()[0]
 		if parentExecution == nil {
-			return nil, errors.Errorf("Parent execution is nil: (ID=%s response: %v)", parentExecutionId, parentExecutionResponse)
+			return nil, errors.Errorf("Parent execution is nil: (ID=%v response: %v)", parentExecutionId, parentExecutionResponse)
 		}
 		glog.Infof("Parent execution: %v", parentExecution.String())
 
