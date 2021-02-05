@@ -384,14 +384,14 @@ class CompilerTest(unittest.TestCase):
 
     tmpdir = tempfile.mkdtemp()
     try:
+
       @dsl.pipeline(name='my-pipeline', pipeline_root='gs://path')
       def my_pipeline():
         pass
 
       target_json_file = os.path.join(tmpdir, 'result.json')
       compiler.Compiler().compile(
-          pipeline_func=my_pipeline,
-          output_path=target_json_file)
+          pipeline_func=my_pipeline, output_path=target_json_file)
 
       self.assertTrue(os.path.exists(target_json_file))
       with open(target_json_file) as f:
@@ -405,6 +405,7 @@ class CompilerTest(unittest.TestCase):
 
     tmpdir = tempfile.mkdtemp()
     try:
+
       @dsl.pipeline(name='my-pipeline', pipeline_root='gs://path')
       def my_pipeline():
         pass
@@ -420,6 +421,27 @@ class CompilerTest(unittest.TestCase):
         job_spec = json.load(f)
       self.assertEqual('gs://path-override',
                        job_spec['runtimeConfig']['gcsOutputDirectory'])
+    finally:
+      shutil.rmtree(tmpdir)
+
+  def test_missing_pipeline_root_is_allowed_but_warned(self):
+
+    tmpdir = tempfile.mkdtemp()
+    try:
+
+      @dsl.pipeline(name='my-pipeline')
+      def my_pipeline():
+        pass
+
+      target_json_file = os.path.join(tmpdir, 'result.json')
+      with self.assertWarnsRegex(UserWarning, 'pipeline_root is None or empty'):
+        compiler.Compiler().compile(
+            pipeline_func=my_pipeline, output_path=target_json_file)
+
+      self.assertTrue(os.path.exists(target_json_file))
+      with open(target_json_file) as f:
+        job_spec = json.load(f)
+      self.assertTrue('gcsOutputDirectory' not in job_spec['runtimeConfig'])
     finally:
       shutil.rmtree(tmpdir)
 
