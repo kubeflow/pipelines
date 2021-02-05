@@ -101,7 +101,7 @@ class LocalRunnerTest(unittest.TestCase):
             hello(name)
 
         run_pipeline_func_locally(
-            _pipeline, {"name": "world"}, local_env_image=BASE_IMAGE
+            _pipeline, {"name": "world"}, local_env_images=[BASE_IMAGE]
         )
 
     # def test_run_docker(self):
@@ -115,7 +115,7 @@ class LocalRunnerTest(unittest.TestCase):
             local_loader(file_path)
 
         run_result = run_pipeline_func_locally(
-            _pipeline, {"file_path": self.temp_file.name}, local_env_image=BASE_IMAGE
+            _pipeline, {"file_path": self.temp_file.name}, local_env_images=[BASE_IMAGE]
         )
         output_file_path = run_result.get_output_file("local-loader")
 
@@ -132,14 +132,14 @@ class LocalRunnerTest(unittest.TestCase):
             with kfp.dsl.Condition(_flip.output == "tail"):
                 hello("tail")
 
-        run_pipeline_func_locally(_pipeline, {}, local_env_image=BASE_IMAGE)
+        run_pipeline_func_locally(_pipeline, {}, local_env_images=[BASE_IMAGE])
 
     def test_for(self):
         def _pipeline():
             with kfp.dsl.ParallelFor(list().output) as item:
                 hello(item)
 
-        run_pipeline_func_locally(_pipeline, {}, local_env_image=BASE_IMAGE)
+        run_pipeline_func_locally(_pipeline, {}, local_env_images=[BASE_IMAGE])
 
     def test_connect(self):
         def _pipeline():
@@ -147,7 +147,7 @@ class LocalRunnerTest(unittest.TestCase):
             component_connect_demo(_local_loader.output)
 
         run_result = run_pipeline_func_locally(
-            _pipeline, {}, local_env_image=BASE_IMAGE
+            _pipeline, {}, local_env_images=[BASE_IMAGE]
         )
         output_file_path = run_result.get_output_file("component-connect-demo")
 

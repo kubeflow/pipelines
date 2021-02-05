@@ -342,7 +342,7 @@ class LocalClient:
         pipeline_dag: _Dag,
         current_group: dsl.OpsGroup,
         stack: Dict[str, Any],
-        local_env_image: str = None,
+        local_env_images: List[str] = None,
     ):
         """Run ops in current group in topological order
 
@@ -351,10 +351,10 @@ class LocalClient:
             pipeline_dag: DAG of pipeline ops
             current_group: current ops group
             stack: stack to trace `LoopArguments`
-            local_env_image: image name
-                If the image of component equals to `local_env_image`, local runner will run
-                this component locally in forked process, otherwise, local runner will run
-                this component on docker.
+            local_env_images: list of images
+                If the image of component equals to one of `local_env_images`, local runner will run
+                this component locally in forked process, otherwise, local runner will run this
+                component on docker.
         """
         group_dag = self._create_group_dag(pipeline_dag, current_group)
 
@@ -362,12 +362,14 @@ class LocalClient:
             subgroup = self._get_subgroup(current_group.groups, node)
             if subgroup is not None:  # Node of DAG is subgroup
                 self._run_group(
-                    run_name, pipeline, pipeline_dag, subgroup, stack, local_env_image
+                    run_name, pipeline, pipeline_dag, subgroup, stack, local_env_images
                 )
             else:  # Node of DAG is op
                 op = self._get_op(current_group.ops, node)
 
-                can_run_locally = op.image == local_env_image
+                local_env_images = local_env_images if local_env_images else []
+                can_run_locally = op.image in local_env_images
+
                 if can_run_locally:
                     cmd = self._op_cmd_locally(run_name, pipeline, op, stack)
                 else:
@@ -397,7 +399,7 @@ class LocalClient:
         pipeline_dag: _Dag,
         current_group: dsl.OpsGroup,
         stack: Dict[str, Any],
-        local_env_image: str = None,
+        local_env_images: List[str] = None,
     ):
         """Run all ops in current group
 
@@ -407,10 +409,10 @@ class LocalClient:
             pipeline_dag: DAG of pipeline ops
             current_group: current ops group
             stack: stack to trace `LoopArguments`
-            local_env_image: image name
-                If the image of component equals to `local_env_image`, local runner will run
-                this component locally in forked process, otherwise, local runner will run
-                this component on docker.
+            local_env_images: list of images
+                If the image of component equals to one of `local_env_images`, local runner will run
+                this component locally in forked process, otherwise, local runner will run this
+                component on docker.
         """
         if current_group.type == dsl.ParallelFor.TYPE_NAME:
             current_group = cast(dsl.ParallelFor, current_group)
@@ -438,21 +440,21 @@ class LocalClient:
                         pipeline_dag,
                         current_group,
                         stack,
-                        local_env_image,
+                        local_env_images,
                     )
                     del stack[_loop_args.pattern]
             else:
                 raise Exception("Not implemented")
         else:
             self._run_group_dag(
-                run_name, pipeline, pipeline_dag, current_group, stack, local_env_image
+                run_name, pipeline, pipeline_dag, current_group, stack, local_env_images
             )
 
     def create_run_from_pipeline_func(
         self,
         pipeline_func: Callable,
         arguments: Mapping[str, str],
-        local_env_image: str = None,
+        local_env_images: List[str] = None,
     ):
         """Run kubeflow pipeline locally
 
@@ -460,10 +462,10 @@ class LocalClient:
           pipeline_func: pipeline function
           arguments: Arguments to the pipeline function provided as a dict,
           reference to `kfp.client.create_run_from_pipeline_func`
-          local_env_image: image name
-              If the image of component equals to `local_env_image`, local runner will
-              run this component locally in forked process, otherwise, local runner will
-              run this component on docker.
+          local_env_images: list of images
+            If the image of component equals to one of `local_env_images`, local runner will run
+            this component locally in forked process, otherwise, local runner will run this
+            component on docker.
         """
 
         class RunPipelineResult:
@@ -495,7 +497,7 @@ class LocalClient:
 
         pipeline_dag = self._create_op_dag(pipeline)
         self._run_group(
-            run_name, pipeline, pipeline_dag, pipeline.groups[0], {}, local_env_image
+            run_name, pipeline, pipeline_dag, pipeline.groups[0], {}, local_env_images
         )
 
         return RunPipelineResult(self, pipeline, run_name)
