@@ -15,13 +15,20 @@
 
 import unittest
 
-from kfp.v2 import dsl
 from kfp.v2.compiler import compiler_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 from google.protobuf import json_format
+from google.protobuf import message
 
 
 class CompilerUtilsTest(unittest.TestCase):
+
+  def assertProtoEquals(self, proto1: message.Message, proto2: message.Message):
+    """Asserts the equality between two messages."""
+    self.assertDictEqual(
+        json_format.MessageToDict(proto1),
+        json_format.MessageToDict(proto2))
+
 
   def test_build_runtime_config_spec(self):
     expected_dict = {
@@ -55,6 +62,21 @@ class CompilerUtilsTest(unittest.TestCase):
 
     with self.assertRaisesRegex(ValueError, 'Invalid pipeline name: '):
       compiler_utils.validate_pipeline_name('p' * 129)
+
+  def test_refactor_v2_component_success(self):
+    test_v2_container_spec = compiler_utils.PipelineContainerSpec(
+        image='my/dummy-image',
+        command=['python', '-m', 'my_package.my_entrypoint'],
+        args=['arg1', 'arg2', '--function_name', 'test_func']
+    )
+    expected_container_spec = compiler_utils.PipelineContainerSpec(
+        image='my/dummy-image',
+        command=['python', '-m', 'kfp.container.entrypoint'],
+        args=['--executor_input_str','{{$}}', '--function_name', 'test_func']
+    )
+    compiler_utils.refactor_v2_container_spec(test_v2_container_spec)
+    self.assertProtoEquals(expected_container_spec, test_v2_container_spec)
+
 
 if __name__ == '__main__':
   unittest.main()
