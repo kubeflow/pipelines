@@ -20,7 +20,7 @@ outputs:
   - {name: Service Endpoint URI, type: String,                      description: 'URI of the deployed prediction service..'}
 implementation:
   container:
-    image: aipipeline/kfserving-component:v0.4.0
+    image: aipipeline/kfserving-component:v0.4.1
     command: ['python']
     args: [
       -u, kfservingdeployer.py,
