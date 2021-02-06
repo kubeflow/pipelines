@@ -16,7 +16,10 @@ def pytest_addoption(parser):
         help="AWS region where test will run",
     )
     parser.addoption(
-        "--role-arn", required=True, help="SageMaker execution IAM role ARN",
+        "--sagemaker-role-arn", required=True, help="SageMaker execution IAM role ARN",
+    )
+    parser.addoption(
+        "--robomaker-role-arn", required=True, help="RoboMaker execution IAM role ARN",
     )
     parser.addoption(
         "--assume-role-arn",
@@ -73,9 +76,15 @@ def assume_role_arn(request):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def role_arn(request):
-    os.environ["ROLE_ARN"] = request.config.getoption("--role-arn")
-    return request.config.getoption("--role-arn")
+def sagemaker_role_arn(request):
+    os.environ["SAGEMAKER_ROLE_ARN"] = request.config.getoption("--sagemaker-role-arn")
+    return request.config.getoption("--sagemaker-role-arn")
+
+
+@pytest.fixture(scope="session", autouse=True)
+def robomaker_role_arn(request):
+    os.environ["ROBOMAKER_ROLE_ARN"] = request.config.getoption("--robomaker-role-arn")
+    return request.config.getoption("--robomaker-role-arn")
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -125,6 +134,11 @@ def sagemaker_client(boto3_session):
 
 
 @pytest.fixture(scope="session")
+def robomaker_client(boto3_session):
+    return boto3_session.client(service_name="robomaker")
+
+
+@pytest.fixture(scope="session")
 def s3_client(boto3_session):
     return boto3_session.client(service_name="s3")
 
@@ -146,7 +160,7 @@ def get_experiment_id(kfp_client):
 
 @pytest.fixture(scope="session")
 def experiment_id(kfp_client, tmp_path_factory, worker_id):
-    if not worker_id:
+    if worker_id == "master":
         return get_experiment_id(kfp_client)
 
     # Locking taking as an example from

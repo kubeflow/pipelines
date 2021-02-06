@@ -24,6 +24,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -45,9 +46,9 @@ const (
 	mysqlPassword          = "DBConfig.Password"
 	mysqlDBName            = "DBConfig.DBName"
 	mysqlGroupConcatMaxLen = "DBConfig.GroupConcatMaxLen"
-	kfamServiceHost        = "PROFILES_KFAM_SERVICE_HOST"
-	kfamServicePort        = "PROFILES_KFAM_SERVICE_PORT"
 	mysqlExtraParams       = "DBConfig.ExtraParams"
+	archiveLogFileName     = "ARCHIVE_CONFIG_LOG_FILE_NAME"
+	archiveLogPathPrefix   = "ARCHIVE_CONFIG_LOG_PATH_PREFIX"
 
 	visualizationServiceHost = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST"
 	visualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
@@ -57,21 +58,22 @@ const (
 
 // Container for all service clients
 type ClientManager struct {
-	db                     *storage.DB
-	experimentStore        storage.ExperimentStoreInterface
-	pipelineStore          storage.PipelineStoreInterface
-	jobStore               storage.JobStoreInterface
-	runStore               storage.RunStoreInterface
-	resourceReferenceStore storage.ResourceReferenceStoreInterface
-	dBStatusStore          storage.DBStatusStoreInterface
-	defaultExperimentStore storage.DefaultExperimentStoreInterface
-	objectStore            storage.ObjectStoreInterface
-	argoClient             client.ArgoClientInterface
-	swfClient              client.SwfClientInterface
-	k8sCoreClient          client.KubernetesCoreInterface
-	kfamClient             client.KFAMClientInterface
-	time                   util.TimeInterface
-	uuid                   util.UUIDGeneratorInterface
+	db                        *storage.DB
+	experimentStore           storage.ExperimentStoreInterface
+	pipelineStore             storage.PipelineStoreInterface
+	jobStore                  storage.JobStoreInterface
+	runStore                  storage.RunStoreInterface
+	resourceReferenceStore    storage.ResourceReferenceStoreInterface
+	dBStatusStore             storage.DBStatusStoreInterface
+	defaultExperimentStore    storage.DefaultExperimentStoreInterface
+	objectStore               storage.ObjectStoreInterface
+	argoClient                client.ArgoClientInterface
+	swfClient                 client.SwfClientInterface
+	k8sCoreClient             client.KubernetesCoreInterface
+	subjectAccessReviewClient client.SubjectAccessReviewInterface
+	logArchive                archive.LogArchiveInterface
+	time                      util.TimeInterface
+	uuid                      util.UUIDGeneratorInterface
 }
 
 func (c *ClientManager) ExperimentStore() storage.ExperimentStoreInterface {
@@ -118,8 +120,12 @@ func (c *ClientManager) KubernetesCoreClient() client.KubernetesCoreInterface {
 	return c.k8sCoreClient
 }
 
-func (c *ClientManager) KFAMClient() client.KFAMClientInterface {
-	return c.kfamClient
+func (c *ClientManager) SubjectAccessReviewClient() client.SubjectAccessReviewInterface {
+	return c.subjectAccessReviewClient
+}
+
+func (c *ClientManager) LogArchive() archive.LogArchiveInterface {
+	return c.logArchive
 }
 
 func (c *ClientManager) Time() util.TimeInterface {
@@ -158,8 +164,11 @@ func (c *ClientManager) init() {
 	runStore := storage.NewRunStore(db, c.time)
 	c.runStore = runStore
 
+	// Log archive
+	c.logArchive = initLogArchive()
+
 	if common.IsMultiUserMode() {
-		c.kfamClient = client.NewKFAMClient(common.GetStringConfig(kfamServiceHost), common.GetStringConfig(kfamServicePort))
+		c.subjectAccessReviewClient = client.CreateSubjectAccessReviewClientOrFatal(common.GetDurationConfig(initConnectionTimeout))
 	}
 	glog.Infof("Client manager initialized successfully")
 }
@@ -296,8 +305,8 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 	b := backoff.NewExponentialBackOff()
 	b.MaxElapsedTime = initConnectionTimeout
 	//err = backoff.Retry(operation, b)
-	backoff.RetryNotify(operation,b, func(e error, duration time.Duration) {
-		glog.Errorf("%v",e)
+	backoff.RetryNotify(operation, b, func(e error, duration time.Duration) {
+		glog.Errorf("%v", e)
 	})
 
 	defer db.Close()
@@ -365,6 +374,17 @@ func createMinioBucket(minioClient *minio.Client, bucketName, region string) {
 		glog.Fatalf("Failed to create Minio bucket. Error: %v", err)
 	}
 	glog.Infof("Successfully created bucket %s\n", bucketName)
+}
+
+func initLogArchive() (logArchive archive.LogArchiveInterface) {
+	logFileName := common.GetStringConfigWithDefault(archiveLogFileName, "")
+	logPathPrefix := common.GetStringConfigWithDefault(archiveLogPathPrefix, "")
+
+	if logFileName != "" && logPathPrefix != "" {
+		logArchive = archive.NewLogArchive(logPathPrefix, logFileName)
+	}
+
+	return
 }
 
 // newClientManager creates and Init a new instance of ClientManager

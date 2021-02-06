@@ -1,0 +1,125 @@
+{
+  "pipelineSpec": {
+    "pipelineInfo": {
+      "name": "simple-two-step-pipeline"
+    },
+    "schemaVersion": "2.0.0",
+    "root": {
+      "dag": {
+        "tasks": {
+          "task-write-to-gcs": {
+            "taskInfo": {
+              "name": "task-write-to-gcs"
+            },
+            "inputs": {
+              "parameters": {
+                "text": {
+                  "componentInputParameter": "text"
+                }
+              }
+            },
+            "componentRef": {
+              "name": "comp-write-to-gcs"
+            }
+          },
+          "task-read-from-gcs": {
+            "inputs": {
+              "artifacts": {
+                "input_gcs_path": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "output_gcs_path",
+                    "producerTask": "task-write-to-gcs"
+                  }
+                }
+              }
+            },
+            "componentRef": {
+              "name": "comp-read-from-gcs"
+            },
+            "taskInfo": {
+              "name": "task-read-from-gcs"
+            }
+          }
+        }
+      },
+      "inputDefinitions": {
+        "artifacts": {
+          "text": {
+            "artifactType": {
+              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+            }
+          }
+        }
+      }
+    },
+    "sdkVersion": "kfp-1.3.0",
+    "deploymentSpec": {
+      "executors": {
+        "exec-read-from-gcs": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "set -e -x\ngsutil cat \"$0\"\n",
+              "{{$.inputs.artifacts['input_gcs_path'].uri}}"
+            ],
+            "image": "google/cloud-sdk:slim"
+          }
+        },
+        "exec-write-to-gcs": {
+          "container": {
+            "image": "google/cloud-sdk:slim",
+            "command": [
+              "sh",
+              "-c",
+              "set -e -x\necho \"$0\" | gsutil cp - \"$1\"\n",
+              "{{$.inputs.parameters['text']}}",
+              "{{$.outputs.artifacts['output_gcs_path'].uri}}"
+            ]
+          }
+        }
+      }
+    },
+    "components": {
+      "comp-read-from-gcs": {
+        "executorLabel": "exec-read-from-gcs",
+        "inputDefinitions": {
+          "artifacts": {
+            "input_gcs_path": {
+              "artifactType": {
+                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              }
+            }
+          }
+        }
+      },
+      "comp-write-to-gcs": {
+        "inputDefinitions": {
+          "parameters": {
+            "text": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "output_gcs_path": {
+              "artifactType": {
+                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              }
+            }
+          }
+        },
+        "executorLabel": "exec-write-to-gcs"
+      }
+    }
+  },
+  "runtimeConfig": {
+    "parameters": {
+      "text": {
+        "stringValue": "Hello KFP!"
+      }
+    },
+    "gcsOutputDirectory": "dummy_root"
+  }
+}

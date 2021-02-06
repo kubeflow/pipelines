@@ -9,6 +9,7 @@ proto_library(
         "error.proto",
         "experiment.proto",
         "filter.proto",
+        "healthz.proto",
         "job.proto",
         "parameter.proto",
         "pipeline.proto",

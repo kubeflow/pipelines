@@ -53,7 +53,7 @@ export class ArchivedRuns extends Page<{ namespace?: string }, ArchivedRunsState
         )
         .getToolbarActionMap(),
       breadcrumbs: [],
-      pageTitle: 'Archive',
+      pageTitle: 'Runs',
     };
   }
 

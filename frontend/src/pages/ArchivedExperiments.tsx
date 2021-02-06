@@ -38,7 +38,7 @@ export class ArchivedExperiments extends Page<ArchivedExperimentsProp, ArchivedE
     return {
       actions: buttons.refresh(this.refresh.bind(this)).getToolbarActionMap(),
       breadcrumbs: [],
-      pageTitle: 'Archive',
+      pageTitle: 'Experiments',
     };
   }
 

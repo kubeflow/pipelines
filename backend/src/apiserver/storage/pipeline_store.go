@@ -62,7 +62,7 @@ type PipelineStoreInterface interface {
 	UpdatePipelineStatus(string, model.PipelineStatus) error
 	UpdatePipelineDefaultVersion(string, string) error
 
-	CreatePipelineVersion(*model.PipelineVersion) (*model.PipelineVersion, error)
+	CreatePipelineVersion(*model.PipelineVersion, bool) (*model.PipelineVersion, error)
 	GetPipelineVersion(versionId string) (*model.PipelineVersion, error)
 	GetPipelineVersionWithStatus(versionId string, status model.PipelineVersionStatus) (*model.PipelineVersion, error)
 	ListPipelineVersions(pipelineId string, opts *list.Options) ([]*model.PipelineVersion, int, string, error)
@@ -447,7 +447,7 @@ func NewPipelineStore(db *DB, time util.TimeInterface, uuid util.UUIDGeneratorIn
 	return &PipelineStore{db: db, time: time, uuid: uuid}
 }
 
-func (s *PipelineStore) CreatePipelineVersion(v *model.PipelineVersion) (*model.PipelineVersion, error) {
+func (s *PipelineStore) CreatePipelineVersion(v *model.PipelineVersion, updatePipelineDefaultVersion bool) (*model.PipelineVersion, error) {
 	newPipelineVersion := *v
 	newPipelineVersion.CreatedAtInSec = s.time.Now().Unix()
 	id, err := s.uuid.NewRandom()
@@ -506,12 +506,16 @@ func (s *PipelineStore) CreatePipelineVersion(v *model.PipelineVersion) (*model.
 		return nil, util.NewInternalServerError(err, "Failed to add version to pipeline version table: %v",
 			err.Error())
 	}
-	_, err = tx.Exec(pipelineSql, pipelineArgs...)
-	if err != nil {
-		tx.Rollback()
-		return nil, util.NewInternalServerError(err, "Failed to update pipeline default version id: %v",
-			err.Error())
+
+	if updatePipelineDefaultVersion {
+		_, err = tx.Exec(pipelineSql, pipelineArgs...)
+		if err != nil {
+			tx.Rollback()
+			return nil, util.NewInternalServerError(err, "Failed to update pipeline default version id: %v",
+				err.Error())
+		}
 	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create new pipeline version: %v",
 			err.Error())

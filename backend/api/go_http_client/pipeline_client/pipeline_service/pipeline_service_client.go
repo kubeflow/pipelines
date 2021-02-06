@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -325,6 +325,35 @@ func (a *Client) ListPipelines(params *ListPipelinesParams, authInfo runtime.Cli
 		return nil, err
 	}
 	return result.(*ListPipelinesOK), nil
+
+}
+
+/*
+UpdatePipelineDefaultVersion updates the default pipeline version of a specific pipeline
+*/
+func (a *Client) UpdatePipelineDefaultVersion(params *UpdatePipelineDefaultVersionParams, authInfo runtime.ClientAuthInfoWriter) (*UpdatePipelineDefaultVersionOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewUpdatePipelineDefaultVersionParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "UpdatePipelineDefaultVersion",
+		Method:             "POST",
+		PathPattern:        "/apis/v1beta1/pipelines/{pipeline_id}/default_version/{version_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &UpdatePipelineDefaultVersionReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*UpdatePipelineDefaultVersionOK), nil
 
 }
 

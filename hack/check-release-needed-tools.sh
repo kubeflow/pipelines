@@ -33,6 +33,13 @@ bazel version | grep 0.24.0 || (echo "bazel not 0.24.0 version" && exit 1)
 echo "python>3"
 which python >/dev/null || (echo "python not found in PATH" && exit 1)
 python -c "import setuptools" || (echo "setuptools should be installed in python" && exit 1)
+echo "go"
+which go >/dev/null || (echo "go not found in PATH" && exit 1)
+go_path=$(go env GOPATH)
+echo "$PATH" | grep "${go_path}/bin" > /dev/null || ( \
+    echo "\$GOPATH/bin: ${go_path}/bin should be in PATH"; \
+    echo "https://golang.org/cmd/go/#hdr-GOPATH_and_Modules"; \
+    exit 1)
 
 echo "All tools installed"
 echo "Please add another needed tools if above list is not complete"

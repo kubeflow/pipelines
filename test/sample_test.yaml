@@ -81,6 +81,9 @@ spec:
               - loop_static
               - resource_ops
               - multiple_outputs
+              - caching
+              - parallelism_sub_dag
+              - parallelism_sub_dag_with_op_output
           - name: run-integration-tests-loop
             template: run-sample-tests
             arguments:
@@ -96,10 +99,14 @@ spec:
                 - name: test-name
                   value: "{{item}}"
             withItems:
-              - xgboost_training_cm
+              # TODO(#5089): Re-enable the xgboost sample test after fixed the
+              # component and sample.
+              # - xgboost_training_cm
               - dataflow
               - ai_platform
-              - kubeflow_tf_serving
+              # TODO(#4361): Re-enable the kubeflow_tf_serving sample test after
+              # fixed the sample
+              # - kubeflow_tf_serving
               - container_build
               - parameterized_tfx_oss
               - iris

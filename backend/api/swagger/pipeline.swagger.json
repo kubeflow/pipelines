@@ -396,6 +396,45 @@
           "PipelineService"
         ]
       }
+    },
+    "/apis/v1beta1/pipelines/{pipeline_id}/default_version/{version_id}": {
+      "post": {
+        "summary": "Update the default pipeline version of a specific pipeline.",
+        "operationId": "UpdatePipelineDefaultVersion",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "pipeline_id",
+            "description": "The ID of the pipeline to be updated.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "version_id",
+            "description": "The ID of the default version.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PipelineService"
+        ]
+      }
     }
   },
   "definitions": {

@@ -24,6 +24,8 @@ go_library(
         "list_pipelines_parameters.go",
         "list_pipelines_responses.go",
         "pipeline_service_client.go",
+        "update_pipeline_default_version_parameters.go",
+        "update_pipeline_default_version_responses.go",
     ],
     importpath = "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service",
     visibility = ["//visibility:public"],

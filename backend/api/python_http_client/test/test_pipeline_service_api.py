@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -109,6 +109,13 @@ class TestPipelineServiceApi(unittest.TestCase):
         """Test case for list_pipelines
 
         Finds all pipelines.  # noqa: E501
+        """
+        pass
+
+    def test_update_pipeline_default_version(self):
+        """Test case for update_pipeline_default_version
+
+        Update the default pipeline version of a specific pipeline.  # noqa: E501
         """
         pass
 

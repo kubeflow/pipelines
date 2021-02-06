@@ -9,6 +9,7 @@ rules:
   - ""
   resources:
   - pods
+  - pods/log
   verbs:
   - get
   - list
@@ -36,3 +37,9 @@ rules:
   - update
   - patch
   - delete
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create

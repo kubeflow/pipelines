@@ -12,22 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+from typing import Callable, Optional, Union
+from kubernetes.client.models import V1PodDNSConfig
 from . import _container_op
 from . import _resource_op
 from . import _ops_group
-from ._component_bridge import _create_container_op_from_component_and_arguments
+from ._component_bridge import \
+  _create_container_op_from_component_and_arguments, \
+  _sanitize_python_function_name
 from ..components import _components
 from ..components._naming import _make_name_unique_by_adding_index
 import sys
-
 
 # This handler is called whenever the @pipeline decorator is applied.
 # It can be used by command-line DSL compiler to inject code that runs for every pipeline definition.
 _pipeline_decorator_handler = None
 
 
-def pipeline(name : str = None, description : str = None):
+def pipeline(
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+    output_directory: Optional[str] = None):
   """Decorator of pipeline functions.
 
   Example
@@ -36,15 +41,27 @@ def pipeline(name : str = None, description : str = None):
       @pipeline(
         name='my awesome pipeline',
         description='Is it really awesome?'
+        output_directory='gs://my-bucket/my-output-path'
       )
       def my_pipeline(a: PipelineParam, b: PipelineParam):
         ...
+
+  Args:
+    name: The pipeline name. Default to a sanitized version of the function
+      name.
+    description: Optionally, a human-readable description of the pipeline.
+    output_directory: The root directory to generate input/output URI under this
+      pipeline. This is required if input/output URI placeholder is used in this
+      pipeline.
   """
-  def _pipeline(func):
+
+  def _pipeline(func: Callable):
     if name:
       func._component_human_name = name
     if description:
       func._component_description = description
+    if output_directory:
+      func.output_directory = output_directory
 
     if _pipeline_decorator_handler:
       return _pipeline_decorator_handler(func) or func
@@ -53,18 +70,21 @@ def pipeline(name : str = None, description : str = None):
 
   return _pipeline
 
+
 class PipelineConf():
-  """PipelineConf contains pipeline level settings
-  """
+  """PipelineConf contains pipeline level settings."""
+
   def __init__(self):
     self.image_pull_secrets = []
     self.timeout = 0
     self.ttl_seconds_after_finished = -1
+    self._pod_disruption_budget_min_available = None
     self.op_transformers = []
     self.default_pod_node_selector = {}
     self.image_pull_policy = None
     self.parallelism = None
     self._data_passing_method = None
+    self.dns_config = None
 
   def set_image_pull_secrets(self, image_pull_secrets):
     """Configures the pipeline level imagepullsecret
@@ -92,6 +112,9 @@ class PipelineConf():
     Args:
         max_num_pods: max number of total parallel pods.
     """
+    if max_num_pods < 1:
+        raise ValueError('Pipeline max_num_pods set to < 1, allowed values are > 0')
+    
     self.parallelism = max_num_pods
     return self
 
@@ -102,6 +125,18 @@ class PipelineConf():
       seconds: number of seconds for the workflow to be garbage collected after it is finished.
     """
     self.ttl_seconds_after_finished = seconds
+    return self
+
+  def set_pod_disruption_budget(self, min_available: Union[int, str]):
+    """ PodDisruptionBudget holds the number of concurrent disruptions that you allow for pipeline Pods.
+
+    Args:
+        min_available (Union[int, str]):  An eviction is allowed if at least "minAvailable" pods selected by 
+        "selector" will still be available after the eviction, i.e. even in the
+	      absence of the evicted pod.  So for example you can prevent all voluntary
+	      evictions by specifying "100%". "minAvailable" can be either an absolute number or a percentage.
+    """
+    self._pod_disruption_budget_min_available = min_available
     return self
 
   def set_default_pod_node_selector(self, label_name: str, value: str):
@@ -115,7 +150,6 @@ class PipelineConf():
     """
     self.default_pod_node_selector[label_name] = value
     return self
-
 
   def set_image_pull_policy(self, policy: str):
     """Configures the default image pull policy
@@ -135,6 +169,27 @@ class PipelineConf():
       transformer: A function that takes a kfp Op as input and returns a kfp Op
     """
     self.op_transformers.append(transformer)
+
+  def set_dns_config(self, dns_config: V1PodDNSConfig):
+    """Set the dnsConfig to be given to each pod.
+
+    Args:
+      dns_config: Kubernetes V1PodDNSConfig
+        For detailed description, check Kubernetes V1PodDNSConfig definition
+        https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1PodDNSConfig.md
+
+    Example:
+
+      ::
+        import kfp
+        from kubernetes.client.models import V1PodDNSConfig, V1PodDNSConfigOption
+        pipeline_conf = kfp.dsl.PipelineConf()
+        pipeline_conf.set_dns_config(dns_config=V1PodDNSConfig(
+          nameservers=["1.2.3.4"],
+          options=[V1PodDNSConfigOption(name="ndots", value="2")]
+        ))
+    """
+    self.dns_config = dns_config
 
   @property
   def data_passing_method(self):
@@ -160,13 +215,15 @@ class PipelineConf():
     """
     self._data_passing_method = value
 
+
 def get_pipeline_conf():
   """Configure the pipeline level setting to the current pipeline
     Note: call the function inside the user defined pipeline function.
   """
   return Pipeline.get_default_pipeline().conf
 
-#TODO: Pipeline is in fact an opsgroup, refactor the code.
+
+# TODO: Pipeline is in fact an opsgroup, refactor the code.
 class Pipeline():
   """A pipeline contains a list of operators.
 
@@ -241,8 +298,13 @@ class Pipeline():
     Returns
       op_name: a unique op name.
     """
+    # Sanitizing the op name.
+    # Technically this could be delayed to the compilation stage, but string serialization of PipelineParams make unsanitized names problematic.
+    op_name = _sanitize_python_function_name(op.human_name).replace('_', '-')
     #If there is an existing op with this name then generate a new name.
-    op_name = _make_name_unique_by_adding_index(op.human_name, list(self.ops.keys()), ' ')
+    op_name = _make_name_unique_by_adding_index(op_name, list(self.ops.keys()), ' ')
+    if op_name == '':
+      op_name = _make_name_unique_by_adding_index('task', list(self.ops.keys()), ' ')
 
     self.ops[op_name] = op
     if not define_only:

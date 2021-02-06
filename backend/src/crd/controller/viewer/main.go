@@ -76,8 +76,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	_, err = builder.SimpleController().
-		WithManager(mgr).
+	_, err = builder.ControllerManagedBy(mgr).
 		ForType(&viewerV1beta1.Viewer{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).

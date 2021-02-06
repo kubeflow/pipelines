@@ -88,7 +88,7 @@ describe('awsInstanceProfileCredentials', () => {
       mockedFetch.mockImplementation(mockFetch);
 
       expect(await awsInstanceProfileCredentials.ok()).toBeFalsy();
-      expect(awsInstanceProfileCredentials.getCredentials).not.toThrow();
+      expect(async () => await awsInstanceProfileCredentials.getCredentials()).not.toThrow();
       expect(await awsInstanceProfileCredentials.getCredentials()).toBeUndefined();
     });
 
@@ -99,7 +99,7 @@ describe('awsInstanceProfileCredentials', () => {
       mockedFetch.mockImplementation(mockFetch);
 
       expect(await awsInstanceProfileCredentials.ok()).toBeFalsy();
-      expect(awsInstanceProfileCredentials.getCredentials).not.toThrow();
+      expect(async () => await awsInstanceProfileCredentials.getCredentials()).not.toThrow();
       expect(await awsInstanceProfileCredentials.getCredentials()).toBeUndefined();
     });
   });

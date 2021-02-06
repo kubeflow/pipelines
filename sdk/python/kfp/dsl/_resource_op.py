@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-from typing import Dict
+from typing import Dict, List, Optional
 import warnings
 
 from ._container_op import BaseOp, ContainerOp
@@ -32,21 +32,24 @@ class Resource(object):
         "merge_strategy": "str",
         "success_condition": "str",
         "failure_condition": "str",
-        "manifest": "str"
+        "manifest": "str",
+        "flags": "list[str]"
     }
     openapi_types = {
         "action": "str",
         "merge_strategy": "str",
         "success_condition": "str",
         "failure_condition": "str",
-        "manifest": "str"
+        "manifest": "str",
+        "flags": "list[str]"
     }
     attribute_map = {
         "action": "action",
         "merge_strategy": "mergeStrategy",
         "success_condition": "successCondition",
         "failure_condition": "failureCondition",
-        "manifest": "manifest"
+        "manifest": "manifest",
+        "flags": "flags"
     }
 
     def __init__(self,
@@ -54,17 +57,22 @@ class Resource(object):
                  merge_strategy: str = None,
                  success_condition: str = None,
                  failure_condition: str = None,
-                 manifest: str = None):
+                 manifest: str = None,
+                 flags: Optional[List[str]] = None):
         """Create a new instance of Resource"""
         self.action = action
         self.merge_strategy = merge_strategy
         self.success_condition = success_condition
         self.failure_condition = failure_condition
         self.manifest = manifest
+        self.flags = flags
 
 
 class ResourceOp(BaseOp):
-    """Represents an op which will be translated into a resource template
+    """Represents an op which will be translated into a resource template.
+
+    TODO(https://github.com/kubeflow/pipelines/issues/4822): Determine the
+        stability level of this feature.
 
     Args:
         k8s_resource: A k8s resource which will be submitted to the cluster
@@ -92,7 +100,8 @@ class ResourceOp(BaseOp):
                  merge_strategy: str = None,
                  success_condition: str = None,
                  failure_condition: str = None,
-                 attribute_outputs: Dict[str, str] = None,
+                 attribute_outputs: Optional[Dict[str, str]] = None,
+                 flags: Optional[List[str]] = None,
                  **kwargs):
 
         super().__init__(**kwargs)
@@ -114,11 +123,14 @@ class ResourceOp(BaseOp):
         if action == "delete" and (success_condition or failure_condition or attribute_outputs):
             raise ValueError("You can't set success_condition, failure_condition, or attribute_outputs when action == 'delete'")
 
+        if action == "delete" and flags is None:
+            flags = ["--wait=false"]
         init_resource = {
             "action": action,
             "merge_strategy": merge_strategy,
             "success_condition": success_condition,
-            "failure_condition": failure_condition
+            "failure_condition": failure_condition,
+            "flags": flags
         }
         # `resource` prop in `io.argoproj.workflow.v1alpha1.Template`
         self._resource = Resource(**init_resource)
@@ -163,7 +175,7 @@ class ResourceOp(BaseOp):
         """
         return self._resource
 
-    def delete(self):
+    def delete(self, flags: Optional[List[str]] = None):
         """Returns a ResourceOp which deletes the resource."""
         if self.resource.action == "delete":
             raise ValueError("This operation is already a resource deletion.")
@@ -175,7 +187,8 @@ class ResourceOp(BaseOp):
 
         return kubernetes_resource_delete_op(
             name=self.outputs["name"],
-            kind=kind
+            kind=kind,
+            flags=flags or ["--wait=false"]
         )
 
 
@@ -183,9 +196,10 @@ def kubernetes_resource_delete_op(
     name: str,
     kind: str,
     namespace: str = None,
+    flags: Optional[List[str]] = None,
 ) -> ContainerOp:
     """Operation that deletes a Kubernetes resource.
-    
+
     Outputs:
         name: The name of the deleted resource
     """
@@ -195,6 +209,8 @@ def kubernetes_resource_delete_op(
     ]
     if namespace:
         command.extend(['--namespace', str(namespace)])
+    if flags:
+        command.extend(flags)
 
     result = ContainerOp(
         name='kubernetes_resource_delete',

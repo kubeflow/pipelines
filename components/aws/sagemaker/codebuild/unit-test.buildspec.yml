@@ -1,9 +1,11 @@
 version: 0.2      
 phases:
+  pre_build:
+    commands:
+      - docker login -u $DOCKER_CONFIG_USERNAME -p $DOCKER_CONFIG_PASSWORD
   build:
     commands:
-      - cd components/aws
-      - docker build . -f ./sagemaker/tests/unit_tests/Dockerfile -t amazon/unit-test-image --quiet
+      - docker build . -f ./components/aws/sagemaker/tests/unit_tests/Dockerfile -t amazon/unit-test-image --quiet
 
       # Run the container and copy the results to /tmp
       # Passes all host environment variables through to the container
@@ -11,7 +13,7 @@ phases:
 
   post_build:
     commands:
-      - docker cp unit-test-container:/app/tests/unit_tests/unit_tests.log /tmp/results.xml
+      - docker cp unit-test-container:/app/components/aws/sagemaker/unit_tests.log /tmp/results.xml
       - docker rm -f unit-test-container
 
 reports:

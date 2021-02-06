@@ -1,0 +1,43 @@
+name: Calculate data hash
+inputs:
+- {name: Data}
+- {name: Hash algorithm, type: String, default: SHA256, description: "Hash algorithm to use. Supported values are MD5, SHA1, SHA256, SHA512, SHA3"}
+outputs:
+- {name: Hash}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+implementation:
+  container:
+    image: alpine
+    command:
+    - sh
+    - -exc
+    - |
+      data_path="$0"
+      hash_algorithm="$1"
+      hash_path="$2"
+      mkdir -p "$(dirname "$hash_path")"
+      
+      hash_algorithm=$(echo "$hash_algorithm" | tr '[:upper:]' '[:lower:]')
+      case "$hash_algorithm" in
+          md5|sha1|sha256|sha512|sha3)  hash_program="${hash_algorithm}sum";;
+          *)  echo "Unsupported hash algorithm $hash_algorithm"; exit 1;;
+      esac
+      
+      if [ -d "$data_path" ]; then
+          # Calculating hash for directory
+          cd "$data_path"
+          find . -type f -print0 |
+              sort -z |
+              xargs -0 "$hash_program" |
+              "$hash_program" |
+              cut -d ' ' -f 1 > "$hash_path"         
+      else
+          # Calculating hash for file
+          "$hash_program" "$data_path" |
+              cut -d ' ' -f 1 > "$hash_path"
+      fi
+    - {inputPath: Data}
+    - {inputValue: Hash algorithm}
+    - {outputPath: Hash}

@@ -20,11 +20,25 @@
 
 set -ex
 
+# Warning: grep in this image does not support long option names like --word-regexp
+
 echo "Start deploying cache service to existing cluster:"
 
 NAMESPACE=${NAMESPACE_TO_WATCH:-kubeflow}
 MUTATING_WEBHOOK_CONFIGURATION_NAME="cache-webhook-${NAMESPACE}"
 WEBHOOK_SECRET_NAME=webhook-server-tls
+
+# Getting correct kubectl. Kubernetes only supports kubectl versions within +/-1 minor version.
+# kubectl has some resource version information hardcoded, so using too old kubectl can lead to errors
+mkdir -p "$HOME/bin"
+export PATH="$HOME/bin:$PATH"
+{
+    server_version_major_minor=$(kubectl version --output json | jq --raw-output '(.serverVersion.major + "." + .serverVersion.minor)' | tr -d '"+')
+    stable_build_version=$(curl -s "https://storage.googleapis.com/kubernetes-release/release/stable-${server_version_major_minor}.txt")
+    kubectl_url="https://storage.googleapis.com/kubernetes-release/release/${stable_build_version}/bin/linux/amd64/kubectl"
+    curl -L -o "$HOME/bin/kubectl" "$kubectl_url"
+    chmod +x "$HOME/bin/kubectl"
+} || true
 
 # This should fail if there are connectivity problems
 # Gotcha: Listing all objects requires list permission,
@@ -72,7 +86,7 @@ echo "Signed certificate generated for cache server"
 # Kubernetes v1.15+ supports better filtering, but it's not trivial to detect since the API version was only bumped to v1 in v1.16.
 # Kubernetes has broken it's versioning policy here. https://github.com/kubernetes/kubernetes/pull/78505#commitcomment-41870735
 # We still want to support filtering on v1.15, so we need to detect it.
-if kubectl api-versions | grep --word-regexp 'admissionregistration.k8s.io/v1'; then
+if kubectl api-versions | grep -w 'admissionregistration.k8s.io/v1'; then
     cache_webhook_config_template="cache-webhook-config.v1.yaml.template"
 elif kubectl version | grep 'Server Version: version.Info{Major:"1", Minor:"15'; then
     cache_webhook_config_template="cache-webhook-config.v1beta1.v1.15.yaml.template"

@@ -40,7 +40,8 @@ def deploy_model_post():
             canary_custom_model_spec=request.json["canary_custom_model_spec"],
             autoscaling_target=request.json["autoscaling_target"],
             service_account=request.json["service_account"],
-            enable_istio_sidecar=request.json["enable_istio_sidecar"]
+            enable_istio_sidecar=request.json["enable_istio_sidecar"],
+            inferenceservice_yaml=request.json["inferenceservice_yaml"]
         )
     )
 

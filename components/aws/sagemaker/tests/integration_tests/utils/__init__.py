@@ -1,3 +1,4 @@
+import json
 import os
 import subprocess
 import pytest
@@ -14,8 +15,12 @@ def get_region():
     return os.environ.get("AWS_REGION")
 
 
-def get_role_arn():
-    return os.environ.get("ROLE_ARN")
+def get_sagemaker_role_arn():
+    return os.environ.get("SAGEMAKER_ROLE_ARN")
+
+
+def get_robomaker_role_arn():
+    return os.environ.get("ROBOMAKER_ROLE_ARN")
 
 
 def get_s3_data_bucket():
@@ -82,15 +87,18 @@ def replace_placeholders(input_filename, output_filename):
     region = get_region()
     variables_to_replace = {
         "((REGION))": region,
-        "((ROLE_ARN))": get_role_arn(),
+        "((SAGEMAKER_ROLE_ARN))": get_sagemaker_role_arn(),
         "((DATA_BUCKET))": get_s3_data_bucket(),
         "((KMEANS_REGISTRY))": get_algorithm_image_registry("kmeans", region, "1"),
-        "((XGBOOST_REGISTRY))": get_algorithm_image_registry("xgboost", region, "1.0-1"),
+        "((XGBOOST_REGISTRY))": get_algorithm_image_registry(
+            "xgboost", region, "1.0-1"
+        ),
         "((BUILTIN_RULE_IMAGE))": get_algorithm_image_registry("debugger", region),
         "((FSX_ID))": get_fsx_id(),
         "((FSX_SUBNET))": get_fsx_subnet(),
         "((FSX_SECURITY_GROUP))": get_fsx_security_group(),
-        "((ASSUME_ROLE_ARN))": get_assume_role_arn()
+        "((ASSUME_ROLE_ARN))": get_assume_role_arn(),
+        "((ROBOMAKER_ROLE_ARN))": get_robomaker_role_arn(),
     }
 
     filedata = ""
@@ -113,7 +121,7 @@ def load_params(file_name):
 
 
 def generate_random_string(length):
-    """Generate a random string with twice the length of input parameter"""
+    """Generate a random string with twice the length of input parameter."""
     assert isinstance(length, int)
     return "".join(
         [random.choice(string.ascii_lowercase) for n in range(length)]

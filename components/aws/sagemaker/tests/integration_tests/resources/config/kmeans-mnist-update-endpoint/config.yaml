@@ -1,0 +1,24 @@
+PipelineDefinition: resources/definition/update_endpoint_pipeline.py
+TestName: kmeans-update-endpoint-test
+Timeout: 7200
+ExpectedInstanceType: ml.m5.xlarge
+ExpectedPrediction:
+  predictions:
+    - distance_to_cluster: 7.448746204376221
+      closest_cluster: 2.0
+Arguments:
+  region: ((REGION))
+  model_name: kmeans-mnist-model
+  endpoint_config_name: kmeans-mnist-deploy-model
+  endpoint_name: kmeans-mnist-deploy-model
+  image: ((KMEANS_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/kmeans:1
+  model_artifact_url: s3://((DATA_BUCKET))/mnist_kmeans_example/model/kmeans-mnist-model/model.tar.gz
+  variant_name_1: variant-1
+  initial_variant_weight_1: 1.0
+  instance_type_1: ml.m4.xlarge
+  instance_type_2: ml.m5.xlarge
+  initial_instance_count_1: 1
+  network_isolation: "True"
+  role: ((SAGEMAKER_ROLE_ARN))
+  update_endpoint: "True"
+  

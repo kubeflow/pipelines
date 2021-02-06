@@ -14,6 +14,7 @@ Method | HTTP request | Description
 [**get_template**](PipelineServiceApi.md#get_template) | **GET** /apis/v1beta1/pipelines/{id}/templates | Returns a single YAML template that contains the description, parameters, and metadata associated with the pipeline provided.
 [**list_pipeline_versions**](PipelineServiceApi.md#list_pipeline_versions) | **GET** /apis/v1beta1/pipeline_versions | Lists all pipeline versions of a given pipeline.
 [**list_pipelines**](PipelineServiceApi.md#list_pipelines) | **GET** /apis/v1beta1/pipelines | Finds all pipelines.
+[**update_pipeline_default_version**](PipelineServiceApi.md#update_pipeline_default_version) | **POST** /apis/v1beta1/pipelines/{pipeline_id}/default_version/{version_id} | Update the default pipeline version of a specific pipeline.
 
 
 # **create_pipeline**
@@ -774,6 +775,84 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**ApiListPipelinesResponse**](ApiListPipelinesResponse.md)
+
+### Authorization
+
+[Bearer](../README.md#Bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** | A successful response. |  -  |
+**0** |  |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **update_pipeline_default_version**
+> object update_pipeline_default_version(pipeline_id, version_id)
+
+Update the default pipeline version of a specific pipeline.
+
+### Example
+
+* Api Key Authentication (Bearer):
+```python
+from __future__ import print_function
+import time
+import kfp_server_api
+from kfp_server_api.rest import ApiException
+from pprint import pprint
+# Defining the host is optional and defaults to http://localhost
+# See configuration.py for a list of all supported configuration parameters.
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost"
+)
+
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: Bearer
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['authorization'] = 'Bearer'
+
+# Enter a context with an instance of the API client
+with kfp_server_api.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = kfp_server_api.PipelineServiceApi(api_client)
+    pipeline_id = 'pipeline_id_example' # str | The ID of the pipeline to be updated.
+version_id = 'version_id_example' # str | The ID of the default version.
+
+    try:
+        # Update the default pipeline version of a specific pipeline.
+        api_response = api_instance.update_pipeline_default_version(pipeline_id, version_id)
+        pprint(api_response)
+    except ApiException as e:
+        print("Exception when calling PipelineServiceApi->update_pipeline_default_version: %s\n" % e)
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **pipeline_id** | **str**| The ID of the pipeline to be updated. | 
+ **version_id** | **str**| The ID of the default version. | 
+
+### Return type
+
+**object**
 
 ### Authorization
 

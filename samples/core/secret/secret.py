@@ -18,35 +18,43 @@ import kfp
 from kfp import dsl
 
 
-def gcs_read_op(url):
-  return dsl.ContainerOp(
-      name='Access GCS using auth token',
-      image='google/cloud-sdk:279.0.0',
-      command=['sh', '-c'],
-      arguments=[
-        'gsutil ls "$0" && echo "$1"',
-        url,
-        'Auth token is located at /secret/gcp-credentials/user-gcp-sa.json'
-        ]
-      )
+# Accessing GCS using the Google Cloud SDK command-line programs
+gcs_list_items_op = kfp.components.load_component_from_text('''
+name: GCS - List items
+inputs:
+- {name: Uri}
+implementation:
+  container:
+    image: 'google/cloud-sdk:279.0.0'
+    command:
+    - sh
+    - -exc
+    - |
+      if [ -n "${GOOGLE_APPLICATION_CREDENTIALS}" ]; then
+          echo "Using auth token from ${GOOGLE_APPLICATION_CREDENTIALS}"
+          gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+      fi
+      gcloud auth list
+      gsutil ls "$0"
+    - {inputValue: Uri}
+''')
 
 
-def use_gcp_api_op():
-    return dsl.ContainerOp(
-        name='Using Google Cloud APIs with Auth',
-        image='google/cloud-sdk:279.0.0',
-        command=[
-            'sh', '-c',
-            'pip3 install google-cloud-storage && "$0" "$*"',
-            'python3', '-c', '''
-from google.cloud import storage
-storage_client = storage.Client()
-buckets = storage_client.list_buckets()
-print("List of buckets:")
-for bucket in buckets:
-    print(bucket.name)
-    '''
-        ])
+# Accessing GCS using the Google Cloud Python library
+def gcs_list_buckets():
+    from google.cloud import storage
+    storage_client = storage.Client()
+    buckets = storage_client.list_buckets()
+    print("List of buckets:")
+    for bucket in buckets:
+        print(bucket.name)
+
+
+gcs_list_buckets_op = kfp.components.create_component_from_func(
+    gcs_list_buckets,
+    base_image='python:3.7',
+    packages_to_install=['google-cloud-storage==1.31.2'],
+)
 
 
 @dsl.pipeline(
@@ -57,8 +65,8 @@ def secret_op_pipeline(
     url='gs://ml-pipeline/sample-data/shakespeare/shakespeare1.txt'):
   """A pipeline that uses secret to access cloud hosted resouces."""
 
-  gcs_read_task = gcs_read_op(url)
-  use_gcp_api_task = use_gcp_api_op()
+  gcs_list_items_task = gcs_list_items_op(url)
+  gcs_list_buckets_task = gcs_list_buckets_op()
 
 if __name__ == '__main__':
   kfp.compiler.Compiler().compile(secret_op_pipeline, __file__ + '.yaml')

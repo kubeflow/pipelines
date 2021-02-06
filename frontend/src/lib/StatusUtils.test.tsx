@@ -175,6 +175,7 @@ describe('StatusUtils', () => {
         parseNodePhase({
           ...DEFAULT_NODE_STATUS,
           id: 'file-passing-pipelines-55slt-2894085459',
+          type: 'Pod',
           phase: 'Succeeded', // Cached nodes have phase == 'Succeeded'
           outputs: {
             artifacts: [
@@ -189,6 +190,28 @@ describe('StatusUtils', () => {
           },
         }),
       ).toEqual('Cached');
+    });
+
+    it('returns succeeded phase for a retry node', () => {
+      expect(
+        parseNodePhase({
+          ...DEFAULT_NODE_STATUS,
+          id: 'file-passing-pipelines-55slt-2894085459',
+          type: 'Retry',
+          phase: 'Succeeded', // Cached nodes have phase == 'Succeeded'
+          outputs: {
+            artifacts: [
+              {
+                s3: {
+                  // HACK: A cached node's artifacts will refer to a path that doesn't match its own id.
+                  key:
+                    'artifacts/file-passing-pipelines-mjpph/file-passing-pipelines-mjpph-1802581193/sum-numbers-output.tgz',
+                },
+              } as Artifact,
+            ],
+          },
+        }),
+      ).toEqual('Succeeded');
     });
   });
 });

@@ -39,6 +39,13 @@ class TestVolumeSnapshotOp(unittest.TestCase):
                 pvc=param2,
                 attribute_outputs={"size": "test"}
             )
+            snap3 = VolumeSnapshotOp(
+                name="mysnap_creation2",
+                resource_name="mysnap2",
+                pvc=param2,
+                api_version="snapshot.storage.k8s.io/v1beta1",
+                attribute_outputs={"size": "test"}
+            )
 
             self.assertEqual(
                 sorted([x.name for x in snap1.inputs]), ["name", "param1"]
@@ -91,6 +98,16 @@ class TestVolumeSnapshotOp(unittest.TestCase):
                 kind="VolumeSnapshot",
                 name=PipelineParam(name="param1")
             )
+            assert(snap2.k8s_resource['apiVersion'] == "snapshot.storage.k8s.io/v1alpha1")
             self.assertEqual(snap2.snapshot, expected_snapshot_2)
+
+            expected_snapshot_3 = k8s_client.V1TypedLocalObjectReference(
+                api_group="snapshot.storage.k8s.io",
+                kind="VolumeSnapshot",
+                name=PipelineParam(name="param1")
+            )
+            self.assertEqual(snap3.snapshot, expected_snapshot_3)
+            assert(snap3.k8s_resource['apiVersion'] == "snapshot.storage.k8s.io/v1beta1")
+
 
         kfp.compiler.Compiler()._compile(my_pipeline)

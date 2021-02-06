@@ -21,16 +21,12 @@ go_library(
 
 go_test(
     name = "go_default_test",
-    srcs = [
-        "resource_reference_test.go",
-    ],
+    srcs = ["resource_reference_test.go"],
     embed = [":go_default_library"],
     importpath = "github.com/kubeflow/pipelines/backend/src/apiserver/model",
     visibility = ["//visibility:public"],
     deps = [
-        "//backend/api:go_default_library",
         "//backend/src/apiserver/common:go_default_library",
-        "@com_github_masterminds_squirrel//:go_default_library",
         "@com_github_stretchr_testify//assert:go_default_library",
     ],
 )

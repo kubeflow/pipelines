@@ -13,26 +13,30 @@
 # limitations under the License.
 import datetime
 import json
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from deprecated import deprecated
 import inspect
+import re
 import tarfile
 import uuid
+import warnings
 import zipfile
 from typing import Callable, Set, List, Text, Dict, Tuple, Any, Union, Optional
 
 import kfp
 from kfp.dsl import _for_loop
+from kfp.compiler import _data_passing_rewriter
 
 from .. import dsl
 from ._k8s_helper import convert_k8s_obj_to_json, sanitize_k8s_name
-from ._op_to_template import _op_to_template
+from ._op_to_template import _op_to_template, _process_obj
 from ._default_transformers import add_pod_env
 
 from ..components.structures import InputSpec
 from ..components._yaml_utils import dump_yaml
 from ..dsl._metadata import _extract_pipeline_metadata
 from ..dsl._ops_group import OpsGroup
+from ..dsl._pipeline_param import extract_pipelineparams_from_any, PipelineParam
 
 
 class Compiler(object):
@@ -323,6 +327,21 @@ class Compiler(object):
 
     _get_inputs_outputs_recursive_opsgroup(root_group)
 
+    # Generate the input for SubGraph along with parallelfor
+    for sub_graph in opsgroup_groups:
+      if sub_graph in op_name_to_for_loop_op:
+        # The opsgroup list is sorted with the farthest group as the first and the opsgroup
+        # itself as the last. To get the latest opsgroup which is not the opsgroup itself -2 is used. 
+        parent = opsgroup_groups[sub_graph][-2] 
+        if parent and parent.startswith('subgraph'):
+          # propagate only op's pipeline param from subgraph to parallelfor
+          loop_op = op_name_to_for_loop_op[sub_graph]
+          pipeline_param = loop_op.loop_args.items_or_pipeline_param
+          if loop_op.items_is_pipeline_param and pipeline_param.op_name:
+            param_name = '%s-%s' % (
+              sanitize_k8s_name(pipeline_param.op_name), pipeline_param.name)
+            inputs[parent].add((param_name, pipeline_param.op_name))
+
     return inputs, outputs
 
   def _get_dependencies(self, pipeline, root_group, op_groups, opsgroups_groups, opsgroups, condition_params):
@@ -405,6 +424,15 @@ class Compiler(object):
     else:
       return str(value_or_reference)
 
+  @staticmethod
+  def _resolve_task_pipeline_param(pipeline_param: PipelineParam, group_type) -> str:
+    if pipeline_param.op_name is None:
+      return '{{workflow.parameters.%s}}' % pipeline_param.name
+    param_name = '%s-%s' % (sanitize_k8s_name(pipeline_param.op_name), pipeline_param.name)
+    if group_type == 'subgraph':
+      return '{{inputs.parameters.%s}}' % (param_name)
+    return '{{tasks.%s.outputs.parameters.%s}}' % (sanitize_k8s_name(pipeline_param.op_name), param_name)
+
   def _group_to_dag_template(self, group, inputs, outputs, dependencies):
     """Generate template given an OpsGroup.
 
@@ -437,7 +465,8 @@ class Compiler(object):
 
     # Generate tasks section.
     tasks = []
-    for sub_group in group.groups + group.ops:
+    sub_groups = group.groups + group.ops
+    for sub_group in sub_groups:
       is_recursive_subgroup = (isinstance(sub_group, OpsGroup) and sub_group.recursive_ref)
       # Special handling for recursive subgroup: use the existing opsgroup name
       if is_recursive_subgroup:
@@ -478,20 +507,13 @@ class Compiler(object):
           # as global pipeline parameters
 
           pipeline_param = sub_group.loop_args.items_or_pipeline_param
-          if pipeline_param.op_name is None:
-            withparam_value = '{{workflow.parameters.%s}}' % pipeline_param.name
-          else:
-            param_name = '%s-%s' % (
-              sanitize_k8s_name(pipeline_param.op_name), pipeline_param.name)
-            withparam_value = '{{tasks.%s.outputs.parameters.%s}}' % (
-                sanitize_k8s_name(pipeline_param.op_name),
-                param_name)
-
+          withparam_value = self._resolve_task_pipeline_param(pipeline_param, group.type)
+          if pipeline_param.op_name:
             # these loop args are the output of another task
             if 'dependencies' not in task or task['dependencies'] is None:
               task['dependencies'] = []
             if sanitize_k8s_name(
-                pipeline_param.op_name) not in task['dependencies']:
+                pipeline_param.op_name) not in task['dependencies'] and group.type != 'subgraph':
               task['dependencies'].append(
                   sanitize_k8s_name(pipeline_param.op_name))
 
@@ -499,6 +521,20 @@ class Compiler(object):
         else:
           # Need to sanitize the dict keys for consistency.
           loop_tasks = sub_group.loop_args.to_list_for_task_yaml()
+          nested_pipeline_params = extract_pipelineparams_from_any(loop_tasks)
+
+          # Set dependencies in case of nested pipeline_params
+          map_to_tmpl_var = {str(p): self._resolve_task_pipeline_param(p, group.type) for p in nested_pipeline_params}
+          for pipeline_param in nested_pipeline_params:
+            if pipeline_param.op_name:
+              # these pipeline_param are the output of another task
+              if 'dependencies' not in task or task['dependencies'] is None:
+                task['dependencies'] = []
+              if sanitize_k8s_name(
+                  pipeline_param.op_name) not in task['dependencies']:
+                task['dependencies'].append(
+                    sanitize_k8s_name(pipeline_param.op_name))
+
           sanitized_tasks = []
           if isinstance(loop_tasks[0], dict):
             for argument_set in loop_tasks:
@@ -508,7 +544,12 @@ class Compiler(object):
               sanitized_tasks.append(c_dict)
           else:
             sanitized_tasks = loop_tasks
-          task['withItems'] = sanitized_tasks
+          # Replace pipeline param if map_to_tmpl_var not empty
+          task['withItems'] = _process_obj(sanitized_tasks, map_to_tmpl_var) if map_to_tmpl_var else sanitized_tasks
+
+        # We will sort dependencies to have determinitc yaml and thus stable tests
+        if task.get('dependencies'):
+            task['dependencies'].sort()
 
       tasks.append(task)
     tasks.sort(key=lambda x: x['name'])
@@ -621,18 +662,15 @@ class Compiler(object):
 
     return templates
 
-  def _create_pipeline_workflow(self, args, pipeline, op_transformers=None, pipeline_conf=None):
+  def _create_pipeline_workflow(self, parameter_defaults, pipeline, op_transformers=None, pipeline_conf=None):
     """Create workflow for the pipeline."""
 
     # Input Parameters
     input_params = []
-    for arg in args:
-      param = {'name': arg.name}
-      if arg.value is not None:
-        if isinstance(arg.value, (list, tuple)):
-          param['value'] = json.dumps(arg.value, sort_keys=True)
-        else:
-          param['value'] = str(arg.value)
+    for name, value in parameter_defaults.items():
+      param = {'name': name}
+      if value is not None:
+        param['value'] = value
       input_params.append(param)
 
     # Making the pipeline group name unique to prevent name clashes with templates
@@ -683,6 +721,10 @@ class Compiler(object):
     if pipeline_conf.ttl_seconds_after_finished >= 0:
       workflow['spec']['ttlSecondsAfterFinished'] = pipeline_conf.ttl_seconds_after_finished
 
+    if pipeline_conf._pod_disruption_budget_min_available:
+      pod_disruption_budget = {"minAvailable": pipeline_conf._pod_disruption_budget_min_available}
+      workflow['spec']['podDisruptionBudget'] = pod_disruption_budget
+
     if len(pipeline_conf.image_pull_secrets) > 0:
       image_pull_secrets = []
       for image_pull_secret in pipeline_conf.image_pull_secrets:
@@ -699,6 +741,9 @@ class Compiler(object):
     # nodeselection, specified in the template.
     if pipeline_conf.default_pod_node_selector:
       workflow['spec']['nodeSelector'] = pipeline_conf.default_pod_node_selector
+
+    if pipeline_conf.dns_config:
+      workflow['spec']['dnsConfig'] = convert_k8s_obj_to_json(pipeline_conf.dns_config)
 
     if pipeline_conf.image_pull_policy != None:
       if pipeline_conf.image_pull_policy in ["Always", "Never", "IfNotPresent"]:
@@ -788,7 +833,7 @@ class Compiler(object):
 
     # Need to first clear the default value of dsl.PipelineParams. Otherwise, it
     # will be resolved immediately in place when being to each component.
-    default_param_values = {}
+    default_param_values = OrderedDict()
     for param in params_list:
       default_param_values[param.name] = param.value
       param.value = None
@@ -798,17 +843,22 @@ class Compiler(object):
       raise ValueError('Either specify pipeline params in the pipeline function, or in "params_list", but not both.')
 
     args_list = []
+    kwargs_dict = dict()
     signature = inspect.signature(pipeline_func)
-    for arg_name in signature.parameters:
+    for arg_name, arg in signature.parameters.items():
       arg_type = None
       for input in pipeline_meta.inputs or []:
         if arg_name == input.name:
           arg_type = input.type
           break
-      args_list.append(dsl.PipelineParam(sanitize_k8s_name(arg_name, True), param_type=arg_type))
+      param = dsl.PipelineParam(sanitize_k8s_name(arg_name, True), param_type=arg_type)
+      if arg.kind == inspect.Parameter.KEYWORD_ONLY:
+        kwargs_dict[arg_name] = param
+      else:
+        args_list.append(param)
 
     with dsl.Pipeline(pipeline_name) as dsl_pipeline:
-      pipeline_func(*args_list)
+      pipeline_func(*args_list, **kwargs_dict)
 
     pipeline_conf = pipeline_conf or dsl_pipeline.conf # Configuration passed to the compiler is overriding. Unfortunately, it's not trivial to detect whether the dsl_pipeline.conf was ever modified.
 
@@ -816,23 +866,23 @@ class Compiler(object):
     self._sanitize_and_inject_artifact(dsl_pipeline, pipeline_conf)
 
     # Fill in the default values.
-    args_list_with_defaults = []
+    args_list_with_defaults = OrderedDict()
     if pipeline_meta.inputs:
-      args_list_with_defaults = [
-        dsl.PipelineParam(sanitize_k8s_name(input_spec.name, True), value=input_spec.default)
+      args_list_with_defaults = OrderedDict([
+        (sanitize_k8s_name(input_spec.name, True), input_spec.default)
         for input_spec in pipeline_meta.inputs
-      ]
+      ])
     elif params_list:
       # Or, if args are provided by params_list, fill in pipeline_meta.
-      for param in params_list:
-        param.value = default_param_values[param.name]
-
-      args_list_with_defaults = params_list
+      args_list_with_defaults = default_param_values
       pipeline_meta.inputs = [
         InputSpec(
             name=param.name,
             type=param.param_type,
-            default=param.value) for param in params_list]
+            default=default_param_values[param.name]
+        )
+        for param in params_list
+      ]
 
     op_transformers = [add_pod_env]
     op_transformers.extend(pipeline_conf.op_transformers)
@@ -846,6 +896,10 @@ class Compiler(object):
 
     from ._data_passing_rewriter import fix_big_data_passing
     workflow = fix_big_data_passing(workflow)
+
+    output_directory = getattr(pipeline_func, 'output_directory', None)
+    workflow = _data_passing_rewriter.add_pod_name_passing(workflow,
+                                                           output_directory)
 
     if pipeline_conf and pipeline_conf.data_passing_method != None:
       workflow = pipeline_conf.data_passing_method(workflow)
@@ -904,9 +958,12 @@ class Compiler(object):
 
     Args:
       pipeline_func: Pipeline functions with @dsl.pipeline decorator.
-      package_path: The output workflow tar.gz file path. for example, "~/a.tar.gz"
+      package_path: The output workflow tar.gz file path. for example,
+        "~/a.tar.gz"
       type_check: Whether to enable the type check or not, default: False.
-      pipeline_conf: PipelineConf instance. Can specify op transforms, image pull secrets and other pipeline-level configuration options. Overrides any configuration that may be set by the pipeline.
+      pipeline_conf: PipelineConf instance. Can specify op transforms, image
+        pull secrets and other pipeline-level configuration options. Overrides
+        any configuration that may be set by the pipeline.
     """
     import kfp
     type_check_old_value = kfp.TYPE_CHECK
@@ -1011,10 +1068,24 @@ def _run_argo_lint(yaml_text: str):
   if argo_path:
     result = subprocess.run([argo_path, 'lint', '/dev/stdin'], input=yaml_text.encode('utf-8'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if result.returncode:
+      if re.match(
+          pattern=r'.+failed to resolve {{tasks\..+\.outputs\.artifacts\..+}}.+',
+          string=result.stderr.decode('utf-8')
+      ):
+        raise RuntimeError(
+            'Compiler has produced Argo-incompatible workflow due to '
+            'unresolvable input artifact(s). Please check whether inputPath has'
+            ' been connected to outputUri placeholder, which is not supported '
+            'yet. Otherwise, please create a new issue at '
+            'https://github.com/kubeflow/pipelines/issues attaching the '
+            'pipeline code and the pipeline package. Error: {}'.format(
+                result.stderr.decode('utf-8'))
+        )
       raise RuntimeError(
         '''Internal compiler error: Compiler has produced Argo-incompatible workflow.
 Please create a new issue at https://github.com/kubeflow/pipelines/issues attaching the pipeline code and the pipeline package.
 Error: {}'''.format(result.stderr.decode('utf-8'))
       )
+
     return True
   return False

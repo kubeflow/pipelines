@@ -1,13 +1,19 @@
 # Using the command line to deploy the application
 
+## Only For Development
+
+This CLI installation guide is **ONLY** for AI Platform Pipelines development. It's not suitable for users of Kubeflow Pipelines.
+
+For users, please refer to [Kubeflow Pipelines Standalone](https://www.kubeflow.org/docs/pipelines/installation/standalone-deployment/) on how to install via commandline using kustomize manifests. The installation is almost the same as AI Platform Pipelines.
+
+Refer to the [Installation Options for Kubeflow Pipelines](https://www.kubeflow.org/docs/pipelines/installation/overview/) doc for all installation options and their feature comparison.
+
+## Prerequisites
+
 You can use [Google Cloud Shell](https://cloud.google.com/shell/) or a local
 workstation to complete these steps.
 
-
 [![Open in Cloud Shell](http://gstatic.com/cloudssh/images/open-btn.svg)](https://console.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/kubeflow/pipelines&cloudshell_open_in_editor=README.md&cloudshell_working_dir=manifests/gcp_marketplace)
-
-
-## Prerequisites
 
 ### Set up command-line tools
 

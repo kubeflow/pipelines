@@ -1,0 +1,148 @@
+name: SageMaker - RLEstimator Training Job
+description: Handle end-to-end training and deployment of custom RLEstimator code.
+inputs:
+- name: spot_instance
+  type: Bool
+  description: Use managed spot training.
+  default: "False"
+- {name: max_wait_time, type: Integer, description: The maximum time in seconds you
+    are willing to wait for a managed spot training job to complete., default: '86400'}
+- {name: max_run_time, type: Integer, description: The maximum run time in seconds
+    for the training job., default: '86400'}
+- {name: checkpoint_config, type: JsonObject, description: Dictionary of information
+    about the output location for managed spot training checkpoint data., default: '{}'}
+- {name: region, type: String, description: The region for the SageMaker resource.}
+- {name: endpoint_url, type: String, description: The URL to use when communicating
+    with the SageMaker service., default: ''}
+- {name: assume_role, type: String, description: The ARN of an IAM role to assume
+    when connecting to SageMaker., default: ''}
+- {name: tags, type: JsonObject, description: 'An array of key-value pairs, to categorize
+    AWS resources.', default: '{}'}
+- {name: job_name, type: String, description: Training job name., default: ''}
+- {name: role, type: String, description: The Amazon Resource Name (ARN) that Amazon
+    SageMaker assumes to perform tasks on your behalf.}
+- {name: image, type: String, description: 'An ECR url. If specified, the estimator
+    will use this image for training and hosting', default: ''}
+- {name: entry_point, type: String, description: Path (absolute or relative) to the
+    Python source file which should be executed as the entry point to training., default: ''}
+- {name: source_dir, type: String, description: Path (S3 URI) to a directory with
+    any other training source code dependencies aside from the entry point file.,
+  default: ''}
+- {name: toolkit, type: String, description: RL toolkit you want to use for executing
+    your model training code., default: ''}
+- {name: toolkit_version, type: String, description: RL toolkit version you want to
+    be use for executing your model training code., default: ''}
+- {name: framework, type: String, description: 'Framework (MXNet, TensorFlow or PyTorch)
+    you want to be used as a toolkit backed for reinforcement learning training.',
+  default: ''}
+- {name: metric_definitions, type: JsonArray, description: The dictionary of name-regex
+    pairs specify the metrics that the algorithm emits., default: '[]'}
+- {name: training_input_mode, type: String, description: The input mode that the algorithm
+    supports. File or Pipe., default: File}
+- {name: hyperparameters, type: JsonObject, description: Hyperparameters that will
+    be used for training., default: '{}'}
+- {name: instance_type, type: String, description: The ML compute instance type.,
+  default: ml.m4.xlarge}
+- {name: instance_count, type: Integer, description: The number of ML compute instances
+    to use in the training job., default: '1'}
+- {name: volume_size, type: Integer, description: The size of the ML storage volume
+    that you want to provision., default: '30'}
+- {name: max_run, type: Integer, description: 'Timeout in seconds for training (default:
+    24 * 60 * 60).', default: '86400'}
+- {name: model_artifact_path, type: String, description: Identifies the S3 path where
+    you want Amazon SageMaker to store the model artifacts.}
+- {name: vpc_security_group_ids, type: JsonArray, description: 'The VPC security group
+    IDs, in the form sg-xxxxxxxx.', default: '[]'}
+- {name: vpc_subnets, type: JsonArray, description: The ID of the subnets in the VPC
+    to which you want to connect your hpo job., default: '[]'}
+- name: network_isolation
+  type: Bool
+  description: Isolates the training container.
+  default: "False"
+- name: traffic_encryption
+  type: Bool
+  description: Encrypts all communications between ML compute instances in distributed
+    training.
+  default: "False"
+- {name: debug_hook_config, type: JsonObject, description: 'Configuration information
+    for the debug hook parameters, collection configuration, and storage paths.',
+  default: '{}'}
+- {name: debug_rule_config, type: JsonArray, description: Configuration information
+    for debugging rules., default: '[]'}
+outputs:
+- {name: model_artifact_url, description: The model artifacts URL.}
+- {name: job_name, description: The training job name.}
+- {name: training_image, description: The registry path of the Docker image that contains
+    the training algorithm.}
+implementation:
+  container:
+    image: amazon/aws-sagemaker-kfp-components:1.1.0
+    command: [python3]
+    args:
+    - rlestimator/src/sagemaker_rlestimator_component.py
+    - --spot_instance
+    - {inputValue: spot_instance}
+    - --max_wait_time
+    - {inputValue: max_wait_time}
+    - --max_run_time
+    - {inputValue: max_run_time}
+    - --checkpoint_config
+    - {inputValue: checkpoint_config}
+    - --region
+    - {inputValue: region}
+    - --endpoint_url
+    - {inputValue: endpoint_url}
+    - --assume_role
+    - {inputValue: assume_role}
+    - --tags
+    - {inputValue: tags}
+    - --job_name
+    - {inputValue: job_name}
+    - --role
+    - {inputValue: role}
+    - --image
+    - {inputValue: image}
+    - --entry_point
+    - {inputValue: entry_point}
+    - --source_dir
+    - {inputValue: source_dir}
+    - --toolkit
+    - {inputValue: toolkit}
+    - --toolkit_version
+    - {inputValue: toolkit_version}
+    - --framework
+    - {inputValue: framework}
+    - --metric_definitions
+    - {inputValue: metric_definitions}
+    - --training_input_mode
+    - {inputValue: training_input_mode}
+    - --hyperparameters
+    - {inputValue: hyperparameters}
+    - --instance_type
+    - {inputValue: instance_type}
+    - --instance_count
+    - {inputValue: instance_count}
+    - --volume_size
+    - {inputValue: volume_size}
+    - --max_run
+    - {inputValue: max_run}
+    - --model_artifact_path
+    - {inputValue: model_artifact_path}
+    - --vpc_security_group_ids
+    - {inputValue: vpc_security_group_ids}
+    - --vpc_subnets
+    - {inputValue: vpc_subnets}
+    - --network_isolation
+    - {inputValue: network_isolation}
+    - --traffic_encryption
+    - {inputValue: traffic_encryption}
+    - --debug_hook_config
+    - {inputValue: debug_hook_config}
+    - --debug_rule_config
+    - {inputValue: debug_rule_config}
+    - --model_artifact_url_output_path
+    - {outputPath: model_artifact_url}
+    - --job_name_output_path
+    - {outputPath: job_name}
+    - --training_image_output_path
+    - {outputPath: training_image}

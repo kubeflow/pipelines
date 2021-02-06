@@ -20,9 +20,9 @@ __all__ = [
 ]
 
 import copy
-import sys
 from collections import OrderedDict
-from typing import Any, List, Mapping, NamedTuple, Sequence, Union
+import pathlib
+from typing import Any, Callable, List, Mapping, NamedTuple, Optional, Sequence, Union
 from ._naming import _sanitize_file_name, _sanitize_python_function_name, generate_unique_name_conversion_table
 from ._yaml_utils import load_yaml
 from .structures import *
@@ -62,8 +62,8 @@ def load_component(filename=None, url=None, text=None):
         raise ValueError('Need to specify a source')
 
 
-def load_component_from_url(url: str, auth=None):
-    """Loads component from URL and creates a task factory function
+def load_component_from_url(url: str, auth = None):
+    """Loads component from URL and creates a task factory function.
     
     Args:
         url: The URL of the component file data
@@ -84,7 +84,7 @@ def load_component_from_url(url: str, auth=None):
 
 
 def load_component_from_file(filename):
-    """Loads component from file and creates a task factory function
+    """Loads component from file and creates a task factory function.
     
     Args:
         filename: Path of local file containing the component definition.
@@ -179,11 +179,99 @@ _single_io_file_name = 'data'
 
 
 def _generate_input_file_name(port_name):
-    return _inputs_dir + '/' + _sanitize_file_name(port_name) + '/' + _single_io_file_name
+    return str(pathlib.PurePosixPath(
+        _inputs_dir,
+        _sanitize_file_name(port_name),
+        _single_io_file_name
+    ))
 
 
 def _generate_output_file_name(port_name):
-    return _outputs_dir + '/' + _sanitize_file_name(port_name) + '/' + _single_io_file_name
+    return str(pathlib.PurePosixPath(
+        _outputs_dir,
+        _sanitize_file_name(port_name),
+        _single_io_file_name
+    ))
+
+
+# Placeholder to represent the output directory hosting all the generated URIs.
+# Its actual value will be specified during pipeline compilation.
+OUTPUT_DIR_PLACEHOLDER = '{{kfp.output_dir}}'
+# Placeholder to represent to UID of the current pipeline at runtime.
+# Will be replaced by engine-specific placeholder during compilation.
+RUN_ID_PLACEHOLDER = '{{kfp.run_uid}}'
+# Format of the Argo parameter used to pass the producer's Pod ID to
+# the consumer.
+PRODUCER_POD_NAME_PARAMETER = '{}-producer-pod-id-'
+# Format of the input output port name placeholder.
+INPUT_OUTPUT_NAME_PATTERN = '{{{{kfp.input-output-name.{}}}}}'
+# Fixed name for per-task output metadata json file.
+OUTPUT_METADATA_JSON = 'executor_output.json'
+
+
+def _generate_output_uri(port_name: str) -> str:
+    """Generates a unique URI for an output.
+
+    Args:
+        port_name: The name of the output associated with this URI.
+
+    Returns:
+        The URI assigned to this output, which is unique within the pipeline.
+    """
+    return str(pathlib.PurePosixPath(
+        OUTPUT_DIR_PLACEHOLDER,
+        RUN_ID_PLACEHOLDER, '{{pod.name}}', port_name))
+
+
+def _generate_input_uri(port_name: str) -> str:
+    """Generates the URI for an input.
+
+    Args:
+        port_name: The name of the input associated with this URI.
+
+    Returns:
+        The URI assigned to this input, will be consistent with the URI where
+        the actual content is written after compilation.
+    """
+    return str(pathlib.PurePosixPath(
+        OUTPUT_DIR_PLACEHOLDER,
+        RUN_ID_PLACEHOLDER,
+        '{{{{inputs.parameters.{input}}}}}'.format(
+            input=PRODUCER_POD_NAME_PARAMETER.format(port_name)),
+        port_name
+    ))
+
+
+def _generate_output_metadata_path() -> str:
+    """Generates the URI to write the output metadata JSON file."""
+
+    return str(pathlib.PurePosixPath(
+        OUTPUT_DIR_PLACEHOLDER,
+        RUN_ID_PLACEHOLDER,
+        OUTPUT_METADATA_JSON
+    ))
+
+
+def _generate_input_metadata_path(port_name: str) -> str:
+    """Generates the placeholder for input artifact metadata file."""
+
+    # Return a placeholder for path to input artifact metadata, which will be
+    # rewritten during pipeline compilation.
+    return str(pathlib.PurePosixPath(
+        OUTPUT_DIR_PLACEHOLDER,
+        RUN_ID_PLACEHOLDER,
+        '{{{{inputs.parameters.{input}}}}}'.format(
+            input=PRODUCER_POD_NAME_PARAMETER.format(port_name)),
+        OUTPUT_METADATA_JSON
+    ))
+
+
+def _generate_input_output_name(port_name: str) -> str:
+    """Generates the placeholder for input artifact's output name."""
+
+    # Return a placeholder for the output port name of the input artifact, which
+    # will be rewritten during pipeline compilation.
+    return INPUT_OUTPUT_NAME_PATTERN.format(port_name)
 
 
 def _react_to_incompatible_reference_type(
@@ -200,6 +288,7 @@ def _create_task_spec_from_component_and_arguments(
     component_spec: ComponentSpec,
     arguments: Mapping[str, Any],
     component_ref: ComponentReference = None,
+    **kwargs
 ) -> TaskSpec:
     """Constructs a TaskSpec object from component reference and arguments.
     The function also checks the arguments types and serializes them."""
@@ -253,6 +342,42 @@ _container_task_constructor = _default_container_task_constructor
 _always_expand_graph_components = False
 
 
+def _create_task_object_from_component_and_arguments(
+    component_spec: ComponentSpec,
+    arguments: Mapping[str, Any],
+    component_ref: ComponentReference = None,
+    **kwargs
+):
+    """Creates a task object from component and argument.
+
+    Unlike _container_task_constructor, handles the graph components as well.
+    """
+    if (
+        isinstance(component_spec.implementation, GraphImplementation)
+        and (
+            # When the container task constructor is not overriden, we just construct TaskSpec for both container and graph tasks.
+            # If the container task constructor is overriden, we should expand the graph components so that the override is called for all sub-tasks.
+            _container_task_constructor != _default_container_task_constructor
+            or _always_expand_graph_components
+        )
+    ):
+        return _resolve_graph_task(
+            component_spec=component_spec,
+            arguments=arguments,
+            component_ref=component_ref,
+            **kwargs,
+        )
+
+    task = _container_task_constructor(
+        component_spec=component_spec,
+        arguments=arguments,
+        component_ref=component_ref,
+        **kwargs,
+    )
+
+    return task
+
+
 class _DefaultValue:
     def __init__(self, value):
         self.value = value
@@ -290,35 +415,17 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
         component_ref.digest = digest
 
 
-    def create_task_from_component_and_arguments(pythonic_arguments):
+    def create_task_object_from_component_and_pythonic_arguments(pythonic_arguments):
         arguments = {
             pythonic_name_to_input_name[argument_name]: argument_value
             for argument_name, argument_value in pythonic_arguments.items()
             if not isinstance(argument_value, _DefaultValue) # Skipping passing arguments for optional values that have not been overridden.
         }
-
-        if (
-            isinstance(component_spec.implementation, GraphImplementation)
-            and (
-                # When the container task constructor is not overriden, we just construct TaskSpec for both container and graph tasks.
-                # If the container task constructor is overriden, we should expand the graph components so that the override is called for all sub-tasks.
-                _container_task_constructor != _default_container_task_constructor
-                or _always_expand_graph_components
-            )
-        ):
-            return _resolve_graph_task(
-                component_spec=component_spec,
-                arguments=arguments,
-                component_ref=component_ref,
-            )
-
-        task = _container_task_constructor(
+        return _create_task_object_from_component_and_arguments(
             component_spec=component_spec,
             arguments=arguments,
             component_ref=component_ref,
         )
-
-        return task
 
     import inspect
     from . import _dynamic
@@ -344,7 +451,7 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
     factory_function_parameters = input_parameters #Outputs are no longer part of the task factory function signature. The paths are always generated by the system.
     
     task_factory = _dynamic.create_function_from_parameters(
-        create_task_from_component_and_arguments,        
+        create_task_object_from_component_and_pythonic_arguments,        
         factory_function_parameters,
         documentation='\n'.join(func_docstring_lines),
         func_name=name,
@@ -362,6 +469,8 @@ _ResolvedCommandLineAndPaths = NamedTuple(
         ('input_paths', Mapping[str, str]),
         ('output_paths', Mapping[str, str]),
         ('inputs_consumed_by_value', Mapping[str, str]),
+        ('input_uris', Mapping[str, str]),
+        ('output_uris', Mapping[str, str]),
     ],
 )
 
@@ -369,9 +478,18 @@ _ResolvedCommandLineAndPaths = NamedTuple(
 def _resolve_command_line_and_paths(
     component_spec: ComponentSpec,
     arguments: Mapping[str, str],
-    input_path_generator=_generate_input_file_name,
-    output_path_generator=_generate_output_file_name,
-    argument_serializer=serialize_value,
+    input_path_generator: Callable[[str], str] = _generate_input_file_name,
+    output_path_generator: Callable[[str], str] = _generate_output_file_name,
+    argument_serializer: Callable[[str], str] = serialize_value,
+    input_uri_generator: Callable[[str], str] = _generate_input_uri,
+    output_uri_generator: Callable[[str], str] = _generate_output_uri,
+    input_value_generator: Optional[Callable[[str], str]] = None,
+    input_metadata_path_generator: Callable[
+        [str], str] = _generate_input_metadata_path,
+    output_metadata_path_generator: Callable[
+        [], str] = _generate_output_metadata_path,
+    input_output_name_generator: Callable[
+        [str], str] = _generate_input_output_name,
 ) -> _ResolvedCommandLineAndPaths:
     """Resolves the command line argument placeholders. Also produces the maps of the generated inpuit/output paths."""
     argument_values = arguments
@@ -390,6 +508,9 @@ def _resolve_command_line_and_paths(
 
     input_paths = OrderedDict()
     inputs_consumed_by_value = {}
+    input_uris = OrderedDict()
+    input_metadata_paths = OrderedDict()
+    output_uris = OrderedDict()
 
     def expand_command_part(arg) -> Union[str, List[str], None]:
         if arg is None:
@@ -402,9 +523,11 @@ def _resolve_command_line_and_paths(
             input_spec = inputs_dict[input_name]
             input_value = argument_values.get(input_name, None)
             if input_value is not None:
-                serialized_argument = argument_serializer(input_value, input_spec.type)
-                inputs_consumed_by_value[input_name] = serialized_argument
-                return serialized_argument
+                if input_value_generator is not None:
+                    inputs_consumed_by_value[input_name] = input_value_generator(input_name)
+                else:
+                    inputs_consumed_by_value[input_name] = argument_serializer(input_value, input_spec.type)
+                return inputs_consumed_by_value[input_name]
             else:
                 if input_spec.optional:
                     return None
@@ -437,6 +560,62 @@ def _resolve_command_line_and_paths(
                 output_paths[output_name] = output_filename
 
             return output_filename
+
+        elif isinstance(arg, InputUriPlaceholder):
+            input_name = arg.input_name
+            if input_name in argument_values:
+                input_uri = input_uri_generator(input_name)
+                input_uris[input_name] = input_uri
+                return input_uri
+            else:
+                input_spec = inputs_dict[input_name]
+                if input_spec.optional:
+                    return None
+                else:
+                    raise ValueError('No value provided for input {}'.format(input_name))
+
+        elif isinstance(arg, InputMetadataPlaceholder):
+            input_name = arg.input_name
+            if input_name in argument_values:
+                input_metadata_path = input_metadata_path_generator(input_name)
+                input_metadata_paths[input_name] = input_metadata_path
+                return input_metadata_path
+            else:
+                input_spec = inputs_dict[input_name]
+                if input_spec.optional:
+                    return None
+                else:
+                    raise ValueError(
+                        'No value provided for input {}'.format(input_name))
+
+        elif isinstance(arg, InputOutputPortNamePlaceholder):
+            input_name = arg.input_name
+            if input_name in argument_values:
+                return input_output_name_generator(input_name)
+            else:
+                input_spec = inputs_dict[input_name]
+                if input_spec.optional:
+                    return None
+                else:
+                    raise ValueError(
+                        'No value provided for input {}'.format(input_name))
+
+        elif isinstance(arg, OutputUriPlaceholder):
+            output_name = arg.output_name
+            output_uri = output_uri_generator(output_name)
+            if arg.output_name in output_uris:
+                if output_uris[output_name] != output_uri:
+                    raise ValueError(
+                        'Conflicting output URIs specified for port {}: {} and {}'.format(
+                            output_name, output_uris[output_name], output_uri))
+            else:
+                output_uris[output_name] = output_uri
+
+            return output_uri
+
+        elif isinstance(arg, OutputMetadataPlaceholder):
+            # TODO: Consider making the output metadata per-artifact.
+            return output_metadata_path_generator()
 
         elif isinstance(arg, ConcatPlaceholder):
             expanded_argument_strings = expand_argument_list(arg.items)
@@ -483,6 +662,8 @@ def _resolve_command_line_and_paths(
         input_paths=input_paths,
         output_paths=output_paths,
         inputs_consumed_by_value=inputs_consumed_by_value,
+        input_uris=input_uris,
+        output_uris=output_uris,
     )
 
 
@@ -525,19 +706,17 @@ def _resolve_graph_task(
             raise TypeError('Argument for input has unexpected type "{}".'.format(type(argument)))
 
     for task_id, task_spec in graph._toposorted_tasks.items(): # Cannot use graph.tasks here since they might be listed not in dependency order. Especially on python <3.6 where the dicts do not preserve ordering
-        task_factory = component_store._load_component_from_ref(task_spec.component_ref)
+        resolved_task_component_ref = component_store._load_component_spec_in_component_ref(task_spec.component_ref)
         # TODO: Handle the case when optional graph component input is passed to optional task component input
         task_arguments = {input_name: resolve_argument(argument) for input_name, argument in task_spec.arguments.items()}
-        task_component_spec = task_factory.component_spec
+        task_component_spec = resolved_task_component_ref.spec
 
-        input_name_to_pythonic = generate_unique_name_conversion_table([input.name for input in task_component_spec.inputs or []], _sanitize_python_function_name)
-        output_name_to_pythonic = generate_unique_name_conversion_table([output.name for output in task_component_spec.outputs or []], _sanitize_python_function_name)
-        pythonic_output_name_to_original = {pythonic_name: original_name for original_name, pythonic_name in output_name_to_pythonic.items()}
-        pythonic_task_arguments = {input_name_to_pythonic[input_name]: argument for input_name, argument in task_arguments.items()}
-
-        task_obj = task_factory(**pythonic_task_arguments)
-        task_outputs_with_pythonic_names = task_obj.outputs
-        task_outputs_with_original_names = {pythonic_output_name_to_original[pythonic_output_name]: output_value for pythonic_output_name, output_value in task_outputs_with_pythonic_names.items()}
+        task_obj = _create_task_object_from_component_and_arguments(
+            component_spec=task_component_spec,
+            arguments=task_arguments,
+            component_ref=task_spec.component_ref,
+        )
+        task_outputs_with_original_names = {output.name: task_obj.outputs[output.name] for output in task_component_spec.outputs or []}
         outputs_of_tasks[task_id] = task_outputs_with_original_names
 
     resolved_graph_outputs = OrderedDict([(output_name, resolve_argument(argument)) for output_name, argument in graph.output_values.items()])

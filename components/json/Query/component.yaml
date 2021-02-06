@@ -1,0 +1,27 @@
+name: Query JSON using JQ
+inputs:
+- {name: Json}
+- {name: Query, type: String}
+- {name: Options, type: String, default: '--raw-output'}
+outputs:
+- {name: Output}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+implementation:
+  container:
+    image: stedolan/jq:latest
+    command:
+    - sh
+    - -exc
+    - |
+      input_path=$0
+      output_path=$1
+      query=$2
+      options=$3
+      mkdir -p "$(dirname "$output_path")"
+      < "$input_path" jq $options "$query" > "$output_path"
+    - {inputPath: Json}
+    - {outputPath: Output}
+    - {inputValue: Query}
+    - {inputValue: Options}

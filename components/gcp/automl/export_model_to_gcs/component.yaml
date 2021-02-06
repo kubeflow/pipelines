@@ -1,0 +1,103 @@
+name: Automl export model to gcs
+description: |-
+  Exports a trained model to a user specified Google Cloud Storage location.
+
+      Args:
+          model_path: The resource name of the model to export. Format: 'projects/<project>/locations/<location>/models/<model>'
+          gcs_output_uri_prefix: The Google Cloud Storage directory where the model should be written to. Must be in the same location as AutoML. Required location: us-central1.
+          model_format: The format in which the model must be exported. The available, and default, formats depend on the problem and model type. Possible formats: tf_saved_model, tf_js, tflite, core_ml, edgetpu_tflite. See https://cloud.google.com/automl/docs/reference/rest/v1/projects.locations.models/export?hl=en#modelexportoutputconfig
+
+      Annotations:
+          author: Alexey Volkov <alexey.volkov@ark-kun.com>
+inputs:
+- {name: model_path, type: String}
+- {name: gcs_output_uri_prefix, type: String}
+- {name: model_format, type: String, default: tf_saved_model, optional: true}
+outputs:
+- {name: model_directory, type: Uri}
+implementation:
+  container:
+    image: python:3.8
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'google-cloud-automl==2.0.0' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip
+      install --quiet --no-warn-script-location 'google-cloud-automl==2.0.0' --user)
+      && "$0" "$@"
+    - python3
+    - -u
+    - -c
+    - |
+      def automl_export_model_to_gcs(
+          model_path,
+          gcs_output_uri_prefix,
+          model_format = 'tf_saved_model',
+      ):
+          """Exports a trained model to a user specified Google Cloud Storage location.
+
+          Args:
+              model_path: The resource name of the model to export. Format: 'projects/<project>/locations/<location>/models/<model>'
+              gcs_output_uri_prefix: The Google Cloud Storage directory where the model should be written to. Must be in the same location as AutoML. Required location: us-central1.
+              model_format: The format in which the model must be exported. The available, and default, formats depend on the problem and model type. Possible formats: tf_saved_model, tf_js, tflite, core_ml, edgetpu_tflite. See https://cloud.google.com/automl/docs/reference/rest/v1/projects.locations.models/export?hl=en#modelexportoutputconfig
+
+          Annotations:
+              author: Alexey Volkov <alexey.volkov@ark-kun.com>
+          """
+          from google.cloud import automl
+
+          client = automl.AutoMlClient()
+          response = client.export_model(
+              name=model_path,
+              output_config=automl.ModelExportOutputConfig(
+                  model_format=model_format,
+                  gcs_destination=automl.GcsDestination(
+                      output_uri_prefix=gcs_output_uri_prefix,
+                  ),
+              ),
+          )
+
+          print('Operation started:')
+          print(response.operation)
+          result = response.result()
+          metadata = response.metadata
+          print('Operation finished:')
+          print(metadata)
+          return (metadata.export_model_details.output_info.gcs_output_directory, )
+
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Automl export model to gcs', description="Exports a trained model to a user specified Google Cloud Storage location.\n\n    Args:\n        model_path: The resource name of the model to export. Format: 'projects/<project>/locations/<location>/models/<model>'\n        gcs_output_uri_prefix: The Google Cloud Storage directory where the model should be written to. Must be in the same location as AutoML. Required location: us-central1.\n        model_format: The format in which the model must be exported. The available, and default, formats depend on the problem and model type. Possible formats: tf_saved_model, tf_js, tflite, core_ml, edgetpu_tflite. See https://cloud.google.com/automl/docs/reference/rest/v1/projects.locations.models/export?hl=en#modelexportoutputconfig\n\n    Annotations:\n        author: Alexey Volkov <alexey.volkov@ark-kun.com>")
+      _parser.add_argument("--model-path", dest="model_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--gcs-output-uri-prefix", dest="gcs_output_uri_prefix", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--model-format", dest="model_format", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+      _parsed_args = vars(_parser.parse_args())
+      _output_files = _parsed_args.pop("_output_paths", [])
+
+      _outputs = automl_export_model_to_gcs(**_parsed_args)
+
+      _output_serializers = [
+          str,
+
+      ]
+
+      import os
+      for idx, output_file in enumerate(_output_files):
+          try:
+              os.makedirs(os.path.dirname(output_file))
+          except OSError:
+              pass
+          with open(output_file, 'w') as f:
+              f.write(_output_serializers[idx](_outputs[idx]))
+    args:
+    - --model-path
+    - {inputValue: model_path}
+    - --gcs-output-uri-prefix
+    - {inputValue: gcs_output_uri_prefix}
+    - if:
+        cond: {isPresent: model_format}
+        then:
+        - --model-format
+        - {inputValue: model_format}
+    - '----output-paths'
+    - {outputPath: model_directory}

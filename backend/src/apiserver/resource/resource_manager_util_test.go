@@ -263,7 +263,8 @@ spec:
   arguments: {}
   entrypoint: rand-fail-dag
   templates:
-  - dag:
+  - arguments: {}
+    dag:
       tasks:
       - arguments: {}
         name: A
@@ -277,10 +278,10 @@ spec:
     metadata: {}
     name: rand-fail-dag
     outputs: {}
-  - container:
+  - arguments: {}
+    container:
       args:
-      - import random; import sys; exit_code = random.choice([0, 0, 1]); print('exiting
-        with code {}'.format(exit_code)); sys.exit(exit_code)
+      - import random; import sys; exit_code = random.choice([0, 0, 1]); print('exiting with code {}'.format(exit_code)); sys.exit(exit_code)
       command:
       - python
       - -c
@@ -342,7 +343,7 @@ func TestConvertPipelineIdToDefaultPipelineVersion(t *testing.T) {
 				Relationship: api.Relationship_OWNER,
 			},
 		},
-	}, []byte(testWorkflow.ToStringForStore()))
+	}, []byte(testWorkflow.ToStringForStore()), true)
 	assert.Nil(t, err)
 
 	// Create a run of the latest pipeline version, but by specifying the pipeline id.
@@ -374,7 +375,7 @@ func TestConvertPipelineIdToDefaultPipelineVersion(t *testing.T) {
 			},
 		},
 	}
-	err = ConvertPipelineIdToDefaultPipelineVersion(apiRun.PipelineSpec, &apiRun.ResourceReferences, manager)
+	err = convertPipelineIdToDefaultPipelineVersion(apiRun.PipelineSpec, &apiRun.ResourceReferences, manager)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedApiRun, apiRun)
 }
@@ -400,7 +401,7 @@ func TestConvertPipelineIdToDefaultPipelineVersion_NoOp(t *testing.T) {
 				Relationship: api.Relationship_OWNER,
 			},
 		},
-	}, []byte(testWorkflow.ToStringForStore()))
+	}, []byte(testWorkflow.ToStringForStore()), true)
 	assert.Nil(t, err)
 	// FakeUUID is the new default version's id.
 	assert.NotEqual(t, oldVersionId, FakeUUIDOne)
@@ -439,7 +440,7 @@ func TestConvertPipelineIdToDefaultPipelineVersion_NoOp(t *testing.T) {
 			},
 		},
 	}
-	err = ConvertPipelineIdToDefaultPipelineVersion(apiRun.PipelineSpec, &apiRun.ResourceReferences, manager)
+	err = convertPipelineIdToDefaultPipelineVersion(apiRun.PipelineSpec, &apiRun.ResourceReferences, manager)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedApiRun, apiRun)
 }

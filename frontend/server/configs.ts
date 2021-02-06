@@ -86,6 +86,8 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     ARGO_ARCHIVE_BUCKETNAME = 'mlpipeline',
     /** Prefix to logs. */
     ARGO_ARCHIVE_PREFIX = 'logs',
+    /** Should use server API for log streaming? */
+    STREAM_LOGS_FROM_SERVER_API = 'false',
     /** Disables GKE metadata endpoint. */
     DISABLE_GKE_METADATA = 'false',
     /** Enable authorization checks for multi user mode. */
@@ -137,6 +139,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
         useSSL: asBool(MINIO_SSL),
       },
       proxy: loadArtifactsProxyConfig(env),
+      streamLogsFromServerApi: asBool(STREAM_LOGS_FROM_SERVER_API),
     },
     metadata: {
       envoyService: {
@@ -247,6 +250,7 @@ export interface UIConfigs {
     minio: MinioConfigs;
     http: HttpConfigs;
     proxy: ArtifactsProxyConfig;
+    streamLogsFromServerApi: boolean;
   };
   argo: ArgoConfigs;
   metadata: MetadataConfigs;

@@ -1,0 +1,167 @@
+{
+  "pipelineSpec": {
+    "root": {
+      "dag": {
+        "tasks": {
+          "task-trainer": {
+            "taskInfo": {
+              "name": "task-trainer"
+            },
+            "inputs": {
+              "parameters": {
+                "n_epochs": {
+                  "componentInputParameter": "n_epochs"
+                },
+                "optimizer": {
+                  "componentInputParameter": "optimizer"
+                }
+              },
+              "artifacts": {
+                "examples": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "examples",
+                    "producerTask": "task-ingestion"
+                  }
+                }
+              }
+            },
+            "componentRef": {
+              "name": "comp-trainer"
+            }
+          },
+          "task-ingestion": {
+            "inputs": {
+              "parameters": {
+                "input_location": {
+                  "componentInputParameter": "input_location"
+                }
+              }
+            },
+            "componentRef": {
+              "name": "comp-ingestion"
+            },
+            "taskInfo": {
+              "name": "task-ingestion"
+            }
+          }
+        }
+      },
+      "inputDefinitions": {
+        "artifacts": {
+          "input_location": {
+            "artifactType": {
+              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+            }
+          }
+        },
+        "parameters": {
+          "n_epochs": {
+            "type": "INT"
+          },
+          "optimizer": {
+            "type": "STRING"
+          }
+        }
+      }
+    },
+    "pipelineInfo": {
+      "name": "two-step-pipeline-with-ontology"
+    },
+    "schemaVersion": "2.0.0",
+    "deploymentSpec": {
+      "executors": {
+        "exec-trainer": {
+          "container": {
+            "args": [
+              "--input-examples",
+              "{{$.inputs.artifacts['examples'].uri}}",
+              "--optimizer",
+              "{{$.inputs.parameters['optimizer']}}",
+              "--n_epochs",
+              "{{$.inputs.parameters['n_epochs']}}",
+              "--output-model",
+              "{{$.outputs.artifacts['model'].uri}}"
+            ],
+            "image": "gcr.io/my-project/my-fancy-trainer"
+          }
+        },
+        "exec-ingestion": {
+          "container": {
+            "args": [
+              "--input-location",
+              "{{$.inputs.parameters['input_location']}}",
+              "--output-examples",
+              "{{$.outputs.artifacts['examples'].uri}}"
+            ],
+            "image": "gcr.io/my-project/my-ingestor"
+          }
+        }
+      }
+    },
+    "components": {
+      "comp-ingestion": {
+        "inputDefinitions": {
+          "parameters": {
+            "input_location": {
+              "type": "STRING"
+            }
+          }
+        },
+        "executorLabel": "exec-ingestion",
+        "outputDefinitions": {
+          "artifacts": {
+            "examples": {
+              "artifactType": {
+                "instanceSchema": "properties:\ntitle: kfp.Dataset\ntype: object\n"
+              }
+            }
+          }
+        }
+      },
+      "comp-trainer": {
+        "inputDefinitions": {
+          "parameters": {
+            "n_epochs": {
+              "type": "INT"
+            },
+            "optimizer": {
+              "type": "STRING"
+            }
+          },
+          "artifacts": {
+            "examples": {
+              "artifactType": {
+                "instanceSchema": "properties:\ntitle: kfp.Dataset\ntype: object\n"
+              }
+            }
+          }
+        },
+        "executorLabel": "exec-trainer",
+        "outputDefinitions": {
+          "artifacts": {
+            "model": {
+              "artifactType": {
+                "instanceSchema": "properties:\ntitle: kfp.Model\ntype: object\n"
+              }
+            }
+          }
+        }
+      }
+    },
+    "sdkVersion": "kfp-1.3.0"
+  },
+  "runtimeConfig": {
+    "parameters": {
+      "optimizer": {
+        "stringValue": "sgd"
+      },
+      "input_location": {
+        "stringValue": "gs://test-bucket/pipeline_root"
+      },
+      "n_epochs": {
+        "stringValue": "200"
+      }
+    },
+    "gcsOutputDirectory": "dummy_root"
+  }
+}

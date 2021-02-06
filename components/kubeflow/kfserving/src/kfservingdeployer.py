@@ -18,6 +18,7 @@ import os
 import requests
 import re
 import time
+import yaml
 from distutils.util import strtobool
 
 from kubernetes import client
@@ -35,6 +36,13 @@ from kfserving import V1alpha2TritonSpec
 from kfserving import V1alpha2CustomSpec
 from kfserving import V1alpha2InferenceServiceSpec
 from kfserving import V1alpha2InferenceService
+
+
+def yamlStr(str):
+    if str == "" or str == None:
+        return None
+    else:
+        return yaml.safe_load(str)
 
 
 def EndpointSpec(framework, storage_uri, service_account):
@@ -94,8 +102,22 @@ def customEndpointSpec(custom_model_spec, service_account):
         else None
     )
     ports = (
-        [client.V1ContainerPort(container_port=int(custom_model_spec.get("port", "")))]
+        [client.V1ContainerPort(container_port=int(custom_model_spec.get("port", "")), protocol="TCP")]
         if custom_model_spec.get("port", "")
+        else None
+    )
+    resources = (
+        client.V1ResourceRequirements(
+            requests=(custom_model_spec["resources"]["requests"]
+                      if custom_model_spec.get('resources', {}).get('requests')
+                      else None
+                      ),
+            limits=(custom_model_spec["resources"]["limits"]
+                    if custom_model_spec.get('resources', {}).get('limits')
+                    else None
+                    ),
+        )
+        if custom_model_spec.get("resources", {})
         else None
     )
     containerSpec = client.V1Container(
@@ -107,6 +129,7 @@ def customEndpointSpec(custom_model_spec, service_account):
         args=custom_model_spec.get("args", None),
         image_pull_policy=custom_model_spec.get("image_pull_policy", None),
         working_dir=custom_model_spec.get("working_dir", None),
+        resources=resources
     )
     return V1alpha2EndpointSpec(
         predictor=V1alpha2PredictorSpec(
@@ -143,55 +166,65 @@ def deploy_model(
     canary_custom_model_spec,
     service_account,
     autoscaling_target=0,
-    enable_istio_sidecar=True
+    enable_istio_sidecar=True,
+    inferenceservice_yaml={},
+    watch_timeout=120,
 ):
-    # Create annotation
-    annotations = {}
-    if int(autoscaling_target) != 0:
-        annotations["autoscaling.knative.dev/target"] = str(autoscaling_target)
-    if not enable_istio_sidecar:
-        annotations["sidecar.istio.io/inject"] = 'false'
-    if not annotations:
-        annotations = None
-    metadata = client.V1ObjectMeta(
-        name=model_name, namespace=namespace, annotations=annotations
-    )
-
-    # Create Default deployment if default model uri is provided.
-    if framework != "custom" and default_model_uri:
-        default_model_spec = EndpointSpec(framework, default_model_uri, service_account)
-    elif framework == "custom" and default_custom_model_spec:
-        default_model_spec = customEndpointSpec(
-            default_custom_model_spec, service_account
-        )
-
-    # Create Canary deployment if canary model uri is provided.
-    if framework != "custom" and canary_model_uri:
-        canary_model_spec = EndpointSpec(framework, canary_model_uri, service_account)
-        kfsvc = InferenceService(
-            metadata, default_model_spec, canary_model_spec, canary_model_traffic
-        )
-    elif framework == "custom" and canary_custom_model_spec:
-        canary_model_spec = customEndpointSpec(
-            canary_custom_model_spec, service_account
-        )
-        kfsvc = InferenceService(
-            metadata, default_model_spec, canary_model_spec, canary_model_traffic
-        )
-    else:
-        kfsvc = InferenceService(metadata, default_model_spec)
-
     KFServing = KFServingClient()
 
+    if inferenceservice_yaml:
+        # Overwrite name and namespace if exist
+        if namespace:
+            inferenceservice_yaml['metadata']['namespace'] = namespace
+        if model_name:
+            inferenceservice_yaml['metadata']['name'] = model_name
+        kfsvc = inferenceservice_yaml
+    else:
+        # Create annotation
+        annotations = {}
+        if int(autoscaling_target) != 0:
+            annotations["autoscaling.knative.dev/target"] = str(autoscaling_target)
+        if not enable_istio_sidecar:
+            annotations["sidecar.istio.io/inject"] = 'false'
+        if not annotations:
+            annotations = None
+        metadata = client.V1ObjectMeta(
+            name=model_name, namespace=namespace, annotations=annotations
+        )
+
+        # Create Default deployment if default model uri is provided.
+        if framework != "custom" and default_model_uri:
+            default_model_spec = EndpointSpec(framework, default_model_uri, service_account)
+        elif framework == "custom" and default_custom_model_spec:
+            default_model_spec = customEndpointSpec(
+                default_custom_model_spec, service_account
+            )
+
+        # Create Canary deployment if canary model uri is provided.
+        if framework != "custom" and canary_model_uri:
+            canary_model_spec = EndpointSpec(framework, canary_model_uri, service_account)
+            kfsvc = InferenceService(
+                metadata, default_model_spec, canary_model_spec, canary_model_traffic
+            )
+        elif framework == "custom" and canary_custom_model_spec:
+            canary_model_spec = customEndpointSpec(
+                canary_custom_model_spec, service_account
+            )
+            kfsvc = InferenceService(
+                metadata, default_model_spec, canary_model_spec, canary_model_traffic
+            )
+        else:
+            kfsvc = InferenceService(metadata, default_model_spec)
+
     def create(kfsvc, model_name, namespace):
-        KFServing.create(kfsvc)
+        KFServing.create(kfsvc, namespace=namespace)
         time.sleep(1)
-        KFServing.get(model_name, namespace=namespace, watch=True, timeout_seconds=120)
+        KFServing.get(model_name, namespace=namespace, watch=True, timeout_seconds=watch_timeout)
 
     def update(kfsvc, model_name, namespace):
-        KFServing.patch(model_name, kfsvc)
+        KFServing.patch(model_name, kfsvc, namespace=namespace)
         time.sleep(1)
-        KFServing.get(model_name, namespace=namespace, watch=True, timeout_seconds=120)
+        KFServing.get(model_name, namespace=namespace, watch=True, timeout_seconds=watch_timeout)
 
     if action == "create":
         create(kfsvc, model_name, namespace)
@@ -203,17 +236,19 @@ def deploy_model(
         except:
             update(kfsvc, model_name, namespace)
     elif action == "rollout":
+        if inferenceservice_yaml:
+            raise("Rollout is not supported for inferenceservice yaml")
         KFServing.rollout_canary(
             model_name,
             canary=canary_model_spec,
             percent=canary_model_traffic,
             namespace=namespace,
             watch=True,
-            timeout_seconds=120,
+            timeout_seconds=watch_timeout,
         )
     elif action == "promote":
         KFServing.promote(
-            model_name, namespace=namespace, watch=True, timeout_seconds=120
+            model_name, namespace=namespace, watch=True, timeout_seconds=watch_timeout
         )
     elif action == "delete":
         KFServing.delete(model_name, namespace=namespace)
@@ -253,7 +288,7 @@ if __name__ == "__main__":
         "--namespace",
         type=str,
         help="Kubernetes namespace where the KFServing service is deployed.",
-        default="kubeflow",
+        default="anonymous",
     )
     parser.add_argument(
         "--framework", type=str, help="Model Serving Framework", default="tensorflow"
@@ -286,9 +321,22 @@ if __name__ == "__main__":
         default="",
     )
     parser.add_argument(
-        "--enable-istio-sidecar", type=strtobool, help="Whether to inject istio sidecar", default="True"
+        "--enable-istio-sidecar",
+        type=strtobool,
+        help="Whether to inject istio sidecar",
+        default="True"
+    )
+    parser.add_argument(
+        "--inferenceservice_yaml",
+        type=yamlStr,
+        help="Raw InferenceService serialized YAML for deployment",
+        default={}
     )
     parser.add_argument("--output-path", type=str, help="Path to store URI output")
+    parser.add_argument("--watch-timeout",
+                        type=str,
+                        help="Timeout seconds for watching until InferenceService becomes ready.",
+                        default="120")
     args = parser.parse_args()
 
     url = re.compile(r"https?://")
@@ -307,6 +355,8 @@ if __name__ == "__main__":
     autoscaling_target = int(args.autoscaling_target)
     service_account = args.service_account
     enable_istio_sidecar = args.enable_istio_sidecar
+    inferenceservice_yaml = args.inferenceservice_yaml
+    watch_timeout = int(args.watch_timeout)
 
     if kfserving_endpoint:
         formData = {
@@ -321,7 +371,8 @@ if __name__ == "__main__":
             "canary_custom_model_spec": canary_custom_model_spec,
             "autoscaling_target": autoscaling_target,
             "service_account": service_account,
-            "enable_istio_sidecar": enable_istio_sidecar
+            "enable_istio_sidecar": enable_istio_sidecar,
+            "inferenceservice_yaml": inferenceservice_yaml
         }
         response = requests.post(
             "http://" + kfserving_endpoint + "/deploy-model", json=formData
@@ -340,22 +391,23 @@ if __name__ == "__main__":
             canary_custom_model_spec=canary_custom_model_spec,
             autoscaling_target=autoscaling_target,
             service_account=service_account,
-            enable_istio_sidecar=enable_istio_sidecar
+            enable_istio_sidecar=enable_istio_sidecar,
+            inferenceservice_yaml=inferenceservice_yaml,
+            watch_timeout=watch_timeout
         )
     print(model_status)
     # Check whether the model is ready
     for condition in model_status["status"]["conditions"]:
         if condition['type'] == 'Ready':
             if condition['status'] == 'True':
-                print('Model is ready')
+                print('Model is ready\n')
                 break
             else:
                 print('Model is timed out, please check the inferenceservice events for more details.')
                 exit(1)
     try:
         print(
-            model_status["status"]["address"]["url"]
-            + " is the knative domain header. $ISTIO_INGRESS_ENDPOINT are defined in the below commands"
+            model_status["status"]["address"]["url"] + " is the knative domain."
         )
         print("Sample test commands: ")
         print(
@@ -364,11 +416,16 @@ if __name__ == "__main__":
         print(
             "ISTIO_INGRESS_ENDPOINT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')"
         )
+        print("Sample test commands: \n")
         # model_status['status']['url'] is like http://flowers-sample.kubeflow.example.com/v1/models/flowers-sample
+
         host, path = url.sub("", model_status["status"]["address"]["url"]).split("/", 1)
         print(
             'curl -X GET -H "Host: ' + host + '" http://$ISTIO_INGRESS_ENDPOINT/' + path
         )
+
+        print("\nIf the above URL is not accessible, it's recommended to setup Knative with a configured DNS.\n"\
+              "https://knative.dev/docs/install/installing-istio/#configuring-dns")
     except:
         print("Model is not ready, check the logs for the Knative URL status.")
         exit(1)

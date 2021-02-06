@@ -11,6 +11,7 @@ Deploying a model using Amazon SageMaker hosting services is a three-step proces
 3. **Create an HTTPS endpoint** - Launch the ML compute instances and deploy the model as specified in the endpoint configuration
 
 This component handles Step 2 and 3. Step 1 can be done using the [create model component](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/model) for AWS SageMaker.
+Endpoint created above can be updated using this component as well. When update_endpoint is set to true, endpoint is updated if it exists, if not one is created. Tags will be ignored if the endpoint is being upated.
 
 ## Intended Use
 Create an endpoint in AWS SageMaker Hosting Service for model deployment.
@@ -36,6 +37,7 @@ instance_type_[1, 3] | The ML compute instance type | Yes | Yes | String | ml.m4
 initial_instance_count_[1, 3] | Number of instances to launch initially | Yes | Yes | Integer | ≥ 1 | 1 |
 initial_variant_weight_[1, 3] | Determines initial traffic distribution among all of the models that you specify in the endpoint configuration. The traffic to a production variant is determined by the ratio of the VariantWeight to the sum of all VariantWeight values across all ProductionVariants. | Yes | Yes | Float | Minimum value of 0 | |
 accelerator_type_[1, 3] | The size of the Elastic Inference (EI) instance to use for the production variant | Yes | Yes | String| ml.eia1.medium, ml.eia1.large, ml.eia1.xlarge | |
+update_endpoint | Updates the end point if it exists | Yes | Yes | Bool | | False |
 
 Notes:
 * Please use the links in the [Resources section](#Resources) for detailed information on each input parameter and SageMaker APIs used in this component

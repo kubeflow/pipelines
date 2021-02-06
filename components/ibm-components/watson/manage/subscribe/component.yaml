@@ -37,7 +37,6 @@ implementation:
       --label_column, {inputValue: label_column},
       --aios_manifest_path, {inputValue: aios_manifest_path},
       --bucket_name, {inputValue: bucket_name},
-      --problem_type, {inputValue: problem_type}
+      --problem_type, {inputValue: problem_type},
+      --output_model_name_path, {outputPath: model_name}
     ]
-    fileOutputs:
-      model_name: /tmp/model_name

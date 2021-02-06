@@ -13,8 +13,11 @@ from utils import sagemaker_utils
 
 
 def run_predict_mnist(boto3_session, endpoint_name, download_dir):
-    """https://github.com/awslabs/amazon-sagemaker-examples/blob/a8c20eeb72dc7d3e94aaaf28be5bf7d7cd5695cb
-    /sagemaker-python-sdk/1P_kmeans_lowlevel/kmeans_mnist_lowlevel.ipynb"""
+    """https://github.com/awslabs/amazon-sagemaker-
+    examples/blob/a8c20eeb72dc7d3e94aaaf28be5bf7d7cd5695cb.
+
+    /sagemaker-python-sdk/1P_kmeans_lowlevel/kmeans_mnist_lowlevel.ipynb
+    """
     # Download and load dataset
     region = boto3_session.region_name
     download_path = os.path.join(download_dir, "mnist.pkl.gz")
@@ -35,9 +38,7 @@ def run_predict_mnist(boto3_session, endpoint_name, download_dir):
     payload = np2csv(train_set[0][30:31])
 
     response = runtime.invoke_endpoint(
-        EndpointName=endpoint_name,
-        ContentType="text/csv",
-        Body=payload,
+        EndpointName=endpoint_name, ContentType="text/csv", Body=payload,
     )
     return json.loads(response["Body"].read().decode())
 
@@ -45,9 +46,10 @@ def run_predict_mnist(boto3_session, endpoint_name, download_dir):
 @pytest.mark.parametrize(
     "test_file_dir",
     [
+        pytest.param("resources/config/kmeans-mnist-update-endpoint"),
         pytest.param(
             "resources/config/kmeans-mnist-endpoint", marks=pytest.mark.canary_test
-        )
+        ),
     ],
 )
 def test_create_endpoint(
@@ -104,6 +106,19 @@ def test_create_endpoint(
             ]
             == "InService"
         )
+        # Verify that the update was successful by checking that InstanceType changed
+        if "ExpectedInstanceType" in test_params.keys():
+            new_endpoint_config_name = sagemaker_utils.describe_endpoint(
+                sagemaker_client, input_endpoint_name
+            )["EndpointConfigName"]
+            response = sagemaker_utils.describe_endpoint_config(
+                sagemaker_client, new_endpoint_config_name
+            )
+            prod_variant = response["ProductionVariants"][0]
+            print(f"Production Variant item: {prod_variant}")
+            instance_type = prod_variant["InstanceType"]
+            print(f"Production Variant item InstanceType: {instance_type}")
+            assert instance_type == test_params["ExpectedInstanceType"]
 
         # Validate the model for use by running a prediction
         result = run_predict_mnist(boto3_session, input_endpoint_name, download_dir)

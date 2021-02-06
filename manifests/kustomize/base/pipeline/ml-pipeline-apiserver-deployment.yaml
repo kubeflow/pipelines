@@ -15,6 +15,11 @@ spec:
     spec:
       containers:
       - env:
+        - name: AUTO_UPDATE_PIPELINE_DEFAULT_VERSION
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: autoUpdatePipelineDefaultVersion
         - name: POD_NAMESPACE
           valueFrom:
             fieldRef:
