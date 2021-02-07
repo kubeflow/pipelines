@@ -19,6 +19,7 @@ https://docs.google.com/document/d/1PUDuSQ8vmeKSBloli53mp7GIvzekaY7sggg6ywy35Dk/
 """
 
 import inspect
+import warnings
 from typing import Any, Callable, List, Mapping, Optional
 
 import kfp
@@ -154,7 +155,7 @@ class Compiler(object):
   def _create_pipeline(
       self,
       pipeline_func: Callable[..., Any],
-      output_directory: str,
+      pipeline_root: Optional[str] = None,
       pipeline_name: Optional[str] = None,
       pipeline_parameters_override: Optional[Mapping[str, Any]] = None,
   ) -> pipeline_spec_pb2.PipelineJob:
@@ -162,8 +163,8 @@ class Compiler(object):
 
     Args:
       pipeline_func: Pipeline function with @dsl.pipeline decorator.
+      pipeline_root: The root of the pipeline outputs. Optional.
       pipeline_name: The name of the pipeline. Optional.
-      output_directory: The root of the pipeline outputs.
       pipeline_parameters_override: The mapping from parameter names to values.
         Optional.
 
@@ -175,6 +176,12 @@ class Compiler(object):
     # Assign type information to the PipelineParam
     pipeline_meta = _python_op._extract_component_interface(pipeline_func)
     pipeline_name = pipeline_name or pipeline_meta.name
+
+    pipeline_root = pipeline_root or getattr(pipeline_func, 'output_directory',
+                                             None)
+    if not pipeline_root:
+      warnings.warn('pipeline_root is None or empty. A valid pipeline_root '
+                    'must be provided at job submission.')
 
     args_list = []
     signature = inspect.signature(pipeline_func)
@@ -212,8 +219,7 @@ class Compiler(object):
     # Update pipeline parameters override if there were any.
     pipeline_parameters.update(pipeline_parameters_override or {})
     runtime_config = compiler_utils.build_runtime_config_spec(
-        output_directory=output_directory,
-        pipeline_parameters=pipeline_parameters)
+        output_directory=pipeline_root, pipeline_parameters=pipeline_parameters)
     pipeline_job = pipeline_spec_pb2.PipelineJob(runtime_config=runtime_config)
     pipeline_job.pipeline_spec.update(json_format.MessageToDict(pipeline_spec))
 
@@ -221,8 +227,8 @@ class Compiler(object):
 
   def compile(self,
               pipeline_func: Callable[..., Any],
-              pipeline_root: str,
               output_path: str,
+              pipeline_root: Optional[str] = None,
               pipeline_name: Optional[str] = None,
               pipeline_parameters: Optional[Mapping[str, Any]] = None,
               type_check: bool = True) -> None:
@@ -230,9 +236,12 @@ class Compiler(object):
 
     Args:
       pipeline_func: Pipeline function with @dsl.pipeline decorator.
-      pipeline_root: The root of the pipeline ouputs.
-      output_path: The output pipeline spec .json file path. for example,
-        "~/a.json"
+      output_path: The output pipeline job .json file path. for example,
+        "~/pipeline_job.json"
+      pipeline_root: The root of the pipeline outputs. Optional. The
+        pipeline_root value can be specified either from this `compile()` method
+        or through the `@dsl.pipeline` decorator. If it's specified in both
+        places, the value provided here prevails.
       pipeline_name: The name of the pipeline. Optional.
       pipeline_parameters: The mapping from parameter names to values. Optional.
       type_check: Whether to enable the type check or not, default: True.
@@ -242,7 +251,7 @@ class Compiler(object):
       kfp.TYPE_CHECK = type_check
       pipeline_job = self._create_pipeline(
           pipeline_func=pipeline_func,
-          output_directory=pipeline_root,
+          pipeline_root=pipeline_root,
           pipeline_name=pipeline_name,
           pipeline_parameters_override=pipeline_parameters)
       self._write_pipeline(pipeline_job, output_path)
