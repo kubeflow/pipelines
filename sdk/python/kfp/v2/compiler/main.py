@@ -36,7 +36,6 @@ def parse_arguments() -> argparse.Namespace:
   parser.add_argument(
       '--pipeline-root',
       type=str,
-      required=True,
       help='The root of the pipeline outputs.')
   parser.add_argument(
       '--pipeline-parameters',
@@ -76,11 +75,6 @@ def _compile_pipeline_function(pipeline_funcs: List[Callable],
   if len(pipeline_funcs) == 0:
     raise ValueError(
         'A function with @dsl.pipeline decorator is required in the py file.')
-
-  if len(pipeline_root) == 0:
-    raise ValueError(
-        'A pipeline-root (e.g.: a GCS URI) is required. Please specify --pipeline-root.'
-    )
 
   if len(pipeline_funcs) > 1 and not function_name:
     func_names = [x.__name__ for x in pipeline_funcs]
