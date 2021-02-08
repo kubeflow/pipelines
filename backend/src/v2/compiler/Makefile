@@ -4,7 +4,13 @@ PIPELINE_SPEC_PATH=$(REPO_ROOT)/samples/v2/producer_consumer_param/two_step_pipe
 SAMPLE_PIPELINE_SPEC=../driver/example/task_spec_dag.json
 
 run: compile $(SAMPLE_PIPELINE_SPEC)
-	argo submit --watch workflow.yaml --serviceaccount pipeline-runner \
+	# Run compiled argo workflow spec in workflow.yaml in an existing KFP cluster
+	# using argo CLI to submit.
+	#
+	# Alternatively, you can upload this workflow.yaml in KFP UI and run it.
+	argo submit --watch workflow.yaml \
+		--serviceaccount pipeline-runner \
+		--namespace kubeflow \
 		--parameter task-spec="$$(cat $(SAMPLE_PIPELINE_SPEC))"
 
 # TODO(Bobgy): How can we write ./**/*.go instead?
