@@ -1,0 +1,16 @@
+{
+  "executorLabel": "Consumer",
+  "inputs": {
+    "parameters": {
+      "input_value": {
+        "taskOutputParameter": {
+          "producerTask": "Producer",
+          "outputParameterKey": "output_value"
+        }
+      }
+    }
+  },
+  "taskInfo": {
+    "name": "Consumer"
+  }
+}
