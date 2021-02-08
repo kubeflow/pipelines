@@ -19,7 +19,6 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/golang/protobuf/ptypes/timestamp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -32,10 +31,6 @@ func BoolPointer(b bool) *bool {
 }
 
 func TimePointer(t time.Time) *time.Time {
-	return &t
-}
-
-func TimestampPointer(t timestamp.Timestamp) *timestamp.Timestamp {
 	return &t
 }
 
