@@ -59,11 +59,12 @@ const STEP_TABS = {
   INPUT_OUTPUT: 0,
   VISUALIZATIONS: 1,
   ML_METADATA: 2,
-  VOLUMES: 3,
-  LOGS: 4,
-  POD: 5,
-  EVENTS: 6,
-  MANIFEST: 7,
+  TASK_DETAILS: 3,
+  VOLUMES: 4,
+  LOGS: 5,
+  POD: 6,
+  EVENTS: 7,
+  MANIFEST: 8,
 };
 
 const WORKFLOW_TEMPLATE = {
@@ -1418,6 +1419,78 @@ describe('RunDetails', () => {
     });
   });
 
+  describe('task details tab', () => {
+    it('shows node detail info', async () => {
+      testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+        status: {
+          nodes: {
+            node1: {
+              id: 'node1',
+              displayName: 'Task',
+              phase: 'Succeeded',
+              startedAt: '1/19/2021, 4:00:00 PM',
+              finishedAt: '1/19/2021, 4:00:02 PM',
+            },
+          },
+        },
+        metadata: { namespace: 'ns' },
+      });
+      tree = shallow(<RunDetails {...generateProps()} />);
+      await getRunSpy;
+      await TestUtils.flushPromises();
+      clickGraphNode(tree, 'node1');
+      tree
+        .find('MD2Tabs')
+        .at(1)
+        .simulate('switch', STEP_TABS.TASK_DETAILS);
+      await getRunSpy;
+      await TestUtils.flushPromises();
+
+      expect(tree.find(NODE_DETAILS_SELECTOR)).toMatchInlineSnapshot(`
+        <div
+          className="page"
+          data-testid="run-details-node-details"
+        >
+          <div
+            className=""
+          >
+            <DetailsTable
+              fields={
+                Array [
+                  Array [
+                    "Task ID",
+                    "node1",
+                  ],
+                  Array [
+                    "Task name",
+                    "Task",
+                  ],
+                  Array [
+                    "Status",
+                    "Succeeded",
+                  ],
+                  Array [
+                    "Started at",
+                    "1/2/2019, 12:34:56 PM",
+                  ],
+                  Array [
+                    "Finished at",
+                    "1/2/2019, 12:34:56 PM",
+                  ],
+                  Array [
+                    "Duration",
+                    "0:00:02",
+                  ],
+                ]
+              }
+              title="Task Details"
+            />
+          </div>
+        </div>
+      `);
+    });
+  });
+
   describe('auto refresh', () => {
     beforeEach(() => {
       testRun.run!.status = NodePhase.PENDING;
@@ -1586,6 +1659,62 @@ describe('RunDetails', () => {
         </Router>,
       );
       expect(history.location.pathname).toEqual('/initial-path');
+    });
+  });
+
+  describe('ReducedGraphSwitch', () => {
+    it('shows a simplified graph', async () => {
+      testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+        ...WORKFLOW_TEMPLATE,
+        status: {
+          nodes: {
+            node1: { id: 'node1', children: ['node2', 'node3'] },
+            node2: { id: 'node2', children: ['node3'] },
+            node3: { id: 'node3' },
+          },
+        },
+      });
+      const tree = render(<RunDetails {...generateProps()} />);
+      await getRunSpy;
+      await TestUtils.flushPromises();
+      expect(tree.getByTestId('graph')).toMatchInlineSnapshot(`
+        <pre
+          data-testid="graph"
+        >
+          Node node1
+          Node node1-running-placeholder
+          Node node2
+          Node node2-running-placeholder
+          Node node3
+          Node node3-running-placeholder
+          Edge node1 to node1-running-placeholder
+          Edge node2 to node2-running-placeholder
+          Edge node3 to node3-running-placeholder
+          Edge node1 to node2
+          Edge node1 to node3
+          Edge node2 to node3
+        </pre>
+      `);
+
+      // Simplify graph
+      tree.getByLabelText('Simplify Graph').click();
+      expect(tree.getByTestId('graph')).toMatchInlineSnapshot(`
+        <pre
+          data-testid="graph"
+        >
+          Node node1
+          Node node1-running-placeholder
+          Node node2
+          Node node2-running-placeholder
+          Node node3
+          Node node3-running-placeholder
+          Edge node1 to node1-running-placeholder
+          Edge node2 to node2-running-placeholder
+          Edge node3 to node3-running-placeholder
+          Edge node1 to node2
+          Edge node2 to node3
+        </pre>
+      `);
     });
   });
 });

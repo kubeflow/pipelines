@@ -20,9 +20,9 @@ __all__ = [
 ]
 
 import copy
-import os
 from collections import OrderedDict
-from typing import Any, Callable, List, Mapping, NamedTuple, Sequence, Union
+import pathlib
+from typing import Any, Callable, List, Mapping, NamedTuple, Optional, Sequence, Union
 from ._naming import _sanitize_file_name, _sanitize_python_function_name, generate_unique_name_conversion_table
 from ._yaml_utils import load_yaml
 from .structures import *
@@ -179,11 +179,19 @@ _single_io_file_name = 'data'
 
 
 def _generate_input_file_name(port_name):
-    return _inputs_dir + '/' + _sanitize_file_name(port_name) + '/' + _single_io_file_name
+    return str(pathlib.PurePosixPath(
+        _inputs_dir,
+        _sanitize_file_name(port_name),
+        _single_io_file_name
+    ))
 
 
 def _generate_output_file_name(port_name):
-    return _outputs_dir + '/' + _sanitize_file_name(port_name) + '/' + _single_io_file_name
+    return str(pathlib.PurePosixPath(
+        _outputs_dir,
+        _sanitize_file_name(port_name),
+        _single_io_file_name
+    ))
 
 
 # Placeholder to represent the output directory hosting all the generated URIs.
@@ -210,10 +218,9 @@ def _generate_output_uri(port_name: str) -> str:
     Returns:
         The URI assigned to this output, which is unique within the pipeline.
     """
-    # Use hand-crafted path since the behavior of os.path.join varies across
-    # different OSs, making tests difficult.
-    return '{}/{}/{{{{pod.name}}}}/{}'.format(
-        OUTPUT_DIR_PLACEHOLDER, RUN_ID_PLACEHOLDER, port_name)
+    return str(pathlib.PurePosixPath(
+        OUTPUT_DIR_PLACEHOLDER,
+        RUN_ID_PLACEHOLDER, '{{pod.name}}', port_name))
 
 
 def _generate_input_uri(port_name: str) -> str:
@@ -226,27 +233,23 @@ def _generate_input_uri(port_name: str) -> str:
         The URI assigned to this input, will be consistent with the URI where
         the actual content is written after compilation.
     """
-    # Use hand-crafted path since the behavior of os.path.join varies across
-    # different OSs, making tests difficult.
-    return '{}/{}/{}/{}'.format(
+    return str(pathlib.PurePosixPath(
         OUTPUT_DIR_PLACEHOLDER,
         RUN_ID_PLACEHOLDER,
         '{{{{inputs.parameters.{input}}}}}'.format(
             input=PRODUCER_POD_NAME_PARAMETER.format(port_name)),
         port_name
-    )
+    ))
 
 
 def _generate_output_metadata_path() -> str:
     """Generates the URI to write the output metadata JSON file."""
 
-    # Use hand-crafted path since the behavior of os.path.join varies across
-    # different OSs, making tests difficult.
-    return '{}/{}/{}'.format(
+    return str(pathlib.PurePosixPath(
         OUTPUT_DIR_PLACEHOLDER,
         RUN_ID_PLACEHOLDER,
         OUTPUT_METADATA_JSON
-    )
+    ))
 
 
 def _generate_input_metadata_path(port_name: str) -> str:
@@ -254,13 +257,13 @@ def _generate_input_metadata_path(port_name: str) -> str:
 
     # Return a placeholder for path to input artifact metadata, which will be
     # rewritten during pipeline compilation.
-    return '{}/{}/{}/{}'.format(
+    return str(pathlib.PurePosixPath(
         OUTPUT_DIR_PLACEHOLDER,
         RUN_ID_PLACEHOLDER,
         '{{{{inputs.parameters.{input}}}}}'.format(
             input=PRODUCER_POD_NAME_PARAMETER.format(port_name)),
         OUTPUT_METADATA_JSON
-    )
+    ))
 
 
 def _generate_input_output_name(port_name: str) -> str:
@@ -480,6 +483,7 @@ def _resolve_command_line_and_paths(
     argument_serializer: Callable[[str], str] = serialize_value,
     input_uri_generator: Callable[[str], str] = _generate_input_uri,
     output_uri_generator: Callable[[str], str] = _generate_output_uri,
+    input_value_generator: Optional[Callable[[str], str]] = None,
     input_metadata_path_generator: Callable[
         [str], str] = _generate_input_metadata_path,
     output_metadata_path_generator: Callable[
@@ -519,9 +523,11 @@ def _resolve_command_line_and_paths(
             input_spec = inputs_dict[input_name]
             input_value = argument_values.get(input_name, None)
             if input_value is not None:
-                serialized_argument = argument_serializer(input_value, input_spec.type)
-                inputs_consumed_by_value[input_name] = serialized_argument
-                return serialized_argument
+                if input_value_generator is not None:
+                    inputs_consumed_by_value[input_name] = input_value_generator(input_name)
+                else:
+                    inputs_consumed_by_value[input_name] = argument_serializer(input_value, input_spec.type)
+                return inputs_consumed_by_value[input_name]
             else:
                 if input_spec.optional:
                     return None

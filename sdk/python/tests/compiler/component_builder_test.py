@@ -126,33 +126,23 @@ RUN python3 -m pip install -r /ml/requirements.txt
 ADD main.py /ml/main.py
 '''
 
-    golden_dockerfile_payload_three = '''\
-FROM gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0
-RUN apt-get update -y && apt-get install --no-install-recommends -y -q python python-pip python-setuptools
-ADD requirements.txt /ml/requirements.txt
-RUN python -m pip install -r /ml/requirements.txt
-ADD main.py /ml/main.py
-'''
     # check
-    _generate_dockerfile(filename=target_dockerfile, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0',
-                         python_version='python3', add_files={'main.py': '/ml/main.py'})
+    _generate_dockerfile(
+        filename=target_dockerfile,
+        base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0',
+        add_files={'main.py': '/ml/main.py'})
     with open(target_dockerfile, 'r') as f:
       target_dockerfile_payload = f.read()
     self.assertEqual(target_dockerfile_payload, golden_dockerfile_payload_one)
-    _generate_dockerfile(filename=target_dockerfile, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0',
-                         python_version='python3', requirement_filename='requirements.txt', add_files={'main.py': '/ml/main.py'})
+
+    _generate_dockerfile(
+        filename=target_dockerfile,
+        base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0',
+        requirement_filename='requirements.txt',
+        add_files={'main.py': '/ml/main.py'})
     with open(target_dockerfile, 'r') as f:
       target_dockerfile_payload = f.read()
     self.assertEqual(target_dockerfile_payload, golden_dockerfile_payload_two)
-    _generate_dockerfile(filename=target_dockerfile, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0',
-                         python_version='python2', requirement_filename='requirements.txt', add_files={'main.py': '/ml/main.py'})
-    with open(target_dockerfile, 'r') as f:
-      target_dockerfile_payload = f.read()
-    self.assertEqual(target_dockerfile_payload, golden_dockerfile_payload_three)
-
-    self.assertRaises(ValueError, _generate_dockerfile, filename=target_dockerfile,
-                      base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0',
-                      python_version='python4', requirement_filename='requirements.txt', add_files={'main.py': '/ml/main.py'})
 
     # clean up
     os.remove(target_dockerfile)
