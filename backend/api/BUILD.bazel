@@ -44,13 +44,6 @@ go_proto_library(
     ],
 )
 
-go_library(
-    name = "go_default_library",
-    embed = [":go_client_go_proto"],
-    importpath = "github.com/kubeflow/pipelines/backend/api/go_client",
-    visibility = ["//visibility:public"],
-)
-
 protoc_gen_swagger(
     name = "api_swagger",
     proto = ":go_client_proto",

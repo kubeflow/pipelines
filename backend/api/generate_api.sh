@@ -44,10 +44,6 @@ SWAGGER_CMD="docker run --rm -it  --user $(id -u):$(id -g) -e GOPATH=$HOME/go:/g
 rm -r -f ${DIR}/go_http_client/*
 rm -r -f ${DIR}/go_client/*
 
-# Build required tools.
-bazel build @com_github_mbrukman_autogen//:autogen_tool
-bazel build @com_github_go_swagger//cmd/swagger
-
 # Build .pb.go and .gw.pb.go files from the proto sources.
 bazel build //backend/api:api_generated_go_sources
 
