@@ -1,6 +1,4 @@
-#!/bin/bash -e
-
-# Copyright 2018 Google LLC
+# Copyright 2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,10 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Python source file under test."""
 
-# Initialization actions to run in dataproc setup.
-# The script will be run on each node in a dataproc cluster.
- 
-easy_install pip
-pip install tensorflow==1.4.1
-pip install pandas==0.18.1
+def test_func(a, b):
+  return a + b

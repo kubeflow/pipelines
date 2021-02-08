@@ -22,7 +22,7 @@ class DataprocClient:
     """ Internal client for calling Dataproc APIs.
     """
     def __init__(self):
-        self._dataproc = discovery.build('dataproc', 'v1')
+        self._dataproc = discovery.build('dataproc', 'v1', cache_discovery=False)
 
     def create_cluster(self, project_id, region, cluster, request_id):
         """Creates a new dataproc cluster.

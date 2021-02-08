@@ -15,8 +15,8 @@
 
 source_root=$(pwd)
 
-# TODO(#4853) Skipping pip 20.3 due to a bad version resolution logic.
-python3 -m pip install --upgrade pip!=20.3.*
+# TODO(#5051) Unpin pip version once we figure out how to make the new dependency resolver in pip 20.3+ work in our case.
+python3 -m pip install --upgrade pip==20.2.3
 python3 -m pip install -r "$source_root/sdk/python/requirements.txt"
 # Additional dependencies
 #pip3 install coverage==4.5.4 coveralls==1.9.2 six>=1.13.0
