@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2018-2020 Google LLC
+# Copyright 2018-2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,9 +30,13 @@ if [ -z "$VERSION" ]; then
 fi
 
 BAZEL_BINDIR=$(bazel info bazel-bin)
-SWAGGER_CMD=${DIR}/../../bazel-bin/external/com_github_go_swagger/cmd/swagger/*stripped/swagger
-AUTOGEN_CMD="${DIR}/../../bazel-bin/external/com_github_mbrukman_autogen/autogen_tool"
 GENERATED_GO_PROTO_FILES="${BAZEL_BINDIR}/backend/api/api_generated_go_sources/src/github.com/kubeflow/pipelines/backend/api/go_client/*.go"
+
+# Reference: https://goswagger.io/install.html
+SWAGGER_GO_VERSION=v0.18.0
+SWAGGER_GO_IMAGE="quay.io/goswagger/swagger:${SWAGGER_GO_VERSION}"
+docker pull "${SWAGGER_GO_IMAGE}"
+SWAGGER_CMD="docker run --rm -it  --user $(id -u):$(id -g) -e GOPATH=$HOME/go:/go -v $HOME:$HOME -w $(pwd) ${SWAGGER_GO_IMAGE}"
 
 # TODO this script should be able to be run from anywhere, not just within .../backend/api/
 
@@ -52,7 +56,6 @@ for f in $GENERATED_GO_PROTO_FILES; do
   target=${DIR}/go_client/$(basename ${f})
   cp $f $target
   chmod 766 $target
-  ${AUTOGEN_CMD} -i --no-tlc -c "Google LLC" -l apache $target
 done
 
 # Generate and copy back into source tree .swagger.json files.
@@ -134,11 +137,3 @@ sed -i -- 's/IntervalSecond string `json:"interval_second,omitempty"`/IntervalSe
 
 # Executes the //go:generate directives in the generated code.
 go generate ./...
-
-# Add license to files in go_http_client.
-find ${DIR}/go_http_client/ -name "*.go" -exec ${AUTOGEN_CMD} -i --no-tlc -c "Google LLC" -l apache {} \;
-
-# Finally, run gazelle to add BUILD files for the generated code.
-bazel run //:gazelle
-# HACK: remove unnecessary BUILD.bazels
-rm -f "$REPO_ROOT/sdk/python/kfp/components/structures/BUILD.bazel" "$REPO_ROOT/tools/metadatastore-upgrade/BUILD.bazel"

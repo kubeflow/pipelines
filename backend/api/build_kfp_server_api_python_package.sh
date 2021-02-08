@@ -1,6 +1,6 @@
 #!/bin/bash -e
 #
-# Copyright 2018-2020 Google LLC
+# Copyright 2018-2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -65,10 +65,6 @@ echo "Building the python package in $DIR."
 pushd "$DIR"
 python3 setup.py --quiet sdist
 popd
-
-echo "Adding license header for generated python files in $DIR."
-go install github.com/google/addlicense
-addlicense "$DIR"
 
 echo "Run the following commands to update the package on PyPI"
 echo "python3 -m pip install twine"
