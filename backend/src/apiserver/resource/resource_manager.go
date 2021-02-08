@@ -813,12 +813,18 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 		// TODO(jingzhang36): find a proper way to pass collectMetricsFlag here.
 		workflowGCCounter.Inc()
 	}
-
+	// If the run was Running and got terminated (activeDeadlineSeconds set to 0),
+	// ignore its condition and mark it as such
+	condition := workflow.Condition()
+	if workflow.Spec.ActiveDeadlineSeconds != nil &&
+		*workflow.Spec.ActiveDeadlineSeconds == 0 &&
+		!workflow.IsInFinalState() {
+		condition = model.RunTerminatingConditions
+	}
 	if jobId == "" {
 		// If a run doesn't have job ID, it's a one-time run created by Pipeline API server.
 		// In this case the DB entry should already been created when argo workflow CR is created.
-
-		err := r.runStore.UpdateRun(runId, workflow.Condition(), workflow.FinishedAt(), workflow.ToStringForStore())
+		err := r.runStore.UpdateRun(runId, condition, workflow.FinishedAt(), workflow.ToStringForStore())
 		if err != nil {
 			return util.Wrap(err, "Failed to update the run.")
 		}
@@ -843,7 +849,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 				CreatedAtInSec:   workflow.CreationTimestamp.Unix(),
 				ScheduledAtInSec: workflow.ScheduledAtInSecOr0(),
 				FinishedAtInSec:  workflow.FinishedAt(),
-				Conditions:       workflow.Condition(),
+				Conditions:       condition,
 				PipelineSpec: model.PipelineSpec{
 					WorkflowSpecManifest: workflow.GetWorkflowSpec().ToStringForStore(),
 				},

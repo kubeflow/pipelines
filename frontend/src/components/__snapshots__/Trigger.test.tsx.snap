@@ -317,7 +317,7 @@ exports[`Trigger enables a single day on click 1`] = `
             Allow editing cron expression. ( format is specified
              
             <a
-              href="https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format"
+              href="https://pkg.go.dev/github.com/robfig/cron#hdr-CRON_Expression_Format"
             >
               here
             </a>
@@ -658,7 +658,7 @@ exports[`Trigger renders all week days enabled 1`] = `
             Allow editing cron expression. ( format is specified
              
             <a
-              href="https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format"
+              href="https://pkg.go.dev/github.com/robfig/cron#hdr-CRON_Expression_Format"
             >
               here
             </a>
@@ -1159,7 +1159,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
             Allow editing cron expression. ( format is specified
              
             <a
-              href="https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format"
+              href="https://pkg.go.dev/github.com/robfig/cron#hdr-CRON_Expression_Format"
             >
               here
             </a>
@@ -1500,7 +1500,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
             Allow editing cron expression. ( format is specified
              
             <a
-              href="https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format"
+              href="https://pkg.go.dev/github.com/robfig/cron#hdr-CRON_Expression_Format"
             >
               here
             </a>

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Pin to a specific version of invert proxy agent
-FROM gcr.io/inverting-proxy/agent@sha256:9817c740a3705e4bf889e612c071686a8cb3cfcfe9ad191c570a295c37316ff0
+FROM gcr.io/inverting-proxy/agent@sha256:2e3c5ecd1a55b32056f3ce0c4aaac05e31b85c361d501bf3f8a81bec14c4fe87
 
 RUN apt-get update && apt-get install -y curl jq python-pip
 RUN pip install requests

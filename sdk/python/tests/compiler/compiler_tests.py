@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import List
 
 import kfp
 import kfp.compiler as compiler
@@ -26,8 +27,9 @@ import tempfile
 import unittest
 import yaml
 
+from kfp.compiler import Compiler
 from kfp.dsl._component import component
-from kfp.dsl import ContainerOp, pipeline
+from kfp.dsl import ContainerOp, pipeline, PipelineParam
 from kfp.dsl.types import Integer, InconsistentTypeException
 from kubernetes.client import V1Toleration, V1Affinity, V1NodeSelector, V1NodeSelectorRequirement, V1NodeSelectorTerm, \
   V1NodeAffinity, V1PodDNSConfig, V1PodDNSConfigOption
@@ -938,6 +940,9 @@ implementation:
   def test_withparam_lightweight_out(self):
     self._test_py_compile_yaml('loop_over_lightweight_output')
 
+  def test_parallelfor_pipeline_param_in_items_resolving(self):
+    self._test_py_compile_yaml('parallelfor_pipeline_param_in_items_resolving')
+
   def test_parallelfor_item_argument_resolving(self):
     self._test_py_compile_yaml('parallelfor_item_argument_resolving')
 
@@ -1089,5 +1094,54 @@ implementation:
       parameter_arguments = json.loads(parameter_arguments_json)
       self.assertEqual(set(parameter_arguments.keys()), {'Input 1'})
 
+  def test__resolve_task_pipeline_param(self):
+    p = PipelineParam(name='param2')
+    resolved = Compiler._resolve_task_pipeline_param(p, group_type=None)
+    self.assertEqual(resolved, "{{workflow.parameters.param2}}")
+
+    p = PipelineParam(name='param1', op_name='op1')
+    resolved = Compiler._resolve_task_pipeline_param(p, group_type=None)
+    self.assertEqual(resolved, "{{tasks.op1.outputs.parameters.op1-param1}}")
+
+    p = PipelineParam(name='param1', op_name='op1')
+    resolved = Compiler._resolve_task_pipeline_param(p, group_type="subgraph")
+    self.assertEqual(resolved, "{{inputs.parameters.op1-param1}}")
+
   def test_uri_artifact_passing(self):
     self._test_py_compile_yaml('uri_artifacts')
+
+  def test_keyword_only_argument_for_pipeline_func(self):
+    def some_pipeline(casual_argument: str, *, keyword_only_argument: str):
+      pass
+    kfp.compiler.Compiler()._create_workflow(some_pipeline)
+
+  def test_keyword_only_argument_for_pipeline_func_identity(self):
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+    sys.path.append(test_data_dir)
+
+    # `@pipeline` is needed to make name the same for both functions
+
+    @pipeline(name="pipeline_func")
+    def pipeline_func_arg(foo_arg: str, bar_arg: str):
+      dsl.ContainerOp(
+        name='foo',
+        image='foo',
+        command=['bar'],
+        arguments=[foo_arg, ' and ', bar_arg]
+      )
+
+    @pipeline(name="pipeline_func")
+    def pipeline_func_kwarg(foo_arg: str, *, bar_arg: str):
+      return pipeline_func_arg(foo_arg, bar_arg)
+
+    pipeline_yaml_arg   = kfp.compiler.Compiler()._create_workflow(pipeline_func_arg)
+    pipeline_yaml_kwarg = kfp.compiler.Compiler()._create_workflow(pipeline_func_kwarg)
+
+    # the yamls may differ in metadata
+    def remove_metadata(yaml) -> None:
+      del yaml['metadata']
+    remove_metadata(pipeline_yaml_arg)
+    remove_metadata(pipeline_yaml_kwarg)
+
+    # compare
+    self.assertEqual(pipeline_yaml_arg, pipeline_yaml_kwarg)

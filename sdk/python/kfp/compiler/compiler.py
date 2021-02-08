@@ -16,6 +16,7 @@ import json
 from collections import defaultdict, OrderedDict
 from deprecated import deprecated
 import inspect
+import re
 import tarfile
 import uuid
 import warnings
@@ -28,13 +29,14 @@ from kfp.compiler import _data_passing_rewriter
 
 from .. import dsl
 from ._k8s_helper import convert_k8s_obj_to_json, sanitize_k8s_name
-from ._op_to_template import _op_to_template
+from ._op_to_template import _op_to_template, _process_obj
 from ._default_transformers import add_pod_env
 
 from ..components.structures import InputSpec
 from ..components._yaml_utils import dump_yaml
 from ..dsl._metadata import _extract_pipeline_metadata
 from ..dsl._ops_group import OpsGroup
+from ..dsl._pipeline_param import extract_pipelineparams_from_any, PipelineParam
 
 
 class Compiler(object):
@@ -422,6 +424,15 @@ class Compiler(object):
     else:
       return str(value_or_reference)
 
+  @staticmethod
+  def _resolve_task_pipeline_param(pipeline_param: PipelineParam, group_type) -> str:
+    if pipeline_param.op_name is None:
+      return '{{workflow.parameters.%s}}' % pipeline_param.name
+    param_name = '%s-%s' % (sanitize_k8s_name(pipeline_param.op_name), pipeline_param.name)
+    if group_type == 'subgraph':
+      return '{{inputs.parameters.%s}}' % (param_name)
+    return '{{tasks.%s.outputs.parameters.%s}}' % (sanitize_k8s_name(pipeline_param.op_name), param_name)
+
   def _group_to_dag_template(self, group, inputs, outputs, dependencies):
     """Generate template given an OpsGroup.
 
@@ -496,19 +507,8 @@ class Compiler(object):
           # as global pipeline parameters
 
           pipeline_param = sub_group.loop_args.items_or_pipeline_param
-          if pipeline_param.op_name is None:
-            withparam_value = '{{workflow.parameters.%s}}' % pipeline_param.name
-          else:
-            param_name = '%s-%s' % (
-              sanitize_k8s_name(pipeline_param.op_name), pipeline_param.name)
-            # [TODO] create ENUM or string type to represent all well-known group types in the DSL. 
-            if group.type == 'subgraph':
-              withparam_value = '{{inputs.parameters.%s}}' % (param_name)
-            else:
-              withparam_value = '{{tasks.%s.outputs.parameters.%s}}' % (
-                sanitize_k8s_name(pipeline_param.op_name),
-                param_name)
-
+          withparam_value = self._resolve_task_pipeline_param(pipeline_param, group.type)
+          if pipeline_param.op_name:
             # these loop args are the output of another task
             if 'dependencies' not in task or task['dependencies'] is None:
               task['dependencies'] = []
@@ -521,6 +521,20 @@ class Compiler(object):
         else:
           # Need to sanitize the dict keys for consistency.
           loop_tasks = sub_group.loop_args.to_list_for_task_yaml()
+          nested_pipeline_params = extract_pipelineparams_from_any(loop_tasks)
+
+          # Set dependencies in case of nested pipeline_params
+          map_to_tmpl_var = {str(p): self._resolve_task_pipeline_param(p, group.type) for p in nested_pipeline_params}
+          for pipeline_param in nested_pipeline_params:
+            if pipeline_param.op_name:
+              # these pipeline_param are the output of another task
+              if 'dependencies' not in task or task['dependencies'] is None:
+                task['dependencies'] = []
+              if sanitize_k8s_name(
+                  pipeline_param.op_name) not in task['dependencies']:
+                task['dependencies'].append(
+                    sanitize_k8s_name(pipeline_param.op_name))
+
           sanitized_tasks = []
           if isinstance(loop_tasks[0], dict):
             for argument_set in loop_tasks:
@@ -530,7 +544,12 @@ class Compiler(object):
               sanitized_tasks.append(c_dict)
           else:
             sanitized_tasks = loop_tasks
-          task['withItems'] = sanitized_tasks
+          # Replace pipeline param if map_to_tmpl_var not empty
+          task['withItems'] = _process_obj(sanitized_tasks, map_to_tmpl_var) if map_to_tmpl_var else sanitized_tasks
+
+        # We will sort dependencies to have determinitc yaml and thus stable tests
+        if task.get('dependencies'):
+            task['dependencies'].sort()
 
       tasks.append(task)
     tasks.sort(key=lambda x: x['name'])
@@ -824,17 +843,22 @@ class Compiler(object):
       raise ValueError('Either specify pipeline params in the pipeline function, or in "params_list", but not both.')
 
     args_list = []
+    kwargs_dict = dict()
     signature = inspect.signature(pipeline_func)
-    for arg_name in signature.parameters:
+    for arg_name, arg in signature.parameters.items():
       arg_type = None
       for input in pipeline_meta.inputs or []:
         if arg_name == input.name:
           arg_type = input.type
           break
-      args_list.append(dsl.PipelineParam(sanitize_k8s_name(arg_name, True), param_type=arg_type))
+      param = dsl.PipelineParam(sanitize_k8s_name(arg_name, True), param_type=arg_type)
+      if arg.kind == inspect.Parameter.KEYWORD_ONLY:
+        kwargs_dict[arg_name] = param
+      else:
+        args_list.append(param)
 
     with dsl.Pipeline(pipeline_name) as dsl_pipeline:
-      pipeline_func(*args_list)
+      pipeline_func(*args_list, **kwargs_dict)
 
     pipeline_conf = pipeline_conf or dsl_pipeline.conf # Configuration passed to the compiler is overriding. Unfortunately, it's not trivial to detect whether the dsl_pipeline.conf was ever modified.
 
@@ -1044,10 +1068,24 @@ def _run_argo_lint(yaml_text: str):
   if argo_path:
     result = subprocess.run([argo_path, 'lint', '/dev/stdin'], input=yaml_text.encode('utf-8'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if result.returncode:
+      if re.match(
+          pattern=r'.+failed to resolve {{tasks\..+\.outputs\.artifacts\..+}}.+',
+          string=result.stderr.decode('utf-8')
+      ):
+        raise RuntimeError(
+            'Compiler has produced Argo-incompatible workflow due to '
+            'unresolvable input artifact(s). Please check whether inputPath has'
+            ' been connected to outputUri placeholder, which is not supported '
+            'yet. Otherwise, please create a new issue at '
+            'https://github.com/kubeflow/pipelines/issues attaching the '
+            'pipeline code and the pipeline package. Error: {}'.format(
+                result.stderr.decode('utf-8'))
+        )
       raise RuntimeError(
         '''Internal compiler error: Compiler has produced Argo-incompatible workflow.
 Please create a new issue at https://github.com/kubeflow/pipelines/issues attaching the pipeline code and the pipeline package.
 Error: {}'''.format(result.stderr.decode('utf-8'))
       )
+
     return True
   return False

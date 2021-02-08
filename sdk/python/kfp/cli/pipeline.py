@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import click
-import logging
+import json
 
 from .output import print_output, OutputFormat
 
@@ -104,7 +104,11 @@ def list(ctx, max_size):
     if response.pipelines:
         _print_pipelines(response.pipelines, output_format)
     else:
-        logging.info("No pipelines found")
+        if output_format == OutputFormat.json.name:
+            msg = json.dumps([])
+        else:
+            msg = "No pipelines found"
+        click.echo(msg)
 
 
 @pipeline.command()
@@ -129,7 +133,11 @@ def list_versions(ctx, pipeline_id, max_size):
     if response.versions:
         _print_pipeline_versions(response.versions, output_format)
     else:
-        logging.info("No pipeline or version found")
+        if output_format == OutputFormat.json.name:
+            msg = json.dumps([])
+        else:
+            msg = "No pipeline or version found"
+        click.echo(msg)
 
 
 @pipeline.command()
@@ -152,7 +160,7 @@ def delete(ctx, pipeline_id):
     client = ctx.obj["client"]
 
     client.delete_pipeline(pipeline_id)
-    print("{} is deleted".format(pipeline_id))
+    click.echo("{} is deleted".format(pipeline_id))
 
 
 def _print_pipelines(pipelines, output_format):

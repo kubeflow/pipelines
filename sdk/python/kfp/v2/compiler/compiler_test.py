@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import os
 import shutil
 import tempfile
 import unittest
 
-from kfp.v2 import compiler
 from kfp.v2 import components
+from kfp.v2 import compiler
 from kfp.v2 import dsl
 
 
@@ -319,36 +320,6 @@ class CompilerTest(unittest.TestCase):
           pipeline_root='dummy',
           output_path='output.json')
 
-  def test_compile_pipeline_with_outputpath_should_warn(self):
-
-    with self.assertWarnsRegex(
-        UserWarning, 'Local file paths are currently unsupported for I/O.'):
-      component_op = components.load_component_from_text("""
-          name: compoent use outputPath
-          outputs:
-          - {name: metrics, type: Metrics}
-          implementation:
-            container:
-              image: dummy
-              args:
-              - {outputPath: metrics}
-          """)
-
-  def test_compile_pipeline_with_inputpath_should_warn(self):
-
-    with self.assertWarnsRegex(
-        UserWarning, 'Local file paths are currently unsupported for I/O.'):
-      component_op = components.load_component_from_text("""
-          name: compoent use inputPath
-          inputs:
-          - {name: data, type: Datasets}
-          implementation:
-            container:
-              image: dummy
-              args:
-              - {inputPath: data}
-          """)
-
   def test_compile_pipeline_with_invalid_name_should_raise_error(self):
 
     def my_pipeline():
@@ -408,6 +379,71 @@ class CompilerTest(unittest.TestCase):
           pipeline_func=my_pipeline,
           pipeline_root='dummy',
           output_path='output.json')
+
+  def test_set_pipeline_root_through_pipeline_decorator(self):
+
+    tmpdir = tempfile.mkdtemp()
+    try:
+
+      @dsl.pipeline(name='my-pipeline', pipeline_root='gs://path')
+      def my_pipeline():
+        pass
+
+      target_json_file = os.path.join(tmpdir, 'result.json')
+      compiler.Compiler().compile(
+          pipeline_func=my_pipeline, output_path=target_json_file)
+
+      self.assertTrue(os.path.exists(target_json_file))
+      with open(target_json_file) as f:
+        job_spec = json.load(f)
+      self.assertEqual('gs://path',
+                       job_spec['runtimeConfig']['gcsOutputDirectory'])
+    finally:
+      shutil.rmtree(tmpdir)
+
+  def test_set_pipeline_root_through_compile_method(self):
+
+    tmpdir = tempfile.mkdtemp()
+    try:
+
+      @dsl.pipeline(name='my-pipeline', pipeline_root='gs://path')
+      def my_pipeline():
+        pass
+
+      target_json_file = os.path.join(tmpdir, 'result.json')
+      compiler.Compiler().compile(
+          pipeline_func=my_pipeline,
+          pipeline_root='gs://path-override',
+          output_path=target_json_file)
+
+      self.assertTrue(os.path.exists(target_json_file))
+      with open(target_json_file) as f:
+        job_spec = json.load(f)
+      self.assertEqual('gs://path-override',
+                       job_spec['runtimeConfig']['gcsOutputDirectory'])
+    finally:
+      shutil.rmtree(tmpdir)
+
+  def test_missing_pipeline_root_is_allowed_but_warned(self):
+
+    tmpdir = tempfile.mkdtemp()
+    try:
+
+      @dsl.pipeline(name='my-pipeline')
+      def my_pipeline():
+        pass
+
+      target_json_file = os.path.join(tmpdir, 'result.json')
+      with self.assertWarnsRegex(UserWarning, 'pipeline_root is None or empty'):
+        compiler.Compiler().compile(
+            pipeline_func=my_pipeline, output_path=target_json_file)
+
+      self.assertTrue(os.path.exists(target_json_file))
+      with open(target_json_file) as f:
+        job_spec = json.load(f)
+      self.assertTrue('gcsOutputDirectory' not in job_spec['runtimeConfig'])
+    finally:
+      shutil.rmtree(tmpdir)
 
 
 if __name__ == '__main__':

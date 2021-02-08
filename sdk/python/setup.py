@@ -20,7 +20,8 @@ NAME = 'kfp'
 #VERSION = .... Change the version in kfp/__init__.py
 
 REQUIRES = [
-    'PyYAML',
+    'absl-py>=0.9,<=0.11',
+    'PyYAML>=5.3',
     'google-cloud-storage>=1.13.0',
     'kubernetes>=8.0.0, <12.0.0',
     'google-auth>=1.6.1',
@@ -38,12 +39,13 @@ REQUIRES = [
     'Deprecated',
     'strip-hints',
     'docstring-parser>=0.7.3',
-    'kfp-pipeline-spec>=0.1.0, <0.2.0',
+    'kfp-pipeline-spec>=0.1.4, <0.2.0',
+    'fire>=0.3.1'
 ]
 
 TESTS_REQUIRE = [
     'mock',
-    'kfp-pipeline-spec>=0.1.0, <0.2.0',
+    'kfp-pipeline-spec>=0.1.4, <0.2.0',
 ]
 
 

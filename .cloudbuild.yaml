@@ -147,38 +147,6 @@ steps:
   id: 'buildGpuTrainer'
   waitFor: ["-"]
 
-# Build the Dataproc-based pipeline component images
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/deprecated/dataproc/analyze && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
-  id: 'buildDataprocAnalyze'
-  waitFor: ["-"]
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/deprecated/dataproc/create_cluster && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
-  id: 'buildDataprocCreateCluster'
-  waitFor: ["-"]
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/deprecated/dataproc/delete_cluster && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
-  id: 'buildDataprocDeleteCluster'
-  waitFor: ["-"]
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/deprecated/dataproc/predict && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
-  id: 'buildDataprocPredict'
-  waitFor: ["-"]
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/deprecated/dataproc/transform && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
-  id: 'buildDataprocTransform'
-  waitFor: ["-"]
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/deprecated/dataproc/train && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
-  id: 'buildDataprocTrain'
-  waitFor: ["-"]
-
 # Build the Generic GCP component image
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
@@ -277,14 +245,6 @@ images:
 - 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf-trainer:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf-trainer-gpu:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tfjob:$COMMIT_SHA'
-
-# Images for the Dataproc-based pipeline components
-- 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-analyze:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-create-cluster:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-delete-cluster:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-predict:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-transform:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-train:$COMMIT_SHA'
 
 # Images for the GCP generic pipeline components
 - 'gcr.io/$PROJECT_ID/ml-pipeline-gcp:$COMMIT_SHA'

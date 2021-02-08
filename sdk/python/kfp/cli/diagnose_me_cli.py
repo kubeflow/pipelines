@@ -19,14 +19,17 @@ def diagnose_me():
 
 @diagnose_me.command()
 @click.option(
+    '-j',
     '--json',
     is_flag=True,
     help='Output in Json format, human readable format is set by default.')
 @click.option(
+    '-p',
     '--project-id',
     type=Text,
     help='Target project id. It will use environment default if not specified.')
 @click.option(
+    '-n',
     '--namespace',
     type=Text,
     help='Namespace to use for Kubernetes cluster.all-namespaces is used if not specified.'
@@ -46,13 +49,12 @@ def diagnose_me(ctx, json, project_id, namespace):
       human_readable=False)
   for app in ['Google Cloud SDK', 'gsutil', 'kubectl']:
     if app not in local_env_gcloud_sdk.json_output:
-      print(
-          '%s is not installed, gcloud, gsutil and kubectl are required' % app,
-          'for this app to run. Please follow instructions at',
+      raise RuntimeError(
+          '%s is not installed, gcloud, gsutil and kubectl are required ' % app +
+          'for this app to run. Please follow instructions at ' +
           'https://cloud.google.com/sdk/install to install the SDK.')
-      return
 
-  print('Collecting diagnostic information ...', file=sys.stderr)
+  click.echo('Collecting diagnostic information ...', file=sys.stderr)
 
   # default behaviour dump all configurations
   results = {}
@@ -102,4 +104,4 @@ def print_to_sdtout(results: Dict[str, utility.ExecutorResponse],
     result = json_library.dumps(
         output_dict, sort_keys=True, indent=2, separators=(',', ': '))
 
-  print(result)
+  click.echo(result)
