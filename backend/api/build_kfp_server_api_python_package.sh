@@ -67,7 +67,7 @@ python3 setup.py --quiet sdist
 popd
 
 echo "Adding license header for generated python files in $DIR."
-go get -u github.com/google/addlicense
+go install github.com/google/addlicense
 addlicense "$DIR"
 
 echo "Run the following commands to update the package on PyPI"

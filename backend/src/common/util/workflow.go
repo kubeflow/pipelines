@@ -192,7 +192,7 @@ func (w *Workflow) SetAnnotationsToAllTemplates(key string, value string) {
 	if len(w.Spec.Templates) == 0 {
 		return
 	}
-	for index, _ := range w.Spec.Templates {
+	for index := range w.Spec.Templates {
 		if w.Spec.Templates[index].Metadata.Annotations == nil {
 			w.Spec.Templates[index].Metadata.Annotations = make(map[string]string)
 		}
@@ -205,7 +205,7 @@ func (w *Workflow) SetLabelsToAllTemplates(key string, value string) {
 	if len(w.Spec.Templates) == 0 {
 		return
 	}
-	for index, _ := range w.Spec.Templates {
+	for index := range w.Spec.Templates {
 		if w.Spec.Templates[index].Metadata.Labels == nil {
 			w.Spec.Templates[index].Metadata.Labels = make(map[string]string)
 		}
