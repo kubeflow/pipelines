@@ -11,3 +11,9 @@ Install proto code generator:
 ```bash
 go install google.golang.org/protobuf/cmd/protoc-gen-go
 ```
+
+Generate golang proto code:
+
+```bash
+make gen_proto
+```
