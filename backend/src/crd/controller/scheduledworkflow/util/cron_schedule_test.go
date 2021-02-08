@@ -100,7 +100,7 @@ func TestCronSchedule_GetNextScheduledTime(t *testing.T) {
 		EndTime:   commonutil.Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
 		Cron:      "0 * * * * * ", // trigger every minute
 	})
-	lastJobTime := v1.Time{time.Unix(int64(10*hour+20*minute), 0).UTC()}
+	lastJobTime := v1.NewTime(time.Unix(int64(10*hour+20*minute), 0).UTC())
 	defaultStartTime := time.Unix(int64(10*hour+15*minute), 0).UTC()
 	location, _ := time.LoadLocation("UTC")
 	assert.Equal(t, lastJobTime.Add(time.Minute),
@@ -139,7 +139,7 @@ func TestCronSchedule_GetNextScheduledTime_LocationsEnvSet(t *testing.T) {
 		EndTime:   commonutil.Metav1TimePointer(v1.NewTime(endTime)),
 		Cron:      "0 * * * * * ", // trigger every minute
 	})
-	lastJobTime := v1.Time{lastJob}
+	lastJobTime := v1.NewTime(lastJob)
 
 	assert.Equal(t, lastJob.Add(time.Minute*1).In(location),
 		schedule.GetNextScheduledTime(&lastJobTime, defaultStartTime, location))
@@ -157,7 +157,7 @@ func TestCronSchedule_GetNextScheduledTimeNoCatchup(t *testing.T) {
 		Cron:      "0 * * * * * ", // trigger every minute
 	})
 
-	lastJobTime := v1.Time{time.Unix(int64(10*hour+20*minute), 0).UTC()}
+	lastJobTime := v1.NewTime(time.Unix(int64(10*hour+20*minute), 0).UTC())
 	defaultStartTime := time.Unix(int64(10*hour+15*minute), 0).UTC()
 	nowTime := time.Unix(int64(10*hour+20*minute+30*second), 0).UTC()
 	location, _ := time.LoadLocation("UTC")

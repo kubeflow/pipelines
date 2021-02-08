@@ -132,7 +132,7 @@ func main() {
 			log.Printf("Upgrade cleanup failed: %v. \nLikely MetadataStore is in a functioning state but needs verifcation.", err)
 		}
 	} else {
-			log.Fatalf("Upgrade attempt failed. MetadataStore deployment in the cluster needs attention.", err)
+		log.Fatalf("Upgrade attempt failed. MetadataStore deployment in the cluster needs attention: %v", err)
 	}
 	log.Printf("Upgrade complete")
 }
