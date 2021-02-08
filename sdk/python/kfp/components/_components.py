@@ -20,7 +20,6 @@ __all__ = [
 ]
 
 import copy
-import os
 from collections import OrderedDict
 import pathlib
 from typing import Any, Callable, List, Mapping, NamedTuple, Optional, Sequence, Union
@@ -484,6 +483,13 @@ def _resolve_command_line_and_paths(
     argument_serializer: Callable[[str], str] = serialize_value,
     input_uri_generator: Callable[[str], str] = _generate_input_uri,
     output_uri_generator: Callable[[str], str] = _generate_output_uri,
+    input_value_generator: Optional[Callable[[str], str]] = None,
+    input_metadata_path_generator: Callable[
+        [str], str] = _generate_input_metadata_path,
+    output_metadata_path_generator: Callable[
+        [], str] = _generate_output_metadata_path,
+    input_output_name_generator: Callable[
+        [str], str] = _generate_input_output_name,
 ) -> _ResolvedCommandLineAndPaths:
     """Resolves the command line argument placeholders. Also produces the maps of the generated inpuit/output paths."""
     argument_values = arguments
@@ -503,6 +509,7 @@ def _resolve_command_line_and_paths(
     input_paths = OrderedDict()
     inputs_consumed_by_value = {}
     input_uris = OrderedDict()
+    input_metadata_paths = OrderedDict()
     output_uris = OrderedDict()
 
     def expand_command_part(arg) -> Union[str, List[str], None]:
@@ -516,9 +523,11 @@ def _resolve_command_line_and_paths(
             input_spec = inputs_dict[input_name]
             input_value = argument_values.get(input_name, None)
             if input_value is not None:
-                serialized_argument = argument_serializer(input_value, input_spec.type)
-                inputs_consumed_by_value[input_name] = serialized_argument
-                return serialized_argument
+                if input_value_generator is not None:
+                    inputs_consumed_by_value[input_name] = input_value_generator(input_name)
+                else:
+                    inputs_consumed_by_value[input_name] = argument_serializer(input_value, input_spec.type)
+                return inputs_consumed_by_value[input_name]
             else:
                 if input_spec.optional:
                     return None
@@ -565,6 +574,32 @@ def _resolve_command_line_and_paths(
                 else:
                     raise ValueError('No value provided for input {}'.format(input_name))
 
+        elif isinstance(arg, InputMetadataPlaceholder):
+            input_name = arg.input_name
+            if input_name in argument_values:
+                input_metadata_path = input_metadata_path_generator(input_name)
+                input_metadata_paths[input_name] = input_metadata_path
+                return input_metadata_path
+            else:
+                input_spec = inputs_dict[input_name]
+                if input_spec.optional:
+                    return None
+                else:
+                    raise ValueError(
+                        'No value provided for input {}'.format(input_name))
+
+        elif isinstance(arg, InputOutputPortNamePlaceholder):
+            input_name = arg.input_name
+            if input_name in argument_values:
+                return input_output_name_generator(input_name)
+            else:
+                input_spec = inputs_dict[input_name]
+                if input_spec.optional:
+                    return None
+                else:
+                    raise ValueError(
+                        'No value provided for input {}'.format(input_name))
+
         elif isinstance(arg, OutputUriPlaceholder):
             output_name = arg.output_name
             output_uri = output_uri_generator(output_name)
@@ -577,6 +612,10 @@ def _resolve_command_line_and_paths(
                 output_uris[output_name] = output_uri
 
             return output_uri
+
+        elif isinstance(arg, OutputMetadataPlaceholder):
+            # TODO: Consider making the output metadata per-artifact.
+            return output_metadata_path_generator()
 
         elif isinstance(arg, ConcatPlaceholder):
             expanded_argument_strings = expand_argument_list(arg.items)

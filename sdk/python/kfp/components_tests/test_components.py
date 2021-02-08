@@ -745,7 +745,6 @@ implementation:
         )
 
         self.assertEqual(
-            resolved_cmd.command,
             [
                 'program',
                 '--in1-uri',
