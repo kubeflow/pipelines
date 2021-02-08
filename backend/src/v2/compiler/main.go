@@ -44,13 +44,13 @@ func main() {
 	// fmt.Println(specJson)
 	job := &pb.PipelineJob{}
 	if err := jsonpb.UnmarshalString(jobJson, job); err != nil {
-		glog.Fatalf("Failed to parse pipeline job: %v", jobJson, err)
+		glog.Fatalf("Failed to parse pipeline job: %v, error: %s", jobJson, err)
 	}
 	// TODO(Bobgy): can we avoid this marshal to string step?
 	marshaler := jsonpb.Marshaler{}
 	specJson, err := marshaler.MarshalToString(job.GetPipelineSpec())
 	if err != nil {
-		glog.Fatalf("Failed marshal pipeline spec to json", err)
+		glog.Fatalf("Failed marshal pipeline spec to json: %v", err)
 	}
 	spec := &pb.PipelineSpec{}
 	if err := jsonpb.UnmarshalString(specJson, spec); err != nil {
@@ -58,7 +58,7 @@ func main() {
 	}
 	deploymentConfig, err := unmarshalDeploymentConfig(spec)
 	if err != nil {
-		glog.Fatalf("Failed to unmarshal deployment config", err)
+		glog.Fatalf("Failed to unmarshal deployment config: %v", err)
 	}
 	// fmt.Println(a)
 	workflow, err := CompilePipelineSpec(spec, deploymentConfig)
