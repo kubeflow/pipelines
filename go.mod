@@ -41,7 +41,7 @@ require (
 	google.golang.org/api v0.20.0
 	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013
 	google.golang.org/grpc v1.34.0
-	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.0.1 // indirect
+	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.0.1
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/yaml.v2 v2.3.0
 	k8s.io/api v0.17.9
