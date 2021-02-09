@@ -22,10 +22,14 @@
 set -ex
 
 cd ../..
+# docker run  -it --rm \
+#     --mount type=bind,source="$(pwd)",target=/app/pipelines \
+#     builder /bin/bash
+
 # Generate API
 docker run  --interactive --rm \
-    --mount type=bind,source="$(pwd)",target=/app/pipelines \
-    builder /app/pipelines/backend/api/generator.sh
+    --mount type=bind,source="$(pwd)",target=/go/src/github.com/kubeflow/pipelines \
+    builder /go/src/github.com/kubeflow/pipelines/backend/api/generator.sh
 
 # Change owner to user for generate files, explanation of command: https://askubuntu.com/questions/829537/how-do-i-change-owner-to-current-user-on-folder-and-containing-folders-inside-my
 sudo find backend/api -user root -exec sudo chown $USER: {} +
