@@ -4,16 +4,15 @@ ENV KFP_VERSION 1.0.0
 ENV GRPC_GATEWAY_VERSION v1.9.0
 ENV GO_SWAGGER_VERSION v0.18.0
 ENV GOLANG_PROTOBUF_VERSION v1.3.2
-ENV PROTOCOLBUFFERS_PROTOBUF_VERSION v3.11.3
 ENV GRPC_VERSION v1.23.0
+ENV PROTOC_VERSION 3.6.1
 
 # Install protoc.
 RUN apt-get update -y && apt-get install -y jq sed unzip
-ENV PROTOC_ZIP=protoc-3.13.0-linux-x86_64.zip
-RUN curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.13.0/$PROTOC_ZIP
-RUN unzip -o $PROTOC_ZIP -d /usr/ bin/protoc
-RUN unzip -o $PROTOC_ZIP -d /usr/ 'include/*'
-RUN rm -f $PROTOC_ZIP
+RUN curl -L -o protoc.zip "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip"
+RUN unzip -o protoc.zip -d /usr/ bin/protoc
+RUN unzip -o protoc.zip -d /usr/ 'include/*'
+RUN rm -f protoc.zip
 ENV PROTOCCOMPILER /usr/bin/protoc
 ENV PROTOCINCLUDE /usr/include/google/protobuf
 
