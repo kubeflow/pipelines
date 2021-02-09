@@ -7,5 +7,6 @@ package tools
 
 import (
 	_ "github.com/google/addlicense"
+	_ "google.golang.org/grpc/cmd/protoc-gen-go-grpc"
 	_ "k8s.io/code-generator"
 )
