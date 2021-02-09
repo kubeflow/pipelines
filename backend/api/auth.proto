@@ -19,7 +19,6 @@ package api;
 
 import "google/api/annotations.proto";
 import "google/protobuf/empty.proto";
-import "backend/api/error.proto";
 import "protoc-gen-swagger/options/annotations.proto";
 
 option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
