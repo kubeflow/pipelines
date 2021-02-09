@@ -45,9 +45,9 @@ class RunListsRouter extends React.PureComponent<RunListsRouterProps> {
     if (this.props.onTabSwitch) {
       this.props.onTabSwitch(newTab);
     }
-  }
-  
-  componentDidUpdate(prevProps: { refreshCount: number; }) {
+  };
+
+  componentDidUpdate(prevProps: { refreshCount: number }) {
     if (prevProps.refreshCount === this.props.refreshCount) {
       return;
     }

@@ -230,7 +230,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
               onError={this.showPageError.bind(this)}
               hideExperimentColumn={true}
               experimentIdMask={experiment.id}
-              refreshCount = {this.state.runlistRefreshCount}
+              refreshCount={this.state.runlistRefreshCount}
               selectedIds={this.state.selectedIds}
               onSelectionChange={this._selectionChanged}
               onTabSwitch={this._onRunTabSwitch}
@@ -273,7 +273,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     return this.load(true);
   }
 
-  public async load(isFirstTimeLoad:boolean = false): Promise<void> {
+  public async load(isFirstTimeLoad: boolean = false): Promise<void> {
     this.clearBanner();
 
     const experimentId = this.props.match.params[RouteParams.experimentId];
@@ -299,9 +299,10 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       // After component is mounted, it is up to user to decide the run storage state they
       // want to view.
       if (isFirstTimeLoad) {
-        runStorageState = experiment.storage_state === ExperimentStorageState.ARCHIVED
-          ? RunStorageState.ARCHIVED
-          : RunStorageState.AVAILABLE;
+        runStorageState =
+          experiment.storage_state === ExperimentStorageState.ARCHIVED
+            ? RunStorageState.ARCHIVED
+            : RunStorageState.AVAILABLE;
       }
 
       const actions = buttons.getToolbarActionMap();
@@ -370,9 +371,9 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     );
 
     return;
-  }
+  };
 
-  _selectionChanged= (selectedIds: string[]) => {
+  _selectionChanged = (selectedIds: string[]) => {
     const toolbarButtons = this._getRunInitialToolBarButtons();
     // If user selects to show Active runs list, shows `Archive` button for selected runs.
     // If user selects to show Archive runs list, shows `Restore` button for selected runs.
@@ -410,7 +411,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       },
       selectedIds,
     });
-  }
+  };
 
   private _recurringRunsManagerClosed(): void {
     this.setState({ recurringRunsManagerOpen: false });
