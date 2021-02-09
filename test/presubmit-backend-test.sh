@@ -23,6 +23,7 @@ wget --quiet https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz
 tar -xf go1.13.3.linux-amd64.tar.gz
 GO_CMD=/home/prow/go1.13.3/go/bin/go
 # 2. Check go modules are tidy
+# Reference: https://github.com/golang/go/issues/27005#issuecomment-564892876
 ${GO_CMD} mod download
 ${GO_CMD} mod tidy
 git diff --exit-code -- go.mod go.sum
