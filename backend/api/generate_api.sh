@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2018-2020 Google LLC
+# Copyright 2018-2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,10 +28,9 @@ if [ -z "$VERSION" ]; then
     echo "ERROR: $REPO_ROOT/VERSION is empty"
     exit 1
 fi
+TMP_DIR="$(mktemp -d)"
 
 BAZEL_BINDIR=$(bazel info bazel-bin)
-SWAGGER_CMD=${DIR}/../../bazel-bin/external/com_github_go_swagger/cmd/swagger/*stripped/swagger
-AUTOGEN_CMD="${DIR}/../../bazel-bin/external/com_github_mbrukman_autogen/autogen_tool"
 GENERATED_GO_PROTO_FILES="${BAZEL_BINDIR}/backend/api/api_generated_go_sources/src/github.com/kubeflow/pipelines/backend/api/go_client/*.go"
 
 # TODO this script should be able to be run from anywhere, not just within .../backend/api/
@@ -40,19 +39,16 @@ GENERATED_GO_PROTO_FILES="${BAZEL_BINDIR}/backend/api/api_generated_go_sources/s
 rm -r -f ${DIR}/go_http_client/*
 rm -r -f ${DIR}/go_client/*
 
-# Build required tools.
-bazel build @com_github_mbrukman_autogen//:autogen_tool
-bazel build @com_github_go_swagger//cmd/swagger
-
 # Build .pb.go and .gw.pb.go files from the proto sources.
 bazel build //backend/api:api_generated_go_sources
+
+mkdir -p ${DIR}/go_client
 
 # Copy the generated files into the source tree and add license.
 for f in $GENERATED_GO_PROTO_FILES; do
   target=${DIR}/go_client/$(basename ${f})
   cp $f $target
   chmod 766 $target
-  ${AUTOGEN_CMD} -i --no-tlc -c "Google LLC" -l apache $target
 done
 
 # Generate and copy back into source tree .swagger.json files.
@@ -67,6 +63,16 @@ jq -s '
     .info.contact = { "name": "google", "email": "kubeflow-pipelines@google.com", "url": "https://www.google.com" } |
     .info.license = { "name": "Apache 2.0", "url": "https://raw.githubusercontent.com/kubeflow/pipelines/master/LICENSE" }
 ' ${DIR}/swagger/{run,job,pipeline,experiment,pipeline.upload,healthz}.swagger.json > "${DIR}/swagger/kfp_api_single_file.swagger.json"
+
+# Reference: https://goswagger.io/install.html
+SWAGGER_GO_VERSION=v0.18.0
+pushd "${TMP_DIR}"
+curl -LO "https://github.com/go-swagger/go-swagger/releases/download/${SWAGGER_GO_VERSION}/swagger_linux_amd64"
+chmod +x swagger_linux_amd64
+SWAGGER_CMD="${TMP_DIR}/swagger_linux_amd64"
+popd
+
+mkdir -p ${DIR}/go_http_client
 
 # Generate Go HTTP client from the swagger files.
 ${SWAGGER_CMD} generate client \
@@ -134,11 +140,3 @@ sed -i -- 's/IntervalSecond string `json:"interval_second,omitempty"`/IntervalSe
 
 # Executes the //go:generate directives in the generated code.
 go generate ./...
-
-# Add license to files in go_http_client.
-find ${DIR}/go_http_client/ -name "*.go" -exec ${AUTOGEN_CMD} -i --no-tlc -c "Google LLC" -l apache {} \;
-
-# Finally, run gazelle to add BUILD files for the generated code.
-bazel run //:gazelle
-# HACK: remove unnecessary BUILD.bazels
-rm -f "$REPO_ROOT/sdk/python/kfp/components/structures/BUILD.bazel" "$REPO_ROOT/tools/metadatastore-upgrade/BUILD.bazel"
