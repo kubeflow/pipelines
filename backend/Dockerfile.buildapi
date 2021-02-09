@@ -8,7 +8,7 @@ ENV PROTOCOLBUFFERS_PROTOBUF_VERSION v3.11.3
 ENV GRPC_VERSION v1.23.0
 
 # Install protoc.
-RUN apt-get update -y && apt-get install -y jq sed unzip
+RUN apt-get update -y && apt-get install -y jq sed unzip curl
 ENV PROTOC_ZIP=protoc-3.13.0-linux-x86_64.zip
 RUN curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.13.0/$PROTOC_ZIP
 RUN unzip -o $PROTOC_ZIP -d /usr/ bin/protoc
@@ -27,10 +27,10 @@ RUN cd grpc-ecosystem/grpc-gateway && GO111MODULE=on go mod vendor
 RUN GOBIN=/go/bin go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
 RUN GOBIN=/go/bin go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
 
-# Need go-swagger source code for -I in protoc command.
-RUN mkdir go-swagger && cd go-swagger && git clone --depth 1 --branch $GO_SWAGGER_VERSION https://github.com/go-swagger/go-swagger.git
-# Install swagger.
-RUN cd go-swagger/go-swagger && go install ./cmd/swagger
+# Install swagger
+ENV SWAGGER_DOWNLOAD_URL="https://github.com/go-swagger/go-swagger/releases/download/v0.21.0/swagger_linux_amd64"
+RUN curl -o /usr/local/bin/swagger -L'#' $SWAGGER_DOWNLOAD_URL
+RUN chmod +x /usr/local/bin/swagger
 
 # Need protobuf source code for -I in protoc command.
 RUN mkdir golang && cd golang && git clone --depth 1 --branch $GOLANG_PROTOBUF_VERSION https://github.com/golang/protobuf.git
@@ -40,6 +40,3 @@ RUN GOBIN=/go/bin go install github.com/golang/protobuf/protoc-gen-go
 
 # Need protobuffers/protobuf source code for -I in proto command.
 RUN mkdir protocolbuffers && cd protocolbuffers && git clone --depth 1 --branch $PROTOCOLBUFFERS_PROTOBUF_VERSION https://github.com/protocolbuffers/protobuf.git
-
-# Need autogen to add license info to generated files.
-RUN mkdir /autogen && git clone https://github.com/mbrukman/autogen.git /autogen
