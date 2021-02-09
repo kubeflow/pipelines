@@ -19,4 +19,11 @@
 # directory using Bazel, then copies them back into the source tree so they can
 # be checked-in.
 
-docker run  --interactive --rm --mount type=bind,source="$(pwd)",target=/app/pipelines builder app/pipelines/backend/api/generator.sh
+cd ../..
+# Generate API
+docker run  --interactive --rm \
+    --mount type=bind,source="$(pwd)",target=/app/pipelines \
+    builder /app/pipelines/backend/api/generator.sh
+
+# Change owner to user for generate files, explanation of command: https://askubuntu.com/questions/829537/how-do-i-change-owner-to-current-user-on-folder-and-containing-folders-inside-my
+sudo find backend/api -user root -exec sudo chown $USER: {} +
