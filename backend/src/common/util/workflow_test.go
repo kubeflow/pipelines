@@ -260,9 +260,7 @@ func TestWorkflow_SetLabelsToAllTemplates(t *testing.T) {
 		},
 		Spec: workflowapi.WorkflowSpec{
 			Templates: []workflowapi.Template{
-				workflowapi.Template{
-					Metadata: workflowapi.Metadata{},
-				},
+				{Metadata: workflowapi.Metadata{}},
 			},
 		},
 	})
@@ -272,15 +270,13 @@ func TestWorkflow_SetLabelsToAllTemplates(t *testing.T) {
 			Name: "WORKFLOW_NAME",
 		},
 		Spec: workflowapi.WorkflowSpec{
-			Templates: []workflowapi.Template{
-				workflowapi.Template{
-					Metadata: workflowapi.Metadata{
-						Labels: map[string]string{
-							"key": "value",
-						},
+			Templates: []workflowapi.Template{{
+				Metadata: workflowapi.Metadata{
+					Labels: map[string]string{
+						"key": "value",
 					},
 				},
-			},
+			}},
 		},
 	}
 
@@ -417,18 +413,16 @@ func TestFindS3ArtifactKey_Succeed(t *testing.T) {
 	workflow := NewWorkflow(&workflowapi.Workflow{
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
-				"node-1": workflowapi.NodeStatus{
+				"node-1": {
 					Outputs: &workflowapi.Outputs{
-						Artifacts: []workflowapi.Artifact{
-							workflowapi.Artifact{
-								Name: "artifact-1",
-								ArtifactLocation: workflowapi.ArtifactLocation{
-									S3: &workflowapi.S3Artifact{
-										Key: expectedPath,
-									},
+						Artifacts: []workflowapi.Artifact{{
+							Name: "artifact-1",
+							ArtifactLocation: workflowapi.ArtifactLocation{
+								S3: &workflowapi.S3Artifact{
+									Key: expectedPath,
 								},
 							},
-						},
+						}},
 					},
 				},
 			},
@@ -444,18 +438,16 @@ func TestFindS3ArtifactKey_ArtifactNotFound(t *testing.T) {
 	workflow := NewWorkflow(&workflowapi.Workflow{
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
-				"node-1": workflowapi.NodeStatus{
+				"node-1": {
 					Outputs: &workflowapi.Outputs{
-						Artifacts: []workflowapi.Artifact{
-							workflowapi.Artifact{
-								Name: "artifact-2",
-								ArtifactLocation: workflowapi.ArtifactLocation{
-									S3: &workflowapi.S3Artifact{
-										Key: "foo/bar",
-									},
+						Artifacts: []workflowapi.Artifact{{
+							Name: "artifact-2",
+							ArtifactLocation: workflowapi.ArtifactLocation{
+								S3: &workflowapi.S3Artifact{
+									Key: "foo/bar",
 								},
 							},
-						},
+						}},
 					},
 				},
 			},

@@ -1,0 +1,168 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: uri-artifact-pipeline-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.3.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-02-02T18:52:10.268063',
+    pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "Hello world!",
+      "name": "text", "optional": true}], "name": "uri-artifact-pipeline"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.3.0}
+spec:
+  entrypoint: uri-artifact-pipeline
+  templates:
+  - name: condition-2
+    inputs:
+      parameters:
+      - {name: input_gcs_path-producer-pod-id-}
+    dag:
+      tasks:
+      - name: read-from-gcs-3
+        template: read-from-gcs-3
+        arguments:
+          parameters:
+          - {name: input_gcs_path-producer-pod-id-, value: '{{inputs.parameters.input_gcs_path-producer-pod-id-}}'}
+  - name: flip-coin
+    container:
+      args: ['python -c "import random; result = ''heads'' if random.randint(0,1)
+          == 0 else ''tails''; print(result)" | tee /tmp/output']
+      command: [sh, -c]
+      image: python:alpine3.6
+    outputs:
+      parameters:
+      - name: flip-coin-output
+        valueFrom: {path: /tmp/output}
+      artifacts:
+      - {name: flip-coin-output, path: /tmp/output}
+  - name: for-loop-for-loop-1b89061c-1
+    inputs:
+      parameters:
+      - {name: input_gcs_path-producer-pod-id-}
+    dag:
+      tasks:
+      - name: read-from-gcs-2
+        template: read-from-gcs-2
+        arguments:
+          parameters:
+          - {name: input_gcs_path-producer-pod-id-, value: '{{inputs.parameters.input_gcs_path-producer-pod-id-}}'}
+  - name: read-from-gcs
+    container:
+      args: []
+      command:
+      - sh
+      - -c
+      - |
+        set -e -x
+        gsutil cat "$0"
+      - gs://gongyuan-pipeline-test/v2-in-v1/{{workflow.uid}}/{{inputs.parameters.input_gcs_path-producer-pod-id-}}/output_gcs_path
+      image: google/cloud-sdk:slim
+    inputs:
+      parameters:
+      - {name: input_gcs_path-producer-pod-id-}
+    metadata:
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"command": ["sh", "-c", "set -e -x\ngsutil cat \"$0\"\n", {"inputUri":
+          "input_gcs_path"}], "image": "google/cloud-sdk:slim"}}, "inputs": [{"description":
+          "GCS file path", "name": "input_gcs_path", "type": "String"}], "name": "Read
+          from GCS"}', pipelines.kubeflow.org/component_ref: '{"digest": "d87d6c97f22a73ec8cd2e086a7727b2e46c391f09612da1b5001dfd9b824e5c7"}'}
+  - name: read-from-gcs-2
+    container:
+      args: []
+      command:
+      - sh
+      - -c
+      - |
+        set -e -x
+        gsutil cat "$0"
+      - gs://gongyuan-pipeline-test/v2-in-v1/{{workflow.uid}}/{{inputs.parameters.input_gcs_path-producer-pod-id-}}/output_gcs_path
+      image: google/cloud-sdk:slim
+    inputs:
+      parameters:
+      - {name: input_gcs_path-producer-pod-id-}
+    metadata:
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"command": ["sh", "-c", "set -e -x\ngsutil cat \"$0\"\n", {"inputUri":
+          "input_gcs_path"}], "image": "google/cloud-sdk:slim"}}, "inputs": [{"description":
+          "GCS file path", "name": "input_gcs_path", "type": "String"}], "name": "Read
+          from GCS"}', pipelines.kubeflow.org/component_ref: '{"digest": "d87d6c97f22a73ec8cd2e086a7727b2e46c391f09612da1b5001dfd9b824e5c7"}'}
+  - name: read-from-gcs-3
+    container:
+      args: []
+      command:
+      - sh
+      - -c
+      - |
+        set -e -x
+        gsutil cat "$0"
+      - gs://gongyuan-pipeline-test/v2-in-v1/{{workflow.uid}}/{{inputs.parameters.input_gcs_path-producer-pod-id-}}/output_gcs_path
+      image: google/cloud-sdk:slim
+    inputs:
+      parameters:
+      - {name: input_gcs_path-producer-pod-id-}
+    metadata:
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"command": ["sh", "-c", "set -e -x\ngsutil cat \"$0\"\n", {"inputUri":
+          "input_gcs_path"}], "image": "google/cloud-sdk:slim"}}, "inputs": [{"description":
+          "GCS file path", "name": "input_gcs_path", "type": "String"}], "name": "Read
+          from GCS"}', pipelines.kubeflow.org/component_ref: '{"digest": "d87d6c97f22a73ec8cd2e086a7727b2e46c391f09612da1b5001dfd9b824e5c7"}'}
+  - name: uri-artifact-pipeline
+    inputs:
+      parameters:
+      - {name: text}
+    dag:
+      tasks:
+      - name: condition-2
+        template: condition-2
+        when: '"{{tasks.flip-coin.outputs.parameters.flip-coin-output}}" == "heads"'
+        dependencies: [flip-coin, write-to-gcs]
+        arguments:
+          parameters:
+          - {name: input_gcs_path-producer-pod-id-, value: '{{tasks.write-to-gcs.outputs.parameters.write-to-gcs-output_gcs_path-producer-pod-id-}}'}
+      - {name: flip-coin, template: flip-coin}
+      - name: for-loop-for-loop-1b89061c-1
+        template: for-loop-for-loop-1b89061c-1
+        dependencies: [write-to-gcs]
+        arguments:
+          parameters:
+          - {name: input_gcs_path-producer-pod-id-, value: '{{tasks.write-to-gcs.outputs.parameters.write-to-gcs-output_gcs_path-producer-pod-id-}}'}
+        withItems: [1, 2, 3, 4]
+      - name: read-from-gcs
+        template: read-from-gcs
+        dependencies: [write-to-gcs]
+        arguments:
+          parameters:
+          - {name: input_gcs_path-producer-pod-id-, value: '{{tasks.write-to-gcs.outputs.parameters.write-to-gcs-output_gcs_path-producer-pod-id-}}'}
+      - name: write-to-gcs
+        template: write-to-gcs
+        arguments:
+          parameters:
+          - {name: text, value: '{{inputs.parameters.text}}'}
+  - name: write-to-gcs
+    container:
+      args: []
+      command:
+      - sh
+      - -c
+      - |
+        set -e -x
+        echo "$0" | gsutil cp - "$1"
+      - '{{inputs.parameters.text}}'
+      - gs://gongyuan-pipeline-test/v2-in-v1/{{workflow.uid}}/{{pod.name}}/output_gcs_path
+      image: google/cloud-sdk:slim
+    inputs:
+      parameters:
+      - {name: text}
+    outputs:
+      parameters:
+      - {name: write-to-gcs-output_gcs_path-producer-pod-id-, value: '{{pod.name}}'}
+    metadata:
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"command": ["sh", "-c", "set -e -x\necho \"$0\" | gsutil cp - \"$1\"\n",
+          {"inputValue": "text"}, {"outputUri": "output_gcs_path"}], "image": "google/cloud-sdk:slim"}},
+          "inputs": [{"description": "Content to be written to GCS", "name": "text",
+          "type": "String"}], "name": "Write to GCS", "outputs": [{"description":
+          "GCS file path", "name": "output_gcs_path", "type": "String"}]}', pipelines.kubeflow.org/component_ref: '{"digest":
+          "aad0cd48834955bdd0d570a625283957f9c6ff3b77f59a2c47af933ae4b8ef64"}', pipelines.kubeflow.org/arguments.parameters: '{"text":
+          "{{inputs.parameters.text}}"}'}
+  arguments:
+    parameters:
+    - {name: text, value: Hello world!}
+  serviceAccountName: pipeline-runner
