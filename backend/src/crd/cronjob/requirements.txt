@@ -1,4 +1,0 @@
-mysqlclient
-mysql-connector-python
-pymysql
-kfp
