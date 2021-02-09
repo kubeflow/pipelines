@@ -317,7 +317,7 @@ describe('ExperimentDetails', () => {
       .at(0)
       .simulate('click');
     await TestUtils.flushPromises();
-    expect(tree.state('recurringRunsManagerOpen')).toBe(true);
+    expect(tree.state('recurringRunsManagerOpen')).toBeTruthy();
   });
 
   it('closes the recurring run manager modal', async () => {
@@ -332,14 +332,14 @@ describe('ExperimentDetails', () => {
       .at(0)
       .simulate('click');
     await TestUtils.flushPromises();
-    expect(tree.state('recurringRunsManagerOpen')).toBe(true);
+    expect(tree.state('recurringRunsManagerOpen')).toBeTruthy();
 
     tree
       .find('#closeExperimentRecurringRunManagerBtn')
       .at(0)
       .simulate('click');
     await TestUtils.flushPromises();
-    expect(tree.state('recurringRunsManagerOpen')).toBe(false);
+    expect(tree.state('recurringRunsManagerOpen')).toBeFalsy();
   });
 
   it('refreshes the number of active recurring runs when the recurring run manager is closed', async () => {
@@ -357,7 +357,7 @@ describe('ExperimentDetails', () => {
       .at(0)
       .simulate('click');
     await TestUtils.flushPromises();
-    expect(tree.state('recurringRunsManagerOpen')).toBe(true);
+    expect(tree.state('recurringRunsManagerOpen')).toBeTruthy();
 
     // Called in the recurring run manager to list the recurring runs
     expect(listJobsSpy).toHaveBeenCalledTimes(2);
@@ -367,7 +367,7 @@ describe('ExperimentDetails', () => {
       .at(0)
       .simulate('click');
     await TestUtils.flushPromises();
-    expect(tree.state('recurringRunsManagerOpen')).toBe(false);
+    expect(tree.state('recurringRunsManagerOpen')).toBeFalsy();
 
     // Called a third time when the manager is closed to update the number of active recurring runs
     expect(listJobsSpy).toHaveBeenCalledTimes(3);
@@ -485,9 +485,9 @@ describe('ExperimentDetails', () => {
         ButtonKeys.COMPARE
       ];
       if (i < 2 || i > 10) {
-        expect(compareBtn!.disabled).toBe(true);
+        expect(compareBtn!.disabled).toBeTruthy();
       } else {
-        expect(compareBtn!.disabled).toBe(false);
+        expect(compareBtn!.disabled).toBeFalsy();
       }
       tree
         .find('.tableRow')
@@ -508,9 +508,9 @@ describe('ExperimentDetails', () => {
         ButtonKeys.CLONE_RUN
       ];
       if (i === 1) {
-        expect(cloneBtn!.disabled).toBe(false);
+        expect(cloneBtn!.disabled).toBeFalsy();
       } else {
-        expect(cloneBtn!.disabled).toBe(true);
+        expect(cloneBtn!.disabled).toBeTruthy();
       }
       tree
         .find('.tableRow')
@@ -531,9 +531,9 @@ describe('ExperimentDetails', () => {
         ButtonKeys.ARCHIVE
       ];
       if (i === 0) {
-        expect(archiveButton!.disabled).toBe(true);
+        expect(archiveButton!.disabled).toBeTruthy();
       } else {
-        expect(archiveButton!.disabled).toBe(false);
+        expect(archiveButton!.disabled).toBeFalsy();
       }
       tree
         .find('.tableRow')
@@ -561,9 +561,9 @@ describe('ExperimentDetails', () => {
         ButtonKeys.RESTORE
       ];
       if (i === 0) {
-        expect(restoreButton!.disabled).toBe(true);
+        expect(restoreButton!.disabled).toBeTruthy();
       } else {
-        expect(restoreButton!.disabled).toBe(false);
+        expect(restoreButton!.disabled).toBeFalsy();
       }
       tree
         .find('.tableRow')

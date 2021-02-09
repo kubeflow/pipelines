@@ -67,6 +67,7 @@ describe('RunListsRouter', () => {
       onSelectionChange: onSelectionChangeMock,
       selectedIds: [],
       storageState: runStorageState,
+      refreshCount: 0,
       noFilterBox: false,
       disablePaging: false,
       disableSorting: true,

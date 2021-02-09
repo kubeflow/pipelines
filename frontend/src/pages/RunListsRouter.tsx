@@ -28,6 +28,7 @@ export enum RunListsGroupTab {
 
 export type RunListsRouterProps = RunListProps & {
   storageState: RunStorageState;
+  refreshCount: number;
   onTabSwitch?: (tab: RunListsGroupTab) => void;
 };
 
@@ -35,15 +36,29 @@ export type RunListsRouterProps = RunListProps & {
  * Contains two tab buttons which allows user to see Active or Archived runs list.
  */
 class RunListsRouter extends React.PureComponent<RunListsRouterProps> {
-  protected _isMounted = true;
   private _runlistRef = React.createRef<RunList>();
 
-  constructor(props: any) {
-    super(props);
+  switchTab = (newTab: number) => {
+    if (this._getSelectedTab() === newTab) {
+      return;
+    }
+    if (this.props.onTabSwitch) {
+      this.props.onTabSwitch(newTab);
+    }
+  }
+  
+  componentDidUpdate(prevProps: { refreshCount: number; }) {
+    if (prevProps.refreshCount === this.props.refreshCount) {
+      return;
+    }
+    this.refresh();
   }
 
-  public componentWillUnmount(): void {
-    this._isMounted = false;
+  public async refresh(): Promise<void> {
+    if (this._runlistRef.current) {
+      await this._runlistRef.current.refresh();
+    }
+    return;
   }
 
   public render(): JSX.Element {
@@ -52,7 +67,7 @@ class RunListsRouter extends React.PureComponent<RunListsRouterProps> {
         <MD2Tabs
           tabs={['Active', 'Archived']}
           selectedTab={this._getSelectedTab()}
-          onSwitch={this._switchTab.bind(this)}
+          onSwitch={this.switchTab}
         />
 
         {
@@ -72,32 +87,10 @@ class RunListsRouter extends React.PureComponent<RunListsRouterProps> {
     );
   }
 
-  public async refresh(): Promise<void> {
-    if (this._runlistRef.current) {
-      await this._runlistRef.current.refresh();
-    }
-    return;
-  }
-
-  private _switchTab(newTab: number): void {
-    if (this._getSelectedTab() === newTab) {
-      return;
-    }
-    if (this.props.onTabSwitch) {
-      this.props.onTabSwitch(newTab);
-    }
-  }
-
-  private _getSelectedTab(): number {
+  private _getSelectedTab() {
     return this.props.storageState === RunStorageState.ARCHIVED
       ? RunListsGroupTab.ARCHIVE
       : RunListsGroupTab.ACTIVE;
-  }
-
-  private _getStorageState(newTab: number): number {
-    return newTab === RunListsGroupTab.ARCHIVE
-      ? RunStorageState.ARCHIVED
-      : RunStorageState.AVAILABLE;
   }
 }
 

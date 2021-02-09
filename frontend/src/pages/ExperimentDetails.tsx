@@ -106,11 +106,10 @@ interface ExperimentDetailsState {
   selectedIds: string[];
   runStorageState: RunStorageState;
   runListToolbarProps: ToolbarProps;
+  runlistRefreshCount: number;
 }
 
 export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
-  private _runlistsRouterRef = React.createRef<RunListsRouter>();
-
   constructor(props: any) {
     super(props);
 
@@ -127,6 +126,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       // TODO: remove
       selectedIds: [],
       runStorageState: RunStorageState.AVAILABLE,
+      runlistRefreshCount: 0,
     };
   }
 
@@ -230,10 +230,10 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
               onError={this.showPageError.bind(this)}
               hideExperimentColumn={true}
               experimentIdMask={experiment.id}
-              ref={this._runlistsRouterRef}
+              refreshCount = {this.state.runlistRefreshCount}
               selectedIds={this.state.selectedIds}
-              onSelectionChange={this._selectionChanged.bind(this)}
-              onTabSwitch={this._onRunTabSwitch.bind(this)}
+              onSelectionChange={this._selectionChanged}
+              onTabSwitch={this._onRunTabSwitch}
               {...this.props}
             />
 
@@ -266,21 +266,14 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
 
   public async refresh(): Promise<void> {
     await this.load();
-    await this.refreshRunListsRouter();
     return;
   }
 
-  private async refreshRunListsRouter() {
-    if (this._runlistsRouterRef.current) {
-      await this._runlistsRouterRef.current.refresh();
-    }
-  }
-
   public async componentDidMount(): Promise<void> {
-    return this.load();
+    return this.load(true);
   }
 
-  public async load(): Promise<void> {
+  public async load(isFirstTimeLoad:boolean = false): Promise<void> {
     this.clearBanner();
 
     const experimentId = this.props.match.params[RouteParams.experimentId];
@@ -301,10 +294,15 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
         : buttons.archive('experiment', idGetter, true, () => this.refresh());
       // If experiment is archived, shows archived runs list by default.
       // If experiment is active, shows active runs list by default.
-      const runStorageState =
-        experiment.storage_state === ExperimentStorageState.ARCHIVED
+      let runStorageState = this.state.runStorageState;
+      // Determine the default Active/Archive run list tab based on experiment status.
+      // After component is mounted, it is up to user to decide the run storage state they
+      // want to view.
+      if (isFirstTimeLoad) {
+        runStorageState = experiment.storage_state === ExperimentStorageState.ARCHIVED
           ? RunStorageState.ARCHIVED
           : RunStorageState.AVAILABLE;
+      }
 
       const actions = buttons.getToolbarActionMap();
       this.props.updateToolbar({
@@ -336,10 +334,12 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
         logger.error(`Error fetching recurring runs for experiment: ${experimentId}`, err);
       }
 
+      let runlistRefreshCount = this.state.runlistRefreshCount + 1;
       this.setStateSafe({
         activeRecurringRunsCount,
         experiment,
         runStorageState,
+        runlistRefreshCount,
       });
       this._selectionChanged([]);
     } catch (err) {
@@ -349,30 +349,30 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   }
 
   /**
-   * Users can choose to show runs list in different run storage states. After finish changing storage state, call cb to notify child component for new props.
+   * Users can choose to show runs list in different run storage states.
    *
    * @param tab selected by user for run storage state
-   * @param cb callback to notify child component
    */
-  private _onRunTabSwitch(tab: RunListsGroupTab): void {
+  _onRunTabSwitch = (tab: RunListsGroupTab) => {
     let runStorageState = RunStorageState.AVAILABLE;
     if (tab === RunListsGroupTab.ARCHIVE) {
       runStorageState = RunStorageState.ARCHIVED;
     }
+    let runlistRefreshCount = this.state.runlistRefreshCount + 1;
     this.setStateSafe(
       {
         runStorageState,
+        runlistRefreshCount,
       },
       () => {
         this._selectionChanged([]);
-        this.refreshRunListsRouter();
       },
     );
 
     return;
   }
 
-  private _selectionChanged(selectedIds: string[]): void {
+  _selectionChanged= (selectedIds: string[]) => {
     const toolbarButtons = this._getRunInitialToolBarButtons();
     // If user selects to show Active runs list, shows `Archive` button for selected runs.
     // If user selects to show Archive runs list, shows `Restore` button for selected runs.
