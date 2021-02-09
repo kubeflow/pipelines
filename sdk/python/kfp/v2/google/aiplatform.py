@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Connector components of Google AI Platform (Unified) services."""
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional, Type, Union
 
 from absl import logging
 from kfp import dsl
@@ -22,6 +22,8 @@ from kfp.pipeline_spec import pipeline_spec_pb2
 
 _AiPlatformCustomJobSpec = pipeline_spec_pb2.PipelineDeploymentConfig.AiPlatformCustomJobSpec
 _DUMMY_CONTAINER_OP_IMAGE = 'dummy/image'
+
+ValueOrPipelineParam = Union[dsl.PipelineParam, str, float, bool, int]
 
 
 # TODO(numerology):
@@ -68,9 +70,25 @@ class AiPlatformCustomJobOp(dsl.ContainerOp):
     self.custom_job_spec = custom_job_spec
 
 
+def _get_custom_job_op(
+    job_spec: Dict[str, Any],
+    input_artifacts: Optional[Dict[str, dsl.PipelineParam]] = None,
+    input_parameters: Optional[Dict[str, ValueOrPipelineParam]] = None,
+    output_artifacts: Optional[Dict[str, Type[artifact.Artifact]]] = None,
+    output_parameters: Optional[Dict[str, Any]] = None,
+) -> AiPlatformCustomJobOp:
+  """Gets an AiPlatformCustomJobOp from job spec and I/O definition."""
+  pipeline_task_spec = pipeline_spec_pb2.PipelineTaskSpec()
+
+  # 1. Iterate through the inputs/outputs declaration to get args.
+  arguments = {}
+  for input_name, param_value in input_parameters.items():
+    arguments[input_name] = str(param_value)
+
+
 def custom_job(
-    input_artifacts: Optional[Dict[str, Any]] = None,
-    input_parameters: Optional[Dict[str, Any]] = None,
+    input_artifacts: Optional[Dict[str, dsl.PipelineParam]] = None,
+    input_parameters: Optional[Dict[str, ValueOrPipelineParam]] = None,
     output_artifacts: Optional[Dict[str, Type[artifact.Artifact]]] = None,
     output_parameters: Optional[Dict[str, Any]] = None,
     # Custom container training specs.
@@ -86,7 +104,7 @@ def custom_job(
     # Full-fledged custom job API spec. For details please see:
     # https://cloud.google.com/ai-platform-unified/docs/reference/rest/v1beta1/CustomJobSpec
     additional_job_spec: Optional[Dict[str, Any]] = None
-) -> structures.ComponentSpec:
+) -> AiPlatformCustomJobOp:
   """DSL representation of a AI Platform (Unified) custom training job.
 
   For detailed doc of the service, please refer to
@@ -224,6 +242,14 @@ def custom_job(
         if (spec.get('pythonPackageSpec')
             and not spec['pythonPackageSpec'].get('args')):
           spec['pythonPackageSpec']['args'] = args
+
+  return _get_custom_job_op(
+      job_spec=custom_job_spec,
+      input_artifacts=input_artifacts,
+      input_parameters=input_parameters,
+      output_artifacts=output_artifacts,
+      output_parameters=output_parameters
+  )
 
 
   old_warn_value = dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING
