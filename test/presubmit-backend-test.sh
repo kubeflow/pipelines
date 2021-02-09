@@ -18,6 +18,7 @@
 set -ex
 
 # The current directory is /home/prow/go/src/github.com/kubeflow/pipelines
+# TODO(Bobgy): we should use golang image instead, to skip installing go manually.
 # 1. install go in /home/prow/go1.13.3
 cd /home/prow
 mkdir go1.13.3
@@ -25,11 +26,11 @@ cd go1.13.3
 wget --quiet https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz
 tar -xf go1.13.3.linux-amd64.tar.gz
 GO_CMD=/home/prow/go1.13.3/go/bin/go
+cd /home/prow/go/src/github.com/kubeflow/pipelines
 # 2. Check go modules are tidy
 # Reference: https://github.com/golang/go/issues/27005#issuecomment-564892876
 ${GO_CMD} mod download
 ${GO_CMD} mod tidy
 git diff --exit-code -- go.mod go.sum || (echo "go modules are not tidy, run 'go mod tidy'." && exit 1)
 # 3. run test in project directory
-cd /home/prow/go/src/github.com/kubeflow/pipelines
 ${GO_CMD} test -v -cover ./backend/...
