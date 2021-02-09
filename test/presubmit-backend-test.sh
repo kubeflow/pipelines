@@ -29,7 +29,7 @@ GO_CMD=/home/prow/go1.13.3/go/bin/go
 # Reference: https://github.com/golang/go/issues/27005#issuecomment-564892876
 ${GO_CMD} mod download
 ${GO_CMD} mod tidy
-git diff --exit-code -- go.mod go.sum
+git diff --exit-code -- go.mod go.sum || (echo "go modules are not tidy, run 'go mod tidy'." && exit 1)
 # 3. run test in project directory
 cd /home/prow/go/src/github.com/kubeflow/pipelines
 ${GO_CMD} test -v -cover ./backend/...
