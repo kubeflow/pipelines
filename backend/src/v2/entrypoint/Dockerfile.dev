@@ -1,0 +1,3 @@
+FROM alpine
+WORKDIR /bin
+COPY main /bin/kfp-entrypoint
