@@ -8,7 +8,7 @@ ENV PROTOCOLBUFFERS_PROTOBUF_VERSION v3.11.3
 ENV GRPC_VERSION v1.23.0
 
 # Install protoc.
-RUN apt-get update -y && apt-get install -y jq sed unzip curl
+RUN apt-get update -y && apt-get install -y jq sed unzip
 ENV PROTOC_ZIP=protoc-3.13.0-linux-x86_64.zip
 RUN curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.13.0/$PROTOC_ZIP
 RUN unzip -o $PROTOC_ZIP -d /usr/ bin/protoc
@@ -20,17 +20,16 @@ ENV PROTOCINCLUDE /usr/include/google/protobuf
 # Need grpc-gateway source code for -I in protoc command.
 WORKDIR /go/src/github.com
 RUN mkdir grpc-ecosystem && cd grpc-ecosystem && git clone --depth 1 --branch $GRPC_GATEWAY_VERSION https://github.com/grpc-ecosystem/grpc-gateway.git
-RUN mkdir grpc && git clone --depth 1 --branch $GRPC_VERSION https://github.com/grpc/grpc-go 
+RUN mkdir grpc && git clone --depth 1 --branch $GRPC_VERSION https://github.com/grpc/grpc-go
 
 # Install protoc-gen-rpc-gateway && protoc-gen-swagger.
 RUN cd grpc-ecosystem/grpc-gateway && GO111MODULE=on go mod vendor
 RUN GOBIN=/go/bin go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
 RUN GOBIN=/go/bin go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
 
-# Install swagger
-ENV SWAGGER_DOWNLOAD_URL="https://github.com/go-swagger/go-swagger/releases/download/v0.21.0/swagger_linux_amd64"
-RUN curl -o /usr/local/bin/swagger -L'#' $SWAGGER_DOWNLOAD_URL
-RUN chmod +x /usr/local/bin/swagger
+# Download go-swagger binary.
+RUN curl -LO "https://github.com/go-swagger/go-swagger/releases/download/${GO_SWAGGER_VERSION}/swagger_linux_amd64"
+RUN chmod +x swagger_linux_amd64 && mv swagger_linux_amd64 /usr/bin/swagger
 
 # Need protobuf source code for -I in protoc command.
 RUN mkdir golang && cd golang && git clone --depth 1 --branch $GOLANG_PROTOBUF_VERSION https://github.com/golang/protobuf.git

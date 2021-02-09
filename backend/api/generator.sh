@@ -14,31 +14,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -ex
+
 export TMP_OUTPUT=/tmp
 
 # Change directory\
-cd /app/pipelines
+cd /go/src/github.com/kubeflow/pipelines
 # Delete currently generated code.
 rm -r -f backend/api/go_http_client/*
 rm -f -f backend/api/go_client/*
 
 # Generate *.pb.go (grpc api client) from *.proto .
 ${PROTOCCOMPILER} -I. -Ibackend/api \
-    -I/go/src/github.com/protocolbuffers/protobuf/src \
     -I/go/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
     -I/go/src/github.com/grpc-ecosystem/grpc-gateway/ \
     -I/go/src/github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options/ \
-    -I/go/src/github.com/protocolbuffers/protobuf/src/google/protobuf \
+    -I/usr/include/ \
     --plugin=protoc-gen-go=/go/bin/protoc-gen-go  \
     --go_out=plugins=grpc:${TMP_OUTPUT} \
     backend/api/*.proto
 # Generate *.pb.gw.go (grpc api rest client) from *.proto.
 ${PROTOCCOMPILER} -I. -Ibackend/api \
-    -I/go/src/github.com/protocolbuffers/protobuf/src \
     -I/go/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
     -I/go/src/github.com/grpc-ecosystem/grpc-gateway/ \
     -I/go/src/github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options/ \
-    -I/go/src/github.com/protocolbuffers/protobuf/src/google/protobuf \
+    -I/usr/include/ \
      --plugin=protoc-gen-grpc-gateway=/go/bin/protoc-gen-grpc-gateway \
      --grpc-gateway_out=logtostderr=true:${TMP_OUTPUT} \
      backend/api/*.proto
@@ -116,3 +116,4 @@ sed -i -- 's/MaxConcurrency string `json:"max_concurrency,omitempty"`/MaxConcurr
 sed -i -- 's/IntervalSecond string `json:"interval_second,omitempty"`/IntervalSecond int64 `json:"interval_second,omitempty,string"`/g' backend/api/go_http_client/job_model/api_periodic_schedule.go
 # Execute the //go:generate directives in the generated code.
 cd backend/api && go generate ./...
+cd ../..

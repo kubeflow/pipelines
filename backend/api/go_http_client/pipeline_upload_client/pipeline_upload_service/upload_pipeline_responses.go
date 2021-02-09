@@ -24,12 +24,14 @@ type UploadPipelineReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *UploadPipelineReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
+
 	case 200:
 		result := NewUploadPipelineOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
+
 	default:
 		result := NewUploadPipelineDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -57,10 +59,6 @@ type UploadPipelineOK struct {
 
 func (o *UploadPipelineOK) Error() string {
 	return fmt.Sprintf("[POST /apis/v1beta1/pipelines/upload][%d] uploadPipelineOK  %+v", 200, o.Payload)
-}
-
-func (o *UploadPipelineOK) GetPayload() *pipeline_upload_model.APIPipeline {
-	return o.Payload
 }
 
 func (o *UploadPipelineOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -99,10 +97,6 @@ func (o *UploadPipelineDefault) Code() int {
 
 func (o *UploadPipelineDefault) Error() string {
 	return fmt.Sprintf("[POST /apis/v1beta1/pipelines/upload][%d] UploadPipeline default  %+v", o._statusCode, o.Payload)
-}
-
-func (o *UploadPipelineDefault) GetPayload() *pipeline_upload_model.APIStatus {
-	return o.Payload
 }
 
 func (o *UploadPipelineDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

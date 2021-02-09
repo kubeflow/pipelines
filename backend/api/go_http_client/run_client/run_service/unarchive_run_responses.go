@@ -24,12 +24,14 @@ type UnarchiveRunReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *UnarchiveRunReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
+
 	case 200:
 		result := NewUnarchiveRunOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
+
 	default:
 		result := NewUnarchiveRunDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -57,10 +59,6 @@ type UnarchiveRunOK struct {
 
 func (o *UnarchiveRunOK) Error() string {
 	return fmt.Sprintf("[POST /apis/v1beta1/runs/{id}:unarchive][%d] unarchiveRunOK  %+v", 200, o.Payload)
-}
-
-func (o *UnarchiveRunOK) GetPayload() interface{} {
-	return o.Payload
 }
 
 func (o *UnarchiveRunOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -97,10 +95,6 @@ func (o *UnarchiveRunDefault) Code() int {
 
 func (o *UnarchiveRunDefault) Error() string {
 	return fmt.Sprintf("[POST /apis/v1beta1/runs/{id}:unarchive][%d] UnarchiveRun default  %+v", o._statusCode, o.Payload)
-}
-
-func (o *UnarchiveRunDefault) GetPayload() *run_model.APIStatus {
-	return o.Payload
 }
 
 func (o *UnarchiveRunDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

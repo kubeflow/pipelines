@@ -24,12 +24,14 @@ type CreateRunReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *CreateRunReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
+
 	case 200:
 		result := NewCreateRunOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
+
 	default:
 		result := NewCreateRunDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -57,10 +59,6 @@ type CreateRunOK struct {
 
 func (o *CreateRunOK) Error() string {
 	return fmt.Sprintf("[POST /apis/v1beta1/runs][%d] createRunOK  %+v", 200, o.Payload)
-}
-
-func (o *CreateRunOK) GetPayload() *run_model.APIRunDetail {
-	return o.Payload
 }
 
 func (o *CreateRunOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -99,10 +97,6 @@ func (o *CreateRunDefault) Code() int {
 
 func (o *CreateRunDefault) Error() string {
 	return fmt.Sprintf("[POST /apis/v1beta1/runs][%d] CreateRun default  %+v", o._statusCode, o.Payload)
-}
-
-func (o *CreateRunDefault) GetPayload() *run_model.APIStatus {
-	return o.Payload
 }
 
 func (o *CreateRunDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

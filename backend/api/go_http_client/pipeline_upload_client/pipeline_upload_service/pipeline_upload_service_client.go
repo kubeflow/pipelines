@@ -49,13 +49,8 @@ func (a *Client) UploadPipeline(params *UploadPipelineParams, authInfo runtime.C
 	if err != nil {
 		return nil, err
 	}
-	success, ok := result.(*UploadPipelineOK)
-	if ok {
-		return success, nil
-	}
-	// unexpected success response
-	unexpectedSuccess := result.(*UploadPipelineDefault)
-	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+	return result.(*UploadPipelineOK), nil
+
 }
 
 /*
@@ -83,13 +78,8 @@ func (a *Client) UploadPipelineVersion(params *UploadPipelineVersionParams, auth
 	if err != nil {
 		return nil, err
 	}
-	success, ok := result.(*UploadPipelineVersionOK)
-	if ok {
-		return success, nil
-	}
-	// unexpected success response
-	unexpectedSuccess := result.(*UploadPipelineVersionDefault)
-	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+	return result.(*UploadPipelineVersionOK), nil
+
 }
 
 // SetTransport changes the transport on the client

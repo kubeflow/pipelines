@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2018-2021 Google LLC
+# Copyright 2018-2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,11 +19,17 @@
 # directory using Bazel, then copies them back into the source tree so they can
 # be checked-in.
 
+set -ex
+
 cd ../..
+# docker run  -it --rm \
+#     --mount type=bind,source="$(pwd)",target=/app/pipelines \
+#     builder /bin/bash
+
 # Generate API
 docker run  --interactive --rm \
-    --mount type=bind,source="$(pwd)",target=/app/pipelines \
-    builder /app/pipelines/backend/api/generator.sh
+    --mount type=bind,source="$(pwd)",target=/go/src/github.com/kubeflow/pipelines \
+    testyd /go/src/github.com/kubeflow/pipelines/backend/api/generator.sh
 
 # Change owner to user for generate files, explanation of command: https://askubuntu.com/questions/829537/how-do-i-change-owner-to-current-user-on-folder-and-containing-folders-inside-my
 sudo find backend/api -user root -exec sudo chown $USER: {} +

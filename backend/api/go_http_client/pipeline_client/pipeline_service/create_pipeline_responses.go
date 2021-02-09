@@ -24,12 +24,14 @@ type CreatePipelineReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *CreatePipelineReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
+
 	case 200:
 		result := NewCreatePipelineOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
+
 	default:
 		result := NewCreatePipelineDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -57,10 +59,6 @@ type CreatePipelineOK struct {
 
 func (o *CreatePipelineOK) Error() string {
 	return fmt.Sprintf("[POST /apis/v1beta1/pipelines][%d] createPipelineOK  %+v", 200, o.Payload)
-}
-
-func (o *CreatePipelineOK) GetPayload() *pipeline_model.APIPipeline {
-	return o.Payload
 }
 
 func (o *CreatePipelineOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -99,10 +97,6 @@ func (o *CreatePipelineDefault) Code() int {
 
 func (o *CreatePipelineDefault) Error() string {
 	return fmt.Sprintf("[POST /apis/v1beta1/pipelines][%d] CreatePipeline default  %+v", o._statusCode, o.Payload)
-}
-
-func (o *CreatePipelineDefault) GetPayload() *pipeline_model.APIStatus {
-	return o.Payload
 }
 
 func (o *CreatePipelineDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
