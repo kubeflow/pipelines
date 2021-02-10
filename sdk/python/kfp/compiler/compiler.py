@@ -689,7 +689,8 @@ class Compiler(object):
         exit_handler = first_group.exit_op
 
     # The whole pipeline workflow
-    pipeline_name = pipeline.name or 'Pipeline'
+    # It must valid as a subdomain
+    pipeline_name = pipeline.name or 'pipeline'
 
     # Workaround for pipeline name clashing with container template names
     # TODO: Make sure template names cannot clash at all (container, DAG, workflow)
