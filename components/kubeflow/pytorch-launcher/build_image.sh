@@ -1,3 +1,4 @@
+#!/bin/bash
 LAUNCHER_IMAGE_NAME_DEFAULT=kubeflow-pytorchjob-launcher
 
 while getopts ":hr:t:i:" opt; do
@@ -21,7 +22,7 @@ done
 
 # Apply defaults/interpret inputs
 LAUNCHER_IMAGE_NAME=${LAUNCHER_IMAGE_NAME:-$LAUNCHER_IMAGE_NAME_DEFAULT}
-TAG_NAME${TAG_NAME:-$(date +v%Y%m%d)-$(git describe --tags --always --dirty)-$(git diff | shasum -a256 | cut -c -6)}}
+TAG_NAME=${TAG_NAME:-$(date +v%Y%m%d)-$(git describe --tags --always --dirty)-$(git diff | shasum -a256 | cut -c -6)}
 
 if [ -n "${REPO_NAME}" ]; then
   # Ensure ends with /
@@ -36,7 +37,10 @@ mkdir -p ./build
 rsync -arvp ./src/ ./build/
 rsync -arvp ../common/ ./build/
 
+echo "Building image $FULL_NAME"
 docker build -t ${FULL_NAME} .
+
+echo "Pushing image $FULL_NAME"
 docker push ${FULL_NAME}
 
 rm -rf ./build
