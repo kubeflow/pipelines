@@ -38,7 +38,7 @@ need to be regenerated and checked-in. The `backend/api/generate_api.sh` script
 takes care of this. In order for the generated code to be owned by root, root credentials has to be provided. 
 
 ```bash
-sh generate_api.sh
+./generate_api.sh
 ```
 
 # Visualization Server Instructions
