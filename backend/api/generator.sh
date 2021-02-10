@@ -39,18 +39,17 @@ ${PROTOCCOMPILER} -I. -Ibackend/api \
     -I/go/src/github.com/grpc-ecosystem/grpc-gateway/ \
     -I/go/src/github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options/ \
     -I/usr/include/ \
-     --plugin=protoc-gen-grpc-gateway=/go/bin/protoc-gen-grpc-gateway \
-     --grpc-gateway_out=logtostderr=true:${TMP_OUTPUT} \
-     backend/api/*.proto
+    --plugin=protoc-gen-grpc-gateway=/go/bin/protoc-gen-grpc-gateway \
+    --grpc-gateway_out=logtostderr=true:${TMP_OUTPUT} \
+    backend/api/*.proto
 # Move *.pb.go and *.gw.go to go_client folder.
 cp ${TMP_OUTPUT}/github.com/kubeflow/pipelines/backend/api/go_client/* ./backend/api/go_client
 # Generate *.swagger.json from *.proto into swagger folder.
 ${PROTOCCOMPILER} -I. -Ibackend/api \
-    -I/go/src/github.com/protocolbuffers/protobuf/src \
     -I/go/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
     -I/go/src/github.com/grpc-ecosystem/grpc-gateway/ \
     -I/go/src/github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options/ \
-    -I/go/src/github.com/protocolbuffers/protobuf/src/google/protobuf \
+    -I//usr/include/ \
     --plugin=protoc-gen-swagger=/go/bin/protoc-gen-swagger \
     --swagger_out=logtostderr=true:${TMP_OUTPUT} \
     backend/api/*.proto
@@ -116,4 +115,3 @@ sed -i -- 's/MaxConcurrency string `json:"max_concurrency,omitempty"`/MaxConcurr
 sed -i -- 's/IntervalSecond string `json:"interval_second,omitempty"`/IntervalSecond int64 `json:"interval_second,omitempty,string"`/g' backend/api/go_http_client/job_model/api_periodic_schedule.go
 # Execute the //go:generate directives in the generated code.
 cd backend/api && go generate ./...
-cd ../..

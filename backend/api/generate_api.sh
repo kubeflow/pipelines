@@ -20,11 +20,7 @@
 # be checked-in.
 
 set -ex
-
 cd ../..
-# docker run  -it --rm \
-#     --mount type=bind,source="$(pwd)",target=/app/pipelines \
-#     builder /bin/bash
 
 # Generate API
 docker run  --interactive --rm \
