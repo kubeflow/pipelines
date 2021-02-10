@@ -10,8 +10,6 @@ import (
 	_ "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -273,14 +271,6 @@ func (c *visualizationServiceClient) CreateVisualization(ctx context.Context, in
 // VisualizationServiceServer is the server API for VisualizationService service.
 type VisualizationServiceServer interface {
 	CreateVisualization(context.Context, *CreateVisualizationRequest) (*Visualization, error)
-}
-
-// UnimplementedVisualizationServiceServer can be embedded to have forward compatible implementations.
-type UnimplementedVisualizationServiceServer struct {
-}
-
-func (*UnimplementedVisualizationServiceServer) CreateVisualization(ctx context.Context, req *CreateVisualizationRequest) (*Visualization, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateVisualization not implemented")
 }
 
 func RegisterVisualizationServiceServer(s *grpc.Server, srv VisualizationServiceServer) {

@@ -7,11 +7,9 @@ import (
 	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
-	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	math "math"
 )
 
@@ -154,7 +152,7 @@ type Predicate_StringValue struct {
 }
 
 type Predicate_TimestampValue struct {
-	TimestampValue *timestamp.Timestamp `protobuf:"bytes,6,opt,name=timestamp_value,json=timestampValue,proto3,oneof"`
+	TimestampValue *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=timestamp_value,json=timestampValue,proto3,oneof"`
 }
 
 type Predicate_IntValues struct {
@@ -211,7 +209,7 @@ func (m *Predicate) GetStringValue() string {
 	return ""
 }
 
-func (m *Predicate) GetTimestampValue() *timestamp.Timestamp {
+func (m *Predicate) GetTimestampValue() *timestamppb.Timestamp {
 	if x, ok := m.GetValue().(*Predicate_TimestampValue); ok {
 		return x.TimestampValue
 	}
@@ -534,14 +532,6 @@ func (c *dummyFilterServiceClient) GetFilter(ctx context.Context, in *Filter, op
 // DummyFilterServiceServer is the server API for DummyFilterService service.
 type DummyFilterServiceServer interface {
 	GetFilter(context.Context, *Filter) (*Filter, error)
-}
-
-// UnimplementedDummyFilterServiceServer can be embedded to have forward compatible implementations.
-type UnimplementedDummyFilterServiceServer struct {
-}
-
-func (*UnimplementedDummyFilterServiceServer) GetFilter(ctx context.Context, req *Filter) (*Filter, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetFilter not implemented")
 }
 
 func RegisterDummyFilterServiceServer(s *grpc.Server, srv DummyFilterServiceServer) {

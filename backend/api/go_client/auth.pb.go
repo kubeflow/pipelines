@@ -7,12 +7,10 @@ import (
 	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
-	empty "github.com/golang/protobuf/ptypes/empty"
 	_ "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	math "math"
 )
 
@@ -196,7 +194,7 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type AuthServiceClient interface {
-	Authorize(ctx context.Context, in *AuthorizeRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	Authorize(ctx context.Context, in *AuthorizeRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type authServiceClient struct {
@@ -207,8 +205,8 @@ func NewAuthServiceClient(cc *grpc.ClientConn) AuthServiceClient {
 	return &authServiceClient{cc}
 }
 
-func (c *authServiceClient) Authorize(ctx context.Context, in *AuthorizeRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
-	out := new(empty.Empty)
+func (c *authServiceClient) Authorize(ctx context.Context, in *AuthorizeRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/api.AuthService/Authorize", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -218,15 +216,7 @@ func (c *authServiceClient) Authorize(ctx context.Context, in *AuthorizeRequest,
 
 // AuthServiceServer is the server API for AuthService service.
 type AuthServiceServer interface {
-	Authorize(context.Context, *AuthorizeRequest) (*empty.Empty, error)
-}
-
-// UnimplementedAuthServiceServer can be embedded to have forward compatible implementations.
-type UnimplementedAuthServiceServer struct {
-}
-
-func (*UnimplementedAuthServiceServer) Authorize(ctx context.Context, req *AuthorizeRequest) (*empty.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Authorize not implemented")
+	Authorize(context.Context, *AuthorizeRequest) (*emptypb.Empty, error)
 }
 
 func RegisterAuthServiceServer(s *grpc.Server, srv AuthServiceServer) {

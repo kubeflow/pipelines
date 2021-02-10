@@ -7,13 +7,11 @@ import (
 	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
-	empty "github.com/golang/protobuf/ptypes/empty"
-	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	_ "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	math "math"
 )
 
@@ -327,7 +325,7 @@ type Experiment struct {
 	// Optional input field. Describing the purpose of the experiment
 	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	// Output. The time that the experiment created.
-	CreatedAt *timestamp.Timestamp `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// Optional input field. Specify which resource this run belongs to.
 	// For Experiment, the only valid resource reference is a single Namespace.
 	ResourceReferences []*ResourceReference `protobuf:"bytes,5,rep,name=resource_references,json=resourceReferences,proto3" json:"resource_references,omitempty"`
@@ -384,7 +382,7 @@ func (m *Experiment) GetDescription() string {
 	return ""
 }
 
-func (m *Experiment) GetCreatedAt() *timestamp.Timestamp {
+func (m *Experiment) GetCreatedAt() *timestamppb.Timestamp {
 	if m != nil {
 		return m.CreatedAt
 	}
@@ -580,12 +578,12 @@ type ExperimentServiceClient interface {
 	// Deletes an experiment without deleting the experiment's runs and jobs. To
 	// avoid unexpected behaviors, delete an experiment's runs and jobs before
 	// deleting the experiment.
-	DeleteExperiment(ctx context.Context, in *DeleteExperimentRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	DeleteExperiment(ctx context.Context, in *DeleteExperimentRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// Archives an experiment and the experiment's runs and jobs.
-	ArchiveExperiment(ctx context.Context, in *ArchiveExperimentRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	ArchiveExperiment(ctx context.Context, in *ArchiveExperimentRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// Restores an archived experiment. The experiment's archived runs and jobs
 	// will stay archived.
-	UnarchiveExperiment(ctx context.Context, in *UnarchiveExperimentRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	UnarchiveExperiment(ctx context.Context, in *UnarchiveExperimentRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type experimentServiceClient struct {
@@ -623,8 +621,8 @@ func (c *experimentServiceClient) ListExperiment(ctx context.Context, in *ListEx
 	return out, nil
 }
 
-func (c *experimentServiceClient) DeleteExperiment(ctx context.Context, in *DeleteExperimentRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
-	out := new(empty.Empty)
+func (c *experimentServiceClient) DeleteExperiment(ctx context.Context, in *DeleteExperimentRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/api.ExperimentService/DeleteExperiment", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -632,8 +630,8 @@ func (c *experimentServiceClient) DeleteExperiment(ctx context.Context, in *Dele
 	return out, nil
 }
 
-func (c *experimentServiceClient) ArchiveExperiment(ctx context.Context, in *ArchiveExperimentRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
-	out := new(empty.Empty)
+func (c *experimentServiceClient) ArchiveExperiment(ctx context.Context, in *ArchiveExperimentRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/api.ExperimentService/ArchiveExperiment", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -641,8 +639,8 @@ func (c *experimentServiceClient) ArchiveExperiment(ctx context.Context, in *Arc
 	return out, nil
 }
 
-func (c *experimentServiceClient) UnarchiveExperiment(ctx context.Context, in *UnarchiveExperimentRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
-	out := new(empty.Empty)
+func (c *experimentServiceClient) UnarchiveExperiment(ctx context.Context, in *UnarchiveExperimentRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/api.ExperimentService/UnarchiveExperiment", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -661,35 +659,12 @@ type ExperimentServiceServer interface {
 	// Deletes an experiment without deleting the experiment's runs and jobs. To
 	// avoid unexpected behaviors, delete an experiment's runs and jobs before
 	// deleting the experiment.
-	DeleteExperiment(context.Context, *DeleteExperimentRequest) (*empty.Empty, error)
+	DeleteExperiment(context.Context, *DeleteExperimentRequest) (*emptypb.Empty, error)
 	// Archives an experiment and the experiment's runs and jobs.
-	ArchiveExperiment(context.Context, *ArchiveExperimentRequest) (*empty.Empty, error)
+	ArchiveExperiment(context.Context, *ArchiveExperimentRequest) (*emptypb.Empty, error)
 	// Restores an archived experiment. The experiment's archived runs and jobs
 	// will stay archived.
-	UnarchiveExperiment(context.Context, *UnarchiveExperimentRequest) (*empty.Empty, error)
-}
-
-// UnimplementedExperimentServiceServer can be embedded to have forward compatible implementations.
-type UnimplementedExperimentServiceServer struct {
-}
-
-func (*UnimplementedExperimentServiceServer) CreateExperiment(ctx context.Context, req *CreateExperimentRequest) (*Experiment, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateExperiment not implemented")
-}
-func (*UnimplementedExperimentServiceServer) GetExperiment(ctx context.Context, req *GetExperimentRequest) (*Experiment, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetExperiment not implemented")
-}
-func (*UnimplementedExperimentServiceServer) ListExperiment(ctx context.Context, req *ListExperimentsRequest) (*ListExperimentsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListExperiment not implemented")
-}
-func (*UnimplementedExperimentServiceServer) DeleteExperiment(ctx context.Context, req *DeleteExperimentRequest) (*empty.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteExperiment not implemented")
-}
-func (*UnimplementedExperimentServiceServer) ArchiveExperiment(ctx context.Context, req *ArchiveExperimentRequest) (*empty.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ArchiveExperiment not implemented")
-}
-func (*UnimplementedExperimentServiceServer) UnarchiveExperiment(ctx context.Context, req *UnarchiveExperimentRequest) (*empty.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UnarchiveExperiment not implemented")
+	UnarchiveExperiment(context.Context, *UnarchiveExperimentRequest) (*emptypb.Empty, error)
 }
 
 func RegisterExperimentServiceServer(s *grpc.Server, srv ExperimentServiceServer) {

@@ -6,7 +6,7 @@ package go_client
 import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
-	any "github.com/golang/protobuf/ptypes/any"
+	anypb "google.golang.org/protobuf/types/known/anypb"
 	math "math"
 )
 
@@ -69,12 +69,12 @@ func (m *Error) GetErrorDetails() string {
 }
 
 type Status struct {
-	Error                string     `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Code                 int32      `protobuf:"varint,2,opt,name=code,proto3" json:"code,omitempty"`
-	Details              []*any.Any `protobuf:"bytes,3,rep,name=details,proto3" json:"details,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
-	XXX_unrecognized     []byte     `json:"-"`
-	XXX_sizecache        int32      `json:"-"`
+	Error                string       `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	Code                 int32        `protobuf:"varint,2,opt,name=code,proto3" json:"code,omitempty"`
+	Details              []*anypb.Any `protobuf:"bytes,3,rep,name=details,proto3" json:"details,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
+	XXX_unrecognized     []byte       `json:"-"`
+	XXX_sizecache        int32        `json:"-"`
 }
 
 func (m *Status) Reset()         { *m = Status{} }
@@ -116,7 +116,7 @@ func (m *Status) GetCode() int32 {
 	return 0
 }
 
-func (m *Status) GetDetails() []*any.Any {
+func (m *Status) GetDetails() []*anypb.Any {
 	if m != nil {
 		return m.Details
 	}

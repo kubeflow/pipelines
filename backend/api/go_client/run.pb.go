@@ -7,13 +7,11 @@ import (
 	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
-	empty "github.com/golang/protobuf/ptypes/empty"
-	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	_ "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	math "math"
 )
 
@@ -564,14 +562,14 @@ type Run struct {
 	// Optional input field. Specify which Kubernetes service account this run uses.
 	ServiceAccount string `protobuf:"bytes,14,opt,name=service_account,json=serviceAccount,proto3" json:"service_account,omitempty"`
 	// Output. The time that the run created.
-	CreatedAt *timestamp.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// Output. When this run is scheduled to run. This could be different from
 	// created_at. For example, if a run is from a backfilling job that was
 	// supposed to run 2 month ago, the scheduled_at is 2 month ago,
 	// v.s. created_at is the current time.
-	ScheduledAt *timestamp.Timestamp `protobuf:"bytes,7,opt,name=scheduled_at,json=scheduledAt,proto3" json:"scheduled_at,omitempty"`
+	ScheduledAt *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=scheduled_at,json=scheduledAt,proto3" json:"scheduled_at,omitempty"`
 	// Output. The time this run is finished.
-	FinishedAt *timestamp.Timestamp `protobuf:"bytes,13,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
+	FinishedAt *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
 	// Output. The status of the run.
 	// One of [Pending, Running, Succeeded, Skipped, Failed, Error]
 	Status string `protobuf:"bytes,8,opt,name=status,proto3" json:"status,omitempty"`
@@ -661,21 +659,21 @@ func (m *Run) GetServiceAccount() string {
 	return ""
 }
 
-func (m *Run) GetCreatedAt() *timestamp.Timestamp {
+func (m *Run) GetCreatedAt() *timestamppb.Timestamp {
 	if m != nil {
 		return m.CreatedAt
 	}
 	return nil
 }
 
-func (m *Run) GetScheduledAt() *timestamp.Timestamp {
+func (m *Run) GetScheduledAt() *timestamppb.Timestamp {
 	if m != nil {
 		return m.ScheduledAt
 	}
 	return nil
 }
 
-func (m *Run) GetFinishedAt() *timestamp.Timestamp {
+func (m *Run) GetFinishedAt() *timestamppb.Timestamp {
 	if m != nil {
 		return m.FinishedAt
 	}
@@ -1303,11 +1301,11 @@ type RunServiceClient interface {
 	// Finds all runs.
 	ListRuns(ctx context.Context, in *ListRunsRequest, opts ...grpc.CallOption) (*ListRunsResponse, error)
 	// Archives a run.
-	ArchiveRun(ctx context.Context, in *ArchiveRunRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	ArchiveRun(ctx context.Context, in *ArchiveRunRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// Restores an archived run.
-	UnarchiveRun(ctx context.Context, in *UnarchiveRunRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	UnarchiveRun(ctx context.Context, in *UnarchiveRunRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// Deletes a run.
-	DeleteRun(ctx context.Context, in *DeleteRunRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	DeleteRun(ctx context.Context, in *DeleteRunRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// ReportRunMetrics reports metrics of a run. Each metric is reported in its
 	// own transaction, so this API accepts partial failures. Metric can be
 	// uniquely identified by (run_id, node_id, name). Duplicate reporting will be
@@ -1316,9 +1314,9 @@ type RunServiceClient interface {
 	// Finds a run's artifact data.
 	ReadArtifact(ctx context.Context, in *ReadArtifactRequest, opts ...grpc.CallOption) (*ReadArtifactResponse, error)
 	// Terminates an active run.
-	TerminateRun(ctx context.Context, in *TerminateRunRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	TerminateRun(ctx context.Context, in *TerminateRunRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// Re-initiates a failed or terminated run.
-	RetryRun(ctx context.Context, in *RetryRunRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	RetryRun(ctx context.Context, in *RetryRunRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type runServiceClient struct {
@@ -1356,8 +1354,8 @@ func (c *runServiceClient) ListRuns(ctx context.Context, in *ListRunsRequest, op
 	return out, nil
 }
 
-func (c *runServiceClient) ArchiveRun(ctx context.Context, in *ArchiveRunRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
-	out := new(empty.Empty)
+func (c *runServiceClient) ArchiveRun(ctx context.Context, in *ArchiveRunRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/api.RunService/ArchiveRun", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1365,8 +1363,8 @@ func (c *runServiceClient) ArchiveRun(ctx context.Context, in *ArchiveRunRequest
 	return out, nil
 }
 
-func (c *runServiceClient) UnarchiveRun(ctx context.Context, in *UnarchiveRunRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
-	out := new(empty.Empty)
+func (c *runServiceClient) UnarchiveRun(ctx context.Context, in *UnarchiveRunRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/api.RunService/UnarchiveRun", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1374,8 +1372,8 @@ func (c *runServiceClient) UnarchiveRun(ctx context.Context, in *UnarchiveRunReq
 	return out, nil
 }
 
-func (c *runServiceClient) DeleteRun(ctx context.Context, in *DeleteRunRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
-	out := new(empty.Empty)
+func (c *runServiceClient) DeleteRun(ctx context.Context, in *DeleteRunRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/api.RunService/DeleteRun", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1401,8 +1399,8 @@ func (c *runServiceClient) ReadArtifact(ctx context.Context, in *ReadArtifactReq
 	return out, nil
 }
 
-func (c *runServiceClient) TerminateRun(ctx context.Context, in *TerminateRunRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
-	out := new(empty.Empty)
+func (c *runServiceClient) TerminateRun(ctx context.Context, in *TerminateRunRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/api.RunService/TerminateRun", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1410,8 +1408,8 @@ func (c *runServiceClient) TerminateRun(ctx context.Context, in *TerminateRunReq
 	return out, nil
 }
 
-func (c *runServiceClient) RetryRun(ctx context.Context, in *RetryRunRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
-	out := new(empty.Empty)
+func (c *runServiceClient) RetryRun(ctx context.Context, in *RetryRunRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/api.RunService/RetryRun", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -1428,11 +1426,11 @@ type RunServiceServer interface {
 	// Finds all runs.
 	ListRuns(context.Context, *ListRunsRequest) (*ListRunsResponse, error)
 	// Archives a run.
-	ArchiveRun(context.Context, *ArchiveRunRequest) (*empty.Empty, error)
+	ArchiveRun(context.Context, *ArchiveRunRequest) (*emptypb.Empty, error)
 	// Restores an archived run.
-	UnarchiveRun(context.Context, *UnarchiveRunRequest) (*empty.Empty, error)
+	UnarchiveRun(context.Context, *UnarchiveRunRequest) (*emptypb.Empty, error)
 	// Deletes a run.
-	DeleteRun(context.Context, *DeleteRunRequest) (*empty.Empty, error)
+	DeleteRun(context.Context, *DeleteRunRequest) (*emptypb.Empty, error)
 	// ReportRunMetrics reports metrics of a run. Each metric is reported in its
 	// own transaction, so this API accepts partial failures. Metric can be
 	// uniquely identified by (run_id, node_id, name). Duplicate reporting will be
@@ -1441,44 +1439,9 @@ type RunServiceServer interface {
 	// Finds a run's artifact data.
 	ReadArtifact(context.Context, *ReadArtifactRequest) (*ReadArtifactResponse, error)
 	// Terminates an active run.
-	TerminateRun(context.Context, *TerminateRunRequest) (*empty.Empty, error)
+	TerminateRun(context.Context, *TerminateRunRequest) (*emptypb.Empty, error)
 	// Re-initiates a failed or terminated run.
-	RetryRun(context.Context, *RetryRunRequest) (*empty.Empty, error)
-}
-
-// UnimplementedRunServiceServer can be embedded to have forward compatible implementations.
-type UnimplementedRunServiceServer struct {
-}
-
-func (*UnimplementedRunServiceServer) CreateRun(ctx context.Context, req *CreateRunRequest) (*RunDetail, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateRun not implemented")
-}
-func (*UnimplementedRunServiceServer) GetRun(ctx context.Context, req *GetRunRequest) (*RunDetail, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetRun not implemented")
-}
-func (*UnimplementedRunServiceServer) ListRuns(ctx context.Context, req *ListRunsRequest) (*ListRunsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListRuns not implemented")
-}
-func (*UnimplementedRunServiceServer) ArchiveRun(ctx context.Context, req *ArchiveRunRequest) (*empty.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ArchiveRun not implemented")
-}
-func (*UnimplementedRunServiceServer) UnarchiveRun(ctx context.Context, req *UnarchiveRunRequest) (*empty.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UnarchiveRun not implemented")
-}
-func (*UnimplementedRunServiceServer) DeleteRun(ctx context.Context, req *DeleteRunRequest) (*empty.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteRun not implemented")
-}
-func (*UnimplementedRunServiceServer) ReportRunMetrics(ctx context.Context, req *ReportRunMetricsRequest) (*ReportRunMetricsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ReportRunMetrics not implemented")
-}
-func (*UnimplementedRunServiceServer) ReadArtifact(ctx context.Context, req *ReadArtifactRequest) (*ReadArtifactResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ReadArtifact not implemented")
-}
-func (*UnimplementedRunServiceServer) TerminateRun(ctx context.Context, req *TerminateRunRequest) (*empty.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method TerminateRun not implemented")
-}
-func (*UnimplementedRunServiceServer) RetryRun(ctx context.Context, req *RetryRunRequest) (*empty.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RetryRun not implemented")
+	RetryRun(context.Context, *RetryRunRequest) (*emptypb.Empty, error)
 }
 
 func RegisterRunServiceServer(s *grpc.Server, srv RunServiceServer) {

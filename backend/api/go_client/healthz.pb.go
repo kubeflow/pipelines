@@ -7,12 +7,10 @@ import (
 	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
-	empty "github.com/golang/protobuf/ptypes/empty"
 	_ "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	math "math"
 )
 
@@ -112,7 +110,7 @@ const _ = grpc.SupportPackageIsVersion4
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type HealthzServiceClient interface {
 	// Get healthz data.
-	GetHealthz(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*GetHealthzResponse, error)
+	GetHealthz(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetHealthzResponse, error)
 }
 
 type healthzServiceClient struct {
@@ -123,7 +121,7 @@ func NewHealthzServiceClient(cc *grpc.ClientConn) HealthzServiceClient {
 	return &healthzServiceClient{cc}
 }
 
-func (c *healthzServiceClient) GetHealthz(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*GetHealthzResponse, error) {
+func (c *healthzServiceClient) GetHealthz(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetHealthzResponse, error) {
 	out := new(GetHealthzResponse)
 	err := c.cc.Invoke(ctx, "/api.HealthzService/GetHealthz", in, out, opts...)
 	if err != nil {
@@ -135,15 +133,7 @@ func (c *healthzServiceClient) GetHealthz(ctx context.Context, in *empty.Empty, 
 // HealthzServiceServer is the server API for HealthzService service.
 type HealthzServiceServer interface {
 	// Get healthz data.
-	GetHealthz(context.Context, *empty.Empty) (*GetHealthzResponse, error)
-}
-
-// UnimplementedHealthzServiceServer can be embedded to have forward compatible implementations.
-type UnimplementedHealthzServiceServer struct {
-}
-
-func (*UnimplementedHealthzServiceServer) GetHealthz(ctx context.Context, req *empty.Empty) (*GetHealthzResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetHealthz not implemented")
+	GetHealthz(context.Context, *emptypb.Empty) (*GetHealthzResponse, error)
 }
 
 func RegisterHealthzServiceServer(s *grpc.Server, srv HealthzServiceServer) {
@@ -151,7 +141,7 @@ func RegisterHealthzServiceServer(s *grpc.Server, srv HealthzServiceServer) {
 }
 
 func _HealthzService_GetHealthz_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(empty.Empty)
+	in := new(emptypb.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -163,7 +153,7 @@ func _HealthzService_GetHealthz_Handler(srv interface{}, ctx context.Context, de
 		FullMethod: "/api.HealthzService/GetHealthz",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(HealthzServiceServer).GetHealthz(ctx, req.(*empty.Empty))
+		return srv.(HealthzServiceServer).GetHealthz(ctx, req.(*emptypb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }

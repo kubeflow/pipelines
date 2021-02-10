@@ -7,11 +7,9 @@ import (
 	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
-	empty "github.com/golang/protobuf/ptypes/empty"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	math "math"
 )
 
@@ -149,8 +147,8 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type ReportServiceClient interface {
-	ReportWorkflow(ctx context.Context, in *ReportWorkflowRequest, opts ...grpc.CallOption) (*empty.Empty, error)
-	ReportScheduledWorkflow(ctx context.Context, in *ReportScheduledWorkflowRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	ReportWorkflow(ctx context.Context, in *ReportWorkflowRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	ReportScheduledWorkflow(ctx context.Context, in *ReportScheduledWorkflowRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type reportServiceClient struct {
@@ -161,8 +159,8 @@ func NewReportServiceClient(cc *grpc.ClientConn) ReportServiceClient {
 	return &reportServiceClient{cc}
 }
 
-func (c *reportServiceClient) ReportWorkflow(ctx context.Context, in *ReportWorkflowRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
-	out := new(empty.Empty)
+func (c *reportServiceClient) ReportWorkflow(ctx context.Context, in *ReportWorkflowRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/api.ReportService/ReportWorkflow", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -170,8 +168,8 @@ func (c *reportServiceClient) ReportWorkflow(ctx context.Context, in *ReportWork
 	return out, nil
 }
 
-func (c *reportServiceClient) ReportScheduledWorkflow(ctx context.Context, in *ReportScheduledWorkflowRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
-	out := new(empty.Empty)
+func (c *reportServiceClient) ReportScheduledWorkflow(ctx context.Context, in *ReportScheduledWorkflowRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/api.ReportService/ReportScheduledWorkflow", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -181,19 +179,8 @@ func (c *reportServiceClient) ReportScheduledWorkflow(ctx context.Context, in *R
 
 // ReportServiceServer is the server API for ReportService service.
 type ReportServiceServer interface {
-	ReportWorkflow(context.Context, *ReportWorkflowRequest) (*empty.Empty, error)
-	ReportScheduledWorkflow(context.Context, *ReportScheduledWorkflowRequest) (*empty.Empty, error)
-}
-
-// UnimplementedReportServiceServer can be embedded to have forward compatible implementations.
-type UnimplementedReportServiceServer struct {
-}
-
-func (*UnimplementedReportServiceServer) ReportWorkflow(ctx context.Context, req *ReportWorkflowRequest) (*empty.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ReportWorkflow not implemented")
-}
-func (*UnimplementedReportServiceServer) ReportScheduledWorkflow(ctx context.Context, req *ReportScheduledWorkflowRequest) (*empty.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ReportScheduledWorkflow not implemented")
+	ReportWorkflow(context.Context, *ReportWorkflowRequest) (*emptypb.Empty, error)
+	ReportScheduledWorkflow(context.Context, *ReportScheduledWorkflowRequest) (*emptypb.Empty, error)
 }
 
 func RegisterReportServiceServer(s *grpc.Server, srv ReportServiceServer) {

@@ -7,13 +7,11 @@ import (
 	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
-	empty "github.com/golang/protobuf/ptypes/empty"
-	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	_ "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	math "math"
 )
 
@@ -404,9 +402,9 @@ func (m *DisableJobRequest) GetId() string {
 // CronSchedule allow scheduling the job with unix-like cron
 type CronSchedule struct {
 	// The start time of the cron job
-	StartTime *timestamp.Timestamp `protobuf:"bytes,1,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
+	StartTime *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
 	// The end time of the cron job
-	EndTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
+	EndTime *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
 	// The cron string. For details how to compose a cron, visit
 	// ttps://en.wikipedia.org/wiki/Cron
 	Cron                 string   `protobuf:"bytes,3,opt,name=cron,proto3" json:"cron,omitempty"`
@@ -440,14 +438,14 @@ func (m *CronSchedule) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_CronSchedule proto.InternalMessageInfo
 
-func (m *CronSchedule) GetStartTime() *timestamp.Timestamp {
+func (m *CronSchedule) GetStartTime() *timestamppb.Timestamp {
 	if m != nil {
 		return m.StartTime
 	}
 	return nil
 }
 
-func (m *CronSchedule) GetEndTime() *timestamp.Timestamp {
+func (m *CronSchedule) GetEndTime() *timestamppb.Timestamp {
 	if m != nil {
 		return m.EndTime
 	}
@@ -464,9 +462,9 @@ func (m *CronSchedule) GetCron() string {
 // PeriodicSchedule allow scheduling the job periodically with certain interval
 type PeriodicSchedule struct {
 	// The start time of the periodic job
-	StartTime *timestamp.Timestamp `protobuf:"bytes,1,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
+	StartTime *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
 	// The end time of the periodic job
-	EndTime *timestamp.Timestamp `protobuf:"bytes,2,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
+	EndTime *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
 	// The time interval between the starting time of consecutive jobs
 	IntervalSecond       int64    `protobuf:"varint,3,opt,name=interval_second,json=intervalSecond,proto3" json:"interval_second,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -499,14 +497,14 @@ func (m *PeriodicSchedule) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_PeriodicSchedule proto.InternalMessageInfo
 
-func (m *PeriodicSchedule) GetStartTime() *timestamp.Timestamp {
+func (m *PeriodicSchedule) GetStartTime() *timestamppb.Timestamp {
 	if m != nil {
 		return m.StartTime
 	}
 	return nil
 }
 
-func (m *PeriodicSchedule) GetEndTime() *timestamp.Timestamp {
+func (m *PeriodicSchedule) GetEndTime() *timestamppb.Timestamp {
 	if m != nil {
 		return m.EndTime
 	}
@@ -624,9 +622,9 @@ type Job struct {
 	Trigger *Trigger `protobuf:"bytes,7,opt,name=trigger,proto3" json:"trigger,omitempty"`
 	Mode    Job_Mode `protobuf:"varint,8,opt,name=mode,proto3,enum=api.Job_Mode" json:"mode,omitempty"`
 	// Output. The time this job is created.
-	CreatedAt *timestamp.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// Output. The last time this job is updated.
-	UpdatedAt *timestamp.Timestamp `protobuf:"bytes,10,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	// Output. The status of the job.
 	// One of [Enable, Disable, Error]
 	Status string `protobuf:"bytes,11,opt,name=status,proto3" json:"status,omitempty"`
@@ -733,14 +731,14 @@ func (m *Job) GetMode() Job_Mode {
 	return Job_UNKNOWN_MODE
 }
 
-func (m *Job) GetCreatedAt() *timestamp.Timestamp {
+func (m *Job) GetCreatedAt() *timestamppb.Timestamp {
 	if m != nil {
 		return m.CreatedAt
 	}
 	return nil
 }
 
-func (m *Job) GetUpdatedAt() *timestamp.Timestamp {
+func (m *Job) GetUpdatedAt() *timestamppb.Timestamp {
 	if m != nil {
 		return m.UpdatedAt
 	}
@@ -887,11 +885,11 @@ type JobServiceClient interface {
 	// Finds all jobs.
 	ListJobs(ctx context.Context, in *ListJobsRequest, opts ...grpc.CallOption) (*ListJobsResponse, error)
 	// Restarts a job that was previously stopped. All runs associated with the job will continue.
-	EnableJob(ctx context.Context, in *EnableJobRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	EnableJob(ctx context.Context, in *EnableJobRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// Stops a job and all its associated runs. The job is not deleted.
-	DisableJob(ctx context.Context, in *DisableJobRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	DisableJob(ctx context.Context, in *DisableJobRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// Deletes a job.
-	DeleteJob(ctx context.Context, in *DeleteJobRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	DeleteJob(ctx context.Context, in *DeleteJobRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type jobServiceClient struct {
@@ -929,8 +927,8 @@ func (c *jobServiceClient) ListJobs(ctx context.Context, in *ListJobsRequest, op
 	return out, nil
 }
 
-func (c *jobServiceClient) EnableJob(ctx context.Context, in *EnableJobRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
-	out := new(empty.Empty)
+func (c *jobServiceClient) EnableJob(ctx context.Context, in *EnableJobRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/api.JobService/EnableJob", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -938,8 +936,8 @@ func (c *jobServiceClient) EnableJob(ctx context.Context, in *EnableJobRequest, 
 	return out, nil
 }
 
-func (c *jobServiceClient) DisableJob(ctx context.Context, in *DisableJobRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
-	out := new(empty.Empty)
+func (c *jobServiceClient) DisableJob(ctx context.Context, in *DisableJobRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/api.JobService/DisableJob", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -947,8 +945,8 @@ func (c *jobServiceClient) DisableJob(ctx context.Context, in *DisableJobRequest
 	return out, nil
 }
 
-func (c *jobServiceClient) DeleteJob(ctx context.Context, in *DeleteJobRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
-	out := new(empty.Empty)
+func (c *jobServiceClient) DeleteJob(ctx context.Context, in *DeleteJobRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/api.JobService/DeleteJob", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -965,34 +963,11 @@ type JobServiceServer interface {
 	// Finds all jobs.
 	ListJobs(context.Context, *ListJobsRequest) (*ListJobsResponse, error)
 	// Restarts a job that was previously stopped. All runs associated with the job will continue.
-	EnableJob(context.Context, *EnableJobRequest) (*empty.Empty, error)
+	EnableJob(context.Context, *EnableJobRequest) (*emptypb.Empty, error)
 	// Stops a job and all its associated runs. The job is not deleted.
-	DisableJob(context.Context, *DisableJobRequest) (*empty.Empty, error)
+	DisableJob(context.Context, *DisableJobRequest) (*emptypb.Empty, error)
 	// Deletes a job.
-	DeleteJob(context.Context, *DeleteJobRequest) (*empty.Empty, error)
-}
-
-// UnimplementedJobServiceServer can be embedded to have forward compatible implementations.
-type UnimplementedJobServiceServer struct {
-}
-
-func (*UnimplementedJobServiceServer) CreateJob(ctx context.Context, req *CreateJobRequest) (*Job, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateJob not implemented")
-}
-func (*UnimplementedJobServiceServer) GetJob(ctx context.Context, req *GetJobRequest) (*Job, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetJob not implemented")
-}
-func (*UnimplementedJobServiceServer) ListJobs(ctx context.Context, req *ListJobsRequest) (*ListJobsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListJobs not implemented")
-}
-func (*UnimplementedJobServiceServer) EnableJob(ctx context.Context, req *EnableJobRequest) (*empty.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method EnableJob not implemented")
-}
-func (*UnimplementedJobServiceServer) DisableJob(ctx context.Context, req *DisableJobRequest) (*empty.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DisableJob not implemented")
-}
-func (*UnimplementedJobServiceServer) DeleteJob(ctx context.Context, req *DeleteJobRequest) (*empty.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteJob not implemented")
+	DeleteJob(context.Context, *DeleteJobRequest) (*emptypb.Empty, error)
 }
 
 func RegisterJobServiceServer(s *grpc.Server, srv JobServiceServer) {
