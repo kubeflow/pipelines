@@ -77,7 +77,7 @@ Note: The following sample code works in an IPython notebook or directly in Pyth
 import kfp.components as comp
 
 bigquery_query_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/1.3.0/components/gcp/bigquery/query/to_table/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/1.4.0-rc.1/components/gcp/bigquery/query/to_table/component.yaml')
 help(bigquery_query_op)
 ```
 

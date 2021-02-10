@@ -14,7 +14,14 @@
  * limitations under the License.
  */
 
-import { createGraph, SelectedNodeInfo, _populateInfoFromTemplate } from './StaticGraphParser';
+import {
+  createGraph,
+  SelectedNodeInfo,
+  _populateInfoFromTemplate,
+  transitiveReduction,
+  compareGraphEdges,
+} from './StaticGraphParser';
+import { graphlib } from 'dagre';
 
 describe('StaticGraphParser', () => {
   function newWorkflow(): any {
@@ -778,6 +785,58 @@ describe('StaticGraphParser', () => {
         ['param1', ''],
         ['param2', ''],
       ]);
+    });
+  });
+
+  function newRedundantWorkflow(): any {
+    return {
+      spec: {
+        entrypoint: 'redundant-pipeline',
+        templates: [
+          {
+            dag: {
+              tasks: [
+                { name: 'task-1', template: 'container-1' },
+                {
+                  dependencies: ['task-1'],
+                  name: 'task-2',
+                  template: 'container-2',
+                },
+                {
+                  dependencies: ['task-1', 'task-2'],
+                  name: 'task-3',
+                  template: 'container-3',
+                },
+              ],
+            },
+            name: 'redundant-pipeline',
+          },
+          { container: {}, name: 'container-1' },
+          { container: {}, name: 'container-2' },
+          { container: {}, name: 'container-3' },
+        ],
+      },
+    };
+  }
+
+  describe('transitiveReduction', () => {
+    it('reduces redundant workflow', () => {
+      const g = createGraph(newRedundantWorkflow());
+      const reduced = transitiveReduction(g);
+      expect(g.nodeCount()).toEqual(3);
+      expect(g.edgeCount()).toEqual(3);
+      expect(reduced).toBeDefined();
+      expect(reduced.nodeCount()).toEqual(3);
+      expect(reduced.edgeCount()).toEqual(2);
+    });
+  });
+
+  describe('compareGraphEdges', () => {
+    it('compares graphs edges', () => {
+      const g = createGraph(newRedundantWorkflow());
+      const reduced = transitiveReduction(graphlib.json.read(graphlib.json.write(g)));
+      expect(reduced).toBeDefined();
+      expect(compareGraphEdges(g, reduced)).toBeFalsy();
     });
   });
 });

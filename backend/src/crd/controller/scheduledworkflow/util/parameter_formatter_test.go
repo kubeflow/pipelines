@@ -22,9 +22,13 @@ import (
 
 func TestParameterFormatter_Format(t *testing.T) {
 	formatter := NewParameterFormatter(
+		"some-run-uuid",
 		25, /* scheduled time */
 		26, /* current time */
 		27 /* index */)
+
+	// Test [[RunUUID]] substitution
+	assert.Equal(t, "FOO some-run-uuid FOO", formatter.Format("FOO [[RunUUID]] FOO"))
 
 	// Test [[ScheduledTime]] substitution
 	assert.Equal(t, "FOO 19700101000025 FOO", formatter.Format("FOO [[ScheduledTime]] FOO"))
@@ -42,7 +46,7 @@ func TestParameterFormatter_Format(t *testing.T) {
 	assert.Equal(t, "FOO 00-00-26 FOO", formatter.Format("FOO [[CurrentTime.15-04-05]] FOO"))
 
 	// Test multiple substitution
-	assert.Equal(t, "19700101000025 19700101000025 27", formatter.Format("[[ScheduledTime]] [[ScheduledTime]] [[Index]]"))
+	assert.Equal(t, "19700101000025 some-run-uuid 19700101000025 27", formatter.Format("[[ScheduledTime]] [[RunUUID]] [[ScheduledTime]] [[Index]]"))
 
 	// Test no substitution
 	assert.Equal(t, "FOO FOO FOO", formatter.Format("FOO FOO FOO"))

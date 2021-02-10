@@ -18,16 +18,23 @@ import tempfile
 import logging
 import shutil
 from collections import OrderedDict
-from typing import Callable, List, Optional
+from typing import Callable, Dict, List, Optional
 
 from deprecated.sphinx import deprecated
 
 from ..components._components import _create_task_factory_from_component_spec
 from ..components._python_op import _func_to_component_spec
 from ._container_builder import ContainerBuilder
+from kfp import components
+from kfp import dsl
+from kfp.components import _components
 from kfp.components import _structures
+from kfp.containers import entrypoint
+
 
 V2_COMPONENT_ANNOTATION = 'pipelines.kubeflow.org/component_v2'
+_PROGRAM_LAUNCHER_CMD = 'program_path=$(mktemp)\nprintf "%s" "$0" > ' \
+                        '"$program_path"\npython3 -u "$program_path" "$@"\n'
 
 
 class VersionedDependency(object):
@@ -120,32 +127,27 @@ def _dependency_to_requirements(dependency=[], filename='requirements.txt'):
     dependency_helper.add_python_package(version)
   dependency_helper.generate_pip_requirements(filename)
 
-def _generate_dockerfile(filename, base_image, python_version, requirement_filename=None, add_files=None):
+def _generate_dockerfile(
+    filename: str,
+    base_image: str,
+    requirement_filename: Optional[str] = None,
+    add_files: Optional[Dict[str, str]] = None):
   """
     generates dockerfiles
     Args:
       filename (str): target file name for the dockerfile.
       base_image (str): the base image name.
-      python_version (str): choose python2 or python3
       requirement_filename (str): requirement file name
       add_files (Dict[str, str]): Map containing the files thats should be added to the container. add_files maps the build context relative source paths to the container destination paths.
   """
-  if python_version not in ['python2', 'python3']:
-    raise ValueError('python_version has to be either python2 or python3')
   with open(filename, 'w') as f:
     f.write('FROM ' + base_image + '\n')
-    if python_version == 'python3':
-      f.write('RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools\n')
-    else:
-      f.write('RUN apt-get update -y && apt-get install --no-install-recommends -y -q python python-pip python-setuptools\n')
+    f.write('RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools\n')
     if requirement_filename is not None:
       f.write('ADD ' + requirement_filename + ' /ml/requirements.txt\n')
-      if python_version == 'python3':
-        f.write('RUN python3 -m pip install -r /ml/requirements.txt\n')
-      else:
-        f.write('RUN python -m pip install -r /ml/requirements.txt\n')
-    
-    for src_path, dst_path in (add_files or {}).items():     
+      f.write('RUN python3 -m pip install -r /ml/requirements.txt\n')
+
+    for src_path, dst_path in (add_files or {}).items():
       f.write('ADD ' + src_path + ' ' + dst_path + '\n')
 
 
@@ -169,16 +171,63 @@ def _configure_logger(logger):
   logger.addHandler(error_handler)
 
 
+def _purge_program_launching_code(
+    commands: List[str],
+    entrypoint_container_path: Optional[str] = None,
+    is_v2: bool = False
+) -> str:
+  """Replaces the inline Python code with calling a local program.
+
+  For example,
+  Before: sh -ec '... && python3 -u ...' 'import sys ...' --param1 ...
+  After:  python -u /ml/main.py --param1 ...
+
+  Args:
+    commands: The container commands to be replaced.
+    entrypoint_container_path: The path to the entrypoint program in the
+      container.
+    is_v2: Whether the component being generated is a v2 component. Default is
+      False.
+
+  Returns:
+    The originally generated inline Python code.
+  """
+  if not (is_v2 or entrypoint_container_path):
+    raise ValueError('Only v2 component has default entrypoint path. '
+                     'Conventional KFP component needs to specify container '
+                     'entrypoint explicitly. For example, /ml/main.py')
+  program_launcher_index = commands.index(_PROGRAM_LAUNCHER_CMD)
+  # When there're preinstallation package specified when converting to component
+  # spec the index will be 3, otherwise it'll be 2.
+  assert program_launcher_index in [2, 3]
+  program_code_index = program_launcher_index + 1
+  result = commands[program_code_index]
+  if is_v2:
+    # TODO: Implement the v2 component entrypoint on KFP.
+    # The following are just placeholders.
+    commands[program_code_index] = 'kfp.containers.entrypoint'
+    commands.pop(program_launcher_index)
+    commands[program_launcher_index - 1] = '-m'
+    commands[program_launcher_index - 2] = 'python'
+  else:
+    commands[program_code_index] = entrypoint_container_path
+    commands.pop(program_launcher_index)
+    commands[program_launcher_index - 1] = '-u'  # -ec => -u
+    # sh => python3 or python2
+    commands[program_launcher_index - 2] = 'python'
+
+  return result
+
+
 def build_python_component(
     component_func: Callable,
     target_image: str,
     base_image: Optional[str] = None,
-    dependency: List[str] = [],
+    dependency: Optional[List[VersionedDependency]] = None,
     staging_gcs_path: Optional[str] = None,
     timeout: int = 600,
     namespace: Optional[str] = None,
     target_component_file: Optional[str] = None,
-    python_version: str = 'python3',
     is_v2: bool = False
 ):
   """build_component automatically builds a container image for the
@@ -200,7 +249,6 @@ def build_python_component(
       package name and versions, default is empty.
     target_component_file (str): The path to save the generated component YAML
       spec.
-    python_version (str): Choose python2 or python3, default is python3
     is_v2: Whether or not generating a v2 KFP component, default
       is false.
 
@@ -216,9 +264,6 @@ def build_python_component(
   if target_image is None:
     raise ValueError('target_image must not be None')
 
-  if python_version not in ['python2', 'python3']:
-    raise ValueError('python_version has to be either python2 or python3')
-
   if staging_gcs_path is None:
     raise ValueError('staging_gcs_path must not be None')
 
@@ -229,16 +274,21 @@ def build_python_component(
     base_image = default_base_image_or_builder
     if isinstance(base_image, Callable):
       base_image = base_image()
+  if not dependency:
+    dependency = []
 
   logging.info('Build an image that is based on ' +
-                                  base_image +
-                                  ' and push the image to ' +
-                                  target_image)
+               base_image +
+               ' and push the image to ' +
+               target_image)
 
   component_spec = _func_to_component_spec(
       component_func, base_image=base_image)
 
   if is_v2:
+    # TODO: Remove this warning once we make v2 component compatible with KFP
+    # v1 stack.
+    logging.warning('Currently V2 component is only compatible with v2 KFP.')
     # Annotate the component to be a V2 one.
     if not component_spec.metadata:
       component_spec.metadata = _structures.MetadataSpec()
@@ -248,43 +298,128 @@ def build_python_component(
 
   command_line_args = component_spec.implementation.container.command
 
-  program_launcher_index = command_line_args.index('program_path=$(mktemp)\nprintf "%s" "$0" > "$program_path"\npython3 -u "$program_path" "$@"\n')
-  assert program_launcher_index in [2, 3]
+  # The relative path to put the Python program code.
+  program_path = 'ml/main.py'
+  # The relative path used when building a V2 component.
+  v2_entrypoint_path = None
+  # Python program code extracted from the component spec.
+  program_code = None
 
-  program_code_index = program_launcher_index + 1
-  program_code = command_line_args[program_code_index]
-  program_rel_path = 'ml/main.py'
-  program_container_path = '/' + program_rel_path
+  if is_v2:
 
-  # Replacing the inline code with calling a local program
-  # Before: sh -ec '... && python3 -u ...' 'import sys ...' --param1 ...
-  # After:  python3 -u main.py --param1 ...
-  command_line_args[program_code_index] = program_container_path
-  command_line_args.pop(program_launcher_index)
-  command_line_args[program_launcher_index - 1] = '-u'  # -ec => -u
-  command_line_args[program_launcher_index - 2] = python_version  # sh => python3
+    program_code = _purge_program_launching_code(
+        commands=command_line_args,
+        is_v2=True)
 
-  if python_version == 'python2':
-    import warnings
-    warnings.warn('Python2 is not longer supported')
+    # Override user program args for new-styled component.
+    # TODO: The actual program args will be changed after we support v2
+    # component on KFP.
+    program_args = []
+    for component_input in component_spec.inputs or []:
+      if component_input._passing_style == components.InputArtifact:
+        # For each input artifact, there'll be possibly 3 arguments passed to
+        # the user program:
+        # 1. {name of the artifact}_input_path: The actual path, or uri, of the
+        #    input artifact.
+        # 2. {name of the artifact}_input_pod_name: The pod ID of the producer.
+        # 3. {name of the artifact}_input_output_name: The output name of the
+        #    artifact, by which the artifact can be found in the producer
+        #    metadata JSON file.
+        program_args.append('--{}{}'.format(
+            component_input.name,
+            entrypoint.INPUT_URI_SUFFIX
+        ))
+        program_args.append(
+            _structures.InputUriPlaceholder(
+                input_name=component_input.name))
+        program_args.append('--{}{}'.format(
+            component_input.name,
+            entrypoint.PRODUCER_POD_ID_SUFFIX
+        ))
+        program_args.append(
+            '{{{{inputs.parameters.{input}}}}}'.format(
+                input=_components.PRODUCER_POD_NAME_PARAMETER.format(
+                    component_input.name)))
+        # TODO(numerology): Consider removing the need of output name
+        # placeholder by letting v2 component output two metadata files per
+        # output.
+        program_args.append('--{}{}'.format(
+            component_input.name,
+            entrypoint.OUTPUT_NAME_SUFFIX
+        ))
+        program_args.append(_structures.InputOutputPortNamePlaceholder(
+            input_name=component_input.name))
+
+      elif component_input._passing_style is None:
+        program_args.append('--{}{}'.format(
+            component_input.name,
+            entrypoint.ARGO_PARAM_SUFFIX
+        ))
+        program_args.append(_structures.InputValuePlaceholder(
+            input_name=component_input.name))
+      else:
+        raise TypeError(
+            'Only Input/OutputArtifact and parameter annotations '
+            'are supported in V2 components. '
+            'Got %s' % component_input._passing_style)
+
+    for component_output in component_spec.outputs or []:
+      if component_output._passing_style == components.OutputArtifact:
+        # For each output artifact, there'll be one arguments passed to
+        # the user program:
+        # - {name of the artifact}_output_path: The actual path, or uri, of the
+        #    input artifact.
+        program_args.append('--{}{}'.format(
+            component_output.name,
+            entrypoint.OUTPUT_ARTIFACT_PATH_SUFFIX
+        ))
+        program_args.append(
+            _structures.OutputUriPlaceholder(
+                output_name=component_output.name))
+      elif component_output._passing_style is not None:
+        raise TypeError(
+            'Only Input/OutputArtifact and parameter annotations '
+            'are supported in V2 components. '
+            'Got %s' % component_output._passing_style)
+
+    program_args.append('--pipeline_context')
+    program_args.append(dsl.RUN_ID_PLACEHOLDER)
+    program_args.append('--{}'.format(entrypoint.FN_NAME_ARG))
+    program_args.append(component_func.__name__)
+
+    component_spec.implementation.container.args = program_args
+  else:
+    program_code = _purge_program_launching_code(
+        commands=command_line_args,
+        entrypoint_container_path='/' + program_path)
 
   arc_docker_filename = 'Dockerfile'
   arc_requirement_filename = 'requirements.txt'
 
   with tempfile.TemporaryDirectory() as local_build_dir:
     # Write the program code to a file in the context directory
-    local_python_filepath = os.path.join(local_build_dir, program_rel_path)
+    local_python_filepath = os.path.join(local_build_dir, program_path)
     os.makedirs(os.path.dirname(local_python_filepath), exist_ok=True)
+
     with open(local_python_filepath, 'w') as f:
       f.write(program_code)
 
     # Generate the python package requirements file in the context directory
     local_requirement_filepath = os.path.join(local_build_dir, arc_requirement_filename)
+    if is_v2:
+      # For v2 components, KFP are expected to be packed in the container.
+      dependency.append(VersionedDependency(name='kfp', min_version='1.4.0'))
+
     _dependency_to_requirements(dependency, local_requirement_filepath)
 
     # Generate Dockerfile in the context directory
     local_docker_filepath = os.path.join(local_build_dir, arc_docker_filename)
-    _generate_dockerfile(local_docker_filepath, base_image, python_version, arc_requirement_filename, add_files={program_rel_path: program_container_path})
+    add_files = {program_path: '/' + program_path}
+
+    _generate_dockerfile(
+        local_docker_filepath, base_image,
+        arc_requirement_filename,
+        add_files=add_files)
 
     logging.info('Building and pushing container image.')
     container_builder = ContainerBuilder(staging_gcs_path, target_image, namespace)
@@ -312,7 +447,7 @@ def build_docker_image(staging_gcs_path, target_image, dockerfile_path, timeout=
     dockerfile_path (str): local path to the dockerfile
     timeout (int): the timeout for the image build(in secs), default is 600 seconds
     namespace (str): the namespace within which to run the kubernetes kaniko job. Default is None. If the
-    job is running on GKE and value is None the underlying functions will use the default namespace from GKE.  
+    job is running on GKE and value is None the underlying functions will use the default namespace from GKE.
   """
   _configure_logger(logging.getLogger())
 

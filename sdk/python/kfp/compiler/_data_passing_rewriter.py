@@ -502,6 +502,12 @@ def _refactor_inputs_if_uri_placeholder(
                         r'.*/{{kfp\.run_uid}}/{{inputs\.parameters\.'
                         + input_name + r'}}/(?P<filename>.*)', cmd)
                     if matched:
+                        if not artifact_input['name'] in output_to_filename:
+                            raise RuntimeError(
+                                'Cannot find %s in output to file name mapping.'
+                                'Please note currently connecting URI '
+                                'placeholder with path placeholder is not '
+                                'supported.' % artifact_input['name'])
                         new_command_lines.append(
                             cmd[:-len(matched.group('filename'))] +
                             output_to_filename[artifact_input['name']])

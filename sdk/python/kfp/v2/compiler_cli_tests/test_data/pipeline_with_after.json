@@ -1,20 +1,95 @@
 {
   "pipelineSpec": {
-    "deploymentConfig": {
-      "@type": "type.googleapis.com/ml_pipelines.PipelineDeploymentConfig",
-      "executors": {
-        "Print Text": {
-          "container": {
-            "command": [
-              "sh",
-              "-c",
-              "set -e -x\necho \"$0\"\n",
-              "{{$.inputs.parameters['text']}}"
-            ],
-            "image": "alpine"
+    "root": {
+      "dag": {
+        "tasks": {
+          "task-print-text-2": {
+            "inputs": {
+              "parameters": {
+                "text": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "2nd task"
+                    }
+                  }
+                }
+              }
+            },
+            "componentRef": {
+              "name": "comp-print-text"
+            },
+            "taskInfo": {
+              "name": "task-print-text-2"
+            },
+            "dependentTasks": [
+              "task-print-text"
+            ]
+          },
+          "task-print-text": {
+            "taskInfo": {
+              "name": "task-print-text"
+            },
+            "inputs": {
+              "parameters": {
+                "text": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "1st task"
+                    }
+                  }
+                }
+              }
+            },
+            "componentRef": {
+              "name": "comp-print-text"
+            }
+          },
+          "task-print-text-3": {
+            "taskInfo": {
+              "name": "task-print-text-3"
+            },
+            "componentRef": {
+              "name": "comp-print-text"
+            },
+            "inputs": {
+              "parameters": {
+                "text": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "3rd task"
+                    }
+                  }
+                }
+              }
+            },
+            "dependentTasks": [
+              "task-print-text",
+              "task-print-text-2"
+            ]
+          }
+        }
+      }
+    },
+    "sdkVersion": "kfp-1.3.0",
+    "schemaVersion": "2.0.0",
+    "pipelineInfo": {
+      "name": "pipeline-with-after"
+    },
+    "components": {
+      "comp-print-text": {
+        "inputDefinitions": {
+          "parameters": {
+            "text": {
+              "type": "STRING"
+            }
           }
         },
-        "Print Text 3": {
+        "executorLabel": "exec-print-text"
+      }
+    },
+    "deploymentSpec": {
+      "executors": {
+        "exec-print-text": {
           "container": {
             "image": "alpine",
             "command": [
@@ -24,85 +99,9 @@
               "{{$.inputs.parameters['text']}}"
             ]
           }
-        },
-        "Print Text 2": {
-          "container": {
-            "command": [
-              "sh",
-              "-c",
-              "set -e -x\necho \"$0\"\n",
-              "{{$.inputs.parameters['text']}}"
-            ],
-            "image": "alpine"
-          }
         }
       }
-    },
-    "pipelineInfo": {
-      "name": "pipeline-with-after"
-    },
-    "sdkVersion": "kfp-1.1.1",
-    "tasks": [
-      {
-        "executorLabel": "Print Text",
-        "taskInfo": {
-          "name": "Print Text"
-        },
-        "inputs": {
-          "parameters": {
-            "text": {
-              "runtimeValue": {
-                "constantValue": {
-                  "stringValue": "1st task"
-                }
-              }
-            }
-          }
-        }
-      },
-      {
-        "inputs": {
-          "parameters": {
-            "text": {
-              "runtimeValue": {
-                "constantValue": {
-                  "stringValue": "2nd task"
-                }
-              }
-            }
-          }
-        },
-        "dependentTasks": [
-          "Print Text"
-        ],
-        "taskInfo": {
-          "name": "Print Text 2"
-        },
-        "executorLabel": "Print Text 2"
-      },
-      {
-        "dependentTasks": [
-          "Print Text",
-          "Print Text 2"
-        ],
-        "inputs": {
-          "parameters": {
-            "text": {
-              "runtimeValue": {
-                "constantValue": {
-                  "stringValue": "3rd task"
-                }
-              }
-            }
-          }
-        },
-        "executorLabel": "Print Text 3",
-        "taskInfo": {
-          "name": "Print Text 3"
-        }
-      }
-    ],
-    "schemaVersion": "v2alpha1"
+    }
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"
