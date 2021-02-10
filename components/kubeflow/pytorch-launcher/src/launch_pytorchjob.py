@@ -11,50 +11,21 @@ import launch_crd
 from kubeflow.pytorchjob import V1PyTorchJob as V1PyTorchJob_original
 from kubeflow.pytorchjob import V1PyTorchJobSpec as V1PyTorchJobSpec_original
 
+
 def yamlOrJsonStr(str):
     if str == "" or str == None:
         return None
     return yaml.safe_load(str)
 
+
 def get_current_namespace():
-    current_namespace = open("/var/run/secrets/kubernetes.io/serviceaccount/namespace").read()
+    """Returns current namespace if available, else kubeflow"""
+    try:
+        current_namespace = open("/var/run/secrets/kubernetes.io/serviceaccount/namespace").read()
+    except:
+        current_namespace = "kubeflow"
     return current_namespace
 
-# # TODO: Needed if I just call k8s_client.ApiClient().sanitize_for_serialization() below?
-# # Patch existing classes to fix API bugs
-# import six
-# def to_dict(self):
-#     """Returns the model properties as a dict, respecting attribute_map renaming"""
-#     result = {}
-
-#     for attr, _ in six.iteritems(self.swagger_types):
-#         if attr in self.attribute_map:
-#             returned_attr = self.attribute_map[attr]
-#         else:
-#             returned_attr = attr
-
-#         value = getattr(self, attr)
-#         if isinstance(value, list):
-#             result[returned_attr] = list(map(
-#                 lambda x: x.to_dict() if hasattr(x, "to_dict") else x,
-#                 value
-#             ))
-#         elif hasattr(value, "to_dict"):
-#             result[returned_attr] = value.to_dict()
-#         elif isinstance(value, dict):
-#             result[returned_attr] = dict(map(
-#                 lambda item: (item[0], item[1].to_dict())
-#                 if hasattr(item[1], "to_dict") else item,
-#                 value.items()
-#             ))
-#         else:
-#             result[returned_attr] = value
-#     # Class specific if.  Why do we need this?
-# #         if issubclass(THIS_CLASS, dict):
-# #             for key, value in self.items():
-# #                 result[key] = value
-
-#     return result
 
 # Patch PyTorchJob APIs to align with k8s usage
 class V1PyTorchJob(V1PyTorchJob_original):
@@ -62,22 +33,17 @@ class V1PyTorchJob(V1PyTorchJob_original):
         super().__init__(*args, **kwargs)
         self.openapi_types = self.swagger_types
 
-    # def to_dict(self):
-    #     return to_dict(self)
 
 class V1PyTorchJobSpec(V1PyTorchJobSpec_original):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.openapi_types = self.swagger_types
 
-    # def to_dict(self):
-        # return to_dict(self)
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description='Kubeflow Job launcher')
     parser.add_argument('--name', type=str,
                         help='Job name.')
-    # TODO: Make default namespace the current namespace, not kubeflow?
     parser.add_argument('--namespace', type=str,
                         default=get_current_namespace(),
                         help='Job namespace.')
@@ -121,7 +87,6 @@ def main(argv=None):
                         default='PyTorchJob',
                         help='CRD kind.')
     
-
     args = parser.parse_args()
 
     logging.getLogger(__name__).setLevel(logging.INFO)
