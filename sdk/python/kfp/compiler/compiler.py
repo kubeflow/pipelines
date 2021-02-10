@@ -881,7 +881,7 @@ class Compiler(object):
       for k, v in default_param_values.items():
         args_list_with_defaults[k] = v
 
-      pipeline_meta.inputs = [] or pipeline_meta.inputs
+      pipeline_meta.inputs = pipeline_meta.inputs or []
       for param in params_list:
         pipeline_meta.inputs.append(
             InputSpec(
