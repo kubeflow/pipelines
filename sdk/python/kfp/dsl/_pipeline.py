@@ -32,7 +32,7 @@ _pipeline_decorator_handler = None
 def pipeline(
     name: Optional[str] = None,
     description: Optional[str] = None,
-    output_directory: Optional[str] = None):
+    pipeline_root: Optional[str] = None):
   """Decorator of pipeline functions.
 
   Example
@@ -41,7 +41,7 @@ def pipeline(
       @pipeline(
         name='my awesome pipeline',
         description='Is it really awesome?'
-        output_directory='gs://my-bucket/my-output-path'
+        pipeline_root='gs://my-bucket/my-output-path'
       )
       def my_pipeline(a: PipelineParam, b: PipelineParam):
         ...
@@ -50,7 +50,7 @@ def pipeline(
     name: The pipeline name. Default to a sanitized version of the function
       name.
     description: Optionally, a human-readable description of the pipeline.
-    output_directory: The root directory to generate input/output URI under this
+    pipeline_root: The root directory to generate input/output URI under this
       pipeline. This is required if input/output URI placeholder is used in this
       pipeline.
   """
@@ -60,8 +60,8 @@ def pipeline(
       func._component_human_name = name
     if description:
       func._component_description = description
-    if output_directory:
-      func.output_directory = output_directory
+    if pipeline_root:
+      func.output_directory = pipeline_root
 
     if _pipeline_decorator_handler:
       return _pipeline_decorator_handler(func) or func

@@ -13,28 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import NamedTuple
-
 import kfp
-import kfp.compiler as compiler
 from kfp.components import func_to_container_op
-
-
-# Stabilizing the test output
-class StableIDGenerator:
-    def __init__(self, ):
-        self._index = 0
-
-    def get_next_id(self, ):
-        self._index += 1
-        return '{code:0{num_chars:}d}'.format(code=self._index, num_chars=kfp.dsl._for_loop.LoopArguments.NUM_CODE_CHARS)
-
-kfp.dsl.ParallelFor._get_unique_id_code = StableIDGenerator().get_next_id
 
 
 @func_to_container_op
 def produce_message(fname1: str) -> str:
     return "My name is %s" % fname1
+
 
 @func_to_container_op
 def consume(param1):
@@ -53,7 +39,7 @@ def parallelfor_pipeline_param_in_items_resolving(fname1: str, fname2: str):
     list_of_complex_dict = [
         {"first_name": fname1, "message": produce_message(fname1).output},
         {"first_name": fname2, "message": produce_message(fname2).output}]
-    
+
     with kfp.dsl.ParallelFor(simple_list) as loop_item:
         consume(loop_item)
 

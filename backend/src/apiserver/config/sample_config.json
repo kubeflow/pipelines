@@ -1,10 +1,5 @@
 [
   {
-    "name": "[Demo] XGBoost - Training with confusion matrix",
-    "description": "[source code](https://github.com/kubeflow/pipelines/blob/master/samples/core/xgboost_training_cm) [GCP Permission requirements](https://github.com/kubeflow/pipelines/blob/master/samples/core/xgboost_training_cm#requirements). A trainer that does end-to-end distributed training for XGBoost models.",
-    "file": "/samples/core/xgboost_training_cm/xgboost_training_cm.py.yaml"
-  },
-  {
     "name": "[Demo] TFX - Taxi tip prediction model trainer",
     "description": "[source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/parameterized_tfx_oss) [GCP Permission requirements](https://github.com/kubeflow/pipelines/blob/master/samples/core/parameterized_tfx_oss#permission). Example pipeline that does classification with model analysis based on a public tax cab dataset.",
     "file": "/samples/core/parameterized_tfx_oss/parameterized_tfx_oss.py.yaml"

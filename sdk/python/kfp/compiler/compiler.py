@@ -16,6 +16,7 @@ import json
 from collections import defaultdict, OrderedDict
 from deprecated import deprecated
 import inspect
+import re
 import tarfile
 import uuid
 import warnings
@@ -842,17 +843,22 @@ class Compiler(object):
       raise ValueError('Either specify pipeline params in the pipeline function, or in "params_list", but not both.')
 
     args_list = []
+    kwargs_dict = dict()
     signature = inspect.signature(pipeline_func)
-    for arg_name in signature.parameters:
+    for arg_name, arg in signature.parameters.items():
       arg_type = None
       for input in pipeline_meta.inputs or []:
         if arg_name == input.name:
           arg_type = input.type
           break
-      args_list.append(dsl.PipelineParam(sanitize_k8s_name(arg_name, True), param_type=arg_type))
+      param = dsl.PipelineParam(sanitize_k8s_name(arg_name, True), param_type=arg_type)
+      if arg.kind == inspect.Parameter.KEYWORD_ONLY:
+        kwargs_dict[arg_name] = param
+      else:
+        args_list.append(param)
 
     with dsl.Pipeline(pipeline_name) as dsl_pipeline:
-      pipeline_func(*args_list)
+      pipeline_func(*args_list, **kwargs_dict)
 
     pipeline_conf = pipeline_conf or dsl_pipeline.conf # Configuration passed to the compiler is overriding. Unfortunately, it's not trivial to detect whether the dsl_pipeline.conf was ever modified.
 
@@ -1062,10 +1068,24 @@ def _run_argo_lint(yaml_text: str):
   if argo_path:
     result = subprocess.run([argo_path, 'lint', '/dev/stdin'], input=yaml_text.encode('utf-8'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if result.returncode:
+      if re.match(
+          pattern=r'.+failed to resolve {{tasks\..+\.outputs\.artifacts\..+}}.+',
+          string=result.stderr.decode('utf-8')
+      ):
+        raise RuntimeError(
+            'Compiler has produced Argo-incompatible workflow due to '
+            'unresolvable input artifact(s). Please check whether inputPath has'
+            ' been connected to outputUri placeholder, which is not supported '
+            'yet. Otherwise, please create a new issue at '
+            'https://github.com/kubeflow/pipelines/issues attaching the '
+            'pipeline code and the pipeline package. Error: {}'.format(
+                result.stderr.decode('utf-8'))
+        )
       raise RuntimeError(
         '''Internal compiler error: Compiler has produced Argo-incompatible workflow.
 Please create a new issue at https://github.com/kubeflow/pipelines/issues attaching the pipeline code and the pipeline package.
 Error: {}'''.format(result.stderr.decode('utf-8'))
       )
+
     return True
   return False

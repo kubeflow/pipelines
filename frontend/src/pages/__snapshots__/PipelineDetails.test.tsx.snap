@@ -139,6 +139,11 @@ exports[`PipelineDetails closes side panel when close button is clicked 1`] = `
             onError={[Function]}
             selectedNodeId=""
           />
+          <ReduceGraphSwitch
+            checked={false}
+            disabled={true}
+            onChange={[Function]}
+          />
           <SidePanel
             isOpen={false}
             onClose={[Function]}
@@ -230,6 +235,11 @@ exports[`PipelineDetails collapses summary card when summary shown state is fals
             onClick={[Function]}
             onError={[Function]}
             selectedNodeId=""
+          />
+          <ReduceGraphSwitch
+            checked={false}
+            disabled={true}
+            onChange={[Function]}
           />
           <SidePanel
             isOpen={false}
@@ -413,6 +423,11 @@ exports[`PipelineDetails opens side panel on clicked node, shows message when no
             onClick={[Function]}
             onError={[Function]}
             selectedNodeId="some-node-id"
+          />
+          <ReduceGraphSwitch
+            checked={false}
+            disabled={true}
+            onChange={[Function]}
           />
           <SidePanel
             isOpen={true}
@@ -643,6 +658,11 @@ exports[`PipelineDetails shows clicked node info in the side panel if it is in t
             onError={[Function]}
             selectedNodeId="node1"
           />
+          <ReduceGraphSwitch
+            checked={false}
+            disabled={true}
+            onChange={[Function]}
+          />
           <SidePanel
             isOpen={true}
             onClose={[Function]}
@@ -862,6 +882,11 @@ exports[`PipelineDetails shows correct versions in version selector 1`] = `
             onError={[Function]}
             selectedNodeId=""
           />
+          <ReduceGraphSwitch
+            checked={false}
+            disabled={true}
+            onChange={[Function]}
+          />
           <SidePanel
             isOpen={false}
             onClose={[Function]}
@@ -1038,6 +1063,11 @@ exports[`PipelineDetails shows empty pipeline details with empty graph 1`] = `
             onClick={[Function]}
             onError={[Function]}
             selectedNodeId=""
+          />
+          <ReduceGraphSwitch
+            checked={false}
+            disabled={true}
+            onChange={[Function]}
           />
           <SidePanel
             isOpen={false}

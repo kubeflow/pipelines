@@ -1,0 +1,875 @@
+/* Copyright 2019 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+==============================================================================*/
+
+syntax = "proto2";
+
+package ml_metadata;
+
+import "ml_metadata/proto/metadata_store.proto";
+
+// An artifact and type pair. Part of an artifact struct.
+message ArtifactAndType {
+  optional Artifact artifact = 1;
+  optional ArtifactType type = 2;
+}
+
+// A dictionary of artifact structs. Can represent a dictionary.
+message ArtifactStructMap {
+  // An artifact struct that is a dictionary.
+  // Can be represented as a JSON dictionary of artifact structs.
+  map<string, ArtifactStruct> properties = 1;
+}
+
+// An artifact struct that is a list.
+message ArtifactStructList {
+  // Can be represented as a JSON list of artifact structs.
+  repeated ArtifactStruct elements = 1;
+}
+
+// An artifact struct represents the input or output of an Execution.
+// See the more specific types referenced in the message for more details.
+message ArtifactStruct {
+  // Note: an artifact struct may be empty to indicate "None" or null.
+  oneof value {
+    ArtifactAndType artifact = 1;
+    ArtifactStructMap map = 2;
+    ArtifactStructList list = 3;
+  }
+}
+
+message PutArtifactsRequest {
+  repeated Artifact artifacts = 1;
+
+  message Options {
+    // When there are multiple writers to update an existing node to
+    // different states, there may be a race and the end result of the
+    // concurrent update is nondeterministic. If the field is set, then an
+    // optimistic concurrency control (OCC) scheme is used during update:
+    // it compares the `artifact`.`last_update_time_since_epoch` in the request
+    // with the stored `last_update_time_since_epoch` having the same
+    // `artifact`.`id`. If they are different, the request fails, and the user
+    // can read the stored node and retry node update.
+    // When the option is set, the timestamp after update is guaranteed to be
+    // increased and different from the input artifact.
+    // When set the option, the caller should set it for all concurrent writers.
+    optional bool abort_if_latest_updated_time_changed = 1;
+  }
+
+  // Additional options to change the behavior of the method.
+  optional Options options = 2;
+}
+
+message PutArtifactsResponse {
+  // A list of artifact ids index-aligned with PutArtifactsRequest.
+  repeated int64 artifact_ids = 1;
+}
+
+message PutArtifactTypeRequest {
+  // The field is required in any request. Stored types in MLMD can be updated
+  // by introducing new properties and remain backward compatible. If a type
+  // with the same name exists in the database, it updates the existing type,
+  // otherwise it creates a new type.
+  optional ArtifactType artifact_type = 1;
+
+  // If true then allows adding properties to an existing stored type.
+  // If false, then type update is not allowed and it raises AlreadyExists
+  // error if the given type has any new property that is not defined in the
+  // stored type.
+  optional bool can_add_fields = 2;
+
+  // If true then allows omitting properties of an existing stored type.
+  // If false, then no properties of the stored type can be omitted in the
+  // given type, otherwise it raises AlreadyExists error.
+  optional bool can_omit_fields = 5;
+
+  // Deprecated fields.
+  optional bool can_delete_fields = 3 [deprecated = true];
+  optional bool all_fields_match = 4 [default = true, deprecated = true];
+}
+
+message PutArtifactTypeResponse {
+  // The type ID of the artifact type.
+  optional int64 type_id = 1;
+}
+
+message PutExecutionsRequest {
+  repeated Execution executions = 1;
+}
+
+message PutExecutionsResponse {
+  // A list of execution ids index-aligned with PutExecutionsRequest.
+  repeated int64 execution_ids = 1;
+}
+
+message PutExecutionTypeRequest {
+  // The field is required in any request. Stored types in MLMD can be updated
+  // by introducing new properties and remain backward compatible. If a type
+  // with the same name exists in the database, it updates the existing type,
+  // otherwise it creates a new type.
+  optional ExecutionType execution_type = 1;
+
+  // If true then allows adding properties to an existing stored type.
+  // If false, then type update is not allowed and it raises AlreadyExists
+  // error if the given type has any new property that is not defined in the
+  // stored type.
+  optional bool can_add_fields = 2;
+
+  // If true then allows omitting properties of an existing stored type.
+  // If false, then no properties of the stored type can be omitted in the
+  // given type, otherwise it raises AlreadyExists error.
+  optional bool can_omit_fields = 5;
+
+  // Deprecated fields.
+  optional bool can_delete_fields = 3 [deprecated = true];
+  optional bool all_fields_match = 4 [default = true, deprecated = true];
+}
+
+message PutExecutionTypeResponse {
+  // The type ID of the execution type.
+  optional int64 type_id = 1;
+}
+
+message PutEventsRequest {
+  repeated Event events = 1;
+}
+
+message PutEventsResponse {}
+
+message PutExecutionRequest {
+  // A pair of an artifact and an event used or generated by an execution, e.g.,
+  // during the execution run, it uses none or many artifacts as input, and
+  // generate none or many artifacts as output.
+  message ArtifactAndEvent {
+    // The pair may have an artifact. If present and no artifact.id is given,
+    // then it inserts the artifact, otherwise it updates the artifact.
+    optional Artifact artifact = 1;
+    // The pair may have an event. Providing event.artifact_id or
+    // event.execution_id is optional. If the ids are given, it must align with
+    // the `artifact`.id / `execution`.id respectively. If artifact is not
+    // given and event.artifact_id is set, it must exist in the backend.
+    optional Event event = 2;
+  }
+
+  message Options {
+    // When there's a race to publish executions with a new context with the
+    // same context.name, by default there'll be one writer succeeds and
+    // the rest of the writers returning AlreadyExists errors. If set the field,
+    // the failed writer will reuse the stored context in the transaction.
+    optional bool reuse_context_if_already_exist = 1;
+  }
+  // The execution that produces many artifact and event pairs.
+  optional Execution execution = 1;
+  // The list of artifact and event pairs.
+  repeated ArtifactAndEvent artifact_event_pairs = 2;
+  // A list of contexts associated with the execution and artifacts. For each
+  // given context without a context.id, it inserts the context, otherwise it
+  // updates the stored context with the same id.
+  // Associations between each pair of contexts and the execution, and
+  // attributions between each pair of contexts and artifacts are created if
+  // they do not already exist.
+  repeated Context contexts = 3;
+  // Additional options to change the behavior of the method.
+  optional Options options = 4;
+}
+
+message PutExecutionResponse {
+  // An execution id of the `execution` in PutExecutionRequest.
+  optional int64 execution_id = 1;
+  // A list of artifact ids index-aligned with `artifact_event_pairs` in the
+  // PutExecutionRequest.
+  repeated int64 artifact_ids = 2;
+  // A list of context ids index-aligned with `contexts` in the
+  // PutExecutionRequest.
+  repeated int64 context_ids = 3;
+}
+
+message PutTypesRequest {
+  repeated ArtifactType artifact_types = 1;
+  repeated ExecutionType execution_types = 2;
+  repeated ContextType context_types = 3;
+
+  // If true then allows adding properties to an existing stored type.
+  // If false, then type update is not allowed and it raises AlreadyExists
+  // error if the given type has any new property that is not defined in the
+  // stored type.
+  optional bool can_add_fields = 4;
+
+  // If true then allows omitting properties of an existing stored type.
+  // If false, then no properties of the stored type can be omitted in the
+  // given type, otherwise it raises AlreadyExists error.
+  optional bool can_omit_fields = 7;
+
+  // Deprecated fields.
+  optional bool can_delete_fields = 5 [deprecated = true];
+  optional bool all_fields_match = 6 [default = true, deprecated = true];
+}
+
+message PutTypesResponse {
+  // The type ids of the artifact type.
+  repeated int64 artifact_type_ids = 1;
+  // The type ids of the execution type.
+  repeated int64 execution_type_ids = 2;
+  // The type ids of the context type.
+  repeated int64 context_type_ids = 3;
+}
+
+message PutContextTypeRequest {
+  // The field is required in any request. Stored types in MLMD can be updated
+  // by introducing new properties and remain backward compatible. If a type
+  // with the same name exists in the database, it updates the existing type,
+  // otherwise it creates a new type.
+  optional ContextType context_type = 1;
+
+  // If true then allows adding properties to an existing stored type.
+  // If false, then type update is not allowed and it raises AlreadyExists
+  // error if the given type has any new property that is not defined in the
+  // stored type.
+  optional bool can_add_fields = 2;
+
+  // If true then allows omitting properties of an existing stored type.
+  // If false, then no properties of the stored type can be omitted in the
+  // given type, otherwise it raises AlreadyExists error.
+  optional bool can_omit_fields = 5;
+
+  // Deprecated fields.
+  optional bool can_delete_fields = 3 [deprecated = true];
+  optional bool all_fields_match = 4 [default = true, deprecated = true];
+}
+
+message PutContextTypeResponse {
+  // The type ID of the context type.
+  optional int64 type_id = 1;
+}
+
+message PutContextsRequest {
+  repeated Context contexts = 1;
+}
+
+message PutContextsResponse {
+  // A list of context ids index-aligned with PutContextsRequest.
+  repeated int64 context_ids = 1;
+}
+
+message PutAttributionsAndAssociationsRequest {
+  repeated Attribution attributions = 1;
+  repeated Association associations = 2;
+}
+
+message PutAttributionsAndAssociationsResponse {}
+
+message PutParentContextsRequest {
+  repeated ParentContext parent_contexts = 1;
+}
+
+message PutParentContextsResponse {}
+
+message GetArtifactsByTypeRequest {
+  optional string type_name = 1;
+}
+
+message GetArtifactsByTypeResponse {
+  repeated Artifact artifacts = 1;
+}
+
+message GetArtifactByTypeAndNameRequest {
+  optional string type_name = 1;
+  optional string artifact_name = 2;
+}
+
+message GetArtifactByTypeAndNameResponse {
+  optional Artifact artifact = 1;
+}
+
+message GetArtifactsByIDRequest {
+  // A list of artifact ids to retrieve.
+  repeated int64 artifact_ids = 1;
+}
+
+message GetArtifactsByIDResponse {
+  // Artifacts with matching ids.
+  // This is not index-aligned: if an id is not found, it is not
+  repeated Artifact artifacts = 1;
+}
+
+// Request to retrieve Artifacts using List options.
+// If option is not specified then all Artifacts are returned.
+message GetArtifactsRequest {
+  // Specify options.
+  // Currently supports:
+  //   1. Field to order the results.
+  //   2. Page size.
+  optional ListOperationOptions options = 1;
+}
+
+message GetArtifactsResponse {
+  // Returned artifacts.
+  repeated Artifact artifacts = 1;
+
+  // Token to use to retreive next page of results if list options are used in
+  // the request.
+  optional string next_page_token = 2;
+}
+
+message GetArtifactsByURIRequest {
+  // A list of artifact uris to retrieve.
+  repeated string uris = 2;
+
+  reserved 1;
+}
+
+message GetArtifactsByURIResponse {
+  repeated Artifact artifacts = 1;
+}
+
+// Request to retrieve Executions using List options.
+// If option is not specified then all Executions are returned.
+message GetExecutionsRequest {
+  // Specify options.
+  // Currently supports:
+  //   1. Field to order the results.
+  //   2. Page size.
+  optional ListOperationOptions options = 1;
+}
+
+message GetExecutionsResponse {
+  // Returned executions.
+  repeated Execution executions = 1;
+
+  // Token to use to retreive next page of results if list options are used in
+  // the request.
+  optional string next_page_token = 2;
+}
+
+message GetArtifactTypeRequest {
+  optional string type_name = 1;
+}
+
+message GetArtifactTypeResponse {
+  // Gets an artifact type, or clear if it does not exist.
+  optional ArtifactType artifact_type = 1;
+}
+
+message GetArtifactTypesRequest {}
+
+message GetArtifactTypesResponse {
+  repeated ArtifactType artifact_types = 1;
+}
+
+message GetExecutionTypesRequest {}
+
+message GetExecutionTypesResponse {
+  repeated ExecutionType execution_types = 1;
+}
+
+message GetContextTypesRequest {}
+
+message GetContextTypesResponse {
+  repeated ContextType context_types = 1;
+}
+
+message GetExecutionsByTypeRequest {
+  optional string type_name = 1;
+}
+
+message GetExecutionsByTypeResponse {
+  repeated Execution executions = 1;
+}
+
+message GetExecutionByTypeAndNameRequest {
+  optional string type_name = 1;
+  optional string execution_name = 2;
+}
+
+message GetExecutionByTypeAndNameResponse {
+  optional Execution execution = 1;
+}
+
+message GetExecutionsByIDRequest {
+  // A list of execution ids to retrieve.
+  repeated int64 execution_ids = 1;
+}
+
+message GetExecutionsByIDResponse {
+  // The result is not index-aligned: if an id is not found, it is not
+  // returned.
+  repeated Execution executions = 1;
+}
+
+message GetExecutionTypeRequest {
+  optional string type_name = 1;
+}
+
+message GetExecutionTypeResponse {
+  // Gets an execution type, or clear if it does not exist.
+  optional ExecutionType execution_type = 1;
+}
+
+// Gets all events with matching execution ids.
+message GetEventsByExecutionIDsRequest {
+  repeated int64 execution_ids = 1;
+}
+
+message GetEventsByExecutionIDsResponse {
+  repeated Event events = 1;
+}
+
+message GetEventsByArtifactIDsRequest {
+  repeated int64 artifact_ids = 1;
+}
+
+message GetEventsByArtifactIDsResponse {
+  repeated Event events = 1;
+}
+
+message GetArtifactTypesByIDRequest {
+  repeated int64 type_ids = 1;
+}
+
+message GetArtifactTypesByIDResponse {
+  // The result is not index-aligned: if an id is not found, it is not
+  // returned.
+  repeated ArtifactType artifact_types = 1;
+}
+
+message GetExecutionTypesByIDRequest {
+  repeated int64 type_ids = 1;
+}
+
+message GetExecutionTypesByIDResponse {
+  // The result is not index-aligned: if an id is not found, it is not
+  // returned.
+  repeated ExecutionType execution_types = 1;
+}
+
+message GetContextTypeRequest {
+  optional string type_name = 1;
+}
+
+message GetContextTypeResponse {
+  // Gets a context type, or clear if it does not exist.
+  optional ContextType context_type = 1;
+}
+
+message GetContextTypesByIDRequest {
+  repeated int64 type_ids = 1;
+}
+
+message GetContextTypesByIDResponse {
+  // The result is not index-aligned: if an id is not found, it is not
+  // returned.
+  repeated ContextType context_types = 1;
+}
+
+// Request to retrieve Contexts using List options.
+// If option is not specified then all Contexts are returned.
+message GetContextsRequest {
+  // Specify options.
+  // Currently supports:
+  //   1. Field to order the results.
+  //   2. Page size.
+  optional ListOperationOptions options = 1;
+}
+
+message GetContextsResponse {
+  // Returned contexts.
+  repeated Context contexts = 1;
+
+  // Token to use to retreive next page of results if list options are used in
+  // the request.
+  optional string next_page_token = 2;
+}
+
+message GetContextsByTypeRequest {
+  optional string type_name = 1;
+}
+
+message GetContextsByTypeResponse {
+  repeated Context contexts = 1;
+}
+
+message GetContextByTypeAndNameRequest {
+  optional string type_name = 1;
+  optional string context_name = 2;
+}
+
+message GetContextByTypeAndNameResponse {
+  optional Context context = 1;
+}
+
+message GetContextsByIDRequest {
+  // A list of context ids to retrieve.
+  repeated int64 context_ids = 1;
+}
+
+message GetContextsByIDResponse {
+  // The result is not index-aligned: if an id is not found, it is not
+  // returned.
+  repeated Context contexts = 1;
+}
+
+message GetContextsByArtifactRequest {
+  optional int64 artifact_id = 1;
+}
+
+message GetContextsByArtifactResponse {
+  repeated Context contexts = 1;
+}
+
+message GetContextsByExecutionRequest {
+  optional int64 execution_id = 1;
+}
+
+message GetContextsByExecutionResponse {
+  repeated Context contexts = 1;
+}
+
+message GetParentContextsByContextRequest {
+  optional int64 context_id = 1;
+}
+
+message GetParentContextsByContextResponse {
+  repeated Context contexts = 1;
+}
+
+message GetChildrenContextsByContextRequest {
+  optional int64 context_id = 1;
+}
+
+message GetChildrenContextsByContextResponse {
+  repeated Context contexts = 1;
+}
+
+message GetArtifactsByContextRequest {
+  optional int64 context_id = 1;
+
+  // Specify List options.
+  // Currently supports:
+  //   1. Field to order the results.
+  //   2. Page size.
+  optional ListOperationOptions options = 2;
+}
+
+message GetArtifactsByContextResponse {
+  repeated Artifact artifacts = 1;
+
+  // Token to use to retreive next page of results if list options are used in
+  // the request.
+  optional string next_page_token = 2;
+}
+
+message GetExecutionsByContextRequest {
+  optional int64 context_id = 1;
+
+  // Specify List options.
+  // Currently supports:
+  //   1. Field to order the results.
+  //   2. Page size.
+  optional ListOperationOptions options = 2;
+}
+
+message GetExecutionsByContextResponse {
+  repeated Execution executions = 1;
+
+  // Token to use to retreive next page of results if list options are used in
+  // the request.
+  optional string next_page_token = 2;
+}
+
+
+// LINT.IfChange
+service MetadataStoreService {
+  // Inserts or updates an ArtifactType.
+  //
+  // If no type exists in the database with the given name, it
+  // creates a new type and returns the type_id.
+  //
+  // If the request type with the same name already exists (let's call it
+  // stored_type), the method enforces the stored_type can be updated only when
+  // the request type is backward compatible for the already stored instances.
+  //
+  // Backwards compatibility is violated iff:
+  //
+  //   a) there is a property where the request type and stored_type have
+  //      different value type (e.g., int vs. string)
+  //   b) `can_add_fields = false` and the request type has a new property that
+  //      is not stored.
+  //   c) `can_omit_fields = false` and stored_type has an existing property
+  //      that is not provided in the request type.
+  //
+  // Args:
+  //   artifact_type: the type to be inserted or updated.
+  //   can_add_fields:
+  //     when set to true, new properties can be added;
+  //     when set to false, returns ALREADY_EXISTS if the request type has
+  //     properties that are not in stored_type.
+  //   can_omit_fields:
+  //     when set to true, stored properties can be omitted in the request type;
+  //     when set to false, returns ALREADY_EXISTS if the stored_type has
+  //     properties not in the request type.
+  //
+  // Returns:
+  //   The type_id of the stored type.
+  //
+  // Raises:
+  //   ALREADY_EXISTS error in the case listed above.
+  //   INVALID_ARGUMENT error, if the given type has no name, or any
+  //     property value type is unknown.
+  rpc PutArtifactType(PutArtifactTypeRequest)
+      returns (PutArtifactTypeResponse) {}
+
+  // Inserts or updates an ExecutionType. Please refer to PutArtifactType for
+  // type upsert API description.
+  rpc PutExecutionType(PutExecutionTypeRequest)
+      returns (PutExecutionTypeResponse) {}
+
+  // Inserts or updates an ContextType. Please refer to PutArtifactType for
+  // type upsert API description.
+  rpc PutContextType(PutContextTypeRequest) returns (PutContextTypeResponse) {}
+
+  // Bulk inserts types atomically.
+  rpc PutTypes(PutTypesRequest) returns (PutTypesResponse) {}
+
+  // Inserts or updates artifacts in the database.
+  //
+  // If an artifact_id is specified for an artifact, it is an update.
+  // If an artifact_id is unspecified, it will insert a new artifact.
+  // For new artifacts, type must be specified.
+  // For old artifacts, type must be unchanged or unspecified.
+  //
+  // Args:
+  //   artifacts: A list of artifacts to insert or update.
+  //
+  // Returns:
+  //   A list of artifact ids index-aligned with the input.
+  rpc PutArtifacts(PutArtifactsRequest) returns (PutArtifactsResponse) {}
+
+  // Inserts or updates executions in the database.
+  //
+  // If an execution_id is specified for an execution, it is an update.
+  // If an execution_id is unspecified, it will insert a new execution.
+  // For new executions, type must be specified.
+  // For old executions, type must be unchanged or unspecified.
+  //
+  // Args:
+  //   executions: A list of executions to insert or update.
+  //
+  // Returns:
+  //   A list of execution ids index-aligned with the input.
+  //
+  rpc PutExecutions(PutExecutionsRequest) returns (PutExecutionsResponse) {}
+
+  // Inserts events in the database.
+  //
+  // The execution_id and artifact_id must already exist.
+  // Once created, events cannot be modified.
+  //
+  // Args:
+  //   events: A list of events to insert or update.
+  rpc PutEvents(PutEventsRequest) returns (PutEventsResponse) {}
+
+  // Inserts or updates an Execution and its input and output artifacts and
+  // related contexts atomically. The `artifact_event_pairs` include the state
+  // changes of the Artifacts used or generated by the Execution, as well as the
+  // input/output Event. The `contexts` describe the associations of the
+  // execution and the attributions of the artifacts.
+  //
+  // If an execution_id, artifact_id or context_id is specified, it is an
+  // update, otherwise it does an insertion. For insertion, type must be
+  // specified.
+  //
+  // Args:
+  //   execution: An execution to insert or update.
+  //   artifact_event_pairs: Artifacts to insert or update and events to insert.
+  //   contexts: The contexts that the execution and the artifacts belong to.
+  //
+  // Returns:
+  //   An execution id and a list of artifacts and contexts ids index-aligned
+  //   with the input.
+  rpc PutExecution(PutExecutionRequest) returns (PutExecutionResponse) {}
+
+  // Inserts or updates contexts in database and returns a list of context ids.
+  //
+  // If an context_id is specified for a context, it is an update.
+  // If an context_id is unspecified, it will insert a new context.
+  // For new contexts, type must be specified.
+  // For old contexts, type must be unchanged or unspecified.
+  //
+  // Args:
+  //   contexts: A list of contexts to insert or update.
+  //
+  // Returns:
+  //   A list of context ids index-aligned with the input.
+  rpc PutContexts(PutContextsRequest) returns (PutContextsResponse) {}
+
+  // Inserts attribution and association relationships in the database.
+  // The context_id, artifact_id, and execution_id must already exist.
+  // If the relationship exists, this call does nothing. Once added, the
+  // relationships cannot be modified.
+  //
+  // Args:
+  //   attributions: A list of attributions to insert.
+  //   associations: A list of associations to insert.
+  rpc PutAttributionsAndAssociations(PutAttributionsAndAssociationsRequest)
+      returns (PutAttributionsAndAssociationsResponse) {}
+
+  // Inserts parental context relationships in the database.
+  // The ParentContext relationship has direction. The call fails if cycles are
+  // detected.
+  //
+  // Args:
+  //   parent_contexts: A list of parent contexts to insert.
+  rpc PutParentContexts(PutParentContextsRequest)
+      returns (PutParentContextsResponse) {}
+
+  // Gets an artifact type. Returns a NOT_FOUND error if the type does not
+  // exist.
+  rpc GetArtifactType(GetArtifactTypeRequest)
+      returns (GetArtifactTypeResponse) {}
+
+  // Gets a list of artifact types by ID.
+  // If no artifact types with an ID exists, the artifact type is skipped.
+  rpc GetArtifactTypesByID(GetArtifactTypesByIDRequest)
+      returns (GetArtifactTypesByIDResponse) {}
+
+  // Gets a list of all artifact types.
+  rpc GetArtifactTypes(GetArtifactTypesRequest)
+      returns (GetArtifactTypesResponse) {}
+
+  // Gets an execution type, or None if it does not exist.
+  rpc GetExecutionType(GetExecutionTypeRequest)
+      returns (GetExecutionTypeResponse) {}
+
+  // Gets a list of execution types by ID.
+  // If no execution types with an ID exists, the execution type is skipped.
+  rpc GetExecutionTypesByID(GetExecutionTypesByIDRequest)
+      returns (GetExecutionTypesByIDResponse) {}
+
+  // Gets a list of all execution types.
+  rpc GetExecutionTypes(GetExecutionTypesRequest)
+      returns (GetExecutionTypesResponse) {}
+
+  // Gets a context type. Returns a NOT_FOUND error if the type does not exist.
+  rpc GetContextType(GetContextTypeRequest) returns (GetContextTypeResponse) {}
+
+  // Gets a list of context types by ID.
+  // If no context types with an ID exists, the context type is skipped.
+  rpc GetContextTypesByID(GetContextTypesByIDRequest)
+      returns (GetContextTypesByIDResponse) {}
+
+  // Gets a list of all context types.
+  rpc GetContextTypes(GetContextTypesRequest)
+      returns (GetContextTypesResponse) {}
+
+  // Gets all the artifacts.
+  rpc GetArtifacts(GetArtifactsRequest) returns (GetArtifactsResponse) {}
+
+  // Gets all the executions.
+  rpc GetExecutions(GetExecutionsRequest) returns (GetExecutionsResponse) {}
+
+  // Gets all the contexts.
+  rpc GetContexts(GetContextsRequest) returns (GetContextsResponse) {}
+
+  // Gets all artifacts with matching ids.
+  //
+  // The result is not index-aligned: if an id is not found, it is not returned.
+  //
+  // Args:
+  //   artifact_ids: A list of artifact ids to retrieve.
+  //
+  // Returns:
+  //   Artifacts with matching ids.
+  rpc GetArtifactsByID(GetArtifactsByIDRequest)
+      returns (GetArtifactsByIDResponse) {}
+
+  // Gets all executions with matching ids.
+  //
+  // The result is not index-aligned: if an id is not found, it is not returned.
+  //
+  // Args:
+  //   execution_ids: A list of execution ids to retrieve.
+  rpc GetExecutionsByID(GetExecutionsByIDRequest)
+      returns (GetExecutionsByIDResponse) {}
+
+  // Gets all contexts with matching ids.
+  //
+  // The result is not index-aligned: if an id is not found, it is not returned.
+  //
+  // Args:
+  //   context_ids: A list of context ids to retrieve.
+  rpc GetContextsByID(GetContextsByIDRequest)
+      returns (GetContextsByIDResponse) {}
+
+  // Gets all the artifacts of a given type.
+  rpc GetArtifactsByType(GetArtifactsByTypeRequest)
+      returns (GetArtifactsByTypeResponse) {}
+
+  // Gets all the executions of a given type.
+  rpc GetExecutionsByType(GetExecutionsByTypeRequest)
+      returns (GetExecutionsByTypeResponse) {}
+
+  // Gets all the contexts of a given type.
+  rpc GetContextsByType(GetContextsByTypeRequest)
+      returns (GetContextsByTypeResponse) {}
+
+  // Gets the artifact of the given type and artifact name.
+  rpc GetArtifactByTypeAndName(GetArtifactByTypeAndNameRequest)
+      returns (GetArtifactByTypeAndNameResponse) {}
+
+  // Gets the execution of the given type and execution name.
+  rpc GetExecutionByTypeAndName(GetExecutionByTypeAndNameRequest)
+      returns (GetExecutionByTypeAndNameResponse) {}
+
+  // Gets the context of the given type and context name.
+  rpc GetContextByTypeAndName(GetContextByTypeAndNameRequest)
+      returns (GetContextByTypeAndNameResponse) {}
+
+  // Gets all the artifacts with matching uris.
+  rpc GetArtifactsByURI(GetArtifactsByURIRequest)
+      returns (GetArtifactsByURIResponse) {}
+
+  // Gets all events with matching execution ids.
+  rpc GetEventsByExecutionIDs(GetEventsByExecutionIDsRequest)
+      returns (GetEventsByExecutionIDsResponse) {}
+
+  // Gets all events with matching artifact ids.
+  rpc GetEventsByArtifactIDs(GetEventsByArtifactIDsRequest)
+      returns (GetEventsByArtifactIDsResponse) {}
+
+  // Gets all context that an artifact is attributed to.
+  rpc GetContextsByArtifact(GetContextsByArtifactRequest)
+      returns (GetContextsByArtifactResponse) {}
+
+  // Gets all context that an execution is associated with.
+  rpc GetContextsByExecution(GetContextsByExecutionRequest)
+      returns (GetContextsByExecutionResponse) {}
+
+  // Gets all parent contexts that a context is related.
+  rpc GetParentContextsByContext(GetParentContextsByContextRequest)
+      returns (GetParentContextsByContextResponse) {}
+
+  // Gets all children contexts that a context is related.
+  rpc GetChildrenContextsByContext(GetChildrenContextsByContextRequest)
+      returns (GetChildrenContextsByContextResponse) {}
+
+  // Gets all direct artifacts that a context attributes to.
+  rpc GetArtifactsByContext(GetArtifactsByContextRequest)
+      returns (GetArtifactsByContextResponse) {}
+
+  // Gets all direct executions that a context associates with.
+  rpc GetExecutionsByContext(GetExecutionsByContextRequest)
+      returns (GetExecutionsByContextResponse) {}
+
+}
+// LINT.ThenChange(../metadata_store/metadata_store_service_interface.h)

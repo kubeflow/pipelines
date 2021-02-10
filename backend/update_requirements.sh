@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Usage: update_requirements.sh <requirements.in >requirements.txt
+# Usage: ./update_requirements.sh <requirements.in >requirements.txt
 
 set -euo pipefail
 IMAGE=${1:-"python:3.7"}

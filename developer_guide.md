@@ -9,9 +9,11 @@ The Pipeline system is included in kubeflow. See [Getting Started Guide](https:/
 ## Build Image
 
 ### GKE
+
 To be able to use GKE, the Docker images need to be uploaded to a public Docker repository, such as [GCR](https://cloud.google.com/container-registry/)
 
 To build the API server image and upload it to GCR on x86_64 machines:
+
 ```bash
 # Run in the repository root directory
 $ docker build -t gcr.io/<your-gcp-project>/api-server:latest -f backend/Dockerfile .
@@ -21,6 +23,7 @@ $ docker push gcr.io/<your-gcp-project>/api-server:latest
 ```
 
 To build the API server image and upload it to GCR on non-x86_64 machines (such as aarch64 machines):
+
 ```bash
 # Build bazel (e.g. version 0.24.0) image firstly
 $ docker build -t bazel:0.24.0 -f backend/Dockerfile.bazel .
@@ -32,6 +35,7 @@ $ docker push gcr.io/<your-gcp-project>/api-server:latest
 ```
 
 To build the scheduled workflow controller image and upload it to GCR:
+
 ```bash
 # Run in the repository root directory
 $ docker build -t gcr.io/<your-gcp-project>/scheduledworkflow:latest -f backend/Dockerfile.scheduledworkflow .
@@ -41,6 +45,7 @@ $ docker push gcr.io/<your-gcp-project>/scheduledworkflow:latest
 ```
 
 To build the viewer CRD controller image and upload it to GCR:
+
 ```bash
 # Run in the repository root directory
 $ docker build -t gcr.io/<your-gcp-project>/viewer-crd-controller:latest -f backend/Dockerfile.viewercontroller .
@@ -50,6 +55,7 @@ $ docker push gcr.io/<your-gcp-project>/viewer-crd-controller:latest
 ```
 
 To build the persistence agent image and upload it to GCR:
+
 ```bash
 # Run in the repository root directory
 $ docker build -t gcr.io/<your-gcp-project>/persistenceagent:latest -f backend/Dockerfile.persistenceagent .
@@ -59,6 +65,7 @@ $ docker push gcr.io/<your-gcp-project>/persistenceagent:latest
 ```
 
 To build the frontend image and upload it to GCR:
+
 ```bash
 # Run in the repository root directory
 $ docker build -t gcr.io/<your-gcp-project>/frontend:latest -f frontend/Dockerfile .
@@ -68,9 +75,11 @@ $ docker push gcr.io/<your-gcp-project>/frontend:latest
 ```
 
 ### Minikube
+
 Minikube can pick your local Docker image so you don't need to upload to remote repository.
 
 For example, to build API server image
+
 ```bash
 $ docker build -t ml-pipeline-api-server -f backend/Dockerfile .
 ```
@@ -85,14 +94,19 @@ To create predefine visualizations please check the [developer guide](https://gi
 ## Unit test
 
 ### API server
+
 Run unit test for the API server
+
 ```bash
 cd backend/src/ && go test ./...
 ```
+
 ### Frontend
+
 TODO: add instruction
 
 ### DSL
+
 ```bash
 pip install ./dsl/ --upgrade && python ./dsl/tests/main.py
 pip install ./dsl-compiler/ --upgrade && python ./dsl-compiler/tests/main.py
@@ -107,6 +121,7 @@ Check [this](https://github.com/kubeflow/pipelines/blob/master/test/README.md) p
 **Q: How to access to the database directly?**
 
 You can inspect mysql database directly by running:
+
 ```bash
 kubectl run -it --rm --image=gcr.io/ml-pipeline/mysql:5.6 --restart=Never mysql-client -- mysql -h mysql
 mysql> use mlpipeline;
@@ -116,6 +131,7 @@ mysql> select * from jobs;
 **Q: How to inspect object store directly?**
 
 Minio provides its own UI to inspect the object store directly:
+
 ```bash
 kubectl port-forward -n ${NAMESPACE} $(kubectl get pods -l app=minio -o jsonpath='{.items[0].metadata.name}' -n ${NAMESPACE}) 9000:9000
 Access Key:minio
@@ -129,10 +145,13 @@ See [Ksonnet troubleshooting page](https://github.com/ksonnet/ksonnet/blob/maste
 **Q: How do I check my API server log?**
 
 API server logs are located at /tmp directory of the pod. To SSH into the pod, run:
+
 ```bash
 kubectl exec -it -n ${NAMESPACE} $(kubectl get pods -l app=ml-pipeline -o jsonpath='{.items[0].metadata.name}' -n ${NAMESPACE}) -- /bin/sh
 ```
+
 or
+
 ```bash
 kubectl logs -n ${NAMESPACE} $(kubectl get pods -l app=ml-pipeline -o jsonpath='{.items[0].metadata.name}' -n ${NAMESPACE})
 ```
@@ -140,6 +159,7 @@ kubectl logs -n ${NAMESPACE} $(kubectl get pods -l app=ml-pipeline -o jsonpath='
 **Q: How to check my cluster status if I am using Minikube?**
 
 Minikube provides dashboard for deployment
+
 ```bash
 minikube dashboard
 ```
