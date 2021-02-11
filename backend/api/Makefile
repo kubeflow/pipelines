@@ -1,10 +1,11 @@
+IMAGE_TAG=kfp-api-generator
 
 .PHONY: generate_api
 generate_api: .image-built
 	# Generate API
 	docker run  --interactive --rm \
 		--mount type=bind,source="$$(pwd)/../..",target=/go/src/github.com/kubeflow/pipelines \
-		kfp-api-generator /go/src/github.com/kubeflow/pipelines/backend/api/hack/generator.sh
+		$(IMAGE_TAG) /go/src/github.com/kubeflow/pipelines/backend/api/hack/generator.sh
 
 	# Change owner to user for generate files, explanation of command: https://askubuntu.com/questions/829537/how-do-i-change-owner-to-current-user-on-folder-and-containing-folders-inside-my
 	sudo find . -user root -exec sudo chown $$USER: {} +
@@ -13,5 +14,5 @@ generate_api: .image-built
 image: .image-built
 
 .image-built: Dockerfile
-	docker build ../.. -t kfp-api-generator
+	docker build ../.. -t $(IMAGE_TAG) -f Dockerfile
 	touch .image-built
