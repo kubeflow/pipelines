@@ -4,7 +4,6 @@ ENV KFP_VERSION 1.4.0
 ENV GRPC_GATEWAY_VERSION v1.9.0
 ENV GO_SWAGGER_VERSION v0.18.0
 ENV GOLANG_PROTOBUF_VERSION v1.3.2
-ENV PROTOCOLBUFFERS_PROTOBUF_VERSION v3.11.3
 ENV GRPC_VERSION v1.23.0
 ENV PROTOC_VERSION 3.13.0
 ENV GOBIN=/go/bin
@@ -26,7 +25,7 @@ RUN mkdir grpc && git clone --depth 1 --branch $GRPC_VERSION https://github.com/
 # Install protoc-gen-rpc-gateway && protoc-gen-swagger.
 RUN cd grpc-ecosystem/grpc-gateway && GO111MODULE=on go mod vendor
 RUN go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
-RUN  go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
+RUN go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
 
 # Download go-swagger binary.
 RUN curl -LO "https://github.com/go-swagger/go-swagger/releases/download/${GO_SWAGGER_VERSION}/swagger_linux_amd64"
@@ -37,3 +36,10 @@ RUN mkdir golang && cd golang && git clone --depth 1 --branch $GOLANG_PROTOBUF_V
 # Install protoc-gen-go.
 RUN cd golang/protobuf && GO111MODULE=on go mod vendor
 RUN go install github.com/golang/protobuf/protoc-gen-go
+
+# WORKAROUND: https://github.com/docker-library/golang/issues/225#issuecomment-403170792
+ENV XDG_CACHE_HOME /tmp/.cache
+# Make all files accessible to non-root users.
+RUN chmod -R 777 /usr/bin/
+RUN chmod -R 777 /usr/include/google
+RUN chmod -R 777 /go

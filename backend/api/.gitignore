@@ -1,0 +1,2 @@
+# Makefile local token to indicate whether latest image has been built
+.image-built
