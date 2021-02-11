@@ -58,29 +58,43 @@ def build_component_spec_from_structure(
   return result
 
 
-def build_root_spec_from_pipeline_params(
+def build_component_inputs_spec(
+    component_spec: pipeline_spec_pb2.ComponentSpec,
     pipeline_params: List[dsl.PipelineParam],
-) -> pipeline_spec_pb2.ComponentSpec:
-  """Builds the root component spec instance from pipeline params.
-
-  This is useful when building the component spec for a pipeline (aka piipeline
-  root). Such a component spec doesn't need output_definitions, and its
-  implementation field will be filled in later.
+) -> None:
+  """Builds component inputs spec from pipeline params.
 
   Args:
+    component_spec: The component spec to fill in its inputs spec.
     pipeline_params: The list of pipeline params.
-
-  Returns:
-    An instance of IR ComponentSpec.
   """
-  result = pipeline_spec_pb2.ComponentSpec()
-  for param in pipeline_params or []:
+  for param in pipeline_params:
+    input_name = (param.full_name if param.op_name else param.name)
     if type_utils.is_parameter_type(param.param_type):
-      result.input_definitions.parameters[
-          param.name].type = type_utils.get_parameter_type(param.param_type)
+      component_spec.input_definitions.parameters[
+          input_name].type = type_utils.get_parameter_type(param.param_type)
     else:
-      result.input_definitions.artifacts[
-          param.name].artifact_type.instance_schema = (
+      component_spec.input_definitions.artifacts[
+          input_name].artifact_type.instance_schema = (
               type_utils.get_artifact_type_schema(param.param_type))
 
-  return result
+
+def build_component_outputs_spec(
+    component_spec: pipeline_spec_pb2.ComponentSpec,
+    pipeline_params: List[dsl.PipelineParam],
+) -> None:
+  """Builds component outputs spec from pipeline params.
+
+  Args:
+    component_spec: The component spec to fill in its outputs spec.
+    pipeline_params: The list of pipeline params.
+  """
+  for param in pipeline_params or []:
+    input_name = (param.full_name if param.op_name else param.name)
+    if type_utils.is_parameter_type(param.param_type):
+      component_spec.output_definitions.parameters[
+          input_name].type = type_utils.get_parameter_type(param.param_type)
+    else:
+      component_spec.output_definitions.artifacts[
+          input_name].artifact_type.instance_schema = (
+              type_utils.get_artifact_type_schema(param.param_type))

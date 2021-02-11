@@ -81,7 +81,7 @@ class ComponentSpecTest(unittest.TestCase):
 
     self.assertEqual(expected_spec, component_spec)
 
-  def test_build_root_spec_from_pipeline_params(self):
+  def test_build_component_inputs_spec(self):
     pipeline_params = [
         dsl.PipelineParam(name='input1', param_type='Dataset'),
         dsl.PipelineParam(name='input2', param_type='Integer'),
@@ -114,9 +114,48 @@ class ComponentSpecTest(unittest.TestCase):
     expected_spec = pipeline_spec_pb2.ComponentSpec()
     json_format.ParseDict(expected_dict, expected_spec)
 
-    component_spec = (
-        dsl_component_spec.build_root_spec_from_pipeline_params(
-            pipeline_params))
+    component_spec = pipeline_spec_pb2.ComponentSpec()
+    dsl_component_spec.build_component_inputs_spec(component_spec,
+                                                   pipeline_params)
+
+    self.assertEqual(expected_spec, component_spec)
+
+  def test_build_component_outputs_spec(self):
+    pipeline_params = [
+        dsl.PipelineParam(name='input1', param_type='Dataset'),
+        dsl.PipelineParam(name='input2', param_type='Integer'),
+        dsl.PipelineParam(name='input3', param_type='String'),
+        dsl.PipelineParam(name='input4', param_type='Float'),
+    ]
+    expected_dict = {
+        'outputDefinitions': {
+            'artifacts': {
+                'input1': {
+                    'artifactType': {
+                        'instanceSchema':
+                            'properties:\ntitle: kfp.Dataset\ntype: object\n'
+                    }
+                }
+            },
+            'parameters': {
+                'input2': {
+                    'type': 'INT'
+                },
+                'input3': {
+                    'type': 'STRING'
+                },
+                'input4': {
+                    'type': 'DOUBLE'
+                }
+            }
+        }
+    }
+    expected_spec = pipeline_spec_pb2.ComponentSpec()
+    json_format.ParseDict(expected_dict, expected_spec)
+
+    component_spec = pipeline_spec_pb2.ComponentSpec()
+    dsl_component_spec.build_component_outputs_spec(component_spec,
+                                                    pipeline_params)
 
     self.assertEqual(expected_spec, component_spec)
 
