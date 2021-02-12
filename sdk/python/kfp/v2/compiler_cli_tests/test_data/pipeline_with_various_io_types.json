@@ -143,6 +143,9 @@
             }
           },
           "task-downstream": {
+            "dependentTasks": [
+              "task-upstream"
+            ],
             "taskInfo": {
               "name": "task-downstream"
             },
