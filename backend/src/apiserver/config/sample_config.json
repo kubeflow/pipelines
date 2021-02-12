@@ -1,5 +1,10 @@
 [
   {
+    "name": "[Demo] XGBoost - Iterative model training",
+    "description": "[source code](https://github.com/kubeflow/pipelines/blob/master/samples/core/train_until_good/train_until_good.py) This sample demonstrates iterative training using a train-eval-check recursive loop. The main pipeline trains the initial model and then gradually trains the model some more until the model evaluation metrics are good enough.",
+    "file": "/samples/core/train_until_good/train_until_good.py.yaml"
+  },
+  {
     "name": "[Demo] TFX - Taxi tip prediction model trainer",
     "description": "[source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/parameterized_tfx_oss) [GCP Permission requirements](https://github.com/kubeflow/pipelines/blob/master/samples/core/parameterized_tfx_oss#permission). Example pipeline that does classification with model analysis based on a public tax cab dataset.",
     "file": "/samples/core/parameterized_tfx_oss/parameterized_tfx_oss.py.yaml"

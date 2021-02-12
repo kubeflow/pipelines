@@ -25,6 +25,12 @@ if [[ -z "$BRANCH" || -z "$TAG_NAME" ]]; then
   exit 1
 fi
 
+# Checking out the repo's release branch
+clone_dir=$(mktemp -d)
+git clone "git@github.com:${REPO}.git" "$clone_dir"
+cd "$clone_dir"
+git checkout "$BRANCH"
+
 echo "Preparing local git tags used by changelog generation."
 # tags with "-" are pre-releases, e.g. 1.0.0-rc.1
 if [[ "$TAG_NAME" =~ "-" ]]; then

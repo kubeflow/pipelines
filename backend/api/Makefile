@@ -1,8 +1,7 @@
 IMAGE_TAG=kfp-api-generator
 
-.PHONY: generate_api
-generate_api: .image-built
-	# Generate API
+.PHONY: generate
+generate: .image-built hack/generator.sh *.proto
 	docker run  --interactive --rm \
 	    --user $$(id -u):$$(id -g) \
 		--mount type=bind,source="$$(pwd)/../..",target=/go/src/github.com/kubeflow/pipelines \
@@ -11,6 +10,7 @@ generate_api: .image-built
 .PHONY: image
 image: .image-built
 
+# .image-built is a local token file to help Make determine the latest successful build.
 .image-built: Dockerfile
 	docker build ../.. -t $(IMAGE_TAG) -f Dockerfile
 	touch .image-built

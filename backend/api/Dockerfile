@@ -1,6 +1,5 @@
-# 0. Generate client code (go & json) from API protocol buffers
+# Generate client code (go & json) from API protocol buffers
 FROM golang:1.13.1-stretch as generator
-ENV KFP_VERSION 1.4.0
 ENV GRPC_GATEWAY_VERSION v1.9.0
 ENV GO_SWAGGER_VERSION v0.18.0
 ENV GOLANG_PROTOBUF_VERSION v1.3.2

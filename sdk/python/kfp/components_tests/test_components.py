@@ -748,9 +748,9 @@ implementation:
             [
                 'program',
                 '--in1-uri',
-                '{{kfp.output_dir}}/{{kfp.run_uid}}/{{inputs.parameters.In1-producer-pod-id-}}/In1',
+                '{{pipelineparam:op=;name=pipeline-output-directory}}/{{kfp.run_uid}}/{{inputs.parameters.In1-producer-pod-id-}}/In1',
                 '--out1-uri',
-                '{{kfp.output_dir}}/{{kfp.run_uid}}/{{pod.name}}/Out1',
+                '{{pipelineparam:op=;name=pipeline-output-directory}}/{{kfp.run_uid}}/{{pod.name}}/Out1',
             ],
             resolved_cmd.command
         )
@@ -789,13 +789,13 @@ implementation:
 
         self.assertEqual(
             ['--a',
-             '{{kfp.output_dir}}/{{kfp.run_uid}}/{{inputs.parameters.a-producer-pod-id-}}/executor_output.json',
+             '{{pipelineparam:op=;name=pipeline-output-directory}}/{{kfp.run_uid}}/{{inputs.parameters.a-producer-pod-id-}}/executor_output.json',
              '--c',
              'bar',
              '--b',
              '{{kfp.input-output-name.a}}',
              '--metadata-location',
-             '{{kfp.output_dir}}/{{kfp.run_uid}}/executor_output.json'],
+             '{{pipelineparam:op=;name=pipeline-output-directory}}/{{kfp.run_uid}}/executor_output.json'],
             resolved_cmd.args
         )
 

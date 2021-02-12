@@ -2,16 +2,18 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: uri-artifact-pipeline-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.2.0, pipelines.kubeflow.org/pipeline_compilation_time: '2020-12-23T10:49:24.672741',
-    pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "Hello world!",
-      "name": "text", "optional": true}], "name": "uri-artifact-pipeline"}'}
-  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.2.0}
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.4.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-02-10T16:46:54.476610',
+                pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "Hello world!",
+      "name": "text", "optional": true}, {"default": "gs://my-bucket/my-output-dir",
+      "name": "pipeline-output-directory"}], "name": "uri-artifact-pipeline"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.4.0}
 spec:
   entrypoint: uri-artifact-pipeline
   templates:
   - name: condition-3
     inputs:
       parameters:
+      - {name: pipeline-output-directory}
       - {name: input_gcs_path-producer-pod-id-}
     dag:
       tasks:
@@ -19,6 +21,7 @@ spec:
         template: read-from-gcs-3
         arguments:
           parameters:
+          - {name: pipeline-output-directory, value: '{{inputs.parameters.pipeline-output-directory}}'}
           - {name: input_gcs_path-producer-pod-id-, value: '{{inputs.parameters.input_gcs_path-producer-pod-id-}}'}
   - name: flip-coin
     container:
@@ -35,6 +38,7 @@ spec:
   - name: for-loop-2
     inputs:
       parameters:
+      - {name: pipeline-output-directory}
       - {name: input_gcs_path-producer-pod-id-}
     dag:
       tasks:
@@ -42,6 +46,7 @@ spec:
         template: read-from-gcs-2
         arguments:
           parameters:
+          - {name: pipeline-output-directory, value: '{{inputs.parameters.pipeline-output-directory}}'}
           - {name: input_gcs_path-producer-pod-id-, value: '{{inputs.parameters.input_gcs_path-producer-pod-id-}}'}
   - name: read-from-gcs
     container:
@@ -52,17 +57,18 @@ spec:
       - |
         set -e -x
         gsutil cat "$0"
-      - gs://my-bucket/my-output-dir/{{workflow.uid}}/{{inputs.parameters.input_gcs_path-producer-pod-id-}}/output_gcs_path
+      - '{{inputs.parameters.pipeline-output-directory}}/{{workflow.uid}}/{{inputs.parameters.input_gcs_path-producer-pod-id-}}/output_gcs_path'
       image: google/cloud-sdk:slim
     inputs:
       parameters:
+      - {name: pipeline-output-directory}
       - {name: input_gcs_path-producer-pod-id-}
     metadata:
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"command": ["sh", "-c", "set -e -x\ngsutil cat \"$0\"\n", {"inputUri":
           "input_gcs_path"}], "image": "google/cloud-sdk:slim"}}, "inputs": [{"description":
-          "GCS file path", "name": "input_gcs_path", "type": "String"}], "name":
-          "Read from GCS"}', pipelines.kubeflow.org/component_ref: '{"digest": "03872dc24d4e846635a06a596d840649f9f9d0744862c7762c0151d0cd65d60b"}'}
+          "GCS file path", "name": "input_gcs_path", "type": "String"}], "name": "Read
+          from GCS"}', pipelines.kubeflow.org/component_ref: '{"digest": "d87d6c97f22a73ec8cd2e086a7727b2e46c391f09612da1b5001dfd9b824e5c7"}'}
   - name: read-from-gcs-2
     container:
       args: []
@@ -72,17 +78,18 @@ spec:
       - |
         set -e -x
         gsutil cat "$0"
-      - gs://my-bucket/my-output-dir/{{workflow.uid}}/{{inputs.parameters.input_gcs_path-producer-pod-id-}}/output_gcs_path
+      - '{{inputs.parameters.pipeline-output-directory}}/{{workflow.uid}}/{{inputs.parameters.input_gcs_path-producer-pod-id-}}/output_gcs_path'
       image: google/cloud-sdk:slim
     inputs:
       parameters:
+      - {name: pipeline-output-directory}
       - {name: input_gcs_path-producer-pod-id-}
     metadata:
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"command": ["sh", "-c", "set -e -x\ngsutil cat \"$0\"\n", {"inputUri":
           "input_gcs_path"}], "image": "google/cloud-sdk:slim"}}, "inputs": [{"description":
-          "GCS file path", "name": "input_gcs_path", "type": "String"}], "name":
-          "Read from GCS"}', pipelines.kubeflow.org/component_ref: '{"digest": "03872dc24d4e846635a06a596d840649f9f9d0744862c7762c0151d0cd65d60b"}'}
+          "GCS file path", "name": "input_gcs_path", "type": "String"}], "name": "Read
+          from GCS"}', pipelines.kubeflow.org/component_ref: '{"digest": "d87d6c97f22a73ec8cd2e086a7727b2e46c391f09612da1b5001dfd9b824e5c7"}'}
   - name: read-from-gcs-3
     container:
       args: []
@@ -92,20 +99,22 @@ spec:
       - |
         set -e -x
         gsutil cat "$0"
-      - gs://my-bucket/my-output-dir/{{workflow.uid}}/{{inputs.parameters.input_gcs_path-producer-pod-id-}}/output_gcs_path
+      - '{{inputs.parameters.pipeline-output-directory}}/{{workflow.uid}}/{{inputs.parameters.input_gcs_path-producer-pod-id-}}/output_gcs_path'
       image: google/cloud-sdk:slim
     inputs:
       parameters:
+      - {name: pipeline-output-directory}
       - {name: input_gcs_path-producer-pod-id-}
     metadata:
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"command": ["sh", "-c", "set -e -x\ngsutil cat \"$0\"\n", {"inputUri":
           "input_gcs_path"}], "image": "google/cloud-sdk:slim"}}, "inputs": [{"description":
-          "GCS file path", "name": "input_gcs_path", "type": "String"}], "name":
-          "Read from GCS"}', pipelines.kubeflow.org/component_ref: '{"digest": "03872dc24d4e846635a06a596d840649f9f9d0744862c7762c0151d0cd65d60b"}'}
+          "GCS file path", "name": "input_gcs_path", "type": "String"}], "name": "Read
+          from GCS"}', pipelines.kubeflow.org/component_ref: '{"digest": "d87d6c97f22a73ec8cd2e086a7727b2e46c391f09612da1b5001dfd9b824e5c7"}'}
   - name: uri-artifact-pipeline
     inputs:
       parameters:
+      - {name: pipeline-output-directory}
       - {name: text}
     dag:
       tasks:
@@ -115,6 +124,7 @@ spec:
         dependencies: [flip-coin, write-to-gcs]
         arguments:
           parameters:
+          - {name: pipeline-output-directory, value: '{{inputs.parameters.pipeline-output-directory}}'}
           - {name: input_gcs_path-producer-pod-id-, value: '{{tasks.write-to-gcs.outputs.parameters.write-to-gcs-output_gcs_path-producer-pod-id-}}'}
       - {name: flip-coin, template: flip-coin}
       - name: for-loop-2
@@ -122,6 +132,7 @@ spec:
         dependencies: [write-to-gcs]
         arguments:
           parameters:
+          - {name: pipeline-output-directory, value: '{{inputs.parameters.pipeline-output-directory}}'}
           - {name: input_gcs_path-producer-pod-id-, value: '{{tasks.write-to-gcs.outputs.parameters.write-to-gcs-output_gcs_path-producer-pod-id-}}'}
         withItems: [1, 2, 3, 4]
       - name: read-from-gcs
@@ -129,11 +140,13 @@ spec:
         dependencies: [write-to-gcs]
         arguments:
           parameters:
+          - {name: pipeline-output-directory, value: '{{inputs.parameters.pipeline-output-directory}}'}
           - {name: input_gcs_path-producer-pod-id-, value: '{{tasks.write-to-gcs.outputs.parameters.write-to-gcs-output_gcs_path-producer-pod-id-}}'}
       - name: write-to-gcs
         template: write-to-gcs
         arguments:
           parameters:
+          - {name: pipeline-output-directory, value: '{{inputs.parameters.pipeline-output-directory}}'}
           - {name: text, value: '{{inputs.parameters.text}}'}
   - name: write-to-gcs
     container:
@@ -145,10 +158,11 @@ spec:
         set -e -x
         echo "$0" | gsutil cp - "$1"
       - '{{inputs.parameters.text}}'
-      - gs://my-bucket/my-output-dir/{{workflow.uid}}/{{pod.name}}/output_gcs_path
+      - '{{inputs.parameters.pipeline-output-directory}}/{{workflow.uid}}/{{pod.name}}/output_gcs_path'
       image: google/cloud-sdk:slim
     inputs:
       parameters:
+      - {name: pipeline-output-directory}
       - {name: text}
     outputs:
       parameters:
@@ -160,9 +174,10 @@ spec:
           "inputs": [{"description": "Content to be written to GCS", "name": "text",
           "type": "String"}], "name": "Write to GCS", "outputs": [{"description":
           "GCS file path", "name": "output_gcs_path", "type": "String"}]}', pipelines.kubeflow.org/component_ref: '{"digest":
-          "8ec42d2ddcbbce0607719e277bbe8e40f3649a894e46c8e92309951733bc7766"}', pipelines.kubeflow.org/arguments.parameters: '{"text":
+          "aad0cd48834955bdd0d570a625283957f9c6ff3b77f59a2c47af933ae4b8ef64"}', pipelines.kubeflow.org/arguments.parameters: '{"text":
           "{{inputs.parameters.text}}"}'}
   arguments:
     parameters:
     - {name: text, value: Hello world!}
+    - {name: pipeline-output-directory, value: 'gs://my-bucket/my-output-dir'}
   serviceAccountName: pipeline-runner
