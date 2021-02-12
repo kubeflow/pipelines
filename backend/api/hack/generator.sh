@@ -25,7 +25,7 @@ KFP_VERSION=$(cat VERSION)
 # Delete currently generated code.
 rm -r -f backend/api/go_http_client/*
 rm -f -f backend/api/go_client/*
-rm -f -f backend/api/swagger/*
+# Cannot delete backend/api/swagger/*, because there are manually maintained definition files too.
 
 # Generate *.pb.go (grpc api client) from *.proto.
 ${PROTOCCOMPILER} -I. -Ibackend/api \
