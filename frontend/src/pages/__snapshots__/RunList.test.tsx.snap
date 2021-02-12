@@ -7591,7 +7591,7 @@ exports[`RunList renders pipeline name as link to its details page 2`] = `
   className="link"
   onClick={[Function]}
   replace={false}
-  to="/recurringrun/details/recurring-run-id"
+  to="/jobs/details/recurring-run-id"
 >
   [View config]
 </Link>
