@@ -31,6 +31,7 @@ import AllExperimentsAndArchive, {
   AllExperimentsAndArchiveTab,
 } from '../pages/AllExperimentsAndArchive';
 import AllRunsAndArchive, { AllRunsAndArchiveTab } from '../pages/AllRunsAndArchive';
+import AllJobsList from "../pages/AllJobsList";
 import NewExperiment from '../pages/NewExperiment';
 import NewRun from '../pages/NewRun';
 import Page404 from '../pages/404';
@@ -107,9 +108,10 @@ export const RoutePage = {
   PIPELINES: '/pipelines',
   PIPELINE_DETAILS: `/pipelines/details/:${RouteParams.pipelineId}/version/:${RouteParams.pipelineVersionId}?`,
   PIPELINE_DETAILS_NO_VERSION: `/pipelines/details/:${RouteParams.pipelineId}?`, // pipelineId is optional
-  RECURRING_RUN: `/recurringrun/details/:${RouteParams.runId}`,
   RUNS: '/runs',
   RUN_DETAILS: `/runs/details/:${RouteParams.runId}`,
+  JOBS: '/jobs',
+  JOB_DETAILS: `/jobs/details/:${RouteParams.runId}`,
   START: '/start',
 };
 
@@ -185,7 +187,8 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
     { path: RoutePage.PIPELINE_DETAILS, Component: PipelineDetails },
     { path: RoutePage.PIPELINE_DETAILS_NO_VERSION, Component: PipelineDetails },
     { path: RoutePage.RUNS, Component: AllRunsAndArchive, view: AllRunsAndArchiveTab.RUNS },
-    { path: RoutePage.RECURRING_RUN, Component: RecurringRunDetails },
+    { path: RoutePage.JOBS, Component: AllJobsList },
+    { path: RoutePage.JOB_DETAILS, Component: RecurringRunDetails },
     { path: RoutePage.RUN_DETAILS, Component: RunDetails },
     { path: RoutePage.COMPARE, Component: Compare },
   ];

@@ -124,7 +124,7 @@ describe('SideNav', () => {
   });
 
   it('renders experiments as active page when on RecurringRunDetails page', () => {
-    tree = shallow(<SideNav page={RoutePage.RECURRING_RUN} {...defaultProps} />);
+    tree = shallow(<SideNav page={RoutePage.JOB_DETAILS} {...defaultProps} />);
     expect(tree).toMatchSnapshot();
   });
 

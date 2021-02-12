@@ -38,6 +38,7 @@ import { Deployments, KFP_FLAGS } from '../lib/Flags';
 import { LocalStorage, LocalStorageKey } from '../lib/LocalStorage';
 import { logger } from '../lib/Utils';
 import { GkeMetadataContext, GkeMetadata } from 'src/lib/GkeMetadata';
+import { Alarm } from '@material-ui/icons';
 
 export const sideNavColors = {
   bg: '#f8fafb',
@@ -396,6 +397,33 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
           <div
             className={classes(
               css.indicator,
+              !this._highlightJobsButton(page) && css.indicatorHidden,
+            )}
+          />
+          <Tooltip
+            title={'Jobs List'}
+            enterDelay={300}
+            placement={'right-start'}
+            disableFocusListener={!collapsed}
+            disableHoverListener={!collapsed}
+            disableTouchListener={!collapsed}
+          >
+            <Link id='experimentsBtn' to={RoutePage.JOBS} className={commonCss.unstyled}>
+              <Button
+                className={classes(
+                  css.button,
+                  this._highlightJobsButton(page) && css.active,
+                  collapsed && css.collapsedButton,
+                )}
+              >
+                <Alarm />
+                <span className={classes(collapsed && css.collapsedLabel, css.label)}>Jobs</span>
+              </Button>
+            </Link>
+          </Tooltip>
+          <div
+            className={classes(
+              css.indicator,
               !this._highlightArtifactsButton(page) && css.indicatorHidden,
             )}
           />
@@ -567,6 +595,10 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
       page.startsWith(RoutePage.COMPARE) ||
       page === RoutePage.ARCHIVED_RUNS
     );
+  }
+
+  private _highlightJobsButton(page: string): boolean {
+    return page.startsWith(RoutePage.JOBS);
   }
 
   private _highlightArtifactsButton(page: string): boolean {
