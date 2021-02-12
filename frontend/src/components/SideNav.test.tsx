@@ -133,6 +133,16 @@ describe('SideNav', () => {
     expect(tree).toMatchSnapshot();
   });
 
+  it('renders jobs as active page', () => {
+    tree = shallow(<SideNav page={RoutePage.JOBS} {...defaultProps} />);
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders jobs as active page when on JobDetails page', () => {
+    tree = shallow(<SideNav page={RoutePage.JOB_DETAILS} {...defaultProps} />);
+    expect(tree).toMatchSnapshot();
+  });
+
   it('show jupyterhub link if accessible', () => {
     tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
     tree.setState({ jupyterHubAvailable: true });
