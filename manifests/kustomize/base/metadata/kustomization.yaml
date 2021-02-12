@@ -8,4 +8,4 @@ resources:
   - metadata-envoy-service.yaml
 images:
   - name: gcr.io/ml-pipeline/metadata-envoy
-    newTag: 1.4.0-rc.1
+    newTag: 1.4.0

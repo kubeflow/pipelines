@@ -27,3 +27,5 @@ from ._component import python_component, graph_component, component
 
 EXECUTION_ID_PLACEHOLDER = '{{workflow.uid}}-{{pod.name}}'
 RUN_ID_PLACEHOLDER = '{{workflow.uid}}'
+
+ROOT_PARAMETER_NAME = 'pipeline-output-directory'
