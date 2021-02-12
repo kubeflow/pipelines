@@ -18,13 +18,16 @@ set -ex
 
 export TMP_OUTPUT=/tmp
 
-# Change directory\
+# Change directory.
 cd /go/src/github.com/kubeflow/pipelines
+KFP_VERSION=$(cat VERSION)
+
 # Delete currently generated code.
 rm -r -f backend/api/go_http_client/*
 rm -f -f backend/api/go_client/*
+rm -f -f backend/api/swagger/*
 
-# Generate *.pb.go (grpc api client) from *.proto .
+# Generate *.pb.go (grpc api client) from *.proto.
 ${PROTOCCOMPILER} -I. -Ibackend/api \
     -I/go/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
     -I/go/src/github.com/grpc-ecosystem/grpc-gateway/ \

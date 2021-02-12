@@ -44,5 +44,7 @@ sed -i.bak -e 's|\([ (]\)#\([0-9]\+\)|\1[\\#\2](https://github.com/kubeflow/pipe
 "$REPO_ROOT/manifests/gcp_marketplace/hack/release.sh" $TAG_NAME
 "$REPO_ROOT/manifests/kustomize/hack/release.sh" $TAG_NAME
 "$REPO_ROOT/sdk/hack/release.sh" $TAG_NAME
-"$REPO_ROOT/backend/api/generate_api.sh"
+pushd "$REPO_ROOT/backend/api"
+make
+popd
 "$REPO_ROOT/backend/api/build_kfp_server_api_python_package.sh"
