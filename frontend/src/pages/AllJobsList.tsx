@@ -21,20 +21,20 @@ import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
-import JobList from "./JobList";
+import JobList from './JobList';
 
 interface AllJobsListState {
   selectedIds: string[];
+  jobListRefreshCount: number;
 }
 
 export class AllJobsList extends Page<{ namespace?: string }, AllJobsListState> {
-  private _joblistRef = React.createRef<JobList>();
-
   constructor(props: any) {
     super(props);
 
     this.state = {
       selectedIds: [],
+      jobListRefreshCount: 0,
     };
   }
 
@@ -57,7 +57,7 @@ export class AllJobsList extends Page<{ namespace?: string }, AllJobsListState> 
           onError={this.showPageError.bind(this)}
           selectedIds={this.state.selectedIds}
           onSelectionChange={this._selectionChanged.bind(this)}
-          ref={this._joblistRef}
+          refreshCount={this.state.jobListRefreshCount}
           namespaceMask={this.props.namespace}
           {...this.props}
         />
@@ -66,11 +66,10 @@ export class AllJobsList extends Page<{ namespace?: string }, AllJobsListState> 
   }
 
   public async refresh(): Promise<void> {
-    // Tell run list to refresh
-    if (this._joblistRef.current) {
-      this.clearBanner();
-      await this._joblistRef.current.refresh();
-    }
+    // Tell job list to refresh
+    this.setState((prevState, _) => ({
+      jobListRefreshCount: prevState.jobListRefreshCount + 1,
+    }));
   }
 
   private _selectionChanged(selectedIds: string[]): void {

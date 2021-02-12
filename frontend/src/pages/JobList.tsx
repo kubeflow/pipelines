@@ -48,6 +48,7 @@ export type JobListProps = MaskProps &
     onSelectionChange?: (selectedRunIds: string[]) => void;
     jobIdListMask?: string[];
     selectedIds?: string[];
+    refreshCount: number;
   };
 
 interface JobListState {
@@ -63,6 +64,13 @@ class JobList extends React.PureComponent<JobListProps, JobListState> {
     this.state = {
       jobs: [],
     };
+  }
+
+  componentDidUpdate(prevProps: { refreshCount: number; }) {
+    if (prevProps.refreshCount === this.props.refreshCount) {
+      return;
+    }
+    this.refresh();
   }
 
   public render(): JSX.Element {
