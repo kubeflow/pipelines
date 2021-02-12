@@ -85,6 +85,14 @@ class TypeUtilsTest(unittest.TestCase):
         'properties:\ntitle: kfp.Artifact\ntype: object\n',
         type_utils.get_input_artifact_type_schema('input3', input_specs))
 
+  def test_get_parameter_type_field_name(self):
+    self.assertEqual('string_value',
+                     type_utils.get_parameter_type_field_name('String'))
+    self.assertEqual('int_value',
+                     type_utils.get_parameter_type_field_name('Integer'))
+    self.assertEqual('double_value',
+                     type_utils.get_parameter_type_field_name('Float'))
+
 
 if __name__ == '__main__':
   unittest.main()

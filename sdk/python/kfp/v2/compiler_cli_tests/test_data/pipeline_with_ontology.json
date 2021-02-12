@@ -4,6 +4,9 @@
       "dag": {
         "tasks": {
           "task-trainer": {
+            "dependentTasks": [
+              "task-ingestion"
+            ],
             "taskInfo": {
               "name": "task-trainer"
             },
