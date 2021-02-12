@@ -90,11 +90,49 @@ def build_component_outputs_spec(
     pipeline_params: The list of pipeline params.
   """
   for param in pipeline_params or []:
-    input_name = (param.full_name if param.op_name else param.name)
+    output_name = (param.full_name if param.op_name else param.name)
     if type_utils.is_parameter_type(param.param_type):
       component_spec.output_definitions.parameters[
-          input_name].type = type_utils.get_parameter_type(param.param_type)
+          output_name].type = type_utils.get_parameter_type(param.param_type)
     else:
       component_spec.output_definitions.artifacts[
-          input_name].artifact_type.instance_schema = (
+          output_name].artifact_type.instance_schema = (
               type_utils.get_artifact_type_schema(param.param_type))
+
+
+def build_task_inputs_spec(
+    task_spec: pipeline_spec_pb2.PipelineTaskSpec,
+    pipeline_params: List[dsl.PipelineParam],
+    tasks_in_current_dag: List[str],
+) -> None:
+  """Builds task inputs spec from pipeline params.
+
+  Args:
+    task_spec: The task spec to fill in its inputs spec.
+    pipeline_params: The list of pipeline params.
+    tasks_in_current_dag: The list of tasks names for tasks in the same dag.
+  """
+  for param in pipeline_params or []:
+    input_name = (param.full_name if param.op_name else param.name)
+    if type_utils.is_parameter_type(param.param_type):
+      if param.op_name in tasks_in_current_dag:
+        task_spec.inputs.parameters[
+            input_name].task_output_parameter.producer_task = (
+                dsl_utils.sanitize_task_name(param.op_name))
+        task_spec.inputs.parameters[
+            input_name].task_output_parameter.output_parameter_key = (
+                param.name)
+      else:
+        task_spec.inputs.parameters[
+            input_name].component_input_parameter = input_name
+    else:
+      if param.op_name in tasks_in_current_dag:
+        task_spec.inputs.artifacts[
+            input_name].task_output_artifact.producer_task = (
+                dsl_utils.sanitize_task_name(param.op_name))
+        task_spec.inputs.artifacts[
+            input_name].task_output_artifact.output_artifact_key = (
+                param.name)
+      else:
+        task_spec.inputs.artifacts[
+            input_name].component_input_artifact = input_name

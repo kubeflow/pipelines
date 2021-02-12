@@ -122,15 +122,15 @@ class ComponentSpecTest(unittest.TestCase):
 
   def test_build_component_outputs_spec(self):
     pipeline_params = [
-        dsl.PipelineParam(name='input1', param_type='Dataset'),
-        dsl.PipelineParam(name='input2', param_type='Integer'),
-        dsl.PipelineParam(name='input3', param_type='String'),
-        dsl.PipelineParam(name='input4', param_type='Float'),
+        dsl.PipelineParam(name='output1', param_type='Dataset'),
+        dsl.PipelineParam(name='output2', param_type='Integer'),
+        dsl.PipelineParam(name='output3', param_type='String'),
+        dsl.PipelineParam(name='output4', param_type='Float'),
     ]
     expected_dict = {
         'outputDefinitions': {
             'artifacts': {
-                'input1': {
+                'output1': {
                     'artifactType': {
                         'instanceSchema':
                             'properties:\ntitle: kfp.Dataset\ntype: object\n'
@@ -138,13 +138,13 @@ class ComponentSpecTest(unittest.TestCase):
                 }
             },
             'parameters': {
-                'input2': {
+                'output2': {
                     'type': 'INT'
                 },
-                'input3': {
+                'output3': {
                     'type': 'STRING'
                 },
-                'input4': {
+                'output4': {
                     'type': 'DOUBLE'
                 }
             }
@@ -158,6 +158,49 @@ class ComponentSpecTest(unittest.TestCase):
                                                     pipeline_params)
 
     self.assertEqual(expected_spec, component_spec)
+
+  def test_build_task_inputs_spec(self):
+    pipeline_params = [
+        dsl.PipelineParam(name='output1', param_type='Dataset', op_name='op-1'),
+        dsl.PipelineParam(name='output2', param_type='Integer', op_name='op-2'),
+        dsl.PipelineParam(name='output3', param_type='Model', op_name='op-3'),
+        dsl.PipelineParam(name='output4', param_type='Double', op_name='op-4'),
+    ]
+    tasks_in_current_dag = ['op-1', 'op-2']
+    expected_dict = {
+        'inputs': {
+            'artifacts': {
+                'op-1-output1': {
+                    'taskOutputArtifact': {
+                        'producerTask': 'task-op-1',
+                        'outputArtifactKey': 'output1'
+                    }
+                },
+                'op-3-output3': {
+                    'componentInputArtifact': 'op-3-output3'
+                }
+            },
+            'parameters': {
+                'op-2-output2': {
+                    'taskOutputParameter': {
+                        'producerTask': 'task-op-2',
+                        'outputParameterKey': 'output2'
+                    }
+                },
+                'op-4-output4': {
+                    'componentInputParameter': 'op-4-output4'
+                }
+            }
+        }
+    }
+    expected_spec = pipeline_spec_pb2.PipelineTaskSpec()
+    json_format.ParseDict(expected_dict, expected_spec)
+
+    task_spec = pipeline_spec_pb2.PipelineTaskSpec()
+    dsl_component_spec.build_task_inputs_spec(task_spec, pipeline_params,
+                                              tasks_in_current_dag)
+
+    self.assertEqual(expected_spec, task_spec)
 
 
 if __name__ == '__main__':

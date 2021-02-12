@@ -38,7 +38,7 @@ from kfp.pipeline_spec import pipeline_spec_pb2
 
 from google.protobuf import json_format
 
-GroupOrOp = Union[dsl.OpsGroup, dsl.BaseOp]
+_GroupOrOp = Union[dsl.OpsGroup, dsl.BaseOp]
 
 
 class Compiler(object):
@@ -66,7 +66,7 @@ class Compiler(object):
 
   def _get_groups_for_ops(
       self, root_group: dsl.OpsGroup) -> Dict[str, List[dsl.OpsGroup]]:
-    """Helper function to get belonging groups for each op.
+    """Helper function to get groups that contain the specified ops.
 
     Each pipeline has a root group. Each group has a list of operators (leaf)
     and groups.
@@ -78,10 +78,8 @@ class Compiler(object):
 
     Returns:
       A dict. Key is the operator's name. Value is a list of ancestor groups
-      including the
-              op itself. The list of a given operator is sorted in a way that
-              the farthest
-              group is the first and operator itself is the last.
+      including the op itself. The list of a given operator is sorted in a way
+      that the farthest group is the first and operator itself is the last.
     """
 
     def _get_op_groups_helper(
@@ -108,7 +106,7 @@ class Compiler(object):
   #TODO: combine with the _get_groups_for_ops
   def _get_groups_for_opsgroups(
       self, root_group: dsl.OpsGroup) -> Dict[str, List[dsl.OpsGroup]]:
-    """Helper function to get belonging groups for each opsgroup.
+    """Helper function to get groups that contain the specified opsgroup.
 
     Each pipeline has a root group. Each group has a list of operators (leaf)
     and groups.
@@ -120,10 +118,8 @@ class Compiler(object):
 
     Returns:
       A dict. Key is the opsgroup's name. Value is a list of ancestor groups
-      including the
-              opsgroup itself. The list of a given opsgroup is sorted in a way
-              that the farthest
-              group is the first and opsgroup itself is the last.
+      including the opsgroup itself. The list of a given opsgroup is sorted in a
+      way that the farthest group is the first and opsgroup itself is the last.
     """
 
     def _get_opsgroup_groups_helper(
@@ -166,7 +162,7 @@ class Compiler(object):
       opsgroup_groups: Dict[str, List[dsl.OpsGroup]],
       op1: dsl.BaseOp,
       op2: dsl.BaseOp,
-  ) -> Tuple[List[GroupOrOp], List[GroupOrOp]]:
+  ) -> Tuple[List[_GroupOrOp], List[_GroupOrOp]]:
     """Helper function to get unique ancestors between two ops.
 
     For example, op1's ancestor groups are [root, G1, G2, G3, op1], op2's
@@ -261,13 +257,22 @@ class Compiler(object):
       self,
       pipeline: dsl.Pipeline,
       root_group: dsl.OpsGroup,
-      op_groups: Dict[str, dsl.OpsGroup],
-      opsgroup_groups: Dict[str, dsl.OpsGroup],
+      op_groups: Dict[str, List[dsl.OpsGroup]],
+      opsgroup_groups: Dict[str, List[dsl.OpsGroup]],
       condition_params: Dict[str, dsl.PipelineParam],
       op_name_to_for_loop_op: Dict[str, dsl.ParallelFor],
   ) -> Tuple[Dict[str, List[Tuple[dsl.PipelineParam, str]]], Dict[
       str, List[Tuple[dsl.PipelineParam, str]]]]:
     """Get inputs and outputs of each group and op.
+
+    Args:
+      pipeline: The instantiated pipeline object.
+      root_group: The root OpsGroup.
+      op_groups: The dict of op name to parent groups.
+      opsgroup_groups: The dict of opsgroup name to parent groups.
+      condition_params: The dict of group name to pipeline params referenced in
+        the conditions in that group.
+      op_name_to_for_loop_op: The dict of op name to loop ops.
 
     Returns:
       A tuple (inputs, outputs).
@@ -363,14 +368,14 @@ class Compiler(object):
     _get_inputs_outputs_recursive_opsgroup(root_group)
 
     # Generate the input for SubGraph along with parallelfor
-    for sub_graph in opsgroup_groups:
-      if sub_graph in op_name_to_for_loop_op:
+    for subgraph in opsgroup_groups:
+      if subgraph in op_name_to_for_loop_op:
         # The opsgroup list is sorted with the farthest group as the first and the opsgroup
         # itself as the last. To get the latest opsgroup which is not the opsgroup itself -2 is used.
-        parent = opsgroup_groups[sub_graph][-2]
+        parent = opsgroup_groups[subgraph][-2]
         if parent and parent.startswith('subgraph'):
           # propagate only op's pipeline param from subgraph to parallelfor
-          loop_op = op_name_to_for_loop_op[sub_graph]
+          loop_op = op_name_to_for_loop_op[subgraph]
           pipeline_param = loop_op.loop_args.items_or_pipeline_param
           if loop_op.items_is_pipeline_param and pipeline_param.op_name:
             inputs[parent].add((pipeline_param, pipeline_param.op_name))
@@ -385,8 +390,17 @@ class Compiler(object):
       opsgroups_groups: Dict[str, dsl.OpsGroup],
       opsgroups: Dict[str, dsl.OpsGroup],
       condition_params: Dict[str, dsl.PipelineParam],
-  ) -> Dict[str, List[GroupOrOp]]:
+  ) -> Dict[str, List[_GroupOrOp]]:
     """Get dependent groups and ops for all ops and groups.
+
+    Args:
+      pipeline: The instantiated pipeline object.
+      root_group: The root OpsGroup.
+      op_groups: The dict of op name to parent groups.
+      opsgroup_groups: The dict of opsgroup name to parent groups.
+      opsgroups: The dict of opsgroup name to opsgroup.
+      condition_params: The dict of group name to pipeline params referenced in
+        the conditions in that group.
 
     Returns:
       A dict. Key is group/op name, value is a list of dependent groups/ops.
@@ -420,7 +434,7 @@ class Compiler(object):
     # Generate dependencies based on the recursive opsgroups
     #TODO: refactor the following codes with the above
     def _get_dependency_opsgroup(
-        group: dsl.OpsGroup, dependencies: Dict[str, List[GroupOrOp]]) -> None:
+        group: dsl.OpsGroup, dependencies: Dict[str, List[_GroupOrOp]]) -> None:
       upstream_op_names = set(
           [dependency.name for dependency in group.dependencies])
       if group.recursive_ref:
@@ -449,7 +463,9 @@ class Compiler(object):
 
   def _resolve_value_or_reference(
       self, value_or_reference: Union[str, dsl.PipelineParam]) -> str:
-    """_resolve_value_or_reference resolves values and PipelineParams, which could be task parameters or input parameters.
+    """_resolve_value_or_reference resolves values and PipelineParams.
+
+    The values and PipelineParams could be task parameters or input parameters.
 
     Args:
       value_or_reference: value or reference to be resolved. It could be basic
@@ -473,26 +489,37 @@ class Compiler(object):
       else:
         return str(value_or_reference)
 
-  def _group_to_dag_template(
+  def _group_to_dag_spec(
       self,
       group: dsl.OpsGroup,
       inputs: Dict[str, List[Tuple[dsl.PipelineParam, str]]],
       outputs: Dict[str, List[Tuple[dsl.PipelineParam, str]]],
-      dependencies: Dict[str, List[GroupOrOp]],
+      dependencies: Dict[str, List[_GroupOrOp]],
       pipeline_spec: pipeline_spec_pb2.PipelineSpec,
-      deployment_config: pipeline_spec_pb2.PipelineDeploymentConfig,
-      root_name: str,
+      rootgroup_name: str,
   ) -> None:
-    """Generate template given an OpsGroup.
+    """Generate IR spec given an OpsGroup.
 
-    inputs, outputs, dependencies are all helper dicts.
+    Args:
+      group: The OpsGroup to generate spec for.
+      inputs: The inputs dictionary. The keys are group/op names and values are
+        lists of tuples (param, producing_op_name).
+      outputs: The outputs dictionary. The keys are group/op names and values
+        are lists of tuples (param, producing_op_name).
+      dependencies: The group dependencies dictionary. The keys are group/op
+        names, and the values are lists of dependent groups/ops.
+      pipeline_spec: The pipeline_spec to update in-place.
+      rootgroup_name: The name of the group root. Used to determine whether the
+        component spec for the current group should be the root dag.
     """
     group_component_name = dsl_utils.sanitize_component_name(group.name)
 
-    if group.name == root_name:
+    if group.name == rootgroup_name:
       group_component_spec = pipeline_spec.root
     else:
       group_component_spec = pipeline_spec.components[group_component_name]
+
+    deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
 
     # Generate component inputs spec.
     if inputs.get(group.name, None):
@@ -506,62 +533,43 @@ class Compiler(object):
               [param for param, _ in outputs[group.name]]))
 
     # Generate task specs and component specs for the dag.
-    sub_groups = group.groups + group.ops
-    for sub_group in sub_groups:
-      subgroup_task_spec = getattr(sub_group, 'task_spec',
+    subgroups = group.groups + group.ops
+    for subgroup in subgroups:
+      subgroup_task_spec = getattr(subgroup, 'task_spec',
                                    pipeline_spec_pb2.PipelineTaskSpec())
-      subgroup_component_spec = getattr(sub_group, 'component_spec',
+      subgroup_component_spec = getattr(subgroup, 'component_spec',
                                         pipeline_spec_pb2.ComponentSpec())
       is_recursive_subgroup = (
-          isinstance(sub_group, dsl.OpsGroup) and sub_group.recursive_ref)
+          isinstance(subgroup, dsl.OpsGroup) and subgroup.recursive_ref)
       # Special handling for recursive subgroup: use the existing opsgroup name
       if is_recursive_subgroup:
-        sub_group_key = sub_group.recursive_ref.name
+        subgroup_key = subgroup.recursive_ref.name
       else:
-        sub_group_key = sub_group.name
+        subgroup_key = subgroup.name
 
       subgroup_task_spec.task_info.name = dsl_utils.sanitize_task_name(
-          sub_group_key)
+          subgroup_key)
       # human_name exists for ops only, and is used to de-dupe component spec.
       subgroup_component_name = dsl_utils.sanitize_component_name(
-          getattr(sub_group, 'human_name', sub_group_key))
+          getattr(subgroup, 'human_name', subgroup_key))
       subgroup_task_spec.component_ref.name = subgroup_component_name
 
-      if isinstance(sub_group, dsl.OpsGroup) and sub_group.type == 'condition':
-        subgroup_inputs = inputs.get(sub_group.name, [])
-        condition = sub_group.condition
+      if isinstance(subgroup, dsl.OpsGroup) and subgroup.type == 'condition':
+        condition = subgroup.condition
         operand_values = []
-        tasks_in_current_dag = [subgroup.name for subgroup in sub_groups]
+        subgroup_inputs = inputs.get(subgroup.name, [])
+        subgroup_params = [param for param, _ in subgroup_inputs]
+        tasks_in_current_dag = [subgroup.name for subgroup in subgroups]
 
         dsl_component_spec.build_component_inputs_spec(
-            subgroup_component_spec, [param for param, _ in subgroup_inputs])
-
-        for param, _ in subgroup_inputs:
-          input_name = (param.full_name if param.op_name else param.name)
-          dependent_component_name = dsl_utils.sanitize_component_name(
-              param.op_name)
-          if type_utils.is_parameter_type(param.param_type):
-            if param.op_name in tasks_in_current_dag:
-              subgroup_task_spec.inputs.parameters[
-                  input_name].task_output_parameter.producer_task = (
-                      dsl_utils.sanitize_task_name(param.op_name))
-              subgroup_task_spec.inputs.parameters[
-                  input_name].task_output_parameter.output_parameter_key = (
-                      param.name)
-            else:
-              subgroup_task_spec.inputs.parameters[
-                  input_name].component_input_parameter = input_name
-          else:
-            if param.op_name in tasks_in_current_dag:
-              subgroup_task_spec.inputs.artifacts[
-                  input_name].task_output_artifact.producer_task = (
-                      dsl_utils.sanitize_task_name(param.op_name))
-              subgroup_task_spec.inputs.artifacts[
-                  input_name].task_output_artifact.output_artifact_key = (
-                      param.name)
-            else:
-              subgroup_task_spec.inputs.artifacts[
-                  input_name].component_input_artifact = input_name
+            subgroup_component_spec,
+            subgroup_params,
+        )
+        dsl_component_spec.build_task_inputs_spec(
+            subgroup_task_spec,
+            subgroup_params,
+            tasks_in_current_dag,
+        )
 
         for operand in [condition.operand1, condition.operand2]:
           operand_values.append(self._resolve_value_or_reference(operand))
@@ -575,8 +583,8 @@ class Compiler(object):
                 condition=condition_string))
 
       # Generate dependencies section for this task.
-      if dependencies.get(sub_group.name, None):
-        group_dependencies = list(dependencies[sub_group.name])
+      if dependencies.get(subgroup.name, None):
+        group_dependencies = list(dependencies[subgroup.name])
         group_dependencies.sort()
         subgroup_task_spec.dependent_tasks.extend(
             [dsl_utils.sanitize_task_name(dep) for dep in group_dependencies])
@@ -586,7 +594,7 @@ class Compiler(object):
         if not subgroup_task_spec.inputs.artifacts[
             input_name].task_output_artifact.producer_task:
           type_schema = type_utils.get_input_artifact_type_schema(
-              input_name, sub_group._metadata.inputs)
+              input_name, subgroup._metadata.inputs)
 
           importer_name = importer_node.generate_importer_base_name(
               dependent_task_name=subgroup_task_spec.task_info.name,
@@ -613,7 +621,7 @@ class Compiler(object):
                   importer_node.OUTPUT_KEY)
 
           # Retrieve the pre-built importer spec
-          importer_spec = sub_group.importer_specs[input_name]
+          importer_spec = subgroup.importer_specs[input_name]
           deployment_config.executors[importer_exec_label].importer.CopyFrom(
               importer_spec)
 
@@ -627,9 +635,9 @@ class Compiler(object):
           subgroup_task_spec.task_info.name].CopyFrom(subgroup_task_spec)
 
       # Add executor spec
-      container_spec = getattr(sub_group, 'container_spec', None)
+      container_spec = getattr(subgroup, 'container_spec', None)
       if container_spec:
-        if compiler_utils.is_v2_component(sub_group):
+        if compiler_utils.is_v2_component(subgroup):
           compiler_utils.refactor_v2_container_spec(container_spec)
         executor_label = subgroup_component_spec.executor_label
 
@@ -694,9 +702,14 @@ class Compiler(object):
     )
 
     for opsgroup_name in opsgroups.keys():
-      self._group_to_dag_template(opsgroups[opsgroup_name], inputs, outputs,
-                                  dependencies, pipeline_spec,
-                                  deployment_config, root_group.name)
+      self._group_to_dag_spec(
+          opsgroups[opsgroup_name],
+          inputs,
+          outputs,
+          dependencies,
+          pipeline_spec,
+          root_group.name,
+      )
 
     return pipeline_spec
 
