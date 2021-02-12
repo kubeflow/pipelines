@@ -38,7 +38,7 @@ class ApiExperiment(object):
         'description': 'str',
         'created_at': 'datetime',
         'resource_references': 'list[ApiResourceReference]',
-        'storage_state': 'ExperimentStorageState'
+        'storage_state': 'ApiExperimentStorageState'
     }
 
     attribute_map = {
@@ -196,7 +196,7 @@ class ApiExperiment(object):
 
 
         :return: The storage_state of this ApiExperiment.  # noqa: E501
-        :rtype: ExperimentStorageState
+        :rtype: ApiExperimentStorageState
         """
         return self._storage_state
 
@@ -206,7 +206,7 @@ class ApiExperiment(object):
 
 
         :param storage_state: The storage_state of this ApiExperiment.  # noqa: E501
-        :type storage_state: ExperimentStorageState
+        :type storage_state: ApiExperimentStorageState
         """
 
         self._storage_state = storage_state

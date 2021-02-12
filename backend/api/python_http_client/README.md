@@ -138,6 +138,7 @@ Class | Method | HTTP request | Description
 
  - [ApiCronSchedule](docs/ApiCronSchedule.md)
  - [ApiExperiment](docs/ApiExperiment.md)
+ - [ApiExperimentStorageState](docs/ApiExperimentStorageState.md)
  - [ApiGetHealthzResponse](docs/ApiGetHealthzResponse.md)
  - [ApiGetTemplateResponse](docs/ApiGetTemplateResponse.md)
  - [ApiJob](docs/ApiJob.md)
@@ -162,16 +163,15 @@ Class | Method | HTTP request | Description
  - [ApiRun](docs/ApiRun.md)
  - [ApiRunDetail](docs/ApiRunDetail.md)
  - [ApiRunMetric](docs/ApiRunMetric.md)
+ - [ApiRunStorageState](docs/ApiRunStorageState.md)
  - [ApiStatus](docs/ApiStatus.md)
  - [ApiTrigger](docs/ApiTrigger.md)
  - [ApiUrl](docs/ApiUrl.md)
- - [ExperimentStorageState](docs/ExperimentStorageState.md)
  - [JobMode](docs/JobMode.md)
  - [ProtobufAny](docs/ProtobufAny.md)
  - [ReportRunMetricsResponseReportRunMetricResult](docs/ReportRunMetricsResponseReportRunMetricResult.md)
  - [ReportRunMetricsResponseReportRunMetricResultStatus](docs/ReportRunMetricsResponseReportRunMetricResultStatus.md)
  - [RunMetricFormat](docs/RunMetricFormat.md)
- - [RunStorageState](docs/RunStorageState.md)
 
 
 ## Documentation For Authorization

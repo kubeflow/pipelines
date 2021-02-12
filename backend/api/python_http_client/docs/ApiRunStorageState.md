@@ -1,4 +1,4 @@
-# RunStorageState
+# ApiRunStorageState
 
 ## Properties
 Name | Type | Description | Notes

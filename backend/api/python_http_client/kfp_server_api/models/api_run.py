@@ -35,7 +35,7 @@ class ApiRun(object):
     openapi_types = {
         'id': 'str',
         'name': 'str',
-        'storage_state': 'RunStorageState',
+        'storage_state': 'ApiRunStorageState',
         'description': 'str',
         'pipeline_spec': 'ApiPipelineSpec',
         'resource_references': 'list[ApiResourceReference]',
@@ -164,7 +164,7 @@ class ApiRun(object):
 
 
         :return: The storage_state of this ApiRun.  # noqa: E501
-        :rtype: RunStorageState
+        :rtype: ApiRunStorageState
         """
         return self._storage_state
 
@@ -174,7 +174,7 @@ class ApiRun(object):
 
 
         :param storage_state: The storage_state of this ApiRun.  # noqa: E501
-        :type storage_state: RunStorageState
+        :type storage_state: ApiRunStorageState
         """
 
         self._storage_state = storage_state
