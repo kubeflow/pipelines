@@ -19,10 +19,7 @@ import * as Utils from '../lib/Utils';
 import JobList, { JobListProps } from './JobList';
 import TestUtils from '../TestUtils';
 import produce from 'immer';
-import {
-  ApiJob,
-  ApiResourceType,
-} from '../apis/job';
+import { ApiJob, ApiResourceType } from '../apis/job';
 import { Apis, JobSortKeys, ListRequest } from '../lib/Apis';
 import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
 import { range } from 'lodash';
@@ -332,7 +329,7 @@ describe('JobList', () => {
   it('renders status enabled', () => {
     expect(
       getMountedInstance()._statusCustomRenderer({
-        value: "Enabled",
+        value: 'Enabled',
         id: 'job-id',
       }),
     ).toMatchSnapshot();
@@ -341,7 +338,7 @@ describe('JobList', () => {
   it('renders status disabled', () => {
     expect(
       getMountedInstance()._statusCustomRenderer({
-        value: "Disabled",
+        value: 'Disabled',
         id: 'job-id',
       }),
     ).toMatchSnapshot();
@@ -350,7 +347,7 @@ describe('JobList', () => {
   it('renders status unknown', () => {
     expect(
       getMountedInstance()._statusCustomRenderer({
-        value: "Unknown Status",
+        value: 'Unknown Status',
         id: 'job-id',
       }),
     ).toMatchSnapshot();

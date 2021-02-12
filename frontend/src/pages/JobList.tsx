@@ -66,7 +66,7 @@ class JobList extends React.PureComponent<JobListProps, JobListState> {
     };
   }
 
-  componentDidUpdate(prevProps: { refreshCount: number; }) {
+  componentDidUpdate(prevProps: { refreshCount: number }) {
     if (prevProps.refreshCount === this.props.refreshCount) {
       return;
     }
@@ -130,9 +130,9 @@ class JobList extends React.PureComponent<JobListProps, JobListState> {
           emptyMessage={
             `No available jobs found` +
             `${
-            this.props.experimentIdMask
-              ? ' for this experiment'
-              : this.props.namespaceMask
+              this.props.experimentIdMask
+                ? ' for this experiment'
+                : this.props.namespaceMask
                 ? ' for this namespace'
                 : ''
             }.`
@@ -217,8 +217,8 @@ class JobList extends React.PureComponent<JobListProps, JobListState> {
       props.value === 'Enabled'
         ? color.success
         : props.value === 'Disabled'
-          ? color.inactive
-          : color.errorText;
+        ? color.inactive
+        : color.errorText;
     return <div style={{ color: textColor }}>{props.value}</div>;
   };
 

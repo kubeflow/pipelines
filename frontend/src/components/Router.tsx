@@ -31,7 +31,7 @@ import AllExperimentsAndArchive, {
   AllExperimentsAndArchiveTab,
 } from '../pages/AllExperimentsAndArchive';
 import AllRunsAndArchive, { AllRunsAndArchiveTab } from '../pages/AllRunsAndArchive';
-import AllJobsList from "../pages/AllJobsList";
+import AllJobsList from '../pages/AllJobsList';
 import NewExperiment from '../pages/NewExperiment';
 import NewRun from '../pages/NewRun';
 import Page404 from '../pages/404';

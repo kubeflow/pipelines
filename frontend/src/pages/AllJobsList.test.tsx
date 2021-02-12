@@ -86,6 +86,6 @@ describe('AllJobsList', () => {
     shallowMountComponent();
 
     _toolbarProps.actions[ButtonKeys.NEW_RUN].action();
-    expect(historyPushSpy).toHaveBeenLastCalledWith(RoutePage.NEW_RUN + "?experimentId=");
+    expect(historyPushSpy).toHaveBeenLastCalledWith(RoutePage.NEW_RUN + '?experimentId=');
   });
 });
