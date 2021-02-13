@@ -198,7 +198,12 @@ Note, when releasing from master, all the below mentions of "release branch" mea
     ```
     It will prompt you whether to push it to release branch. Press `y` and hit `Enter`.
 
-    Note, the script will clone kubeflow/pipelines repo into a temporary location on your computer, make those changes and attempt to push to upstream, so that it won't interfere with your current git repo.
+    Note, the script will clone kubeflow/pipelines repo into a temporary location on your computer, make those changes and attempt to push to upstream, so that it won't interfere with your current git repo. 
+    
+    If you saw error like 'Add $GOPATH/bin should be in the $PATH', run
+    ```bash
+    export PATH=$PATH:$(go env GOPATH)/bin
+    ```
 
 1. View related cloudbuild jobs' statuses by clicking the latest commit's status icon
 in the release branch. The page will look like https://github.com/kubeflow/pipelines/runs/775788343.
