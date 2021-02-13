@@ -24,10 +24,8 @@ RUN apk update && \
     apk add --no-cache ca-certificates py-dev python-setuptools wget unzip git bash \
     rm -rf /var/cache/apk/*
 
-COPY requirements.txt /tmp/requirements.txt
-
 RUN pip install --upgrade pip && \
-    pip install -r /tmp/requirements.txt
+    pip install pyyaml==3.12 six==1.11.0 requests==2.18.4
 
 COPY --from=build /go/src/github.com/kubeflow/arena/bin/arena /usr/local/bin/arena
 

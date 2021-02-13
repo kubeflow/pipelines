@@ -15,7 +15,9 @@
 FROM python:3.6
 
 COPY requirements.txt .
-RUN pip3 install -r requirements.txt --no-cache-dir
+RUN python3 -m pip install -r \
+    requirements.txt --quiet --no-cache-dir \
+    && rm -f requirements.txt
 
 ADD build /ml
 

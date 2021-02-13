@@ -16,7 +16,9 @@ ARG TF_TAG
 FROM tensorflow/tensorflow:$TF_TAG
 
 COPY requirements.txt .
-RUN pip3 install -r requirements.txt
+RUN python3 -m pip install -r \
+    requirements.txt --quiet --no-cache-dir \
+    && rm -f requirements.txt
 
 ADD build /ml
 

@@ -14,8 +14,8 @@
 
 FROM base-trtis-client
 
-COPY requirements.txt .
-RUN pip3 install -r requirements.txt
+RUN pip3 install flask
+
 ADD src /workspace/web_server
 WORKDIR /workspace/web_server
 EXPOSE 8080
