@@ -1,31 +1,31 @@
 name: Kubeflow - Launch PyTorchJob
 description: Kubeflow PyTorchJob launcher
 inputs:
-- {name: Name,                      type: String,                       description: 'PyTorchJob name.'}
-- {name: Namespace,                 type: String,   default: kubeflow,  description: 'PyTorchJob namespace (likely your current namespace).'}
-- {name: Version,                   type: String,   default: v1,        description: 'PyTorchJob version.'}
-- {name: ActiveDeadlineSeconds,     type: Integer,  default: -1,        description: 'Specifies the duration (in seconds) since startTime during which the job can remain active before it is terminated. Must be a positive integer. This setting applies only to pods where restartPolicy is OnFailure or Always.'}
-- {name: BackoffLimit,              type: Integer,  default: -1,        description: 'Number of retries before marking this job as failed.'}
-- {name: CleanPodPolicy,            type: String,   default: Running,   description: 'Defines the policy for cleaning up pods after the PyTorchJob completes.'}
-- {name: ttlSecondsAfterFinished,   type: Integer,  default: -1,        description: 'Defines the TTL for cleaning up finished PyTorchJobs.'}
-- {name: MasterSpec,                type: JSON,     default: '{}',      description: 'PyTorchJob Master replicaSpecs.'}
-- {name: WorkerSpec,                type: JSON,     default: '{}',      description: 'PyTorchJob Worker replicaSpecs.'}
-- {name: JobTimeoutMinutes,         type: Integer,  default: 1440,      description: 'Time in minutes to wait for the job to complete.'}
-- {name: DeleteAfterDone,           type: Bool,     default: 'True' ,   description: 'Whether to delete the job after it is finished.'}
+- {name: name,                       type: String,                       description: 'PyTorchJob name.'}
+- {name: namespace,                  type: String,   default: kubeflow,  description: 'PyTorchJob namespace (likely your current namespace).'}
+- {name: version,                    type: String,   default: v1,        description: 'PyTorchJob version.'}
+- {name: active_deadline_seconds,    type: Integer,  default: -1,        description: 'Specifies the duration (in seconds) since startTime during which the job can remain active before it is terminated. Must be a positive integer. This setting applies only to pods where restartPolicy is OnFailure or Always.'}
+- {name: backoff_limit,              type: Integer,  default: -1,        description: 'Number of retries before marking this job as failed.'}
+- {name: clean_pod_policy,           type: String,   default: Running,   description: 'Defines the policy for cleaning up pods after the PyTorchJob completes.'}
+- {name: ttl_seconds_after_finished, type: Integer,  default: -1,        description: 'Defines the TTL for cleaning up finished PyTorchJobs.'}
+- {name: master_spec,                type: Json,     default: '{}',      description: 'PyTorchJob Master replicaSpecs.'}
+- {name: worker_spec,                type: Json,     default: '{}',      description: 'PyTorchJob Worker replicaSpecs.'}
+- {name: job_timeout_minutes,        type: Integer,  default: 1440,      description: 'Time in minutes to wait for the job to complete.'}
+- {name: delete_after_done,          type: Boolean,     default: 'True' ,   description: 'Whether to delete the job after it is finished.'}
 implementation:
   container:
     image: cascribner/kubeflow-pytorchjob-launcher:latest
     command: [python, /ml/launch_pytorchjob.py]
     args: [
-      --name,                     {inputValue: Name},
-      --namespace,                {inputValue: Namespace},
-      --version,                  {inputValue: Version},
-      --activeDeadlineSeconds,    {inputValue: ActiveDeadlineSeconds},
-      --backoffLimit,             {inputValue: BackoffLimit},
-      --cleanPodPolicy,           {inputValue: CleanPodPolicy},
-      --ttlSecondsAfterFinished,  {inputValue: ttlSecondsAfterFinished},
-      --masterSpec,               {inputValue: MasterSpec},
-      --workerSpec,               {inputValue: WorkerSpec},
-      --jobTimeoutMinutes,        {inputValue: JobTimeoutMinutes},
-      --deleteAfterDone,          {inputValue: DeleteAfterDone},
+      --name,                     {inputValue: name},
+      --namespace,                {inputValue: namespace},
+      --version,                  {inputValue: version},
+      --activeDeadlineSeconds,    {inputValue: active_deadline_seconds},
+      --backoffLimit,             {inputValue: backoff_limit},
+      --cleanPodPolicy,           {inputValue: clean_pod_policy},
+      --ttlSecondsAfterFinished,  {inputValue: ttl_seconds_after_finished},
+      --masterSpec,               {inputValue: master_spec},
+      --workerSpec,               {inputValue: worker_spec},
+      --jobTimeoutMinutes,        {inputValue: job_timeout_minutes},
+      --deleteAfterDone,          {inputValue: delete_after_done},
     ]
