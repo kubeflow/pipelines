@@ -1,3 +1,4 @@
 pyyaml
 kubernetes
 kubeflow-pytorchjob
+retrying
