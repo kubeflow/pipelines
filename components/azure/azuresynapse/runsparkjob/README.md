@@ -38,14 +38,14 @@ This component submit a spark job in [Azure Syanpse workspace](https://docs.micr
 ## Prerequisites
 - [Create an AKS cluster](https://docs.microsoft.com/en-us/azure/aks/kubernetes-walkthrough-portal).
 - [Install Kubeflow on AKS](https://www.kubeflow.org/docs/azure/).
-- [Create AAD service principal](https://docs.microsoft.com/en-us/azure/active-directory/develop/howto-create-service-principal-portal).
+- [Create AAD service principal](https://docs.microsoft.com/cli/azure/create-an-azure-service-principal-azure-cli#password-based-authentication).
 - Create a Azure Synapse Workspace and grant following permissions to the service principal:
   - Azure Owner or Contributor for the Synapse workspace (Azure RBAC)
   - Synapse Apache Spark Administrator in Synapse RBAC
   - Storage blob data owner for the attached ADSL account (storing job 
   definition file)
 
-  See [Synapse RBAC Roles documentation](https://docs.microsoft.com/en-us/azure/synapse-analytics/security/synapse-workspace-understand-what-role-you-need) for more details
+  See [Synapse RBAC Roles documentation](https://docs.microsoft.com/en-us/azure/synapse-analytics/security/synapse-workspace-understand-what-role-you-need) for more details about Synapse RBAC. See [here](https://docs.microsoft.com/azure/role-based-access-control/role-assignments-cli#step-4-add-role-assignment) about how to add a role assignment.
 - [Create a Azure Container Registry](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-get-started-portal) and grant access to the AKS cluster by running:
 ```shell
 az login
@@ -60,6 +60,7 @@ kubectl create secret generic azcreds \
   --from-literal=AZ_SUBSCRIPTION_ID='<azure-subscription-id>' \
   -n kubeflow
 ```
+  See [here](https://docs.microsoft.com/azure/aks/cluster-container-registry-integration) for more details about AKS and ACI integration.
 
 ## Usage
 ### Step 1. Build the docker image and upload to Azure Container Registry
