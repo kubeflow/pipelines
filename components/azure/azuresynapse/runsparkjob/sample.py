@@ -20,6 +20,7 @@ run_job_operation = components.load_component_from_file(file_path)
 
 # The run_job_image_name shall be the container image for the operation
 # It shall be something like <your_acr_name>.azurecr.io/deploy/aml-deploy-model:latest
+# If you are using a container registry other than Azure Container Registry, update the image name correspondingly
 run_job_image_name = image_repo_name + '.azurecr.io/deploy/' + image_name + ':latest'
 
 print(run_job_image_name)

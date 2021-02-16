@@ -74,6 +74,9 @@ You can run the following command to build and upload the image
 docker build . -t <acr-name>.azurecr.io/deploy/<image-name>:latest
 docker push <acr-name>.azurecr.io/deploy/<image-name>:latest
 ``` 
+
+> **NOTE**: You can also use container registries other than Azure Container Registry. Please follow the instruction from the service provider to configure integration with Kubeflow and push the images.
+
 ### Step 2. Update the parameters
 In sample.py, we set *main_definition_file* and *command_line_arguments* as pipeline input parameters. You can update the pipeline input parameters and component parameters as needed before building the sample pipeline.
 
