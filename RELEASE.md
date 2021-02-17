@@ -100,7 +100,6 @@ if you only want to use or contribute to this repo.
     * yq https://github.com/mikefarah/yq/releases/tag/3.3.0
     * jdk 8
     * node 12
-    * bazel 0.24.0 https://github.com/bazelbuild/bazel/releases/tag/0.24.0
     * python 3 (on linux, one would need the `python` to be `python3` by default instead of `python2`)
 * Preparations
     1. Clone github.com/kubeflow/pipelines repo into `$KFP_REPO`.

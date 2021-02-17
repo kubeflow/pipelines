@@ -16,11 +16,11 @@ import unittest
 import datetime
 
 import kfp_server_api
-from kfp_server_api.models.run_storage_state import RunStorageState  # noqa: E501
+from kfp_server_api.models.api_experiment_storage_state import ApiExperimentStorageState  # noqa: E501
 from kfp_server_api.rest import ApiException
 
-class TestRunStorageState(unittest.TestCase):
-    """RunStorageState unit test stubs"""
+class TestApiExperimentStorageState(unittest.TestCase):
+    """ApiExperimentStorageState unit test stubs"""
 
     def setUp(self):
         pass
@@ -29,20 +29,20 @@ class TestRunStorageState(unittest.TestCase):
         pass
 
     def make_instance(self, include_optional):
-        """Test RunStorageState
+        """Test ApiExperimentStorageState
             include_option is a boolean, when False only required
             params are included, when True both required and
             optional params are included """
-        # model = kfp_server_api.models.run_storage_state.RunStorageState()  # noqa: E501
+        # model = kfp_server_api.models.api_experiment_storage_state.ApiExperimentStorageState()  # noqa: E501
         if include_optional :
-            return RunStorageState(
+            return ApiExperimentStorageState(
             )
         else :
-            return RunStorageState(
+            return ApiExperimentStorageState(
         )
 
-    def testRunStorageState(self):
-        """Test RunStorageState"""
+    def testApiExperimentStorageState(self):
+        """Test ApiExperimentStorageState"""
         inst_req_only = self.make_instance(include_optional=False)
         inst_req_and_optional = self.make_instance(include_optional=True)
 
