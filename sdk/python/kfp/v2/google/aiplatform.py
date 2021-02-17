@@ -201,10 +201,8 @@ def _get_custom_job_op(
   )
 
 
-
-
-
 def custom_job(
+    name: str,
     input_artifacts: Optional[Dict[str, dsl.PipelineParam]] = None,
     input_parameters: Optional[Dict[str, ValueOrPipelineParam]] = None,
     output_artifacts: Optional[Dict[str, Type[artifact.Artifact]]] = None,
@@ -229,6 +227,7 @@ def custom_job(
   https://cloud.google.com/ai-platform-unified/docs/training/create-custom-job
 
   Args:
+    name: The name of this task.
     input_artifacts: The input artifact specification. Should be a mapping from
       input name to output from upstream tasks.
     input_parameters: The input parameter specification. Should be a mapping
@@ -362,71 +361,10 @@ def custom_job(
           spec['pythonPackageSpec']['args'] = args
 
   return _get_custom_job_op(
+      task_name=name,
       job_spec=custom_job_spec,
       input_artifacts=input_artifacts,
       input_parameters=input_parameters,
       output_artifacts=output_artifacts,
       output_parameters=output_parameters
   )
-
-
-  old_warn_value = dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING
-  dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = True
-  task = container_op.ContainerOp(
-      name=component_spec.name or _default_component_name,
-      image=container_spec.image,
-      command=resolved_cmd.command,
-      arguments=resolved_cmd.args,
-      file_outputs=output_uris_and_paths,
-      artifact_argument_paths=[
-          dsl.InputArgumentPath(
-              argument=arguments[input_name],
-              input=input_name,
-              path=path,
-          ) for input_name, path in input_uris_and_paths.items()
-      ],
-  )
-
-  # task.name is unique at this point.
-  pipeline_task_spec.task_info.name = task.name
-  pipeline_task_spec.executor_label = task.name
-
-  task.task_spec = pipeline_task_spec
-  task.importer_spec = importer_spec
-  task.container_spec = pipeline_container_spec
-  dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = old_warn_value
-
-  component_meta = copy.copy(component_spec)
-  task._set_metadata(component_meta)
-
-  # Previously, ContainerOp had strict requirements for the output names, so we
-  # had to convert all the names before passing them to the ContainerOp
-  # constructor. Outputs with non-pythonic names could not be accessed using
-  # their original names. Now ContainerOp supports any output names, so we're
-  # now using the original output names. However to support legacy pipelines,
-  # we're also adding output references with pythonic names.
-  # TODO: Add warning when people use the legacy output names.
-  output_names = [
-      output_spec.name for output_spec in component_spec.outputs or []
-  ]  # Stabilizing the ordering
-  output_name_to_python = generate_unique_name_conversion_table(
-      output_names, _sanitize_python_function_name)
-  for output_name in output_names:
-    pythonic_output_name = output_name_to_python[output_name]
-    # Note: Some component outputs are currently missing from task.outputs
-    # (e.g. MLPipeline UI Metadata)
-    if pythonic_output_name not in task.outputs and output_name in task.outputs:
-      task.outputs[pythonic_output_name] = task.outputs[output_name]
-
-  if component_spec.metadata:
-    annotations = component_spec.metadata.annotations or {}
-    for key, value in annotations.items():
-      task.add_pod_annotation(key, value)
-    for key, value in (component_spec.metadata.labels or {}).items():
-      task.add_pod_label(key, value)
-      # Disabling the caching for the volatile components by default
-    if annotations.get('volatile_component', 'false') == 'true':
-      task.execution_options.caching_strategy.max_cache_staleness = 'P0D'
-
-  return task
-
