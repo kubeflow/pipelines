@@ -2,9 +2,10 @@ package server
 
 import (
 	"context"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"strings"
 	"testing"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -403,8 +404,7 @@ func TestListRuns_Multiuser(t *testing.T) {
 		} else {
 			if err != nil {
 				t.Errorf("TestListRuns_Multiuser(%v) expect no error but got %v", tc.name, err)
-			} else if !cmp.Equal(tc.expectedRuns, response.Runs, cmpopts.IgnoreFields(api.Run{}, "CreatedAt"),
-				cmpopts.IgnoreFields(api.Run{}, "ScheduledAt"), cmpopts.IgnoreFields(api.Run{}, "FinishedAt")) {
+			} else if !cmp.Equal(tc.expectedRuns, response.Runs, cmpopts.IgnoreFields(api.Run{}, "ScheduledAt", "FinishedAt", "CreatedAt")) {
 				t.Errorf("TestListRuns_Multiuser(%v) expect (%+v) but got (%+v)", tc.name, tc.expectedRuns, response.Runs)
 			}
 		}
@@ -462,7 +462,7 @@ func TestValidateCreateRunRequest_InvalidPipelineVersionReference(t *testing.T) 
 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	run := &api.Run{
 		Name:               "run1",
-		ResourceReferences:referencesOfExperimentAndInvalidPipelineVersion,
+		ResourceReferences: referencesOfExperimentAndInvalidPipelineVersion,
 	}
 	err := server.validateCreateRunRequest(&api.CreateRunRequest{Run: run})
 	assert.NotNil(t, err)
@@ -523,7 +523,7 @@ func TestValidateCreateRunRequest_InvalidPipelineSpec(t *testing.T) {
 		Name:               "run1",
 		ResourceReferences: validReference,
 		PipelineSpec: &api.PipelineSpec{
-			PipelineId: resource.DefaultFakeUUID,
+			PipelineId:       resource.DefaultFakeUUID,
 			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 		},

@@ -31,11 +31,10 @@ kubectl edit deployment.v1.apps/ml-pipeline -n kubeflow
 You'll see the field reference the api server docker image.
 Change it to point to your own build, after saving and closing the file, apiserver will restart with your change.
 
-## Building Go client library and swagger files
+## Building client library and swagger files
 
-After making changes to proto files, the Go client libraries and swagger files
-need to be regenerated and checked-in. The `backend/api/generate_api.sh` script
-takes care of this. It should be noted that this requires [Bazel](https://bazel.build/), version 0.24.0` 
+After making changes to proto files, the Go client libraries, Python client libraries and swagger files
+need to be regenerated and checked-in. Refer to [backend/api](./api/README.md) for details.
 
 # Visualization Server Instructions
 

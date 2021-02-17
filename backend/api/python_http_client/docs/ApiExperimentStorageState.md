@@ -1,4 +1,4 @@
-# ExperimentStorageState
+# ApiExperimentStorageState
 
 ## Properties
 Name | Type | Description | Notes
