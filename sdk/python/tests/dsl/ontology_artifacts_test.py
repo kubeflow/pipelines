@@ -15,6 +15,7 @@
 import unittest
 from kfp.dsl import artifact
 from kfp.dsl import ontology_artifacts
+from google.protobuf import json_format
 
 _EXPECTED_SERIALIZATION = """\
 {
@@ -34,6 +35,14 @@ _EXPECTED_SERIALIZATION = """\
   }
 }"""
 
+_EXPECTED_MODEL_SCHEMA = {
+    'instanceSchema': 'properties:\ntitle: kfp.Model\ntype: object\n'
+}
+
+_EXPECTED_RAW_SCHEMA = {
+    'instanceSchema': 'properties:\ntitle: kfp.Artifact\ntype: object\n'
+}
+
 
 class ArtifactsTest(unittest.TestCase):
 
@@ -51,3 +60,12 @@ class ArtifactsTest(unittest.TestCase):
                      rehydrated_model.get_string_custom_property('string1'))
     self.assertEqual(1, rehydrated_model.get_int_custom_property('int1'))
     self.assertEqual(1.1, rehydrated_model.get_float_custom_property('float1'))
+
+  def testGetSchema(self):
+    model_schema = ontology_artifacts.Model.get_ir_type()
+    self.assertDictEqual(_EXPECTED_MODEL_SCHEMA,
+                         json_format.MessageToDict(model_schema))
+
+    raw_schema = artifact.Artifact.get_ir_type()
+    self.assertDictEqual(_EXPECTED_RAW_SCHEMA,
+                         json_format.MessageToDict(raw_schema))

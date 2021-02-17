@@ -171,6 +171,11 @@ class Artifact(object):
     }
     return serialization_utils.yaml_dump(result_map)
 
+  @classmethod
+  def get_ir_type(cls) -> pipeline_spec_pb2.ArtifactTypeSchema:
+    return pipeline_spec_pb2.ArtifactTypeSchema(
+        instance_schema=cls.get_artifact_type())
+
   @property
   def type_schema(self) -> str:
     """Gets the instance_schema specified for this Artifact object."""
