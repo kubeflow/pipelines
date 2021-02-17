@@ -45,6 +45,7 @@ class TypeUtilsTest(unittest.TestCase):
                        type_utils.get_artifact_type_schema(type_name))
 
   def test_get_parameter_type(self):
+    # Test get parameter type by name.
     self.assertEqual(pb.PrimitiveType.INT, type_utils.get_parameter_type('Int'))
     self.assertEqual(pb.PrimitiveType.INT,
                      type_utils.get_parameter_type('Integer'))
@@ -56,8 +57,19 @@ class TypeUtilsTest(unittest.TestCase):
                      type_utils.get_parameter_type('String'))
     self.assertEqual(pb.PrimitiveType.STRING,
                      type_utils.get_parameter_type('Str'))
+
+    # Test get parameter by Python type.
+    self.assertEqual(pb.PrimitiveType.INT, type_utils.get_parameter_type(int))
+    self.assertEqual(pb.PrimitiveType.DOUBLE,
+                     type_utils.get_parameter_type(float))
+    self.assertEqual(pb.PrimitiveType.STRING,
+                     type_utils.get_parameter_type(str))
+
     with self.assertRaises(AttributeError):
       type_utils.get_parameter_type_schema(None)
+
+    with self.assertRaisesRegex(TypeError, 'Got illegal parameter type.'):
+      type_utils.get_parameter_type(bool)
 
   def test_get_input_artifact_type_schema(self):
     input_specs = [
