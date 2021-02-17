@@ -15,6 +15,7 @@
 from typing import Any, Dict, List, Optional, Type, Union
 
 from absl import logging
+import collections
 from kfp import dsl
 from kfp.dsl import artifact
 from kfp.pipeline_spec import pipeline_spec_pb2
@@ -23,6 +24,7 @@ from kfp.v2.dsl import type_utils
 
 _AiPlatformCustomJobSpec = pipeline_spec_pb2.PipelineDeploymentConfig.AiPlatformCustomJobSpec
 _DUMMY_CONTAINER_OP_IMAGE = 'dummy/image'
+_DUMMY_PATH = 'dummy/path'
 
 ValueOrPipelineParam = Union[dsl.PipelineParam, str, float, int]
 
@@ -159,12 +161,43 @@ def _get_custom_job_op(
   pipeline_task_spec.component_ref.name = dsl_utils.sanitize_component_name(
       task_name)
 
+  # Construct dummy I/O declaration for the op.
+  # TODO: resolve name conflict instead of raising errors.
+  dummy_outputs = collections.OrderedDict()
+  for output_name, _ in output_artifacts.items():
+    dummy_outputs[output_name] = _DUMMY_PATH
+
+  for output_name, _ in output_parameters.items():
+    if output_name in dummy_outputs:
+      raise KeyError('Got name collision for output key %s. Consider renaming '
+                     'either output parameters or output '
+                     'artifacts.' % output_name)
+    dummy_outputs[output_name] = _DUMMY_PATH
+
+  dummy_inputs = collections.OrderedDict()
+  for input_name, art in input_artifacts.items():
+    dummy_inputs[input_name] = _DUMMY_PATH
+  for input_name, param in input_parameters.items():
+    if input_name in dummy_inputs:
+      raise KeyError('Got name collision for input key %s. Consider renaming '
+                     'either input parameters or input '
+                     'artifacts.' % input_name)
+    dummy_inputs[input_name] = _DUMMY_PATH
+
   # Construct the AIP (Unified) custom job op.
   return AiPlatformCustomJobOp(
       name=task_name,
       custom_job_spec=job_spec,
       component_spec=pipeline_component_spec,
       task_spec=pipeline_task_spec,
+      task_inputs=[
+          dsl.InputArgumentPath(
+              argument=dummy_inputs[input_name],
+              input=input_name,
+              path=path,
+          ) for input_name, path in dummy_inputs.items()
+      ],
+      task_outputs=dummy_outputs
   )
 
 
