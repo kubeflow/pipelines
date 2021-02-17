@@ -19,11 +19,12 @@ from kfp import dsl
 from kfp.components import _structures as structures
 from kfp.dsl import artifact
 from kfp.pipeline_spec import pipeline_spec_pb2
+from kfp.v2.dsl import type_utils
 
 _AiPlatformCustomJobSpec = pipeline_spec_pb2.PipelineDeploymentConfig.AiPlatformCustomJobSpec
 _DUMMY_CONTAINER_OP_IMAGE = 'dummy/image'
 
-ValueOrPipelineParam = Union[dsl.PipelineParam, str, float, bool, int]
+ValueOrPipelineParam = Union[dsl.PipelineParam, str, float, int]
 
 
 # TODO(numerology):
@@ -40,6 +41,7 @@ class AiPlatformCustomJobOp(dsl.ContainerOp):
   def __init__(self,
       name: str,
       custom_job_spec: Dict[str, Any],
+      component_spec: pipeline_spec_pb2.ComponentSpec,
       task_inputs: Optional[List[dsl.InputArgumentPath]] = None,
       task_outputs: Optional[Dict[str, str]] = None):
     """Instantiates the AiPlatformCustomJobOp object.
@@ -66,7 +68,7 @@ class AiPlatformCustomJobOp(dsl.ContainerOp):
         artifact_argument_paths=task_inputs,
         file_outputs=task_outputs
     )
-    self.task_spec = None
+    self.component_spec = component_spec
     self.custom_job_spec = custom_job_spec
 
 
@@ -79,10 +81,13 @@ def _get_custom_job_op(
 ) -> AiPlatformCustomJobOp:
   """Gets an AiPlatformCustomJobOp from job spec and I/O definition."""
   pipeline_task_spec = pipeline_spec_pb2.PipelineTaskSpec()
+  pipeline_component_spec = pipeline_spec_pb2.ComponentSpec()
 
   # 1. Iterate through the inputs/outputs declaration to get args.
   arguments = {}
-  for input_name, param_value in input_parameters.items():
+  for input_name, param in input_parameters.items():
+    if isinstance(param, (str, float, int)):
+      pipeline_component_spec.input_definitions.parameters[input_name].type = None
     arguments[input_name] = str(param_value)
 
 
