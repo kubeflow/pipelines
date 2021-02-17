@@ -16,9 +16,9 @@ from typing import Any, Dict, List, Optional, Type, Union
 
 from absl import logging
 from kfp import dsl
-from kfp.components import _structures as structures
 from kfp.dsl import artifact
 from kfp.pipeline_spec import pipeline_spec_pb2
+from kfp.v2.dsl import dsl_utils
 from kfp.v2.dsl import type_utils
 
 _AiPlatformCustomJobSpec = pipeline_spec_pb2.PipelineDeploymentConfig.AiPlatformCustomJobSpec
@@ -27,9 +27,6 @@ _DUMMY_CONTAINER_OP_IMAGE = 'dummy/image'
 ValueOrPipelineParam = Union[dsl.PipelineParam, str, float, int]
 
 
-# TODO(numerology):
-# Need a task spec to carry IO info
-# and a compiler change to recognize this executor spec.
 class AiPlatformCustomJobOp(dsl.ContainerOp):
   """V2 AiPlatformCustomJobOp class.
 
@@ -42,6 +39,7 @@ class AiPlatformCustomJobOp(dsl.ContainerOp):
       name: str,
       custom_job_spec: Dict[str, Any],
       component_spec: pipeline_spec_pb2.ComponentSpec,
+      task_spec: pipeline_spec_pb2.PipelineTaskSpec,
       task_inputs: Optional[List[dsl.InputArgumentPath]] = None,
       task_outputs: Optional[Dict[str, str]] = None):
     """Instantiates the AiPlatformCustomJobOp object.
@@ -69,10 +67,12 @@ class AiPlatformCustomJobOp(dsl.ContainerOp):
         file_outputs=task_outputs
     )
     self.component_spec = component_spec
+    self.task_spec = task_spec
     self.custom_job_spec = custom_job_spec
 
 
 def _get_custom_job_op(
+    task_name: str,
     job_spec: Dict[str, Any],
     input_artifacts: Optional[Dict[str, dsl.PipelineParam]] = None,
     input_parameters: Optional[Dict[str, ValueOrPipelineParam]] = None,
@@ -83,12 +83,92 @@ def _get_custom_job_op(
   pipeline_task_spec = pipeline_spec_pb2.PipelineTaskSpec()
   pipeline_component_spec = pipeline_spec_pb2.ComponentSpec()
 
-  # 1. Iterate through the inputs/outputs declaration to get args.
-  arguments = {}
+  pipeline_task_spec.task_info.CopyFrom(
+      pipeline_spec_pb2.PipelineTaskInfo(name=task_name))
+
+  # Iterate through the inputs/outputs declaration to get pipeline component
+  # spec.
   for input_name, param in input_parameters.items():
-    if isinstance(param, (str, float, int)):
-      pipeline_component_spec.input_definitions.parameters[input_name].type = None
-    arguments[input_name] = str(param_value)
+    if isinstance(param, dsl.PipelineParam):
+      pipeline_component_spec.input_definitions.parameters[
+        input_name].type = type_utils.get_parameter_type(param.param_type)
+    else:
+      pipeline_component_spec.input_definitions.parameters[
+        input_name].type = type_utils.get_parameter_type(type(param))
+
+  for input_name, art in input_artifacts.items():
+    if not isinstance(art, dsl.PipelineParam):
+      raise RuntimeError(
+          'Get unresolved input artifact for input %s. Input '
+          'artifacts must be connected to a producer task.' % input_name)
+    pipeline_component_spec.input_definitions.artifacts[
+      input_name].artifact_type = type_utils.get_artifact_type_schema(
+        art.param_type)
+
+  for output_name, param_type in output_parameters.items():
+    pipeline_component_spec.output_definitions.parameters[
+      output_name].type = type_utils.get_parameter_type(param_type)
+
+  for output_name, artifact_type in output_artifacts.items():
+    pipeline_component_spec.output_definitions.artifacts[
+      output_name].artifact_type = artifact_type.get_ir_type()
+
+  pipeline_component_spec.executor_label = dsl_utils.sanitize_executor_label(
+      task_name)
+
+  # Iterate through the inputs/outputs specs to get pipeline task spec.
+  for input_name, param in input_parameters.items():
+    if isinstance(param, dsl.PipelineParam) and param.op_name:
+      # If the param has a valid op_name, this should be a pipeline parameter
+      # produced by an upstream task.
+      pipeline_task_spec.inputs.parameters[input_name].CopyFrom(
+          pipeline_spec_pb2.TaskInputsSpec.InputParameterSpec(
+              task_output_parameter=pipeline_spec_pb2.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec(
+                  producer_task=param.op_name,
+                  output_parameter_key=param.name
+              )))
+    elif isinstance(param, dsl.PipelineParam) and not param.op_name:
+      # If a valid op_name is missing, this should be a pipeline parameter.
+      pipeline_task_spec.inputs.parameters[input_name].CopyFrom(
+          pipeline_spec_pb2.TaskInputsSpec.InputParameterSpec(
+              component_input_parameter=param.name))
+    else:
+      # If this is not a pipeline param, then it should be a value.
+      pipeline_task_spec.inputs.parameters[input_name].CopyFrom(
+          pipeline_spec_pb2.TaskInputsSpec.InputParameterSpec(
+              runtime_value=pipeline_spec_pb2.ValueOrRuntimeParameter(
+                  constant_value=dsl_utils.get_value(param))))
+
+  for input_name, art in input_artifacts.items():
+    if art.op_name:
+      # If the param has a valid op_name, this should be an artifact produced
+      # by an upstream task.
+      pipeline_task_spec.inputs.artifacts[input_name].CopyFrom(
+          pipeline_spec_pb2.TaskInputsSpec.InputArtifactSpec(
+              task_output_artifact=pipeline_spec_pb2.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec(
+                  producer_task=art.op_name,
+                  output_artifact_key=art.name)))
+    else:
+      # Otherwise, this should be from the input of the subdag.
+      pipeline_task_spec.inputs.artifacts[input_name].CopyFrom(
+          pipeline_spec_pb2.TaskInputsSpec.InputArtifactSpec(
+              component_input_artifact=art.name
+          ))
+
+  # TODO: Add task dependencies/trigger policies/caching/iterator
+  pipeline_task_spec.component_ref.name = dsl_utils.sanitize_component_name(
+      task_name)
+
+  # Construct the AIP (Unified) custom job op.
+  return AiPlatformCustomJobOp(
+      name=task_name,
+      custom_job_spec=job_spec,
+      component_spec=pipeline_component_spec,
+      task_spec=pipeline_task_spec,
+  )
+
+
+
 
 
 def custom_job(
