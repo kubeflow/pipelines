@@ -646,6 +646,241 @@
         ]
       }
     },
+    "/apis/v1beta1/experiments": {
+      "get": {
+        "summary": "Finds all experiments. Supports pagination, and sorting on certain fields.",
+        "operationId": "ListExperiment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiListExperimentsResponse"
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page_token",
+            "description": "A page token to request the next page of results. The token is acquried\nfrom the nextPageToken field of the response from the previous\nListExperiment call or can be omitted when fetching the first page.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "page_size",
+            "description": "The number of experiments to be listed per page. If there are more\nexperiments than this number, the response message will contain a\nnextPageToken field you can use to fetch the next page.",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "sort_by",
+            "description": "Can be format of \"field_name\", \"field_name asc\" or \"field_name desc\"\nAscending by default.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filter",
+            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/\nblob/master/backend/api/filter.proto)).",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "resource_reference_key.type",
+            "description": "The type of the resource that referred to.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "UNKNOWN_RESOURCE_TYPE",
+              "EXPERIMENT",
+              "JOB",
+              "PIPELINE",
+              "PIPELINE_VERSION",
+              "NAMESPACE"
+            ],
+            "default": "UNKNOWN_RESOURCE_TYPE"
+          },
+          {
+            "name": "resource_reference_key.id",
+            "description": "The ID of the resource that referred to.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ExperimentService"
+        ]
+      },
+      "post": {
+        "summary": "Creates a new experiment.",
+        "operationId": "CreateExperiment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiExperiment"
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "The experiment to be created.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiExperiment"
+            }
+          }
+        ],
+        "tags": [
+          "ExperimentService"
+        ]
+      }
+    },
+    "/apis/v1beta1/experiments/{id}": {
+      "get": {
+        "summary": "Finds a specific experiment by ID.",
+        "operationId": "GetExperiment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiExperiment"
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "The ID of the experiment to be retrieved.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ExperimentService"
+        ]
+      },
+      "delete": {
+        "summary": "Deletes an experiment without deleting the experiment's runs and jobs. To\navoid unexpected behaviors, delete an experiment's runs and jobs before\ndeleting the experiment.",
+        "operationId": "DeleteExperiment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "The ID of the experiment to be deleted.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ExperimentService"
+        ]
+      }
+    },
+    "/apis/v1beta1/experiments/{id}:archive": {
+      "post": {
+        "summary": "Archives an experiment and the experiment's runs and jobs.",
+        "operationId": "ArchiveExperiment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "The ID of the experiment to be archived.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ExperimentService"
+        ]
+      }
+    },
+    "/apis/v1beta1/experiments/{id}:unarchive": {
+      "post": {
+        "summary": "Restores an archived experiment. The experiment's archived runs and jobs\nwill stay archived.",
+        "operationId": "UnarchiveExperiment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "The ID of the experiment to be restored.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ExperimentService"
+        ]
+      }
+    },
     "/apis/v1beta1/pipeline_versions": {
       "get": {
         "summary": "Lists all pipeline versions of a given pipeline.",
@@ -1067,241 +1302,6 @@
         ]
       }
     },
-    "/apis/v1beta1/experiments": {
-      "get": {
-        "summary": "Finds all experiments. Supports pagination, and sorting on certain fields.",
-        "operationId": "ListExperiment",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/apiListExperimentsResponse"
-            }
-          },
-          "default": {
-            "description": "",
-            "schema": {
-              "$ref": "#/definitions/apiStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "page_token",
-            "description": "A page token to request the next page of results. The token is acquried\nfrom the nextPageToken field of the response from the previous\nListExperiment call or can be omitted when fetching the first page.",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "page_size",
-            "description": "The number of experiments to be listed per page. If there are more\nexperiments than this number, the response message will contain a\nnextPageToken field you can use to fetch the next page.",
-            "in": "query",
-            "required": false,
-            "type": "integer",
-            "format": "int32"
-          },
-          {
-            "name": "sort_by",
-            "description": "Can be format of \"field_name\", \"field_name asc\" or \"field_name desc\"\nAscending by default.",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "filter",
-            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/\nblob/master/backend/api/filter.proto)).",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "resource_reference_key.type",
-            "description": "The type of the resource that referred to.",
-            "in": "query",
-            "required": false,
-            "type": "string",
-            "enum": [
-              "UNKNOWN_RESOURCE_TYPE",
-              "EXPERIMENT",
-              "JOB",
-              "PIPELINE",
-              "PIPELINE_VERSION",
-              "NAMESPACE"
-            ],
-            "default": "UNKNOWN_RESOURCE_TYPE"
-          },
-          {
-            "name": "resource_reference_key.id",
-            "description": "The ID of the resource that referred to.",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "ExperimentService"
-        ]
-      },
-      "post": {
-        "summary": "Creates a new experiment.",
-        "operationId": "CreateExperiment",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/apiExperiment"
-            }
-          },
-          "default": {
-            "description": "",
-            "schema": {
-              "$ref": "#/definitions/apiStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "description": "The experiment to be created.",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/apiExperiment"
-            }
-          }
-        ],
-        "tags": [
-          "ExperimentService"
-        ]
-      }
-    },
-    "/apis/v1beta1/experiments/{id}": {
-      "get": {
-        "summary": "Finds a specific experiment by ID.",
-        "operationId": "GetExperiment",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/apiExperiment"
-            }
-          },
-          "default": {
-            "description": "",
-            "schema": {
-              "$ref": "#/definitions/apiStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "id",
-            "description": "The ID of the experiment to be retrieved.",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "ExperimentService"
-        ]
-      },
-      "delete": {
-        "summary": "Deletes an experiment without deleting the experiment's runs and jobs. To\navoid unexpected behaviors, delete an experiment's runs and jobs before\ndeleting the experiment.",
-        "operationId": "DeleteExperiment",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "properties": {}
-            }
-          },
-          "default": {
-            "description": "",
-            "schema": {
-              "$ref": "#/definitions/apiStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "id",
-            "description": "The ID of the experiment to be deleted.",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "ExperimentService"
-        ]
-      }
-    },
-    "/apis/v1beta1/experiments/{id}:archive": {
-      "post": {
-        "summary": "Archives an experiment and the experiment's runs and jobs.",
-        "operationId": "ArchiveExperiment",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "properties": {}
-            }
-          },
-          "default": {
-            "description": "",
-            "schema": {
-              "$ref": "#/definitions/apiStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "id",
-            "description": "The ID of the experiment to be archived.",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "ExperimentService"
-        ]
-      }
-    },
-    "/apis/v1beta1/experiments/{id}:unarchive": {
-      "post": {
-        "summary": "Restores an archived experiment. The experiment's archived runs and jobs\nwill stay archived.",
-        "operationId": "UnarchiveExperiment",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "properties": {}
-            }
-          },
-          "default": {
-            "description": "",
-            "schema": {
-              "$ref": "#/definitions/apiStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "id",
-            "description": "The ID of the experiment to be restored.",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "ExperimentService"
-        ]
-      }
-    },
     "/apis/v1beta1/pipelines/upload": {
       "post": {
         "operationId": "UploadPipeline",
@@ -1467,14 +1467,6 @@
       ],
       "default": "UNSPECIFIED",
       "description": " - UNSPECIFIED: Default value if not present.\n - RAW: Display value as its raw format.\n - PERCENTAGE: Display value in percentage format."
-    },
-    "RunStorageState": {
-      "type": "string",
-      "enum": [
-        "STORAGESTATE_AVAILABLE",
-        "STORAGESTATE_ARCHIVED"
-      ],
-      "default": "STORAGESTATE_AVAILABLE"
     },
     "apiListRunsResponse": {
       "type": "object",
@@ -1647,7 +1639,7 @@
           "description": "Required input field. Name provided by user,\nor auto generated if run is created by scheduled job. Not unique."
         },
         "storage_state": {
-          "$ref": "#/definitions/RunStorageState",
+          "$ref": "#/definitions/apiRunStorageState",
           "description": "Output. Specify whether this run is in archived or available mode."
         },
         "description": {
@@ -1734,6 +1726,14 @@
         }
       }
     },
+    "apiRunStorageState": {
+      "type": "string",
+      "enum": [
+        "STORAGESTATE_AVAILABLE",
+        "STORAGESTATE_ARCHIVED"
+      ],
+      "default": "STORAGESTATE_AVAILABLE"
+    },
     "apiStatus": {
       "type": "object",
       "properties": {
@@ -1757,7 +1757,7 @@
       "properties": {
         "type_url": {
           "type": "string",
-          "description": "A URL/resource name that uniquely identifies the type of the serialized\nprotocol buffer message. The last segment of the URL's path must represent\nthe fully qualified name of the type (as in\n`path/google.protobuf.Duration`). The name should be in a canonical form\n(e.g., leading \".\" is not accepted).\n\nIn practice, teams usually precompile into the binary all types that they\nexpect it to use in the context of Any. However, for URLs which use the\nscheme `http`, `https`, or no scheme, one can optionally set up a type\nserver that maps type URLs to message definitions as follows:\n\n* If no scheme is provided, `https` is assumed.\n* An HTTP GET on the URL must yield a [google.protobuf.Type][]\n  value in binary format, or produce an error.\n* Applications are allowed to cache lookup results based on the\n  URL, or have them precompiled into a binary to avoid any\n  lookup. Therefore, binary compatibility needs to be preserved\n  on changes to types. (Use versioned type names to manage\n  breaking changes.)\n\nNote: this functionality is not currently available in the official\nprotobuf release, and it is not used for type URLs beginning with\ntype.googleapis.com.\n\nSchemes other than `http`, `https` (or the empty scheme) might be\nused with implementation specific semantics."
+          "description": "A URL/resource name that uniquely identifies the type of the serialized\nprotocol buffer message. This string must contain at least\none \"/\" character. The last segment of the URL's path must represent\nthe fully qualified name of the type (as in\n`path/google.protobuf.Duration`). The name should be in a canonical form\n(e.g., leading \".\" is not accepted).\n\nIn practice, teams usually precompile into the binary all types that they\nexpect it to use in the context of Any. However, for URLs which use the\nscheme `http`, `https`, or no scheme, one can optionally set up a type\nserver that maps type URLs to message definitions as follows:\n\n* If no scheme is provided, `https` is assumed.\n* An HTTP GET on the URL must yield a [google.protobuf.Type][]\n  value in binary format, or produce an error.\n* Applications are allowed to cache lookup results based on the\n  URL, or have them precompiled into a binary to avoid any\n  lookup. Therefore, binary compatibility needs to be preserved\n  on changes to types. (Use versioned type names to manage\n  breaking changes.)\n\nNote: this functionality is not currently available in the official\nprotobuf release, and it is not used for type URLs beginning with\ntype.googleapis.com.\n\nSchemes other than `http`, `https` (or the empty scheme) might be\nused with implementation specific semantics."
         },
         "value": {
           "type": "string",
@@ -1923,6 +1923,69 @@
       },
       "description": "Trigger defines what starts a pipeline run."
     },
+    "apiExperiment": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Output. Unique experiment ID. Generated by API server."
+        },
+        "name": {
+          "type": "string",
+          "description": "Required input field. Unique experiment name provided by user."
+        },
+        "description": {
+          "type": "string",
+          "title": "Optional input field. Describing the purpose of the experiment"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Output. The time that the experiment created."
+        },
+        "resource_references": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiResourceReference"
+          },
+          "description": "Optional input field. Specify which resource this run belongs to.\nFor Experiment, the only valid resource reference is a single Namespace."
+        },
+        "storage_state": {
+          "$ref": "#/definitions/apiExperimentStorageState",
+          "description": "Output. Specifies whether this experiment is in archived or available state."
+        }
+      }
+    },
+    "apiExperimentStorageState": {
+      "type": "string",
+      "enum": [
+        "STORAGESTATE_UNSPECIFIED",
+        "STORAGESTATE_AVAILABLE",
+        "STORAGESTATE_ARCHIVED"
+      ],
+      "default": "STORAGESTATE_UNSPECIFIED"
+    },
+    "apiListExperimentsResponse": {
+      "type": "object",
+      "properties": {
+        "experiments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiExperiment"
+          },
+          "description": "A list of experiments returned."
+        },
+        "total_size": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The total number of experiments for the given query."
+        },
+        "next_page_token": {
+          "type": "string",
+          "description": "The token to list the next page of experiments."
+        }
+      }
+    },
     "apiGetTemplateResponse": {
       "type": "object",
       "properties": {
@@ -2060,69 +2123,6 @@
         "pipeline_url": {
           "type": "string",
           "description": "URL of the pipeline definition or the pipeline version definition."
-        }
-      }
-    },
-    "ExperimentStorageState": {
-      "type": "string",
-      "enum": [
-        "STORAGESTATE_UNSPECIFIED",
-        "STORAGESTATE_AVAILABLE",
-        "STORAGESTATE_ARCHIVED"
-      ],
-      "default": "STORAGESTATE_UNSPECIFIED"
-    },
-    "apiExperiment": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Output. Unique experiment ID. Generated by API server."
-        },
-        "name": {
-          "type": "string",
-          "description": "Required input field. Unique experiment name provided by user."
-        },
-        "description": {
-          "type": "string",
-          "title": "Optional input field. Describing the purpose of the experiment"
-        },
-        "created_at": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Output. The time that the experiment created."
-        },
-        "resource_references": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/apiResourceReference"
-          },
-          "description": "Optional input field. Specify which resource this run belongs to.\nFor Experiment, the only valid resource reference is a single Namespace."
-        },
-        "storage_state": {
-          "$ref": "#/definitions/ExperimentStorageState",
-          "description": "Output. Specifies whether this experiment is in archived or available state."
-        }
-      }
-    },
-    "apiListExperimentsResponse": {
-      "type": "object",
-      "properties": {
-        "experiments": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/apiExperiment"
-          },
-          "description": "A list of experiments returned."
-        },
-        "total_size": {
-          "type": "integer",
-          "format": "int32",
-          "description": "The total number of experiments for the given query."
-        },
-        "next_page_token": {
-          "type": "string",
-          "description": "The token to list the next page of experiments."
         }
       }
     },
