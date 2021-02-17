@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import os
 import shutil
 import tempfile
@@ -73,56 +74,6 @@ class CompilerTest(unittest.TestCase):
       self.assertTrue(os.path.exists(target_json_file))
     finally:
       shutil.rmtree(tmpdir)
-
-  def test_compile_pipeline_with_dsl_condition_should_raise_error(self):
-
-    flip_coin_op = components.load_component_from_text("""
-      name: flip coin
-      inputs:
-      - {name: name, type: String}
-      outputs:
-      - {name: result, type: String}
-      implementation:
-        container:
-          image: gcr.io/my-project/my-image:tag
-          args:
-          - {inputValue: name}
-          - {outputPath: result}
-      """)
-
-    print_op = components.load_component_from_text("""
-      name: print
-      inputs:
-      - {name: name, type: String}
-      - {name: msg, type: String}
-      implementation:
-        container:
-          image: gcr.io/my-project/my-image:tag
-          args:
-          - {inputValue: name}
-          - {inputValue: msg}
-      """)
-
-    @dsl.pipeline()
-    def flipcoin():
-      flip = flip_coin_op('flip')
-
-      with dsl.Condition(flip.outputs['result'] == 'heads'):
-        flip2 = flip_coin_op('flip-again')
-
-        with dsl.Condition(flip2.outputs['result'] == 'tails'):
-          print_op('print1', flip2.outputs['result'])
-
-      with dsl.Condition(flip.outputs['result'] == 'tails'):
-        print_op('print2', flip2.outputs['results'])
-
-    with self.assertRaisesRegex(
-        NotImplementedError,
-        'dsl.Condition is not yet supported in KFP v2 compiler.'):
-      compiler.Compiler().compile(
-          pipeline_func=flipcoin,
-          pipeline_root='dummy_root',
-          output_path='output.json')
 
   def test_compile_pipeline_with_dsl_exithandler_should_raise_error(self):
 
@@ -378,6 +329,71 @@ class CompilerTest(unittest.TestCase):
           pipeline_func=my_pipeline,
           pipeline_root='dummy',
           output_path='output.json')
+
+  def test_set_pipeline_root_through_pipeline_decorator(self):
+
+    tmpdir = tempfile.mkdtemp()
+    try:
+
+      @dsl.pipeline(name='my-pipeline', pipeline_root='gs://path')
+      def my_pipeline():
+        pass
+
+      target_json_file = os.path.join(tmpdir, 'result.json')
+      compiler.Compiler().compile(
+          pipeline_func=my_pipeline, output_path=target_json_file)
+
+      self.assertTrue(os.path.exists(target_json_file))
+      with open(target_json_file) as f:
+        job_spec = json.load(f)
+      self.assertEqual('gs://path',
+                       job_spec['runtimeConfig']['gcsOutputDirectory'])
+    finally:
+      shutil.rmtree(tmpdir)
+
+  def test_set_pipeline_root_through_compile_method(self):
+
+    tmpdir = tempfile.mkdtemp()
+    try:
+
+      @dsl.pipeline(name='my-pipeline', pipeline_root='gs://path')
+      def my_pipeline():
+        pass
+
+      target_json_file = os.path.join(tmpdir, 'result.json')
+      compiler.Compiler().compile(
+          pipeline_func=my_pipeline,
+          pipeline_root='gs://path-override',
+          output_path=target_json_file)
+
+      self.assertTrue(os.path.exists(target_json_file))
+      with open(target_json_file) as f:
+        job_spec = json.load(f)
+      self.assertEqual('gs://path-override',
+                       job_spec['runtimeConfig']['gcsOutputDirectory'])
+    finally:
+      shutil.rmtree(tmpdir)
+
+  def test_missing_pipeline_root_is_allowed_but_warned(self):
+
+    tmpdir = tempfile.mkdtemp()
+    try:
+
+      @dsl.pipeline(name='my-pipeline')
+      def my_pipeline():
+        pass
+
+      target_json_file = os.path.join(tmpdir, 'result.json')
+      with self.assertWarnsRegex(UserWarning, 'pipeline_root is None or empty'):
+        compiler.Compiler().compile(
+            pipeline_func=my_pipeline, output_path=target_json_file)
+
+      self.assertTrue(os.path.exists(target_json_file))
+      with open(target_json_file) as f:
+        job_spec = json.load(f)
+      self.assertTrue('gcsOutputDirectory' not in job_spec['runtimeConfig'])
+    finally:
+      shutil.rmtree(tmpdir)
 
 
 if __name__ == '__main__':

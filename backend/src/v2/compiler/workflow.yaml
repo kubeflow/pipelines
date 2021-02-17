@@ -1,0 +1,446 @@
+# Copyright 2021 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+{
+  "kind": "Workflow",
+  "apiVersion": "argoproj.io/v1alpha1",
+  "metadata": {
+    "generateName": "simple-two-step-pipeline-gongyuan-1609817103-",
+    "creationTimestamp": null
+  },
+  "spec": {
+    "templates": [
+      {
+        "name": "kfp-root",
+        "arguments": {},
+        "inputs": {},
+        "outputs": {},
+        "metadata": {},
+        "dag": {
+          "tasks": [
+            {
+              "name": "driver-kfp-root",
+              "template": "kfp-dag-driver",
+              "arguments": {
+                "parameters": [
+                  {
+                    "name": "kfp-execution-name",
+                    "value": "kfp-root-{{workflow.name}}"
+                  },
+                  {
+                    "name": "kfp-task-spec",
+                    "value": "{{workflow.parameters.task-spec}}"
+                  },
+                  {
+                    "name": "kfp-driver-type",
+                    "value": "DAG"
+                  },
+                  {
+                    "name": "kfp-parent-context-name",
+                    "value": ""
+                  }
+                ]
+              }
+            },
+            {
+              "name": "sub-dag",
+              "template": "dag-1",
+              "arguments": {
+                "parameters": [
+                  {
+                    "name": "kfp-context-name",
+                    "value": "{{tasks.driver-kfp-root.outputs.parameters.kfp-context-name}}"
+                  }
+                ]
+              },
+              "dependencies": [
+                "driver-kfp-root"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "name": "dag-1",
+        "arguments": {},
+        "inputs": {
+          "parameters": [
+            {
+              "name": "kfp-context-name"
+            }
+          ]
+        },
+        "outputs": {},
+        "metadata": {},
+        "dag": {
+          "tasks": [
+            {
+              "name": "producer",
+              "template": "kfp-executor",
+              "arguments": {
+                "parameters": [
+                  {
+                    "name": "kfp-task-spec",
+                    "value": "{\"taskInfo\":{\"name\":\"Producer\"},\"inputs\":{\"parameters\":{\"text\":{\"componentInputParameter\":\"text\"}}},\"outputs\":{\"parameters\":{\"output_value\":{\"type\":\"STRING\"}}},\"executorLabel\":\"Producer\"}"
+                  },
+                  {
+                    "name": "kfp-context-name",
+                    "value": "{{inputs.parameters.kfp-context-name}}"
+                  },
+                  {
+                    "name": "kfp-executor-spec",
+                    "value": "{\"container\":{\"image\":\"google/cloud-sdk:latest\",\"command\":[\"sh\",\"-c\",\"set -e -x\\necho \\\"$0, this is an output parameter\\\" | gsutil cp - \\\"$1\\\"\\n\",\"{{$.inputs.parameters['text']}}\",\"{{$.outputs.parameters['output_value'].output_file}}\"]}}"
+                  },
+                  {
+                    "name": "kfp-outputs-spec",
+                    "value": "{\"parameters\":{\"output_value\":{\"type\":\"STRING\"}}}"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "consumer",
+              "template": "kfp-executor",
+              "arguments": {
+                "parameters": [
+                  {
+                    "name": "kfp-task-spec",
+                    "value": "{\"taskInfo\":{\"name\":\"Consumer\"},\"inputs\":{\"parameters\":{\"input_value\":{\"taskOutputParameter\":{\"producerTask\":\"Producer\",\"outputParameterKey\":\"output_value\"}}}},\"executorLabel\":\"Consumer\"}"
+                  },
+                  {
+                    "name": "kfp-context-name",
+                    "value": "{{inputs.parameters.kfp-context-name}}"
+                  },
+                  {
+                    "name": "kfp-executor-spec",
+                    "value": "{\"container\":{\"image\":\"google/cloud-sdk:latest\",\"command\":[\"sh\",\"-c\",\"set -e -x\\necho \\\"Read from an input parameter: \\\" \\u0026\\u0026 echo \\\"$0\\\"\\n\",\"{{$.inputs.parameters['input_value']}}\"]}}"
+                  },
+                  {
+                    "name": "kfp-outputs-spec",
+                    "value": "{}"
+                  }
+                ]
+              },
+              "dependencies": [
+                "producer"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "name": "kfp-executor-driver",
+        "arguments": {},
+        "inputs": {
+          "parameters": [
+            {
+              "name": "kfp-parent-context-name"
+            },
+            {
+              "name": "kfp-execution-name",
+              "value": "kfp-executor-{{pod.name}}"
+            },
+            {
+              "name": "kfp-driver-type"
+            },
+            {
+              "name": "kfp-task-spec"
+            },
+            {
+              "name": "kfp-executor-spec"
+            }
+          ]
+        },
+        "outputs": {
+          "parameters": [
+            {
+              "name": "kfp-execution-id",
+              "valueFrom": {
+                "path": "/kfp/outputs/internal/execution-id"
+              }
+            },
+            {
+              "name": "kfp-pod-spec-patch",
+              "valueFrom": {
+                "path": "/kfp/outputs/pod-spec-patch.json"
+              }
+            }
+          ]
+        },
+        "metadata": {},
+        "container": {
+          "name": "",
+          "image": "gcr.io/gongyuan-pipeline-test/kfp-driver@sha256:d3fa780ffc59a22253eb4b4460e89f722811dfdd2ded277d3606f1fce323af87",
+          "command": [
+            "/bin/kfp-driver"
+          ],
+          "args": [
+            "--logtostderr",
+            "--mlmd_url=metadata-grpc-service.kubeflow.svc.cluster.local:8080",
+            "--parent_context_name={{inputs.parameters.kfp-parent-context-name}}",
+            "--execution_name={{inputs.parameters.kfp-execution-name}}",
+            "--driver_type={{inputs.parameters.kfp-driver-type}}",
+            "--task_spec={{inputs.parameters.kfp-task-spec}}",
+            "--output_path_execution_id={{outputs.parameters.kfp-execution-id.path}}",
+            "--executor_spec={{inputs.parameters.kfp-executor-spec}}",
+            "--output_path_pod_spec_patch=/kfp/outputs/pod-spec-patch.json"
+          ],
+          "resources": {}
+        }
+      },
+      {
+        "name": "kfp-dag-driver",
+        "arguments": {},
+        "inputs": {
+          "parameters": [
+            {
+              "name": "kfp-parent-context-name"
+            },
+            {
+              "name": "kfp-execution-name",
+              "value": "kfp-executor-{{pod.name}}"
+            },
+            {
+              "name": "kfp-driver-type"
+            },
+            {
+              "name": "kfp-task-spec"
+            }
+          ]
+        },
+        "outputs": {
+          "parameters": [
+            {
+              "name": "kfp-execution-id",
+              "valueFrom": {
+                "path": "/kfp/outputs/internal/execution-id"
+              }
+            },
+            {
+              "name": "kfp-context-name",
+              "valueFrom": {
+                "path": "/kfp/outputs/internal/context-name"
+              }
+            }
+          ]
+        },
+        "metadata": {},
+        "container": {
+          "name": "",
+          "image": "gcr.io/gongyuan-pipeline-test/kfp-driver@sha256:d3fa780ffc59a22253eb4b4460e89f722811dfdd2ded277d3606f1fce323af87",
+          "command": [
+            "/bin/kfp-driver"
+          ],
+          "args": [
+            "--logtostderr",
+            "--mlmd_url=metadata-grpc-service.kubeflow.svc.cluster.local:8080",
+            "--parent_context_name={{inputs.parameters.kfp-parent-context-name}}",
+            "--execution_name={{inputs.parameters.kfp-execution-name}}",
+            "--driver_type={{inputs.parameters.kfp-driver-type}}",
+            "--task_spec={{inputs.parameters.kfp-task-spec}}",
+            "--output_path_execution_id={{outputs.parameters.kfp-execution-id.path}}",
+            "--output_path_context_name={{outputs.parameters.kfp-context-name.path}}"
+          ],
+          "resources": {}
+        }
+      },
+      {
+        "name": "kfp-executor-publisher",
+        "arguments": {},
+        "inputs": {
+          "parameters": [
+            {
+              "name": "kfp-execution-id"
+            },
+            {
+              "name": "kfp-outputs-spec"
+            },
+            {
+              "name": "kfp-publisher-type"
+            }
+          ],
+          "artifacts": [
+            {
+              "name": "kfp-parameters",
+              "path": "/kfp/inputs/parameters",
+              "optional": true
+            }
+          ]
+        },
+        "outputs": {},
+        "metadata": {},
+        "container": {
+          "name": "",
+          "image": "gcr.io/gongyuan-pipeline-test/kfp-publisher@sha256:3623052f6bd4f02da6199d1971ec948b96fb00c6d8c61725d3cfda998b304efe",
+          "command": [
+            "/bin/kfp-publisher"
+          ],
+          "args": [
+            "--logtostderr",
+            "--mlmd_url=metadata-grpc-service.kubeflow.svc.cluster.local:8080",
+            "--execution_id={{inputs.parameters.kfp-execution-id}}",
+            "--publisher_type={{inputs.parameters.kfp-publisher-type}}",
+            "--component_outputs_spec={{inputs.parameters.kfp-outputs-spec}}",
+            "--input_path_parameters={{inputs.artifacts.kfp-parameters.path}}"
+          ],
+          "resources": {}
+        }
+      },
+      {
+        "name": "kfp-executor",
+        "arguments": {},
+        "inputs": {
+          "parameters": [
+            {
+              "name": "kfp-context-name"
+            },
+            {
+              "name": "kfp-task-spec"
+            },
+            {
+              "name": "kfp-executor-spec"
+            },
+            {
+              "name": "kfp-outputs-spec"
+            }
+          ]
+        },
+        "outputs": {},
+        "metadata": {},
+        "dag": {
+          "tasks": [
+            {
+              "name": "driver",
+              "template": "kfp-executor-driver",
+              "arguments": {
+                "parameters": [
+                  {
+                    "name": "kfp-task-spec",
+                    "value": "{{inputs.parameters.kfp-task-spec}}"
+                  },
+                  {
+                    "name": "kfp-driver-type",
+                    "value": "EXECUTOR"
+                  },
+                  {
+                    "name": "kfp-parent-context-name",
+                    "value": "{{inputs.parameters.kfp-context-name}}"
+                  },
+                  {
+                    "name": "kfp-executor-spec",
+                    "value": "{{inputs.parameters.kfp-executor-spec}}"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "executor",
+              "template": "kfp-dummy",
+              "arguments": {
+                "parameters": [
+                  {
+                    "name": "kfp-pod-spec-patch",
+                    "value": "{{tasks.driver.outputs.parameters.kfp-pod-spec-patch}}"
+                  }
+                ]
+              },
+              "dependencies": [
+                "driver"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "name": "kfp-dummy",
+        "arguments": {},
+        "inputs": {
+          "parameters": [
+            {
+              "name": "kfp-pod-spec-patch"
+            }
+          ]
+        },
+        "outputs": {
+          "parameters": [
+            {
+              "name": "kfp-pod-name",
+              "value": "{{pod.name}}"
+            }
+          ],
+          "artifacts": [
+            {
+              "name": "kfp-parameters",
+              "path": "/kfp/outputs/parameters",
+              "optional": true
+            }
+          ]
+        },
+        "metadata": {},
+        "container": {
+          "name": "",
+          "image": "dummy",
+          "resources": {},
+          "volumeMounts": [
+            {
+              "name": "kfp-entrypoint",
+              "readOnly": true,
+              "mountPath": "/kfp/entrypoint"
+            }
+          ]
+        },
+        "volumes": [
+          {
+            "name": "kfp-entrypoint",
+            "emptyDir": {}
+          }
+        ],
+        "initContainers": [
+          {
+            "name": "entrypoint-init",
+            "image": "gcr.io/gongyuan-pipeline-test/kfp-entrypoint@sha256:793316de698fe53ab318d43b00213d947f5ac2abbefc780cece46bf8a44381c4",
+            "command": [
+              "cp"
+            ],
+            "args": [
+              "/bin/kfp-entrypoint",
+              "/kfp/entrypoint/entrypoint"
+            ],
+            "resources": {},
+            "volumeMounts": [
+              {
+                "name": "kfp-entrypoint",
+                "mountPath": "/kfp/entrypoint"
+              }
+            ]
+          }
+        ],
+        "podSpecPatch": "{{inputs.parameters.kfp-pod-spec-patch}}"
+      }
+    ],
+    "entrypoint": "kfp-root",
+    "arguments": {
+      "parameters": [
+        {
+          "name": "task-spec",
+          "value": "{\"taskInfo\":{\"name\":\"hello-world-dag\"},\"inputs\":{\"parameters\":{\"text\":{\"runtimeValue\":{\"constantValue\":{\"stringValue\":\"Hello, World!\"}}}}}}"
+        }
+      ]
+    }
+  },
+  "status": {
+    "startedAt": null,
+    "finishedAt": null
+  }
+}

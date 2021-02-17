@@ -17,9 +17,9 @@ import collections
 from typing import Any, Callable
 
 from kfp.components import _naming
-from kfp.dsl import _container_op
-from kfp.dsl import _ops_group
 from kfp.components import _components as components
+from kfp.dsl import _container_op
+from kfp.v2.dsl import _ops_group
 from kfp.v2.dsl import component_bridge
 
 
@@ -83,7 +83,7 @@ class Pipeline():
         component_bridge.create_container_op_from_component_and_arguments)
 
     def register_op_and_generate_id(op):
-      return self.add_op(op)
+      return self.add_op(op, op.is_exit_handler)
 
     self._old__register_op_handler = _container_op._register_op_handler
     _container_op._register_op_handler = register_op_and_generate_id
@@ -95,7 +95,7 @@ class Pipeline():
     components._container_task_constructor = (
         self._old_container_task_constructor)
 
-  def add_op(self, op: _container_op.BaseOp) -> str:
+  def add_op(self, op: _container_op.BaseOp, define_only: bool) -> str:
     """Add a new operator.
 
     Args:
@@ -104,9 +104,51 @@ class Pipeline():
     Returns:
       The name of the op.
     """
-    # If there is an existing op with this name then generate a new name.
-    op_name = _naming._make_name_unique_by_adding_index(op.human_name,
+    # Sanitizing the op name.
+    # Technically this could be delayed to the compilation stage, but string serialization of PipelineParams make unsanitized names problematic.
+    op_name = component_bridge._sanitize_python_function_name(
+        op.human_name).replace('_', '-')
+    #If there is an existing op with this name then generate a new name.
+    op_name = _naming._make_name_unique_by_adding_index(op_name,
                                                         list(self.ops.keys()),
                                                         ' ')
+    if op_name == '':
+      op_name = _nameing._make_name_unique_by_adding_index(
+          'task', list(self.ops.keys()), ' ')
+
     self.ops[op_name] = op
+    if not define_only:
+      self.groups[-1].ops.append(op)
+
     return op_name
+
+  def push_ops_group(self, group: _ops_group.OpsGroup):
+    """Push an OpsGroup into the stack.
+
+    Args:
+      group: An OpsGroup. Typically it is one of ExitHandler, Branch, and Loop.
+    """
+    self.groups[-1].groups.append(group)
+    self.groups.append(group)
+
+  def pop_ops_group(self):
+    """Remove the current OpsGroup from the stack."""
+    del self.groups[-1]
+
+  def remove_op_from_groups(self, op):
+    for group in self.groups:
+      group.remove_op_recursive(op)
+
+  def get_next_group_id(self):
+    """Get next id for a new group. """
+
+    self.group_id += 1
+    return self.group_id
+
+  def _set_metadata(self, metadata):
+    """_set_metadata passes the containerop the metadata information
+
+    Args:
+      metadata (ComponentMeta): component metadata
+    """
+    self._metadata = metadata
