@@ -5,8 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
-
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/go-cmp/cmp"
