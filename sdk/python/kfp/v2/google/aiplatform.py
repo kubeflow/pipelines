@@ -422,7 +422,7 @@ def custom_job(
     elif isinstance(cmd, _structures.OutputUriPlaceholder):
       return _output_artifact_uri_placeholder(cmd.output_name)
     else:
-      raise TypeError('Got unexpected placeholder type for %s' % cmd).
+      raise TypeError('Got unexpected placeholder type for %s' % cmd)
 
 
   def _resolve_cmd_lines(cmds: List[CommandlineArgumentType]) -> None:
