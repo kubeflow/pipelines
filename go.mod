@@ -54,6 +54,7 @@ require (
 )
 
 replace (
+	github.com/go-openapi/validate => github.com/go-openapi/validate v0.17.2
 	k8s.io/api => k8s.io/api v0.17.9
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.17.9
 	k8s.io/apimachinery => k8s.io/apimachinery v0.17.9
@@ -71,7 +72,6 @@ replace (
 	k8s.io/kube-proxy => k8s.io/kube-proxy v0.17.9
 	k8s.io/kubernetes => k8s.io/kubernetes v1.11.1
 	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.2.9
-  github.com/go-openapi/validate => github.com/go-openapi/validate v0.17.2
 )
 
 go 1.13
