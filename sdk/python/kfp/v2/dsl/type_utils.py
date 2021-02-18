@@ -22,10 +22,15 @@ from kfp.dsl import ontology_artifacts
 # ComponentSpec I/O types to (IR) PipelineTaskSpec I/O types mapping.
 # The keys are normalized (lowercased). These are types viewed as Artifacts.
 # The values are the corresponding IR artifact ontology types.
-
 _ARTIFACT_TYPES_MAPPING = {
     'model': ontology_artifacts.Model.get_artifact_type(),
     'dataset': ontology_artifacts.Dataset.get_artifact_type(),
+}
+
+# ComponentSpec I/O types to DSL ontology artifact classes mapping.
+_ARTIFACT_CLASSES_MAPPING = {
+    'model': ontology_artifacts.Model,
+    'dataset': ontology_artifacts.Dataset
 }
 
 # ComponentSpec I/O types to (IR) PipelineTaskSpec I/O types mapping.
@@ -66,7 +71,7 @@ def is_parameter_type(type_name: Optional[str]) -> bool:
 
 
 def get_artifact_type_schema(type_name: str) -> str:
-  """Get the IR I/O artifact type for the given ComponentSpec I/O type.
+  """Gets the IR I/O artifact type for the given ComponentSpec I/O type.
 
   Args:
     type_name: type name of the ComponentSpec I/O type.
@@ -79,6 +84,16 @@ def get_artifact_type_schema(type_name: str) -> str:
                                        artifact.Artifact.get_artifact_type())
   else:
     return artifact.Artifact.get_artifact_type()
+
+
+def get_artifact_type_schema_message(
+    type_name: str) -> pipeline_spec_pb2.ArtifactTypeSchema:
+  """Gets the IR I/O artifact type msg for the given ComponentSpec I/O type."""
+  if isinstance(type_name, str):
+    return _ARTIFACT_CLASSES_MAPPING.get(type_name.lower(),
+                                         artifact.Artifact).get_ir_type()
+  else:
+    return artifact.Artifact.get_ir_type()
 
 
 def get_parameter_type(

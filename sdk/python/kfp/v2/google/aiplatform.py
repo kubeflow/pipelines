@@ -22,7 +22,7 @@ from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.v2.dsl import dsl_utils
 from kfp.v2.dsl import type_utils
 
-_AiPlatformCustomJobSpec = pipeline_spec_pb2.PipelineDeploymentConfig.AiPlatformCustomJobSpec
+_AIPlatformCustomJobSpec = pipeline_spec_pb2.PipelineDeploymentConfig.AIPlatformCustomJobSpec
 _DUMMY_CONTAINER_OP_IMAGE = 'dummy/image'
 _DUMMY_PATH = 'dummy/path'
 
@@ -104,8 +104,8 @@ def _get_custom_job_op(
           'Get unresolved input artifact for input %s. Input '
           'artifacts must be connected to a producer task.' % input_name)
     pipeline_component_spec.input_definitions.artifacts[
-      input_name].artifact_type = type_utils.get_artifact_type_schema(
-        art.param_type)
+      input_name].artifact_type.CopyFrom(
+        type_utils.get_artifact_type_schema_message(art.param_type))
 
   for output_name, param_type in output_parameters.items():
     pipeline_component_spec.output_definitions.parameters[
@@ -113,7 +113,7 @@ def _get_custom_job_op(
 
   for output_name, artifact_type in output_artifacts.items():
     pipeline_component_spec.output_definitions.artifacts[
-      output_name].artifact_type = artifact_type.get_ir_type()
+      output_name].artifact_type.CopyFrom(artifact_type.get_ir_type())
 
   pipeline_component_spec.executor_label = dsl_utils.sanitize_executor_label(
       task_name)
