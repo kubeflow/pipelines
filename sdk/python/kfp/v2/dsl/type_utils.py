@@ -86,6 +86,7 @@ def get_artifact_type_schema(type_name: str) -> str:
     return artifact.Artifact.get_artifact_type()
 
 
+# TODO(numerology): add tests to this.
 def get_artifact_type_schema_message(
     type_name: str) -> pipeline_spec_pb2.ArtifactTypeSchema:
   """Gets the IR I/O artifact type msg for the given ComponentSpec I/O type."""

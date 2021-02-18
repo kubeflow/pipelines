@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional, Type, Union
 from absl import logging
 import collections
 from kfp import dsl
+from kfp.components import _structures
 from kfp.dsl import artifact
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.v2.dsl import dsl_utils
@@ -27,6 +28,42 @@ _DUMMY_CONTAINER_OP_IMAGE = 'dummy/image'
 _DUMMY_PATH = 'dummy/path'
 
 ValueOrPipelineParam = Union[dsl.PipelineParam, str, float, int]
+
+# TODO: Support all declared types in
+# components._structures.CommandlineArgumenType
+CommandlineArgumentType = Union[
+  str, int, float,
+  _structures.InputValuePlaceholder,
+  _structures.InputPathPlaceholder,
+  _structures.OutputPathPlaceholder,
+  _structures.InputUriPlaceholder,
+  _structures.OutputUriPlaceholder,
+]
+
+
+# TODO: extract this to a utils module, and share with dsl.component_bridge
+def _input_artifact_uri_placeholder(input_key: str) -> str:
+  return "{{{{$.inputs.artifacts['{}'].uri}}}}".format(input_key)
+
+
+def _input_artifact_path_placeholder(input_key: str) -> str:
+  return "{{{{$.inputs.artifacts['{}'].path}}}}".format(input_key)
+
+
+def _input_parameter_placeholder(input_key: str) -> str:
+  return "{{{{$.inputs.parameters['{}']}}}}".format(input_key)
+
+
+def _output_artifact_uri_placeholder(output_key: str) -> str:
+  return "{{{{$.outputs.artifacts['{}'].uri}}}}".format(output_key)
+
+
+def _output_artifact_path_placeholder(output_key: str) -> str:
+  return "{{{{$.outputs.artifacts['{}'].path}}}}".format(output_key)
+
+
+def _output_parameter_path_placeholder(output_key: str) -> str:
+  return "{{{{$.outputs.parameters['{}'].output_file}}}}".format(output_key)
 
 
 class AiPlatformCustomJobOp(dsl.ContainerOp):
@@ -56,12 +93,8 @@ class AiPlatformCustomJobOp(dsl.ContainerOp):
         will be ignored.
       task_outputs: Optional. Mapping of task outputs to its URL.
     """
-
-    for i in task_inputs:
-      if i.path:
-        logging.warning(
-            'Path information is ignored for input: %s' % i.input)
-
+    old_warn_value = dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING
+    dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = True
     super().__init__(
         name=name,
         image=_DUMMY_CONTAINER_OP_IMAGE,
@@ -71,6 +104,7 @@ class AiPlatformCustomJobOp(dsl.ContainerOp):
     self.component_spec = component_spec
     self.task_spec = task_spec
     self.custom_job_spec = custom_job_spec
+    dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = old_warn_value
 
 
 def _get_custom_job_op(
@@ -269,7 +303,11 @@ def custom_job(
     Job service.
 
   Raises:
-    TBD
+    KeyError on name collision between parameter and artifact I/O declaration.
+    ValueError when:
+      1. neither or both image_uri and executor_image_uri are provided; or
+      2. no valid package_uris and python_module is provided for custom Python
+         training.
   """
   # Check the sanity of the provided parameters.
   input_artifacts = input_artifacts or {}
@@ -335,9 +373,9 @@ def custom_job(
           spec['containerSpec']['imageUri'] = image_uri
       if commands:
         if (not spec.get('pythonPackageSpec')
-            and not spec.get('containerSpec', {}).get('commands')):
+            and not spec.get('containerSpec', {}).get('command')):
           spec['containerSpec'] = spec.get('containerSpec', {})
-          spec['containerSpec']['commands'] = commands
+          spec['containerSpec']['command'] = commands
       if executor_image_uri:
         if (not spec.get('containerSpec')
             and not spec.get('pythonPackageSpec', {}).get('executorImageUri')):
@@ -359,6 +397,53 @@ def custom_job(
         if (spec.get('pythonPackageSpec')
             and not spec['pythonPackageSpec'].get('args')):
           spec['pythonPackageSpec']['args'] = args
+
+  # Resolve the custom job spec by wiring it with the I/O spec.
+  def _resolve_output_path_placeholder(output_key: str) -> str:
+    if output_key in output_parameters:
+      return _output_parameter_path_placeholder(output_key)
+    else:
+      return _output_artifact_path_placeholder(output_key)
+
+  def _resolve_cmd(cmd: Optional[CommandlineArgumentType]) -> str:
+    """Resolves a single command line cmd/arg."""
+    if cmd is None:
+      return None
+    elif isinstance(cmd, (str, float, int)):
+      return str(cmd)
+    elif isinstance(cmd, _structures.InputValuePlaceholder):
+      return _input_parameter_placeholder(cmd.input_name)
+    elif isinstance(cmd, _structures.InputPathPlaceholder):
+      return _input_artifact_path_placeholder(cmd.input_name)
+    elif isinstance(cmd, _structures.InputUriPlaceholder):
+      return _input_artifact_uri_placeholder(cmd.input_name)
+    elif isinstance(cmd, _structures.OutputPathPlaceholder):
+      return _resolve_output_path_placeholder(cmd.output_name)
+    elif isinstance(cmd, _structures.OutputUriPlaceholder):
+      return _output_artifact_uri_placeholder(cmd.output_name)
+    else:
+      raise TypeError('Got unexpected placeholder type for %s' % cmd).
+
+
+  def _resolve_cmd_lines(cmds: List[CommandlineArgumentType]) -> None:
+    for cmd in cmds:
+      pass
+
+  for wp_spec in custom_job_spec['workerPoolSpecs']:
+    if 'containerSpec' in wp_spec:
+      # For custom container training, resolve placeholders in commands and
+      # program args.
+      container_spec = wp_spec['containerSpec']
+      if 'command' in container_spec:
+        _resolve_cmd_lines(container_spec['command'])
+      if 'args' in container_spec:
+        _resolve_cmd_lines(container_spec['args'])
+    else:
+      assert 'pythonPackageSpec' in wp_spec
+      # For custom Python training, resolve placeholders in args only.
+      python_spec = wp_spec['pythonPackageSpec']
+      if 'args' in python_spec:
+        _resolve_cmd_lines(python_spec['args'])
 
   return _get_custom_job_op(
       task_name=name,
