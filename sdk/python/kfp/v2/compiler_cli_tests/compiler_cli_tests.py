@@ -74,6 +74,11 @@ class CompilerCliTests(unittest.TestCase):
   def test_pipeline_with_after(self):
     self._test_compile_py_to_json('pipeline_with_after')
 
+  def test_pipeline_with_condition(self):
+    self._test_compile_py_to_json('pipeline_with_condition')
+
+  def test_pipeline_with_nested_conditions(self):
+    self._test_compile_py_to_json('pipeline_with_nested_conditions')
 
 if __name__ == '__main__':
   unittest.main()

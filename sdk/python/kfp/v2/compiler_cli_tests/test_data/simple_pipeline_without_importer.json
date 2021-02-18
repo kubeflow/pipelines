@@ -23,6 +23,9 @@
             }
           },
           "task-read-from-gcs": {
+            "dependentTasks": [
+              "task-write-to-gcs"
+            ],
             "inputs": {
               "artifacts": {
                 "input_gcs_path": {

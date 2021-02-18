@@ -22,14 +22,11 @@ which node >/dev/null || (echo "node not found in PATH, recommend install via ht
 node -v | grep v12 || (echo "node not v12.x version" && exit 1)
 echo "jq>=1.6"
 which jq >/dev/null || (echo "jq not found in PATH" && exit 1)
-echo "yq>=3.3"
+echo "yq>=3.3 <4.0"
 which yq >/dev/null || (echo "yq not found in PATH" && exit 1)
 yq -V | grep 3. || (echo "yq version 3.x should be used" && exit 1)
 echo "java>=8"
 which java >/dev/null || (echo "java not found in PATH" && exit 1)
-echo "bazel==0.24.0"
-which bazel >/dev/null || (echo "bazel not found in PATH" && exit 1)
-bazel version | grep 0.24.0 || (echo "bazel not 0.24.0 version" && exit 1)
 echo "python>3"
 which python >/dev/null || (echo "python not found in PATH" && exit 1)
 python -c "import setuptools" || (echo "setuptools should be installed in python" && exit 1)

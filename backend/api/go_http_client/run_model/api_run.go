@@ -70,7 +70,7 @@ type APIRun struct {
 	Status string `json:"status,omitempty"`
 
 	// Output. Specify whether this run is in archived or available mode.
-	StorageState RunStorageState `json:"storage_state,omitempty"`
+	StorageState APIRunStorageState `json:"storage_state,omitempty"`
 }
 
 // Validate validates this api run

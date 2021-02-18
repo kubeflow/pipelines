@@ -834,13 +834,16 @@ class Compiler(object):
     # Need to first clear the default value of dsl.PipelineParams. Otherwise, it
     # will be resolved immediately in place when being to each component.
     default_param_values = OrderedDict()
+
+    if getattr(pipeline_func, 'output_directory', None):
+      dsl_pipeline_root = dsl.PipelineParam(
+          name=dsl.ROOT_PARAMETER_NAME, value=pipeline_func.output_directory)
+      pipeline_func.output_directory = dsl_pipeline_root
+      params_list.append(dsl_pipeline_root)
+
     for param in params_list:
       default_param_values[param.name] = param.value
       param.value = None
-
-    # Currently only allow specifying pipeline params at one place.
-    if params_list and pipeline_meta.inputs:
-      raise ValueError('Either specify pipeline params in the pipeline function, or in "params_list", but not both.')
 
     args_list = []
     kwargs_dict = dict()
@@ -865,24 +868,26 @@ class Compiler(object):
     self._validate_exit_handler(dsl_pipeline)
     self._sanitize_and_inject_artifact(dsl_pipeline, pipeline_conf)
 
-    # Fill in the default values.
+    # Fill in the default values by merging two param lists.
     args_list_with_defaults = OrderedDict()
     if pipeline_meta.inputs:
       args_list_with_defaults = OrderedDict([
         (sanitize_k8s_name(input_spec.name, True), input_spec.default)
         for input_spec in pipeline_meta.inputs
       ])
-    elif params_list:
+
+    if params_list:
       # Or, if args are provided by params_list, fill in pipeline_meta.
-      args_list_with_defaults = default_param_values
-      pipeline_meta.inputs = [
-        InputSpec(
-            name=param.name,
-            type=param.param_type,
-            default=default_param_values[param.name]
-        )
-        for param in params_list
-      ]
+      for k, v in default_param_values.items():
+        args_list_with_defaults[k] = v
+
+      pipeline_meta.inputs = pipeline_meta.inputs or []
+      for param in params_list:
+        pipeline_meta.inputs.append(
+            InputSpec(
+                name=param.name,
+                type=param.param_type,
+                default=default_param_values[param.name]))
 
     op_transformers = [add_pod_env]
     op_transformers.extend(pipeline_conf.op_transformers)
@@ -898,8 +903,8 @@ class Compiler(object):
     workflow = fix_big_data_passing(workflow)
 
     output_directory = getattr(pipeline_func, 'output_directory', None)
-    workflow = _data_passing_rewriter.add_pod_name_passing(workflow,
-                                                           output_directory)
+    workflow = _data_passing_rewriter.add_pod_name_passing(
+        workflow, str(output_directory))
 
     if pipeline_conf and pipeline_conf.data_passing_method != None:
       workflow = pipeline_conf.data_passing_method(workflow)

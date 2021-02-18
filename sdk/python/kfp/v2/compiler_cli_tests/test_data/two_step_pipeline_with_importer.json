@@ -31,6 +31,9 @@
             }
           },
           "task-serving": {
+            "dependentTasks": [
+              "task-trainer"
+            ],
             "taskInfo": {
               "name": "task-serving"
             },

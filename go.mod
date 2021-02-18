@@ -15,7 +15,7 @@ require (
 	github.com/go-openapi/runtime v0.19.12
 	github.com/go-openapi/strfmt v0.19.5
 	github.com/go-openapi/swag v0.19.8
-	github.com/go-openapi/validate v0.19.7
+	github.com/go-openapi/validate v0.20.1
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/golang/protobuf v1.4.2
@@ -42,7 +42,7 @@ require (
 	google.golang.org/api v0.20.0
 	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013
 	google.golang.org/grpc v1.34.0
-	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.0.1
+	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/yaml.v2 v2.3.0
 	k8s.io/api v0.17.9
@@ -71,6 +71,7 @@ replace (
 	k8s.io/kube-proxy => k8s.io/kube-proxy v0.17.9
 	k8s.io/kubernetes => k8s.io/kubernetes v1.11.1
 	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.2.9
+  github.com/go-openapi/validate => github.com/go-openapi/validate v0.17.2
 )
 
 go 1.13

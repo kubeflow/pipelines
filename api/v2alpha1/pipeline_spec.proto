@@ -1,10 +1,11 @@
 syntax = "proto3";
 
-option go_package = "github.com/kubeflow/pipelines/api/v2alpha1/go";
 package ml_pipelines;
 
 import "google/protobuf/any.proto";
 import "google/protobuf/struct.proto";
+
+option go_package = "github.com/kubeflow/pipelines/api/v2alpha1/go";
 
 // The spec of a pipeline job.
 message PipelineJob {
@@ -198,8 +199,13 @@ message ComponentOutputsSpec {
   // Definition of an artifact output.
   message ArtifactSpec {
     ArtifactTypeSchema artifact_type = 1;
-    map<string, ValueOrRuntimeParameter> properties = 2;
-    map<string, ValueOrRuntimeParameter> custom_properties = 3;
+    // Deprecated. Use [ArtifactSpec.metadata][] instead.
+    map<string, ValueOrRuntimeParameter> properties = 2 [deprecated = true];
+    // Deprecated. Use [ArtifactSpec.metadata][] instead.
+    map<string, ValueOrRuntimeParameter> custom_properties = 3
+        [deprecated = true];
+    // Properties of the Artifact.
+    google.protobuf.Struct metadata = 4;
   }
   // Definition of a parameter output.
   message ParameterSpec {
@@ -581,10 +587,16 @@ message PipelineDeploymentConfig {
     ArtifactTypeSchema type_schema = 2;
 
     // The properties of the artifact.
-    map<string, ValueOrRuntimeParameter> properties = 3;
+    // Deprecated. Use [ImporterSpec.metadata][] instead.
+    map<string, ValueOrRuntimeParameter> properties = 3 [deprecated = true];
 
     // The custom properties of the artifact.
-    map<string, ValueOrRuntimeParameter> custom_properties = 4;
+    // Deprecated. Use [ImporterSpec.metadata][] instead.
+    map<string, ValueOrRuntimeParameter> custom_properties = 4
+        [deprecated = true];
+
+    // Properties of the Artifact.
+    google.protobuf.Struct metadata = 6;
 
     // Whether or not import an artifact regardless it has been imported before.
     bool reimport = 5;
@@ -673,10 +685,15 @@ message RuntimeArtifact {
   string uri = 3;
 
   // The properties of the artifact.
-  map<string, Value> properties = 4;
+  // Deprecated. Use [RuntimeArtifact.metadata][] instead.
+  map<string, Value> properties = 4 [deprecated = true];
 
   // The custom properties of the artifact.
-  map<string, Value> custom_properties = 5;
+  // Deprecated. Use [RuntimeArtifact.metadata][] instead.
+  map<string, Value> custom_properties = 5 [deprecated = true];
+
+  // Properties of the Artifact.
+  google.protobuf.Struct metadata = 6;
 }
 
 // Message that represents a list of artifacts.
@@ -711,7 +728,6 @@ message ArtifactList {
 // output file and executor output metadata files are set by the container, the
 // output metadata file will have higher precedence to set output parameters.
 message ExecutorInput {
-
   // The runtime inputs data of the execution.
   message Inputs {
     // Input parameters of the execution.
