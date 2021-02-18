@@ -1,0 +1,145 @@
+title: ClassificationEvaluationMetrics
+type: object
+properties:
+  auPrc:
+    type: number
+    format: float
+    description: >
+      The Area Under Precision-Recall Curve metric. Micro-averaged for the overall evaluation.
+  auRoc:
+    type: number
+    format: float
+    description: >
+      The Area Under Receiver Operating Characteristic curve metric. Micro-averaged for
+      the overall evaluation.
+  logLoss:
+    type: number
+    format: float
+    description: >
+      The Log Loss metric.
+  confidenceMetrics:
+    type: array
+    description: >
+      Metrics for each confidenceThreshold in 0.00,0.05,0.10,...,0.95,0.96,0.97,0.98,0.99 and
+      `positionThreshold` = INT32_MAX_VALUE.
+      ROC and precision-recall curves, and other aggregated metrics are derived from them. The
+      confidence metrics entries may also be supplied for additional values of `positionThreshold`,
+      but from these no aggregated metrics are computed.
+    items:
+      type: object
+      properties:
+        confidenceThreshold:
+          type: number
+          format: float
+          description: >
+            Metrics are computed with an assumption that the Model never returns predictions with
+            score lower than this value.
+        maxPredictions:
+          type: integer
+          format: int32
+          description: >
+            Metrics are computed with an assumption that the Model always returns at most this many
+            predictions (ordered by their score, descendingly), but they all still need to meet the
+            `confidenceThreshold`.
+        recall:
+          type: number
+          format: float
+          description: >
+            Recall (True Positive Rate) for the given confidence threshold.
+        precision:
+          type: number
+          format: float
+          description: >
+            Precision for the given confidence threshold.
+        falsePositiveRate:
+          type: number
+          format: float
+          description: >
+            False Positive Rate for the given confidence threshold.
+        f1Score:
+          type: number
+          format: float
+          description: >
+            The harmonic mean of recall and precision.
+        recallAt1:
+          type: number
+          format: float
+          description: >
+            The Recall (True Positive Rate) when only considering the
+            label that has the highest prediction score and not below the confidence
+            threshold for each example.
+        precisionAt1:
+          type: number
+          format: float
+          description: >
+            The precision when only considering the label that has the
+            highest prediction score and not below the confidence threshold for each
+            example.
+        falsePositiveRateAt1:
+          type: number
+          format: float
+          description: >
+            The False Positive Rate when only considering the label that
+            has the highest prediction score and not below the confidence threshold
+            for each example.
+        f1ScoreAt1:
+          type: number
+          format: float
+          description: >
+            The harmonic mean of recallAt1 and precisionAt1.
+        truePositiveCount:
+          type: integer
+          format: int64
+          description: >
+            The number of Model created labels that match a ground truth label.
+        falsePositiveCount:
+          type: integer
+          format: int64
+          description: >
+            The number of Model created labels that do not match a
+            ground truth label.
+        falseNegativeCount:
+          type: integer
+          format: int64
+          description: >
+            The number of ground truth labels that are not matched by a Model created label.
+        trueNegativeCount:
+          type: integer
+          format: int64
+          description: >
+            The number of labels that were not created by the Model,
+            but if they would, they would not match a ground truth label.
+  confusionMatrix:
+    type: object
+    description: >
+      OPTIONAL. Confusion matrix of the evaluation.
+    properties:
+      annotationSpecs:
+        type: array
+        description: >
+          AnnotationSpecs used in the confusion matrix.
+        items:
+          type: object
+          properties:
+            id:
+              type: string
+              description: >
+                OPTIONAL. ID of the AnnotationSpec.
+            displayName:
+              type: string
+              description: >
+                Display name of the AnnotationSpec.
+      rows:
+        type: array
+        description: >
+          Rows in the confusion matrix. The number of rows is equal to the size of `annotationSpecs`.
+          `row[i][j]` is the number of DataItems that have ground truth of the `annotationSpecs[i]`
+          and are predicted as `annotationSpecs[j]` by the Model being evaluated.
+        items:
+          type: object
+          properties:
+            row:
+              type: array
+              items:
+                type: integer
+                format: int64

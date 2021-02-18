@@ -1,0 +1,26 @@
+title: Metrics
+type: object
+description:
+  Supports capturing summary metrics for a model from components such as ModelEvaluation.
+properties:
+  accuracy:
+    type: number
+    format: float
+    description: Capture's a Model's accuracy metric.
+  precision:
+    type: number
+    format: float
+    description: Capture's a Model's precision metric.
+  custom_metrics:
+    type: array
+    description: The scalar values for metrics
+    items:
+      type: object
+      properties:
+        metric:
+          type: string
+          description: Name of the metric.
+        value:
+          type: number
+          format: float
+          description: Metric value.
