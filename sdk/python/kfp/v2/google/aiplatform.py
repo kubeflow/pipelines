@@ -405,7 +405,7 @@ def custom_job(
     else:
       return _output_artifact_path_placeholder(output_key)
 
-  def _resolve_cmd(cmd: Optional[CommandlineArgumentType]) -> str:
+  def _resolve_cmd(cmd: Optional[CommandlineArgumentType]) -> Optional[str]:
     """Resolves a single command line cmd/arg."""
     if cmd is None:
       return None
@@ -424,10 +424,12 @@ def custom_job(
     else:
       raise TypeError('Got unexpected placeholder type for %s' % cmd)
 
-
-  def _resolve_cmd_lines(cmds: List[CommandlineArgumentType]) -> None:
-    for cmd in cmds:
-      pass
+  def _resolve_cmd_lines(cmds: Optional[List[CommandlineArgumentType]]) -> None:
+    """Resolves a list of commands/args."""
+    if not cmds:
+      return
+    for idx, cmd in enumerate(cmds):
+      cmds[idx] = _resolve_cmd(cmd)
 
   for wp_spec in custom_job_spec['workerPoolSpecs']:
     if 'containerSpec' in wp_spec:
