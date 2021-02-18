@@ -799,22 +799,6 @@ implementation:
             resolved_cmd.args
         )
 
-    def test_load_custom_job_component(self):
-        component_text = textwrap.dedent("""\
-        name: Example job
-        inputs:
-        - {name: input_1, type: Dataset}
-        - {name: input_2, type: String}
-        outputs:
-        - {name: output: type: Model}
-        implementation:
-          custom_job:
-            spec:
-              key1: value1
-              key2: value2
-        """)
-        op = comp.load_component_from_text(text=component_text)
-
     def test_check_type_validation_of_task_spec_outputs(self):
         producer_component_text = '''\
 outputs:
