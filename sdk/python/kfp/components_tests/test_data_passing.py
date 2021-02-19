@@ -14,7 +14,7 @@
 
 import unittest
 
-from kfp.components import _data_passing
+from ..components import _data_passing
 
 
 class DataPassingTest(unittest.TestCase):
