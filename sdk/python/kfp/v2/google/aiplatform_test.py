@@ -12,8 +12,251 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests of kfp.google.aiplatform module."""
+from google.protobuf import json_format
 import unittest
+from kfp.v2.google import aiplatform
+from kfp import dsl
+from kfp.dsl import ontology_artifacts
+from kfp.components import _structures as structures
 
+_EXPECTED_COMPONENT_SPEC = {
+    'inputDefinitions': {
+        'artifacts': {
+            'examples': {
+                'artifactType': {
+                    'instanceSchema': 'properties:\ntitle: kfp.Dataset\ntype: object\n'}}},
+        'parameters': {
+            'optimizer': {'type': 'STRING'}
+        }
+    },
+    'outputDefinitions': {
+        'artifacts': {
+            'model': {
+                'artifactType': {
+                    'instanceSchema': 'properties:\ntitle: kfp.Model\ntype: object\n'}}},
+        'parameters': {
+            'out_param': {
+                'type': 'STRING'}}},
+    'executorLabel': 'exec-my-custom-job'}
+
+_EXPECTED_TASK_SPEC = {
+    'taskInfo': {'name': 'my-custom-job'},
+    'inputs': {
+        'parameters': {
+            'optimizer': {
+                'runtimeValue': {
+                    'constantValue': {
+                        'stringValue': 'sgd'}}}},
+        'artifacts': {
+            'examples': {
+                'taskOutputArtifact': {
+                    'producerTask': 'ingestor',
+                    'outputArtifactKey': 'output'}}}},
+    'componentRef': {
+        'name': 'comp-my-custom-job'}}
 
 class AiplatformTest(unittest.TestCase):
-  pass
+
+  def testSingleNodeCustomContainer(self):
+    self.maxDiff = None
+    expected_custom_job_spec = {
+        'workerPoolSpecs': [
+            {
+                'machineSpec': {'machineType': 'n1-standard-4'},
+                'replicaCount': '1',
+                'containerSpec': {
+                    'imageUri': 'my_image:latest',
+                    'command': ['python', 'entrypoint.py'],
+                    'args': ['--input_path',
+                             "{{$.inputs.artifacts['examples'].uri}}",
+                             '--output_path',
+                             "{{$.outputs.artifacts['model'].uri}}",
+                             '--optimizer',
+                             "{{$.inputs.parameters['optimizer']}}",
+                             '--output_param_path',
+                             "{{$.outputs.parameters['out_param'].output_file}}"
+                             ]}}]}
+
+    task = aiplatform.custom_job(
+        name='my-custom-job',
+        input_artifacts={
+            'examples': dsl.PipelineParam(
+                name='output',
+                op_name='ingestor',
+                param_type='Dataset')},
+        input_parameters={'optimizer': 'sgd'},
+        output_artifacts={
+            'model': ontology_artifacts.Model},
+        output_parameters={
+            'out_param': str},
+        image_uri='my_image:latest',
+        commands=['python', 'entrypoint.py'],
+        args=[
+            '--input_path', structures.InputUriPlaceholder('examples'),
+            '--output_path', structures.OutputUriPlaceholder('model'),
+            '--optimizer', structures.InputValuePlaceholder('optimizer'),
+            '--output_param_path',
+            structures.OutputPathPlaceholder('out_param')
+        ])
+    self.assertDictEqual(expected_custom_job_spec, task.custom_job_spec)
+    self.assertDictEqual(_EXPECTED_COMPONENT_SPEC,
+                         json_format.MessageToDict(task.component_spec))
+    self.assertDictEqual(_EXPECTED_TASK_SPEC,
+                         json_format.MessageToDict(task.task_spec))
+
+  def testSingleNodeCustomPython(self):
+    expected_custom_job_spec = {
+        'workerPoolSpecs': [{
+            'machineSpec': {'machineType': 'n1-standard-8'},
+            'replicaCount': '1',
+            'pythonPackageSpec': {
+                'executorImageUri': 'my_image:latest',
+                'packageUris': ['gs://my-bucket/my-training-prgram.tar.gz'],
+                'pythonModule': 'my_trainer',
+                'args': [
+                    '--input_path', "{{$.inputs.artifacts['examples'].path}}",
+                    '--output_path', "{{$.outputs.artifacts['model'].path}}",
+                    '--optimizer', "{{$.inputs.parameters['optimizer']}}",
+                    '--output_param_path',
+                    "{{$.outputs.parameters['out_param'].output_file}}"]}}]}
+
+    task = aiplatform.custom_job(
+        name='my-custom-job',
+        input_artifacts={
+            'examples': dsl.PipelineParam(
+                name='output',
+                op_name='ingestor',
+                param_type='Dataset')},
+        input_parameters={'optimizer': 'sgd'},
+        output_artifacts={
+            'model': ontology_artifacts.Model},
+        output_parameters={
+            'out_param': str},
+        executor_image_uri='my_image:latest',
+        package_uris=['gs://my-bucket/my-training-prgram.tar.gz'],
+        python_module='my_trainer',
+        args=[
+            '--input_path', structures.InputPathPlaceholder('examples'),
+            '--output_path', structures.OutputPathPlaceholder('model'),
+            '--optimizer', structures.InputValuePlaceholder('optimizer'),
+            '--output_param_path',
+            structures.OutputPathPlaceholder('out_param')
+        ],
+        machine_type='n1-standard-8',
+    )
+    self.assertDictEqual(expected_custom_job_spec, task.custom_job_spec)
+    self.assertDictEqual(_EXPECTED_COMPONENT_SPEC ,
+                         json_format.MessageToDict(task.component_spec))
+    self.assertDictEqual(_EXPECTED_TASK_SPEC,
+                         json_format.MessageToDict(task.task_spec))
+
+  def testAdvancedTrainingSpec(self):
+    expected_custom_job_spec = {
+        "workerPoolSpecs":[
+            {
+                "replicaCount":1,
+                "containerSpec":{
+                    "imageUri":"my-master-image:latest",
+                    "command":[
+                        "python3",
+                        "master_entrypoint.py"
+                    ],
+                    "args":[
+                        "--input_path",
+                        "{{$.inputs.artifacts['examples'].path}}",
+                        "--output_path",
+                        "{{$.outputs.artifacts['model'].path}}",
+                        "--optimizer",
+                        "{{$.inputs.parameters['optimizer']}}",
+                        "--output_param_path",
+                        "{{$.outputs.parameters['out_param'].output_file}}"
+                    ]
+                },
+                "machineSpec":{
+                    "machineType":"n1-standard-4"
+                }
+            },
+            {
+                "replicaCount":4,
+                "containerSpec":{
+                    "imageUri":"gcr.io/my-project/my-worker-image:latest",
+                    "command":[
+                        "python3",
+                        "worker_entrypoint.py"
+                    ],
+                    "args":[
+                        "--input_path",
+                        "{{$.inputs.artifacts['examples'].path}}",
+                        "--output_path",
+                        "{{$.outputs.artifacts['model'].path}}",
+                        "--optimizer",
+                        "{{$.inputs.parameters['optimizer']}}"
+                    ]
+                },
+                "machineSpec":{
+                    "machineType":"n1-standard-4",
+                    "acceleratorType":"NVIDIA_TESLA_K80",
+                    "acceleratorCount":1
+                }
+            }
+        ]
+    }
+    task = aiplatform.custom_job(
+        name='my-custom-job',
+        input_artifacts={
+            'examples': dsl.PipelineParam(
+                name='output',
+                op_name='ingestor',
+                param_type='Dataset')},
+        input_parameters={'optimizer': 'sgd'},
+        output_artifacts={
+            'model': ontology_artifacts.Model},
+        output_parameters={
+            'out_param': str},
+        additional_job_spec={
+            'workerPoolSpecs': [
+                {
+                    'replicaCount': 1,
+                    'containerSpec': {
+                        'imageUri': 'my-master-image:latest',
+                        'command': ['python3', 'master_entrypoint.py'],
+                        'args': [
+                            '--input_path',
+                            structures.InputPathPlaceholder('examples'),
+                            '--output_path',
+                            structures.OutputPathPlaceholder('model'),
+                            '--optimizer',
+                            structures.InputValuePlaceholder('optimizer'),
+                            '--output_param_path',
+                            structures.OutputPathPlaceholder('out_param')
+                        ],
+                    },
+                    'machineSpec': {'machineType': 'n1-standard-4'}
+                },
+                # Worker pool
+                {
+
+                    'replicaCount': 4,
+                    'containerSpec': {
+                        'imageUri': 'gcr.io/my-project/my-worker-image:latest',
+                        'command': ['python3', 'worker_entrypoint.py'],
+                        'args': [
+                            '--input_path',
+                            structures.InputPathPlaceholder('examples'),
+                            '--output_path',
+                            structures.OutputPathPlaceholder('model'),
+                            '--optimizer',
+                            structures.InputValuePlaceholder('optimizer')
+                        ]
+                    },
+                    # Optionally one can also attach accelerators.
+                    'machineSpec': {
+                        'machineType': 'n1-standard-4',
+                        'acceleratorType': 'NVIDIA_TESLA_K80',
+                        'acceleratorCount': 1
+                    }}]})
+    self.assertDictEqual(expected_custom_job_spec, task.custom_job_spec)
+    self.assertDictEqual(_EXPECTED_COMPONENT_SPEC ,
+                         json_format.MessageToDict(task.component_spec))
+    self.assertDictEqual(_EXPECTED_TASK_SPEC,
+                         json_format.MessageToDict(task.task_spec))

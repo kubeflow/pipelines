@@ -320,7 +320,7 @@ def custom_job(
     raise KeyError('Output key conflict between output parameters and '
                    'artifacts.')
 
-  if bool(image_uri) == bool(executor_image_uri):
+  if not additional_job_spec and  bool(image_uri) == bool(executor_image_uri):
     raise ValueError('The user program needs to be either a custom container '
                      'training job, or a custom Python training job')
 
