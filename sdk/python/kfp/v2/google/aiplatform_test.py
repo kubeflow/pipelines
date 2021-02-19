@@ -233,9 +233,7 @@ class AiplatformTest(unittest.TestCase):
                     },
                     'machineSpec': {'machineType': 'n1-standard-4'}
                 },
-                # Worker pool
                 {
-
                     'replicaCount': 4,
                     'containerSpec': {
                         'imageUri': 'gcr.io/my-project/my-worker-image:latest',
@@ -255,6 +253,101 @@ class AiplatformTest(unittest.TestCase):
                         'acceleratorType': 'NVIDIA_TESLA_K80',
                         'acceleratorCount': 1
                     }}]})
+    self.assertDictEqual(expected_custom_job_spec, task.custom_job_spec)
+    self.assertDictEqual(_EXPECTED_COMPONENT_SPEC ,
+                         json_format.MessageToDict(task.component_spec))
+    self.assertDictEqual(_EXPECTED_TASK_SPEC,
+                         json_format.MessageToDict(task.task_spec))
+
+  def testScaffoldProgramToSpecs(self):
+    expected_custom_job_spec = {
+        "workerPoolSpecs":[
+            {
+                "replicaCount":1,
+                "machineSpec":{
+                    "machineType":"n1-standard-4"
+                },
+                "containerSpec":{
+                    "imageUri":"my_image:latest",
+                    "command":[
+                        "python",
+                        "entrypoint.py"
+                    ],
+                    "args":[
+                        "--input_path",
+                        "{{$.inputs.artifacts['examples'].uri}}",
+                        "--output_path",
+                        "{{$.outputs.artifacts['model'].uri}}",
+                        "--optimizer",
+                        "{{$.inputs.parameters['optimizer']}}",
+                        "--output_param_path",
+                        "{{$.outputs.parameters['out_param'].output_file}}"
+                    ]
+                }
+            },
+            {
+                "replicaCount":4,
+                "containerSpec":{
+                    "imageUri":"gcr.io/my-project/my-worker-image:latest",
+                    "command":[
+                        "python3",
+                        "override_entrypoint.py"
+                    ],
+                    "args":[
+                        "--arg1",
+                        "param1"
+                    ]
+                },
+                "machineSpec":{
+                    "machineType":"n1-standard-8",
+                    "acceleratorType":"NVIDIA_TESLA_K80",
+                    "acceleratorCount":1
+                }
+            }
+        ]
+    }
+    task = aiplatform.custom_job(
+        name='my-custom-job',
+        input_artifacts={
+            'examples': dsl.PipelineParam(
+                name='output',
+                op_name='ingestor',
+                param_type='Dataset')},
+        input_parameters={'optimizer': 'sgd'},
+        output_artifacts={
+            'model': ontology_artifacts.Model},
+        output_parameters={
+            'out_param': str},
+        image_uri='my_image:latest',
+        commands=['python', 'entrypoint.py'],
+        args=[
+            '--input_path', structures.InputUriPlaceholder('examples'),
+            '--output_path', structures.OutputUriPlaceholder('model'),
+            '--optimizer', structures.InputValuePlaceholder('optimizer'),
+            '--output_param_path',
+            structures.OutputPathPlaceholder('out_param')
+        ],
+        additional_job_spec={
+            'workerPoolSpecs': [
+                {
+                    'replicaCount': 1,
+                    'machineSpec': {'machineType': 'n1-standard-4'}
+                },
+                {
+                    'replicaCount': 4,
+                    'containerSpec': {
+                        'imageUri': 'gcr.io/my-project/my-worker-image:latest',
+                        'command': ['python3', 'override_entrypoint.py'],
+                        'args': ['--arg1', 'param1']
+                    },
+                    # Optionally one can also attach accelerators.
+                    'machineSpec': {
+                        'machineType': 'n1-standard-8',
+                        'acceleratorType': 'NVIDIA_TESLA_K80',
+                        'acceleratorCount': 1
+                    }}]
+        }
+    )
     self.assertDictEqual(expected_custom_job_spec, task.custom_job_spec)
     self.assertDictEqual(_EXPECTED_COMPONENT_SPEC ,
                          json_format.MessageToDict(task.component_spec))

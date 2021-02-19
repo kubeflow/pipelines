@@ -160,7 +160,7 @@ def _get_custom_job_op(
       pipeline_task_spec.inputs.parameters[input_name].CopyFrom(
           pipeline_spec_pb2.TaskInputsSpec.InputParameterSpec(
               task_output_parameter=pipeline_spec_pb2.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec(
-                  producer_task=param.op_name,
+                  producer_task='task-{}'.format(param.op_name),
                   output_parameter_key=param.name
               )))
     elif isinstance(param, dsl.PipelineParam) and not param.op_name:
@@ -182,7 +182,7 @@ def _get_custom_job_op(
       pipeline_task_spec.inputs.artifacts[input_name].CopyFrom(
           pipeline_spec_pb2.TaskInputsSpec.InputArtifactSpec(
               task_output_artifact=pipeline_spec_pb2.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec(
-                  producer_task=art.op_name,
+                  producer_task='task-{}'.format(art.op_name),
                   output_artifact_key=art.name)))
     else:
       # Otherwise, this should be from the input of the subdag.
@@ -343,10 +343,12 @@ def custom_job(
           "replicaCount": "1",
           "containerSpec": {
               "imageUri": image_uri,
-              "command": commands,
-              "args": args
           }
       }
+      if commands:
+        worker_pool_spec['containerSpec']['command'] = commands
+      if args:
+        worker_pool_spec['containerSpec']['args'] = args
       custom_job_spec['workerPoolSpecs'] = [worker_pool_spec]
     if executor_image_uri:
       worker_pool_spec = {
@@ -447,9 +449,14 @@ def custom_job(
       if 'args' in python_spec:
         _resolve_cmd_lines(python_spec['args'])
 
+  job_spec = {
+      'name': name,
+      'jobSpec': custom_job_spec
+  }
+
   return _get_custom_job_op(
       task_name=name,
-      job_spec=custom_job_spec,
+      job_spec=job_spec,
       input_artifacts=input_artifacts,
       input_parameters=input_parameters,
       output_artifacts=output_artifacts,
