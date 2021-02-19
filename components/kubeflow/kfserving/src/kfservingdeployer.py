@@ -45,54 +45,50 @@ def yamlStr(str):
         return yaml.safe_load(str)
 
 
-def EndpointSpec(framework, storage_uri, service_account):
+def EndpointSpec(framework, storage_uri, service_account, min_replicas, max_replicas):
+
+    endpointSpec = V1alpha2EndpointSpec(
+        predictor=V1alpha2PredictorSpec(
+            service_account_name=service_account,
+            min_replicas=(min_replicas
+                          if min_replicas >= 0
+                          else None
+                         ),
+            max_replicas=(max_replicas
+                          if max_replicas > 0 and max_replicas >= min_replicas
+                          else None
+                         )
+            )
+        )
     if framework == "tensorflow":
-        return V1alpha2EndpointSpec(
-            predictor=V1alpha2PredictorSpec(
-                tensorflow=V1alpha2TensorflowSpec(storage_uri=storage_uri),
-                service_account_name=service_account,
-            )
-        )
+        endpointSpec.predictor.tensorflow = V1alpha2TensorflowSpec(storage_uri=storage_uri)
+        return endpointSpec
+            
     elif framework == "pytorch":
-        return V1alpha2EndpointSpec(
-            predictor=V1alpha2PredictorSpec(
-                pytorch=V1alpha2PyTorchSpec(storage_uri=storage_uri),
-                service_account_name=service_account,
-            )
-        )
+        endpointSpec.predictor.pytorch = V1alpha2PyTorchSpec(storage_uri=storage_uri) 
+        return endpointSpec
+        
     elif framework == "sklearn":
-        return V1alpha2EndpointSpec(
-            predictor=V1alpha2PredictorSpec(
-                sklearn=V1alpha2SKLearnSpec(storage_uri=storage_uri),
-                service_account_name=service_account,
-            )
-        )
+        endpointSpec.predictor.sklearn = V1alpha2SKLearnSpec(storage_uri=storage_uri)
+        return endpointSpec
+        
     elif framework == "xgboost":
-        return V1alpha2EndpointSpec(
-            predictor=V1alpha2PredictorSpec(
-                xgboost=V1alpha2XGBoostSpec(storage_uri=storage_uri),
-                service_account_name=service_account,
-            )
-        )
+        endpointSpec.predictor.xgboost = V1alpha2XGBoostSpec(storage_uri=storage_uri)
+        return endpointSpec
+
     elif framework == "onnx":
-        return V1alpha2EndpointSpec(
-            predictor=V1alpha2PredictorSpec(
-                onnx=V1alpha2ONNXSpec(storage_uri=storage_uri),
-                service_account_name=service_account,
-            )
-        )
+        endpointSpec.predictor.onnx = V1alpha2ONNXSpec(storage_uri=storage_uri)
+        return endpointSpec
+        
     elif framework == "tensorrt":
-        return V1alpha2EndpointSpec(
-            predictor=V1alpha2PredictorSpec(
-                tensorrt=V1alpha2TensorRTSpec(storage_uri=storage_uri),
-                service_account_name=service_account,
-            )
-        )
+        endpointSpec.predictor.tensorrt = V1alpha2TensorRTSpec(storage_uri=storage_uri)
+        return endpointSpec
+        
     else:
         raise ("Error: No matching framework: " + framework)
 
 
-def customEndpointSpec(custom_model_spec, service_account):
+def customEndpointSpec(custom_model_spec, service_account, min_replicas, max_replicas):
     env = (
         [
             client.V1EnvVar(name=i["name"], value=i["value"])
@@ -135,6 +131,14 @@ def customEndpointSpec(custom_model_spec, service_account):
         predictor=V1alpha2PredictorSpec(
             custom=V1alpha2CustomSpec(container=containerSpec),
             service_account_name=service_account,
+            min_replicas=(min_replicas
+                          if min_replicas >= 0
+                          else None
+                         ),
+            max_replicas=(max_replicas
+                          if max_replicas > 0 and max_replicas >= min_replicas
+                          else None
+                         )
         )
     )
 
@@ -169,6 +173,8 @@ def deploy_model(
     enable_istio_sidecar=True,
     inferenceservice_yaml={},
     watch_timeout=120,
+    min_replicas=0,
+    max_replicas=0
 ):
     KFServing = KFServingClient()
 
@@ -194,21 +200,25 @@ def deploy_model(
 
         # Create Default deployment if default model uri is provided.
         if framework != "custom" and default_model_uri:
-            default_model_spec = EndpointSpec(framework, default_model_uri, service_account)
+            default_model_spec = EndpointSpec(
+                framework, default_model_uri, service_account, min_replicas, max_replicas
+                )
         elif framework == "custom" and default_custom_model_spec:
             default_model_spec = customEndpointSpec(
-                default_custom_model_spec, service_account
+                default_custom_model_spec, service_account, min_replicas, max_replicas
             )
 
         # Create Canary deployment if canary model uri is provided.
         if framework != "custom" and canary_model_uri:
-            canary_model_spec = EndpointSpec(framework, canary_model_uri, service_account)
+            canary_model_spec = EndpointSpec(
+                framework, canary_model_uri, service_account, min_replicas, max_replicas
+                )
             kfsvc = InferenceService(
                 metadata, default_model_spec, canary_model_spec, canary_model_traffic
             )
         elif framework == "custom" and canary_custom_model_spec:
             canary_model_spec = customEndpointSpec(
-                canary_custom_model_spec, service_account
+                canary_custom_model_spec, service_account, min_replicas, max_replicas
             )
             kfsvc = InferenceService(
                 metadata, default_model_spec, canary_model_spec, canary_model_traffic
@@ -337,6 +347,13 @@ if __name__ == "__main__":
                         type=str,
                         help="Timeout seconds for watching until InferenceService becomes ready.",
                         default="120")
+    parser.add_argument(
+        "--min-replicas", type=str, help="Minimum number of replicas", default="-1"
+    )
+    parser.add_argument(
+        "--max-replicas", type=str, help="Maximum number of replicas", default="-1"
+    )
+
     args = parser.parse_args()
 
     url = re.compile(r"https?://")
@@ -357,6 +374,8 @@ if __name__ == "__main__":
     enable_istio_sidecar = args.enable_istio_sidecar
     inferenceservice_yaml = args.inferenceservice_yaml
     watch_timeout = int(args.watch_timeout)
+    min_replicas = int(args.min_replicas)
+    max_replicas = int(args.max_replicas)
 
     if kfserving_endpoint:
         formData = {
@@ -393,7 +412,10 @@ if __name__ == "__main__":
             service_account=service_account,
             enable_istio_sidecar=enable_istio_sidecar,
             inferenceservice_yaml=inferenceservice_yaml,
-            watch_timeout=watch_timeout
+            watch_timeout=watch_timeout,
+            min_replicas=min_replicas,
+            max_replicas=max_replicas
+            
         )
     print(model_status)
     # Check whether the model is ready

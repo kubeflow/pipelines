@@ -16,6 +16,8 @@ inputs:
   - {name: Enable Istio Sidecar,            type: Bool,   default: 'True',     description: 'Whether to enable istio sidecar injection'}
   - {name: InferenceService YAML,           type: String, default: '{}',         description: 'Raw InferenceService serialized YAML for deployment'}
   - {name: Watch Timeout,                   type: String, default: '120', description: "Timeout seconds for watching until InferenceService becomes ready."}
+  - {name: Min Replicas,                    type: String, default: '-1', description: 'Minimum number of InferenceService replicas'}
+  - {name: Max Replicas,                    type: String, default: '-1', description: 'Maximum number of InferenceService replicas'}
 outputs:
   - {name: Service Endpoint URI, type: String,                      description: 'URI of the deployed prediction service..'}
 implementation:
@@ -39,5 +41,7 @@ implementation:
       --enable-istio-sidecar,     {inputValue: Enable Istio Sidecar},
       --output-path,              {outputPath: Service Endpoint URI},
       --inferenceservice_yaml,    {inputValue: InferenceService YAML},
-      --watch-timeout,            {inputValue: Watch Timeout}
+      --watch-timeout,            {inputValue: Watch Timeout},
+      --min-replicas,             {inputValue: Min Replicas},
+      --max-replicas,             {inputValue: Max Replicas}
     ]
