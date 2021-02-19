@@ -19,18 +19,18 @@ from ..components import _data_passing
 
 class DataPassingTest(unittest.TestCase):
 
-  def test_get_collection_type_name(self):
-    self.assertEqual(None, _data_passing._get_collection_type_name('str'))
-
-    self.assertEqual(
-        'List', _data_passing._get_collection_type_name('typing.List[int]'))
+  def test_get_short_type_name(self):
+    self.assertEqual('str', _data_passing._get_short_type_name('str'))
 
     self.assertEqual('List',
-                     _data_passing._get_collection_type_name('typing.List'))
+                     _data_passing._get_short_type_name('typing.List[int]'))
+
+    self.assertEqual('List', _data_passing._get_short_type_name('typing.List'))
+
+    self.assertEqual('List', _data_passing._get_short_type_name('List[int]'))
 
     self.assertEqual(
-        'Dict',
-        _data_passing._get_collection_type_name('typing.Dict[str, str]'))
+        'Dict', _data_passing._get_short_type_name('typing.Dict[str, str]'))
 
   def test_serialize_value(self):
     self.assertEqual(

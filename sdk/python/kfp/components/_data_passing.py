@@ -23,7 +23,7 @@ __all__ = [
 
 import inspect
 import re
-from typing import Any, Callable, NamedTuple, Optional, Sequence
+from typing import Any, Callable, NamedTuple, Sequence
 import warnings
 
 
@@ -168,8 +168,7 @@ def serialize_value(value, type_name: str) -> str:
         type_name = type_to_type_name.get(type(value), type(value).__name__)
         warnings.warn('Missing type name was inferred as "{}" based on the value "{}".'.format(type_name, str(value)))
 
-    serializer = type_name_to_serializer.get(
-        _get_collection_type_name(type_name) or type_name, None)
+    serializer = type_name_to_serializer.get(_get_short_type_name(type_name))
     if serializer:
         try:
             serialized_value = serializer(value)
@@ -188,22 +187,26 @@ def serialize_value(value, type_name: str) -> str:
         str(type_name),
     ))
 
-def _get_collection_type_name(type_name: str) -> Optional[str]:
-    """Extracts the collection type name if it exists.
+def _get_short_type_name(type_name: str) -> str:
+    """Extracts the short form type name.
+
+    This method is used for looking up serializer for a given type.
 
     For example:
       typing.List -> List
       typing.List[int] -> List
       typing.Dict[str, str] -> Dict
+      List -> List
+      str -> str
 
     Args:
       type_name: The original type name.
 
     Returns:
-      The collection type name if it exists otherwise None.
+      The short form type name or the original name if pattern doesn't match.
     """
-    match = re.match('typing\.(?P<type>\w+)(?:\[.+\])?', type_name)
+    match = re.match('(typing\.)?(?P<type>\w+)(?:\[.+\])?', type_name)
     if match:
         return match.group('type')
     else:
-        return None
+        return type_name
