@@ -982,5 +982,26 @@ class PythonOpTestCase(unittest.TestCase):
             calc_pipeline(42)
 
 
+    def test_argument_serialization_failure(self):
+        from typing import Sequence
+        def my_func(args: Sequence[int]):
+            print(args)
+
+        task_factory = comp.create_component_from_func(my_func)
+        with self.assertRaisesRegex(
+            TypeError,
+            'There are no registered serializers for type "(typing.)?Sequence(\[int\])?"'):
+            self.helper_test_component_using_local_call(
+                task_factory, arguments={'args': [1,2,3]})
+
+    def test_argument_serialization_success(self):
+        from typing import List
+        def my_func(args: List[int]):
+            print(args)
+
+        task_factory = comp.create_component_from_func(my_func)
+        self.helper_test_component_using_local_call(
+            task_factory, arguments={'args': [1,2,3]})
+
 if __name__ == '__main__':
     unittest.main()
