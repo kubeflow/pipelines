@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import datetime
 import json
 from collections import defaultdict, OrderedDict
@@ -26,6 +28,9 @@ from typing import Callable, Set, List, Text, Dict, Tuple, Any, Union, Optional
 import kfp
 from kfp.dsl import _for_loop
 from kfp.compiler import _data_passing_rewriter
+from kfp.compiler import v2_mode
+from kfp.pipeline_spec import pipeline_spec_pb2
+from kubernetes.client.models.v1_object_field_selector import V1ObjectFieldSelector
 
 from .. import dsl
 from ._k8s_helper import convert_k8s_obj_to_json, sanitize_k8s_name
@@ -41,7 +46,7 @@ from ..dsl._pipeline_param import extract_pipelineparams_from_any, PipelineParam
 
 class Compiler(object):
   """DSL Compiler that compiles pipeline functions into workflow yaml.
-  
+
   Example:
     How to use the compiler to construct workflow yaml::
 
@@ -320,8 +325,8 @@ class Compiler(object):
     for sub_graph in opsgroup_groups:
       if sub_graph in op_name_to_for_loop_op:
         # The opsgroup list is sorted with the farthest group as the first and the opsgroup
-        # itself as the last. To get the latest opsgroup which is not the opsgroup itself -2 is used. 
-        parent = opsgroup_groups[sub_graph][-2] 
+        # itself as the last. To get the latest opsgroup which is not the opsgroup itself -2 is used.
+        parent = opsgroup_groups[sub_graph][-2]
         if parent and parent.startswith('subgraph'):
           # propagate only op's pipeline param from subgraph to parallelfor
           loop_op = op_name_to_for_loop_op[sub_graph]
@@ -428,7 +433,7 @@ class Compiler(object):
     inputs, outputs, dependencies are all helper dicts.
     """
     template = {'name': group.name}
-    if group.parallelism != None: 
+    if group.parallelism != None:
       template["parallelism"] = group.parallelism
 
     # Generate inputs section.
@@ -562,7 +567,7 @@ class Compiler(object):
       else:
         argument_name = param_name
 
-      # Preparing argument. It can be pipeline input reference, task output reference or loop item (or loop item attribute
+         # Preparing argument. It can be pipeline input reference, task output reference or loop item (or loop item attribute
       sanitized_loop_arg_full_name = '---'
       if isinstance(sub_group, dsl.ParallelFor):
         sanitized_loop_arg_full_name = sanitize_k8s_name(sub_group.loop_args.full_name)
@@ -591,7 +596,13 @@ class Compiler(object):
 
     return arguments
 
-  def _create_dag_templates(self, pipeline, op_transformers=None, op_to_templates_handler=None):
+  def _create_dag_templates(
+    self,
+    pipeline,
+    op_transformers=None,
+    op_to_templates_handler=None,
+    enable_v2_mode: bool = False,
+    pipeline_spec: pipeline_spec_pb2.PipelineSpec = None):
     """Create all groups and ops templates in the pipeline.
 
     Args:
@@ -647,11 +658,21 @@ class Compiler(object):
       templates.append(template)
 
     for op in pipeline.ops.values():
+      if enable_v2_mode:
+        v2_mode.update_op(op, pipeline_spec=pipeline_spec)
+
       templates.extend(op_to_templates_handler(op))
 
     return templates
 
-  def _create_pipeline_workflow(self, parameter_defaults, pipeline, op_transformers=None, pipeline_conf=None):
+  def _create_pipeline_workflow(
+    self,
+    parameter_defaults,
+    pipeline,
+    op_transformers = None,
+    pipeline_conf = None,
+    enable_v2_mode: bool = False,
+    pipeline_spec: pipeline_spec_pb2.PipelineSpec = None):
     """Create workflow for the pipeline."""
 
     # Input Parameters
@@ -668,7 +689,11 @@ class Compiler(object):
     pipeline_group.name = temp_pipeline_group_name
 
     # Templates
-    templates = self._create_dag_templates(pipeline, op_transformers)
+    templates = self._create_dag_templates(
+      pipeline,
+      op_transformers,
+      enable_v2_mode=enable_v2_mode,
+      pipeline_spec=pipeline_spec)
 
     # Exit Handler
     exit_handler = None
@@ -727,7 +752,7 @@ class Compiler(object):
     if exit_handler:
       workflow['spec']['onExit'] = exit_handler.name
 
-    # This can be overwritten by the task specific 
+    # This can be overwritten by the task specific
     # nodeselection, specified in the template.
     if pipeline_conf.default_pod_node_selector:
       workflow['spec']['nodeSelector'] = pipeline_conf.default_pod_node_selector
@@ -804,12 +829,15 @@ class Compiler(object):
       sanitized_ops[sanitized_name] = op
     pipeline.ops = sanitized_ops
 
-  def _create_workflow(self,
+  def _create_workflow(
+      self,
       pipeline_func: Callable,
-      pipeline_name: Text=None,
-      pipeline_description: Text=None,
-      params_list: List[dsl.PipelineParam]=None,
+      pipeline_name: Text = None,
+      pipeline_description: Text = None,
+      params_list: List[dsl.PipelineParam] = None,
       pipeline_conf: dsl.PipelineConf = None,
+      enable_v2_mode: bool = False,
+      pipeline_spec: pipeline_spec_pb2.PipelineSpec = None,
       ) -> Dict[Text, Any]:
     """ Internal implementation of create_workflow."""
     params_list = params_list or []
@@ -887,9 +915,12 @@ class Compiler(object):
         dsl_pipeline,
         op_transformers,
         pipeline_conf,
+        enable_v2_mode=enable_v2_mode,
+        pipeline_spec=pipeline_spec,
     )
 
     from ._data_passing_rewriter import fix_big_data_passing
+    # if not enable_v2_mode:
     workflow = fix_big_data_passing(workflow)
 
     output_directory = getattr(pipeline_func, 'output_directory', None)
@@ -948,7 +979,9 @@ class Compiler(object):
     """Compile the given pipeline function into workflow."""
     return self._create_workflow(pipeline_func=pipeline_func, pipeline_conf=pipeline_conf)
 
-  def compile(self, pipeline_func, package_path, type_check=True, pipeline_conf: dsl.PipelineConf = None):
+  def compile(self, pipeline_func, package_path, type_check=True,
+              pipeline_conf: dsl.PipelineConf = None,
+              enable_v2_mode: bool = False):
     """Compile the given pipeline function into workflow yaml.
 
     Args:
@@ -962,12 +995,20 @@ class Compiler(object):
     """
     import kfp
     type_check_old_value = kfp.TYPE_CHECK
+
+    pipeline_spec = None
+    if enable_v2_mode:
+      from kfp.compiler import v2_mode
+      pipeline_spec = v2_mode.get_pipeline_spec(pipeline_func)
+
     try:
       kfp.TYPE_CHECK = type_check
       self._create_and_write_workflow(
           pipeline_func=pipeline_func,
           pipeline_conf=pipeline_conf,
-          package_path=package_path)
+          package_path=package_path,
+          enable_v2_mode=enable_v2_mode,
+          pipeline_spec=pipeline_spec)
     finally:
       kfp.TYPE_CHECK = type_check_old_value
 
@@ -1009,19 +1050,29 @@ class Compiler(object):
   def _create_and_write_workflow(
       self,
       pipeline_func: Callable,
-      pipeline_name: Text=None,
-      pipeline_description: Text=None,
-      params_list: List[dsl.PipelineParam]=None,
-      pipeline_conf: dsl.PipelineConf=None,
-      package_path: Text=None
+      pipeline_name: Text = None,
+      pipeline_description: Text = None,
+      params_list: List[dsl.PipelineParam] = None,
+      pipeline_conf: dsl.PipelineConf = None,
+      package_path: Text = None,
+      enable_v2_mode: bool = False,
+      pipeline_spec: pipeline_spec_pb2.PipelineSpec = None,
   ) -> None:
     """Compile the given pipeline function and dump it to specified file format."""
+    pipeline_root_param = dsl.PipelineParam(name='pipeline_root', value='TBD')
+    if params_list is None:
+      params_list=[pipeline_root_param]
+    else:
+      params_list.append(pipeline_root_param)
+
     workflow = self._create_workflow(
         pipeline_func,
         pipeline_name,
         pipeline_description,
         params_list,
-        pipeline_conf)
+        pipeline_conf,
+        enable_v2_mode=enable_v2_mode,
+        pipeline_spec=pipeline_spec)
     self._write_workflow(workflow, package_path)
     _validate_workflow(workflow)
 
@@ -1050,7 +1101,7 @@ Please create a new issue at https://github.com/kubeflow/pipelines/issues attach
       has_working_argo_lint = _run_argo_lint('')
     except:
       warnings.warn("Cannot validate the compiled workflow. Found the argo program in PATH, but it's not usable. argo v2.4.3 should work.")
-    
+
     if has_working_argo_lint:
       _run_argo_lint(yaml_text)
 
