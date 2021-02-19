@@ -33,6 +33,7 @@ import { MetricMetadata } from '../lib/RunUtils';
 import { NodePhase } from '../lib/StatusUtils';
 import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
 import { range } from 'lodash';
+import { BrowserRouter } from 'react-router-dom';
 
 class RunListTest extends RunList {
   public _loadRuns(request: ListRequest): Promise<string> {
@@ -117,7 +118,7 @@ describe('RunList', () => {
   afterEach(async () => {
     // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
     // depends on mocks/spies
-    if (tree) {
+    if (tree && tree.exists()) {
       await tree.unmount();
     }
     jest.resetAllMocks();
@@ -425,7 +426,11 @@ describe('RunList', () => {
       run: {
         resource_references: [
           {
-            key: { id: 'test-recurring-run-id', type: ApiResourceType.JOB },
+            key: {
+              id: 'test-recurring-run-id',
+              type: ApiResourceType.JOB,
+            },
+            name: 'recurring run name',
           },
         ],
       },
@@ -434,7 +439,75 @@ describe('RunList', () => {
     tree = shallow(<RunList {...props} />);
     await (tree.instance() as RunListTest)._loadRuns({});
     expect(props.onError).not.toHaveBeenCalled();
-    expect(tree).toMatchSnapshot();
+    expect(tree).toMatchInlineSnapshot(`
+      <div>
+        <CustomTable
+          columns={
+            Array [
+              Object {
+                "customRenderer": [Function],
+                "flex": 1.5,
+                "label": "Run name",
+                "sortKey": "name",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 0.5,
+                "label": "Status",
+              },
+              Object {
+                "flex": 0.5,
+                "label": "Duration",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 1,
+                "label": "Experiment",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 1,
+                "label": "Pipeline Version",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 0.5,
+                "label": "Recurring Run",
+              },
+              Object {
+                "flex": 1,
+                "label": "Start time",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No available runs found."
+          filterLabel="Filter runs"
+          initialSortColumn="created_at"
+          reload={[Function]}
+          rows={
+            Array [
+              Object {
+                "error": undefined,
+                "id": "testrun1",
+                "otherFields": Array [
+                  "run with id: testrun1",
+                  "-",
+                  "-",
+                  undefined,
+                  undefined,
+                  Object {
+                    "displayName": "recurring run name",
+                    "id": "test-recurring-run-id",
+                  },
+                  "-",
+                ],
+              },
+            ]
+          }
+        />
+      </div>
+    `);
   });
 
   it('shows experiment name', async () => {
