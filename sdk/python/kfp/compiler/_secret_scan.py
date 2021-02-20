@@ -154,7 +154,16 @@ def detect_secret(path, value, max_entropy=MAX_ENTROPY):
         (int, dict) where int ∈ {0,1,2} for none,soft,hard secret.
         the dict contains a description, if there is one.
     """
-    human_path = '.'.join(("[%d]" % v if isinstance(v, int) else v for v in path))
+    def make_jq_path(l):
+        acc = ""
+        for x in l:
+            if isinstance(x, str):
+                acc += '.' + x
+            elif isinstance(x, int):
+                acc += "[%d]" % x
+        return acc
+
+    human_path = make_jq_path(path)
 
     def mask(s):
         """
