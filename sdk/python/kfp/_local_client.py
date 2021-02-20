@@ -105,6 +105,47 @@ class _Dag:
         return top_order
 
 
+def _extract_pipeline_param(param: str) -> dsl.PipelineParam:
+    """ Extract PipelineParam from string """
+    matches = re.findall(r"{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+)}}", param)
+    op_dependency_name = matches[0][0]
+    output_file_name = matches[0][1]
+    return dsl.PipelineParam(output_file_name, op_dependency_name)
+
+
+def _get_keyword_arguments(cmd: List[str]) -> List[Tuple[str, str]]:
+    """ Convert command arguments into list of (keyworkd, argument) tuples. """
+    arg_pairs = []
+    for i in range(len(cmd)):
+        if cmd[i].startswith("--"):
+            arg_pairs.append((cmd[i].strip("--"), cmd[i + 1]))
+
+    return arg_pairs
+
+
+def _replace_file_args(cmd: List[str], file_args: Dict[str, str]) -> str:
+    """ Replace the placeholder of file in cmd with actual file path. """
+    for i in range(len(cmd)):
+        if cmd[i].startswith("--"):
+            arg = cmd[i].strip("--")
+            if arg in file_args:
+                cmd[i + 1] = file_args[arg]
+
+    return cmd
+
+
+def _get_op(ops: List[dsl.ContainerOp], op_name: str) -> Union[dsl.ContainerOp, None]:
+    """ Get the first op with specified op name """
+    return next(filter(lambda op: op.name == op_name, ops), None)
+
+
+def _get_subgroup(
+    groups: List[dsl.OpsGroup], group_name: str
+) -> Union[dsl.OpsGroup, None]:
+    """ Get the frist OpsGroup with specified group name """
+    return next(filter(lambda g: g.name == group_name, groups), None)
+
+
 class LocalClient:
     def __init__(self, artifact_root: str = "/tmp") -> None:
         """Construct the instance of LocalClient
@@ -115,37 +156,6 @@ class LocalClient:
         """
         self._artifact_root = artifact_root
 
-    @staticmethod
-    def _extract_pipeline_param(param: str) -> dsl.PipelineParam:
-        """ Extract PipelineParam from string """
-        matches = re.findall(
-            r"{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+)}}", param
-        )
-        op_dependency_name = matches[0][0]
-        output_file_name = matches[0][1]
-        return dsl.PipelineParam(output_file_name, op_dependency_name)
-
-    @staticmethod
-    def _get_keyword_arguments(cmd: List[str]) -> List[Tuple[str, str]]:
-        """ Convert command arguments into list of (keyworkd, argument) tuples. """
-        arg_pairs = []
-        for i in range(len(cmd)):
-            if cmd[i].startswith("--"):
-                arg_pairs.append((cmd[i].strip("--"), cmd[i + 1]))
-
-        return arg_pairs
-
-    @staticmethod
-    def _replace_file_args(cmd: List[str], file_args: Dict[str, str]) -> str:
-        """ Replace the placeholder of file in cmd with actual file path. """
-        for i in range(len(cmd)):
-            if cmd[i].startswith("--"):
-                arg = cmd[i].strip("--")
-                if arg in file_args:
-                    cmd[i + 1] = file_args[arg]
-
-        return cmd
-
     def _find_base_group(
         self, groups: List[dsl.OpsGroup], op_name: str
     ) -> Union[dsl.OpsGroup, None]:
@@ -153,7 +163,7 @@ class LocalClient:
         if groups is None or len(groups) == 0:
             return None
         for group in groups:
-            if self._get_op(group.ops, op_name):
+            if _get_op(group.ops, op_name):
                 return group
             else:
                 _parent_group = self._find_base_group(group.groups, op_name)
@@ -161,20 +171,6 @@ class LocalClient:
                     return group
 
         return None
-
-    @staticmethod
-    def _get_op(
-        ops: List[dsl.ContainerOp], op_name: str
-    ) -> Union[dsl.ContainerOp, None]:
-        """ Get the first op with specified op name """
-        return next(filter(lambda op: op.name == op_name, ops), None)
-
-    @staticmethod
-    def _get_subgroup(
-        groups: List[dsl.OpsGroup], group_name: str
-    ) -> Union[dsl.OpsGroup, None]:
-        """ Get the frist OpsGroup with specified group name """
-        return next(filter(lambda g: g.name == group_name, groups), None)
 
     def _create_group_dag(self, pipeline_dag: _Dag, group: dsl.OpsGroup) -> _Dag:
         """Create DAG within current group, it's a DAG of direct ops and direct subgroups.
@@ -189,7 +185,7 @@ class LocalClient:
 
         for op in group.ops:
             for follow in pipeline_dag.get_follows(op.name):
-                if self._get_op(group.ops, follow) is not None:
+                if _get_op(group.ops, follow) is not None:
                     # add edge between direct ops
                     group_dag.add_edge(op.name, follow)
                 else:
@@ -199,7 +195,7 @@ class LocalClient:
                         group_dag.add_edge(op.name, _base_group.name)
 
             for dependency in pipeline_dag.get_dependencies(op.name):
-                if self._get_op(group.ops, dependency) is None:
+                if _get_op(group.ops, dependency) is None:
                     _base_group = self._find_base_group(group.groups, dependency)
                     if _base_group:
                         # add edge from direct subgroup
@@ -215,7 +211,7 @@ class LocalClient:
             # dependencies defined by inputs
             for input_value in op.inputs:
                 if isinstance(input_value, dsl.PipelineParam):
-                    input_param = self._extract_pipeline_param(input_value.pattern)
+                    input_param = _extract_pipeline_param(input_value.pattern)
                     if input_param.op_name:
                         dag.add_edge(input_param.op_name, op.name)
                     else:
@@ -280,7 +276,7 @@ class LocalClient:
             if cmd[i] == "-c":
                 cmd[i + 1] = "\n" + cmd[i + 1]
 
-        _arg_pairs = self._get_keyword_arguments(cmd)
+        _arg_pairs = _get_keyword_arguments(cmd)
         _fixed_arg_value = {}
         for arg_name, arg_value in _arg_pairs:
             if arg_value in stack:  # Argument is LoopArguments item
@@ -305,7 +301,7 @@ class LocalClient:
                     )
                 )[0]
                 input_param_pattern = op.artifact_arguments[input_name]
-                pipeline_param = self._extract_pipeline_param(input_param_pattern)
+                pipeline_param = _extract_pipeline_param(input_param_pattern)
                 input_file = self.get_output_file_path(
                     run_name, pipeline, pipeline_param.op_name, pipeline_param.name
                 )
@@ -313,7 +309,7 @@ class LocalClient:
                 arg_value = input_file
             _fixed_arg_value[arg_name] = arg_value
 
-        cmd = self._replace_file_args(cmd, _fixed_arg_value)
+        cmd = _replace_file_args(cmd, _fixed_arg_value)
         return cmd
 
     def _op_cmd_on_docker(
@@ -359,13 +355,13 @@ class LocalClient:
         group_dag = self._create_group_dag(pipeline_dag, current_group)
 
         for node in group_dag.topological_sort():
-            subgroup = self._get_subgroup(current_group.groups, node)
+            subgroup = _get_subgroup(current_group.groups, node)
             if subgroup is not None:  # Node of DAG is subgroup
                 self._run_group(
                     run_name, pipeline, pipeline_dag, subgroup, stack, local_env_images
                 )
             else:  # Node of DAG is op
-                op = self._get_op(current_group.ops, node)
+                op = _get_op(current_group.ops, node)
 
                 local_env_images = local_env_images if local_env_images else []
                 can_run_locally = op.image in local_env_images
