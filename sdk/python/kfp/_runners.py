@@ -63,10 +63,21 @@ def run_pipeline_func_locally(
     local_client: LocalClient = None,
     local_env_images: List[str] = None,
 ):
-    """Run kubeflow pipeline in docker or locally
+    """Runs a pipeline locally, either using Docker or in a local process.
 
     Feature stage:
     [Alpha](https://github.com/kubeflow/pipelines/blob/master/docs/release/feature-stages.md#alpha)
+
+    In this alpha implementation, we support:
+      * Control flow: Condition, ParallelFor
+      * Data passing: InputValue, InputPath, OutputPath
+
+    And we don't support:
+      * Control flow: ExitHandler, Graph, SubGraph
+      * ContainerOp with environment variables, init containers, sidecars, pvolumes
+      * ResourceOp
+      * VolumeOp
+      * Caching
 
     Args:
       pipeline_func: A function that describes a pipeline by calling components

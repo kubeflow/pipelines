@@ -22,6 +22,7 @@ from collections import deque
 from typing import Any, Callable, Dict, List, Mapping, Tuple, Union, cast
 
 from . import dsl
+from .compiler.compiler import sanitize_k8s_name
 
 
 class _Dag:
@@ -60,19 +61,19 @@ class _Dag:
         self._graph[edge_source].append(edge_target)
         self._reverse_graph[edge_target].append(edge_source)
 
-    def get_follows(self, source_node) -> List[str]:
+    def get_follows(self, source_node: str) -> List[str]:
         """Get all target nodes start from the specified source node
 
         Args::
-          node: the source node
+          source_node: the source node
         """
         return self._graph.get(source_node, [])
 
-    def get_dependencies(self, target_node) -> List[str]:
+    def get_dependencies(self, target_node: str) -> List[str]:
         """Get all source nodes end with the specified target node
 
         Args::
-          node: the target node
+          target_node: the target node
         """
         return self._reverse_graph.get(target_node, [])
 
@@ -90,11 +91,11 @@ class _Dag:
             if degree == 0:
                 queue.append(node)
 
-        top_order = []
+        sorted_nodes = []
 
         while queue:
             u = queue.popleft()
-            top_order.append(u)
+            sorted_nodes.append(u)
 
             for node in self._graph[u]:
                 in_degree[node] -= 1
@@ -102,7 +103,7 @@ class _Dag:
                 if in_degree[node] == 0:
                     queue.append(node)
 
-        return top_order
+        return sorted_nodes
 
 
 def _extract_pipeline_param(param: str) -> dsl.PipelineParam:
@@ -142,19 +143,19 @@ def _get_op(ops: List[dsl.ContainerOp], op_name: str) -> Union[dsl.ContainerOp, 
 def _get_subgroup(
     groups: List[dsl.OpsGroup], group_name: str
 ) -> Union[dsl.OpsGroup, None]:
-    """ Get the frist OpsGroup with specified group name """
+    """ Get the first OpsGroup with specified group name """
     return next(filter(lambda g: g.name == group_name, groups), None)
 
 
 class LocalClient:
-    def __init__(self, artifact_root: str = "/tmp") -> None:
+    def __init__(self, pipeline_root: str = "/tmp") -> None:
         """Construct the instance of LocalClient
 
         Args：
-            artifact_root: The root directory where the output artifact of component
+            pipeline_root: The root directory where the output artifact of component
               will be savad.
         """
-        self._artifact_root = artifact_root
+        self._pipeline_root = pipeline_root
 
     def _find_base_group(
         self, groups: List[dsl.OpsGroup], op_name: str
@@ -222,7 +223,7 @@ class LocalClient:
                 dag.add_edge(dependent, op.name)
         return dag
 
-    def _alter_output_file_path(
+    def _make_output_file_path_unique(
         self, run_name: str, op_name: str, output_file: str
     ) -> str:
         """Alter the file path of output artifact to make sure it's unique in local runner.
@@ -233,15 +234,15 @@ class LocalClient:
         """
         return re.sub(
             "/tmp",
-            "/{artifact_root}/{run_name}/{op_name}".format(
-                artifact_root=self._artifact_root,
+            "/{pipeline_root}/{run_name}/{op_name}".format(
+                pipeline_root=self._pipeline_root,
                 run_name=run_name,
                 op_name=op_name.lower(),
             ),
             output_file,
         )
 
-    def get_output_file_path(
+    def _get_output_file_path(
         self,
         run_name: str,
         pipeline: dsl.Pipeline,
@@ -254,12 +255,12 @@ class LocalClient:
         if output_name is None and len(op_dependency.file_outputs) == 1:
             output_name = next(iter(op_dependency.file_outputs.keys()))
         output_file = op_dependency.file_outputs[output_name]
-        altered_output_file = self._alter_output_file_path(
+        unique_output_file = self._make_output_file_path_unique(
             run_name, op_name, output_file
         )
-        return altered_output_file
+        return unique_output_file
 
-    def _op_cmd_locally(
+    def _generate_cmd_for_subprocess_execution(
         self,
         run_name: str,
         pipeline: dsl.Pipeline,
@@ -276,9 +277,9 @@ class LocalClient:
             if cmd[i] == "-c":
                 cmd[i + 1] = "\n" + cmd[i + 1]
 
-        _arg_pairs = _get_keyword_arguments(cmd)
-        _fixed_arg_value = {}
-        for arg_name, arg_value in _arg_pairs:
+        arg_pairs = _get_keyword_arguments(cmd)
+        fixed_arg_value = {}
+        for arg_name, arg_value in arg_pairs:
             if arg_value in stack:  # Argument is LoopArguments item
                 arg_value = str(stack[arg_value])
             elif arg_value in op.file_outputs.values():  # Argument is output file
@@ -287,7 +288,7 @@ class LocalClient:
                 )[0]
                 output_param = op.outputs[output_name]
                 output_file = arg_value
-                output_file = self._alter_output_file_path(
+                output_file = self._make_output_file_path_unique(
                     run_name, output_param.op_name, output_file
                 )
                 arg_value = output_file
@@ -302,17 +303,17 @@ class LocalClient:
                 )[0]
                 input_param_pattern = op.artifact_arguments[input_name]
                 pipeline_param = _extract_pipeline_param(input_param_pattern)
-                input_file = self.get_output_file_path(
+                input_file = self._get_output_file_path(
                     run_name, pipeline, pipeline_param.op_name, pipeline_param.name
                 )
 
                 arg_value = input_file
-            _fixed_arg_value[arg_name] = arg_value
+            fixed_arg_value[arg_name] = arg_value
 
-        cmd = _replace_file_args(cmd, _fixed_arg_value)
+        cmd = _replace_file_args(cmd, fixed_arg_value)
         return cmd
 
-    def _op_cmd_on_docker(
+    def _generate_cmd_for_docker_execution(
         self,
         run_name: str,
         pipeline: dsl.Pipeline,
@@ -320,13 +321,13 @@ class LocalClient:
         stack: Dict[str, Any],
     ) -> List[str]:
         """ Generate the command to run the op in docker locally. """
-        cmd = self._op_cmd_locally(run_name, pipeline, op, stack)
+        cmd = self._generate_cmd_for_subprocess_execution(run_name, pipeline, op, stack)
 
         docker_cmd = [
             "docker",
             "run",
             "-v",
-            "{artifact_root}:/tmp".format(artifact_root=self._artifact_root),
+            "{pipeline_root}:/tmp".format(pipeline_root=self._pipeline_root),
             op.image,
         ] + cmd
         return docker_cmd
@@ -367,9 +368,13 @@ class LocalClient:
                 can_run_locally = op.image in local_env_images
 
                 if can_run_locally:
-                    cmd = self._op_cmd_locally(run_name, pipeline, op, stack)
+                    cmd = self._generate_cmd_for_subprocess_execution(
+                        run_name, pipeline, op, stack
+                    )
                 else:
-                    cmd = self._op_cmd_on_docker(run_name, pipeline, op, stack)
+                    cmd = self._generate_cmd_for_docker_execution(
+                        run_name, pipeline, op, stack
+                    )
 
                 process = subprocess.Popen(
                     cmd,
@@ -421,7 +426,7 @@ class LocalClient:
 
                 _op_dependency = pipeline.ops[_loop_args.op_name]
                 _list_file = _op_dependency.file_outputs[_param_name]
-                _altered_list_file = self._alter_output_file_path(
+                _altered_list_file = self._make_output_file_path_unique(
                     run_name, _loop_args.op_name, _list_file
                 )
                 with open(_altered_list_file, "r") as f:
@@ -452,7 +457,7 @@ class LocalClient:
         arguments: Mapping[str, str],
         local_env_images: List[str] = None,
     ):
-        """Run kubeflow pipeline locally
+        """Runs a pipeline locally, either using Docker or in a local process.
 
         Parameters:
           pipeline_func: pipeline function
@@ -473,17 +478,16 @@ class LocalClient:
                 self.run_id = run_id
 
             def get_output_file(self, op_name: str, output: str = None):
-                return self._client.get_output_file_path(
+                return self._client._get_output_file_path(
                     self.run_id, self._pipeline, op_name, output
                 )
 
             def __repr__(self):
                 return "RunPipelineResult(run_id={})".format(self.run_id)
 
-        pipeline_name = (
-            pipeline_func._component_human_name
-            if hasattr(pipeline_func, "_component_human_name")
-            else "local_pipeline"
+        pipeline_name = sanitize_k8s_name(
+            getattr(pipeline_func, "_component_human_name", None)
+            or pipeline_func.__name__
         )
         with dsl.Pipeline(pipeline_name) as pipeline:
             pipeline_func(**arguments)

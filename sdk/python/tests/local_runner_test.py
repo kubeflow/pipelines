@@ -104,12 +104,6 @@ class LocalRunnerTest(unittest.TestCase):
             _pipeline, {"name": "world"}, local_env_images=[BASE_IMAGE]
         )
 
-    # def test_run_docker(self):
-    #     def _pipeline(name: str):
-    #         hello(name)
-
-    #     run_pipeline_func_locally(_pipeline, {"name": "world"})
-
     def test_local_file(self):
         def _pipeline(file_path: str):
             local_loader(file_path)
