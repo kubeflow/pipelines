@@ -26,6 +26,7 @@ from typing import Callable, Set, List, Text, Dict, Tuple, Any, Union, Optional
 import kfp
 from kfp.dsl import _for_loop
 from kfp.compiler import _data_passing_rewriter
+from ._secret_scan import check_for_secrets
 
 from .. import dsl
 from ._k8s_helper import convert_k8s_obj_to_json, sanitize_k8s_name
@@ -1035,6 +1036,7 @@ class Compiler(object):
         pipeline_conf)
     self._write_workflow(workflow, package_path)
     _validate_workflow(workflow)
+    check_for_secrets(workflow)
 
 
 def _validate_workflow(workflow: dict):
