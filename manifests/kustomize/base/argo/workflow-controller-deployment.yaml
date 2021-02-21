@@ -4,6 +4,8 @@ metadata:
   labels:
     app: workflow-controller
   name: workflow-controller
+  annotations:
+    "cluster-autoscaler.kubernetes.io/safe-to-evict": "true"
 spec:
   progressDeadlineSeconds: 600
   replicas: 1
