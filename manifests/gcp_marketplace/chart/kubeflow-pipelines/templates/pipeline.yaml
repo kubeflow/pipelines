@@ -519,6 +519,10 @@ spec:
           image: {{ .Values.images.persistenceagent }}
           imagePullPolicy: IfNotPresent
           name: ml-pipeline-persistenceagent
+          resources:
+            requests:
+              cpu: 120m
+              memory: 2Gi
       serviceAccountName: ml-pipeline-persistenceagent
 ---
 apiVersion: apps/v1
@@ -603,6 +607,10 @@ spec:
             initialDelaySeconds: 3
             periodSeconds: 5
             timeoutSeconds: 2
+          resources:
+            requests:
+              cpu: 10m
+              memory: 70Mi
       serviceAccountName: ml-pipeline-ui
 ---
 apiVersion: apps/v1
@@ -783,6 +791,10 @@ spec:
             initialDelaySeconds: 3
             periodSeconds: 5
             timeoutSeconds: 2
+          resources:
+            requests:
+              cpu: '2'
+              memory: 4Gi
       serviceAccountName: ml-pipeline
 ---
 apiVersion: v1
