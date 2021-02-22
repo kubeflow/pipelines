@@ -127,6 +127,47 @@ def _get_subgroup(
 
 
 class LocalClient:
+    class ExecutionMode:
+        """Configuration to decide whether the client executes a component in docker or
+        in local process.
+        """
+
+        DOCKER = "docker"
+        LOCAL = "local"
+
+        def __init__(
+            self,
+            mode: str = DOCKER,
+            images_to_exclude: List[str] = [],
+            ops_to_exclude: List[str] = [],
+        ) -> None:
+            """Constructor
+
+            Args:
+                mode: Default execution mode, default 'docker'
+                images_to_exclude: If the image of op is in images_to_exclude, the op is
+                    executed in the mode different from default_mode.
+                ops_to_exclude: If the name of op is in ops_to_exclude, the op is
+                    executed in the mode different from default_mode.
+            """
+            if mode not in [self.DOCKER, self.LOCAL]:
+                raise Exception("Invalid execution mode, must be docker of local")
+            self._mode = mode
+            self._images_to_exclude = images_to_exclude
+            self._ops_to_exclude = ops_to_exclude
+
+        @property
+        def mode(self):
+            return self._mode
+
+        @property
+        def images_to_exclude(self):
+            return self._images_to_exclude
+
+        @property
+        def ops_to_exclude(self):
+            return self._ops_to_exclude
+
     def __init__(self, pipeline_root: str = "/tmp") -> None:
         """Construct the instance of LocalClient
 
@@ -316,7 +357,7 @@ class LocalClient:
         pipeline_dag: _Dag,
         current_group: dsl.OpsGroup,
         stack: Dict[str, Any],
-        local_env_images: List[str] = None,
+        execution_mode: ExecutionMode,
     ):
         """Run ops in current group in topological order
 
@@ -325,10 +366,8 @@ class LocalClient:
             pipeline_dag: DAG of pipeline ops
             current_group: current ops group
             stack: stack to trace `LoopArguments`
-            local_env_images: list of images
-                If the image of component equals to one of `local_env_images`, local runner will run
-                this component locally in forked process, otherwise, local runner will run this
-                component on docker.
+            execution_mode: Configuration to decide whether the client executes
+                component in docker or in local process.
         """
         group_dag = self._create_group_dag(pipeline_dag, current_group)
 
@@ -336,13 +375,21 @@ class LocalClient:
             subgroup = _get_subgroup(current_group.groups, node)
             if subgroup is not None:  # Node of DAG is subgroup
                 self._run_group(
-                    run_name, pipeline, pipeline_dag, subgroup, stack, local_env_images
+                    run_name, pipeline, pipeline_dag, subgroup, stack, execution_mode
                 )
             else:  # Node of DAG is op
                 op = _get_op(current_group.ops, node)
 
-                local_env_images = local_env_images if local_env_images else []
-                can_run_locally = op.image in local_env_images
+                execution_mode = (
+                    execution_mode if execution_mode else LocalClient.ExecutionMode()
+                )
+                can_run_locally = execution_mode.mode == LocalClient.ExecutionMode.LOCAL
+                exclude = (
+                    op.image in execution_mode.images_to_exclude
+                    or op.name in execution_mode.ops_to_exclude
+                )
+                if exclude:
+                    can_run_locally = not can_run_locally
 
                 if can_run_locally:
                     cmd = self._generate_cmd_for_subprocess_execution(
@@ -377,7 +424,7 @@ class LocalClient:
         pipeline_dag: _Dag,
         current_group: dsl.OpsGroup,
         stack: Dict[str, Any],
-        local_env_images: List[str] = None,
+        execution_mode: ExecutionMode,
     ):
         """Run all ops in current group
 
@@ -387,10 +434,8 @@ class LocalClient:
             pipeline_dag: DAG of pipeline ops
             current_group: current ops group
             stack: stack to trace `LoopArguments`
-            local_env_images: list of images
-                If the image of component equals to one of `local_env_images`, local runner will run
-                this component locally in forked process, otherwise, local runner will run this
-                component on docker.
+            execution_mode: Configuration to decide whether the client executes
+                component in docker or in local process.
         """
         if current_group.type == dsl.ParallelFor.TYPE_NAME:
             current_group = cast(dsl.ParallelFor, current_group)
@@ -421,32 +466,30 @@ class LocalClient:
                         pipeline_dag,
                         current_group,
                         stack,
-                        local_env_images,
+                        execution_mode,
                     )
                     del stack[_loop_args.pattern]
             else:
                 raise Exception("Not implemented")
         else:
             self._run_group_dag(
-                run_name, pipeline, pipeline_dag, current_group, stack, local_env_images
+                run_name, pipeline, pipeline_dag, current_group, stack, execution_mode
             )
 
     def create_run_from_pipeline_func(
         self,
         pipeline_func: Callable,
         arguments: Mapping[str, str],
-        local_env_images: List[str] = None,
+        execution_mode: ExecutionMode = ExecutionMode(),
     ):
         """Runs a pipeline locally, either using Docker or in a local process.
 
         Parameters:
           pipeline_func: pipeline function
-          arguments: Arguments to the pipeline function provided as a dict,
-          reference to `kfp.client.create_run_from_pipeline_func`
-          local_env_images: list of images
-            If the image of component equals to one of `local_env_images`, local runner will run
-            this component locally in forked process, otherwise, local runner will run this
-            component on docker.
+          arguments: Arguments to the pipeline function provided as a dict, reference
+              to `kfp.client.create_run_from_pipeline_func`
+          execution_mode: Configuration to decide whether the client executes component
+              in docker or in local process.
         """
 
         class RunPipelineResult:
@@ -477,7 +520,7 @@ class LocalClient:
 
         pipeline_dag = self._create_op_dag(pipeline)
         self._run_group(
-            run_name, pipeline, pipeline_dag, pipeline.groups[0], {}, local_env_images
+            run_name, pipeline, pipeline_dag, pipeline.groups[0], {}, execution_mode
         )
 
         return RunPipelineResult(self, pipeline, run_name)

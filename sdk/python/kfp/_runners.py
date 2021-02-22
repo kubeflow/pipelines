@@ -61,7 +61,7 @@ def run_pipeline_func_locally(
     pipeline_func: Callable,
     arguments: Mapping[str, str],
     local_client: LocalClient = None,
-    local_env_images: List[str] = None,
+    execution_mode: LocalClient.ExecutionMode = LocalClient.ExecutionMode(),
 ):
     """Runs a pipeline locally, either using Docker or in a local process.
 
@@ -85,12 +85,10 @@ def run_pipeline_func_locally(
       arguments: Arguments to the pipeline function provided as a dict.
         reference to `kfp.client.create_run_from_pipeline_func`
       local_client: Optional. An instance of kfp.LocalClient
-      local_env_images: list of images
-        If the image of component equals to one of `local_env_images`, local runner will run
-        this component locally in forked process, otherwise, local runner will run this
-        component on docker.
+      execution_mode: Configuration to decide whether the client executes component
+        in docker or in local process.
     """
     local_client = local_client or LocalClient()
     return local_client.create_run_from_pipeline_func(
-        pipeline_func, arguments, local_env_images
+        pipeline_func, arguments, execution_mode=execution_mode
     )

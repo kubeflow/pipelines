@@ -16,7 +16,7 @@ import unittest
 from typing import Callable
 
 import kfp
-from kfp import run_pipeline_func_locally
+from kfp import LocalClient, run_pipeline_func_locally
 
 InputPath = kfp.components.InputPath()
 OutputPath = kfp.components.OutputPath()
@@ -101,7 +101,9 @@ class LocalRunnerTest(unittest.TestCase):
             hello(name)
 
         run_pipeline_func_locally(
-            _pipeline, {"name": "world"}, local_env_images=[BASE_IMAGE]
+            _pipeline,
+            {"name": "world"},
+            execution_mode=LocalClient.ExecutionMode("local"),
         )
 
     def test_local_file(self):
@@ -109,7 +111,9 @@ class LocalRunnerTest(unittest.TestCase):
             local_loader(file_path)
 
         run_result = run_pipeline_func_locally(
-            _pipeline, {"file_path": self.temp_file.name}, local_env_images=[BASE_IMAGE]
+            _pipeline,
+            {"file_path": self.temp_file.name},
+            execution_mode=LocalClient.ExecutionMode("local"),
         )
         output_file_path = run_result.get_output_file("local-loader")
 
@@ -126,7 +130,9 @@ class LocalRunnerTest(unittest.TestCase):
             with kfp.dsl.Condition(_flip.output == "tail"):
                 hello("tail")
 
-        run_pipeline_func_locally(_pipeline, {}, local_env_images=[BASE_IMAGE])
+        run_pipeline_func_locally(
+            _pipeline, {}, execution_mode=LocalClient.ExecutionMode("local")
+        )
 
     def test_for(self):
         @light_component()
@@ -138,7 +144,9 @@ class LocalRunnerTest(unittest.TestCase):
             with kfp.dsl.ParallelFor(list().output) as item:
                 cat(item)
 
-        run_pipeline_func_locally(_pipeline, {}, local_env_images=[BASE_IMAGE])
+        run_pipeline_func_locally(
+            _pipeline, {}, execution_mode=LocalClient.ExecutionMode("local")
+        )
 
     def test_connect(self):
         def _pipeline():
@@ -146,7 +154,7 @@ class LocalRunnerTest(unittest.TestCase):
             component_connect_demo(_local_loader.output)
 
         run_result = run_pipeline_func_locally(
-            _pipeline, {}, local_env_images=[BASE_IMAGE]
+            _pipeline, {}, execution_mode=LocalClient.ExecutionMode("local")
         )
         output_file_path = run_result.get_output_file("component-connect-demo")
 
@@ -168,4 +176,38 @@ class LocalRunnerTest(unittest.TestCase):
             _echo = echo()
             component_connect_demo(_echo.output)
 
-        run_pipeline_func_locally(_pipeline, {}, local_env_images=[BASE_IMAGE])
+        run_pipeline_func_locally(
+            _pipeline, {}, execution_mode=LocalClient.ExecutionMode("local")
+        )
+
+    def test_execution_mode_exclude_op(self):
+        @light_component(base_image="image_not_exist")
+        def cat_on_image_not_exist(name: str, dst: OutputPath):
+            with open(dst, "w") as f:
+                f.write(name)
+
+        def _pipeline():
+            cat_on_image_not_exist("exclude ops")
+
+        run_result = run_pipeline_func_locally(
+            _pipeline,
+            {},
+            execution_mode=LocalClient.ExecutionMode(mode="docker"),
+        )
+        output_file_path = run_result.get_output_file("cat-on-image-not-exist")
+        import os
+
+        assert not os.path.exists(output_file_path)
+
+        run_result = run_pipeline_func_locally(
+            _pipeline,
+            {},
+            execution_mode=LocalClient.ExecutionMode(
+                mode="docker", ops_to_exclude=["cat-on-image-not-exist"]
+            ),
+        )
+        output_file_path = run_result.get_output_file("cat-on-image-not-exist")
+
+        with open(output_file_path, "r") as f:
+            line = f.readline()
+            assert "exclude ops" in line
