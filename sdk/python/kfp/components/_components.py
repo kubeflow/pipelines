@@ -196,7 +196,11 @@ def _generate_output_file_name(port_name):
 
 # Placeholder to represent the output directory hosting all the generated URIs.
 # Its actual value will be specified during pipeline compilation.
-OUTPUT_DIR_PLACEHOLDER = '{{kfp.output_dir}}'
+# The format of OUTPUT_DIR_PLACEHOLDER is serialized dsl.PipelineParam, to
+# ensure being extracted as a pipeline parameter during compilation.
+# Note that we cannot direclty import dsl module here due to circular
+# dependencies.
+OUTPUT_DIR_PLACEHOLDER = '{{pipelineparam:op=;name=pipeline-output-directory}}'
 # Placeholder to represent to UID of the current pipeline at runtime.
 # Will be replaced by engine-specific placeholder during compilation.
 RUN_ID_PLACEHOLDER = '{{kfp.run_uid}}'

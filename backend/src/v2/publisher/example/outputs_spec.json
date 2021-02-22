@@ -1,0 +1,14 @@
+{
+  "parameters": {
+    "output_value": {
+      "type": "STRING"
+    }
+  },
+  "artifacts": {
+    "output_artifact": {
+      "artifactType": {
+        "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+      }
+    }
+  }
+}

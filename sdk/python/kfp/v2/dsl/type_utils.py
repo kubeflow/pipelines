@@ -41,6 +41,14 @@ _PARAMETER_TYPES_MAPPING = {
     'text': pipeline_spec_pb2.PrimitiveType.STRING,
 }
 
+# Mapping primitive types to their IR message field names.
+# This is used in constructing condition strings.
+_PARAMETER_TYPES_VALUE_REFERENCE_MAPPING = {
+    pipeline_spec_pb2.PrimitiveType.INT: 'int_value',
+    pipeline_spec_pb2.PrimitiveType.DOUBLE: 'double_value',
+    pipeline_spec_pb2.PrimitiveType.STRING: 'string_value',
+}
+
 
 def is_parameter_type(type_name: Optional[str]) -> bool:
   """Check if a ComponentSpec I/O type is considered as a parameter type.
@@ -87,6 +95,24 @@ def get_parameter_type(
     AttributeError: if type_name is not a string type.
   """
   return _PARAMETER_TYPES_MAPPING.get(type_name.lower())
+
+
+def get_parameter_type_field_name(type_name: Optional[str]) -> str:
+  """Get the IR field name for the given primitive type.
+
+  For example: 'str' -> 'string_value', 'double' -> 'double_value', etc.
+
+  Args:
+    type_name: type name of the ComponentSpec I/O primitive type.
+
+  Returns:
+    The IR value reference field name.
+
+  Raises:
+    AttributeError: if type_name is not a string type.
+  """
+  return _PARAMETER_TYPES_VALUE_REFERENCE_MAPPING.get(
+      get_parameter_type(type_name))
 
 
 def get_input_artifact_type_schema(
