@@ -39,7 +39,7 @@ from tfx.proto import trainer_pb2
 # or a module file baked in the docker image used by the pipeline.
 _taxi_module_file_param = data_types.RuntimeParameter(
     name='module-file',
-    default='/tfx-src/tfx/examples/chicago_taxi_pipeline/taxi_utils.py',
+    default='/tfx/src/tfx/examples/chicago_taxi_pipeline/taxi_utils.py',
     ptype=Text,
 )
 
