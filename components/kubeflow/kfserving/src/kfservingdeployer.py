@@ -431,17 +431,10 @@ if __name__ == "__main__":
         print(
             model_status["status"]["address"]["url"] + " is the knative domain."
         )
-        print("Sample test commands: ")
-        print(
-            "# Note: If Istio Ingress gateway is not served with LoadBalancer, use $CLUSTER_NODE_IP:31380 as the ISTIO_INGRESS_ENDPOINT"
-        )
-        print(
-            "ISTIO_INGRESS_ENDPOINT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')"
-        )
+       
         print("Sample test commands: \n")
         # model_status['status']['url'] is like http://flowers-sample.kubeflow.example.com/v1/models/flowers-sample
 
-        host, path = url.sub("", model_status["status"]["address"]["url"]).split("/", 1)
         print(
             "curl -v -X GET %s" % model_status["status"]["address"]["url"]
         )
