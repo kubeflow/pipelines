@@ -14,6 +14,10 @@ def get_current_namespace():
     return current_namespace
 
 
+pytorchjob_launcher_op = components.load_component_from_file("./component.yaml")
+# pytorchjob_launcher_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/kubeflow/pytorch-launcher/component.yaml')
+
+
 @dsl.pipeline(
     name="Launch kubeflow pytorchjob",
     description="An example to launch pytorch."
@@ -23,11 +27,8 @@ def mnist_train(
         namespace: str=get_current_namespace(),
         worker_replicas: int=3,
         ttl_seconds_after_finished: int=-1,
-        job_timeout_minutes: int=60,
+        job_timeout_minutes: int=600,
         delete_after_done: bool=False):
-    pytorchjob_launcher_op = components.load_component_from_file("./component.yaml")
-    # pytorchjob_launcher_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/kubeflow/pytorch-launcher/component.yaml')
-
     # Define the master and worker definitions by dict.
     # These can also be defined using the kubeflow-pytorchjob API
     master = {
@@ -35,51 +36,65 @@ def mnist_train(
         "restartPolicy": "OnFailure",
         "template": {
             "metadata": {
-            "annotations": {
-                # See https://github.com/kubeflow/website/issues/2011
-                "sidecar.istio.io/inject": "false"  
-            }
+                "annotations": {
+                    # See https://github.com/kubeflow/website/issues/2011
+                    "sidecar.istio.io/inject": "false"
+                }
             },
             "spec": {
-            "containers": [
-                {
-                # To override default command
-                # "command": [
-                #   "python",
-                #   "/opt/mnist/src/mnist.py"
-                # ],
-                "args": [
-                    "--backend", "gloo",
+                "containers": [
+                    {
+                    # To override default command
+                    # "command": [
+                    #   "python",
+                    #   "/opt/mnist/src/mnist.py"
+                    # ],
+                    "args": [
+                        "--backend", "gloo",
+                    ],
+                    # DEBUG
+                    "image": "k8scc01covidacr.azurecr.io/kubeflow-examples/pytorch-dist-mnist:v20180702-a57993c",
+                    # "image": "gcr.io/kubeflow-examples/pytorch-dist-mnist:v20180702-a57993c",
+                    "name": "pytorch",
+                    "resources": {
+                        "requests": {
+                            "memory": "4Gi",
+                            "cpu": "2000m",
+                        },
+                        "limits": {
+                            "memory": "4Gi",
+                            "cpu": "2000m",
+                        },
+                    },
+                    # If using GPUs
+                    # "resources": {
+                    #   "limits": {
+                    #     "nvidia.com/gpu": 1,
+                    #   }
+                    # }
+                    }
                 ],
-                "image": "k8scc01covidacr.azurecr.io/kubeflow-examples/pytorch-dist-mnist:v20180702-a57993c",
-                # "image": "gcr.io/kubeflow-examples/pytorch-dist-mnist:v20180702-a57993c",
-                "name": "pytorch",
-                # If using GPUs
-                # "resources": {
-                #   "limits": {
-                #     "nvidia.com/gpu": 1,
-                #   }
-                # }
-                }
-            ],
-            # DEBUG
-            # If imagePullSecrets required
-            "imagePullSecrets": [
-                {"name": "image-pull-secret"},
-            ],
+                # DEBUG
+                # If imagePullSecrets required
+                "imagePullSecrets": [
+                    {"name": "image-pull-secret"},
+                ],
             },
         },
     }
-    worker = {}
-    if worker_replicas > 0:
-        worker = copy.deepcopy(master)
-        worker['replicas'] = worker_replicas
 
+    # You could have a worker spec that is different from master
+    # (maybe master needs a PVC for saving results)
+    # This does not handle replicas==0.  Would need if statement at kfp
+    # runtime to handle that (doing 'if worker_replicas > 0' here does
+    # not work)
+    worker = copy.deepcopy(master)
+    worker['replicas'] = worker_replicas
+
+    # Launch and monitor the job with the launcher
     pytorchjob_launcher_op(
-        # Note: name needs to be a unique pytorchjob name in the namespace, so
-        # if we ran this component twice in the same workflow we'd have a name
-        # collision. Likely better to have unique ID here (base it on the
-        # runid or similar)
+        # Note: name needs to be a unique pytorchjob name in the namespace.
+        # Using RUN_ID_PLACEHOLDER is one way of getting something unique.
         name=f"name-{kfp.dsl.RUN_ID_PLACEHOLDER}",
         namespace=namespace,
         master_spec=master,
@@ -98,12 +113,14 @@ def mnist_train(
 if __name__ == "__main__":
     import kfp.compiler as compiler
     pipeline_file = __file__ + ".tar.gz"
+    print(f"Compiling pipeline as {pipeline_file}")
     compiler.Compiler().compile(mnist_train, pipeline_file)
 
-    # To run:
+#     # To run:
 #     client = kfp.Client()
-#     client.create_run_from_pipeline_package(
+#     run = client.create_run_from_pipeline_package(
 #         pipeline_file,
 #         arguments={},
 #         run_name="test pytorchjob run"
 #     )
+#     print(f"Created run {run}")
