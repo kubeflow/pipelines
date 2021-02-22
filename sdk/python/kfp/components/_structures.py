@@ -212,7 +212,7 @@ class OutputMetadataPlaceholder(ModelBase):  # Non-standard attr names
         'output_metadata': 'outputMetadata',
     }
 
-    def __init__(self, output_metadata: Optional[Any] = None):
+    def __init__(self, output_metadata: type(None) = None):
         if output_metadata:
             raise RuntimeError(
                 'Output metadata placeholder cannot be associated with key')
@@ -235,7 +235,7 @@ class ExecutorInputPlaceholder(ModelBase):  # Non-standard attr names
         'executor_input': 'executorInput',
     }
 
-    def __init__(self, executor_input: Optional[Any] = None):
+    def __init__(self, executor_input: type(None) = None):
         if executor_input:
             raise RuntimeError(
                 'Executor input placeholder cannot be associated with input key'
