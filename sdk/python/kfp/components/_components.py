@@ -210,7 +210,7 @@ PRODUCER_POD_NAME_PARAMETER = '{}-producer-pod-id-'
 # Format of the input output port name placeholder.
 INPUT_OUTPUT_NAME_PATTERN = '{{{{kfp.input-output-name.{}}}}}'
 # Fixed name for per-task output metadata json file.
-OUTPUT_METADATA_JSON = 'executor_output.json'
+OUTPUT_METADATA_JSON = '/tmp/outputs/executor_output.json'
 # Executor input placeholder.
 _EXECUTOR_INPUT_PLACEHOLDER = '{{$}}'
 
@@ -251,11 +251,7 @@ def _generate_input_uri(port_name: str) -> str:
 def _generate_output_metadata_path() -> str:
     """Generates the URI to write the output metadata JSON file."""
 
-    return str(pathlib.PurePosixPath(
-        OUTPUT_DIR_PLACEHOLDER,
-        RUN_ID_PLACEHOLDER,
-        OUTPUT_METADATA_JSON
-    ))
+    return OUTPUT_METADATA_JSON
 
 
 def _generate_input_metadata_path(port_name: str) -> str:

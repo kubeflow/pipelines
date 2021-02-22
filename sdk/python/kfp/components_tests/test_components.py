@@ -1123,7 +1123,7 @@ implementation:
         with self.assertRaises(TypeError):
             b_task = task_factory_b(in1=a_task.outputs['out1'])
 
-    def test_convert_executor_input_placeholder(self):
+    def test_convert_executor_input_and_output_metadata_placeholder(self):
         test_component = textwrap.dedent("""\
         inputs:
           - {name: in1}
@@ -1132,7 +1132,7 @@ implementation:
         implementation:
           container:
             image: busybox
-            command: [echo, {executorInput}]
+            command: [echo, {executorInput}, {outputMetadata}]
         """)
         task_factory = comp.load_component_from_text(test_component)
         task = task_factory(in1='foo')
@@ -1140,7 +1140,9 @@ implementation:
             component_spec=task.component_ref.spec,
             arguments=task.arguments
         )
-        self.assertListEqual(['echo', '{{$}}'], resolved_cmd.command)
+        self.assertListEqual(
+            ['echo', '{{$}}', '/tmp/outputs/executor_output.json'],
+            resolved_cmd.command)
 
     def test_fail_executor_input_with_key(self):
         test_component = textwrap.dedent("""\

@@ -209,10 +209,13 @@ class OutputMetadataPlaceholder(ModelBase):  # Non-standard attr names
     Only supported in v2 components.
     """
     _serialized_names = {
-        'output_name': 'outputMetadata',
+        'output_metadata': 'outputMetadata',
     }
 
-    def __init__(self, output_name):
+    def __init__(self, output_metadata):
+        if output_metadata:
+            raise RuntimeError(
+                'Output metadata placeholder cannot be associated with key')
         super().__init__(locals())
 
 
