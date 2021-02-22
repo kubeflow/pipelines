@@ -408,12 +408,15 @@ class LocalClient:
                 )
                 with open(_altered_list_file, "r") as f:
                     _param_values = json.load(f)
-                for _param_value in _param_values:
+                for index, _param_value in enumerate(_param_values):
                     if isinstance(_param_values, object):
                         _param_value = json.dumps(_param_value)
                     stack[_loop_args.pattern] = _param_value
+                    loop_run_name = "{run_name}/{loop_index}".format(
+                        run_name=run_name, loop_index=index
+                    )
                     self._run_group_dag(
-                        run_name,
+                        loop_run_name,
                         pipeline,
                         pipeline_dag,
                         current_group,

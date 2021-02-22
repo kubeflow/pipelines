@@ -129,9 +129,14 @@ class LocalRunnerTest(unittest.TestCase):
         run_pipeline_func_locally(_pipeline, {}, local_env_images=[BASE_IMAGE])
 
     def test_for(self):
+        @light_component()
+        def cat(item, dst: OutputPath):
+            with open(dst, "w") as f:
+                f.write(item)
+
         def _pipeline():
             with kfp.dsl.ParallelFor(list().output) as item:
-                hello(item)
+                cat(item)
 
         run_pipeline_func_locally(_pipeline, {}, local_env_images=[BASE_IMAGE])
 
