@@ -51,7 +51,8 @@ def mnist_train(
                 "args": [
                     "--backend", "gloo",
                 ],
-                "image": "gcr.io/kubeflow-examples/pytorch-dist-mnist:v20180702-a57993c",
+                "image": "k8scc01covidacr.azurecr.io/kubeflow-examples/pytorch-dist-mnist:v20180702-a57993c",
+                # "image": "gcr.io/kubeflow-examples/pytorch-dist-mnist:v20180702-a57993c",
                 "name": "pytorch",
                 # If using GPUs
                 # "resources": {

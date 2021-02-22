@@ -40,9 +40,10 @@ class V1PyTorchJobSpec(V1PyTorchJobSpec_original):
         self.openapi_types = self.swagger_types
 
 
-def main(argv=None):
+def get_arg_parser():
     parser = argparse.ArgumentParser(description='Kubeflow Job launcher')
     parser.add_argument('--name', type=str,
+                        default="pytorchjob",
                         help='Job name.')
     parser.add_argument('--namespace', type=str,
                         default=get_current_namespace(),
@@ -62,7 +63,6 @@ def main(argv=None):
     parser.add_argument('--ttlSecondsAfterFinished', type=int,
                         default=None,
                         help='Defines the TTL for cleaning up finished Jobs.')
-    # TODO: Add k8s_client.ApiClient().sanitize_for_serialization(obj) to convert k8s api objects to k8s yaml
     parser.add_argument('--masterSpec', type=yamlOrJsonStr,
                         default={},
                         help='Job master replicaSpecs.')
@@ -86,11 +86,13 @@ def main(argv=None):
     parser.add_argument('--kind', type=str,
                         default='PyTorchJob',
                         help='CRD kind.')
-    
-    args = parser.parse_args()
+    return parser
 
+
+def main(args):
     logging.getLogger(__name__).setLevel(logging.INFO)
-
+    print(args)
+    return
     logging.info('Generating job template.')
 
     jobSpec = V1PyTorchJobSpec(
@@ -137,4 +139,6 @@ def main(argv=None):
         launcher_client.delete(args.name, args.namespace)
 
 if __name__== "__main__":
-    main()
+    parser = get_arg_parser()
+    args = parser.parse_args()
+    main(args)

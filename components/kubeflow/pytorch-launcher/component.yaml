@@ -14,7 +14,7 @@ inputs:
 - {name: delete_after_done,          type: Boolean,     default: 'True' ,   description: 'Whether to delete the job after it is finished.'}
 implementation:
   container:
-    image: cascribner/kubeflow-pytorchjob-launcher:latest
+    image: k8scc01covidacr.azurecr.io/kubeflow-pytorchjob-launcher:latest
     command: [python, /ml/launch_pytorchjob.py]
     args: [
       --name,                     {inputValue: name},
