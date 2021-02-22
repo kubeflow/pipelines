@@ -224,8 +224,15 @@ class ExecutorInputPlaceholder(ModelBase):  # Non-standard attr names
     proto message at runtime, which includes parameters of the task, artifact
     URIs and metadata.
     """
+    _serialized_names = {
+        'executor_input': 'executorInput',
+    }
 
-    def __init__(self):
+    def __init__(self, executor_input):
+        if executor_input:
+            raise RuntimeError(
+                'Executor input placeholder cannot be associated with input key'
+                '. Got %s' % executor_input)
         super().__init__(locals())
 
 
@@ -381,7 +388,8 @@ class ComponentSpec(ModelBase):
                 if arg is None:
                     pass
                 elif isinstance(
-                    arg, (str, int, float, bool, OutputMetadataPlaceholder)):
+                    arg, (str, int, float, bool,
+                          OutputMetadataPlaceholder, ExecutorInputPlaceholder)):
                     pass
                 elif isinstance(arg, list):
                     for arg2 in arg:
