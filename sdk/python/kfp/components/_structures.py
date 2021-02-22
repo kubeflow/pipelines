@@ -24,6 +24,7 @@ __all__ = [
     'InputMetadataPlaceholder',
     'InputOutputPortNamePlaceholder',
     'OutputMetadataPlaceholder',
+    'ExecutorInputPlaceholder',
     'ConcatPlaceholder',
     'IsPresentPlaceholder',
     'IfPlaceholderStructure',
