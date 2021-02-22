@@ -23,7 +23,6 @@ class ProcessComponentTestCase(unittest.TestCase):
             self.REQUIRED_ARGS + ["--job_name", "job-name"]
         )
         unnamed_spec = SageMakerProcessSpec(self.REQUIRED_ARGS)
-
         self.component.Do(named_spec)
         self.assertEqual("job-name", self.component._processing_job_name)
 
@@ -33,6 +32,13 @@ class ProcessComponentTestCase(unittest.TestCase):
         ):
             self.component.Do(unnamed_spec)
             self.assertEqual("unique", self.component._processing_job_name)
+
+    @patch("common.sagemaker_component.SageMakerComponent._print_cloudwatch_logs")
+    def test_cw_logs(self, mocked_super_component):
+        self.component._print_logs_for_job()
+        self.component._print_cloudwatch_logs.assert_called_once_with(
+            "/aws/sagemaker/ProcessingJobs", self.component._processing_job_name
+        )
 
     def test_create_process_job(self):
         spec = SageMakerProcessSpec(self.REQUIRED_ARGS)
