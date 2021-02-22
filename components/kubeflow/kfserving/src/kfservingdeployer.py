@@ -443,7 +443,7 @@ if __name__ == "__main__":
 
         host, path = url.sub("", model_status["status"]["address"]["url"]).split("/", 1)
         print(
-            'curl -X GET -H "Host: ' + host + '" http://$ISTIO_INGRESS_ENDPOINT/' + path
+            "curl -v -X GET %s" % model_status["status"]["address"]["url"]
         )
 
         print("\nIf the above URL is not accessible, it's recommended to setup Knative with a configured DNS.\n"\
