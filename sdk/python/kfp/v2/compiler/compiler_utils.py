@@ -79,21 +79,19 @@ def validate_pipeline_name(name: str) -> None:
                      'expression "^[a-z0-9][a-z0-9-]{0,127}$" using '
                      '`dsl.pipeline(name=...)` decorator.' % name)
 
+
 def is_v2_component(op: _container_op.ContainerOp) -> bool:
   """Determines whether a component is a KFP v2 component."""
   if not op._metadata or not op._metadata.metadata:
     return False
-  if not (op._metadata.metadata.annotations
-          or _component_builder.V2_COMPONENT_ANNOTATION
-          not in op._metadata.metadata.annotations):
+  if not (op._metadata.metadata.annotations or _component_builder
+          .V2_COMPONENT_ANNOTATION not in op._metadata.metadata.annotations):
     return False
-  return bool(
-      op._metadata.metadata.annotations[
-        _component_builder.V2_COMPONENT_ANNOTATION])
+  return bool(op._metadata.metadata.annotations[
+      _component_builder.V2_COMPONENT_ANNOTATION])
 
 
-def refactor_v2_container_spec(
-    container_spec: PipelineContainerSpec) -> None:
+def refactor_v2_container_spec(container_spec: PipelineContainerSpec) -> None:
   """Refactor the container spec for a v2 component."""
   if not '--function_name' in container_spec.args:
     raise RuntimeError('V2 component is expected to have function_name as a '
@@ -104,4 +102,4 @@ def refactor_v2_container_spec(
   container_spec.ClearField('args')
   container_spec.command.extend(['python', '-m', 'kfp.container.entrypoint'])
   container_spec.args.extend(
-      ['--executor_input_str','{{$}}', '--function_name', fn_name])
+      ['--executor_input_str', '{{$}}', '--function_name', fn_name])

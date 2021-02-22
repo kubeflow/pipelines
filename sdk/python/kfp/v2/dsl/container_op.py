@@ -217,23 +217,3 @@ class ContainerOp(dsl.ContainerOp):
                        '{}'.format(count))
     self.container_spec.resources.accelerator.count = count
     return self
-
-  # Override _set_metadata to use v2 ComponentSpec
-  def _set_metadata(self, metadata: structures.ComponentSpec):
-    """Passes the ContainerOp the metadata information and configures the output.
-
-    Args:
-      metadata (ComponentSpec): component metadata
-    """
-    if not isinstance(metadata, structures.ComponentSpec):
-      raise TypeError('_set_metadata is expecting ComponentSpec.')
-
-    self._metadata = metadata
-
-    if self.file_outputs:
-      for output in self.file_outputs.keys():
-        output_type = self.outputs[output].param_type
-        for output_meta in self._metadata.outputs:
-          if output_meta.name == output:
-            output_type = output_meta.type
-        self.outputs[output].param_type = output_type

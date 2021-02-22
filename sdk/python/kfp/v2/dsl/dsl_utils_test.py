@@ -32,6 +32,13 @@ class DslUtilsTest(unittest.TestCase):
     self.assertEqual('task-my-component-1',
                      dsl_utils.sanitize_task_name('My component 1'))
 
+  def test_remove_task_name_prefix(self):
+    self.assertEqual('my-component',
+                     dsl_utils.remove_task_name_prefix('task-my-component'))
+
+    with self.assertRaises(AssertionError):
+      dsl_utils.remove_task_name_prefix('my-component')
+
 
 if __name__ == '__main__':
   unittest.main()

@@ -1,0 +1,144 @@
+{
+  "pipelineSpec": {
+    "components": {
+      "comp-print-op": {
+        "inputDefinitions": {
+          "parameters": {
+            "s": {
+              "type": "DOUBLE"
+            }
+          }
+        },
+        "executorLabel": "exec-print-op"
+      },
+      "comp-for-loop-1": {
+        "dag": {
+          "tasks": {
+            "task-print-op": {
+              "inputs": {
+                "parameters": {
+                  "args-generator-op-Output": {
+                    "componentInputParameter": "args-generator-op-Output"
+                  }
+                }
+              },
+              "parameterIterator": {
+                "itemInput": "s",
+                "items": {
+                  "inputParameter": "args-generator-op-Output"
+                }
+              },
+              "taskInfo": {
+                "name": "task-print-op"
+              },
+              "componentRef": {
+                "name": "comp-print-op"
+              }
+            }
+          }
+        },
+        "inputDefinitions": {
+          "parameters": {
+            "args-generator-op-Output": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-args-generator-op": {
+        "outputDefinitions": {
+          "parameters": {
+            "Output": {
+              "type": "STRING"
+            }
+          }
+        },
+        "executorLabel": "exec-args-generator-op"
+      }
+    },
+    "pipelineInfo": {
+      "name": "pipeline-with-loop-output"
+    },
+    "schemaVersion": "2.0.0",
+    "deploymentSpec": {
+      "executors": {
+        "exec-args-generator-op": {
+          "container": {
+            "image": "python:3.7",
+            "args": [
+              "----output-paths",
+              "{{$.outputs.parameters['Output'].output_file}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def args_generator_op():\n  return '[1.1, 1.2, 1.3]'\n\ndef _serialize_str(str_value: str) -> str:\n    if not isinstance(str_value, str):\n        raise TypeError('Value \"{}\" has type \"{}\" instead of str.'.format(str(str_value), str(type(str_value))))\n    return str_value\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Args generator op', description='')\n_parser.add_argument(\"----output-paths\", dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = args_generator_op(**_parsed_args)\n\n_outputs = [_outputs]\n\n_output_serializers = [\n    _serialize_str,\n\n]\n\nimport os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except OSError:\n        pass\n    with open(output_file, 'w') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"
+            ]
+          }
+        },
+        "exec-print-op": {
+          "container": {
+            "image": "python:3.7",
+            "args": [
+              "--s",
+              "{{$.inputs.parameters['s']}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def print_op(s):\n  print(s)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Print op', description='')\n_parser.add_argument(\"--s\", dest=\"s\", type=float, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = print_op(**_parsed_args)\n"
+            ]
+          }
+        }
+      }
+    },
+    "root": {
+      "inputDefinitions": {
+        "parameters": {
+          "args-generator-op-Output": {
+            "type": "STRING"
+          }
+        }
+      },
+      "dag": {
+        "tasks": {
+          "task-for-loop-1": {
+            "componentRef": {
+              "name": "comp-for-loop-1"
+            },
+            "taskInfo": {
+              "name": "task-for-loop-1"
+            },
+            "dependentTasks": [
+              "task-args-generator-op"
+            ],
+            "inputs": {
+              "parameters": {
+                "args-generator-op-Output": {
+                  "taskOutputParameter": {
+                    "outputParameterKey": "Output",
+                    "producerTask": "task-args-generator-op"
+                  }
+                }
+              }
+            }
+          },
+          "task-args-generator-op": {
+            "componentRef": {
+              "name": "comp-args-generator-op"
+            },
+            "taskInfo": {
+              "name": "task-args-generator-op"
+            }
+          }
+        }
+      }
+    },
+    "sdkVersion": "kfp-1.4.0"
+  },
+  "runtimeConfig": {
+    "gcsOutputDirectory": "dummy_root"
+  }
+}

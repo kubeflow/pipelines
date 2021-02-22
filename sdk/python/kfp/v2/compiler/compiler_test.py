@@ -120,28 +120,6 @@ class CompilerTest(unittest.TestCase):
           pipeline_root='dummy_root',
           output_path='output.json')
 
-  def test_compile_pipeline_with_dsl_parallelfor_should_raise_error(self):
-
-    @components.create_component_from_func
-    def print_op(s: str):
-      print(s)
-
-    @dsl.pipeline()
-    def my_pipeline():
-      loop_args = [{'A_a': 1, 'B_b': 2}, {'A_a': 10, 'B_b': 20}]
-      with dsl.ParallelFor(loop_args, parallelism=10) as item:
-        print_op(item)
-        print_op(item.A_a)
-        print_op(item.B_b)
-
-    with self.assertRaisesRegex(
-        NotImplementedError,
-        'dsl.ParallelFor is not yet supported in KFP v2 compiler.'):
-      compiler.Compiler().compile(
-          pipeline_func=my_pipeline,
-          pipeline_root='dummy_root',
-          output_path='output.json')
-
   def test_compile_pipeline_with_dsl_graph_component_should_raise_error(self):
 
     with self.assertRaisesRegex(

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from typing import Optional, Union
+import warnings
 
 from kfp.dsl import _container_op
 from kfp.dsl import _for_loop
@@ -165,11 +166,49 @@ class ExitHandler(OpsGroup):
 
 
 class ParallelFor(OpsGroup):
-  """Represents a parallel for loop over a static set of items."""
+  """Represents a parallel for loop over a static set of items.
+
+  Example:
+    In this case :code:`op1` would be executed twice, once with case
+    :code:`args=['echo 1']` and once with case :code:`args=['echo 2']`::
+
+      with dsl.ParallelFor([{'a': 1, 'b': 10}, {'a': 2, 'b': 20}]) as item:
+        op1 = ContainerOp(..., args=['echo {}'.format(item.a)])
+        op2 = ContainerOp(..., args=['echo {}'.format(item.b])
+  """
+  TYPE_NAME = 'for_loop'
 
   def __init__(self,
                loop_args: Union[_for_loop.ItemList,
                                 _pipeline_param.PipelineParam],
-               parallelism: int = None):
-    raise NotImplementedError(
-        'dsl.ParallelFor is not yet supported in KFP v2 compiler.')
+               parallelism: Optional[int] = None):
+
+    if parallelism is not None:
+      warnings.warn('Setting parallelism in ParallelFor is not supported yet.'
+                    'The setting is ignored.')
+
+    if parallelism and parallelism < 1:
+      raise ValueError(
+          'ParallelFor parallism set to < 1, allowed values are > 0')
+
+    self.items_is_pipeline_param = isinstance(loop_args,
+                                              _pipeline_param.PipelineParam)
+
+    super().__init__(self.TYPE_NAME, parallelism=parallelism)
+
+    if self.items_is_pipeline_param:
+      loop_args = _for_loop.LoopArguments.from_pipeline_param(loop_args)
+    elif not self.items_is_pipeline_param and not isinstance(
+        loop_args, _for_loop.LoopArguments):
+      # we were passed a raw list, wrap it in loop args
+      loop_args = _for_loop.LoopArguments(
+          loop_args,
+          code=str(
+              _pipeline.Pipeline.get_default_pipeline().get_next_group_id()),
+      )
+
+    self.loop_args = loop_args
+
+  def __enter__(self) -> _for_loop.LoopArguments:
+    _ = super().__enter__()
+    return self.loop_args

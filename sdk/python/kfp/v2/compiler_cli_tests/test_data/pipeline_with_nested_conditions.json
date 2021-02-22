@@ -71,6 +71,9 @@
             }
           },
           "task-print-msg": {
+            "dependentTasks": [
+              "task-flip-coin"
+            ],
             "inputs": {
               "parameters": {
                 "msg": {
@@ -97,6 +100,9 @@
             }
           },
           "task-print-msg-2": {
+            "dependentTasks": [
+              "task-flip-coin-2"
+            ],
             "inputs": {
               "parameters": {
                 "msg": {
@@ -133,6 +139,9 @@
         "dag": {
           "tasks": {
             "task-print-msg-3": {
+              "dependentTasks": [
+                "task-flip-coin-3"
+              ],
               "inputs": {
                 "parameters": {
                   "msg": {
@@ -151,6 +160,9 @@
               }
             },
             "task-condition-2": {
+              "dependentTasks": [
+                "task-flip-coin-3"
+              ],
               "inputs": {
                 "parameters": {
                   "flip-coin 2-Output": {
@@ -218,6 +230,9 @@
         "dag": {
           "tasks": {
             "task-print-msg-4": {
+              "dependentTasks": [
+                "task-flip-coin-4"
+              ],
               "taskInfo": {
                 "name": "task-print-msg-4"
               },

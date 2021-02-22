@@ -4,6 +4,9 @@
       "dag": {
         "tasks": {
           "task-print-msg": {
+            "dependentTasks": [
+              "task-flip-coin"
+            ],
             "inputs": {
               "parameters": {
                 "msg": {
@@ -86,6 +89,9 @@
         "dag": {
           "tasks": {
             "task-print-msg-2": {
+              "dependentTasks": [
+                "task-flip-coin-2"
+              ],
               "taskInfo": {
                 "name": "task-print-msg-2"
               },
