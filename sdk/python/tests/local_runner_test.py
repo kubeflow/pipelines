@@ -148,3 +148,19 @@ class LocalRunnerTest(unittest.TestCase):
         with open(output_file_path, "r") as f:
             line = f.readline()
             assert "copied" in line
+
+    def test_command_argument_in_any_format(self):
+        def echo():
+            return kfp.dsl.ContainerOp(
+                name="echo",
+                image=BASE_IMAGE,
+                command=["echo", "hello world", ">", "/tmp/outputs/output_file"],
+                arguments=[],
+                file_outputs={"output": "/tmp/outputs/output_file"},
+            )
+
+        def _pipeline():
+            _echo = echo()
+            component_connect_demo(_echo.output)
+
+        run_pipeline_func_locally(_pipeline, {}, local_env_images=[BASE_IMAGE])

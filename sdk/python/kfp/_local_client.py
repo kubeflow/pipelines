@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import datetime
 import json
 import logging
+import os
 import re
 import subprocess
 from collections import deque
-from typing import Any, Callable, Dict, List, Mapping, Tuple, Union, cast
+from typing import Any, Callable, Dict, List, Mapping, Union, cast
 
 from . import dsl
 from .compiler.compiler import sanitize_k8s_name
@@ -112,27 +112,6 @@ def _extract_pipeline_param(param: str) -> dsl.PipelineParam:
     op_dependency_name = matches[0][0]
     output_file_name = matches[0][1]
     return dsl.PipelineParam(output_file_name, op_dependency_name)
-
-
-def _get_keyword_arguments(cmd: List[str]) -> List[Tuple[str, str]]:
-    """ Convert command arguments into list of (keyworkd, argument) tuples. """
-    arg_pairs = []
-    for i in range(len(cmd)):
-        if cmd[i].startswith("--"):
-            arg_pairs.append((cmd[i].strip("--"), cmd[i + 1]))
-
-    return arg_pairs
-
-
-def _replace_file_args(cmd: List[str], file_args: Dict[str, str]) -> str:
-    """ Replace the placeholder of file in cmd with actual file path. """
-    for i in range(len(cmd)):
-        if cmd[i].startswith("--"):
-            arg = cmd[i].strip("--")
-            if arg in file_args:
-                cmd[i + 1] = file_args[arg]
-
-    return cmd
 
 
 def _get_op(ops: List[dsl.ContainerOp], op_name: str) -> Union[dsl.ContainerOp, None]:
@@ -234,7 +213,7 @@ class LocalClient:
         """
         return re.sub(
             "/tmp",
-            "/{pipeline_root}/{run_name}/{op_name}".format(
+            "{pipeline_root}/{run_name}/{op_name}".format(
                 pipeline_root=self._pipeline_root,
                 run_name=run_name,
                 op_name=op_name.lower(),
@@ -277,27 +256,27 @@ class LocalClient:
             if cmd[i] == "-c":
                 cmd[i + 1] = "\n" + cmd[i + 1]
 
-        arg_pairs = _get_keyword_arguments(cmd)
-        fixed_arg_value = {}
-        for arg_name, arg_value in arg_pairs:
-            if arg_value in stack:  # Argument is LoopArguments item
-                arg_value = str(stack[arg_value])
-            elif arg_value in op.file_outputs.values():  # Argument is output file
+        for index, cmd_item in enumerate(cmd):
+            if cmd_item in stack:  # Argument is LoopArguments item
+                cmd[index] = str(stack[cmd_item])
+            elif cmd_item in op.file_outputs.values():  # Argument is output file
                 output_name = next(
-                    filter(lambda item: item[1] == arg_value, op.file_outputs.items())
+                    filter(lambda item: item[1] == cmd_item, op.file_outputs.items())
                 )[0]
                 output_param = op.outputs[output_name]
-                output_file = arg_value
+                output_file = cmd_item
                 output_file = self._make_output_file_path_unique(
                     run_name, output_param.op_name, output_file
                 )
-                arg_value = output_file
+
+                os.makedirs(os.path.dirname(output_file), exist_ok=True)
+                cmd[index] = output_file
             elif (
-                arg_value in op.input_artifact_paths.values()
+                cmd_item in op.input_artifact_paths.values()
             ):  # Argument is input artifact file
                 input_name = next(
                     filter(
-                        lambda item: item[1] == arg_value,
+                        lambda item: item[1] == cmd_item,
                         op.input_artifact_paths.items(),
                     )
                 )[0]
@@ -307,10 +286,8 @@ class LocalClient:
                     run_name, pipeline, pipeline_param.op_name, pipeline_param.name
                 )
 
-                arg_value = input_file
-            fixed_arg_value[arg_name] = arg_value
+                cmd[index] = input_file
 
-        cmd = _replace_file_args(cmd, fixed_arg_value)
         return cmd
 
     def _generate_cmd_for_docker_execution(
@@ -327,7 +304,7 @@ class LocalClient:
             "docker",
             "run",
             "-v",
-            "{pipeline_root}:/tmp".format(pipeline_root=self._pipeline_root),
+            "{pipeline_root}:{pipeline_root}".format(pipeline_root=self._pipeline_root),
             op.image,
         ] + cmd
         return docker_cmd
@@ -375,9 +352,9 @@ class LocalClient:
                     cmd = self._generate_cmd_for_docker_execution(
                         run_name, pipeline, op, stack
                     )
-
                 process = subprocess.Popen(
-                    cmd,
+                    subprocess.list2cmdline(cmd) if "sh" != cmd[0] else cmd,
+                    shell="sh" != cmd[0],
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     universal_newlines=True,
