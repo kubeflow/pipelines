@@ -315,6 +315,15 @@ def build_python_component(
     # TODO: The actual program args will be changed after we support v2
     # component on KFP.
     program_args = []
+
+    # For v2 component, the received command line args are fixed as follows:
+    # --executor_input_str
+    # {Executor input pb message at runtime}
+    # --function_name
+    # {The name of user defined function}
+    # --output_metadata_path
+    # {The place to write output metadata JSON file}
+
     for component_input in component_spec.inputs or []:
       if component_input._passing_style == components.InputArtifact:
         # For each input artifact, there'll be possibly 3 arguments passed to
