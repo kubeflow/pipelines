@@ -212,11 +212,15 @@ class OutputMetadataPlaceholder(ModelBase):  # Non-standard attr names
         'output_metadata': 'outputMetadata',
     }
 
-    def __init__(self, output_metadata):
+    def __init__(self, output_metadata: Optional[Any] = None):
         if output_metadata:
             raise RuntimeError(
                 'Output metadata placeholder cannot be associated with key')
         super().__init__(locals())
+
+    def to_dict(self) -> Mapping[str, Any]:
+        # Override parent implementation. Otherwise it always returns {}.
+        return {'outputMetadata': None}
 
 
 class ExecutorInputPlaceholder(ModelBase):  # Non-standard attr names
@@ -231,12 +235,16 @@ class ExecutorInputPlaceholder(ModelBase):  # Non-standard attr names
         'executor_input': 'executorInput',
     }
 
-    def __init__(self, executor_input):
+    def __init__(self, executor_input: Optional[Any] = None):
         if executor_input:
             raise RuntimeError(
                 'Executor input placeholder cannot be associated with input key'
                 '. Got %s' % executor_input)
         super().__init__(locals())
+
+    def to_dict(self) -> Mapping[str, Any]:
+        # Override parent implementation. Otherwise it always returns {}.
+        return {'executorInput': None}
 
 
 
