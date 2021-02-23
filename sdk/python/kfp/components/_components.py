@@ -210,7 +210,9 @@ PRODUCER_POD_NAME_PARAMETER = '{}-producer-pod-id-'
 # Format of the input output port name placeholder.
 INPUT_OUTPUT_NAME_PATTERN = '{{{{kfp.input-output-name.{}}}}}'
 # Fixed name for per-task output metadata json file.
-OUTPUT_METADATA_JSON = 'executor_output.json'
+OUTPUT_METADATA_JSON = '/tmp/outputs/executor_output.json'
+# Executor input placeholder.
+_EXECUTOR_INPUT_PLACEHOLDER = '{{$}}'
 
 
 def _generate_output_uri(port_name: str) -> str:
@@ -249,11 +251,7 @@ def _generate_input_uri(port_name: str) -> str:
 def _generate_output_metadata_path() -> str:
     """Generates the URI to write the output metadata JSON file."""
 
-    return str(pathlib.PurePosixPath(
-        OUTPUT_DIR_PLACEHOLDER,
-        RUN_ID_PLACEHOLDER,
-        OUTPUT_METADATA_JSON
-    ))
+    return OUTPUT_METADATA_JSON
 
 
 def _generate_input_metadata_path(port_name: str) -> str:
@@ -276,6 +274,11 @@ def _generate_input_output_name(port_name: str) -> str:
     # Return a placeholder for the output port name of the input artifact, which
     # will be rewritten during pipeline compilation.
     return INPUT_OUTPUT_NAME_PATTERN.format(port_name)
+
+
+def _generate_executor_input() -> str:
+    """Generates the placeholder for serialized executor input."""
+    return _EXECUTOR_INPUT_PLACEHOLDER
 
 
 def _react_to_incompatible_reference_type(
@@ -494,6 +497,7 @@ def _resolve_command_line_and_paths(
         [], str] = _generate_output_metadata_path,
     input_output_name_generator: Callable[
         [str], str] = _generate_input_output_name,
+    executor_input_generator: Callable[[], str] = _generate_executor_input,
 ) -> _ResolvedCommandLineAndPaths:
     """Resolves the command line argument placeholders. Also produces the maps of the generated inpuit/output paths."""
     argument_values = arguments
@@ -521,7 +525,8 @@ def _resolve_command_line_and_paths(
             return None
         if isinstance(arg, (str, int, float, bool)):
             return str(arg)
-
+        if isinstance(arg, ExecutorInputPlaceholder):
+            return executor_input_generator()
         if isinstance(arg, InputValuePlaceholder):
             input_name = arg.input_name
             input_spec = inputs_dict[input_name]
