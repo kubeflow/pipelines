@@ -134,7 +134,7 @@ describe('JobList', () => {
               },
               Object {
                 "flex": 1,
-                "label": "Start time",
+                "label": "Created at",
                 "sortKey": "created_at",
               },
             ]
@@ -191,7 +191,7 @@ describe('JobList', () => {
               },
               Object {
                 "flex": 1,
-                "label": "Start time",
+                "label": "Created at",
                 "sortKey": "created_at",
               },
             ]
@@ -272,7 +272,7 @@ describe('JobList', () => {
               },
               Object {
                 "flex": 1,
-                "label": "Start time",
+                "label": "Created at",
                 "sortKey": "created_at",
               },
             ]
@@ -442,7 +442,7 @@ describe('JobList', () => {
               },
               Object {
                 "flex": 1,
-                "label": "Start time",
+                "label": "Created at",
                 "sortKey": "created_at",
               },
             ]
@@ -507,7 +507,7 @@ describe('JobList', () => {
               },
               Object {
                 "flex": 1,
-                "label": "Start time",
+                "label": "Created at",
                 "sortKey": "created_at",
               },
             ]
@@ -576,7 +576,7 @@ describe('JobList', () => {
               },
               Object {
                 "flex": 1,
-                "label": "Start time",
+                "label": "Created at",
                 "sortKey": "created_at",
               },
             ]
@@ -650,7 +650,7 @@ describe('JobList', () => {
               },
               Object {
                 "flex": 1,
-                "label": "Start time",
+                "label": "Created at",
                 "sortKey": "created_at",
               },
             ]
@@ -719,7 +719,7 @@ describe('JobList', () => {
               },
               Object {
                 "flex": 1,
-                "label": "Start time",
+                "label": "Created at",
                 "sortKey": "created_at",
               },
             ]

@@ -83,7 +83,7 @@ class JobList extends React.PureComponent<JobListProps, JobListState> {
       },
       { customRenderer: this._statusCustomRenderer, label: 'Status', flex: 0.5 },
       { customRenderer: this._triggerCustomRenderer, label: 'Trigger', flex: 1 },
-      { label: 'Start time', flex: 1, sortKey: JobSortKeys.CREATED_AT },
+      { label: 'Created at', flex: 1, sortKey: JobSortKeys.CREATED_AT },
     ];
 
     if (!this.props.hideExperimentColumn) {
