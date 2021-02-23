@@ -106,7 +106,47 @@ describe('JobList', () => {
   });
 
   it('renders the empty experience', () => {
-    expect(shallow(<JobList {...generateProps()} />)).toMatchSnapshot();
+    expect(shallow(<JobList {...generateProps()} />)).toMatchInlineSnapshot(`
+      <div>
+        <CustomTable
+          columns={
+            Array [
+              Object {
+                "customRenderer": [Function],
+                "flex": 1.5,
+                "label": "Job Name",
+                "sortKey": "name",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 0.5,
+                "label": "Status",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 1,
+                "label": "Trigger",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 1,
+                "label": "Experiment",
+              },
+              Object {
+                "flex": 1,
+                "label": "Start time",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No available jobs found."
+          filterLabel="Filter jobs"
+          initialSortColumn="created_at"
+          reload={[Function]}
+          rows={Array []}
+        />
+      </div>
+    `);
   });
 
   it('loads one job', async () => {
@@ -123,7 +163,61 @@ describe('JobList', () => {
       undefined,
     );
     expect(props.onError).not.toHaveBeenCalled();
-    expect(tree).toMatchSnapshot();
+    expect(tree).toMatchInlineSnapshot(`
+      <div>
+        <CustomTable
+          columns={
+            Array [
+              Object {
+                "customRenderer": [Function],
+                "flex": 1.5,
+                "label": "Job Name",
+                "sortKey": "name",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 0.5,
+                "label": "Status",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 1,
+                "label": "Trigger",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 1,
+                "label": "Experiment",
+              },
+              Object {
+                "flex": 1,
+                "label": "Start time",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No available jobs found."
+          filterLabel="Filter jobs"
+          initialSortColumn="created_at"
+          reload={[Function]}
+          rows={
+            Array [
+              Object {
+                "error": undefined,
+                "id": "testjob1",
+                "otherFields": Array [
+                  "job with id: testjob1",
+                  undefined,
+                  undefined,
+                  undefined,
+                  "-",
+                ],
+              },
+            ]
+          }
+        />
+      </div>
+    `);
   });
 
   it('reloads the job when refresh is called', async () => {
@@ -142,7 +236,6 @@ describe('JobList', () => {
       '',
     );
     expect(props.onError).not.toHaveBeenCalled();
-    expect(tree).toMatchSnapshot();
   });
 
   it('loads multiple jobs', async () => {
@@ -151,7 +244,105 @@ describe('JobList', () => {
     tree = shallow(<JobList {...props} />);
     await (tree.instance() as JobListTest)._loadJobs({});
     expect(props.onError).not.toHaveBeenCalled();
-    expect(tree).toMatchSnapshot();
+    expect(tree).toMatchInlineSnapshot(`
+      <div>
+        <CustomTable
+          columns={
+            Array [
+              Object {
+                "customRenderer": [Function],
+                "flex": 1.5,
+                "label": "Job Name",
+                "sortKey": "name",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 0.5,
+                "label": "Status",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 1,
+                "label": "Trigger",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 1,
+                "label": "Experiment",
+              },
+              Object {
+                "flex": 1,
+                "label": "Start time",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No available jobs found."
+          filterLabel="Filter jobs"
+          initialSortColumn="created_at"
+          reload={[Function]}
+          rows={
+            Array [
+              Object {
+                "error": undefined,
+                "id": "testjob1",
+                "otherFields": Array [
+                  "job with id: testjob1",
+                  undefined,
+                  undefined,
+                  undefined,
+                  "-",
+                ],
+              },
+              Object {
+                "error": undefined,
+                "id": "testjob2",
+                "otherFields": Array [
+                  "job with id: testjob2",
+                  undefined,
+                  undefined,
+                  undefined,
+                  "-",
+                ],
+              },
+              Object {
+                "error": undefined,
+                "id": "testjob3",
+                "otherFields": Array [
+                  "job with id: testjob3",
+                  undefined,
+                  undefined,
+                  undefined,
+                  "-",
+                ],
+              },
+              Object {
+                "error": undefined,
+                "id": "testjob4",
+                "otherFields": Array [
+                  "job with id: testjob4",
+                  undefined,
+                  undefined,
+                  undefined,
+                  "-",
+                ],
+              },
+              Object {
+                "error": undefined,
+                "id": "testjob5",
+                "otherFields": Array [
+                  "job with id: testjob5",
+                  undefined,
+                  undefined,
+                  undefined,
+                  "-",
+                ],
+              },
+            ]
+          }
+        />
+      </div>
+    `);
   });
 
   it('calls error callback when loading jobs fails', async () => {
@@ -223,7 +414,61 @@ describe('JobList', () => {
     tree = shallow(<JobList {...props} />);
     await (tree.instance() as JobListTest)._loadJobs({});
     expect(props.onError).not.toHaveBeenCalled();
-    expect(tree).toMatchSnapshot();
+    expect(tree).toMatchInlineSnapshot(`
+      <div>
+        <CustomTable
+          columns={
+            Array [
+              Object {
+                "customRenderer": [Function],
+                "flex": 1.5,
+                "label": "Job Name",
+                "sortKey": "name",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 0.5,
+                "label": "Status",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 1,
+                "label": "Trigger",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 1,
+                "label": "Experiment",
+              },
+              Object {
+                "flex": 1,
+                "label": "Start time",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No available jobs found."
+          filterLabel="Filter jobs"
+          initialSortColumn="created_at"
+          reload={[Function]}
+          rows={
+            Array [
+              Object {
+                "error": undefined,
+                "id": "testjob1",
+                "otherFields": Array [
+                  "job with id: testjob1",
+                  "ENABLED",
+                  undefined,
+                  undefined,
+                  "-",
+                ],
+              },
+            ]
+          }
+        />
+      </div>
+    `);
   });
 
   it('shows trigger periodic', async () => {
@@ -234,7 +479,65 @@ describe('JobList', () => {
     tree = shallow(<JobList {...props} />);
     await (tree.instance() as JobListTest)._loadJobs({});
     expect(props.onError).not.toHaveBeenCalled();
-    expect(tree).toMatchSnapshot();
+    expect(tree).toMatchInlineSnapshot(`
+      <div>
+        <CustomTable
+          columns={
+            Array [
+              Object {
+                "customRenderer": [Function],
+                "flex": 1.5,
+                "label": "Job Name",
+                "sortKey": "name",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 0.5,
+                "label": "Status",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 1,
+                "label": "Trigger",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 1,
+                "label": "Experiment",
+              },
+              Object {
+                "flex": 1,
+                "label": "Start time",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No available jobs found."
+          filterLabel="Filter jobs"
+          initialSortColumn="created_at"
+          reload={[Function]}
+          rows={
+            Array [
+              Object {
+                "error": undefined,
+                "id": "testjob1",
+                "otherFields": Array [
+                  "job with id: testjob1",
+                  undefined,
+                  Object {
+                    "periodic_schedule": Object {
+                      "interval_second": "3600",
+                    },
+                  },
+                  undefined,
+                  "-",
+                ],
+              },
+            ]
+          }
+        />
+      </div>
+    `);
   });
 
   it('shows trigger cron', async () => {
@@ -245,7 +548,65 @@ describe('JobList', () => {
     tree = shallow(<JobList {...props} />);
     await (tree.instance() as JobListTest)._loadJobs({});
     expect(props.onError).not.toHaveBeenCalled();
-    expect(tree).toMatchSnapshot();
+    expect(tree).toMatchInlineSnapshot(`
+      <div>
+        <CustomTable
+          columns={
+            Array [
+              Object {
+                "customRenderer": [Function],
+                "flex": 1.5,
+                "label": "Job Name",
+                "sortKey": "name",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 0.5,
+                "label": "Status",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 1,
+                "label": "Trigger",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 1,
+                "label": "Experiment",
+              },
+              Object {
+                "flex": 1,
+                "label": "Start time",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No available jobs found."
+          filterLabel="Filter jobs"
+          initialSortColumn="created_at"
+          reload={[Function]}
+          rows={
+            Array [
+              Object {
+                "error": undefined,
+                "id": "testjob1",
+                "otherFields": Array [
+                  "job with id: testjob1",
+                  undefined,
+                  Object {
+                    "cron_schedule": Object {
+                      "cron": "0 * * * * ?",
+                    },
+                  },
+                  undefined,
+                  "-",
+                ],
+              },
+            ]
+          }
+        />
+      </div>
+    `);
   });
 
   it('shows experiment name', async () => {
@@ -261,7 +622,64 @@ describe('JobList', () => {
     tree = shallow(<JobList {...props} />);
     await (tree.instance() as JobListTest)._loadJobs({});
     expect(props.onError).not.toHaveBeenCalled();
-    expect(tree).toMatchSnapshot();
+    expect(tree).toMatchInlineSnapshot(`
+      <div>
+        <CustomTable
+          columns={
+            Array [
+              Object {
+                "customRenderer": [Function],
+                "flex": 1.5,
+                "label": "Job Name",
+                "sortKey": "name",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 0.5,
+                "label": "Status",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 1,
+                "label": "Trigger",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 1,
+                "label": "Experiment",
+              },
+              Object {
+                "flex": 1,
+                "label": "Start time",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No available jobs found."
+          filterLabel="Filter jobs"
+          initialSortColumn="created_at"
+          reload={[Function]}
+          rows={
+            Array [
+              Object {
+                "error": undefined,
+                "id": "testjob1",
+                "otherFields": Array [
+                  "job with id: testjob1",
+                  undefined,
+                  undefined,
+                  Object {
+                    "displayName": "test experiment",
+                    "id": "test-experiment-id",
+                  },
+                  "-",
+                ],
+              },
+            ]
+          }
+        />
+      </div>
+    `);
   });
 
   it('hides experiment name if instructed', async () => {
@@ -278,7 +696,55 @@ describe('JobList', () => {
     tree = shallow(<JobList {...props} />);
     await (tree.instance() as JobListTest)._loadJobs({});
     expect(props.onError).not.toHaveBeenCalled();
-    expect(tree).toMatchSnapshot();
+    expect(tree).toMatchInlineSnapshot(`
+      <div>
+        <CustomTable
+          columns={
+            Array [
+              Object {
+                "customRenderer": [Function],
+                "flex": 1.5,
+                "label": "Job Name",
+                "sortKey": "name",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 0.5,
+                "label": "Status",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 1,
+                "label": "Trigger",
+              },
+              Object {
+                "flex": 1,
+                "label": "Start time",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No available jobs found."
+          filterLabel="Filter jobs"
+          initialSortColumn="created_at"
+          reload={[Function]}
+          rows={
+            Array [
+              Object {
+                "error": undefined,
+                "id": "testjob1",
+                "otherFields": Array [
+                  "job with id: testjob1",
+                  undefined,
+                  undefined,
+                  "-",
+                ],
+              },
+            ]
+          }
+        />
+      </div>
+    `);
   });
 
   it('renders job trigger in seconds', () => {
@@ -287,7 +753,13 @@ describe('JobList', () => {
         value: { periodic_schedule: { interval_second: '42' } },
         id: 'job-id',
       }),
-    ).toMatchSnapshot();
+    ).toMatchInlineSnapshot(`
+      <div>
+        Every 
+        42
+         seconds
+      </div>
+    `);
   });
 
   it('renders job trigger in minutes', () => {
@@ -296,7 +768,13 @@ describe('JobList', () => {
         value: { periodic_schedule: { interval_second: '120' } },
         id: 'job-id',
       }),
-    ).toMatchSnapshot();
+    ).toMatchInlineSnapshot(`
+      <div>
+        Every 
+        2
+         minutes
+      </div>
+    `);
   });
 
   it('renders job trigger in hours', () => {
@@ -305,7 +783,13 @@ describe('JobList', () => {
         value: { periodic_schedule: { interval_second: '7200' } },
         id: 'job-id',
       }),
-    ).toMatchSnapshot();
+    ).toMatchInlineSnapshot(`
+      <div>
+        Every 
+        2
+         hours
+      </div>
+    `);
   });
 
   it('renders job trigger in days', () => {
@@ -314,7 +798,13 @@ describe('JobList', () => {
         value: { periodic_schedule: { interval_second: '86400' } },
         id: 'job-id',
       }),
-    ).toMatchSnapshot();
+    ).toMatchInlineSnapshot(`
+      <div>
+        Every 
+        1
+         days
+      </div>
+    `);
   });
 
   it('renders job trigger as cron', () => {
@@ -323,7 +813,12 @@ describe('JobList', () => {
         value: { cron_schedule: { cron: '0 * * * * ?' } },
         id: 'job-id',
       }),
-    ).toMatchSnapshot();
+    ).toMatchInlineSnapshot(`
+      <div>
+        Cron: 
+        0 * * * * ?
+      </div>
+    `);
   });
 
   it('renders status enabled', () => {
@@ -332,7 +827,17 @@ describe('JobList', () => {
         value: 'Enabled',
         id: 'job-id',
       }),
-    ).toMatchSnapshot();
+    ).toMatchInlineSnapshot(`
+      <div
+        style={
+          Object {
+            "color": "#34a853",
+          }
+        }
+      >
+        Enabled
+      </div>
+    `);
   });
 
   it('renders status disabled', () => {
@@ -341,7 +846,17 @@ describe('JobList', () => {
         value: 'Disabled',
         id: 'job-id',
       }),
-    ).toMatchSnapshot();
+    ).toMatchInlineSnapshot(`
+      <div
+        style={
+          Object {
+            "color": "#5f6368",
+          }
+        }
+      >
+        Disabled
+      </div>
+    `);
   });
 
   it('renders status unknown', () => {
@@ -350,6 +865,16 @@ describe('JobList', () => {
         value: 'Unknown Status',
         id: 'job-id',
       }),
-    ).toMatchSnapshot();
+    ).toMatchInlineSnapshot(`
+      <div
+        style={
+          Object {
+            "color": "#d50000",
+          }
+        }
+      >
+        Unknown Status
+      </div>
+    `);
   });
 });

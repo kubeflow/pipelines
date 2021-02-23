@@ -67,7 +67,55 @@ describe('AllJobsList', () => {
 
   it('renders all jobs', () => {
     shallowMountComponent();
-    expect(tree).toMatchSnapshot();
+    expect(tree).toMatchInlineSnapshot(`
+      <div
+        className="page"
+      >
+        <JobList
+          history={
+            Object {
+              "push": [MockFunction],
+            }
+          }
+          location=""
+          match=""
+          onError={[Function]}
+          onSelectionChange={[Function]}
+          refreshCount={0}
+          selectedIds={Array []}
+          toolbarProps={
+            Object {
+              "actions": Object {
+                "newRun": Object {
+                  "action": [Function],
+                  "icon": [Function],
+                  "id": "createNewRunBtn",
+                  "outlined": true,
+                  "primary": true,
+                  "style": Object {
+                    "minWidth": 130,
+                  },
+                  "title": "Create run",
+                  "tooltip": "Create a new run",
+                },
+                "refresh": Object {
+                  "action": [Function],
+                  "id": "refreshBtn",
+                  "title": "Refresh",
+                  "tooltip": "Refresh the list",
+                },
+              },
+              "breadcrumbs": Array [],
+              "pageTitle": "Jobs",
+            }
+          }
+          updateBanner={[MockFunction]}
+          updateDialog={[MockFunction]}
+          updateSnackbar={[MockFunction]}
+          updateToolbar={[MockFunction]}
+        />
+      </div>
+    `);
   });
 
   it('lists all jobs in namespace', () => {
