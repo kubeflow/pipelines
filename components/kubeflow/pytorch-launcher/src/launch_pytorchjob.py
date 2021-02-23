@@ -12,17 +12,18 @@ from kubeflow.pytorchjob import V1PyTorchJob as V1PyTorchJob_original
 from kubeflow.pytorchjob import V1PyTorchJobSpec as V1PyTorchJobSpec_original
 
 
-def yamlOrJsonStr(str):
-    if str == "" or str == None:
+def yamlOrJsonStr(string):
+    if string == "" or string is None:
         return None
-    return yaml.safe_load(str)
+    return yaml.safe_load(string)
 
 
 def get_current_namespace():
     """Returns current namespace if available, else kubeflow"""
     try:
-        current_namespace = open("/var/run/secrets/kubernetes.io/serviceaccount/namespace").read()
-    except:
+        namespace = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+        current_namespace = open(namespace).read()
+    except FileNotFoundError:
         current_namespace = "kubeflow"
     return current_namespace
 
@@ -91,8 +92,6 @@ def get_arg_parser():
 
 def main(args):
     logging.getLogger(__name__).setLevel(logging.INFO)
-    print(args)
-    return
     logging.info('Generating job template.')
 
     jobSpec = V1PyTorchJobSpec(
@@ -124,21 +123,29 @@ def main(args):
 
     config.load_incluster_config()
     api_client = k8s_client.ApiClient()
-    launcher_client = launch_crd.K8sCR(group=args.jobGroup, plural=args.jobPlural, version=args.version, client=api_client)
- 
+    launcher_client = launch_crd.K8sCR(
+        group=args.jobGroup,
+        plural=args.jobPlural,
+        version=args.version,
+        client=api_client
+    )
+
     logging.info('Submitting CR.')
     create_response = launcher_client.create(serialized_job)
 
     expected_conditions = ["Succeeded", "Failed"]
-    logging.info(f'Monitoring job until status is any of {expected_conditions}.')
+    logging.info(
+        f'Monitoring job until status is any of {expected_conditions}.'
+    )
     launcher_client.wait_for_condition(
         args.namespace, args.name, expected_conditions,
         timeout=datetime.timedelta(minutes=args.jobTimeoutMinutes))
     if args.deleteAfterDone:
-        logging.info(f'Deleting job.')
+        logging.info('Deleting job.')
         launcher_client.delete(args.name, args.namespace)
 
-if __name__== "__main__":
+
+if __name__ == "__main__":
     parser = get_arg_parser()
     args = parser.parse_args()
     main(args)

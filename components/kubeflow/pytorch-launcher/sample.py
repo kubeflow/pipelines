@@ -52,9 +52,9 @@ def mnist_train(
                     "args": [
                         "--backend", "gloo",
                     ],
-                    # DEBUG
-                    "image": "k8scc01covidacr.azurecr.io/kubeflow-examples/pytorch-dist-mnist:v20180702-a57993c",
-                    # "image": "gcr.io/kubeflow-examples/pytorch-dist-mnist:v20180702-a57993c",
+                    # Or, create your own image from 
+                    # https://github.com/kubeflow/pytorch-operator/tree/master/examples/mnist
+                    "image": "gcr.io/kubeflow-examples/pytorch-dist-mnist:v20180702-a57993c",
                     "name": "pytorch",
                     "resources": {
                         "requests": {
@@ -74,11 +74,10 @@ def mnist_train(
                     # }
                     }
                 ],
-                # DEBUG
                 # If imagePullSecrets required
-                "imagePullSecrets": [
-                    {"name": "image-pull-secret"},
-                ],
+                # "imagePullSecrets": [
+                #     {"name": "image-pull-secret"},
+                # ],
             },
         },
     }

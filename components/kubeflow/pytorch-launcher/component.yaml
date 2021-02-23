@@ -14,7 +14,7 @@ inputs:
 - {name: ttl_seconds_after_finished, type: Integer,  optional: true,     description: 'Defines the TTL for cleaning up finished PyTorchJobs.'}
 implementation:
   container:
-    image: k8scc01covidacr.azurecr.io/kubeflow-pytorchjob-launcher:latest
+    image: cascribner/kubeflow-pytorchjob-launcher:v1
     command: [python, /ml/launch_pytorchjob.py]
     args: 
       - --name
