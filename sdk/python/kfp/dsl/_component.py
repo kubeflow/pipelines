@@ -123,11 +123,13 @@ def graph_component(func):
   @wraps(func)
   def _graph_component(*args, **kargs):
     # We need to make sure that the arguments are correctly mapped to inputs regardless of the passing order
-    signature = inspect.signature(func)
-    bound_arguments = signature.bind(*args, **kargs)
     graph_ops_group = Graph(func.__name__)
-    graph_ops_group.inputs = list(bound_arguments.arguments.values())
-    graph_ops_group.arguments = bound_arguments.arguments
+    graph_ops_group.inputs = list(args) + list(kargs.values())
+    key_list = []
+    for param in graph_ops_group.inputs:
+      key_list.append(param.name)
+    graph_ops_group.arguments = dict(zip(key_list, graph_ops_group.inputs))
+
     for input in graph_ops_group.inputs:
       if not isinstance(input, PipelineParam):
         raise ValueError('arguments to ' + func.__name__ + ' should be PipelineParams.')

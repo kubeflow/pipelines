@@ -1,0 +1,98 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: recursive-loop-pipeline-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.3.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-02-22T12:09:24.743035',
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "Shows how to create recursive
+      loops.", "name": "Recursive loop pipeline"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.3.0}
+spec:
+  entrypoint: recursive-loop-pipeline
+  templates:
+  - name: condition-2
+    inputs:
+      parameters:
+      - {name: flip-coin-2-output}
+    dag:
+      tasks:
+      - name: graph-flip-component-1
+        template: graph-flip-component-1
+        arguments:
+          parameters:
+          - {name: flip-coin-output, value: '{{inputs.parameters.flip-coin-2-output}}'}
+  - name: flip-coin
+    container:
+      args: ['python -c "import random; result = ''heads'' if random.randint(0,1)
+          == 0 else ''tails''; print(result)" | tee /tmp/output']
+      command: [sh, -c]
+      image: python:alpine3.6
+    outputs:
+      parameters:
+      - name: flip-coin-output
+        valueFrom: {path: /tmp/output}
+      artifacts:
+      - {name: flip-coin-output, path: /tmp/output}
+    metadata:
+      annotations: {pipelines.kubeflow.org/max_cache_staleness: P0D}
+  - name: flip-coin-2
+    container:
+      args: ['python -c "import random; result = ''heads'' if random.randint(0,1)
+          == 0 else ''tails''; print(result)" | tee /tmp/output']
+      command: [sh, -c]
+      image: python:alpine3.6
+    outputs:
+      parameters:
+      - name: flip-coin-2-output
+        valueFrom: {path: /tmp/output}
+      artifacts:
+      - {name: flip-coin-2-output, path: /tmp/output}
+    metadata:
+      annotations: {pipelines.kubeflow.org/max_cache_staleness: P0D}
+  - name: graph-flip-component-1
+    inputs:
+      parameters:
+      - {name: flip-coin-output}
+    dag:
+      tasks:
+      - name: condition-2
+        template: condition-2
+        when: '"{{tasks.flip-coin-2.outputs.parameters.flip-coin-2-output}}" == "heads"'
+        dependencies: [flip-coin-2]
+        arguments:
+          parameters:
+          - {name: flip-coin-2-output, value: '{{tasks.flip-coin-2.outputs.parameters.flip-coin-2-output}}'}
+      - name: flip-coin-2
+        template: flip-coin-2
+        dependencies: [print]
+      - name: print
+        template: print
+        arguments:
+          parameters:
+          - {name: flip-coin-output, value: '{{inputs.parameters.flip-coin-output}}'}
+  - name: print
+    container:
+      command: [echo, '{{inputs.parameters.flip-coin-output}}']
+      image: alpine:3.6
+    inputs:
+      parameters:
+      - {name: flip-coin-output}
+  - name: print-2
+    container:
+      command: [echo, 'cool, it is over.']
+      image: alpine:3.6
+  - name: recursive-loop-pipeline
+    dag:
+      tasks:
+      - {name: flip-coin, template: flip-coin}
+      - name: graph-flip-component-1
+        template: graph-flip-component-1
+        dependencies: [flip-coin]
+        arguments:
+          parameters:
+          - {name: flip-coin-output, value: '{{tasks.flip-coin.outputs.parameters.flip-coin-output}}'}
+      - name: print-2
+        template: print-2
+        dependencies: [graph-flip-component-1]
+  arguments:
+    parameters: []
+  serviceAccountName: pipeline-runner
