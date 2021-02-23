@@ -5,7 +5,7 @@ metadata:
     app: ml-pipeline-ui
   name: ml-pipeline-ui
   annotations:
-    "cluster-autoscaler.kubernetes.io/safe-to-evict": "true"
+    cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
 spec:
   selector:
     matchLabels:

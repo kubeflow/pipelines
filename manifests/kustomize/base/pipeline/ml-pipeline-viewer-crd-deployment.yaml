@@ -5,7 +5,7 @@ metadata:
     app: ml-pipeline-viewer-crd
   name: ml-pipeline-viewer-crd
   annotations:
-    "cluster-autoscaler.kubernetes.io/safe-to-evict": "true"
+    cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
 spec:
   selector:
     matchLabels:
