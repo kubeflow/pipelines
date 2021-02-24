@@ -24,7 +24,7 @@ from time import sleep
 from metadata_helpers import *
 
 
-namespace_to_watch = os.environ.get('NAMESPACE_TO_WATCH', 'default')
+namespace_to_watch = os.environ.get('NAMESPACE_TO_WATCH', '')
 
 
 kubernetes.config.load_incluster_config()
