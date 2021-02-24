@@ -100,24 +100,12 @@ def create_container_op_from_component_and_arguments(
       pipeline_params = _pipeline_param.extract_pipelineparams_from_any(
           argument_value)
       if pipeline_params:
-        # argument_value contains PipelineParam placeholders which needs to be
-        # replaced. And the input needs to be added to the task spec.
-        for param in pipeline_params:
-          additional_input_name = '{}-{}'.format(input_name, param.full_name)
-          additional_input_placeholder = (
-              "{{{{$.inputs.parameters['{}']}}}}".format(additional_input_name))
-          argument_value = argument_value.replace(param.pattern,
-                                                  additional_input_placeholder)
-
-          if param.op_name:
-            pipeline_task_spec.inputs.parameters[
-                additional_input_name].producer_task = (
-                    dsl_utils.sanitize_task_name(param.op_name))
-            pipeline_task_spec.inputs.parameters[
-                additional_input_name].output_parameter_key = param.name
-          else:
-            pipeline_task_spec.inputs.parameters[
-                additional_input_name].component_input_parameter = param.name
+        # argument_value contains PipelineParam placeholders.
+        raise NotImplementedError(
+            'Currently, a component input can only accept either a constant '
+            'value or a reference to another pipeline parameter. It cannot be a '
+            'combination of both. Got: {} for input {}'.format(
+                argument_value, input_name))
 
       input_type = component_spec._inputs_dict[input_name].type
       if type_utils.is_parameter_type(input_type):
