@@ -17,7 +17,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM tensorflow/tensorflow:2.2.0
+# This image should be in sync with image in backend/src/apiserver/visualization/update_requirements.sh.
+FROM tensorflow/tensorflow:2.4.0
 
 RUN apt-get update \
   && apt-get install -y wget curl tar openssl
