@@ -22,6 +22,7 @@ from kfp.components._components import _default_component_name
 from kfp.components._components import _resolve_command_line_and_paths
 from kfp.components._naming import _sanitize_python_function_name
 from kfp.components._naming import generate_unique_name_conversion_table
+from kfp.dsl import _pipeline_param
 from kfp.dsl import types
 from kfp.v2.dsl import component_spec as dsl_component_spec
 from kfp.v2.dsl import container_op
@@ -96,6 +97,16 @@ def create_container_op_from_component_and_arguments(
               input_type_schema=type_schema,
               pipeline_param_name=argument_value.name)
     elif isinstance(argument_value, str):
+      pipeline_params = _pipeline_param.extract_pipelineparams_from_any(
+          argument_value)
+      if pipeline_params:
+        # argument_value contains PipelineParam placeholders.
+        raise NotImplementedError(
+            'Currently, a component input can only accept either a constant '
+            'value or a reference to another pipeline parameter. It cannot be a '
+            'combination of both. Got: {} for input {}'.format(
+                argument_value, input_name))
+
       input_type = component_spec._inputs_dict[input_name].type
       if type_utils.is_parameter_type(input_type):
         pipeline_task_spec.inputs.parameters[
