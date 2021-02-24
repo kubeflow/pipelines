@@ -135,7 +135,7 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 
 		dummyContainer := corev1.Container{
 			Name:    "main",
-			Image:   "alpine",
+			Image:   "google/cloud-sdk:alpine",
 			Command: []string{`echo`, `"This step output is taken from cache."`},
 		}
 		dummyContainers := []corev1.Container{
