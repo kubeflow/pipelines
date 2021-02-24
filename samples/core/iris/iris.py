@@ -59,7 +59,7 @@ _data_root_param = data_types.RuntimeParameter(
 # and baked into the TFX image used in the pipeline.
 _module_file_param = data_types.RuntimeParameter(
     name='module-file',
-    default='/tfx-src/tfx/examples/iris/iris_utils_native_keras.py',
+    default='/tfx/src/tfx/examples/iris/iris_utils_native_keras.py',
     ptype=Text,
 )
 
