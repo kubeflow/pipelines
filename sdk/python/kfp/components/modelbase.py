@@ -69,9 +69,9 @@ def verify_object_against_type(x: Any, typ: Type[T]) -> T:
         if generic_type in [list, List, abc.Sequence, abc.MutableSequence, Sequence, MutableSequence] and type(x) is not str: #! str is also Sequence
             if not isinstance(x, generic_type):
                 raise TypeError('Error: Object "{}" is incompatible with type "{}"'.format(x, typ))
-            # In Python <3.7 Mapping.__args__ is None. 
+            # In Python <3.7 Mapping.__args__ is None.
             # In Python 3.9 typ.__args__ does not exist when the generic type does not have subscripts
-            type_args = typ.__args__ if getattr(typ, '__args__', None) is not None else (Any, Any) 
+            type_args = typ.__args__ if getattr(typ, '__args__', None) is not None else (Any, Any)
             inner_type = type_args[0]
             for item in x:
                 verify_object_against_type(item, inner_type)
@@ -80,9 +80,9 @@ def verify_object_against_type(x: Any, typ: Type[T]) -> T:
         elif generic_type in [dict, Dict, abc.Mapping, abc.MutableMapping, Mapping, MutableMapping, OrderedDict]:
             if not isinstance(x, generic_type):
                 raise TypeError('Error: Object "{}" is incompatible with type "{}"'.format(x, typ))
-            # In Python <3.7 Mapping.__args__ is None. 
+            # In Python <3.7 Mapping.__args__ is None.
             # In Python 3.9 typ.__args__ does not exist when the generic type does not have subscripts
-            type_args = typ.__args__ if getattr(typ, '__args__', None) is not None else (Any, Any) 
+            type_args = typ.__args__ if getattr(typ, '__args__', None) is not None else (Any, Any)
             inner_key_type = type_args[0]
             inner_value_type = type_args[1]
             for k, v in x.items():
@@ -165,18 +165,18 @@ def parse_object_from_struct_based_on_type(struct: Any, typ: Type[T]) -> T:
         if generic_type in [list, List, abc.Sequence, abc.MutableSequence, Sequence, MutableSequence] and type(struct) is not str: #! str is also Sequence
             if not isinstance(struct, generic_type):
                 raise TypeError('Error: Structure "{}" is incompatible with type "{}" - it does not have list type.'.format(struct, typ))
-            # In Python <3.7 Mapping.__args__ is None. 
+            # In Python <3.7 Mapping.__args__ is None.
             # In Python 3.9 typ.__args__ does not exist when the generic type does not have subscripts
-            type_args = typ.__args__ if getattr(typ, '__args__', None) is not None else (Any, Any) 
+            type_args = typ.__args__ if getattr(typ, '__args__', None) is not None else (Any, Any)
             inner_type = type_args[0]
             return [parse_object_from_struct_based_on_type(item, inner_type) for item in struct]
 
         elif generic_type in [dict, Dict, abc.Mapping, abc.MutableMapping, Mapping, MutableMapping, OrderedDict]: #in Python <3.7 there is a difference between abc.Mapping and typing.Mapping
             if not isinstance(struct, generic_type):
                 raise TypeError('Error: Structure "{}" is incompatible with type "{}" - it does not have dict type.'.format(struct, typ))
-            # In Python <3.7 Mapping.__args__ is None. 
+            # In Python <3.7 Mapping.__args__ is None.
             # In Python 3.9 typ.__args__ does not exist when the generic type does not have subscripts
-            type_args = typ.__args__ if getattr(typ, '__args__', None) is not None else (Any, Any) 
+            type_args = typ.__args__ if getattr(typ, '__args__', None) is not None else (Any, Any)
             inner_key_type = type_args[0]
             inner_value_type = type_args[1]
             return {parse_object_from_struct_based_on_type(k, inner_key_type): parse_object_from_struct_based_on_type(v, inner_value_type) for k, v in struct.items()}
@@ -262,8 +262,8 @@ class ModelBase:
             arguments: Optional[Mapping[str, ArgumentType]] = None,
             is_enabled: Optional[Union[ArgumentType, EqualsPredicate, NotEqualsPredicate]] = None, #Optional property with default value
         ):
-            super().__init__(locals()) #Calling the ModelBase constructor to check the argument types and set the object field values. 
-    
+            super().__init__(locals()) #Calling the ModelBase constructor to check the argument types and set the object field values.
+
     task_spec = TaskSpec.from_dict("{'componentRef': {...}, 'isEnabled: {'and': {...}}}") # = instance of TaskSpec
     task_struct = task_spec.to_dict() #= "{'componentRef': {...}, 'isEnabled: {'and': {...}}}"
     '''
@@ -286,7 +286,7 @@ class ModelBase:
 
     def to_dict(self) -> Mapping:
         return convert_object_to_struct(self, serialized_names=self._serialized_names)
-    
+
     def _get_field_names(self):
         return list(inspect.signature(self.__init__).parameters)
 

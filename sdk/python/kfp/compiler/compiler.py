@@ -601,8 +601,9 @@ class Compiler(object):
     pipeline,
     op_transformers=None,
     op_to_templates_handler=None,
-    enable_v2_mode: bool = False,
-    pipeline_spec: pipeline_spec_pb2.PipelineSpec = None):
+    enable_v2_mode: bool = True,
+    pipeline_spec: Optional[pipeline_spec_pb2.PipelineSpec] = None,
+    pipeline_root: Optional[dsl.PipelineParam] = None):
     """Create all groups and ops templates in the pipeline.
 
     Args:
@@ -617,6 +618,10 @@ class Compiler(object):
     # the user would not be able to use pipeline parameters in the container definition
     # (for example as pod labels) - the generated template is invalid.
     for op in pipeline.ops.values():
+      if enable_v2_mode:
+        # Make pipeline_root parameter available to all components.
+        op.inputs.append(pipeline_root)
+
       for transformer in op_transformers or []:
         transformer(op)
 
@@ -659,7 +664,10 @@ class Compiler(object):
 
     for op in pipeline.ops.values():
       if enable_v2_mode:
-        v2_mode.update_op(op, pipeline_spec=pipeline_spec)
+        v2_mode.update_op(
+          op,
+          pipeline_spec=pipeline_spec,
+          pipeline_root=pipeline_root)
 
       templates.extend(op_to_templates_handler(op))
 
@@ -672,7 +680,8 @@ class Compiler(object):
     op_transformers = None,
     pipeline_conf = None,
     enable_v2_mode: bool = False,
-    pipeline_spec: pipeline_spec_pb2.PipelineSpec = None):
+    pipeline_spec: Optional[pipeline_spec_pb2.PipelineSpec] = None,
+    pipeline_root: Optional[dsl.PipelineParam] = None):
     """Create workflow for the pipeline."""
 
     # Input Parameters
@@ -693,7 +702,8 @@ class Compiler(object):
       pipeline,
       op_transformers,
       enable_v2_mode=enable_v2_mode,
-      pipeline_spec=pipeline_spec)
+      pipeline_spec=pipeline_spec,
+      pipeline_root=pipeline_root)
 
     # Exit Handler
     exit_handler = None
@@ -837,7 +847,7 @@ class Compiler(object):
       params_list: List[dsl.PipelineParam] = None,
       pipeline_conf: dsl.PipelineConf = None,
       enable_v2_mode: bool = False,
-      pipeline_spec: pipeline_spec_pb2.PipelineSpec = None,
+      pipeline_spec: Optional[pipeline_spec_pb2.PipelineSpec] = None,
       ) -> Dict[Text, Any]:
     """ Internal implementation of create_workflow."""
     params_list = params_list or []
@@ -910,6 +920,7 @@ class Compiler(object):
     op_transformers = [add_pod_env]
     op_transformers.extend(pipeline_conf.op_transformers)
 
+    output_directory = getattr(pipeline_func, 'output_directory', None)
     workflow = self._create_pipeline_workflow(
         args_list_with_defaults,
         dsl_pipeline,
@@ -917,13 +928,13 @@ class Compiler(object):
         pipeline_conf,
         enable_v2_mode=enable_v2_mode,
         pipeline_spec=pipeline_spec,
+        pipeline_root=output_directory,
     )
 
     from ._data_passing_rewriter import fix_big_data_passing
     # if not enable_v2_mode:
     workflow = fix_big_data_passing(workflow)
 
-    output_directory = getattr(pipeline_func, 'output_directory', None)
     workflow = _data_passing_rewriter.add_pod_name_passing(
         workflow, str(output_directory))
 
@@ -936,6 +947,9 @@ class Compiler(object):
     annotations['pipelines.kubeflow.org/kfp_sdk_version'] = kfp.__version__
     annotations['pipelines.kubeflow.org/pipeline_compilation_time'] = datetime.datetime.now().isoformat()
     annotations['pipelines.kubeflow.org/pipeline_spec'] = json.dumps(pipeline_meta.to_dict(), sort_keys=True)
+
+    if enable_v2_mode:
+      annotations['pipelines.kubeflow.org/v2_pipeline'] = "true"
 
     # Labels might be logged better than annotations so adding some information here as well
     labels = metadata.setdefault('labels', {})
@@ -981,7 +995,7 @@ class Compiler(object):
 
   def compile(self, pipeline_func, package_path, type_check=True,
               pipeline_conf: dsl.PipelineConf = None,
-              enable_v2_mode: bool = False):
+              enable_v2_mode: bool = True):
     """Compile the given pipeline function into workflow yaml.
 
     Args:
@@ -993,8 +1007,15 @@ class Compiler(object):
         pull secrets and other pipeline-level configuration options. Overrides
         any configuration that may be set by the pipeline.
     """
+    pipeline_conf=None
     import kfp
     type_check_old_value = kfp.TYPE_CHECK
+
+    if enable_v2_mode:
+      warnings.warn(
+            "V2 compatiblity is still in development and is expected to"
+            " break often. Please do not use this for production pipelines."
+        )
 
     pipeline_spec = None
     if enable_v2_mode:
@@ -1056,14 +1077,9 @@ class Compiler(object):
       pipeline_conf: dsl.PipelineConf = None,
       package_path: Text = None,
       enable_v2_mode: bool = False,
-      pipeline_spec: pipeline_spec_pb2.PipelineSpec = None,
+      pipeline_spec: Optional[pipeline_spec_pb2.PipelineSpec] = None,
   ) -> None:
     """Compile the given pipeline function and dump it to specified file format."""
-    pipeline_root_param = dsl.PipelineParam(name='pipeline_root', value='TBD')
-    if params_list is None:
-      params_list=[pipeline_root_param]
-    else:
-      params_list.append(pipeline_root_param)
 
     workflow = self._create_workflow(
         pipeline_func,
