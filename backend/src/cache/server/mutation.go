@@ -133,9 +133,10 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 		// These labels cache results for metadata-writer.
 		labels[MetadataExecutionIDKey] = getValueFromSerializedMap(cachedExecution.ExecutionOutput, MetadataExecutionIDKey)
 		labels[MetadataWrittenKey] = "true"
-		image, ok := os.LookupEnv("CACHE_IMAGE")
-		if !ok {
-			return nil, fmt.Errorf("env variable 'CACHE_IMAGE' have to be set")
+
+		image := "google/cloud-sdk:alpine"
+		if v, ok := os.LookupEnv("CACHE_IMAGE"); ok {
+			image = v
 		}
 		dummyContainer := corev1.Container{
 			Name:    "main",
