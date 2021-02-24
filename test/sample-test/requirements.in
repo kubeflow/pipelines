@@ -5,10 +5,5 @@ fire
 yamale
 kubernetes
 
-# Avoiding conflicts:
-# There are incompatible versions in the resolved dependencies:
-#   google-resumable-media<0.5.0dev,>=0.3.1 (from google-cloud-bigquery==1.17.1->apache-beam[gcp]==2.17.0->tfx==0.21.2->-r -)
-#   google-resumable-media<0.6dev,>=0.5.0 (from google-cloud-storage==1.27.0->-r -)
-
 google-cloud-bigquery==1.17.0
 google-cloud-storage==1.17.0
