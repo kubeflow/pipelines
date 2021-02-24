@@ -22,6 +22,7 @@ from kfp.components._components import _default_component_name
 from kfp.components._components import _resolve_command_line_and_paths
 from kfp.components._naming import _sanitize_python_function_name
 from kfp.components._naming import generate_unique_name_conversion_table
+from kfp.dsl import _pipeline_param
 from kfp.dsl import types
 from kfp.v2.dsl import component_spec as dsl_component_spec
 from kfp.v2.dsl import container_op
@@ -96,6 +97,28 @@ def create_container_op_from_component_and_arguments(
               input_type_schema=type_schema,
               pipeline_param_name=argument_value.name)
     elif isinstance(argument_value, str):
+      pipeline_params = _pipeline_param.extract_pipelineparams_from_any(
+          argument_value)
+      if pipeline_params:
+        # argument_value contains PipelineParam placeholders which needs to be
+        # replaced. And the input needs to be added to the task spec.
+        for param in pipeline_params:
+          additional_input_name = '{}-{}'.format(input_name, param.full_name)
+          additional_input_placeholder = (
+              "{{{{$.inputs.parameters['{}']}}}}".format(additional_input_name))
+          argument_value = argument_value.replace(param.pattern,
+                                                  additional_input_placeholder)
+
+          if param.op_name:
+            pipeline_task_spec.inputs.parameters[
+                additional_input_name].producer_task = (
+                    dsl_utils.sanitize_task_name(param.op_name))
+            pipeline_task_spec.inputs.parameters[
+                additional_input_name].output_parameter_key = param.name
+          else:
+            pipeline_task_spec.inputs.parameters[
+                additional_input_name].component_input_parameter = param.name
+
       input_type = component_spec._inputs_dict[input_name].type
       if type_utils.is_parameter_type(input_type):
         pipeline_task_spec.inputs.parameters[
