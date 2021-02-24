@@ -24,7 +24,7 @@ outputs:
 - {name: batch_job_id, description: The simulation job batch id.}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:1.1.0
+    image: amazon/aws-sagemaker-kfp-components:1.1.1
     command: [python3]
     args:
     - simulation_job_batch/src/robomaker_simulation_job_batch_component.py
