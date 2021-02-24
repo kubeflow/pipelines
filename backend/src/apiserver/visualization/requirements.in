@@ -11,6 +11,3 @@ scikit_learn==0.21.2
 tensorflow-metadata==0.27.*
 tensorflow-model-analysis==0.27.*
 tensorflow-data-validation==0.27.*
-tornado==6.0.2
-# Increase google-api-core to some release AFTER 1.21.0 when it becomes available
-google-api-core==1.16.0
