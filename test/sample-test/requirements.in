@@ -3,7 +3,6 @@ minio
 papermill
 fire
 yamale
-tfx==0.22.0
 kubernetes
 
 # Avoiding conflicts:
