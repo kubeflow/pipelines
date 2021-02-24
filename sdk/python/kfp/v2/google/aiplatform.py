@@ -26,12 +26,14 @@ from kfp.v2.dsl import type_utils
 _AIPlatformCustomJobSpec = pipeline_spec_pb2.PipelineDeploymentConfig.AIPlatformCustomJobSpec
 _DUMMY_CONTAINER_OP_IMAGE = 'dummy/image'
 _DUMMY_PATH = 'dummy/path'
+_MAX_PACKAGE_URIS = 100
+_DEFAULT_CUSTOM_JOB_MACHINE_TYPE = 'n1-standard-2'
 
-ValueOrPipelineParam = Union[dsl.PipelineParam, str, float, int]
+_ValueOrPipelineParam = Union[dsl.PipelineParam, str, float, int]
 
 # TODO: Support all declared types in
 # components._structures.CommandlineArgumenType
-CommandlineArgumentType = Union[
+_CommandlineArgumentType = Union[
   str, int, float,
   _structures.InputValuePlaceholder,
   _structures.InputPathPlaceholder,
@@ -70,7 +72,7 @@ class AiPlatformCustomJobOp(dsl.ContainerOp):
   """V2 AiPlatformCustomJobOp class.
 
   This class inherits V1 ContainerOp class so that it can be correctly picked
-  by compiler. The implementation of the task is a AiPlatformCustomJobSpec
+  by compiler. The implementation of the task is an AiPlatformCustomJobSpec
   proto message.
   """
 
@@ -89,8 +91,12 @@ class AiPlatformCustomJobOp(dsl.ContainerOp):
         that will be submitted to AI Platform (Unified) service. See
         https://cloud.google.com/ai-platform-unified/docs/reference/rest/v1beta1/CustomJobSpec
         for detailed reference.
-      task_inputs: Optional. List of InputArgumentPath of this task. The path
-        will be ignored.
+      task_inputs: Optional. List of InputArgumentPath of this task. Each
+        InputArgumentPath object has 3 attributes: input, path and argument
+        we actually only care about the input, which will be translated to the
+        input name of the component spec.
+        Path and argument are tied to artifact argument in Argo, which is not
+        used in this case.
       task_outputs: Optional. Mapping of task outputs to its URL.
     """
     old_warn_value = dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING
@@ -111,7 +117,7 @@ def _get_custom_job_op(
     task_name: str,
     job_spec: Dict[str, Any],
     input_artifacts: Optional[Dict[str, dsl.PipelineParam]] = None,
-    input_parameters: Optional[Dict[str, ValueOrPipelineParam]] = None,
+    input_parameters: Optional[Dict[str, _ValueOrPipelineParam]] = None,
     output_artifacts: Optional[Dict[str, Type[artifact.Artifact]]] = None,
     output_parameters: Optional[Dict[str, Any]] = None,
 ) -> AiPlatformCustomJobOp:
@@ -238,9 +244,9 @@ def _get_custom_job_op(
 def custom_job(
     name: str,
     input_artifacts: Optional[Dict[str, dsl.PipelineParam]] = None,
-    input_parameters: Optional[Dict[str, ValueOrPipelineParam]] = None,
+    input_parameters: Optional[Dict[str, _ValueOrPipelineParam]] = None,
     output_artifacts: Optional[Dict[str, Type[artifact.Artifact]]] = None,
-    output_parameters: Optional[Dict[str, Any]] = None,
+    output_parameters: Optional[Dict[str, Type[Union[str, float, int]]]] = None,
     # Custom container training specs.
     image_uri: Optional[str] = None,
     commands: Optional[List[str]] = None,
@@ -326,7 +332,8 @@ def custom_job(
 
   # For Python custom training job, package URIs and modules are also required.
   if executor_image_uri:
-    if not package_uris or not python_module or len(package_uris) > 100:
+    if not package_uris or not python_module or len(
+        package_uris) > _MAX_PACKAGE_URIS:
       raise ValueError('For custom Python training, package_uris with length < '
                        '100 and python_module are expected.')
 
@@ -338,7 +345,7 @@ def custom_job(
       # Single node custom container training
       worker_pool_spec = {
           "machineSpec": {
-              "machineType": machine_type or "n1-standard-4"
+              "machineType": machine_type or _DEFAULT_CUSTOM_JOB_MACHINE_TYPE
           },
           "replicaCount": "1",
           "containerSpec": {
@@ -353,7 +360,7 @@ def custom_job(
     if executor_image_uri:
       worker_pool_spec = {
           "machineSpec": {
-              "machineType": machine_type or "n1-standard-4"
+              "machineType": machine_type or _DEFAULT_CUSTOM_JOB_MACHINE_TYPE
           },
           "replicaCount": "1",
           "pythonPackageSpec": {
@@ -407,7 +414,7 @@ def custom_job(
     else:
       return _output_artifact_path_placeholder(output_key)
 
-  def _resolve_cmd(cmd: Optional[CommandlineArgumentType]) -> Optional[str]:
+  def _resolve_cmd(cmd: Optional[_CommandlineArgumentType]) -> Optional[str]:
     """Resolves a single command line cmd/arg."""
     if cmd is None:
       return None
@@ -426,7 +433,7 @@ def custom_job(
     else:
       raise TypeError('Got unexpected placeholder type for %s' % cmd)
 
-  def _resolve_cmd_lines(cmds: Optional[List[CommandlineArgumentType]]) -> None:
+  def _resolve_cmd_lines(cmds: Optional[List[_CommandlineArgumentType]]) -> None:
     """Resolves a list of commands/args."""
     if not cmds:
       return

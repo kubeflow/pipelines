@@ -13,7 +13,7 @@
 # limitations under the License.
 """Utilities for component I/O type mapping."""
 
-from typing import List, Optional, Type, Union
+from typing import Dict, List, Optional, Type, Union
 from kfp.components import structures
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.dsl import artifact
@@ -70,7 +70,7 @@ def is_parameter_type(type_name: Optional[str]) -> bool:
     return False
 
 
-def get_artifact_type_schema(type_name: str) -> str:
+def get_artifact_type_schema(type_name: Union[str, Dict, List]) -> str:
   """Gets the IR I/O artifact type for the given ComponentSpec I/O type.
 
   Args:
@@ -112,7 +112,7 @@ def get_parameter_type(
     AttributeError: if type_name is not a string type.
   """
   if type(param_type) == type:
-    if not param_type in (str, float, int):
+    if param_type not in (str, float, int):
       raise TypeError('Got illegal parameter type. Currently only support: '
                       'str, int and float. Got %s' % param_type)
     param_type = param_type.__name__
