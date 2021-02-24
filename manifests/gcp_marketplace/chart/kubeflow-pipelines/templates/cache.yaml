@@ -190,6 +190,7 @@ data:
   mysql_driver: "mysql"
   mysql_host: "mysql"
   mysql_port: "3306"
+  cache_image: "google/cloud-sdk:alpine"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -234,7 +235,7 @@ spec:
           - name: CACHE_IMAGE
             valueFrom:
               configMapKeyRef:
-                name: pipeline-install-config
+                name: cache-configmap
                 key: cacheImage
           - name: DBCONFIG_DRIVER
             valueFrom:
