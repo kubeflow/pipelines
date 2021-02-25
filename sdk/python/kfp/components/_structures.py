@@ -24,6 +24,7 @@ __all__ = [
     'InputMetadataPlaceholder',
     'InputOutputPortNamePlaceholder',
     'OutputMetadataPlaceholder',
+    'ExecutorInputPlaceholder',
     'ConcatPlaceholder',
     'IsPresentPlaceholder',
     'IfPlaceholderStructure',
@@ -208,11 +209,43 @@ class OutputMetadataPlaceholder(ModelBase):  # Non-standard attr names
     Only supported in v2 components.
     """
     _serialized_names = {
-        'output_name': 'outputMetadata',
+        'output_metadata': 'outputMetadata',
     }
 
-    def __init__(self, output_name):
+    def __init__(self, output_metadata: type(None) = None):
+        if output_metadata:
+            raise RuntimeError(
+                'Output metadata placeholder cannot be associated with key')
         super().__init__(locals())
+
+    def to_dict(self) -> Mapping[str, Any]:
+        # Override parent implementation. Otherwise it always returns {}.
+        return {'outputMetadata': None}
+
+
+class ExecutorInputPlaceholder(ModelBase):  # Non-standard attr names
+    """Represents the serialized ExecutorInput message at runtime.
+
+    This placeholder will be replaced by a serialized
+    [ExecutorInput](https://github.com/kubeflow/pipelines/blob/61f9c2c328d245d89c9d9b8c923f24dbbd08cdc9/api/v2alpha1/pipeline_spec.proto#L730)
+    proto message at runtime, which includes parameters of the task, artifact
+    URIs and metadata.
+    """
+    _serialized_names = {
+        'executor_input': 'executorInput',
+    }
+
+    def __init__(self, executor_input: type(None) = None):
+        if executor_input:
+            raise RuntimeError(
+                'Executor input placeholder cannot be associated with input key'
+                '. Got %s' % executor_input)
+        super().__init__(locals())
+
+    def to_dict(self) -> Mapping[str, Any]:
+        # Override parent implementation. Otherwise it always returns {}.
+        return {'executorInput': None}
+
 
 
 CommandlineArgumentType = Union[
@@ -225,6 +258,7 @@ CommandlineArgumentType = Union[
     InputMetadataPlaceholder,
     InputOutputPortNamePlaceholder,
     OutputMetadataPlaceholder,
+    ExecutorInputPlaceholder,
     'ConcatPlaceholder',
     'IfPlaceholder',
 ]
@@ -365,7 +399,8 @@ class ComponentSpec(ModelBase):
                 if arg is None:
                     pass
                 elif isinstance(
-                    arg, (str, int, float, bool, OutputMetadataPlaceholder)):
+                    arg, (str, int, float, bool,
+                          OutputMetadataPlaceholder, ExecutorInputPlaceholder)):
                     pass
                 elif isinstance(arg, list):
                     for arg2 in arg:

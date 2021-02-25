@@ -37,7 +37,7 @@ type APIExperiment struct {
 	ResourceReferences []*APIResourceReference `json:"resource_references"`
 
 	// Output. Specifies whether this experiment is in archived or available state.
-	StorageState ExperimentStorageState `json:"storage_state,omitempty"`
+	StorageState APIExperimentStorageState `json:"storage_state,omitempty"`
 }
 
 // Validate validates this api experiment

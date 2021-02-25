@@ -160,6 +160,11 @@ class SageMakerTransformComponent(SageMakerComponent):
             )
         )
 
+    def _print_logs_for_job(self):
+        self._print_cloudwatch_logs(
+            "/aws/sagemaker/TransformJobs", self._transform_job_name
+        )
+
 
 if __name__ == "__main__":
     import sys

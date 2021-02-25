@@ -75,56 +75,6 @@ class CompilerTest(unittest.TestCase):
     finally:
       shutil.rmtree(tmpdir)
 
-  def test_compile_pipeline_with_dsl_condition_should_raise_error(self):
-
-    flip_coin_op = components.load_component_from_text("""
-      name: flip coin
-      inputs:
-      - {name: name, type: String}
-      outputs:
-      - {name: result, type: String}
-      implementation:
-        container:
-          image: gcr.io/my-project/my-image:tag
-          args:
-          - {inputValue: name}
-          - {outputPath: result}
-      """)
-
-    print_op = components.load_component_from_text("""
-      name: print
-      inputs:
-      - {name: name, type: String}
-      - {name: msg, type: String}
-      implementation:
-        container:
-          image: gcr.io/my-project/my-image:tag
-          args:
-          - {inputValue: name}
-          - {inputValue: msg}
-      """)
-
-    @dsl.pipeline()
-    def flipcoin():
-      flip = flip_coin_op('flip')
-
-      with dsl.Condition(flip.outputs['result'] == 'heads'):
-        flip2 = flip_coin_op('flip-again')
-
-        with dsl.Condition(flip2.outputs['result'] == 'tails'):
-          print_op('print1', flip2.outputs['result'])
-
-      with dsl.Condition(flip.outputs['result'] == 'tails'):
-        print_op('print2', flip2.outputs['results'])
-
-    with self.assertRaisesRegex(
-        NotImplementedError,
-        'dsl.Condition is not yet supported in KFP v2 compiler.'):
-      compiler.Compiler().compile(
-          pipeline_func=flipcoin,
-          pipeline_root='dummy_root',
-          output_path='output.json')
-
   def test_compile_pipeline_with_dsl_exithandler_should_raise_error(self):
 
     gcs_download_op = components.load_component_from_text("""
@@ -444,6 +394,24 @@ class CompilerTest(unittest.TestCase):
       self.assertTrue('gcsOutputDirectory' not in job_spec['runtimeConfig'])
     finally:
       shutil.rmtree(tmpdir)
+
+  def test_task_input_contain_placedholder_should_fail(self):
+
+    @components.create_component_from_func
+    def print_op(s: str):
+      print(s)
+
+    @dsl.pipeline(
+        name='pipeline-with-placeholder-in-input-argument',
+        pipeline_root='dummy')
+    def my_pipeline(name: str = 'KFP'):
+      print_op('Hello {}'.format(name))
+
+    with self.assertRaisesRegex(
+        NotImplementedError,
+        'a component input can only accept either a constant value or '
+        'a reference to another pipeline parameter.'):
+      compiler.Compiler().compile(my_pipeline, 'dummy')
 
 
 if __name__ == '__main__':

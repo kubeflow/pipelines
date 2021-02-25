@@ -13,7 +13,7 @@
 # limitations under the License.
 """Utilities for component I/O type mapping."""
 
-from typing import List, Optional
+from typing import Dict, List, Optional, Type, Union
 from kfp.components import structures
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.dsl import artifact
@@ -22,10 +22,15 @@ from kfp.dsl import ontology_artifacts
 # ComponentSpec I/O types to (IR) PipelineTaskSpec I/O types mapping.
 # The keys are normalized (lowercased). These are types viewed as Artifacts.
 # The values are the corresponding IR artifact ontology types.
-
 _ARTIFACT_TYPES_MAPPING = {
     'model': ontology_artifacts.Model.get_artifact_type(),
     'dataset': ontology_artifacts.Dataset.get_artifact_type(),
+}
+
+# ComponentSpec I/O types to DSL ontology artifact classes mapping.
+_ARTIFACT_CLASSES_MAPPING = {
+    'model': ontology_artifacts.Model,
+    'dataset': ontology_artifacts.Dataset
 }
 
 # ComponentSpec I/O types to (IR) PipelineTaskSpec I/O types mapping.
@@ -39,6 +44,14 @@ _PARAMETER_TYPES_MAPPING = {
     'string': pipeline_spec_pb2.PrimitiveType.STRING,
     'str': pipeline_spec_pb2.PrimitiveType.STRING,
     'text': pipeline_spec_pb2.PrimitiveType.STRING,
+}
+
+# Mapping primitive types to their IR message field names.
+# This is used in constructing condition strings.
+_PARAMETER_TYPES_VALUE_REFERENCE_MAPPING = {
+    pipeline_spec_pb2.PrimitiveType.INT: 'int_value',
+    pipeline_spec_pb2.PrimitiveType.DOUBLE: 'double_value',
+    pipeline_spec_pb2.PrimitiveType.STRING: 'string_value',
 }
 
 
@@ -57,8 +70,8 @@ def is_parameter_type(type_name: Optional[str]) -> bool:
     return False
 
 
-def get_artifact_type_schema(type_name: str) -> str:
-  """Get the IR I/O artifact type for the given ComponentSpec I/O type.
+def get_artifact_type_schema(type_name: Union[str, Dict, List]) -> str:
+  """Gets the IR I/O artifact type for the given ComponentSpec I/O type.
 
   Args:
     type_name: type name of the ComponentSpec I/O type.
@@ -73,12 +86,24 @@ def get_artifact_type_schema(type_name: str) -> str:
     return artifact.Artifact.get_artifact_type()
 
 
+# TODO(numerology): add tests to this.
+def get_artifact_type_schema_message(
+    type_name: str) -> pipeline_spec_pb2.ArtifactTypeSchema:
+  """Gets the IR I/O artifact type msg for the given ComponentSpec I/O type."""
+  if isinstance(type_name, str):
+    return _ARTIFACT_CLASSES_MAPPING.get(type_name.lower(),
+                                         artifact.Artifact).get_ir_type()
+  else:
+    return artifact.Artifact.get_ir_type()
+
+
 def get_parameter_type(
-    type_name: Optional[str]) -> pipeline_spec_pb2.PrimitiveType:
+    param_type: Optional[Union[Type, str]]) -> pipeline_spec_pb2.PrimitiveType:
   """Get the IR I/O parameter type for the given ComponentSpec I/O type.
 
   Args:
-    type_name: type name of the ComponentSpec I/O type.
+    param_type: type of the ComponentSpec I/O type. Can be a primitive Python
+      builtin type or a type name.
 
   Returns:
     The enum value of the mapped IR I/O primitive type.
@@ -86,7 +111,30 @@ def get_parameter_type(
   Raises:
     AttributeError: if type_name is not a string type.
   """
-  return _PARAMETER_TYPES_MAPPING.get(type_name.lower())
+  if type(param_type) == type:
+    if param_type not in (str, float, int):
+      raise TypeError('Got illegal parameter type. Currently only support: '
+                      'str, int and float. Got %s' % param_type)
+    param_type = param_type.__name__
+  return _PARAMETER_TYPES_MAPPING.get(param_type.lower())
+
+
+def get_parameter_type_field_name(type_name: Optional[str]) -> str:
+  """Get the IR field name for the given primitive type.
+
+  For example: 'str' -> 'string_value', 'double' -> 'double_value', etc.
+
+  Args:
+    type_name: type name of the ComponentSpec I/O primitive type.
+
+  Returns:
+    The IR value reference field name.
+
+  Raises:
+    AttributeError: if type_name is not a string type.
+  """
+  return _PARAMETER_TYPES_VALUE_REFERENCE_MAPPING.get(
+      get_parameter_type(type_name))
 
 
 def get_input_artifact_type_schema(

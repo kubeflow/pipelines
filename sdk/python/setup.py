@@ -19,6 +19,8 @@ from setuptools import setup
 NAME = 'kfp'
 #VERSION = .... Change the version in kfp/__init__.py
 
+# NOTICE, after any updates to the following, ./requirements.in should be updated
+# accordingly.
 REQUIRES = [
     'absl-py>=0.9,<=0.11',
     'PyYAML>=5.3',
@@ -39,30 +41,29 @@ REQUIRES = [
     'Deprecated',
     'strip-hints',
     'docstring-parser>=0.7.3',
-    'kfp-pipeline-spec>=0.1.4, <0.2.0',
+    'kfp-pipeline-spec>=0.1.5, <0.2.0',
     'fire>=0.3.1'
 ]
 
 TESTS_REQUIRE = [
     'mock',
-    'kfp-pipeline-spec>=0.1.4, <0.2.0',
 ]
 
 
 def find_version(*file_path_parts):
-  here = os.path.abspath(os.path.dirname(__file__))
-  with open(os.path.join(here, *file_path_parts), 'r') as fp:
-    version_file_text = fp.read()
+    here = os.path.abspath(os.path.dirname(__file__))
+    with open(os.path.join(here, *file_path_parts), 'r') as fp:
+        version_file_text = fp.read()
 
-  version_match = re.search(
-      r"^__version__ = ['\"]([^'\"]*)['\"]",
-      version_file_text,
-      re.M,
-  )
-  if version_match:
-    return version_match.group(1)
+    version_match = re.search(
+        r"^__version__ = ['\"]([^'\"]*)['\"]",
+        version_file_text,
+        re.M,
+    )
+    if version_match:
+        return version_match.group(1)
 
-  raise RuntimeError('Unable to find version string.')
+    raise RuntimeError('Unable to find version string.')
 
 
 setup(
@@ -111,4 +112,5 @@ setup(
             'dsl-compile-v2 = kfp.v2.compiler.main:main',
             'kfp=kfp.__main__:main'
         ]
-    })
+    }
+)
