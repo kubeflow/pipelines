@@ -31,7 +31,7 @@ outputs:
 - {name: revision_id, description: The revision id of the simulation application.}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:1.1.0
+    image: amazon/aws-sagemaker-kfp-components:1.1.1
     command: [python3]
     args:
     - create_simulation_app/src/robomaker_create_simulation_app_component.py

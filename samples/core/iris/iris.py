@@ -59,8 +59,7 @@ _data_root_param = data_types.RuntimeParameter(
 # and baked into the TFX image used in the pipeline.
 _module_file_param = data_types.RuntimeParameter(
     name='module-file',
-    default=
-    '/tfx-src/tfx/examples/iris/iris_utils_native_keras.py',
+    default='/tfx/src/tfx/examples/iris/iris_utils_native_keras.py',
     ptype=Text,
 )
 
@@ -78,133 +77,135 @@ _pipeline_root = os.path.join(
 def _create_pipeline(
     pipeline_name: Text, pipeline_root: Text
 ) -> pipeline.Pipeline:
-  """Implements the Iris flowers pipeline with TFX."""
-  examples = external_input(_data_root_param)
+    """Implements the Iris flowers pipeline with TFX."""
+    examples = external_input(_data_root_param)
 
-  # Brings data into the pipeline or otherwise joins/converts training data.
-  example_gen = CsvExampleGen(input=examples)
+    # Brings data into the pipeline or otherwise joins/converts training data.
+    example_gen = CsvExampleGen(input=examples)
 
-  # Computes statistics over data for visualization and example validation.
-  statistics_gen = StatisticsGen(examples=example_gen.outputs['examples'])
+    # Computes statistics over data for visualization and example validation.
+    statistics_gen = StatisticsGen(examples=example_gen.outputs['examples'])
 
-  # Generates schema based on statistics files.
-  infer_schema = SchemaGen(
-      statistics=statistics_gen.outputs['statistics'], infer_feature_shape=True
-  )
+    # Generates schema based on statistics files.
+    infer_schema = SchemaGen(
+        statistics=statistics_gen.outputs['statistics'],
+        infer_feature_shape=True
+    )
 
-  # Performs anomaly detection based on statistics and data schema.
-  validate_stats = ExampleValidator(
-      statistics=statistics_gen.outputs['statistics'],
-      schema=infer_schema.outputs['schema']
-  )
+    # Performs anomaly detection based on statistics and data schema.
+    validate_stats = ExampleValidator(
+        statistics=statistics_gen.outputs['statistics'],
+        schema=infer_schema.outputs['schema']
+    )
 
-  # Performs transformations and feature engineering in training and serving.
-  transform = Transform(
-      examples=example_gen.outputs['examples'],
-      schema=infer_schema.outputs['schema'],
-      module_file=_module_file_param
-  )
+    # Performs transformations and feature engineering in training and serving.
+    transform = Transform(
+        examples=example_gen.outputs['examples'],
+        schema=infer_schema.outputs['schema'],
+        module_file=_module_file_param
+    )
 
-  # Uses user-provided Python function that implements a model using Keras.
-  trainer = Trainer(
-      module_file=_module_file_param,
-      custom_executor_spec=executor_spec.ExecutorClassSpec(GenericExecutor),
-      examples=transform.outputs['transformed_examples'],
-      transform_graph=transform.outputs['transform_graph'],
-      schema=infer_schema.outputs['schema'],
-      train_args=trainer_pb2.TrainArgs(num_steps=100),
-      eval_args=trainer_pb2.EvalArgs(num_steps=50)
-  )
+    # Uses user-provided Python function that implements a model using Keras.
+    trainer = Trainer(
+        module_file=_module_file_param,
+        custom_executor_spec=executor_spec.ExecutorClassSpec(GenericExecutor),
+        examples=transform.outputs['transformed_examples'],
+        transform_graph=transform.outputs['transform_graph'],
+        schema=infer_schema.outputs['schema'],
+        train_args=trainer_pb2.TrainArgs(num_steps=100),
+        eval_args=trainer_pb2.EvalArgs(num_steps=50)
+    )
 
-  # Get the latest blessed model for model validation.
-  model_resolver = ResolverNode(
-      instance_name='latest_blessed_model_resolver',
-      resolver_class=latest_blessed_model_resolver.LatestBlessedModelResolver,
-      model=Channel(type=Model),
-      model_blessing=Channel(type=ModelBlessing)
-  )
+    # Get the latest blessed model for model validation.
+    model_resolver = ResolverNode(
+        instance_name='latest_blessed_model_resolver',
+        resolver_class=latest_blessed_model_resolver.LatestBlessedModelResolver,
+        model=Channel(type=Model),
+        model_blessing=Channel(type=ModelBlessing)
+    )
 
-  # Uses TFMA to compute an evaluation statistics over features of a model and
-  # perform quality validation of a candidate model (compared to a baseline).
-  # Note: to compile this successfully you'll need TFMA at >= 0.21.5
-  eval_config = tfma.EvalConfig(
-      model_specs=[
-          tfma.ModelSpec(name='candidate', label_key='variety'),
-          tfma.ModelSpec(
-              name='baseline', label_key='variety', is_baseline=True
-          )
-      ],
-      slicing_specs=[
-          tfma.SlicingSpec(),
-          # Data can be sliced along a feature column. Required by TFMA visualization.
-          tfma.SlicingSpec(feature_keys=['sepal_length'])],
-      metrics_specs=[
-          tfma.MetricsSpec(
-              metrics=[
-                  tfma.MetricConfig(
-                      class_name='SparseCategoricalAccuracy',
-                      threshold=tfma.config.MetricThreshold(
-                          value_threshold=tfma.GenericValueThreshold(
-                              lower_bound={'value': 0.9}
-                          ),
-                          change_threshold=tfma.GenericChangeThreshold(
-                              direction=tfma.MetricDirection.HIGHER_IS_BETTER,
-                              absolute={'value': -1e-10}
-                          )
-                      )
-                  )
-              ]
-          )
-      ]
-  )
+    # Uses TFMA to compute an evaluation statistics over features of a model and
+    # perform quality validation of a candidate model (compared to a baseline).
+    # Note: to compile this successfully you'll need TFMA at >= 0.21.5
+    eval_config = tfma.EvalConfig(
+        model_specs=[
+            tfma.ModelSpec(name='candidate', label_key='variety'),
+            tfma.ModelSpec(
+                name='baseline', label_key='variety', is_baseline=True
+            )
+        ],
+        slicing_specs=[
+            tfma.SlicingSpec(),
+            # Data can be sliced along a feature column. Required by TFMA visualization.
+            tfma.SlicingSpec(feature_keys=['sepal_length'])
+        ],
+        metrics_specs=[
+            tfma.MetricsSpec(
+                metrics=[
+                    tfma.MetricConfig(
+                        class_name='SparseCategoricalAccuracy',
+                        threshold=tfma.config.MetricThreshold(
+                            value_threshold=tfma.GenericValueThreshold(
+                                lower_bound={'value': 0.9}
+                            ),
+                            change_threshold=tfma.GenericChangeThreshold(
+                                direction=tfma.MetricDirection.HIGHER_IS_BETTER,
+                                absolute={'value': -1e-10}
+                            )
+                        )
+                    )
+                ]
+            )
+        ]
+    )
 
-  # Uses TFMA to compute a evaluation statistics over features of a model.
-  model_analyzer = Evaluator(
-      examples=example_gen.outputs['examples'],
-      model=trainer.outputs['model'],
-      baseline_model=model_resolver.outputs['model'],
-      # Change threshold will be ignored if there is no baseline (first run).
-      eval_config=eval_config
-  )
+    # Uses TFMA to compute a evaluation statistics over features of a model.
+    model_analyzer = Evaluator(
+        examples=example_gen.outputs['examples'],
+        model=trainer.outputs['model'],
+        baseline_model=model_resolver.outputs['model'],
+        # Change threshold will be ignored if there is no baseline (first run).
+        eval_config=eval_config
+    )
 
-  # Checks whether the model passed the validation steps and pushes the model
-  # to a file destination if check passed.
-  pusher = Pusher(
-      model=trainer.outputs['model'],
-      model_blessing=model_analyzer.outputs['blessing'],
-      push_destination=pusher_pb2.PushDestination(
-          filesystem=pusher_pb2.PushDestination.Filesystem(
-              base_directory=os.path.
-              join(str(pipeline.ROOT_PARAMETER), 'model_serving')
-          )
-      )
-  )
+    # Checks whether the model passed the validation steps and pushes the model
+    # to a file destination if check passed.
+    pusher = Pusher(
+        model=trainer.outputs['model'],
+        model_blessing=model_analyzer.outputs['blessing'],
+        push_destination=pusher_pb2.PushDestination(
+            filesystem=pusher_pb2.PushDestination.Filesystem(
+                base_directory=os.path.
+                join(str(pipeline.ROOT_PARAMETER), 'model_serving')
+            )
+        )
+    )
 
-  return pipeline.Pipeline(
-      pipeline_name=pipeline_name,
-      pipeline_root=pipeline_root,
-      components=[
-          example_gen, statistics_gen, infer_schema, validate_stats, transform,
-          trainer, model_resolver, model_analyzer, pusher
-      ],
-      enable_cache=True,
-  )
+    return pipeline.Pipeline(
+        pipeline_name=pipeline_name,
+        pipeline_root=pipeline_root,
+        components=[
+            example_gen, statistics_gen, infer_schema, validate_stats,
+            transform, trainer, model_resolver, model_analyzer, pusher
+        ],
+        enable_cache=True,
+    )
 
 
 if __name__ == '__main__':
-  absl.logging.set_verbosity(absl.logging.INFO)
-  # Make sure the version of TFX image used is consistent with the version of
-  # TFX SDK. Here we use tfx:0.22.0 image.
-  config = kubeflow_dag_runner.KubeflowDagRunnerConfig(
-      kubeflow_metadata_config=kubeflow_dag_runner.
-      get_default_kubeflow_metadata_config(),
-      tfx_image='gcr.io/tfx-oss-public/tfx:0.22.0',
-  )
-  kfp_runner = kubeflow_dag_runner.KubeflowDagRunner(
-      output_filename=__file__ + '.yaml', config=config
-  )
-  kfp_runner.run(
-      _create_pipeline(
-          pipeline_name=_pipeline_name, pipeline_root=_pipeline_root
-      )
-  )
+    absl.logging.set_verbosity(absl.logging.INFO)
+    # Make sure the version of TFX image used is consistent with the version of
+    # TFX SDK. Here we use tfx:0.27.0 image.
+    config = kubeflow_dag_runner.KubeflowDagRunnerConfig(
+        kubeflow_metadata_config=kubeflow_dag_runner.
+        get_default_kubeflow_metadata_config(),
+        tfx_image='gcr.io/tfx-oss-public/tfx:0.27.0',
+    )
+    kfp_runner = kubeflow_dag_runner.KubeflowDagRunner(
+        output_filename=__file__ + '.yaml', config=config
+    )
+    kfp_runner.run(
+        _create_pipeline(
+            pipeline_name=_pipeline_name, pipeline_root=_pipeline_root
+        )
+    )

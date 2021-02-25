@@ -314,78 +314,21 @@ def build_python_component(
     # Override user program args for new-styled component.
     # TODO: The actual program args will be changed after we support v2
     # component on KFP.
-    program_args = []
-    for component_input in component_spec.inputs or []:
-      if component_input._passing_style == components.InputArtifact:
-        # For each input artifact, there'll be possibly 3 arguments passed to
-        # the user program:
-        # 1. {name of the artifact}_input_path: The actual path, or uri, of the
-        #    input artifact.
-        # 2. {name of the artifact}_input_pod_name: The pod ID of the producer.
-        # 3. {name of the artifact}_input_output_name: The output name of the
-        #    artifact, by which the artifact can be found in the producer
-        #    metadata JSON file.
-        program_args.append('--{}{}'.format(
-            component_input.name,
-            entrypoint.INPUT_URI_SUFFIX
-        ))
-        program_args.append(
-            _structures.InputUriPlaceholder(
-                input_name=component_input.name))
-        program_args.append('--{}{}'.format(
-            component_input.name,
-            entrypoint.PRODUCER_POD_ID_SUFFIX
-        ))
-        program_args.append(
-            '{{{{inputs.parameters.{input}}}}}'.format(
-                input=_components.PRODUCER_POD_NAME_PARAMETER.format(
-                    component_input.name)))
-        # TODO(numerology): Consider removing the need of output name
-        # placeholder by letting v2 component output two metadata files per
-        # output.
-        program_args.append('--{}{}'.format(
-            component_input.name,
-            entrypoint.OUTPUT_NAME_SUFFIX
-        ))
-        program_args.append(_structures.InputOutputPortNamePlaceholder(
-            input_name=component_input.name))
-
-      elif component_input._passing_style is None:
-        program_args.append('--{}{}'.format(
-            component_input.name,
-            entrypoint.ARGO_PARAM_SUFFIX
-        ))
-        program_args.append(_structures.InputValuePlaceholder(
-            input_name=component_input.name))
-      else:
-        raise TypeError(
-            'Only Input/OutputArtifact and parameter annotations '
-            'are supported in V2 components. '
-            'Got %s' % component_input._passing_style)
-
-    for component_output in component_spec.outputs or []:
-      if component_output._passing_style == components.OutputArtifact:
-        # For each output artifact, there'll be one arguments passed to
-        # the user program:
-        # - {name of the artifact}_output_path: The actual path, or uri, of the
-        #    input artifact.
-        program_args.append('--{}{}'.format(
-            component_output.name,
-            entrypoint.OUTPUT_ARTIFACT_PATH_SUFFIX
-        ))
-        program_args.append(
-            _structures.OutputUriPlaceholder(
-                output_name=component_output.name))
-      elif component_output._passing_style is not None:
-        raise TypeError(
-            'Only Input/OutputArtifact and parameter annotations '
-            'are supported in V2 components. '
-            'Got %s' % component_output._passing_style)
-
-    program_args.append('--pipeline_context')
-    program_args.append(dsl.RUN_ID_PLACEHOLDER)
-    program_args.append('--{}'.format(entrypoint.FN_NAME_ARG))
-    program_args.append(component_func.__name__)
+    # For v2 component, the received command line args are fixed as follows:
+    # --executor_input_str
+    # {Executor input pb message at runtime}
+    # --function_name
+    # {The name of user defined function}
+    # --output_metadata_path
+    # {The place to write output metadata JSON file}
+    program_args = [
+        '--executor_input_str',
+        _structures.ExecutorInputPlaceholder(),
+        '--{}'.format(entrypoint.FN_NAME_ARG),
+        component_func.__name__,
+        '--output_metadata_path',
+        _structures.OutputMetadataPlaceholder()
+    ]
 
     component_spec.implementation.container.args = program_args
   else:
