@@ -215,6 +215,7 @@ def create_container_op_from_component_and_arguments(
 
   old_warn_value = dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING
   dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = True
+
   task = container_op.ContainerOp(
       name=component_spec.name or _default_component_name,
       image=container_spec.image,

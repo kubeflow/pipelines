@@ -14,6 +14,8 @@
 """Utilities functions KFP DSL."""
 
 import re
+from typing import Union
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 
 def sanitize_component_name(name: str):
@@ -39,3 +41,19 @@ def _sanitize_name(name: str):
   """
   return re.sub('-+', '-', re.sub('[^-0-9a-z]+', '-',
                                   name.lower())).lstrip('-').rstrip('-')
+
+
+def get_value(value: Union[str, int, float]) -> pipeline_spec_pb2.Value:
+  """Gets pipeline value proto from Python value."""
+  result = pipeline_spec_pb2.Value()
+  if isinstance(value, str):
+    result.string_value = value
+  elif isinstance(value, int):
+    result.int_value = value
+  elif isinstance(value, float):
+    result.double_value = value
+  else:
+    raise TypeError(
+        'Got unexpected type %s for value %s. Currently only support str, int '
+        'and float.' % (type(value), value))
+  return result
