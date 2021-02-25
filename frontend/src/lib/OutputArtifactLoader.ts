@@ -300,15 +300,18 @@ export class OutputArtifactLoader {
       artifacts,
     );
     viewers = viewers.concat(
-      anomaliesArtifactUris.map(uri => {
-        uri = uri + '/anomalies.pbtxt';
-        const script = [
-          'import tensorflow_data_validation as tfdv',
-          `anomalies = tfdv.load_anomalies_text('${uri}')`,
-          'tfdv.display_anomalies(anomalies)',
-        ];
-        return buildArtifactViewer({ script, namespace });
-      }),
+      anomaliesArtifactUris
+        .map(uri =>
+          ['eval', 'train'].map(anomalyFileName => {
+            const script = [
+              'import tensorflow_data_validation as tfdv',
+              `anomalies = tfdv.load_anomalies_text('${uri}/${anomalyFileName}')`,
+              'tfdv.display_anomalies(anomalies)',
+            ];
+            return buildArtifactViewer({ script, namespace });
+          }),
+        )
+        .flat(),
     );
     const EvaluatorArtifactUris = filterArtifactUrisByType(
       'ModelEvaluation',
