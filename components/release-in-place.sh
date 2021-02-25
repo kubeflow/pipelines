@@ -48,9 +48,8 @@ pushd "$DIR/.."
 # Update setup.py VERSION
 sed -i.bak -e "s|VERSION =.\+'|VERSION = '${TAG_NAME}'|g" "components/gcp/container/component_sdk/python/setup.py"
 
-BATCH_UPDATE=()
-
 # Updating components and samples.
+BATCH_UPDATE=()
 for image in "${images[@]}"
 do
   TARGET_IMAGE_BASE=${TO_GCR_PREFIX}${image}
@@ -65,12 +64,15 @@ find components samples -type f | while read file; do
 done
 
 BATCH_UPDATE=()
+echo "${BATCH_UPDATE[@]}"
 # Updating the samples to use the updated components
-git diff --name-only | while read component_file; do
-    echo $component_file
-    BATCH_UPDATE+=("-e" "s|(https://raw.githubusercontent.com/kubeflow/pipelines/)[^/]+(/$component_file)|\1${TAG_NAME}\2|g")
+COMPONENTS=($(git diff --name-only))
+for component_file in ${COMPONENTS[@]}
+do
+  echo $component_file
+  BATCH_UPDATE+=("-e" "s|(https://raw.githubusercontent.com/kubeflow/pipelines/)[^/]+(/$component_file)|\1${TAG_NAME}\2|g")
 done
 find components samples -type f | while read file; do
-  sed -i "${BATCH_UPDATE[@]}" "$file";
+  sed -i -r "${BATCH_UPDATE[@]}" "$file";
 done
 popd
