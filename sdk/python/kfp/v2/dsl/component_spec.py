@@ -69,7 +69,8 @@ def build_component_inputs_spec(
     pipeline_params: The list of pipeline params.
   """
   for param in pipeline_params:
-    input_name = (param.full_name if param.op_name else param.name)
+    input_name = param.full_name
+
     if type_utils.is_parameter_type(param.param_type):
       component_spec.input_definitions.parameters[
           input_name].type = type_utils.get_parameter_type(param.param_type)
@@ -90,7 +91,7 @@ def build_component_outputs_spec(
     pipeline_params: The list of pipeline params.
   """
   for param in pipeline_params or []:
-    output_name = (param.full_name if param.op_name else param.name)
+    output_name = param.full_name
     if type_utils.is_parameter_type(param.param_type):
       component_spec.output_definitions.parameters[
           output_name].type = type_utils.get_parameter_type(param.param_type)
@@ -113,7 +114,7 @@ def build_task_inputs_spec(
     tasks_in_current_dag: The list of tasks names for tasks in the same dag.
   """
   for param in pipeline_params or []:
-    input_name = (param.full_name if param.op_name else param.name)
+    input_name = param.full_name
     if type_utils.is_parameter_type(param.param_type):
       if param.op_name in tasks_in_current_dag:
         task_spec.inputs.parameters[
@@ -136,3 +137,38 @@ def build_task_inputs_spec(
       else:
         task_spec.inputs.artifacts[
             input_name].component_input_artifact = input_name
+
+
+def pop_input_from_component_spec(
+    component_spec: pipeline_spec_pb2.ComponentSpec,
+    input_name: str,
+) -> None:
+  """Removes an input from component spec input_definitions.
+
+  Args:
+    component_spec: The component spec to update in place.
+    input_name: The name of the input, which could be an artifact or paremeter.
+  """
+  component_spec.input_definitions.artifacts.pop(input_name)
+  component_spec.input_definitions.parameters.pop(input_name)
+
+  if component_spec.input_definitions == pipeline_spec_pb2.ComponentInputsSpec(
+  ):
+    component_spec.ClearField('input_definitions')
+
+
+def pop_input_from_task_spec(
+    task_spec: pipeline_spec_pb2.PipelineTaskSpec,
+    input_name: str,
+) -> None:
+  """Removes an input from task spec inputs.
+
+  Args:
+    task_spec: The pipeline task spec to update in place.
+    input_name: The name of the input, which could be an artifact or paremeter.
+  """
+  task_spec.inputs.artifacts.pop(input_name)
+  task_spec.inputs.parameters.pop(input_name)
+
+  if task_spec.inputs == pipeline_spec_pb2.TaskInputsSpec():
+    task_spec.ClearField('inputs')

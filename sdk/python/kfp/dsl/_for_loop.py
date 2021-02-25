@@ -87,12 +87,18 @@ class LoopArguments(dsl.PipelineParam):
         return '{}-{}'.format(cls.LOOP_ITEM_PARAM_NAME_BASE, code)
 
     @classmethod
+    def name_is_loop_argument(cls, param_name: Text) -> bool:
+        """Return True if the given parameter name looks like a loop argument.
+
+        Either it came from a withItems loop item or withParams loop item.
+        """
+        return cls.name_is_withitems_loop_argument(param_name) \
+          or cls.name_is_withparams_loop_argument(param_name)
+
+    @classmethod
     def name_is_withitems_loop_argument(cls, param_name: Text) -> bool:
         """Return True if the given parameter name looks like it came from a loop arguments parameter."""
-        return re.match(
-            '%s-[0-9a-f]{%s}' % (cls.LOOP_ITEM_PARAM_NAME_BASE, cls.NUM_CODE_CHARS),
-            param_name,
-        ) is not None
+        return (cls.LOOP_ITEM_PARAM_NAME_BASE + '-') in param_name
 
     @classmethod
     def name_is_withparams_loop_argument(cls, param_name: Text) -> bool:
