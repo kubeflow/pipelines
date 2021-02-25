@@ -1,5 +1,6 @@
-# After any updates to this file, requirements.txt should be regenerated using
-# ../../backend/update_requirements.sh python3.7 < requirements.in > requirements.txt
+# After any updates to this file, requirements.txt should be regenerated running
+# the following in this folder:
+# ../../backend/update_requirements.sh python:3.7 < requirements.in > requirements.txt
 # Also, this file should be in-sync with ./setup.py REQUIRES.
 
 Deprecated
