@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -ex
+set -e
 
 echo "Usage: update kubeflow/pipelines/VERSION to new version tag by"
 echo '`echo -n "\$VERSION" > VERSION` first, then run this script.'

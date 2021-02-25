@@ -32,8 +32,8 @@ fi
 
 pushd "${REPO_ROOT}"
 PREBUILT_REMOTE_IMAGE=gcr.io/ml-pipeline-test/api-generator@sha256:2bca5a3e4c1a6c8f4677ef8433ec373894599e35febdc84c4563c2c9bb3f8de7
-docker run --interactive --rm \
-  --user $(id -u):$(id -g) \
+  # --user $(id -u):$(id -g) \
+docker run --interactive -t --rm \
   --mount type=bind,source="$(pwd)",target=/go/src/github.com/kubeflow/pipelines \
-  ${PREBUILT_REMOTE_IMAGE} /go/src/github.com/kubeflow/pipelines/hack/release-imp.sh
+  ${PREBUILT_REMOTE_IMAGE} /go/src/github.com/kubeflow/pipelines/hack/release-imp-docker.sh
 popd
