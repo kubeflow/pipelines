@@ -56,6 +56,12 @@ def create_container_op_from_component_and_arguments(
 
   # Check types of the reference arguments and serialize PipelineParams
   arguments = arguments.copy()
+  # Preserver input params for ContainerOp.inputs
+  input_params = list(
+      set([
+          param for param in arguments.values()
+          if isinstance(param, dsl.PipelineParam)
+      ]))
   for input_name, argument_value in arguments.items():
     if isinstance(argument_value, dsl.PipelineParam):
       input_type = component_spec._inputs_dict[input_name].type
@@ -250,6 +256,8 @@ def create_container_op_from_component_and_arguments(
 
   component_meta = copy.copy(component_spec)
   task._set_metadata(component_meta)
+
+  task.inputs = input_params
 
   # Previously, ContainerOp had strict requirements for the output names, so we
   # had to convert all the names before passing them to the ContainerOp

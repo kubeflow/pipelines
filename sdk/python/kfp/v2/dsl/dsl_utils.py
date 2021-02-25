@@ -17,23 +17,27 @@ import re
 from typing import Union
 from kfp.pipeline_spec import pipeline_spec_pb2
 
+_COMPONENT_NAME_PREFIX = 'comp-'
+_TASK_NAME_PREFIX = 'task-'
+_EXECUTOR_LABEL_PREFIX = 'exec-'
 
-def sanitize_component_name(name: str):
+
+def sanitize_component_name(name: str) -> str:
   """Sanitizes component name."""
-  return 'comp-{}'.format(_sanitize_name(name))
+  return _COMPONENT_NAME_PREFIX + _sanitize_name(name)
 
 
-def sanitize_task_name(name: str):
+def sanitize_task_name(name: str) -> str:
   """Sanitizes task name."""
-  return 'task-{}'.format(_sanitize_name(name))
+  return _TASK_NAME_PREFIX + _sanitize_name(name)
 
 
-def sanitize_executor_label(label: str):
+def sanitize_executor_label(label: str) -> str:
   """Sanitizes executor label."""
-  return 'exec-{}'.format(_sanitize_name(label))
+  return _EXECUTOR_LABEL_PREFIX + _sanitize_name(label)
 
 
-def _sanitize_name(name: str):
+def _sanitize_name(name: str) -> str:
   """Sanitizes name to comply with IR naming convention.
 
   The sanitized name contains only lower case alphanumeric characters and
@@ -57,3 +61,19 @@ def get_value(value: Union[str, int, float]) -> pipeline_spec_pb2.Value:
         'Got unexpected type %s for value %s. Currently only support str, int '
         'and float.' % (type(value), value))
   return result
+
+
+def remove_task_name_prefix(sanitized_task_name: str) -> str:
+  """Removes the task name prefix from sanitized task name.
+
+  Args:
+    sanitized_task_name: The task name sanitized via `sanitize_task_name(name)`.
+
+  Returns:
+    The name with out task name prefix.
+
+  Raises:
+    AssertionError if the task name doesn't have the expected prefix.
+  """
+  assert sanitized_task_name.startswith(_TASK_NAME_PREFIX)
+  return sanitized_task_name[len(_TASK_NAME_PREFIX):]
