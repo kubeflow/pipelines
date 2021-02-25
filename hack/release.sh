@@ -46,7 +46,11 @@ fi
 
 echo "Running the ./hack/release-imp.sh script in cloned repo"
 echo -n "$TAG_NAME" > ./VERSION
-"hack/release-imp.sh"
+PREBUILT_REMOTE_IMAGE=gcr.io/ml-pipeline-test/api-generator@sha256:2bca5a3e4c1a6c8f4677ef8433ec373894599e35febdc84c4563c2c9bb3f8de7
+docker run --interactive --rm \
+  --user $(id -u):$(id -g) \
+  --mount type=bind,source="$(pwd)",target=/go/src/github.com/kubeflow/pipelines \
+  ${PREBUILT_REMOTE_IMAGE} /go/src/github.com/kubeflow/pipelines/hack/release-imp.sh
 
 echo "Checking in the version bump changes"
 git add --all
@@ -58,5 +62,5 @@ read -p "Do you want to push the version change and tag $TAG_NAME tag to upstrea
 if [ "$REPLY" != "y" ]; then
    exit
 fi
-git push --set-upstream origin "$BRANCH"
-git push origin "$TAG_NAME"
+# git push --set-upstream origin "$BRANCH"
+# git push origin "$TAG_NAME"
