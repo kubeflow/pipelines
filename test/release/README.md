@@ -1,5 +1,7 @@
 # KFP Release tools
 
+For full release documentation, please read [RELEASE.md](../../RELEASE.md).
+
 To do a release:
 
 TAG=`<TAG>` BRANCH=`<BRANCH>` make release
