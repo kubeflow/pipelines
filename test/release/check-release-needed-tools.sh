@@ -28,8 +28,8 @@ yq -V | grep 3. || (echo "yq version 3.x should be used" && exit 1)
 echo "java>=8"
 which java >/dev/null || (echo "java not found in PATH" && exit 1)
 echo "python>3"
-which python >/dev/null || (echo "python not found in PATH" && exit 1)
-python -c "import setuptools" || (echo "setuptools should be installed in python" && exit 1)
+which python3 >/dev/null || (echo "python not found in PATH" && exit 1)
+python3 -c "import setuptools" || (echo "setuptools should be installed in python" && exit 1)
 echo "go"
 which go >/dev/null || (echo "go not found in PATH" && exit 1)
 go_path=$(go env GOPATH)
