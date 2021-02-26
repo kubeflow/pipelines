@@ -93,7 +93,6 @@ func (s *PipelineStore) ListPipelines(filterContext *common.FilterContext, opts 
 		query := opts.AddFilterToSelect(sqlBuilder).From("pipelines").
 			LeftJoin("pipeline_versions ON pipelines.DefaultVersionId = pipeline_versions.UUID")
 		if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == common.Namespace {
-			glog.Info("Using Namespace to filter the query")
 			query = query.Where(
 				sq.Eq{"pipelines.Status": model.PipelineReady,
 					"pipelines.Namespace": filterContext.ReferenceKey.ID},
