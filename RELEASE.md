@@ -13,7 +13,7 @@
     - [Cutting a release branch (Optional)](#cutting-a-release-branch-optional)
     - [Before release](#before-release)
     - [Releasing from release branch](#releasing-from-release-branch)
-  - [Scripts ./hack/release* implementation details](#scripts-hackrelease-implementation-details)
+  - [Release Process Development](#release-process-development)
 
 ## Schedule
 
@@ -312,21 +312,6 @@ Update master branch to the same version and include latest changelog:
 
    and create a PR to update the version, e.g. <https://github.com/kubeflow/website/pull/1942>.
 
-## Scripts ./hack/release* implementation details
+## Release Process Development
 
-The script `./hack/release-imp.sh` does the following:
-
-1. Generate `./CHANGELOG.md` using commit history.
-1. Regenerate open api specs based on proto files.
-1. Regenerate `kfp-server-api` python package.
-1. Update all version refs in this repo to `./VERSION` by calling each of the
-`./**/hack/release.sh` scripts. The individual scripts are responsible for updating
-version refs to their own folder.
-
-The script `./hack/release.sh` is a wrapper on top of `./hack/release-imp.sh`, it
-
-1. Clones github.com/kubeflow/pipelines repo to a temporary path.
-1. Checkout `release-$MINOR` branch.
-1. Runs `./hack/release-imp.sh`.
-1. Runs git commit and tag.
-1. After confirming with user input, pushes to upstream branch.
+Please refer to [./test/release](./test/release).
