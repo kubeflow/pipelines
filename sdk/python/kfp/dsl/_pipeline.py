@@ -25,14 +25,14 @@ from ..components._naming import _make_name_unique_by_adding_index
 import sys
 
 # This handler is called whenever the @pipeline decorator is applied.
-# It can be used by command-line DSL compiler to inject code that runs for every pipeline definition.
+# It can be used by command-line DSL compiler to inject code that runs for every
+# pipeline definition.
 _pipeline_decorator_handler = None
 
 
-def pipeline(
-    name: Optional[str] = None,
-    description: Optional[str] = None,
-    pipeline_root: Optional[str] = None):
+def pipeline(name: Optional[str] = None,
+             description: Optional[str] = None,
+             pipeline_root: Optional[str] = None):
   """Decorator of pipeline functions.
 
   Example
@@ -90,8 +90,8 @@ class PipelineConf():
     """Configures the pipeline level imagepullsecret
 
     Args:
-      image_pull_secrets: a list of Kubernetes V1LocalObjectReference
-        For detailed description, check Kubernetes V1LocalObjectReference definition
+      image_pull_secrets: a list of Kubernetes V1LocalObjectReference For
+        detailed description, check Kubernetes V1LocalObjectReference definition
         https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1LocalObjectReference.md
     """
     self.image_pull_secrets = image_pull_secrets
@@ -110,11 +110,12 @@ class PipelineConf():
     """Configures the max number of total parallel pods that can execute at the same time in a workflow.
 
     Args:
-        max_num_pods: max number of total parallel pods.
+      max_num_pods: max number of total parallel pods.
     """
     if max_num_pods < 1:
-        raise ValueError('Pipeline max_num_pods set to < 1, allowed values are > 0')
-    
+      raise ValueError(
+          'Pipeline max_num_pods set to < 1, allowed values are > 0')
+
     self.parallelism = max_num_pods
     return self
 
@@ -122,7 +123,8 @@ class PipelineConf():
     """Configures the ttl after the pipeline has finished.
 
     Args:
-      seconds: number of seconds for the workflow to be garbage collected after it is finished.
+      seconds: number of seconds for the workflow to be garbage collected after
+        it is finished.
     """
     self.ttl_seconds_after_finished = seconds
     return self
@@ -131,22 +133,26 @@ class PipelineConf():
     """ PodDisruptionBudget holds the number of concurrent disruptions that you allow for pipeline Pods.
 
     Args:
-        min_available (Union[int, str]):  An eviction is allowed if at least "minAvailable" pods selected by 
-        "selector" will still be available after the eviction, i.e. even in the
-	      absence of the evicted pod.  So for example you can prevent all voluntary
-	      evictions by specifying "100%". "minAvailable" can be either an absolute number or a percentage.
+      min_available (Union[int, str]):  An eviction is allowed if at least
+        "minAvailable" pods selected by "selector" will still be available after
+        the eviction, i.e. even in the absence of the evicted pod.  So for
+        example you can prevent all voluntary evictions by specifying "100%".
+        "minAvailable" can be either an absolute number or a percentage.
     """
     self._pod_disruption_budget_min_available = min_available
     return self
 
   def set_default_pod_node_selector(self, label_name: str, value: str):
-    """Add a constraint for nodeSelector for a pipeline. Each constraint is a key-value pair label. For the
-      container to be eligible to run on a node, the node must have each of the constraints appeared
-      as labels.
+    """Add a constraint for nodeSelector for a pipeline.
+
+    Each constraint is a key-value pair label.
+
+    For the container to be eligible to run on a node, the node must have each
+    of the constraints appeared as labels.
 
     Args:
-        label_name: The name of the constraint label.
-        value: The value of the constraint label.
+      label_name: The name of the constraint label.
+      value: The value of the constraint label.
     """
     self.default_pod_node_selector[label_name] = value
     return self
@@ -156,13 +162,15 @@ class PipelineConf():
 
     Args:
       policy: the pull policy, has to be one of: Always, Never, IfNotPresent.
-      For more info: https://github.com/kubernetes-client/python/blob/10a7f95435c0b94a6d949ba98375f8cc85a70e5a/kubernetes/docs/V1Container.md
+        For more info:
+        https://github.com/kubernetes-client/python/blob/10a7f95435c0b94a6d949ba98375f8cc85a70e5a/kubernetes/docs/V1Container.md
     """
     self.image_pull_policy = policy
     return self
 
   def add_op_transformer(self, transformer):
     """Configures the op_transformers which will be applied to all ops in the pipeline.
+
     The ops can be ResourceOp, VolumeOp, or ContainerOp.
 
     Args:
@@ -174,19 +182,19 @@ class PipelineConf():
     """Set the dnsConfig to be given to each pod.
 
     Args:
-      dns_config: Kubernetes V1PodDNSConfig
-        For detailed description, check Kubernetes V1PodDNSConfig definition
+      dns_config: Kubernetes V1PodDNSConfig For detailed description, check
+        Kubernetes V1PodDNSConfig definition
         https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1PodDNSConfig.md
 
     Example:
-
       ::
+
         import kfp
         from kubernetes.client.models import V1PodDNSConfig, V1PodDNSConfigOption
         pipeline_conf = kfp.dsl.PipelineConf()
         pipeline_conf.set_dns_config(dns_config=V1PodDNSConfig(
-          nameservers=["1.2.3.4"],
-          options=[V1PodDNSConfigOption(name="ndots", value="2")]
+            nameservers=["1.2.3.4"], options=[V1PodDNSConfigOption(name="ndots",
+            value="2")]
         ))
     """
     self.dns_config = dns_config
@@ -205,7 +213,8 @@ class PipelineConf():
         from kfp.dsl import PipelineConf, data_passing_methods
         from kubernetes.client.models import V1Volume, V1PersistentVolumeClaim
         pipeline_conf = PipelineConf()
-        pipeline_conf.data_passing_method = data_passing_methods.KubernetesVolume(
+        pipeline_conf.data_passing_method =
+        data_passing_methods.KubernetesVolume(
             volume=V1Volume(
                 name='data',
                 persistent_volume_claim=V1PersistentVolumeClaim('data-volume'),
@@ -218,6 +227,7 @@ class PipelineConf():
 
 def get_pipeline_conf():
   """Configure the pipeline level setting to the current pipeline
+
     Note: call the function inside the user defined pipeline function.
   """
   return Pipeline.get_default_pipeline().conf
@@ -227,10 +237,11 @@ def get_pipeline_conf():
 class Pipeline():
   """A pipeline contains a list of operators.
 
-  This class is not supposed to be used by pipeline authors since pipeline authors can use
-  pipeline functions (decorated with @pipeline) to reference their pipelines. This class
-  is useful for implementing a compiler. For example, the compiler can use the following
-  to get the pipeline object and its ops:
+  This class is not supposed to be used by pipeline authors since pipeline
+  authors can use pipeline functions (decorated with @pipeline) to reference
+  their pipelines.
+  This class is useful for implementing a compiler. For example, the compiler
+  can use the following to get the pipeline object and its ops:
 
   Example:
     ::
@@ -259,7 +270,8 @@ class Pipeline():
     """Create a new instance of Pipeline.
 
     Args:
-      name: the name of the pipeline. Once deployed, the name will show up in Pipeline System UI.
+      name: the name of the pipeline. Once deployed, the name will show up in
+        Pipeline System UI.
     """
     self.name = name
     self.ops = {}
@@ -294,17 +306,19 @@ class Pipeline():
 
     Args:
       op: An operator of ContainerOp, ResourceOp or their inherited types.
-
-    Returns
+        Returns
       op_name: a unique op name.
     """
     # Sanitizing the op name.
-    # Technically this could be delayed to the compilation stage, but string serialization of PipelineParams make unsanitized names problematic.
+    # Technically this could be delayed to the compilation stage, but string
+    # serialization of PipelineParams make unsanitized names problematic.
     op_name = _sanitize_python_function_name(op.human_name).replace('_', '-')
     #If there is an existing op with this name then generate a new name.
-    op_name = _make_name_unique_by_adding_index(op_name, list(self.ops.keys()), ' ')
+    op_name = _make_name_unique_by_adding_index(op_name, list(self.ops.keys()),
+                                                ' ')
     if op_name == '':
-      op_name = _make_name_unique_by_adding_index('task', list(self.ops.keys()), ' ')
+      op_name = _make_name_unique_by_adding_index('task', list(self.ops.keys()),
+                                                  ' ')
 
     self.ops[op_name] = op
     if not define_only:
