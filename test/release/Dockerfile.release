@@ -30,3 +30,6 @@ RUN curl -L -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/downlo
 # Make all files accessible to non-root users.
 RUN chmod -R 777 $NVM_DIR && \
     chmod -R 777 /usr/local/bin
+
+# Configure npm cache location
+RUN npm config set cache /tmp/.npm --global

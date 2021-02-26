@@ -33,8 +33,6 @@ fi
 cd "$REPO_ROOT"
 "$DIR/check-release-needed-tools.sh"
 
-# DO NOT run this locally
-npm config set cache /tmp/.npm --global
 npm ci
 npm run changelog
 # Change github issue/PR references like #123 to real urls in markdown.

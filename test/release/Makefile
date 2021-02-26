@@ -39,3 +39,8 @@ push: build
 	# Only some maintainers have access to push,
 	# contact @Bobgy @capri-xiyue @zijianjoy if you have any needs.
 	docker push $(REMOTE)
+
+.PHONY: dev
+dev:
+	# Run the docker image interactively in shell as current user.
+	docker run -it -u $$(id -u):$$(id -g) $(REMOTE) /bin/bash
