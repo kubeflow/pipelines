@@ -1,9 +1,9 @@
 # based on KFP backend api client generator dockerfile
 FROM gcr.io/ml-pipeline-test/api-generator:latest
 
-# install nvm & node
+# install nvm & node 12
 # Reference: https://stackoverflow.com/a/28390848
-ENV NODE_VERSION 12
+ENV NODE_VERSION 12.21.0
 ENV NVM_DIR=/usr/local/nvm
 RUN mkdir -p $NVM_DIR && \
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash && \
@@ -11,8 +11,8 @@ RUN mkdir -p $NVM_DIR && \
     nvm install $NODE_VERSION && \
     nvm alias default $NODE_VERSION && \
     nvm use default
-ENV NODE_PATH $NVM_DIR/v$NODE_VERSION/lib/node_modules
-ENV PATH $NVM_DIR/v$NODE_VERSION/bin:$PATH
+ENV NODE_PATH $NVM_DIR/versions/node/v$NODE_VERSION/lib/node_modules
+ENV PATH $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
 
 # install java==8 python==3
 RUN apt-get update \

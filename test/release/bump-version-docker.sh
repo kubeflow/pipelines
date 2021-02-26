@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -e
+set -ex
 
 echo "Usage: update kubeflow/pipelines/VERSION to new version tag by"
 echo '`echo -n "\$VERSION" > VERSION` first, then run this script.'
@@ -22,7 +22,7 @@ echo "Please use the above command to make sure the file doesn't have extra"
 echo "line endings."
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
-REPO_ROOT="$DIR/.."
+REPO_ROOT="$DIR/../.."
 TAG_NAME="$(cat $REPO_ROOT/VERSION)"
 
 if [[ -z "$TAG_NAME" ]]; then
@@ -30,18 +30,11 @@ if [[ -z "$TAG_NAME" ]]; then
   exit 1
 fi
 
-cd "$REPO_ROOT"
-"$DIR/check-release-needed-tools.sh"
-
-npm ci
-npm run changelog
-# Change github issue/PR references like #123 to real urls in markdown.
-# The issues must have a " " or a "(" before it to avoid already converted issues like [\#123](url...).
-sed -i.bak -e 's|\([ (]\)#\([0-9]\+\)|\1[\\#\2](https://github.com/kubeflow/pipelines/issues/\2)|g' "$REPO_ROOT/CHANGELOG.md"
-
-"$REPO_ROOT/components/release-in-place.sh" $TAG_NAME
-"$REPO_ROOT/manifests/gcp_marketplace/hack/release.sh" $TAG_NAME
-"$REPO_ROOT/manifests/kustomize/hack/release.sh" $TAG_NAME
-"$REPO_ROOT/sdk/hack/release.sh" $TAG_NAME
-./backend/api/hack/generator.sh
-"$REPO_ROOT/backend/api/build_kfp_server_api_python_package.sh"
+pushd "${REPO_ROOT}"
+# RELEASE_IMAGE=gcr.io/ml-pipeline-test/api-generator@sha256:2bca5a3e4c1a6c8f4677ef8433ec373894599e35febdc84c4563c2c9bb3f8de7
+RELEASE_IMAGE=${RELEASE_IMAGE:-kfp-release}
+  # --user $(id -u):$(id -g) \
+docker run --interactive --rm \
+  --mount type=bind,source="$(pwd)",target=/go/src/github.com/kubeflow/pipelines \
+  ${RELEASE_IMAGE} /go/src/github.com/kubeflow/pipelines/test/release/bump-version-in-place.sh
+popd
