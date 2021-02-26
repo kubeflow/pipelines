@@ -11,6 +11,7 @@ Name | Type | Description | Notes
 **url** | [**ApiUrl**](ApiUrl.md) |  | [optional] 
 **error** | **str** | In case any error happens retrieving a pipeline field, only pipeline ID and the error message is returned. Client has the flexibility of choosing how to handle error. This is especially useful during listing call. | [optional] 
 **default_version** | [**ApiPipelineVersion**](ApiPipelineVersion.md) |  | [optional] 
+**resource_references** | [**list[ApiResourceReference]**](ApiResourceReference.md) | Input. Required. E.g., specify which pipeline this pipeline version belongs to. | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 
