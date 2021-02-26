@@ -49,7 +49,7 @@ echo -n "$TAG" > ./VERSION
 # TODO(Bobgy): pin image tag
 PREBUILT_REMOTE_IMAGE=gcr.io/ml-pipeline-test/release:latest
 pushd ./test/release
-TAG="${TAG}" BRANCH="${BRANCH}" make release
+make release-in-place
 popd
 
 echo "Checking in the version bump changes"
