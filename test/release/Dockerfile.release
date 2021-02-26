@@ -26,3 +26,7 @@ RUN python3 -m pip install setuptools
 # Released in https://github.com/mikefarah/yq/releases/tag/3.4.1
 RUN curl -L -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/3.4.1/yq_linux_amd64 && \
     chmod +x /usr/local/bin/yq
+
+# Make all files accessible to non-root users.
+RUN chmod -R 777 $NVM_DIR && \
+    chmod -R 777 /usr/local/bin

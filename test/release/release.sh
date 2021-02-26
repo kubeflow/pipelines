@@ -48,10 +48,9 @@ echo "Running the bump version script in cloned repo"
 echo -n "$TAG" > ./VERSION
 # TODO(Bobgy): pin image tag
 PREBUILT_REMOTE_IMAGE=gcr.io/ml-pipeline-test/release:latest
-docker run --interactive --rm \
-  --user $(id -u):$(id -g) \
-  --mount type=bind,source="$(pwd)",target=/go/src/github.com/kubeflow/pipelines \
-  ${PREBUILT_REMOTE_IMAGE} bash -c 'cd /go/src/github.com/kubeflow/pipelines/test/release && make release'
+pushd ./test/release
+TAG="${TAG}" BRANCH="${BRANCH}" make release
+popd
 
 echo "Checking in the version bump changes"
 git add --all

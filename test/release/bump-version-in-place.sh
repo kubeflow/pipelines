@@ -33,6 +33,8 @@ fi
 cd "$REPO_ROOT"
 "$DIR/check-release-needed-tools.sh"
 
+# DO NOT run this locally
+npm config set cache /tmp/.npm --global
 npm ci
 npm run changelog
 # Change github issue/PR references like #123 to real urls in markdown.
@@ -43,5 +45,5 @@ sed -i.bak -e 's|\([ (]\)#\([0-9]\+\)|\1[\\#\2](https://github.com/kubeflow/pipe
 "$REPO_ROOT/manifests/gcp_marketplace/hack/release.sh" $TAG_NAME
 "$REPO_ROOT/manifests/kustomize/hack/release.sh" $TAG_NAME
 "$REPO_ROOT/sdk/hack/release.sh" $TAG_NAME
-./backend/api/hack/generator.sh
+"$REPO_ROOT/backend/api/hack/generator.sh"
 "$REPO_ROOT/backend/api/build_kfp_server_api_python_package.sh"
