@@ -46,6 +46,8 @@ var (
 	namespace = flag.String("namespace", "kubeflow",
 		"Namespace within which CRD controller is running. Default is "+
 			"kubeflow.")
+	clientQPS   = flag.Float64("client_qps", 5, "QPS of clientset.")
+	clientBurst = flag.Int("client_burst", 10, "Burst of clientset.")
 )
 
 func main() {
@@ -55,6 +57,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to build valid config from supplied flags: %v", err)
 	}
+	cfg.QPS = float32(*clientQPS)
+	cfg.Burst = *clientBurst
 
 	cli, err := client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	if err != nil {

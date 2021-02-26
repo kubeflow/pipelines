@@ -56,6 +56,8 @@ type WhSvrDBParameters struct {
 
 func main() {
 	var params WhSvrDBParameters
+	var kubeClientQPS float64
+	var kubeClientBurst int
 	flag.StringVar(&params.dbDriver, "db_driver", mysqlDBDriverDefault, "Database driver name, mysql is the default value")
 	flag.StringVar(&params.dbHost, "db_host", mysqlDBHostDefault, "Database host name.")
 	flag.StringVar(&params.dbPort, "db_port", mysqlDBPortDefault, "Database port number.")
@@ -64,11 +66,13 @@ func main() {
 	flag.StringVar(&params.dbPwd, "db_password", "", "Database password.")
 	flag.StringVar(&params.dbGroupConcatMaxLen, "db_group_concat_max_len", mysqlDBGroupConcatMaxLenDefault, "Database group concat max length.")
 	flag.StringVar(&params.namespaceToWatch, "namespace_to_watch", "kubeflow", "Namespace to watch.")
+	flag.Float64Var(&kubeClientQPS, "kube_client_qps", 5, "QPS of kubeClient.")
+	flag.IntVar(&kubeClientBurst, "kube_client_burst", 10, "Burst of kubeClient.")
 
 	flag.Parse()
 
 	log.Println("Initing client manager....")
-	clientManager := NewClientManager(params)
+	clientManager := NewClientManager(params, float32(kubeClientQPS), kubeClientBurst)
 
 	go server.WatchPods(params.namespaceToWatch, &clientManager)
 

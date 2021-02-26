@@ -52,14 +52,14 @@ func (c *ClientManager) Close() {
 	c.db.Close()
 }
 
-func (c *ClientManager) init(params WhSvrDBParameters) {
+func (c *ClientManager) init(params WhSvrDBParameters, kubeClientQPS float32, kubeClientBurst int) {
 	timeoutDuration, _ := time.ParseDuration(DefaultConnectionTimeout)
 	db := initDBClient(params, timeoutDuration)
 
 	c.time = util.NewRealTime()
 	c.db = db
 	c.cacheStore = storage.NewExecutionCacheStore(db, c.time)
-	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(timeoutDuration)
+	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(timeoutDuration, kubeClientQPS, kubeClientBurst)
 }
 
 func initDBClient(params WhSvrDBParameters, initConnectionTimeout time.Duration) *storage.DB {
@@ -164,9 +164,9 @@ func initMysql(params WhSvrDBParameters, initConnectionTimeout time.Duration) st
 	return mysqlConfig.FormatDSN()
 }
 
-func NewClientManager(params WhSvrDBParameters) ClientManager {
+func NewClientManager(params WhSvrDBParameters, kubeClientQPS float32, kubeClientBurst int) ClientManager {
 	clientManager := ClientManager{}
-	clientManager.init(params)
+	clientManager.init(params, kubeClientQPS, kubeClientBurst)
 
 	return clientManager
 }

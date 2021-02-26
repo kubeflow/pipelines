@@ -37,13 +37,15 @@ func (argoClient *ArgoClient) Workflow(namespace string) argoprojv1alpha1.Workfl
 	return argoClient.argoProjClient.Workflows(namespace)
 }
 
-func NewArgoClientOrFatal(initConnectionTimeout time.Duration) *ArgoClient {
+func NewArgoClientOrFatal(initConnectionTimeout time.Duration, clientQPS float32, clientBurst int) *ArgoClient {
 	var argoProjClient argoprojv1alpha1.ArgoprojV1alpha1Interface
 	var operation = func() error {
 		restConfig, err := rest.InClusterConfig()
 		if err != nil {
 			return errors.Wrap(err, "Failed to initialize the RestConfig")
 		}
+		restConfig.QPS = clientQPS
+		restConfig.Burst = clientBurst
 		argoProjClient = argoclient.NewForConfigOrDie(restConfig).ArgoprojV1alpha1()
 		return nil
 	}

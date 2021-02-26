@@ -23,11 +23,13 @@ func (c *KubernetesCore) PodClient(namespace string) v1.PodInterface {
 	return c.coreV1Client.Pods(namespace)
 }
 
-func createKubernetesCore() (KubernetesCoreInterface, error) {
+func createKubernetesCore(kubeClientQPS float32, kubeClientBurst int) (KubernetesCoreInterface, error) {
 	restConfig, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to initialize kubernetes client.")
 	}
+	restConfig.QPS = kubeClientQPS
+	restConfig.Burst = kubeClientBurst
 
 	clientSet, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
@@ -37,11 +39,11 @@ func createKubernetesCore() (KubernetesCoreInterface, error) {
 }
 
 // CreateKubernetesCoreOrFatal creates a new client for the Kubernetes pod.
-func CreateKubernetesCoreOrFatal(initConnectionTimeout time.Duration) KubernetesCoreInterface {
+func CreateKubernetesCoreOrFatal(initConnectionTimeout time.Duration, kubeClientQPS float32, kubeClientBurst int) KubernetesCoreInterface {
 	var client KubernetesCoreInterface
 	var err error
 	var operation = func() error {
-		client, err = createKubernetesCore()
+		client, err = createKubernetesCore(kubeClientQPS, kubeClientBurst)
 		if err != nil {
 			return err
 		}

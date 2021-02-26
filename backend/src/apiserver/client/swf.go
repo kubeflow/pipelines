@@ -41,13 +41,15 @@ func (swfClient *SwfClient) ScheduledWorkflow(namespace string) v1beta1.Schedule
 }
 
 // creates a new client for the Kubernetes ScheduledWorkflow CRD.
-func NewScheduledWorkflowClientOrFatal(initConnectionTimeout time.Duration) *SwfClient {
+func NewScheduledWorkflowClientOrFatal(initConnectionTimeout time.Duration, clientQPS float32, clientBurst int) *SwfClient {
 	var swfClient v1beta1.ScheduledworkflowV1beta1Interface
 	var operation = func() error {
 		restConfig, err := rest.InClusterConfig()
 		if err != nil {
 			return err
 		}
+		restConfig.QPS = clientQPS
+		restConfig.Burst = clientBurst
 		swfClientSet := swfclient.NewForConfigOrDie(restConfig)
 		swfClient = swfClientSet.ScheduledworkflowV1beta1()
 		return nil
