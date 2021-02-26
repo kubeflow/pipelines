@@ -1,0 +1,35 @@
+# based on KFP backend api client generator dockerfile
+FROM gcr.io/ml-pipeline-test/api-generator:latest
+
+# install nvm & node 12
+# Reference: https://stackoverflow.com/a/28390848
+ENV NODE_VERSION 12.21.0
+ENV NVM_DIR=/usr/local/nvm
+RUN mkdir -p $NVM_DIR && \
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash && \
+    . $NVM_DIR/nvm.sh && \
+    nvm install $NODE_VERSION && \
+    nvm alias default $NODE_VERSION && \
+    nvm use default
+ENV NODE_PATH $NVM_DIR/versions/node/v$NODE_VERSION/lib/node_modules
+ENV PATH $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
+
+# install java==8 python==3
+RUN apt-get update \
+    && apt-get install -y openjdk-8-jdk python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+# install setuptools
+RUN python3 -m pip install setuptools
+
+# install yq==3
+# Released in https://github.com/mikefarah/yq/releases/tag/3.4.1
+RUN curl -L -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/3.4.1/yq_linux_amd64 && \
+    chmod +x /usr/local/bin/yq
+
+# Make all files accessible to non-root users.
+RUN chmod -R 777 $NVM_DIR && \
+    chmod -R 777 /usr/local/bin
+
+# Configure npm cache location
+RUN npm config set cache /tmp/.npm --global
