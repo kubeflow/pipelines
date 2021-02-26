@@ -40,8 +40,8 @@ type APIPipelineVersion struct {
 	// Output. The input parameters for this pipeline.
 	Parameters []*APIParameter `json:"parameters"`
 
-	// Input. Required. E.g., specify which pipeline this pipeline version belongs
-	// to.
+	// Input field. Specify which resource this pipeline version belongs to.
+	// For Experiment, the only valid resource reference is a single Namespace.
 	ResourceReferences []*APIResourceReference `json:"resource_references"`
 }
 

@@ -199,9 +199,9 @@ func (r *ResourceManager) UnarchiveExperiment(experimentId string) error {
 	return r.experimentStore.UnarchiveExperiment(experimentId)
 }
 
-func (r *ResourceManager) ListPipelines(opts *list.Options) (
+func (r *ResourceManager) ListPipelines(filterContext *common.FilterContext, opts *list.Options) (
 	pipelines []*model.Pipeline, total_size int, nextPageToken string, err error) {
-	return r.pipelineStore.ListPipelines(opts)
+	return r.pipelineStore.ListPipelines(filterContext, opts)
 }
 
 func (r *ResourceManager) GetPipeline(pipelineId string) (*model.Pipeline, error) {
@@ -245,7 +245,7 @@ func (r *ResourceManager) UpdatePipelineDefaultVersion(pipelineId string, versio
 	return r.pipelineStore.UpdatePipelineDefaultVersion(pipelineId, versionId)
 }
 
-func (r *ResourceManager) CreatePipeline(name string, description string, pipelineFile []byte) (*model.Pipeline, error) {
+func (r *ResourceManager) CreatePipeline(name string, description string, namespace string, pipelineFile []byte) (*model.Pipeline, error) {
 	// Extract the parameter from the pipeline
 	params, err := util.GetParameters(pipelineFile)
 	if err != nil {
@@ -258,6 +258,7 @@ func (r *ResourceManager) CreatePipeline(name string, description string, pipeli
 		Description: description,
 		Parameters:  params,
 		Status:      model.PipelineCreating,
+		Namespace:   namespace,
 		DefaultVersion: &model.PipelineVersion{
 			Name:       name,
 			Parameters: params,
@@ -986,7 +987,7 @@ func (r *ResourceManager) getWorkflowSpecBytesFromPipelineVersion(references []*
 
 func getWorkflowSpecManifestBytes(pipelineSpec *api.PipelineSpec, resourceReferences *[]*api.ResourceReference, r *ResourceManager) ([]byte, error) {
 	var workflowSpecManifestBytes []byte
-	if pipelineSpec.GetWorkflowManifest()  != "" {
+	if pipelineSpec.GetWorkflowManifest() != "" {
 		workflowSpecManifestBytes = []byte(pipelineSpec.GetWorkflowManifest())
 	} else {
 		err := convertPipelineIdToDefaultPipelineVersion(pipelineSpec, resourceReferences, r)
@@ -1268,6 +1269,22 @@ func (r *ResourceManager) GetNamespaceFromJobID(jobId string) (string, error) {
 		return "", util.Wrap(err, "Failed to get namespace from Job ID.")
 	}
 	return job.Namespace, nil
+}
+
+func (r *ResourceManager) GetNamespaceFromPipelineID(pipelineId string) (string, error) {
+	pipeline, err := r.GetPipeline(pipelineId)
+	if err != nil {
+		return "", util.Wrap(err, "Failed to get namespace from Pipeline ID")
+	}
+	return pipeline.Namespace, nil
+}
+
+func (r *ResourceManager) GetNamespaceFromPipelineVersion(versionId string) (string, error) {
+	pipelineVersion, err := r.GetPipelineVersion(versionId)
+	if err != nil {
+		return "", util.Wrap(err, "Failed to get namespace from versionId ID")
+	}
+	return r.GetNamespaceFromPipelineID(pipelineVersion.PipelineId)
 }
 
 func (r *ResourceManager) setDefaultServiceAccount(workflow *util.Workflow, serviceAccount string) {

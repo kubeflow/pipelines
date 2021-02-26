@@ -263,6 +263,26 @@ func TestListPipelineVersion_NoResourceKey(t *testing.T) {
 	assert.Equal(t, "Invalid input error: ResourceKey must be set in the input", err.Error())
 }
 
+func TestListPipelinesPublic(t *testing.T) {
+	httpServer := getMockServer(t)
+	// Close the server when test finishes
+	defer httpServer.Close()
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+
+	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+	_, err := pipelineServer.ListPipelines(context.Background(),
+		&api.ListPipelinesRequest{
+			PageSize: 20,
+			ResourceReferenceKey: &api.ResourceKey{
+				Type: api.ResourceType_NAMESPACE,
+				Id:   "",
+			},
+		})
+	assert.EqualValues(t, nil, err, err)
+
+}
+
 func TestCreatePipelineVersionDontUpdateDefault(t *testing.T) {
 	viper.Set(common.UpdatePipelineVersionByDefault, "false")
 	defer viper.Set(common.UpdatePipelineVersionByDefault, "true")

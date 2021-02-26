@@ -79,7 +79,7 @@ func initWithPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *mode
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	manager := NewResourceManager(store)
-	p, err := manager.CreatePipeline("p1", "", []byte(testWorkflow.ToStringForStore()))
+	p, err := manager.CreatePipeline("p1", "", "", []byte(testWorkflow.ToStringForStore()))
 	assert.Nil(t, err)
 	return store, manager, p
 }
@@ -101,7 +101,7 @@ func initWithExperimentAndPipeline(t *testing.T) (*FakeClientManager, *ResourceM
 	apiExperiment := &api.Experiment{Name: "e1"}
 	experiment, err := manager.CreateExperiment(apiExperiment)
 	assert.Nil(t, err)
-	pipeline, err := manager.CreatePipeline("p1", "", []byte(testWorkflow.ToStringForStore()))
+	pipeline, err := manager.CreatePipeline("p1", "", "", []byte(testWorkflow.ToStringForStore()))
 	assert.Nil(t, err)
 	return store, manager, experiment, pipeline
 }
@@ -225,7 +225,8 @@ func TestCreatePipeline(t *testing.T) {
 			Parameters:     "[{\"name\":\"param1\"}]",
 			Status:         model.PipelineVersionReady,
 			PipelineId:     DefaultFakeUUID,
-		}}
+		},
+		Namespace: ""}
 	assert.Equal(t, pipelineExpected, pipeline)
 }
 
@@ -234,7 +235,7 @@ func TestCreatePipeline_ComplexPipeline(t *testing.T) {
 	defer store.Close()
 	manager := NewResourceManager(store)
 
-	createdPipeline, err := manager.CreatePipeline("pipeline1", "", []byte(strings.TrimSpace(
+	createdPipeline, err := manager.CreatePipeline("pipeline1", "", "", []byte(strings.TrimSpace(
 		complexPipeline)))
 	assert.Nil(t, err)
 	_, err = manager.GetPipeline(createdPipeline.UUID)
@@ -245,7 +246,7 @@ func TestCreatePipeline_GetParametersError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
-	_, err := manager.CreatePipeline("pipeline1", "", []byte("I am invalid yaml"))
+	_, err := manager.CreatePipeline("pipeline1", "", "", []byte("I am invalid yaml"))
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Failed to parse the parameter")
 }
@@ -255,7 +256,7 @@ func TestCreatePipeline_StorePipelineMetadataError(t *testing.T) {
 	defer store.Close()
 	store.DB().Close()
 	manager := NewResourceManager(store)
-	_, err := manager.CreatePipeline("pipeline1", "", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+	_, err := manager.CreatePipeline("pipeline1", "", "", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Failed to start a transaction to create a new pipeline")
 }
@@ -266,7 +267,7 @@ func TestCreatePipeline_CreatePipelineFileError(t *testing.T) {
 	manager := NewResourceManager(store)
 	// Use a bad object store
 	manager.objectStore = &FakeBadObjectStore{}
-	_, err := manager.CreatePipeline("pipeline1", "", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+	_, err := manager.CreatePipeline("pipeline1", "", "", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "bad object store")
 	// Verify there is a pipeline in DB with status PipelineCreating.
@@ -1879,7 +1880,7 @@ func TestReportScheduledWorkflowResource_Error(t *testing.T) {
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
 		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}})
-	p, err := manager.CreatePipeline("1", "", []byte(workflow.ToStringForStore()))
+	p, err := manager.CreatePipeline("1", "", "", []byte(workflow.ToStringForStore()))
 	assert.Nil(t, err)
 
 	// Create job
@@ -2388,7 +2389,7 @@ func TestCreatePipelineVersion(t *testing.T) {
 	manager := NewResourceManager(store)
 
 	// Create a pipeline before versions.
-	_, err := manager.CreatePipeline("p", "", []byte(testWorkflow.ToStringForStore()))
+	_, err := manager.CreatePipeline("p", "", "", []byte(testWorkflow.ToStringForStore()))
 	assert.Nil(t, err)
 
 	// Create a version under the above pipeline.
@@ -2429,7 +2430,7 @@ func TestCreatePipelineVersion_ComplexPipelineVersion(t *testing.T) {
 	manager := NewResourceManager(store)
 
 	// Create a pipeline.
-	createdPipeline, err := manager.CreatePipeline("pipeline", "", []byte(strings.TrimSpace(complexPipeline)))
+	createdPipeline, err := manager.CreatePipeline("pipeline", "", "", []byte(strings.TrimSpace(complexPipeline)))
 	assert.Nil(t, err)
 
 	// Create a version under the above pipeline.
@@ -2465,7 +2466,7 @@ func TestCreatePipelineVersion_CreatePipelineVersionFileError(t *testing.T) {
 	manager := NewResourceManager(store)
 
 	// Create a pipeline.
-	_, err := manager.CreatePipeline("pipeline", "", []byte(strings.TrimSpace(complexPipeline)))
+	_, err := manager.CreatePipeline("pipeline", "", "", []byte(strings.TrimSpace(complexPipeline)))
 	assert.Nil(t, err)
 
 	// Switch to a bad object store
@@ -2504,7 +2505,7 @@ func TestCreatePipelineVersion_GetParametersError(t *testing.T) {
 	manager := NewResourceManager(store)
 
 	// Create a pipeline.
-	_, err := manager.CreatePipeline("pipeline", "", []byte(testWorkflow.ToStringForStore()))
+	_, err := manager.CreatePipeline("pipeline", "", "", []byte(testWorkflow.ToStringForStore()))
 	assert.Nil(t, err)
 
 	// Create a version under the above pipeline.
@@ -2537,6 +2538,7 @@ func TestCreatePipelineVersion_StorePipelineVersionMetadataError(t *testing.T) {
 	// Create a pipeline.
 	_, err := manager.CreatePipeline(
 		"pipeline",
+		"",
 		"",
 		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
 	assert.Nil(t, err)
@@ -2574,7 +2576,7 @@ func TestDeletePipelineVersion(t *testing.T) {
 	manager := NewResourceManager(store)
 
 	// Create a pipeline.
-	_, err := manager.CreatePipeline("pipeline", "", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+	_, err := manager.CreatePipeline("pipeline", "", "", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
 	assert.Nil(t, err)
 
 	// Create a version under the above pipeline.
@@ -2611,7 +2613,7 @@ func TestDeletePipelineVersion_FileError(t *testing.T) {
 	manager := NewResourceManager(store)
 
 	// Create a pipeline.
-	_, err := manager.CreatePipeline("pipeline", "", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+	_, err := manager.CreatePipeline("pipeline", "", "", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
 	assert.Nil(t, err)
 
 	// Create a version under the above pipeline.

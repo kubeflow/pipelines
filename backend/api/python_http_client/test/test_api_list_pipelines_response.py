@@ -64,7 +64,11 @@ class TestApiListPipelinesResponse(unittest.TestCase):
                                         id = '0', ), 
                                     name = '0', 
                                     relationship = 'UNKNOWN_RELATIONSHIP', )
-                                ], ), )
+                                ], ), 
+                        resource_references = [
+                            kfp_server_api.models.api_resource_reference.apiResourceReference(
+                                name = '0', )
+                            ], )
                     ], 
                 total_size = 56, 
                 next_page_token = '0'
