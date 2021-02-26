@@ -6,12 +6,10 @@
           "name": "test-artifact",
           "uri": "gs://root/execution/output",
           "type": {
-            "instanceSchema": "properties:\ntitle: kfp.Model\ntype: object\n"
+            "instanceSchema": "title: kfp.Model\ntype: object\nproperties:\n  framework:\n    type: string\n  framework_version:\n    type: string\n"
           },
-          "customProperties": {
-            "test_property": {
-              "stringValue": "test value"
-            }
+          "metadata": {
+            "test_property": "test value"
           }
         }
       ]
