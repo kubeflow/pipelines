@@ -193,6 +193,11 @@ message ListPipelinesRequest {
   // [filter.proto](https://github.com/kubeflow/pipelines/
   // blob/master/backend/api/filter.proto)).
   string filter = 4;
+
+  // What resource reference to filter on.
+  // For Pipeline, the only valid resource type is Namespace. An sample query string could be
+  // resource_reference_key.type=NAMESPACE&resource_reference_key.id=ns1
+  ResourceKey resource_reference_key = 5;
 }
 
 message ListPipelinesResponse {
@@ -310,6 +315,10 @@ message Pipeline {
   // version is used as default. (In the future, if desired by customers, we
   // can allow them to set default version.)
   PipelineVersion default_version = 8;
+
+  // Input field. Specify which resource this pipeline belongs to.
+  // For Pipeline, the only valid resource reference is a single Namespace.
+  repeated ResourceReference resource_references = 9;
 }
 
 message PipelineVersion {
@@ -333,7 +342,7 @@ message PipelineVersion {
   // file location.
   Url package_url = 6;
 
-  // Input. Required. E.g., specify which pipeline this pipeline version belongs
-  // to.
+  // Input field. Specify which resource this pipeline version belongs to.
+  // For Experiment, the only valid resource reference is a single Namespace.
   repeated ResourceReference resource_references = 7;
 }

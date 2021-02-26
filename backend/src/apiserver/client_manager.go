@@ -226,6 +226,11 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		glog.Fatalf("Failed to drop unique key on experiment name. Error: %s", response.Error)
 	}
 
+	response = db.Model(&model.Pipeline{}).RemoveIndex("Name")
+	if response.Error != nil {
+		glog.Fatalf("Failed to drop unique key on pipeline name. Error: %s", response.Error)
+	}
+
 	response = db.Model(&model.ResourceReference{}).ModifyColumn("Payload", "longtext not null")
 	if response.Error != nil {
 		glog.Fatalf("Failed to update the resource reference payload type. Error: %s", response.Error)
@@ -239,6 +244,11 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	response = db.Model(&model.RunDetail{}).AddIndex("experimentuuid_conditions_finishedatinsec", "ExperimentUUID", "Conditions", "FinishedAtInSec")
 	if response.Error != nil {
 		glog.Fatalf("Failed to create index experimentuuid_conditions_finishedatinsec on run_details. Error: %s", response.Error)
+	}
+
+	response = db.Model(&model.Pipeline{}).AddUniqueIndex("name_namespace_index", "Name", "Namespace")
+	if response.Error != nil {
+		glog.Fatalf("Failed to create index name_namespace_index on run_details. Error: %s", response.Error)
 	}
 
 	response = db.Model(&model.RunMetric{}).

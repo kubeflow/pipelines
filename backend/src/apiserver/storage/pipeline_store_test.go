@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -95,7 +96,7 @@ func TestListPipelines_FilterOutNotReady(t *testing.T) {
 	opts, err := list.NewOptions(&model.Pipeline{}, 10, "id", nil)
 	assert.Nil(t, err)
 
-	pipelines, total_size, nextPageToken, err := pipelineStore.ListPipelines(opts)
+	pipelines, total_size, nextPageToken, err := pipelineStore.ListPipelines(&common.FilterContext{}, opts)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
@@ -141,7 +142,7 @@ func TestListPipelines_WithFilter(t *testing.T) {
 	opts, err := list.NewOptions(&model.Pipeline{}, 10, "id", filterProto)
 	assert.Nil(t, err)
 
-	pipelines, totalSize, nextPageToken, err := pipelineStore.ListPipelines(opts)
+	pipelines, totalSize, nextPageToken, err := pipelineStore.ListPipelines(&common.FilterContext{}, opts)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
@@ -194,7 +195,7 @@ func TestListPipelines_Pagination(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Pipeline{}, 2, "name", nil)
 	assert.Nil(t, err)
-	pipelines, total_size, nextPageToken, err := pipelineStore.ListPipelines(opts)
+	pipelines, total_size, nextPageToken, err := pipelineStore.ListPipelines(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
 	assert.Equal(t, 4, total_size)
@@ -235,7 +236,7 @@ func TestListPipelines_Pagination(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
 
-	pipelines, total_size, nextPageToken, err = pipelineStore.ListPipelines(opts)
+	pipelines, total_size, nextPageToken, err = pipelineStore.ListPipelines(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
 	assert.Equal(t, 4, total_size)
@@ -288,7 +289,7 @@ func TestListPipelines_Pagination_Descend(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Pipeline{}, 2, "name desc", nil)
 	assert.Nil(t, err)
-	pipelines, total_size, nextPageToken, err := pipelineStore.ListPipelines(opts)
+	pipelines, total_size, nextPageToken, err := pipelineStore.ListPipelines(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
 	assert.Equal(t, 4, total_size)
@@ -328,7 +329,7 @@ func TestListPipelines_Pagination_Descend(t *testing.T) {
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
-	pipelines, total_size, nextPageToken, err = pipelineStore.ListPipelines(opts)
+	pipelines, total_size, nextPageToken, err = pipelineStore.ListPipelines(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
 	assert.Equal(t, 4, total_size)
@@ -359,7 +360,7 @@ func TestListPipelines_Pagination_LessThanPageSize(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Pipeline{}, 2, "", nil)
 	assert.Nil(t, err)
-	pipelines, total_size, nextPageToken, err := pipelineStore.ListPipelines(opts)
+	pipelines, total_size, nextPageToken, err := pipelineStore.ListPipelines(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, 1, total_size)
@@ -373,7 +374,7 @@ func TestListPipelinesError(t *testing.T) {
 	db.Close()
 	opts, err := list.NewOptions(&model.Pipeline{}, 2, "", nil)
 	assert.Nil(t, err)
-	_, _, _, err = pipelineStore.ListPipelines(opts)
+	_, _, _, err = pipelineStore.ListPipelines(&common.FilterContext{}, opts)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
 

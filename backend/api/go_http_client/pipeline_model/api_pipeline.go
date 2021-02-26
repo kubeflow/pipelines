@@ -50,6 +50,10 @@ type APIPipeline struct {
 	// the latter.
 	Parameters []*APIParameter `json:"parameters"`
 
+	// Input field. Specify which resource this pipeline belongs to.
+	// For Pipeline, the only valid resource reference is a single Namespace.
+	ResourceReferences []*APIResourceReference `json:"resource_references"`
+
 	// The URL to the source of the pipeline. This is required when creating the
 	// pipeine through CreatePipeline API.
 	// TODO(jingzhang36): replace this url field with the code_source_urls field
@@ -71,6 +75,10 @@ func (m *APIPipeline) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateParameters(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateResourceReferences(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -130,6 +138,31 @@ func (m *APIPipeline) validateParameters(formats strfmt.Registry) error {
 			if err := m.Parameters[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("parameters" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (m *APIPipeline) validateResourceReferences(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.ResourceReferences) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.ResourceReferences); i++ {
+		if swag.IsZero(m.ResourceReferences[i]) { // not required
+			continue
+		}
+
+		if m.ResourceReferences[i] != nil {
+			if err := m.ResourceReferences[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("resource_references" + "." + strconv.Itoa(i))
 				}
 				return err
 			}

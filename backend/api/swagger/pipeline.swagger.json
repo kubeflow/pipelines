@@ -265,6 +265,29 @@
             "in": "query",
             "required": false,
             "type": "string"
+          },
+          {
+            "name": "resource_reference_key.type",
+            "description": "The type of the resource that referred to.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "UNKNOWN_RESOURCE_TYPE",
+              "EXPERIMENT",
+              "JOB",
+              "PIPELINE",
+              "PIPELINE_VERSION",
+              "NAMESPACE"
+            ],
+            "default": "UNKNOWN_RESOURCE_TYPE"
+          },
+          {
+            "name": "resource_reference_key.id",
+            "description": "The ID of the resource that referred to.",
+            "in": "query",
+            "required": false,
+            "type": "string"
           }
         ],
         "tags": [
@@ -537,6 +560,13 @@
           "$ref": "#/definitions/apiPipelineVersion",
           "title": "Output only. The default version of the pipeline. As of now, the latest\nversion is used as default. (In the future, if desired by customers, we\ncan allow them to set default version.)",
           "readOnly": true
+        },
+        "resource_references": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiResourceReference"
+          },
+          "description": "Input field. Specify which resource this pipeline belongs to.\nFor Pipeline, the only valid resource reference is a single Namespace."
         }
       }
     },
@@ -576,7 +606,7 @@
           "items": {
             "$ref": "#/definitions/apiResourceReference"
           },
-          "description": "Input. Required. E.g., specify which pipeline this pipeline version belongs\nto."
+          "description": "Input field. Specify which resource this pipeline version belongs to.\nFor Experiment, the only valid resource reference is a single Namespace."
         }
       }
     },
