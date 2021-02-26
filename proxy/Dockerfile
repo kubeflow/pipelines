@@ -16,7 +16,10 @@
 FROM gcr.io/inverting-proxy/agent@sha256:2e3c5ecd1a55b32056f3ce0c4aaac05e31b85c361d501bf3f8a81bec14c4fe87
 
 RUN apt-get update && apt-get install -y curl jq python-pip
-RUN pip install requests
+COPY requirements.txt .
+RUN python2 -m pip install -r \
+    requirements.txt --quiet --no-cache-dir \
+    && rm -f requirements.txt
 
 # Install gcloud SDK
 RUN curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz > /tmp/google-cloud-sdk.tar.gz

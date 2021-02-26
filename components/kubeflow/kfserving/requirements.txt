@@ -1,0 +1,5 @@
+kubernetes==10.0.1
+kfserving==0.4.1
+requests==2.22.0
+Flask==1.1.1
+flask-cors==3.0.8
