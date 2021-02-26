@@ -55,17 +55,6 @@ class Compiler(object):
       Compiler().compile(my_pipeline, 'path/to/workflow.yaml')
   """
 
-  def _pipelineparam_full_name(self, param):
-    """_pipelineparam_full_name converts the names of pipeline parameters
-      to unique names in the argo yaml
-
-    Args:
-      param(PipelineParam): pipeline parameter
-      """
-    if param.op_name:
-      return param.op_name + '-' + param.name
-    return param.name
-
   def _get_groups_for_ops(self, root_group):
     """Helper function to get belonging groups for each op.
 
@@ -300,7 +289,7 @@ class Compiler(object):
         for param, is_condition_param in params:
           if param.value:
             continue
-          full_name = self._pipelineparam_full_name(param)
+          full_name = param.full_name
           if param.op_name:
             upstream_op = pipeline.ops[param.op_name]
             upstream_groups, downstream_groups = \
@@ -409,7 +398,7 @@ class Compiler(object):
       potential_references(dict{str->str}): a dictionary of parameter names to task names
       """
     if isinstance(value_or_reference, dsl.PipelineParam):
-      parameter_name = self._pipelineparam_full_name(value_or_reference)
+      parameter_name = value_or_reference.full_name
       task_names = [task_name for param_name, task_name in potential_references if param_name == parameter_name]
       if task_names:
         task_name = task_names[0]
@@ -566,17 +555,17 @@ class Compiler(object):
     for param_name, dependent_name in inputs[sub_group.name]:
       if is_recursive_subgroup:
         for input_name, input in sub_group.arguments.items():
-          if param_name == self._pipelineparam_full_name(input):
+          if param_name == input.full_name:
             break
         referenced_input = sub_group.recursive_ref.arguments[input_name]
-        argument_name = self._pipelineparam_full_name(referenced_input)
+        argument_name = referenced_input.full_name
       else:
         argument_name = param_name
 
       # Preparing argument. It can be pipeline input reference, task output reference or loop item (or loop item attribute
       sanitized_loop_arg_full_name = '---'
       if isinstance(sub_group, dsl.ParallelFor):
-        sanitized_loop_arg_full_name = sanitize_k8s_name(self._pipelineparam_full_name(sub_group.loop_args))
+        sanitized_loop_arg_full_name = sanitize_k8s_name(sub_group.loop_args.full_name)
       arg_ref_full_name = sanitize_k8s_name(param_name)
       # We only care about the reference to the current loop item, not the outer loops
       if isinstance(sub_group, dsl.ParallelFor) and arg_ref_full_name.startswith(sanitized_loop_arg_full_name):
