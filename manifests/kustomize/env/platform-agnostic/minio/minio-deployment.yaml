@@ -38,6 +38,10 @@ spec:
         - mountPath: /data
           name: data
           subPath: minio
+        resources:
+          requests:
+            cpu: 20m
+            memory: 25Mi
       volumes:
       - name: data
         persistentVolumeClaim:

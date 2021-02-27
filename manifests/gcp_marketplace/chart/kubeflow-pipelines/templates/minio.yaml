@@ -59,6 +59,10 @@ spec:
           name: minio
           ports:
             - containerPort: 9000
+          resources:
+            requests:
+              cpu: 20m
+              memory: 25Mi
 {{ end }}
 ---
 {{ if not .Values.managedstorage.enabled }}

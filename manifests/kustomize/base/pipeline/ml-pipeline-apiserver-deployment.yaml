@@ -98,4 +98,8 @@ spec:
           initialDelaySeconds: 3
           periodSeconds: 5
           timeoutSeconds: 2
+        resources:
+          requests:
+            cpu: '2'
+            memory: 4Gi
       serviceAccountName: ml-pipeline
