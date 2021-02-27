@@ -224,7 +224,10 @@ spec:
           image: {{ .Values.images.argoworkflowcontroller }}
           imagePullPolicy: IfNotPresent
           name: workflow-controller
-          resources: {}
+          resources: 
+            requests:
+              cpu: 200m
+              memory: 3Gi
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
       dnsPolicy: ClusterFirst
