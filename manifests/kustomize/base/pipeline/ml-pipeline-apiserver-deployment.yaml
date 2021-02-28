@@ -4,8 +4,6 @@ metadata:
   labels:
     app: ml-pipeline
   name: ml-pipeline
-  annotations:
-    cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
 spec:
   selector:
     matchLabels:
@@ -14,6 +12,8 @@ spec:
     metadata:
       labels:
         app: ml-pipeline
+    annotations:
+      cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
     spec:
       containers:
       - env:
