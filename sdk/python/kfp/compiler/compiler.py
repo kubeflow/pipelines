@@ -1001,9 +1001,13 @@ class Compiler(object):
         """Compile the given pipeline function into workflow."""
         return self._create_workflow(pipeline_func=pipeline_func, pipeline_conf=pipeline_conf)
 
-    def compile(self, pipeline_func, package_path, type_check=True,
+    def compile(self,
+                pipeline_func,
+                package_path,
+                type_check=True,
                 pipeline_conf: dsl.PipelineConf = None,
-                execution_mode: dsl.PipelineExecutionMode = dsl.PipelineExecutionMode.V1_LEGACY):
+                execution_mode: dsl.PipelineExecutionMode = dsl.
+                PipelineExecutionMode.V1_LEGACY):
         """Compile the given pipeline function into workflow yaml.
 
     Args:
@@ -1014,20 +1018,22 @@ class Compiler(object):
       pipeline_conf: PipelineConf instance. Can specify op transforms, image
         pull secrets and other pipeline-level configuration options. Overrides
         any configuration that may be set by the pipeline.
+      execution_mode: The pipeline execution mode to use. Defaults to V1_LEGACY
+        mode. Use V2_COMPATIBLE to compile pipelines that execute with KFP
+        v2 semantics, which enables metadata-aware components.
     """
-        pipeline_conf=None
-        import kfp
         type_check_old_value = kfp.TYPE_CHECK
 
         if execution_mode == dsl.PipelineExecutionMode.V2_ENGINE:
             raise ValueError(
-              'V2_ENGINE pipeline execution mode has not yet been implemented.')
+                'V2_ENGINE pipeline execution mode has not yet been '
+                'implemented.')
 
         if execution_mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
             warnings.warn(
-                  "V2 compatiblity is still in development and is expected to"
-                  " break often. Please do not use this for production pipelines."
-              )
+                'V2_COMPATIBLE mode is still in development and may not work '
+                'as expected. Please do not use this for production '
+                'pipelines yet.')
 
         pipeline_spec = None
         if execution_mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
