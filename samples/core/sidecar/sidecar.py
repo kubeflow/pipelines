@@ -16,11 +16,13 @@
 import kfp
 import kfp.dsl as dsl
 
+
 @dsl.pipeline(
-    name="pipeline_with_sidecar", 
-    description="A pipeline that demonstrates how to add a sidecar to an operation."
+    name="pipeline_with_sidecar",
+    description=
+    "A pipeline that demonstrates how to add a sidecar to an operation."
 )
-def pipeline_with_sidecar(sleep_sec: int = 30):
+def pipeline_with_sidecar(sleep_sec: int = 120):
 
     # sidecar with sevice that reply "hello world" to any GET request
     echo = dsl.Sidecar(
@@ -47,6 +49,7 @@ def pipeline_with_sidecar(sleep_sec: int = 30):
         command=["sh", "-c"],
         arguments=["echo %s" % op1.output],  # print out content of op1 output
     )
+
 
 if __name__ == '__main__':
     kfp.compiler.Compiler().compile(pipeline_with_sidecar, __file__ + '.yaml')
