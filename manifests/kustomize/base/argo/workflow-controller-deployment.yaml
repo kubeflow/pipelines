@@ -21,6 +21,8 @@ spec:
       creationTimestamp: null
       labels:
         app: workflow-controller
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
     spec:
       containers:
       - args:
