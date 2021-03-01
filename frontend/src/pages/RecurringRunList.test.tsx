@@ -114,7 +114,7 @@ describe('RecurringRunList', () => {
               Object {
                 "customRenderer": [Function],
                 "flex": 1.5,
-                "label": "Job Name",
+                "label": "Recurring Run Name",
                 "sortKey": "name",
               },
               Object {
@@ -139,8 +139,8 @@ describe('RecurringRunList', () => {
               },
             ]
           }
-          emptyMessage="No available jobs found."
-          filterLabel="Filter jobs"
+          emptyMessage="No available recurring runs found."
+          filterLabel="Filter recurring runs"
           initialSortColumn="created_at"
           reload={[Function]}
           rows={Array []}
@@ -171,7 +171,7 @@ describe('RecurringRunList', () => {
               Object {
                 "customRenderer": [Function],
                 "flex": 1.5,
-                "label": "Job Name",
+                "label": "Recurring Run Name",
                 "sortKey": "name",
               },
               Object {
@@ -196,8 +196,8 @@ describe('RecurringRunList', () => {
               },
             ]
           }
-          emptyMessage="No available jobs found."
-          filterLabel="Filter jobs"
+          emptyMessage="No available recurring runs found."
+          filterLabel="Filter recurring runs"
           initialSortColumn="created_at"
           reload={[Function]}
           rows={
@@ -252,7 +252,7 @@ describe('RecurringRunList', () => {
               Object {
                 "customRenderer": [Function],
                 "flex": 1.5,
-                "label": "Job Name",
+                "label": "Recurring Run Name",
                 "sortKey": "name",
               },
               Object {
@@ -277,8 +277,8 @@ describe('RecurringRunList', () => {
               },
             ]
           }
-          emptyMessage="No available jobs found."
-          filterLabel="Filter jobs"
+          emptyMessage="No available recurring runs found."
+          filterLabel="Filter recurring runs"
           initialSortColumn="created_at"
           reload={[Function]}
           rows={
@@ -354,7 +354,7 @@ describe('RecurringRunList', () => {
     tree = shallow(<RecurringRunList {...props} />);
     await (tree.instance() as RecurringRunListTest)._loadRecurringRuns({});
     expect(props.onError).toHaveBeenLastCalledWith(
-      'Error: failed to fetch jobs.',
+      'Error: failed to fetch recurring runs.',
       new Error('bad stuff happened'),
     );
   });
@@ -422,7 +422,7 @@ describe('RecurringRunList', () => {
               Object {
                 "customRenderer": [Function],
                 "flex": 1.5,
-                "label": "Job Name",
+                "label": "Recurring Run Name",
                 "sortKey": "name",
               },
               Object {
@@ -447,8 +447,8 @@ describe('RecurringRunList', () => {
               },
             ]
           }
-          emptyMessage="No available jobs found."
-          filterLabel="Filter jobs"
+          emptyMessage="No available recurring runs found."
+          filterLabel="Filter recurring runs"
           initialSortColumn="created_at"
           reload={[Function]}
           rows={
@@ -487,7 +487,7 @@ describe('RecurringRunList', () => {
               Object {
                 "customRenderer": [Function],
                 "flex": 1.5,
-                "label": "Job Name",
+                "label": "Recurring Run Name",
                 "sortKey": "name",
               },
               Object {
@@ -512,8 +512,8 @@ describe('RecurringRunList', () => {
               },
             ]
           }
-          emptyMessage="No available jobs found."
-          filterLabel="Filter jobs"
+          emptyMessage="No available recurring runs found."
+          filterLabel="Filter recurring runs"
           initialSortColumn="created_at"
           reload={[Function]}
           rows={
@@ -556,7 +556,7 @@ describe('RecurringRunList', () => {
               Object {
                 "customRenderer": [Function],
                 "flex": 1.5,
-                "label": "Job Name",
+                "label": "Recurring Run Name",
                 "sortKey": "name",
               },
               Object {
@@ -581,8 +581,8 @@ describe('RecurringRunList', () => {
               },
             ]
           }
-          emptyMessage="No available jobs found."
-          filterLabel="Filter jobs"
+          emptyMessage="No available recurring runs found."
+          filterLabel="Filter recurring runs"
           initialSortColumn="created_at"
           reload={[Function]}
           rows={
@@ -630,7 +630,7 @@ describe('RecurringRunList', () => {
               Object {
                 "customRenderer": [Function],
                 "flex": 1.5,
-                "label": "Job Name",
+                "label": "Recurring Run Name",
                 "sortKey": "name",
               },
               Object {
@@ -655,8 +655,8 @@ describe('RecurringRunList', () => {
               },
             ]
           }
-          emptyMessage="No available jobs found."
-          filterLabel="Filter jobs"
+          emptyMessage="No available recurring runs found."
+          filterLabel="Filter recurring runs"
           initialSortColumn="created_at"
           reload={[Function]}
           rows={
@@ -704,7 +704,7 @@ describe('RecurringRunList', () => {
               Object {
                 "customRenderer": [Function],
                 "flex": 1.5,
-                "label": "Job Name",
+                "label": "Recurring Run Name",
                 "sortKey": "name",
               },
               Object {
@@ -724,8 +724,8 @@ describe('RecurringRunList', () => {
               },
             ]
           }
-          emptyMessage="No available jobs found."
-          filterLabel="Filter jobs"
+          emptyMessage="No available recurring runs found."
+          filterLabel="Filter recurring runs"
           initialSortColumn="created_at"
           reload={[Function]}
           rows={

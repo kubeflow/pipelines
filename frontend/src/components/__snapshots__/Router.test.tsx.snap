@@ -107,13 +107,13 @@ exports[`Router initial render 1`] = `
     <Route
       exact={true}
       key="16"
-      path="/jobs"
+      path="/recurringruns"
       render={[Function]}
     />
     <Route
       exact={true}
       key="17"
-      path="/jobs/details/:rid"
+      path="/recurringrun/details/:rid"
       render={[Function]}
     />
     <Route

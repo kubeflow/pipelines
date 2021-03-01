@@ -65,13 +65,13 @@ describe('AllRecurringRunsList', () => {
 
   afterEach(() => tree.unmount());
 
-  it('renders all jobs', () => {
+  it('renders all recurring runs', () => {
     shallowMountComponent();
     expect(tree).toMatchInlineSnapshot(`
       <div
         className="page"
       >
-        <JobList
+        <RecurringRunList
           history={
             Object {
               "push": [MockFunction],
@@ -106,7 +106,7 @@ describe('AllRecurringRunsList', () => {
                 },
               },
               "breadcrumbs": Array [],
-              "pageTitle": "Jobs",
+              "pageTitle": "Recurring Runs",
             }
           }
           updateBanner={[MockFunction]}
@@ -118,9 +118,9 @@ describe('AllRecurringRunsList', () => {
     `);
   });
 
-  it('lists all jobs in namespace', () => {
+  it('lists all recurring runs in namespace', () => {
     shallowMountComponent({ namespace: 'test-ns' });
-    expect(tree.find('JobList').prop('namespaceMask')).toEqual('test-ns');
+    expect(tree.find('RecurringRunList').prop('namespaceMask')).toEqual('test-ns');
   });
 
   it('removes error banner on unmount', () => {
@@ -129,7 +129,7 @@ describe('AllRecurringRunsList', () => {
     expect(updateBannerSpy).toHaveBeenCalledWith({});
   });
 
-  // it('refreshes the job list when refresh button is clicked', async () => {
+  // it('refreshes the recurring run list when refresh button is clicked', async () => {
   //   const tree = render(<AllRecurringRunsList {...generateProps()} />);
   //   await TestUtils.flushPromises()
   //   fireEvent.click(tree.getByText('Refresh'));

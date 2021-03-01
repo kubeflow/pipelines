@@ -112,13 +112,13 @@ exports[`SideNav populates the display build information using the response from
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Jobs List"
+      title="Recurring Runs List"
     >
       <Link
         className="unstyled"
-        id="experimentsBtn"
+        id="recurringRunsBtn"
         replace={false}
-        to="/jobs"
+        to="/recurringruns"
       >
         <WithStyles(Button)
           className="button"
@@ -127,7 +127,7 @@ exports[`SideNav populates the display build information using the response from
           <span
             className="label"
           >
-            Jobs
+            Recurring Runs
           </span>
         </WithStyles(Button)>
       </Link>
@@ -373,13 +373,13 @@ exports[`SideNav renders Pipelines as active page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Jobs List"
+      title="Recurring Runs List"
     >
       <Link
         className="unstyled"
-        id="experimentsBtn"
+        id="recurringRunsBtn"
         replace={false}
-        to="/jobs"
+        to="/recurringruns"
       >
         <WithStyles(Button)
           className="button"
@@ -388,7 +388,7 @@ exports[`SideNav renders Pipelines as active page 1`] = `
           <span
             className="label"
           >
-            Jobs
+            Recurring Runs
           </span>
         </WithStyles(Button)>
       </Link>
@@ -613,13 +613,13 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Jobs List"
+      title="Recurring Runs List"
     >
       <Link
         className="unstyled"
-        id="experimentsBtn"
+        id="recurringRunsBtn"
         replace={false}
-        to="/jobs"
+        to="/recurringruns"
       >
         <WithStyles(Button)
           className="button"
@@ -628,7 +628,7 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
           <span
             className="label"
           >
-            Jobs
+            Recurring Runs
           </span>
         </WithStyles(Button)>
       </Link>
@@ -853,13 +853,13 @@ exports[`SideNav renders collapsed state 1`] = `
       disableTouchListener={false}
       enterDelay={300}
       placement="right-start"
-      title="Jobs List"
+      title="Recurring Runs List"
     >
       <Link
         className="unstyled"
-        id="experimentsBtn"
+        id="recurringRunsBtn"
         replace={false}
-        to="/jobs"
+        to="/recurringruns"
       >
         <WithStyles(Button)
           className="button collapsedButton"
@@ -868,7 +868,7 @@ exports[`SideNav renders collapsed state 1`] = `
           <span
             className="collapsedLabel label"
           >
-            Jobs
+            Recurring Runs
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1093,13 +1093,13 @@ exports[`SideNav renders expanded state 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Jobs List"
+      title="Recurring Runs List"
     >
       <Link
         className="unstyled"
-        id="experimentsBtn"
+        id="recurringRunsBtn"
         replace={false}
-        to="/jobs"
+        to="/recurringruns"
       >
         <WithStyles(Button)
           className="button"
@@ -1108,7 +1108,7 @@ exports[`SideNav renders expanded state 1`] = `
           <span
             className="label"
           >
-            Jobs
+            Recurring Runs
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1333,13 +1333,13 @@ exports[`SideNav renders experiments as active page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Jobs List"
+      title="Recurring Runs List"
     >
       <Link
         className="unstyled"
-        id="experimentsBtn"
+        id="recurringRunsBtn"
         replace={false}
-        to="/jobs"
+        to="/recurringruns"
       >
         <WithStyles(Button)
           className="button"
@@ -1348,7 +1348,7 @@ exports[`SideNav renders experiments as active page 1`] = `
           <span
             className="label"
           >
-            Jobs
+            Recurring Runs
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1573,13 +1573,13 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Jobs List"
+      title="Recurring Runs List"
     >
       <Link
         className="unstyled"
-        id="experimentsBtn"
+        id="recurringRunsBtn"
         replace={false}
-        to="/jobs"
+        to="/recurringruns"
       >
         <WithStyles(Button)
           className="button"
@@ -1588,7 +1588,7 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
           <span
             className="label"
           >
-            Jobs
+            Recurring Runs
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1813,13 +1813,13 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Jobs List"
+      title="Recurring Runs List"
     >
       <Link
         className="unstyled"
-        id="experimentsBtn"
+        id="recurringRunsBtn"
         replace={false}
-        to="/jobs"
+        to="/recurringruns"
       >
         <WithStyles(Button)
           className="button"
@@ -1828,7 +1828,7 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
           <span
             className="label"
           >
-            Jobs
+            Recurring Runs
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2053,13 +2053,13 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Jobs List"
+      title="Recurring Runs List"
     >
       <Link
         className="unstyled"
-        id="experimentsBtn"
+        id="recurringRunsBtn"
         replace={false}
-        to="/jobs"
+        to="/recurringruns"
       >
         <WithStyles(Button)
           className="button"
@@ -2068,7 +2068,7 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
           <span
             className="label"
           >
-            Jobs
+            Recurring Runs
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2293,13 +2293,13 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Jobs List"
+      title="Recurring Runs List"
     >
       <Link
         className="unstyled"
-        id="experimentsBtn"
+        id="recurringRunsBtn"
         replace={false}
-        to="/jobs"
+        to="/recurringruns"
       >
         <WithStyles(Button)
           className="button"
@@ -2308,7 +2308,7 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
           <span
             className="label"
           >
-            Jobs
+            Recurring Runs
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2533,13 +2533,13 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Jobs List"
+      title="Recurring Runs List"
     >
       <Link
         className="unstyled"
-        id="experimentsBtn"
+        id="recurringRunsBtn"
         replace={false}
-        to="/jobs"
+        to="/recurringruns"
       >
         <WithStyles(Button)
           className="button active"
@@ -2548,7 +2548,7 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
           <span
             className="label"
           >
-            Jobs
+            Recurring Runs
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2773,13 +2773,13 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Jobs List"
+      title="Recurring Runs List"
     >
       <Link
         className="unstyled"
-        id="experimentsBtn"
+        id="recurringRunsBtn"
         replace={false}
-        to="/jobs"
+        to="/recurringruns"
       >
         <WithStyles(Button)
           className="button"
@@ -2788,7 +2788,7 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
           <span
             className="label"
           >
-            Jobs
+            Recurring Runs
           </span>
         </WithStyles(Button)>
       </Link>
@@ -3013,13 +3013,13 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Jobs List"
+      title="Recurring Runs List"
     >
       <Link
         className="unstyled"
-        id="experimentsBtn"
+        id="recurringRunsBtn"
         replace={false}
-        to="/jobs"
+        to="/recurringruns"
       >
         <WithStyles(Button)
           className="button"
@@ -3028,7 +3028,7 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
           <span
             className="label"
           >
-            Jobs
+            Recurring Runs
           </span>
         </WithStyles(Button)>
       </Link>
@@ -3253,13 +3253,13 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
-      title="Jobs List"
+      title="Recurring Runs List"
     >
       <Link
         className="unstyled"
-        id="experimentsBtn"
+        id="recurringRunsBtn"
         replace={false}
-        to="/jobs"
+        to="/recurringruns"
       >
         <WithStyles(Button)
           className="button"
@@ -3268,7 +3268,7 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
           <span
             className="label"
           >
-            Jobs
+            Recurring Runs
           </span>
         </WithStyles(Button)>
       </Link>

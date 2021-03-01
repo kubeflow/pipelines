@@ -133,7 +133,7 @@ describe('SideNav', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  it('renders jobs as active page', () => {
+  it('renders recurring runs as active page', () => {
     tree = shallow(<SideNav page={RoutePage.RECURRING_RUNS} {...defaultProps} />);
     expect(tree).toMatchInlineSnapshot(`
       <div
@@ -247,13 +247,13 @@ describe('SideNav', () => {
             disableTouchListener={true}
             enterDelay={300}
             placement="right-start"
-            title="Jobs List"
+            title="Recurring Runs List"
           >
             <Link
               className="unstyled"
-              id="experimentsBtn"
+              id="recurringRunsBtn"
               replace={false}
-              to="/jobs"
+              to="/recurringruns"
             >
               <WithStyles(Button)
                 className="button active"
@@ -262,7 +262,7 @@ describe('SideNav', () => {
                 <span
                   className="label"
                 >
-                  Jobs
+                  Recurring Runs
                 </span>
               </WithStyles(Button)>
             </Link>
@@ -490,13 +490,13 @@ describe('SideNav', () => {
             disableTouchListener={true}
             enterDelay={300}
             placement="right-start"
-            title="Jobs List"
+            title="Recurring Runs List"
           >
             <Link
               className="unstyled"
-              id="experimentsBtn"
+              id="recurringRunsBtn"
               replace={false}
-              to="/jobs"
+              to="/recurringruns"
             >
               <WithStyles(Button)
                 className="button active"
@@ -505,7 +505,7 @@ describe('SideNav', () => {
                 <span
                   className="label"
                 >
-                  Jobs
+                  Recurring Runs
                 </span>
               </WithStyles(Button)>
             </Link>

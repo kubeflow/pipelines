@@ -634,7 +634,7 @@ exports[`RecurringRunsManager renders run name as link to its details page 1`] =
 <Link
   className="link"
   replace={false}
-  to="/jobs/details/run-id"
+  to="/recurringrun/details/run-id"
 >
   test-run
 </Link>
