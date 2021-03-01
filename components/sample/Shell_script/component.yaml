@@ -1,4 +1,4 @@
-name: Filter text
+name: Filter text using shell and grep
 inputs:
 - {name: Text}
 - {name: Pattern, default: '.*'}
