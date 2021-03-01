@@ -21,7 +21,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	wfv1 "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo/workflow/common"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
@@ -215,7 +214,7 @@ func OverrideParameterWithSystemDefault(workflow util.Workflow, apiRun *api.Run)
 				}
 				patchedSlice = append(patchedSlice, wfv1.Parameter{
 					Name:  currentParam.Name,
-					Value: v1alpha1.AnyStringPtr(desiredValue),
+					Value: wfv1.AnyStringPtr(desiredValue),
 				})
 			} else if currentParam.Default != nil {
 				desiredValue, err := PatchPipelineDefaultParameter(currentParam.Default.String())
@@ -224,7 +223,7 @@ func OverrideParameterWithSystemDefault(workflow util.Workflow, apiRun *api.Run)
 				}
 				patchedSlice = append(patchedSlice, wfv1.Parameter{
 					Name:  currentParam.Name,
-					Value: v1alpha1.AnyStringPtr(desiredValue),
+					Value: wfv1.AnyStringPtr(desiredValue),
 				})
 			}
 		}
