@@ -289,7 +289,9 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
   /**
    * For each job ID, fetch its corresponding job, and set it in DisplayJobs
    */
-  private _getAndSetJobs(displayRecurringRuns: DisplayRecurringRun[]): Promise<DisplayRecurringRun[]> {
+  private _getAndSetJobs(
+    displayRecurringRuns: DisplayRecurringRun[],
+  ): Promise<DisplayRecurringRun[]> {
     return Promise.all(
       displayRecurringRuns.map(async displayRecurringRun => {
         let getJobResponse: ApiJob;
@@ -319,7 +321,8 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
           const experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
           experimentName = experiment.name || '';
         } catch (err) {
-          displayRecurringRun.error = 'Failed to get associated experiment: ' + (await errorToMessage(err));
+          displayRecurringRun.error =
+            'Failed to get associated experiment: ' + (await errorToMessage(err));
           return;
         }
       }
