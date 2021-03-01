@@ -32,8 +32,8 @@ def add_kfp_pod_env(op: BaseOp) -> BaseOp:
     """
     if not isinstance(op, ContainerOp):
         warnings.warn(
-            'Trying to add default KFP environment variables to an Op that is not a ContainerOp. Ignoring request.'
-        )
+            'Trying to add default KFP environment variables to an Op that is '
+            'not a ContainerOp. Ignoring request.')
         return op
 
     op.container.add_env_variable(
