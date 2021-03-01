@@ -180,6 +180,7 @@ class LocalRunnerTest(unittest.TestCase):
             _pipeline, {}, execution_mode=LocalClient.ExecutionMode("local")
         )
 
+    @unittest.skip('docker is not installed in CI environment.')
     def test_execution_mode_exclude_op(self):
         @light_component(base_image="image_not_exist")
         def cat_on_image_not_exist(name: str, dst: OutputPath):
