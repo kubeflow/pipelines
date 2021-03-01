@@ -15,6 +15,7 @@
 import inspect
 from deprecated.sphinx import deprecated
 from ._pipeline_param import PipelineParam
+from ._pipeline_volume import PipelineVolume
 from .types import check_types, InconsistentTypeException
 from ._ops_group import Graph
 import kfp
@@ -129,8 +130,8 @@ def graph_component(func):
     graph_ops_group.inputs = list(bound_arguments.arguments.values())
     graph_ops_group.arguments = bound_arguments.arguments
     for input in graph_ops_group.inputs:
-      if not isinstance(input, PipelineParam):
-        raise ValueError('arguments to ' + func.__name__ + ' should be PipelineParams.')
+      if not isinstance(input, PipelineParam, PipelineVolume):
+        raise ValueError('arguments to ' + func.__name__ + ' should be PipelineParams or PipelineVolumes.')
 
     # Entering the Graph Context
     with graph_ops_group:
