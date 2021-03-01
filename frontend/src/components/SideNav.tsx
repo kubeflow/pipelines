@@ -397,27 +397,33 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
           <div
             className={classes(
               css.indicator,
-              !this._highlightJobsButton(page) && css.indicatorHidden,
+              !this._highlightRecurringRunsButton(page) && css.indicatorHidden,
             )}
           />
           <Tooltip
-            title={'Jobs List'}
+            title={'Recurring Runs List'}
             enterDelay={300}
             placement={'right-start'}
             disableFocusListener={!collapsed}
             disableHoverListener={!collapsed}
             disableTouchListener={!collapsed}
           >
-            <Link id='experimentsBtn' to={RoutePage.JOBS} className={commonCss.unstyled}>
+            <Link
+              id='recurringRunsBtn'
+              to={RoutePage.RECURRING_RUNS}
+              className={commonCss.unstyled}
+            >
               <Button
                 className={classes(
                   css.button,
-                  this._highlightJobsButton(page) && css.active,
+                  this._highlightRecurringRunsButton(page) && css.active,
                   collapsed && css.collapsedButton,
                 )}
               >
                 <Alarm />
-                <span className={classes(collapsed && css.collapsedLabel, css.label)}>Jobs</span>
+                <span className={classes(collapsed && css.collapsedLabel, css.label)}>
+                  Recurring Runs
+                </span>
               </Button>
             </Link>
           </Tooltip>
@@ -591,14 +597,13 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
   private _highlightRunsButton(page: string): boolean {
     return (
       page.startsWith(RoutePage.RUNS) ||
-      page.startsWith(RoutePrefix.RECURRING_RUN) ||
       page.startsWith(RoutePage.COMPARE) ||
       page === RoutePage.ARCHIVED_RUNS
     );
   }
 
-  private _highlightJobsButton(page: string): boolean {
-    return page.startsWith(RoutePage.JOBS);
+  private _highlightRecurringRunsButton(page: string): boolean {
+    return page.startsWith(RoutePage.RECURRING_RUNS) || page.startsWith(RoutePrefix.RECURRING_RUN);
   }
 
   private _highlightArtifactsButton(page: string): boolean {

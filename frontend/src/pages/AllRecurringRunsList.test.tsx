@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import { AllJobsList } from './AllJobsList';
+import { AllRecurringRunsList } from './AllRecurringRunsList';
 import { PageProps } from './Page';
 import { RoutePage } from '../components/Router';
 import { shallow, ShallowWrapper } from 'enzyme';
@@ -23,7 +23,7 @@ import { ButtonKeys } from '../lib/Buttons';
 import TestUtils from '../TestUtils';
 import { fireEvent, render } from '@testing-library/react';
 
-describe('AllJobsList', () => {
+describe('AllRecurringRunsList', () => {
   const updateBannerSpy = jest.fn();
   let _toolbarProps: any = { actions: {}, breadcrumbs: [], pageTitle: '' };
   const updateToolbarSpy = jest.fn(toolbarProps => (_toolbarProps = toolbarProps));
@@ -43,14 +43,14 @@ describe('AllJobsList', () => {
       updateToolbar: updateToolbarSpy,
     };
     return Object.assign(props, {
-      toolbarProps: new AllJobsList(props).getInitialToolbarState(),
+      toolbarProps: new AllRecurringRunsList(props).getInitialToolbarState(),
     });
   }
 
   function shallowMountComponent(
     propsPatch: Partial<PageProps & { namespace?: string }> = {},
   ): void {
-    tree = shallow(<AllJobsList {...generateProps()} {...propsPatch} />);
+    tree = shallow(<AllRecurringRunsList {...generateProps()} {...propsPatch} />);
     // Necessary since the component calls updateToolbar with the toolbar props,
     // then expects to get them back in props
     tree.setProps({ toolbarProps: _toolbarProps });
@@ -130,7 +130,7 @@ describe('AllJobsList', () => {
   });
 
   // it('refreshes the job list when refresh button is clicked', async () => {
-  //   const tree = render(<AllJobsList {...generateProps()} />);
+  //   const tree = render(<AllRecurringRunsList {...generateProps()} />);
   //   await TestUtils.flushPromises()
   //   fireEvent.click(tree.getByText('Refresh'));
   // });

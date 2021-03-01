@@ -21,20 +21,20 @@ import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
-import JobList from './JobList';
+import RecurringRunList from './RecurringRunList';
 
-interface AllJobsListState {
+interface AllRecurringRunsListState {
   selectedIds: string[];
-  jobListRefreshCount: number;
+  recurringRunListRefreshCount: number;
 }
 
-export class AllJobsList extends Page<{ namespace?: string }, AllJobsListState> {
+export class AllRecurringRunsList extends Page<{ namespace?: string }, AllRecurringRunsListState> {
   constructor(props: any) {
     super(props);
 
     this.state = {
       selectedIds: [],
-      jobListRefreshCount: 0,
+      recurringRunListRefreshCount: 0,
     };
   }
 
@@ -46,18 +46,18 @@ export class AllJobsList extends Page<{ namespace?: string }, AllJobsListState> 
         .refresh(this.refresh.bind(this))
         .getToolbarActionMap(),
       breadcrumbs: [],
-      pageTitle: 'Jobs',
+      pageTitle: 'Recurring Runs',
     };
   }
 
   public render(): JSX.Element {
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
-        <JobList
+        <RecurringRunList
           onError={this.showPageError.bind(this)}
           selectedIds={this.state.selectedIds}
           onSelectionChange={this._selectionChanged.bind(this)}
-          refreshCount={this.state.jobListRefreshCount}
+          refreshCount={this.state.recurringRunListRefreshCount}
           namespaceMask={this.props.namespace}
           {...this.props}
         />
@@ -66,9 +66,9 @@ export class AllJobsList extends Page<{ namespace?: string }, AllJobsListState> 
   }
 
   public async refresh(): Promise<void> {
-    // Tell job list to refresh
+    // Tell recurring run list to refresh
     this.setState((prevState, _) => ({
-      jobListRefreshCount: prevState.jobListRefreshCount + 1,
+      recurringRunListRefreshCount: prevState.recurringRunListRefreshCount + 1,
     }));
   }
 
@@ -82,9 +82,9 @@ export class AllJobsList extends Page<{ namespace?: string }, AllJobsListState> 
   }
 }
 
-const EnhancedAllJobsList = (props: PageProps) => {
+const EnhancedAllRecurringRunsList = (props: PageProps) => {
   const namespace = React.useContext(NamespaceContext);
-  return <AllJobsList key={namespace} {...props} namespace={namespace} />;
+  return <AllRecurringRunsList key={namespace} {...props} namespace={namespace} />;
 };
 
-export default EnhancedAllJobsList;
+export default EnhancedAllRecurringRunsList;

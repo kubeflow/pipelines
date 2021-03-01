@@ -124,7 +124,7 @@ describe('SideNav', () => {
   });
 
   it('renders experiments as active page when on RecurringRunDetails page', () => {
-    tree = shallow(<SideNav page={RoutePage.JOB_DETAILS} {...defaultProps} />);
+    tree = shallow(<SideNav page={RoutePage.RECURRING_RUN_DETAILS} {...defaultProps} />);
     expect(tree).toMatchSnapshot();
   });
 
@@ -134,7 +134,7 @@ describe('SideNav', () => {
   });
 
   it('renders jobs as active page', () => {
-    tree = shallow(<SideNav page={RoutePage.JOBS} {...defaultProps} />);
+    tree = shallow(<SideNav page={RoutePage.RECURRING_RUNS} {...defaultProps} />);
     expect(tree).toMatchInlineSnapshot(`
       <div
         className="root flexColumn noShrink"
@@ -377,7 +377,7 @@ describe('SideNav', () => {
   });
 
   it('renders jobs as active page when on JobDetails page', () => {
-    tree = shallow(<SideNav page={RoutePage.JOB_DETAILS} {...defaultProps} />);
+    tree = shallow(<SideNav page={RoutePage.RECURRING_RUN_DETAILS} {...defaultProps} />);
     expect(tree).toMatchInlineSnapshot(`
       <div
         className="root flexColumn noShrink"

@@ -25,7 +25,7 @@ import { formatDateString, errorToMessage } from '../lib/Utils';
 import Tooltip from '@material-ui/core/Tooltip';
 import { ApiJob, ApiTrigger } from '../apis/job';
 
-interface DisplayJob {
+interface DisplayRecurringRun {
   experiment?: ExperimentInfo;
   job: ApiJob;
   error?: string;
@@ -37,7 +37,7 @@ type MaskProps = Exclude<
   { experimentIdMask: string; namespaceMask: string }
 >;
 
-export type JobListProps = MaskProps &
+export type RecurringRunListProps = MaskProps &
   RouteComponentProps & {
     disablePaging?: boolean;
     disableSelection?: boolean;
@@ -46,23 +46,23 @@ export type JobListProps = MaskProps &
     noFilterBox?: boolean;
     onError: (message: string, error: Error) => void;
     onSelectionChange?: (selectedRunIds: string[]) => void;
-    jobIdListMask?: string[];
+    recurringRunIdListMask?: string[];
     selectedIds?: string[];
     refreshCount: number;
   };
 
-interface JobListState {
-  jobs: DisplayJob[];
+interface RecurringRunListState {
+  recurringRuns: DisplayRecurringRun[];
 }
 
-class JobList extends React.PureComponent<JobListProps, JobListState> {
+class RecurringRunList extends React.PureComponent<RecurringRunListProps, RecurringRunListState> {
   private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
     super(props);
 
     this.state = {
-      jobs: [],
+      recurringRuns: [],
     };
   }
 
@@ -78,7 +78,7 @@ class JobList extends React.PureComponent<JobListProps, JobListState> {
       {
         customRenderer: this._nameCustomRenderer,
         flex: 1.5,
-        label: 'Job Name',
+        label: 'Recurring Run Name',
         sortKey: JobSortKeys.NAME,
       },
       { customRenderer: this._statusCustomRenderer, label: 'Status', flex: 0.5 },
@@ -94,7 +94,7 @@ class JobList extends React.PureComponent<JobListProps, JobListState> {
       });
     }
 
-    const rows: Row[] = this.state.jobs.map(j => {
+    const rows: Row[] = this.state.recurringRuns.map(j => {
       const row = {
         error: j.error,
         id: j.job.id!,
@@ -120,15 +120,15 @@ class JobList extends React.PureComponent<JobListProps, JobListState> {
           selectedIds={this.props.selectedIds}
           initialSortColumn={JobSortKeys.CREATED_AT}
           ref={this._tableRef}
-          filterLabel='Filter jobs'
+          filterLabel='Filter recurring runs'
           updateSelection={this.props.onSelectionChange}
-          reload={this._loadJobs.bind(this)}
+          reload={this._loadRecurringRuns.bind(this)}
           disablePaging={this.props.disablePaging}
           disableSorting={this.props.disableSorting}
           disableSelection={this.props.disableSelection}
           noFilterBox={this.props.noFilterBox}
           emptyMessage={
-            `No available jobs found` +
+            `No available recurring runs found` +
             `${
               this.props.experimentIdMask
                 ? ' for this experiment'
@@ -156,7 +156,7 @@ class JobList extends React.PureComponent<JobListProps, JobListState> {
         <Link
           className={commonCss.link}
           onClick={e => e.stopPropagation()}
-          to={RoutePage.JOB_DETAILS.replace(':' + RouteParams.runId, props.id)}
+          to={RoutePage.RECURRING_RUN_DETAILS.replace(':' + RouteParams.runId, props.id)}
         >
           {props.value}
         </Link>
@@ -222,15 +222,15 @@ class JobList extends React.PureComponent<JobListProps, JobListState> {
     return <div style={{ color: textColor }}>{props.value}</div>;
   };
 
-  protected async _loadJobs(request: ListRequest): Promise<string> {
-    let displayJobs: DisplayJob[] = [];
+  protected async _loadRecurringRuns(request: ListRequest): Promise<string> {
+    let displayRecurringRuns: DisplayRecurringRun[] = [];
     let nextPageToken = '';
 
-    if (Array.isArray(this.props.jobIdListMask)) {
-      displayJobs = this.props.jobIdListMask.map(id => ({ job: { id } }));
+    if (Array.isArray(this.props.recurringRunIdListMask)) {
+      displayRecurringRuns = this.props.recurringRunIdListMask.map(id => ({ job: { id } }));
       // listJobs doesn't currently support batching by IDs, so in this case we
       // retrieve each job individually.
-      await this._getAndSetJobs(displayJobs);
+      await this._getAndSetJobs(displayRecurringRuns);
     } else {
       try {
         let resourceReference: {
@@ -257,25 +257,25 @@ class JobList extends React.PureComponent<JobListProps, JobListState> {
           request.filter,
         );
 
-        displayJobs = (response.jobs || []).map(j => ({ job: j }));
+        displayRecurringRuns = (response.jobs || []).map(j => ({ job: j }));
         nextPageToken = response.next_page_token || '';
       } catch (err) {
         const error = new Error(await errorToMessage(err));
-        this.props.onError('Error: failed to fetch jobs.', error);
+        this.props.onError('Error: failed to fetch recurring runs.', error);
         // No point in continuing if we couldn't retrieve any jobs.
         return '';
       }
     }
 
-    await this._setColumns(displayJobs);
+    await this._setColumns(displayRecurringRuns);
 
     this.setState({
-      jobs: displayJobs,
+      recurringRuns: displayRecurringRuns,
     });
     return nextPageToken;
   }
 
-  private async _setColumns(displayJobs: DisplayJob[]): Promise<DisplayJob[]> {
+  private async _setColumns(displayJobs: DisplayRecurringRun[]): Promise<DisplayRecurringRun[]> {
     return Promise.all(
       displayJobs.map(async displayJob => {
         if (!this.props.hideExperimentColumn) {
@@ -289,41 +289,41 @@ class JobList extends React.PureComponent<JobListProps, JobListState> {
   /**
    * For each job ID, fetch its corresponding job, and set it in DisplayJobs
    */
-  private _getAndSetJobs(displayJobs: DisplayJob[]): Promise<DisplayJob[]> {
+  private _getAndSetJobs(displayRecurringRuns: DisplayRecurringRun[]): Promise<DisplayRecurringRun[]> {
     return Promise.all(
-      displayJobs.map(async displayJob => {
+      displayRecurringRuns.map(async displayRecurringRun => {
         let getJobResponse: ApiJob;
         try {
-          getJobResponse = await Apis.jobServiceApi.getJob(displayJob.job!.id!);
-          displayJob.job = getJobResponse!;
+          getJobResponse = await Apis.jobServiceApi.getJob(displayRecurringRun.job!.id!);
+          displayRecurringRun.job = getJobResponse!;
         } catch (err) {
-          displayJob.error = await errorToMessage(err);
+          displayRecurringRun.error = await errorToMessage(err);
         }
-        return displayJob;
+        return displayRecurringRun;
       }),
     );
   }
 
   /**
-   * For the given DisplayJob, get its ApiJob and retrieve that ApiJob's Experiment ID if it has
+   * For the given DisplayRecurringRun, get its ApiJob and retrieve that ApiJob's Experiment ID if it has
    * one, then use that Experiment ID to fetch its associated Experiment and attach that
-   * Experiment's name to the DisplayJob. If the ApiJob has no Experiment ID, then the corresponding
-   * DisplayJob will show '-'.
+   * Experiment's name to the DisplayRecurringRun. If the ApiJob has no Experiment ID, then the corresponding
+   * DisplayRecurringRun will show '-'.
    */
-  private async _getAndSetExperimentNames(displayJob: DisplayJob): Promise<void> {
-    const experimentId = RunUtils.getFirstExperimentReferenceId(displayJob.job);
+  private async _getAndSetExperimentNames(displayRecurringRun: DisplayRecurringRun): Promise<void> {
+    const experimentId = RunUtils.getFirstExperimentReferenceId(displayRecurringRun.job);
     if (experimentId) {
-      let experimentName = RunUtils.getFirstExperimentReferenceName(displayJob.job);
+      let experimentName = RunUtils.getFirstExperimentReferenceName(displayRecurringRun.job);
       if (!experimentName) {
         try {
           const experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
           experimentName = experiment.name || '';
         } catch (err) {
-          displayJob.error = 'Failed to get associated experiment: ' + (await errorToMessage(err));
+          displayRecurringRun.error = 'Failed to get associated experiment: ' + (await errorToMessage(err));
           return;
         }
       }
-      displayJob.experiment = {
+      displayRecurringRun.experiment = {
         displayName: experimentName,
         id: experimentId,
       };
@@ -331,4 +331,4 @@ class JobList extends React.PureComponent<JobListProps, JobListState> {
   }
 }
 
-export default JobList;
+export default RecurringRunList;

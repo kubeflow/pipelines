@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import * as Utils from '../lib/Utils';
-import JobList, { JobListProps } from './JobList';
+import RecurringRunList, { RecurringRunListProps } from './RecurringRunList';
 import TestUtils from '../TestUtils';
 import produce from 'immer';
 import { ApiJob, ApiResourceType } from '../apis/job';
@@ -24,13 +24,13 @@ import { Apis, JobSortKeys, ListRequest } from '../lib/Apis';
 import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
 import { range } from 'lodash';
 
-class JobListTest extends JobList {
-  public _loadJobs(request: ListRequest): Promise<string> {
-    return super._loadJobs(request);
+class RecurringRunListTest extends RecurringRunList {
+  public _loadRecurringRuns(request: ListRequest): Promise<string> {
+    return super._loadRecurringRuns(request);
   }
 }
 
-describe('JobList', () => {
+describe('RecurringRunList', () => {
   let tree: ShallowWrapper | ReactWrapper;
 
   const onErrorSpy = jest.fn();
@@ -41,7 +41,7 @@ describe('JobList', () => {
   // test environments
   const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
 
-  function generateProps(): JobListProps {
+  function generateProps(): RecurringRunListProps {
     return {
       history: {} as any,
       location: { search: '' } as any,
@@ -81,9 +81,9 @@ describe('JobList', () => {
     getExperimentSpy.mockImplementation(() => ({ name: 'some experiment' }));
   }
 
-  function getMountedInstance(): JobList {
-    tree = TestUtils.mountWithRouter(<JobList {...generateProps()} />);
-    return tree.instance() as JobList;
+  function getMountedInstance(): RecurringRunList {
+    tree = TestUtils.mountWithRouter(<RecurringRunList {...generateProps()} />);
+    return tree.instance() as RecurringRunList;
   }
 
   beforeEach(() => {
@@ -106,7 +106,7 @@ describe('JobList', () => {
   });
 
   it('renders the empty experience', () => {
-    expect(shallow(<JobList {...generateProps()} />)).toMatchInlineSnapshot(`
+    expect(shallow(<RecurringRunList {...generateProps()} />)).toMatchInlineSnapshot(`
       <div>
         <CustomTable
           columns={
@@ -152,8 +152,8 @@ describe('JobList', () => {
   it('loads one job', async () => {
     mockNJobs(1, {});
     const props = generateProps();
-    tree = shallow(<JobList {...props} />);
-    await (tree.instance() as JobListTest)._loadJobs({});
+    tree = shallow(<RecurringRunList {...props} />);
+    await (tree.instance() as RecurringRunListTest)._loadRecurringRuns({});
     expect(Apis.jobServiceApi.listJobs).toHaveBeenLastCalledWith(
       undefined,
       undefined,
@@ -223,8 +223,8 @@ describe('JobList', () => {
   it('reloads the job when refresh is called', async () => {
     mockNJobs(0, {});
     const props = generateProps();
-    tree = TestUtils.mountWithRouter(<JobList {...props} />);
-    await (tree.instance() as JobList).refresh();
+    tree = TestUtils.mountWithRouter(<RecurringRunList {...props} />);
+    await (tree.instance() as RecurringRunList).refresh();
     tree.update();
     expect(Apis.jobServiceApi.listJobs).toHaveBeenCalledTimes(2);
     expect(Apis.jobServiceApi.listJobs).toHaveBeenLastCalledWith(
@@ -241,8 +241,8 @@ describe('JobList', () => {
   it('loads multiple jobs', async () => {
     mockNJobs(5, {});
     const props = generateProps();
-    tree = shallow(<JobList {...props} />);
-    await (tree.instance() as JobListTest)._loadJobs({});
+    tree = shallow(<RecurringRunList {...props} />);
+    await (tree.instance() as RecurringRunListTest)._loadRecurringRuns({});
     expect(props.onError).not.toHaveBeenCalled();
     expect(tree).toMatchInlineSnapshot(`
       <div>
@@ -351,8 +351,8 @@ describe('JobList', () => {
       'bad stuff happened',
     );
     const props = generateProps();
-    tree = shallow(<JobList {...props} />);
-    await (tree.instance() as JobListTest)._loadJobs({});
+    tree = shallow(<RecurringRunList {...props} />);
+    await (tree.instance() as RecurringRunListTest)._loadRecurringRuns({});
     expect(props.onError).toHaveBeenLastCalledWith(
       'Error: failed to fetch jobs.',
       new Error('bad stuff happened'),
@@ -363,8 +363,8 @@ describe('JobList', () => {
     mockNJobs(1, {});
     const props = generateProps();
     props.experimentIdMask = 'experiment1';
-    tree = shallow(<JobList {...props} />);
-    await (tree.instance() as JobListTest)._loadJobs({});
+    tree = shallow(<RecurringRunList {...props} />);
+    await (tree.instance() as RecurringRunListTest)._loadRecurringRuns({});
     expect(props.onError).not.toHaveBeenCalled();
     expect(Apis.jobServiceApi.listJobs).toHaveBeenLastCalledWith(
       undefined,
@@ -380,8 +380,8 @@ describe('JobList', () => {
     mockNJobs(1, {});
     const props = generateProps();
     props.namespaceMask = 'namespace1';
-    tree = shallow(<JobList {...props} />);
-    await (tree.instance() as JobListTest)._loadJobs({});
+    tree = shallow(<RecurringRunList {...props} />);
+    await (tree.instance() as RecurringRunListTest)._loadRecurringRuns({});
     expect(props.onError).not.toHaveBeenCalled();
     expect(Apis.jobServiceApi.listJobs).toHaveBeenLastCalledWith(
       undefined,
@@ -396,9 +396,9 @@ describe('JobList', () => {
   it('loads given list of jobs only', async () => {
     mockNJobs(5, {});
     const props = generateProps();
-    props.jobIdListMask = ['job1', 'job2'];
-    tree = shallow(<JobList {...props} />);
-    await (tree.instance() as JobListTest)._loadJobs({});
+    props.recurringRunIdListMask = ['job1', 'job2'];
+    tree = shallow(<RecurringRunList {...props} />);
+    await (tree.instance() as RecurringRunListTest)._loadRecurringRuns({});
     expect(props.onError).not.toHaveBeenCalled();
     expect(Apis.jobServiceApi.listJobs).not.toHaveBeenCalled();
     expect(Apis.jobServiceApi.getJob).toHaveBeenCalledTimes(2);
@@ -411,8 +411,8 @@ describe('JobList', () => {
       status: 'ENABLED',
     });
     const props = generateProps();
-    tree = shallow(<JobList {...props} />);
-    await (tree.instance() as JobListTest)._loadJobs({});
+    tree = shallow(<RecurringRunList {...props} />);
+    await (tree.instance() as RecurringRunListTest)._loadRecurringRuns({});
     expect(props.onError).not.toHaveBeenCalled();
     expect(tree).toMatchInlineSnapshot(`
       <div>
@@ -476,8 +476,8 @@ describe('JobList', () => {
       trigger: { periodic_schedule: { interval_second: '3600' } },
     });
     const props = generateProps();
-    tree = shallow(<JobList {...props} />);
-    await (tree.instance() as JobListTest)._loadJobs({});
+    tree = shallow(<RecurringRunList {...props} />);
+    await (tree.instance() as RecurringRunListTest)._loadRecurringRuns({});
     expect(props.onError).not.toHaveBeenCalled();
     expect(tree).toMatchInlineSnapshot(`
       <div>
@@ -545,8 +545,8 @@ describe('JobList', () => {
       trigger: { cron_schedule: { cron: '0 * * * * ?' } },
     });
     const props = generateProps();
-    tree = shallow(<JobList {...props} />);
-    await (tree.instance() as JobListTest)._loadJobs({});
+    tree = shallow(<RecurringRunList {...props} />);
+    await (tree.instance() as RecurringRunListTest)._loadRecurringRuns({});
     expect(props.onError).not.toHaveBeenCalled();
     expect(tree).toMatchInlineSnapshot(`
       <div>
@@ -619,8 +619,8 @@ describe('JobList', () => {
     });
     getExperimentSpy.mockImplementationOnce(() => ({ name: 'test experiment' }));
     const props = generateProps();
-    tree = shallow(<JobList {...props} />);
-    await (tree.instance() as JobListTest)._loadJobs({});
+    tree = shallow(<RecurringRunList {...props} />);
+    await (tree.instance() as RecurringRunListTest)._loadRecurringRuns({});
     expect(props.onError).not.toHaveBeenCalled();
     expect(tree).toMatchInlineSnapshot(`
       <div>
@@ -693,8 +693,8 @@ describe('JobList', () => {
     getExperimentSpy.mockImplementationOnce(() => ({ name: 'test experiment' }));
     const props = generateProps();
     props.hideExperimentColumn = true;
-    tree = shallow(<JobList {...props} />);
-    await (tree.instance() as JobListTest)._loadJobs({});
+    tree = shallow(<RecurringRunList {...props} />);
+    await (tree.instance() as RecurringRunListTest)._loadRecurringRuns({});
     expect(props.onError).not.toHaveBeenCalled();
     expect(tree).toMatchInlineSnapshot(`
       <div>
