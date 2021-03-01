@@ -10,7 +10,7 @@ from kubernetes import client as k8s_client
 
 _LAUNCHER_CONTAINER = dsl.UserContainer(
     name="kfp-launcher",
-    image="gcr.io/ajay-aiplatform/kfp-launcher",
+    image="gcr.io/ml-pipeline/kfp-launcher",
     command="/bin/mount_launcher.sh",
     mirror_volume_mounts=True)
 
@@ -38,8 +38,7 @@ def update_op(op: dsl.ContainerOp,
                                  mount_path='/kfp-launcher'))
 
     op.container.add_env_variable(
-        k8s_client.V1EnvVar(name="KFP_V2_IMAGE",
-                            value=op.container.image))
+        k8s_client.V1EnvVar(name="KFP_V2_IMAGE", value=op.container.image))
 
     op.command = [
         "/kfp-launcher/launch",
@@ -82,13 +81,6 @@ def update_op(op: dsl.ContainerOp,
     op.arguments = list(executor.container.command) + list(
         executor.container.args)
 
-    # to_json = lambda x: json_format.MessageToJson(x)
-    # op.container.add_env_variable(
-    #     k8s_client.V1EnvVar(name="KFP_V2_TASK_SPEC", value=to_json(task_spec)))
-    # op.container.add_env_variable(
-    #     k8s_client.V1EnvVar(name="KFP_V2_COMPONENT_SPEC",
-    #                         value=to_json(component_spec)))
-
     runtime_info = {
         "inputParameters": {},
         "inputArtifacts": {},
@@ -97,8 +89,11 @@ def update_op(op: dsl.ContainerOp,
     }
     for parameter, spec in component_spec.input_definitions.parameters.items():
         parameter_info = {
-            "parameterType": pipeline_spec_pb2.PrimitiveType.PrimitiveTypeEnum.Name(spec.type),
-            "parameterValue": op._parameter_arguments[ parameter],
+            "parameterType":
+                pipeline_spec_pb2.PrimitiveType.PrimitiveTypeEnum.Name(spec.type
+                                                                      ),
+            "parameterValue":
+                op._parameter_arguments[parameter],
         }
         runtime_info["inputParameters"][parameter] = parameter_info
 

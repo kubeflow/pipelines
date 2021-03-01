@@ -26,9 +26,10 @@ import zipfile
 from typing import Callable, Set, List, Text, Dict, Tuple, Any, Union, Optional
 
 import kfp
+from kfp import dsl
 from kfp.dsl import _for_loop
 from kfp.compiler import _data_passing_rewriter
-from kfp.compiler import v2_mode
+from kfp.compiler import v2_compat
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kubernetes.client.models.v1_object_field_selector import V1ObjectFieldSelector
 
@@ -601,7 +602,7 @@ class Compiler(object):
     pipeline,
     op_transformers=None,
     op_to_templates_handler=None,
-    enable_v2_mode: bool = True,
+    execution_mode: dsl.PipelineExecutionMode = dsl.PipelineExecutionMode.V1_LEGACY,
     pipeline_spec: Optional[pipeline_spec_pb2.PipelineSpec] = None,
     pipeline_root: Optional[dsl.PipelineParam] = None):
     """Create all groups and ops templates in the pipeline.
@@ -618,7 +619,7 @@ class Compiler(object):
     # the user would not be able to use pipeline parameters in the container definition
     # (for example as pod labels) - the generated template is invalid.
     for op in pipeline.ops.values():
-      if enable_v2_mode:
+      if execution_mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
         # Make pipeline_root parameter available to all components.
         op.inputs.append(pipeline_root)
 
@@ -663,8 +664,8 @@ class Compiler(object):
       templates.append(template)
 
     for op in pipeline.ops.values():
-      if enable_v2_mode:
-        v2_mode.update_op(
+      if execution_mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
+        v2_compat.update_op(
           op,
           pipeline_spec=pipeline_spec,
           pipeline_root=pipeline_root)
@@ -679,7 +680,7 @@ class Compiler(object):
     pipeline,
     op_transformers = None,
     pipeline_conf = None,
-    enable_v2_mode: bool = False,
+    execution_mode: dsl.PipelineExecutionMode = dsl.PipelineExecutionMode.V1_LEGACY,
     pipeline_spec: Optional[pipeline_spec_pb2.PipelineSpec] = None,
     pipeline_root: Optional[dsl.PipelineParam] = None):
     """Create workflow for the pipeline."""
@@ -701,7 +702,7 @@ class Compiler(object):
     templates = self._create_dag_templates(
       pipeline,
       op_transformers,
-      enable_v2_mode=enable_v2_mode,
+      execution_mode=execution_mode,
       pipeline_spec=pipeline_spec,
       pipeline_root=pipeline_root)
 
@@ -846,7 +847,7 @@ class Compiler(object):
       pipeline_description: Text = None,
       params_list: List[dsl.PipelineParam] = None,
       pipeline_conf: dsl.PipelineConf = None,
-      enable_v2_mode: bool = False,
+      execution_mode: dsl.PipelineExecutionMode = dsl.PipelineExecutionMode.V1_LEGACY,
       pipeline_spec: Optional[pipeline_spec_pb2.PipelineSpec] = None,
       ) -> Dict[Text, Any]:
     """ Internal implementation of create_workflow."""
@@ -926,13 +927,12 @@ class Compiler(object):
         dsl_pipeline,
         op_transformers,
         pipeline_conf,
-        enable_v2_mode=enable_v2_mode,
+        execution_mode=execution_mode,
         pipeline_spec=pipeline_spec,
         pipeline_root=output_directory,
     )
 
     from ._data_passing_rewriter import fix_big_data_passing
-    # if not enable_v2_mode:
     workflow = fix_big_data_passing(workflow)
 
     workflow = _data_passing_rewriter.add_pod_name_passing(
@@ -948,7 +948,7 @@ class Compiler(object):
     annotations['pipelines.kubeflow.org/pipeline_compilation_time'] = datetime.datetime.now().isoformat()
     annotations['pipelines.kubeflow.org/pipeline_spec'] = json.dumps(pipeline_meta.to_dict(), sort_keys=True)
 
-    if enable_v2_mode:
+    if execution_mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
       annotations['pipelines.kubeflow.org/v2_pipeline'] = "true"
 
     # Labels might be logged better than annotations so adding some information here as well
@@ -995,7 +995,7 @@ class Compiler(object):
 
   def compile(self, pipeline_func, package_path, type_check=True,
               pipeline_conf: dsl.PipelineConf = None,
-              enable_v2_mode: bool = True):
+              execution_mode: dsl.PipelineExecutionMode = dsl.PipelineExecutionMode.V1_LEGACY):
     """Compile the given pipeline function into workflow yaml.
 
     Args:
@@ -1011,16 +1011,19 @@ class Compiler(object):
     import kfp
     type_check_old_value = kfp.TYPE_CHECK
 
-    if enable_v2_mode:
+    if execution_mode == dsl.PipelineExecutionMode.V2_ENGINE:
+      raise ValueError(
+        'V2_ENGINE pipeline execution mode has not yet been implemented.')
+
+    if execution_mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
       warnings.warn(
             "V2 compatiblity is still in development and is expected to"
             " break often. Please do not use this for production pipelines."
         )
 
     pipeline_spec = None
-    if enable_v2_mode:
-      from kfp.compiler import v2_mode
-      pipeline_spec = v2_mode.get_pipeline_spec(pipeline_func)
+    if execution_mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
+      pipeline_spec = v2_compat.get_pipeline_spec(pipeline_func)
 
     try:
       kfp.TYPE_CHECK = type_check
@@ -1028,7 +1031,7 @@ class Compiler(object):
           pipeline_func=pipeline_func,
           pipeline_conf=pipeline_conf,
           package_path=package_path,
-          enable_v2_mode=enable_v2_mode,
+          execution_mode=execution_mode,
           pipeline_spec=pipeline_spec)
     finally:
       kfp.TYPE_CHECK = type_check_old_value
@@ -1076,7 +1079,7 @@ class Compiler(object):
       params_list: List[dsl.PipelineParam] = None,
       pipeline_conf: dsl.PipelineConf = None,
       package_path: Text = None,
-      enable_v2_mode: bool = False,
+      execution_mode: dsl.PipelineExecutionMode = dsl.PipelineExecutionMode.V1_LEGACY,
       pipeline_spec: Optional[pipeline_spec_pb2.PipelineSpec] = None,
   ) -> None:
     """Compile the given pipeline function and dump it to specified file format."""
@@ -1087,7 +1090,7 @@ class Compiler(object):
         pipeline_description,
         params_list,
         pipeline_conf,
-        enable_v2_mode=enable_v2_mode,
+        execution_mode=execution_mode,
         pipeline_spec=pipeline_spec)
     self._write_workflow(workflow, package_path)
     _validate_workflow(workflow)

@@ -25,9 +25,9 @@ import zipfile
 import datetime
 from typing import Mapping, Callable, Optional
 
-import kfp
 import kfp_server_api
 
+from kfp import dsl
 from kfp.compiler import compiler
 from kfp.compiler._k8s_helper import sanitize_k8s_name
 
@@ -666,8 +666,9 @@ class Client(object):
       arguments: Mapping[str, str],
       run_name: Optional[str] = None,
       experiment_name: Optional[str] = None,
-      pipeline_conf: Optional[kfp.dsl.PipelineConf] = None,
-      namespace: Optional[str] = None):
+      pipeline_conf: Optional[dsl.PipelineConf] = None,
+      namespace: Optional[str] = None,
+      execution_mode: dsl.PipelineExecutionMode = dsl.PipelineExecutionMode.V1_LEGACY):
     """Runs pipeline on KFP-enabled Kubernetes cluster.
 
     This command compiles the pipeline function, creates or gets an experiment and submits the pipeline for execution.
@@ -688,8 +689,18 @@ class Client(object):
     run_name = run_name or pipeline_name + ' ' + datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
     with tempfile.TemporaryDirectory() as tmpdir:
       pipeline_package_path = os.path.join(tmpdir, 'pipeline.yaml')
-      compiler.Compiler().compile(pipeline_func, pipeline_package_path, pipeline_conf=pipeline_conf)
-      return self.create_run_from_pipeline_package(pipeline_package_path, arguments, run_name, experiment_name, namespace)
+      compiler.Compiler().compile(
+        pipeline_func=pipeline_func,
+        package_path=pipeline_package_path,
+        pipeline_conf=pipeline_conf,
+        execution_mode=execution_mode)
+
+      return self.create_run_from_pipeline_package(
+        pipeline_file=pipeline_package_path,
+        arguments=arguments,
+        run_name=run_name,
+        experiment_name=experiment_name,
+        namespace=namespace)
 
   def create_run_from_pipeline_package(
       self,
