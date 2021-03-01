@@ -19,7 +19,7 @@ import ml_metadata
 from time import sleep
 from ml_metadata.proto import metadata_store_pb2
 from ml_metadata.metadata_store import metadata_store
-
+from ipaddress import ip_address, IPv4Address 
 
 def value_to_mlmd_value(value) -> metadata_store_pb2.Value:
     if value is None:
@@ -38,7 +38,7 @@ def connect_to_mlmd() -> metadata_store.MetadataStore:
         'METADATA_GRPC_SERVICE_SERVICE_PORT', 8080))
 
     mlmd_connection_config = metadata_store_pb2.MetadataStoreClientConfig(
-        host=metadata_service_host,
+        host=[metadata_service_host] if isIPv6(metadata_service_host) else metadata_service_host,
         port=metadata_service_port,
     )
 
@@ -417,3 +417,12 @@ def create_new_output_artifact(
         custom_properties=custom_properties,
         #milliseconds_since_epoch=int(datetime.now(timezone.utc).timestamp() * 1000), # Happens automatically
     )
+
+def isIPv6(ip: str) -> bool: 
+    try: 
+        return False if type(ip_address(ip)) is IPv4Address else True
+    except Exception as e: 
+        print('Error: Exception:{}'.format(str(e)), file=sys.stderr)
+        sys.stderr.flush()
+
+
