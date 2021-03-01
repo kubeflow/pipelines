@@ -12,6 +12,8 @@ spec:
     metadata:
       labels:
         app: ml-pipeline-ui
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
     spec:
       volumes:
       - name: config-volume
