@@ -2,6 +2,7 @@ import json
 from typing import Callable
 
 from kfp import dsl
+from kfp.compiler import _default_transformers
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.v2 import compiler
 
@@ -16,6 +17,14 @@ _LAUNCHER_CONTAINER = dsl.UserContainer(name="kfp-launcher",
 
 def get_pipeline_spec(
         pipeline_func: Callable) -> pipeline_spec_pb2.PipelineSpec:
+    """Computes PipelineSpec from the specified pipeline function.
+
+    Args:
+      pipeline_func: A function defining a KFP pipeline.
+
+    Returns:
+      A PipelineSpec protocol buffer.
+    """
     output_directory = getattr(pipeline_func, 'output_directory', None)
     pipeline_name = getattr(pipeline_func, 'name', None)
     pipeline_job = compiler.Compiler()._create_pipeline(pipeline_func,
@@ -30,14 +39,20 @@ def get_pipeline_spec(
 def update_op(op: dsl.ContainerOp,
               pipeline_spec: pipeline_spec_pb2.PipelineSpec,
               pipeline_root: dsl.PipelineParam) -> None:
+    """Updates the passed in Op for running in v2-compatible mode.
+
+    Args:
+      op: The Op to update.
+      pipeline_spec: The PipelineSpec for the pipeline under which `op`
+        runs.
+      pipeline_root: The root output directory for pipeline artifacts.
+    """
+    # Inject the launcher binary and overwrite the entrypoint.
     op.add_init_container(_LAUNCHER_CONTAINER)
     op.add_volume(k8s_client.V1Volume(name='kfp-launcher'))
     op.add_volume_mount(
         k8s_client.V1VolumeMount(name='kfp-launcher',
                                  mount_path='/kfp-launcher'))
-
-    op.container.add_env_variable(
-        k8s_client.V1EnvVar(name="KFP_V2_IMAGE", value=op.container.image))
 
     op.command = [
         "/kfp-launcher/launch",
@@ -60,6 +75,11 @@ def update_op(op: dsl.ContainerOp,
         "--pipeline_root",
         pipeline_root,
     ]
+
+    # Mount necessary environment variables.
+    op.apply(_default_transformers.add_kfp_pod_env)
+    op.container.add_env_variable(
+        k8s_client.V1EnvVar(name="KFP_V2_IMAGE", value=op.container.image))
 
     config_map_ref = k8s_client.V1ConfigMapEnvSource(
         name='metadata-grpc-configmap', optional=True)

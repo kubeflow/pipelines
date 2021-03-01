@@ -18,7 +18,17 @@ from kubernetes import client as k8s_client
 from ..dsl._container_op import BaseOp, ContainerOp
 
 def add_pod_env(op: BaseOp) -> BaseOp:
-    """Adds pod environment info to ContainerOp.
+    """Adds environment info if the Pod has the label `add-pod-env = true`.
+    """
+    if isinstance(
+            op, ContainerOp
+    ) and op.pod_labels and 'add-pod-env' in op.pod_labels and op.pod_labels[
+            'add-pod-env'] == 'true':
+        return add_kfp_pod_env(op)
+
+
+def add_kfp_pod_env(op: BaseOp) -> BaseOp:
+    """Adds KFP pod environment info to the specified ContainerOp.
     """
     if not isinstance(op, ContainerOp):
         warnings.warn(
