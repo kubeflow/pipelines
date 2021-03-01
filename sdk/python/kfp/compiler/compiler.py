@@ -955,7 +955,7 @@ class Compiler(object):
       pipeline_func: Pipeline functions with @dsl.pipeline decorator.
       package_path: The output workflow tar.gz file path. for example,
         "~/a.tar.gz"
-      type_check: Whether to enable the type check or not, default: False.
+      type_check: Whether to enable the type check or not, default: True.
       pipeline_conf: PipelineConf instance. Can specify op transforms, image
         pull secrets and other pipeline-level configuration options. Overrides
         any configuration that may be set by the pipeline.
