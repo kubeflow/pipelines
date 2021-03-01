@@ -8,11 +8,10 @@ from kfp.v2 import compiler
 from google.protobuf import json_format
 from kubernetes import client as k8s_client
 
-_LAUNCHER_CONTAINER = dsl.UserContainer(
-    name="kfp-launcher",
-    image="gcr.io/ml-pipeline/kfp-launcher",
-    command="/bin/mount_launcher.sh",
-    mirror_volume_mounts=True)
+_LAUNCHER_CONTAINER = dsl.UserContainer(name="kfp-launcher",
+                                        image="gcr.io/ml-pipeline/kfp-launcher",
+                                        command="/bin/mount_launcher.sh",
+                                        mirror_volume_mounts=True)
 
 
 def get_pipeline_spec(
@@ -68,7 +67,6 @@ def update_op(op: dsl.ContainerOp,
         k8s_client.V1EnvFromSource(config_map_ref=config_map_ref))
 
     task_name = 'task-{}'.format(op.name)
-    task_spec = pipeline_spec.root.dag.tasks[task_name]
     component_name = pipeline_spec.root.dag.tasks[task_name].component_ref.name
     component_spec = pipeline_spec.components[component_name]
 
@@ -124,8 +122,6 @@ def update_op(op: dsl.ContainerOp,
             "fileOutputPath": op.file_outputs[artifact_name],
         }
         runtime_info["outputArtifacts"][artifact_name] = artifact_info
-
-    print("JSON INPUT: {}".format(json.dumps(runtime_info)))
 
     op.container.add_env_variable(
         k8s_client.V1EnvVar(name="KFP_V2_RUNTIME_INFO",
