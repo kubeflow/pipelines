@@ -293,7 +293,9 @@ Update master branch to the same version and include latest changelog:
     # This avoids line break at end of line.
     echo -n $VERSION > VERSION
     # This takes a while.
-    ./hack/release-imp.sh
+    pushd test/release
+    make release-in-place
+    popd
     git checkout $VERSION -- CHANGELOG.md
     git add -A
     git commit -m "chore(release): bump version to $VERSION on master branch"
