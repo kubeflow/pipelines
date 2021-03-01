@@ -33,7 +33,7 @@ fi
 pushd "${REPO_ROOT}"
 # RELEASE_IMAGE=gcr.io/ml-pipeline-test/api-generator@sha256:2bca5a3e4c1a6c8f4677ef8433ec373894599e35febdc84c4563c2c9bb3f8de7
 RELEASE_IMAGE=${RELEASE_IMAGE:-gcr.io/ml-pipeline-test/release:latest}
-docker run --interactive --rm \
+docker run -it --rm \
   --user $(id -u):$(id -g) \
   --mount type=bind,source="$(pwd)",target=/go/src/github.com/kubeflow/pipelines \
   ${RELEASE_IMAGE} /go/src/github.com/kubeflow/pipelines/test/release/bump-version-in-place.sh
