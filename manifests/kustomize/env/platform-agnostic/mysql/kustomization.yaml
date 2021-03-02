@@ -5,3 +5,4 @@ resources:
 - mysql-deployment.yaml
 - mysql-pv-claim.yaml
 - mysql-service.yaml
+- mysql-serviceaccount.yaml
