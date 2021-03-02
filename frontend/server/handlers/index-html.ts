@@ -18,6 +18,7 @@ import { Deployments } from '../configs';
 
 const DEFAULT_FLAG = 'window.KFP_FLAGS.DEPLOYMENT=null';
 const KUBEFLOW_CLIENT_PLACEHOLDER = '<script id="kubeflow-client-placeholder"></script>';
+const DEFAULT_HIDE_SIDENAV_FLAG = 'window.KFP_FLAGS.HIDE_SIDENAV=null';
 
 /**
  * Returns a handler which retrieve and modify the index.html.
@@ -27,8 +28,13 @@ const KUBEFLOW_CLIENT_PLACEHOLDER = '<script id="kubeflow-client-placeholder"></
 export function getIndexHTMLHandler(options: {
   staticDir: string;
   deployment: Deployments;
+  hideSideNav: boolean;
 }): Handler {
-  const content = replaceRuntimeContent(loadIndexHtml(options.staticDir), options.deployment);
+  const content = replaceRuntimeContent(
+    loadIndexHtml(options.staticDir),
+    options.deployment,
+    options.hideSideNav,
+  );
 
   return function handleIndexHtml(_, res) {
     if (content) {
@@ -54,20 +60,36 @@ function loadIndexHtml(staticDir: string) {
       `Error: cannot find kubeflow client placeholder: '${KUBEFLOW_CLIENT_PLACEHOLDER}' in index html. Its content: '${content}'.`,
     );
   }
+  if (!content.includes(DEFAULT_HIDE_SIDENAV_FLAG)) {
+    throw new Error(
+      `Error: cannot find flag: '${DEFAULT_HIDE_SIDENAV_FLAG}' in index html. Its content: '${content}'.`,
+    );
+  }
   return content;
 }
 
-function replaceRuntimeContent(content: string | undefined, deployment: Deployments) {
-  if (content && deployment === Deployments.KUBEFLOW) {
-    return content
+function replaceRuntimeContent(
+  content: string | undefined,
+  deployment: Deployments,
+  hideSideNav: boolean,
+) {
+  let contentSafe = content;
+  if (contentSafe && deployment === Deployments.KUBEFLOW) {
+    contentSafe = contentSafe
       .replace(DEFAULT_FLAG, 'window.KFP_FLAGS.DEPLOYMENT="KUBEFLOW"')
       .replace(
         KUBEFLOW_CLIENT_PLACEHOLDER,
         `<script id="kubeflow-client-placeholder" src="/dashboard_lib.bundle.js"></script>`,
       );
   }
-  if (content && deployment === Deployments.MARKETPLACE) {
-    return content.replace(DEFAULT_FLAG, 'window.KFP_FLAGS.DEPLOYMENT="MARKETPLACE"');
+  if (contentSafe && deployment === Deployments.MARKETPLACE) {
+    contentSafe = contentSafe.replace(DEFAULT_FLAG, 'window.KFP_FLAGS.DEPLOYMENT="MARKETPLACE"');
   }
-  return content;
+  if (contentSafe) {
+    contentSafe = contentSafe.replace(
+      DEFAULT_HIDE_SIDENAV_FLAG,
+      `window.KFP_FLAGS.HIDE_SIDENAV=${hideSideNav.toString()}`,
+    );
+  }
+  return contentSafe;
 }

@@ -46,6 +46,16 @@ describe('UIServer apis', () => {
 
   describe('/', () => {
     it('responds with unmodified index.html if it is not a kubeflow deployment', done => {
+      const expectedIndexHtml = `
+<html>
+<head>
+  <script>
+  window.KFP_FLAGS.DEPLOYMENT=null
+  window.KFP_FLAGS.HIDE_SIDENAV=false
+  </script>
+  <script id="kubeflow-client-placeholder"></script>
+</head>
+</html>`;
       const configs = loadConfigs(argv, {});
       app = new UIServer(configs);
 
@@ -53,15 +63,16 @@ describe('UIServer apis', () => {
       request
         .get('/')
         .expect('Content-Type', 'text/html; charset=utf-8')
-        .expect(200, indexHtmlContent, done);
+        .expect(200, expectedIndexHtml, done);
     });
 
-    it('responds with a modified index.html if it is a kubeflow deployment', done => {
+    it('responds with a modified index.html if it is a kubeflow deployment and sets HIDE_SIDENAV', done => {
       const expectedIndexHtml = `
 <html>
 <head>
   <script>
   window.KFP_FLAGS.DEPLOYMENT="KUBEFLOW"
+  window.KFP_FLAGS.HIDE_SIDENAV=true
   </script>
   <script id="kubeflow-client-placeholder" src="/dashboard_lib.bundle.js"></script>
 </head>
@@ -82,6 +93,7 @@ describe('UIServer apis', () => {
 <head>
   <script>
   window.KFP_FLAGS.DEPLOYMENT="MARKETPLACE"
+  window.KFP_FLAGS.HIDE_SIDENAV=false
   </script>
   <script id="kubeflow-client-placeholder"></script>
 </head>
@@ -95,6 +107,27 @@ describe('UIServer apis', () => {
         .expect('Content-Type', 'text/html; charset=utf-8')
         .expect(200, expectedIndexHtml, done);
     });
+  });
+
+  it('responds with flag HIDE_SIDENAV=false even when DEPLOYMENT=KUBEFLOW', done => {
+    const expectedIndexHtml = `
+<html>
+<head>
+  <script>
+  window.KFP_FLAGS.DEPLOYMENT="KUBEFLOW"
+  window.KFP_FLAGS.HIDE_SIDENAV=false
+  </script>
+  <script id="kubeflow-client-placeholder" src="/dashboard_lib.bundle.js"></script>
+</head>
+</html>`;
+    const configs = loadConfigs(argv, { DEPLOYMENT: 'KUBEFLOW', HIDE_SIDENAV: 'false' });
+    app = new UIServer(configs);
+
+    const request = requests(app.start());
+    request
+      .get('/')
+      .expect('Content-Type', 'text/html; charset=utf-8')
+      .expect(200, expectedIndexHtml, done);
   });
 
   describe('/apis/v1beta1/healthz', () => {
