@@ -15,11 +15,15 @@ spec:
       labels:
         app: mysql
     spec:
+      serviceAccountName: mysql
       containers:
-      - env:
+      - args:
+        - --datadir
+        - /var/lib/mysql/datadir
+        env:
         - name: MYSQL_ALLOW_EMPTY_PASSWORD
           value: "true"
-        image: gcr.io/ml-pipeline/mysql:5.6
+        image: docker.io/mysql:5.7
         name: mysql
         ports:
         - containerPort: 3306
@@ -31,3 +35,4 @@ spec:
       - name: mysql-persistent-storage
         persistentVolumeClaim:
           claimName: mysql-pv-claim
+          
