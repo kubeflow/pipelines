@@ -1,6 +1,6 @@
 # KFServing Component
 
-This is the Kubeflow Pipelines component for KFServing. This uses the V1beta1 API.
+This is the Kubeflow Pipelines component for KFServing. This uses the [V1beta1 API](https://github.com/kubeflow/kfserving/blob/master/docs/apis/v1beta1/README.md).
 
 ## Usage
 
