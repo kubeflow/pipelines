@@ -15,7 +15,7 @@
 
 from typing import Optional
 
-from kfp.v2.dsl import dsl_utils
+from kfp.dsl import dsl_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 OUTPUT_KEY = 'result'

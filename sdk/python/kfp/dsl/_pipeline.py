@@ -14,14 +14,12 @@
 
 from typing import Callable, Optional, Union
 from kubernetes.client.models import V1PodDNSConfig
-from . import _container_op
-from . import _resource_op
-from . import _ops_group
-from ._component_bridge import \
-  _create_container_op_from_component_and_arguments, \
-  _sanitize_python_function_name
-from ..components import _components
-from ..components._naming import _make_name_unique_by_adding_index
+from kfp.dsl import _container_op
+from kfp.dsl import _resource_op
+from kfp.dsl import _ops_group
+from kfp.dsl import _component_bridge
+from kfp.components import _components
+from kfp.components import _naming
 import sys
 
 # This handler is called whenever the @pipeline decorator is applied.
@@ -193,8 +191,8 @@ class PipelineConf():
         from kubernetes.client.models import V1PodDNSConfig, V1PodDNSConfigOption
         pipeline_conf = kfp.dsl.PipelineConf()
         pipeline_conf.set_dns_config(dns_config=V1PodDNSConfig(
-            nameservers=["1.2.3.4"], options=[V1PodDNSConfigOption(name="ndots",
-            value="2")]
+            nameservers=["1.2.3.4"],
+            options=[V1PodDNSConfigOption(name="ndots", value="2")],
         ))
     """
     self.dns_config = dns_config
@@ -286,8 +284,10 @@ class Pipeline():
       raise Exception('Nested pipelines are not allowed.')
 
     Pipeline._default_pipeline = self
-    self._old_container_task_constructor = _components._container_task_constructor
-    _components._container_task_constructor = _create_container_op_from_component_and_arguments
+    self._old_container_task_constructor = (
+        _components._container_task_constructor)
+    _components._container_task_constructor = (
+        _component_bridge._create_container_op_from_component_and_arguments)
 
     def register_op_and_generate_id(op):
       return self.add_op(op, op.is_exit_handler)
@@ -299,7 +299,8 @@ class Pipeline():
   def __exit__(self, *args):
     Pipeline._default_pipeline = None
     _container_op._register_op_handler = self._old__register_op_handler
-    _components._container_task_constructor = self._old_container_task_constructor
+    _components._container_task_constructor = (
+        self._old_container_task_constructor)
 
   def add_op(self, op: _container_op.BaseOp, define_only: bool):
     """Add a new operator.
@@ -312,13 +313,15 @@ class Pipeline():
     # Sanitizing the op name.
     # Technically this could be delayed to the compilation stage, but string
     # serialization of PipelineParams make unsanitized names problematic.
-    op_name = _sanitize_python_function_name(op.human_name).replace('_', '-')
+    op_name = _naming._sanitize_python_function_name(op.human_name).replace(
+        '_', '-')
     #If there is an existing op with this name then generate a new name.
-    op_name = _make_name_unique_by_adding_index(op_name, list(self.ops.keys()),
-                                                ' ')
+    op_name = _naming._make_name_unique_by_adding_index(op_name,
+                                                        list(self.ops.keys()),
+                                                        ' ')
     if op_name == '':
-      op_name = _make_name_unique_by_adding_index('task', list(self.ops.keys()),
-                                                  ' ')
+      op_name = _naming._make_name_unique_by_adding_index(
+          'task', list(self.ops.keys()), ' ')
 
     self.ops[op_name] = op
     if not define_only:

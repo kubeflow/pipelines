@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import unittest
-from kfp.v2.dsl import importer_node
+from kfp.dsl import importer_node
 from kfp.pipeline_spec import pipeline_spec_pb2 as pb
 from google.protobuf import json_format
 

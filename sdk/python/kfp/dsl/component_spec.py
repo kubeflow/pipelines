@@ -16,9 +16,9 @@
 from typing import List
 
 from kfp.components import _structures as structures
-from kfp.v2 import dsl
-from kfp.v2.dsl import dsl_utils
-from kfp.v2.dsl import type_utils
+from kfp.dsl import _pipeline_param
+from kfp.dsl import dsl_utils
+from kfp.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 
@@ -60,7 +60,7 @@ def build_component_spec_from_structure(
 
 def build_component_inputs_spec(
     component_spec: pipeline_spec_pb2.ComponentSpec,
-    pipeline_params: List[dsl.PipelineParam],
+    pipeline_params: List[_pipeline_param.PipelineParam],
 ) -> None:
   """Builds component inputs spec from pipeline params.
 
@@ -82,7 +82,7 @@ def build_component_inputs_spec(
 
 def build_component_outputs_spec(
     component_spec: pipeline_spec_pb2.ComponentSpec,
-    pipeline_params: List[dsl.PipelineParam],
+    pipeline_params: List[_pipeline_param.PipelineParam],
 ) -> None:
   """Builds component outputs spec from pipeline params.
 
@@ -103,7 +103,7 @@ def build_component_outputs_spec(
 
 def build_task_inputs_spec(
     task_spec: pipeline_spec_pb2.PipelineTaskSpec,
-    pipeline_params: List[dsl.PipelineParam],
+    pipeline_params: List[_pipeline_param.PipelineParam],
     tasks_in_current_dag: List[str],
 ) -> None:
   """Builds task inputs spec from pipeline params.
