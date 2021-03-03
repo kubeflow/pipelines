@@ -747,8 +747,14 @@ class BaseOp(object):
     self.affinity = {}
     self.pod_annotations = {}
     self.pod_labels = {}
-    self.retry_policy = None
+
+    # Retry strategy
     self.num_retries = 0
+    self.retry_policy = None
+    self.backoff_factor = None
+    self.backoff_duration = None
+    self.backoff_max_duration = None
+
     self.timeout = 0
     self.init_containers = init_containers or []
     self.sidecars = sidecars or []
@@ -887,18 +893,37 @@ class BaseOp(object):
     self.pod_labels[name] = value
     return self
 
-  def set_retry(self, num_retries: int, policy: str = None):
+  def set_retry(self,
+                num_retries: int,
+                policy: Optional[str] = None,
+                backoff_duration: Optional[str] = None,
+                backoff_factor: Optional[float] = None,
+                backoff_max_duration: Optional[str] = None):
     """Sets the number of times the task is retried until it's declared failed.
 
     Args:
       num_retries: Number of times to retry on failures.
       policy: Retry policy name.
+      backoff_duration: The time interval between retries. Defaults to an
+        immediate retry. In case you specify a simple number, the unit
+        defaults to seconds. You can also specify a different unit, for
+        instance, 2m (2 minutes), 1h (1 hour).
+      backoff_factor: The exponential backoff factor applied to
+        backoff_duration. For example, if backoff_duration="60"
+        (60 seconds) and backoff_factor=2, the first retry will happen
+        after 60 seconds, then after 120, 240, and so on.
+      backoff_max_duration: The maximum interval that can be reached with
+        the backoff strategy.
     """
     if policy is not None and policy not in ALLOWED_RETRY_POLICIES:
-      raise ValueError('policy must be one of: %r' % (ALLOWED_RETRY_POLICIES,))
+        raise ValueError('policy must be one of: %r'
+                         % (ALLOWED_RETRY_POLICIES,))
 
     self.num_retries = num_retries
     self.retry_policy = policy
+    self.backoff_factor = backoff_factor
+    self.backoff_duration = backoff_duration
+    self.backoff_max_duration = backoff_max_duration
     return self
 
   def set_timeout(self, seconds: int):
