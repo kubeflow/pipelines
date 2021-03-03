@@ -60,27 +60,6 @@ _KI = 1 << 10  # Kilo: power-of-two approximate
 _GKE_ACCELERATOR_LABEL = 'cloud.google.com/gke-accelerator'
 
 
-def resource_setter(func: Callable):
-  """Function decorator for common validation before setting resource spec."""
-
-  def resource_setter_wrapper(container_op: 'ContainerOp', *args,
-                              **kwargs) -> 'ContainerOp':
-    if container_op.is_compiling_for_v2:
-      # Validate the container_op has right format of container_spec set.
-      if not hasattr(container_op, 'container_spec'):
-        raise ValueError('Expecting container_spec attribute of the '
-                         'container_op: {}'.format(container_op))
-      if not isinstance(container_op.container_spec, _PipelineContainerSpec):
-        raise TypeError('ContainerOp.container_spec is expected to be a '
-                        'PipelineContainerSpec proto. Got: {} for {}'.format(
-                            type(container_op.container_spec),
-                            container_op.container_spec))
-    # Run the resource setter function
-    return func(container_op, *args, **kwargs)
-
-  return resource_setter_wrapper
-
-
 # util functions
 def deprecation_warning(func: Callable, op_name: str,
                         container_name: str) -> Callable:
@@ -217,6 +196,9 @@ class Container(V1Container):
     if not kwargs.get('name'):
       kwargs['name'] = ''
 
+    # v2 container_spec
+    self._container_spec = None
+
     super(Container, self).__init__(
         image=image, command=command, args=args, **kwargs)
 
@@ -316,6 +298,7 @@ class Container(V1Container):
         "E", "P", "T", "G", "M", "K".
     """
     self._validate_size_string(memory)
+    self._container_spec.resources.memory_limit = _get_resource_number(memory)
     return self.add_resource_limit('memory', memory)
 
   def set_ephemeral_storage_request(self, size) -> 'Container':
@@ -357,6 +340,7 @@ class Container(V1Container):
         means 1/1000.
     """
     self._validate_cpu_string(cpu)
+    self._container_spec.resources.cpu_limit = _get_cpu_number(cpu)
     return self.add_resource_limit('cpu', cpu)
 
   def set_gpu_limit(self, gpu, vendor='nvidia') -> 'Container':
@@ -370,12 +354,13 @@ class Container(V1Container):
     Args:
       gpu: A string which must be a positive number.
       vendor: Optional. A string which is the vendor of the requested gpu.
-        The supported values
-        are: 'nvidia' (default), and 'amd'.
+        The supported values are: 'nvidia' (default), and 'amd'. The value is
+        ignored in v2.
     """
+    self._validate_positive_number(gpu, 'gpu')
 
     # For backforward compatibiliy, allow `gpu` to be a string.
-    self._validate_positive_number(gpu, 'gpu')
+    self._container_spec.resources.accelerator.count = int(gpu)
     if vendor != 'nvidia' and vendor != 'amd':
       raise ValueError('vendor can only be nvidia or amd.')
 
@@ -1147,9 +1132,6 @@ class ContainerOp(BaseOp):
     self._container = Container(
         image=image, args=arguments, command=command, **container_kwargs)
 
-    # v2 container spec
-    self._container_spec = None
-
     # NOTE for backward compatibility (remove in future?)
     # proxy old ContainerOp callables to Container
 
@@ -1232,14 +1214,14 @@ class ContainerOp(BaseOp):
   # v2 container spec
   @property
   def container_spec(self):
-    return self._container_spec
+    return self._container._container_spec
 
   @container_spec.setter
   def container_spec(self, spec: _PipelineContainerSpec):
     if not isinstance(spec, _PipelineContainerSpec):
       raise TypeError('container_spec can only be PipelineContainerSpec. '
                       'Got: {}'.format(spec))
-    self._container_spec = spec
+    self._container._container_spec = spec
 
   @property
   def command(self):
@@ -1321,45 +1303,6 @@ class ContainerOp(BaseOp):
       self.pvolume = list(self.pvolumes.values())[0]
     return self
 
-  # Override resource specification calls.
-  @resource_setter
-  def set_cpu_limit(self, cpu: str) -> 'ContainerOp':
-    """Sets the cpu provisioned for this task.
-
-    Args:
-      cpu: a string indicating the amount of vCPU required by this task. Please
-        refer to dsl.ContainerOp._validate_cpu_string regarding its format.
-
-    Returns: self return to allow chained call with other resource
-      specification.
-    """
-    if self.is_compiling_for_v2:
-      self.container._validate_cpu_string(cpu)
-      self.container_spec.resources.cpu_limit = _get_cpu_number(cpu)
-    else:
-      self.container.set_cpu_limit(cpu)
-    return self
-
-  @resource_setter
-  def set_memory_limit(self, memory: str) -> 'ContainerOp':
-    """Sets the memory provisioned for this task.
-
-    Args:
-      memory: a string described the amount of memory required by this task.
-        Please refer to dsl.ContainerOp._validate_size_string regarding its
-        format.
-
-    Returns:
-      self return to allow chained call with other resource specification.
-    """
-    if self.is_compiling_for_v2:
-      self.container._validate_size_string(memory)
-      self.container_spec.resources.memory_limit = _get_resource_number(memory)
-    else:
-      self.container.set_memory_limit(memory)
-    return self
-
-  @resource_setter
   def add_node_selector_constraint(self, label_name: str,
                                    value: str) -> 'ContainerOp':
     """Sets accelerator type requirement for this task.
@@ -1377,51 +1320,22 @@ class ContainerOp(BaseOp):
     Returns:
       self return to allow chained call with other resource specification.
     """
-    if self.is_compiling_for_v2:
-      if label_name != _GKE_ACCELERATOR_LABEL:
-        raise ValueError(
-            'Currently add_node_selector_constraint only supports '
-            'accelerator spec, with node label {}. Got {} instead'.format(
-                _GKE_ACCELERATOR_LABEL, label_name))
+    if self.is_compiling_for_v2 and label_name != _GKE_ACCELERATOR_LABEL:
+      raise ValueError(
+          'Currently add_node_selector_constraint only supports '
+          'accelerator spec, with node label {}. Got {} instead'.format(
+              _GKE_ACCELERATOR_LABEL, label_name))
 
-      accelerator_cnt = 1
-      if self.container_spec.resources.accelerator.count > 1:
-        # Reserve the number if already set.
-        accelerator_cnt = self.container_spec.resources.accelerator.count
+    accelerator_cnt = 1
+    if self._container._container_spec.resources.accelerator.count > 1:
+      # Reserve the number if already set.
+      accelerator_cnt = self.container_spec.resources.accelerator.count
 
-      accelerator_config = _PipelineContainerSpec.ResourceSpec.AcceleratorConfig(
-          type=_sanitize_gpu_type(value), count=accelerator_cnt)
-      self.container_spec.resources.accelerator.CopyFrom(accelerator_config)
-    else:
-      super(ContainerOp, self).add_node_selector_constraint(label_name, value)
-    return self
+    accelerator_config = _PipelineContainerSpec.ResourceSpec.AcceleratorConfig(
+        type=_sanitize_gpu_type(value), count=accelerator_cnt)
+    self.container_spec.resources.accelerator.CopyFrom(accelerator_config)
 
-  @resource_setter
-  def set_gpu_limit(self, gpu: int,
-                    vendor: Optional[str] = None) -> 'ContainerOp':
-    """Sets the number of accelerator needed for this task.
-
-    Args:
-      gpu: A a positive number for the gpu limit.
-      vendor: Optional (only applicable for v1). A string which is the vendor of
-        the requested gpu. The supported values are: 'nvidia' (default), and
-        'amd'.
-    """
-    if self.is_compiling_for_v2:
-      # For backforward compatibiliy, allow `gpu` to be a string.
-      if int(gpu) < 1:
-        raise ValueError('Accelerator count needs to be positive: Got: '
-                         '{}'.format(gpu))
-      self.container_spec.resources.accelerator.count = int(gpu)
-      if vendor is not None:
-        warnings.warn('`vendor` in `set_gpu_limit` is ignored in v2.')
-    else:
-      # Only pass down vendor when it's specified by the user, so that we can
-      # use the default value without duplicating the default value here.
-      if vendor is not None:
-        self.container.set_gpu_limit(gpu, vendor)
-      else:
-        self.container.set_gpu_limit(gpu)
+    super(ContainerOp, self).add_node_selector_constraint(label_name, value)
     return self
 
 
@@ -1444,26 +1358,6 @@ class _MultipleOutputsError:
 
   def __str__(self):
     _MultipleOutputsError.raise_error()
-
-
-def resource_setter(func: Callable):
-  """Function decorator for common validation before setting resource spec."""
-
-  def resource_setter_wrapper(container_op: 'ContainerOp', *args,
-                              **kwargs) -> 'ContainerOp':
-    # Validate the container_op has right format of container_spec set.
-    if not hasattr(container_op, 'container_spec'):
-      raise ValueError('Expecting container_spec attribute of the container_op:'
-                       ' {}'.format(container_op))
-    if not isinstance(container_op.container_spec, _PipelineContainerSpec):
-      raise TypeError('ContainerOp.container_spec is expected to be a '
-                      'PipelineContainerSpec proto. Got: {} for {}'.format(
-                          type(container_op.container_spec),
-                          container_op.container_spec))
-    # Run the resource setter function
-    return func(container_op, *args, **kwargs)
-
-  return resource_setter_wrapper
 
 
 def _get_cpu_number(cpu_string: str) -> float:

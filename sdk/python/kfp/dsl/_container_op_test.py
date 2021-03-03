@@ -36,12 +36,6 @@ _PipelineContainerSpec = pipeline_spec_pb2.PipelineDeploymentConfig.PipelineCont
 
 
 class ContainerOpTest(unittest.TestCase):
-  def test_illegal_resource_setter_fail(self):
-    task = _container_op.ContainerOp(name='test_task', image='python:3.7')
-    task.is_compiling_for_v2 = True
-    with self.assertRaisesRegex(TypeError, 'ContainerOp.container_spec '
-                                           'is expected to be'):
-      task.set_cpu_limit('1')
 
   def test_illegal_label_fail(self):
     task = _container_op.ContainerOp(name='test_task', image='python:3.7')
@@ -54,7 +48,6 @@ class ContainerOpTest(unittest.TestCase):
 
   def test_chained_call_resource_setter(self):
     task = _container_op.ContainerOp(name='test_task', image='python:3.7')
-    task.is_compiling_for_v2 = True
     task.container_spec = _PipelineContainerSpec()
     (task.
      set_cpu_limit('1').

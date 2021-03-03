@@ -346,9 +346,6 @@ def _attach_v2_specs(
             'Input argument supports only the following types: PipelineParam'
             ', str, int, float. Got: "{}".'.format(argument_value))
 
-  old_warn_value = _container_op.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING
-  _container_op.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = True
-
   if not component_spec.name:
     component_spec.name = _components._default_component_name
 
