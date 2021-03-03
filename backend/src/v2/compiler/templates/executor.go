@@ -15,6 +15,7 @@
 package templates
 
 import (
+	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/backend/src/v2/common"
 	apiv1 "k8s.io/api/core/v1"
@@ -80,7 +81,7 @@ func Executor(executorDriverTemplateName string, executorPublisherTemplateName s
 		{Name: executorInternalParamPodSpecPatch},
 	}
 	dummy.Outputs.Parameters = []workflowapi.Parameter{
-		{Name: executorInternalParamPodName, Value: &argoVariablePodName},
+		{Name: executorInternalParamPodName, Value: v1alpha1.AnyStringPtr(argoVariablePodName)},
 	}
 	dummy.Outputs.Artifacts = []workflowapi.Artifact{
 		{Name: executorInternalArtifactParameters, Path: common.ExecutorOutputPathParameters, Optional: true},
@@ -109,10 +110,10 @@ func Executor(executorDriverTemplateName string, executorPublisherTemplateName s
 			Template: executorDriverTemplateName,
 			Arguments: workflowapi.Arguments{
 				Parameters: []workflowapi.Parameter{
-					{Name: DriverParamTaskSpec, Value: &taskSpecInJson},
-					{Name: DriverParamDriverType, Value: &driverType},
-					{Name: DriverParamParentContextName, Value: &parentContextNameValue},
-					{Name: DriverParamExecutorSpec, Value: &executorSpecInJson},
+					{Name: DriverParamTaskSpec, Value: v1alpha1.AnyStringPtr(taskSpecInJson)},
+					{Name: DriverParamDriverType, Value: v1alpha1.AnyStringPtr(driverType)},
+					{Name: DriverParamParentContextName, Value: v1alpha1.AnyStringPtr(parentContextNameValue)},
+					{Name: DriverParamExecutorSpec, Value: v1alpha1.AnyStringPtr(executorSpecInJson)},
 				},
 			},
 		},
@@ -122,7 +123,7 @@ func Executor(executorDriverTemplateName string, executorPublisherTemplateName s
 			Dependencies: []string{driverTaskName},
 			Arguments: workflowapi.Arguments{
 				Parameters: []workflowapi.Parameter{
-					{Name: executorInternalParamPodSpecPatch, Value: &podSpecPatchValue},
+					{Name: executorInternalParamPodSpecPatch, Value: v1alpha1.AnyStringPtr(podSpecPatchValue)},
 				},
 			},
 		},
