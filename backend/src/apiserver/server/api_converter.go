@@ -140,7 +140,7 @@ func toApiParameters(paramsString string) ([]*api.Parameter, error) {
 	for _, param := range params {
 		var value string
 		if param.Value != nil {
-			value = *param.Value
+			value = param.Value.String()
 		}
 		apiParam := api.Parameter{
 			Name:  param.Name,

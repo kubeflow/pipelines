@@ -15,6 +15,7 @@
 package main
 
 import (
+	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	pb "github.com/kubeflow/pipelines/api/v2alpha1/go"
 	"github.com/kubeflow/pipelines/backend/src/v2/common"
@@ -82,7 +83,7 @@ func generateSpec(
 	defaultTaskSpec := `{"taskInfo":{"name":"hello-world-dag"},"inputs":{"parameters":{"text":{"runtimeValue":{"constantValue":{"stringValue":"Hello, World!"}}}}}}`
 
 	spec.Arguments.Parameters = []workflowapi.Parameter{
-		{Name: "task-spec", Value: &defaultTaskSpec},
+		{Name: "task-spec", Value: v1alpha1.AnyStringPtr(defaultTaskSpec)},
 	}
 
 	subDag, err := templates.Dag(&templates.DagArgs{
@@ -100,7 +101,7 @@ func generateSpec(
 		Dependencies: []string{rootDagDriverTaskName},
 		Arguments: workflowapi.Arguments{
 			Parameters: []workflowapi.Parameter{
-				{Name: templates.DagParamContextName, Value: &parentContextName},
+				{Name: templates.DagParamContextName, Value: v1alpha1.AnyStringPtr(parentContextName)},
 			},
 		},
 	})
@@ -124,10 +125,10 @@ func initRootDag(spec *workflowapi.WorkflowSpec, templateNameDagDriver string) *
 	driverType := "DAG"
 	parentContextName := "" // root has no parent
 	driverTask.Arguments.Parameters = []workflowapi.Parameter{
-		{Name: templates.DriverParamExecutionName, Value: &rootExecutionName},
-		{Name: templates.DriverParamTaskSpec, Value: &workflowParameterTaskSpec},
-		{Name: templates.DriverParamDriverType, Value: &driverType},
-		{Name: templates.DriverParamParentContextName, Value: &parentContextName},
+		{Name: templates.DriverParamExecutionName, Value: v1alpha1.AnyStringPtr(rootExecutionName)},
+		{Name: templates.DriverParamTaskSpec, Value: v1alpha1.AnyStringPtr(workflowParameterTaskSpec)},
+		{Name: templates.DriverParamDriverType, Value: v1alpha1.AnyStringPtr(driverType)},
+		{Name: templates.DriverParamParentContextName, Value: v1alpha1.AnyStringPtr(parentContextName)},
 	}
 	root.Tasks = append(root.Tasks, *driverTask)
 	return root
