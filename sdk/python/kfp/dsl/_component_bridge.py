@@ -41,7 +41,7 @@ def _create_container_op_from_component_and_arguments(
   Args:
     component_spec: The component spec object.
     arguments: The dictionary of component arguments.
-    component_ref: (not used in v2)
+    component_ref: (only for v1) The component references.
 
   Returns:
     A ContainerOp instance.
@@ -152,7 +152,28 @@ def _attach_v2_specs(
     component_spec: _structures.ComponentSpec,
     arguments: Mapping[str, Any],
 ) -> None:
-  """Attaches v2 specs to the ContainerOp object."""
+  """Attaches v2 specs to a ContainerOp object.
+
+    Args:
+      task: The ContainerOp object to attach IR specs.
+      component_spec: The component spec object.
+      arguments: The dictionary of component arguments.
+  """
+
+  # Attach v2_specs to the ContainerOp object regardless whether the pipeline is
+  # being compiled to v1 (Argo yaml) or v2 (IR json).
+  # However, there're different behaviors for the two cases. Namely, resolved
+  # commands and arguments, error handling, etc.
+  # Regarding the difference in error handling, v2 has a stricter requirement on
+  # input type annotation. For instance, an input without any type annotation is
+  # viewed as an artifact, and if it's paired with InputValuePlaceholder, an
+  # error will be thrown at compile time. However, we cannot raise such an error
+  # in v1, as it wouldn't break existing pipelines.
+  is_compiling_for_v2 = False
+  for frame in inspect.stack():
+    if '_create_pipeline_v2' in frame:
+      is_compiling_for_v2 = True
+      break
 
   def _resolve_commands_and_args_v2(
       component_spec: _structures.ComponentSpec,
@@ -177,43 +198,47 @@ def _attach_v2_specs(
     }
 
     def _input_artifact_uri_placeholder(input_key: str) -> str:
-      if type_utils.is_parameter_type(inputs_dict[input_key].type):
-        raise TypeError(
-            'Input "{}" with type "{}" cannot be paired with InputUriPlaceholder.'
-            .format(input_key, inputs_dict[input_key].type))
+      if is_compiling_for_v2 and type_utils.is_parameter_type(
+          inputs_dict[input_key].type):
+        raise TypeError('Input "{}" with type "{}" cannot be paired with '
+                        'InputUriPlaceholder.'.format(
+                            input_key, inputs_dict[input_key].type))
       else:
         return "{{{{$.inputs.artifacts['{}'].uri}}}}".format(input_key)
 
     def _input_artifact_path_placeholder(input_key: str) -> str:
-      if type_utils.is_parameter_type(inputs_dict[input_key].type):
-        raise TypeError(
-            'Input "{}" with type "{}" cannot be paired with InputPathPlaceholder.'
-            .format(input_key, inputs_dict[input_key].type))
-      elif input_key in importer_specs:
+      if is_compiling_for_v2 and type_utils.is_parameter_type(
+          inputs_dict[input_key].type):
+        raise TypeError('Input "{}" with type "{}" cannot be paired with '
+                        'InputPathPlaceholder.'.format(
+                            input_key, inputs_dict[input_key].type))
+      elif is_compiling_for_v2 and input_key in importer_specs:
         raise TypeError(
             'Input "{}" with type "{}" is not connected to any upstream output. '
             'However it is used with InputPathPlaceholder. '
-            'If you want to import an existing artifact using a system-connected '
-            'importer node, use InputUriPlaceholder instead. '
-            'Or if you just want to pass a string parameter, use string type and '
-            'InputValuePlaceholder instead.'.format(
+            'If you want to import an existing artifact using a system-connected'
+            ' importer node, use InputUriPlaceholder instead. '
+            'Or if you just want to pass a string parameter, use string type and'
+            ' InputValuePlaceholder instead.'.format(
                 input_key, inputs_dict[input_key].type))
       else:
         return "{{{{$.inputs.artifacts['{}'].path}}}}".format(input_key)
 
     def _input_parameter_placeholder(input_key: str) -> str:
-      if type_utils.is_parameter_type(inputs_dict[input_key].type):
-        return "{{{{$.inputs.parameters['{}']}}}}".format(input_key)
+      if is_compiling_for_v2 and not type_utils.is_parameter_type(
+          inputs_dict[input_key].type):
+        raise TypeError('Input "{}" with type "{}" cannot be paired with '
+                        'InputValuePlaceholder.'.format(
+                            input_key, inputs_dict[input_key].type))
       else:
-        raise TypeError(
-            'Input "{}" with type "{}" cannot be paired with InputValuePlaceholder.'
-            .format(input_key, inputs_dict[input_key].type))
+        return "{{{{$.inputs.parameters['{}']}}}}".format(input_key)
 
     def _output_artifact_uri_placeholder(output_key: str) -> str:
-      if type_utils.is_parameter_type(outputs_dict[output_key].type):
-        raise TypeError(
-            'Output "{}" with type "{}" cannot be paired with OutputUriPlaceholder.'
-            .format(output_key, outputs_dict[output_key].type))
+      if is_compiling_for_v2 and type_utils.is_parameter_type(
+          outputs_dict[output_key].type):
+        raise TypeError('Output "{}" with type "{}" cannot be paired with '
+                        'OutputUriPlaceholder.'.format(
+                            output_key, outputs_dict[output_key].type))
       else:
         return "{{{{$.outputs.artifacts['{}'].uri}}}}".format(output_key)
 
@@ -239,16 +264,6 @@ def _attach_v2_specs(
         output_path_generator=_resolve_output_path_placeholder,
     )
     return resolved_cmd
-
-  # Attach v2_specs to the ContainerOp object regardless whether the pipeline is
-  # being compiled to v1 (Argo yaml) or v2 (IR json).
-  # However, there're different behaviors for the two cases. Namely, resolved
-  # commands and arguments, error handling, etc.
-  is_compiling_for_v2 = False
-  for frame in inspect.stack():
-    if '_create_pipeline_v2' in frame:
-      is_compiling_for_v2 = True
-      break
 
   pipeline_task_spec = pipeline_spec_pb2.PipelineTaskSpec()
 
@@ -359,16 +374,19 @@ def _attach_v2_specs(
   task.component_spec = dsl_component_spec.build_component_spec_from_structure(
       component_spec)
 
+  resolved_cmd = _resolve_commands_and_args_v2(
+      component_spec=component_spec, arguments=original_arguments)
+
+  task.container_spec = (
+      pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec(
+          image=component_spec.implementation.container.image,
+          command=resolved_cmd.command,
+          args=resolved_cmd.args))
+
   # Override command and arguments if compiling to v2.
   if is_compiling_for_v2:
-    resolved_cmd = _resolve_commands_and_args_v2(
-        component_spec=component_spec, arguments=original_arguments)
-
-    task.inputs = input_params
     task.command = resolved_cmd.command
     task.arguments = resolved_cmd.args
-    task.container_spec = (
-        pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec(
-            image=component_spec.implementation.container.image,
-            command=resolved_cmd.command,
-            args=resolved_cmd.args))
+
+    # limit this to v2 compiling only to avoid possible behavivor change in v1.
+    task.inputs = input_params

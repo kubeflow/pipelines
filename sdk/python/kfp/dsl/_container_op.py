@@ -298,7 +298,8 @@ class Container(V1Container):
         "E", "P", "T", "G", "M", "K".
     """
     self._validate_size_string(memory)
-    self._container_spec.resources.memory_limit = _get_resource_number(memory)
+    if self._container_spec:
+      self._container_spec.resources.memory_limit = _get_resource_number(memory)
     return self.add_resource_limit('memory', memory)
 
   def set_ephemeral_storage_request(self, size) -> 'Container':
@@ -340,7 +341,8 @@ class Container(V1Container):
         means 1/1000.
     """
     self._validate_cpu_string(cpu)
-    self._container_spec.resources.cpu_limit = _get_cpu_number(cpu)
+    if self._container_spec:
+      self._container_spec.resources.cpu_limit = _get_cpu_number(cpu)
     return self.add_resource_limit('cpu', cpu)
 
   def set_gpu_limit(self, gpu, vendor='nvidia') -> 'Container':
@@ -359,8 +361,10 @@ class Container(V1Container):
     """
     self._validate_positive_number(gpu, 'gpu')
 
-    # For backforward compatibiliy, allow `gpu` to be a string.
-    self._container_spec.resources.accelerator.count = int(gpu)
+    if self._container_spec:
+      # For backforward compatibiliy, allow `gpu` to be a string.
+      self._container_spec.resources.accelerator.count = int(gpu)
+
     if vendor != 'nvidia' and vendor != 'amd':
       raise ValueError('vendor can only be nvidia or amd.')
 
@@ -1326,14 +1330,15 @@ class ContainerOp(BaseOp):
           'accelerator spec, with node label {}. Got {} instead'.format(
               _GKE_ACCELERATOR_LABEL, label_name))
 
-    accelerator_cnt = 1
-    if self._container._container_spec.resources.accelerator.count > 1:
-      # Reserve the number if already set.
-      accelerator_cnt = self.container_spec.resources.accelerator.count
+    if self.container_spec:
+      accelerator_cnt = 1
+      if self.container_spec.resources.accelerator.count > 1:
+        # Reserve the number if already set.
+        accelerator_cnt = self.container_spec.resources.accelerator.count
 
-    accelerator_config = _PipelineContainerSpec.ResourceSpec.AcceleratorConfig(
-        type=_sanitize_gpu_type(value), count=accelerator_cnt)
-    self.container_spec.resources.accelerator.CopyFrom(accelerator_config)
+      accelerator_config = _PipelineContainerSpec.ResourceSpec.AcceleratorConfig(
+          type=_sanitize_gpu_type(value), count=accelerator_cnt)
+      self.container_spec.resources.accelerator.CopyFrom(accelerator_config)
 
     super(ContainerOp, self).add_node_selector_constraint(label_name, value)
     return self
