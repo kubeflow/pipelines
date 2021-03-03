@@ -895,10 +895,10 @@ class BaseOp(object):
 
   def set_retry(self,
                 num_retries: int,
-                policy: str = None,
-                backoff_duration: str = None,
-                backoff_factor: float = None,
-                backoff_max_duration: str = None):
+                policy: Optional[str] = None,
+                backoff_duration: Optional[str] = None,
+                backoff_factor: Optional[float] = None,
+                backoff_max_duration: Optional[str] = None):
     """Sets the number of times the task is retried until it's declared failed.
 
     Args:
