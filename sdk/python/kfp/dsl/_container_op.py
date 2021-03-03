@@ -948,8 +948,7 @@ class BaseOp(object):
         the backoff strategy.
     """
     if policy is not None and policy not in ALLOWED_RETRY_POLICIES:
-        raise ValueError('policy must be one of: %r'
-                         % (ALLOWED_RETRY_POLICIES,))
+      raise ValueError('policy must be one of: %r' % (ALLOWED_RETRY_POLICIES,))
 
     self.num_retries = num_retries
     self.retry_policy = policy
