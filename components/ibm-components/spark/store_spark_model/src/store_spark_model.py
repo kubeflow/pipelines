@@ -8,6 +8,7 @@ from pyspark import SparkConf, SparkContext
 from pyspark.ml import Pipeline, Model
 from watson_machine_learning_client import WatsonMachineLearningAPIClient
 from minio import Minio
+from pathlib import Path
 
 
 def get_secret_creds(path):
@@ -26,6 +27,7 @@ if __name__ == "__main__":
     parser.add_argument('--problem_type', type=str, help='Model problem type', default="BINARY_CLASSIFICATION")
     parser.add_argument('--model_name', type=str, help='model name for the trained model', default="Spark German Risk Model - Final")
     parser.add_argument('--deployment_name', type=str, help='deployment name for the trained model', default="Spark German Risk Deployment - Final")
+    parser.add_argument('--output_model_uid_path', type=str, help='Output path for model uid', default='/tmp/model_uid')
     args = parser.parse_args()
 
     cos_bucket_name = args.bucket_name
@@ -133,5 +135,5 @@ if __name__ == "__main__":
     else:
         print("Model already exist")
 
-    with open("/tmp/model_uid", "w") as report:
-        report.write(model_uid)
+    Path(args.output_model_uid_path).parent.mkdir(parents=True, exist_ok=True)
+    Path(args.output_model_uid_path).write_text(model_uid)

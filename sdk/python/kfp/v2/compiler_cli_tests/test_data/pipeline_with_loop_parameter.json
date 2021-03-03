@@ -1,0 +1,110 @@
+{
+  "pipelineSpec": {
+    "sdkVersion": "kfp-1.4.0",
+    "root": {
+      "dag": {
+        "tasks": {
+          "task-for-loop-1": {
+            "taskInfo": {
+              "name": "task-for-loop-1"
+            },
+            "inputs": {
+              "parameters": {
+                "loop_arguments": {
+                  "componentInputParameter": "loop_arguments"
+                }
+              }
+            },
+            "componentRef": {
+              "name": "comp-for-loop-1"
+            }
+          }
+        }
+      },
+      "inputDefinitions": {
+        "parameters": {
+          "loop_arguments": {
+            "type": "STRING"
+          }
+        }
+      }
+    },
+    "schemaVersion": "2.0.0",
+    "pipelineInfo": {
+      "name": "pipeline-with-loop-parameter"
+    },
+    "deploymentSpec": {
+      "executors": {
+        "exec-print-op": {
+          "container": {
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def print_op(s):\n  print(s)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Print op', description='')\n_parser.add_argument(\"--s\", dest=\"s\", type=float, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = print_op(**_parsed_args)\n"
+            ],
+            "image": "python:3.7",
+            "args": [
+              "--s",
+              "{{$.inputs.parameters['s']}}"
+            ]
+          }
+        }
+      }
+    },
+    "components": {
+      "comp-print-op": {
+        "executorLabel": "exec-print-op",
+        "inputDefinitions": {
+          "parameters": {
+            "s": {
+              "type": "DOUBLE"
+            }
+          }
+        }
+      },
+      "comp-for-loop-1": {
+        "dag": {
+          "tasks": {
+            "task-print-op": {
+              "componentRef": {
+                "name": "comp-print-op"
+              },
+              "parameterIterator": {
+                "items": {
+                  "inputParameter": "loop_arguments"
+                },
+                "itemInput": "s"
+              },
+              "inputs": {
+                "parameters": {
+                  "loop_arguments": {
+                    "componentInputParameter": "loop_arguments"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "task-print-op"
+              }
+            }
+          }
+        },
+        "inputDefinitions": {
+          "parameters": {
+            "loop_arguments": {
+              "type": "STRING"
+            }
+          }
+        }
+      }
+    }
+  },
+  "runtimeConfig": {
+    "parameters": {
+      "loop_arguments": {
+        "stringValue": "[1.1, 2.2, 3.3]"
+      }
+    },
+    "gcsOutputDirectory": "dummy_root"
+  }
+}

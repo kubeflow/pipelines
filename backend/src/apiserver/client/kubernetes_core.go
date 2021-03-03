@@ -41,10 +41,7 @@ func CreateKubernetesCoreOrFatal(initConnectionTimeout time.Duration) Kubernetes
 	var err error
 	var operation = func() error {
 		client, err = createKubernetesCore()
-		if err != nil {
-			return err
-		}
-		return nil
+		return err
 	}
 	b := backoff.NewExponentialBackOff()
 	b.MaxElapsedTime = initConnectionTimeout

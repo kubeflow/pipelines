@@ -27,10 +27,10 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 import ExecutionList from '../pages/ExecutionList';
 import ExecutionDetails from '../pages/ExecutionDetails';
 import ExperimentDetails from '../pages/ExperimentDetails';
-import ExperimentsAndRuns, { ExperimentsAndRunsTab } from '../pages/ExperimentsAndRuns';
-import ArchivedExperimentsAndRuns, {
-  ArchivedExperimentsAndRunsTab,
-} from '../pages/ArchivedExperimentsAndRuns';
+import AllExperimentsAndArchive, {
+  AllExperimentsAndArchiveTab,
+} from '../pages/AllExperimentsAndArchive';
+import AllRunsAndArchive, { AllRunsAndArchiveTab } from '../pages/AllRunsAndArchive';
 import NewExperiment from '../pages/NewExperiment';
 import NewRun from '../pages/NewRun';
 import Page404 from '../pages/404';
@@ -126,9 +126,9 @@ export const RoutePageFactory = {
 };
 
 export const ExternalLinks = {
-  AI_HUB: 'https://aihub.cloud.google.com/u/0/s?category=pipeline',
   DOCUMENTATION: 'https://www.kubeflow.org/docs/pipelines/',
   GITHUB: 'https://github.com/kubeflow/pipelines',
+  GITHUB_ISSUE: 'https://github.com/kubeflow/pipelines/issues/new/choose',
 };
 
 export interface DialogProps {
@@ -159,23 +159,23 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
   const routes: RouteConfig[] = configs || [
     { path: RoutePage.START, Component: GettingStarted },
     {
-      Component: ArchivedExperimentsAndRuns,
+      Component: AllRunsAndArchive,
       path: RoutePage.ARCHIVED_RUNS,
-      view: ArchivedExperimentsAndRunsTab.RUNS,
+      view: AllRunsAndArchiveTab.ARCHIVE,
     },
     {
-      Component: ArchivedExperimentsAndRuns,
+      Component: AllExperimentsAndArchive,
       path: RoutePage.ARCHIVED_EXPERIMENTS,
-      view: ArchivedExperimentsAndRunsTab.EXPERIMENTS,
+      view: AllExperimentsAndArchiveTab.ARCHIVE,
     },
     { path: RoutePage.ARTIFACTS, Component: ArtifactList },
     { path: RoutePage.ARTIFACT_DETAILS, Component: ArtifactDetails, notExact: true },
     { path: RoutePage.EXECUTIONS, Component: ExecutionList },
     { path: RoutePage.EXECUTION_DETAILS, Component: ExecutionDetails },
     {
-      Component: ExperimentsAndRuns,
+      Component: AllExperimentsAndArchive,
       path: RoutePage.EXPERIMENTS,
-      view: ExperimentsAndRunsTab.EXPERIMENTS,
+      view: AllExperimentsAndArchiveTab.EXPERIMENTS,
     },
     { path: RoutePage.EXPERIMENT_DETAILS, Component: ExperimentDetails },
     { path: RoutePage.NEW_EXPERIMENT, Component: NewExperiment },
@@ -184,7 +184,7 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
     { path: RoutePage.PIPELINES, Component: PipelineList },
     { path: RoutePage.PIPELINE_DETAILS, Component: PipelineDetails },
     { path: RoutePage.PIPELINE_DETAILS_NO_VERSION, Component: PipelineDetails },
-    { path: RoutePage.RUNS, Component: ExperimentsAndRuns, view: ExperimentsAndRunsTab.RUNS },
+    { path: RoutePage.RUNS, Component: AllRunsAndArchive, view: AllRunsAndArchiveTab.RUNS },
     { path: RoutePage.RECURRING_RUN, Component: RecurringRunDetails },
     { path: RoutePage.RUN_DETAILS, Component: RunDetails },
     { path: RoutePage.COMPARE, Component: Compare },

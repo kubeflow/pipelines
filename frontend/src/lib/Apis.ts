@@ -98,8 +98,10 @@ export class Apis {
   /**
    * Get pod logs
    */
-  public static getPodLogs(podName: string, podNamespace: string): Promise<string> {
-    let query = `k8s/pod/logs?podname=${encodeURIComponent(podName)}`;
+  public static getPodLogs(runId: string, podName: string, podNamespace: string): Promise<string> {
+    let query = `k8s/pod/logs?podname=${encodeURIComponent(podName)}&runid=${encodeURIComponent(
+      runId,
+    )}`;
     if (podNamespace) {
       query += `&podnamespace=${encodeURIComponent(podNamespace)}`;
     }
@@ -208,16 +210,34 @@ export class Apis {
    * Reads file from storage using server.
    */
   public static readFile(path: StoragePath, namespace?: string, peek?: number): Promise<string> {
-    return this._fetch(this.buildReadFileUrl(path, namespace, peek));
+    return this._fetch(this.buildReadFileUrl({ path, namespace, peek, isDownload: false }));
   }
 
   /**
    * Builds an url for the readFile API to retrieve a workflow artifact.
-   * @param props object describing the artifact (e.g. source, bucket, and key)
+   * @param path object describing the artifact (e.g. source, bucket, and key)
+   * @param isDownload whether we download the artifact as is (e.g. skip extracting from *.tar.gz)
    */
-  public static buildReadFileUrl(path: StoragePath, namespace?: string, peek?: number) {
-    const { source, ...rest } = path;
-    return `artifacts/get${buildQuery({ source: `${source}`, namespace, peek, ...rest })}`;
+  public static buildReadFileUrl({
+    path,
+    namespace,
+    peek,
+    isDownload,
+  }: {
+    path: StoragePath;
+    namespace?: string;
+    peek?: number;
+    isDownload?: boolean;
+  }) {
+    const { source, bucket, key } = path;
+    if (isDownload) {
+      return `artifacts/${source}/${bucket}/${key}${buildQuery({
+        namespace,
+        peek,
+      })}`;
+    } else {
+      return `artifacts/get${buildQuery({ source, namespace, peek, bucket, key })}`;
+    }
   }
 
   /**

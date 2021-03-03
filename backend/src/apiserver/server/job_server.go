@@ -27,6 +27,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/robfig/cron"
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
 // Metric variables. Please prefix the metric names with job_server_.
@@ -88,9 +89,28 @@ func (s *JobServer) CreateJob(ctx context.Context, request *api.CreateJobRequest
 	if err != nil {
 		return nil, util.Wrap(err, "Validate create job request failed.")
 	}
-	err = CanAccessExperimentInResourceReferences(s.resourceManager, ctx, request.Job.ResourceReferences)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+
+	if common.IsMultiUserMode() {
+		experimentID := common.GetExperimentIDFromAPIResourceReferences(request.Job.ResourceReferences)
+		if experimentID == "" {
+			return nil, util.NewInvalidInputError("Job has no experiment.")
+		}
+		namespace, err := s.resourceManager.GetNamespaceFromExperimentID(experimentID)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to get experiment for job.")
+		}
+		if namespace == "" {
+			return nil, util.NewInvalidInputError("Job's experiment has no namespace.")
+		}
+		resourceAttributes := &authorizationv1.ResourceAttributes{
+			Namespace: namespace,
+			Verb:      common.RbacResourceVerbCreate,
+			Name:      request.Job.Name,
+		}
+		err = s.canAccessJob(ctx, "", resourceAttributes)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to authorize the request")
+		}
 	}
 
 	newJob, err := s.resourceManager.CreateJob(request.Job)
@@ -109,11 +129,9 @@ func (s *JobServer) GetJob(ctx context.Context, request *api.GetJobRequest) (*ap
 		getJobRequests.Inc()
 	}
 
-	if !common.IsMultiUserSharedReadMode() {
-		err := s.canAccessJob(ctx, request.Id)
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to authorize the request.")
-		}
+	err := s.canAccessJob(ctx, request.Id, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 
 	job, err := s.resourceManager.GetJob(request.Id)
@@ -149,7 +167,11 @@ func (s *JobServer) ListJobs(ctx context.Context, request *api.ListJobsRequest) 
 			if len(namespace) == 0 {
 				return nil, util.NewInvalidInputError("Invalid resource references for ListJobs. Namespace is empty.")
 			}
-			err = isAuthorized(s.resourceManager, ctx, namespace)
+			resourceAttributes := &authorizationv1.ResourceAttributes{
+				Namespace: namespace,
+				Verb:      common.RbacResourceVerbList,
+			}
+			err = s.canAccessJob(ctx, "", resourceAttributes)
 			if err != nil {
 				return nil, util.Wrap(err, "Failed to authorize with namespace resource reference.")
 			}
@@ -158,9 +180,17 @@ func (s *JobServer) ListJobs(ctx context.Context, request *api.ListJobsRequest) 
 			if len(experimentID) == 0 {
 				return nil, util.NewInvalidInputError("Invalid resource references for job. Experiment ID is empty.")
 			}
-			err = CanAccessExperiment(s.resourceManager, ctx, experimentID)
+			namespace, err := s.resourceManager.GetNamespaceFromExperimentID(experimentID)
 			if err != nil {
-				return nil, util.Wrap(err, "Failed to authorize with experiment resource reference.")
+				return nil, util.Wrap(err, "Failed to get namespace for job's experiment.")
+			}
+			resourceAttributes := &authorizationv1.ResourceAttributes{
+				Namespace: namespace,
+				Verb:      common.RbacResourceVerbList,
+			}
+			err = s.canAccessJob(ctx, "", resourceAttributes)
+			if err != nil {
+				return nil, util.Wrap(err, "Failed to authorize with namespace in experiment resource reference.")
 			}
 		} else {
 			return nil, util.NewInvalidInputError("Invalid resource references for ListJobs. Got %+v", request.ResourceReferenceKey)
@@ -179,9 +209,9 @@ func (s *JobServer) EnableJob(ctx context.Context, request *api.EnableJobRequest
 		enableJobRequests.Inc()
 	}
 
-	err := s.canAccessJob(ctx, request.Id)
+	err := s.canAccessJob(ctx, request.Id, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbEnable})
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 
 	return s.enableJob(request.Id, true)
@@ -192,9 +222,9 @@ func (s *JobServer) DisableJob(ctx context.Context, request *api.DisableJobReque
 		disableJobRequests.Inc()
 	}
 
-	err := s.canAccessJob(ctx, request.Id)
+	err := s.canAccessJob(ctx, request.Id, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbDisable})
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 
 	return s.enableJob(request.Id, false)
@@ -205,9 +235,9 @@ func (s *JobServer) DeleteJob(ctx context.Context, request *api.DeleteJobRequest
 		deleteJobRequests.Inc()
 	}
 
-	err := s.canAccessJob(ctx, request.Id)
+	err := s.canAccessJob(ctx, request.Id, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbDelete})
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 
 	err = s.resourceManager.DeleteJob(request.Id)
@@ -224,12 +254,9 @@ func (s *JobServer) DeleteJob(ctx context.Context, request *api.DeleteJobRequest
 func (s *JobServer) validateCreateJobRequest(request *api.CreateJobRequest) error {
 	job := request.Job
 
-	if err := ValidatePipelineSpec(s.resourceManager, job.PipelineSpec); err != nil {
-		if _, errResourceReference := CheckPipelineVersionReference(s.resourceManager, job.ResourceReferences); errResourceReference != nil {
-			return util.Wrap(err, "Neither pipeline spec nor pipeline version is valid."+errResourceReference.Error())
-		}
+	if err := ValidatePipelineSpecAndResourceReferences(s.resourceManager, job.PipelineSpec, job.ResourceReferences); err != nil {
+		return err
 	}
-
 	if job.MaxConcurrency > 10 || job.MaxConcurrency < 1 {
 		return util.NewInvalidInputError("The max concurrency of the job is out of range. Support 1-10. Received %v.", job.MaxConcurrency)
 	}
@@ -261,20 +288,36 @@ func (s *JobServer) enableJob(id string, enabled bool) (*empty.Empty, error) {
 	return &empty.Empty{}, nil
 }
 
-func (s *JobServer) canAccessJob(ctx context.Context, jobID string) error {
+func (s *JobServer) canAccessJob(ctx context.Context, jobID string, resourceAttributes *authorizationv1.ResourceAttributes) error {
 	if common.IsMultiUserMode() == false {
 		// Skip authorization if not multi-user mode.
 		return nil
 	}
-	namespace, err := s.resourceManager.GetNamespaceFromJobID(jobID)
-	if err != nil {
-		return util.Wrap(err, "Failed to authorize with the job ID.")
-	}
-	if len(namespace) == 0 {
-		return util.NewInternalServerError(errors.New("Empty namespace"), "The job doesn't have a valid namespace.")
+
+	if len(jobID) > 0 {
+		job, err := s.resourceManager.GetJob(jobID)
+		if err != nil {
+			return util.Wrap(err, "Failed to authorize with the job ID.")
+		}
+		if len(resourceAttributes.Namespace) == 0 {
+			if len(job.Namespace) == 0 {
+				return util.NewInternalServerError(
+					errors.New("Empty namespace"),
+					"The job doesn't have a valid namespace.",
+				)
+			}
+			resourceAttributes.Namespace = job.Namespace
+		}
+		if len(resourceAttributes.Name) == 0 {
+			resourceAttributes.Name = job.Name
+		}
 	}
 
-	err = isAuthorized(s.resourceManager, ctx, namespace)
+	resourceAttributes.Group = common.RbacPipelinesGroup
+	resourceAttributes.Version = common.RbacPipelinesVersion
+	resourceAttributes.Resource = common.RbacResourceTypeJobs
+
+	err := isAuthorized(s.resourceManager, ctx, resourceAttributes)
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize with API resource references")
 	}

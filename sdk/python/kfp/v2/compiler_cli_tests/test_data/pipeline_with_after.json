@@ -1,0 +1,109 @@
+{
+  "pipelineSpec": {
+    "root": {
+      "dag": {
+        "tasks": {
+          "task-print-text-2": {
+            "inputs": {
+              "parameters": {
+                "text": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "2nd task"
+                    }
+                  }
+                }
+              }
+            },
+            "componentRef": {
+              "name": "comp-print-text"
+            },
+            "taskInfo": {
+              "name": "task-print-text-2"
+            },
+            "dependentTasks": [
+              "task-print-text"
+            ]
+          },
+          "task-print-text": {
+            "taskInfo": {
+              "name": "task-print-text"
+            },
+            "inputs": {
+              "parameters": {
+                "text": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "1st task"
+                    }
+                  }
+                }
+              }
+            },
+            "componentRef": {
+              "name": "comp-print-text"
+            }
+          },
+          "task-print-text-3": {
+            "taskInfo": {
+              "name": "task-print-text-3"
+            },
+            "componentRef": {
+              "name": "comp-print-text"
+            },
+            "inputs": {
+              "parameters": {
+                "text": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "3rd task"
+                    }
+                  }
+                }
+              }
+            },
+            "dependentTasks": [
+              "task-print-text",
+              "task-print-text-2"
+            ]
+          }
+        }
+      }
+    },
+    "sdkVersion": "kfp-1.3.0",
+    "schemaVersion": "2.0.0",
+    "pipelineInfo": {
+      "name": "pipeline-with-after"
+    },
+    "components": {
+      "comp-print-text": {
+        "inputDefinitions": {
+          "parameters": {
+            "text": {
+              "type": "STRING"
+            }
+          }
+        },
+        "executorLabel": "exec-print-text"
+      }
+    },
+    "deploymentSpec": {
+      "executors": {
+        "exec-print-text": {
+          "container": {
+            "image": "alpine",
+            "command": [
+              "sh",
+              "-c",
+              "set -e -x\necho \"$0\"\n",
+              "{{$.inputs.parameters['text']}}"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "runtimeConfig": {
+    "gcsOutputDirectory": "dummy_root"
+  }
+}

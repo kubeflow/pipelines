@@ -19,8 +19,11 @@ from setuptools import setup
 NAME = 'kfp'
 #VERSION = .... Change the version in kfp/__init__.py
 
+# NOTICE, after any updates to the following, ./requirements.in should be updated
+# accordingly.
 REQUIRES = [
-    'PyYAML',
+    'absl-py>=0.9,<=0.11',
+    'PyYAML>=5.3',
     'google-cloud-storage>=1.13.0',
     'kubernetes>=8.0.0, <12.0.0',
     'google-auth>=1.6.1',
@@ -31,13 +34,15 @@ REQUIRES = [
     # Update the lower version when kfp sdk depends on new apis/fields in
     # kfp-server-api.
     # Note, please also update ./requirements.in
-    'kfp-server-api>=0.2.5, <2.0.0',
+    'kfp-server-api>=1.1.2, <2.0.0',
     'jsonschema >= 3.0.1',
     'tabulate',
     'click',
     'Deprecated',
     'strip-hints',
-    'docstring-parser>=0.7.3'
+    'docstring-parser>=0.7.3',
+    'kfp-pipeline-spec>=0.1.5, <0.2.0',
+    'fire>=0.3.1'
 ]
 
 TESTS_REQUIRE = [
@@ -46,19 +51,19 @@ TESTS_REQUIRE = [
 
 
 def find_version(*file_path_parts):
-  here = os.path.abspath(os.path.dirname(__file__))
-  with open(os.path.join(here, *file_path_parts), 'r') as fp:
-    version_file_text = fp.read()
+    here = os.path.abspath(os.path.dirname(__file__))
+    with open(os.path.join(here, *file_path_parts), 'r') as fp:
+        version_file_text = fp.read()
 
-  version_match = re.search(
-      r"^__version__ = ['\"]([^'\"]*)['\"]",
-      version_file_text,
-      re.M,
-  )
-  if version_match:
-    return version_match.group(1)
+    version_match = re.search(
+        r"^__version__ = ['\"]([^'\"]*)['\"]",
+        version_file_text,
+        re.M,
+    )
+    if version_match:
+        return version_match.group(1)
 
-  raise RuntimeError('Unable to find version string.')
+    raise RuntimeError('Unable to find version string.')
 
 
 setup(
@@ -79,6 +84,10 @@ setup(
         'kfp.dsl',
         'kfp.dsl.extensions',
         'kfp.notebook',
+        'kfp.v2',
+        'kfp.v2.compiler',
+        'kfp.v2.components',
+        'kfp.v2.dsl',
     ],
     classifiers=[
         'Intended Audience :: Developers',
@@ -99,6 +108,9 @@ setup(
     include_package_data=True,
     entry_points={
         'console_scripts': [
-            'dsl-compile = kfp.compiler.main:main', 'kfp=kfp.__main__:main'
+            'dsl-compile = kfp.compiler.main:main',
+            'dsl-compile-v2 = kfp.v2.compiler.main:main',
+            'kfp=kfp.__main__:main'
         ]
-    })
+    }
+)

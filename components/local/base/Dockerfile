@@ -12,30 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+FROM python:3.7
 
-FROM ubuntu:16.04
-
-RUN apt-get update -y && apt-get install --no-install-recommends -y -q ca-certificates python-dev python-setuptools wget unzip
-
-RUN easy_install pip
-
-RUN pip install google-api-python-client==1.6.2
-RUN pip install pandas==0.18.1
-RUN pip install scikit-learn==0.19.1
-RUN pip install scipy==1.0.0
-RUN pip install tensorflow==1.5
-
-RUN wget -nv https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.zip && \
-    unzip -qq google-cloud-sdk.zip -d tools && \
-    rm google-cloud-sdk.zip && \
-    tools/google-cloud-sdk/install.sh --usage-reporting=false \
-        --path-update=false --bash-completion=false \
-        --disable-installation-options && \
-    tools/google-cloud-sdk/bin/gcloud -q components update \
-        gcloud core gsutil && \
-    tools/google-cloud-sdk/bin/gcloud config set component_manager/disable_update_check true && \
-    touch /tools/google-cloud-sdk/lib/third_party/google.py
+COPY requirements.txt .
+RUN python3 -m pip install -r \
+    requirements.txt --quiet --no-cache-dir \
+    && rm -f requirements.txt
 
 ADD build /ml
-
-ENV PATH $PATH:/tools/node/bin:/tools/google-cloud-sdk/bin

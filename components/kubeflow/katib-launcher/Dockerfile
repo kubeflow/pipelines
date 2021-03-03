@@ -1,23 +1,23 @@
-# Copyright 2019 The Kubeflow Authors
+# Copyright 2020 The Kubeflow Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-# http://www.apache.org/licenses/LICENSE-2.0
+#      http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM ubuntu:16.04
 
-RUN apt-get update -y && \
-    apt-get install --no-install-recommends -y -q ca-certificates python-dev python-setuptools wget && \
-    easy_install pip && \
-    pip install pyyaml==3.12 kubernetes
+FROM python:3.6
 
-ADD build /ml
+ENV APP_HOME /app
+WORKDIR ${APP_HOME}
 
-ENTRYPOINT ["python", "/ml/launch_experiment.py"]
+ADD . ${APP_HOME}
+RUN pip install --no-cache-dir -r requirements.txt
+
+ENTRYPOINT ["python", "src/launch_experiment.py"]

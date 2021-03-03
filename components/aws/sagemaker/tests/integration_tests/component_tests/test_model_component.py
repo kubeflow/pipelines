@@ -8,12 +8,7 @@ from utils import sagemaker_utils
 
 
 @pytest.mark.parametrize(
-    "test_file_dir",
-    [
-        pytest.param(
-            "resources/config/kmeans-mnist-model", marks=pytest.mark.canary_test
-        )
-    ],
+    "test_file_dir", ["resources/config/kmeans-mnist-model"],
 )
 def test_createmodel(kfp_client, experiment_id, sagemaker_client, test_file_dir):
 

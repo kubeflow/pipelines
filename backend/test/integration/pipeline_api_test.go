@@ -28,6 +28,7 @@ import (
 // - Providing tarball file url
 type PipelineApiTest struct {
 	suite.Suite
+	namespace            string
 	pipelineClient       *api_server.PipelineClient
 	pipelineUploadClient *api_server.PipelineUploadClient
 }
@@ -45,6 +46,7 @@ func (s *PipelineApiTest) SetupTest() {
 			glog.Exitf("Failed to initialize test. Error: %s", err.Error())
 		}
 	}
+	s.namespace = *namespace
 	clientConfig := test.GetClientConfig(*namespace)
 	var err error
 	s.pipelineUploadClient, err = api_server.NewPipelineUploadClient(clientConfig, false)
@@ -98,7 +100,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, "arguments.pipeline.zip", argumentUrlPipeline.Name)
 
 	/* ---------- Verify list pipeline works ---------- */
-	pipelines, totalSize, _, err := s.pipelineClient.List(params.NewListPipelinesParams())
+	pipelines, totalSize, _, err := s.pipelineClient.List(&params.ListPipelinesParams{})
 	assert.Nil(t, err)
 	assert.Equal(t, 4, len(pipelines))
 	assert.Equal(t, 4, totalSize)

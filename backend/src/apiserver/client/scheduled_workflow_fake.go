@@ -19,7 +19,9 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
+	k8errors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8schema "k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 )
@@ -43,8 +45,12 @@ func (c *FakeScheduledWorkflowClient) Create(scheduledWorkflow *v1beta1.Schedule
 }
 
 func (c *FakeScheduledWorkflowClient) Delete(name string, options *v1.DeleteOptions) error {
-	delete(c.scheduledWorkflows, name)
-	return nil
+	_, ok := c.scheduledWorkflows[name]
+	if ok {
+		delete(c.scheduledWorkflows, name)
+		return nil
+	}
+	return k8errors.NewNotFound(k8schema.ParseGroupResource("scheduledworkflows.kubeflow.org"), name)
 }
 
 func (c *FakeScheduledWorkflowClient) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.ScheduledWorkflow, err error) {
@@ -56,7 +62,7 @@ func (c *FakeScheduledWorkflowClient) Get(name string, options v1.GetOptions) (*
 	if ok {
 		return scheduledWorkflow, nil
 	}
-	return nil, errors.New("not found")
+	return nil, k8errors.NewNotFound(k8schema.ParseGroupResource("scheduledworkflows.kubeflow.org"), name)
 }
 
 func (c *FakeScheduledWorkflowClient) Update(*v1beta1.ScheduledWorkflow) (*v1beta1.ScheduledWorkflow, error) {
@@ -93,4 +99,8 @@ func (FakeBadScheduledWorkflowClient) Get(name string, options v1.GetOptions) (*
 
 func (FakeBadScheduledWorkflowClient) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.ScheduledWorkflow, err error) {
 	return nil, errors.New("some error")
+}
+
+func (c *FakeBadScheduledWorkflowClient) Delete(name string, options *v1.DeleteOptions) error {
+	return errors.New("some error")
 }

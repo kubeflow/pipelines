@@ -32,7 +32,7 @@ def _process_obj(obj: Any, map_to_tmpl_var: dict):
     """Recursively sanitize and replace any PipelineParam (instances and serialized strings)
     in the object with the corresponding template variables
     (i.e. '{{inputs.parameters.<PipelineParam.full_name>}}').
-    
+
     Args:
       obj: any obj that may have PipelineParam
       map_to_tmpl_var: a dict that maps an unsanitized pipeline
@@ -185,7 +185,7 @@ def _op_to_template(op: BaseOp):
     processed_op = _process_base_ops(op)
 
     if isinstance(op, dsl.ContainerOp):
-        output_artifact_paths = OrderedDict()
+        output_artifact_paths = OrderedDict(op.output_artifact_paths)
         # This should have been as easy as output_artifact_paths.update(op.file_outputs), but the _outputs_to_json function changes the output names and we must do the same here, so that the names are the same
         output_artifact_paths.update(sorted(((param.full_name, processed_op.file_outputs[param.name]) for param in processed_op.outputs.values()), key=lambda x: x[0]))
 
@@ -253,8 +253,14 @@ def _op_to_template(op: BaseOp):
         if processed_op.pod_labels:
             template['metadata']['labels'] = processed_op.pod_labels
     # retries
-    if processed_op.num_retries:
-        template['retryStrategy'] = {'limit': processed_op.num_retries}
+    if processed_op.num_retries or processed_op.retry_policy:
+        template['retryStrategy'] = {}
+        if processed_op.num_retries:
+            template['retryStrategy']['limit'] = processed_op.num_retries
+        if processed_op.retry_policy:
+            template['retryStrategy']['retryPolicy'] = processed_op.retry_policy
+            if not processed_op.num_retries:
+                warnings.warn('retry_policy is set, but num_retries is not')
 
     # timeout
     if processed_op.timeout:
@@ -278,6 +284,9 @@ def _op_to_template(op: BaseOp):
 
     if hasattr(op, '_component_ref'):
         template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/component_ref'] = json.dumps(op._component_ref.to_dict(), sort_keys=True)
+
+    if hasattr(op, '_parameter_arguments') and op._parameter_arguments:
+        template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/arguments.parameters'] = json.dumps(op._parameter_arguments, sort_keys=True)
 
     if isinstance(op, dsl.ContainerOp) and op.execution_options:
         if op.execution_options.caching_strategy.max_cache_staleness:

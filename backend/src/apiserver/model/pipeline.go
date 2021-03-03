@@ -29,7 +29,7 @@ const (
 type Pipeline struct {
 	UUID           string `gorm:"column:UUID; not null; primary_key"`
 	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null"`
-	Name           string `gorm:"column:Name; not null; unique"`
+	Name           string `gorm:"column:Name; not null"`
 	Description    string `gorm:"column:Description; not null; size:65535"` // Same as below, set size to large number so it will be stored as longtext
 	// TODO(jingzhang36): remove Parameters when no code is accessing this
 	// field. Should use PipelineVersion.Parameters instead.
@@ -39,6 +39,7 @@ type Pipeline struct {
 	// Default version of this pipeline. It could be null.
 	DefaultVersionId string           `gorm:"column:DefaultVersionId;"`
 	DefaultVersion   *PipelineVersion `gorm:"-"`
+	Namespace        string           `gorm:"column:Namespace; size:63; default:''"`
 }
 
 func (p Pipeline) GetValueOfPrimaryKey() string {
@@ -64,6 +65,7 @@ var pipelineAPIToModelFieldMap = map[string]string{
 	"name":        "Name",
 	"created_at":  "CreatedAtInSec",
 	"description": "Description",
+	"namespace":   "Namespace",
 	// TODO(jingzhang36): uncomment this field when we expose it to API
 	// "default_version_id": "DefaultVersionId",
 }
@@ -96,6 +98,8 @@ func (p *Pipeline) GetFieldValue(name string) interface{} {
 		return p.CreatedAtInSec
 	case "Description":
 		return p.Description
+	case "Namespace":
+		return p.Namespace
 	default:
 		return nil
 	}

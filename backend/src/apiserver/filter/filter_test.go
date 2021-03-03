@@ -26,50 +26,50 @@ func TestValidNewFilters(t *testing.T) {
 	}{
 		{
 			`predicates { key: "status" op: EQUALS string_value: "Running" }`,
-			&Filter{eq: map[string]interface{}{"status": "Running"}},
+			&Filter{eq: map[string][]interface{}{"status": {"Running"}}},
 		},
 		{
 			`predicates { key: "status" op: NOT_EQUALS string_value: "Running" }`,
-			&Filter{neq: map[string]interface{}{"status": "Running"}},
+			&Filter{neq: map[string][]interface{}{"status": {"Running"}}},
 		},
 		{
 			`predicates { key: "total" op: GREATER_THAN int_value: 10 }`,
-			&Filter{gt: map[string]interface{}{"total": int32(10)}},
+			&Filter{gt: map[string][]interface{}{"total": {int32(10)}}},
 		},
 		{
 			`predicates { key: "total" op: GREATER_THAN_EQUALS long_value: 10 }`,
-			&Filter{gte: map[string]interface{}{"total": int64(10)}},
+			&Filter{gte: map[string][]interface{}{"total": {int64(10)}}},
 		},
 		{
 			`predicates { key: "total" op: LESS_THAN timestamp_value { seconds: 10 }}`,
-			&Filter{lt: map[string]interface{}{"total": int64(10)}},
+			&Filter{lt: map[string][]interface{}{"total": {int64(10)}}},
 		},
 		{
 			`predicates { key: "total" op: LESS_THAN_EQUALS timestamp_value { seconds: 10 }}`,
-			&Filter{lte: map[string]interface{}{"total": int64(10)}},
+			&Filter{lte: map[string][]interface{}{"total": {int64(10)}}},
 		},
 		{
 			`predicates {
 				key: "label" op: IN
 				string_values { values: 'label_1' values: 'label_2' } }`,
-			&Filter{in: map[string]interface{}{"label": []string{"label_1", "label_2"}}},
+			&Filter{in: map[string][]interface{}{"label": {[]string{"label_1", "label_2"}}}},
 		},
 		{
 			`predicates {
 				key: "intvalues" op: IN
 				int_values { values: 10 values: 20 } }`,
-			&Filter{in: map[string]interface{}{"intvalues": []int32{10, 20}}},
+			&Filter{in: map[string][]interface{}{"intvalues": {[]int32{10, 20}}}},
 		},
 		{
 			`predicates {
 				key: "longvalues" op: IN
 				long_values { values: 100 values: 200 } }`,
-			&Filter{in: map[string]interface{}{"longvalues": []int64{100, 200}}},
+			&Filter{in: map[string][]interface{}{"longvalues": {[]int64{100, 200}}}},
 		},
 		{
 			`predicates {
 				key: "label" op: IS_SUBSTRING string_value: "label_substring" }`,
-			&Filter{substring: map[string]interface{}{"label": "label_substring"}},
+			&Filter{substring: map[string][]interface{}{"label": {"label_substring"}}},
 		},
 	}
 
@@ -102,22 +102,22 @@ func TestValidNewFiltersWithKeyMap(t *testing.T) {
 	}{
 		{
 			`predicates { key: "name" op: EQUALS string_value: "pipeline" }`,
-			&Filter{eq: map[string]interface{}{"pipelines.Name": "pipeline"}},
+			&Filter{eq: map[string][]interface{}{"pipelines.Name": {"pipeline"}}},
 		},
 		{
 			`predicates { key: "name" op: NOT_EQUALS string_value: "pipeline" }`,
-			&Filter{neq: map[string]interface{}{"pipelines.Name": "pipeline"}},
+			&Filter{neq: map[string][]interface{}{"pipelines.Name": {"pipeline"}}},
 		},
 		{
 			`predicates {
 				key: "name" op: IN
 				string_values { values: 'pipeline_1' values: 'pipeline_2' } }`,
-			&Filter{in: map[string]interface{}{"pipelines.Name": []string{"pipeline_1", "pipeline_2"}}},
+			&Filter{in: map[string][]interface{}{"pipelines.Name": {[]string{"pipeline_1", "pipeline_2"}}}},
 		},
 		{
 			`predicates {
 				key: "name" op: IS_SUBSTRING string_value: "pipeline" }`,
-			&Filter{substring: map[string]interface{}{"pipelines.Name": "pipeline"}},
+			&Filter{substring: map[string][]interface{}{"pipelines.Name": {"pipeline"}}},
 		},
 	}
 
@@ -233,6 +233,17 @@ func TestAddToSelect(t *testing.T) {
 		},
 		{
 			`predicates { key: "status" op: EQUALS string_value: "Running" }
+			 predicates { key: "status" op: EQUALS string_value: "Stopped" }`,
+			"SELECT mycolumn WHERE status = ? AND status = ?",
+			[]interface{}{"Running", "Stopped"},
+		},
+		{
+			`predicates { key: "status" op: EQUALS string_value: "Running" }`,
+			"SELECT mycolumn WHERE status = ?",
+			[]interface{}{"Running"},
+		},
+		{
+			`predicates { key: "status" op: EQUALS string_value: "Running" }
 		   predicates { key: "total" op: GREATER_THAN_EQUALS  long_value: 100 }`,
 			"SELECT mycolumn WHERE status = ? AND total >= ?",
 			[]interface{}{"Running", int64(100)},
@@ -269,6 +280,12 @@ func TestAddToSelect(t *testing.T) {
 			"SELECT mycolumn WHERE label LIKE ?",
 			[]interface{}{"%label_substring%"},
 		},
+		{
+			`predicates { key: "label" op: IS_SUBSTRING  string_value: "label_substring1" }
+			 predicates { key: "label" op: IS_SUBSTRING  string_value: "label_substring2" }`,
+			"SELECT mycolumn WHERE label LIKE ? AND label LIKE ?",
+			[]interface{}{"%label_substring1%", "%label_substring2%"},
+		},
 	}
 
 	for _, test := range tests {
@@ -302,10 +319,10 @@ func TestMarshalJSON(t *testing.T) {
 				},
 			},
 		},
-		eq: map[string]interface{}{"name": "SomeName"},
+		eq: map[string][]interface{}{"name": {"SomeName"}},
 	}
 
-	want := `{"FilterProto":"{\"predicates\":[{\"op\":\"EQUALS\",\"key\":\"Name\",\"stringValue\":\"SomeName\"}]}","EQ":{"name":"SomeName"},"NEQ":null,"GT":null,"GTE":null,"LT":null,"LTE":null,"IN":null,"SUBSTRING":null}`
+	want := `{"FilterProto":"{\"predicates\":[{\"op\":\"EQUALS\",\"key\":\"Name\",\"stringValue\":\"SomeName\"}]}","EQ":{"name":["SomeName"]},"NEQ":null,"GT":null,"GTE":null,"LT":null,"LTE":null,"IN":null,"SUBSTRING":null}`
 
 	got, err := json.Marshal(f)
 	if err != nil || string(got) != want {
@@ -314,7 +331,7 @@ func TestMarshalJSON(t *testing.T) {
 }
 
 func TestUnmarshalJSON(t *testing.T) {
-	in := `{"FilterProto":"{\"predicates\":[{\"op\":\"EQUALS\",\"key\":\"Name\",\"stringValue\":\"SomeName\"}]}","EQ":{"name":"SomeName"},"NEQ":null,"GT":null,"GTE":null,"LT":null,"LTE":null,"IN":null,"SUBSTRING":null}`
+	in := `{"FilterProto":"{\"predicates\":[{\"op\":\"EQUALS\",\"key\":\"Name\",\"stringValue\":\"SomeName\"}]}","EQ":{"name":["SomeName"]},"NEQ":null,"GT":null,"GTE":null,"LT":null,"LTE":null,"IN":null,"SUBSTRING":null}`
 
 	want := &Filter{
 		filterProto: &api.Filter{
@@ -325,7 +342,7 @@ func TestUnmarshalJSON(t *testing.T) {
 				},
 			},
 		},
-		eq: map[string]interface{}{"name": "SomeName"},
+		eq: map[string][]interface{}{"name": {"SomeName"}},
 	}
 
 	got := &Filter{}

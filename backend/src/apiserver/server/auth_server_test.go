@@ -10,13 +10,14 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/metadata"
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
 func TestAuthorizeRequest_SingleUserMode(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 	authServer := AuthServer{resourceManager: manager}
-	clients.KfamClientFake = client.NewFakeKFAMClientUnauthorized()
+	clients.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
 
 	md := metadata.New(map[string]string{})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
@@ -79,7 +80,7 @@ func TestAuthorizeRequest_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
-	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
+	clients, manager, _ := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
 	authServer := AuthServer{resourceManager: manager}
 
@@ -94,7 +95,15 @@ func TestAuthorizeRequest_Unauthorized(t *testing.T) {
 
 	_, err := authServer.Authorize(ctx, request)
 	assert.Error(t, err)
-	assert.EqualError(t, err, "Failed to authorize the request: Failed to authorize namespace: BadRequestError: Unauthorized access for user@google.com to namespace ns1: Unauthorized access for user@google.com to namespace ns1")
+
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: "ns1",
+		Verb:      common.RbacResourceVerbGet,
+		Group:     common.RbacKubeflowGroup,
+		Version:   common.RbacPipelinesVersion,
+		Resource:  common.RbacResourceTypeViewers,
+	}
+	assert.EqualError(t, err, wrapFailedAuthzRequestError(getPermissionDeniedError(ctx, resourceAttributes)).Error())
 }
 
 func TestAuthorizeRequest_EmptyUserIdPrefix(t *testing.T) {

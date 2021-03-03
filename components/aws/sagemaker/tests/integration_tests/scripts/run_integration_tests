@@ -34,6 +34,7 @@ PYTEST_MARKER=${PYTEST_MARKER:-""}
 S3_DATA_BUCKET=${S3_DATA_BUCKET:-""}
 SAGEMAKER_EXECUTION_ROLE_ARN=${SAGEMAKER_EXECUTION_ROLE_ARN:-""}
 ASSUMED_ROLE_NAME=${ASSUMED_ROLE_NAME:-""}
+ROBOMAKER_EXECUTION_ROLE_ARN=${ROBOMAKER_EXECUTION_ROLE_ARN:-""}
 
 SKIP_FSX_TESTS=${SKIP_FSX_TESTS:-"false"}
 
@@ -117,7 +118,24 @@ function launch_eks() {
 }
 
 function delete_eks() {
-  eksctl delete cluster --name "${EKS_CLUSTER_NAME}" --region "${REGION}"
+  time_unit=m
+  timeout=15
+  retry_interval=5
+
+  loop_counter=$timeout
+  while [ "$loop_counter" -gt "0" ]; do
+    eksctl delete cluster --name "$EKS_CLUSTER_NAME" --region "$REGION" --wait
+    if [ $? -eq 0 ]; then
+      echo "EKS cluster deleted"
+      return 0
+    fi
+    echo "Failed to delete EKS cluster. Retrying after ${retry_interval}${time_unit}"
+    loop_counter=$(($loop_counter-$retry_interval))
+    sleep "${retry_interval}${time_unit}"
+  done
+
+  echo "Failed to delete EKS cluster even after trying for ${timeout}${time_unit}"
+  return 1
 }
 
 function install_kfp() {
@@ -158,7 +176,9 @@ function install_oidc_role() {
 function delete_oidc_role() {
   # Delete the role associated with the cluster thats being deleted
   aws iam detach-role-policy --role-name "${OIDC_ROLE_NAME}" --policy-arn arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
+  aws iam detach-role-policy --role-name "${OIDC_ROLE_NAME}" --policy-arn arn:aws:iam::aws:policy/AWSRoboMaker_FullAccess
   aws iam delete-role-policy --role-name "${OIDC_ROLE_NAME}" --policy-name AllowAssumeRole
+  aws iam delete-role-policy --role-name "${OIDC_ROLE_NAME}" --policy-name AllowPassRole
   aws iam delete-role --role-name "${OIDC_ROLE_NAME}"
 }
 
@@ -185,6 +205,7 @@ function generate_assumed_role() {
     }' > "${assumed_trust_file}"
     aws iam create-role --role-name "${ASSUMED_ROLE_NAME}" --assume-role-policy-document file://${assumed_trust_file} --output=text --query "Role.Arn"
     aws iam attach-role-policy --role-name ${ASSUMED_ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
+    aws iam attach-role-policy --role-name ${ASSUMED_ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/AWSRoboMaker_FullAccess
   fi
 
   # Generate the ARN using the role name
@@ -196,6 +217,7 @@ function delete_assumed_role() {
   if [[ ! -z "${ASSUMED_ROLE_NAME}" && "${CREATED_ASSUMED_ROLE:-false}" == "true" ]]; then
     # Delete the role associated with the cluster thats being deleted
     aws iam detach-role-policy --role-name "${ASSUMED_ROLE_NAME}" --policy-arn arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
+    aws iam detach-role-policy --role-name "${ASSUMED_ROLE_NAME}" --policy-arn arn:aws:iam::aws:policy/AWSRoboMaker_FullAccess
     aws iam delete-role --role-name "${ASSUMED_ROLE_NAME}"
   fi
 }
@@ -240,9 +262,10 @@ install_kfp
 [ "${SKIP_KFP_OIDC_SETUP}" == "false" ] && install_oidc_role
 generate_assumed_role
 
-pytest_args=( --region "${REGION}" --role-arn "${SAGEMAKER_EXECUTION_ROLE_ARN}" \
+pytest_args=( --region "${REGION}" --sagemaker-role-arn "${SAGEMAKER_EXECUTION_ROLE_ARN}" \
   --s3-data-bucket "${S3_DATA_BUCKET}" --kfp-namespace "${KFP_NAMESPACE}" \
-  --minio-service-port "${MINIO_LOCAL_PORT}" --assume-role-arn "${ASSUMED_ROLE_ARN}")
+  --minio-service-port "${MINIO_LOCAL_PORT}" --assume-role-arn "${ASSUMED_ROLE_ARN}" \
+  --robomaker-role-arn "${ROBOMAKER_EXECUTION_ROLE_ARN}")
 
 if [[ "${SKIP_FSX_TESTS}" == "true" ]]; then
   pytest_args+=( -m "not fsx_test" )

@@ -22,6 +22,7 @@ __all__ = [
 
 
 import inspect
+import re
 from typing import Any, Callable, NamedTuple, Sequence
 import warnings
 
@@ -108,7 +109,7 @@ _converters = [
     Converter([str], ['String', 'str'], _serialize_str, 'str', None),
     Converter([int], ['Integer', 'int'], _serialize_int, 'int', None),
     Converter([float], ['Float', 'float'], _serialize_float, 'float', None),
-    Converter([bool], ['Boolean', 'bool'], _serialize_bool, _bool_deserializer_code, _bool_deserializer_definitions),
+    Converter([bool], ['Boolean', 'Bool', 'bool'], _serialize_bool, _bool_deserializer_code, _bool_deserializer_definitions),
     Converter([list], ['JsonArray', 'List', 'list'], _serialize_json, 'json.loads', 'import json'), # ! JSON map keys are always strings. Python converts all keys to strings without warnings
     Converter([dict], ['JsonObject', 'Dictionary', 'Dict', 'dict'], _serialize_json, 'json.loads', 'import json'), # ! JSON map keys are always strings. Python converts all keys to strings without warnings
     Converter([], ['Json'], _serialize_json, 'json.loads', 'import json'),
@@ -167,7 +168,7 @@ def serialize_value(value, type_name: str) -> str:
         type_name = type_to_type_name.get(type(value), type(value).__name__)
         warnings.warn('Missing type name was inferred as "{}" based on the value "{}".'.format(type_name, str(value)))
 
-    serializer = type_name_to_serializer.get(type_name, None)
+    serializer = type_name_to_serializer.get(_get_short_type_name(type_name))
     if serializer:
         try:
             serialized_value = serializer(value)
@@ -185,3 +186,27 @@ def serialize_value(value, type_name: str) -> str:
     raise TypeError('There are no registered serializers for type "{}".'.format(
         str(type_name),
     ))
+
+def _get_short_type_name(type_name: str) -> str:
+    """Extracts the short form type name.
+
+    This method is used for looking up serializer for a given type.
+
+    For example:
+      typing.List -> List
+      typing.List[int] -> List
+      typing.Dict[str, str] -> Dict
+      List -> List
+      str -> str
+
+    Args:
+      type_name: The original type name.
+
+    Returns:
+      The short form type name or the original name if pattern doesn't match.
+    """
+    match = re.match('(typing\.)?(?P<type>\w+)(?:\[.+\])?', type_name)
+    if match:
+        return match.group('type')
+    else:
+        return type_name

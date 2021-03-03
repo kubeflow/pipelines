@@ -33,7 +33,8 @@ class TestModel1(ModelBase):
         prop_2: Union[int, str, bool] = '',
         prop_3: 'TestModel1' = None,
         prop_4: Optional[Dict[str, 'TestModel1']] = None,
-        prop_5: Optional[Union['TestModel1', List['TestModel1']]] = None,
+        prop_5: Optional[Union['TestModel1', List['TestModel1'], Dict[str, 'TestModel1']]] = None,
+        prop_6: Optional[Union[str, List, Dict]] = None,
     ):
         #print(locals())
         super().__init__(locals())
@@ -112,6 +113,7 @@ class StructureModelBaseTestCase(unittest.TestCase):
         val5 = TestModel1(prop_0='value 0')
         self.assertEqual(TestModel1(prop_0='', prop_5=val5).prop_5, val5)
         self.assertEqual(TestModel1(prop_0='', prop_5=[val5]).prop_5[0], val5)
+        self.assertEqual(TestModel1(prop_0='', prop_5={'key 5': val5}).prop_5['key 5'], val5)
         self.assertEqual(TestModel1(prop_0='', prop_5=None).prop_5, None)
 
         with self.assertRaises(TypeError):
@@ -128,6 +130,16 @@ class StructureModelBaseTestCase(unittest.TestCase):
 
         with self.assertRaises(TypeError):
             TestModel1(prop_0='', prop_5={'key 5': [val5]})
+
+    def test_handle_type_check_for_open_generic_classes(self):
+        val6 = TestModel1(prop_0='value 0')
+        self.assertEqual(TestModel1(prop_0='', prop_6='val6').prop_6, 'val6')
+        self.assertEqual(TestModel1(prop_0='', prop_6=[val6]).prop_6[0], val6)
+        self.assertEqual(TestModel1(prop_0='', prop_6={'key 6': val6}).prop_6['key 6'], val6)
+        self.assertEqual(TestModel1(prop_0='', prop_6=None).prop_6, None)
+
+        with self.assertRaises(TypeError):
+            TestModel1(prop_0='', prop_6=1)
 
     def test_handle_from_to_dict_for_simple_builtin(self):
         struct0 = {'prop_0': 'value 0'}
@@ -228,6 +240,28 @@ class StructureModelBaseTestCase(unittest.TestCase):
 
         with self.assertRaises(TypeError):
             TestModel1.from_dict({'prop_0': '', 'prop_5': [val5.to_dict(), None]})
+
+    def test_handle_from_to_dict_for_open_generic_class(self):
+        value61 = "value 6 1"
+        struct61 = {'prop_0': '', 'prop_6': value61}
+        obj61 = TestModel1.from_dict(struct61)
+        self.assertEqual(obj61.prop_6, value61)
+        self.assertEqual(obj61.to_dict(), struct61)
+
+        value62 = ["value 6 2"]
+        struct62 = {'prop_0': '', 'prop_6': value62}
+        obj62 = TestModel1.from_dict(struct62)
+        self.assertEqual(obj62.prop_6, value62)
+        self.assertEqual(obj62.to_dict(), struct62)
+
+        value63 = {"key 6 3": "value 6 3"}
+        struct63 = {'prop_0': '', 'prop_6': value63}
+        obj63 = TestModel1.from_dict(struct63)
+        self.assertEqual(obj63.prop_6, value63)
+        self.assertEqual(obj63.to_dict(), struct63)
+
+        with self.assertRaises(TypeError):
+            TestModel1.from_dict({'prop_0': '', 'prop_6': 64})
 
 
     def test_handle_comparisons(self):

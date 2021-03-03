@@ -265,6 +265,29 @@
             "in": "query",
             "required": false,
             "type": "string"
+          },
+          {
+            "name": "resource_reference_key.type",
+            "description": "The type of the resource that referred to.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "UNKNOWN_RESOURCE_TYPE",
+              "EXPERIMENT",
+              "JOB",
+              "PIPELINE",
+              "PIPELINE_VERSION",
+              "NAMESPACE"
+            ],
+            "default": "UNKNOWN_RESOURCE_TYPE"
+          },
+          {
+            "name": "resource_reference_key.id",
+            "description": "The ID of the resource that referred to.",
+            "in": "query",
+            "required": false,
+            "type": "string"
           }
         ],
         "tags": [
@@ -396,6 +419,45 @@
           "PipelineService"
         ]
       }
+    },
+    "/apis/v1beta1/pipelines/{pipeline_id}/default_version/{version_id}": {
+      "post": {
+        "summary": "Update the default pipeline version of a specific pipeline.",
+        "operationId": "UpdatePipelineDefaultVersion",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "pipeline_id",
+            "description": "The ID of the pipeline to be updated.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "version_id",
+            "description": "The ID of the default version.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PipelineService"
+        ]
+      }
     }
   },
   "definitions": {
@@ -498,6 +560,13 @@
           "$ref": "#/definitions/apiPipelineVersion",
           "title": "Output only. The default version of the pipeline. As of now, the latest\nversion is used as default. (In the future, if desired by customers, we\ncan allow them to set default version.)",
           "readOnly": true
+        },
+        "resource_references": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiResourceReference"
+          },
+          "description": "Input field. Specify which resource this pipeline belongs to.\nFor Pipeline, the only valid resource reference is a single Namespace."
         }
       }
     },
@@ -537,7 +606,7 @@
           "items": {
             "$ref": "#/definitions/apiResourceReference"
           },
-          "description": "Input. Required. E.g., specify which pipeline this pipeline version belongs\nto."
+          "description": "Input field. Specify which resource this pipeline version belongs to.\nFor Experiment, the only valid resource reference is a single Namespace."
         }
       }
     },
@@ -623,7 +692,7 @@
       "properties": {
         "type_url": {
           "type": "string",
-          "description": "A URL/resource name that uniquely identifies the type of the serialized\nprotocol buffer message. The last segment of the URL's path must represent\nthe fully qualified name of the type (as in\n`path/google.protobuf.Duration`). The name should be in a canonical form\n(e.g., leading \".\" is not accepted).\n\nIn practice, teams usually precompile into the binary all types that they\nexpect it to use in the context of Any. However, for URLs which use the\nscheme `http`, `https`, or no scheme, one can optionally set up a type\nserver that maps type URLs to message definitions as follows:\n\n* If no scheme is provided, `https` is assumed.\n* An HTTP GET on the URL must yield a [google.protobuf.Type][]\n  value in binary format, or produce an error.\n* Applications are allowed to cache lookup results based on the\n  URL, or have them precompiled into a binary to avoid any\n  lookup. Therefore, binary compatibility needs to be preserved\n  on changes to types. (Use versioned type names to manage\n  breaking changes.)\n\nNote: this functionality is not currently available in the official\nprotobuf release, and it is not used for type URLs beginning with\ntype.googleapis.com.\n\nSchemes other than `http`, `https` (or the empty scheme) might be\nused with implementation specific semantics."
+          "description": "A URL/resource name that uniquely identifies the type of the serialized\nprotocol buffer message. This string must contain at least\none \"/\" character. The last segment of the URL's path must represent\nthe fully qualified name of the type (as in\n`path/google.protobuf.Duration`). The name should be in a canonical form\n(e.g., leading \".\" is not accepted).\n\nIn practice, teams usually precompile into the binary all types that they\nexpect it to use in the context of Any. However, for URLs which use the\nscheme `http`, `https`, or no scheme, one can optionally set up a type\nserver that maps type URLs to message definitions as follows:\n\n* If no scheme is provided, `https` is assumed.\n* An HTTP GET on the URL must yield a [google.protobuf.Type][]\n  value in binary format, or produce an error.\n* Applications are allowed to cache lookup results based on the\n  URL, or have them precompiled into a binary to avoid any\n  lookup. Therefore, binary compatibility needs to be preserved\n  on changes to types. (Use versioned type names to manage\n  breaking changes.)\n\nNote: this functionality is not currently available in the official\nprotobuf release, and it is not used for type URLs beginning with\ntype.googleapis.com.\n\nSchemes other than `http`, `https` (or the empty scheme) might be\nused with implementation specific semantics."
         },
         "value": {
           "type": "string",

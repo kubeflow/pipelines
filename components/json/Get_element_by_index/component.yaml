@@ -1,0 +1,24 @@
+name: Get element by index from JSON
+inputs:
+- {name: Json}
+- {name: Index, type: Integer}
+outputs:
+- {name: Output}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+implementation:
+  container:
+    image: stedolan/jq:latest
+    command:
+    - sh
+    - -exc
+    - |
+      input_path=$0
+      output_path=$1
+      index=$2
+      mkdir -p "$(dirname "$output_path")"
+      < "$input_path" jq --raw-output .["$index"] > "$output_path"
+    - {inputPath: Json}
+    - {outputPath: Output}
+    - {inputValue: Index}

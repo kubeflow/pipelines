@@ -19,6 +19,16 @@ import ml_metadata
 from time import sleep
 from ml_metadata.proto import metadata_store_pb2
 from ml_metadata.metadata_store import metadata_store
+from ipaddress import ip_address, IPv4Address 
+
+def value_to_mlmd_value(value) -> metadata_store_pb2.Value:
+    if value is None:
+        return metadata_store_pb2.Value()
+    if isinstance(value, int):
+        return metadata_store_pb2.Value(int_value=value)
+    if isinstance(value, float):
+        return metadata_store_pb2.Value(double_value=value)
+    return metadata_store_pb2.Value(string_value=str(value))
 
 
 def connect_to_mlmd() -> metadata_store.MetadataStore:
@@ -28,7 +38,7 @@ def connect_to_mlmd() -> metadata_store.MetadataStore:
         'METADATA_GRPC_SERVICE_SERVICE_PORT', 8080))
 
     mlmd_connection_config = metadata_store_pb2.MetadataStoreClientConfig(
-        host=metadata_service_host,
+        host=[metadata_service_host] if isIPv6(metadata_service_host) else metadata_service_host,
         port=metadata_service_port,
     )
 
@@ -278,6 +288,10 @@ def create_new_execution_in_existing_run_context(
     pipeline_name = pipeline_name or 'Context_' + str(context_id) + '_pipeline'
     run_id = run_id or 'Context_' + str(context_id) + '_run'
     instance_id = instance_id or execution_type_name
+    mlmd_custom_properties = {}
+    for property_name, property_value in (custom_properties or {}).items():
+        mlmd_custom_properties[property_name] = value_to_mlmd_value(property_value)
+    mlmd_custom_properties[KFP_POD_NAME_EXECUTION_PROPERTY_NAME] = metadata_store_pb2.Value(string_value=pod_name)
     return create_new_execution_in_existing_context(
         store=store,
         execution_type_name=execution_type_name,
@@ -293,9 +307,7 @@ def create_new_execution_in_existing_run_context(
             EXECUTION_RUN_ID_PROPERTY_NAME: metadata_store_pb2.Value(string_value=run_id),
             EXECUTION_COMPONENT_ID_PROPERTY_NAME: metadata_store_pb2.Value(string_value=instance_id), # should set to task ID, not component ID
         },
-        custom_properties={
-            KFP_POD_NAME_EXECUTION_PROPERTY_NAME: metadata_store_pb2.Value(string_value=pod_name),
-        },
+        custom_properties=mlmd_custom_properties,
     )
 
 
@@ -405,3 +417,12 @@ def create_new_output_artifact(
         custom_properties=custom_properties,
         #milliseconds_since_epoch=int(datetime.now(timezone.utc).timestamp() * 1000), # Happens automatically
     )
+
+def isIPv6(ip: str) -> bool: 
+    try: 
+        return False if type(ip_address(ip)) is IPv4Address else True
+    except Exception as e: 
+        print('Error: Exception:{}'.format(str(e)), file=sys.stderr)
+        sys.stderr.flush()
+
+

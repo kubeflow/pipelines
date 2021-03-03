@@ -16,6 +16,7 @@
 
 import { NodePhase } from './StatusUtils';
 import {
+  decodeCompressedNodes,
   enabledDisplayString,
   formatDateString,
   generateMinioArtifactUrl,
@@ -242,7 +243,7 @@ describe('Utils', () => {
   describe('generateMinioArtifactUrl', () => {
     it('handles minio:// URIs', () => {
       expect(generateMinioArtifactUrl('minio://my-bucket/a/b/c')).toBe(
-        'artifacts/get?source=minio&bucket=my-bucket&key=a%2Fb%2Fc',
+        'artifacts/minio/my-bucket/a/b/c',
       );
     });
 
@@ -257,8 +258,26 @@ describe('Utils', () => {
 
   describe('generateS3ArtifactUrl', () => {
     it('handles s3:// URIs', () => {
-      expect(generateS3ArtifactUrl('s3://my-bucket/a/b/c')).toBe(
-        'artifacts/get?source=s3&bucket=my-bucket&key=a%2Fb%2Fc',
+      expect(generateS3ArtifactUrl('s3://my-bucket/a/b/c')).toBe('artifacts/s3/my-bucket/a/b/c');
+    });
+  });
+
+  describe('decodeCompressedNodes', () => {
+    it('decompress encoded gzipped json', async () => {
+      let compressedNodes =
+        'H4sIAAAAAAACE6tWystPSS1WslKIrlbKS8xNBbLAQoZKOgpKmSlArmFtbC0A+U7xAicAAAA=';
+      expect(decodeCompressedNodes(compressedNodes)).resolves.toEqual({
+        nodes: [{ name: 'node1', id: 1 }],
+      });
+
+      compressedNodes = 'H4sIAAAAAAACE6tWystPSTVUslKoVspMAVJQfm0tAEBEv1kaAAAA';
+      expect(decodeCompressedNodes(compressedNodes)).resolves.toEqual({ node1: { id: 'node1' } });
+    });
+
+    it('raise exception if failed to decompress data', async () => {
+      let compressedNodes = 'I4sIAAAAAAACE6tWystPSS1WslKIrlxNBbLAQoZKOgpKmSlArmFtbC0A+U7xAicAAAA=';
+      await expect(decodeCompressedNodes(compressedNodes)).rejects.toEqual(
+        'failed to gunzip data Error: incorrect header check',
       );
     });
   });

@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,12 +19,12 @@ import os
 from google.cloud import storage
 from kfp_component.core import KfpExecutionContext
 from ._client import DataflowClient
-from ._common_ops import (wait_and_dump_job, stage_file, get_staging_location, 
+from ._common_ops import (wait_and_dump_job, stage_file, get_staging_location,
     read_job_id_and_location, upload_job_id_and_location)
 from ._process import Process
 from ..storage import parse_blob_path
 
-def launch_python(python_file_path, project_id, staging_dir=None, requirements_file_path=None, 
+def launch_python(python_file_path, project_id, region, staging_dir=None, requirements_file_path=None,
     args=[], wait_interval=30,
     job_id_output_path='/tmp/kfp/output/dataflow/job_id.txt',
     job_object_output_path='/tmp/kfp/output/dataflow/job.json',
@@ -33,12 +33,13 @@ def launch_python(python_file_path, project_id, staging_dir=None, requirements_f
 
     Args:
         python_file_path (str): The gcs or local path to the python file to run.
-        project_id (str): The ID of the parent project.
-        staging_dir (str): Optional. The GCS directory for keeping staging files. 
+        project_id (str): The ID of the GCP project to run the Dataflow job.
+        region (str): The GCP region to run the Dataflow job.
+        staging_dir (str): Optional. The GCS directory for keeping staging files.
             A random subdirectory will be created under the directory to keep job info
-            for resuming the job in case of failure and it will be passed as 
+            for resuming the job in case of failure and it will be passed as
             `staging_location` and `temp_location` command line args of the beam code.
-        requirements_file_path (str): Optional, the gcs or local path to the pip 
+        requirements_file_path (str): Optional, the gcs or local path to the pip
             requirements file.
         args (list): The list of args to pass to the python file.
         wait_interval (int): The wait seconds between polling.
@@ -70,7 +71,7 @@ def launch_python(python_file_path, project_id, staging_dir=None, requirements_f
 
         _install_requirements(requirements_file_path)
         python_file_path = stage_file(python_file_path)
-        cmd = _prepare_cmd(project_id, python_file_path, args, staging_location)
+        cmd = _prepare_cmd(project_id, region, python_file_path, args, staging_location)
         sub_process = Process(cmd)
         for line in sub_process.read_lines():
             job_id, location = _extract_job_id_and_location(line)
@@ -83,7 +84,7 @@ def launch_python(python_file_path, project_id, staging_dir=None, requirements_f
             logging.warning('No dataflow job was found when '
                 'running the python file.')
             return None
-        job = df_client.get_job(project_id, job_id, 
+        job = df_client.get_job(project_id, job_id,
             location=location)
         return wait_and_dump_job(df_client, project_id, location, job,
             wait_interval,
@@ -91,23 +92,24 @@ def launch_python(python_file_path, project_id, staging_dir=None, requirements_f
             job_object_output_path=job_object_output_path,
         )
 
-def _prepare_cmd(project_id, python_file_path, args, staging_location):
+def _prepare_cmd(project_id, region, python_file_path, args, staging_location):
     dataflow_args = [
-        '--runner', 'dataflow', 
-        '--project', project_id]
+        '--runner', 'DataflowRunner',
+        '--project', project_id,
+        '--region', region]
     if staging_location:
         dataflow_args += ['--staging_location', staging_location, '--temp_location', staging_location]
-    return (['python', '-u', python_file_path] + 
+    return (['python', '-u', python_file_path] +
         dataflow_args + args)
 
 def _extract_job_id_and_location(line):
     """Returns (job_id, location) from matched log.
     """
     job_id_pattern = re.compile(
-        br'.*console.cloud.google.com/dataflow.*/locations/([a-z|0-9|A-Z|\-|\_]+)/jobs/([a-z|0-9|A-Z|\-|\_]+).*')
+        br'.*console.cloud.google.com/dataflow/jobs/(?P<location>[a-z|0-9|A-Z|\-|\_]+)/(?P<job_id>[a-z|0-9|A-Z|\-|\_]+).*')
     matched_job_id = job_id_pattern.search(line or '')
     if matched_job_id:
-        return (matched_job_id.group(2).decode(), matched_job_id.group(1).decode())
+        return (matched_job_id.group('job_id').decode(), matched_job_id.group('location').decode())
     return (None, None)
 
 def _install_requirements(requirements_file_path):

@@ -15,7 +15,7 @@
 FROM envoyproxy/envoy:v1.12.2
 
 RUN apt-get update -y && \
-  apt-get install --no-install-recommends -y -q gettext
+  apt-get install --no-install-recommends -y -q gettext openssl
 
 COPY third_party/metadata_envoy/envoy.yaml /etc/envoy.yaml
 

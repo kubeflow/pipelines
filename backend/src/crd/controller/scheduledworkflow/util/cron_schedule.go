@@ -15,14 +15,18 @@
 package util
 
 import (
-	"math"
 	"time"
 
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	wraperror "github.com/pkg/errors"
 	"github.com/robfig/cron"
 	log "github.com/sirupsen/logrus"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+// The maximum time that can be used in time.Time
+// For more information check: https://stackoverflow.com/questions/25065055/what-is-the-maximum-time-time-in-go
+var maxTime = time.Unix(1<<63-62135596801, 999999999)
 
 // CronSchedule is a type to help manipulate CronSchedule objects.
 type CronSchedule struct {
@@ -40,63 +44,64 @@ func NewCronSchedule(cronSchedule *swfapi.CronSchedule) *CronSchedule {
 	}
 }
 
-// GetNextScheduledEpoch returns the next epoch at which a workflow must be
+// GetNextScheduledTime returns the next epoch at which a workflow must be
 // scheduled.
-func (s *CronSchedule) GetNextScheduledEpoch(lastJobEpoch *int64,
-	defaultStartEpoch int64) int64 {
-	effectiveLastJobEpoch := s.getEffectiveLastJobEpoch(lastJobEpoch, defaultStartEpoch)
-	return s.getNextScheduledEpoch(effectiveLastJobEpoch)
+func (s *CronSchedule) GetNextScheduledTime(lastJobTime *v1.Time,
+	defaultStartTime time.Time, location *time.Location) time.Time {
+	effectiveLastJobTime := s.getEffectiveLastJobTime(lastJobTime, defaultStartTime)
+	return s.getNextScheduledTime(effectiveLastJobTime, location)
 }
 
-func (s *CronSchedule) GetNextScheduledEpochNoCatchup(lastJobEpoch *int64,
-	defaultStartEpoch int64, nowEpoch int64) int64 {
+func (s *CronSchedule) GetNextScheduledTimeNoCatchup(lastJobTime *v1.Time,
+	defaultStartTime time.Time, nowTime time.Time, location *time.Location) time.Time {
 
-	effectiveLastJobEpoch := s.getEffectiveLastJobEpoch(lastJobEpoch, defaultStartEpoch)
-	return s.getNextScheduledEpochImp(effectiveLastJobEpoch, false, nowEpoch)
+	effectiveLastJobTime := s.getEffectiveLastJobTime(lastJobTime, defaultStartTime)
+	return s.getNextScheduledTimeImp(effectiveLastJobTime, false, nowTime, location)
 }
 
-func (s *CronSchedule) getEffectiveLastJobEpoch(lastJobEpoch *int64,
-	defaultStartEpoch int64) int64 {
+func (s *CronSchedule) getEffectiveLastJobTime(lastJobTime *v1.Time,
+	defaultStartTime time.Time) time.Time {
 
 	// Fallback to default start epoch, which will be passed the Job creation
 	// time.
-	effectiveLastJobEpoch := defaultStartEpoch
-	if lastJobEpoch != nil {
+	effectiveLastJobTime := defaultStartTime
+	if lastJobTime != nil {
 		// Last job epoch takes first precedence.
-		effectiveLastJobEpoch = *lastJobEpoch
+		effectiveLastJobTime = lastJobTime.Time
 	} else if s.StartTime != nil {
 		// Start time takes second precedence.
-		effectiveLastJobEpoch = s.StartTime.Unix()
+		effectiveLastJobTime = s.StartTime.Time
 	}
-	return effectiveLastJobEpoch
+	return effectiveLastJobTime
 }
 
-func (s *CronSchedule) getNextScheduledEpoch(lastJobEpoch int64) int64 {
-	return s.getNextScheduledEpochImp(lastJobEpoch,
-		true, 0 /* nowEpoch doesn't matter when catchup=true */)
+func (s *CronSchedule) getNextScheduledTime(lastJobTime time.Time, location *time.Location) time.Time {
+	return s.getNextScheduledTimeImp(lastJobTime,
+		true /* nowEpoch doesn't matter when catchup=true */, time.Unix(0, 0), location)
 }
 
-func (s *CronSchedule) getNextScheduledEpochImp(lastJobEpoch int64, catchup bool, nowEpoch int64) int64 {
+func (s *CronSchedule) getNextScheduledTimeImp(lastJobTime time.Time, catchup bool, nowTime time.Time, location *time.Location) time.Time {
 	schedule, err := cron.Parse(s.Cron)
 	if err != nil {
 		// This should never happen, validation should have caught this at resource creation.
 		log.Errorf("%+v", wraperror.Errorf(
 			"Found invalid schedule (%v): %v", s.Cron, err))
-		return math.MaxInt64
+		return maxTime.In(location)
 	}
 
-	startEpoch := lastJobEpoch
-	if s.StartTime != nil && s.StartTime.Unix() > startEpoch {
-		startEpoch = s.StartTime.Unix()
+	startTime := lastJobTime
+	if s.StartTime != nil && s.StartTime.Time.After(startTime) {
+		startTime = s.StartTime.Time
 	}
-	result := schedule.Next(time.Unix(startEpoch, 0).UTC()).Unix()
 
-	var endTime int64 = math.MaxInt64
+	result := schedule.Next(startTime.In(location))
+	var endTime time.Time = maxTime
 	if s.EndTime != nil {
-		endTime = s.EndTime.Unix()
+		endTime = s.EndTime.Time
 	}
-	if endTime < result {
-		return math.MaxInt64
+
+	if endTime.Before(result) {
+		return maxTime.In(location)
 	}
 
 	// When we need to catch up with schedule, just run schedules one by one.
@@ -107,10 +112,10 @@ func (s *CronSchedule) getNextScheduledEpochImp(lastJobEpoch int64, catchup bool
 	// When we don't need to catch up, find the last schedule we need to run
 	// now and skip others in between.
 	next := result
-	var nextNext int64
+	var nextNext time.Time
 	for {
-		nextNext = schedule.Next(time.Unix(next, 0).UTC()).Unix()
-		if nextNext <= nowEpoch && nextNext <= endTime {
+		nextNext = schedule.Next(next)
+		if !nextNext.After(nowTime) && !nextNext.After(endTime) {
 			next = nextNext
 		} else {
 			break

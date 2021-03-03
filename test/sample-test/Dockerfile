@@ -1,6 +1,6 @@
 # This image has the script to kick off the ML pipeline sample e2e test,
 
-FROM google/cloud-sdk:279.0.0
+FROM google/cloud-sdk:315.0.0
 
 RUN apt-get update -y
 RUN apt-get install --no-install-recommends -y -q libssl-dev libffi-dev wget ssh
@@ -10,6 +10,10 @@ RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
 
 COPY ./test/sample-test/requirements.txt /python/src/github.com/kubeflow/pipelines/test/sample-test/requirements.txt
 RUN pip3 install -r /python/src/github.com/kubeflow/pipelines/test/sample-test/requirements.txt
+
+# Install KFP server API from commit.
+COPY ./backend/api/python_http_client /python_http_client
+RUN cd /python_http_client && python3 setup.py install
 
 # Install python client, including DSL compiler.
 COPY ./sdk/python /sdk/python

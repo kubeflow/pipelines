@@ -1,5 +1,7 @@
 FROM python:3.7
 COPY ./train.py .
-RUN pip install pandas==0.25.1
-RUN pip install gcsfs numpy matplotlib seaborn sklearn
+COPY requirements.txt .
+RUN python3 -m pip install -r \
+    requirements.txt --quiet --no-cache-dir \
+    && rm -f requirements.txt
 CMD ["python", "train.py"]

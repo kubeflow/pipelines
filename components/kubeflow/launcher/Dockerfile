@@ -11,12 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM ubuntu:16.04
 
-RUN apt-get update -y && \
-    apt-get install --no-install-recommends -y -q ca-certificates python-dev python-setuptools wget && \
-    easy_install pip && \
-    pip install pyyaml==3.12 kubernetes
+FROM python:3.6
+
+COPY requirements.txt .
+RUN python3 -m pip install -r \
+    requirements.txt --quiet --no-cache-dir \
+    && rm -f requirements.txt
 
 ADD build /ml
 

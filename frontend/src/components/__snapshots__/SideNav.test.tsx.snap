@@ -83,6 +83,35 @@ exports[`SideNav populates the display build information using the response from
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
+      title="Runs List"
+    >
+      <Link
+        className="unstyled"
+        id="runsBtn"
+        replace={false}
+        to="/runs"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(DirectionsRunIcon) />
+          <span
+            className="label"
+          >
+            Runs
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
       title="Artifacts List"
     >
       <Link
@@ -135,45 +164,6 @@ exports[`SideNav populates the display build information using the response from
     <hr
       className="separator"
     />
-    <div
-      className="indicator indicatorHidden"
-    />
-    <WithStyles(Tooltip)
-      disableFocusListener={true}
-      disableHoverListener={true}
-      disableTouchListener={true}
-      enterDelay={300}
-      placement="right-start"
-      title="Archive"
-    >
-      <Link
-        className="unstyled"
-        id="archiveBtn"
-        replace={false}
-        to="/archive/runs"
-      >
-        <WithStyles(Button)
-          className="button"
-        >
-          <pure(ArchiveIcon)
-            style={
-              Object {
-                "height": 20,
-                "width": 20,
-              }
-            }
-          />
-          <span
-            className="label"
-          >
-            Archive
-          </span>
-        </WithStyles(Button)>
-      </Link>
-    </WithStyles(Tooltip)>
-    <hr
-      className="separator"
-    />
     <ExternalUri
       collapsed={false}
       icon={[Function]}
@@ -185,12 +175,6 @@ exports[`SideNav populates the display build information using the response from
       icon={[Function]}
       title="Github Repo"
       to="https://github.com/kubeflow/pipelines"
-    />
-    <ExternalUri
-      collapsed={false}
-      icon={[Function]}
-      title="AI Hub Samples"
-      to="https://aihub.cloud.google.com/u/0/s?category=pipeline"
     />
     <hr
       className="separator"
@@ -236,7 +220,7 @@ exports[`SideNav populates the display build information using the response from
       >
         <a
           className="link unstyled"
-          href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+          href="https://github.com/kubeflow/pipelines/issues/new/choose"
           rel="noopener"
           target="_blank"
         >
@@ -331,6 +315,35 @@ exports[`SideNav renders Pipelines as active page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
+      title="Runs List"
+    >
+      <Link
+        className="unstyled"
+        id="runsBtn"
+        replace={false}
+        to="/runs"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(DirectionsRunIcon) />
+          <span
+            className="label"
+          >
+            Runs
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
       title="Artifacts List"
     >
       <Link
@@ -383,45 +396,6 @@ exports[`SideNav renders Pipelines as active page 1`] = `
     <hr
       className="separator"
     />
-    <div
-      className="indicator indicatorHidden"
-    />
-    <WithStyles(Tooltip)
-      disableFocusListener={true}
-      disableHoverListener={true}
-      disableTouchListener={true}
-      enterDelay={300}
-      placement="right-start"
-      title="Archive"
-    >
-      <Link
-        className="unstyled"
-        id="archiveBtn"
-        replace={false}
-        to="/archive/runs"
-      >
-        <WithStyles(Button)
-          className="button"
-        >
-          <pure(ArchiveIcon)
-            style={
-              Object {
-                "height": 20,
-                "width": 20,
-              }
-            }
-          />
-          <span
-            className="label"
-          >
-            Archive
-          </span>
-        </WithStyles(Button)>
-      </Link>
-    </WithStyles(Tooltip)>
-    <hr
-      className="separator"
-    />
     <ExternalUri
       collapsed={false}
       icon={[Function]}
@@ -433,12 +407,6 @@ exports[`SideNav renders Pipelines as active page 1`] = `
       icon={[Function]}
       title="Github Repo"
       to="https://github.com/kubeflow/pipelines"
-    />
-    <ExternalUri
-      collapsed={false}
-      icon={[Function]}
-      title="AI Hub Samples"
-      to="https://aihub.cloud.google.com/u/0/s?category=pipeline"
     />
     <hr
       className="separator"
@@ -463,7 +431,7 @@ exports[`SideNav renders Pipelines as active page 1`] = `
       >
         <a
           className="link unstyled"
-          href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+          href="https://github.com/kubeflow/pipelines/issues/new/choose"
           rel="noopener"
           target="_blank"
         >
@@ -558,6 +526,35 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
+      title="Runs List"
+    >
+      <Link
+        className="unstyled"
+        id="runsBtn"
+        replace={false}
+        to="/runs"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(DirectionsRunIcon) />
+          <span
+            className="label"
+          >
+            Runs
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
       title="Artifacts List"
     >
       <Link
@@ -610,45 +607,6 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
     <hr
       className="separator"
     />
-    <div
-      className="indicator indicatorHidden"
-    />
-    <WithStyles(Tooltip)
-      disableFocusListener={true}
-      disableHoverListener={true}
-      disableTouchListener={true}
-      enterDelay={300}
-      placement="right-start"
-      title="Archive"
-    >
-      <Link
-        className="unstyled"
-        id="archiveBtn"
-        replace={false}
-        to="/archive/runs"
-      >
-        <WithStyles(Button)
-          className="button"
-        >
-          <pure(ArchiveIcon)
-            style={
-              Object {
-                "height": 20,
-                "width": 20,
-              }
-            }
-          />
-          <span
-            className="label"
-          >
-            Archive
-          </span>
-        </WithStyles(Button)>
-      </Link>
-    </WithStyles(Tooltip)>
-    <hr
-      className="separator"
-    />
     <ExternalUri
       collapsed={false}
       icon={[Function]}
@@ -660,12 +618,6 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
       icon={[Function]}
       title="Github Repo"
       to="https://github.com/kubeflow/pipelines"
-    />
-    <ExternalUri
-      collapsed={false}
-      icon={[Function]}
-      title="AI Hub Samples"
-      to="https://aihub.cloud.google.com/u/0/s?category=pipeline"
     />
     <hr
       className="separator"
@@ -690,7 +642,7 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
       >
         <a
           className="link unstyled"
-          href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+          href="https://github.com/kubeflow/pipelines/issues/new/choose"
           rel="noopener"
           target="_blank"
         >
@@ -785,6 +737,35 @@ exports[`SideNav renders collapsed state 1`] = `
       disableTouchListener={false}
       enterDelay={300}
       placement="right-start"
+      title="Runs List"
+    >
+      <Link
+        className="unstyled"
+        id="runsBtn"
+        replace={false}
+        to="/runs"
+      >
+        <WithStyles(Button)
+          className="button collapsedButton"
+        >
+          <pure(DirectionsRunIcon) />
+          <span
+            className="collapsedLabel label"
+          >
+            Runs
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={false}
+      disableHoverListener={false}
+      disableTouchListener={false}
+      enterDelay={300}
+      placement="right-start"
       title="Artifacts List"
     >
       <Link
@@ -837,45 +818,6 @@ exports[`SideNav renders collapsed state 1`] = `
     <hr
       className="separator collapsedSeparator"
     />
-    <div
-      className="indicator indicatorHidden"
-    />
-    <WithStyles(Tooltip)
-      disableFocusListener={false}
-      disableHoverListener={false}
-      disableTouchListener={false}
-      enterDelay={300}
-      placement="right-start"
-      title="Archive"
-    >
-      <Link
-        className="unstyled"
-        id="archiveBtn"
-        replace={false}
-        to="/archive/runs"
-      >
-        <WithStyles(Button)
-          className="button collapsedButton"
-        >
-          <pure(ArchiveIcon)
-            style={
-              Object {
-                "height": 20,
-                "width": 20,
-              }
-            }
-          />
-          <span
-            className="collapsedLabel label"
-          >
-            Archive
-          </span>
-        </WithStyles(Button)>
-      </Link>
-    </WithStyles(Tooltip)>
-    <hr
-      className="separator collapsedSeparator"
-    />
     <ExternalUri
       collapsed={true}
       icon={[Function]}
@@ -887,12 +829,6 @@ exports[`SideNav renders collapsed state 1`] = `
       icon={[Function]}
       title="Github Repo"
       to="https://github.com/kubeflow/pipelines"
-    />
-    <ExternalUri
-      collapsed={true}
-      icon={[Function]}
-      title="AI Hub Samples"
-      to="https://aihub.cloud.google.com/u/0/s?category=pipeline"
     />
     <hr
       className="separator collapsedSeparator"
@@ -917,7 +853,7 @@ exports[`SideNav renders collapsed state 1`] = `
       >
         <a
           className="link unstyled"
-          href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+          href="https://github.com/kubeflow/pipelines/issues/new/choose"
           rel="noopener"
           target="_blank"
         >
@@ -1012,6 +948,35 @@ exports[`SideNav renders expanded state 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
+      title="Runs List"
+    >
+      <Link
+        className="unstyled"
+        id="runsBtn"
+        replace={false}
+        to="/runs"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(DirectionsRunIcon) />
+          <span
+            className="label"
+          >
+            Runs
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
       title="Artifacts List"
     >
       <Link
@@ -1064,45 +1029,6 @@ exports[`SideNav renders expanded state 1`] = `
     <hr
       className="separator"
     />
-    <div
-      className="indicator indicatorHidden"
-    />
-    <WithStyles(Tooltip)
-      disableFocusListener={true}
-      disableHoverListener={true}
-      disableTouchListener={true}
-      enterDelay={300}
-      placement="right-start"
-      title="Archive"
-    >
-      <Link
-        className="unstyled"
-        id="archiveBtn"
-        replace={false}
-        to="/archive/runs"
-      >
-        <WithStyles(Button)
-          className="button"
-        >
-          <pure(ArchiveIcon)
-            style={
-              Object {
-                "height": 20,
-                "width": 20,
-              }
-            }
-          />
-          <span
-            className="label"
-          >
-            Archive
-          </span>
-        </WithStyles(Button)>
-      </Link>
-    </WithStyles(Tooltip)>
-    <hr
-      className="separator"
-    />
     <ExternalUri
       collapsed={false}
       icon={[Function]}
@@ -1114,12 +1040,6 @@ exports[`SideNav renders expanded state 1`] = `
       icon={[Function]}
       title="Github Repo"
       to="https://github.com/kubeflow/pipelines"
-    />
-    <ExternalUri
-      collapsed={false}
-      icon={[Function]}
-      title="AI Hub Samples"
-      to="https://aihub.cloud.google.com/u/0/s?category=pipeline"
     />
     <hr
       className="separator"
@@ -1144,7 +1064,7 @@ exports[`SideNav renders expanded state 1`] = `
       >
         <a
           className="link unstyled"
-          href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+          href="https://github.com/kubeflow/pipelines/issues/new/choose"
           rel="noopener"
           target="_blank"
         >
@@ -1239,6 +1159,35 @@ exports[`SideNav renders experiments as active page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
+      title="Runs List"
+    >
+      <Link
+        className="unstyled"
+        id="runsBtn"
+        replace={false}
+        to="/runs"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(DirectionsRunIcon) />
+          <span
+            className="label"
+          >
+            Runs
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
       title="Artifacts List"
     >
       <Link
@@ -1291,45 +1240,6 @@ exports[`SideNav renders experiments as active page 1`] = `
     <hr
       className="separator"
     />
-    <div
-      className="indicator indicatorHidden"
-    />
-    <WithStyles(Tooltip)
-      disableFocusListener={true}
-      disableHoverListener={true}
-      disableTouchListener={true}
-      enterDelay={300}
-      placement="right-start"
-      title="Archive"
-    >
-      <Link
-        className="unstyled"
-        id="archiveBtn"
-        replace={false}
-        to="/archive/runs"
-      >
-        <WithStyles(Button)
-          className="button"
-        >
-          <pure(ArchiveIcon)
-            style={
-              Object {
-                "height": 20,
-                "width": 20,
-              }
-            }
-          />
-          <span
-            className="label"
-          >
-            Archive
-          </span>
-        </WithStyles(Button)>
-      </Link>
-    </WithStyles(Tooltip)>
-    <hr
-      className="separator"
-    />
     <ExternalUri
       collapsed={false}
       icon={[Function]}
@@ -1341,12 +1251,6 @@ exports[`SideNav renders experiments as active page 1`] = `
       icon={[Function]}
       title="Github Repo"
       to="https://github.com/kubeflow/pipelines"
-    />
-    <ExternalUri
-      collapsed={false}
-      icon={[Function]}
-      title="AI Hub Samples"
-      to="https://aihub.cloud.google.com/u/0/s?category=pipeline"
     />
     <hr
       className="separator"
@@ -1371,7 +1275,7 @@ exports[`SideNav renders experiments as active page 1`] = `
       >
         <a
           className="link unstyled"
-          href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+          href="https://github.com/kubeflow/pipelines/issues/new/choose"
           rel="noopener"
           target="_blank"
         >
@@ -1427,7 +1331,7 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
       </Link>
     </WithStyles(Tooltip)>
     <div
-      className="indicator"
+      className="indicator indicatorHidden"
     />
     <WithStyles(Tooltip)
       disableFocusListener={true}
@@ -1444,15 +1348,44 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
         to="/experiments"
       >
         <WithStyles(Button)
-          className="button active"
+          className="button"
         >
           <ExperimentsIcon
-            color="#0d6de7"
+            color="#9aa0a6"
           />
           <span
             className="label"
           >
             Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Runs List"
+    >
+      <Link
+        className="unstyled"
+        id="runsBtn"
+        replace={false}
+        to="/runs"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <pure(DirectionsRunIcon) />
+          <span
+            className="label"
+          >
+            Runs
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1518,45 +1451,6 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
     <hr
       className="separator"
     />
-    <div
-      className="indicator indicatorHidden"
-    />
-    <WithStyles(Tooltip)
-      disableFocusListener={true}
-      disableHoverListener={true}
-      disableTouchListener={true}
-      enterDelay={300}
-      placement="right-start"
-      title="Archive"
-    >
-      <Link
-        className="unstyled"
-        id="archiveBtn"
-        replace={false}
-        to="/archive/runs"
-      >
-        <WithStyles(Button)
-          className="button"
-        >
-          <pure(ArchiveIcon)
-            style={
-              Object {
-                "height": 20,
-                "width": 20,
-              }
-            }
-          />
-          <span
-            className="label"
-          >
-            Archive
-          </span>
-        </WithStyles(Button)>
-      </Link>
-    </WithStyles(Tooltip)>
-    <hr
-      className="separator"
-    />
     <ExternalUri
       collapsed={false}
       icon={[Function]}
@@ -1568,12 +1462,6 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
       icon={[Function]}
       title="Github Repo"
       to="https://github.com/kubeflow/pipelines"
-    />
-    <ExternalUri
-      collapsed={false}
-      icon={[Function]}
-      title="AI Hub Samples"
-      to="https://aihub.cloud.google.com/u/0/s?category=pipeline"
     />
     <hr
       className="separator"
@@ -1598,7 +1486,7 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
       >
         <a
           className="link unstyled"
-          href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+          href="https://github.com/kubeflow/pipelines/issues/new/choose"
           rel="noopener"
           target="_blank"
         >
@@ -1654,7 +1542,7 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
       </Link>
     </WithStyles(Tooltip)>
     <div
-      className="indicator"
+      className="indicator indicatorHidden"
     />
     <WithStyles(Tooltip)
       disableFocusListener={true}
@@ -1671,15 +1559,44 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
         to="/experiments"
       >
         <WithStyles(Button)
-          className="button active"
+          className="button"
         >
           <ExperimentsIcon
-            color="#0d6de7"
+            color="#9aa0a6"
           />
           <span
             className="label"
           >
             Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Runs List"
+    >
+      <Link
+        className="unstyled"
+        id="runsBtn"
+        replace={false}
+        to="/runs"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <pure(DirectionsRunIcon) />
+          <span
+            className="label"
+          >
+            Runs
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1745,45 +1662,6 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
     <hr
       className="separator"
     />
-    <div
-      className="indicator indicatorHidden"
-    />
-    <WithStyles(Tooltip)
-      disableFocusListener={true}
-      disableHoverListener={true}
-      disableTouchListener={true}
-      enterDelay={300}
-      placement="right-start"
-      title="Archive"
-    >
-      <Link
-        className="unstyled"
-        id="archiveBtn"
-        replace={false}
-        to="/archive/runs"
-      >
-        <WithStyles(Button)
-          className="button"
-        >
-          <pure(ArchiveIcon)
-            style={
-              Object {
-                "height": 20,
-                "width": 20,
-              }
-            }
-          />
-          <span
-            className="label"
-          >
-            Archive
-          </span>
-        </WithStyles(Button)>
-      </Link>
-    </WithStyles(Tooltip)>
-    <hr
-      className="separator"
-    />
     <ExternalUri
       collapsed={false}
       icon={[Function]}
@@ -1795,12 +1673,6 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
       icon={[Function]}
       title="Github Repo"
       to="https://github.com/kubeflow/pipelines"
-    />
-    <ExternalUri
-      collapsed={false}
-      icon={[Function]}
-      title="AI Hub Samples"
-      to="https://aihub.cloud.google.com/u/0/s?category=pipeline"
     />
     <hr
       className="separator"
@@ -1825,7 +1697,7 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
       >
         <a
           className="link unstyled"
-          href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+          href="https://github.com/kubeflow/pipelines/issues/new/choose"
           rel="noopener"
           target="_blank"
         >
@@ -1920,6 +1792,35 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
+      title="Runs List"
+    >
+      <Link
+        className="unstyled"
+        id="runsBtn"
+        replace={false}
+        to="/runs"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(DirectionsRunIcon) />
+          <span
+            className="label"
+          >
+            Runs
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
       title="Artifacts List"
     >
       <Link
@@ -1972,45 +1873,6 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
     <hr
       className="separator"
     />
-    <div
-      className="indicator indicatorHidden"
-    />
-    <WithStyles(Tooltip)
-      disableFocusListener={true}
-      disableHoverListener={true}
-      disableTouchListener={true}
-      enterDelay={300}
-      placement="right-start"
-      title="Archive"
-    >
-      <Link
-        className="unstyled"
-        id="archiveBtn"
-        replace={false}
-        to="/archive/runs"
-      >
-        <WithStyles(Button)
-          className="button"
-        >
-          <pure(ArchiveIcon)
-            style={
-              Object {
-                "height": 20,
-                "width": 20,
-              }
-            }
-          />
-          <span
-            className="label"
-          >
-            Archive
-          </span>
-        </WithStyles(Button)>
-      </Link>
-    </WithStyles(Tooltip)>
-    <hr
-      className="separator"
-    />
     <ExternalUri
       collapsed={false}
       icon={[Function]}
@@ -2022,12 +1884,6 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
       icon={[Function]}
       title="Github Repo"
       to="https://github.com/kubeflow/pipelines"
-    />
-    <ExternalUri
-      collapsed={false}
-      icon={[Function]}
-      title="AI Hub Samples"
-      to="https://aihub.cloud.google.com/u/0/s?category=pipeline"
     />
     <hr
       className="separator"
@@ -2052,7 +1908,7 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
       >
         <a
           className="link unstyled"
-          href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+          href="https://github.com/kubeflow/pipelines/issues/new/choose"
           rel="noopener"
           target="_blank"
         >
@@ -2108,7 +1964,7 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
       </Link>
     </WithStyles(Tooltip)>
     <div
-      className="indicator"
+      className="indicator indicatorHidden"
     />
     <WithStyles(Tooltip)
       disableFocusListener={true}
@@ -2125,15 +1981,44 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
         to="/experiments"
       >
         <WithStyles(Button)
-          className="button active"
+          className="button"
         >
           <ExperimentsIcon
-            color="#0d6de7"
+            color="#9aa0a6"
           />
           <span
             className="label"
           >
             Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Runs List"
+    >
+      <Link
+        className="unstyled"
+        id="runsBtn"
+        replace={false}
+        to="/runs"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <pure(DirectionsRunIcon) />
+          <span
+            className="label"
+          >
+            Runs
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2199,45 +2084,6 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
     <hr
       className="separator"
     />
-    <div
-      className="indicator indicatorHidden"
-    />
-    <WithStyles(Tooltip)
-      disableFocusListener={true}
-      disableHoverListener={true}
-      disableTouchListener={true}
-      enterDelay={300}
-      placement="right-start"
-      title="Archive"
-    >
-      <Link
-        className="unstyled"
-        id="archiveBtn"
-        replace={false}
-        to="/archive/runs"
-      >
-        <WithStyles(Button)
-          className="button"
-        >
-          <pure(ArchiveIcon)
-            style={
-              Object {
-                "height": 20,
-                "width": 20,
-              }
-            }
-          />
-          <span
-            className="label"
-          >
-            Archive
-          </span>
-        </WithStyles(Button)>
-      </Link>
-    </WithStyles(Tooltip)>
-    <hr
-      className="separator"
-    />
     <ExternalUri
       collapsed={false}
       icon={[Function]}
@@ -2249,12 +2095,6 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
       icon={[Function]}
       title="Github Repo"
       to="https://github.com/kubeflow/pipelines"
-    />
-    <ExternalUri
-      collapsed={false}
-      icon={[Function]}
-      title="AI Hub Samples"
-      to="https://aihub.cloud.google.com/u/0/s?category=pipeline"
     />
     <hr
       className="separator"
@@ -2279,7 +2119,7 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
       >
         <a
           className="link unstyled"
-          href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+          href="https://github.com/kubeflow/pipelines/issues/new/choose"
           rel="noopener"
           target="_blank"
         >
@@ -2335,7 +2175,7 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
       </Link>
     </WithStyles(Tooltip)>
     <div
-      className="indicator"
+      className="indicator indicatorHidden"
     />
     <WithStyles(Tooltip)
       disableFocusListener={true}
@@ -2352,15 +2192,44 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
         to="/experiments"
       >
         <WithStyles(Button)
-          className="button active"
+          className="button"
         >
           <ExperimentsIcon
-            color="#0d6de7"
+            color="#9aa0a6"
           />
           <span
             className="label"
           >
             Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Runs List"
+    >
+      <Link
+        className="unstyled"
+        id="runsBtn"
+        replace={false}
+        to="/runs"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <pure(DirectionsRunIcon) />
+          <span
+            className="label"
+          >
+            Runs
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2426,45 +2295,6 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
     <hr
       className="separator"
     />
-    <div
-      className="indicator indicatorHidden"
-    />
-    <WithStyles(Tooltip)
-      disableFocusListener={true}
-      disableHoverListener={true}
-      disableTouchListener={true}
-      enterDelay={300}
-      placement="right-start"
-      title="Archive"
-    >
-      <Link
-        className="unstyled"
-        id="archiveBtn"
-        replace={false}
-        to="/archive/runs"
-      >
-        <WithStyles(Button)
-          className="button"
-        >
-          <pure(ArchiveIcon)
-            style={
-              Object {
-                "height": 20,
-                "width": 20,
-              }
-            }
-          />
-          <span
-            className="label"
-          >
-            Archive
-          </span>
-        </WithStyles(Button)>
-      </Link>
-    </WithStyles(Tooltip)>
-    <hr
-      className="separator"
-    />
     <ExternalUri
       collapsed={false}
       icon={[Function]}
@@ -2476,12 +2306,6 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
       icon={[Function]}
       title="Github Repo"
       to="https://github.com/kubeflow/pipelines"
-    />
-    <ExternalUri
-      collapsed={false}
-      icon={[Function]}
-      title="AI Hub Samples"
-      to="https://aihub.cloud.google.com/u/0/s?category=pipeline"
     />
     <hr
       className="separator"
@@ -2506,7 +2330,7 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
       >
         <a
           className="link unstyled"
-          href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+          href="https://github.com/kubeflow/pipelines/issues/new/choose"
           rel="noopener"
           target="_blank"
         >
@@ -2562,7 +2386,7 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
       </Link>
     </WithStyles(Tooltip)>
     <div
-      className="indicator"
+      className="indicator indicatorHidden"
     />
     <WithStyles(Tooltip)
       disableFocusListener={true}
@@ -2579,15 +2403,44 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
         to="/experiments"
       >
         <WithStyles(Button)
-          className="button active"
+          className="button"
         >
           <ExperimentsIcon
-            color="#0d6de7"
+            color="#9aa0a6"
           />
           <span
             className="label"
           >
             Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Runs List"
+    >
+      <Link
+        className="unstyled"
+        id="runsBtn"
+        replace={false}
+        to="/runs"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <pure(DirectionsRunIcon) />
+          <span
+            className="label"
+          >
+            Runs
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2653,45 +2506,6 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
     <hr
       className="separator"
     />
-    <div
-      className="indicator indicatorHidden"
-    />
-    <WithStyles(Tooltip)
-      disableFocusListener={true}
-      disableHoverListener={true}
-      disableTouchListener={true}
-      enterDelay={300}
-      placement="right-start"
-      title="Archive"
-    >
-      <Link
-        className="unstyled"
-        id="archiveBtn"
-        replace={false}
-        to="/archive/runs"
-      >
-        <WithStyles(Button)
-          className="button"
-        >
-          <pure(ArchiveIcon)
-            style={
-              Object {
-                "height": 20,
-                "width": 20,
-              }
-            }
-          />
-          <span
-            className="label"
-          >
-            Archive
-          </span>
-        </WithStyles(Button)>
-      </Link>
-    </WithStyles(Tooltip)>
-    <hr
-      className="separator"
-    />
     <ExternalUri
       collapsed={false}
       icon={[Function]}
@@ -2703,12 +2517,6 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
       icon={[Function]}
       title="Github Repo"
       to="https://github.com/kubeflow/pipelines"
-    />
-    <ExternalUri
-      collapsed={false}
-      icon={[Function]}
-      title="AI Hub Samples"
-      to="https://aihub.cloud.google.com/u/0/s?category=pipeline"
     />
     <hr
       className="separator"
@@ -2733,7 +2541,7 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
       >
         <a
           className="link unstyled"
-          href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+          href="https://github.com/kubeflow/pipelines/issues/new/choose"
           rel="noopener"
           target="_blank"
         >
@@ -2828,6 +2636,35 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
+      title="Runs List"
+    >
+      <Link
+        className="unstyled"
+        id="runsBtn"
+        replace={false}
+        to="/runs"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(DirectionsRunIcon) />
+          <span
+            className="label"
+          >
+            Runs
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
       title="Artifacts List"
     >
       <Link
@@ -2880,45 +2717,6 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
     <hr
       className="separator"
     />
-    <div
-      className="indicator indicatorHidden"
-    />
-    <WithStyles(Tooltip)
-      disableFocusListener={true}
-      disableHoverListener={true}
-      disableTouchListener={true}
-      enterDelay={300}
-      placement="right-start"
-      title="Archive"
-    >
-      <Link
-        className="unstyled"
-        id="archiveBtn"
-        replace={false}
-        to="/archive/runs"
-      >
-        <WithStyles(Button)
-          className="button"
-        >
-          <pure(ArchiveIcon)
-            style={
-              Object {
-                "height": 20,
-                "width": 20,
-              }
-            }
-          />
-          <span
-            className="label"
-          >
-            Archive
-          </span>
-        </WithStyles(Button)>
-      </Link>
-    </WithStyles(Tooltip)>
-    <hr
-      className="separator"
-    />
     <ExternalUri
       collapsed={false}
       icon={[Function]}
@@ -2930,12 +2728,6 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
       icon={[Function]}
       title="Github Repo"
       to="https://github.com/kubeflow/pipelines"
-    />
-    <ExternalUri
-      collapsed={false}
-      icon={[Function]}
-      title="AI Hub Samples"
-      to="https://aihub.cloud.google.com/u/0/s?category=pipeline"
     />
     <hr
       className="separator"
@@ -2960,7 +2752,7 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
       >
         <a
           className="link unstyled"
-          href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+          href="https://github.com/kubeflow/pipelines/issues/new/choose"
           rel="noopener"
           target="_blank"
         >
@@ -3016,7 +2808,7 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
       </Link>
     </WithStyles(Tooltip)>
     <div
-      className="indicator"
+      className="indicator indicatorHidden"
     />
     <WithStyles(Tooltip)
       disableFocusListener={true}
@@ -3033,15 +2825,44 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
         to="/experiments"
       >
         <WithStyles(Button)
-          className="button active"
+          className="button"
         >
           <ExperimentsIcon
-            color="#0d6de7"
+            color="#9aa0a6"
           />
           <span
             className="label"
           >
             Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Runs List"
+    >
+      <Link
+        className="unstyled"
+        id="runsBtn"
+        replace={false}
+        to="/runs"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <pure(DirectionsRunIcon) />
+          <span
+            className="label"
+          >
+            Runs
           </span>
         </WithStyles(Button)>
       </Link>
@@ -3144,45 +2965,6 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
     <hr
       className="separator"
     />
-    <div
-      className="indicator indicatorHidden"
-    />
-    <WithStyles(Tooltip)
-      disableFocusListener={true}
-      disableHoverListener={true}
-      disableTouchListener={true}
-      enterDelay={300}
-      placement="right-start"
-      title="Archive"
-    >
-      <Link
-        className="unstyled"
-        id="archiveBtn"
-        replace={false}
-        to="/archive/runs"
-      >
-        <WithStyles(Button)
-          className="button"
-        >
-          <pure(ArchiveIcon)
-            style={
-              Object {
-                "height": 20,
-                "width": 20,
-              }
-            }
-          />
-          <span
-            className="label"
-          >
-            Archive
-          </span>
-        </WithStyles(Button)>
-      </Link>
-    </WithStyles(Tooltip)>
-    <hr
-      className="separator"
-    />
     <ExternalUri
       collapsed={false}
       icon={[Function]}
@@ -3194,12 +2976,6 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
       icon={[Function]}
       title="Github Repo"
       to="https://github.com/kubeflow/pipelines"
-    />
-    <ExternalUri
-      collapsed={false}
-      icon={[Function]}
-      title="AI Hub Samples"
-      to="https://aihub.cloud.google.com/u/0/s?category=pipeline"
     />
     <hr
       className="separator"
@@ -3224,7 +3000,7 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
       >
         <a
           className="link unstyled"
-          href="https://github.com/kubeflow/pipelines/issues/new?template=BUG_REPORT.md"
+          href="https://github.com/kubeflow/pipelines/issues/new/choose"
           rel="noopener"
           target="_blank"
         >
