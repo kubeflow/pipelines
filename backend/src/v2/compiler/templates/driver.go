@@ -15,6 +15,7 @@
 package templates
 
 import (
+	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	k8sv1 "k8s.io/api/core/v1"
 )
@@ -61,7 +62,7 @@ func Driver(isDag bool) *workflowapi.Template {
 	driver.Container.Command = []string{"/bin/kfp-driver"}
 	driver.Inputs.Parameters = []workflowapi.Parameter{
 		{Name: DriverParamParentContextName},
-		{Name: DriverParamExecutionName, Value: &mlmdExecutionName},
+		{Name: DriverParamExecutionName, Value: v1alpha1.AnyStringPtr(mlmdExecutionName)},
 		{Name: DriverParamDriverType},
 		{Name: DriverParamTaskSpec},
 	}
