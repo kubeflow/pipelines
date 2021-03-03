@@ -6,8 +6,9 @@ def validate_csv_using_greatexpectations(
     expectation_suite_path: InputPath(),
     data_doc_path: OutputPath(),
 ):
-    """Validate a CSV dataset against a Great Expectations suite and create Data Doc (a validation report).
-    This component fails if validation is not successful.
+    """Validate a CSV dataset against a Great Expectations suite and create
+    Data Doc (a validation report). This component fails if validation is not
+    successful.
 
     Annotations:
         authors: Yaroslav Beshta <ybeshta@provectus.com>, Anton Kiselev <akiselev@provectus.com>
@@ -26,10 +27,7 @@ def validate_csv_using_greatexpectations(
 
     with open(expectation_suite_path, 'r') as json_file:
         expectation_suite = json.load(json_file)
-    df = ge.read_csv(
-        csv_path,
-        expectation_suite=expectation_suite
-    )
+    df = ge.read_csv(csv_path, expectation_suite=expectation_suite)
     result = df.validate()
 
     document_model = ValidationResultsPageRenderer().render(result)
