@@ -388,5 +388,5 @@ def _attach_v2_specs(
     task.command = resolved_cmd.command
     task.arguments = resolved_cmd.args
 
-    # limit this to v2 compiling only to avoid possible behavivor change in v1.
+    # limit this to v2 compiling only to avoid possible behavior change in v1.
     task.inputs = input_params

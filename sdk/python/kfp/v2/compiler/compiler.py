@@ -900,8 +900,7 @@ class Compiler(object):
     return pipeline_spec
 
   # The name of this method is used to check if compiling for v2.
-  # See `is_compiling_for_v2` in `kfp/dsl/_component_bridge.py` and
-  # `kfp/dsl/_container_op/py`.
+  # See `is_compiling_for_v2` in `kfp/dsl/_component_bridge.py`
   def _create_pipeline_v2(
       self,
       pipeline_func: Callable[..., Any],

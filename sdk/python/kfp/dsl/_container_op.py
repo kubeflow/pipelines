@@ -1078,13 +1078,6 @@ class ContainerOp(BaseOp):
         sidecars=sidecars,
         is_exit_handler=is_exit_handler)
 
-    # Check if the pipeline is being compiled for v2 spec.
-    self.is_compiling_for_v2 = False
-    for frame in inspect.stack():
-      if '_create_pipeline_v2' in frame:
-        self.is_compiling_for_v2 = True
-        break
-
     if (not ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING) and (
         '--component_launcher_class_path' not in (arguments or [])):
       # The warning is suppressed for pipelines created using the TFX SDK.
@@ -1324,12 +1317,6 @@ class ContainerOp(BaseOp):
     Returns:
       self return to allow chained call with other resource specification.
     """
-    if self.is_compiling_for_v2 and label_name != _GKE_ACCELERATOR_LABEL:
-      raise ValueError(
-          'Currently add_node_selector_constraint only supports '
-          'accelerator spec, with node label {}. Got {} instead'.format(
-              _GKE_ACCELERATOR_LABEL, label_name))
-
     if self.container_spec:
       accelerator_cnt = 1
       if self.container_spec.resources.accelerator.count > 1:
