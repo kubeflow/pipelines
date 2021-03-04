@@ -112,6 +112,35 @@ exports[`SideNav populates the display build information using the response from
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
+      title="Recurring Runs List"
+    >
+      <Link
+        className="unstyled"
+        id="recurringRunsBtn"
+        replace={false}
+        to="/recurringruns"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(AlarmIcon) />
+          <span
+            className="label"
+          >
+            Recurring Runs
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
       title="Artifacts List"
     >
       <Link
@@ -344,6 +373,35 @@ exports[`SideNav renders Pipelines as active page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
+      title="Recurring Runs List"
+    >
+      <Link
+        className="unstyled"
+        id="recurringRunsBtn"
+        replace={false}
+        to="/recurringruns"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(AlarmIcon) />
+          <span
+            className="label"
+          >
+            Recurring Runs
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
       title="Artifacts List"
     >
       <Link
@@ -542,6 +600,35 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
             className="label"
           >
             Runs
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Recurring Runs List"
+    >
+      <Link
+        className="unstyled"
+        id="recurringRunsBtn"
+        replace={false}
+        to="/recurringruns"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(AlarmIcon) />
+          <span
+            className="label"
+          >
+            Recurring Runs
           </span>
         </WithStyles(Button)>
       </Link>
@@ -766,6 +853,35 @@ exports[`SideNav renders collapsed state 1`] = `
       disableTouchListener={false}
       enterDelay={300}
       placement="right-start"
+      title="Recurring Runs List"
+    >
+      <Link
+        className="unstyled"
+        id="recurringRunsBtn"
+        replace={false}
+        to="/recurringruns"
+      >
+        <WithStyles(Button)
+          className="button collapsedButton"
+        >
+          <pure(AlarmIcon) />
+          <span
+            className="collapsedLabel label"
+          >
+            Recurring Runs
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={false}
+      disableHoverListener={false}
+      disableTouchListener={false}
+      enterDelay={300}
+      placement="right-start"
       title="Artifacts List"
     >
       <Link
@@ -964,6 +1080,35 @@ exports[`SideNav renders expanded state 1`] = `
             className="label"
           >
             Runs
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Recurring Runs List"
+    >
+      <Link
+        className="unstyled"
+        id="recurringRunsBtn"
+        replace={false}
+        to="/recurringruns"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(AlarmIcon) />
+          <span
+            className="label"
+          >
+            Recurring Runs
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1188,6 +1333,35 @@ exports[`SideNav renders experiments as active page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
+      title="Recurring Runs List"
+    >
+      <Link
+        className="unstyled"
+        id="recurringRunsBtn"
+        replace={false}
+        to="/recurringruns"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(AlarmIcon) />
+          <span
+            className="label"
+          >
+            Recurring Runs
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
       title="Artifacts List"
     >
       <Link
@@ -1386,6 +1560,35 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
             className="label"
           >
             Runs
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Recurring Runs List"
+    >
+      <Link
+        className="unstyled"
+        id="recurringRunsBtn"
+        replace={false}
+        to="/recurringruns"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(AlarmIcon) />
+          <span
+            className="label"
+          >
+            Recurring Runs
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1610,6 +1813,35 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
+      title="Recurring Runs List"
+    >
+      <Link
+        className="unstyled"
+        id="recurringRunsBtn"
+        replace={false}
+        to="/recurringruns"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(AlarmIcon) />
+          <span
+            className="label"
+          >
+            Recurring Runs
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
       title="Artifacts List"
     >
       <Link
@@ -1808,6 +2040,35 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
             className="label"
           >
             Runs
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Recurring Runs List"
+    >
+      <Link
+        className="unstyled"
+        id="recurringRunsBtn"
+        replace={false}
+        to="/recurringruns"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(AlarmIcon) />
+          <span
+            className="label"
+          >
+            Recurring Runs
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2032,6 +2293,35 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
+      title="Recurring Runs List"
+    >
+      <Link
+        className="unstyled"
+        id="recurringRunsBtn"
+        replace={false}
+        to="/recurringruns"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(AlarmIcon) />
+          <span
+            className="label"
+          >
+            Recurring Runs
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
       title="Artifacts List"
     >
       <Link
@@ -2206,7 +2496,7 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
       </Link>
     </WithStyles(Tooltip)>
     <div
-      className="indicator"
+      className="indicator indicatorHidden"
     />
     <WithStyles(Tooltip)
       disableFocusListener={true}
@@ -2223,13 +2513,42 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
         to="/runs"
       >
         <WithStyles(Button)
-          className="button active"
+          className="button"
         >
           <pure(DirectionsRunIcon) />
           <span
             className="label"
           >
             Runs
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Recurring Runs List"
+    >
+      <Link
+        className="unstyled"
+        id="recurringRunsBtn"
+        replace={false}
+        to="/recurringruns"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <pure(AlarmIcon) />
+          <span
+            className="label"
+          >
+            Recurring Runs
           </span>
         </WithStyles(Button)>
       </Link>
@@ -2454,6 +2773,35 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
+      title="Recurring Runs List"
+    >
+      <Link
+        className="unstyled"
+        id="recurringRunsBtn"
+        replace={false}
+        to="/recurringruns"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(AlarmIcon) />
+          <span
+            className="label"
+          >
+            Recurring Runs
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
       title="Artifacts List"
     >
       <Link
@@ -2665,6 +3013,35 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
       disableTouchListener={true}
       enterDelay={300}
       placement="right-start"
+      title="Recurring Runs List"
+    >
+      <Link
+        className="unstyled"
+        id="recurringRunsBtn"
+        replace={false}
+        to="/recurringruns"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(AlarmIcon) />
+          <span
+            className="label"
+          >
+            Recurring Runs
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
       title="Artifacts List"
     >
       <Link
@@ -2863,6 +3240,35 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
             className="label"
           >
             Runs
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Recurring Runs List"
+    >
+      <Link
+        className="unstyled"
+        id="recurringRunsBtn"
+        replace={false}
+        to="/recurringruns"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(AlarmIcon) />
+          <span
+            className="label"
+          >
+            Recurring Runs
           </span>
         </WithStyles(Button)>
       </Link>

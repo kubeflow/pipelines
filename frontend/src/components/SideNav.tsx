@@ -38,6 +38,7 @@ import { Deployments, KFP_FLAGS } from '../lib/Flags';
 import { LocalStorage, LocalStorageKey } from '../lib/LocalStorage';
 import { logger } from '../lib/Utils';
 import { GkeMetadataContext, GkeMetadata } from 'src/lib/GkeMetadata';
+import { Alarm } from '@material-ui/icons';
 
 export const sideNavColors = {
   bg: '#f8fafb',
@@ -396,6 +397,39 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
           <div
             className={classes(
               css.indicator,
+              !this._highlightRecurringRunsButton(page) && css.indicatorHidden,
+            )}
+          />
+          <Tooltip
+            title={'Recurring Runs List'}
+            enterDelay={300}
+            placement={'right-start'}
+            disableFocusListener={!collapsed}
+            disableHoverListener={!collapsed}
+            disableTouchListener={!collapsed}
+          >
+            <Link
+              id='recurringRunsBtn'
+              to={RoutePage.RECURRING_RUNS}
+              className={commonCss.unstyled}
+            >
+              <Button
+                className={classes(
+                  css.button,
+                  this._highlightRecurringRunsButton(page) && css.active,
+                  collapsed && css.collapsedButton,
+                )}
+              >
+                <Alarm />
+                <span className={classes(collapsed && css.collapsedLabel, css.label)}>
+                  Recurring Runs
+                </span>
+              </Button>
+            </Link>
+          </Tooltip>
+          <div
+            className={classes(
+              css.indicator,
               !this._highlightArtifactsButton(page) && css.indicatorHidden,
             )}
           />
@@ -563,10 +597,13 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
   private _highlightRunsButton(page: string): boolean {
     return (
       page.startsWith(RoutePage.RUNS) ||
-      page.startsWith(RoutePrefix.RECURRING_RUN) ||
       page.startsWith(RoutePage.COMPARE) ||
       page === RoutePage.ARCHIVED_RUNS
     );
+  }
+
+  private _highlightRecurringRunsButton(page: string): boolean {
+    return page.startsWith(RoutePage.RECURRING_RUNS) || page.startsWith(RoutePrefix.RECURRING_RUN);
   }
 
   private _highlightArtifactsButton(page: string): boolean {
