@@ -271,7 +271,10 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     if (!props.value || !props.value.id) {
       return <div>-</div>;
     }
-    const url = RoutePage.RECURRING_RUN.replace(':' + RouteParams.runId, props.value.id || '');
+    const url = RoutePage.RECURRING_RUN_DETAILS.replace(
+      ':' + RouteParams.runId,
+      props.value.id || '',
+    );
     return (
       <Link className={commonCss.link} onClick={e => e.stopPropagation()} to={url}>
         {props.value.displayName || '[View config]'}
