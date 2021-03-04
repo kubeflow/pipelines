@@ -129,6 +129,11 @@ describe('AllRecurringRunsList', () => {
     expect(updateBannerSpy).toHaveBeenCalledWith({});
   });
 
+  // TODO: We want to test that clicking the refresh button in AllRecurringRunsList calls the
+  //  RecurringRunList.refresh method. This is not straightforward because `render` does not
+  //  render the toolbar in this case. RoutedPage is where the page level common elements are
+  //  rendered in KFP UI. However, in tests, we built a util that generates similar page callbacks
+  //  and passes them to the tested component without actually rendering the page common elements.
   // it('refreshes the recurring run list when refresh button is clicked', async () => {
   //   const tree = render(<AllRecurringRunsList {...generateProps()} />);
   //   await TestUtils.flushPromises()
