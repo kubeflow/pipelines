@@ -35,7 +35,7 @@ _TEST_EXECUTOR_INPUT_V1_PRODUCER = """
             "uri": "gs://root/test_artifact/",
             "name": "test_artifact",
             "type": { 
-              "instanceSchema": "properties:\\ntitle: kfp.Artifact\\ntype: object\\n" 
+              "instanceSchema": "title: kfp.Artifact\\ntype: object\\n"
             }
           }
         ]
@@ -55,7 +55,7 @@ _TEST_EXECUTOR_INPUT_V1_PRODUCER = """
             "uri": "gs://root/test_output1/",
             "name": "test_output1",
             "type": { 
-              "instanceSchema": "properties:\\ntitle: kfp.Model\\ntype: object\\n" 
+              "instanceSchema": "title: kfp.Model\\ntype: object\\nproperties:\\n  framework:\\n    type: string\\n  framework_version:\\n    type: string\\n"
             }
           }
         ]
@@ -75,7 +75,7 @@ _TEST_EXECUTOR_INPUT_V2_PRODUCER = """
             "uri": "gs://root/test_artifact/",
             "name": "test_artifact",
             "type": { 
-              "instanceSchema": "properties:\\ntitle: kfp.Dataset\\ntype: object\\n" 
+              "instanceSchema": "title: kfp.Dataset\\ntype: object\\nproperties:\\n  payload_format:\\n    type: string\\n  container_format:\\n    type: string"
             }
           }
         ]
@@ -95,7 +95,7 @@ _TEST_EXECUTOR_INPUT_V2_PRODUCER = """
             "uri": "gs://root/test_output1/",
             "name": "test_output1",
             "type": { 
-              "instanceSchema": "properties:\\ntitle: kfp.Model\\ntype: object\\n" 
+              "instanceSchema": "title: kfp.Model\\ntype: object\\nproperties:\\n  framework:\\n    type: string\\n  framework_version:\\n    type: string\\n"
             }
           }
         ]
@@ -116,7 +116,7 @@ _EXPECTED_EXECUTOR_OUTPUT = """{
       "artifacts": [
         {
           "type": {
-            "instanceSchema": "properties:\\ntitle: kfp.Model\\ntype: object\\n"
+            "instanceSchema": "title: kfp.Model\\ntype: object\\nproperties:\\n  framework:\\n    type: string\\n  framework_version:\\n    type: string\\n"
           },
           "uri": "gs://root/test_output1/"
         }

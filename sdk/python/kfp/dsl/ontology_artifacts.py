@@ -12,14 +12,55 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """MLMD artifact ontology in KFP SDK."""
+
+import os
+import yaml
+
 from kfp.dsl import artifact
+from kfp.pipeline_spec import pipeline_spec_pb2
 
-
-# TODO(numerology): Add concrete property schema to each artifact types.
-#   Also consider adding Metrics class when the schema is hammered down.
 class Model(artifact.Artifact):
-  TYPE_NAME = 'Model'
 
+  TYPE_NAME = 'kfp.Model'
+
+  def __init__(self):
+    self._instance_schema = self.__class__.get_artifact_type()
+
+    # Calling base class init to setup the instance.
+    super().__init__()
+
+  @classmethod
+  def get_artifact_type(cls) -> str:
+    schema_file_path=os.path.join(
+      os.path.dirname(__file__), 'ontology_type_schemas', 'model.yaml')
+
+    with open(schema_file_path) as schema_file:
+      return schema_file.read()
+
+  @classmethod
+  def get_ir_type(cls) -> pipeline_spec_pb2.ArtifactTypeSchema:
+    return pipeline_spec_pb2.ArtifactTypeSchema(
+        instance_schema=cls.get_artifact_type())
 
 class Dataset(artifact.Artifact):
-  TYPE_NAME = 'Dataset'
+
+  TYPE_NAME = 'kfp.Dataset'
+
+  def __init__(self):
+    self._instance_schema = self.__class__.get_artifact_type()
+
+    # Calling base class init to setup the instance.
+    super().__init__()
+
+  @classmethod
+  def get_artifact_type(cls) -> str:
+    schema_file_path=os.path.join(
+          os.path.dirname(__file__), 'ontology_type_schemas', 'dataset.yaml')
+
+    with open(schema_file_path) as schema_file:
+      return schema_file.read()
+
+  @classmethod
+  def get_ir_type(cls) -> pipeline_spec_pb2.ArtifactTypeSchema:
+    return pipeline_spec_pb2.ArtifactTypeSchema(
+        instance_schema=cls.get_artifact_type())

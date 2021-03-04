@@ -49,7 +49,7 @@
         "artifacts": {
           "text": {
             "artifactType": {
-              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              "instanceSchema": "title: kfp.Artifact\ntype: object\n"
             }
           }
         }
@@ -90,7 +90,7 @@
           "artifacts": {
             "input_gcs_path": {
               "artifactType": {
-                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+                "instanceSchema": "title: kfp.Artifact\ntype: object\n"
               }
             }
           }
@@ -108,7 +108,7 @@
           "artifacts": {
             "output_gcs_path": {
               "artifactType": {
-                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+                "instanceSchema": "title: kfp.Artifact\ntype: object\n"
               }
             }
           }

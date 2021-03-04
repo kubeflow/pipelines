@@ -47,7 +47,7 @@ class ComponentSpecTest(unittest.TestCase):
                 'input1': {
                     'artifactType': {
                         'instanceSchema':
-                            'properties:\ntitle: kfp.Dataset\ntype: object\n'
+                            'title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string'
                     }
                 }
             },
@@ -65,7 +65,7 @@ class ComponentSpecTest(unittest.TestCase):
                 'output1': {
                     'artifactType': {
                         'instanceSchema':
-                            'properties:\ntitle: kfp.Model\ntype: object\n'
+                            'title: kfp.Model\ntype: object\nproperties:\n  framework:\n    type: string\n  framework_version:\n    type: string\n'
                     }
                 }
             }
@@ -94,7 +94,7 @@ class ComponentSpecTest(unittest.TestCase):
                 'input1': {
                     'artifactType': {
                         'instanceSchema':
-                            'properties:\ntitle: kfp.Dataset\ntype: object\n'
+                            'title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string'
                     }
                 }
             },
@@ -133,7 +133,7 @@ class ComponentSpecTest(unittest.TestCase):
                 'output1': {
                     'artifactType': {
                         'instanceSchema':
-                            'properties:\ntitle: kfp.Dataset\ntype: object\n'
+                            'title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string'
                     }
                 }
             },
