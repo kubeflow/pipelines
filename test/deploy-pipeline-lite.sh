@@ -101,9 +101,6 @@ done
 echo "Status of pods after rollouts are successful"
 kubectl get pods -n ${NAMESPACE}
 
-echo "configmap workflow-controller-configmap"
-kubectl get configmap -n ${NAMESPACE} workflow-controller-configmap  -o yaml
-
 if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
   # Use static GSAs for testing, so we don't need to GC them.
   export SYSTEM_GSA="test-kfp-system"
