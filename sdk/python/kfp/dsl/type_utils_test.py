@@ -15,7 +15,7 @@
 import sys
 import unittest
 from kfp.components import structures
-from kfp.v2.dsl import type_utils
+from kfp.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2 as pb
 
 _PARAMETER_TYPES = ['String', 'str', 'Integer', 'int', 'Float', 'Double']

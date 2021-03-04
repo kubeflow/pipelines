@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import inspect
 import re
 import warnings
 from typing import Any, Dict, List, TypeVar, Union, Callable, Optional, Sequence
@@ -23,8 +24,9 @@ from kubernetes.client.models import (V1Container, V1EnvVar, V1EnvFromSource,
                                       V1VolumeMount, V1ContainerPort,
                                       V1Lifecycle, V1Volume)
 
-from . import _pipeline_param
-from ..components.structures import ComponentSpec, ExecutionOptionsSpec, CachingStrategySpec
+from kfp.components import _structures
+from kfp.dsl import _pipeline_param
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 # generics
 T = TypeVar('T')
@@ -36,6 +38,26 @@ ALLOWED_RETRY_POLICIES = (
     'OnError',
     'OnFailure',
 )
+
+# Shorthand for PipelineContainerSpec
+_PipelineContainerSpec = pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec
+
+# Unit constants for k8s size string.
+_E = 10**18  # Exa
+_EI = 1 << 60  # Exa: power-of-two approximate
+_P = 10**15  # Peta
+_PI = 1 << 50  # Peta: power-of-two approximate
+# noinspection PyShadowingBuiltins
+_T = 10**12  # Tera
+_TI = 1 << 40  # Tera: power-of-two approximate
+_G = 10**9  # Giga
+_GI = 1 << 30  # Giga: power-of-two approximate
+_M = 10**6  # Mega
+_MI = 1 << 20  # Mega: power-of-two approximate
+_K = 10**3  # Kilo
+_KI = 1 << 10  # Kilo: power-of-two approximate
+
+_GKE_ACCELERATOR_LABEL = 'cloud.google.com/gke-accelerator'
 
 
 # util functions
@@ -174,6 +196,9 @@ class Container(V1Container):
     if not kwargs.get('name'):
       kwargs['name'] = ''
 
+    # v2 container_spec
+    self._container_spec = None
+
     super(Container, self).__init__(
         image=image, command=command, args=args, **kwargs)
 
@@ -273,6 +298,8 @@ class Container(V1Container):
         "E", "P", "T", "G", "M", "K".
     """
     self._validate_size_string(memory)
+    if self._container_spec:
+      self._container_spec.resources.memory_limit = _get_resource_number(memory)
     return self.add_resource_limit('memory', memory)
 
   def set_ephemeral_storage_request(self, size) -> 'Container':
@@ -313,8 +340,9 @@ class Container(V1Container):
       cpu: A string which can be a number or a number followed by "m", which
         means 1/1000.
     """
-
     self._validate_cpu_string(cpu)
+    if self._container_spec:
+      self._container_spec.resources.cpu_limit = _get_cpu_number(cpu)
     return self.add_resource_limit('cpu', cpu)
 
   def set_gpu_limit(self, gpu, vendor='nvidia') -> 'Container':
@@ -328,11 +356,15 @@ class Container(V1Container):
     Args:
       gpu: A string which must be a positive number.
       vendor: Optional. A string which is the vendor of the requested gpu.
-        The supported values
-        are: 'nvidia' (default), and 'amd'.
+        The supported values are: 'nvidia' (default), and 'amd'. The value is
+        ignored in v2.
     """
-
     self._validate_positive_number(gpu, 'gpu')
+
+    if self._container_spec:
+      # For backforward compatibiliy, allow `gpu` to be a string.
+      self._container_spec.resources.accelerator.count = int(gpu)
+
     if vendor != 'nvidia' and vendor != 'amd':
       raise ValueError('vendor can only be nvidia or amd.')
 
@@ -916,8 +948,7 @@ class BaseOp(object):
         the backoff strategy.
     """
     if policy is not None and policy not in ALLOWED_RETRY_POLICIES:
-        raise ValueError('policy must be one of: %r'
-                         % (ALLOWED_RETRY_POLICIES,))
+      raise ValueError('policy must be one of: %r' % (ALLOWED_RETRY_POLICIES,))
 
     self.num_retries = num_retries
     self.retry_policy = policy
@@ -1071,8 +1102,8 @@ class ContainerOp(BaseOp):
         sidecars=sidecars,
         is_exit_handler=is_exit_handler)
 
-    if not ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING and '--component_launcher_class_path' not in (
-        arguments or []):
+    if (not ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING) and (
+        '--component_launcher_class_path' not in (arguments or [])):
       # The warning is suppressed for pipelines created using the TFX SDK.
       warnings.warn(
           'Please create reusable components instead of constructing ContainerOp instances directly.'
@@ -1177,8 +1208,8 @@ class ContainerOp(BaseOp):
     self._metadata = None
     self._parameter_arguments = None
 
-    self.execution_options = ExecutionOptionsSpec(
-        caching_strategy=CachingStrategySpec(),)
+    self.execution_options = _structures.ExecutionOptionsSpec(
+        caching_strategy=_structures.CachingStrategySpec(),)
 
     self.outputs = {}
     if file_outputs:
@@ -1200,6 +1231,18 @@ class ContainerOp(BaseOp):
 
     self.pvolumes = {}
     self.add_pvolumes(pvolumes)
+
+  # v2 container spec
+  @property
+  def container_spec(self):
+    return self._container._container_spec
+
+  @container_spec.setter
+  def container_spec(self, spec: _PipelineContainerSpec):
+    if not isinstance(spec, _PipelineContainerSpec):
+      raise TypeError('container_spec can only be PipelineContainerSpec. '
+                      'Got: {}'.format(spec))
+    self._container._container_spec = spec
 
   @property
   def command(self):
@@ -1244,7 +1287,7 @@ class ContainerOp(BaseOp):
     Args:
       metadata (ComponentSpec): component metadata
     """
-    if not isinstance(metadata, ComponentSpec):
+    if not isinstance(metadata, _structures.ComponentSpec):
       raise ValueError('_set_metadata is expecting ComponentSpec.')
 
     self._metadata = metadata
@@ -1281,6 +1324,36 @@ class ContainerOp(BaseOp):
       self.pvolume = list(self.pvolumes.values())[0]
     return self
 
+  def add_node_selector_constraint(self, label_name: str,
+                                   value: str) -> 'ContainerOp':
+    """Sets accelerator type requirement for this task.
+
+    When compiling for v2, this function can be optionally used with
+    set_gpu_limit to set the number of accelerator required. Otherwise, by
+    default the number requested will be 1.
+
+    Args:
+      label_name: The name of the constraint label.
+        For v2, only 'cloud.google.com/gke-accelerator' is supported now.
+      value: The name of the accelerator.
+        For v2, available values include 'nvidia-tesla-k80', 'tpu-v3'.
+
+    Returns:
+      self return to allow chained call with other resource specification.
+    """
+    if self.container_spec:
+      accelerator_cnt = 1
+      if self.container_spec.resources.accelerator.count > 1:
+        # Reserve the number if already set.
+        accelerator_cnt = self.container_spec.resources.accelerator.count
+
+      accelerator_config = _PipelineContainerSpec.ResourceSpec.AcceleratorConfig(
+          type=_sanitize_gpu_type(value), count=accelerator_cnt)
+      self.container_spec.resources.accelerator.CopyFrom(accelerator_config)
+
+    super(ContainerOp, self).add_node_selector_constraint(label_name, value)
+    return self
+
 
 # proxy old ContainerOp properties to ContainerOp.container
 # with PendingDeprecationWarning.
@@ -1301,3 +1374,56 @@ class _MultipleOutputsError:
 
   def __str__(self):
     _MultipleOutputsError.raise_error()
+
+
+def _get_cpu_number(cpu_string: str) -> float:
+  """Converts the cpu string to number of vCPU core."""
+  # dsl.ContainerOp._validate_cpu_string guaranteed that cpu_string is either
+  # 1) a string can be converted to a float; or
+  # 2) a string followed by 'm', and it can be converted to a float.
+  if cpu_string.endswith('m'):
+    return float(cpu_string[:-1]) / 1000
+  else:
+    return float(cpu_string)
+
+
+def _get_resource_number(resource_string: str) -> float:
+  """Converts the resource string to number of resource in GB."""
+  # dsl.ContainerOp._validate_size_string guaranteed that memory_string
+  # represents an integer, optionally followed by one of (E, Ei, P, Pi, T, Ti,
+  # G, Gi, M, Mi, K, Ki).
+  # See the meaning of different suffix at
+  # https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-memory
+  # Also, ResourceSpec in pipeline IR expects a number in GB.
+  if resource_string.endswith('E'):
+    return float(resource_string[:-1]) * _E / _G
+  elif resource_string.endswith('Ei'):
+    return float(resource_string[:-2]) * _EI / _G
+  elif resource_string.endswith('P'):
+    return float(resource_string[:-1]) * _P / _G
+  elif resource_string.endswith('Pi'):
+    return float(resource_string[:-2]) * _PI / _G
+  elif resource_string.endswith('T'):
+    return float(resource_string[:-1]) * _T / _G
+  elif resource_string.endswith('Ti'):
+    return float(resource_string[:-2]) * _TI / _G
+  elif resource_string.endswith('G'):
+    return float(resource_string[:-1])
+  elif resource_string.endswith('Gi'):
+    return float(resource_string[:-2]) * _GI / _G
+  elif resource_string.endswith('M'):
+    return float(resource_string[:-1]) * _M / _G
+  elif resource_string.endswith('Mi'):
+    return float(resource_string[:-2]) * _MI / _G
+  elif resource_string.endswith('K'):
+    return float(resource_string[:-1]) * _K / _G
+  elif resource_string.endswith('Ki'):
+    return float(resource_string[:-2]) * _KI / _G
+  else:
+    # By default interpret as a plain integer, in the unit of Bytes.
+    return float(resource_string) / _G
+
+
+def _sanitize_gpu_type(gpu_type: str) -> str:
+  """Converts the GPU type to conform the enum style."""
+  return gpu_type.replace('-', '_').upper()

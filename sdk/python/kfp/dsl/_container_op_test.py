@@ -14,7 +14,7 @@
 """Tests for kfp.v2.dsl.container_op"""
 import unittest
 
-from kfp.v2.dsl import container_op
+from kfp.dsl import _container_op
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 from google.protobuf import text_format
@@ -36,22 +36,9 @@ _PipelineContainerSpec = pipeline_spec_pb2.PipelineDeploymentConfig.PipelineCont
 
 
 class ContainerOpTest(unittest.TestCase):
-  def test_illegal_resource_setter_fail(self):
-    task = container_op.ContainerOp(name='test_task', image='python:3.7')
-    with self.assertRaisesRegex(TypeError, 'ContainerOp.container_spec '
-                                           'is expected to be'):
-      task.set_cpu_limit('1')
-
-  def test_illegal_label_fail(self):
-    task = container_op.ContainerOp(name='test_task', image='python:3.7')
-    task.container_spec = _PipelineContainerSpec()
-    with self.assertRaisesRegex(
-        ValueError, 'Currently add_node_selector_constraint only supports'):
-      task.add_node_selector_constraint('cloud.google.com/test-label',
-                                        'test-value')
 
   def test_chained_call_resource_setter(self):
-    task = container_op.ContainerOp(name='test_task', image='python:3.7')
+    task = _container_op.ContainerOp(name='test_task', image='python:3.7')
     task.container_spec = _PipelineContainerSpec()
     (task.
      set_cpu_limit('1').

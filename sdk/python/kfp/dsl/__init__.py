@@ -15,7 +15,7 @@
 
 from ._pipeline_param import PipelineParam, match_serialized_pipelineparam
 from ._pipeline import Pipeline, pipeline, get_pipeline_conf, PipelineConf
-from ._container_op import ContainerOp, InputArgumentPath, UserContainer, Sidecar
+from ._container_op import BaseOp, ContainerOp, InputArgumentPath, UserContainer, Sidecar
 from ._resource_op import ResourceOp
 from ._volume_op import (
     VolumeOp, VOLUME_MODE_RWO, VOLUME_MODE_RWM, VOLUME_MODE_ROM
