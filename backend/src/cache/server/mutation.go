@@ -134,7 +134,7 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 		labels[MetadataExecutionIDKey] = getValueFromSerializedMap(cachedExecution.ExecutionOutput, MetadataExecutionIDKey)
 		labels[MetadataWrittenKey] = "true"
 
-		image := "google/cloud-sdk:alpine"
+		image := "gcr.io/google-containers/alpine-with-bash"
 		if v, ok := os.LookupEnv("CACHE_IMAGE"); ok {
 			image = v
 		}
