@@ -14,6 +14,13 @@ from kfp import components
 kfserving_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/kubeflow/kfserving/component.yaml')
 ```
 
+**Note**: To use the previous version of this component which uses the v1alpha2 API and KFServing 0.4.1, then load the following YAML instead:
+
+```yaml
+https://raw.githubusercontent.com/kubeflow/pipelines/65bed9b6d1d676ef2d541a970d3edc0aee12400d/components/kubeflow/kfserving/component.yaml
+```
+
+
 ### Arguments
 
 | Argument | Default | Description |
@@ -30,8 +37,8 @@ kfserving_op = components.load_component_from_url('https://raw.githubusercontent
 | service_account | | ServiceAccount to use to run the InferenceService pod. |
 | enable_istio_sidecar | `True` | Whether to enable istio sidecar injection. |
 | watch_timeouot | `300` | Timeout in seconds for watching until the InferenceService becomes ready. |
-| min_replicas | `-1` | Minimum number of InferenceService replicas. Default of -1 just delegates to pod default of 1.
-| max_replicas | `-1` | Maximum number of InferenceService replicas.
+| min_replicas | `-1` | Minimum number of InferenceService replicas. Default of -1 just delegates to pod default of 1. |
+| max_replicas | `-1` | Maximum number of InferenceService replicas. |
 
 
 ### Basic InferenceService Creation
@@ -100,7 +107,7 @@ kfserving_op(
 )
 ```
 
-If you instead want to rollback the candidate model, then set `canary_traffic_percent` to `0`, then re-run the pipeline.
+If you instead want to rollback the candidate model, then set `canary_traffic_percent` to `0`, then re-run the pipeline:
 
 ```python
 kfserving_op(
@@ -114,7 +121,7 @@ kfserving_op(
 
 ### Deletion
 
-To delete a model, simply set the `action` to `'delete'` and pass in the InferenceService name.
+To delete a model, simply set the `action` to `'delete'` and pass in the InferenceService name:
 
 ```python
 kfserving_op(
@@ -151,7 +158,7 @@ kfserving_op(
 
 ### Deploy using InferenceService YAML
 
-If you need more fine-grained configuration, there is the option to deploy using an InferenceService YAML file.
+If you need more fine-grained configuration, there is the option to deploy using an InferenceService YAML file:
 
 ```python
 isvc_yaml = '''
