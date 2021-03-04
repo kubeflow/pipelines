@@ -88,7 +88,7 @@ func (s *JobApiTestSuite) SetupTest() {
 	if err != nil {
 		glog.Exitf("Failed to get job client. Error: %s", err.Error())
 	}
-	s.swfClient = client.NewScheduledWorkflowClientOrFatal(time.Second * 30)
+	s.swfClient = client.NewScheduledWorkflowClientOrFatal(time.Second*30, 5, 10)
 
 	s.cleanUp()
 }

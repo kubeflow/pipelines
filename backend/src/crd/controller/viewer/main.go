@@ -46,8 +46,8 @@ var (
 	namespace = flag.String("namespace", "kubeflow",
 		"Namespace within which CRD controller is running. Default is "+
 			"kubeflow.")
-	clientQPS   = flag.Float64("client_qps", 5, "QPS of clientset.")
-	clientBurst = flag.Int("client_burst", 10, "Burst of clientset.")
+	clientQPS   = flag.Float64("client_qps", 5, "The maximum QPS to the master from this client.")
+	clientBurst = flag.Int("client_burst", 10, "Maximum burst for throttle from this client.")
 )
 
 func main() {

@@ -51,8 +51,6 @@ var (
 	sampleConfigPath = flag.String("sampleconfig", "", "Path to samples")
 
 	collectMetricsFlag = flag.Bool("collectMetricsFlag", true, "Whether to collect Prometheus metrics in API server.")
-	clientQPS          = flag.Float64("clientQPS", 5, "QPS of clientset.")
-	clientBurst        = flag.Int("clientBurst", 10, "Burst of clientset.")
 )
 
 type RegisterHttpHandlerFromEndpoint func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) error
@@ -61,7 +59,7 @@ func main() {
 	flag.Parse()
 
 	initConfig()
-	clientManager := newClientManager(float32(*clientQPS), *clientBurst)
+	clientManager := newClientManager()
 	resourceManager := resource.NewResourceManager(&clientManager)
 	err := loadSamples(resourceManager)
 	if err != nil {

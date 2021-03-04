@@ -54,10 +54,14 @@ type WhSvrDBParameters struct {
 	namespaceToWatch    string
 }
 
+type ClientParameters struct {
+	QPS   float64
+	burst int
+}
+
 func main() {
 	var params WhSvrDBParameters
-	var kubeClientQPS float64
-	var kubeClientBurst int
+	var clientParams ClientParameters
 	flag.StringVar(&params.dbDriver, "db_driver", mysqlDBDriverDefault, "Database driver name, mysql is the default value")
 	flag.StringVar(&params.dbHost, "db_host", mysqlDBHostDefault, "Database host name.")
 	flag.StringVar(&params.dbPort, "db_port", mysqlDBPortDefault, "Database port number.")
@@ -66,13 +70,13 @@ func main() {
 	flag.StringVar(&params.dbPwd, "db_password", "", "Database password.")
 	flag.StringVar(&params.dbGroupConcatMaxLen, "db_group_concat_max_len", mysqlDBGroupConcatMaxLenDefault, "Database group concat max length.")
 	flag.StringVar(&params.namespaceToWatch, "namespace_to_watch", "kubeflow", "Namespace to watch.")
-	flag.Float64Var(&kubeClientQPS, "kube_client_qps", 5, "QPS of kubeClient.")
-	flag.IntVar(&kubeClientBurst, "kube_client_burst", 10, "Burst of kubeClient.")
+	flag.Float64Var(&clientParams.QPS, "kube_client_qps", 5, "The maximum QPS to the master from this client.")
+	flag.IntVar(&clientParams.burst, "kube_client_burst", 10, "Maximum burst for throttle from this client.")
 
 	flag.Parse()
 
 	log.Println("Initing client manager....")
-	clientManager := NewClientManager(params, float32(kubeClientQPS), kubeClientBurst)
+	clientManager := NewClientManager(params, clientParams)
 
 	go server.WatchPods(params.namespaceToWatch, &clientManager)
 

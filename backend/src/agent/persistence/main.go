@@ -134,6 +134,6 @@ func init() {
 	flag.StringVar(&namespace, namespaceFlagName, "", "The namespace name used for Kubernetes informers to obtain the listers.")
 	flag.Int64Var(&ttlSecondsAfterWorkflowFinish, ttlSecondsAfterWorkflowFinishFlagName, 604800 /* 7 days */, "The TTL for Argo workflow to persist after workflow finish.")
 	flag.IntVar(&numWorker, numWorkerName, 2, "Number of worker for sync job.")
-	flag.Float64Var(&clientQPS, clientQPSFlagName, 5, "QPS of clientset.")
-	flag.IntVar(&clientBurst, clientBurstFlagName, 10, "Burst of clientset.")
+	flag.Float64Var(&clientQPS, clientQPSFlagName, 5, "The maximum QPS to the master from this client.")
+	flag.IntVar(&clientBurst, clientBurstFlagName, 10, "Maximum burst for throttle from this client.")
 }

@@ -110,8 +110,8 @@ func init() {
 	flag.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&namespace, "namespace", "", "The namespace name used for Kubernetes informers to obtain the listers.")
-	flag.Float64Var(&clientQPS, "clientQPS", 5, "QPS of clientset.")
-	flag.IntVar(&clientBurst, "clientBurst", 10, "Burst of clientset.")
+	flag.Float64Var(&clientQPS, "clientQPS", 5, "The maximum QPS to the master from this client.")
+	flag.IntVar(&clientBurst, "clientBurst", 10, "Maximum burst for throttle from this client.")
 	var err error
 	location, err = util.GetLocation()
 	if err != nil {

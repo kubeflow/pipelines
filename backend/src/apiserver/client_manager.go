@@ -54,6 +54,9 @@ const (
 	visualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
 
 	initConnectionTimeout = "InitConnectionTimeout"
+
+	clientQPS   = "ClientQPS"
+	clientBurst = "ClientBurst"
 )
 
 // Container for all service clients
@@ -136,7 +139,7 @@ func (c *ClientManager) UUID() util.UUIDGeneratorInterface {
 	return c.uuid
 }
 
-func (c *ClientManager) init(clientQPS float32, clientBurst int) {
+func (c *ClientManager) init() {
 	glog.Info("Initializing client manager")
 	db := initDBClient(common.GetDurationConfig(initConnectionTimeout))
 
@@ -155,11 +158,20 @@ func (c *ClientManager) init(clientQPS float32, clientBurst int) {
 	c.defaultExperimentStore = storage.NewDefaultExperimentStore(db)
 	c.objectStore = initMinioClient(common.GetDurationConfig(initConnectionTimeout))
 
-	c.argoClient = client.NewArgoClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientQPS, clientBurst)
+	c.argoClient = client.NewArgoClientOrFatal(
+		common.GetDurationConfig(initConnectionTimeout),
+		float32(common.GetFloat64ConfigWithDefault(clientQPS, 5)),
+		common.GetIntConfigWithDefault(clientBurst, 10))
 
-	c.swfClient = client.NewScheduledWorkflowClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientQPS, clientBurst)
+	c.swfClient = client.NewScheduledWorkflowClientOrFatal(
+		common.GetDurationConfig(initConnectionTimeout),
+		float32(common.GetFloat64ConfigWithDefault(clientQPS, 5)),
+		common.GetIntConfigWithDefault(clientBurst, 10))
 
-	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout), clientQPS, clientBurst)
+	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(
+		common.GetDurationConfig(initConnectionTimeout),
+		float32(common.GetFloat64ConfigWithDefault(clientQPS, 5)),
+		common.GetIntConfigWithDefault(clientBurst, 10))
 
 	runStore := storage.NewRunStore(db, c.time)
 	c.runStore = runStore
@@ -388,9 +400,9 @@ func initLogArchive() (logArchive archive.LogArchiveInterface) {
 }
 
 // newClientManager creates and Init a new instance of ClientManager
-func newClientManager(clientQPS float32, clientBurst int) ClientManager {
+func newClientManager() ClientManager {
 	clientManager := ClientManager{}
-	clientManager.init(clientQPS, clientBurst)
+	clientManager.init()
 
 	return clientManager
 }
