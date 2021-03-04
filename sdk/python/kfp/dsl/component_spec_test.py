@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for kfp.v2.dsl.component_spec."""
+"""Tests for kfp.dsl.component_spec."""
 
 import unittest
 
 from kfp.components import _structures as structures
-from kfp.v2 import dsl
-from kfp.v2.dsl import component_spec as dsl_component_spec
+from kfp.dsl import _pipeline_param
+from kfp.dsl import component_spec as dsl_component_spec
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 from google.protobuf import json_format
@@ -83,10 +83,10 @@ class ComponentSpecTest(unittest.TestCase):
 
   def test_build_component_inputs_spec(self):
     pipeline_params = [
-        dsl.PipelineParam(name='input1', param_type='Dataset'),
-        dsl.PipelineParam(name='input2', param_type='Integer'),
-        dsl.PipelineParam(name='input3', param_type='String'),
-        dsl.PipelineParam(name='input4', param_type='Float'),
+        _pipeline_param.PipelineParam(name='input1', param_type='Dataset'),
+        _pipeline_param.PipelineParam(name='input2', param_type='Integer'),
+        _pipeline_param.PipelineParam(name='input3', param_type='String'),
+        _pipeline_param.PipelineParam(name='input4', param_type='Float'),
     ]
     expected_dict = {
         'inputDefinitions': {
@@ -122,10 +122,10 @@ class ComponentSpecTest(unittest.TestCase):
 
   def test_build_component_outputs_spec(self):
     pipeline_params = [
-        dsl.PipelineParam(name='output1', param_type='Dataset'),
-        dsl.PipelineParam(name='output2', param_type='Integer'),
-        dsl.PipelineParam(name='output3', param_type='String'),
-        dsl.PipelineParam(name='output4', param_type='Float'),
+        _pipeline_param.PipelineParam(name='output1', param_type='Dataset'),
+        _pipeline_param.PipelineParam(name='output2', param_type='Integer'),
+        _pipeline_param.PipelineParam(name='output3', param_type='String'),
+        _pipeline_param.PipelineParam(name='output4', param_type='Float'),
     ]
     expected_dict = {
         'outputDefinitions': {
@@ -161,10 +161,10 @@ class ComponentSpecTest(unittest.TestCase):
 
   def test_build_task_inputs_spec(self):
     pipeline_params = [
-        dsl.PipelineParam(name='output1', param_type='Dataset', op_name='op-1'),
-        dsl.PipelineParam(name='output2', param_type='Integer', op_name='op-2'),
-        dsl.PipelineParam(name='output3', param_type='Model', op_name='op-3'),
-        dsl.PipelineParam(name='output4', param_type='Double', op_name='op-4'),
+        _pipeline_param.PipelineParam(name='output1', param_type='Dataset', op_name='op-1'),
+        _pipeline_param.PipelineParam(name='output2', param_type='Integer', op_name='op-2'),
+        _pipeline_param.PipelineParam(name='output3', param_type='Model', op_name='op-3'),
+        _pipeline_param.PipelineParam(name='output4', param_type='Double', op_name='op-4'),
     ]
     tasks_in_current_dag = ['op-1', 'op-2']
     expected_dict = {

@@ -28,15 +28,14 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Set, Tuple, Uni
 import kfp
 from kfp.compiler._k8s_helper import sanitize_k8s_name
 from kfp.components import _python_op
-from kfp.dsl import _container_op
+from kfp import dsl
 from kfp.dsl import _for_loop
 from kfp.dsl import _pipeline_param
-from kfp.v2 import dsl
 from kfp.v2.compiler import compiler_utils
-from kfp.v2.dsl import component_spec as dsl_component_spec
-from kfp.v2.dsl import dsl_utils
-from kfp.v2.dsl import importer_node
-from kfp.v2.dsl import type_utils
+from kfp.dsl import component_spec as dsl_component_spec
+from kfp.dsl import dsl_utils
+from kfp.dsl import importer_node
+from kfp.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 from google.protobuf import json_format
@@ -677,6 +676,14 @@ class Compiler(object):
           getattr(subgroup, 'human_name', subgroup_key))
       subgroup_task_spec.component_ref.name = subgroup_component_name
 
+      if isinstance(subgroup, dsl.OpsGroup) and subgroup.type == 'graph':
+        raise NotImplementedError(
+            'dsl.graph_component is not yet supported in KFP v2 compiler.')
+
+      if isinstance(subgroup, dsl.OpsGroup) and subgroup.type == 'exit_handler':
+        raise NotImplementedError(
+            'dsl.ExitHandler is not yet supported in KFP v2 compiler.')
+
       if isinstance(subgroup, dsl.OpsGroup) and subgroup.type == 'condition':
         condition = subgroup.condition
         operand_values = []
@@ -713,6 +720,11 @@ class Compiler(object):
             [dsl_utils.sanitize_task_name(dep) for dep in group_dependencies])
 
       if isinstance(subgroup, dsl.ParallelFor):
+        if subgroup.parallelism is not None:
+          warnings.warn(
+              'Setting parallelism in ParallelFor is not supported yet.'
+              'The setting is ignored.')
+
         # Remove loop arguments related inputs from parent group component spec.
         input_names = [param.full_name for param, _ in inputs[subgroup.name]]
         for input_name in input_names:
@@ -816,7 +828,7 @@ class Compiler(object):
         executor_label = subgroup_component_spec.executor_label
         if executor_label not in deployment_config.executors:
           deployment_config.executors[
-            executor_label].custom_job.custom_job.update(custom_job_spec)
+              executor_label].custom_job.custom_job.update(custom_job_spec)
 
     pipeline_spec.deployment_spec.update(
         json_format.MessageToDict(deployment_config))
@@ -887,7 +899,9 @@ class Compiler(object):
 
     return pipeline_spec
 
-  def _create_pipeline(
+  # The name of this method is used to check if compiling for v2.
+  # See `is_compiling_for_v2` in `kfp/dsl/_component_bridge.py`
+  def _create_pipeline_v2(
       self,
       pipeline_func: Callable[..., Any],
       pipeline_root: Optional[str] = None,
@@ -989,7 +1003,7 @@ class Compiler(object):
     type_check_old_value = kfp.TYPE_CHECK
     try:
       kfp.TYPE_CHECK = type_check
-      pipeline_job = self._create_pipeline(
+      pipeline_job = self._create_pipeline_v2(
           pipeline_func=pipeline_func,
           pipeline_root=pipeline_root,
           pipeline_name=pipeline_name,

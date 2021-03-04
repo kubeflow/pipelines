@@ -11,11 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for kfp.v2.dsl.dsl_utils."""
+"""Tests for kfp.dsl.dsl_utils."""
 
 import unittest
 
-from kfp.v2.dsl import dsl_utils
+from kfp.dsl import dsl_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 from google.protobuf import json_format
 
