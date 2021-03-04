@@ -32,7 +32,7 @@ class Model(artifact.Artifact):
   @classmethod
   def get_artifact_type(cls) -> str:
     schema_file_path=os.path.join(
-      os.path.dirname(__file__), 'ontology_type_schemas', 'model.yaml')
+      os.path.dirname(__file__), 'type_schemas', 'model.yaml')
 
     with open(schema_file_path) as schema_file:
       return schema_file.read()
@@ -55,7 +55,7 @@ class Dataset(artifact.Artifact):
   @classmethod
   def get_artifact_type(cls) -> str:
     schema_file_path=os.path.join(
-          os.path.dirname(__file__), 'ontology_type_schemas', 'dataset.yaml')
+          os.path.dirname(__file__), 'type_schemas', 'dataset.yaml')
 
     with open(schema_file_path) as schema_file:
       return schema_file.read()
