@@ -31,7 +31,7 @@ import AllExperimentsAndArchive, {
   AllExperimentsAndArchiveTab,
 } from '../pages/AllExperimentsAndArchive';
 import AllRunsAndArchive, { AllRunsAndArchiveTab } from '../pages/AllRunsAndArchive';
-import AllJobsList from '../pages/AllRecurringRunsList';
+import AllRecurringRunsList from '../pages/AllRecurringRunsList';
 import NewExperiment from '../pages/NewExperiment';
 import NewRun from '../pages/NewRun';
 import Page404 from '../pages/404';
@@ -187,7 +187,7 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
     { path: RoutePage.PIPELINE_DETAILS, Component: PipelineDetails },
     { path: RoutePage.PIPELINE_DETAILS_NO_VERSION, Component: PipelineDetails },
     { path: RoutePage.RUNS, Component: AllRunsAndArchive, view: AllRunsAndArchiveTab.RUNS },
-    { path: RoutePage.RECURRING_RUNS, Component: AllJobsList },
+    { path: RoutePage.RECURRING_RUNS, Component: AllRecurringRunsList },
     { path: RoutePage.RECURRING_RUN_DETAILS, Component: RecurringRunDetails },
     { path: RoutePage.RUN_DETAILS, Component: RunDetails },
     { path: RoutePage.COMPARE, Component: Compare },
