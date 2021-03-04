@@ -225,7 +225,7 @@ def horovod_mnist_hpo(
         name="best-hp",
         image="library/bash:4.4.23",
         command=["sh", "-c"],
-        arguments=["echo best HyperParameters: %s" % op.output],
+        arguments=["echo Best HyperParameters: %s" % op.output],
     )
 
 
