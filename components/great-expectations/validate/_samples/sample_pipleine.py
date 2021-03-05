@@ -1,23 +1,12 @@
 from pathlib import Path
 
 import kfp.dsl
-from kfp.components import ComponentStore, create_component_from_func, OutputPath, load_component_from_file
+from kfp.components import ComponentStore, load_component_from_file
 
 
 store = ComponentStore.default_store
 chicago_taxi_dataset_op = store.load_component('datasets/Chicago_Taxi_Trips')
 
-
-def save_text_as_file(text: str,
-                      output_path: OutputPath('Text')):
-    with open(output_path, 'w') as file:
-        file.write(text)
-
-
-save_text_as_file_op = create_component_from_func(
-    func=save_text_as_file,
-    base_image='python:3.7',
-)
 
 CURRENT_FOLDER = Path(__file__).parent
 with open(CURRENT_FOLDER / 'expectation_suite.json') as file:
@@ -39,10 +28,8 @@ def great_expectations_sample_pipeline():
         limit=1000,
     ).output
 
-    expectation_suite_path = save_text_as_file_op(text=expectation_suite).output
-
     validate_csv_op(csv=csv_path,
-                    expectation_suite=expectation_suite_path)
+                    expectation_suite=expectation_suite)
 
 
 if __name__ == '__main__':
