@@ -11,18 +11,5 @@ implementation:
   container:
     image: gcr.io/my-project/my-image:123456
     command: [python, -m, kfp.containers.entrypoint]
-    args:
-    - --test_param_input_argo_param
-    - {inputValue: test_param}
-    - --test_artifact_input_uri
-    - {inputUri: test_artifact}
-    - --test_artifact_pod_id
-    - '{{inputs.parameters.test_artifact-producer-pod-id-}}'
-    - --test_artifact_input_output_name
-    - {inputOutputPortName: test_artifact}
-    - --test_output_artifact_output_uri
-    - {outputUri: test_output}
-    - --pipeline_context
-    - '{{workflow.uid}}'
-    - --function_name
-    - test_function
+    args: [--executor_input_str, '{executorInput}', --function_name, test_function,
+      --output_metadata_path, '{outputMetadata}']

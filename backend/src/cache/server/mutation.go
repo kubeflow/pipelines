@@ -47,6 +47,8 @@ const (
 	SpecContainersPath        string = "/spec/containers"
 	SpecInitContainersPath    string = "/spec/initContainers"
 	TFXPodSuffix              string = "tfx/orchestration/kubeflow/container_entrypoint.py"
+	SdkTypeLabel              string = "pipelines.kubeflow.org/pipeline-sdk-type"
+	TfxSdkTypeLabel           string = "tfx"
 )
 
 var (
@@ -126,7 +128,7 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 		annotations[ArgoWorkflowOutputs] = getValueFromSerializedMap(cachedExecution.ExecutionOutput, ArgoWorkflowOutputs)
 		labels[CacheIDLabelKey] = strconv.FormatInt(cachedExecution.ID, 10)
 		labels[KFPCachedLabelKey] = KFPCachedLabelValue // This label indicates the pod is taken from cache.
-		
+
 		// These labels cache results for metadata-writer.
 		labels[MetadataExecutionIDKey] = getValueFromSerializedMap(cachedExecution.ExecutionOutput, MetadataExecutionIDKey)
 		labels[MetadataWrittenKey] = "true"
@@ -246,6 +248,9 @@ func isKFPCacheEnabled(pod *corev1.Pod) bool {
 }
 
 func isTFXPod(pod *corev1.Pod) bool {
+	if pod.Labels[SdkTypeLabel] == TfxSdkTypeLabel {
+		return true
+	}
 	containers := pod.Spec.Containers
 	if containers == nil || len(containers) == 0 {
 		log.Printf("This pod container does not exist.")

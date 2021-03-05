@@ -73,7 +73,7 @@
         "artifacts": {
           "input_gcs": {
             "artifactType": {
-              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              "instanceSchema": "title: kfp.Artifact\ntype: object\n"
             }
           }
         },
@@ -98,7 +98,7 @@
               "runtimeParameter": "input_gcs"
             },
             "typeSchema": {
-              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              "instanceSchema": "title: kfp.Artifact\ntype: object\n"
             }
           }
         },
@@ -143,7 +143,7 @@
           "artifacts": {
             "model": {
               "artifactType": {
-                "instanceSchema": "properties:\ntitle: kfp.Model\ntype: object\n"
+                "instanceSchema": "title: kfp.Model\ntype: object\nproperties:\n  framework:\n    type: string\n  framework_version:\n    type: string\n"
               }
             }
           }
@@ -156,7 +156,7 @@
           "artifacts": {
             "model_output": {
               "artifactType": {
-                "instanceSchema": "properties:\ntitle: kfp.Model\ntype: object\n"
+                "instanceSchema": "title: kfp.Model\ntype: object\nproperties:\n  framework:\n    type: string\n  framework_version:\n    type: string\n"
               }
             }
           },
@@ -178,7 +178,7 @@
           "artifacts": {
             "input_location": {
               "artifactType": {
-                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+                "instanceSchema": "title: kfp.Artifact\ntype: object\n"
               }
             }
           }
@@ -197,7 +197,7 @@
           "artifacts": {
             "result": {
               "artifactType": {
-                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+                "instanceSchema": "title: kfp.Artifact\ntype: object\n"
               }
             }
           }

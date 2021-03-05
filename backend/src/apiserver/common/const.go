@@ -44,6 +44,7 @@ const (
 	RbacResourceTypeVisualizations = "visualizations"
 
 	RbacResourceVerbArchive   = "archive"
+	RbacResourceVerbUpdate    = "update"
 	RbacResourceVerbCreate    = "create"
 	RbacResourceVerbDelete    = "delete"
 	RbacResourceVerbDisable   = "disable"

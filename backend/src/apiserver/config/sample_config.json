@@ -10,11 +10,6 @@
     "file": "/samples/core/parameterized_tfx_oss/parameterized_tfx_oss.py.yaml"
   },
   {
-    "name": "[Demo] TFX - Iris classification pipeline",
-    "description": "[source code](https://github.com/kubeflow/pipelines/tree/master/samples/core/iris). Example pipeline that classifies Iris flower subspecies and how to use native Keras within TFX.",
-    "file": "/samples/core/iris/iris.py.yaml"
-  },
-  {
     "name": "[Tutorial] Data passing in python components",
     "description": "[source code](https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components) Shows how to pass data between python components.",
     "file": "/samples/tutorials/Data passing in python components/Data passing in python components - Files.py.yaml"

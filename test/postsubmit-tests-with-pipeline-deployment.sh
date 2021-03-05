@@ -37,6 +37,7 @@ GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test
 TARGET_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test/${PULL_BASE_SHA}
 TIMEOUT_SECONDS=1800
 NAMESPACE=kubeflow
+IS_INTEGRATION_TEST=false
 ENABLE_WORKLOAD_IDENTITY=true
 COMMIT_SHA="$PULL_BASE_SHA"
 
@@ -56,6 +57,9 @@ while [ "$1" != "" ]; do
                                       ;;
              --test_result_folder )   shift
                                       TEST_RESULT_FOLDER=$1
+                                      ;;
+             --is_integration_test )  shift
+                                      IS_INTEGRATION_TEST=$1
                                       ;;
              --timeout )              shift
                                       TIMEOUT_SECONDS=$1
@@ -146,6 +150,7 @@ if [ ${KFP_DEPLOYMENT} == standalone ]; then
   -p component-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
   -p target-image-prefix="${TARGET_IMAGE_BASE_DIR}/" \
   -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
+  -p is-integration-test="${IS_INTEGRATION_TEST}" \
   -n ${NAMESPACE} \
   --serviceaccount test-runner \
   -o name

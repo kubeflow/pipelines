@@ -14,107 +14,379 @@
 
 import collections
 import copy
+import inspect
 from typing import Any, Mapping, Optional
-from ..components.structures import ComponentSpec, ComponentReference
-from ..components._components import _default_component_name, _resolve_command_line_and_paths
-from ..components._naming import _sanitize_python_function_name, generate_unique_name_conversion_table
-from .. import dsl
+
+from kfp.components import _structures
+from kfp.components import _components
+from kfp.components import _naming
+from kfp import dsl
+from kfp.dsl import _pipeline_param
+from kfp.dsl import types
+from kfp.dsl import component_spec as dsl_component_spec
+from kfp.dsl import _container_op
+from kfp.dsl import dsl_utils
+from kfp.dsl import importer_node
+from kfp.dsl import type_utils
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 
 def _create_container_op_from_component_and_arguments(
-    component_spec: ComponentSpec,
+    component_spec: _structures.ComponentSpec,
     arguments: Mapping[str, Any],
-    component_ref: Optional[ComponentReference] = None,
-) -> 'dsl.ContainerOp':
-    # Check types of the reference arguments and serialize PipelineParams
-    arguments = arguments.copy()
-    for input_name, argument_value in arguments.items():
-        if isinstance(argument_value, dsl.PipelineParam):
-            input_type = component_spec._inputs_dict[input_name].type
-            reference_type = argument_value.param_type
-            dsl.types.verify_type_compatibility(reference_type, input_type, 'Incompatible argument passed to the input "{}" of component "{}": '.format(input_name, component_spec.name))
+    component_ref: Optional[_structures.ComponentReference] = None,
+) -> _container_op.ContainerOp:
+  """Instantiates ContainerOp object.
 
-            arguments[input_name] = str(argument_value)
-        if isinstance(argument_value, dsl.ContainerOp):
-            raise TypeError('ContainerOp object was passed to component as an input argument. Pass a single output instead.')
+  Args:
+    component_spec: The component spec object.
+    arguments: The dictionary of component arguments.
+    component_ref: (only for v1) The component references.
 
-    resolved_cmd = _resolve_command_line_and_paths(
+  Returns:
+    A ContainerOp instance.
+  """
+  # Check types of the reference arguments and serialize PipelineParams
+  original_arguments = arguments
+  arguments = arguments.copy()
+  for input_name, argument_value in arguments.items():
+    if isinstance(argument_value, _pipeline_param.PipelineParam):
+      input_type = component_spec._inputs_dict[input_name].type
+      reference_type = argument_value.param_type
+      types.verify_type_compatibility(
+          reference_type, input_type,
+          'Incompatible argument passed to the input "{}" of component "{}": '
+          .format(input_name, component_spec.name))
+
+      arguments[input_name] = str(argument_value)
+    if isinstance(argument_value, _container_op.ContainerOp):
+      raise TypeError(
+          'ContainerOp object was passed to component as an input argument. '
+          'Pass a single output instead.')
+
+  resolved_cmd = _components._resolve_command_line_and_paths(
+      component_spec=component_spec,
+      arguments=arguments,
+  )
+
+  container_spec = component_spec.implementation.container
+
+  old_warn_value = _container_op.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING
+  _container_op.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = True
+
+  output_paths_and_uris = collections.OrderedDict(resolved_cmd.output_paths or
+                                                  {})
+  output_paths_and_uris.update(resolved_cmd.output_uris)
+  input_paths_and_uris = collections.OrderedDict(resolved_cmd.input_paths or {})
+  input_paths_and_uris.update(resolved_cmd.input_uris)
+
+  artifact_argument_paths = [
+      dsl.InputArgumentPath(
+          argument=arguments[input_name],
+          input=input_name,
+          path=path_or_uri,
+      ) for input_name, path_or_uri in input_paths_and_uris.items()
+  ]
+
+  task = _container_op.ContainerOp(
+      name=component_spec.name or _components._default_component_name,
+      image=container_spec.image,
+      command=resolved_cmd.command,
+      arguments=resolved_cmd.args,
+      file_outputs=output_paths_and_uris,
+      artifact_argument_paths=artifact_argument_paths,
+  )
+  _container_op.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = old_warn_value
+
+  component_meta = copy.copy(component_spec)
+  task._set_metadata(component_meta)
+  component_ref_without_spec = copy.copy(component_ref)
+  component_ref_without_spec.spec = None
+  task._component_ref = component_ref_without_spec
+
+  task._parameter_arguments = resolved_cmd.inputs_consumed_by_value
+
+  # Previously, ContainerOp had strict requirements for the output names, so we
+  # had to convert all the names before passing them to the ContainerOp
+  # constructor.
+  # Outputs with non-pythonic names could not be accessed using their original
+  # names. Now ContainerOp supports any output names, so we're now using the
+  # original output names. However to support legacy pipelines, we're also
+  # adding output references with pythonic names.
+  # TODO: Add warning when people use the legacy output names.
+  output_names = [
+      output_spec.name for output_spec in component_spec.outputs or []
+  ]  # Stabilizing the ordering
+  output_name_to_python = _naming.generate_unique_name_conversion_table(
+      output_names, _naming._sanitize_python_function_name)
+  for output_name in output_names:
+    pythonic_output_name = output_name_to_python[output_name]
+    # Note: Some component outputs are currently missing from task.outputs
+    # (e.g. MLPipeline UI Metadata)
+    if pythonic_output_name not in task.outputs and output_name in task.outputs:
+      task.outputs[pythonic_output_name] = task.outputs[output_name]
+
+  if container_spec.env:
+    from kubernetes import client as k8s_client
+    for name, value in container_spec.env.items():
+      task.container.add_env_variable(
+          k8s_client.V1EnvVar(name=name, value=value))
+
+  if component_spec.metadata:
+    annotations = component_spec.metadata.annotations or {}
+    for key, value in annotations.items():
+      task.add_pod_annotation(key, value)
+    for key, value in (component_spec.metadata.labels or {}).items():
+      task.add_pod_label(key, value)
+    # Disabling the caching for the volatile components by default
+    if annotations.get('volatile_component', 'false') == 'true':
+      task.execution_options.caching_strategy.max_cache_staleness = 'P0D'
+
+  _attach_v2_specs(task, component_spec, original_arguments)
+
+  return task
+
+
+def _attach_v2_specs(
+    task: _container_op.ContainerOp,
+    component_spec: _structures.ComponentSpec,
+    arguments: Mapping[str, Any],
+) -> None:
+  """Attaches v2 specs to a ContainerOp object.
+
+    Args:
+      task: The ContainerOp object to attach IR specs.
+      component_spec: The component spec object.
+      arguments: The dictionary of component arguments.
+  """
+
+  # Attach v2_specs to the ContainerOp object regardless whether the pipeline is
+  # being compiled to v1 (Argo yaml) or v2 (IR json).
+  # However, there're different behaviors for the two cases. Namely, resolved
+  # commands and arguments, error handling, etc.
+  # Regarding the difference in error handling, v2 has a stricter requirement on
+  # input type annotation. For instance, an input without any type annotation is
+  # viewed as an artifact, and if it's paired with InputValuePlaceholder, an
+  # error will be thrown at compile time. However, we cannot raise such an error
+  # in v1, as it wouldn't break existing pipelines.
+  is_compiling_for_v2 = False
+  for frame in inspect.stack():
+    if '_create_pipeline_v2' in frame:
+      is_compiling_for_v2 = True
+      break
+
+  def _resolve_commands_and_args_v2(
+      component_spec: _structures.ComponentSpec,
+      arguments: Mapping[str, Any],
+  ) -> _components._ResolvedCommandLineAndPaths:
+    """Resolves the command line argument placeholders for v2 (IR).
+
+    Args:
+      component_spec: The component spec object.
+      arguments: The dictionary of component arguments.
+
+    Returns:
+      A named tuple: _components._ResolvedCommandLineAndPaths.
+    """
+    inputs_dict = {
+        input_spec.name: input_spec
+        for input_spec in component_spec.inputs or []
+    }
+    outputs_dict = {
+        output_spec.name: output_spec
+        for output_spec in component_spec.outputs or []
+    }
+
+    def _input_artifact_uri_placeholder(input_key: str) -> str:
+      if is_compiling_for_v2 and type_utils.is_parameter_type(
+          inputs_dict[input_key].type):
+        raise TypeError('Input "{}" with type "{}" cannot be paired with '
+                        'InputUriPlaceholder.'.format(
+                            input_key, inputs_dict[input_key].type))
+      else:
+        return "{{{{$.inputs.artifacts['{}'].uri}}}}".format(input_key)
+
+    def _input_artifact_path_placeholder(input_key: str) -> str:
+      if is_compiling_for_v2 and type_utils.is_parameter_type(
+          inputs_dict[input_key].type):
+        raise TypeError('Input "{}" with type "{}" cannot be paired with '
+                        'InputPathPlaceholder.'.format(
+                            input_key, inputs_dict[input_key].type))
+      elif is_compiling_for_v2 and input_key in importer_specs:
+        raise TypeError(
+            'Input "{}" with type "{}" is not connected to any upstream output. '
+            'However it is used with InputPathPlaceholder. '
+            'If you want to import an existing artifact using a system-connected'
+            ' importer node, use InputUriPlaceholder instead. '
+            'Or if you just want to pass a string parameter, use string type and'
+            ' InputValuePlaceholder instead.'.format(
+                input_key, inputs_dict[input_key].type))
+      else:
+        return "{{{{$.inputs.artifacts['{}'].path}}}}".format(input_key)
+
+    def _input_parameter_placeholder(input_key: str) -> str:
+      if is_compiling_for_v2 and not type_utils.is_parameter_type(
+          inputs_dict[input_key].type):
+        raise TypeError('Input "{}" with type "{}" cannot be paired with '
+                        'InputValuePlaceholder.'.format(
+                            input_key, inputs_dict[input_key].type))
+      else:
+        return "{{{{$.inputs.parameters['{}']}}}}".format(input_key)
+
+    def _output_artifact_uri_placeholder(output_key: str) -> str:
+      if is_compiling_for_v2 and type_utils.is_parameter_type(
+          outputs_dict[output_key].type):
+        raise TypeError('Output "{}" with type "{}" cannot be paired with '
+                        'OutputUriPlaceholder.'.format(
+                            output_key, outputs_dict[output_key].type))
+      else:
+        return "{{{{$.outputs.artifacts['{}'].uri}}}}".format(output_key)
+
+    def _output_artifact_path_placeholder(output_key: str) -> str:
+      return "{{{{$.outputs.artifacts['{}'].path}}}}".format(output_key)
+
+    def _output_parameter_path_placeholder(output_key: str) -> str:
+      return "{{{{$.outputs.parameters['{}'].output_file}}}}".format(output_key)
+
+    def _resolve_output_path_placeholder(output_key: str) -> str:
+      if type_utils.is_parameter_type(outputs_dict[output_key].type):
+        return _output_parameter_path_placeholder(output_key)
+      else:
+        return _output_artifact_path_placeholder(output_key)
+
+    resolved_cmd = _components._resolve_command_line_and_paths(
         component_spec=component_spec,
         arguments=arguments,
+        input_value_generator=_input_parameter_placeholder,
+        input_uri_generator=_input_artifact_uri_placeholder,
+        output_uri_generator=_output_artifact_uri_placeholder,
+        input_path_generator=_input_artifact_path_placeholder,
+        output_path_generator=_resolve_output_path_placeholder,
     )
+    return resolved_cmd
 
-    container_spec = component_spec.implementation.container
+  pipeline_task_spec = pipeline_spec_pb2.PipelineTaskSpec()
 
-    old_warn_value = dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING
-    dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = True
+  # Keep track of auto-injected importer spec.
+  importer_specs = {}
 
-    # Merge output_paths and output_uris to get the file_outputs.
-    file_outputs = collections.OrderedDict(resolved_cmd.output_paths or {})
-    for name, output_uri in resolved_cmd.output_uris.items():
-        file_outputs[name] = output_uri
+  # Check types of the reference arguments and serialize PipelineParams
+  original_arguments = arguments
+  arguments = arguments.copy()
 
-    artifact_argument_paths = [
-        dsl.InputArgumentPath(
-            argument=arguments[input_name],
-            input=input_name,
-            path=path,
-        )
-        for input_name, path in resolved_cmd.input_paths.items()
-    ]
+  # Preserver input params for ContainerOp.inputs
+  input_params = list(
+      set([
+          param for param in arguments.values()
+          if isinstance(param, _pipeline_param.PipelineParam)
+      ]))
 
-    for input_name, input_uri in resolved_cmd.input_uris.items():
-        artifact_argument_paths.append(
-            dsl.InputArgumentPath(
-                argument=arguments[input_name],
-                input=input_name,
-                path=input_uri
-            ))
+  for input_name, argument_value in arguments.items():
+    if isinstance(argument_value, _pipeline_param.PipelineParam):
+      input_type = component_spec._inputs_dict[input_name].type
+      reference_type = argument_value.param_type
+      types.verify_type_compatibility(
+          reference_type, input_type,
+          'Incompatible argument passed to the input "{}" of component "{}": '
+          .format(input_name, component_spec.name))
 
-    task = dsl.ContainerOp(
-        name=component_spec.name or _default_component_name,
-        image=container_spec.image,
-        command=resolved_cmd.command,
-        arguments=resolved_cmd.args,
-        file_outputs=file_outputs,
-        artifact_argument_paths=artifact_argument_paths,
-    )
-    dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = old_warn_value
+      arguments[input_name] = str(argument_value)
 
-    component_meta = copy.copy(component_spec)
-    task._set_metadata(component_meta)
-    component_ref_without_spec = copy.copy(component_ref)
-    component_ref_without_spec.spec = None
-    task._component_ref = component_ref_without_spec
+      if type_utils.is_parameter_type(input_type):
+        if argument_value.op_name:
+          pipeline_task_spec.inputs.parameters[
+              input_name].task_output_parameter.producer_task = (
+                  dsl_utils.sanitize_task_name(argument_value.op_name))
+          pipeline_task_spec.inputs.parameters[
+              input_name].task_output_parameter.output_parameter_key = (
+                  argument_value.name)
+        else:
+          pipeline_task_spec.inputs.parameters[
+              input_name].component_input_parameter = argument_value.name
+      else:
+        if argument_value.op_name:
+          pipeline_task_spec.inputs.artifacts[
+              input_name].task_output_artifact.producer_task = (
+                  dsl_utils.sanitize_task_name(argument_value.op_name))
+          pipeline_task_spec.inputs.artifacts[
+              input_name].task_output_artifact.output_artifact_key = (
+                  argument_value.name)
+        else:
+          # argument_value.op_name could be none, in which case an importer node
+          # will be inserted later.
+          pipeline_task_spec.inputs.artifacts[
+              input_name].task_output_artifact.producer_task = ''
+          type_schema = type_utils.get_input_artifact_type_schema(
+              input_name, component_spec.inputs)
+          importer_specs[input_name] = importer_node.build_importer_spec(
+              input_type_schema=type_schema,
+              pipeline_param_name=argument_value.name)
+    elif isinstance(argument_value, str):
+      pipeline_params = _pipeline_param.extract_pipelineparams_from_any(
+          argument_value)
+      if pipeline_params and is_compiling_for_v2:
+        # argument_value contains PipelineParam placeholders.
+        raise NotImplementedError(
+            'Currently, a component input can only accept either a constant '
+            'value or a reference to another pipeline parameter. It cannot be a '
+            'combination of both. Got: {} for input {}'.format(
+                argument_value, input_name))
 
-    task._parameter_arguments = resolved_cmd.inputs_consumed_by_value
+      input_type = component_spec._inputs_dict[input_name].type
+      if type_utils.is_parameter_type(input_type):
+        pipeline_task_spec.inputs.parameters[
+            input_name].runtime_value.constant_value.string_value = (
+                argument_value)
+      else:
+        # An importer node with constant value artifact_uri will be inserted.
+        pipeline_task_spec.inputs.artifacts[
+            input_name].task_output_artifact.producer_task = ''
+        type_schema = type_utils.get_input_artifact_type_schema(
+            input_name, component_spec.inputs)
+        importer_specs[input_name] = importer_node.build_importer_spec(
+            input_type_schema=type_schema, constant_value=argument_value)
+    elif isinstance(argument_value, int):
+      pipeline_task_spec.inputs.parameters[
+          input_name].runtime_value.constant_value.int_value = argument_value
+    elif isinstance(argument_value, float):
+      pipeline_task_spec.inputs.parameters[
+          input_name].runtime_value.constant_value.double_value = argument_value
+    elif isinstance(argument_value, _container_op.ContainerOp):
+      raise TypeError(
+          'ContainerOp object {} was passed to component as an input argument. '
+          'Pass a single output instead.'.format(input_name))
+    else:
+      if is_compiling_for_v2:
+        raise NotImplementedError(
+            'Input argument supports only the following types: PipelineParam'
+            ', str, int, float. Got: "{}".'.format(argument_value))
 
-    # Previously, ContainerOp had strict requirements for the output names, so we had to
-    # convert all the names before passing them to the ContainerOp constructor.
-    # Outputs with non-pythonic names could not be accessed using their original names.
-    # Now ContainerOp supports any output names, so we're now using the original output names.
-    # However to support legacy pipelines, we're also adding output references with pythonic names.
-    # TODO: Add warning when people use the legacy output names.
-    output_names = [output_spec.name for output_spec in component_spec.outputs or []] # Stabilizing the ordering
-    output_name_to_python = generate_unique_name_conversion_table(output_names, _sanitize_python_function_name)
-    for output_name in output_names:
-        pythonic_output_name = output_name_to_python[output_name]
-        # Note: Some component outputs are currently missing from task.outputs (e.g. MLPipeline UI Metadata)
-        if pythonic_output_name not in task.outputs and output_name in task.outputs:
-            task.outputs[pythonic_output_name] = task.outputs[output_name]
+  if not component_spec.name:
+    component_spec.name = _components._default_component_name
 
-    if container_spec.env:
-        from kubernetes import client as k8s_client
-        for name, value in container_spec.env.items():
-            task.container.add_env_variable(k8s_client.V1EnvVar(name=name, value=value))
+  # task.name is unique at this point.
+  pipeline_task_spec.task_info.name = (dsl_utils.sanitize_task_name(task.name))
+  pipeline_task_spec.component_ref.name = (
+      dsl_utils.sanitize_component_name(component_spec.name))
 
-    if component_spec.metadata:
-        annotations = component_spec.metadata.annotations or {}
-        for key, value in annotations.items():
-            task.add_pod_annotation(key, value)
-        for key, value in (component_spec.metadata.labels or {}).items():
-            task.add_pod_label(key, value)
-        # Disabling the caching for the volatile components by default
-        if annotations.get('volatile_component', 'false') == 'true':
-            task.execution_options.caching_strategy.max_cache_staleness = 'P0D'
+  task.task_spec = pipeline_task_spec
+  task.importer_specs = importer_specs
+  task.component_spec = dsl_component_spec.build_component_spec_from_structure(
+      component_spec)
 
-    return task
+  resolved_cmd = _resolve_commands_and_args_v2(
+      component_spec=component_spec, arguments=original_arguments)
+
+  task.container_spec = (
+      pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec(
+          image=component_spec.implementation.container.image,
+          command=resolved_cmd.command,
+          args=resolved_cmd.args))
+
+  # Override command and arguments if compiling to v2.
+  if is_compiling_for_v2:
+    task.command = resolved_cmd.command
+    task.arguments = resolved_cmd.args
+
+    # limit this to v2 compiling only to avoid possible behavior change in v1.
+    task.inputs = input_params

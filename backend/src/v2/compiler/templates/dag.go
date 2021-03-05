@@ -17,6 +17,7 @@ package templates
 import (
 	"fmt"
 
+	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/jsonpb"
 	pb "github.com/kubeflow/pipelines/api/v2alpha1/go"
@@ -131,10 +132,10 @@ func Dag(args *DagArgs) (*workflowapi.Template, error) {
 				Dependencies: *dependencies,
 				Arguments: workflowapi.Arguments{
 					Parameters: []workflowapi.Parameter{
-						{Name: ExecutorParamTaskSpec, Value: &taskSpecInJson},
-						{Name: ExecutorParamContextName, Value: &parentContextNameValue},
-						{Name: ExecutorParamExecutorSpec, Value: &executorSpecInJson},
-						{Name: ExecutorParamOutputsSpec, Value: &outputsSpecInJson},
+						{Name: ExecutorParamTaskSpec, Value: v1alpha1.AnyStringPtr(taskSpecInJson)},
+						{Name: ExecutorParamContextName, Value: v1alpha1.AnyStringPtr(parentContextNameValue)},
+						{Name: ExecutorParamExecutorSpec, Value: v1alpha1.AnyStringPtr(executorSpecInJson)},
+						{Name: ExecutorParamOutputsSpec, Value: v1alpha1.AnyStringPtr(outputsSpecInJson)},
 					},
 				},
 			})

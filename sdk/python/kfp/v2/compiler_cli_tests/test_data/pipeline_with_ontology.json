@@ -53,7 +53,7 @@
         "artifacts": {
           "input_location": {
             "artifactType": {
-              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              "instanceSchema": "title: kfp.Artifact\ntype: object\n"
             }
           }
         },
@@ -115,7 +115,7 @@
           "artifacts": {
             "examples": {
               "artifactType": {
-                "instanceSchema": "properties:\ntitle: kfp.Dataset\ntype: object\n"
+                "instanceSchema": "title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string"
               }
             }
           }
@@ -134,7 +134,7 @@
           "artifacts": {
             "examples": {
               "artifactType": {
-                "instanceSchema": "properties:\ntitle: kfp.Dataset\ntype: object\n"
+                "instanceSchema": "title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string"
               }
             }
           }
@@ -144,7 +144,7 @@
           "artifacts": {
             "model": {
               "artifactType": {
-                "instanceSchema": "properties:\ntitle: kfp.Model\ntype: object\n"
+                "instanceSchema": "title: kfp.Model\ntype: object\nproperties:\n  framework:\n    type: string\n  framework_version:\n    type: string\n"
               }
             }
           }

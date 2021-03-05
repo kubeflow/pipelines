@@ -20,6 +20,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -33,6 +34,7 @@ var pipelineColumns = []string{
 	"pipelines.Description",
 	"pipelines.Parameters",
 	"pipelines.Status",
+	"pipelines.Namespace",
 	"pipelines.DefaultVersionId",
 	"pipeline_versions.UUID",
 	"pipeline_versions.CreatedAtInSec",
@@ -54,7 +56,7 @@ var pipelineVersionColumns = []string{
 }
 
 type PipelineStoreInterface interface {
-	ListPipelines(opts *list.Options) ([]*model.Pipeline, int, string, error)
+	ListPipelines(filterContext *common.FilterContext, opts *list.Options) ([]*model.Pipeline, int, string, error)
 	GetPipeline(pipelineId string) (*model.Pipeline, error)
 	GetPipelineWithStatus(id string, status model.PipelineStatus) (*model.Pipeline, error)
 	DeletePipeline(pipelineId string) error
@@ -82,16 +84,25 @@ type PipelineStore struct {
 
 // Runs two SQL queries in a transaction to return a list of matching pipelines, as well as their
 // total_size. The total_size does not reflect the page size.
-func (s *PipelineStore) ListPipelines(opts *list.Options) ([]*model.Pipeline, int, string, error) {
+func (s *PipelineStore) ListPipelines(filterContext *common.FilterContext, opts *list.Options) ([]*model.Pipeline, int, string, error) {
 	errorF := func(err error) ([]*model.Pipeline, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list pipelines: %v", err)
 	}
 
 	buildQuery := func(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
-		return opts.AddFilterToSelect(sqlBuilder).
-			From("pipelines").
-			LeftJoin("pipeline_versions ON pipelines.DefaultVersionId = pipeline_versions.UUID").
-			Where(sq.Eq{"pipelines.Status": model.PipelineReady})
+		query := opts.AddFilterToSelect(sqlBuilder).From("pipelines").
+			LeftJoin("pipeline_versions ON pipelines.DefaultVersionId = pipeline_versions.UUID")
+		if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == common.Namespace {
+			query = query.Where(
+				sq.Eq{"pipelines.Status": model.PipelineReady,
+					"pipelines.Namespace": filterContext.ReferenceKey.ID},
+			)
+		} else {
+			query = query.Where(
+				sq.Eq{"pipelines.Status": model.PipelineReady},
+			)
+		}
+		return query
 	}
 
 	sqlBuilder := buildQuery(sq.Select(pipelineColumns...))
@@ -158,7 +169,7 @@ func (s *PipelineStore) scanRows(rows *sql.Rows) ([]*model.Pipeline, error) {
 	var pipelines []*model.Pipeline
 	for rows.Next() {
 		var uuid, name, parameters, description string
-		var defaultVersionId sql.NullString
+		var defaultVersionId, namespace sql.NullString
 		var createdAtInSec int64
 		var status model.PipelineStatus
 		var versionUUID, versionName, versionParameters, versionPipelineId, versionCodeSourceUrl, versionStatus sql.NullString
@@ -170,6 +181,7 @@ func (s *PipelineStore) scanRows(rows *sql.Rows) ([]*model.Pipeline, error) {
 			&description,
 			&parameters,
 			&status,
+			&namespace,
 			&defaultVersionId,
 			&versionUUID,
 			&versionCreatedAtInSec,
@@ -188,6 +200,7 @@ func (s *PipelineStore) scanRows(rows *sql.Rows) ([]*model.Pipeline, error) {
 				Description:      description,
 				Parameters:       parameters,
 				Status:           status,
+				Namespace:        namespace.String,
 				DefaultVersionId: defaultVersionId.String,
 				DefaultVersion: &model.PipelineVersion{
 					UUID:           versionUUID.String,
@@ -206,6 +219,7 @@ func (s *PipelineStore) scanRows(rows *sql.Rows) ([]*model.Pipeline, error) {
 				Description:      description,
 				Parameters:       parameters,
 				Status:           status,
+				Namespace:        namespace.String,
 				DefaultVersionId: "",
 				DefaultVersion:   nil})
 		}
@@ -279,6 +293,7 @@ func (s *PipelineStore) CreatePipeline(p *model.Pipeline) (*model.Pipeline, erro
 				"Description":      newPipeline.Description,
 				"Parameters":       newPipeline.Parameters,
 				"Status":           string(newPipeline.Status),
+				"Namespace":        newPipeline.Namespace,
 				"DefaultVersionId": newPipeline.DefaultVersionId}).
 		ToSql()
 	if err != nil {

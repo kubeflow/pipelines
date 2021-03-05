@@ -1190,6 +1190,10 @@ class PipelineServiceApi(object):
         :type sort_by: str
         :param filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
         :type filter: str
+        :param resource_reference_key_type: The type of the resource that referred to.
+        :type resource_reference_key_type: str
+        :param resource_reference_key_id: The ID of the resource that referred to.
+        :type resource_reference_key_id: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -1224,6 +1228,10 @@ class PipelineServiceApi(object):
         :type sort_by: str
         :param filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
         :type filter: str
+        :param resource_reference_key_type: The type of the resource that referred to.
+        :type resource_reference_key_type: str
+        :param resource_reference_key_id: The ID of the resource that referred to.
+        :type resource_reference_key_id: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -1249,7 +1257,9 @@ class PipelineServiceApi(object):
             'page_token',
             'page_size',
             'sort_by',
-            'filter'
+            'filter',
+            'resource_reference_key_type',
+            'resource_reference_key_id'
         ]
         all_params.extend(
             [
@@ -1282,6 +1292,10 @@ class PipelineServiceApi(object):
             query_params.append(('sort_by', local_var_params['sort_by']))  # noqa: E501
         if 'filter' in local_var_params and local_var_params['filter'] is not None:  # noqa: E501
             query_params.append(('filter', local_var_params['filter']))  # noqa: E501
+        if 'resource_reference_key_type' in local_var_params and local_var_params['resource_reference_key_type'] is not None:  # noqa: E501
+            query_params.append(('resource_reference_key.type', local_var_params['resource_reference_key_type']))  # noqa: E501
+        if 'resource_reference_key_id' in local_var_params and local_var_params['resource_reference_key_id'] is not None:  # noqa: E501
+            query_params.append(('resource_reference_key.id', local_var_params['resource_reference_key_id']))  # noqa: E501
 
         header_params = {}
 

@@ -53,7 +53,7 @@ outputs:
 - {name: job_id, description: The simulation job id.}
 implementation:
   container:
-    image: amazon/aws-sagemaker-kfp-components:1.1.0
+    image: amazon/aws-sagemaker-kfp-components:1.1.1
     command: [python3]
     args:
     - simulation_job/src/robomaker_simulation_job_component.py

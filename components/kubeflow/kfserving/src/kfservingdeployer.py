@@ -32,7 +32,7 @@ from kfserving import V1alpha2PyTorchSpec
 from kfserving import V1alpha2SKLearnSpec
 from kfserving import V1alpha2XGBoostSpec
 from kfserving.models.v1alpha2_onnx_spec import V1alpha2ONNXSpec
-from kfserving import V1alpha2TensorRTSpec
+from kfserving import V1alpha2TritonSpec
 from kfserving import V1alpha2CustomSpec
 from kfserving import V1alpha2InferenceServiceSpec
 from kfserving import V1alpha2InferenceService
@@ -79,11 +79,11 @@ def EndpointSpec(framework, storage_uri, service_account, min_replicas, max_repl
     elif framework == "onnx":
         endpointSpec.predictor.onnx = V1alpha2ONNXSpec(storage_uri=storage_uri)
         return endpointSpec
-        
-    elif framework == "tensorrt":
-        endpointSpec.predictor.tensorrt = V1alpha2TensorRTSpec(storage_uri=storage_uri)
+
+    elif framework == "triton":
+        endpointSpec.predictor.triton = V1alpha2TritonSpec(storage_uri=storage_uri)
         return endpointSpec
-        
+      
     else:
         raise ("Error: No matching framework: " + framework)
 
@@ -429,12 +429,14 @@ if __name__ == "__main__":
                 exit(1)
     try:
         print(
-            model_status["status"]["url"] + " is the knative domain."
+            model_status["status"]["address"]["url"] + " is the knative domain."
         )
+       
         print("Sample test commands: \n")
         # model_status['status']['url'] is like http://flowers-sample.kubeflow.example.com/v1/models/flowers-sample
+
         print(
-            "curl -v -X GET %s" % model_status["status"]["url"]
+            "curl -v -X GET %s" % model_status["status"]["address"]["url"]
         )
 
         print("\nIf the above URL is not accessible, it's recommended to setup Knative with a configured DNS.\n"\
