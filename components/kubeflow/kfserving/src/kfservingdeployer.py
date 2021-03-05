@@ -12,83 +12,91 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
 import argparse
+from distutils.util import strtobool
+import json
 import os
-import requests
-import re
+import sys
 import time
 import yaml
-from distutils.util import strtobool
 
 from kubernetes import client
 
-from kfserving import KFServingClient
 from kfserving import constants
-from kfserving import V1alpha2EndpointSpec
-from kfserving import V1alpha2PredictorSpec
-from kfserving import V1alpha2TensorflowSpec
-from kfserving import V1alpha2PyTorchSpec
-from kfserving import V1alpha2SKLearnSpec
-from kfserving import V1alpha2XGBoostSpec
-from kfserving.models.v1alpha2_onnx_spec import V1alpha2ONNXSpec
-from kfserving import V1alpha2TritonSpec
-from kfserving import V1alpha2CustomSpec
-from kfserving import V1alpha2InferenceServiceSpec
-from kfserving import V1alpha2InferenceService
+from kfserving import KFServingClient
+from kfserving import V1beta1InferenceService
+from kfserving import V1beta1InferenceServiceSpec
+from kfserving import V1beta1LightGBMSpec
+from kfserving import V1beta1ONNXRuntimeSpec
+from kfserving import V1beta1PMMLSpec
+from kfserving import V1beta1PredictorSpec
+from kfserving import V1beta1SKLearnSpec
+from kfserving import V1beta1TFServingSpec
+from kfserving import V1beta1TorchServeSpec
+from kfserving import V1beta1TritonSpec
+from kfserving import V1beta1XGBoostSpec
+from kfserving.api.kf_serving_watch import isvc_watch
 
 
-def yamlStr(str):
-    if str == "" or str == None:
-        return None
-    else:
-        return yaml.safe_load(str)
+AVAILABLE_FRAMEWORKS = {
+    'tensorflow': V1beta1TFServingSpec,
+    'pytorch': V1beta1TorchServeSpec,
+    'sklearn': V1beta1SKLearnSpec,
+    'xgboost': V1beta1XGBoostSpec,
+    'onnx': V1beta1ONNXRuntimeSpec,
+    'triton': V1beta1TritonSpec,
+    'pmml': V1beta1PMMLSpec,
+    'lightgbm': V1beta1LightGBMSpec
+}
 
 
-def EndpointSpec(framework, storage_uri, service_account, min_replicas, max_replicas):
+def create_predictor_spec(framework, storage_uri, canary_traffic_percent,
+                          service_account, min_replicas, max_replicas, containers):
+    """
+    Create and return V1beta1PredictorSpec to be used in a V1beta1InferenceServiceSpec
+    object.
+    """
 
-    endpointSpec = V1alpha2EndpointSpec(
-        predictor=V1alpha2PredictorSpec(
-            service_account_name=service_account,
-            min_replicas=(min_replicas
-                          if min_replicas >= 0
-                          else None
-                         ),
-            max_replicas=(max_replicas
-                          if max_replicas > 0 and max_replicas >= min_replicas
-                          else None
-                         )
-            )
-        )
-    if framework == "tensorflow":
-        endpointSpec.predictor.tensorflow = V1alpha2TensorflowSpec(storage_uri=storage_uri)
-        return endpointSpec
-            
-    elif framework == "pytorch":
-        endpointSpec.predictor.pytorch = V1alpha2PyTorchSpec(storage_uri=storage_uri) 
-        return endpointSpec
-        
-    elif framework == "sklearn":
-        endpointSpec.predictor.sklearn = V1alpha2SKLearnSpec(storage_uri=storage_uri)
-        return endpointSpec
-        
-    elif framework == "xgboost":
-        endpointSpec.predictor.xgboost = V1alpha2XGBoostSpec(storage_uri=storage_uri)
-        return endpointSpec
+    predictor_spec = V1beta1PredictorSpec(
+        service_account_name=service_account,
+        min_replicas=(min_replicas
+                      if min_replicas >= 0
+                      else None
+                     ),
+        max_replicas=(max_replicas
+                      if max_replicas > 0 and max_replicas >= min_replicas
+                      else None
+                     ),
+        containers=(containers or None),
+        canary_traffic_percent=canary_traffic_percent
+    )
 
-    elif framework == "onnx":
-        endpointSpec.predictor.onnx = V1alpha2ONNXSpec(storage_uri=storage_uri)
-        return endpointSpec
+    # If the containers field was set, then this is custom model serving.
+    if containers:
+        return predictor_spec
 
-    elif framework == "triton":
-        endpointSpec.predictor.triton = V1alpha2TritonSpec(storage_uri=storage_uri)
-        return endpointSpec
-      
-    else:
-        raise ("Error: No matching framework: " + framework)
+    if framework not in AVAILABLE_FRAMEWORKS:
+        raise ValueError("Error: No matching framework: " + framework)
+
+    setattr(
+        predictor_spec,
+        framework,
+        AVAILABLE_FRAMEWORKS[framework](storage_uri=storage_uri)
+    )
+    return predictor_spec
 
 
-def customEndpointSpec(custom_model_spec, service_account, min_replicas, max_replicas):
+def create_custom_container_spec(custom_model_spec):
+    """
+    Given a JSON container spec, return a V1Container object
+    representing the container. This is used for passing in
+    custom server images. The expected format for the input is:
+
+    { "image": "test/containerimage",
+      "port":5000,
+      "name": "custom-container" }
+    """
+
     env = (
         [
             client.V1EnvVar(name=i["name"], value=i["value"])
@@ -116,7 +124,7 @@ def customEndpointSpec(custom_model_spec, service_account, min_replicas, max_rep
         if custom_model_spec.get("resources", {})
         else None
     )
-    containerSpec = client.V1Container(
+    return client.V1Container(
         name=custom_model_spec.get("name", "custom-container"),
         image=custom_model_spec["image"],
         env=env,
@@ -127,66 +135,76 @@ def customEndpointSpec(custom_model_spec, service_account, min_replicas, max_rep
         working_dir=custom_model_spec.get("working_dir", None),
         resources=resources
     )
-    return V1alpha2EndpointSpec(
-        predictor=V1alpha2PredictorSpec(
-            custom=V1alpha2CustomSpec(container=containerSpec),
-            service_account_name=service_account,
-            min_replicas=(min_replicas
-                          if min_replicas >= 0
-                          else None
-                         ),
-            max_replicas=(max_replicas
-                          if max_replicas > 0 and max_replicas >= min_replicas
-                          else None
-                         )
-        )
-    )
 
 
-def InferenceService(
-    metadata, default_model_spec, canary_model_spec=None, canary_model_traffic=None
-):
-    return V1alpha2InferenceService(
-        api_version=constants.KFSERVING_GROUP + "/" + constants.KFSERVING_VERSION,
+def create_inference_service(metadata, predictor_spec):
+    """
+    Build and return V1beta1InferenceService object.
+    """
+    return V1beta1InferenceService(
+        api_version=constants.KFSERVING_V1BETA1,
         kind=constants.KFSERVING_KIND,
         metadata=metadata,
-        spec=V1alpha2InferenceServiceSpec(
-            default=default_model_spec,
-            canary=canary_model_spec,
-            canary_traffic_percent=canary_model_traffic,
+        spec=V1beta1InferenceServiceSpec(
+            predictor=predictor_spec
         ),
     )
 
 
-def deploy_model(
-    action,
-    model_name,
-    default_model_uri,
-    canary_model_uri,
-    canary_model_traffic,
-    namespace,
-    framework,
-    default_custom_model_spec,
-    canary_custom_model_spec,
-    service_account,
-    autoscaling_target=0,
-    enable_istio_sidecar=True,
-    inferenceservice_yaml={},
-    watch_timeout=120,
-    min_replicas=0,
-    max_replicas=0
-):
-    KFServing = KFServingClient()
+def submit_api_request(kfs_client, action, name, isvc, namespace=None,
+                       watch=False, timeout_seconds=300):
+    """
+    Creates or updates a Kubernetes custom object. This code is borrowed from the
+    KFServingClient.create/patch methods as using those directly doesn't allow for
+    sending in dicts as the InferenceService object which is needed for supporting passing
+    in raw InferenceService serialized YAML.
+    """
+    custom_obj_api = kfs_client.api_instance
+    args = [constants.KFSERVING_GROUP,constants.KFSERVING_V1BETA1_VERSION,
+            namespace, constants.KFSERVING_PLURAL]
+    if action == 'update':
+        outputs = custom_obj_api.patch_namespaced_custom_object(*args, name, isvc)
+    else:
+        outputs = custom_obj_api.create_namespaced_custom_object(*args, isvc)
+
+    if watch:
+        # Sleep 3 to avoid status still be True within a very short time.
+        time.sleep(3)
+        isvc_watch(
+            name=outputs['metadata']['name'],
+            namespace=namespace,
+            timeout_seconds=timeout_seconds)
+    else:
+        return outputs
+
+
+def perform_action(action, model_name, model_uri, canary_traffic_percent, namespace,
+                   framework, custom_model_spec, service_account, inferenceservice_yaml,
+                   autoscaling_target=0, enable_istio_sidecar=True, watch_timeout=300,
+                   min_replicas=0, max_replicas=0):
+    """
+    Perform the specified action. If the action is not 'delete' and `inferenceService_yaml`
+    was provided, the dict representation of the YAML will be sent directly to the
+    Kubernetes API. Otherwise, a V1beta1InferenceService object will be built using the
+    provided input and then sent for creation/update.
+    :return InferenceService JSON output
+    """
+    kfs_client = KFServingClient()
 
     if inferenceservice_yaml:
-        # Overwrite name and namespace if exist
+        # Overwrite name and namespace if exists
         if namespace:
             inferenceservice_yaml['metadata']['namespace'] = namespace
+
         if model_name:
             inferenceservice_yaml['metadata']['name'] = model_name
+        else:
+            model_name = inferenceservice_yaml['metadata']['name']
+
         kfsvc = inferenceservice_yaml
-    else:
-        # Create annotation
+
+    elif action != 'delete':
+        # Create annotations
         annotations = {}
         if int(autoscaling_target) != 0:
             annotations["autoscaling.knative.dev/target"] = str(autoscaling_target)
@@ -198,128 +216,82 @@ def deploy_model(
             name=model_name, namespace=namespace, annotations=annotations
         )
 
-        # Create Default deployment if default model uri is provided.
-        if framework != "custom" and default_model_uri:
-            default_model_spec = EndpointSpec(
-                framework, default_model_uri, service_account, min_replicas, max_replicas
-                )
-        elif framework == "custom" and default_custom_model_spec:
-            default_model_spec = customEndpointSpec(
-                default_custom_model_spec, service_account, min_replicas, max_replicas
-            )
+        # If a custom model container spec was provided, build the V1Container
+        # object using it.
+        containers = []
+        if custom_model_spec:
+            containers = [create_custom_container_spec(custom_model_spec)]
 
-        # Create Canary deployment if canary model uri is provided.
-        if framework != "custom" and canary_model_uri:
-            canary_model_spec = EndpointSpec(
-                framework, canary_model_uri, service_account, min_replicas, max_replicas
-                )
-            kfsvc = InferenceService(
-                metadata, default_model_spec, canary_model_spec, canary_model_traffic
-            )
-        elif framework == "custom" and canary_custom_model_spec:
-            canary_model_spec = customEndpointSpec(
-                canary_custom_model_spec, service_account, min_replicas, max_replicas
-            )
-            kfsvc = InferenceService(
-                metadata, default_model_spec, canary_model_spec, canary_model_traffic
-            )
-        else:
-            kfsvc = InferenceService(metadata, default_model_spec)
+        # Build the V1beta1PredictorSpec.
+        predictor_spec = create_predictor_spec(
+            framework, model_uri, canary_traffic_percent, service_account,
+            min_replicas, max_replicas, containers
+        )
 
-    def create(kfsvc, model_name, namespace):
-        KFServing.create(kfsvc, namespace=namespace)
-        time.sleep(1)
-        KFServing.get(model_name, namespace=namespace, watch=True, timeout_seconds=watch_timeout)
-
-    def update(kfsvc, model_name, namespace):
-        KFServing.patch(model_name, kfsvc, namespace=namespace)
-        time.sleep(1)
-        KFServing.get(model_name, namespace=namespace, watch=True, timeout_seconds=watch_timeout)
+        kfsvc = create_inference_service(metadata, predictor_spec)
 
     if action == "create":
-        create(kfsvc, model_name, namespace)
+        submit_api_request(kfs_client, 'create', model_name, kfsvc, namespace,
+                           watch=True, timeout_seconds=watch_timeout)
     elif action == "update":
-        update(kfsvc, model_name, namespace)
+        submit_api_request(kfs_client, 'update', model_name, kfsvc, namespace,
+                           watch=True, timeout_seconds=watch_timeout)
     elif action == "apply":
         try:
-            create(kfsvc, model_name, namespace)
-        except:
-            update(kfsvc, model_name, namespace)
-    elif action == "rollout":
-        if inferenceservice_yaml:
-            raise("Rollout is not supported for inferenceservice yaml")
-        KFServing.rollout_canary(
-            model_name,
-            canary=canary_model_spec,
-            percent=canary_model_traffic,
-            namespace=namespace,
-            watch=True,
-            timeout_seconds=watch_timeout,
-        )
-    elif action == "promote":
-        KFServing.promote(
-            model_name, namespace=namespace, watch=True, timeout_seconds=watch_timeout
-        )
+            submit_api_request(kfs_client, 'create', model_name, kfsvc, namespace,
+                               watch=True, timeout_seconds=watch_timeout)
+        except Exception:
+            submit_api_request(kfs_client, 'update', model_name, kfsvc, namespace,
+                               watch=True, timeout_seconds=watch_timeout)
     elif action == "delete":
-        KFServing.delete(model_name, namespace=namespace)
+        kfs_client.delete(model_name, namespace=namespace)
     else:
         raise ("Error: No matching action: " + action)
 
-    model_status = KFServing.get(model_name, namespace=namespace)
+    model_status = kfs_client.get(model_name, namespace=namespace)
     return model_status
 
 
-if __name__ == "__main__":
+def main():
+    """
+    This parses arguments passed in from the CLI and performs the corresponding action.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--action", type=str, help="Action to execute on KFServing", default="create"
     )
     parser.add_argument(
-        "--model-name", type=str, help="Name to give to the deployed model", default=""
+        "--model-name", type=str, help="Name to give to the deployed model"
     )
     parser.add_argument(
-        "--default-model-uri",
+        "--model-uri",
         type=str,
-        help="Path of the S3, GCS or PVC directory containing default model.",
+        help="Path of the S3, GCS or PVC directory containing the model",
     )
     parser.add_argument(
-        "--canary-model-uri",
+        "--canary-traffic-percent",
         type=str,
-        help="Optional path of the S3, GCS or PVC directory containing canary model.",
-        default="",
-    )
-    parser.add_argument(
-        "--canary-model-traffic",
-        type=str,
-        help="Optional Traffic to be sent to the default model",
-        default="0",
+        help="The traffic split percentage between the candidate model and the last ready model",
+        default="100",
     )
     parser.add_argument(
         "--namespace",
         type=str,
-        help="Kubernetes namespace where the KFServing service is deployed.",
-        default="anonymous",
-    )
-    parser.add_argument(
-        "--framework", type=str, help="Model Serving Framework", default="tensorflow"
-    )
-    parser.add_argument(
-        "--default-custom-model-spec",
-        type=json.loads,
-        help="Custom runtime default custom model container spec",
-        default={},
-    )
-    parser.add_argument(
-        "--canary-custom-model-spec",
-        type=json.loads,
-        help="Custom runtime canary custom model container spec",
-        default={},
-    )
-    parser.add_argument(
-        "--kfserving-endpoint",
-        type=str,
-        help="kfserving remote deployer api endpoint",
+        help="Kubernetes namespace where the KFServing service is deployed",
         default="",
+    )
+    parser.add_argument(
+        "--framework",
+        type=str,
+        help="Model serving framework to use. Available frameworks: " +
+             str(list(AVAILABLE_FRAMEWORKS.keys())),
+        default=""
+    )
+    parser.add_argument(
+        "--custom-model-spec",
+        type=json.loads,
+        help="The container spec for a custom model runtime",
+        default="{}",
     )
     parser.add_argument(
         "--autoscaling-target", type=str, help="Autoscaling target number", default="0"
@@ -337,16 +309,16 @@ if __name__ == "__main__":
         default="True"
     )
     parser.add_argument(
-        "--inferenceservice_yaml",
-        type=yamlStr,
+        "--inferenceservice-yaml",
+        type=yaml.safe_load,
         help="Raw InferenceService serialized YAML for deployment",
-        default={}
+        default="{}"
     )
     parser.add_argument("--output-path", type=str, help="Path to store URI output")
     parser.add_argument("--watch-timeout",
                         type=str,
                         help="Timeout seconds for watching until InferenceService becomes ready.",
-                        default="120")
+                        default="300")
     parser.add_argument(
         "--min-replicas", type=str, help="Minimum number of replicas", default="-1"
     )
@@ -356,19 +328,14 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    url = re.compile(r"https?://")
-
     action = args.action.lower()
     model_name = args.model_name
-    default_model_uri = args.default_model_uri
-    canary_model_uri = args.canary_model_uri
-    canary_model_traffic = int(args.canary_model_traffic)
+    model_uri = args.model_uri
+    canary_traffic_percent = int(args.canary_traffic_percent)
     namespace = args.namespace
     framework = args.framework.lower()
     output_path = args.output_path
-    default_custom_model_spec = args.default_custom_model_spec
-    canary_custom_model_spec = args.canary_custom_model_spec
-    kfserving_endpoint = url.sub("", args.kfserving_endpoint)
+    custom_model_spec = args.custom_model_spec
     autoscaling_target = int(args.autoscaling_target)
     service_account = args.service_account
     enable_istio_sidecar = args.enable_istio_sidecar
@@ -377,74 +344,71 @@ if __name__ == "__main__":
     min_replicas = int(args.min_replicas)
     max_replicas = int(args.max_replicas)
 
-    if kfserving_endpoint:
-        formData = {
-            "action": action,
-            "model_name": model_name,
-            "default_model_uri": default_model_uri,
-            "canary_model_uri": canary_model_uri,
-            "canary_model_traffic": canary_model_traffic,
-            "namespace": namespace,
-            "framework": framework,
-            "default_custom_model_spec": default_custom_model_spec,
-            "canary_custom_model_spec": canary_custom_model_spec,
-            "autoscaling_target": autoscaling_target,
-            "service_account": service_account,
-            "enable_istio_sidecar": enable_istio_sidecar,
-            "inferenceservice_yaml": inferenceservice_yaml
-        }
-        response = requests.post(
-            "http://" + kfserving_endpoint + "/deploy-model", json=formData
-        )
-        model_status = response.json()
-    else:
-        model_status = deploy_model(
-            action=action,
-            model_name=model_name,
-            default_model_uri=default_model_uri,
-            canary_model_uri=canary_model_uri,
-            canary_model_traffic=canary_model_traffic,
-            namespace=namespace,
-            framework=framework,
-            default_custom_model_spec=default_custom_model_spec,
-            canary_custom_model_spec=canary_custom_model_spec,
-            autoscaling_target=autoscaling_target,
-            service_account=service_account,
-            enable_istio_sidecar=enable_istio_sidecar,
-            inferenceservice_yaml=inferenceservice_yaml,
-            watch_timeout=watch_timeout,
-            min_replicas=min_replicas,
-            max_replicas=max_replicas
-            
-        )
+    # Default the namespace.
+    if not namespace:
+        namespace = 'anonymous'
+        # If no namespace was provided, but one is listed in the YAML, use that.
+        if inferenceservice_yaml and inferenceservice_yaml.get('metadata', {}).get('namespace'):
+            namespace = inferenceservice_yaml['metadata']['namespace']
+
+    # Only require model name when an Isvc YAML was not provided.
+    if not inferenceservice_yaml and not model_name:
+        parser.error('{} argument is required when performing "{}" action'.format(
+            'model_name', action
+    ))
+    # If the action isn't a delete, require 'model-uri' and 'framework' only if an Isvc YAML
+    # or custom model container spec are not provided.
+    if action != 'delete':
+        if not inferenceservice_yaml and not custom_model_spec and not (model_uri and framework):
+            parser.error('Arguments for {} and {} are required when performing "{}" action'.format(
+                'model_uri', 'framework', action
+        ))
+
+    model_status = perform_action(
+        action=action,
+        model_name=model_name,
+        model_uri=model_uri,
+        canary_traffic_percent=canary_traffic_percent,
+        namespace=namespace,
+        framework=framework,
+        custom_model_spec=custom_model_spec,
+        autoscaling_target=autoscaling_target,
+        service_account=service_account,
+        enable_istio_sidecar=enable_istio_sidecar,
+        inferenceservice_yaml=inferenceservice_yaml,
+        watch_timeout=watch_timeout,
+        min_replicas=min_replicas,
+        max_replicas=max_replicas
+    )
+
     print(model_status)
-    # Check whether the model is ready
-    for condition in model_status["status"]["conditions"]:
-        if condition['type'] == 'Ready':
-            if condition['status'] == 'True':
-                print('Model is ready\n')
-                break
-            else:
-                print('Model is timed out, please check the inferenceservice events for more details.')
-                exit(1)
-    try:
-        print(
-            model_status["status"]["address"]["url"] + " is the knative domain."
-        )
-       
-        print("Sample test commands: \n")
-        # model_status['status']['url'] is like http://flowers-sample.kubeflow.example.com/v1/models/flowers-sample
 
-        print(
-            "curl -v -X GET %s" % model_status["status"]["address"]["url"]
-        )
+    if action != 'delete':
+        # Check whether the model is ready
+        for condition in model_status["status"]["conditions"]:
+            if condition['type'] == 'Ready':
+                if condition['status'] == 'True':
+                    print('Model is ready\n')
+                    break
+                print('Model is timed out, please check the InferenceService events for more details.')
+                sys.exit(1)
+        try:
+            print( model_status["status"]["url"] + " is the Knative domain.")
+            print("Sample test commands: \n")
+            # model_status['status']['url'] is like http://flowers-sample.kubeflow.example.com/v1/models/flowers-sample
+            print("curl -v -X GET %s" % model_status["status"]["url"])
+            print("\nIf the above URL is not accessible, it's recommended to setup Knative with a configured DNS.\n"\
+                "https://knative.dev/docs/install/installing-istio/#configuring-dns")
+        except Exception:
+            print("Model is not ready, check the logs for the Knative URL status.")
+            sys.exit(1)
 
-        print("\nIf the above URL is not accessible, it's recommended to setup Knative with a configured DNS.\n"\
-              "https://knative.dev/docs/install/installing-istio/#configuring-dns")
-    except:
-        print("Model is not ready, check the logs for the Knative URL status.")
-        exit(1)
-    if not os.path.exists(os.path.dirname(output_path)):
-        os.makedirs(os.path.dirname(output_path))
-    with open(output_path, "w") as report:
-        report.write(json.dumps(model_status))
+    if output_path:
+        if not os.path.exists(os.path.dirname(output_path)):
+            os.makedirs(os.path.dirname(output_path))
+        with open(output_path, "w") as report:
+            report.write(json.dumps(model_status, indent=4))
+
+
+if __name__ == "__main__":
+    main()

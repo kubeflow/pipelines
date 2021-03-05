@@ -1,47 +1,41 @@
 name: Kubeflow - Serve Model using KFServing
 description: Serve Models using Kubeflow KFServing
 inputs:
-  - {name: Action,                          type: String, default: 'create',   description: 'Action to execute on KFServing'}
-  - {name: Model Name,                      type: String, default: '',         description: 'Name to give to the deployed model'}
-  - {name: Default Model URI,               type: String, default: '',         description: 'Path of the S3 or GCS compatible directory containing default model.'}
-  - {name: Canary Model URI,                type: String, default: '',         description: 'Optional Path of the S3 or GCS compatible directory containing canary model.'}
-  - {name: Canary Model Traffic Percentage, type: String, default: '0',        description: 'Optional Traffic to be sent to default model'}
-  - {name: Namespace,                       type: String, default: 'anonymous', description: 'Kubernetes namespace where the KFServing service is deployed.'}
-  - {name: Framework,                       type: String, default: 'tensorflow', description: 'Machine Learning Framework for Model Serving.'}
-  - {name: Default Custom Model Spec,       type: String, default: '{}', description: 'Custom runtime default custom model container spec.'}
-  - {name: Canary Custom Model Spec,        type: String, default: '{}', description: 'Custom runtime canary custom model container spec.'}
-  - {name: Autoscaling Target,              type: String, default: '0',        description: 'Autoscaling Target Number'}
-  - {name: KFServing Endpoint,              type: String, default: '', description: 'KFServing remote deployer API endpoint'}
-  - {name: Service Account,                 type: String, default: '', description: 'Model Service Account'}
-  - {name: Enable Istio Sidecar,            type: Bool,   default: 'True',     description: 'Whether to enable istio sidecar injection'}
-  - {name: InferenceService YAML,           type: String, default: '{}',         description: 'Raw InferenceService serialized YAML for deployment'}
-  - {name: Watch Timeout,                   type: String, default: '120', description: "Timeout seconds for watching until InferenceService becomes ready."}
-  - {name: Min Replicas,                    type: String, default: '-1', description: 'Minimum number of InferenceService replicas'}
-  - {name: Max Replicas,                    type: String, default: '-1', description: 'Maximum number of InferenceService replicas'}
+  - {name: Action,                    type: String, default: 'create',     description: 'Action to execute on KFServing'}
+  - {name: Model Name,                type: String, default: '',           description: 'Name to give to the deployed model'}
+  - {name: Model URI,                 type: String, default: '',           description: 'Path of the S3 or GCS compatible directory containing the model.'}
+  - {name: Canary Traffic Percent,    type: String, default: '100',        description: 'The traffic split percentage between the candidate model and the last ready model'}
+  - {name: Namespace,                 type: String, default: '',           description: 'Kubernetes namespace where the KFServing service is deployed.'}
+  - {name: Framework,                 type: String, default: '',           description: 'Machine Learning Framework for Model Serving.'}
+  - {name: Custom Model Spec,         type: String, default: '{}',         description: 'Custom model runtime container spec in JSON'}
+  - {name: Autoscaling Target,        type: String, default: '0',          description: 'Autoscaling Target Number'}
+  - {name: Service Account,           type: String, default: '',           description: 'ServiceAccount to use to run the InferenceService pod'}
+  - {name: Enable Istio Sidecar,      type: Bool,   default: 'True',       description: 'Whether to enable istio sidecar injection'}
+  - {name: InferenceService YAML,     type: String, default: '{}',         description: 'Raw InferenceService serialized YAML for deployment'}
+  - {name: Watch Timeout,             type: String, default: '300',        description: "Timeout seconds for watching until InferenceService becomes ready."}
+  - {name: Min Replicas,              type: String, default: '-1',         description: 'Minimum number of InferenceService replicas'}
+  - {name: Max Replicas,              type: String, default: '-1',         description: 'Maximum number of InferenceService replicas'}
 outputs:
-  - {name: Service Endpoint URI, type: String,                      description: 'URI of the deployed prediction service..'}
+  - {name: InferenceService Status,   type: String,                        description: 'Status JSON output of InferenceService'}
 implementation:
   container:
-    image: aipipeline/kfserving-component:v0.4.1
+    image: quay.io/aipipeline/kfserving-component:v0.5.0
     command: ['python']
     args: [
       -u, kfservingdeployer.py,
-      --action,                   {inputValue: Action},
-      --model-name,               {inputValue: Model Name},
-      --default-model-uri,        {inputValue: Default Model URI},
-      --canary-model-uri,         {inputValue: Canary Model URI},
-      --canary-model-traffic,     {inputValue: Canary Model Traffic Percentage},
-      --namespace,                {inputValue: Namespace},
-      --framework,                {inputValue: Framework},
-      --default-custom-model-spec,{inputValue: Default Custom Model Spec},
-      --canary-custom-model-spec, {inputValue: Canary Custom Model Spec},
-      --kfserving-endpoint,       {inputValue: KFServing Endpoint},
-      --autoscaling-target,       {inputValue: Autoscaling Target},
-      --service-account,          {inputValue: Service Account},
-      --enable-istio-sidecar,     {inputValue: Enable Istio Sidecar},
-      --output-path,              {outputPath: Service Endpoint URI},
-      --inferenceservice_yaml,    {inputValue: InferenceService YAML},
-      --watch-timeout,            {inputValue: Watch Timeout},
-      --min-replicas,             {inputValue: Min Replicas},
-      --max-replicas,             {inputValue: Max Replicas}
+      --action,                 {inputValue: Action},
+      --model-name,             {inputValue: Model Name},
+      --model-uri,              {inputValue: Model URI},
+      --canary-traffic-percent, {inputValue: Canary Traffic Percent},
+      --namespace,              {inputValue: Namespace},
+      --framework,              {inputValue: Framework},
+      --custom-model-spec,      {inputValue: Custom Model Spec},
+      --autoscaling-target,     {inputValue: Autoscaling Target},
+      --service-account,        {inputValue: Service Account},
+      --enable-istio-sidecar,   {inputValue: Enable Istio Sidecar},
+      --output-path,            {outputPath: InferenceService Status},
+      --inferenceservice-yaml,  {inputValue: InferenceService YAML},
+      --watch-timeout,          {inputValue: Watch Timeout},
+      --min-replicas,           {inputValue: Min Replicas},
+      --max-replicas,           {inputValue: Max Replicas}
     ]
