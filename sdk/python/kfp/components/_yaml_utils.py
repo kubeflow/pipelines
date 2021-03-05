@@ -66,4 +66,4 @@ def dump_yaml(data):
         OrderedDumper.add_representer(str, represent_str_or_text)
 
         return yaml.dump(data, stream, OrderedDumper, **kwds)
-    return ordered_dump(data, default_flow_style=None)
+    return ordered_dump(data, default_flow_style=None, allow_unicode=True)
