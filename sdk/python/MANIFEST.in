@@ -1,1 +1,1 @@
-include kfp/dsl/ontology_type_schemas/*.yaml
+include kfp/dsl/type_schemas/*.yaml
