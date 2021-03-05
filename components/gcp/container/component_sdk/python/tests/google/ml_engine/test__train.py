@@ -37,6 +37,10 @@ class TestCreateTrainingJob(unittest.TestCase):
             },
             job_id_prefix='job-',
             job_id='job-1',
+            labels={
+                'env': 'dev',
+                'user': 'test'
+            },
             master_image_uri='tensorflow:latest',
             worker_image_uri='debian:latest',
             job_id_output_path='/tmp/kfp/output/ml_engine/job_id.txt',
@@ -58,7 +62,11 @@ class TestCreateTrainingJob(unittest.TestCase):
                     },
                     'workerConfig': {
                         'imageUri': 'debian:latest'
-                    }
+                    },
+                },
+                'labels': {
+                    'env': 'dev',
+                    'user': 'test'
                 }
             },
             job_id_prefix='job-',

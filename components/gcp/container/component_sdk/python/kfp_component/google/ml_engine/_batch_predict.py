@@ -18,7 +18,7 @@ from ._create_job import create_job
 
 def batch_predict(project_id, model_path, input_paths, input_data_format, 
     output_path, region, job_id_output_path, output_data_format=None, prediction_input=None, job_id_prefix=None,
-    wait_interval=30):
+    wait_interval=30, labels=None):
     """Creates a MLEngine batch prediction job.
 
     Args:
@@ -40,6 +40,8 @@ def batch_predict(project_id, model_path, input_paths, input_data_format,
         job_id_prefix (str): the prefix of the generated job id.
         wait_interval (int): optional wait interval between calls
             to get job status. Defaults to 30.
+        labels (dict): Optional. One or more labels that you can add, to organize
+            your jobs.
     """
     if not prediction_input:
         prediction_input = {}
@@ -67,6 +69,8 @@ def batch_predict(project_id, model_path, input_paths, input_data_format,
     job = {
         'predictionInput': prediction_input
     }
+    if labels:
+        job['labels'] = labels
     create_job(
         project_id=project_id,
         job=job,
