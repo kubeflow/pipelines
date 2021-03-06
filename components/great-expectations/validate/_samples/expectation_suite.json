@@ -1,0 +1,185 @@
+{
+  "data_asset_type": "Dataset",
+  "expectation_suite_name": "dataset.warning",
+  "expectations": [
+    {
+      "expectation_type": "expect_table_row_count_to_be_between",
+      "kwargs": {
+        "max_value": 1100,
+        "min_value": 900
+      },
+      "meta": {
+        "BasicSuiteBuilderProfiler": {
+          "confidence": "very low"
+        }
+      }
+    },
+    {
+      "expectation_type": "expect_table_column_count_to_equal",
+      "kwargs": {
+        "value": 8
+      },
+      "meta": {
+        "BasicSuiteBuilderProfiler": {
+          "confidence": "very low"
+        }
+      }
+    },
+    {
+      "expectation_type": "expect_table_columns_to_match_ordered_list",
+      "kwargs": {
+        "column_list": [
+          "trip_seconds",
+          "trip_miles",
+          "pickup_community_area",
+          "dropoff_community_area",
+          "fare",
+          "tolls",
+          "extras",
+          "trip_total"
+        ]
+      },
+      "meta": {
+        "BasicSuiteBuilderProfiler": {
+          "confidence": "very low"
+        }
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "extras"
+      },
+      "meta": {
+        "BasicSuiteBuilderProfiler": {
+          "confidence": "very low"
+        }
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "trip_seconds"
+      },
+      "meta": {
+        "BasicSuiteBuilderProfiler": {
+          "confidence": "very low"
+        }
+      }
+    },
+    {
+      "expectation_type": "expect_column_min_to_be_between",
+      "kwargs": {
+        "column": "trip_seconds",
+        "max_value": 1,
+        "min_value": -1
+      },
+      "meta": {
+        "BasicSuiteBuilderProfiler": {
+          "confidence": "very low"
+        }
+      }
+    },
+    {
+      "expectation_type": "expect_column_max_to_be_between",
+      "kwargs": {
+        "column": "trip_seconds",
+        "max_value": 50000,
+        "min_value": 30000
+      },
+      "meta": {
+        "BasicSuiteBuilderProfiler": {
+          "confidence": "very low"
+        }
+      }
+    },
+    {
+      "expectation_type": "expect_column_mean_to_be_between",
+      "kwargs": {
+        "column": "trip_seconds",
+        "max_value": 900,
+        "min_value": 800
+      },
+      "meta": {
+        "BasicSuiteBuilderProfiler": {
+          "confidence": "very low"
+        }
+      }
+    },
+    {
+      "expectation_type": "expect_column_median_to_be_between",
+      "kwargs": {
+        "column": "trip_seconds",
+        "max_value": 650.0,
+        "min_value": 550.0
+      },
+      "meta": {
+        "BasicSuiteBuilderProfiler": {
+          "confidence": "very low"
+        }
+      }
+    }
+  ],
+  "meta": {
+    "BasicSuiteBuilderProfiler": {
+      "batch_kwargs": {
+        "data_asset_name": "dataset",
+        "datasource": "data__dir",
+        "path": "",
+        "reader_method": "read_csv"
+      },
+      "created_at": 1614768695.9824622,
+      "created_by": "BasicSuiteBuilderProfiler"
+    },
+    "citations": [
+      {
+        "batch_kwargs": {
+          "data_asset_name": "dataset",
+          "datasource": "data__dir",
+          "path": "",
+          "reader_method": "read_csv"
+        },
+        "batch_markers": {
+          "ge_load_time": "20210303T105135.821129Z",
+          "pandas_data_fingerprint": "03c708739d62472c2b319752ad537752"
+        },
+        "batch_parameters": null,
+        "citation_date": "20210303T105135.997607Z",
+        "comment": "BasicSuiteBuilderProfiler added a citation based on the current batch."
+      }
+    ],
+    "columns": {
+      "dropoff_community_area": {
+        "description": ""
+      },
+      "extras": {
+        "description": ""
+      },
+      "fare": {
+        "description": ""
+      },
+      "pickup_community_area": {
+        "description": ""
+      },
+      "tolls": {
+        "description": ""
+      },
+      "trip_miles": {
+        "description": ""
+      },
+      "trip_seconds": {
+        "description": ""
+      },
+      "trip_total": {
+        "description": ""
+      }
+    },
+    "great_expectations_version": "0.13.11",
+    "notes": {
+      "content": [
+        "#### This is an _example_ suite\n\n- This suite was made by quickly glancing at 1000 rows of your data.\n- This is **not a production suite**. It is meant to show examples of expectations.\n- Because this suite was auto-generated using a very basic profiler that does not know your data like you do, many of the expectations may not be meaningful.\n"
+      ],
+      "format": "markdown"
+    }
+  }
+}
