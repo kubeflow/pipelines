@@ -1,0 +1,91 @@
+name: Validate csv using greatexpectations
+description: |-
+  Validate a CSV dataset against a Great Expectations suite and create Data Doc (a vaidation report).
+      This component fails if validation is not successful.
+
+      Annotations:
+          authors: Yaroslav Beshta <ybeshta@provectus.com>, Anton Kiselev <akiselev@provectus.com>
+
+      Args:
+          csv_path: Path to the CSV file with the dataset.
+          expectation_suite_path: Path to Great Expectations expectation suite (in JSON format)
+inputs:
+- {name: csv}
+- {name: expectation_suite}
+outputs:
+- {name: data_doc}
+implementation:
+  container:
+    image: python:3.8
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'great-expectations==0.13.11' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m
+      pip install --quiet --no-warn-script-location 'great-expectations==0.13.11'
+      --user) && "$0" "$@"
+    - python3
+    - -u
+    - -c
+    - |
+      def _make_parent_dirs_and_return_path(file_path: str):
+          import os
+          os.makedirs(os.path.dirname(file_path), exist_ok=True)
+          return file_path
+
+      def validate_csv_using_greatexpectations(
+          csv_path,
+          expectation_suite_path,
+          data_doc_path,
+      ):
+          """Validate a CSV dataset against a Great Expectations suite and create Data Doc (a vaidation report).
+          This component fails if validation is not successful.
+
+          Annotations:
+              authors: Yaroslav Beshta <ybeshta@provectus.com>, Anton Kiselev <akiselev@provectus.com>
+
+          Args:
+              csv_path: Path to the CSV file with the dataset.
+              expectation_suite_path: Path to Great Expectations expectation suite (in JSON format)
+          """
+          import json
+          import os
+          import sys
+
+          import great_expectations as ge
+          from great_expectations.render import DefaultJinjaPageView
+          from great_expectations.render.renderer import ValidationResultsPageRenderer
+
+          with open(expectation_suite_path, 'r') as json_file:
+              expectation_suite = json.load(json_file)
+          df = ge.read_csv(
+              csv_path,
+              expectation_suite=expectation_suite
+          )
+          result = df.validate()
+
+          document_model = ValidationResultsPageRenderer().render(result)
+          os.makedirs(os.path.dirname(data_doc_path), exist_ok=True)
+          with open(data_doc_path, 'w') as writer:
+              writer.write(DefaultJinjaPageView().render(document_model))
+
+          print(f'Saved: {data_doc_path}')
+
+          if not result.success:
+              sys.exit(1)
+
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Validate csv using greatexpectations', description='Validate a CSV dataset against a Great Expectations suite and create Data Doc (a vaidation report).\n    This component fails if validation is not successful.\n\n    Annotations:\n        authors: Yaroslav Beshta <ybeshta@provectus.com>, Anton Kiselev <akiselev@provectus.com>\n\n    Args:\n        csv_path: Path to the CSV file with the dataset.\n        expectation_suite_path: Path to Great Expectations expectation suite (in JSON format)')
+      _parser.add_argument("--csv", dest="csv_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--expectation-suite", dest="expectation_suite_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--data-doc", dest="data_doc_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parsed_args = vars(_parser.parse_args())
+
+      _outputs = validate_csv_using_greatexpectations(**_parsed_args)
+    args:
+    - --csv
+    - {inputPath: csv}
+    - --expectation-suite
+    - {inputPath: expectation_suite}
+    - --data-doc
+    - {outputPath: data_doc}
