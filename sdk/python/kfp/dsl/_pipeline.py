@@ -209,13 +209,13 @@ class PipelineConf():
       ::
 
         from kfp.dsl import PipelineConf, data_passing_methods
-        from kubernetes.client.models import V1Volume, V1PersistentVolumeClaim
+        from kubernetes.client.models import V1Volume, V1PersistentVolumeClaimVolumeSource
         pipeline_conf = PipelineConf()
         pipeline_conf.data_passing_method =
         data_passing_methods.KubernetesVolume(
             volume=V1Volume(
                 name='data',
-                persistent_volume_claim=V1PersistentVolumeClaim('data-volume'),
+                persistent_volume_claim=V1PersistentVolumeClaimVolumeSource('data-volume'),
             ),
             path_prefix='artifact_data/',
         )
