@@ -668,7 +668,7 @@ class Client(object):
       experiment_name: Optional[str] = None,
       pipeline_conf: Optional[dsl.PipelineConf] = None,
       namespace: Optional[str] = None,
-      execution_mode: dsl.PipelineExecutionMode = dsl.PipelineExecutionMode.V1_LEGACY):
+      mode: dsl.PipelineExecutionMode = dsl.PipelineExecutionMode.V1_LEGACY):
     """Runs pipeline on KFP-enabled Kubernetes cluster.
 
     This command compiles the pipeline function, creates or gets an experiment and submits the pipeline for execution.
@@ -683,17 +683,18 @@ class Client(object):
       namespace: Kubernetes namespace where the pipeline runs are created.
         For single user deployment, leave it as None;
         For multi user, input a namespace where the user is authorized
+      mode: The PipelineExecutionMode to use when compiling and running
+        pipeline_func.
     """
     #TODO: Check arguments against the pipeline function
     pipeline_name = pipeline_func.__name__
     run_name = run_name or pipeline_name + ' ' + datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
     with tempfile.TemporaryDirectory() as tmpdir:
       pipeline_package_path = os.path.join(tmpdir, 'pipeline.yaml')
-      compiler.Compiler().compile(
+      compiler.Compiler(mode=mode).compile(
         pipeline_func=pipeline_func,
         package_path=pipeline_package_path,
-        pipeline_conf=pipeline_conf,
-        execution_mode=execution_mode)
+        pipeline_conf=pipeline_conf)
 
       return self.create_run_from_pipeline_package(
         pipeline_file=pipeline_package_path,

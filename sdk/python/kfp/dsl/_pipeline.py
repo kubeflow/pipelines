@@ -29,31 +29,29 @@ import sys
 # pipeline definition.
 _pipeline_decorator_handler = None
 
-
 class PipelineExecutionMode(enum.Enum):
-  """Defines the possible execution modes for the Pipeline."""
-  # Compile and execute using Argo YAML with legacy behaviour.
-  V1_LEGACY = 1
-  # Compile and execute using Argo YAML with support for metadata-enabled
-  # components. Pipelines compiled using this mode aim to be compatible
-  # with KFP v2 semantics.
-  V2_COMPATIBLE = 2
-  # Compiles to KFP v2 IR for execution using the v2 engine.
-  # This option is unsupported right now.
-  V2_ENGINE = 3
+    # Compile to Argo YAML without support for metadata-enabled components.
+    V1_LEGACY = 1
+    # Compiles to Argo YAML with support for metadata-enabled components.
+    # Pipelines compiled using this mode aim to be compatible with v2 semantics.
+    V2_COMPATIBLE = 2
+    # Compiles to KFP v2 IR for execution using the v2 engine.
+    # This option is unsupported right now.
+    V2_ENGINE = 3
 
 
-def pipeline(name: Optional[str] = None,
-             description: Optional[str] = None,
-             pipeline_root: Optional[str] = None):
+def pipeline(
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+    pipeline_root: Optional[str] = None):
   """Decorator of pipeline functions.
 
   Example
     ::
 
       @pipeline(
-        name='my awesome pipeline',
-        description='Is it really awesome?'
+        name='MyPipeline',
+        description='My ML Pipeline.'
         pipeline_root='gs://my-bucket/my-output-path'
       )
       def my_pipeline(a: PipelineParam, b: PipelineParam):
@@ -74,7 +72,7 @@ def pipeline(name: Optional[str] = None,
     if description:
       func._component_description = description
     if pipeline_root:
-      func.output_directory = pipeline_root
+      func.pipeline_root = pipeline_root
 
     if _pipeline_decorator_handler:
       return _pipeline_decorator_handler(func) or func
@@ -238,19 +236,7 @@ class PipelineConf():
 
 
 def get_pipeline_conf():
-<<<<<<< HEAD
-<<<<<<< HEAD
   """Configure the pipeline level setting to the current pipeline
-<<<<<<< HEAD
-
-=======
->>>>>>> bb10462e (Undo formatting changes.)
-=======
-    """Configure the pipeline level setting to the current pipeline
->>>>>>> 93d117e9 (Update docstrings.)
-=======
-  """Configure the pipeline level setting to the current pipeline
->>>>>>> c05f0cd4 (Undo formatting changes.)
     Note: call the function inside the user defined pipeline function.
   """
   return Pipeline.get_default_pipeline().conf
@@ -308,23 +294,11 @@ class Pipeline():
     if Pipeline._default_pipeline:
       raise Exception('Nested pipelines are not allowed.')
 
-<<<<<<< HEAD
-<<<<<<< HEAD
     Pipeline._default_pipeline = self
     self._old_container_task_constructor = (
         _components._container_task_constructor)
     _components._container_task_constructor = (
         _component_bridge._create_container_op_from_component_and_arguments)
-=======
-        Pipeline._default_pipeline = self
-        self._old_container_task_constructor = _components._container_task_constructor
-        _components._container_task_constructor = _create_container_op_from_component_and_arguments
->>>>>>> 93d117e9 (Update docstrings.)
-=======
-    Pipeline._default_pipeline = self
-    self._old_container_task_constructor = _components._container_task_constructor
-    _components._container_task_constructor = _create_container_op_from_component_and_arguments
->>>>>>> c05f0cd4 (Undo formatting changes.)
 
     def register_op_and_generate_id(op):
       return self.add_op(op, op.is_exit_handler)
@@ -333,25 +307,11 @@ class Pipeline():
     _container_op._register_op_handler = register_op_and_generate_id
     return self
 
-<<<<<<< HEAD
-<<<<<<< HEAD
   def __exit__(self, *args):
     Pipeline._default_pipeline = None
     _container_op._register_op_handler = self._old__register_op_handler
     _components._container_task_constructor = (
         self._old_container_task_constructor)
-=======
-    def __exit__(self, *args):
-        Pipeline._default_pipeline = None
-        _container_op._register_op_handler = self._old__register_op_handler
-        _components._container_task_constructor = self._old_container_task_constructor
->>>>>>> 93d117e9 (Update docstrings.)
-=======
-  def __exit__(self, *args):
-    Pipeline._default_pipeline = None
-    _container_op._register_op_handler = self._old__register_op_handler
-    _components._container_task_constructor = self._old_container_task_constructor
->>>>>>> c05f0cd4 (Undo formatting changes.)
 
   def add_op(self, op: _container_op.BaseOp, define_only: bool):
     """Add a new operator.
@@ -361,8 +321,6 @@ class Pipeline():
         Returns
       op_name: a unique op name.
     """
-<<<<<<< HEAD
-<<<<<<< HEAD
     # Sanitizing the op name.
     # Technically this could be delayed to the compilation stage, but string
     # serialization of PipelineParams make unsanitized names problematic.
@@ -375,24 +333,6 @@ class Pipeline():
     if op_name == '':
       op_name = _naming._make_name_unique_by_adding_index(
           'task', list(self.ops.keys()), ' ')
-=======
-        # Sanitizing the op name.
-        # Technically this could be delayed to the compilation stage, but string serialization of PipelineParams make unsanitized names problematic.
-        op_name = _sanitize_python_function_name(op.human_name).replace('_', '-')
-        #If there is an existing op with this name then generate a new name.
-        op_name = _make_name_unique_by_adding_index(op_name, list(self.ops.keys()), ' ')
-        if op_name == '':
-            op_name = _make_name_unique_by_adding_index('task', list(self.ops.keys()), ' ')
->>>>>>> 93d117e9 (Update docstrings.)
-=======
-    # Sanitizing the op name.
-    # Technically this could be delayed to the compilation stage, but string serialization of PipelineParams make unsanitized names problematic.
-    op_name = _sanitize_python_function_name(op.human_name).replace('_', '-')
-    #If there is an existing op with this name then generate a new name.
-    op_name = _make_name_unique_by_adding_index(op_name, list(self.ops.keys()), ' ')
-    if op_name == '':
-      op_name = _make_name_unique_by_adding_index('task', list(self.ops.keys()), ' ')
->>>>>>> c05f0cd4 (Undo formatting changes.)
 
     self.ops[op_name] = op
     if not define_only:
