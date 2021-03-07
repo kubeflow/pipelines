@@ -1,7 +1,7 @@
 ---
-name: Bug Report
-about: Report a bug encountered with Kubeflow Pipelines
-
+name: Bug report
+about: Report any other issue encountered with Kubeflow Pipelines
+title: "[Others]: [Bug Name]"
 ---
 
 ### What steps did you take:
@@ -27,10 +27,11 @@ KFP SDK version: <!-- Please attach the output of this shell command: $pip list 
 
 /kind bug
 <!-- Please include labels by uncommenting them to help us better triage issues, choose from the following -->
-<!--
-// /area frontend
-// /area backend
-// /area sdk
-// /area testing
-// /area engprod
--->
+
+<!-- /area frontend -->
+<!-- /area backend -->
+<!-- /area sdk -->
+<!-- /area testing -->
+<!-- /area engprod -->
+<!-- /area samples -->
+<!-- /area components -->
