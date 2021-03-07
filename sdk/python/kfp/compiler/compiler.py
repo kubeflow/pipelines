@@ -24,11 +24,8 @@ import zipfile
 from typing import Callable, Set, List, Text, Dict, Tuple, Any, Union, Optional
 
 import kfp
-from kfp import dsl
 from kfp.dsl import _for_loop
 from kfp.compiler import _data_passing_rewriter
-from kfp.compiler import v2_compat
-from kfp.pipeline_spec import pipeline_spec_pb2
 
 from .. import dsl
 from ._k8s_helper import convert_k8s_obj_to_json, sanitize_k8s_name
@@ -44,7 +41,7 @@ from ..dsl._pipeline_param import extract_pipelineparams_from_any, PipelineParam
 
 class Compiler(object):
   """DSL Compiler that compiles pipeline functions into workflow yaml.
-
+  
   Example:
     How to use the compiler to construct workflow yaml::
 
@@ -57,17 +54,6 @@ class Compiler(object):
 
       Compiler().compile(my_pipeline, 'path/to/workflow.yaml')
   """
-
-  def _pipelineparam_full_name(self, param):
-    """_pipelineparam_full_name converts the names of pipeline parameters
-      to unique names in the argo yaml
-
-    Args:
-      param(PipelineParam): pipeline parameter
-      """
-    if param.op_name:
-      return param.op_name + '-' + param.name
-    return param.name
 
   def _get_groups_for_ops(self, root_group):
     """Helper function to get belonging groups for each op.
@@ -303,7 +289,7 @@ class Compiler(object):
         for param, is_condition_param in params:
           if param.value:
             continue
-          full_name = self._pipelineparam_full_name(param)
+          full_name = param.full_name
           if param.op_name:
             upstream_op = pipeline.ops[param.op_name]
             upstream_groups, downstream_groups = \
@@ -334,8 +320,8 @@ class Compiler(object):
     for sub_graph in opsgroup_groups:
       if sub_graph in op_name_to_for_loop_op:
         # The opsgroup list is sorted with the farthest group as the first and the opsgroup
-        # itself as the last. To get the latest opsgroup which is not the opsgroup itself -2 is used.
-        parent = opsgroup_groups[sub_graph][-2]
+        # itself as the last. To get the latest opsgroup which is not the opsgroup itself -2 is used. 
+        parent = opsgroup_groups[sub_graph][-2] 
         if parent and parent.startswith('subgraph'):
           # propagate only op's pipeline param from subgraph to parallelfor
           loop_op = op_name_to_for_loop_op[sub_graph]
@@ -412,7 +398,7 @@ class Compiler(object):
       potential_references(dict{str->str}): a dictionary of parameter names to task names
       """
     if isinstance(value_or_reference, dsl.PipelineParam):
-      parameter_name = self._pipelineparam_full_name(value_or_reference)
+      parameter_name = value_or_reference.full_name
       task_names = [task_name for param_name, task_name in potential_references if param_name == parameter_name]
       if task_names:
         task_name = task_names[0]
@@ -442,7 +428,7 @@ class Compiler(object):
     inputs, outputs, dependencies are all helper dicts.
     """
     template = {'name': group.name}
-    if group.parallelism != None:
+    if group.parallelism != None: 
       template["parallelism"] = group.parallelism
 
     # Generate inputs section.
@@ -552,7 +538,7 @@ class Compiler(object):
 
         # We will sort dependencies to have determinitc yaml and thus stable tests
         if task.get('dependencies'):
-          task['dependencies'].sort()
+            task['dependencies'].sort()
 
       tasks.append(task)
     tasks.sort(key=lambda x: x['name'])
@@ -569,17 +555,17 @@ class Compiler(object):
     for param_name, dependent_name in inputs[sub_group.name]:
       if is_recursive_subgroup:
         for input_name, input in sub_group.arguments.items():
-          if param_name == self._pipelineparam_full_name(input):
+          if param_name == input.full_name:
             break
         referenced_input = sub_group.recursive_ref.arguments[input_name]
-        argument_name = self._pipelineparam_full_name(referenced_input)
+        argument_name = referenced_input.full_name
       else:
         argument_name = param_name
 
-        # Preparing argument. It can be pipeline input reference, task output reference or loop item (or loop item attribute
+      # Preparing argument. It can be pipeline input reference, task output reference or loop item (or loop item attribute
       sanitized_loop_arg_full_name = '---'
       if isinstance(sub_group, dsl.ParallelFor):
-        sanitized_loop_arg_full_name = sanitize_k8s_name(self._pipelineparam_full_name(sub_group.loop_args))
+        sanitized_loop_arg_full_name = sanitize_k8s_name(sub_group.loop_args.full_name)
       arg_ref_full_name = sanitize_k8s_name(param_name)
       # We only care about the reference to the current loop item, not the outer loops
       if isinstance(sub_group, dsl.ParallelFor) and arg_ref_full_name.startswith(sanitized_loop_arg_full_name):
@@ -605,14 +591,7 @@ class Compiler(object):
 
     return arguments
 
-  def _create_dag_templates(
-    self,
-    pipeline,
-    op_transformers=None,
-    op_to_templates_handler=None,
-    execution_mode: dsl.PipelineExecutionMode = dsl.PipelineExecutionMode.V1_LEGACY,
-    pipeline_spec: Optional[pipeline_spec_pb2.PipelineSpec] = None,
-    pipeline_root: Optional[dsl.PipelineParam] = None):
+  def _create_dag_templates(self, pipeline, op_transformers=None, op_to_templates_handler=None):
     """Create all groups and ops templates in the pipeline.
 
     Args:
@@ -627,10 +606,6 @@ class Compiler(object):
     # the user would not be able to use pipeline parameters in the container definition
     # (for example as pod labels) - the generated template is invalid.
     for op in pipeline.ops.values():
-      if execution_mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
-        # Make pipeline_root parameter available to all components.
-        op.inputs.append(pipeline_root)
-
       for transformer in op_transformers or []:
         transformer(op)
 
@@ -672,25 +647,11 @@ class Compiler(object):
       templates.append(template)
 
     for op in pipeline.ops.values():
-      if execution_mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
-        v2_compat.update_op(
-          op,
-          pipeline_spec=pipeline_spec,
-          pipeline_root=pipeline_root)
-
       templates.extend(op_to_templates_handler(op))
 
     return templates
 
-  def _create_pipeline_workflow(
-    self,
-    parameter_defaults,
-    pipeline,
-    op_transformers = None,
-    pipeline_conf = None,
-    execution_mode: dsl.PipelineExecutionMode = dsl.PipelineExecutionMode.V1_LEGACY,
-    pipeline_spec: Optional[pipeline_spec_pb2.PipelineSpec] = None,
-    pipeline_root: Optional[dsl.PipelineParam] = None):
+  def _create_pipeline_workflow(self, parameter_defaults, pipeline, op_transformers=None, pipeline_conf=None):
     """Create workflow for the pipeline."""
 
     # Input Parameters
@@ -707,12 +668,7 @@ class Compiler(object):
     pipeline_group.name = temp_pipeline_group_name
 
     # Templates
-    templates = self._create_dag_templates(
-      pipeline,
-      op_transformers,
-      execution_mode=execution_mode,
-      pipeline_spec=pipeline_spec,
-      pipeline_root=pipeline_root)
+    templates = self._create_dag_templates(pipeline, op_transformers)
 
     # Exit Handler
     exit_handler = None
@@ -771,7 +727,7 @@ class Compiler(object):
     if exit_handler:
       workflow['spec']['onExit'] = exit_handler.name
 
-    # This can be overwritten by the task specific
+    # This can be overwritten by the task specific 
     # nodeselection, specified in the template.
     if pipeline_conf.default_pod_node_selector:
       workflow['spec']['nodeSelector'] = pipeline_conf.default_pod_node_selector
@@ -848,15 +804,12 @@ class Compiler(object):
       sanitized_ops[sanitized_name] = op
     pipeline.ops = sanitized_ops
 
-  def _create_workflow(
-      self,
+  def _create_workflow(self,
       pipeline_func: Callable,
-      pipeline_name: Text = None,
-      pipeline_description: Text = None,
-      params_list: List[dsl.PipelineParam] = None,
+      pipeline_name: Text=None,
+      pipeline_description: Text=None,
+      params_list: List[dsl.PipelineParam]=None,
       pipeline_conf: dsl.PipelineConf = None,
-      execution_mode: dsl.PipelineExecutionMode = dsl.PipelineExecutionMode.V1_LEGACY,
-      pipeline_spec: Optional[pipeline_spec_pb2.PipelineSpec] = None,
       ) -> Dict[Text, Any]:
     """ Internal implementation of create_workflow."""
     params_list = params_list or []
@@ -929,20 +882,17 @@ class Compiler(object):
     op_transformers = [add_pod_env]
     op_transformers.extend(pipeline_conf.op_transformers)
 
-    output_directory = getattr(pipeline_func, 'output_directory', None)
     workflow = self._create_pipeline_workflow(
         args_list_with_defaults,
         dsl_pipeline,
         op_transformers,
         pipeline_conf,
-        execution_mode=execution_mode,
-        pipeline_spec=pipeline_spec,
-        pipeline_root=output_directory,
     )
 
     from ._data_passing_rewriter import fix_big_data_passing
     workflow = fix_big_data_passing(workflow)
 
+    output_directory = getattr(pipeline_func, 'output_directory', None)
     workflow = _data_passing_rewriter.add_pod_name_passing(
         workflow, str(output_directory))
 
@@ -955,9 +905,6 @@ class Compiler(object):
     annotations['pipelines.kubeflow.org/kfp_sdk_version'] = kfp.__version__
     annotations['pipelines.kubeflow.org/pipeline_compilation_time'] = datetime.datetime.now().isoformat()
     annotations['pipelines.kubeflow.org/pipeline_spec'] = json.dumps(pipeline_meta.to_dict(), sort_keys=True)
-
-    if execution_mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
-      annotations['pipelines.kubeflow.org/v2_pipeline'] = "true"
 
     # Labels might be logged better than annotations so adding some information here as well
     labels = metadata.setdefault('labels', {})
@@ -1001,12 +948,7 @@ class Compiler(object):
     """Compile the given pipeline function into workflow."""
     return self._create_workflow(pipeline_func=pipeline_func, pipeline_conf=pipeline_conf)
 
-  def compile(self,
-              pipeline_func,
-              package_path,
-              type_check: bool = True,
-              pipeline_conf: Optional[dsl.PipelineConf] = None,
-              execution_mode: dsl.PipelineExecutionMode = dsl.PipelineExecutionMode.V1_LEGACY):
+  def compile(self, pipeline_func, package_path, type_check=True, pipeline_conf: dsl.PipelineConf = None):
     """Compile the given pipeline function into workflow yaml.
 
     Args:
@@ -1017,34 +959,15 @@ class Compiler(object):
       pipeline_conf: PipelineConf instance. Can specify op transforms, image
         pull secrets and other pipeline-level configuration options. Overrides
         any configuration that may be set by the pipeline.
-      execution_mode: The pipeline execution mode to use. Defaults to V1_LEGACY
-        mode. Use V2_COMPATIBLE to compile pipelines that execute with KFP
-        v2 semantics, which enables metadata-aware components.
     """
+    import kfp
     type_check_old_value = kfp.TYPE_CHECK
-
-    if execution_mode == dsl.PipelineExecutionMode.V2_ENGINE:
-      raise ValueError(
-          'V2_ENGINE pipeline execution mode has not yet been implemented.')
-
-    if execution_mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
-      warnings.warn(
-            'V2_COMPATIBLE pipeline execution mode is still in development '
-            'and may not work as expected.'
-        )
-
-    pipeline_spec = None
-    if execution_mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
-      pipeline_spec = v2_compat.get_pipeline_spec(pipeline_func)
-
     try:
       kfp.TYPE_CHECK = type_check
       self._create_and_write_workflow(
           pipeline_func=pipeline_func,
           pipeline_conf=pipeline_conf,
-          package_path=package_path,
-          execution_mode=execution_mode,
-          pipeline_spec=pipeline_spec)
+          package_path=package_path)
     finally:
       kfp.TYPE_CHECK = type_check_old_value
 
@@ -1065,10 +988,10 @@ class Compiler(object):
       from contextlib import closing
       from io import BytesIO
       with tarfile.open(package_path, "w:gz") as tar:
-        with closing(BytesIO(yaml_text.encode())) as yaml_file:
-          tarinfo = tarfile.TarInfo('pipeline.yaml')
-          tarinfo.size = len(yaml_file.getvalue())
-          tar.addfile(tarinfo, fileobj=yaml_file)
+          with closing(BytesIO(yaml_text.encode())) as yaml_file:
+            tarinfo = tarfile.TarInfo('pipeline.yaml')
+            tarinfo.size = len(yaml_file.getvalue())
+            tar.addfile(tarinfo, fileobj=yaml_file)
     elif package_path.endswith('.zip'):
       with zipfile.ZipFile(package_path, "w") as zip:
         zipinfo = zipfile.ZipInfo('pipeline.yaml')
@@ -1086,24 +1009,19 @@ class Compiler(object):
   def _create_and_write_workflow(
       self,
       pipeline_func: Callable,
-      pipeline_name: Text = None,
-      pipeline_description: Text = None,
-      params_list: List[dsl.PipelineParam] = None,
-      pipeline_conf: dsl.PipelineConf = None,
-      package_path: Text = None,
-      execution_mode: dsl.PipelineExecutionMode = dsl.PipelineExecutionMode.V1_LEGACY,
-      pipeline_spec: Optional[pipeline_spec_pb2.PipelineSpec] = None,
+      pipeline_name: Text=None,
+      pipeline_description: Text=None,
+      params_list: List[dsl.PipelineParam]=None,
+      pipeline_conf: dsl.PipelineConf=None,
+      package_path: Text=None
   ) -> None:
     """Compile the given pipeline function and dump it to specified file format."""
-
     workflow = self._create_workflow(
         pipeline_func,
         pipeline_name,
         pipeline_description,
         params_list,
-        pipeline_conf,
-        execution_mode=execution_mode,
-        pipeline_spec=pipeline_spec)
+        pipeline_conf)
     self._write_workflow(workflow, package_path)
     _validate_workflow(workflow)
 
@@ -1132,7 +1050,7 @@ Please create a new issue at https://github.com/kubeflow/pipelines/issues attach
       has_working_argo_lint = _run_argo_lint('')
     except:
       warnings.warn("Cannot validate the compiled workflow. Found the argo program in PATH, but it's not usable. argo v2.4.3 should work.")
-
+    
     if has_working_argo_lint:
       _run_argo_lint(yaml_text)
 
