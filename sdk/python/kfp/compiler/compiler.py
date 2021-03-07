@@ -65,6 +65,8 @@ class Compiler(object):
       warnings.warn('V2_COMPATIBLE execution mode is still under development.'
                     ' Pipelines may not work as expected.')
     self._mode = mode
+    self._pipeline_name = None
+    self._pipeline_root = None
 
   def _get_groups_for_ops(self, root_group):
     """Helper function to get belonging groups for each op.
@@ -901,9 +903,10 @@ class Compiler(object):
     op_transformers = [add_pod_env]
     op_transformers.extend(pipeline_conf.op_transformers)
 
-    for op in dsl_pipeline.ops.values():
-      op.inputs.append(self._pipeline_name)
-      op.inputs.append(self._pipeline_root)
+    if self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
+      for op in dsl_pipeline.ops.values():
+        op.inputs.append(self._pipeline_name)
+        op.inputs.append(self._pipeline_root)
 
     workflow = self._create_pipeline_workflow(
         args_list_with_defaults,
