@@ -30,14 +30,14 @@ import sys
 _pipeline_decorator_handler = None
 
 class PipelineExecutionMode(enum.Enum):
-    # Compile to Argo YAML without support for metadata-enabled components.
-    V1_LEGACY = 1
-    # Compiles to Argo YAML with support for metadata-enabled components.
-    # Pipelines compiled using this mode aim to be compatible with v2 semantics.
-    V2_COMPATIBLE = 2
-    # Compiles to KFP v2 IR for execution using the v2 engine.
-    # This option is unsupported right now.
-    V2_ENGINE = 3
+  # Compile to Argo YAML without support for metadata-enabled components.
+  V1_LEGACY = 1
+  # Compiles to Argo YAML with support for metadata-enabled components.
+  # Pipelines compiled using this mode aim to be compatible with v2 semantics.
+  V2_COMPATIBLE = 2
+  # Compiles to KFP v2 IR for execution using the v2 engine.
+  # This option is unsupported right now.
+  V2_ENGINE = 3
 
 
 def pipeline(
@@ -73,6 +73,7 @@ def pipeline(
       func._component_description = description
     if pipeline_root:
       func.pipeline_root = pipeline_root
+      func.output_directory = pipeline_root
 
     if _pipeline_decorator_handler:
       return _pipeline_decorator_handler(func) or func
