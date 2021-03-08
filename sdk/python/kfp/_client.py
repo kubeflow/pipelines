@@ -533,14 +533,14 @@ class Client(object):
     Returns:
       A run object. Most important field is id.
     """
-    job_config = self._create_job_config(
+    run_body = self._create_api_run_object(
       experiment_id=experiment_id,
       params=params,
       pipeline_package_path=pipeline_package_path,
       pipeline_id=pipeline_id,
       version_id=version_id)
-    run_body = kfp_server_api.models.ApiRun(
-        pipeline_spec=job_config.spec, resource_references=job_config.resource_references, name=job_name)
+    
+    run_body.name = job_name
 
     response = self._run_api.create_run(body=run_body)
 
@@ -581,7 +581,7 @@ class Client(object):
     Returns:
       A Job object. Most important field is id.
     """
-    job_config = self._create_job_config(
+    job_config = self._create_api_run_object(
       experiment_id=experiment_id,
       params=params,
       pipeline_package_path=pipeline_package_path,
@@ -605,15 +605,15 @@ class Client(object):
         enabled=enabled,
         pipeline_spec=job_config.spec,
         resource_references=job_config.resource_references,
-        name=job_name,
-        description=description,
+        name=job_name or job_config.name,
+        description=description or job_config.description,
         no_catchup=no_catchup,
         trigger=trigger,
         max_concurrency=max_concurrency)
     return self._job_api.create_job(body=job_body)
 
-  def _create_job_config(self, experiment_id, params, pipeline_package_path, pipeline_id, version_id):
-    """Create a JobConfig with spec and resource_references.
+  def _create_api_run_object(self, experiment_id, params, pipeline_package_path, pipeline_id, version_id):
+    """Create an ApiRun with spec and resource_references.
 
     Args:
       experiment_id: The id of an experiment.
@@ -625,14 +625,9 @@ class Client(object):
         If only pipeline_id is specified, the default version of this pipeline is used to create the run.
 
     Returns:
-      A JobConfig object with attributes spec and resource_reference.
+      An ApiRun object with attributes pipeline_spec and resource_reference.
     """
     
-    class JobConfig:
-      def __init__(self, spec, resource_references):
-        self.spec = spec
-        self.resource_references = resource_references
-
     pipeline_json_string = None
     if pipeline_package_path:
       pipeline_obj = self._extract_pipeline_yaml(pipeline_package_path)
@@ -658,7 +653,7 @@ class Client(object):
         pipeline_id=pipeline_id,
         workflow_manifest=pipeline_json_string,
         parameters=api_params)
-    return JobConfig(spec=spec, resource_references=resource_references)
+    return kfp_server_api.ApiRun(pipeline_spec=spec, resource_references=resource_references)
 
   def create_run_from_pipeline_func(
       self,
