@@ -1239,7 +1239,7 @@ func (r *ResourceManager) IsRequestAuthenticated(ctx context.Context) (string, e
 	// If the request header contains the user identity, requests are authorized
 	// based on the namespace field in the request.
 	var errlist []error
-	for _, auth := range kfpauth.GetAuthenticators() {
+	for _, auth := range kfpauth.GetAuthenticators(r.tokenReviewClient) {
 		userIdentity, err := auth.GetUserIdentity(ctx)
 		if err == nil {
 			return userIdentity, nil

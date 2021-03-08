@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
@@ -38,9 +39,15 @@ var IdentityHeaderMissingError = util.NewUnauthenticatedError(
 // Make this public for tests to force its re-instantiation
 var Authenticators []Authenticator
 
-func GetAuthenticators() []Authenticator {
+func GetAuthenticators(tokenReviewClient client.TokenReviewInterface) []Authenticator {
 	if Authenticators == nil {
 		Authenticators = []Authenticator{
+			NewTokenReviewAuthenticator(
+				common.AuthorizationBearerTokenHeader,
+				common.AuthorizationBearerTokenPrefix,
+				[]string{common.TokenReviewAudience},
+				tokenReviewClient,
+			),
 			NewHTTPHeaderAuthenticator(common.GetKubeflowUserIDHeader(), common.GetKubeflowUserIDPrefix()),
 		}
 	}
