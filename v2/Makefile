@@ -15,9 +15,9 @@
 LAUNCHER_IMAGE=gcr.io/ml-pipeline/kfp-launcher
 
 build-launcher:
-			@docker build -t ${LAUNCHER_IMAGE} -f launcher_container/Dockerfile .
+	@docker build -t ${LAUNCHER_IMAGE} -f launcher_container/Dockerfile .
 
 push-launcher: build-launcher
-			@docker push ${LAUNCHER_IMAGE}
+	@docker push ${LAUNCHER_IMAGE}
 
 all: push-launcher
