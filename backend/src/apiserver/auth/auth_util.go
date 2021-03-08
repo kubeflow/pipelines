@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/metadata"
@@ -39,7 +40,9 @@ var Authenticators []Authenticator
 
 func GetAuthenticators() []Authenticator {
 	if Authenticators == nil {
-		Authenticators = []Authenticator{}
+		Authenticators = []Authenticator{
+			NewHTTPHeaderAuthenticator(common.GetKubeflowUserIDHeader(), common.GetKubeflowUserIDPrefix()),
+		}
 	}
 	return Authenticators
 }
