@@ -65,8 +65,8 @@ class Compiler(object):
       warnings.warn('V2_COMPATIBLE execution mode is still under development.'
                     ' Pipelines may not work as expected.')
     self._mode = mode
-    self._pipeline_name: Optional[dsl.PipelineParam] = None
-    self._pipeline_root: Optional[dsl.PipelineParam] = None
+    self._pipeline_name_param: Optional[dsl.PipelineParam] = None
+    self._pipeline_root_param: Optional[dsl.PipelineParam] = None
 
   def _get_groups_for_ops(self, root_group):
     """Helper function to get belonging groups for each op.
@@ -663,8 +663,8 @@ class Compiler(object):
     for op in pipeline.ops.values():
       if self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
         v2_compat.update_op(op,
-                            pipeline_name=self._pipeline_name,
-                            pipeline_root=self._pipeline_root)
+                            pipeline_name=self._pipeline_name_param,
+                            pipeline_root=self._pipeline_root_param)
       templates.extend(op_to_templates_handler(op))
 
     return templates
@@ -848,22 +848,10 @@ class Compiler(object):
     # will be resolved immediately in place when being to each component.
     default_param_values = OrderedDict()
 
-    # Check to ensure pipeline_root and pipeline_name are not used as
-    # pipeline-level parameters.
-    pipeline_param_names = [input.name for input in pipeline_meta.inputs or []]
-    if 'name' in pipeline_param_names:
-      raise ValueError(
-          'Cannot specify `name` as a pipeline parameter. It is reserved for'
-          ' use by the Compiler.')
-    if 'pipeline_root' in pipeline_param_names:
-      raise ValueError(
-          'Cannot specify `pipeline_root` as a pipeline parameter. It is'
-          ' reserved for use by the Compiler.')
-
-    if self._pipeline_root:
-      params_list.append(self._pipeline_root)
-    if self._pipeline_name:
-      params_list.append(self._pipeline_name)
+    if self._pipeline_root_param:
+      params_list.append(self._pipeline_root_param)
+    if self._pipeline_name_param:
+      params_list.append(self._pipeline_name_param)
 
     for param in params_list:
       default_param_values[param.name] = param.value
@@ -918,8 +906,8 @@ class Compiler(object):
 
     if self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
       for op in dsl_pipeline.ops.values():
-        op.inputs.append(self._pipeline_name)
-        op.inputs.append(self._pipeline_root)
+        op.inputs.append(self._pipeline_name_param)
+        op.inputs.append(self._pipeline_root_param)
 
     workflow = self._create_pipeline_workflow(
         args_list_with_defaults,
@@ -932,7 +920,7 @@ class Compiler(object):
     workflow = fix_big_data_passing(workflow)
 
     workflow = _data_passing_rewriter.add_pod_name_passing(
-        workflow, str(self._pipeline_root or None))
+        workflow, str(self._pipeline_root_param or None))
 
     if pipeline_conf and pipeline_conf.data_passing_method != None:
       workflow = pipeline_conf.data_passing_method(workflow)
@@ -1007,13 +995,13 @@ class Compiler(object):
     """
     pipeline_root_dir = getattr(pipeline_func, 'output_directory', None)
     if pipeline_root_dir is not None or self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
-      self._pipeline_root = dsl.PipelineParam(name=dsl.ROOT_PARAMETER_NAME,
-                                              value=pipeline_root_dir or '')
+      self._pipeline_root_param = dsl.PipelineParam(
+          name=dsl.ROOT_PARAMETER_NAME, value=pipeline_root_dir or '')
 
     if self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
       pipeline_name = getattr(pipeline_func, '_component_human_name', '')
-      self._pipeline_name = dsl.PipelineParam(name='pipeline-name',
-                                              value=pipeline_name)
+      self._pipeline_name_param = dsl.PipelineParam(name='pipeline-name',
+                                                    value=pipeline_name)
 
     import kfp
     type_check_old_value = kfp.TYPE_CHECK
