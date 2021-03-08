@@ -994,7 +994,8 @@ class Compiler(object):
         any configuration that may be set by the pipeline.
     """
     pipeline_root_dir = getattr(pipeline_func, 'output_directory', None)
-    if pipeline_root_dir is not None or self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
+    if (pipeline_root_dir is not None or
+        self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE):
       self._pipeline_root_param = dsl.PipelineParam(
           name=dsl.ROOT_PARAMETER_NAME, value=pipeline_root_dir or '')
 
