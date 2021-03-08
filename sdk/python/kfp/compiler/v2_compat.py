@@ -1,39 +1,30 @@
+# Copyright 2021 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+"""Utility functions for enabling v2-compatible pipelines in v1."""
 import json
-from typing import Callable
 
 from kfp import dsl
 from kfp.compiler import _default_transformers
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.v2 import compiler
 
-from google.protobuf import json_format
 from kubernetes import client as k8s_client
 
 _LAUNCHER_CONTAINER = dsl.UserContainer(name="kfp-launcher",
                                         image="gcr.io/ml-pipeline/kfp-launcher",
                                         command="/bin/mount_launcher.sh",
                                         mirror_volume_mounts=True)
-
-
-# def get_pipeline_spec(
-#     pipeline_func: Callable) -> pipeline_spec_pb2.PipelineSpec:
-#   """Computes PipelineSpec from the specified pipeline function.
-
-#     Args:
-#       pipeline_func: A function defining a KFP pipeline.
-
-#     Returns:
-#       A PipelineSpec protocol buffer.
-#     """
-#   output_directory = getattr(pipeline_func, 'output_directory', None)
-#   pipeline_name = getattr(pipeline_func, 'name', None)
-#   pipeline_job = compiler.Compiler()._create_pipeline(pipeline_func,
-#                                                       output_directory,
-#                                                       pipeline_name)
-#   json_spec = json_format.MessageToJson(pipeline_job.pipeline_spec)
-#   result = pipeline_spec_pb2.PipelineSpec()
-#   json_format.Parse(json_spec, result)
-#   return result
 
 
 def update_op(op: dsl.ContainerOp, pipeline_name: dsl.PipelineParam,
