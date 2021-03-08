@@ -65,8 +65,8 @@ class Compiler(object):
       warnings.warn('V2_COMPATIBLE execution mode is still under development.'
                     ' Pipelines may not work as expected.')
     self._mode = mode
-    self._pipeline_name = None
-    self._pipeline_root = None
+    self._pipeline_name: Optional[dsl.PipelineParam] = None
+    self._pipeline_root: Optional[dsl.PipelineParam] = None
 
   def _get_groups_for_ops(self, root_group):
     """Helper function to get belonging groups for each op.
@@ -847,6 +847,18 @@ class Compiler(object):
     # Need to first clear the default value of dsl.PipelineParams. Otherwise, it
     # will be resolved immediately in place when being to each component.
     default_param_values = OrderedDict()
+
+    # Check to ensure pipeline_root and pipeline_name are not used as
+    # pipeline-level parameters.
+    pipeline_param_names = [input.name for input in pipeline_meta.inputs or []]
+    if 'name' in pipeline_param_names:
+      raise ValueError(
+          'Cannot specify `name` as a pipeline parameter. It is reserved for'
+          ' use by the Compiler.')
+    if 'pipeline_root' in pipeline_param_names:
+      raise ValueError(
+          'Cannot specify `pipeline_root` as a pipeline parameter. It is'
+          ' reserved for use by the Compiler.')
 
     if self._pipeline_root:
       params_list.append(self._pipeline_root)

@@ -50,7 +50,7 @@ def pipeline(
     ::
 
       @pipeline(
-        name='MyPipeline',
+        name='my-pipeline',
         description='My ML Pipeline.'
         pipeline_root='gs://my-bucket/my-output-path'
       )
