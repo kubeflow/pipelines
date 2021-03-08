@@ -28,7 +28,6 @@ spec:
       - name: WORKLOW_ID
         valueFrom:
           fieldRef:
-            apiVersion: v1
             fieldPath: metadata.labels['workflows.argoproj.io/workflow']
       image: library/bash
     metadata:
