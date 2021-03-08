@@ -178,7 +178,7 @@ func (c *ClientManager) init() {
 	c.logArchive = initLogArchive()
 
 	if common.IsMultiUserMode() {
-		c.subjectAccessReviewClient = client.CreateSubjectAccessReviewClientOrFatal(common.GetDurationConfig(initConnectionTimeout))
+		c.subjectAccessReviewClient = client.CreateSubjectAccessReviewClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 	}
 	glog.Infof("Client manager initialized successfully")
 }

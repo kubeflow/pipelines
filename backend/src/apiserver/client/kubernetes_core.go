@@ -6,10 +6,7 @@ import (
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"github.com/pkg/errors"
-	"k8s.io/client-go/kubernetes"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/rest"
 )
 
 type KubernetesCoreInterface interface {
@@ -25,16 +22,9 @@ func (c *KubernetesCore) PodClient(namespace string) v1.PodInterface {
 }
 
 func createKubernetesCore(clientParams util.ClientParameters) (KubernetesCoreInterface, error) {
-	restConfig, err := rest.InClusterConfig()
+	clientSet, err := getKubernetesClientset(clientParams)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to initialize kubernetes client.")
-	}
-	restConfig.QPS = float32(clientParams.QPS)
-	restConfig.Burst = clientParams.Burst
-
-	clientSet, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to initialize kubernetes client set.")
+		return nil, err
 	}
 	return &KubernetesCore{clientSet.CoreV1()}, nil
 }

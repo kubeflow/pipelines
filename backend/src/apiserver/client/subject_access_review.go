@@ -19,35 +19,28 @@ import (
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
-	"github.com/pkg/errors"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	authzv1 "k8s.io/api/authorization/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
 type SubjectAccessReviewInterface interface {
 	Create(sar *authzv1.SubjectAccessReview) (result *authzv1.SubjectAccessReview, err error)
 }
 
-func createSubjectAccessReviewClient() (SubjectAccessReviewInterface, error) {
-	restConfig, err := rest.InClusterConfig()
+func createSubjectAccessReviewClient(clientParams util.ClientParameters) (SubjectAccessReviewInterface, error) {
+	clientSet, err := getKubernetesClientset(clientParams)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to initialize kubernetes client.")
-	}
-
-	clientSet, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to initialize kubernetes client set.")
+		return nil, err
 	}
 	return clientSet.AuthorizationV1().SubjectAccessReviews(), nil
 }
 
 // CreateSubjectAccessReviewClientOrFatal creates a new SubjectAccessReview client.
-func CreateSubjectAccessReviewClientOrFatal(initConnectionTimeout time.Duration) SubjectAccessReviewInterface {
+func CreateSubjectAccessReviewClientOrFatal(initConnectionTimeout time.Duration, clientParams util.ClientParameters) SubjectAccessReviewInterface {
 	var client SubjectAccessReviewInterface
 	var err error
 	var operation = func() error {
-		client, err = createSubjectAccessReviewClient()
+		client, err = createSubjectAccessReviewClient(clientParams)
 		return err
 	}
 	b := backoff.NewExponentialBackOff()
