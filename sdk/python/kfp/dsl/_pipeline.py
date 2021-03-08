@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional, Union
 import enum
+from typing import Callable, Optional, Union
 
 from kubernetes.client.models import V1PodDNSConfig
 from kfp.dsl import _container_op
@@ -72,7 +72,6 @@ def pipeline(
     if description:
       func._component_description = description
     if pipeline_root:
-      func.pipeline_root = pipeline_root
       func.output_directory = pipeline_root
 
     if _pipeline_decorator_handler:
