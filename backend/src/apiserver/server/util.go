@@ -11,17 +11,17 @@ import (
 	"io"
 	"io/ioutil"
 	"net/url"
-	"strconv"
 	"strings"
 
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	kfpauth "github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
-	"google.golang.org/grpc/metadata"
 	authorizationv1 "k8s.io/api/authorization/v1"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 )
 
 // These are valid conditions of a ScheduledWorkflow.
@@ -312,17 +312,18 @@ func getUserIdentity(ctx context.Context) (string, error) {
 	if ctx == nil {
 		return "", util.NewUnauthenticatedError(errors.New("Request error: context is nil"), "Request error: context is nil.")
 	}
-	md, _ := metadata.FromIncomingContext(ctx)
+
 	// If the request header contains the user identity, requests are authorized
 	// based on the namespace field in the request.
-	if userIdentityHeader, ok := md[common.GetKubeflowUserIDHeader()]; ok {
-		if len(userIdentityHeader) != 1 {
-			return "", util.NewUnauthenticatedError(errors.New("Request header error: unexpected number of user identity header. Expect 1 got "+strconv.Itoa(len(userIdentityHeader))),
-				"Request header error: unexpected number of user identity header. Expect 1 got "+strconv.Itoa(len(userIdentityHeader)))
+	var errlist []error
+	for _, auth := range kfpauth.GetAuthenticators() {
+		userIdentity, err := auth.GetUserIdentity(ctx)
+		if err == nil {
+			return userIdentity, nil
 		}
-		return getUserIdentityFromHeader(userIdentityHeader[0], common.GetKubeflowUserIDPrefix())
+		errlist = append(errlist, err)
 	}
-	return "", util.NewUnauthenticatedError(errors.New("Request header error: there is no user identity header."), "Request header error: there is no user identity header.")
+	return "", utilerrors.NewAggregate(errlist)
 }
 
 // isAuthorized verifies whether the user identity, which is contained in the context object,
