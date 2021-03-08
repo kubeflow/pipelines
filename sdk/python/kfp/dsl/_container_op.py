@@ -199,8 +199,10 @@ class Container(V1Container):
     # v2 container_spec
     self._container_spec = None
 
-    super(Container, self).__init__(
-        image=image, command=command, args=args, **kwargs)
+    super(Container, self).__init__(image=image,
+                                    command=command,
+                                    args=args,
+                                    **kwargs)
 
   def _validate_size_string(self, size_string):
     """Validate a given string is valid for memory/ephemeral-storage request or limit."""
@@ -642,13 +644,13 @@ class UserContainer(Container):
   # NOTE inherits definition from `V1Container` rather than `Container`
   #      because `Container` has no `name` property.
   if hasattr(V1Container, 'swagger_types'):
-    swagger_types = dict(
-        **V1Container.swagger_types, mirror_volume_mounts='bool')
+    swagger_types = dict(**V1Container.swagger_types,
+                         mirror_volume_mounts='bool')
   if hasattr(V1Container, 'openapi_types'):
-    openapi_types = dict(
-        **V1Container.openapi_types, mirror_volume_mounts='bool')
-  attribute_map = dict(
-      **V1Container.attribute_map, mirror_volume_mounts='mirrorVolumeMounts')
+    openapi_types = dict(**V1Container.openapi_types,
+                         mirror_volume_mounts='bool')
+  attribute_map = dict(**V1Container.attribute_map,
+                       mirror_volume_mounts='mirrorVolumeMounts')
 
   def __init__(self,
                name: str,
@@ -657,12 +659,11 @@ class UserContainer(Container):
                args: StringOrStringList = None,
                mirror_volume_mounts: bool = None,
                **kwargs):
-    super().__init__(
-        name=name,
-        image=image,
-        command=as_string_list(command),
-        args=as_string_list(args),
-        **kwargs)
+    super().__init__(name=name,
+                     image=image,
+                     command=as_string_list(command),
+                     args=as_string_list(args),
+                     **kwargs)
 
     self.mirror_volume_mounts = mirror_volume_mounts
 
@@ -710,13 +711,12 @@ class Sidecar(UserContainer):
                args: StringOrStringList = None,
                mirror_volume_mounts: bool = None,
                **kwargs):
-    super().__init__(
-        name=name,
-        image=image,
-        command=command,
-        args=args,
-        mirror_volume_mounts=mirror_volume_mounts,
-        **kwargs)
+    super().__init__(name=name,
+                     image=image,
+                     command=command,
+                     args=args,
+                     mirror_volume_mounts=mirror_volume_mounts,
+                     **kwargs)
 
 
 def _make_hash_based_id_for_op(op):
@@ -1096,11 +1096,10 @@ class ContainerOp(BaseOp):
       is_exit_handler: bool = False,
       pvolumes: Optional[Dict[str, V1Volume]] = None,
   ):
-    super().__init__(
-        name=name,
-        init_containers=init_containers,
-        sidecars=sidecars,
-        is_exit_handler=is_exit_handler)
+    super().__init__(name=name,
+                     init_containers=init_containers,
+                     sidecars=sidecars,
+                     is_exit_handler=is_exit_handler)
 
     if (not ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING) and (
         '--component_launcher_class_path' not in (arguments or [])):
@@ -1150,8 +1149,10 @@ class ContainerOp(BaseOp):
 
     # `container` prop in `io.argoproj.workflow.v1alpha1.Template`
     container_kwargs = container_kwargs or {}
-    self._container = Container(
-        image=image, args=arguments, command=command, **container_kwargs)
+    self._container = Container(image=image,
+                                args=arguments,
+                                command=command,
+                                **container_kwargs)
 
     # NOTE for backward compatibility (remove in future?)
     # proxy old ContainerOp callables to Container
@@ -1185,8 +1186,7 @@ class ContainerOp(BaseOp):
       warnings.warn(
           'The output_artifact_paths parameter is deprecated since SDK v0.1.32. '
           'Use the file_outputs parameter instead. file_outputs now supports '
-          'outputting big data.',
-          DeprecationWarning)
+          'outputting big data.', DeprecationWarning)
 
     # Special handling for the mlpipeline-ui-metadata and mlpipeline-metrics
     # outputs that should always be saved as artifacts
@@ -1366,8 +1366,7 @@ class _MultipleOutputsError:
   def raise_error():
     raise RuntimeError(
         'This task has multiple outputs. Use `task.outputs[<output name>]` '
-        'dictionary to refer to the one you need.'
-    )
+        'dictionary to refer to the one you need.')
 
   def __getattribute__(self, name):
     _MultipleOutputsError.raise_error()

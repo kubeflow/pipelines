@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import enum
 from typing import Callable, Optional, Union
+
 from kubernetes.client.models import V1PodDNSConfig
 from kfp.dsl import _container_op
 from kfp.dsl import _resource_op
@@ -27,18 +29,29 @@ import sys
 # pipeline definition.
 _pipeline_decorator_handler = None
 
+class PipelineExecutionMode(enum.Enum):
+  # Compile to Argo YAML without support for metadata-enabled components.
+  V1_LEGACY = 1
+  # Compiles to Argo YAML with support for metadata-enabled components.
+  # Pipelines compiled using this mode aim to be compatible with v2 semantics.
+  V2_COMPATIBLE = 2
+  # Compiles to KFP v2 IR for execution using the v2 engine.
+  # This option is unsupported right now.
+  V2_ENGINE = 3
 
-def pipeline(name: Optional[str] = None,
-             description: Optional[str] = None,
-             pipeline_root: Optional[str] = None):
+
+def pipeline(
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+    pipeline_root: Optional[str] = None):
   """Decorator of pipeline functions.
 
   Example
     ::
 
       @pipeline(
-        name='my awesome pipeline',
-        description='Is it really awesome?'
+        name='my-pipeline',
+        description='My ML Pipeline.'
         pipeline_root='gs://my-bucket/my-output-path'
       )
       def my_pipeline(a: PipelineParam, b: PipelineParam):
@@ -168,7 +181,6 @@ class PipelineConf():
 
   def add_op_transformer(self, transformer):
     """Configures the op_transformers which will be applied to all ops in the pipeline.
-
     The ops can be ResourceOp, VolumeOp, or ContainerOp.
 
     Args:
@@ -225,7 +237,6 @@ class PipelineConf():
 
 def get_pipeline_conf():
   """Configure the pipeline level setting to the current pipeline
-
     Note: call the function inside the user defined pipeline function.
   """
   return Pipeline.get_default_pipeline().conf
