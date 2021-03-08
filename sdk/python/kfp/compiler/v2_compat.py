@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utility functions for enabling v2-compatible pipelines in v1."""
+import collections
 import json
 
 from kfp import dsl
@@ -78,14 +79,15 @@ def update_op(op: dsl.ContainerOp, pipeline_name: dsl.PipelineParam,
   op.arguments = list(op.container_spec.command) + list(op.container_spec.args)
 
   runtime_info = {
-      "inputParameters": {},
-      "inputArtifacts": {},
-      "outputParameters": {},
-      "outputArtifacts": {},
+      "inputParameters": collections.OrderedDict(),
+      "inputArtifacts": collections.OrderedDict(),
+      "outputParameters": collections.OrderedDict(),
+      "outputArtifacts": collections.OrderedDict(),
   }
 
   component_spec = op.component_spec
-  for parameter, spec in component_spec.input_definitions.parameters.items():
+  for parameter, spec in sorted(
+      component_spec.input_definitions.parameters.items()):
     parameter_info = {
         "parameterType":
             pipeline_spec_pb2.PrimitiveType.PrimitiveTypeEnum.Name(spec.type),
@@ -94,11 +96,13 @@ def update_op(op: dsl.ContainerOp, pipeline_name: dsl.PipelineParam,
     }
     runtime_info["inputParameters"][parameter] = parameter_info
 
-  for artifact_name, spec in component_spec.input_definitions.artifacts.items():
+  for artifact_name, spec in sorted(
+      component_spec.input_definitions.artifacts.items()):
     artifact_info = {"fileInputPath": op.input_artifact_paths[artifact_name]}
     runtime_info["inputArtifacts"][artifact_name] = artifact_info
 
-  for parameter, spec in component_spec.output_definitions.parameters.items():
+  for parameter, spec in sorted(
+      component_spec.output_definitions.parameters.items()):
     parameter_info = {
         "parameterType":
             pipeline_spec_pb2.PrimitiveType.PrimitiveTypeEnum.Name(spec.type),
@@ -107,8 +111,8 @@ def update_op(op: dsl.ContainerOp, pipeline_name: dsl.PipelineParam,
     }
     runtime_info["outputParameters"][parameter] = parameter_info
 
-  for artifact_name, spec in component_spec.output_definitions.artifacts.items(
-  ):
+  for artifact_name, spec in sorted(
+      component_spec.output_definitions.artifacts.items()):
     # TODO: Assert instance_schema.
     artifact_info = {
         # Type used to register output artifacts.

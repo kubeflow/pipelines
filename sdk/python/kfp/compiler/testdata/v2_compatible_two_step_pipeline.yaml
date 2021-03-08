@@ -4,7 +4,7 @@ metadata:
   generateName: my-test-pipeline-
   annotations:
     pipelines.kubeflow.org/kfp_sdk_version: 1.4.1
-    pipelines.kubeflow.org/pipeline_compilation_time: '2021-03-07T19:08:35.059440'
+    pipelines.kubeflow.org/pipeline_compilation_time: '2021-03-08T06:53:16.328199'
     pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "gs://output-directory/v2-artifacts",
       "name": "pipeline-output-directory"}, {"default": "my-test-pipeline", "name":
       "pipeline-name"}], "name": "my-test-pipeline"}'
@@ -92,10 +92,10 @@ spec:
         valueFrom:
           fieldRef: {fieldPath: 'metadata.labels[''workflows.argoproj.io/workflow'']'}
       - {name: KFP_V2_IMAGE, value: 'python:3.9'}
-      - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {"uri": {"parameterType":
-          "STRING", "parameterValue": "uri-to-import"}, "some_int": {"parameterType":
-          "INT", "parameterValue": "12"}}, "inputArtifacts": {}, "outputParameters":
-          {"output_parameter_one": {"parameterType": "INT", "fileOutputPath": "/tmp/outputs/output_parameter_one/data"}},
+      - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {"some_int": {"parameterType":
+          "INT", "parameterValue": "12"}, "uri": {"parameterType": "STRING", "parameterValue":
+          "uri-to-import"}}, "inputArtifacts": {}, "outputParameters": {"output_parameter_one":
+          {"parameterType": "INT", "fileOutputPath": "/tmp/outputs/output_parameter_one/data"}},
           "outputArtifacts": {"output_dataset_one": {"artifactSchema": "title: kfp.Dataset\ntype:
           object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type:
           string", "fileOutputPath": "/tmp/outputs/output_dataset_one/data"}}}'}

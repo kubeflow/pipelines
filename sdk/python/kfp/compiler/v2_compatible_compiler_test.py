@@ -62,6 +62,9 @@ class TestV2CompatibleModeCompiler(unittest.TestCase):
 
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
     golden_file = os.path.join(test_data_dir, golden_yaml_filename)
+    # Uncomment the following to update goldens.
+    # TODO: place this behind some --update_goldens flag.
+    # self._compiler.compile(pipeline_func, package_path=golden_file)
 
     with open(golden_file, 'r') as f:
       golden = yaml.safe_load(f)
