@@ -74,6 +74,7 @@ type ClientManager struct {
 	swfClient                 client.SwfClientInterface
 	k8sCoreClient             client.KubernetesCoreInterface
 	subjectAccessReviewClient client.SubjectAccessReviewInterface
+	tokenReviewClient         client.TokenReviewInterface
 	logArchive                archive.LogArchiveInterface
 	time                      util.TimeInterface
 	uuid                      util.UUIDGeneratorInterface
@@ -125,6 +126,10 @@ func (c *ClientManager) KubernetesCoreClient() client.KubernetesCoreInterface {
 
 func (c *ClientManager) SubjectAccessReviewClient() client.SubjectAccessReviewInterface {
 	return c.subjectAccessReviewClient
+}
+
+func (c *ClientManager) TokenReviewClient() client.TokenReviewInterface {
+	return c.tokenReviewClient
 }
 
 func (c *ClientManager) LogArchive() archive.LogArchiveInterface {
@@ -179,6 +184,7 @@ func (c *ClientManager) init() {
 
 	if common.IsMultiUserMode() {
 		c.subjectAccessReviewClient = client.CreateSubjectAccessReviewClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
+		c.tokenReviewClient = client.CreateTokenReviewClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 	}
 	glog.Infof("Client manager initialized successfully")
 }
