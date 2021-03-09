@@ -248,7 +248,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
     this._isMounted = false;
   }
 
-  public render(): JSX.Element {
+  public render(): JSX.Element | null {
     const page = this.props.page;
     const { collapsed, displayBuildInfo } = this.state;
     const { gkeMetadata } = this.props;
@@ -256,6 +256,10 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
       active: sideNavColors.fgActive,
       inactive: sideNavColors.fgDefault,
     };
+
+    if (KFP_FLAGS.HIDE_SIDENAV) {
+      return null;
+    }
 
     return (
       <div
