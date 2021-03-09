@@ -25,7 +25,7 @@ ACCOUNT=$(gcloud info --format='value(config.account)')
 kubectl create clusterrolebinding PROW_BINDING --clusterrole=cluster-admin --user=$ACCOUNT --dry-run -o yaml | kubectl apply -f -
 kubectl create clusterrolebinding DEFAULT_BINDING --clusterrole=cluster-admin --serviceaccount=default:default --dry-run -o yaml | kubectl apply -f -
 
-"./${DIR}/install-argo-cli.sh"
+"${DIR}/install-argo-cli.sh"
 
 # No need to install here, it comes with kfp lite deployment
 # kubectl create ns argo --dry-run -o yaml | kubectl apply -f -
