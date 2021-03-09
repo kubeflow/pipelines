@@ -52,13 +52,12 @@ class DslUtilsTest(unittest.TestCase):
     with self.assertRaisesRegex(TypeError, 'Got unexpected type'):
       dsl_utils.get_value(_DummyClass())
 
+  def test_remove_task_name_prefix(self):
+    self.assertEqual('my-component',
+                     dsl_utils.remove_task_name_prefix('task-my-component'))
 
-def test_remove_task_name_prefix(self):
-  self.assertEqual('my-component',
-                   dsl_utils.remove_task_name_prefix('task-my-component'))
-
-  with self.assertRaises(AssertionError):
-    dsl_utils.remove_task_name_prefix('my-component')
+    with self.assertRaises(AssertionError):
+      dsl_utils.remove_task_name_prefix('my-component')
 
 
 if __name__ == '__main__':
