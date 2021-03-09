@@ -14,20 +14,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -e
+# This script builds argo images and pushes them to KFP's gcr container registry.
+# Usage: ./release.sh
+# It can be run anywhere.
 
-# Usage: run this from root of KFP source repo and specify PROJECT env
-# $PROJECT: gcp project
+set -ex
 
-RELEASE_PROJECT=ml-pipeline
-TAG=v2.7.5-license-compliance
+# Get this bash script's dir.
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
-gcloud builds submit --config third_party/argo/cloudbuild.yaml . \
-  --substitutions=TAG_NAME="$TAG" --project "$PROJECT"
+PROJECT=ml-pipeline
+TAG_ARGO="$(cat ${DIR}/VERSION)"
+TAG=${TAG_ARGO}-license-compliance
+IMAGE_ARGOEXEC="gcr.io/${PROJECT}/argoexec:${TAG}"
+IMAGE_WORKFLOW_CONTROLLER="gcr.io/${PROJECT}/workflow-controller:${TAG}"
 
-gcloud container images add-tag --quiet \
-  gcr.io/$PROJECT/argoexec:$TAG \
-  gcr.io/$RELEASE_PROJECT/argoexec:$TAG
-gcloud container images add-tag --quiet \
-  gcr.io/$PROJECT/workflow-controller:$TAG \
-  gcr.io/$RELEASE_PROJECT/workflow-controller:$TAG
+docker build -t "${IMAGE_ARGOEXEC}" -f Dockerfile.argoexec "${DIR}" --build-arg TAG=${TAG_ARGO}
+docker build -t "${IMAGE_WORKFLOW_CONTROLLER}" -f Dockerfile.workflow-controller "${DIR}" --build-arg TAG=${TAG_ARGO}
+docker push "${IMAGE_ARGOEXEC}"
+docker push "${IMAGE_WORKFLOW_CONTROLLER}"
