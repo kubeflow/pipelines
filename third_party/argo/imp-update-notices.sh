@@ -25,6 +25,15 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 WORK_DIR="$(mktemp -d)"
 TAG="$(cat "${DIR}/VERSION")"
 
+echo "Checking required tools"
+echo "go"
+which go >/dev/null || (echo "go not found in PATH" && exit 1)
+go_path=$(go env GOPATH)
+echo "$PATH" | grep "${go_path}/bin" > /dev/null || ( \
+    echo "\$GOPATH/bin: ${go_path}/bin should be in PATH"; \
+    echo "https://golang.org/cmd/go/#hdr-GOPATH_and_Modules"; \
+    exit 1)
+
 # Clean up generated files
 rm -f "${DIR}/license_info.csv"
 rm -rf "${DIR}/NOTICES"
