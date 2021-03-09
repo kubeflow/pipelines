@@ -9,6 +9,8 @@ license) inside a `/NOTICES` folder inside the container.
 
 ## Upgrade Argo image
 
+NOTE: the following steps will push argo images to gcr.io/ml-pipeline.
+
 Prerequisites:
 
 * Be an admin to gcr.io/ml-pipeline.
@@ -21,29 +23,27 @@ Instructions:
     ARGO_TAG=v2.12.9
     ```
 
-1. Update `NOTICES` folder by checking argo repository of the desired version and run [github.com/Bobgy/go-mod-licenses](github.com/Bobgy/go-mod-licenses) on it. This step makes sure we comply with legal requirements for redistributing argo container image.
-
-    ```bash
-    # clone argo git repo (you can also use git clone to do this)
-    gh repo clone github.com/argoproj/argo-workflows
-    cd argo-workflows
-    git checkout "${ARGO_TAG}"
-    # The following is a rough idea, please check go-mod-licenses documentation on the exact workflow.
-    go-mod-licenses csv
-    go-mod-licenses save
-    # Preserve generated license info here.
-    cp NOTICES <here>
-    cp license_dict.csv <here>
-    cp license_info.csv <here>
-    ```
-
 1. ```bash
     echo "${ARGO_TAG}" > VERSION
     ./release.sh
     ```
 
-    After that, `gcr.io/ml-pipeline/argoexec:${ARGO_TAG}-license-compliance` and
-    `gcr.io/ml-pipeline/workflow-controller:${ARGO_TAG}-license-compliance` will be available.
+    or run separate steps, so you can quickly fix issues
+
+    ```bash
+    echo "${ARGO_TAG}" > VERSION
+    # Ensure there are no errors. If there are any issues, update license_dict.csv and retry.
+    ./imp-1-update-notices.sh
+    # gcloud auth login first, so that you can use docker push to push to gcr.io/ml-pipeline.
+    ./imp-2-build-push-images.sh
+    ```
+
+    The `release.sh` script does a few things:
+    
+    * Use [github.com/Bobgy/go-mod-licenses](github.com/Bobgy/go-mod-licenses) to update NOTICES folder for argo images.
+    * Build license compliant argo images.
+    * Push them to `gcr.io/ml-pipeline/argoexec:${ARGO_TAG}-license-compliance` and
+    `gcr.io/ml-pipeline/workflow-controller:${ARGO_TAG}-license-compliance`.
 
 1. Update [manifests](../../manifests) and other places in the code base that still uses the old argo image tag.
 

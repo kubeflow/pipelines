@@ -23,13 +23,7 @@ set -ex
 # Get this bash script's dir.
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
-PROJECT=ml-pipeline
-TAG_ARGO="$(cat ${DIR}/VERSION)"
-TAG=${TAG_ARGO}-license-compliance
-IMAGE_ARGOEXEC="gcr.io/${PROJECT}/argoexec:${TAG}"
-IMAGE_WORKFLOW_CONTROLLER="gcr.io/${PROJECT}/workflow-controller:${TAG}"
-
-docker build -t "${IMAGE_ARGOEXEC}" -f Dockerfile.argoexec "${DIR}" --build-arg TAG=${TAG_ARGO}
-docker build -t "${IMAGE_WORKFLOW_CONTROLLER}" -f Dockerfile.workflow-controller "${DIR}" --build-arg TAG=${TAG_ARGO}
-docker push "${IMAGE_ARGOEXEC}"
-docker push "${IMAGE_WORKFLOW_CONTROLLER}"
+# Update NOTICES of the specified argo version.
+"${DIR}/imp-1-update-notices.sh"
+# Build and push license compliant argo images to gcr.io/ml-pipeline.
+"${DIR}/imp-2-build-push-images.sh"
