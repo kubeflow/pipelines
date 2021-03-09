@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2021 Google LLC
+# Copyright 2020-2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,16 +14,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
-REPO_ROOT="${DIR}/.."
-ARGO_VERSION="$(cat ${REPO_ROOT}/third_party/argo/VERSION)"
+set -ex
 
-# if argo is not installed
-if ! which argo; then
-  echo "install argo"
-  curl -sLO https://github.com/argoproj/argo/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz
-  gunzip argo-linux-amd64.gz
-  chmod +x argo-linux-amd64
-  mv ./argo-linux-amd64 /usr/local/bin/argo
-  argo version
+# When running this in MacOS, we can run `OS=darwin-amd64 ./presubmit.sh`
+OS="${OS:-linux-amd64}"
+
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
+
+if ! which helm; then
+    HELM_VERSION=v2.17.0
+    curl -sLO "https://get.helm.sh/helm-${HELM_VERSION}-${OS}.tar.gz"
+    tar xvf "helm-${HELM_VERSION}-${OS}.tar.gz"
+    mv ./${OS}/helm /usr/local/bin/helm
+    helm version
 fi
+
+"${DIR}/snapshots.sh"
+# exit 1 if snapshots are not up-to-date.
+git diff --exit-code -- "${DIR}" || \
+    (echo "gcp_marketplace test snapshots are not tidy, run 'manifests/gcp_marketplace/test/snapshots.sh' to update them." \
+    && exit 1)
