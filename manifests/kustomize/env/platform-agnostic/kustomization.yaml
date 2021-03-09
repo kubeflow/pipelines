@@ -3,6 +3,7 @@ kind: Kustomization
 
 bases:
   - ../../base
+  - ../../third-party/argo/installs/namespaced-mode
   - minio
   - mysql
 
