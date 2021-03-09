@@ -40,7 +40,7 @@ def list(ctx, max_size):
     client = ctx.obj['client']
     output_format = ctx.obj['output']
 
-    response = client.experiments.list_experiment(
+    response = client.list_experiments(
         page_size=max_size,
         sort_by="created_at desc"
     )
