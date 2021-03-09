@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/golang/glog"
 	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
 	"google.golang.org/grpc"
@@ -286,8 +285,6 @@ func schemaToArtifactType(schema string) (*pb.ArtifactType, error) {
 
 // RecordArtifact ...
 func (c *Client) RecordArtifact(ctx context.Context, schema string, artifact *pb.Artifact) (*pb.Artifact, error) {
-	fmt.Printf("Logging Artifact %s, schema: %s", spew.Sdump(artifact), schema)
-
 	at, err := schemaToArtifactType(schema)
 	if err != nil {
 		return nil, err
