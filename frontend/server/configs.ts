@@ -167,8 +167,8 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
           : Deployments.NOT_SPECIFIED,
       hideSideNav:
         HIDE_SIDENAV === undefined
-        ? DEPLOYMENT_STR.toUpperCase() === Deployments.KUBEFLOW
-        : asBool(HIDE_SIDENAV),
+          ? DEPLOYMENT_STR.toUpperCase() === Deployments.KUBEFLOW
+          : asBool(HIDE_SIDENAV),
       port,
       staticDir,
     },
