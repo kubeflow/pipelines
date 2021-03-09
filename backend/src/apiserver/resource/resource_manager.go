@@ -73,6 +73,7 @@ type ClientManagerInterface interface {
 	SwfClient() client.SwfClientInterface
 	KubernetesCoreClient() client.KubernetesCoreInterface
 	SubjectAccessReviewClient() client.SubjectAccessReviewInterface
+	TokenReviewClient() client.TokenReviewInterface
 	LogArchive() archive.LogArchiveInterface
 	Time() util.TimeInterface
 	UUID() util.UUIDGeneratorInterface
@@ -91,6 +92,7 @@ type ResourceManager struct {
 	swfClient                 client.SwfClientInterface
 	k8sCoreClient             client.KubernetesCoreInterface
 	subjectAccessReviewClient client.SubjectAccessReviewInterface
+	tokenReviewClient         client.TokenReviewInterface
 	logArchive                archive.LogArchiveInterface
 	time                      util.TimeInterface
 	uuid                      util.UUIDGeneratorInterface
@@ -110,6 +112,7 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		swfClient:                 clientManager.SwfClient(),
 		k8sCoreClient:             clientManager.KubernetesCoreClient(),
 		subjectAccessReviewClient: clientManager.SubjectAccessReviewClient(),
+		tokenReviewClient:         clientManager.TokenReviewClient(),
 		logArchive:                clientManager.LogArchive(),
 		time:                      clientManager.Time(),
 		uuid:                      clientManager.UUID(),
