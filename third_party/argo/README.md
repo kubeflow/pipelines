@@ -45,8 +45,17 @@ Instructions:
     After that, `gcr.io/ml-pipeline/argoexec:${ARGO_TAG}-license-compliance` and
     `gcr.io/ml-pipeline/workflow-controller:${ARGO_TAG}-license-compliance` will be available.
 
-1. Update [manifests](../../manifests) to use updated argo image tag.
+1. Update [manifests](../../manifests) and other places in the code base that still uses the old argo image tag.
 
 1. Commit these changes to a PR.
 
 1. Fix any other issues caused by the upgrade.
+
+## TODOs
+
+Ideas to improve this process:
+
+* Add a presubmit test that verifies `NOTICES` folder is updated when argo image version is updated.
+* Write a script that auto updates all occurrences of old argo image
+tag to the new one.
+* Reduce occurrences of argo image tag version, and let them use `./VERSION` programmatically when possible.
