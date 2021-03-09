@@ -453,6 +453,20 @@ class Client(object):
           return self._experiment_api.get_experiment(id=experiment.id)
     raise ValueError('No experiment is found with name {}.'.format(experiment_name))
 
+  def delete_experiment(self, experiment_id):
+    """Delete experiment.
+
+    Args:
+      experiment_id: id of the experiment.
+
+    Returns:
+      Object. If the method is called asynchronously, returns the request thread.
+
+    Throws:
+      Exception if experiment is not found.
+    """
+    return self._experiment_api.delete_experiment(id=experiment_id)
+
   def _extract_pipeline_yaml(self, package_file):
     def _choose_pipeline_yaml_file(file_list) -> str:
       yaml_files = [file for file in file_list if file.endswith('.yaml')]

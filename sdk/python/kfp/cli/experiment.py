@@ -80,7 +80,7 @@ def delete(ctx, experiment_id):
 
     client = ctx.obj["client"]
 
-    client.experiments.delete_experiment(id=experiment_id)
+    client.delete_experiment(experiment_id)
     click.echo("{} is deleted.".format(experiment_id))
 
 
