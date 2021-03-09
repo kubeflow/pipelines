@@ -14,9 +14,8 @@ RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
 COPY backend/requirements.txt .
 RUN python3 -m pip install -r requirements.txt --no-cache-dir
 
-ENV ARGO_VERSION v2.12.9
-
 # Downloading Argo CLI so that the samples are validated
+ENV ARGO_VERSION v2.12.9
 RUN curl -sLO https://github.com/argoproj/argo/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz && \
   gunzip argo-linux-amd64.gz && \
   chmod +x argo-linux-amd64 && \
