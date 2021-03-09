@@ -203,6 +203,8 @@ func (l *Launcher) prepareInputs(ctx context.Context) error {
 
 		v.Artifact = a
 
+		// TODO: Support `{{$}}` placeholder for components using ExecutorInput.
+
 		// Prepare input uri placeholder.
 		key := fmt.Sprintf(`{{$.inputs.artifacts['%s'].uri}}`, k)
 		l.placeholderReplacements[key] = v.Artifact.GetUri()
