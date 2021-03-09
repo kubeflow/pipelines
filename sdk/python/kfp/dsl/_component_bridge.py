@@ -311,9 +311,10 @@ def _attach_v2_specs(
           pipeline_task_spec.inputs.artifacts[
               input_name].task_output_artifact.output_artifact_key = (
                   argument_value.name)
-        else:
+        elif is_compiling_for_v2:
           # argument_value.op_name could be none, in which case an importer node
           # will be inserted later.
+          # Importer node is only applicable for v2 engine.
           pipeline_task_spec.inputs.artifacts[
               input_name].task_output_artifact.producer_task = ''
           type_schema = type_utils.get_input_artifact_type_schema(
@@ -337,8 +338,9 @@ def _attach_v2_specs(
         pipeline_task_spec.inputs.parameters[
             input_name].runtime_value.constant_value.string_value = (
                 argument_value)
-      else:
+      elif is_compiling_for_v2:
         # An importer node with constant value artifact_uri will be inserted.
+        # Importer node is only applicable for v2 engine.
         pipeline_task_spec.inputs.artifacts[
             input_name].task_output_artifact.producer_task = ''
         type_schema = type_utils.get_input_artifact_type_schema(

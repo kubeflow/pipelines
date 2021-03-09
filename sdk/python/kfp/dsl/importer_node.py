@@ -40,7 +40,7 @@ def build_importer_spec(
   Returns:
     An importer spec.
   """
-  assert bool(pipeline_param_name) != bool(constant_value), (
+  assert bool(pipeline_param_name is None) != bool(constant_value is None), (
       'importer spec should be built using either pipeline_param_name or '
       'constant_value.')
   importer_spec = pipeline_spec_pb2.PipelineDeploymentConfig.ImporterSpec()
