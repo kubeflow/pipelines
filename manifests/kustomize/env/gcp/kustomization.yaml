@@ -19,7 +19,6 @@ commonLabels:
 namespace: kubeflow
 
 patchesStrategicMerge:
-  - ../../third-party/minio/argo-artifact-repo-config-patch.yaml
   - gcp-configurations-patch.yaml
 
 # Used by Kustomize

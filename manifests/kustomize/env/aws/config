@@ -1,5 +1,4 @@
 {
-namespace: $(kfp-namespace),
 artifactRepository:
 {
     s3: {

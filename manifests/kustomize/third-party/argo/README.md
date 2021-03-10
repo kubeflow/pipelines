@@ -12,3 +12,4 @@ This folder contains:
   * Argo server is not included.
   * Argo workflow controller configmap is preconfigured to integrate with KFP.
   * Images are configured to use KFP redistributed ones which comply with open source licenses.
+  * A default artifact repository config is added for in-cluster minio service.
