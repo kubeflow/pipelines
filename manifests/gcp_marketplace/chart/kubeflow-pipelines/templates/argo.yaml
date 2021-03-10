@@ -257,7 +257,7 @@ data:
     s3:
       endpoint: 'minio-service.{{ .Release.Namespace }}:9000',
       bucket: '{{ if .Values.managedstorage.enabled }}{{ .Values.managedstorage.gcsBucketName }}{{ else }}mlpipeline{{ end }}',
-      keyFormat: "artifacts/{{workflow.name}}/{{pod.name}}"
+      keyFormat: "{{ `artifacts/{{workflow.name}}/{{pod.name}}` }}"
       # insecure will disable TLS. Primarily used for minio installs not configured with TLS
       insecure: true
       accessKeySecret:
