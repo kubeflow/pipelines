@@ -7,4 +7,6 @@ data:
   # * https://github.com/argoproj/argo-workflows/blob/v2.12.9/config/config.go
   # * https://github.com/argoproj/argo-workflows/blob/v2.12.9/docs/workflow-controller-configmap.md
   # * https://github.com/argoproj/argo-workflows/blob/v2.12.9/docs/workflow-controller-configmap.yaml
-  containerRuntimeExecutor: "$(kfp-container-runtime-executor)"
+
+  # pns executor is a more portable default, see https://github.com/kubeflow/pipelines/issues/1654.
+  containerRuntimeExecutor: pns
