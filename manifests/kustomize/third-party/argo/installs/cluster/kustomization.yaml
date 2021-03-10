@@ -6,5 +6,5 @@ bases:
 # because people who deploy cluster-scoped resources should be the same as who deploys
 # namespaced resources.
 - ../../upstream/manifests/base/crds
-- ../../base
 - ../../upstream/manifests/cluster-install/workflow-controller-rbac
+- ../../base
