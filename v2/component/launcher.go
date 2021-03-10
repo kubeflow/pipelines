@@ -43,7 +43,7 @@ type Launcher struct {
 	options                 *LauncherOptions
 	runtimeInfo             *runtimeInfo
 	placeholderReplacements map[string]string
-	metadata                *metadata.Client
+	metadataClient          *metadata.Client
 	bucketConfig            *bucketConfig
 }
 
@@ -164,7 +164,7 @@ func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error
 	// Placeholder replacements.
 	pr := make(map[string]string)
 
-	metadata, err := metadata.NewClient(options.MLMDServerAddress, options.MLMDServerPort)
+	metadataClient, err := metadata.NewClient(options.MLMDServerAddress, options.MLMDServerPort)
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +173,7 @@ func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error
 		options:                 options,
 		placeholderReplacements: pr,
 		runtimeInfo:             rt,
-		metadata:                metadata,
+		metadataClient:          metadataClient,
 		bucketConfig:            bc,
 	}, nil
 }
@@ -296,7 +296,7 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 	}
 
 	// Record Execution in MLMD.
-	pipeline, err := l.metadata.GetPipeline(ctx, l.options.PipelineName, l.options.PipelineRunID)
+	pipeline, err := l.metadataClient.GetPipeline(ctx, l.options.PipelineName, l.options.PipelineRunID)
 	if err != nil {
 		return err
 	}
@@ -331,7 +331,7 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 		}
 	}
 
-	execution, err := l.metadata.CreateExecution(ctx, pipeline, l.options.TaskName, l.options.PipelineTaskID, l.options.ContainerImage, ecfg)
+	execution, err := l.metadataClient.CreateExecution(ctx, pipeline, l.options.TaskName, l.options.PipelineTaskID, l.options.ContainerImage, ecfg)
 	if err != nil {
 		return err
 	}
@@ -360,7 +360,7 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 			Uri: &v.URIOutputPath,
 		}
 
-		artifact, err = l.metadata.RecordArtifact(ctx, v.ArtifactSchema, artifact)
+		artifact, err = l.metadataClient.RecordArtifact(ctx, v.ArtifactSchema, artifact)
 		if err != nil {
 			return err
 		}
@@ -436,5 +436,5 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 
 	}
 
-	return l.metadata.PublishExecution(ctx, execution, outputParameters, outputArtifacts)
+	return l.metadataClient.PublishExecution(ctx, execution, outputParameters, outputArtifacts)
 }
