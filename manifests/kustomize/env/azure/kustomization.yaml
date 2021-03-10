@@ -3,7 +3,7 @@ kind: Kustomization
 namespace: kubeflow
 
 bases:
-- ../../base
+- ../../base/installs/generic
 - ../../third-party/argo/installs/namespaced-mode
 - minio-azure-gateway
 

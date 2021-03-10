@@ -593,7 +593,7 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
 
     pre_func_code = '\n'.join(list(pre_func_definitions))
 
-    arg_parse_code_lines = list(definitions) + arg_parse_code_lines
+    arg_parse_code_lines = sorted(list(definitions)) + arg_parse_code_lines
 
     arg_parse_code_lines.append(
         '_parsed_args = vars(_parser.parse_args())',

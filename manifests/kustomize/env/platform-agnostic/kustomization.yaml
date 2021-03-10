@@ -2,10 +2,10 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 bases:
-  - ../../base
+  - ../../base/installs/generic
   - ../../third-party/argo/installs/namespaced-mode
-  - minio
-  - mysql
+  - ../../third-party/minio
+  - ../../third-party/mysql
 
 # Identifier for application manager to apply ownerReference.
 # The ownerReference ensures the resources get garbage collected

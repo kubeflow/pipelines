@@ -25,9 +25,9 @@ import zipfile
 import datetime
 from typing import Mapping, Callable, Optional
 
-import kfp
 import kfp_server_api
 
+from kfp import dsl
 from kfp.compiler import compiler
 from kfp.compiler._k8s_helper import sanitize_k8s_name
 
@@ -272,7 +272,7 @@ class Client(object):
       self._context_setting = {
         'namespace': '',
       }
-      
+
   def _refresh_api_client_token(self):
     """Refreshes the existing token associated with the kfp_api_client."""
     if getattr(self, '_is_refresh_token', None):
@@ -283,7 +283,7 @@ class Client(object):
 
   def set_user_namespace(self, namespace):
     """Set user namespace into local context setting file.
-    
+
     This function should only be used when Kubeflow Pipelines is in the multi-user mode.
 
     Args:
@@ -408,7 +408,7 @@ class Client(object):
       namespace: Kubernetes namespace where the experiment was created.
         For single user deployment, leave it as None;
         For multi user, input a namespace where the user is authorized.
-  
+
     Returns:
       A response object including a list of experiments and next page token.
     """
@@ -620,14 +620,14 @@ class Client(object):
       pipeline_package_path: Local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
       params: A dictionary with key (string) as param name and value (string) as param value.
       pipeline_id: The id of a pipeline.
-      version_id: The id of a pipeline version. 
+      version_id: The id of a pipeline version.
         If both pipeline_id and version_id are specified, version_id will take precendence.
         If only pipeline_id is specified, the default version of this pipeline is used to create the run.
 
     Returns:
       A JobConfig object with attributes spec and resource_reference.
     """
-    
+
     class JobConfig:
       def __init__(self, spec, resource_references):
         self.spec = spec
@@ -666,8 +666,9 @@ class Client(object):
       arguments: Mapping[str, str],
       run_name: Optional[str] = None,
       experiment_name: Optional[str] = None,
-      pipeline_conf: Optional[kfp.dsl.PipelineConf] = None,
-      namespace: Optional[str] = None):
+      pipeline_conf: Optional[dsl.PipelineConf] = None,
+      namespace: Optional[str] = None,
+      mode: dsl.PipelineExecutionMode = dsl.PipelineExecutionMode.V1_LEGACY):
     """Runs pipeline on KFP-enabled Kubernetes cluster.
 
     This command compiles the pipeline function, creates or gets an experiment and submits the pipeline for execution.
@@ -682,14 +683,25 @@ class Client(object):
       namespace: Kubernetes namespace where the pipeline runs are created.
         For single user deployment, leave it as None;
         For multi user, input a namespace where the user is authorized
+      mode: The PipelineExecutionMode to use when compiling and running
+        pipeline_func.
     """
     #TODO: Check arguments against the pipeline function
     pipeline_name = pipeline_func.__name__
     run_name = run_name or pipeline_name + ' ' + datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
     with tempfile.TemporaryDirectory() as tmpdir:
       pipeline_package_path = os.path.join(tmpdir, 'pipeline.yaml')
-      compiler.Compiler().compile(pipeline_func, pipeline_package_path, pipeline_conf=pipeline_conf)
-      return self.create_run_from_pipeline_package(pipeline_package_path, arguments, run_name, experiment_name, namespace)
+      compiler.Compiler(mode=mode).compile(
+        pipeline_func=pipeline_func,
+        package_path=pipeline_package_path,
+        pipeline_conf=pipeline_conf)
+
+      return self.create_run_from_pipeline_package(
+        pipeline_file=pipeline_package_path,
+        arguments=arguments,
+        run_name=run_name,
+        experiment_name=experiment_name,
+        namespace=namespace)
 
   def create_run_from_pipeline_package(
       self,
@@ -837,7 +849,7 @@ class Client(object):
           > _GCP_ACCESS_TOKEN_TIMEOUT):
         self._refresh_api_client_token()
         last_token_refresh_time = datetime.datetime.now()
-        
+
       get_run_response = self._run_api.get_run(run_id=run_id)
       status = get_run_response.run.status
       elapsed_time = (datetime.datetime.now() - start_time).total_seconds()
@@ -912,8 +924,8 @@ class Client(object):
       pipeline_id = self.get_pipeline_id(pipeline_name)
 
     response = self._upload_api.upload_pipeline_version(
-      pipeline_package_path, 
-      name=pipeline_version_name, 
+      pipeline_package_path,
+      name=pipeline_version_name,
       pipelineid=pipeline_id
     )
 

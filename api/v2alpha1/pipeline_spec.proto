@@ -273,7 +273,33 @@ message TaskInputsSpec {
       // Pass the input parameter from parent component input parameter.
       string component_input_parameter = 3;
     }
-    reserved 4;
+
+    // Selector expression of Common Expression Language (CEL)
+    // that applies to the parameter found from above kind.
+    //
+    // The expression is applied to the Value type
+    // [Value][].  For example,
+    // 'size(string_value)' will return the size of the Value.string_value.
+    //
+    // After applying the selection, the parameter will be returned as a
+    // [Value][].  The type of the Value is either deferred from the input
+    // definition in the corresponding
+    // [ComponentSpec.input_definitions.parameters][], or if not found,
+    // automatically deferred as either string value or double value.
+    //
+    // In addition to the builtin functions in CEL, The value.string_value can
+    // be treated as a json string and parsed to the [google.protobuf.Value][]
+    // proto message. Then, the CEL expression provided in this field will be
+    // used to get the requested field. For examples,
+    //  - if Value.string_value is a json array of "[1.1, 2.2, 3.3]",
+    //  'parseJson(string_value)[i]' will pass the ith parameter from the list
+    //  to the current task, or
+    //  - if the Value.string_value is a json map of "{"a": 1.1, "b": 2.2,
+    //  "c": 3.3}, 'parseJson(string_value)[key]' will pass the map value from
+    //  the struct map to the current task.
+    //
+    // If unset, the value will be passed directly to the current task.
+    string parameter_expression_selector = 4;
   }
 
   // A map of input parameters which are small values, stored by the system and
