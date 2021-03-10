@@ -110,7 +110,7 @@ func initMysql(params WhSvrDBParameters, initConnectionTimeout time.Duration) st
 		params.dbPort,
 		"",
 		params.dbGroupConcatMaxLen,
-		map[string]string{},
+		params.dbExtraParams,
 	)
 
 	var db *sql.DB
