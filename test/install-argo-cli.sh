@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2019 Google LLC
+# Copyright 2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,16 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This script builds argo images and pushes them to KFP's gcr container registry.
-# Usage: ./release.sh
-# It can be run anywhere.
-
-set -ex
-
-# Get this bash script's dir.
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
+REPO_ROOT="${DIR}/.."
+ARGO_VERSION="$(cat ${REPO_ROOT}/third_party/argo/VERSION)"
 
-# Update NOTICES of the specified argo version.
-"${DIR}/imp-1-update-notices.sh"
-# Build and push license compliant argo images to gcr.io/ml-pipeline.
-"${DIR}/imp-2-build-push-images.sh"
+# if argo is not installed
+if ! which argo; then
+  echo "install argo"
+  curl -sLO https://github.com/argoproj/argo/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz
+  gunzip argo-linux-amd64.gz
+  chmod +x argo-linux-amd64
+  mv ./argo-linux-amd64 /usr/local/bin/argo
+  argo version
+fi

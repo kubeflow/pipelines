@@ -4,6 +4,4 @@ kind: Kustomization
 resources:
 - workflow-controller-configmap.yaml
 - workflow-controller-deployment.yaml
-- workflow-controller-role.yaml
-- workflow-controller-rolebinding.yaml
 - workflow-controller-sa.yaml

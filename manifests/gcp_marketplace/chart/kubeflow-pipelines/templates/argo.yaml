@@ -3,7 +3,7 @@ kind: CustomResourceDefinition
 metadata:
   name: workflows.argoproj.io
   labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
+    app.kubernetes.io/name: "{{ .Release.Name }}"
 spec:
   group: argoproj.io
   names:
@@ -19,7 +19,7 @@ kind: CustomResourceDefinition
 metadata:
   name: clusterworkflowtemplates.argoproj.io
   labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
+    app.kubernetes.io/name: "{{ .Release.Name }}"
 spec:
   group: argoproj.io
   names:
@@ -36,7 +36,7 @@ kind: CustomResourceDefinition
 metadata:
   name: cronworkflows.argoproj.io
   labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
+    app.kubernetes.io/name: "{{ .Release.Name }}"
 spec:
   group: argoproj.io
   names:
@@ -53,7 +53,7 @@ kind: CustomResourceDefinition
 metadata:
   name: workflowtemplates.argoproj.io
   labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
+    app.kubernetes.io/name: "{{ .Release.Name }}"
 spec:
   group: argoproj.io
   names:
@@ -69,14 +69,14 @@ kind: ServiceAccount
 metadata:
   name: argo
   labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
+    app.kubernetes.io/name: "{{ .Release.Name }}"
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: argo-role
   labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
+    app.kubernetes.io/name: "{{ .Release.Name }}"
 rules:
   - apiGroups:
       - ""
@@ -128,7 +128,7 @@ kind: RoleBinding
 metadata:
   name: argo-binding
   labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
+    app.kubernetes.io/name: "{{ .Release.Name }}"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -136,14 +136,13 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: argo
-    namespace: {{ .Release.Namespace }}
+    namespace: "{{ .Release.Namespace }}"
 ---
 apiVersion: v1
 data:
   config: |
     {
     namespace: {{ .Release.Namespace }},
-    executorImage: {{ .Values.images.argoexecutor }},
     artifactRepository:
     {
         s3: {
@@ -167,7 +166,7 @@ kind: ConfigMap
 metadata:
   name: workflow-controller-configmap
   labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
+    app.kubernetes.io/name: "{{ .Release.Name }}"
 ---
 apiVersion: v1
 data:
@@ -177,7 +176,7 @@ kind: Secret
 metadata:
   name: mlpipeline-minio-artifact
   labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
+    app.kubernetes.io/name: "{{ .Release.Name }}"
 type: Opaque
 ---
 apiVersion: apps/v1
@@ -185,7 +184,7 @@ kind: Deployment
 metadata:
   labels:
     app: workflow-controller
-    app.kubernetes.io/name: {{ .Release.Name }}
+    app.kubernetes.io/name: "{{ .Release.Name }}"
   name: workflow-controller
 spec:
   progressDeadlineSeconds: 600
@@ -194,7 +193,7 @@ spec:
   selector:
     matchLabels:
       app: workflow-controller
-      app.kubernetes.io/name: {{ .Release.Name }}
+      app.kubernetes.io/name: "{{ .Release.Name }}"
   strategy:
     rollingUpdate:
       maxSurge: 25%
@@ -205,14 +204,14 @@ spec:
       creationTimestamp: null
       labels:
         app: workflow-controller
-        app.kubernetes.io/name: {{ .Release.Name }}
+        app.kubernetes.io/name: "{{ .Release.Name }}"
     spec:
       containers:
         - args:
             - --configmap
             - workflow-controller-configmap
             - --executor-image
-            - {{ .Values.images.argoexecutor }}
+            - "{{ .Values.images.argoexecutor }}"
           command:
             - workflow-controller
           env:
@@ -221,7 +220,7 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: metadata.namespace
-          image: {{ .Values.images.argoworkflowcontroller }}
+          image: "{{ .Values.images.argoworkflowcontroller }}"
           imagePullPolicy: IfNotPresent
           name: workflow-controller
           resources:

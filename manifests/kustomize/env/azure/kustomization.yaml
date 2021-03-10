@@ -4,6 +4,7 @@ namespace: kubeflow
 
 bases:
 - ../../base/installs/generic
+- ../../third-party/argo/installs/namespaced-mode
 - minio-azure-gateway
 
 configMapGenerator:

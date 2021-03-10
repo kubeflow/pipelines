@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2020 Google LLC
+# Copyright 2020-2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
+
 CASES=(
   "base"
   "managed-storage"
@@ -22,10 +24,10 @@ CASES=(
 
 for case in "${CASES[@]}"
 do
-  echo "Generating helm template for ./test/values-$case.yaml"
-  helm template chart/kubeflow-pipelines \
+  echo "Generating helm template for test/values-$case.yaml"
+  helm template "${DIR}/../chart/kubeflow-pipelines" \
     --name "my-release" \
     --namespace "kubeflow" \
-    --values "./test/values-$case.yaml" \
-    > "./test/snapshot-$case.yaml"
+    --values "${DIR}/values-$case.yaml" \
+    > "${DIR}/snapshot-$case.yaml"
 done

@@ -30,10 +30,7 @@ python3 -m unittest discover --verbose --pattern '*test*.py' --top-level-directo
 popd
 
 # Installing Argo CLI to lint all compiled workflows
-LOCAL_BIN="${HOME}/.local/bin"
-mkdir -p "$LOCAL_BIN"
-export PATH="${PATH}:$LOCAL_BIN" # Unnecessary - Travis already has it in PATH
-wget --quiet -O "${LOCAL_BIN}/argo" https://github.com/argoproj/argo/releases/download/v2.4.3/argo-linux-amd64 && chmod +x "${LOCAL_BIN}/argo"
+"${source_root}/test/install-argo-cli.sh"
 
 pushd "$source_root/sdk/python"
 python3 -m pip install -e .
