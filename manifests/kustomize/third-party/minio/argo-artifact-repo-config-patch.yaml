@@ -1,0 +1,24 @@
+# NOTE: this file is not included in minio/kustomization.yaml.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: workflow-controller-configmap
+data:
+  # References:
+  # * https://github.com/argoproj/argo-workflows/blob/v2.12.9/config/config.go
+  # * https://github.com/argoproj/argo-workflows/blob/v2.12.9/docs/workflow-controller-configmap.md
+  # * https://github.com/argoproj/argo-workflows/blob/v2.12.9/docs/workflow-controller-configmap.yaml
+  artifactRepository: |
+    archiveLogs: true
+    s3:
+      endpoint: minio-service:9000
+      bucket: "$(kfp-artifact-bucket-name)"
+      keyFormat: "artifacts/{{workflow.name}}/{{pod.name}}"
+      # insecure will disable TLS. Primarily used for minio installs not configured with TLS
+      insecure: true
+      accessKeySecret:
+        name: mlpipeline-minio-artifact
+        key: accesskey
+      secretKeySecret:
+        name: mlpipeline-minio-artifact
+        key: secretkey

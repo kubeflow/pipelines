@@ -5,8 +5,13 @@ kind: Kustomization
 # You need to install argo workflows in cluster mode on your own.
 bases:
   - ../../base/installs/multi-user
-  - ../../third-party/minio
+  - ../../third-party/argo/installs/cluster
   - ../../third-party/mysql
+  - ../../third-party/minio
+
+patchesStrategicMerge:
+  # argo workflow controller configmap patch to use minio
+  - ../../third-party/minio/argo-artifact-repo-config-patch.yaml
 
 # Identifier for application manager to apply ownerReference.
 # The ownerReference ensures the resources get garbage collected

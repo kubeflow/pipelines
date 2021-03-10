@@ -4,8 +4,11 @@ namespace: kubeflow
 
 bases:
 - ../../base/installs/generic
-- ../../third-party/argo/installs/namespaced-mode
+- ../../third-party/argo/installs/namespace
 - minio-azure-gateway
+
+patchesStrategicMerge:
+- ../../third-party/minio/argo-artifact-repo-config-patch.yaml
 
 configMapGenerator:
 - name: pipeline-install-config
