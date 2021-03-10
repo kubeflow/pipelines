@@ -3,7 +3,6 @@ kind: Kustomization
 namespace: kubeflow
 bases:
 - ../../application
-- ../../argo
 - ../../pipeline
 - ../../metadata
 - ../../cache

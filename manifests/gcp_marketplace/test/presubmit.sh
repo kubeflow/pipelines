@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2019 Google LLC
+# Copyright 2020-2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,16 +14,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This script builds argo images and pushes them to KFP's gcr container registry.
-# Usage: ./release.sh
-# It can be run anywhere.
-
 set -ex
 
-# Get this bash script's dir.
+# When running this in MacOS, we can run `OS=darwin-amd64 ./presubmit.sh`
+OS="${OS:-linux-amd64}"
+
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
-# Update NOTICES of the specified argo version.
-"${DIR}/imp-1-update-notices.sh"
-# Build and push license compliant argo images to gcr.io/ml-pipeline.
-"${DIR}/imp-2-build-push-images.sh"
+if ! which helm; then
+    HELM_VERSION=v2.17.0
+    curl -sLO "https://get.helm.sh/helm-${HELM_VERSION}-${OS}.tar.gz"
+    tar xvf "helm-${HELM_VERSION}-${OS}.tar.gz"
+    mv ./${OS}/helm /usr/local/bin/helm
+    helm version
+fi
+
+"${DIR}/snapshots.sh"
+# exit 1 if snapshots are not up-to-date.
+git diff --exit-code -- "${DIR}" || \
+    (echo "gcp_marketplace test snapshots are not tidy, run 'manifests/gcp_marketplace/test/snapshots.sh' to update them." \
+    && exit 1)
