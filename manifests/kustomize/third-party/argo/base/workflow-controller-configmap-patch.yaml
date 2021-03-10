@@ -10,3 +10,19 @@ data:
 
   # pns executor is a more portable default, see https://github.com/kubeflow/pipelines/issues/1654.
   containerRuntimeExecutor: pns
+
+  # In artifactRepository.s3.endpoint, $(kfp-namespace) is needed, because in multi-user mode, pipelines may run in other namespaces.
+  artifactRepository: |
+    archiveLogs: true
+    s3:
+      endpoint: "minio-service.$(kfp-namespace):9000"
+      bucket: "$(kfp-artifact-bucket-name)"
+      keyFormat: "artifacts/{{workflow.name}}/{{pod.name}}"
+      # insecure will disable TLS. Primarily used for minio installs not configured with TLS
+      insecure: true
+      accessKeySecret:
+        name: mlpipeline-minio-artifact
+        key: accesskey
+      secretKeySecret:
+        name: mlpipeline-minio-artifact
+        key: secretkey

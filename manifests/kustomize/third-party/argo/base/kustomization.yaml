@@ -7,4 +7,3 @@ bases:
 patchesStrategicMerge:
 - workflow-controller-deployment-patch.yaml
 - workflow-controller-configmap-patch.yaml
-- artifact-repo-config-patch.yaml
