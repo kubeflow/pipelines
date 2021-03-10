@@ -236,7 +236,7 @@ spec:
             valueFrom:
               configMapKeyRef:
                 name: cache-configmap
-                key: cacheImage
+                key: cache_image
           - name: DBCONFIG_DRIVER
             valueFrom:
               configMapKeyRef:

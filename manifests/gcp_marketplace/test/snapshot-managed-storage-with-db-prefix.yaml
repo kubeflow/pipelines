@@ -264,13 +264,12 @@ spec:
             valueFrom:
               secretKeyRef:
                 name: mysql-credential
-                key: password
-          
+                key: password        
           - name: CACHE_IMAGE
             valueFrom:
               configMapKeyRef:
-                name: pipeline-install-config
-                key: cacheImage
+                name: cache-configmap
+                key: cache_image
           - name: DBCONFIG_DRIVER
             valueFrom:
               configMapKeyRef:
