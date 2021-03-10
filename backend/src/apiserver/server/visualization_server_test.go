@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/api/go_client"
+	kfpauth "github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -293,5 +294,38 @@ func TestCreateVisualization_Unauthorized(t *testing.T) {
 		t,
 		err,
 		util.Wrap(getPermissionDeniedError(userIdentity, resourceAttributes), "Failed to authorize on namespace.").Error(),
+	)
+}
+
+func TestCreateVisualization_Unauthenticated(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	md := metadata.New(map[string]string{"no-identity-header": "user"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	defer clientManager.Close()
+
+	server := &VisualizationServer{
+		resourceManager: resourceManager,
+	}
+	visualization := &go_client.Visualization{
+		Type:      go_client.Visualization_ROC_CURVE,
+		Source:    "gs://ml-pipeline/roc/data.csv",
+		Arguments: "{}",
+	}
+
+	request := &go_client.CreateVisualizationRequest{
+		Visualization: visualization,
+		Namespace:     "ns1",
+	}
+	_, err := server.CreateVisualization(ctx, request)
+	assert.NotNil(t, err)
+	assert.EqualError(
+		t,
+		err,
+		util.Wrap(kfpauth.IdentityHeaderMissingError, "Failed to authorize on namespace.").Error(),
 	)
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	kfpauth "github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -649,4 +650,29 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	jobs, err = jobServer.ListJobs(nil, &api.ListJobsRequest{ResourceReferenceKey: &api.ResourceKey{Id: experiment.UUID, Type: api.ResourceType_EXPERIMENT}})
 	assert.Equal(t, 1, len(jobs.Jobs))
 	assert.Equal(t, false, jobs.Jobs[0].Enabled)
+}
+
+func TestListExperiment_Unauthenticated(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	md := metadata.New(map[string]string{"no-identity-header": "user"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+
+	server := ExperimentServer{manager, &ExperimentServerOptions{CollectMetrics: false}}
+	_, err := server.ListExperiment(ctx, &api.ListExperimentsRequest{
+		ResourceReferenceKey: &api.ResourceKey{
+			Type: api.ResourceType_NAMESPACE,
+			Id:   "ns1",
+		},
+	})
+	assert.NotNil(t, err)
+	assert.EqualError(
+		t,
+		err,
+		wrapFailedAuthzApiResourcesError(wrapFailedAuthzApiResourcesError(kfpauth.IdentityHeaderMissingError)).Error(),
+	)
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	kfpauth "github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -756,4 +757,45 @@ func TestCanAccessRun_Authorized(t *testing.T) {
 
 	err := runServer.canAccessRun(ctx, runDetail.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
 	assert.Nil(t, err)
+}
+
+func TestCanAccessRun_Unauthenticated(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	clients, manager, experiment := initWithExperiment(t)
+	defer clients.Close()
+	runServer := RunServer{resourceManager: manager, options: &RunServerOptions{CollectMetrics: false}}
+
+	md := metadata.New(map[string]string{"no-identity-header": "user"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	apiRun := &api.Run{
+		Name: "run1",
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_NAMESPACE, Id: "ns"},
+				Relationship: api.Relationship_OWNER,
+			},
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+	}
+	runDetail, _ := manager.CreateRun(apiRun)
+
+	err := runServer.canAccessRun(ctx, runDetail.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
+	assert.NotNil(t, err)
+	assert.EqualError(
+		t,
+		err,
+		wrapFailedAuthzApiResourcesError(kfpauth.IdentityHeaderMissingError).Error(),
+	)
 }

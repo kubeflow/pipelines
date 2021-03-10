@@ -6,8 +6,10 @@ import (
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/auth"
+	kfpauth "github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/metadata"
@@ -132,4 +134,30 @@ func TestAuthorizeRequest_EmptyUserIdPrefix(t *testing.T) {
 
 	_, err := authServer.Authorize(ctx, request)
 	assert.Nil(t, err)
+}
+
+func TestAuthorizeRequest_Unauthenticated(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	authServer := AuthServer{resourceManager: manager}
+
+	md := metadata.New(map[string]string{"no-identity-header": "user"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	request := &api.AuthorizeRequest{
+		Namespace: "ns1",
+		Resources: api.AuthorizeRequest_VIEWERS,
+		Verb:      api.AuthorizeRequest_GET,
+	}
+
+	_, err := authServer.Authorize(ctx, request)
+	assert.NotNil(t, err)
+	assert.EqualError(
+		t,
+		err,
+		util.Wrap(kfpauth.IdentityHeaderMissingError, "Failed to authorize the request").Error(),
+	)
 }
