@@ -79,6 +79,9 @@ func TestCreateExperiment_Unauthorized(t *testing.T) {
 	clients, resourceManager, _ := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
 
+	userIdentity, err := resourceManager.IsRequestAuthenticated(ctx)
+	assert.Nil(t, err)
+
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	experiment := &api.Experiment{
 		Name:        "exp1",
@@ -90,7 +93,7 @@ func TestCreateExperiment_Unauthorized(t *testing.T) {
 			},
 		}}
 
-	_, err := server.CreateExperiment(ctx, &api.CreateExperimentRequest{Experiment: experiment})
+	_, err = server.CreateExperiment(ctx, &api.CreateExperimentRequest{Experiment: experiment})
 	assert.NotNil(t, err)
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: "ns1",
@@ -103,7 +106,7 @@ func TestCreateExperiment_Unauthorized(t *testing.T) {
 	assert.EqualError(
 		t,
 		err,
-		wrapFailedAuthzRequestError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(ctx, resourceAttributes))).Error(),
+		wrapFailedAuthzRequestError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(userIdentity, resourceAttributes))).Error(),
 	)
 }
 
@@ -184,9 +187,12 @@ func TestGetExperiment_Unauthorized(t *testing.T) {
 	clients, manager, experiment := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
 
+	userIdentity, err := manager.IsRequestAuthenticated(ctx)
+	assert.Nil(t, err)
+
 	server := ExperimentServer{manager, &ExperimentServerOptions{CollectMetrics: false}}
 
-	_, err := server.GetExperiment(ctx, &api.GetExperimentRequest{Id: experiment.UUID})
+	_, err = server.GetExperiment(ctx, &api.GetExperimentRequest{Id: experiment.UUID})
 	assert.NotNil(t, err)
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: "ns1",
@@ -199,7 +205,7 @@ func TestGetExperiment_Unauthorized(t *testing.T) {
 	assert.EqualError(
 		t,
 		err,
-		wrapFailedAuthzRequestError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(ctx, resourceAttributes))).Error(),
+		wrapFailedAuthzRequestError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(userIdentity, resourceAttributes))).Error(),
 	)
 }
 
@@ -299,9 +305,12 @@ func TestListExperiment_Unauthorized(t *testing.T) {
 	clients, manager, _ := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
 
+	userIdentity, err := manager.IsRequestAuthenticated(ctx)
+	assert.Nil(t, err)
+
 	server := ExperimentServer{manager, &ExperimentServerOptions{CollectMetrics: false}}
 
-	_, err := server.ListExperiment(ctx, &api.ListExperimentsRequest{
+	_, err = server.ListExperiment(ctx, &api.ListExperimentsRequest{
 		ResourceReferenceKey: &api.ResourceKey{
 			Type: api.ResourceType_NAMESPACE,
 			Id:   "ns1",
@@ -318,7 +327,7 @@ func TestListExperiment_Unauthorized(t *testing.T) {
 	assert.EqualError(
 		t,
 		err,
-		wrapFailedAuthzApiResourcesError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(ctx, resourceAttributes))).Error(),
+		wrapFailedAuthzApiResourcesError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(userIdentity, resourceAttributes))).Error(),
 	)
 }
 

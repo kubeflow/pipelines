@@ -308,8 +308,12 @@ func TestCreateJob_Unauthorized(t *testing.T) {
 
 	clients, manager, _ := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
+
+	userIdentity, err := manager.IsRequestAuthenticated(ctx)
+	assert.Nil(t, err)
+
 	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
-	_, err := server.CreateJob(ctx, &api.CreateJobRequest{Job: commonApiJob})
+	_, err = server.CreateJob(ctx, &api.CreateJobRequest{Job: commonApiJob})
 	assert.NotNil(t, err)
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: "ns1",
@@ -322,7 +326,7 @@ func TestCreateJob_Unauthorized(t *testing.T) {
 	assert.EqualError(
 		t,
 		err,
-		wrapFailedAuthzRequestError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(ctx, resourceAttributes))).Error(),
+		wrapFailedAuthzRequestError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(userIdentity, resourceAttributes))).Error(),
 	)
 }
 
@@ -335,6 +339,10 @@ func TestGetJob_Unauthorized(t *testing.T) {
 
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
+
+	userIdentity, err := manager.IsRequestAuthenticated(ctx)
+	assert.Nil(t, err)
+
 	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	job, err := server.CreateJob(ctx, &api.CreateJobRequest{Job: commonApiJob})
 	assert.Nil(t, err)
@@ -356,7 +364,7 @@ func TestGetJob_Unauthorized(t *testing.T) {
 	assert.EqualError(
 		t,
 		err,
-		wrapFailedAuthzRequestError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(ctx, resourceAttributes))).Error(),
+		wrapFailedAuthzRequestError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(userIdentity, resourceAttributes))).Error(),
 	)
 }
 
@@ -387,8 +395,12 @@ func TestListJobs_Unauthorized(t *testing.T) {
 
 	clients, manager, experiment := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
+
+	userIdentity, err := manager.IsRequestAuthenticated(ctx)
+	assert.Nil(t, err)
+
 	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
-	_, err := server.ListJobs(ctx, &api.ListJobsRequest{
+	_, err = server.ListJobs(ctx, &api.ListJobsRequest{
 		ResourceReferenceKey: &api.ResourceKey{
 			Type: api.ResourceType_EXPERIMENT,
 			Id:   experiment.UUID,
@@ -406,7 +418,7 @@ func TestListJobs_Unauthorized(t *testing.T) {
 		t,
 		err,
 		util.Wrap(
-			wrapFailedAuthzApiResourcesError(getPermissionDeniedError(ctx, resourceAttributes)),
+			wrapFailedAuthzApiResourcesError(getPermissionDeniedError(userIdentity, resourceAttributes)),
 			"Failed to authorize with namespace in experiment resource reference.",
 		).Error(),
 	)
@@ -422,7 +434,7 @@ func TestListJobs_Unauthorized(t *testing.T) {
 		t,
 		err,
 		util.Wrap(
-			wrapFailedAuthzApiResourcesError(getPermissionDeniedError(ctx, resourceAttributes)),
+			wrapFailedAuthzApiResourcesError(getPermissionDeniedError(userIdentity, resourceAttributes)),
 			"Failed to authorize with namespace resource reference.",
 		).Error(),
 	)
@@ -546,6 +558,9 @@ func TestEnableJob_Unauthorized(t *testing.T) {
 	manager = resource.NewResourceManager(clients)
 	server = NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 
+	userIdentity, err := manager.IsRequestAuthenticated(ctx)
+	assert.Nil(t, err)
+
 	_, err = server.EnableJob(ctx, &api.EnableJobRequest{Id: job.Id})
 	assert.NotNil(t, err)
 	resourceAttributes := &authorizationv1.ResourceAttributes{
@@ -559,7 +574,7 @@ func TestEnableJob_Unauthorized(t *testing.T) {
 	assert.EqualError(
 		t,
 		err,
-		wrapFailedAuthzRequestError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(ctx, resourceAttributes))).Error(),
+		wrapFailedAuthzRequestError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(userIdentity, resourceAttributes))).Error(),
 	)
 }
 
@@ -598,6 +613,9 @@ func TestDisableJob_Unauthorized(t *testing.T) {
 	manager = resource.NewResourceManager(clients)
 	server = NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 
+	userIdentity, err := manager.IsRequestAuthenticated(ctx)
+	assert.Nil(t, err)
+
 	_, err = server.DisableJob(ctx, &api.DisableJobRequest{Id: job.Id})
 	assert.NotNil(t, err)
 	resourceAttributes := &authorizationv1.ResourceAttributes{
@@ -611,7 +629,7 @@ func TestDisableJob_Unauthorized(t *testing.T) {
 	assert.EqualError(
 		t,
 		err,
-		wrapFailedAuthzRequestError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(ctx, resourceAttributes))).Error(),
+		wrapFailedAuthzRequestError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(userIdentity, resourceAttributes))).Error(),
 	)
 }
 

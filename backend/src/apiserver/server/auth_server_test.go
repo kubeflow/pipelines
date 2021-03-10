@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/spf13/viper"
@@ -86,6 +87,8 @@ func TestAuthorizeRequest_Unauthorized(t *testing.T) {
 
 	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
+	userIdentity, err := manager.IsRequestAuthenticated(ctx)
+	assert.Nil(t, err)
 
 	request := &api.AuthorizeRequest{
 		Namespace: "ns1",
@@ -93,7 +96,7 @@ func TestAuthorizeRequest_Unauthorized(t *testing.T) {
 		Verb:      api.AuthorizeRequest_GET,
 	}
 
-	_, err := authServer.Authorize(ctx, request)
+	_, err = authServer.Authorize(ctx, request)
 	assert.Error(t, err)
 
 	resourceAttributes := &authorizationv1.ResourceAttributes{
@@ -103,7 +106,7 @@ func TestAuthorizeRequest_Unauthorized(t *testing.T) {
 		Version:   common.RbacPipelinesVersion,
 		Resource:  common.RbacResourceTypeViewers,
 	}
-	assert.EqualError(t, err, wrapFailedAuthzRequestError(getPermissionDeniedError(ctx, resourceAttributes)).Error())
+	assert.EqualError(t, err, wrapFailedAuthzRequestError(getPermissionDeniedError(userIdentity, resourceAttributes)).Error())
 }
 
 func TestAuthorizeRequest_EmptyUserIdPrefix(t *testing.T) {
@@ -111,6 +114,8 @@ func TestAuthorizeRequest_EmptyUserIdPrefix(t *testing.T) {
 	defer viper.Set(common.MultiUserMode, "false")
 	viper.Set(common.KubeflowUserIDPrefix, "")
 	defer viper.Set(common.KubeflowUserIDPrefix, common.GoogleIAPUserIdentityPrefix)
+	auth.Authenticators = nil
+	defer func() { auth.Authenticators = nil }()
 
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()

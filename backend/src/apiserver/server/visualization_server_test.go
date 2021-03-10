@@ -264,6 +264,9 @@ func TestCreateVisualization_Unauthorized(t *testing.T) {
 	resourceManager := resource.NewResourceManager(clientManager)
 	defer clientManager.Close()
 
+	userIdentity, err := resourceManager.IsRequestAuthenticated(ctx)
+	assert.Nil(t, err)
+
 	server := &VisualizationServer{
 		resourceManager: resourceManager,
 	}
@@ -277,7 +280,7 @@ func TestCreateVisualization_Unauthorized(t *testing.T) {
 		Visualization: visualization,
 		Namespace:     "ns1",
 	}
-	_, err := server.CreateVisualization(ctx, request)
+	_, err = server.CreateVisualization(ctx, request)
 	assert.NotNil(t, err)
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: "ns1",
@@ -289,6 +292,6 @@ func TestCreateVisualization_Unauthorized(t *testing.T) {
 	assert.EqualError(
 		t,
 		err,
-		util.Wrap(getPermissionDeniedError(ctx, resourceAttributes), "Failed to authorize on namespace.").Error(),
+		util.Wrap(getPermissionDeniedError(userIdentity, resourceAttributes), "Failed to authorize on namespace.").Error(),
 	)
 }
