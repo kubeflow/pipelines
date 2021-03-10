@@ -3,7 +3,7 @@ kind: Kustomization
 namespace: kubeflow
 
 bases:
-- ../../base
+- ../../base/installs/generic
 - minio-azure-gateway
 
 configMapGenerator:
