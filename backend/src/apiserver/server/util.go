@@ -294,18 +294,6 @@ func getPipelineVersionIdFromResourceReferences(resourceManager *resource.Resour
 	return pipelineVersionId
 }
 
-func getUserIdentityFromHeader(userIdentityHeader, prefix string) (string, error) {
-	if len(userIdentityHeader) > len(prefix) && userIdentityHeader[:len(prefix)] == prefix {
-		return userIdentityHeader[len(prefix):], nil
-	}
-	return "", util.NewBadRequestError(
-		errors.New("Request header error: user identity value is incorrectly formatted"),
-		"Request header error: user identity value is incorrectly formatted. Expected prefix '%s', but got the header '%s'",
-		prefix,
-		userIdentityHeader,
-	)
-}
-
 // isAuthorized verifies whether the user identity, which is contained in the context object,
 // can perform some action (verb) on a resource (resourceType/resourceName) living in the
 // target namespace. If the returned error is nil, the authorization passes. Otherwise,
