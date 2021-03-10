@@ -7,3 +7,8 @@ bases:
 patchesStrategicMerge:
 - workflow-controller-deployment-patch.yaml
 - workflow-controller-configmap-patch.yaml
+
+# Allow Kustomize vars to replace fields defined in params.yaml.
+# The vars can be defined anywhere.
+configurations:
+- params.yaml
