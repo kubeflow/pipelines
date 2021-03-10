@@ -287,6 +287,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: workflow-controller
+  labels:
+    app: workflow-controller
+    app.kubernetes.io/name: "{{ .Release.Name }}"
 spec:
   selector:
     matchLabels:
