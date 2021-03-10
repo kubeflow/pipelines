@@ -252,6 +252,8 @@ data:
   # pns executor is a more portable default, see https://github.com/kubeflow/pipelines/issues/1654.
   containerRuntimeExecutor: pns
 
+  # Note, {{ `some-string-{{without}}-template-interpretation` }} is a way to avoid some brackets interpreted as template.
+  # Reference: https://github.com/helm/helm/issues/2798#issuecomment-467319526
   artifactRepository: |
     archiveLogs: true
     s3:
