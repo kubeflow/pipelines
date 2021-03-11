@@ -25,3 +25,4 @@ from ._client import Client
 from ._config import *
 from ._local_client import LocalClient
 from ._runners import *
+from ._credentials import *
