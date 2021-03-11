@@ -21,7 +21,7 @@ This could be a description, code snippet, log output, screenshot, etc.
 
 ### Expected result
 
-How should the correct behavior be?
+What should the correct behavior be?
 
 
 ### Materials and Reference
