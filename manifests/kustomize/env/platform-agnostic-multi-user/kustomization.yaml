@@ -1,12 +1,11 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# Note the multi-user installation doesn't include argo!
-# You need to install argo workflows in cluster mode on your own.
 bases:
   - ../../base/installs/multi-user
-  - ../../third-party/minio
+  - ../../third-party/argo/installs/cluster
   - ../../third-party/mysql
+  - ../../third-party/minio
 
 # Identifier for application manager to apply ownerReference.
 # The ownerReference ensures the resources get garbage collected
