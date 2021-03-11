@@ -89,7 +89,7 @@ class NoteBookChecker(object):
                 workflow_json = client._get_workflow_json(run_id)
                 workflow_id = workflow_json['metadata']['name']
                 argo_log, _ = utils.run_bash_command(
-                    'argo logs -n {} -w {}'.format(self._namespace, workflow_id))
+                    'argo logs {} -n {}'.format(workflow_id, self._namespace))
                 print("=========Argo Workflow Log=========")
                 print(argo_log)
 
