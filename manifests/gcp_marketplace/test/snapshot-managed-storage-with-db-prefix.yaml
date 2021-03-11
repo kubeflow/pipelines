@@ -405,14 +405,31 @@ metadata:
   labels:
     app.kubernetes.io/name: "my-release"
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .status.phase
+    description: Status of the workflow
+    name: Status
+    type: string
+  - JSONPath: .status.startedAt
+    description: When the workflow was started
+    format: date-time
+    name: Age
+    type: date
   group: argoproj.io
   names:
     kind: Workflow
+    listKind: WorkflowList
     plural: workflows
     shortNames:
-      - wf
+    - wf
+    singular: workflow
   scope: Namespaced
+  subresources: {}
   version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -424,12 +441,18 @@ spec:
   group: argoproj.io
   names:
     kind: ClusterWorkflowTemplate
+    listKind: ClusterWorkflowTemplateList
     plural: clusterworkflowtemplates
     shortNames:
     - clusterwftmpl
     - cwft
+    singular: clusterworkflowtemplate
   scope: Cluster
   version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -441,12 +464,40 @@ spec:
   group: argoproj.io
   names:
     kind: CronWorkflow
+    listKind: CronWorkflowList
     plural: cronworkflows
     shortNames:
-    - cronwf
     - cwf
+    - cronwf
+    singular: cronworkflow
   scope: Namespaced
   version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: workfloweventbindings.argoproj.io
+  labels:
+    app.kubernetes.io/name: "my-release"
+spec:
+  group: argoproj.io
+  names:
+    kind: WorkflowEventBinding
+    listKind: WorkflowEventBindingList
+    plural: workfloweventbindings
+    shortNames:
+    - wfeb
+    singular: workfloweventbinding
+  scope: Namespaced
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -458,11 +509,17 @@ spec:
   group: argoproj.io
   names:
     kind: WorkflowTemplate
+    listKind: WorkflowTemplateList
     plural: workflowtemplates
     shortNames:
     - wftmpl
+    singular: workflowtemplate
   scope: Namespaced
   version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -478,50 +535,97 @@ metadata:
   labels:
     app.kubernetes.io/name: "my-release"
 rules:
-  - apiGroups:
-      - ""
-    resources:
-      - pods
-      - pods/exec
-    verbs:
-      - create
-      - get
-      - list
-      - watch
-      - update
-      - patch
-      - delete
-  - apiGroups:
-      - ""
-    resources:
-      - configmaps
-    verbs:
-      - get
-      - watch
-      - list
-  - apiGroups:
-      - ""
-    resources:
-      - persistentvolumeclaims
-      - events
-    verbs:
-      - create
-      - delete
-  - apiGroups:
-      - argoproj.io
-    resources:
-      - workflows
-      - workflows/finalizers
-      - workflowtemplates
-      - workflowtemplates/finalizers
-      - cronworkflows
-    verbs:
-      - get
-      - list
-      - watch
-      - update
-      - patch
-      - delete
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - pods/exec
+  verbs:
+  - create
+  - get
+  - list
+  - watch
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - watch
+  - list
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - create
+  - delete
+  - get
+- apiGroups:
+  - argoproj.io
+  resources:
+  - workflows
+  - workflows/finalizers
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+  - delete
+  - create
+- apiGroups:
+  - argoproj.io
+  resources:
+  - workflowtemplates
+  - workflowtemplates/finalizers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - serviceaccounts
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+- apiGroups:
+  - argoproj.io
+  resources:
+  - cronworkflows
+  - cronworkflows/finalizers
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - "policy"
+  resources:
+  - poddisruptionbudgets
+  verbs:
+  - create
+  - get
+  - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -540,28 +644,30 @@ subjects:
 ---
 apiVersion: v1
 data:
-  config: |
-    {
-    namespace: kubeflow,
-    artifactRepository:
-    {
-        s3: {
-            bucket: 'mybucket',
-            keyPrefix: artifacts,
-            endpoint: minio-service.kubeflow:9000,
-            insecure: true,
-            accessKeySecret: {
-                name: mlpipeline-minio-artifact,
-                key: accesskey
-            },
-            secretKeySecret: {
-                name: mlpipeline-minio-artifact,
-                key: secretkey
-            }
-        },
-        archiveLogs: true
-    }
-    }
+  # References:
+  # * https://github.com/argoproj/argo-workflows/blob/v2.12.9/config/config.go
+  # * https://github.com/argoproj/argo-workflows/blob/v2.12.9/docs/workflow-controller-configmap.md
+  # * https://github.com/argoproj/argo-workflows/blob/v2.12.9/docs/workflow-controller-configmap.yaml
+
+  # pns executor is a more portable default, see https://github.com/kubeflow/pipelines/issues/1654.
+  containerRuntimeExecutor: pns
+
+  # Note, some-string-without-template-interpretation is a way to avoid some brackets interpreted as template.
+  # Reference: https://github.com/helm/helm/issues/2798#issuecomment-467319526
+  artifactRepository: |
+    archiveLogs: true
+    s3:
+      endpoint: 'minio-service.kubeflow:9000',
+      bucket: 'mybucket',
+      keyFormat: "artifacts/{{workflow.name}}/{{pod.name}}"
+      # insecure will disable TLS. Primarily used for minio installs not configured with TLS
+      insecure: true
+      accessKeySecret:
+        name: mlpipeline-minio-artifact
+        key: accesskey
+      secretKeySecret:
+        name: mlpipeline-minio-artifact
+        key: secretkey
 kind: ConfigMap
 metadata:
   name: workflow-controller-configmap
@@ -582,58 +688,55 @@ type: Opaque
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  name: workflow-controller
   labels:
     app: workflow-controller
     app.kubernetes.io/name: "my-release"
-  name: workflow-controller
 spec:
-  progressDeadlineSeconds: 600
-  replicas: 1
-  revisionHistoryLimit: 10
   selector:
     matchLabels:
       app: workflow-controller
       app.kubernetes.io/name: "my-release"
-  strategy:
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 25%
-    type: RollingUpdate
   template:
     metadata:
-      creationTimestamp: null
       labels:
         app: workflow-controller
         app.kubernetes.io/name: "my-release"
     spec:
+      serviceAccountName: argo
       containers:
-        - args:
+        - name: workflow-controller
+          image: "gcr.io/ml-pipeline/google/pipelines/argoworkflowcontroller:dummy"
+          command:
+            - workflow-controller
+          args:
             - --configmap
             - workflow-controller-configmap
             - --executor-image
             - "gcr.io/ml-pipeline/google/pipelines/argoexecutor:dummy"
-          command:
-            - workflow-controller
-          env:
-            - name: ARGO_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.namespace
-          image: "gcr.io/ml-pipeline/google/pipelines/argoworkflowcontroller:dummy"
-          imagePullPolicy: IfNotPresent
-          name: workflow-controller
+            - --namespaced
+          ports:
+            - name: metrics
+              containerPort: 9090
+          # Periodically check we are listening on the metrics port
+          # causing a restart if it is not OK.
+          # This takes advantage of the fact that if the metrics service has died,
+          # then the controller has died.
+          # In testing, it appears to take 60-90s from failure to restart.
+          livenessProbe:
+            httpGet:
+              port: metrics
+              path: /metrics
+            initialDelaySeconds: 30
+            periodSeconds: 30
           resources:
             requests:
               cpu: 100m
               memory: 500m
-          terminationMessagePath: /dev/termination-log
-          terminationMessagePolicy: File
-      dnsPolicy: ClusterFirst
-      restartPolicy: Always
-      schedulerName: default-scheduler
-      serviceAccountName: argo
-      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+      nodeSelector:
+        kubernetes.io/os: linux
 
 ---
 # Source: kubeflow-pipelines/templates/pipeline.yaml
