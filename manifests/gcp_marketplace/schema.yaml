@@ -102,14 +102,30 @@ x-google-marketplace:
     # - ml-pipeline-viewer-controller-role
     # - ml-pipeline-ui
     # - pipeline-runner
+    # - proxy-agent-runner
     - type: Role
       rulesType: CUSTOM
       rules:
       - apiGroups: ['argoproj.io']
-        resources: ['workflows']
+        resources:
+        - 'workflows'
+        - 'workflows/finalizers'
+        - 'workflowtemplates'
+        - 'workflowtemplates/finalizers'
+        - 'cronworkflows'
+        - 'cronworkflows/finalizers'
         verbs: ['*']
       - apiGroups: ['kubeflow.org']
         resources: ['*']
+        verbs: ['*']
+      - apiGroups: ['']
+        resources: ['configmaps', 'events', 'pods/log', 'persistentvolumes', 'persistentvolumeclaims', 'pods', 'pods/exec']
+        verbs: ['*']
+      - apiGroups: ['batch']
+        resources: ['jobs']
+        verbs: ['*']
+      - apiGroups: ['*']
+        resources: ['deployments', 'services', 'replicasets']
         verbs: ['*']
       # Not a CR, but an alpha resource so not present in
       # all clusters (and their `admin` Role definition)
