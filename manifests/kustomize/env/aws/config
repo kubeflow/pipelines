@@ -1,6 +1,4 @@
 {
-namespace: $(kfp-namespace),
-containerRuntimeExecutor: $(kfp-container-runtime-executor),
 artifactRepository:
 {
     s3: {

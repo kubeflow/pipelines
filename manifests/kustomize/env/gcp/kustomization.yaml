@@ -3,7 +3,7 @@ kind: Kustomization
 
 bases:
   - ../../base/installs/generic
-  - ../../third-party/argo/installs/namespaced-mode
+  - ../../third-party/argo/installs/namespace
   - inverse-proxy
   - minio-gcs-gateway
   - cloudsql-proxy

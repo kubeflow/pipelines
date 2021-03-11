@@ -5,6 +5,9 @@ commonLabels:
   app.kubernetes.io/name: kubeflow-pipelines
   app.kubernetes.io/component: ml-pipeline
 resources:
+- ../../application/cluster-scoped
+- ../../pipeline/cluster-scoped
+- ../../cache-deployer/cluster-scoped
 - ../generic
 - api-service
 - pipelines-ui

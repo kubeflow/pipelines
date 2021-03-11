@@ -9,13 +9,8 @@ bases:
 - ../../cache-deployer
 resources:
 - pipeline-application.yaml
-# Used by Kustomize
-configMapGenerator:
-- name: pipeline-install-config
-  env: params.env
-secretGenerator:
-- name: mysql-secret
-  env: params-db-secret.env
+- pipeline-install-config.yaml
+- mysql-secret.yaml
 vars:
 - name: kfp-namespace
   objref:
@@ -45,12 +40,5 @@ vars:
     apiVersion: v1
   fieldref:
     fieldpath: data.bucketName
-- name: kfp-container-runtime-executor
-  objref:
-    kind: ConfigMap
-    name: pipeline-install-config
-    apiVersion: v1
-  fieldref:
-    fieldpath: data.containerRuntimeExecutor
 configurations:
 - params.yaml
