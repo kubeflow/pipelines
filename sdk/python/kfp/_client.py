@@ -32,6 +32,7 @@ from kfp.compiler import compiler
 from kfp.compiler._k8s_helper import sanitize_k8s_name
 
 from kfp._auth import get_auth_token, get_gcp_access_token
+from kfp._credentials import ServiceAccountTokenVolumeCredentials
 
 # TTL of the access token associated with the client. This is needed because
 # `gcloud auth print-access-token` generates a token with TTL=1 hour, after
@@ -241,6 +242,7 @@ class Client(object):
 
     if in_cluster:
       config.host = Client.IN_CLUSTER_DNS_NAME.format(namespace)
+      config = self._get_config_with_default_credentials(config)
       return config
 
     try:
@@ -301,6 +303,37 @@ class Client(object):
 
     new_token = get_gcp_access_token()
     self._existing_config.api_key['authorization'] = new_token
+
+  def _get_config_with_default_credentials(self, config):
+    """Apply default credentials to the configuration object.
+
+    This method accepts a Configuration object and extends it with some default
+    credentials interface.
+    """
+    # XXX: The default credentials are audience-based service account tokens
+    # projected by the kubelet (ServiceAccountTokenVolumeCredentials). As we
+    # implement more and more credentials, we can have some heuristic and
+    # choose from a number of options.
+    # See https://github.com/kubeflow/pipelines/pull/5287#issuecomment-805654121
+    credentials = ServiceAccountTokenVolumeCredentials()
+
+    try:
+        token = credentials.get_token()
+    except OSError as e:
+        logging.warning("Failed to read a token from file '%s' (%s)."
+                        " Proceeding without credentials..."
+                        % (credentials.token_path, str(e)))
+        return config
+
+    if not token:
+        logging.warning("The token from file '%s' is empty. Proceeding without"
+                        " credentials...", credentials.token_path)
+        return config
+
+    config.refresh_api_key_hook = credentials.refresh_api_key_hook
+    config.api_key['authorization'] = token
+    config.api_key_prefix['authorization'] = 'Bearer'
+    return config
 
   def set_user_namespace(self, namespace):
     """Set user namespace into local context setting file.
