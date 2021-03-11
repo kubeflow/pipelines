@@ -102,7 +102,7 @@ outputs:
     type: String
   - name: job_dir
     description: >-
-      The output path in Cloud Storage of the trainning job, which contains 
+      The output path in Cloud Storage of the training job, which contains
       the trained model files.
     type: GCSPath
   - name: MLPipeline UI metadata
