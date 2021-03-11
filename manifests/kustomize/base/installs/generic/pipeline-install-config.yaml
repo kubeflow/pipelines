@@ -28,5 +28,5 @@ data:
   ## cacheImage is the image that the mutating webhook will use to patch
   ## cached steps with. Will be used to echo a message announcing that 
   ## the cached step result will be used. If not set it will default to 
-  ## 'gcr.io/google-containers/busybox@sha256:545e6a6310a27636260920bc07b994a299b6708a1b26910cfefd335fdfb60d2b'
-  cacheImage: "gcr.io/google-containers/busybox@sha256:545e6a6310a27636260920bc07b994a299b6708a1b26910cfefd335fdfb60d2b"
+  ## 'gcr.io/google-containers/busybox'
+  cacheImage: "gcr.io/google-containers/busybox"

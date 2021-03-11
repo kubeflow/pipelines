@@ -229,7 +229,7 @@ data:
   mysql_driver: "mysql"
   mysql_host: "mysql"
   mysql_port: "3306"
-  cache_image: "gcr.io/google-containers/busybox@sha256:545e6a6310a27636260920bc07b994a299b6708a1b26910cfefd335fdfb60d2b"
+  cache_image: "gcr.io/google-containers/busybox"
 ---
 apiVersion: apps/v1
 kind: Deployment
