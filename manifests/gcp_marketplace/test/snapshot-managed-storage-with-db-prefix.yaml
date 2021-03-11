@@ -229,7 +229,7 @@ data:
   mysql_driver: "mysql"
   mysql_host: "mysql"
   mysql_port: "3306"
-  cache_image: "gcr.io/google-containers/alpine-with-bash"
+  cache_image: "gcr.io/google-containers/alpine-with-bash@sha256:0955672451201896cf9e2e5ce30bec0c7f10757af33bf78b7a6afa5672c596f5"
 ---
 apiVersion: apps/v1
 kind: Deployment

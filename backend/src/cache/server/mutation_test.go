@@ -173,7 +173,7 @@ func TestDefaultImage(t *testing.T) {
 	patchOperation, err := MutatePodIfCached(&fakeAdmissionRequest, fakeClientManager)
 	assert.Nil(t, err)
 	container := patchOperation[0].Value.([]corev1.Container)[0]
-	require.Equal(t, "gcr.io/google-containers/alpine-with-bash", container.Image)
+	require.Equal(t, "gcr.io/google-containers/alpine-with-bash@sha256:0955672451201896cf9e2e5ce30bec0c7f10757af33bf78b7a6afa5672c596f5", container.Image)
 }
 
 func TestSetImage(t *testing.T) {
