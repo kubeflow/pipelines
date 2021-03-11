@@ -32,6 +32,10 @@ const (
 	suffix                  = "]]"
 )
 
+const (
+	disabledField = -1
+)
+
 // ParameterFormatter is an object that substitutes specific strings
 // in workflow parameters by information about the workflow execution (time at
 // which the workflow was started, time at which the workflow was scheduled, etc.)
@@ -47,8 +51,8 @@ func NewRunParameterFormatter(runUUID string, runAt int64) *ParameterFormatter {
 	return &ParameterFormatter{
 		runUUID:        runUUID,
 		nowEpoch:       runAt,
-		scheduledEpoch: -1, // invalidate field
-		index:          -1, // invalidate field
+		scheduledEpoch: disabledField,
+		index:          disabledField,
 	}
 }
 
@@ -95,17 +99,17 @@ func (p *ParameterFormatter) createSubstitutes(match string) string {
 	// First ensure that the corresponding field is valid, then attempt to substitute
 	if len(p.runUUID) > 0 && strings.HasPrefix(match, runUUIDExpression) {
 		return p.runUUID
-	} else if p.scheduledEpoch != -1 && strings.HasPrefix(match, scheduledTimeExpression) {
+	} else if p.scheduledEpoch != disabledField && strings.HasPrefix(match, scheduledTimeExpression) {
 		return time.Unix(p.scheduledEpoch, 0).UTC().Format(defaultTimeFormat)
-	} else if p.nowEpoch != -1 && strings.HasPrefix(match, currentTimeExpression) {
+	} else if p.nowEpoch != disabledField && strings.HasPrefix(match, currentTimeExpression) {
 		return time.Unix(p.nowEpoch, 0).UTC().Format(defaultTimeFormat)
-	} else if p.index != -1 && strings.HasPrefix(match, IndexExpression) {
+	} else if p.index != disabledField && strings.HasPrefix(match, IndexExpression) {
 		return fmt.Sprintf("%v", p.index)
-	} else if p.scheduledEpoch != -1 && strings.HasPrefix(match, scheduledTimePrefix) {
+	} else if p.scheduledEpoch != disabledField && strings.HasPrefix(match, scheduledTimePrefix) {
 		match = strings.Replace(match, scheduledTimePrefix, "", 1)
 		match = strings.Replace(match, suffix, "", 1)
 		return time.Unix(p.scheduledEpoch, 0).UTC().Format(match)
-	} else if p.nowEpoch != -1 && strings.HasPrefix(match, currentTimePrefix) {
+	} else if p.nowEpoch != disabledField && strings.HasPrefix(match, currentTimePrefix) {
 		match = strings.Replace(match, currentTimePrefix, "", 1)
 		match = strings.Replace(match, suffix, "", 1)
 		return time.Unix(p.nowEpoch, 0).UTC().Format(match)
