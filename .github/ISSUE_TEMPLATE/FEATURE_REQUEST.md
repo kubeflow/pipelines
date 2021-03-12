@@ -1,7 +1,7 @@
 ---
 name: 💡 Feature Request
-about: Report a Backend bug on Kubeflow Pipelines
-title: "[feature request]: [Description]"
+about: An idea to improve Kubeflow Pipelines
+title: "[feature] <Description>"
 labels: kind/feature
 ---
 
@@ -17,9 +17,12 @@ labels: kind/feature
 
 ### What feature would you like to see?
 
-Provide a description of this feature and the user experience.
+<!-- Provide a description of this feature and the user experience. -->
 
+### What is the use case or pain point?
 
-### How would you want to use it?
+<!-- It helps us understand the benefit of this feature for your use case. -->
 
-What is the benefit of this feature for your use case?
+### Is there a workaround currently?
+
+<!-- Without this feature, how do you accomplish your task today? -->
