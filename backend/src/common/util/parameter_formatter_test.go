@@ -21,7 +21,7 @@ import (
 )
 
 func TestParameterFormatter_Format(t *testing.T) {
-	formatter := NewParameterFormatter(
+	formatter := NewSWFParameterFormatter(
 		"some-run-uuid",
 		25, /* scheduled time */
 		26, /* current time */

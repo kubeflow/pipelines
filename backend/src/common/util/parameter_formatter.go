@@ -32,6 +32,10 @@ const (
 	suffix                  = "]]"
 )
 
+const (
+	disabledField = -1
+)
+
 // ParameterFormatter is an object that substitutes specific strings
 // in workflow parameters by information about the workflow execution (time at
 // which the workflow was started, time at which the workflow was scheduled, etc.)
@@ -42,8 +46,18 @@ type ParameterFormatter struct {
 	index          int64
 }
 
-// NewParameterFormatter returns a new ParameterFormatter.
-func NewParameterFormatter(runUUID string, scheduledEpoch int64, nowEpoch int64,
+// NewRunParameterFormatter returns a new ParameterFormatter to substitute run macros.
+func NewRunParameterFormatter(runUUID string, runAt int64) *ParameterFormatter {
+	return &ParameterFormatter{
+		runUUID:        runUUID,
+		nowEpoch:       runAt,
+		scheduledEpoch: disabledField,
+		index:          disabledField,
+	}
+}
+
+// NewSWFParameterFormatter returns a new ParameterFormatter to substitute recurring run macros.
+func NewSWFParameterFormatter(runUUID string, scheduledEpoch int64, nowEpoch int64,
 	index int64) *ParameterFormatter {
 	return &ParameterFormatter{
 		runUUID:        runUUID,
@@ -51,6 +65,16 @@ func NewParameterFormatter(runUUID string, scheduledEpoch int64, nowEpoch int64,
 		nowEpoch:       nowEpoch,
 		index:          index,
 	}
+}
+
+func (p *ParameterFormatter) FormatWorkflowParameters(
+	parameters map[string]string) map[string]string {
+	result := make(map[string]string)
+	for key, value := range parameters {
+		formatted := p.Format(value)
+		result[key] = formatted
+	}
+	return result
 }
 
 // Format substitutes special strings in the provided string.
@@ -72,20 +96,20 @@ func (p *ParameterFormatter) Format(s string) string {
 }
 
 func (p *ParameterFormatter) createSubstitutes(match string) string {
-
-	if strings.HasPrefix(match, runUUIDExpression) {
+	// First ensure that the corresponding field is valid, then attempt to substitute
+	if len(p.runUUID) > 0 && strings.HasPrefix(match, runUUIDExpression) {
 		return p.runUUID
-	} else if strings.HasPrefix(match, scheduledTimeExpression) {
+	} else if p.scheduledEpoch != disabledField && strings.HasPrefix(match, scheduledTimeExpression) {
 		return time.Unix(p.scheduledEpoch, 0).UTC().Format(defaultTimeFormat)
-	} else if strings.HasPrefix(match, currentTimeExpression) {
+	} else if p.nowEpoch != disabledField && strings.HasPrefix(match, currentTimeExpression) {
 		return time.Unix(p.nowEpoch, 0).UTC().Format(defaultTimeFormat)
-	} else if strings.HasPrefix(match, IndexExpression) {
+	} else if p.index != disabledField && strings.HasPrefix(match, IndexExpression) {
 		return fmt.Sprintf("%v", p.index)
-	} else if strings.HasPrefix(match, scheduledTimePrefix) {
+	} else if p.scheduledEpoch != disabledField && strings.HasPrefix(match, scheduledTimePrefix) {
 		match = strings.Replace(match, scheduledTimePrefix, "", 1)
 		match = strings.Replace(match, suffix, "", 1)
 		return time.Unix(p.scheduledEpoch, 0).UTC().Format(match)
-	} else if strings.HasPrefix(match, currentTimePrefix) {
+	} else if p.nowEpoch != disabledField && strings.HasPrefix(match, currentTimePrefix) {
 		match = strings.Replace(match, currentTimePrefix, "", 1)
 		match = strings.Replace(match, suffix, "", 1)
 		return time.Unix(p.nowEpoch, 0).UTC().Format(match)
