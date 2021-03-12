@@ -1,11 +1,13 @@
 ---
-name: Bug report
+name: Bug Report
+title: "[Bug] <Bug Name>"
 about: Report any other issue encountered with Kubeflow Pipelines
-title: "[Others]: [Bug Name]"
+labels: kind/bug
 ---
 
-### What steps did you take:
-[A clear and concise description of what the bug is.]
+### What steps did you take
+
+<!-- A clear and concise description of what the bug is.-->
 
 ### What happened:
 
@@ -14,24 +16,21 @@ title: "[Others]: [Bug Name]"
 ### Environment:
 <!-- Please fill in those that seem relevant. -->
 
-How did you deploy Kubeflow Pipelines (KFP)?
-<!-- If you are not sure, here's [an introduction of all options](https://www.kubeflow.org/docs/pipelines/installation/overview/). -->
-
-KFP version: <!-- If you are not sure, build commit shows on bottom of KFP UI left sidenav. -->
-
-KFP SDK version: <!-- Please attach the output of this shell command: $pip list | grep kfp -->
+*  How did you deploy Kubeflow Pipelines (KFP)?
+<!-- See [an introduction of all options](https://www.kubeflow.org/docs/pipelines/installation/overview/). -->
+*  KFP version: <!-- See version number shows on bottom of KFP UI left sidenav. -->
+*  KFP SDK version: <!-- Please attach the output of this shell command: $pip list | grep kfp -->
 
 
 ### Anything else you would like to add:
 [Miscellaneous information that will assist in solving the issue.]
 
-/kind bug
-<!-- Please include labels by uncommenting them to help us better triage issues, choose from the following -->
+
+<!-- Please include labels below by uncommenting them to help us better triage issues -->
 
 <!-- /area frontend -->
 <!-- /area backend -->
 <!-- /area sdk -->
 <!-- /area testing -->
-<!-- /area engprod -->
 <!-- /area samples -->
 <!-- /area components -->
