@@ -25,18 +25,10 @@ from google.protobuf import json_format
 from google.protobuf import struct_pb2
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.dsl import serialization_utils
+from kfp.dsl import artifact_utils
 
 KFP_ARTIFACT_ONTOLOGY_MODULE = 'kfp.dsl.ontology_artifacts'
 DEFAULT_ARTIFACT_SCHEMA = 'title: kfp.Artifact\ntype: object\nproperties:\n'
-
-class MetadataFieldType(enum.Enum):
-  """Supported metadata field types."""
-  NUMBER = 'number'
-  STRING = 'string'
-  BOOL = 'bool'
-  OBJECT = 'object'
-  ARRAY = 'array'
-
 
 class Artifact(object):
   """KFP Artifact Python class.
@@ -57,40 +49,12 @@ class Artifact(object):
   # Initialization flag to support setattr / getattr behavior.
   _initialized = False
 
-  def _parse_instance_schema(self):
-    """ Parses the instance schema of the Artifact.
-
-    Ensures that schema is well-formed and sets up self._metadata_fields map
-    for type-checking.
-
-    Expects _instance_schema to be set.
-
-    Raises:
-      RuntimeError if _instance schema is not set.
-      ValueError if title field is not set in instance_schema.
-    """
-
-    if not self._instance_schema:
-      raise RuntimeError("instance_schema not set for the Artifact")
-
-    schema = yaml.full_load(self._instance_schema)
-    if 'title' not in schema.keys():
-      raise ValueError('Invalid instance_schema, title must be present. Got: {}'.format(self._instance_schema))
-
-    self.TYPE_NAME = schema['title']
-    self._metadata_fields = {}
-    if 'properties' in schema.keys():
-      metadata_schema = schema['properties'] or {}
-      for property_name, property_def in metadata_schema.items():
-        try:
-          self._metadata_fields[property_name] = MetadataFieldType(property_def['type'])
-        except ValueError:
-          raise ValueError('Unsupported type:{} specified for field: {} in instance schema'.format(property_def['type'], property_name))
-
   def __init__(self, instance_schema: Optional[str] = None):
     """Constructs an instance of Artifact.
 
-    Setups up self._metadata_fields to perform type checking and initialize RuntimeArtifact.
+    Setups up self._metadata_fields to perform type checking and initialize
+    RuntimeArtifact.
+
     """
     if self.__class__ == Artifact:
       if not instance_schema:
@@ -100,10 +64,12 @@ class Artifact(object):
     else:
       if instance_schema:
         raise ValueError(
-            'The "instance_schema" argument must not be passed for Artifact subclass: {}'.format(self.__class__))
+            'The "instance_schema" argument must not be passed for Artifact \
+               subclass: {}'.format(self.__class__))
 
     # setup self._metadata_fields
-    self._parse_instance_schema()
+    self.TYPE_NAME, self._metadata_fields = artifact_utils.parse_schema(
+      self._instance_schema)
 
     # Instantiate a RuntimeArtifact pb message as the POD data structure.
     self._artifact = pipeline_spec_pb2.RuntimeArtifact()
@@ -152,28 +118,23 @@ class Artifact(object):
       # setter, we assume that the user implied an artifact attribute store,
       # and we raise an exception since such an attribute was not explicitly
       # defined in the Artifact PROPERTIES dictionary.
-      raise AttributeError('Cannot set an unspecified metadata field:{} on artifact. Only fields specified in instance schema can be set.'.format(name))
+      raise AttributeError('Cannot set an unspecified metadata field:{} \
+        on artifact. Only fields specified in instance schema can be \
+        set.'.format(name))
 
-    field_type = metadata_fields[name]
-    if field_type == MetadataFieldType.STRING:
-      if not isinstance(value, str):
-        raise RuntimeError('Expected string value for property: {} got:{} instead'.format(name, value))
-      self.metadata[name] = value
-    elif field_type == MetadataFieldType.NUMBER:
-      if not isinstance(value, int) and not isinstance(value, float):
-        raise RuntimeError('Expected number value for property: {} got:{} instead'.format(name, value))
-      self.metadata[name] = value
-    elif field_type == MetadataFieldType.BOOL:
-      if not isinstance(value, bool):
-        raise RuntimeError('Expected number value for property: {} got:{} instead'.format(name, value))
-      self.metadata[name] = value
-    elif field_type == MetadataFieldType.ARRAY:
-      if not isinstance(value, list):
-        raise RuntimeError('Expected number value for property: {} got:{} instead'.format(name, value))
-      self.metadata[name] = value
-    else:
-      # Treating everything else as object.
-      self.metadata[name] = value
+    # Type checking to be performed during serialization.
+    self.metadata[name] = value
+
+  def _update_runtime_artifact(self):
+    """Verifies metadata is well-formed and updates artifact instance. """
+
+    artifact_utils.verify_schema_instance(self._instance_schema,
+      self.metadata)
+
+    if len(self.metadata) != 0:
+      metadata_protobuf_struct = struct_pb2.Struct()
+      metadata_protobuf_struct.update(self.metadata)
+      self._artifact.metadata.CopyFrom(metadata_protobuf_struct)
 
   @property
   def type(self):
@@ -201,11 +162,7 @@ class Artifact(object):
 
   @property
   def runtime_artifact(self) -> pipeline_spec_pb2.RuntimeArtifact:
-    if len(self.metadata) != 0:
-      metadata_protobuf_struct = struct_pb2.Struct()
-      metadata_protobuf_struct.update(self.metadata)
-      self._artifact.metadata.CopyFrom(metadata_protobuf_struct)
-
+    self._update_runtime_artifact()
     return self._artifact
 
   @runtime_artifact.setter
@@ -214,19 +171,7 @@ class Artifact(object):
 
   def serialize(self) -> str:
     """Serializes an Artifact to JSON dict format."""
-
-    if len(self._metadata_fields) != 0:
-      try:
-        jsonschema.validate(instance=self.metadata, schema=yaml.full_load(self._instance_schema))
-      except jsonschema.exceptions.ValidationError:
-        raise RuntimeError('Invalid instance schema set for artifact: {} instance schema: {}'.format(self.name, self._instance_schema))
-      except jsonschema.exceptions.ValidationError:
-        raise RuntimeError('metadata:{} type check failed for artifact: {} against instance schema: {}'.format(self.metadata, self.name, self._instance_schema))
-
-      metadata_protobuf_struct = struct_pb2.Struct()
-      metadata_protobuf_struct.update(self.metadata)
-      self._artifact.metadata.CopyFrom(metadata_protobuf_struct)
-
+    self._update_runtime_artifact()
     return json_format.MessageToJson(self._artifact, sort_keys=True)
 
   @classmethod
@@ -251,7 +196,8 @@ class Artifact(object):
           importlib.import_module(KFP_ARTIFACT_ONTOLOGY_MODULE), type_name)
       result = artifact_cls()
     except (AttributeError, ImportError, ValueError) as err:
-      logging.warning('Failed to instantiate Ontology Artifact:{} instance'.format(type_name))
+      logging.warning('Failed to instantiate Ontology Artifact:{} \
+        instance'.format(type_name))
 
     if not result:
       # Otherwise generate a generic Artifact object.
