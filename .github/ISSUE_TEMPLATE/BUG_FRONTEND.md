@@ -1,7 +1,7 @@
 ---
 name: ⚠️ Report Frontend Bug
 about: Report a Frontend bug on Kubeflow Pipelines
-title: "[frontend]: [Bug Name]"
+title: "[frontend] <Bug Name>"
 labels: kind/bug, area/frontend
 ---
 
@@ -15,15 +15,17 @@ labels: kind/bug, area/frontend
 
 ### Steps to reproduce
 
+<!--
 How can we make the problem occur?
 This could be a description, code snippet, video, screenshot, etc.
-
+-->
 
 ### Expected result
 
-What should the correct behavior be?
+<!-- What should the correct behavior be? -->
 
 
 ### Materials and Reference
 
-Help oncaller to debug by providing background context, links to reference, etc.
+
+<!-- Help oncaller to debug by providing background context, links to reference, etc. -->
