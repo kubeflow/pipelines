@@ -14,16 +14,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -ex
+
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 REPO_ROOT="${DIR}/.."
 ARGO_VERSION="$(cat ${REPO_ROOT}/third_party/argo/VERSION)"
+OS=${OS:-"linux-amd64"}
 
 # if argo is not installed
 if ! which argo; then
   echo "install argo"
-  curl -sLO https://github.com/argoproj/argo/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz
-  gunzip argo-linux-amd64.gz
-  chmod +x argo-linux-amd64
-  mv ./argo-linux-amd64 /usr/local/bin/argo
+  curl -sLO "https://github.com/argoproj/argo/releases/download/${ARGO_VERSION}/argo-${OS}.gz"
+  gunzip "argo-${OS}.gz"
+  chmod +x "argo-${OS}"
+  mv "argo-${OS}" /usr/local/bin/argo
   argo version
 fi

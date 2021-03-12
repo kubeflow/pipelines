@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2019-2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -176,9 +176,10 @@ class PySampleChecker(object):
                 ###### Output Argo Log for Debugging ######
                 workflow_json = self._client._get_workflow_json(self._run_id)
                 workflow_id = workflow_json['metadata']['name']
+                print("Argo Workflow Name: ", workflow_id)
                 argo_log, _ = utils.run_bash_command(
-                    'argo logs -n {} -w {}'.format(
-                        self._namespace, workflow_id
+                    'argo logs {} -n {}'.format(
+                        workflow_id, self._namespace
                     )
                 )
                 print('=========Argo Workflow Log=========')
