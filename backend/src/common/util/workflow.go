@@ -70,7 +70,7 @@ func (w *Workflow) GetWorkflowParametersAsMap() map[string]string {
 		if param.Value == nil {
 			resultAsMap[param.Name] = ""
 		} else {
-			resultAsMap[param.Name] = *param.Value
+			resultAsMap[param.Name] = param.Value.String()
 		}
 	}
 	return resultAsMap
