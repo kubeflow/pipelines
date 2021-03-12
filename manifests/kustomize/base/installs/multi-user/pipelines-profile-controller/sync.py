@@ -104,6 +104,16 @@ class Controller(BaseHTTPRequestHandler):
                                 "ports": [{
                                     "containerPort": 8888
                                 }],
+                                "resources": {
+                                    "requests": {
+                                        "cpu": "50m",
+                                        "memory": "200Mi"
+                                    },
+                                    "limits": {
+                                        "cpu": "500m",
+                                        "memory": "1Gi"
+                                    },
+                                }
                             }],
                             "serviceAccountName":
                             "default-editor",
@@ -204,7 +214,17 @@ class Controller(BaseHTTPRequestHandler):
                                 "IfNotPresent",
                                 "ports": [{
                                     "containerPort": 3000
-                                }]
+                                }],
+                                "resources": {
+                                    "requests": {
+                                        "cpu": "10m",
+                                        "memory": "70Mi"
+                                    },
+                                    "limits": {
+                                        "cpu": "100m",
+                                        "memory": "500Mi"
+                                    },
+                                }
                             }],
                             "serviceAccountName":
                             "default-editor"
