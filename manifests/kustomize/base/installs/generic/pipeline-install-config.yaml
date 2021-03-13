@@ -24,3 +24,9 @@ data:
   ## Feature stage:
   ## [Alpha](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#alpha)
   cronScheduleTimezone: "UTC"
+
+  ## cacheImage is the image that the mutating webhook will use to patch
+  ## cached steps with. Will be used to echo a message announcing that 
+  ## the cached step result will be used. If not set it will default to 
+  ## 'gcr.io/google-containers/busybox'
+  cacheImage: "gcr.io/google-containers/busybox"

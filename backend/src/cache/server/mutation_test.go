@@ -17,6 +17,7 @@ package server
 import (
 	"bytes"
 	"encoding/json"
+	"os"
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/cache/model"
@@ -152,11 +153,46 @@ func TestMutatePodIfCachedWithCacheEntryExist(t *testing.T) {
 
 	patchOperation, err := MutatePodIfCached(&fakeAdmissionRequest, fakeClientManager)
 	assert.Nil(t, err)
+
 	require.NotNil(t, patchOperation)
 	require.Equal(t, 3, len(patchOperation))
 	require.Equal(t, patchOperation[0].Op, OperationTypeReplace)
 	require.Equal(t, patchOperation[1].Op, OperationTypeAdd)
 	require.Equal(t, patchOperation[2].Op, OperationTypeAdd)
+}
+
+func TestDefaultImage(t *testing.T) {
+	executionCache := &model.ExecutionCache{
+		ExecutionCacheKey: "f5fe913be7a4516ebfe1b5de29bcb35edd12ecc776b2f33f10ca19709ea3b2f0",
+		ExecutionOutput:   "testOutput",
+		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.7"}}`,
+		MaxCacheStaleness: -1,
+	}
+	fakeClientManager.CacheStore().CreateExecutionCache(executionCache)
+
+	patchOperation, err := MutatePodIfCached(&fakeAdmissionRequest, fakeClientManager)
+	assert.Nil(t, err)
+	container := patchOperation[0].Value.([]corev1.Container)[0]
+	require.Equal(t, "gcr.io/google-containers/busybox", container.Image)
+}
+
+func TestSetImage(t *testing.T) {
+	testImage := "testimage"
+	os.Setenv("CACHE_IMAGE", testImage)
+	defer os.Unsetenv("CACHE_IMAGE")
+
+	executionCache := &model.ExecutionCache{
+		ExecutionCacheKey: "f5fe913be7a4516ebfe1b5de29bcb35edd12ecc776b2f33f10ca19709ea3b2f0",
+		ExecutionOutput:   "testOutput",
+		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.7"}}`,
+		MaxCacheStaleness: -1,
+	}
+	fakeClientManager.CacheStore().CreateExecutionCache(executionCache)
+
+	patchOperation, err := MutatePodIfCached(&fakeAdmissionRequest, fakeClientManager)
+	assert.Nil(t, err)
+	container := patchOperation[0].Value.([]corev1.Container)[0]
+	assert.Equal(t, testImage, container.Image)
 }
 
 func TestMutatePodIfCachedWithTeamplateCleanup(t *testing.T) {

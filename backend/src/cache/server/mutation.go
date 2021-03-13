@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 
@@ -133,9 +134,15 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 		labels[MetadataExecutionIDKey] = getValueFromSerializedMap(cachedExecution.ExecutionOutput, MetadataExecutionIDKey)
 		labels[MetadataWrittenKey] = "true"
 
+		// Image selected from Google Container Register(gcr) for it small size, gcr since there
+		// is not image pull rate limit. For more info see issue: https://github.com/kubeflow/pipelines/issues/4099
+		image := "gcr.io/google-containers/busybox"
+		if v, ok := os.LookupEnv("CACHE_IMAGE"); ok {
+			image = v
+		}
 		dummyContainer := corev1.Container{
 			Name:    "main",
-			Image:   "alpine",
+			Image:   image,
 			Command: []string{`echo`, `"This step output is taken from cache."`},
 		}
 		dummyContainers := []corev1.Container{
