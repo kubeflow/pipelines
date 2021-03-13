@@ -229,6 +229,7 @@ data:
   mysql_driver: "mysql"
   mysql_host: "mysql"
   mysql_port: "3306"
+  cache_image: "gcr.io/google-containers/busybox"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -263,8 +264,12 @@ spec:
             valueFrom:
               secretKeyRef:
                 name: mysql-credential
-                key: password
-          
+                key: password        
+          - name: CACHE_IMAGE
+            valueFrom:
+              configMapKeyRef:
+                name: cache-configmap
+                key: cache_image
           - name: DBCONFIG_DRIVER
             valueFrom:
               configMapKeyRef:
