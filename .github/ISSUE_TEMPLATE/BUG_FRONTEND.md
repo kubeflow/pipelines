@@ -27,5 +27,9 @@ This could be a description, code snippet, video, screenshot, etc.
 
 ### Materials and Reference
 
-
 <!-- Help oncaller to debug by providing background context, links to reference, etc. -->
+
+---
+
+<!-- Don't delete message below to encourage users to support your issue! -->
+Impacted by this bug? Give it a 👍. We prioritise the issues with the most 👍.
