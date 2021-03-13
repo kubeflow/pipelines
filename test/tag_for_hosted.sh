@@ -108,8 +108,8 @@ docker tag gcr.io/ml-pipeline/minio:RELEASE.2019-08-14T20-37-41Z-license-complia
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/minio:$SEM_VER
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/minio:$MM_VER
 
-docker tag gcr.io/ml-pipeline/mysql:5.6 gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/mysql:$SEM_VER
-docker tag gcr.io/ml-pipeline/mysql:5.6 gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/mysql:$MM_VER
+docker tag gcr.io/ml-pipeline/mysql:5.7 gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/mysql:$SEM_VER
+docker tag gcr.io/ml-pipeline/mysql:5.7 gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/mysql:$MM_VER
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/mysql:$SEM_VER
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/mysql:$MM_VER
 
