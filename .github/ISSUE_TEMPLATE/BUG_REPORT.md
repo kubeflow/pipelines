@@ -35,3 +35,9 @@ labels: kind/bug
 <!-- /area testing -->
 <!-- /area samples -->
 <!-- /area components -->
+
+
+---
+
+<!-- Don't delete message below to encourage users to support your issue! -->
+Impacted by this bug? Give it a 👍. We prioritise the issues with the most 👍.
