@@ -15,11 +15,18 @@ spec:
       labels:
         app: mysql
     spec:
+      serviceAccountName: mysql
       containers:
-      - env:
+      # https://dev.mysql.com/doc/refman/5.7/en/server-options.html#option_mysqld_ignore-db-dir
+      # Ext4, Btrfs etc. volumes root directories have a lost+found directory that should not be treated as a database.
+      - args:
+        - --ignore-db-dir=lost+found
+        - --datadir
+        - /var/lib/mysql
+        env:
         - name: MYSQL_ALLOW_EMPTY_PASSWORD
           value: "true"
-        image: gcr.io/ml-pipeline/mysql:5.6
+        image: gcr.io/ml-pipeline/mysql:5.7
         name: mysql
         ports:
         - containerPort: 3306
