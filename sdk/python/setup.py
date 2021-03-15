@@ -23,27 +23,27 @@ NAME = 'kfp'
 # accordingly.
 REQUIRES = [
     'absl-py>=0.9,<=0.11',
-    'PyYAML>=5.3',
-    'google-cloud-storage>=1.13.0',
-    'kubernetes>=8.0.0, <12.0.0',
-    'google-auth>=1.6.1',
-    'requests_toolbelt>=0.8.0',
-    'cloudpickle',
+    'PyYAML>=5.3,<6',
+    'google-cloud-storage>=1.13.0,<2',
+    'kubernetes>=8.0.0,<12.0.0',
+    'google-auth>=1.6.1,<2',
+    'requests-toolbelt>=0.8.0,<1',
+    'cloudpickle>=1.3.0,<2',
     # Update the upper version whenever a new major version of the
     # kfp-server-api package is released.
     # Update the lower version when kfp sdk depends on new apis/fields in
     # kfp-server-api.
     # Note, please also update ./requirements.in
-    'kfp-server-api>=1.1.2, <2.0.0',
-    'jsonschema >= 3.0.1',
-    'tabulate',
-    'click',
-    'Deprecated',
-    'strip-hints',
-    'docstring-parser>=0.7.3',
-    'kfp-pipeline-spec>=0.1.5, <0.2.0',
-    'fire>=0.3.1',
-    'protobuf'
+    'kfp-server-api>=1.1.2,<2.0.0',
+    'jsonschema>=3.0.1,<4',
+    'tabulate>=0.8.6,<1',
+    'click>=7.1.1,<8',
+    'Deprecated>=1.2.7,<2',
+    'strip-hints>=0.1.8,<1',
+    'docstring-parser>=0.7.3,<1',
+    'kfp-pipeline-spec>=0.1.5,<0.2.0',
+    'fire>=0.3.1,<1',
+    'protobuf>=3.13.0,<4'
 ]
 
 TESTS_REQUIRE = [
