@@ -15,7 +15,7 @@
 import inspect
 import re
 import warnings
-from typing import Any, Dict, List, TypeVar, Union, Callable, Optional, Sequence, Iterable
+from typing import Any, Dict, List, TypeVar, Union, Callable, Optional, Sequence
 
 from kubernetes.client import V1Toleration, V1Affinity
 from kubernetes.client.models import (V1Container, V1EnvVar, V1EnvFromSource,
@@ -34,7 +34,7 @@ T = TypeVar('T')
 StringOrStringList = Union[str, List[str]]
 ContainerOpArgument = Union[str, int, float, bool,
                             _pipeline_param.PipelineParam]
-ArgumentOrArguments = Union[ContainerOpArgument, Iterable[ContainerOpArgument]]
+ArgumentOrArguments = Union[ContainerOpArgument, List]
 
 ALLOWED_RETRY_POLICIES = (
     'Always',
