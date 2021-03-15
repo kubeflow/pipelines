@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018-2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -88,8 +88,9 @@ class NoteBookChecker(object):
                 ###### Output Argo Log for Debugging ######
                 workflow_json = client._get_workflow_json(run_id)
                 workflow_id = workflow_json['metadata']['name']
+                print("Argo Workflow Name: ", workflow_id)
                 argo_log, _ = utils.run_bash_command(
-                    'argo logs -n {} -w {}'.format(self._namespace, workflow_id))
+                    'argo logs {} -n {}'.format(workflow_id, self._namespace))
                 print("=========Argo Workflow Log=========")
                 print(argo_log)
 

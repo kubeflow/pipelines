@@ -32,6 +32,9 @@
       "dag": {
         "tasks": {
           "task-add-2": {
+            "dependentTasks": [
+              "task-add"
+            ],
             "taskInfo": {
               "name": "task-add-2"
             },
@@ -75,6 +78,9 @@
             }
           },
           "task-add-3": {
+            "dependentTasks": [
+              "task-add-2"
+            ],
             "inputs": {
               "parameters": {
                 "op2": {

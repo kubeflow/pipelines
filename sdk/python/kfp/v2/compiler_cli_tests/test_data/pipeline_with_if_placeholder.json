@@ -9,17 +9,17 @@
         "artifacts": {
           "input2": {
             "artifactType": {
-              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              "instanceSchema": "title: kfp.Artifact\ntype: object\n"
             }
           },
           "input1": {
             "artifactType": {
-              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              "instanceSchema": "title: kfp.Artifact\ntype: object\n"
             }
           },
           "input0": {
             "artifactType": {
-              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              "instanceSchema": "title: kfp.Artifact\ntype: object\n"
             }
           }
         }

@@ -1,0 +1,105 @@
+{
+  "pipelineSpec": {
+    "deploymentSpec": {
+      "executors": {
+        "exec-print-op": {
+          "container": {
+            "image": "python:3.7",
+            "args": [
+              "--s",
+              "{{$.inputs.parameters['s']}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def print_op(s):\n  print(s)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Print op', description='')\n_parser.add_argument(\"--s\", dest=\"s\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = print_op(**_parsed_args)\n"
+            ]
+          }
+        }
+      }
+    },
+    "components": {
+      "comp-print-op": {
+        "executorLabel": "exec-print-op",
+        "inputDefinitions": {
+          "parameters": {
+            "s": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-for-loop-2": {
+        "dag": {
+          "tasks": {
+            "task-print-op-2": {
+              "parameterIterator": {
+                "items": {
+                  "raw": "[\"1\", \"10\"]"
+                },
+                "itemInput": "s"
+              },
+              "taskInfo": {
+                "name": "task-print-op-2"
+              },
+              "componentRef": {
+                "name": "comp-print-op"
+              }
+            },
+            "task-print-op-3": {
+              "taskInfo": {
+                "name": "task-print-op-3"
+              },
+              "componentRef": {
+                "name": "comp-print-op"
+              },
+              "parameterIterator": {
+                "items": {
+                  "raw": "[\"2\", \"20\"]"
+                },
+                "itemInput": "s"
+              }
+            },
+            "task-print-op": {
+              "componentRef": {
+                "name": "comp-print-op"
+              },
+              "parameterIterator": {
+                "itemInput": "s",
+                "items": {
+                  "raw": "[\"{'A_a': 1, 'B_b': 2}\", \"{'A_a': 10, 'B_b': 20}\"]"
+                }
+              },
+              "taskInfo": {
+                "name": "task-print-op"
+              }
+            }
+          }
+        }
+      }
+    },
+    "schemaVersion": "2.0.0",
+    "sdkVersion": "kfp-1.4.0",
+    "root": {
+      "dag": {
+        "tasks": {
+          "task-for-loop-2": {
+            "componentRef": {
+              "name": "comp-for-loop-2"
+            },
+            "taskInfo": {
+              "name": "task-for-loop-2"
+            }
+          }
+        }
+      }
+    },
+    "pipelineInfo": {
+      "name": "pipeline-with-loop-static"
+    }
+  },
+  "runtimeConfig": {
+    "gcsOutputDirectory": "dummy_root"
+  }
+}

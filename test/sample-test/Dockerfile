@@ -23,13 +23,11 @@ COPY ./test/sample-test /python/src/github.com/kubeflow/pipelines/test/sample-te
 COPY ./samples /python/src/github.com/kubeflow/pipelines/samples
 RUN cd /python/src/github.com/kubeflow/pipelines
 
-# Install argo.
-RUN echo "install argo"
-RUN mkdir -p /usr/local/bin/
-#RUN ARGO_VERSION=v2.7.5 && curl -sSL -o /usr/local/bin/argo \
-RUN ARGO_VERSION=v2.4.3 && curl -sSL -o /usr/local/bin/argo \
-    "https://github.com/argoproj/argo/releases/download/$ARGO_VERSION/argo-linux-amd64" && \
-    chmod +x /usr/local/bin/argo
-ENV PATH $PATH:/usr/local/bin/argo
+# Downloading Argo CLI so that the samples are validated
+ENV ARGO_VERSION v2.12.9
+RUN curl -sLO https://github.com/argoproj/argo/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz && \
+  gunzip argo-linux-amd64.gz && \
+  chmod +x argo-linux-amd64 && \
+  mv ./argo-linux-amd64 /usr/local/bin/argo
 
 ENTRYPOINT ["python3", "/python/src/github.com/kubeflow/pipelines/test/sample-test/sample_test_launcher.py"]

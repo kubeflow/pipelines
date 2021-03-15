@@ -12,12 +12,14 @@ FROM python:3.7 as compiler
 RUN apt-get update -y && apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev jq
 RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
 COPY backend/requirements.txt .
-RUN python3 -m pip install -r requirements.txt
+RUN python3 -m pip install -r requirements.txt --no-cache-dir
 
 # Downloading Argo CLI so that the samples are validated
-#ADD  https://github.com/argoproj/argo/releases/download/v2.7.5/argo-linux-amd64 /usr/local/bin/argo
-ADD  https://github.com/argoproj/argo/releases/download/v2.4.3/argo-linux-amd64 /usr/local/bin/argo
-RUN chmod +x /usr/local/bin/argo
+ENV ARGO_VERSION v2.12.9
+RUN curl -sLO https://github.com/argoproj/argo/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz && \
+  gunzip argo-linux-amd64.gz && \
+  chmod +x argo-linux-amd64 && \
+  mv ./argo-linux-amd64 /usr/local/bin/argo
 
 WORKDIR /go/src/github.com/kubeflow/pipelines
 COPY sdk sdk

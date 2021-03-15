@@ -5,14 +5,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
-
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -38,7 +37,7 @@ func TestCreateRun(t *testing.T) {
 
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
-		{Name: "param1", Value: util.StringPointer("world")}}
+		{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "pipeline-runner"
@@ -88,8 +87,8 @@ func TestCreateRunPatch(t *testing.T) {
 
 	expectedRuntimeWorkflow := testWorkflowPatch.DeepCopy()
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
-		{Name: "param1", Value: util.StringPointer("test-default-bucket")},
-		{Name: "param2", Value: util.StringPointer("test-project-id")},
+		{Name: "param1", Value: v1alpha1.AnyStringPtr("test-default-bucket")},
+		{Name: "param2", Value: v1alpha1.AnyStringPtr("test-project-id")},
 	}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
@@ -183,7 +182,7 @@ func TestCreateRun_Multiuser(t *testing.T) {
 
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
-		{Name: "param1", Value: util.StringPointer("world")}}
+		{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "default-editor" // In multi-user mode, we use default service account.

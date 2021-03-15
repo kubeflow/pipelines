@@ -12,15 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.dsl._container_op import ContainerOp
-from kfp.dsl._container_op import BaseOp
-from kfp.dsl._pipeline_param import PipelineParam
-from kfp.dsl._pipeline import pipeline
-
-from kfp.v2.dsl._component import graph_component
-from kfp.v2.dsl._pipeline import Pipeline
-from kfp.v2.dsl._ops_group import OpsGroup
-from kfp.v2.dsl._ops_group import Graph
-from kfp.v2.dsl._ops_group import Condition
-from kfp.v2.dsl._ops_group import ExitHandler
-from kfp.v2.dsl._ops_group import ParallelFor
+from kfp.dsl import *

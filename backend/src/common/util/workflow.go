@@ -51,20 +51,35 @@ func (w *Workflow) OverrideParameters(desiredParams map[string]string) {
 		if param, ok := desiredParams[currentParam.Name]; ok {
 			desiredValue = &param
 		} else {
-			desiredValue = currentParam.Value
+			desired := currentParam.Value.String()
+			desiredValue = &desired
 		}
+
 		desiredSlice = append(desiredSlice, workflowapi.Parameter{
 			Name:  currentParam.Name,
-			Value: desiredValue,
+			Value: ToAnyStringPointer(desiredValue),
 		})
 	}
 	w.Spec.Arguments.Parameters = desiredSlice
 }
 
+func (w *Workflow) GetWorkflowParametersAsMap() map[string]string {
+	resultAsArray := w.Spec.Arguments.Parameters
+	resultAsMap := make(map[string]string)
+	for _, param := range resultAsArray {
+		if param.Value == nil {
+			resultAsMap[param.Name] = ""
+		} else {
+			resultAsMap[param.Name] = param.Value.String()
+		}
+	}
+	return resultAsMap
+}
+
 func (w *Workflow) VerifyParameters(desiredParams map[string]string) error {
 	templateParamsMap := make(map[string]*string)
 	for _, param := range w.Spec.Arguments.Parameters {
-		templateParamsMap[param.Name] = param.Value
+		templateParamsMap[param.Name] = ToStringPointer(param.Value)
 	}
 	for k := range desiredParams {
 		_, ok := templateParamsMap[k]

@@ -102,7 +102,7 @@ class CompilerTest(unittest.TestCase):
           - {inputValue: msg}
       """)
 
-    @dsl.pipeline()
+    @dsl.pipeline(name='pipeline-with-exit-handler')
     def download_and_print(url='gs://ml-pipeline/shakespeare/shakespeare1.txt'):
       """A sample pipeline showing exit handler."""
 
@@ -117,28 +117,6 @@ class CompilerTest(unittest.TestCase):
         'dsl.ExitHandler is not yet supported in KFP v2 compiler.'):
       compiler.Compiler().compile(
           pipeline_func=download_and_print,
-          pipeline_root='dummy_root',
-          output_path='output.json')
-
-  def test_compile_pipeline_with_dsl_parallelfor_should_raise_error(self):
-
-    @components.create_component_from_func
-    def print_op(s: str):
-      print(s)
-
-    @dsl.pipeline()
-    def my_pipeline():
-      loop_args = [{'A_a': 1, 'B_b': 2}, {'A_a': 10, 'B_b': 20}]
-      with dsl.ParallelFor(loop_args, parallelism=10) as item:
-        print_op(item)
-        print_op(item.A_a)
-        print_op(item.B_b)
-
-    with self.assertRaisesRegex(
-        NotImplementedError,
-        'dsl.ParallelFor is not yet supported in KFP v2 compiler.'):
-      compiler.Compiler().compile(
-          pipeline_func=my_pipeline,
           pipeline_root='dummy_root',
           output_path='output.json')
 
@@ -164,7 +142,7 @@ class CompilerTest(unittest.TestCase):
             command=['sh', '-c'],
             arguments=['echo "$0"', text2])
 
-      @dsl.pipeline()
+      @dsl.pipeline(name='pipeline-with-graph-component')
       def opsgroups_pipeline(text1='message 1', text2='message 2'):
         step1_graph_component = echo1_graph_component(text1)
         step2_graph_component = echo2_graph_component(text2)
@@ -394,6 +372,24 @@ class CompilerTest(unittest.TestCase):
       self.assertTrue('gcsOutputDirectory' not in job_spec['runtimeConfig'])
     finally:
       shutil.rmtree(tmpdir)
+
+  def test_task_input_contain_placedholder_should_fail(self):
+
+    @components.create_component_from_func
+    def print_op(s: str):
+      print(s)
+
+    @dsl.pipeline(
+        name='pipeline-with-placeholder-in-input-argument',
+        pipeline_root='dummy')
+    def my_pipeline(name: str = 'KFP'):
+      print_op('Hello {}'.format(name))
+
+    with self.assertRaisesRegex(
+        NotImplementedError,
+        'a component input can only accept either a constant value or '
+        'a reference to another pipeline parameter.'):
+      compiler.Compiler().compile(my_pipeline, 'dummy')
 
 
 if __name__ == '__main__':

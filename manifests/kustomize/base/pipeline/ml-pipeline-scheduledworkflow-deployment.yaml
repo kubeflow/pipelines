@@ -12,6 +12,8 @@ spec:
     metadata:
       labels:
         app: ml-pipeline-scheduledworkflow
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
     spec:
       containers:
       - image: gcr.io/ml-pipeline/scheduledworkflow:dummy

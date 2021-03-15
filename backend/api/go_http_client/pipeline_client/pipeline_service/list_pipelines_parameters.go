@@ -21,8 +21,11 @@ import (
 // NewListPipelinesParams creates a new ListPipelinesParams object
 // with the default values initialized.
 func NewListPipelinesParams() *ListPipelinesParams {
-	var ()
+	var (
+		resourceReferenceKeyTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
+	)
 	return &ListPipelinesParams{
+		ResourceReferenceKeyType: &resourceReferenceKeyTypeDefault,
 
 		timeout: cr.DefaultTimeout,
 	}
@@ -31,8 +34,11 @@ func NewListPipelinesParams() *ListPipelinesParams {
 // NewListPipelinesParamsWithTimeout creates a new ListPipelinesParams object
 // with the default values initialized, and the ability to set a timeout on a request
 func NewListPipelinesParamsWithTimeout(timeout time.Duration) *ListPipelinesParams {
-	var ()
+	var (
+		resourceReferenceKeyTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
+	)
 	return &ListPipelinesParams{
+		ResourceReferenceKeyType: &resourceReferenceKeyTypeDefault,
 
 		timeout: timeout,
 	}
@@ -41,8 +47,11 @@ func NewListPipelinesParamsWithTimeout(timeout time.Duration) *ListPipelinesPara
 // NewListPipelinesParamsWithContext creates a new ListPipelinesParams object
 // with the default values initialized, and the ability to set a context for a request
 func NewListPipelinesParamsWithContext(ctx context.Context) *ListPipelinesParams {
-	var ()
+	var (
+		resourceReferenceKeyTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
+	)
 	return &ListPipelinesParams{
+		ResourceReferenceKeyType: &resourceReferenceKeyTypeDefault,
 
 		Context: ctx,
 	}
@@ -51,9 +60,12 @@ func NewListPipelinesParamsWithContext(ctx context.Context) *ListPipelinesParams
 // NewListPipelinesParamsWithHTTPClient creates a new ListPipelinesParams object
 // with the default values initialized, and the ability to set a custom HTTPClient for a request
 func NewListPipelinesParamsWithHTTPClient(client *http.Client) *ListPipelinesParams {
-	var ()
+	var (
+		resourceReferenceKeyTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
+	)
 	return &ListPipelinesParams{
-		HTTPClient: client,
+		ResourceReferenceKeyType: &resourceReferenceKeyTypeDefault,
+		HTTPClient:               client,
 	}
 }
 
@@ -83,6 +95,16 @@ type ListPipelinesParams struct {
 
 	*/
 	PageToken *string
+	/*ResourceReferenceKeyID
+	  The ID of the resource that referred to.
+
+	*/
+	ResourceReferenceKeyID *string
+	/*ResourceReferenceKeyType
+	  The type of the resource that referred to.
+
+	*/
+	ResourceReferenceKeyType *string
 	/*SortBy
 	  Can be format of "field_name", "field_name asc" or "field_name desc"
 	Ascending by default.
@@ -161,6 +183,28 @@ func (o *ListPipelinesParams) SetPageToken(pageToken *string) {
 	o.PageToken = pageToken
 }
 
+// WithResourceReferenceKeyID adds the resourceReferenceKeyID to the list pipelines params
+func (o *ListPipelinesParams) WithResourceReferenceKeyID(resourceReferenceKeyID *string) *ListPipelinesParams {
+	o.SetResourceReferenceKeyID(resourceReferenceKeyID)
+	return o
+}
+
+// SetResourceReferenceKeyID adds the resourceReferenceKeyId to the list pipelines params
+func (o *ListPipelinesParams) SetResourceReferenceKeyID(resourceReferenceKeyID *string) {
+	o.ResourceReferenceKeyID = resourceReferenceKeyID
+}
+
+// WithResourceReferenceKeyType adds the resourceReferenceKeyType to the list pipelines params
+func (o *ListPipelinesParams) WithResourceReferenceKeyType(resourceReferenceKeyType *string) *ListPipelinesParams {
+	o.SetResourceReferenceKeyType(resourceReferenceKeyType)
+	return o
+}
+
+// SetResourceReferenceKeyType adds the resourceReferenceKeyType to the list pipelines params
+func (o *ListPipelinesParams) SetResourceReferenceKeyType(resourceReferenceKeyType *string) {
+	o.ResourceReferenceKeyType = resourceReferenceKeyType
+}
+
 // WithSortBy adds the sortBy to the list pipelines params
 func (o *ListPipelinesParams) WithSortBy(sortBy *string) *ListPipelinesParams {
 	o.SetSortBy(sortBy)
@@ -222,6 +266,38 @@ func (o *ListPipelinesParams) WriteToRequest(r runtime.ClientRequest, reg strfmt
 		qPageToken := qrPageToken
 		if qPageToken != "" {
 			if err := r.SetQueryParam("page_token", qPageToken); err != nil {
+				return err
+			}
+		}
+
+	}
+
+	if o.ResourceReferenceKeyID != nil {
+
+		// query param resource_reference_key.id
+		var qrResourceReferenceKeyID string
+		if o.ResourceReferenceKeyID != nil {
+			qrResourceReferenceKeyID = *o.ResourceReferenceKeyID
+		}
+		qResourceReferenceKeyID := qrResourceReferenceKeyID
+		if qResourceReferenceKeyID != "" {
+			if err := r.SetQueryParam("resource_reference_key.id", qResourceReferenceKeyID); err != nil {
+				return err
+			}
+		}
+
+	}
+
+	if o.ResourceReferenceKeyType != nil {
+
+		// query param resource_reference_key.type
+		var qrResourceReferenceKeyType string
+		if o.ResourceReferenceKeyType != nil {
+			qrResourceReferenceKeyType = *o.ResourceReferenceKeyType
+		}
+		qResourceReferenceKeyType := qrResourceReferenceKeyType
+		if qResourceReferenceKeyType != "" {
+			if err := r.SetQueryParam("resource_reference_key.type", qResourceReferenceKeyType); err != nil {
 				return err
 			}
 		}

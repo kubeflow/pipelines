@@ -72,7 +72,8 @@ class TestCompiler(unittest.TestCase):
             name="resource"
           )
         ),
-        attribute_outputs={"out": json}
+        attribute_outputs={"out": json},
+        set_owner_reference=True
       )
       golden_output = {
         'container': {
@@ -147,7 +148,8 @@ class TestCompiler(unittest.TestCase):
             "kind: '{{inputs.parameters.kind}}'\n"
             "metadata:\n"
             "  name: resource\n"
-          )
+          ),
+          'setOwnerReference': True
         }
       }
 
@@ -377,9 +379,13 @@ class TestCompiler(unittest.TestCase):
       """Test retry policy is set."""
 
       policy = 'Always'
+      backoff_duration = '2m'
+      backoff_factor = 1.5
+      backoff_max_duration = '3m'
 
       def my_pipeline():
-        some_op().set_retry(2, policy)
+        some_op().set_retry(2, policy, backoff_duration, backoff_factor,
+                            backoff_max_duration)
 
       workflow = kfp.compiler.Compiler()._compile(my_pipeline)
       name_to_template = {template['name']: template for template in workflow['spec']['templates']}
@@ -387,6 +393,10 @@ class TestCompiler(unittest.TestCase):
       template = name_to_template[main_dag_tasks[0]['template']]
 
       self.assertEqual(template['retryStrategy']['retryPolicy'], policy)
+      self.assertEqual(template['retryStrategy']['backoff']['duration'], backoff_duration)
+      self.assertEqual(template['retryStrategy']['backoff']['factor'], backoff_factor)
+      self.assertEqual(template['retryStrategy']['backoff']['maxDuration'], backoff_max_duration)
+
 
   def test_py_retry_policy_invalid(self):
       def my_pipeline():

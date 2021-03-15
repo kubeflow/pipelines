@@ -109,7 +109,6 @@ spec:
               # - kubeflow_tf_serving
               - container_build
               - parameterized_tfx_oss
-              - iris
             when: "{{inputs.parameters.is-integration-test}} == true"
     # Build and push image
     - name: build-image-by-dockerfile

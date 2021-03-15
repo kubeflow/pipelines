@@ -15,9 +15,10 @@
 ARG TF_TAG
 FROM tensorflow/tensorflow:$TF_TAG
 
-RUN pip install pyyaml==3.12 six==1.11.0 \
-    tensorflow-transform==0.23.0 \
-    tensorflow-model-analysis==0.23.0
+COPY requirements.txt .
+RUN python3 -m pip install -r \
+    requirements.txt --quiet --no-cache-dir \
+    && rm -f requirements.txt
 
 ADD build /ml
 

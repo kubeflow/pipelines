@@ -49,22 +49,30 @@ pushd "$DIR/.."
 sed -i.bak -e "s|VERSION =.\+'|VERSION = '${TAG_NAME}'|g" "components/gcp/container/component_sdk/python/setup.py"
 
 # Updating components and samples.
+BATCH_UPDATE=()
 for image in "${images[@]}"
 do
   TARGET_IMAGE_BASE=${TO_GCR_PREFIX}${image}
   TARGET_IMAGE=${TARGET_IMAGE_BASE}:${TAG_NAME}
 
+  BATCH_UPDATE+=("-e" "s|${TARGET_IMAGE_BASE}:\([a-zA-Z0-9_.-]\)\+|${TARGET_IMAGE}|g")
   # Update the code
-  find components samples -type f | while read file; do
-    sed -i -e "s|${TARGET_IMAGE_BASE}:\([a-zA-Z0-9_.-]\)\+|${TARGET_IMAGE}|g" "$file"
-  done
 done
 
+find components samples -type f | while read file; do
+  sed -i "${BATCH_UPDATE[@]}" "$file"
+done
+
+BATCH_UPDATE=()
+echo "${BATCH_UPDATE[@]}"
 # Updating the samples to use the updated components
-git diff --name-only | while read component_file; do
-    echo $component_file
-    find components samples -type f | while read file; do
-      sed -i -E "s|(https://raw.githubusercontent.com/kubeflow/pipelines/)[^/]+(/$component_file)|\1${TAG_NAME}\2|g" "$file";
-    done
+COMPONENTS=($(git diff --name-only))
+for component_file in ${COMPONENTS[@]}
+do
+  echo $component_file
+  BATCH_UPDATE+=("-e" "s|(https://raw.githubusercontent.com/kubeflow/pipelines/)[^/]+(/$component_file)|\1${TAG_NAME}\2|g")
+done
+find components samples -type f | while read file; do
+  sed -i -r "${BATCH_UPDATE[@]}" "$file";
 done
 popd

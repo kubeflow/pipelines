@@ -1,5 +1,39 @@
 # Changelog
 
+### [1.4.1](https://github.com/kubeflow/pipelines/compare/1.4.0...1.4.1) (2021-02-25)
+
+
+### Bug Fixes
+
+* **backend:** fixes sql error when deploy KFP in ANSI_QUOTES sql mode. Fixes [\#5121](https://github.com/kubeflow/pipelines/issues/5121) ([\#5156](https://github.com/kubeflow/pipelines/issues/5156)) ([7178f9f](https://github.com/kubeflow/pipelines/commit/7178f9f2f9f1444b5277b56b018fcdb3ae56f9cc))
+* **backend:** remove Bazel from building the API. Part of [\#3250](https://github.com/kubeflow/pipelines/issues/3250) ([\#4906](https://github.com/kubeflow/pipelines/issues/4906)) ([2a83336](https://github.com/kubeflow/pipelines/commit/2a8333619e7df1ae9a9c6826b93d94065013170b))
+* **cache:** do not cache TFX pods for newer TFX versions ([\#5188](https://github.com/kubeflow/pipelines/issues/5188)) ([c2c5e83](https://github.com/kubeflow/pipelines/commit/c2c5e8340217dcf31bb8517156cac56069f81571))
+* **components:** fixes issues with tfjob launcher component. ([\#4806](https://github.com/kubeflow/pipelines/issues/4806)) ([c767329](https://github.com/kubeflow/pipelines/commit/c76732904fab142e57abe198f3926068ea440c75))
+* **frontend:** example-validator visualization for TFX 0.27.0. Part of [\#5137](https://github.com/kubeflow/pipelines/issues/5137) ([\#5186](https://github.com/kubeflow/pipelines/issues/5186)) ([89c3b61](https://github.com/kubeflow/pipelines/commit/89c3b61a096a123d77fdec35c55ed3cfd78a3f9a))
+* **frontend:** Show recurring run display name rather than ID. Fix [\#1786](https://github.com/kubeflow/pipelines/issues/1786) ([\#5141](https://github.com/kubeflow/pipelines/issues/5141)) ([f802b6d](https://github.com/kubeflow/pipelines/commit/f802b6dfb4fccf89f6c2f2613f6d51fd3b55ad18))
+* **samples:** remove TFX iris example. Part of [\#5137](https://github.com/kubeflow/pipelines/issues/5137) ([\#5189](https://github.com/kubeflow/pipelines/issues/5189)) ([09a7d03](https://github.com/kubeflow/pipelines/commit/09a7d034948e14dd65076adc4cb0811d9b08291e))
+* **visualization:** downgrade tfma to 0.26 ([\#5191](https://github.com/kubeflow/pipelines/issues/5191)) ([3fbafc0](https://github.com/kubeflow/pipelines/commit/3fbafc00142ce013267d85cad548fae45f2e4d29))
+* upgrade tfx samples & deps to 0.27.0. Part of [\#5137](https://github.com/kubeflow/pipelines/issues/5137) ([\#5176](https://github.com/kubeflow/pipelines/issues/5176)) ([acf6f7b](https://github.com/kubeflow/pipelines/commit/acf6f7b0faafaaad5a247290652a40ad234c972f))
+* **samples:** Update KFP version in sample to fix backslash recognization issue. ([\#5140](https://github.com/kubeflow/pipelines/issues/5140)) ([5e10ab7](https://github.com/kubeflow/pipelines/commit/5e10ab7072f4ad1eeb5b8e1c3cf9ab03ce2a93b5))
+* **samples:** Update tfx image. Fixes [\#5137](https://github.com/kubeflow/pipelines/issues/5137) ([\#5165](https://github.com/kubeflow/pipelines/issues/5165)) ([5b61bf5](https://github.com/kubeflow/pipelines/commit/5b61bf5d9ed77c3f0cd3af385466b4f88d39ec1b))
+
+### [1.4.1-rc.1](https://github.com/kubeflow/pipelines/compare/1.4.0...1.4.1-rc.1) (2021-02-25)
+
+
+### Bug Fixes
+
+* **backend:** fixes sql error when deploy KFP in ANSI_QUOTES sql mode. Fixes [\#5121](https://github.com/kubeflow/pipelines/issues/5121) ([\#5156](https://github.com/kubeflow/pipelines/issues/5156)) ([7178f9f](https://github.com/kubeflow/pipelines/commit/7178f9f2f9f1444b5277b56b018fcdb3ae56f9cc))
+* **backend:** remove Bazel from building the API. Part of [\#3250](https://github.com/kubeflow/pipelines/issues/3250) ([\#4906](https://github.com/kubeflow/pipelines/issues/4906)) ([2a83336](https://github.com/kubeflow/pipelines/commit/2a8333619e7df1ae9a9c6826b93d94065013170b))
+* **cache:** do not cache TFX pods for newer TFX versions ([\#5188](https://github.com/kubeflow/pipelines/issues/5188)) ([c2c5e83](https://github.com/kubeflow/pipelines/commit/c2c5e8340217dcf31bb8517156cac56069f81571))
+* **components:** fixes issues with tfjob launcher component. ([\#4806](https://github.com/kubeflow/pipelines/issues/4806)) ([c767329](https://github.com/kubeflow/pipelines/commit/c76732904fab142e57abe198f3926068ea440c75))
+* **frontend:** example-validator visualization for TFX 0.27.0. Part of [\#5137](https://github.com/kubeflow/pipelines/issues/5137) ([\#5186](https://github.com/kubeflow/pipelines/issues/5186)) ([89c3b61](https://github.com/kubeflow/pipelines/commit/89c3b61a096a123d77fdec35c55ed3cfd78a3f9a))
+* **frontend:** Show recurring run display name rather than ID. Fix [\#1786](https://github.com/kubeflow/pipelines/issues/1786) ([\#5141](https://github.com/kubeflow/pipelines/issues/5141)) ([f802b6d](https://github.com/kubeflow/pipelines/commit/f802b6dfb4fccf89f6c2f2613f6d51fd3b55ad18))
+* **samples:** remove TFX iris example. Part of [\#5137](https://github.com/kubeflow/pipelines/issues/5137) ([\#5189](https://github.com/kubeflow/pipelines/issues/5189)) ([09a7d03](https://github.com/kubeflow/pipelines/commit/09a7d034948e14dd65076adc4cb0811d9b08291e))
+* **visualization:** downgrade tfma to 0.26 ([\#5191](https://github.com/kubeflow/pipelines/issues/5191)) ([3fbafc0](https://github.com/kubeflow/pipelines/commit/3fbafc00142ce013267d85cad548fae45f2e4d29))
+* upgrade tfx samples & deps to 0.27.0. Part of [\#5137](https://github.com/kubeflow/pipelines/issues/5137) ([\#5176](https://github.com/kubeflow/pipelines/issues/5176)) ([acf6f7b](https://github.com/kubeflow/pipelines/commit/acf6f7b0faafaaad5a247290652a40ad234c972f))
+* **samples:** Update KFP version in sample to fix backslash recognization issue. ([\#5140](https://github.com/kubeflow/pipelines/issues/5140)) ([5e10ab7](https://github.com/kubeflow/pipelines/commit/5e10ab7072f4ad1eeb5b8e1c3cf9ab03ce2a93b5))
+* **samples:** Update tfx image. Fixes [\#5137](https://github.com/kubeflow/pipelines/issues/5137) ([\#5165](https://github.com/kubeflow/pipelines/issues/5165)) ([5b61bf5](https://github.com/kubeflow/pipelines/commit/5b61bf5d9ed77c3f0cd3af385466b4f88d39ec1b))
+
 ## [1.4.0](https://github.com/kubeflow/pipelines/compare/1.3.0...1.4.0) (2021-02-12)
 
 
