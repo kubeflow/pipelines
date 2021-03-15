@@ -433,14 +433,14 @@ steps:
     docker push gcr.io/ml-pipeline/google/pipelines-test/minio:$(cat /workspace/mm.ver)
 
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['pull', 'gcr.io/ml-pipeline/mysql:5.6']
+  args: ['pull', 'gcr.io/ml-pipeline/mysql:5.7']
   id:   'pullMysql'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/ml-pipeline/mysql:5.6', 'gcr.io/ml-pipeline/google/pipelines/mysql:$TAG_NAME']
+  args: ['tag', 'gcr.io/ml-pipeline/mysql:5.7', 'gcr.io/ml-pipeline/google/pipelines/mysql:$TAG_NAME']
   id:   'tagMySqlForMarketplace'
   waitFor: ['pullMysql']
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/ml-pipeline/mysql:5.6', 'gcr.io/ml-pipeline/google/pipelines-test/mysql:$TAG_NAME']
+  args: ['tag', 'gcr.io/ml-pipeline/mysql:5.7', 'gcr.io/ml-pipeline/google/pipelines-test/mysql:$TAG_NAME']
   id:   'tagMySqlForMarketplaceTest'
   waitFor: ['pullMysql']
 - id:   'tagMySqlForMarketplaceMajorMinor'
@@ -450,8 +450,8 @@ steps:
   args:
   - -ceux
   - |
-    docker tag gcr.io/ml-pipeline/mysql:5.6 gcr.io/ml-pipeline/google/pipelines/mysql:$(cat /workspace/mm.ver)
-    docker tag gcr.io/ml-pipeline/mysql:5.6 gcr.io/ml-pipeline/google/pipelines-test/mysql:$(cat /workspace/mm.ver)
+    docker tag gcr.io/ml-pipeline/mysql:5.7 gcr.io/ml-pipeline/google/pipelines/mysql:$(cat /workspace/mm.ver)
+    docker tag gcr.io/ml-pipeline/mysql:5.7 gcr.io/ml-pipeline/google/pipelines-test/mysql:$(cat /workspace/mm.ver)
     docker push gcr.io/ml-pipeline/google/pipelines/mysql:$(cat /workspace/mm.ver)
     docker push gcr.io/ml-pipeline/google/pipelines-test/mysql:$(cat /workspace/mm.ver)
 

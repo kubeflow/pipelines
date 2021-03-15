@@ -186,7 +186,7 @@ steps:
   args: ['pull', 'gcr.io/ml-pipeline/minio:RELEASE.2019-08-14T20-37-41Z-license-compliance']
   id:   'pullMinio'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['pull', 'gcr.io/ml-pipeline/mysql:5.6']
+  args: ['pull', 'gcr.io/ml-pipeline/mysql:5.7']
   id:   'pullMysql'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/cloudsql-docker/gce-proxy:1.14']
