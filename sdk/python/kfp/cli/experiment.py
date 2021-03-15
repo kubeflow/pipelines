@@ -40,7 +40,7 @@ def list(ctx, max_size):
     client = ctx.obj['client']
     output_format = ctx.obj['output']
 
-    response = client.experiments.list_experiment(
+    response = client.list_experiments(
         page_size=max_size,
         sort_by="created_at desc"
     )
@@ -80,7 +80,7 @@ def delete(ctx, experiment_id):
 
     client = ctx.obj["client"]
 
-    client.experiments.delete_experiment(id=experiment_id)
+    client.delete_experiment(experiment_id)
     click.echo("{} is deleted.".format(experiment_id))
 
 
