@@ -164,6 +164,14 @@ class Client(object):
       config.ssl_ca_cert = ssl_ca_cert
 
     host = host or ''
+
+    # Defaults to 'https' if host does not contain 'http' or 'https' protocol.
+    if host and not host.startswith('http'):
+      warnings.warn(
+          'The host %s does not contain the "http" or "https" protocol.'
+          ' Defaults to "https".' % host)
+      host = 'https://' + host
+
     # Preprocess the host endpoint to prevent some common user mistakes.
     if not client_id:
       # always preserving the protocol (http://localhost requires it)
