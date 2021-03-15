@@ -15,7 +15,7 @@
 import inspect
 import re
 import warnings
-from typing import Any, Dict, List, TypeVar, Union, Callable, Optional, Sequence
+from typing import Any, Dict, Iterable, List, TypeVar, Union, Callable, Optional, Sequence
 
 from kubernetes.client import V1Toleration, V1Affinity
 from kubernetes.client.models import (V1Container, V1EnvVar, V1EnvFromSource,
@@ -1104,8 +1104,26 @@ class ContainerOp(BaseOp):
                      sidecars=sidecars,
                      is_exit_handler=is_exit_handler)
 
+    def _contains_argument_from_tfx_sdk(
+        arguments: Optional[ArgumentOrArguments]
+    ) -> bool:
+      if isinstance(arguments, str):
+        return arguments == '--component_launcher_class_path'
+      if not arguments or not isinstance(arguments, Iterable):
+        return False
+
+      def _is_argument_from_tfx_sdk(arg: ContainerOpArgument):
+        if isinstance(arg, str):
+          return arg == '--component_launcher_class_path'
+        else:
+          return False
+
+      return any([
+          _is_argument_from_tfx_sdk(arg) for arg in arguments
+      ])
+
     if (not ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING) and (
-        '--component_launcher_class_path' not in (arguments or [])):
+        not _contains_argument_from_tfx_sdk(arguments)):
       # The warning is suppressed for pipelines created using the TFX SDK.
       warnings.warn(
           'Please create reusable components instead of constructing ContainerOp instances directly.'
