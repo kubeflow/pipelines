@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -ex
+
 # It's called in ".cloudbuild.yaml" for each commits to master
 # It's used for Hosted deployment testing but also can be reused for other usages.
 #
