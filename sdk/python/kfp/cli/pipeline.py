@@ -74,7 +74,7 @@ def upload_version(ctx, package_file, pipeline_version, pipeline_id=None, pipeli
     client = ctx.obj["client"]
     output_format = ctx.obj["output"]
     if bool(pipeline_id) == bool(pipeline_name):
-        raise ValueError("Need to suppy 'pipeline-name' or 'pipeline-id'")
+        raise ValueError("Need to supply 'pipeline-name' or 'pipeline-id'")
     if pipeline_name is not None:
         pipeline_id = client.get_pipeline_id(name=pipeline_name)
         if pipeline_id is None:
