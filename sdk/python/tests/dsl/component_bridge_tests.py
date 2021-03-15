@@ -245,7 +245,7 @@ class TestComponentBridge(unittest.TestCase):
             kfp.dsl.ContainerOp(name='name', image='image')
 
         with self.assertWarnsRegex(FutureWarning, expected_regex='reusable'):
-            kfp.dsl.ContainerOp(name='name', image='image', arguments=['dammy', PipelineParam('param')])
+            kfp.dsl.ContainerOp(name='name', image='image', arguments=[PipelineParam('param1'), PipelineParam('param2')])
 
 
     def test_prevent_passing_container_op_as_argument(self):
