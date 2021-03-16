@@ -47,7 +47,7 @@ var (
 		},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{
-				corev1.Container{
+				{
 					Name:    "main",
 					Image:   "test_image",
 					Command: []string{"python"},
@@ -129,6 +129,14 @@ func TestMutatePodIfCachedWithTFXPod2(t *testing.T) {
 	tfxPod := *fakePod.DeepCopy()
 	tfxPod.Labels["pipelines.kubeflow.org/pipeline-sdk-type"] = "tfx"
 	patchOperation, err := MutatePodIfCached(GetFakeRequestFromPod(&tfxPod), fakeClientManager)
+	assert.Nil(t, patchOperation)
+	assert.Nil(t, err)
+}
+
+func TestMutatePodIfCachedWithKfpV2Pod(t *testing.T) {
+	v2Pod := *fakePod.DeepCopy()
+	v2Pod.Annotations["pipelines.kubeflow.org/v2_component"] = "true"
+	patchOperation, err := MutatePodIfCached(GetFakeRequestFromPod(&v2Pod), fakeClientManager)
 	assert.Nil(t, patchOperation)
 	assert.Nil(t, err)
 }

@@ -33,23 +33,25 @@ import (
 )
 
 const (
-	KFPCacheEnabledLabelKey   string = "pipelines.kubeflow.org/cache_enabled"
-	KFPCacheEnabledLabelValue string = "true"
-	KFPCachedLabelKey         string = "pipelines.kubeflow.org/reused_from_cache"
-	KFPCachedLabelValue       string = "true"
-	ArgoWorkflowNodeName      string = "workflows.argoproj.io/node-name"
-	ArgoWorkflowTemplate      string = "workflows.argoproj.io/template"
-	ExecutionKey              string = "pipelines.kubeflow.org/execution_cache_key"
-	CacheIDLabelKey           string = "pipelines.kubeflow.org/cache_id"
-	ArgoWorkflowOutputs       string = "workflows.argoproj.io/outputs"
-	MetadataWrittenKey        string = "pipelines.kubeflow.org/metadata_written"
-	AnnotationPath            string = "/metadata/annotations"
-	LabelPath                 string = "/metadata/labels"
-	SpecContainersPath        string = "/spec/containers"
-	SpecInitContainersPath    string = "/spec/initContainers"
-	TFXPodSuffix              string = "tfx/orchestration/kubeflow/container_entrypoint.py"
-	SdkTypeLabel              string = "pipelines.kubeflow.org/pipeline-sdk-type"
-	TfxSdkTypeLabel           string = "tfx"
+	KFPCacheEnabledLabelKey    string = "pipelines.kubeflow.org/cache_enabled"
+	KFPCacheEnabledLabelValue  string = "true"
+	KFPCachedLabelKey          string = "pipelines.kubeflow.org/reused_from_cache"
+	KFPCachedLabelValue        string = "true"
+	ArgoWorkflowNodeName       string = "workflows.argoproj.io/node-name"
+	ArgoWorkflowTemplate       string = "workflows.argoproj.io/template"
+	ExecutionKey               string = "pipelines.kubeflow.org/execution_cache_key"
+	CacheIDLabelKey            string = "pipelines.kubeflow.org/cache_id"
+	ArgoWorkflowOutputs        string = "workflows.argoproj.io/outputs"
+	MetadataWrittenKey         string = "pipelines.kubeflow.org/metadata_written"
+	AnnotationPath             string = "/metadata/annotations"
+	LabelPath                  string = "/metadata/labels"
+	SpecContainersPath         string = "/spec/containers"
+	SpecInitContainersPath     string = "/spec/initContainers"
+	TFXPodSuffix               string = "tfx/orchestration/kubeflow/container_entrypoint.py"
+	SdkTypeLabel               string = "pipelines.kubeflow.org/pipeline-sdk-type"
+	TfxSdkTypeLabel            string = "tfx"
+	V2ComponentAnnotationKey   string = "pipelines.kubeflow.org/v2_component"
+	V2ComponentAnnotationValue string = "true"
 )
 
 var (
@@ -89,6 +91,12 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 
 	if isTFXPod(&pod) {
 		log.Printf("This pod %s is created by tfx pipelines.", pod.ObjectMeta.Name)
+		return nil, nil
+	}
+
+	if isV2Pod(&pod) {
+		// KFP v2 handles caching by its driver.
+		log.Printf("This pod %s is created by KFP v2 pipelines.", pod.ObjectMeta.Name)
 		return nil, nil
 	}
 
@@ -274,4 +282,8 @@ func isTFXPod(pod *corev1.Pod) bool {
 	}
 	mainContainer := mainContainers[0]
 	return len(mainContainer.Command) != 0 && strings.HasSuffix(mainContainer.Command[len(mainContainer.Command)-1], TFXPodSuffix)
+}
+
+func isV2Pod(pod *corev1.Pod) bool {
+	return pod.Annotations[V2ComponentAnnotationKey] == V2ComponentAnnotationValue
 }
