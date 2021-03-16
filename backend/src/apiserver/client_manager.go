@@ -54,6 +54,9 @@ const (
 	visualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
 
 	initConnectionTimeout = "InitConnectionTimeout"
+
+	clientQPS   = "ClientQPS"
+	clientBurst = "ClientBurst"
 )
 
 // Container for all service clients
@@ -155,11 +158,18 @@ func (c *ClientManager) init() {
 	c.defaultExperimentStore = storage.NewDefaultExperimentStore(db)
 	c.objectStore = initMinioClient(common.GetDurationConfig(initConnectionTimeout))
 
-	c.argoClient = client.NewArgoClientOrFatal(common.GetDurationConfig(initConnectionTimeout))
+	// Use default value of client QPS (5) & burst (10) defined in
+	// k8s.io/client-go/rest/config.go#RESTClientFor
+	clientParams := util.ClientParameters{
+		QPS:   common.GetFloat64ConfigWithDefault(clientQPS, 5),
+		Burst: common.GetIntConfigWithDefault(clientBurst, 10),
+	}
 
-	c.swfClient = client.NewScheduledWorkflowClientOrFatal(common.GetDurationConfig(initConnectionTimeout))
+	c.argoClient = client.NewArgoClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 
-	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout))
+	c.swfClient = client.NewScheduledWorkflowClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
+
+	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 
 	runStore := storage.NewRunStore(db, c.time)
 	c.runStore = runStore

@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 
 	"github.com/kubeflow/pipelines/backend/src/cache/server"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
 const (
@@ -56,6 +57,7 @@ type WhSvrDBParameters struct {
 
 func main() {
 	var params WhSvrDBParameters
+	var clientParams util.ClientParameters
 	flag.StringVar(&params.dbDriver, "db_driver", mysqlDBDriverDefault, "Database driver name, mysql is the default value")
 	flag.StringVar(&params.dbHost, "db_host", mysqlDBHostDefault, "Database host name.")
 	flag.StringVar(&params.dbPort, "db_port", mysqlDBPortDefault, "Database port number.")
@@ -64,11 +66,15 @@ func main() {
 	flag.StringVar(&params.dbPwd, "db_password", "", "Database password.")
 	flag.StringVar(&params.dbGroupConcatMaxLen, "db_group_concat_max_len", mysqlDBGroupConcatMaxLenDefault, "Database group concat max length.")
 	flag.StringVar(&params.namespaceToWatch, "namespace_to_watch", "kubeflow", "Namespace to watch.")
+	// Use default value of client QPS (5) & burst (10) defined in
+	// k8s.io/client-go/rest/config.go#RESTClientFor
+	flag.Float64Var(&clientParams.QPS, "kube_client_qps", 5, "The maximum QPS to the master from this client.")
+	flag.IntVar(&clientParams.Burst, "kube_client_burst", 10, "Maximum burst for throttle from this client.")
 
 	flag.Parse()
 
 	log.Println("Initing client manager....")
-	clientManager := NewClientManager(params)
+	clientManager := NewClientManager(params, clientParams)
 
 	go server.WatchPods(params.namespaceToWatch, &clientManager)
 
