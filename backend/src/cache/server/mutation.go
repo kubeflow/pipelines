@@ -285,5 +285,5 @@ func isTFXPod(pod *corev1.Pod) bool {
 }
 
 func isV2Pod(pod *corev1.Pod) bool {
-	return pod.Labels[V2ComponentAnnotationKey] == V2ComponentAnnotationValue
+	return pod.Annotations[V2ComponentAnnotationKey] == V2ComponentAnnotationValue
 }
