@@ -135,7 +135,7 @@ func TestMutatePodIfCachedWithTFXPod2(t *testing.T) {
 
 func TestMutatePodIfCachedWithKfpV2Pod(t *testing.T) {
 	v2Pod := *fakePod.DeepCopy()
-	v2Pod.Labels["pipelines.kubeflow.org/v2_component"] = "true"
+	v2Pod.Annotations["pipelines.kubeflow.org/v2_component"] = "true"
 	patchOperation, err := MutatePodIfCached(GetFakeRequestFromPod(&v2Pod), fakeClientManager)
 	assert.Nil(t, patchOperation)
 	assert.Nil(t, err)
