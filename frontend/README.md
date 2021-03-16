@@ -111,7 +111,7 @@ To understand more what prettier is: [What is Prettier](https://prettier.io/docs
   this project's config automatically.
   Recommend setting the following in [settings.json](https://code.visualstudio.com/docs/getstarted/settings#_settings-file-locations) for vscode to autoformat on save.
   ```
-    "[typescript]": {
+  "[typescript]": {
     "editor.formatOnSave": true,
     "files.trimTrailingWhitespace": false,
   },
