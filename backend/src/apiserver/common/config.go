@@ -70,6 +70,20 @@ func GetBoolConfigWithDefault(configName string, value bool) bool {
 	return value
 }
 
+func GetFloat64ConfigWithDefault(configName string, value float64) float64 {
+	if !viper.IsSet(configName) {
+		return value
+	}
+	return viper.GetFloat64(configName)
+}
+
+func GetIntConfigWithDefault(configName string, value int) int {
+	if !viper.IsSet(configName) {
+		return value
+	}
+	return viper.GetInt(configName)
+}
+
 func GetDurationConfig(configName string) time.Duration {
 	if !viper.IsSet(configName) {
 		glog.Fatalf("Please specify flag %s", configName)

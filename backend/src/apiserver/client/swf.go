@@ -20,6 +20,7 @@ import (
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	swfclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
 	"github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
@@ -41,13 +42,15 @@ func (swfClient *SwfClient) ScheduledWorkflow(namespace string) v1beta1.Schedule
 }
 
 // creates a new client for the Kubernetes ScheduledWorkflow CRD.
-func NewScheduledWorkflowClientOrFatal(initConnectionTimeout time.Duration) *SwfClient {
+func NewScheduledWorkflowClientOrFatal(initConnectionTimeout time.Duration, clientParams util.ClientParameters) *SwfClient {
 	var swfClient v1beta1.ScheduledworkflowV1beta1Interface
 	var operation = func() error {
 		restConfig, err := rest.InClusterConfig()
 		if err != nil {
 			return err
 		}
+		restConfig.QPS = float32(clientParams.QPS)
+		restConfig.Burst = clientParams.Burst
 		swfClientSet := swfclient.NewForConfigOrDie(restConfig)
 		swfClient = swfClientSet.ScheduledworkflowV1beta1()
 		return nil
