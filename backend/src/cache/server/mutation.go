@@ -50,6 +50,8 @@ const (
 	TFXPodSuffix              string = "tfx/orchestration/kubeflow/container_entrypoint.py"
 	SdkTypeLabel              string = "pipelines.kubeflow.org/pipeline-sdk-type"
 	TfxSdkTypeLabel           string = "tfx"
+	V2ComponentLabelKey       string = "pipelines.kubeflow.org/v2_component"
+	V2ComponentLabelValue     string = "true"
 )
 
 var (
@@ -89,6 +91,12 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 
 	if isTFXPod(&pod) {
 		log.Printf("This pod %s is created by tfx pipelines.", pod.ObjectMeta.Name)
+		return nil, nil
+	}
+
+	if isV2Pod(&pod) {
+		// KFP v2 handles caching by its driver.
+		log.Printf("This pod %s is created by KFP v2 pipelines.", pod.ObjectMeta.Name)
 		return nil, nil
 	}
 
@@ -274,4 +282,8 @@ func isTFXPod(pod *corev1.Pod) bool {
 	}
 	mainContainer := mainContainers[0]
 	return len(mainContainer.Command) != 0 && strings.HasSuffix(mainContainer.Command[len(mainContainer.Command)-1], TFXPodSuffix)
+}
+
+func isV2Pod(pod *corev1.Pod) bool {
+	return pod.Labels[V2ComponentLabelKey] == V2ComponentLabelValue
 }
