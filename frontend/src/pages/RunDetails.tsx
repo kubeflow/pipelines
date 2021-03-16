@@ -26,6 +26,7 @@ import {
   ExecutionHelpers,
   getExecutionsFromContext,
   getKfpRunContext,
+  getRunContext,
   getTfxRunContext,
 } from 'src/lib/MlmdUtils';
 import { classes, stylesheet } from 'typestyle';
@@ -737,20 +738,13 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       let mlmdRunContext: Context | undefined;
       let mlmdExecutions: Execution[] | undefined;
       // Get data about this workflow from MLMD
-      if (workflow.metadata?.name) {
-        try {
-          try {
-            mlmdRunContext = await getTfxRunContext(workflow.metadata.name);
-          } catch (err) {
-            logger.warn(`Cannot find tfx run context (this is expected for non tfx runs)`, err);
-            mlmdRunContext = await getKfpRunContext(workflow.metadata.name);
-          }
-          mlmdExecutions = await getExecutionsFromContext(mlmdRunContext);
-        } catch (err) {
-          // Data in MLMD may not exist depending on this pipeline is a TFX pipeline.
-          // So we only log the error in console.
-          logger.warn(err);
-        }
+      try {
+        mlmdRunContext = await getRunContext(workflow);
+        mlmdExecutions = await getExecutionsFromContext(mlmdRunContext);
+      } catch (err) {
+        // Data in MLMD may not exist depending on this pipeline is a TFX pipeline.
+        // So we only log the error in console.
+        logger.warn(err);
       }
 
       // Build runtime graph
