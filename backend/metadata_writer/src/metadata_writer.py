@@ -119,7 +119,7 @@ def is_tfx_pod(pod) -> bool:
     return main_container.command and main_container.command[-1].endswith('tfx/orchestration/kubeflow/container_entrypoint.py')
 
 def is_kfp_v2_pod(pod) -> bool:
-    return pod.metadata.labels[KFP_V2_COMPONENT_ANNOTATION_KEY] == KFP_V2_COMPONENT_ANNOTATION_VALUE
+    return pod.metadata.labels.get(KFP_V2_COMPONENT_ANNOTATION_KEY) == KFP_V2_COMPONENT_ANNOTATION_VALUE
 
 # Caches (not expected to be persistent)
 # These caches are only used to prevent race conditions. Race conditions happen because the writer can see multiple versions of K8s object before the applied labels show up.
