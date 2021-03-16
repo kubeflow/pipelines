@@ -6,10 +6,10 @@ bases:
   - ../env/gcp
   # Kubeflow Pipelines servers are capable of collecting Prometheus metrics.
   # If you want to monitor your Kubeflow Pipelines servers with those metrics, you'll need a Prometheus server in your Kubeflow Pipelines cluster.
-  # If you don't already have a Prometheus server up, you can use the following configuration files for Prometheus.
+  # If you don't already have a Prometheus server up, you can uncomment the following configuration files for Prometheus.
   # If you have your own Prometheus server up already or you don't want a Prometheus server for monitoring, you can comment the following line out.
-  - ../third-party/prometheus
-  - ../third-party/grafana
+  # - ../third_party/prometheus
+  # - ../third_party/grafana
 
 # Identifier for application manager to apply ownerReference.
 # The ownerReference ensures the resources get garbage collected

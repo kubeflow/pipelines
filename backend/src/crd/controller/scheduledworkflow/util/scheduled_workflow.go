@@ -148,17 +148,6 @@ func (s *ScheduledWorkflow) getWorkflowParametersAsMap() map[string]string {
 	return resultAsMap
 }
 
-func (s *ScheduledWorkflow) getFormattedWorkflowParametersAsMap(
-	formatter *ParameterFormatter) map[string]string {
-
-	result := make(map[string]string)
-	for key, value := range s.getWorkflowParametersAsMap() {
-		formatted := formatter.Format(value)
-		result[key] = formatted
-	}
-	return result
-}
-
 // NewWorkflow creates a workflow for this schedule. It also sets
 // the appropriate OwnerReferences on the resource so handleObject can discover
 // the Schedule resource that 'owns' it.
@@ -178,21 +167,22 @@ func (s *ScheduledWorkflow) NewWorkflow(
 	workflow.APIVersion = workflowApiVersion
 	result := commonutil.NewWorkflow(workflow)
 
+	uuid, err := s.uuid.NewRandom()
+	if err != nil {
+		return nil, err
+	}
+
 	// Set the name of the workflow.
 	result.OverrideName(s.NextResourceName())
 
 	// Get the workflow parameters and format them.
-	formatter := NewParameterFormatter(nextScheduledEpoch, nowEpoch, s.nextIndex())
-	formattedParams := s.getFormattedWorkflowParametersAsMap(formatter)
+	formatter := commonutil.NewSWFParameterFormatter(uuid.String(), nextScheduledEpoch, nowEpoch, s.nextIndex())
+	formattedParams := formatter.FormatWorkflowParameters(s.getWorkflowParametersAsMap())
 
 	// Set the parameters.
 	result.OverrideParameters(formattedParams)
 
 	result.SetCannonicalLabels(s.Name, nextScheduledEpoch, s.nextIndex())
-	uuid, err := s.uuid.NewRandom()
-	if err != nil {
-		return nil, err
-	}
 	result.SetLabels(commonutil.LabelKeyWorkflowRunId, uuid.String())
 	// Replace {{workflow.uid}} with runId
 	err = result.ReplaceUID(uuid.String())

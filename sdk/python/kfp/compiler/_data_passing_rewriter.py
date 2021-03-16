@@ -5,6 +5,7 @@ import re
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from kfp.components import _components
+from kfp import dsl
 
 
 def fix_big_data_passing(workflow: dict) -> dict:
@@ -385,15 +386,18 @@ def deconstruct_single_placeholder(s: str) -> List[str]:
     return s.lstrip('{').rstrip('}').split('.')
 
 
-def _replace_output_dir_placeholder(command_line: str,
+def _replace_output_dir_and_run_id(command_line: str,
     output_directory: Optional[str] = None) -> str:
     """Replaces the output directory placeholder."""
     if _components.OUTPUT_DIR_PLACEHOLDER in command_line:
         if not output_directory:
             raise ValueError('output_directory of a pipeline must be specified '
                              'when URI placeholder is used.')
-        return command_line.replace(
+        command_line = command_line.replace(
             _components.OUTPUT_DIR_PLACEHOLDER, output_directory)
+    if _components.RUN_ID_PLACEHOLDER in command_line:
+        command_line = command_line.replace(
+            _components.RUN_ID_PLACEHOLDER, dsl.RUN_ID_PLACEHOLDER)
     return command_line
 
 
@@ -476,7 +480,7 @@ def _refactor_inputs_if_uri_placeholder(
             # path field, which is given according to the component I/O
             # definition.
             m = re.match(
-                r'.*/{{workflow\.uid}}/{{inputs\.parameters\.(?P<input_name>.*)'
+                r'.*/{{kfp\.run_uid}}/{{inputs\.parameters\.(?P<input_name>.*)'
                 r'}}/.*',
                 artifact_input['path'])
             input_name = m.group('input_name')
@@ -495,9 +499,15 @@ def _refactor_inputs_if_uri_placeholder(
                 new_command_lines = []
                 for cmd in command_lines:
                     matched = re.match(
-                        r'.*/{{workflow\.uid}}/{{inputs\.parameters\.'
+                        r'.*/{{kfp\.run_uid}}/{{inputs\.parameters\.'
                         + input_name + r'}}/(?P<filename>.*)', cmd)
                     if matched:
+                        if not artifact_input['name'] in output_to_filename:
+                            raise RuntimeError(
+                                'Cannot find %s in output to file name mapping.'
+                                'Please note currently connecting URI '
+                                'placeholder with path placeholder is not '
+                                'supported.' % artifact_input['name'])
                         new_command_lines.append(
                             cmd[:-len(matched.group('filename'))] +
                             output_to_filename[artifact_input['name']])
@@ -704,13 +714,13 @@ def add_pod_name_passing(
         # Process {{kfp.pipeline_root}} placeholders.
         args = template['container'].get('args') or []
         if args:
-            new_args = [_replace_output_dir_placeholder(arg, output_directory)
+            new_args = [_replace_output_dir_and_run_id(arg, output_directory)
                         for arg in args]
             template['container']['args'] = new_args
 
         cmds = template['container'].get('command') or []
         if cmds:
-            new_cmds = [_replace_output_dir_placeholder(cmd, output_directory)
+            new_cmds = [_replace_output_dir_and_run_id(cmd, output_directory)
                         for cmd in cmds]
             template['container']['command'] = new_cmds
 

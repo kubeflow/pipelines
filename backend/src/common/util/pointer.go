@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"time"
 
+	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/go-openapi/strfmt"
-	"github.com/golang/protobuf/ptypes/timestamp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -32,10 +32,6 @@ func BoolPointer(b bool) *bool {
 }
 
 func TimePointer(t time.Time) *time.Time {
-	return &t
-}
-
-func TimestampPointer(t timestamp.Timestamp) *timestamp.Timestamp {
 	return &t
 }
 
@@ -99,4 +95,19 @@ func ToInt64Pointer(t *metav1.Time) *int64 {
 	} else {
 		return Int64Pointer(t.Unix())
 	}
+}
+
+func ToAnyStringPointer(s *string) *workflowapi.AnyString {
+	if s != nil {
+		return workflowapi.AnyStringPtr(*s)
+	}
+	return nil
+}
+
+func ToStringPointer(a *workflowapi.AnyString) *string {
+	if a != nil {
+		v := a.String()
+		return &v
+	}
+	return nil
 }

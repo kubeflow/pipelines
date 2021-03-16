@@ -1,0 +1,58 @@
+{
+  "metadata": {
+    "evaluationSlices": [
+      {
+        "slice": "dog",
+        "sliceClassificationMetrics": {
+          "confidenceMetrics": [
+            {
+              "confidenceThreshold": 24.3,
+              "falsePositiveRate": 98.4,
+              "recall": 24.5
+            }
+          ]
+        }
+      },
+      {
+        "slice": "overall",
+        "sliceClassificationMetrics": {
+          "confusionMatrix": {
+            "annotationSpecs": [
+              {
+                "displayName": "dog"
+              },
+              {
+                "displayName": "cat"
+              },
+              {
+                "displayName": "horses"
+              }
+            ],
+            "row": [
+              [
+                2.0,
+                6.0,
+                0.0
+              ],
+              [
+                3.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0
+              ]
+            ]
+          }
+        }
+      }
+    ],
+    "test": 1.0
+  },
+  "name": "test_me",
+  "type": {
+    "instanceSchema": "title: SlicedClassificationMetrics\ntype: object\nproperties:\n  evaluationSlices:\n    type: array\n    items:\n      type: object\n      properties:\n        slice:\n          type: string\n        sliceClassificationMetrics:\n          type: object\n          properties:\n            auPrc:\n              type: number\n              format: float\n            auPrc:\n              type: number\n              format: float\n            auRoc:\n              type: number\n              format: float\n            logLoss:\n              type: number\n              format: float\n            confidenceMetrics:\n              type: array\n              items:\n                type: object\n                properties:\n                  confidenceThreshold:\n                    type: number\n                    format: float\n                  maxPredictions:\n                    type: integer\n                    format: int32\n                  recall:\n                    type: number\n                    format: float\n                  precision:\n                    type: number\n                    format: float\n                  falsePositiveRate:\n                    type: number\n                    format: float\n                  f1Score:\n                    type: number\n                    format: float\n                  recallAt1:\n                    type: number\n                    format: float\n                  precisionAt1:\n                    type: number\n                    format: float\n                  falsePositiveRateAt1:\n                    type: number\n                    format: float\n                  f1ScoreAt1:\n                    type: number\n                    format: float\n                  truePositiveCount:\n                    type: integer\n                    format: int64\n                  falsePositiveCount:\n                    type: integer\n                    format: int64\n                  falseNegativeCount:\n                    type: integer\n                    format: int64\n                  trueNegativeCount:\n                    type: integer\n                    format: int64\n            confusionMatrix:\n              type: object\n              properties:\n                annotationSpecs:\n                  type: array\n                  items:\n                    type: object\n                    properties:\n                      id:\n                        type: string\n                      displayName:\n                        type: string\n                rows:\n                  type: array\n                  items:\n                    type: object\n                    properties:\n                      row:\n                        type: array\n                        items:\n                          type: integer\n                          format: int64"
+  }
+}

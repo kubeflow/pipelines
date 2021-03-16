@@ -76,8 +76,7 @@ class EntrypointUtilsTest(unittest.TestCase):
     self.assertIsInstance(art, ontology_artifacts.Model)
     self.assertEqual(art.uri, 'gs://root/execution/output')
     self.assertEqual(art.name, 'test-artifact')
-    self.assertEqual(art.get_string_custom_property('test_property'),
-                     'test value')
+    self.assertEqual(art.metadata['test_property'], 'test value')
 
   def testGetOutputArtifacts(self):
     outputs = entrypoint_utils.get_output_artifacts(
@@ -92,8 +91,7 @@ class EntrypointUtilsTest(unittest.TestCase):
     model = ontology_artifacts.Model()
     model.name = 'test-artifact'
     model.uri = 'gs://root/execution/output'
-    model.set_string_custom_property('test_property', 'test value')
-
+    model.metadata['test_property'] = 'test value'
     executor_output = entrypoint_utils.get_executor_output(
         output_artifacts={'output': model},
         output_params={
@@ -116,13 +114,13 @@ class EntrypointUtilsTest(unittest.TestCase):
   def testImportFuncFromSource(self):
     fn = entrypoint_utils.import_func_from_source(
         source_path=os.path.join(
-            os.path.dirname(__file__), 'testdata', 'test_source.py'),
+            os.path.dirname(__file__), 'testdata', 'pipeline_source.py'),
         fn_name='test_func'
     )
     self.assertEqual(fn(1, 2), 3)
 
     with self.assertRaisesRegexp(ImportError, '\D+ in \D+ not found in '):
       _ = entrypoint_utils.import_func_from_source(
-          source_path=os.path.join('testdata', 'test_source.py'),
+          source_path=os.path.join('testdata', 'pipeline_source.py'),
           fn_name='non_existing_fn'
       )

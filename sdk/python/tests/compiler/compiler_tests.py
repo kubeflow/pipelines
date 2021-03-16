@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import List
 
 import kfp
 import kfp.compiler as compiler
@@ -71,7 +72,8 @@ class TestCompiler(unittest.TestCase):
             name="resource"
           )
         ),
-        attribute_outputs={"out": json}
+        attribute_outputs={"out": json},
+        set_owner_reference=True
       )
       golden_output = {
         'container': {
@@ -146,7 +148,8 @@ class TestCompiler(unittest.TestCase):
             "kind: '{{inputs.parameters.kind}}'\n"
             "metadata:\n"
             "  name: resource\n"
-          )
+          ),
+          'setOwnerReference': True
         }
       }
 
@@ -376,9 +379,13 @@ class TestCompiler(unittest.TestCase):
       """Test retry policy is set."""
 
       policy = 'Always'
+      backoff_duration = '2m'
+      backoff_factor = 1.5
+      backoff_max_duration = '3m'
 
       def my_pipeline():
-        some_op().set_retry(2, policy)
+        some_op().set_retry(2, policy, backoff_duration, backoff_factor,
+                            backoff_max_duration)
 
       workflow = kfp.compiler.Compiler()._compile(my_pipeline)
       name_to_template = {template['name']: template for template in workflow['spec']['templates']}
@@ -386,6 +393,10 @@ class TestCompiler(unittest.TestCase):
       template = name_to_template[main_dag_tasks[0]['template']]
 
       self.assertEqual(template['retryStrategy']['retryPolicy'], policy)
+      self.assertEqual(template['retryStrategy']['backoff']['duration'], backoff_duration)
+      self.assertEqual(template['retryStrategy']['backoff']['factor'], backoff_factor)
+      self.assertEqual(template['retryStrategy']['backoff']['maxDuration'], backoff_max_duration)
+
 
   def test_py_retry_policy_invalid(self):
       def my_pipeline():
@@ -1108,3 +1119,39 @@ implementation:
 
   def test_uri_artifact_passing(self):
     self._test_py_compile_yaml('uri_artifacts')
+
+  def test_keyword_only_argument_for_pipeline_func(self):
+    def some_pipeline(casual_argument: str, *, keyword_only_argument: str):
+      pass
+    kfp.compiler.Compiler()._create_workflow(some_pipeline)
+
+  def test_keyword_only_argument_for_pipeline_func_identity(self):
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+    sys.path.append(test_data_dir)
+
+    # `@pipeline` is needed to make name the same for both functions
+
+    @pipeline(name="pipeline_func")
+    def pipeline_func_arg(foo_arg: str, bar_arg: str):
+      dsl.ContainerOp(
+        name='foo',
+        image='foo',
+        command=['bar'],
+        arguments=[foo_arg, ' and ', bar_arg]
+      )
+
+    @pipeline(name="pipeline_func")
+    def pipeline_func_kwarg(foo_arg: str, *, bar_arg: str):
+      return pipeline_func_arg(foo_arg, bar_arg)
+
+    pipeline_yaml_arg   = kfp.compiler.Compiler()._create_workflow(pipeline_func_arg)
+    pipeline_yaml_kwarg = kfp.compiler.Compiler()._create_workflow(pipeline_func_kwarg)
+
+    # the yamls may differ in metadata
+    def remove_metadata(yaml) -> None:
+      del yaml['metadata']
+    remove_metadata(pipeline_yaml_arg)
+    remove_metadata(pipeline_yaml_kwarg)
+
+    # compare
+    self.assertEqual(pipeline_yaml_arg, pipeline_yaml_kwarg)

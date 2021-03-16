@@ -203,7 +203,7 @@ func loadSamples(resourceManager *resource.ResourceManager) error {
 		if configErr != nil {
 			return fmt.Errorf("Failed to decompress the file %s. Error: %v", config.Name, configErr)
 		}
-		_, configErr = resourceManager.CreatePipeline(config.Name, config.Description, pipelineFile)
+		_, configErr = resourceManager.CreatePipeline(config.Name, config.Description, "", pipelineFile)
 		if configErr != nil {
 			// Log the error but not fail. The API Server pod can restart and it could potentially cause name collision.
 			// In the future, we might consider loading samples during deployment, instead of when API server starts.

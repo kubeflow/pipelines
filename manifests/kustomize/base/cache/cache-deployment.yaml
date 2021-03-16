@@ -18,6 +18,11 @@ spec:
       - name: server
         image: gcr.io/ml-pipeline/cache-server:dummy
         env:
+          - name: CACHE_IMAGE
+            valueFrom:
+              configMapKeyRef:
+                name: pipeline-install-config
+                key: cacheImage
           - name: DBCONFIG_DRIVER
             value: mysql
           - name: DBCONFIG_DB_NAME

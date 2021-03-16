@@ -33,16 +33,16 @@ import (
 type Filter struct {
 	filterProto *api.Filter
 
-	eq  map[string]interface{}
-	neq map[string]interface{}
-	gt  map[string]interface{}
-	gte map[string]interface{}
-	lt  map[string]interface{}
-	lte map[string]interface{}
+	eq  map[string][]interface{}
+	neq map[string][]interface{}
+	gt  map[string][]interface{}
+	gte map[string][]interface{}
+	lt  map[string][]interface{}
+	lte map[string][]interface{}
 
-	in map[string]interface{}
+	in map[string][]interface{}
 
-	substring map[string]interface{}
+	substring map[string][]interface{}
 }
 
 // filterForMarshaling is a helper struct for marshaling Filter into JSON. This
@@ -50,16 +50,16 @@ type Filter struct {
 type filterForMarshaling struct {
 	FilterProto string
 
-	EQ  map[string]interface{}
-	NEQ map[string]interface{}
-	GT  map[string]interface{}
-	GTE map[string]interface{}
-	LT  map[string]interface{}
-	LTE map[string]interface{}
+	EQ  map[string][]interface{}
+	NEQ map[string][]interface{}
+	GT  map[string][]interface{}
+	GTE map[string][]interface{}
+	LT  map[string][]interface{}
+	LTE map[string][]interface{}
 
-	IN map[string]interface{}
+	IN map[string][]interface{}
 
-	SUBSTRING map[string]interface{}
+	SUBSTRING map[string][]interface{}
 }
 
 // MarshalJSON implements JSON Marshaler for Filter.
@@ -112,14 +112,14 @@ func (f *Filter) UnmarshalJSON(b []byte) error {
 func New(filterProto *api.Filter) (*Filter, error) {
 	f := &Filter{
 		filterProto: filterProto,
-		eq:          make(map[string]interface{}),
-		neq:         make(map[string]interface{}),
-		gt:          make(map[string]interface{}),
-		gte:         make(map[string]interface{}),
-		lt:          make(map[string]interface{}),
-		lte:         make(map[string]interface{}),
-		in:          make(map[string]interface{}),
-		substring:   make(map[string]interface{}),
+		eq:          make(map[string][]interface{}, 0),
+		neq:         make(map[string][]interface{}, 0),
+		gt:          make(map[string][]interface{}, 0),
+		gte:         make(map[string][]interface{}, 0),
+		lt:          make(map[string][]interface{}, 0),
+		lte:         make(map[string][]interface{}, 0),
+		in:          make(map[string][]interface{}, 0),
+		substring:   make(map[string][]interface{}, 0),
 	}
 
 	if err := f.parseFilterProto(); err != nil {
@@ -153,43 +153,64 @@ func NewWithKeyMap(filterProto *api.Filter, keyMap map[string]string, modelName 
 // AddToSelect builds a WHERE clause from the Filter f, adds it to the supplied
 // SelectBuilder object and returns it for use in SQL queries.
 func (f *Filter) AddToSelect(sb squirrel.SelectBuilder) squirrel.SelectBuilder {
-	if len(f.eq) > 0 {
-		sb = sb.Where(squirrel.Eq(f.eq))
+	for k := range f.eq {
+		for _, v := range f.eq[k] {
+			m := map[string]interface{}{k: v}
+			sb = sb.Where(squirrel.Eq(m))
+		}
 	}
 
-	if len(f.neq) > 0 {
-		sb = sb.Where(squirrel.NotEq(f.neq))
+	for k := range f.neq {
+		for _, v := range f.neq[k] {
+			m := map[string]interface{}{k: v}
+			sb = sb.Where(squirrel.NotEq(m))
+		}
 	}
 
-	if len(f.gt) > 0 {
-		sb = sb.Where(squirrel.Gt(f.gt))
+	for k := range f.gt {
+		for _, v := range f.gt[k] {
+			m := map[string]interface{}{k: v}
+			sb = sb.Where(squirrel.Gt(m))
+		}
 	}
 
-	if len(f.gte) > 0 {
-		sb = sb.Where(squirrel.GtOrEq(f.gte))
+	for k := range f.gte {
+		for _, v := range f.gte[k] {
+			m := map[string]interface{}{k: v}
+			sb = sb.Where(squirrel.GtOrEq(m))
+		}
 	}
 
-	if len(f.lt) > 0 {
-		sb = sb.Where(squirrel.Lt(f.lt))
+	for k := range f.lt {
+		for _, v := range f.lt[k] {
+			m := map[string]interface{}{k: v}
+			sb = sb.Where(squirrel.Lt(m))
+		}
 	}
 
-	if len(f.lte) > 0 {
-		sb = sb.Where(squirrel.LtOrEq(f.lte))
+	for k := range f.lte {
+		for _, v := range f.lte[k] {
+			m := map[string]interface{}{k: v}
+			sb = sb.Where(squirrel.LtOrEq(m))
+		}
 	}
 
 	// In
-	if len(f.in) > 0 {
-		sb = sb.Where(squirrel.Eq(f.in))
+	for k := range f.in {
+		for _, v := range f.in[k] {
+			m := map[string]interface{}{k: v}
+			sb = sb.Where(squirrel.Eq(m))
+		}
 	}
 
-	if len(f.substring) > 0 {
-		like := make(squirrel.Like)
+	for k := range f.substring {
 		// Modify each string value v so it looks like %v% so we are doing a substring
 		// match with the LIKE operator.
-		for k, v := range f.substring {
+		for _, v := range f.substring[k] {
+			like := make(squirrel.Like)
 			like[k] = fmt.Sprintf("%%%s%%", v)
+			sb = sb.Where(like)
 		}
-		sb = sb.Where(like)
 	}
 
 	return sb
@@ -230,7 +251,7 @@ func (f *Filter) parseFilterProto() error {
 			return err
 		}
 
-		var m map[string]interface{}
+		var m map[string][]interface{}
 		switch pred.Op {
 		case api.Predicate_EQUALS:
 			m = f.eq
@@ -260,41 +281,41 @@ func (f *Filter) parseFilterProto() error {
 	return nil
 }
 
-func addPredicateValue(m map[string]interface{}, p *api.Predicate) error {
+func addPredicateValue(m map[string][]interface{}, p *api.Predicate) error {
 	switch t := p.Value.(type) {
 	case *api.Predicate_IntValue:
-		m[p.Key] = p.GetIntValue()
+		m[p.Key] = append(m[p.Key], p.GetIntValue())
 	case *api.Predicate_LongValue:
-		m[p.Key] = p.GetLongValue()
+		m[p.Key] = append(m[p.Key], p.GetLongValue())
 	case *api.Predicate_StringValue:
-		m[p.Key] = p.GetStringValue()
+		m[p.Key] = append(m[p.Key], p.GetStringValue())
 	case *api.Predicate_TimestampValue:
 		ts, err := ptypes.Timestamp(p.GetTimestampValue())
 		if err != nil {
 			return util.NewInvalidInputError("invalid timestamp: %v", err)
 		}
-		m[p.Key] = ts.Unix()
+		m[p.Key] = append(m[p.Key], ts.Unix())
 
 	case *api.Predicate_IntValues:
 		var v []int32
 		for _, i := range p.GetIntValues().GetValues() {
 			v = append(v, i)
 		}
-		m[p.Key] = v
+		m[p.Key] = append(m[p.Key], v)
 
 	case *api.Predicate_LongValues:
 		var v []int64
 		for _, i := range p.GetLongValues().GetValues() {
 			v = append(v, i)
 		}
-		m[p.Key] = v
+		m[p.Key] = append(m[p.Key], v)
 
 	case *api.Predicate_StringValues:
 		var v []string
 		for _, i := range p.GetStringValues().GetValues() {
 			v = append(v, i)
 		}
-		m[p.Key] = v
+		m[p.Key] = append(m[p.Key], v)
 
 	case nil:
 		return util.NewInvalidInputError("no value set for predicate on key %q", p.Key)

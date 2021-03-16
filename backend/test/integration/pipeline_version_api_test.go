@@ -70,7 +70,7 @@ func (s *PipelineVersionApiTest) TestPipelineVersionAPI() {
 	assert.Equal(t, "test_pipeline", pipeline.Name)
 
 	/* ---------- Get pipeline id ---------- */
-	pipelines, totalSize, _, err := s.pipelineClient.List(params.NewListPipelinesParams())
+	pipelines, totalSize, _, err := s.pipelineClient.List(&params.ListPipelinesParams{})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(pipelines))
 	assert.Equal(t, 1, totalSize)

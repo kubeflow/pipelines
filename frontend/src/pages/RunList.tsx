@@ -271,7 +271,10 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     if (!props.value || !props.value.id) {
       return <div>-</div>;
     }
-    const url = RoutePage.RECURRING_RUN.replace(':' + RouteParams.runId, props.value.id || '');
+    const url = RoutePage.RECURRING_RUN_DETAILS.replace(
+      ':' + RouteParams.runId,
+      props.value.id || '',
+    );
     return (
       <Link className={commonCss.link} onClick={e => e.stopPropagation()} to={url}>
         {props.value.displayName || '[View config]'}
@@ -416,10 +419,9 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
 
   private _setRecurringRun(displayRun: DisplayRun): void {
     const recurringRunId = RunUtils.getRecurringRunId(displayRun.run);
+    const recurringRunName = RunUtils.getRecurringRunName(displayRun.run);
     if (recurringRunId) {
-      // TODO: It would be better to use name here, but that will require another n API calls at
-      // this time.
-      displayRun.recurringRun = { id: recurringRunId, displayName: recurringRunId };
+      displayRun.recurringRun = { id: recurringRunId, displayName: recurringRunName };
     }
   }
 

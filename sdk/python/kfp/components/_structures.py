@@ -21,6 +21,10 @@ __all__ = [
     'OutputPathPlaceholder',
     'InputUriPlaceholder',
     'OutputUriPlaceholder',
+    'InputMetadataPlaceholder',
+    'InputOutputPortNamePlaceholder',
+    'OutputMetadataPlaceholder',
+    'ExecutorInputPlaceholder',
     'ConcatPlaceholder',
     'IsPresentPlaceholder',
     'IfPlaceholderStructure',
@@ -165,6 +169,85 @@ class OutputUriPlaceholder(ModelBase):  # Non-standard attr names
         super().__init__(locals())
 
 
+class InputMetadataPlaceholder(ModelBase):  # Non-standard attr names
+    """Represents the file path to an input artifact metadata.
+
+    During runtime, this command-line argument placeholder will be replaced
+    by the path where the metadata file associated with this artifact has been
+    written to. Currently only supported in v2 components.
+    """
+    _serialized_names = {
+        'input_name': 'inputMetadata',
+    }
+
+    def __init__(self, input_name: str):
+        super().__init__(locals())
+
+
+class InputOutputPortNamePlaceholder(ModelBase):  # Non-standard attr names
+    """Represents the output port name of an input artifact.
+
+    During compile time, this command-line argument placeholder will be replaced
+    by the actual output port name used by the producer task. Currently only
+    supported in v2 components.
+    """
+    _serialized_names = {
+        'input_name': 'inputOutputPortName',
+    }
+
+    def __init__(self, input_name: str):
+        super().__init__(locals())
+
+
+class OutputMetadataPlaceholder(ModelBase):  # Non-standard attr names
+    """Represents the output metadata JSON file location of this task.
+
+    This file will encode the metadata information produced by this task:
+    - Artifacts metadata, but not the content of the artifact, and
+    - output parameters.
+
+    Only supported in v2 components.
+    """
+    _serialized_names = {
+        'output_metadata': 'outputMetadata',
+    }
+
+    def __init__(self, output_metadata: type(None) = None):
+        if output_metadata:
+            raise RuntimeError(
+                'Output metadata placeholder cannot be associated with key')
+        super().__init__(locals())
+
+    def to_dict(self) -> Mapping[str, Any]:
+        # Override parent implementation. Otherwise it always returns {}.
+        return {'outputMetadata': None}
+
+
+class ExecutorInputPlaceholder(ModelBase):  # Non-standard attr names
+    """Represents the serialized ExecutorInput message at runtime.
+
+    This placeholder will be replaced by a serialized
+    [ExecutorInput](https://github.com/kubeflow/pipelines/blob/61f9c2c328d245d89c9d9b8c923f24dbbd08cdc9/api/v2alpha1/pipeline_spec.proto#L730)
+    proto message at runtime, which includes parameters of the task, artifact
+    URIs and metadata.
+    """
+    _serialized_names = {
+        'executor_input': 'executorInput',
+    }
+
+    def __init__(self, executor_input: type(None) = None):
+        if executor_input:
+            raise RuntimeError(
+                'Executor input placeholder cannot be associated with input key'
+                '. Got %s' % executor_input)
+        super().__init__(locals())
+
+    def to_dict(self) -> Mapping[str, Any]:
+        # Override parent implementation. Otherwise it always returns {}.
+        return {'executorInput': None}
+
+
+
 CommandlineArgumentType = Union[
     str,
     InputValuePlaceholder,
@@ -172,6 +255,10 @@ CommandlineArgumentType = Union[
     OutputPathPlaceholder,
     InputUriPlaceholder,
     OutputUriPlaceholder,
+    InputMetadataPlaceholder,
+    InputOutputPortNamePlaceholder,
+    OutputMetadataPlaceholder,
+    ExecutorInputPlaceholder,
     'ConcatPlaceholder',
     'IfPlaceholder',
 ]
@@ -311,13 +398,18 @@ class ComponentSpec(ModelBase):
             def verify_arg(arg):
                 if arg is None:
                     pass
-                elif isinstance(arg, (str, int, float, bool)):
+                elif isinstance(
+                    arg, (str, int, float, bool,
+                          OutputMetadataPlaceholder, ExecutorInputPlaceholder)):
                     pass
                 elif isinstance(arg, list):
                     for arg2 in arg:
                         verify_arg(arg2)
-                elif isinstance(arg, (InputUriPlaceholder, InputValuePlaceholder,
-                                      InputPathPlaceholder, IsPresentPlaceholder)):
+                elif isinstance(
+                    arg, (InputUriPlaceholder, InputValuePlaceholder,
+                          InputPathPlaceholder, IsPresentPlaceholder,
+                          InputMetadataPlaceholder,
+                          InputOutputPortNamePlaceholder)):
                     if arg.input_name not in self._inputs_dict:
                         raise TypeError(
                             'Argument "{}" references non-existing input.'.format(arg))

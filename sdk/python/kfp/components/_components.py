@@ -20,9 +20,9 @@ __all__ = [
 ]
 
 import copy
-import os
 from collections import OrderedDict
-from typing import Any, Callable, List, Mapping, NamedTuple, Sequence, Union
+import pathlib
+from typing import Any, Callable, List, Mapping, NamedTuple, Optional, Sequence, Union
 from ._naming import _sanitize_file_name, _sanitize_python_function_name, generate_unique_name_conversion_table
 from ._yaml_utils import load_yaml
 from .structures import *
@@ -179,19 +179,40 @@ _single_io_file_name = 'data'
 
 
 def _generate_input_file_name(port_name):
-    return _inputs_dir + '/' + _sanitize_file_name(port_name) + '/' + _single_io_file_name
+    return str(pathlib.PurePosixPath(
+        _inputs_dir,
+        _sanitize_file_name(port_name),
+        _single_io_file_name
+    ))
 
 
 def _generate_output_file_name(port_name):
-    return _outputs_dir + '/' + _sanitize_file_name(port_name) + '/' + _single_io_file_name
+    return str(pathlib.PurePosixPath(
+        _outputs_dir,
+        _sanitize_file_name(port_name),
+        _single_io_file_name
+    ))
 
 
 # Placeholder to represent the output directory hosting all the generated URIs.
 # Its actual value will be specified during pipeline compilation.
-OUTPUT_DIR_PLACEHOLDER = '{{kfp.output_dir}}'
+# The format of OUTPUT_DIR_PLACEHOLDER is serialized dsl.PipelineParam, to
+# ensure being extracted as a pipeline parameter during compilation.
+# Note that we cannot direclty import dsl module here due to circular
+# dependencies.
+OUTPUT_DIR_PLACEHOLDER = '{{pipelineparam:op=;name=pipeline-output-directory}}'
+# Placeholder to represent to UID of the current pipeline at runtime.
+# Will be replaced by engine-specific placeholder during compilation.
+RUN_ID_PLACEHOLDER = '{{kfp.run_uid}}'
 # Format of the Argo parameter used to pass the producer's Pod ID to
 # the consumer.
 PRODUCER_POD_NAME_PARAMETER = '{}-producer-pod-id-'
+# Format of the input output port name placeholder.
+INPUT_OUTPUT_NAME_PATTERN = '{{{{kfp.input-output-name.{}}}}}'
+# Fixed name for per-task output metadata json file.
+OUTPUT_METADATA_JSON = '/tmp/outputs/executor_output.json'
+# Executor input placeholder.
+_EXECUTOR_INPUT_PLACEHOLDER = '{{$}}'
 
 
 def _generate_output_uri(port_name: str) -> str:
@@ -203,12 +224,9 @@ def _generate_output_uri(port_name: str) -> str:
     Returns:
         The URI assigned to this output, which is unique within the pipeline.
     """
-    return os.path.join(
+    return str(pathlib.PurePosixPath(
         OUTPUT_DIR_PLACEHOLDER,
-        '{{workflow.uid}}',
-        '{{pod.name}}',
-        port_name
-    )
+        RUN_ID_PLACEHOLDER, '{{pod.name}}', port_name))
 
 
 def _generate_input_uri(port_name: str) -> str:
@@ -221,13 +239,46 @@ def _generate_input_uri(port_name: str) -> str:
         The URI assigned to this input, will be consistent with the URI where
         the actual content is written after compilation.
     """
-    return os.path.join(
+    return str(pathlib.PurePosixPath(
         OUTPUT_DIR_PLACEHOLDER,
-        '{{workflow.uid}}',
+        RUN_ID_PLACEHOLDER,
         '{{{{inputs.parameters.{input}}}}}'.format(
             input=PRODUCER_POD_NAME_PARAMETER.format(port_name)),
         port_name
-    )
+    ))
+
+
+def _generate_output_metadata_path() -> str:
+    """Generates the URI to write the output metadata JSON file."""
+
+    return OUTPUT_METADATA_JSON
+
+
+def _generate_input_metadata_path(port_name: str) -> str:
+    """Generates the placeholder for input artifact metadata file."""
+
+    # Return a placeholder for path to input artifact metadata, which will be
+    # rewritten during pipeline compilation.
+    return str(pathlib.PurePosixPath(
+        OUTPUT_DIR_PLACEHOLDER,
+        RUN_ID_PLACEHOLDER,
+        '{{{{inputs.parameters.{input}}}}}'.format(
+            input=PRODUCER_POD_NAME_PARAMETER.format(port_name)),
+        OUTPUT_METADATA_JSON
+    ))
+
+
+def _generate_input_output_name(port_name: str) -> str:
+    """Generates the placeholder for input artifact's output name."""
+
+    # Return a placeholder for the output port name of the input artifact, which
+    # will be rewritten during pipeline compilation.
+    return INPUT_OUTPUT_NAME_PATTERN.format(port_name)
+
+
+def _generate_executor_input() -> str:
+    """Generates the placeholder for serialized executor input."""
+    return _EXECUTOR_INPUT_PLACEHOLDER
 
 
 def _react_to_incompatible_reference_type(
@@ -439,6 +490,14 @@ def _resolve_command_line_and_paths(
     argument_serializer: Callable[[str], str] = serialize_value,
     input_uri_generator: Callable[[str], str] = _generate_input_uri,
     output_uri_generator: Callable[[str], str] = _generate_output_uri,
+    input_value_generator: Optional[Callable[[str], str]] = None,
+    input_metadata_path_generator: Callable[
+        [str], str] = _generate_input_metadata_path,
+    output_metadata_path_generator: Callable[
+        [], str] = _generate_output_metadata_path,
+    input_output_name_generator: Callable[
+        [str], str] = _generate_input_output_name,
+    executor_input_generator: Callable[[], str] = _generate_executor_input,
 ) -> _ResolvedCommandLineAndPaths:
     """Resolves the command line argument placeholders. Also produces the maps of the generated inpuit/output paths."""
     argument_values = arguments
@@ -458,6 +517,7 @@ def _resolve_command_line_and_paths(
     input_paths = OrderedDict()
     inputs_consumed_by_value = {}
     input_uris = OrderedDict()
+    input_metadata_paths = OrderedDict()
     output_uris = OrderedDict()
 
     def expand_command_part(arg) -> Union[str, List[str], None]:
@@ -465,15 +525,18 @@ def _resolve_command_line_and_paths(
             return None
         if isinstance(arg, (str, int, float, bool)):
             return str(arg)
-
+        if isinstance(arg, ExecutorInputPlaceholder):
+            return executor_input_generator()
         if isinstance(arg, InputValuePlaceholder):
             input_name = arg.input_name
             input_spec = inputs_dict[input_name]
             input_value = argument_values.get(input_name, None)
             if input_value is not None:
-                serialized_argument = argument_serializer(input_value, input_spec.type)
-                inputs_consumed_by_value[input_name] = serialized_argument
-                return serialized_argument
+                if input_value_generator is not None:
+                    inputs_consumed_by_value[input_name] = input_value_generator(input_name)
+                else:
+                    inputs_consumed_by_value[input_name] = argument_serializer(input_value, input_spec.type)
+                return inputs_consumed_by_value[input_name]
             else:
                 if input_spec.optional:
                     return None
@@ -520,6 +583,32 @@ def _resolve_command_line_and_paths(
                 else:
                     raise ValueError('No value provided for input {}'.format(input_name))
 
+        elif isinstance(arg, InputMetadataPlaceholder):
+            input_name = arg.input_name
+            if input_name in argument_values:
+                input_metadata_path = input_metadata_path_generator(input_name)
+                input_metadata_paths[input_name] = input_metadata_path
+                return input_metadata_path
+            else:
+                input_spec = inputs_dict[input_name]
+                if input_spec.optional:
+                    return None
+                else:
+                    raise ValueError(
+                        'No value provided for input {}'.format(input_name))
+
+        elif isinstance(arg, InputOutputPortNamePlaceholder):
+            input_name = arg.input_name
+            if input_name in argument_values:
+                return input_output_name_generator(input_name)
+            else:
+                input_spec = inputs_dict[input_name]
+                if input_spec.optional:
+                    return None
+                else:
+                    raise ValueError(
+                        'No value provided for input {}'.format(input_name))
+
         elif isinstance(arg, OutputUriPlaceholder):
             output_name = arg.output_name
             output_uri = output_uri_generator(output_name)
@@ -532,6 +621,10 @@ def _resolve_command_line_and_paths(
                 output_uris[output_name] = output_uri
 
             return output_uri
+
+        elif isinstance(arg, OutputMetadataPlaceholder):
+            # TODO: Consider making the output metadata per-artifact.
+            return output_metadata_path_generator()
 
         elif isinstance(arg, ConcatPlaceholder):
             expanded_argument_strings = expand_argument_list(arg.items)

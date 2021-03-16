@@ -745,14 +745,14 @@ implementation:
         )
 
         self.assertEqual(
-            resolved_cmd.command,
             [
                 'program',
                 '--in1-uri',
-                '{{kfp.output_dir}}/{{workflow.uid}}/{{inputs.parameters.In1-producer-pod-id-}}/In1',
+                '{{pipelineparam:op=;name=pipeline-output-directory}}/{{kfp.run_uid}}/{{inputs.parameters.In1-producer-pod-id-}}/In1',
                 '--out1-uri',
-                '{{kfp.output_dir}}/{{workflow.uid}}/{{pod.name}}/Out1',
-            ]
+                '{{pipelineparam:op=;name=pipeline-output-directory}}/{{kfp.run_uid}}/{{pod.name}}/Out1',
+            ],
+            resolved_cmd.command
         )
 
     def test_check_type_validation_of_task_spec_outputs(self):
@@ -1078,6 +1078,41 @@ implementation:
 
         with self.assertRaises(TypeError):
             b_task = task_factory_b(in1=a_task.outputs['out1'])
+
+    def test_convert_executor_input_and_output_metadata_placeholder(self):
+        test_component = textwrap.dedent("""\
+        inputs:
+          - {name: in1}
+        outputs:
+          - {name: out1}
+        implementation:
+          container:
+            image: busybox
+            command: [echo, {executorInput}, {outputMetadata}]
+        """)
+        task_factory = comp.load_component_from_text(test_component)
+        task = task_factory(in1='foo')
+        resolved_cmd = _resolve_command_line_and_paths(
+            component_spec=task.component_ref.spec,
+            arguments=task.arguments
+        )
+        self.assertListEqual(
+            ['echo', '{{$}}', '/tmp/outputs/executor_output.json'],
+            resolved_cmd.command)
+
+    def test_fail_executor_input_with_key(self):
+        test_component = textwrap.dedent("""\
+        inputs:
+          - {name: in1}
+        outputs:
+          - {name: out1}
+        implementation:
+          container:
+            image: busybox
+            command: [echo, {executorInput: a_bad_key}]
+        """)
+        with self.assertRaises(TypeError):
+            _ = comp.load_component_from_text(test_component)
 
 
 if __name__ == '__main__':

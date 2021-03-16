@@ -208,22 +208,22 @@ func OverrideParameterWithSystemDefault(workflow util.Workflow, apiRun *api.Run)
 		patchedSlice := make([]wfv1.Parameter, 0)
 		for _, currentParam := range workflow.Spec.Arguments.Parameters {
 			if currentParam.Value != nil {
-				desiredValue, err := PatchPipelineDefaultParameter(*currentParam.Value)
+				desiredValue, err := PatchPipelineDefaultParameter(currentParam.Value.String())
 				if err != nil {
 					return fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
 				}
 				patchedSlice = append(patchedSlice, wfv1.Parameter{
 					Name:  currentParam.Name,
-					Value: util.StringPointer(desiredValue),
+					Value: wfv1.AnyStringPtr(desiredValue),
 				})
 			} else if currentParam.Default != nil {
-				desiredValue, err := PatchPipelineDefaultParameter(*currentParam.Default)
+				desiredValue, err := PatchPipelineDefaultParameter(currentParam.Default.String())
 				if err != nil {
 					return fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
 				}
 				patchedSlice = append(patchedSlice, wfv1.Parameter{
 					Name:  currentParam.Name,
-					Value: util.StringPointer(desiredValue),
+					Value: wfv1.AnyStringPtr(desiredValue),
 				})
 			}
 		}

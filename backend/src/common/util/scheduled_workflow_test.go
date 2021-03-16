@@ -127,8 +127,8 @@ func TestScheduledWorkflow_ParametersAsString(t *testing.T) {
 					ServiceAccountName: "SERVICE_ACCOUNT",
 					Arguments: workflowapi.Arguments{
 						Parameters: []workflowapi.Parameter{
-							{Name: "PARAM3", Value: StringPointer("VALUE3")},
-							{Name: "PARAM4", Value: StringPointer("VALUE4")},
+							{Name: "PARAM3", Value: workflowapi.AnyStringPtr("VALUE3")},
+							{Name: "PARAM4", Value: workflowapi.AnyStringPtr("VALUE4")},
 						},
 					},
 				},

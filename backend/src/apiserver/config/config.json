@@ -16,5 +16,7 @@
   "InitConnectionTimeout": "6m",
   "DefaultPipelineRunnerServiceAccount": "pipeline-runner",
   "CacheEnabled": "true",
-  "CRON_SCHEDULE_TIMEZONE": "UTC"
+  "CRON_SCHEDULE_TIMEZONE": "UTC",
+  "CACHE_IMAGE": "gcr.io/google-containers/busybox"
+
 }

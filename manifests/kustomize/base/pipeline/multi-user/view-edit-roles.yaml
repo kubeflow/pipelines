@@ -48,6 +48,7 @@ rules:
   verbs:
   - create
   - delete
+  - update
 - apiGroups:
   - pipelines.kubeflow.org
   resources:
