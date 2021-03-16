@@ -22,13 +22,7 @@ import * as React from 'react';
 import { Link, Redirect } from 'react-router-dom';
 import { GkeMetadata, GkeMetadataContext } from 'src/lib/GkeMetadata';
 import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
-import {
-  ExecutionHelpers,
-  getExecutionsFromContext,
-  getKfpRunContext,
-  getRunContext,
-  getTfxRunContext,
-} from 'src/lib/MlmdUtils';
+import { ExecutionHelpers, getExecutionsFromContext, getRunContext } from 'src/lib/MlmdUtils';
 import { classes, stylesheet } from 'typestyle';
 import {
   NodePhase as ArgoNodePhase,

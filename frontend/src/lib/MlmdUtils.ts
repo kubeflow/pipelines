@@ -40,7 +40,7 @@ async function getContext({ type, name }: { type: string; name: string }): Promi
 /**
  * @throws error when network error, or not found
  */
-export async function getTfxRunContext(argoWorkflowName: string): Promise<Context> {
+async function getTfxRunContext(argoWorkflowName: string): Promise<Context> {
   // argoPodName has the general form "pipelineName-workflowId-executionId".
   // All components of a pipeline within a single run will have the same
   // "pipelineName-workflowId" prefix.
@@ -57,7 +57,7 @@ export async function getTfxRunContext(argoWorkflowName: string): Promise<Contex
 /**
  * @throws error when network error, or not found
  */
-export async function getKfpRunContext(argoWorkflowName: string): Promise<Context> {
+async function getKfpRunContext(argoWorkflowName: string): Promise<Context> {
   return await getContext({ name: argoWorkflowName, type: 'KfpRun' });
 }
 
