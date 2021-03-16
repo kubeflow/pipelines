@@ -21,6 +21,7 @@ import (
 	argoprojv1alpha1 "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/rest"
 )
@@ -37,15 +38,15 @@ func (argoClient *ArgoClient) Workflow(namespace string) argoprojv1alpha1.Workfl
 	return argoClient.argoProjClient.Workflows(namespace)
 }
 
-func NewArgoClientOrFatal(initConnectionTimeout time.Duration, clientQPS float32, clientBurst int) *ArgoClient {
+func NewArgoClientOrFatal(initConnectionTimeout time.Duration, clientParams util.ClientParameters) *ArgoClient {
 	var argoProjClient argoprojv1alpha1.ArgoprojV1alpha1Interface
 	var operation = func() error {
 		restConfig, err := rest.InClusterConfig()
 		if err != nil {
 			return errors.Wrap(err, "Failed to initialize the RestConfig")
 		}
-		restConfig.QPS = clientQPS
-		restConfig.Burst = clientBurst
+		restConfig.QPS = float32(clientParams.QPS)
+		restConfig.Burst = clientParams.Burst
 		argoProjClient = argoclient.NewForConfigOrDie(restConfig).ArgoprojV1alpha1()
 		return nil
 	}
