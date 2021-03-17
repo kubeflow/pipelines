@@ -310,7 +310,7 @@ func TestCreateJob_Unauthorized(t *testing.T) {
 	clients, manager, _ := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
 
-	userIdentity, err := manager.IsRequestAuthenticated(ctx)
+	userIdentity, err := manager.AuthenticateRequest(ctx)
 	assert.Nil(t, err)
 
 	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
@@ -341,7 +341,7 @@ func TestGetJob_Unauthorized(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 
-	userIdentity, err := manager.IsRequestAuthenticated(ctx)
+	userIdentity, err := manager.AuthenticateRequest(ctx)
 	assert.Nil(t, err)
 
 	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
@@ -397,7 +397,7 @@ func TestListJobs_Unauthorized(t *testing.T) {
 	clients, manager, experiment := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
 
-	userIdentity, err := manager.IsRequestAuthenticated(ctx)
+	userIdentity, err := manager.AuthenticateRequest(ctx)
 	assert.Nil(t, err)
 
 	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
@@ -559,7 +559,7 @@ func TestEnableJob_Unauthorized(t *testing.T) {
 	manager = resource.NewResourceManager(clients)
 	server = NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 
-	userIdentity, err := manager.IsRequestAuthenticated(ctx)
+	userIdentity, err := manager.AuthenticateRequest(ctx)
 	assert.Nil(t, err)
 
 	_, err = server.EnableJob(ctx, &api.EnableJobRequest{Id: job.Id})
@@ -614,7 +614,7 @@ func TestDisableJob_Unauthorized(t *testing.T) {
 	manager = resource.NewResourceManager(clients)
 	server = NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 
-	userIdentity, err := manager.IsRequestAuthenticated(ctx)
+	userIdentity, err := manager.AuthenticateRequest(ctx)
 	assert.Nil(t, err)
 
 	_, err = server.DisableJob(ctx, &api.DisableJobRequest{Id: job.Id})

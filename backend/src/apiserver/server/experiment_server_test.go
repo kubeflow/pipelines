@@ -80,7 +80,7 @@ func TestCreateExperiment_Unauthorized(t *testing.T) {
 	clients, resourceManager, _ := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
 
-	userIdentity, err := resourceManager.IsRequestAuthenticated(ctx)
+	userIdentity, err := resourceManager.AuthenticateRequest(ctx)
 	assert.Nil(t, err)
 
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
@@ -188,7 +188,7 @@ func TestGetExperiment_Unauthorized(t *testing.T) {
 	clients, manager, experiment := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
 
-	userIdentity, err := manager.IsRequestAuthenticated(ctx)
+	userIdentity, err := manager.AuthenticateRequest(ctx)
 	assert.Nil(t, err)
 
 	server := ExperimentServer{manager, &ExperimentServerOptions{CollectMetrics: false}}
@@ -306,7 +306,7 @@ func TestListExperiment_Unauthorized(t *testing.T) {
 	clients, manager, _ := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
 
-	userIdentity, err := manager.IsRequestAuthenticated(ctx)
+	userIdentity, err := manager.AuthenticateRequest(ctx)
 	assert.Nil(t, err)
 
 	server := ExperimentServer{manager, &ExperimentServerOptions{CollectMetrics: false}}

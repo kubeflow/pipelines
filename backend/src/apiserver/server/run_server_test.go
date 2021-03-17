@@ -133,7 +133,7 @@ func TestCreateRun_Unauthorized(t *testing.T) {
 	clients, manager, _ := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
 
-	userIdentity, err := manager.IsRequestAuthenticated(ctx)
+	userIdentity, err := manager.AuthenticateRequest(ctx)
 	assert.Nil(t, err)
 
 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
@@ -267,7 +267,7 @@ func TestListRuns_Unauthorized(t *testing.T) {
 	clients, manager, _ := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
 
-	userIdentity, err := manager.IsRequestAuthenticated(ctx)
+	userIdentity, err := manager.AuthenticateRequest(ctx)
 	assert.Nil(t, err)
 
 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
@@ -686,7 +686,7 @@ func TestCanAccessRun_Unauthorized(t *testing.T) {
 	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
-	userIdentity, err := manager.IsRequestAuthenticated(ctx)
+	userIdentity, err := manager.AuthenticateRequest(ctx)
 	assert.Nil(t, err)
 
 	apiRun := &api.Run{

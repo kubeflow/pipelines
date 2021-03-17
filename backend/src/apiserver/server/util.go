@@ -311,7 +311,7 @@ func isAuthorized(resourceManager *resource.ResourceManager, ctx context.Context
 	}
 
 	glog.Info("Getting user identity...")
-	userIdentity, err := resourceManager.IsRequestAuthenticated(ctx)
+	userIdentity, err := resourceManager.AuthenticateRequest(ctx)
 	if err != nil {
 		return err
 	}

@@ -89,7 +89,7 @@ func TestAuthorizeRequest_Unauthorized(t *testing.T) {
 
 	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
-	userIdentity, err := manager.IsRequestAuthenticated(ctx)
+	userIdentity, err := manager.AuthenticateRequest(ctx)
 	assert.Nil(t, err)
 
 	request := &api.AuthorizeRequest{

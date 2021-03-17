@@ -265,7 +265,7 @@ func TestCreateVisualization_Unauthorized(t *testing.T) {
 	resourceManager := resource.NewResourceManager(clientManager)
 	defer clientManager.Close()
 
-	userIdentity, err := resourceManager.IsRequestAuthenticated(ctx)
+	userIdentity, err := resourceManager.AuthenticateRequest(ctx)
 	assert.Nil(t, err)
 
 	server := &VisualizationServer{

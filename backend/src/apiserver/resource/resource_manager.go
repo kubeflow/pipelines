@@ -1231,7 +1231,7 @@ func (r *ResourceManager) GetPipelineVersionTemplate(versionId string) ([]byte, 
 	return template, nil
 }
 
-func (r *ResourceManager) IsRequestAuthenticated(ctx context.Context) (string, error) {
+func (r *ResourceManager) AuthenticateRequest(ctx context.Context) (string, error) {
 	if ctx == nil {
 		return "", util.NewUnauthenticatedError(errors.New("Request error: context is nil"), "Request error: context is nil.")
 	}
