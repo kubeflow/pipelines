@@ -18,6 +18,7 @@ import logging
 import os
 import re
 import subprocess
+import tempfile
 from collections import deque
 from typing import Any, Callable, Dict, List, Mapping, Union, cast
 
@@ -168,13 +169,14 @@ class LocalClient:
         def ops_to_exclude(self):
             return self._ops_to_exclude
 
-    def __init__(self, pipeline_root: str = "/tmp") -> None:
+    def __init__(self, pipeline_root: str = None) -> None:
         """Construct the instance of LocalClient
 
         Args：
             pipeline_root: The root directory where the output artifact of component
               will be savad.
         """
+        pipeline_root = pipeline_root or tempfile.tempdir
         self._pipeline_root = pipeline_root
 
     def _find_base_group(
@@ -252,15 +254,9 @@ class LocalClient:
         in kfp runtime, but not unique in local runner. We alter the file path of the
         name of current run and op, to make it unique in local runner.
         """
-        return re.sub(
-            "/tmp",
-            "{pipeline_root}/{run_name}/{op_name}".format(
-                pipeline_root=self._pipeline_root,
-                run_name=run_name,
-                op_name=op_name.lower(),
-            ),
-            output_file,
-        )
+        if not output_file.startswith("/tmp/"):
+            return output_file
+        return f'{self._pipeline_root}/{run_name}/{op_name.lower()}/{output_file[len("/tmp/"):]}'
 
     def _get_output_file_path(
         self,
