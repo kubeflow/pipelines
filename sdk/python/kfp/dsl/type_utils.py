@@ -23,14 +23,30 @@ from kfp.dsl import ontology_artifacts
 # The keys are normalized (lowercased). These are types viewed as Artifacts.
 # The values are the corresponding IR artifact ontology types.
 _ARTIFACT_TYPES_MAPPING = {
-    'model': ontology_artifacts.Model.get_artifact_type(),
-    'dataset': ontology_artifacts.Dataset.get_artifact_type(),
+    'model':
+        ontology_artifacts.Model.get_artifact_type(),
+    'dataset':
+        ontology_artifacts.Dataset.get_artifact_type(),
+    'metrics':
+        ontology_artifacts.Metrics.get_artifact_type(),
+    'classificationmetrics':
+        ontology_artifacts.ClassificationMetrics.get_artifact_type(),
+    'slicedclassificationmetrics':
+        ontology_artifacts.SlicedClassificationMetrics.get_artifact_type(),
 }
 
 # ComponentSpec I/O types to DSL ontology artifact classes mapping.
 _ARTIFACT_CLASSES_MAPPING = {
-    'model': ontology_artifacts.Model,
-    'dataset': ontology_artifacts.Dataset
+    'model':
+        ontology_artifacts.Model,
+    'dataset':
+        ontology_artifacts.Dataset,
+    'metrics':
+        ontology_artifacts.Metrics,
+    'classificationmetrics':
+        ontology_artifacts.ClassificationMetrics,
+    'slicedclassificationmetrics':
+        ontology_artifacts.SlicedClassificationMetrics,
 }
 
 # ComponentSpec I/O types to (IR) PipelineTaskSpec I/O types mapping.
@@ -86,7 +102,6 @@ def get_artifact_type_schema(type_name: Union[str, Dict, List]) -> str:
     return artifact.Artifact.get_artifact_type()
 
 
-# TODO(numerology): add tests to this.
 def get_artifact_type_schema_message(
     type_name: str) -> pipeline_spec_pb2.ArtifactTypeSchema:
   """Gets the IR I/O artifact type msg for the given ComponentSpec I/O type."""
