@@ -4,7 +4,7 @@ import os
 import re
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from kfp.components import _components
+from kfp.dsl import _component_bridge
 from kfp import dsl
 
 
@@ -389,15 +389,15 @@ def deconstruct_single_placeholder(s: str) -> List[str]:
 def _replace_output_dir_and_run_id(command_line: str,
     output_directory: Optional[str] = None) -> str:
     """Replaces the output directory placeholder."""
-    if _components.OUTPUT_DIR_PLACEHOLDER in command_line:
+    if _component_bridge.OUTPUT_DIR_PLACEHOLDER in command_line:
         if not output_directory:
             raise ValueError('output_directory of a pipeline must be specified '
                              'when URI placeholder is used.')
         command_line = command_line.replace(
-            _components.OUTPUT_DIR_PLACEHOLDER, output_directory)
-    if _components.RUN_ID_PLACEHOLDER in command_line:
+            _component_bridge.OUTPUT_DIR_PLACEHOLDER, output_directory)
+    if _component_bridge.RUN_ID_PLACEHOLDER in command_line:
         command_line = command_line.replace(
-            _components.RUN_ID_PLACEHOLDER, dsl.RUN_ID_PLACEHOLDER)
+            _component_bridge.RUN_ID_PLACEHOLDER, dsl.RUN_ID_PLACEHOLDER)
     return command_line
 
 
@@ -426,11 +426,11 @@ def _refactor_outputs_if_uri_placeholder(
     for artifact_output in container_template['outputs']['artifacts']:
         # Check if this is an output associated with URI placeholder based
         # on its path.
-        if _components.OUTPUT_DIR_PLACEHOLDER in artifact_output['path']:
+        if _component_bridge.OUTPUT_DIR_PLACEHOLDER in artifact_output['path']:
             # If so, we'll add a parameter output to output the pod name
             parameter_outputs.append(
                 {
-                    'name': _components.PRODUCER_POD_NAME_PARAMETER.format(
+                    'name': _component_bridge.PRODUCER_POD_NAME_PARAMETER.format(
                         artifact_output['name']),
                     'value': '{{pod.name}}'
                 })
@@ -473,7 +473,7 @@ def _refactor_inputs_if_uri_placeholder(
     for artifact_input in container_template['inputs']['artifacts']:
         # Check if this is an input artifact associated with URI placeholder,
         # according to its path.
-        if _components.OUTPUT_DIR_PLACEHOLDER in artifact_input['path']:
+        if _component_bridge.OUTPUT_DIR_PLACEHOLDER in artifact_input['path']:
             # If so, we'll add a parameter input to receive the producer's pod
             # name.
             # The correct input parameter name should be parsed from the
@@ -491,7 +491,7 @@ def _refactor_inputs_if_uri_placeholder(
                                artifact_input['name'])] = input_name
 
             # In the container implementation, the pod name is already connected
-            # to the input parameter per the implementation in _components.
+            # to the input parameter per the implementation in _component_bridge.
             # The only thing yet to be reconciled is the file name.
 
             def reconcile_filename(
@@ -620,7 +620,7 @@ def _refactor_dag_template_uri_inputs(
                         'value': '{{{{tasks.{task_name}.outputs.'
                                  'parameters.{output}}}}}'.format(
                             task_name=task_name,
-                            output=_components.PRODUCER_POD_NAME_PARAMETER.format(
+                            output=_component_bridge.PRODUCER_POD_NAME_PARAMETER.format(
                                 output_name)
                         )})
                 else:

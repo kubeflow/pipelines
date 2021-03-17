@@ -15,6 +15,7 @@
 import collections
 import copy
 import inspect
+import pathlib
 from typing import Any, Mapping, Optional
 
 from kfp.components import _structures
@@ -29,6 +30,93 @@ from kfp.dsl import dsl_utils
 from kfp.dsl import importer_node
 from kfp.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
+
+
+# Placeholder to represent the output directory hosting all the generated URIs.
+# Its actual value will be specified during pipeline compilation.
+# The format of OUTPUT_DIR_PLACEHOLDER is serialized dsl.PipelineParam, to
+# ensure being extracted as a pipeline parameter during compilation.
+# Note that we cannot direclty import dsl module here due to circular
+# dependencies.
+OUTPUT_DIR_PLACEHOLDER = '{{pipelineparam:op=;name=pipeline-output-directory}}'
+# Placeholder to represent to UID of the current pipeline at runtime.
+# Will be replaced by engine-specific placeholder during compilation.
+RUN_ID_PLACEHOLDER = '{{kfp.run_uid}}'
+# Format of the Argo parameter used to pass the producer's Pod ID to
+# the consumer.
+PRODUCER_POD_NAME_PARAMETER = '{}-producer-pod-id-'
+# Format of the input output port name placeholder.
+INPUT_OUTPUT_NAME_PATTERN = '{{{{kfp.input-output-name.{}}}}}'
+# Fixed name for per-task output metadata json file.
+OUTPUT_METADATA_JSON = '/tmp/outputs/executor_output.json'
+# Executor input placeholder.
+_EXECUTOR_INPUT_PLACEHOLDER = '{{$}}'
+
+
+def _generate_output_uri(port_name: str) -> str:
+    """Generates a unique URI for an output.
+
+    Args:
+        port_name: The name of the output associated with this URI.
+
+    Returns:
+        The URI assigned to this output, which is unique within the pipeline.
+    """
+    return str(pathlib.PurePosixPath(
+        OUTPUT_DIR_PLACEHOLDER,
+        RUN_ID_PLACEHOLDER, '{{pod.name}}', port_name))
+
+
+def _generate_input_uri(port_name: str) -> str:
+    """Generates the URI for an input.
+
+    Args:
+        port_name: The name of the input associated with this URI.
+
+    Returns:
+        The URI assigned to this input, will be consistent with the URI where
+        the actual content is written after compilation.
+    """
+    return str(pathlib.PurePosixPath(
+        OUTPUT_DIR_PLACEHOLDER,
+        RUN_ID_PLACEHOLDER,
+        '{{{{inputs.parameters.{input}}}}}'.format(
+            input=PRODUCER_POD_NAME_PARAMETER.format(port_name)),
+        port_name
+    ))
+
+
+def _generate_output_metadata_path() -> str:
+    """Generates the URI to write the output metadata JSON file."""
+
+    return OUTPUT_METADATA_JSON
+
+
+def _generate_input_metadata_path(port_name: str) -> str:
+    """Generates the placeholder for input artifact metadata file."""
+
+    # Return a placeholder for path to input artifact metadata, which will be
+    # rewritten during pipeline compilation.
+    return str(pathlib.PurePosixPath(
+        OUTPUT_DIR_PLACEHOLDER,
+        RUN_ID_PLACEHOLDER,
+        '{{{{inputs.parameters.{input}}}}}'.format(
+            input=PRODUCER_POD_NAME_PARAMETER.format(port_name)),
+        OUTPUT_METADATA_JSON
+    ))
+
+
+def _generate_input_output_name(port_name: str) -> str:
+    """Generates the placeholder for input artifact's output name."""
+
+    # Return a placeholder for the output port name of the input artifact, which
+    # will be rewritten during pipeline compilation.
+    return INPUT_OUTPUT_NAME_PATTERN.format(port_name)
+
+
+def _generate_executor_input() -> str:
+    """Generates the placeholder for serialized executor input."""
+    return _EXECUTOR_INPUT_PLACEHOLDER
 
 
 def _create_container_op_from_component_and_arguments(
@@ -67,6 +155,13 @@ def _create_container_op_from_component_and_arguments(
   resolved_cmd = _components._resolve_command_line_and_paths(
       component_spec=component_spec,
       arguments=arguments,
+      input_uri_generator=_generate_input_uri,
+      output_uri_generator=_generate_output_uri,
+      input_value_generator=None,
+      input_metadata_path_generator=_generate_input_metadata_path,
+      output_metadata_path_generator=_generate_output_metadata_path,
+      input_output_name_generator=_generate_input_output_name,
+      executor_input_generator=_generate_executor_input,
   )
 
   container_spec = component_spec.implementation.container
@@ -262,6 +357,10 @@ def _attach_v2_specs(
         output_uri_generator=_output_artifact_uri_placeholder,
         input_path_generator=_input_artifact_path_placeholder,
         output_path_generator=_resolve_output_path_placeholder,
+        input_metadata_path_generator=_generate_input_metadata_path,
+        output_metadata_path_generator=_generate_output_metadata_path,
+        # input_output_name_generator=_generate_input_output_name,
+        executor_input_generator=_generate_executor_input,
     )
     return resolved_cmd
 
