@@ -44,6 +44,9 @@ properties:
 
 class ArtifactTest(unittest.TestCase):
 
+  def setUp(self):
+    self.maxDiff = None
+
   def test_setting_metadata(self):
     test_artifact = artifact.Artifact(_TEST_SIMPLE_INSTANCE_SCHEMA)
     test_artifact.property1 = 45.5
