@@ -8,16 +8,17 @@ labels: kind/bug, area/frontend
 ### Environment
 
 *  How did you deploy Kubeflow Pipelines (KFP)?
-<!-- If you are not sure, here's [an introduction of all options](https://www.kubeflow.org/docs/pipelines/installation/overview/). -->
-*  KFP version: <!-- If you are not sure, build commit shows on bottom of KFP UI left sidenav. -->
-*  KFP SDK version: <!-- Please attach the output of this shell command: $pip list | grep kfp -->
+*  <!-- For more information, see an overview of KFP installation options: https://www.kubeflow.org/docs/pipelines/installation/overview/. -->
+*  KFP version: 
+<!-- Specify the version of Kubeflow Pipelines that you are using. The version number appears in the left side navigation of user interface.
+To find the version number, See version number shows on bottom of KFP UI left sidenav. -->
 
 
 ### Steps to reproduce
 
 <!--
-How can we make the problem occur?
-This could be a description, code snippet, video, screenshot, etc.
+Specify how to reproduce the problem. 
+This may include information such as: a description of the process, code snippets, log output, or screenshots.
 -->
 
 ### Expected result
@@ -27,7 +28,7 @@ This could be a description, code snippet, video, screenshot, etc.
 
 ### Materials and Reference
 
-<!-- Help oncaller to debug by providing background context, links to reference, etc. -->
+<!-- Help us debug this issue by providing resources such as: sample code, background context, or links to references. -->
 
 ---
 
