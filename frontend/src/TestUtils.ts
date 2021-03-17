@@ -27,6 +27,7 @@ import { mount, ReactWrapper } from 'enzyme';
 import { object } from 'prop-types';
 import { format } from 'prettier';
 import snapshotDiff from 'snapshot-diff';
+import { logger } from './lib/Utils';
 
 export default class TestUtils {
   /**
@@ -151,4 +152,19 @@ export function diff({
 
 export function formatHTML(html: string): string {
   return format(html, { parser: 'html' });
+}
+
+export function expectWarnings() {
+  const loggerWarningSpy = jest.spyOn(logger, 'warn');
+  loggerWarningSpy.mockImplementation();
+  return () => {
+    expect(loggerWarningSpy).toHaveBeenCalled();
+  };
+}
+
+export function testBestPractices() {
+  beforeEach(async () => {
+    jest.resetAllMocks();
+    jest.restoreAllMocks();
+  });
 }

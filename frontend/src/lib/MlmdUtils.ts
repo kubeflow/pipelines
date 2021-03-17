@@ -11,8 +11,16 @@ import {
   GetContextByTypeAndNameRequest,
   GetExecutionsByContextRequest,
 } from '@kubeflow/frontend/src/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
+import { Workflow } from 'third_party/argo-ui/argo_template';
+import { logger } from './Utils';
 
 async function getContext({ type, name }: { type: string; name: string }): Promise<Context> {
+  if (type === '') {
+    throw new Error('Failed to getContext: type is empty.');
+  }
+  if (name === '') {
+    throw new Error('Failed to getContext: name is empty.');
+  }
   const request = new GetContextByTypeAndNameRequest();
   request.setTypeName(type);
   request.setContextName(name);
@@ -32,7 +40,7 @@ async function getContext({ type, name }: { type: string; name: string }): Promi
 /**
  * @throws error when network error, or not found
  */
-export async function getTfxRunContext(argoWorkflowName: string): Promise<Context> {
+async function getTfxRunContext(argoWorkflowName: string): Promise<Context> {
   // argoPodName has the general form "pipelineName-workflowId-executionId".
   // All components of a pipeline within a single run will have the same
   // "pipelineName-workflowId" prefix.
@@ -49,8 +57,25 @@ export async function getTfxRunContext(argoWorkflowName: string): Promise<Contex
 /**
  * @throws error when network error, or not found
  */
-export async function getKfpRunContext(argoWorkflowName: string): Promise<Context> {
+async function getKfpRunContext(argoWorkflowName: string): Promise<Context> {
   return await getContext({ name: argoWorkflowName, type: 'KfpRun' });
+}
+
+async function getKfpV2RunContext(argoWorkflowName: string): Promise<Context> {
+  return await getContext({ name: argoWorkflowName, type: 'kfp.PipelineRun' });
+}
+
+export async function getRunContext(workflow: Workflow): Promise<Context> {
+  const workflowName = workflow?.metadata?.name || '';
+  if (workflow?.metadata?.annotations?.['pipelines.kubeflow.org/v2_pipeline'] === 'true') {
+    return await getKfpV2RunContext(workflowName);
+  }
+  try {
+    return await getTfxRunContext(workflowName);
+  } catch (err) {
+    logger.warn(`Cannot find tfx run context (this is expected for non tfx runs)`, err);
+    return await getKfpRunContext(workflowName);
+  }
 }
 
 /**
