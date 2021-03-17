@@ -17,9 +17,13 @@ labels: kind/bug
 
 <!-- Please fill in those that seem relevant. -->
 
-*  How do you deploy Kubeflow Pipelines (KFP)? <!-- See [an introduction of all options](https://www.kubeflow.org/docs/pipelines/installation/overview/). -->
-*  KFP version: <!-- See version number shows on bottom of KFP UI left sidenav. -->
-*  KFP SDK version: <!-- Please attach the output of this shell command: $pip list | grep kfp -->
+*  How do you deploy Kubeflow Pipelines (KFP)? 
+<!-- For more information, see an overview of KFP installation options: https://www.kubeflow.org/docs/pipelines/installation/overview/. -->
+*  KFP version: 
+<!-- Specify the version of Kubeflow Pipelines that you are using. The version number appears in the left side navigation of user interface.
+To find the version number, See version number shows on bottom of KFP UI left sidenav. -->
+*  KFP SDK version: 
+<!-- Specify the output of the following shell command: $pip list | grep kfp -->
 
 
 ### Anything else you would like to add:
