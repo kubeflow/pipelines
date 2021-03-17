@@ -7,16 +7,20 @@ labels: kind/bug, area/sdk
 
 ### Environment
 
-*  KFP version: <!-- See version number shows on bottom of KFP UI left sidenav. -->
-*  KFP SDK version: <!-- Please attach the output of this shell command: $pip list | grep kfp -->
-*  All dependencies version: <!-- Please attach the output of this shell command: $pip freeze -->
+*  KFP version:
+<!-- For more information, see an overview of KFP installation options: https://www.kubeflow.org/docs/pipelines/installation/overview/. -->
+*  KFP SDK version: 
+<!-- Specify the version of Kubeflow Pipelines that you are using. The version number appears in the left side navigation of user interface.
+To find the version number, See version number shows on bottom of KFP UI left sidenav. -->
+*  All dependencies version:
+<!-- Specify the output of the following shell command: $pip list | grep kfp -->
 
 
 ### Steps to reproduce
 
 <!--
-How can we make the problem occur?
-This could be a description, code snippet, log output, screenshot, etc.
+Specify how to reproduce the problem. 
+This may include information such as: a description of the process, code snippets, log output, or screenshots.
 -->
 
 ### Expected result
@@ -26,8 +30,7 @@ This could be a description, code snippet, log output, screenshot, etc.
 
 ### Materials and Reference
 
-<!-- Help oncaller to debug by providing sample code, links to background information, etc. -->
-
+<!-- Help us debug this issue by providing resources such as: sample code, background context, or links to references. -->
 
 ---
 
