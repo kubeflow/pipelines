@@ -6,16 +6,11 @@ ENV GO111MODULE=on \
     GOARCH=amd64
 
 # Copy the code into the container
-COPY cmd /build/cmd
-COPY component /build/component
-COPY metadata /build/metadata
-COPY third_party /build/third_party
-COPY go.mod /build/.
-COPY go.sum /build/.
+COPY . /build/.
 
 # Build the application
 WORKDIR /build
-RUN go build github.com/kubeflow/pipelines/v2/cmd/launch
+RUN go build -tags netgo -ldflags '-extldflags "-static"'  github.com/kubeflow/pipelines/v2/cmd/launch
 
 COPY launcher_container/mount_launcher.sh /bin/mount_launcher.sh
 RUN chmod +x /bin/mount_launcher.sh

@@ -203,7 +203,8 @@ func (l *Launcher) prepareInputs(ctx context.Context) error {
 
 		v.Artifact = a
 
-		// TODO: Support `{{$}}` placeholder for components using ExecutorInput.
+		// TODO(neuromage): Support `{{$}}` placeholder for components using ExecutorInput.
+		// TODO(neuromage): Support concat-based placholders for arguments.
 
 		// Prepare input uri placeholder.
 		key := fmt.Sprintf(`{{$.inputs.artifacts['%s'].uri}}`, k)
@@ -356,29 +357,6 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 	outputArtifacts := make([]*metadata.OutputArtifact, 0, len(l.runtimeInfo.OutputArtifacts))
 	for _, v := range l.runtimeInfo.OutputArtifacts {
 		var err error
-		artifact := &pb.Artifact{
-			Uri: &v.URIOutputPath,
-		}
-
-		artifact, err = l.metadataClient.RecordArtifact(ctx, v.ArtifactSchema, artifact)
-		if err != nil {
-			return err
-		}
-		outputArtifacts = append(outputArtifacts, &metadata.OutputArtifact{Artifact: artifact, Schema: v.ArtifactSchema})
-
-		if err := os.MkdirAll(path.Dir(v.FileOutputPath), 0644); err != nil {
-			return err
-		}
-
-		b, err := protojson.Marshal(artifact)
-		if err != nil {
-			return err
-		}
-
-		if err := ioutil.WriteFile(v.FileOutputPath, b, 0644); err != nil {
-			return err
-		}
-
 		// copy Artifacts out to remote storage.
 		blobKey, err := l.bucketConfig.keyFromURI(v.URIOutputPath)
 		if err != nil {
@@ -401,6 +379,31 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 		}
 
 		if err = w.Close(); err != nil {
+			return err
+		}
+
+		// Write out the metadata.
+		artifact := &pb.Artifact{
+			Uri: &v.URIOutputPath,
+		}
+
+		// TODO(neuromage): Consider batching these instead of recording one by one.
+		artifact, err = l.metadataClient.RecordArtifact(ctx, v.ArtifactSchema, artifact)
+		if err != nil {
+			return err
+		}
+		outputArtifacts = append(outputArtifacts, &metadata.OutputArtifact{Artifact: artifact, Schema: v.ArtifactSchema})
+
+		if err := os.MkdirAll(path.Dir(v.FileOutputPath), 0644); err != nil {
+			return err
+		}
+
+		b, err := protojson.Marshal(artifact)
+		if err != nil {
+			return err
+		}
+
+		if err := ioutil.WriteFile(v.FileOutputPath, b, 0644); err != nil {
 			return err
 		}
 	}

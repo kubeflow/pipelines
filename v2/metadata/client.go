@@ -58,6 +58,7 @@ type Client struct {
 
 // NewClient creates a Client given the MLMD server address and port.
 func NewClient(serverAddress, serverPort string) (*Client, error) {
+	// TODO(neuromage): Wrap errors so we can get a stack trace.
 	conn, err := grpc.Dial(fmt.Sprintf("%s:%s", serverAddress, serverPort), grpc.WithInsecure())
 	if err != nil {
 		return nil, err
