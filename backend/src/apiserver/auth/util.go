@@ -19,40 +19,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/metadata"
 )
-
-type Authenticator interface {
-	GetUserIdentity(ctx context.Context) (string, error)
-}
-
-// Make this public to reference it from tests
-var IdentityHeaderMissingError = util.NewUnauthenticatedError(
-	errors.New("Request header error: there is no user identity header."),
-	"Request header error: there is no user identity header.",
-)
-
-// Make this public for tests to force its re-instantiation
-var Authenticators []Authenticator
-
-func GetAuthenticators(tokenReviewClient client.TokenReviewInterface) []Authenticator {
-	if Authenticators == nil {
-		Authenticators = []Authenticator{
-			NewTokenReviewAuthenticator(
-				common.AuthorizationBearerTokenHeader,
-				common.AuthorizationBearerTokenPrefix,
-				[]string{common.TokenReviewAudience},
-				tokenReviewClient,
-			),
-			NewHTTPHeaderAuthenticator(common.GetKubeflowUserIDHeader(), common.GetKubeflowUserIDPrefix()),
-		}
-	}
-	return Authenticators
-}
 
 // singleHeaderFromMetadata tries to get a header from the grpc request
 // metadata. If the header doesn't exist OR appears multiple times, it will
