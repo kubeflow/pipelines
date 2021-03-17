@@ -304,17 +304,15 @@ func TestCreateJob_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	userIdentity := "user@google.com"
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + userIdentity})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	clients, manager, _ := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
 
-	userIdentity, err := manager.AuthenticateRequest(ctx)
-	assert.Nil(t, err)
-
 	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
-	_, err = server.CreateJob(ctx, &api.CreateJobRequest{Job: commonApiJob})
+	_, err := server.CreateJob(ctx, &api.CreateJobRequest{Job: commonApiJob})
 	assert.NotNil(t, err)
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: "ns1",
@@ -335,14 +333,12 @@ func TestGetJob_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	userIdentity := "user@google.com"
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + userIdentity})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-
-	userIdentity, err := manager.AuthenticateRequest(ctx)
-	assert.Nil(t, err)
 
 	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	job, err := server.CreateJob(ctx, &api.CreateJobRequest{Job: commonApiJob})
@@ -391,17 +387,15 @@ func TestListJobs_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	userIdentity := "user@google.com"
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + userIdentity})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	clients, manager, experiment := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
 
-	userIdentity, err := manager.AuthenticateRequest(ctx)
-	assert.Nil(t, err)
-
 	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
-	_, err = server.ListJobs(ctx, &api.ListJobsRequest{
+	_, err := server.ListJobs(ctx, &api.ListJobsRequest{
 		ResourceReferenceKey: &api.ResourceKey{
 			Type: api.ResourceType_EXPERIMENT,
 			Id:   experiment.UUID,
@@ -546,7 +540,8 @@ func TestEnableJob_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	userIdentity := "user@google.com"
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + userIdentity})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	clients, manager, _ := initWithExperiment(t)
@@ -558,9 +553,6 @@ func TestEnableJob_Unauthorized(t *testing.T) {
 	clients.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
 	manager = resource.NewResourceManager(clients)
 	server = NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
-
-	userIdentity, err := manager.AuthenticateRequest(ctx)
-	assert.Nil(t, err)
 
 	_, err = server.EnableJob(ctx, &api.EnableJobRequest{Id: job.Id})
 	assert.NotNil(t, err)
@@ -601,7 +593,8 @@ func TestDisableJob_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	userIdentity := "user@google.com"
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + userIdentity})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	clients, manager, _ := initWithExperiment(t)
@@ -613,9 +606,6 @@ func TestDisableJob_Unauthorized(t *testing.T) {
 	clients.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
 	manager = resource.NewResourceManager(clients)
 	server = NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
-
-	userIdentity, err := manager.AuthenticateRequest(ctx)
-	assert.Nil(t, err)
 
 	_, err = server.DisableJob(ctx, &api.DisableJobRequest{Id: job.Id})
 	assert.NotNil(t, err)

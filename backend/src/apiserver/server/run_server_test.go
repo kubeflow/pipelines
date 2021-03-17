@@ -127,14 +127,12 @@ func TestCreateRun_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	userIdentity := "user@google.com"
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + userIdentity})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	clients, manager, _ := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
-
-	userIdentity, err := manager.AuthenticateRequest(ctx)
-	assert.Nil(t, err)
 
 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	run := &api.Run{
@@ -145,7 +143,7 @@ func TestCreateRun_Unauthorized(t *testing.T) {
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 		},
 	}
-	_, err = server.CreateRun(ctx, &api.CreateRunRequest{Run: run})
+	_, err := server.CreateRun(ctx, &api.CreateRunRequest{Run: run})
 	assert.NotNil(t, err)
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: "ns1",
@@ -261,17 +259,15 @@ func TestListRuns_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	userIdentity := "user@google.com"
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + userIdentity})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	clients, manager, _ := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
 
-	userIdentity, err := manager.AuthenticateRequest(ctx)
-	assert.Nil(t, err)
-
 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-	_, err = server.ListRuns(ctx, &api.ListRunsRequest{
+	_, err := server.ListRuns(ctx, &api.ListRunsRequest{
 		ResourceReferenceKey: &api.ResourceKey{
 			Type: api.ResourceType_NAMESPACE,
 			Id:   "ns1",
@@ -683,11 +679,9 @@ func TestCanAccessRun_Unauthorized(t *testing.T) {
 	defer clients.Close()
 	runServer := RunServer{resourceManager: manager, options: &RunServerOptions{CollectMetrics: false}}
 
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	userIdentity := "user@google.com"
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + userIdentity})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
-
-	userIdentity, err := manager.AuthenticateRequest(ctx)
-	assert.Nil(t, err)
 
 	apiRun := &api.Run{
 		Name: "run1",
@@ -710,7 +704,7 @@ func TestCanAccessRun_Unauthorized(t *testing.T) {
 	}
 	runDetail, _ := manager.CreateRun(apiRun)
 
-	err = runServer.canAccessRun(ctx, runDetail.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
+	err := runServer.canAccessRun(ctx, runDetail.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
 	assert.NotNil(t, err)
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: runDetail.Namespace,

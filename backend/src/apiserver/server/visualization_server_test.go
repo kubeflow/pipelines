@@ -257,16 +257,14 @@ func TestCreateVisualization_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	userIdentity := "user@google.com"
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + userIdentity})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
 	resourceManager := resource.NewResourceManager(clientManager)
 	defer clientManager.Close()
-
-	userIdentity, err := resourceManager.AuthenticateRequest(ctx)
-	assert.Nil(t, err)
 
 	server := &VisualizationServer{
 		resourceManager: resourceManager,
@@ -281,7 +279,7 @@ func TestCreateVisualization_Unauthorized(t *testing.T) {
 		Visualization: visualization,
 		Namespace:     "ns1",
 	}
-	_, err = server.CreateVisualization(ctx, request)
+	_, err := server.CreateVisualization(ctx, request)
 	assert.NotNil(t, err)
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: "ns1",

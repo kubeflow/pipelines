@@ -87,10 +87,9 @@ func TestAuthorizeRequest_Unauthorized(t *testing.T) {
 	defer clients.Close()
 	authServer := AuthServer{resourceManager: manager}
 
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
+	userIdentity := "user@google.com"
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + userIdentity})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
-	userIdentity, err := manager.AuthenticateRequest(ctx)
-	assert.Nil(t, err)
 
 	request := &api.AuthorizeRequest{
 		Namespace: "ns1",
@@ -98,7 +97,7 @@ func TestAuthorizeRequest_Unauthorized(t *testing.T) {
 		Verb:      api.AuthorizeRequest_GET,
 	}
 
-	_, err = authServer.Authorize(ctx, request)
+	_, err := authServer.Authorize(ctx, request)
 	assert.Error(t, err)
 
 	resourceAttributes := &authorizationv1.ResourceAttributes{

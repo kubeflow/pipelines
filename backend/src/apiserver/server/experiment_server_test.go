@@ -74,14 +74,12 @@ func TestCreateExperiment_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	userIdentity := "user@google.com"
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + userIdentity})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	clients, resourceManager, _ := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
-
-	userIdentity, err := resourceManager.AuthenticateRequest(ctx)
-	assert.Nil(t, err)
 
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	experiment := &api.Experiment{
@@ -94,7 +92,7 @@ func TestCreateExperiment_Unauthorized(t *testing.T) {
 			},
 		}}
 
-	_, err = server.CreateExperiment(ctx, &api.CreateExperimentRequest{Experiment: experiment})
+	_, err := server.CreateExperiment(ctx, &api.CreateExperimentRequest{Experiment: experiment})
 	assert.NotNil(t, err)
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: "ns1",
@@ -182,18 +180,16 @@ func TestGetExperiment_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	userIdentity := "user@google.com"
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + userIdentity})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	clients, manager, experiment := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
 
-	userIdentity, err := manager.AuthenticateRequest(ctx)
-	assert.Nil(t, err)
-
 	server := ExperimentServer{manager, &ExperimentServerOptions{CollectMetrics: false}}
 
-	_, err = server.GetExperiment(ctx, &api.GetExperimentRequest{Id: experiment.UUID})
+	_, err := server.GetExperiment(ctx, &api.GetExperimentRequest{Id: experiment.UUID})
 	assert.NotNil(t, err)
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: "ns1",
@@ -300,18 +296,16 @@ func TestListExperiment_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	userIdentity := "user@google.com"
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + userIdentity})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	clients, manager, _ := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
 
-	userIdentity, err := manager.AuthenticateRequest(ctx)
-	assert.Nil(t, err)
-
 	server := ExperimentServer{manager, &ExperimentServerOptions{CollectMetrics: false}}
 
-	_, err = server.ListExperiment(ctx, &api.ListExperimentsRequest{
+	_, err := server.ListExperiment(ctx, &api.ListExperimentsRequest{
 		ResourceReferenceKey: &api.ResourceKey{
 			Type: api.ResourceType_NAMESPACE,
 			Id:   "ns1",
