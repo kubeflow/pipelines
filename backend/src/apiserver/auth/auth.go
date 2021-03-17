@@ -41,7 +41,7 @@ func GetAuthenticators(tokenReviewClient client.TokenReviewInterface) []Authenti
 			NewTokenReviewAuthenticator(
 				common.AuthorizationBearerTokenHeader,
 				common.AuthorizationBearerTokenPrefix,
-				[]string{common.TokenReviewAudience},
+				[]string{common.DefaultTokenReviewAudience},
 				tokenReviewClient,
 			),
 			NewHTTPHeaderAuthenticator(common.GetKubeflowUserIDHeader(), common.GetKubeflowUserIDPrefix()),

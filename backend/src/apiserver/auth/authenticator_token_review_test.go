@@ -32,7 +32,7 @@ func TestTokenReviewAuthenticatorAuthenticated(t *testing.T) {
 	authenticator := NewTokenReviewAuthenticator(
 		common.AuthorizationBearerTokenHeader,
 		common.AuthorizationBearerTokenPrefix,
-		[]string{common.TokenReviewAudience},
+		[]string{common.DefaultTokenReviewAudience},
 		client.NewFakeTokenReviewClient(),
 	)
 
@@ -58,7 +58,7 @@ func TestTokenReviewAuthenticatorAuthenticatedWrongAudience(t *testing.T) {
 	assert.Contains(
 		t,
 		err.Error(),
-		fmt.Sprintf("Failed to find all of '%v' in audience: %v", authenticator.audiences, []string{common.TokenReviewAudience}),
+		fmt.Sprintf("Failed to find all of '%v' in audience: %v", authenticator.audiences, []string{common.DefaultTokenReviewAudience}),
 	)
 }
 
@@ -69,7 +69,7 @@ func TestTokenReviewAuthenticatorUnauthenticated(t *testing.T) {
 	authenticator := NewTokenReviewAuthenticator(
 		common.AuthorizationBearerTokenHeader,
 		common.AuthorizationBearerTokenPrefix,
-		[]string{common.TokenReviewAudience},
+		[]string{common.DefaultTokenReviewAudience},
 		client.NewFakeTokenReviewClientUnauthenticated(),
 	)
 
@@ -85,7 +85,7 @@ func TestTokenReviewAuthenticatorError(t *testing.T) {
 	authenticator := NewTokenReviewAuthenticator(
 		common.AuthorizationBearerTokenHeader,
 		common.AuthorizationBearerTokenPrefix,
-		[]string{common.TokenReviewAudience},
+		[]string{common.DefaultTokenReviewAudience},
 		client.NewFakeTokenReviewClientError(),
 	)
 
@@ -98,11 +98,11 @@ func TestTokenReviewAuthenticator_ensureAudience(t *testing.T) {
 	authenticator := NewTokenReviewAuthenticator(
 		common.AuthorizationBearerTokenHeader,
 		common.AuthorizationBearerTokenPrefix,
-		[]string{common.TokenReviewAudience},
+		[]string{common.DefaultTokenReviewAudience},
 		client.NewFakeTokenReviewClient(),
 	)
 
-	audienceEnsured := authenticator.ensureAudience([]string{common.TokenReviewAudience})
+	audienceEnsured := authenticator.ensureAudience([]string{common.DefaultTokenReviewAudience})
 	assert.True(t, audienceEnsured)
 }
 
@@ -110,7 +110,7 @@ func TestTokenReviewAuthenticator_ensureAudienceFail(t *testing.T) {
 	authenticator := NewTokenReviewAuthenticator(
 		common.AuthorizationBearerTokenHeader,
 		common.AuthorizationBearerTokenPrefix,
-		[]string{common.TokenReviewAudience},
+		[]string{common.DefaultTokenReviewAudience},
 		client.NewFakeTokenReviewClient(),
 	)
 

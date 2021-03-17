@@ -68,7 +68,7 @@ const (
 	AuthorizationBearerTokenPrefix string = "Bearer "
 )
 
-const TokenReviewAudience string = "ml-pipeline"
+const DefaultTokenReviewAudience string = "pipelines.kubeflow.org"
 
 func ToModelResourceType(apiType api.ResourceType) (ResourceType, error) {
 	switch apiType {

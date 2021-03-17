@@ -27,7 +27,7 @@ func (FakeTokenReviewClient) Create(*authv1.TokenReview) (*authv1.TokenReview, e
 	return &authv1.TokenReview{Status: authv1.TokenReviewStatus{
 		Authenticated: true,
 		User:          authv1.UserInfo{Username: "test"},
-		Audiences:     []string{common.TokenReviewAudience},
+		Audiences:     []string{common.DefaultTokenReviewAudience},
 		Error:         "",
 	}}, nil
 }
