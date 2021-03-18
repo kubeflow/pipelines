@@ -2,9 +2,9 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: parallelfor-item-argument-resolving-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.3.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-01-20T11:30:05.340345',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.4.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-03-11T10:42:45.755332',
     pipelines.kubeflow.org/pipeline_spec: '{"name": "Parallelfor item argument resolving"}'}
-  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.3.0}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.4.0}
 spec:
   entrypoint: parallelfor-item-argument-resolving
   templates:
@@ -441,7 +441,7 @@ spec:
         python3 -u "$program_path" "$@"
       - |
         def produce_list_of_dicts():
-            return ([{"aaa": "aaa1", "bbb": "bbb1"}, {"aaa": "aaa2", "bbb": "bbb2"}],)
+            return [{"aaa": "aaa1", "bbb": "bbb1"}, {"aaa": "aaa2", "bbb": "bbb2"}]
 
         def _serialize_json(obj) -> str:
             if isinstance(obj, str):
@@ -489,7 +489,7 @@ spec:
           {"args": ["----output-paths", {"outputPath": "Output"}], "command": ["sh",
           "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
           -u \"$program_path\" \"$@\"\n", "def produce_list_of_dicts():\n    return
-          ([{\"aaa\": \"aaa1\", \"bbb\": \"bbb1\"}, {\"aaa\": \"aaa2\", \"bbb\": \"bbb2\"}],)\n\ndef
+          [{\"aaa\": \"aaa1\", \"bbb\": \"bbb1\"}, {\"aaa\": \"aaa2\", \"bbb\": \"bbb2\"}]\n\ndef
           _serialize_json(obj) -> str:\n    if isinstance(obj, str):\n        return
           obj\n    import json\n    def default_serializer(obj):\n        if hasattr(obj,
           ''to_struct''):\n            return obj.to_struct()\n        else:\n            raise
@@ -516,7 +516,7 @@ spec:
         python3 -u "$program_path" "$@"
       - |
         def produce_list_of_ints():
-            return ([1234567890, 987654321],)
+            return [1234567890, 987654321]
 
         def _serialize_json(obj) -> str:
             if isinstance(obj, str):
@@ -564,7 +564,7 @@ spec:
           {"args": ["----output-paths", {"outputPath": "Output"}], "command": ["sh",
           "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
           -u \"$program_path\" \"$@\"\n", "def produce_list_of_ints():\n    return
-          ([1234567890, 987654321],)\n\ndef _serialize_json(obj) -> str:\n    if isinstance(obj,
+          [1234567890, 987654321]\n\ndef _serialize_json(obj) -> str:\n    if isinstance(obj,
           str):\n        return obj\n    import json\n    def default_serializer(obj):\n        if
           hasattr(obj, ''to_struct''):\n            return obj.to_struct()\n        else:\n            raise
           TypeError(\"Object of type ''%s'' is not JSON serializable and does not
@@ -590,7 +590,7 @@ spec:
         python3 -u "$program_path" "$@"
       - |
         def produce_list_of_strings():
-            return (["a", "z"],)
+            return ["a", "z"]
 
         def _serialize_json(obj) -> str:
             if isinstance(obj, str):
@@ -638,7 +638,7 @@ spec:
           {"args": ["----output-paths", {"outputPath": "Output"}], "command": ["sh",
           "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
           -u \"$program_path\" \"$@\"\n", "def produce_list_of_strings():\n    return
-          ([\"a\", \"z\"],)\n\ndef _serialize_json(obj) -> str:\n    if isinstance(obj,
+          [\"a\", \"z\"]\n\ndef _serialize_json(obj) -> str:\n    if isinstance(obj,
           str):\n        return obj\n    import json\n    def default_serializer(obj):\n        if
           hasattr(obj, ''to_struct''):\n            return obj.to_struct()\n        else:\n            raise
           TypeError(\"Object of type ''%s'' is not JSON serializable and does not

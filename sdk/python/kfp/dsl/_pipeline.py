@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import enum
 from typing import Callable, Optional, Union
+
 from kubernetes.client.models import V1PodDNSConfig
-from . import _container_op
-from . import _resource_op
-from . import _ops_group
-from ._component_bridge import \
-  _create_container_op_from_component_and_arguments, \
-  _sanitize_python_function_name
-from ..components import _components
-from ..components._naming import _make_name_unique_by_adding_index
+from kfp.dsl import _container_op
+from kfp.dsl import _resource_op
+from kfp.dsl import _ops_group
+from kfp.dsl import _component_bridge
+from kfp.components import _components
+from kfp.components import _naming
 import sys
 
 # This handler is called whenever the @pipeline decorator is applied.
@@ -29,18 +29,29 @@ import sys
 # pipeline definition.
 _pipeline_decorator_handler = None
 
+class PipelineExecutionMode(enum.Enum):
+  # Compile to Argo YAML without support for metadata-enabled components.
+  V1_LEGACY = 1
+  # Compiles to Argo YAML with support for metadata-enabled components.
+  # Pipelines compiled using this mode aim to be compatible with v2 semantics.
+  V2_COMPATIBLE = 2
+  # Compiles to KFP v2 IR for execution using the v2 engine.
+  # This option is unsupported right now.
+  V2_ENGINE = 3
 
-def pipeline(name: Optional[str] = None,
-             description: Optional[str] = None,
-             pipeline_root: Optional[str] = None):
+
+def pipeline(
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+    pipeline_root: Optional[str] = None):
   """Decorator of pipeline functions.
 
   Example
     ::
 
       @pipeline(
-        name='my awesome pipeline',
-        description='Is it really awesome?'
+        name='my-pipeline',
+        description='My ML Pipeline.'
         pipeline_root='gs://my-bucket/my-output-path'
       )
       def my_pipeline(a: PipelineParam, b: PipelineParam):
@@ -170,7 +181,6 @@ class PipelineConf():
 
   def add_op_transformer(self, transformer):
     """Configures the op_transformers which will be applied to all ops in the pipeline.
-
     The ops can be ResourceOp, VolumeOp, or ContainerOp.
 
     Args:
@@ -193,8 +203,8 @@ class PipelineConf():
         from kubernetes.client.models import V1PodDNSConfig, V1PodDNSConfigOption
         pipeline_conf = kfp.dsl.PipelineConf()
         pipeline_conf.set_dns_config(dns_config=V1PodDNSConfig(
-            nameservers=["1.2.3.4"], options=[V1PodDNSConfigOption(name="ndots",
-            value="2")]
+            nameservers=["1.2.3.4"],
+            options=[V1PodDNSConfigOption(name="ndots", value="2")],
         ))
     """
     self.dns_config = dns_config
@@ -211,13 +221,13 @@ class PipelineConf():
       ::
 
         from kfp.dsl import PipelineConf, data_passing_methods
-        from kubernetes.client.models import V1Volume, V1PersistentVolumeClaim
+        from kubernetes.client.models import V1Volume, V1PersistentVolumeClaimVolumeSource
         pipeline_conf = PipelineConf()
         pipeline_conf.data_passing_method =
         data_passing_methods.KubernetesVolume(
             volume=V1Volume(
                 name='data',
-                persistent_volume_claim=V1PersistentVolumeClaim('data-volume'),
+                persistent_volume_claim=V1PersistentVolumeClaimVolumeSource('data-volume'),
             ),
             path_prefix='artifact_data/',
         )
@@ -227,7 +237,6 @@ class PipelineConf():
 
 def get_pipeline_conf():
   """Configure the pipeline level setting to the current pipeline
-
     Note: call the function inside the user defined pipeline function.
   """
   return Pipeline.get_default_pipeline().conf
@@ -286,8 +295,10 @@ class Pipeline():
       raise Exception('Nested pipelines are not allowed.')
 
     Pipeline._default_pipeline = self
-    self._old_container_task_constructor = _components._container_task_constructor
-    _components._container_task_constructor = _create_container_op_from_component_and_arguments
+    self._old_container_task_constructor = (
+        _components._container_task_constructor)
+    _components._container_task_constructor = (
+        _component_bridge._create_container_op_from_component_and_arguments)
 
     def register_op_and_generate_id(op):
       return self.add_op(op, op.is_exit_handler)
@@ -299,7 +310,8 @@ class Pipeline():
   def __exit__(self, *args):
     Pipeline._default_pipeline = None
     _container_op._register_op_handler = self._old__register_op_handler
-    _components._container_task_constructor = self._old_container_task_constructor
+    _components._container_task_constructor = (
+        self._old_container_task_constructor)
 
   def add_op(self, op: _container_op.BaseOp, define_only: bool):
     """Add a new operator.
@@ -312,13 +324,15 @@ class Pipeline():
     # Sanitizing the op name.
     # Technically this could be delayed to the compilation stage, but string
     # serialization of PipelineParams make unsanitized names problematic.
-    op_name = _sanitize_python_function_name(op.human_name).replace('_', '-')
+    op_name = _naming._sanitize_python_function_name(op.human_name).replace(
+        '_', '-')
     #If there is an existing op with this name then generate a new name.
-    op_name = _make_name_unique_by_adding_index(op_name, list(self.ops.keys()),
-                                                ' ')
+    op_name = _naming._make_name_unique_by_adding_index(op_name,
+                                                        list(self.ops.keys()),
+                                                        ' ')
     if op_name == '':
-      op_name = _make_name_unique_by_adding_index('task', list(self.ops.keys()),
-                                                  ' ')
+      op_name = _naming._make_name_unique_by_adding_index(
+          'task', list(self.ops.keys()), ' ')
 
     self.ops[op_name] = op
     if not define_only:

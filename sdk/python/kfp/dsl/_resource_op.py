@@ -31,6 +31,7 @@ class Resource(object):
       "merge_strategy": "str",
       "success_condition": "str",
       "failure_condition": "str",
+      "set_owner_reference": "bool",
       "manifest": "str",
       "flags": "list[str]"
   }
@@ -39,6 +40,7 @@ class Resource(object):
       "merge_strategy": "str",
       "success_condition": "str",
       "failure_condition": "str",
+      "set_owner_reference": "bool",
       "manifest": "str",
       "flags": "list[str]"
   }
@@ -47,6 +49,7 @@ class Resource(object):
       "merge_strategy": "mergeStrategy",
       "success_condition": "successCondition",
       "failure_condition": "failureCondition",
+      "set_owner_reference": "setOwnerReference",
       "manifest": "manifest",
       "flags": "flags"
   }
@@ -56,6 +59,7 @@ class Resource(object):
                merge_strategy: str = None,
                success_condition: str = None,
                failure_condition: str = None,
+               set_owner_reference: bool = None,
                manifest: str = None,
                flags: Optional[List[str]] = None):
     """Create a new instance of Resource"""
@@ -63,6 +67,7 @@ class Resource(object):
     self.merge_strategy = merge_strategy
     self.success_condition = success_condition
     self.failure_condition = failure_condition
+    self.set_owner_reference = set_owner_reference
     self.manifest = manifest
     self.flags = flags
 
@@ -98,6 +103,7 @@ class ResourceOp(BaseOp):
                merge_strategy: str = None,
                success_condition: str = None,
                failure_condition: str = None,
+               set_owner_reference: bool = None,
                attribute_outputs: Optional[Dict[str, str]] = None,
                flags: Optional[List[str]] = None,
                **kwargs):
@@ -135,6 +141,7 @@ class ResourceOp(BaseOp):
         "merge_strategy": merge_strategy,
         "success_condition": success_condition,
         "failure_condition": failure_condition,
+        "set_owner_reference": set_owner_reference,
         "flags": flags
     }
     # `resource` prop in `io.argoproj.workflow.v1alpha1.Template`

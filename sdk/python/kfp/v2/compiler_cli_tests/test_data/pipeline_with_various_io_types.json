@@ -5,37 +5,37 @@
         "artifacts": {
           "input1": {
             "artifactType": {
-              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              "instanceSchema": "title: kfp.Artifact\ntype: object\n"
             }
           },
           "input7": {
             "artifactType": {
-              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              "instanceSchema": "title: kfp.Artifact\ntype: object\n"
             }
           },
           "input5": {
             "artifactType": {
-              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              "instanceSchema": "title: kfp.Artifact\ntype: object\n"
             }
           },
           "input6": {
             "artifactType": {
-              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              "instanceSchema": "title: kfp.Artifact\ntype: object\n"
             }
           },
           "input4": {
             "artifactType": {
-              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              "instanceSchema": "title: kfp.Artifact\ntype: object\n"
             }
           },
           "input3": {
             "artifactType": {
-              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              "instanceSchema": "title: kfp.Artifact\ntype: object\n"
             }
           },
           "input8": {
             "artifactType": {
-              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              "instanceSchema": "title: kfp.Artifact\ntype: object\n"
             }
           }
         }
@@ -201,7 +201,7 @@
           "artifacts": {
             "result": {
               "artifactType": {
-                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+                "instanceSchema": "title: kfp.Artifact\ntype: object\n"
               }
             }
           }
@@ -220,7 +220,7 @@
           "artifacts": {
             "result": {
               "artifactType": {
-                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+                "instanceSchema": "title: kfp.Artifact\ntype: object\n"
               }
             }
           }
@@ -233,7 +233,7 @@
           "artifacts": {
             "result": {
               "artifactType": {
-                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+                "instanceSchema": "title: kfp.Artifact\ntype: object\n"
               }
             }
           }
@@ -256,12 +256,12 @@
           "artifacts": {
             "input_c": {
               "artifactType": {
-                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+                "instanceSchema": "title: kfp.Artifact\ntype: object\n"
               }
             },
             "input_b": {
               "artifactType": {
-                "instanceSchema": "properties:\ntitle: kfp.Model\ntype: object\n"
+                "instanceSchema": "title: kfp.Model\ntype: object\nproperties:\n  framework:\n    type: string\n  framework_version:\n    type: string\n"
               }
             }
           }
@@ -280,7 +280,7 @@
           "artifacts": {
             "result": {
               "artifactType": {
-                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+                "instanceSchema": "title: kfp.Artifact\ntype: object\n"
               }
             }
           }
@@ -300,7 +300,7 @@
           "artifacts": {
             "result": {
               "artifactType": {
-                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+                "instanceSchema": "title: kfp.Artifact\ntype: object\n"
               }
             }
           }
@@ -312,32 +312,32 @@
           "artifacts": {
             "input_4": {
               "artifactType": {
-                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+                "instanceSchema": "title: kfp.Artifact\ntype: object\n"
               }
             },
             "input_6": {
               "artifactType": {
-                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+                "instanceSchema": "title: kfp.Artifact\ntype: object\n"
               }
             },
             "input_3": {
               "artifactType": {
-                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+                "instanceSchema": "title: kfp.Artifact\ntype: object\n"
               }
             },
             "input_8": {
               "artifactType": {
-                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+                "instanceSchema": "title: kfp.Artifact\ntype: object\n"
               }
             },
             "input_7": {
               "artifactType": {
-                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+                "instanceSchema": "title: kfp.Artifact\ntype: object\n"
               }
             },
             "input_5": {
               "artifactType": {
-                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+                "instanceSchema": "title: kfp.Artifact\ntype: object\n"
               }
             }
           },
@@ -359,12 +359,12 @@
           "artifacts": {
             "output_2": {
               "artifactType": {
-                "instanceSchema": "properties:\ntitle: kfp.Model\ntype: object\n"
+                "instanceSchema": "title: kfp.Model\ntype: object\nproperties:\n  framework:\n    type: string\n  framework_version:\n    type: string\n"
               }
             },
             "output_3": {
               "artifactType": {
-                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+                "instanceSchema": "title: kfp.Artifact\ntype: object\n"
               }
             }
           }
@@ -383,7 +383,7 @@
           "artifacts": {
             "result": {
               "artifactType": {
-                "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+                "instanceSchema": "title: kfp.Artifact\ntype: object\n"
               }
             }
           }
@@ -402,7 +402,7 @@
               "runtimeParameter": "input3"
             },
             "typeSchema": {
-              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              "instanceSchema": "title: kfp.Artifact\ntype: object\n"
             }
           }
         },
@@ -419,7 +419,7 @@
         "exec-importer-task-upstream-input-5": {
           "importer": {
             "typeSchema": {
-              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              "instanceSchema": "title: kfp.Artifact\ntype: object\n"
             },
             "artifactUri": {
               "constantValue": {
@@ -434,7 +434,7 @@
               "runtimeParameter": "input4"
             },
             "typeSchema": {
-              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              "instanceSchema": "title: kfp.Artifact\ntype: object\n"
             }
           }
         },
@@ -459,7 +459,7 @@
         "exec-importer-task-upstream-input-6": {
           "importer": {
             "typeSchema": {
-              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              "instanceSchema": "title: kfp.Artifact\ntype: object\n"
             },
             "artifactUri": {
               "runtimeParameter": "input6"
@@ -472,14 +472,14 @@
               "runtimeParameter": "input8"
             },
             "typeSchema": {
-              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              "instanceSchema": "title: kfp.Artifact\ntype: object\n"
             }
           }
         },
         "exec-importer-task-upstream-input-7": {
           "importer": {
             "typeSchema": {
-              "instanceSchema": "properties:\ntitle: kfp.Artifact\ntype: object\n"
+              "instanceSchema": "title: kfp.Artifact\ntype: object\n"
             },
             "artifactUri": {
               "runtimeParameter": "input7"

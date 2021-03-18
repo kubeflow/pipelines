@@ -15,6 +15,7 @@ export function commonSetup(
 <head>
   <script>
   window.KFP_FLAGS.DEPLOYMENT=null
+  window.KFP_FLAGS.HIDE_SIDENAV=null
   </script>
   <script id="kubeflow-client-placeholder"></script>
 </head>

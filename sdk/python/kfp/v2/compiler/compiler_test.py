@@ -102,7 +102,7 @@ class CompilerTest(unittest.TestCase):
           - {inputValue: msg}
       """)
 
-    @dsl.pipeline()
+    @dsl.pipeline(name='pipeline-with-exit-handler')
     def download_and_print(url='gs://ml-pipeline/shakespeare/shakespeare1.txt'):
       """A sample pipeline showing exit handler."""
 
@@ -142,7 +142,7 @@ class CompilerTest(unittest.TestCase):
             command=['sh', '-c'],
             arguments=['echo "$0"', text2])
 
-      @dsl.pipeline()
+      @dsl.pipeline(name='pipeline-with-graph-component')
       def opsgroups_pipeline(text1='message 1', text2='message 2'):
         step1_graph_component = echo1_graph_component(text1)
         step2_graph_component = echo2_graph_component(text2)

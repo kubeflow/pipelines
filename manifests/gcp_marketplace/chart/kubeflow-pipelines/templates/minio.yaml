@@ -62,7 +62,7 @@ spec:
           resources:
             requests:
               cpu: 20m
-              memory: 25Mi
+              memory: 100Mi
 {{ end }}
 ---
 {{ if not .Values.managedstorage.enabled }}

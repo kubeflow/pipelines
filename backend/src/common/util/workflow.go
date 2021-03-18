@@ -63,6 +63,19 @@ func (w *Workflow) OverrideParameters(desiredParams map[string]string) {
 	w.Spec.Arguments.Parameters = desiredSlice
 }
 
+func (w *Workflow) GetWorkflowParametersAsMap() map[string]string {
+	resultAsArray := w.Spec.Arguments.Parameters
+	resultAsMap := make(map[string]string)
+	for _, param := range resultAsArray {
+		if param.Value == nil {
+			resultAsMap[param.Name] = ""
+		} else {
+			resultAsMap[param.Name] = param.Value.String()
+		}
+	}
+	return resultAsMap
+}
+
 func (w *Workflow) VerifyParameters(desiredParams map[string]string) error {
 	templateParamsMap := make(map[string]*string)
 	for _, param := range w.Spec.Arguments.Parameters {
