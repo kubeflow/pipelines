@@ -74,7 +74,8 @@ def build_component_inputs_spec(
     if type_utils.is_parameter_type(param.param_type):
       component_spec.input_definitions.parameters[
           input_name].type = type_utils.get_parameter_type(param.param_type)
-    else:
+    elif input_name not in getattr(component_spec.input_definitions,
+                                   'parameters', []):
       component_spec.input_definitions.artifacts[
           input_name].artifact_type.instance_schema = (
               type_utils.get_artifact_type_schema(param.param_type))
@@ -95,7 +96,8 @@ def build_component_outputs_spec(
     if type_utils.is_parameter_type(param.param_type):
       component_spec.output_definitions.parameters[
           output_name].type = type_utils.get_parameter_type(param.param_type)
-    else:
+    elif output_name not in getattr(component_spec.output_definitions,
+                                    'parameters', []):
       component_spec.output_definitions.artifacts[
           output_name].artifact_type.instance_schema = (
               type_utils.get_artifact_type_schema(param.param_type))
