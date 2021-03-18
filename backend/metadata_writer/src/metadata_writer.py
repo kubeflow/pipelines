@@ -73,6 +73,8 @@ METADATA_CONTEXT_ID_LABEL_KEY = 'pipelines.kubeflow.org/metadata_context_id'
 METADATA_ARTIFACT_IDS_ANNOTATION_KEY = 'pipelines.kubeflow.org/metadata_artifact_ids'
 METADATA_INPUT_ARTIFACT_IDS_ANNOTATION_KEY = 'pipelines.kubeflow.org/metadata_input_artifact_ids'
 METADATA_OUTPUT_ARTIFACT_IDS_ANNOTATION_KEY = 'pipelines.kubeflow.org/metadata_output_artifact_ids'
+KFP_V2_COMPONENT_ANNOTATION_KEY = 'pipelines.kubeflow.org/v2_component'
+KFP_V2_COMPONENT_ANNOTATION_VALUE = 'true'
 
 ARGO_WORKFLOW_LABEL_KEY = 'workflows.argoproj.io/workflow'
 ARGO_COMPLETED_LABEL_KEY = 'workflows.argoproj.io/completed'
@@ -116,6 +118,8 @@ def is_tfx_pod(pod) -> bool:
     main_container = main_containers[0]
     return main_container.command and main_container.command[-1].endswith('tfx/orchestration/kubeflow/container_entrypoint.py')
 
+def is_kfp_v2_pod(pod) -> bool:
+    return pod.metadata.annotations.get(KFP_V2_COMPONENT_ANNOTATION_KEY) == KFP_V2_COMPONENT_ANNOTATION_VALUE
 
 # Caches (not expected to be persistent)
 # These caches are only used to prevent race conditions. Race conditions happen because the writer can see multiple versions of K8s object before the applied labels show up.
@@ -154,6 +158,10 @@ while True:
 
             # Skip TFX pods - they have their own metadata writers
             if is_tfx_pod(obj):
+                continue
+
+            # Skip KFP v2 pods - they have their own metadat writers
+            if is_kfp_v2_pod(obj):
                 continue
 
             argo_workflow_name = obj.metadata.labels[ARGO_WORKFLOW_LABEL_KEY] # Should exist due to initial filtering

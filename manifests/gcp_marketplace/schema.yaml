@@ -87,25 +87,75 @@ x-google-marketplace:
   deployerServiceAccount:
     description: Service account used to deploy cluster-wide Kubeflow Pipelines objects
     roles:
-      - type: ClusterRole # This is a cluster-wide ClusterRole
-        rulesType: CUSTOM # We specify our own custom RBAC roles
-        rules:
-          - apiGroups: ['apiextensions.k8s.io', 'rbac.authorization.k8s.io']
-            resources: ['customresourcedefinitions', 'clusterroles', 'clusterrolebindings']
-            verbs: ['*']
+    - type: ClusterRole # This is a cluster-wide ClusterRole
+      rulesType: CUSTOM # We specify our own custom RBAC roles
+      rules:
+      - apiGroups: ['apiextensions.k8s.io', 'rbac.authorization.k8s.io']
+        resources: ['customresourcedefinitions', 'clusterroles', 'clusterrolebindings']
+        verbs: ['*']
+    # For CRs in the following deployer-applied Roles:
+    # - kubeflow-pipelines-cache-role
+    # - kubeflow-pipelines-metadata-writer-role
+    # - ml-pipeline
+    # - ml-pipeline-persistenceagent-role
+    # - ml-pipeline-scheduledworkflow-role
+    # - ml-pipeline-viewer-controller-role
+    # - ml-pipeline-ui
+    # - pipeline-runner
+    # - proxy-agent-runner
+    - type: Role
+      rulesType: CUSTOM
+      rules:
+      - apiGroups: ['argoproj.io']
+        resources:
+        - 'workflows'
+        - 'workflows/finalizers'
+        - 'workflowtemplates'
+        - 'workflowtemplates/finalizers'
+        - 'cronworkflows'
+        - 'cronworkflows/finalizers'
+        verbs: ['*']
+      - apiGroups: ['kubeflow.org']
+        resources: ['*']
+        verbs: ['*']
+      - apiGroups: ['']
+        resources: ['configmaps', 'events', 'pods/log', 'persistentvolumes', 'persistentvolumeclaims', 'pods', 'pods/exec']
+        verbs: ['*']
+      - apiGroups: ['batch']
+        resources: ['jobs']
+        verbs: ['*']
+      - apiGroups: ['*']
+        resources: ['deployments', 'services', 'replicasets']
+        verbs: ['*']
+      # Not a CR, but an alpha resource so not present in
+      # all clusters (and their `admin` Role definition)
+      - apiGroups: ['snapshot.storage.k8s.io']
+        resources: ['volumesnapshots']
+        verbs: ['*']
+    # Marketplace does not provision default
+    # Role/binding if custom Role is provided
+    - type: Role
+      rulesType: CUSTOM
+      rules:
+      - apiGroups: ['app.k8s.io']
+        resources: ['applications']
+        verbs: ['*']
+    - type: Role
+      rulesType: PREDEFINED
+      rulesFromRoleName: admin
   clusterConstraints:
     resources:
-      - replicas: 3
-        requests:
-          cpu: 1
-          memory: 2Gi
-        affinity:
-          simpleNodeAffinity:
-            type: REQUIRE_ONE_NODE_PER_REPLICA
+    - replicas: 3
+      requests:
+        cpu: 1
+        memory: 2Gi
+      affinity:
+        simpleNodeAffinity:
+          type: REQUIRE_ONE_NODE_PER_REPLICA
     gcp:
       nodes:
         requiredOauthScopes:
-          - https://www.googleapis.com/auth/cloud-platform
+        - https://www.googleapis.com/auth/cloud-platform
 properties:
   name:
     type: string

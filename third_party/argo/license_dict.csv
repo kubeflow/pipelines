@@ -1,0 +1,16 @@
+dmitri.shuralyov.com/gpu/mtl, https://dmitri.shuralyov.com/gpu/mtl$file/LICENSE, BSD-3-Clause
+# Ignore: this is a dev dependency.
+github.com/fasthttp-contrib/websocket,,Ignore
+# No license file, but mentions it's MIT license in README.
+github.com/yudai/pp, https://raw.githubusercontent.com/yudai/pp/master/README.md, MIT
+# Main branch is empty, license is on v2 branch.
+gopkg.in/square/go-jose.v2, https://raw.githubusercontent.com/square/go-jose/v2/LICENSE, Apache-2.0
+modernc.org/cc, https://gitlab.com/cznic/cc/-/raw/master/LICENSE, BSD-3-Clause
+modernc.org/golex, https://gitlab.com/cznic/golex/-/raw/master/LICENSE, BSD-3-Clause
+modernc.org/mathutil, https://gitlab.com/cznic/mathutil/-/raw/master/LICENSE, BSD-3-Clause
+modernc.org/strutil, https://gitlab.com/cznic/strutil/-/raw/master/LICENSE, BSD-3-Clause
+modernc.org/xc, https://gitlab.com/cznic/xc/-/raw/master/LICENSE, BSD-3-Clause
+github.com/inconshreveable/mousetrap, https://raw.githubusercontent.com/inconshreveable/mousetrap/master/LICENSE, Apache-2.0
+github.com/jmespath/go-jmespath, https://raw.githubusercontent.com/jmespath/go-jmespath/master/LICENSE, Apache-2.0
+gotest.tools, https://raw.githubusercontent.com/gotestyourself/gotest.tools/main/LICENSE, Apache-2.0
+moul.io/http2curl, https://raw.githubusercontent.com/moul/http2curl/master/LICENSE-APACHE, Apache-2.0

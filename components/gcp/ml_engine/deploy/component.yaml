@@ -70,7 +70,7 @@ inputs:
   - name: replace_existing_version
     description: >-
       A Boolean flag that indicates whether to replace existing version in case of conflict.
-    default: 'Fasle'
+    default: 'False'
     type: Bool
   - name: set_default
     description: >-
