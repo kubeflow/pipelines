@@ -16,7 +16,7 @@
 # https://packaging.python.org/guides/packaging-namespace-packages/#pkgutil-style-namespace-packages
 __path__ = __import__("pkgutil").extend_path(__path__, __name__)
 
-__version__ = '1.4.1-rc.0'
+__version__ = '1.4.1-rc.1'
 
 from . import components
 from . import containers
