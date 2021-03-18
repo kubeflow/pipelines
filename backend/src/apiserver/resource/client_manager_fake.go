@@ -17,6 +17,7 @@ package resource
 import (
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -46,6 +47,7 @@ type FakeClientManager struct {
 	logArchive                    archive.LogArchiveInterface
 	time                          util.TimeInterface
 	uuid                          util.UUIDGeneratorInterface
+	AuthenticatorsFake            []auth.Authenticator
 }
 
 func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterface) (
@@ -84,6 +86,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		logArchive:                    archive.NewLogArchive("/logs", "main.log"),
 		time:                          time,
 		uuid:                          uuid,
+		AuthenticatorsFake:            auth.GetAuthenticators(client.NewFakeTokenReviewClient()),
 	}, nil
 }
 
@@ -162,6 +165,10 @@ func (f *FakeClientManager) SubjectAccessReviewClient() client.SubjectAccessRevi
 
 func (f *FakeClientManager) TokenReviewClient() client.TokenReviewInterface {
 	return f.tokenReviewClientFake
+}
+
+func (f *FakeClientManager) Authenticators() []auth.Authenticator {
+	return f.AuthenticatorsFake
 }
 
 func (f *FakeClientManager) Close() error {

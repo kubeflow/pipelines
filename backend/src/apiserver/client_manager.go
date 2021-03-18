@@ -25,6 +25,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -78,6 +79,7 @@ type ClientManager struct {
 	logArchive                archive.LogArchiveInterface
 	time                      util.TimeInterface
 	uuid                      util.UUIDGeneratorInterface
+	authenticators            []auth.Authenticator
 }
 
 func (c *ClientManager) ExperimentStore() storage.ExperimentStoreInterface {
@@ -144,6 +146,10 @@ func (c *ClientManager) UUID() util.UUIDGeneratorInterface {
 	return c.uuid
 }
 
+func (c *ClientManager) Authenticators() []auth.Authenticator {
+	return c.authenticators
+}
+
 func (c *ClientManager) init() {
 	glog.Info("Initializing client manager")
 	db := initDBClient(common.GetDurationConfig(initConnectionTimeout))
@@ -185,6 +191,7 @@ func (c *ClientManager) init() {
 	if common.IsMultiUserMode() {
 		c.subjectAccessReviewClient = client.CreateSubjectAccessReviewClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 		c.tokenReviewClient = client.CreateTokenReviewClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
+		c.authenticators = auth.GetAuthenticators(c.tokenReviewClient)
 	}
 	glog.Infof("Client manager initialized successfully")
 }

@@ -32,20 +32,14 @@ var IdentityHeaderMissingError = util.NewUnauthenticatedError(
 	"Request header error: there is no user identity header.",
 )
 
-// Make this public for tests to force its re-instantiation
-var Authenticators []Authenticator
-
 func GetAuthenticators(tokenReviewClient client.TokenReviewInterface) []Authenticator {
-	if Authenticators == nil {
-		Authenticators = []Authenticator{
-			NewHTTPHeaderAuthenticator(common.GetKubeflowUserIDHeader(), common.GetKubeflowUserIDPrefix()),
-			NewTokenReviewAuthenticator(
-				common.AuthorizationBearerTokenHeader,
-				common.AuthorizationBearerTokenPrefix,
-				[]string{common.GetTokenReviewAudience()},
-				tokenReviewClient,
-			),
-		}
+	return []Authenticator{
+		NewHTTPHeaderAuthenticator(common.GetKubeflowUserIDHeader(), common.GetKubeflowUserIDPrefix()),
+		NewTokenReviewAuthenticator(
+			common.AuthorizationBearerTokenHeader,
+			common.AuthorizationBearerTokenPrefix,
+			[]string{common.GetTokenReviewAudience()},
+			tokenReviewClient,
+		),
 	}
-	return Authenticators
 }

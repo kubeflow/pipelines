@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	kfpauth "github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -115,8 +114,6 @@ func TestAuthorizeRequest_EmptyUserIdPrefix(t *testing.T) {
 	defer viper.Set(common.MultiUserMode, "false")
 	viper.Set(common.KubeflowUserIDPrefix, "")
 	defer viper.Set(common.KubeflowUserIDPrefix, common.GoogleIAPUserIdentityPrefix)
-	auth.Authenticators = nil
-	defer func() { auth.Authenticators = nil }()
 
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()

@@ -80,6 +80,7 @@ type ClientManagerInterface interface {
 	LogArchive() archive.LogArchiveInterface
 	Time() util.TimeInterface
 	UUID() util.UUIDGeneratorInterface
+	Authenticators() []kfpauth.Authenticator
 }
 
 type ResourceManager struct {
@@ -99,6 +100,7 @@ type ResourceManager struct {
 	logArchive                archive.LogArchiveInterface
 	time                      util.TimeInterface
 	uuid                      util.UUIDGeneratorInterface
+	authenticators            []kfpauth.Authenticator
 }
 
 func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
@@ -119,6 +121,7 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		logArchive:                clientManager.LogArchive(),
 		time:                      clientManager.Time(),
 		uuid:                      clientManager.UUID(),
+		authenticators:            clientManager.Authenticators(),
 	}
 }
 
@@ -1239,7 +1242,7 @@ func (r *ResourceManager) AuthenticateRequest(ctx context.Context) (string, erro
 	// If the request header contains the user identity, requests are authorized
 	// based on the namespace field in the request.
 	var errlist []error
-	for _, auth := range kfpauth.GetAuthenticators(r.tokenReviewClient) {
+	for _, auth := range r.authenticators {
 		userIdentity, err := auth.GetUserIdentity(ctx)
 		if err == nil {
 			return userIdentity, nil
