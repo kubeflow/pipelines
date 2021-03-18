@@ -27,7 +27,6 @@ implementation:
     args: [
       -u, train.py,
       --model_def_file_path, {inputValue: model_def_file_path},
-      --manifest_file_path, {inputValue: manifest_file_path}
+      --manifest_file_path, {inputValue: manifest_file_path},
+      --output_training_id_path, {outputPath: output}
     ]
-    fileOutputs:
-      output: /tmp/training_id.txt

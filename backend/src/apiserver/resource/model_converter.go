@@ -204,7 +204,7 @@ func toModelParameters(apiParams []*api.Parameter) (string, error) {
 	for _, apiParam := range apiParams {
 		param := v1alpha1.Parameter{
 			Name:  apiParam.Name,
-			Value: &apiParam.Value,
+			Value: v1alpha1.AnyStringPtr(apiParam.Value),
 		}
 		params = append(params, param)
 	}

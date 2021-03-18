@@ -44,7 +44,6 @@ export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> 
     return {
       actions: buttons
         .newRun()
-        .newExperiment()
         .compareRuns(() => this.state.selectedIds)
         .cloneRun(() => this.state.selectedIds, false)
         .archive(
@@ -56,7 +55,7 @@ export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> 
         .refresh(this.refresh.bind(this))
         .getToolbarActionMap(),
       breadcrumbs: [],
-      pageTitle: 'Experiments',
+      pageTitle: 'Runs',
     };
   }
 

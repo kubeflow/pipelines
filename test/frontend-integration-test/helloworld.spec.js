@@ -199,10 +199,10 @@ describe('deploy helloworld sample run', () => {
     }, waitTimeout);
   });
 
-  it('navigates back to the experiment list', () => {
-    $('button=Experiments').click();
+  it('navigates to the runs page', () => {
+    $('#runsBtn').click();
     browser.waitUntil(() => {
-      return new URL(browser.getUrl()).hash.startsWith('#/experiments');
+      return new URL(browser.getUrl()).hash.startsWith('#/runs');
     }, waitTimeout);
   });
 

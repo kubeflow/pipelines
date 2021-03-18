@@ -70,7 +70,7 @@ func (s *PipelineVersionApiTest) TestPipelineVersionAPI() {
 	assert.Equal(t, "test_pipeline", pipeline.Name)
 
 	/* ---------- Get pipeline id ---------- */
-	pipelines, totalSize, _, err := s.pipelineClient.List(params.NewListPipelinesParams())
+	pipelines, totalSize, _, err := s.pipelineClient.List(&params.ListPipelinesParams{})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(pipelines))
 	assert.Equal(t, 1, totalSize)
@@ -84,7 +84,23 @@ func (s *PipelineVersionApiTest) TestPipelineVersionAPI() {
 	assert.Nil(t, err)
 	assert.Equal(t, "arguments-parameters.yaml", argumentYAMLPipelineVersion.Name)
 
+	/* ---------- Update pipeline default version ---------- */
+	time.Sleep(1 * time.Second)
+	sortBy := "created_at"
+	versions, _, _, err := s.pipelineClient.ListPipelineVersions(&params.ListPipelineVersionsParams{ResourceKeyID: &pipelineId, SortBy: &sortBy})
+	assert.Nil(t, err)
+
+	err = s.pipelineClient.UpdateDefaultVersion(&params.UpdatePipelineDefaultVersionParams{PipelineID: pipelineId,
+		VersionID: versions[0].ID})
+	assert.Nil(t, err)
+
+	time.Sleep(1 * time.Second)
+	pipelineSelected, err := s.pipelineClient.Get(&params.GetPipelineParams{ID: pipelineId})
+	assert.Nil(t, err)
+	assert.Equal(t, pipelineSelected.DefaultVersion.ID, versions[0].ID)
+
 	/* ---------- Upload the same pipeline version again. Should fail due to name uniqueness ---------- */
+	time.Sleep(1 * time.Second)
 	_, err = s.pipelineUploadClient.UploadPipelineVersion("../resources/arguments-parameters.yaml", uploadParams.NewUploadPipelineVersionParams())
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to upload pipeline version.")

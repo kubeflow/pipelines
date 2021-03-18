@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/metadata"
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
 func TestValidateCreateVisualizationRequest(t *testing.T) {
@@ -259,7 +260,7 @@ func TestCreateVisualization_Unauthorized(t *testing.T) {
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	clientManager.KfamClientFake = client.NewFakeKFAMClientUnauthorized()
+	clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
 	resourceManager := resource.NewResourceManager(clientManager)
 	defer clientManager.Close()
 
@@ -278,5 +279,16 @@ func TestCreateVisualization_Unauthorized(t *testing.T) {
 	}
 	_, err := server.CreateVisualization(ctx, request)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Unauthorized access")
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: "ns1",
+		Verb:      common.RbacResourceVerbCreate,
+		Group:     common.RbacPipelinesGroup,
+		Version:   common.RbacPipelinesVersion,
+		Resource:  common.RbacResourceTypeVisualizations,
+	}
+	assert.EqualError(
+		t,
+		err,
+		util.Wrap(getPermissionDeniedError(ctx, resourceAttributes), "Failed to authorize on namespace.").Error(),
+	)
 }

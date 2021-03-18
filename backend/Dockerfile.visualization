@@ -17,10 +17,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM tensorflow/tensorflow:2.2.0
+# This image should be in sync with image in backend/src/apiserver/visualization/update_requirements.sh.
+FROM tensorflow/tensorflow:2.4.0
 
 RUN apt-get update \
-  && apt-get install -y wget curl tar
+  && apt-get install -y wget curl tar openssl
 
 RUN curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz > /tmp/google-cloud-sdk.tar.gz
 RUN mkdir -p /usr/local/gcloud
@@ -32,7 +33,7 @@ WORKDIR /src
 
 COPY backend/src/apiserver/visualization/requirements.txt /src
 
-RUN pip3 install -r requirements.txt
+RUN python3 -m pip install -r requirements.txt --no-cache-dir
 
 COPY backend/src/apiserver/visualization /src
 

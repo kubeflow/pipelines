@@ -27,7 +27,6 @@ implementation:
     args: [
       -u, data_preprocess_spark.py,
       --bucket_name, {inputValue: bucket_name},
-      --data_url, {inputValue: data_url}
+      --data_url, {inputValue: data_url},
+      --output_filename_path, {outputPath: output}
     ]
-    fileOutputs:
-      output: /tmp/filename

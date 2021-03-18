@@ -1,5 +1,5 @@
 import click
-import logging
+import json
 
 from .output import print_output, OutputFormat
 
@@ -40,14 +40,18 @@ def list(ctx, max_size):
     client = ctx.obj['client']
     output_format = ctx.obj['output']
 
-    response = client.experiments.list_experiment(
+    response = client.list_experiments(
         page_size=max_size,
         sort_by="created_at desc"
     )
     if response.experiments:
         _display_experiments(response.experiments, output_format)
     else:
-        logging.info("No experiments found")
+        if output_format == OutputFormat.json.name:
+            msg = json.dumps([])
+        else:
+            msg = "No experiments found"
+        click.echo(msg)
 
 
 @experiment.command()
@@ -76,8 +80,8 @@ def delete(ctx, experiment_id):
 
     client = ctx.obj["client"]
 
-    client.experiments.delete_experiment(id=experiment_id)
-    print("{} is deleted.".format(experiment_id))
+    client.delete_experiment(experiment_id)
+    click.echo("{} is deleted.".format(experiment_id))
 
 
 def _display_experiments(experiments, output_format):

@@ -22,9 +22,11 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	authorizationv1 "k8s.io/api/authorization/v1"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -79,6 +81,11 @@ var (
 		Name: "pipeline_server_pipeline_count",
 		Help: "The current number of pipelines in Kubeflow Pipelines instance",
 	})
+
+	updatePipelineDefaultVersionRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "pipeline_server_update_default_version_requests",
+		Help: "The total number of UpdatePipelineDefaultVersion requests",
+	})
 )
 
 type PipelineServerOptions struct {
@@ -117,7 +124,19 @@ func (s *PipelineServer) CreatePipeline(ctx context.Context, request *api.Create
 		return nil, util.Wrap(err, "Invalid pipeline name.")
 	}
 
-	pipeline, err := s.resourceManager.CreatePipeline(pipelineName, request.Pipeline.Description, pipelineFile)
+	resourceReferences := request.Pipeline.GetResourceReferences()
+	namespace := common.GetNamespaceFromAPIResourceReferences(resourceReferences)
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: namespace,
+		Verb:      common.RbacResourceVerbCreate,
+		Resource:  common.RbacResourceTypePipelines,
+	}
+	err = isAuthorized(s.resourceManager, ctx, resourceAttributes)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize with API resource references")
+	}
+
+	pipeline, err := s.resourceManager.CreatePipeline(pipelineName, request.Pipeline.Description, namespace, pipelineFile)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed.")
 	}
@@ -126,6 +145,24 @@ func (s *PipelineServer) CreatePipeline(ctx context.Context, request *api.Create
 	}
 
 	return ToApiPipeline(pipeline), nil
+}
+
+func (s *PipelineServer) UpdatePipelineDefaultVersion(ctx context.Context, request *api.UpdatePipelineDefaultVersionRequest) (*empty.Empty, error) {
+	if s.options.CollectMetrics {
+		updatePipelineDefaultVersionRequests.Inc()
+	}
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Verb: common.RbacResourceVerbUpdate,
+	}
+	err := s.CanAccessPipeline(ctx, request.PipelineId, resourceAttributes)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the requests.")
+	}
+	err = s.resourceManager.UpdatePipelineDefaultVersion(request.PipelineId, request.VersionId)
+	if err != nil {
+		return nil, util.Wrap(err, "Update Pipeline Default Version failed.")
+	}
+	return &empty.Empty{}, nil
 }
 
 func (s *PipelineServer) GetPipeline(ctx context.Context, request *api.GetPipelineRequest) (*api.Pipeline, error) {
@@ -137,6 +174,13 @@ func (s *PipelineServer) GetPipeline(ctx context.Context, request *api.GetPipeli
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline failed.")
 	}
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Verb: common.RbacResourceVerbGet,
+	}
+	err = s.CanAccessPipeline(ctx, request.Id, resourceAttributes)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the requests.")
+	}
 	return ToApiPipeline(pipeline), nil
 }
 
@@ -145,13 +189,44 @@ func (s *PipelineServer) ListPipelines(ctx context.Context, request *api.ListPip
 		listPipelineRequests.Inc()
 	}
 
+	filterContext, err := ValidateFilter(request.ResourceReferenceKey)
+	if err != nil {
+		return nil, util.Wrap(err, "Validating filter failed.")
+	}
+
+	/*
+		Assume 3 scenarios and ensure backwards compatibility:
+		1. User does not provide resource reference
+		2. User provides resource reference to public namesapce ""
+		3. User provides resource reference to namespace x
+	*/
+	refKey := filterContext.ReferenceKey
+	if refKey == nil {
+		filterContext = &common.FilterContext{
+			ReferenceKey: &common.ReferenceKey{Type: common.Namespace, ID: ""},
+		}
+	}
+	if refKey != nil && refKey.Type != common.Namespace {
+		return nil, util.NewInvalidInputError("Invalid resource references for pipelines. ListPipelines requires filtering by namespace.")
+	}
+	if refKey != nil && refKey.Type == common.Namespace {
+		namespace := refKey.ID
+		resourceAttributes := &authorizationv1.ResourceAttributes{
+			Namespace: namespace,
+			Verb:      common.RbacResourceVerbList,
+		}
+		if err = s.CanAccessPipeline(ctx, "", resourceAttributes); err != nil {
+			return nil, util.Wrap(err, "Failed to authorize with API resource references")
+		}
+	}
+
 	opts, err := validatedListOptions(&model.Pipeline{}, request.PageToken, int(request.PageSize), request.SortBy, request.Filter)
 
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create list options")
 	}
 
-	pipelines, total_size, nextPageToken, err := s.resourceManager.ListPipelines(opts)
+	pipelines, total_size, nextPageToken, err := s.resourceManager.ListPipelines(filterContext, opts)
 	if err != nil {
 		return nil, util.Wrap(err, "List pipelines failed.")
 	}
@@ -163,8 +238,14 @@ func (s *PipelineServer) DeletePipeline(ctx context.Context, request *api.Delete
 	if s.options.CollectMetrics {
 		deletePipelineRequests.Inc()
 	}
-
-	err := s.resourceManager.DeletePipeline(request.Id)
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Verb: common.RbacResourceVerbDelete,
+	}
+	err := s.CanAccessPipeline(ctx, request.Id, resourceAttributes)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the requests.")
+	}
+	err = s.resourceManager.DeletePipeline(request.Id)
 	if err != nil {
 		return nil, util.Wrap(err, "Delete pipelines failed.")
 	}
@@ -176,6 +257,13 @@ func (s *PipelineServer) DeletePipeline(ctx context.Context, request *api.Delete
 }
 
 func (s *PipelineServer) GetTemplate(ctx context.Context, request *api.GetTemplateRequest) (*api.GetTemplateResponse, error) {
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Verb: common.RbacResourceVerbList,
+	}
+	err := s.CanAccessPipeline(ctx, request.Id, resourceAttributes)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the requests.")
+	}
 	template, err := s.resourceManager.GetPipelineTemplate(request.Id)
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline template failed.")
@@ -224,7 +312,24 @@ func (s *PipelineServer) CreatePipelineVersion(ctx context.Context, request *api
 		return nil, util.Wrap(err, "The URL is valid but pipeline system failed to read the file.")
 	}
 
-	version, err := s.resourceManager.CreatePipelineVersion(request.Version, pipelineFile)
+	// Extract pipeline id and authorize
+	var pipelineId = ""
+	for _, resourceReference := range request.Version.ResourceReferences {
+		if resourceReference.Key.Type == api.ResourceType_PIPELINE && resourceReference.Relationship == api.Relationship_OWNER {
+			pipelineId = resourceReference.Key.Id
+		}
+	}
+	if len(pipelineId) == 0 {
+		return nil, util.Wrap(err, "Create pipeline version failed due to missing pipeline id")
+	}
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Verb: common.RbacResourceVerbList,
+	}
+	if err = s.CanAccessPipeline(ctx, "", resourceAttributes); err != nil {
+		return nil, util.Wrap(err, "Failed to authorize with API resource references")
+	}
+
+	version, err := s.resourceManager.CreatePipelineVersion(request.Version, pipelineFile, common.IsPipelineVersionUpdatedByDefault())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a version.")
 	}
@@ -235,7 +340,13 @@ func (s *PipelineServer) GetPipelineVersion(ctx context.Context, request *api.Ge
 	if s.options.CollectMetrics {
 		getPipelineVersionRequests.Inc()
 	}
-
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Verb: common.RbacResourceVerbList,
+	}
+	err := s.CanAccessPipelineVersion(ctx, request.VersionId, resourceAttributes)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the requests.")
+	}
 	version, err := s.resourceManager.GetPipelineVersion(request.VersionId)
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline version failed.")
@@ -264,7 +375,23 @@ func (s *PipelineServer) ListPipelineVersions(ctx context.Context, request *api.
 		return nil, util.NewInvalidInputError("ResourceKey must be set in the input")
 	}
 
-	pipelineVersions, total_size, nextPageToken, err :=
+	namespace, err := s.resourceManager.GetNamespaceFromPipelineID(request.ResourceKey.Id)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to get namespace from pipelineId.")
+	}
+	// Only check if the namespace isn't empty.
+	if common.IsMultiUserMode() && namespace != "" {
+		resourceAttributes := &authorizationv1.ResourceAttributes{
+			Namespace: namespace,
+			Verb:      common.RbacResourceVerbList,
+		}
+		err = s.CanAccessPipelineVersion(ctx, "", resourceAttributes)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to authorize with API resource references")
+		}
+	}
+
+	pipelineVersions, totalSize, nextPageToken, err :=
 		s.resourceManager.ListPipelineVersions(request.ResourceKey.Id, opts)
 	if err != nil {
 		return nil, util.Wrap(err, "List pipeline versions failed.")
@@ -274,15 +401,25 @@ func (s *PipelineServer) ListPipelineVersions(ctx context.Context, request *api.
 	return &api.ListPipelineVersionsResponse{
 		Versions:      apiPipelineVersions,
 		NextPageToken: nextPageToken,
-		TotalSize:     int32(total_size)}, nil
+		TotalSize:     int32(totalSize)}, nil
 }
 
 func (s *PipelineServer) DeletePipelineVersion(ctx context.Context, request *api.DeletePipelineVersionRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
 		deletePipelineVersionRequests.Inc()
 	}
-
-	err := s.resourceManager.DeletePipelineVersion(request.VersionId)
+	pipelineVersion, err := s.resourceManager.GetPipelineVersion(request.VersionId)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to get Pipeline Version.")
+	}
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Verb: common.RbacResourceVerbList,
+	}
+	err = s.CanAccessPipeline(ctx, pipelineVersion.PipelineId, resourceAttributes)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize with API resource references")
+	}
+	err = s.resourceManager.DeletePipelineVersion(request.VersionId)
 	if err != nil {
 		return nil, util.Wrap(err, "Delete pipeline versions failed.")
 	}
@@ -291,10 +428,73 @@ func (s *PipelineServer) DeletePipelineVersion(ctx context.Context, request *api
 }
 
 func (s *PipelineServer) GetPipelineVersionTemplate(ctx context.Context, request *api.GetPipelineVersionTemplateRequest) (*api.GetTemplateResponse, error) {
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Verb: common.RbacResourceVerbList,
+	}
+	err := s.CanAccessPipelineVersion(ctx, request.VersionId, resourceAttributes)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the requests.")
+	}
 	template, err := s.resourceManager.GetPipelineVersionTemplate(request.VersionId)
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline template failed.")
 	}
 
 	return &api.GetTemplateResponse{Template: string(template)}, nil
+}
+
+func (s *PipelineServer) CanAccessPipelineVersion(ctx context.Context, versionId string, resourceAttributes *authorizationv1.ResourceAttributes) error {
+	if !common.IsMultiUserMode() {
+		// Skip authorization if not multi-user mode.
+		return nil
+	}
+	if versionId != "" {
+		namespace, err := s.resourceManager.GetNamespaceFromPipelineVersion(versionId)
+		if namespace == "" {
+			return nil
+		}
+		if err != nil {
+			return util.Wrap(err, "Failed to get namespace from Pipeline VersionId")
+		}
+		resourceAttributes.Namespace = namespace
+	}
+	if resourceAttributes.Namespace == "" {
+		return nil
+	}
+	resourceAttributes.Group = common.RbacPipelinesGroup
+	resourceAttributes.Version = common.RbacPipelinesVersion
+	resourceAttributes.Resource = common.RbacResourceTypePipelines
+	err := isAuthorized(s.resourceManager, ctx, resourceAttributes)
+	if err != nil {
+		return util.Wrap(err, "Failed to authorize with API resource references")
+	}
+	return nil
+}
+
+func (s *PipelineServer) CanAccessPipeline(ctx context.Context, pipelineId string, resourceAttributes *authorizationv1.ResourceAttributes) error {
+	if !common.IsMultiUserMode() {
+		// Skip authorization if not multi-user mode.
+		return nil
+	}
+	if pipelineId != "" {
+		namespace, err := s.resourceManager.GetNamespaceFromPipelineID(pipelineId)
+		if namespace == "" {
+			return nil
+		}
+		if err != nil {
+			return util.Wrap(err, "Failed to authorize with the Pipeline ID.")
+		}
+		resourceAttributes.Namespace = namespace
+	}
+	if resourceAttributes.Namespace == "" {
+		return nil
+	}
+	resourceAttributes.Group = common.RbacPipelinesGroup
+	resourceAttributes.Version = common.RbacPipelinesVersion
+	resourceAttributes.Resource = common.RbacResourceTypePipelines
+	err := isAuthorized(s.resourceManager, ctx, resourceAttributes)
+	if err != nil {
+		return util.Wrap(err, "Failed to authorize with API resource references")
+	}
+	return nil
 }

@@ -26,6 +26,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
 // Metric variables. Please prefix the metric names with run_server_.
@@ -107,9 +108,28 @@ func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest
 	if err != nil {
 		return nil, util.Wrap(err, "Validate create run request failed.")
 	}
-	err = CanAccessExperimentInResourceReferences(s.resourceManager, ctx, request.Run.ResourceReferences)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+
+	if common.IsMultiUserMode() {
+		experimentID := common.GetExperimentIDFromAPIResourceReferences(request.Run.ResourceReferences)
+		if experimentID == "" {
+			return nil, util.NewInvalidInputError("Job has no experiment.")
+		}
+		namespace, err := s.resourceManager.GetNamespaceFromExperimentID(experimentID)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to get experiment for job.")
+		}
+		if namespace == "" {
+			return nil, util.NewInvalidInputError("Job's experiment has no namespace.")
+		}
+		resourceAttributes := &authorizationv1.ResourceAttributes{
+			Namespace: namespace,
+			Verb:      common.RbacResourceVerbCreate,
+			Name:      request.Run.Name,
+		}
+		err = s.canAccessRun(ctx, "", resourceAttributes)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to authorize the request")
+		}
 	}
 
 	run, err := s.resourceManager.CreateRun(request.Run)
@@ -128,12 +148,11 @@ func (s *RunServer) GetRun(ctx context.Context, request *api.GetRunRequest) (*ap
 		getRunRequests.Inc()
 	}
 
-	if !common.IsMultiUserSharedReadMode() {
-		err := s.canAccessRun(ctx, request.RunId)
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to authorize the request.")
-		}
+	err := s.canAccessRun(ctx, request.RunId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
+
 	run, err := s.resourceManager.GetRun(request.RunId)
 	if err != nil {
 		return nil, err
@@ -166,7 +185,11 @@ func (s *RunServer) ListRuns(ctx context.Context, request *api.ListRunsRequest) 
 			if len(namespace) == 0 {
 				return nil, util.NewInvalidInputError("Invalid resource references for ListRuns. Namespace is empty.")
 			}
-			err = isAuthorized(s.resourceManager, ctx, namespace)
+			resourceAttributes := &authorizationv1.ResourceAttributes{
+				Namespace: namespace,
+				Verb:      common.RbacResourceVerbList,
+			}
+			err = s.canAccessRun(ctx, "", resourceAttributes)
 			if err != nil {
 				return nil, util.Wrap(err, "Failed to authorize with namespace resource reference.")
 			}
@@ -176,9 +199,17 @@ func (s *RunServer) ListRuns(ctx context.Context, request *api.ListRunsRequest) 
 			if len(experimentID) == 0 {
 				return nil, util.NewInvalidInputError("Invalid resource references for run. Experiment ID is empty.")
 			}
-			err = CanAccessExperiment(s.resourceManager, ctx, experimentID)
+			namespace, err := s.resourceManager.GetNamespaceFromExperimentID(experimentID)
 			if err != nil {
-				return nil, util.Wrap(err, "Failed to authorize with experiment resource reference.")
+				return nil, util.Wrap(err, "Run's experiment has no namespace.")
+			}
+			resourceAttributes := &authorizationv1.ResourceAttributes{
+				Namespace: namespace,
+				Verb:      common.RbacResourceVerbList,
+			}
+			err = s.canAccessRun(ctx, "", resourceAttributes)
+			if err != nil {
+				return nil, util.Wrap(err, "Failed to authorize with namespace in experiment resource reference.")
 			}
 		} else {
 			return nil, util.NewInvalidInputError("Invalid resource references for ListRuns. Got %+v", request.ResourceReferenceKey)
@@ -197,9 +228,9 @@ func (s *RunServer) ArchiveRun(ctx context.Context, request *api.ArchiveRunReque
 		archiveRunRequests.Inc()
 	}
 
-	err := s.canAccessRun(ctx, request.Id)
+	err := s.canAccessRun(ctx, request.Id, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbArchive})
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 	err = s.resourceManager.ArchiveRun(request.Id)
 	if err != nil {
@@ -213,9 +244,9 @@ func (s *RunServer) UnarchiveRun(ctx context.Context, request *api.UnarchiveRunR
 		unarchiveRunRequests.Inc()
 	}
 
-	err := s.canAccessRun(ctx, request.Id)
+	err := s.canAccessRun(ctx, request.Id, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbUnarchive})
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 	err = s.resourceManager.UnarchiveRun(request.Id)
 	if err != nil {
@@ -229,9 +260,9 @@ func (s *RunServer) DeleteRun(ctx context.Context, request *api.DeleteRunRequest
 		deleteRunRequests.Inc()
 	}
 
-	err := s.canAccessRun(ctx, request.Id)
+	err := s.canAccessRun(ctx, request.Id, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbDelete})
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 	err = s.resourceManager.DeleteRun(request.Id)
 	if err != nil {
@@ -289,14 +320,7 @@ func (s *RunServer) validateCreateRunRequest(request *api.CreateRunRequest) erro
 	if run.Name == "" {
 		return util.NewInvalidInputError("The run name is empty. Please specify a valid name.")
 	}
-
-	if err := ValidatePipelineSpec(s.resourceManager, run.PipelineSpec); err != nil {
-		if _, errResourceReference := CheckPipelineVersionReference(s.resourceManager, run.ResourceReferences); errResourceReference != nil {
-			return util.Wrap(err, "Neither pipeline spec nor pipeline version is valid. "+errResourceReference.Error())
-		}
-		return nil
-	}
-	return nil
+	return ValidatePipelineSpecAndResourceReferences(s.resourceManager, run.PipelineSpec, run.ResourceReferences)
 }
 
 func (s *RunServer) TerminateRun(ctx context.Context, request *api.TerminateRunRequest) (*empty.Empty, error) {
@@ -304,9 +328,9 @@ func (s *RunServer) TerminateRun(ctx context.Context, request *api.TerminateRunR
 		terminateRunRequests.Inc()
 	}
 
-	err := s.canAccessRun(ctx, request.RunId)
+	err := s.canAccessRun(ctx, request.RunId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbTerminate})
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 	err = s.resourceManager.TerminateRun(request.RunId)
 	if err != nil {
@@ -320,9 +344,9 @@ func (s *RunServer) RetryRun(ctx context.Context, request *api.RetryRunRequest) 
 		retryRunRequests.Inc()
 	}
 
-	err := s.canAccessRun(ctx, request.RunId)
+	err := s.canAccessRun(ctx, request.RunId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbRetry})
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 	err = s.resourceManager.RetryRun(request.RunId)
 	if err != nil {
@@ -332,20 +356,36 @@ func (s *RunServer) RetryRun(ctx context.Context, request *api.RetryRunRequest) 
 
 }
 
-func (s *RunServer) canAccessRun(ctx context.Context, runId string) error {
+func (s *RunServer) canAccessRun(ctx context.Context, runId string, resourceAttributes *authorizationv1.ResourceAttributes) error {
 	if common.IsMultiUserMode() == false {
 		// Skip authz if not multi-user mode.
 		return nil
 	}
-	namespace, err := s.resourceManager.GetNamespaceFromRunID(runId)
-	if err != nil {
-		return util.Wrap(err, "Failed to authorize with the run Id.")
-	}
-	if len(namespace) == 0 {
-		return util.NewInternalServerError(errors.New("There is no namespace found"), "There is no namespace found")
+
+	if len(runId) > 0 {
+		runDetail, err := s.resourceManager.GetRun(runId)
+		if err != nil {
+			return util.Wrap(err, "Failed to authorize with the experiment ID.")
+		}
+		if len(resourceAttributes.Namespace) == 0 {
+			if len(runDetail.Namespace) == 0 {
+				return util.NewInternalServerError(
+					errors.New("Empty namespace"),
+					"The run doesn't have a valid namespace.",
+				)
+			}
+			resourceAttributes.Namespace = runDetail.Namespace
+		}
+		if len(resourceAttributes.Name) == 0 {
+			resourceAttributes.Name = runDetail.Name
+		}
 	}
 
-	err = isAuthorized(s.resourceManager, ctx, namespace)
+	resourceAttributes.Group = common.RbacPipelinesGroup
+	resourceAttributes.Version = common.RbacPipelinesVersion
+	resourceAttributes.Resource = common.RbacResourceTypeRuns
+
+	err := isAuthorized(s.resourceManager, ctx, resourceAttributes)
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize with API resource references")
 	}

@@ -12,6 +12,8 @@ spec:
     metadata:
       labels:
         app: ml-pipeline-scheduledworkflow
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
     spec:
       containers:
       - image: gcr.io/ml-pipeline/scheduledworkflow:dummy
@@ -22,4 +24,9 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
+          - name: CRON_SCHEDULE_TIMEZONE
+            valueFrom:
+              configMapKeyRef:
+                name: pipeline-install-config
+                key: cronScheduleTimezone
       serviceAccountName: ml-pipeline-scheduledworkflow

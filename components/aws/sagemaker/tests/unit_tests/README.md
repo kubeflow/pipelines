@@ -10,13 +10,14 @@
     ```
 2. Build the dockerfile  
     ```
-    cd pipelines/components/aws 
-    docker build ./ -f ./sagemaker/tests/unit_tests/Dockerfile -t amazon/unit-test-aws-sagemaker-kfp-components
+    cd pipelines
+    docker build . -f ./components/aws/sagemaker/tests/unit_tests/Dockerfile -t amazon/unit-test-aws-sagemaker-kfp-components
     ```
 3. Run all unit tests
    ```
-   docker run -it amazon/unit-test-aws-sagemaker-kfp-components
+   docker run -it -v <path_to_this_repo_on_your_machine>:/app/ amazon/unit-test-aws-sagemaker-kfp-components:latest
    ```
+   This runs the tests against a mounted volume from your host machine. This means you can edit the files and rerun the tests immediately without having to rebuild the docker container.
    
 --------------
 
@@ -28,14 +29,13 @@
     ```
 2. Install the pip packages required for testing 
     ```
-    cd pipelines/components/aws/sagemaker/tests/unit_tests/
+    cd pipelines/components/aws/sagemaker/
    
     pip install -r requirements.txt 
     ```
 3. Run all unit tests 
     ```
-    # while in the same directory pipelines/components/aws/sagemaker/tests/unit_tests/
+    cd tests/unit_tests/
    
-    ./run_all_tests.sh
+    ./run_unit_tests.sh
     ```
-   

@@ -19,7 +19,9 @@ _COMPONENT_FILENAME = 'component.yaml'
 
 
 class ComponentStore:
-    def __init__(self, local_search_paths=None, url_search_prefixes=None, auth=None):
+    def __init__(
+        self, local_search_paths=None, url_search_prefixes=None, auth=None):
+        """Instantiates a ComponentStore."""
         self.local_search_paths = local_search_paths or ['.']
         self.url_search_prefixes = url_search_prefixes or []
         self._auth = auth

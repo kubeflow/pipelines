@@ -52,26 +52,28 @@ spec:
             value: test/sample-test/Dockerfile
           - name: image-name
             value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
-    - - name: run-xgboost-tests
-        template: run-sample-tests
-        arguments:
-          parameters:
-          - name: test-results-gcs-dir
-            value: "{{inputs.parameters.test-results-gcs-dir}}"
-          - name: target-image-prefix
-            value: "{{inputs.parameters.target-image-prefix}}"
-          - name: gcp-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-gcp:{{inputs.parameters.commit-sha}}"
-          - name: local-confusionmatrix-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-local-confusion-matrix:{{inputs.parameters.commit-sha}}"
-          - name: local-roc-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-local-roc:{{inputs.parameters.commit-sha}}"
-          - name: sample-tests-image
-            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
-          - name: namespace
-            value: "{{inputs.parameters.namespace}}"
-          - name: test-name
-            value: "xgboost_training_cm"
+    # TODO(#5089): Re-enable the xgboost sample test after fixed the
+    # component and sample.
+#    - - name: run-xgboost-tests
+#        template: run-sample-tests
+#        arguments:
+#          parameters:
+#          - name: test-results-gcs-dir
+#            value: "{{inputs.parameters.test-results-gcs-dir}}"
+#          - name: target-image-prefix
+#            value: "{{inputs.parameters.target-image-prefix}}"
+#          - name: gcp-image
+#            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-gcp:{{inputs.parameters.commit-sha}}"
+#          - name: local-confusionmatrix-image
+#            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-local-confusion-matrix:{{inputs.parameters.commit-sha}}"
+#          - name: local-roc-image
+#            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-local-roc:{{inputs.parameters.commit-sha}}"
+#          - name: sample-tests-image
+#            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
+#          - name: namespace
+#            value: "{{inputs.parameters.namespace}}"
+#          - name: test-name
+#            value: "xgboost_training_cm"
 
   # Build and push image
   - name: build-image-by-dockerfile

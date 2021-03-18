@@ -59,7 +59,6 @@ const css = stylesheet({
     overflow: 'hidden',
     padding: 10,
     textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
   },
   line: {
     position: 'absolute',

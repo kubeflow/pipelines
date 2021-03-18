@@ -30,7 +30,12 @@ const (
 	DefaultPipelineRunnerServiceAccount string = "DefaultPipelineRunnerServiceAccount"
 	KubeflowUserIDHeader                string = "KUBEFLOW_USERID_HEADER"
 	KubeflowUserIDPrefix                string = "KUBEFLOW_USERID_PREFIX"
+	UpdatePipelineVersionByDefault      string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
 )
+
+func IsPipelineVersionUpdatedByDefault() bool {
+	return GetBoolConfigWithDefault(UpdatePipelineVersionByDefault, true)
+}
 
 func GetStringConfig(configName string) string {
 	if !viper.IsSet(configName) {
@@ -63,6 +68,20 @@ func GetBoolConfigWithDefault(configName string, value bool) bool {
 		glog.Fatalf("Failed converting string to bool %s", viper.GetString(configName))
 	}
 	return value
+}
+
+func GetFloat64ConfigWithDefault(configName string, value float64) float64 {
+	if !viper.IsSet(configName) {
+		return value
+	}
+	return viper.GetFloat64(configName)
+}
+
+func GetIntConfigWithDefault(configName string, value int) int {
+	if !viper.IsSet(configName) {
+		return value
+	}
+	return viper.GetInt(configName)
 }
 
 func GetDurationConfig(configName string) time.Duration {

@@ -2901,7 +2901,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: CACHED 1`] 
       }
     }
   >
-    <pure(CachedIcon)
+    <StatusCached
       style={
         Object {
           "color": "#34a853",

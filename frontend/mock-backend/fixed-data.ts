@@ -22,6 +22,7 @@ import jsonRun from './json-runtime';
 import coinflipRun from './mock-coinflip-runtime';
 import errorRun from './mock-error-runtime';
 import xgboostRun from './mock-xgboost-runtime';
+import largeGraph from './large-graph-runtime';
 import retryRun from './mock-retry-runtime';
 
 function padStartTwoZeroes(str: string): string {
@@ -638,6 +639,32 @@ const runs: ApiRunDetail[] = [
         },
       ],
       scheduled_at: new Date('2018-08-18T20:58:23.000Z'),
+      status: 'Succeeded',
+    },
+  },
+  {
+    pipeline_runtime: {
+      workflow_manifest: JSON.stringify(largeGraph),
+    },
+    run: {
+      created_at: new Date('2020-07-08T10:03:37.000Z'),
+      description: 'large pipelien with a lot of nodes.',
+      finished_at: new Date('2020-07-08T10:39:43.000Z'),
+      id: '808ecf03-ee3b-48c6-9fa1-5f14ad11a3f8',
+      name: 'Very large graph',
+      pipeline_spec: {
+        workflow_manifest: JSON.stringify(largeGraph),
+      },
+      resource_references: [
+        {
+          key: {
+            id: 'a4d4f8c6-ce9c-4200-a92e-c48ec759b733',
+            type: ApiResourceType.EXPERIMENT,
+          },
+          relationship: ApiRelationship.OWNER,
+        },
+      ],
+      scheduled_at: new Date('1970-01-01T00:00:00.000Z'),
       status: 'Succeeded',
     },
   },
