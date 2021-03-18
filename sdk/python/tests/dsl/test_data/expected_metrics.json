@@ -7,6 +7,6 @@
   },
   "name": "test_artifact",
   "type": {
-    "instanceSchema": "title: Metrics\ntype: object\nproperties:\n  accuracy:\n    type: number\n  precision:\n    type: number\n  recall:\n    type: number\n  f1score:\n    type: number\n  mean_absolute_error:\n    type: number\n  mean_squared_error:\n    type: number"
+    "instanceSchema": "title: kfp.Metrics\ntype: object\nproperties:\n  accuracy:\n    type: number\n  precision:\n    type: number\n  recall:\n    type: number\n  f1score:\n    type: number\n  mean_absolute_error:\n    type: number\n  mean_squared_error:\n    type: number\n"
   }
 }
