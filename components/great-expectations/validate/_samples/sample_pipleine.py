@@ -18,7 +18,9 @@ validate_csv_op = load_component_from_file(
 
 
 @kfp.dsl.pipeline(name='Great Expectations')
-def great_expectations_sample_pipeline():
+def great_expectations_sample_pipeline(
+        expectation_suite_path: str = 'https://github.com/kubeflow/pipelines/raw/master/components/'
+                                      'great-expectations/validate/_samples/expectation_suite.json'):
     features = ['trip_seconds', 'trip_miles', 'pickup_community_area', 'dropoff_community_area',
                 'fare', 'tolls', 'extras', 'trip_total']
 
@@ -29,7 +31,7 @@ def great_expectations_sample_pipeline():
     ).output
 
     validate_csv_op(csv=csv_path,
-                    expectation_suite=expectation_suite)
+                    expectation_suite_path=expectation_suite_path)
 
 
 if __name__ == '__main__':
