@@ -71,7 +71,7 @@ class CompilerUtilsTest(unittest.TestCase):
     )
     expected_container_spec = compiler_utils.PipelineContainerSpec(
         image='my/dummy-image',
-        command=['python', '-m', 'kfp.container.entrypoint'],
+        command=['python', '-m', 'kfp.containers.entrypoint'],
         args=['--executor_input_str','{{$}}', '--function_name', 'test_func']
     )
     compiler_utils.refactor_v2_container_spec(test_v2_container_spec)

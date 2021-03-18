@@ -17,6 +17,7 @@ import sys
 import tempfile
 import logging
 import shutil
+import subprocess
 from collections import OrderedDict
 from typing import Callable, Dict, List, Optional
 
@@ -228,7 +229,8 @@ def build_python_component(
     timeout: int = 600,
     namespace: Optional[str] = None,
     target_component_file: Optional[str] = None,
-    is_v2: bool = False
+    is_v2: bool = False,
+    using_cloudbuild: bool = False
 ):
   """build_component automatically builds a container image for the
   component_func based on the base_image and pushes to the target_image.
@@ -251,6 +253,8 @@ def build_python_component(
       spec.
     is_v2: Whether or not generating a v2 KFP component, default
       is false.
+    using_cloudbuild: Whether or not to use Google Could Build for building the
+      image (requires gcloud installed and configured locally). Default is false.
 
   Raises:
     ValueError: The function is not decorated with python_component decorator or
@@ -264,7 +268,7 @@ def build_python_component(
   if target_image is None:
     raise ValueError('target_image must not be None')
 
-  if staging_gcs_path is None:
+  if staging_gcs_path is None and not using_cloudbuild:
     raise ValueError('staging_gcs_path must not be None')
 
   if base_image is None:
@@ -351,7 +355,11 @@ def build_python_component(
     local_requirement_filepath = os.path.join(local_build_dir, arc_requirement_filename)
     if is_v2:
       # For v2 components, KFP are expected to be packed in the container.
-      dependency.append(VersionedDependency(name='kfp', min_version='1.4.0'))
+      dependency.extend([
+          VersionedDependency(name='kfp', min_version='1.4.0'),
+          VersionedDependency(name='absl-py', min_version='0.9', max_version='0.11'),
+          VersionedDependency(name='fire', min_version='0.3.1', max_version='0.4'),
+          VersionedDependency(name='protobuf', min_version='3.13.0', max_version='3.15.6')])
 
     _dependency_to_requirements(dependency, local_requirement_filepath)
 
@@ -365,10 +373,14 @@ def build_python_component(
         add_files=add_files)
 
     logging.info('Building and pushing container image.')
-    container_builder = ContainerBuilder(staging_gcs_path, target_image, namespace)
-    image_name_with_digest = container_builder.build(local_build_dir, arc_docker_filename, target_image, timeout)
+    if using_cloudbuild:
+      subprocess.run(['gcloud', 'builds', 'submit', '--tag', target_image, local_build_dir])
+      component_spec.implementation.container.image = target_image
+    else:
+      container_builder = ContainerBuilder(staging_gcs_path, target_image, namespace)
+      image_name_with_digest = container_builder.build(local_build_dir, arc_docker_filename, target_image, timeout)
 
-  component_spec.implementation.container.image = image_name_with_digest
+      component_spec.implementation.container.image = image_name_with_digest
 
   # Optionally writing the component definition to a local file for sharing
   target_component_file = target_component_file or getattr(component_func, '_component_target_component_file', None)

@@ -100,6 +100,6 @@ def refactor_v2_container_spec(container_spec: PipelineContainerSpec) -> None:
   fn_name = container_spec.args[fn_name_idx]
   container_spec.ClearField('command')
   container_spec.ClearField('args')
-  container_spec.command.extend(['python', '-m', 'kfp.container.entrypoint'])
+  container_spec.command.extend(['python', '-m', 'kfp.containers.entrypoint'])
   container_spec.args.extend(
       ['--executor_input_str', '{{$}}', '--function_name', fn_name])
