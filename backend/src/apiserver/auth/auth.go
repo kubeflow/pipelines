@@ -38,13 +38,13 @@ var Authenticators []Authenticator
 func GetAuthenticators(tokenReviewClient client.TokenReviewInterface) []Authenticator {
 	if Authenticators == nil {
 		Authenticators = []Authenticator{
+			NewHTTPHeaderAuthenticator(common.GetKubeflowUserIDHeader(), common.GetKubeflowUserIDPrefix()),
 			NewTokenReviewAuthenticator(
 				common.AuthorizationBearerTokenHeader,
 				common.AuthorizationBearerTokenPrefix,
 				[]string{common.GetTokenReviewAudience()},
 				tokenReviewClient,
 			),
-			NewHTTPHeaderAuthenticator(common.GetKubeflowUserIDHeader(), common.GetKubeflowUserIDPrefix()),
 		}
 	}
 	return Authenticators
