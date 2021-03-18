@@ -356,7 +356,7 @@ def build_python_component(
     if is_v2:
       # For v2 components, KFP are expected to be packed in the container.
       dependency.extend([
-          VersionedDependency(name='kfp', min_version='1.4.0'),
+          VersionedDependency(name='kfp', min_version='1.4.1rc0'),
           VersionedDependency(name='absl-py', min_version='0.9', max_version='0.11'),
           VersionedDependency(name='fire', min_version='0.3.1', max_version='0.4'),
           VersionedDependency(name='protobuf', min_version='3.13.0', max_version='3.15.6')])
