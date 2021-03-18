@@ -25,6 +25,9 @@ from google.protobuf import json_format
 
 class ComponentSpecTest(unittest.TestCase):
 
+  def setUp(self):
+    self.maxDiff = None
+
   def test_build_component_spec_from_structure(self):
     structure_component_spec = structures.ComponentSpec(
         name='component1',
@@ -47,7 +50,7 @@ class ComponentSpecTest(unittest.TestCase):
                 'input1': {
                     'artifactType': {
                         'instanceSchema':
-                            'title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string'
+                            'title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string\n'
                     }
                 }
             },
@@ -94,7 +97,7 @@ class ComponentSpecTest(unittest.TestCase):
                 'input1': {
                     'artifactType': {
                         'instanceSchema':
-                            'title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string'
+                            'title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string\n'
                     }
                 }
             },
@@ -133,7 +136,7 @@ class ComponentSpecTest(unittest.TestCase):
                 'output1': {
                     'artifactType': {
                         'instanceSchema':
-                            'title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string'
+                            'title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string\n'
                     }
                 }
             },

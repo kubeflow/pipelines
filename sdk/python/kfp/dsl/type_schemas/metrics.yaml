@@ -1,4 +1,4 @@
-title: Metrics
+title: kfp.Metrics
 type: object
 properties:
   accuracy:

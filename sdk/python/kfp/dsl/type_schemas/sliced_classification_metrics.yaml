@@ -1,4 +1,4 @@
-title: SlicedClassificationMetrics
+title: kfp.SlicedClassificationMetrics
 type: object
 properties:
   evaluationSlices:
