@@ -91,6 +91,9 @@ class CompilerCliTests(unittest.TestCase):
   def test_pipeline_with_loop_output(self):
     self._test_compile_py_to_json('pipeline_with_loop_output')
 
+  def test_pipeline_with_params_containing_format(self):
+    self._test_compile_py_to_json('pipeline_with_params_containing_format')
+
 
 if __name__ == '__main__':
   unittest.main()

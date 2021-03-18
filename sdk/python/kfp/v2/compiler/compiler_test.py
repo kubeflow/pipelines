@@ -373,24 +373,6 @@ class CompilerTest(unittest.TestCase):
     finally:
       shutil.rmtree(tmpdir)
 
-  def test_task_input_contain_placedholder_should_fail(self):
-
-    @components.create_component_from_func
-    def print_op(s: str):
-      print(s)
-
-    @dsl.pipeline(
-        name='pipeline-with-placeholder-in-input-argument',
-        pipeline_root='dummy')
-    def my_pipeline(name: str = 'KFP'):
-      print_op('Hello {}'.format(name))
-
-    with self.assertRaisesRegex(
-        NotImplementedError,
-        'a component input can only accept either a constant value or '
-        'a reference to another pipeline parameter.'):
-      compiler.Compiler().compile(my_pipeline, 'dummy')
-
 
 if __name__ == '__main__':
   unittest.main()
