@@ -9,8 +9,6 @@ chicago_taxi_dataset_op = store.load_component('datasets/Chicago_Taxi_Trips')
 
 
 CURRENT_FOLDER = Path(__file__).parent
-with open(CURRENT_FOLDER / 'expectation_suite.json') as file:
-    expectation_suite = file.read()
 
 validate_csv_op = load_component_from_file(
     str(CURRENT_FOLDER.parent / 'CSV' / 'component.yaml')
