@@ -9,11 +9,11 @@ kind: ClusterRole
 metadata:
   labels:
     rbac.authorization.kubeflow.org/aggregate-to-kubeflow-edit: "true"
-  name: kubeflow-pipeline-edit
+  name: kubeflow-pipelines-edit
 aggregationRule:
   clusterRoleSelectors:
   - matchLabels:
-      rbac.authorization.kubeflow.org/aggregate-to-kubeflow-pipeline-edit: "true"
+      rbac.authorization.kubeflow.org/aggregate-to-kubeflow-pipelines-edit: "true"
 rules: []
 
 ---
@@ -22,13 +22,13 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
-    rbac.authorization.kubeflow.org/aggregate-to-kubeflow-pipeline-edit: "true"
+    rbac.authorization.kubeflow.org/aggregate-to-kubeflow-pipelines-edit: "true"
     rbac.authorization.kubeflow.org/aggregate-to-kubeflow-view: "true"
-  name: kubeflow-pipeline-view
+  name: kubeflow-pipelines-view
 aggregationRule:
   clusterRoleSelectors:
   - matchLabels:
-      rbac.authorization.kubeflow.org/aggregate-to-kubeflow-pipeline-view: "true"
+      rbac.authorization.kubeflow.org/aggregate-to-kubeflow-pipelines-view: "true"
 rules: []
 
 ---
@@ -37,8 +37,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
-    rbac.authorization.kubeflow.org/aggregate-to-kubeflow-pipeline-edit: "true"
-  name: aggregate-to-pipeline-edit
+    rbac.authorization.kubeflow.org/aggregate-to-kubeflow-pipelines-edit: "true"
+  name: aggregate-to-kubeflow-pipelines-edit
 rules:
 - apiGroups:
   - pipelines.kubeflow.org
@@ -85,8 +85,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
-    rbac.authorization.kubeflow.org/aggregate-to-kubeflow-pipeline-view: "true"
-  name: aggregate-to-pipeline-view
+    rbac.authorization.kubeflow.org/aggregate-to-kubeflow-pipelines-view: "true"
+  name: aggregate-to-kubeflow-pipelines-view
 rules:
 - apiGroups:
   - pipelines.kubeflow.org

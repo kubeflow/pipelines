@@ -4,6 +4,15 @@ metadata:
   name: ml-pipeline
 rules:
 - apiGroups:
+  - ""
+  resources:
+  - pods
+  - pods/log
+  verbs:
+  - get
+  - list
+  - delete
+- apiGroups:
   - argoproj.io
   resources:
   - workflows
@@ -27,8 +36,8 @@ rules:
   - patch
   - delete
 - apiGroups:
-  - ""
+  - authorization.k8s.io
   resources:
-  - pods
+  - subjectaccessreviews
   verbs:
-  - delete
+  - create

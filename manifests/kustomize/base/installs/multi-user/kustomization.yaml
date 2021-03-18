@@ -9,6 +9,7 @@ resources:
 - ../../pipeline/cluster-scoped
 - ../../cache-deployer/cluster-scoped
 - ../generic
+- view-edit-cluster-roles.yaml
 - api-service
 - pipelines-ui
 - pipelines-profile-controller
