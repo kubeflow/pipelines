@@ -752,14 +752,16 @@ class Compiler(object):
                 input_parameter_name].component_input_parameter = (
                     input_parameter_name)
 
-          # Correct loop argument input type in the parent component spec.
-          # The loop argument was categorized as an artifact due to its missing
-          # or non-primitive type annotation. But it should always be String
-          # typed, as its value is a serialized JSON string.
-          dsl_component_spec.pop_input_from_component_spec(
-              group_component_spec, input_parameter_name)
-          group_component_spec.input_definitions.parameters[
-              input_parameter_name].type = pipeline_spec_pb2.PrimitiveType.STRING
+          if pipeline_param.op_name is None:
+            # Input parameter is from pipeline func rather than component output.
+            # Correct loop argument input type in the parent component spec.
+            # The loop argument was categorized as an artifact due to its missing
+            # or non-primitive type annotation. But it should always be String
+            # typed, as its value is a serialized JSON string.
+            dsl_component_spec.pop_input_from_component_spec(
+                group_component_spec, input_parameter_name)
+            group_component_spec.input_definitions.parameters[
+                input_parameter_name].type = pipeline_spec_pb2.PrimitiveType.STRING
 
       # Additional spec modifications for dsl.ParallelFor's subgroups.
       if is_loop_subgroup:
