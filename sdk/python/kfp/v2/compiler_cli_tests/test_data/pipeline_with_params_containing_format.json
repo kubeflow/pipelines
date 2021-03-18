@@ -54,11 +54,11 @@
                 "s": {
                   "runtimeValue": {
                     "constantValue": {
-                      "stringValue": "Hello {{$.inputs.parameters['s-name']}}"
+                      "stringValue": "Hello {{$.inputs.parameters['s--name']}}"
                     }
                   }
                 },
-                "s-name": {
+                "s--name": {
                   "componentInputParameter": "name"
                 }
               }

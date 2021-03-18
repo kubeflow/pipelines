@@ -329,7 +329,15 @@ def _attach_v2_specs(
         # argument_value contains PipelineParam placeholders which needs to be
         # replaced. And the input needs to be added to the task spec.
         for param in pipeline_params:
-          additional_input_name = '{}-{}'.format(input_name, param.full_name)
+          # Form the name for the compiler injected input, and make sure it
+          # doesn't collide with any existing input names.
+          additional_input_name = '{}--{}'.format(input_name, param.full_name)
+          for existing_input_name, _ in arguments.items():
+            if existing_input_name == additional_input_name:
+              raise ValueError('Name collision between existing input name '
+                               '{} and compiler injected input name {}'.format(
+                                   existing_input_name, additional_input_name))
+
           additional_input_placeholder = (
               "{{{{$.inputs.parameters['{}']}}}}".format(additional_input_name))
           argument_value = argument_value.replace(param.pattern,
