@@ -2,6 +2,9 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 bases:
+  # Application controller is used to provide Google Cloud Console integration.
+  - ../../third-party/application
+  - ../../base/application
   - ../../base/installs/generic
   - ../../third-party/argo/installs/namespace
   - inverse-proxy
