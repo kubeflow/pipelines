@@ -2,13 +2,11 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: kubeflow
 bases:
-- ../../application
 - ../../pipeline
 - ../../metadata
 - ../../cache
 - ../../cache-deployer
 resources:
-- pipeline-application.yaml
 - pipeline-install-config.yaml
 - mysql-secret.yaml
 vars:
