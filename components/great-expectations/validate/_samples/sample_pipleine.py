@@ -9,6 +9,8 @@ chicago_taxi_dataset_op = store.load_component('datasets/Chicago_Taxi_Trips')
 
 
 CURRENT_FOLDER = Path(__file__).parent
+with open(CURRENT_FOLDER / 'expectation_suite.json') as file:
+    expectation_suite = file.read()
 
 validate_csv_op = load_component_from_file(
     str(CURRENT_FOLDER.parent / 'CSV' / 'component.yaml')
@@ -16,9 +18,7 @@ validate_csv_op = load_component_from_file(
 
 
 @kfp.dsl.pipeline(name='Great Expectations')
-def great_expectations_sample_pipeline(
-        expectation_suite_path: str = 'https://github.com/kubeflow/pipelines/raw/master/components/'
-                                      'great-expectations/validate/_samples/expectation_suite.json'):
+def great_expectations_sample_pipeline():
     features = ['trip_seconds', 'trip_miles', 'pickup_community_area', 'dropoff_community_area',
                 'fare', 'tolls', 'extras', 'trip_total']
 
@@ -29,7 +29,7 @@ def great_expectations_sample_pipeline(
     ).output
 
     validate_csv_op(csv=csv_path,
-                    expectation_suite_path=expectation_suite_path)
+                    expectation_suite=expectation_suite)
 
 
 if __name__ == '__main__':

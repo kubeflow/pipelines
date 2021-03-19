@@ -3,7 +3,7 @@ from kfp.components import InputPath, create_component_from_func, OutputPath
 
 def validate_csv_using_greatexpectations(
     csv_path: InputPath(),
-    expectation_suite_path: str,
+    expectation_suite_path: InputPath(),
     data_doc_path: OutputPath(),
 ):
     """Validate a CSV dataset against a Great Expectations suite and create Data Doc (a validation report).
@@ -15,7 +15,6 @@ def validate_csv_using_greatexpectations(
     Args:
         csv_path: Path to the CSV file with the dataset.
         expectation_suite_path: Path to Great Expectations expectation suite (in JSON format).
-            Supports S3, GCS, Azure Blob Storage, HTTP, HTTPS, SFTP, or local filesystem.
     """
     import json
     import os
@@ -24,8 +23,6 @@ def validate_csv_using_greatexpectations(
     import great_expectations as ge
     from great_expectations.render import DefaultJinjaPageView
     from great_expectations.render.renderer import ValidationResultsPageRenderer
-    from smart_open import open
-
 
     with open(expectation_suite_path, 'r') as json_file:
         expectation_suite = json.load(json_file)
@@ -44,10 +41,9 @@ def validate_csv_using_greatexpectations(
 
 
 if __name__ == '__main__':
-    validate_csv_using_greatexpectations = create_component_from_func(
+    validate_csv_using_greatexpectations_op = create_component_from_func(
         validate_csv_using_greatexpectations,
         output_component_file='component.yaml',
         base_image='python:3.8',
-        packages_to_install=['great-expectations==0.13.11',
-                             'smart-open[s3,gcp,azure]==4.2.0']
+        packages_to_install=['great-expectations==0.13.11']
     )
