@@ -92,8 +92,8 @@ class LocalRunnerTest(unittest.TestCase):
     def setUp(self):
         import tempfile
 
-        self.temp_file = tempfile.NamedTemporaryFile()
-        with open(self.temp_file.name, "w") as f:
+        with tempfile.NamedTemporaryFile('w', delete=False) as f:
+            self.temp_file_path = f.name
             f.write("hello world")
 
     def test_run_local(self):
@@ -112,7 +112,7 @@ class LocalRunnerTest(unittest.TestCase):
 
         run_result = run_pipeline_func_locally(
             _pipeline,
-            {"file_path": self.temp_file.name},
+            {"file_path": self.temp_file_path},
             execution_mode=LocalClient.ExecutionMode("local"),
         )
         output_file_path = run_result.get_output_file("local-loader")
@@ -150,7 +150,7 @@ class LocalRunnerTest(unittest.TestCase):
 
     def test_connect(self):
         def _pipeline():
-            _local_loader = local_loader(self.temp_file.name)
+            _local_loader = local_loader(self.temp_file_path)
             component_connect_demo(_local_loader.output)
 
         run_result = run_pipeline_func_locally(
