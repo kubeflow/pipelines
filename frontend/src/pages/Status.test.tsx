@@ -48,6 +48,56 @@ describe('Status', () => {
       expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', undefined);
     });
 
+    it('handles ERROR phase', () => {
+      const tree = shallow(statusToIcon(NodePhase.OMITTED));
+      expect(tree).toMatchSnapshot();
+    });
+
+    it('handles FAILED phase', () => {
+      const tree = shallow(statusToIcon(NodePhase.OMITTED));
+      expect(tree).toMatchSnapshot();
+    });
+
+    it('handles PENDING phase', () => {
+      const tree = shallow(statusToIcon(NodePhase.OMITTED));
+      expect(tree).toMatchSnapshot();
+    });
+
+    it('handles RUNNING phase', () => {
+      const tree = shallow(statusToIcon(NodePhase.OMITTED));
+      expect(tree).toMatchSnapshot();
+    });
+
+    it('handles TERMINATING phase', () => {
+      const tree = shallow(statusToIcon(NodePhase.OMITTED));
+      expect(tree).toMatchSnapshot();
+    });
+
+    it('handles SKIPPED phase', () => {
+      const tree = shallow(statusToIcon(NodePhase.OMITTED));
+      expect(tree).toMatchSnapshot();
+    });
+
+    it('handles SUCCEEDED phase', () => {
+      const tree = shallow(statusToIcon(NodePhase.OMITTED));
+      expect(tree).toMatchSnapshot();
+    });
+
+    it('handles CACHED phase', () => {
+      const tree = shallow(statusToIcon(NodePhase.OMITTED));
+      expect(tree).toMatchSnapshot();
+    });
+
+    it('handles TERMINATED phase', () => {
+      const tree = shallow(statusToIcon(NodePhase.OMITTED));
+      expect(tree).toMatchSnapshot();
+    });
+
+    it('handles OMITTED phase', () => {
+      const tree = shallow(statusToIcon(NodePhase.OMITTED));
+      expect(tree).toMatchSnapshot();
+    });
+
     it('displays start and end dates if both are provided', () => {
       const tree = shallow(statusToIcon(NodePhase.SUCCEEDED, startDate, endDate));
       expect(tree).toMatchSnapshot();

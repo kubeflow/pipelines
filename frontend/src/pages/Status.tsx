@@ -20,6 +20,7 @@ import PendingIcon from '@material-ui/icons/Schedule';
 import RunningIcon from '../icons/statusRunning';
 import SkippedIcon from '@material-ui/icons/SkipNext';
 import SuccessIcon from '@material-ui/icons/CheckCircle';
+import ClearIcon from '@material-ui/icons/Clear';
 import CachedIcon from '../icons/statusCached';
 import TerminatedIcon from '../icons/statusTerminated';
 import Tooltip from '@material-ui/core/Tooltip';
@@ -83,6 +84,10 @@ export function statusToIcon(
       IconComponent = TerminatedIcon;
       iconColor = color.terminated;
       title = 'Run was manually terminated';
+      break;
+    case NodePhase.OMITTED:
+      IconComponent = ClearIcon;
+      title = "Run was omitted and didn't execute.";
       break;
     case NodePhase.UNKNOWN:
       break;
