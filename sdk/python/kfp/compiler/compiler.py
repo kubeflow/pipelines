@@ -1091,7 +1091,17 @@ Please create a new issue at https://github.com/kubeflow/pipelines/issues attach
   if argo_path:
     has_working_argo_lint = False
     try:
-      has_working_argo_lint = _run_argo_lint('')
+      has_working_argo_lint = _run_argo_lint("""
+        apiVersion: argoproj.io/v1alpha1 
+        kind: Workflow 
+        metadata: 
+          generateName: hello-world- 
+        spec: 
+          entrypoint: whalesay 
+          templates: 
+          - name: whalesay 
+            container: 
+              image: docker/whalesay:latest""")
     except:
       warnings.warn("Cannot validate the compiled workflow. Found the argo program in PATH, but it's not usable. argo v2.4.3 should work.")
 
