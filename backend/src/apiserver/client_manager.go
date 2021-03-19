@@ -25,6 +25,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -74,9 +75,11 @@ type ClientManager struct {
 	swfClient                 client.SwfClientInterface
 	k8sCoreClient             client.KubernetesCoreInterface
 	subjectAccessReviewClient client.SubjectAccessReviewInterface
+	tokenReviewClient         client.TokenReviewInterface
 	logArchive                archive.LogArchiveInterface
 	time                      util.TimeInterface
 	uuid                      util.UUIDGeneratorInterface
+	authenticators            []auth.Authenticator
 }
 
 func (c *ClientManager) ExperimentStore() storage.ExperimentStoreInterface {
@@ -127,6 +130,10 @@ func (c *ClientManager) SubjectAccessReviewClient() client.SubjectAccessReviewIn
 	return c.subjectAccessReviewClient
 }
 
+func (c *ClientManager) TokenReviewClient() client.TokenReviewInterface {
+	return c.tokenReviewClient
+}
+
 func (c *ClientManager) LogArchive() archive.LogArchiveInterface {
 	return c.logArchive
 }
@@ -137,6 +144,10 @@ func (c *ClientManager) Time() util.TimeInterface {
 
 func (c *ClientManager) UUID() util.UUIDGeneratorInterface {
 	return c.uuid
+}
+
+func (c *ClientManager) Authenticators() []auth.Authenticator {
+	return c.authenticators
 }
 
 func (c *ClientManager) init() {
@@ -178,7 +189,9 @@ func (c *ClientManager) init() {
 	c.logArchive = initLogArchive()
 
 	if common.IsMultiUserMode() {
-		c.subjectAccessReviewClient = client.CreateSubjectAccessReviewClientOrFatal(common.GetDurationConfig(initConnectionTimeout))
+		c.subjectAccessReviewClient = client.CreateSubjectAccessReviewClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
+		c.tokenReviewClient = client.CreateTokenReviewClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
+		c.authenticators = auth.GetAuthenticators(c.tokenReviewClient)
 	}
 	glog.Infof("Client manager initialized successfully")
 }
