@@ -1,3 +1,5 @@
+# Note, this application.yaml is not included by default for most environments.
+
 apiVersion: app.k8s.io/v1beta1
 kind: Application
 metadata:
