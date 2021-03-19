@@ -43,3 +43,9 @@ rules:
   - subjectaccessreviews
   verbs:
   - create
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create

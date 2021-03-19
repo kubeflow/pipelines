@@ -15,6 +15,7 @@
 package resource
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -26,6 +27,7 @@ import (
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
+	kfpauth "github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
@@ -42,6 +44,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 )
 
 const (
@@ -73,9 +76,11 @@ type ClientManagerInterface interface {
 	SwfClient() client.SwfClientInterface
 	KubernetesCoreClient() client.KubernetesCoreInterface
 	SubjectAccessReviewClient() client.SubjectAccessReviewInterface
+	TokenReviewClient() client.TokenReviewInterface
 	LogArchive() archive.LogArchiveInterface
 	Time() util.TimeInterface
 	UUID() util.UUIDGeneratorInterface
+	Authenticators() []kfpauth.Authenticator
 }
 
 type ResourceManager struct {
@@ -91,9 +96,11 @@ type ResourceManager struct {
 	swfClient                 client.SwfClientInterface
 	k8sCoreClient             client.KubernetesCoreInterface
 	subjectAccessReviewClient client.SubjectAccessReviewInterface
+	tokenReviewClient         client.TokenReviewInterface
 	logArchive                archive.LogArchiveInterface
 	time                      util.TimeInterface
 	uuid                      util.UUIDGeneratorInterface
+	authenticators            []kfpauth.Authenticator
 }
 
 func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
@@ -110,9 +117,11 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		swfClient:                 clientManager.SwfClient(),
 		k8sCoreClient:             clientManager.KubernetesCoreClient(),
 		subjectAccessReviewClient: clientManager.SubjectAccessReviewClient(),
+		tokenReviewClient:         clientManager.TokenReviewClient(),
 		logArchive:                clientManager.LogArchive(),
 		time:                      clientManager.Time(),
 		uuid:                      clientManager.UUID(),
+		authenticators:            clientManager.Authenticators(),
 	}
 }
 
@@ -1223,6 +1232,24 @@ func (r *ResourceManager) GetPipelineVersionTemplate(versionId string) ([]byte, 
 	}
 
 	return template, nil
+}
+
+func (r *ResourceManager) AuthenticateRequest(ctx context.Context) (string, error) {
+	if ctx == nil {
+		return "", util.NewUnauthenticatedError(errors.New("Request error: context is nil"), "Request error: context is nil.")
+	}
+
+	// If the request header contains the user identity, requests are authorized
+	// based on the namespace field in the request.
+	var errlist []error
+	for _, auth := range r.authenticators {
+		userIdentity, err := auth.GetUserIdentity(ctx)
+		if err == nil {
+			return userIdentity, nil
+		}
+		errlist = append(errlist, err)
+	}
+	return "", utilerrors.NewAggregate(errlist)
 }
 
 func (r *ResourceManager) IsRequestAuthorized(userIdentity string, resourceAttributes *authorizationv1.ResourceAttributes) error {

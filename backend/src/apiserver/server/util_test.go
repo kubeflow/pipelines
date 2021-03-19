@@ -1,18 +1,15 @@
 package server
 
 import (
-	"context"
 	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/grpc/metadata"
 )
 
 func TestGetPipelineName_QueryStringNotEmpty(t *testing.T) {
@@ -389,40 +386,4 @@ func TestValidatePipelineSpecAndResourceReferences_ValidWorkflowManifest(t *test
 	spec := &api.PipelineSpec{WorkflowManifest: testWorkflow.ToStringForStore()}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReference)
 	assert.Nil(t, err)
-}
-
-func TestGetUserIdentity(t *testing.T) {
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
-	ctx := metadata.NewIncomingContext(context.Background(), md)
-	userIdentity, err := getUserIdentity(ctx)
-	assert.Nil(t, err)
-	assert.Equal(t, "user@google.com", userIdentity)
-}
-
-func TestGetUserIdentityError(t *testing.T) {
-	md := metadata.New(map[string]string{"no-identity-header": "user"})
-	ctx := metadata.NewIncomingContext(context.Background(), md)
-	_, err := getUserIdentity(ctx)
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Request header error: there is no user identity header.")
-}
-
-func TestGetUserIdentityFromHeaderGoogle(t *testing.T) {
-	userIdentity, err := getUserIdentityFromHeader(common.GoogleIAPUserIdentityPrefix+"user@google.com", common.GoogleIAPUserIdentityPrefix)
-	assert.Nil(t, err)
-	assert.Equal(t, "user@google.com", userIdentity)
-}
-
-func TestGetUserIdentityFromHeaderNonGoogle(t *testing.T) {
-	prefix := ""
-	userIdentity, err := getUserIdentityFromHeader(prefix+"user", prefix)
-	assert.Nil(t, err)
-	assert.Equal(t, "user", userIdentity)
-}
-
-func TestGetUserIdentityFromHeaderError(t *testing.T) {
-	prefix := "expected-prefix"
-	_, err := getUserIdentityFromHeader("user", prefix)
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Request header error: user identity value is incorrectly formatted")
 }

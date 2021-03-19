@@ -1,4 +1,4 @@
-// Copyright 2020 Arrikto Inc.
+// Copyright 2021 Arrikto Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,32 +15,32 @@
 package client
 
 import (
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"time"
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
-	"github.com/kubeflow/pipelines/backend/src/common/util"
-	authzv1 "k8s.io/api/authorization/v1"
+	authv1 "k8s.io/api/authentication/v1"
 )
 
-type SubjectAccessReviewInterface interface {
-	Create(sar *authzv1.SubjectAccessReview) (result *authzv1.SubjectAccessReview, err error)
+type TokenReviewInterface interface {
+	Create(tokenReview *authv1.TokenReview) (result *authv1.TokenReview, err error)
 }
 
-func createSubjectAccessReviewClient(clientParams util.ClientParameters) (SubjectAccessReviewInterface, error) {
+func createTokenReviewClient(clientParams util.ClientParameters) (TokenReviewInterface, error) {
 	clientSet, err := getKubernetesClientset(clientParams)
 	if err != nil {
 		return nil, err
 	}
-	return clientSet.AuthorizationV1().SubjectAccessReviews(), nil
+	return clientSet.AuthenticationV1().TokenReviews(), nil
 }
 
-// CreateSubjectAccessReviewClientOrFatal creates a new SubjectAccessReview client.
-func CreateSubjectAccessReviewClientOrFatal(initConnectionTimeout time.Duration, clientParams util.ClientParameters) SubjectAccessReviewInterface {
-	var client SubjectAccessReviewInterface
+// CreateTokenReviewClientOrFatal creates a new TokenReview client.
+func CreateTokenReviewClientOrFatal(initConnectionTimeout time.Duration, clientParams util.ClientParameters) TokenReviewInterface {
+	var client TokenReviewInterface
 	var err error
 	var operation = func() error {
-		client, err = createSubjectAccessReviewClient(clientParams)
+		client, err = createTokenReviewClient(clientParams)
 		return err
 	}
 	b := backoff.NewExponentialBackOff()
@@ -48,7 +48,7 @@ func CreateSubjectAccessReviewClientOrFatal(initConnectionTimeout time.Duration,
 	err = backoff.Retry(operation, b)
 
 	if err != nil {
-		glog.Fatalf("Failed to create SubjectAccessReview client. Error: %v", err)
+		glog.Fatalf("Failed to create TokenReview client. Error: %v", err)
 	}
 	return client
 }
