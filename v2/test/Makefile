@@ -6,7 +6,7 @@ GCS_ROOT=gs://$(PROJECT)/sample-test/2
 all: sample-test
 
 .PHONY: sample-test
-sample-test: tmp/context.tar.gz tmp/kfp.tar.gz
+sample-test: tmp/context.tar.gz
 	gsutil cp tmp/context.tar.gz $(GCS_ROOT)/src/context.tar.gz
 	python sample_test.py --context $(GCS_ROOT)/src/context.tar.gz
 

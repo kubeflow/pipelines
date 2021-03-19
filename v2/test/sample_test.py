@@ -140,7 +140,7 @@ def v2_sample_test(
         sample_path='v2/samples/two_step.py',
         gcs_root=gcs_root
     )
-    run_sample_op.container.image = build_samples_image_op.outputs['digest']
+    # run_sample_op.container.image = build_samples_image_op.outputs['digest']
 
 
 def main(context: str = CONTEXT):
