@@ -1104,7 +1104,7 @@ Please create a new issue at https://github.com/kubeflow/pipelines/issues attach
               image: docker/whalesay:latest""")
     except:
       warnings.warn("Cannot validate the compiled workflow. Found the argo program in PATH, but it's not usable. argo v2.4.3 should work.")
-    
+
     if has_working_argo_lint:
       _run_argo_lint(yaml_text)
 
