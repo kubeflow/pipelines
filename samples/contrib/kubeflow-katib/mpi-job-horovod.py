@@ -33,8 +33,9 @@ from kubeflow.katib import V1beta1TrialParameterSpec
     description="An example to launch Katib Experiment with MPIJob"
 )
 def horovod_mnist_hpo(
-        experiment_name = "mpi-horovod-mnist",
-        experiment_namespace = "anonymous"):
+    experiment_name: str = "mpi-horovod-mnist",
+    experiment_namespace: str = "anonymous",
+):
 
     # Trial count specification.
     max_trial_count = 6
