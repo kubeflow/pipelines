@@ -152,7 +152,7 @@ def main(context: str = CONTEXT):
             'launcher_destination':
                 'gcr.io/gongyuan-pipeline-test/kfp-launcher:latest',
             'launcher_dockerfile':
-                'launcher_container/Dockerfile',
+                'v2/launcher_container/Dockerfile',
             'gcs_root':
                 'gs://gongyuan-test/v2'
         }
