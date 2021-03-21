@@ -3,7 +3,6 @@ kind: Kustomization
 namespace: kubeflow
 bases:
 - ../../pipeline
-- ../../metadata
 - ../../cache
 - ../../cache-deployer
 resources:
