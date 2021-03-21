@@ -6,6 +6,8 @@ resources:
   - cache-role.yaml
   - cache-rolebinding.yaml
   - cache-sa.yaml
+commonLabels:
+  app: cache-server
 images:
   - name: gcr.io/ml-pipeline/cache-server
     newTag: 1.5.0-rc.0

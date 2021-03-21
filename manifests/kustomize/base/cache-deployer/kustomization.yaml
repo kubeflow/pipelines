@@ -4,6 +4,8 @@ resources:
   - cache-deployer-role.yaml
   - cache-deployer-rolebinding.yaml
   - cache-deployer-deployment.yaml
+commonLabels:
+  app: cache-deployer
 images:
   - name: gcr.io/ml-pipeline/cache-deployer
     newTag: 1.5.0-rc.0
