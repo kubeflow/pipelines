@@ -1,6 +1,6 @@
 PROJECT=gongyuan-pipeline-test
 REPO_ROOT=../..
-GCS_ROOT=gs://$(PROJECT)/sample-test/7
+GCS_ROOT=gs://$(PROJECT)/sample-test/8
 # HOST=https://48b1ee8166ba25d8-dot-asia-east1.pipelines.googleusercontent.com
 HOST=https://71a74112589c16e8-dot-asia-east1.pipelines.googleusercontent.com
 
