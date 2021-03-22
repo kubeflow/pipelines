@@ -28,13 +28,6 @@ patchesStrategicMerge:
 - persistence-agent/deployment-patch.yaml
 - metadata-writer/deployment-patch.yaml
 - cache/deployment-patch.yaml
-patchesJson6902:
-- target:
-    group: app.k8s.io
-    version: v1beta1
-    kind: Application
-    name: $(kfp-app-name)
-  path: application-patch.json
 
 configurations:
 - params.yaml
