@@ -48,6 +48,16 @@ describe('Status', () => {
       expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', undefined);
     });
 
+    // TODO: Enable this test after react-scripts is upgraded to v4.0.0
+    // it('react testing for ERROR phase', async () => {
+    //   const { findByText, getByTestId } = render(
+    //     statusToIcon(NodePhase.ERROR),
+    //   );
+
+    //   fireEvent.mouseOver(getByTestId('node-status-sign'));
+    //   findByText('Error while running this resource');
+    // });
+
     it('handles ERROR phase', () => {
       const tree = shallow(statusToIcon(NodePhase.ERROR));
       expect(tree.find('span')).toMatchInlineSnapshot(`
