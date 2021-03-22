@@ -85,7 +85,8 @@ def is_v2_component(op: _container_op.ContainerOp) -> bool:
   component_spec = op._metadata
   return (component_spec and component_spec.metadata and
           component_spec.metadata.annotations and
-          component_spec.metadata.annotations.get(_component_builder.V2_COMPONENT_ANNOTATION) == 'true')
+          component_spec.metadata.annotations.get(
+              _component_builder.V2_COMPONENT_ANNOTATION) == 'true')
 
 
 def refactor_v2_container_spec(container_spec: PipelineContainerSpec) -> None:
