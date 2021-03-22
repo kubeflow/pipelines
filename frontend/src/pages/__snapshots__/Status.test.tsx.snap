@@ -410,6 +410,7 @@ exports[`Status statusToIcon displays start and end dates if both are provided 1
     }
   >
     <pure(CheckCircleIcon)
+      data-testid="node-status-sign"
       style={
         Object {
           "color": "#34a853",
@@ -828,6 +829,7 @@ exports[`Status statusToIcon does not display a end date if none was provided 1`
     }
   >
     <pure(CheckCircleIcon)
+      data-testid="node-status-sign"
       style={
         Object {
           "color": "#34a853",
@@ -1246,6 +1248,7 @@ exports[`Status statusToIcon does not display a start date if none was provided 
     }
   >
     <pure(CheckCircleIcon)
+      data-testid="node-status-sign"
       style={
         Object {
           "color": "#34a853",
@@ -1660,6 +1663,7 @@ exports[`Status statusToIcon does not display any dates if neither was provided 
     }
   >
     <pure(CheckCircleIcon)
+      data-testid="node-status-sign"
       style={
         Object {
           "color": "#34a853",
@@ -2074,6 +2078,7 @@ exports[`Status statusToIcon handles an undefined phase 1`] = `
     }
   >
     <pure(HelpIcon)
+      data-testid="node-status-sign"
       style={
         Object {
           "color": "#5f6368",
@@ -2488,6 +2493,7 @@ exports[`Status statusToIcon handles an unknown phase 1`] = `
     }
   >
     <pure(HelpIcon)
+      data-testid="node-status-sign"
       style={
         Object {
           "color": "#5f6368",
@@ -2902,6 +2908,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: CACHED 1`] 
     }
   >
     <StatusCached
+      data-testid="node-status-sign"
       style={
         Object {
           "color": "#34a853",
@@ -3316,6 +3323,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: ERROR 1`] =
     }
   >
     <pure(ErrorIcon)
+      data-testid="node-status-sign"
       style={
         Object {
           "color": "#d50000",
@@ -3730,6 +3738,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: FAILED 1`] 
     }
   >
     <pure(ErrorIcon)
+      data-testid="node-status-sign"
       style={
         Object {
           "color": "#d50000",
@@ -4144,6 +4153,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: OMITTED 1`]
     }
   >
     <pure(BlockIcon)
+      data-testid="node-status-sign"
       style={
         Object {
           "color": "#5f6368",
@@ -4558,6 +4568,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: PENDING 1`]
     }
   >
     <pure(ScheduleIcon)
+      data-testid="node-status-sign"
       style={
         Object {
           "color": "#9aa0a6",
@@ -4972,6 +4983,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: RUNNING 1`]
     }
   >
     <StatusRunning
+      data-testid="node-status-sign"
       style={
         Object {
           "color": "#4285f4",
@@ -5386,6 +5398,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: SKIPPED 1`]
     }
   >
     <pure(SkipNextIcon)
+      data-testid="node-status-sign"
       style={
         Object {
           "color": "#5f6368",
@@ -5800,6 +5813,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: SUCCEEDED 1
     }
   >
     <pure(CheckCircleIcon)
+      data-testid="node-status-sign"
       style={
         Object {
           "color": "#34a853",
@@ -6214,6 +6228,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: TERMINATED 
     }
   >
     <StatusRunning
+      data-testid="node-status-sign"
       style={
         Object {
           "color": "#80868b",
@@ -6628,6 +6643,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: TERMINATING
     }
   >
     <StatusRunning
+      data-testid="node-status-sign"
       style={
         Object {
           "color": "#4285f4",
@@ -7042,6 +7058,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: UNKNOWN 1`]
     }
   >
     <pure(HelpIcon)
+      data-testid="node-status-sign"
       style={
         Object {
           "color": "#5f6368",

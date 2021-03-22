@@ -106,7 +106,10 @@ export function statusToIcon(
       }
     >
       <span style={{ height: 18 }}>
-        <IconComponent style={{ color: iconColor, height: 18, width: 18 }} />
+        <IconComponent
+          data-testid='node-status-sign'
+          style={{ color: iconColor, height: 18, width: 18 }}
+        />
       </span>
     </Tooltip>
   );
