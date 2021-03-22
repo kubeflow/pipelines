@@ -265,6 +265,15 @@ message TaskInputsSpec {
       // The key of [TaskOutputsSpec.parameters][] map of the producer task.
       string output_parameter_key = 2;
     }
+
+    // Represents an upstream task's final status. The field can only be set if
+    // the schema version is `2.0.0`. The resolved input parameter will be a
+    // json payload in string type.
+    message TaskFinalStatus {
+      // The name of the upsteram task where the final status is coming from.
+      string producer_task = 1;
+    }
+
     oneof kind {
       // Output parameter from an upstream task.
       TaskOutputParameterSpec task_output_parameter = 1;
@@ -272,6 +281,8 @@ message TaskInputsSpec {
       ValueOrRuntimeParameter runtime_value = 2;
       // Pass the input parameter from parent component input parameter.
       string component_input_parameter = 3;
+      // The final status of an uptream task.
+      TaskFinalStatus task_final_status = 5;
     }
 
     // Selector expression of Common Expression Language (CEL)
@@ -414,6 +425,29 @@ message PipelineTaskSpec {
     // - `inputs.artifacts['model'][0].properties['accuracy']*100 > 90`
     // - `inputs.parameters['type'] == 'foo' && inputs.parameters['num'] == 1`
     string condition = 1;
+
+    // An enum defines the trigger strategy of when the task will be ready to be
+    // triggered.
+    // ALL_UPSTREAM_TASKS_SUCCEEDED - all upstream tasks in succeeded state.
+    // ALL_UPSTREAM_TASKS_COMPLETED - all upstream tasks in any final state.
+    // (Note that CANCELLED is also a final state but job will not trigger new
+    // tasks when job is in CANCELLING state, so that the task with the trigger
+    // policy at ALL_UPSTREAM_TASKS_COMPLETED will not start when job
+    // cancellation is in progress.)
+    enum TriggerStrategy {
+      // Unspecified.  Behave the same as ALL_UPSTREAM_TASKS_SUCCEEDED.
+      TRIGGER_STRATEGY_UNSPECIFIED = 0;
+      // Specifies that all upstream tasks are in succeeded state.
+      ALL_UPSTREAM_TASKS_SUCCEEDED = 1;
+      // Specifies that all upstream tasks are in any final state.
+      ALL_UPSTREAM_TASKS_COMPLETED = 2;
+    }
+    // The trigger strategy of this task.  The `strategy` and `condition` are
+    // in logic "AND", as a task will only be tested for the `condition` when
+    // the `strategy` is meet.
+    // Unset or set to default value of TRIGGER_STATEGY_UNDEFINED behaves the
+    // same as ALL_UPSTREAM_TASKS_SUCCEEDED.
+    TriggerStrategy strategy = 2;
   }
   // Trigger policy of the task.
   TriggerPolicy trigger_policy = 8;
