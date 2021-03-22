@@ -11,62 +11,33 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Two step v2-compatible pipeline."""
+"""Fail pipeline."""
 
 import kfp
 from kfp import compiler, components, dsl
 from kfp.components import InputPath, OutputPath
 
 
-def preprocess(
-    uri: str, some_int: int, output_parameter_one: OutputPath(int),
-    output_dataset_one: OutputPath('Dataset')
-):
-    '''Dummy Preprocess Step.'''
-    with open(output_dataset_one, 'w') as f:
-        f.write('Output dataset')
-    with open(output_parameter_one, 'w') as f:
-        f.write("{}".format(1234))
+def fail():
+    '''Fails'''
+    import sys
+    sys.exit(1)
 
-
-def train(
-    dataset: InputPath('Dataset'),
-    model: OutputPath('Model'),
-    num_steps: int = 100
-):
-    '''Dummy Training Step.'''
-
-    with open(dataset, 'r') as input_file:
-        input_string = input_file.read()
-        with open(model, 'w') as output_file:
-            for i in range(num_steps):
-                output_file.write(
-                    "Step {}\n{}\n=====\n".format(i, input_string)
-                )
-
-
-preprocess_op = components.create_component_from_func(
-    preprocess, base_image='python:3.9'
+fail_op = components.create_component_from_func(
+    fail, base_image='alpine:latest'
 )
-train_op = components.create_component_from_func(train)
-
 
 @dsl.pipeline(
     pipeline_root='gs://output-directory/v2-artifacts',
-    name='two-step-pipeline'
+    name='fail-pipeline'
 )
-def v2_compatible_two_step_pipeline():
-    preprocess_task = preprocess_op(uri='uri-to-import', some_int=12)
-    train_task = train_op(
-        num_steps=preprocess_task.outputs['output_parameter_one'],
-        dataset=preprocess_task.outputs['output_dataset_one']
-    )
-
+def fail_pipeline():
+    preprocess_task = fail_op()
 
 def main(pipeline_root: str, host: str = 'http://ml-pipeline:8888'):
     client = kfp.Client(host=host)
     create_run_response = client.create_run_from_pipeline_func(
-        v2_compatible_two_step_pipeline,
+        fail_pipeline,
         mode=dsl.PipelineExecutionMode.V2_COMPATIBLE,
         arguments={kfp.dsl.ROOT_PARAMETER_NAME: pipeline_root},
     )
@@ -77,6 +48,8 @@ def main(pipeline_root: str, host: str = 'http://ml-pipeline:8888'):
     print(f"{host}/#/runs/details/{run.id}")
     from pprint import pprint
     pprint(run_response.run)
+    assert run.status == 'Failed'
+    # TODO: add more MLMD verification
 
 if __name__ == '__main__':
     import fire
