@@ -128,6 +128,10 @@ function buildDag(
     alreadyVisited.set(rootTemplateId, parentFullPath || '/' + rootTemplateId);
     const template = root.template;
 
+    if (!template || !template.dag) {
+      throw new Error("Graph template or DAG object doesn't exist.");
+    }
+
     (template.dag.tasks || []).forEach(task => {
       const nodeId = parentFullPath + '/' + task.name;
 
@@ -246,7 +250,7 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
     }
   }
 
-  buildDag(graph, workflow.spec.entrypoint, templates, new Map(), '');
+  buildDag(graph, workflow.spec.entrypoint!, templates, new Map(), '');
 
   // DSL-compiled Pipelines will always include a DAG, so they should never reach this point.
   // It is, however, possible for users to upload manually constructed Pipelines, and extremely
