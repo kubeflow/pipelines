@@ -11,12 +11,10 @@ data:
   cacheDb: cachedb
   pipelineDb: mlpipeline
   bucketName: mlpipeline
-
   ## autoUpdatePipelineDefaultVersion: States if the pipeline version
   ## should be updated by defult for a versioned pipeline or not when a new
   ## version is uploaded. This sets the deployment wide definition.
   autoUpdatePipelineDefaultVersion: "true"
-
   ## cronScheduleTimezone: States the timezone which should be used for
   ## the cron scheduler. If not specified the local timezone of the
   ## cluster will be used. Valid values are UTC, Local or values according to
@@ -24,7 +22,6 @@ data:
   ## Feature stage:
   ## [Alpha](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#alpha)
   cronScheduleTimezone: "UTC"
-
   ## cacheImage is the image that the mutating webhook will use to patch
   ## cached steps with. Will be used to echo a message announcing that 
   ## the cached step result will be used. If not set it will default to 
