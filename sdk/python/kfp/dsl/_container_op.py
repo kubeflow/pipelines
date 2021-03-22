@@ -1104,37 +1104,6 @@ class ContainerOp(BaseOp):
                      sidecars=sidecars,
                      is_exit_handler=is_exit_handler)
 
-    def _contains_argument_from_tfx_sdk(
-        arguments: Optional[ArgumentOrArguments]
-    ) -> bool:
-      if isinstance(arguments, str):
-        return arguments == '--component_launcher_class_path'
-      if not arguments or not isinstance(arguments, Iterable):
-        return False
-
-      def _is_argument_from_tfx_sdk(arg: ContainerOpArgument):
-        if isinstance(arg, str):
-          return arg == '--component_launcher_class_path'
-        else:
-          return False
-
-      return any([
-          _is_argument_from_tfx_sdk(arg) for arg in arguments
-      ])
-
-    if (not ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING) and (
-        not _contains_argument_from_tfx_sdk(arguments)):
-      # The warning is suppressed for pipelines created using the TFX SDK.
-      warnings.warn(
-          'Please create reusable components instead of constructing ContainerOp instances directly.'
-          ' Reusable components are shareable, portable and have compatibility and support guarantees.'
-          ' Please see the documentation: https://www.kubeflow.org/docs/pipelines/sdk/component-development/#writing-your-component-definition-file'
-          ' The components can be created manually (or, in case of python, using kfp.components.create_component_from_func or func_to_container_op)'
-          ' and then loaded using kfp.components.load_component_from_file, load_component_from_uri or load_component_from_text: '
-          'https://kubeflow-pipelines.readthedocs.io/en/stable/source/kfp.components.html#kfp.components.load_component_from_file',
-          category=FutureWarning,
-      )
-
     self.attrs_with_pipelineparams = BaseOp.attrs_with_pipelineparams + [
         '_container', 'artifact_arguments', '_parameter_arguments'
     ]  #Copying the BaseOp class variable!
@@ -1167,6 +1136,19 @@ class ContainerOp(BaseOp):
     # convert to list if not a list
     command = as_string_list(command)
     arguments = as_string_list(arguments)
+
+    if (not ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING) and (
+        '--component_launcher_class_path' not in (arguments or [])):
+      # The warning is suppressed for pipelines created using the TFX SDK.
+      warnings.warn(
+          'Please create reusable components instead of constructing ContainerOp instances directly.'
+          ' Reusable components are shareable, portable and have compatibility and support guarantees.'
+          ' Please see the documentation: https://www.kubeflow.org/docs/pipelines/sdk/component-development/#writing-your-component-definition-file'
+          ' The components can be created manually (or, in case of python, using kfp.components.create_component_from_func or func_to_container_op)'
+          ' and then loaded using kfp.components.load_component_from_file, load_component_from_uri or load_component_from_text: '
+          'https://kubeflow-pipelines.readthedocs.io/en/stable/source/kfp.components.html#kfp.components.load_component_from_file',
+          category=FutureWarning,
+      )
 
     # `container` prop in `io.argoproj.workflow.v1alpha1.Template`
     container_kwargs = container_kwargs or {}
