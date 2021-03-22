@@ -9,12 +9,6 @@ import kfp.components as comp
 import json
 
 
-def echo():
-    println("hello world")
-
-
-echo_op = comp.func_to_container_op(echo)
-
 download_gcs_tgz = kfp.components.load_component_from_file('components/download_gcs_tgz.yaml')
 run_sample = kfp.components.load_component_from_file('components/run_sample.yaml')
 kaniko = kfp.components.load_component_from_file('components/kaniko.yaml')
@@ -46,8 +40,6 @@ def v2_sample_test(
     )
     build_samples_image_op.execution_options.caching_strategy.max_cache_staleness = "P0D"
     build_samples_image_op.set_display_name('build_samples_image')
-    # TODO(Bobgy): clean up unused lines
-    # download_context_op = download_gcs_tgz(gcs_path=context)
     with kfp.dsl.ParallelFor(samples_config) as sample:
         run_sample_op = run_sample(
             name=sample.name,
