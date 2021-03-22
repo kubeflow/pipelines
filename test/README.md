@@ -25,9 +25,9 @@ You could run the tests against a specific commit.
 ### Setup
 
 Here are the one-time steps to prepare for your GKE testing cluster:
-- Follow the [main page](https://github.com/kubeflow/pipelines#setup-gke) to
+- Follow the [deployment guide](https://www.kubeflow.org/docs/components/pipelines/installation/standalone-deployment/#set-up-your-cluster) to
 create a GKE cluster.
-- Install [Argo](https://github.com/argoproj/argo/blob/master/demo.md#argo-v20-getting-started)
+- Install [Argo](https://github.com/argoproj/argo-workflows/)
 in the cluster.
 - Create cluster role binding.
   ```
