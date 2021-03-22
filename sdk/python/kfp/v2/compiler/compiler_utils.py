@@ -83,7 +83,9 @@ def validate_pipeline_name(name: str) -> None:
 def is_v2_component(op: _container_op.ContainerOp) -> bool:
   """Determines whether a component is a KFP v2 component."""
   component_spec = op._metadata
-  return component_spec and component_spec.metadata and component_spec.metadata.annotations.get(_component_builder.V2_COMPONENT_ANNOTATION) == 'true'
+  return (component_spec and component_spec.metadata and
+          component_spec.metadata.annotations and
+          component_spec.metadata.annotations.get(_component_builder.V2_COMPONENT_ANNOTATION) == 'true')
 
 
 def refactor_v2_container_spec(container_spec: PipelineContainerSpec) -> None:
