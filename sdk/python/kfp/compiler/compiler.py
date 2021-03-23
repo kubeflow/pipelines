@@ -57,7 +57,16 @@ class Compiler(object):
 
   def __init__(
       self,
-      mode: dsl.PipelineExecutionMode = dsl.PipelineExecutionMode.V1_LEGACY):
+      mode: dsl.PipelineExecutionMode = dsl.PipelineExecutionMode.V1_LEGACY,
+      launcher_image: Optional[str] = None):
+    """Creates a KFP compiler for compiling pipeline functions for execution.
+
+    Args:
+      mode: The pipeline execution mode to use.
+      launcher_image: Configurable image for KFP launcher to use. Only applies
+        when `mode == dsl.PipelineExecutionMode.V2_COMPATIBLE`. Should only be
+        needed for tests or custom deployments right now.
+    """
     if mode == dsl.PipelineExecutionMode.V2_ENGINE:
       raise ValueError('V2_ENGINE execution mode is not supported yet.')
 
@@ -65,6 +74,7 @@ class Compiler(object):
       warnings.warn('V2_COMPATIBLE execution mode is still under development.'
                     ' Pipelines may not work as expected.')
     self._mode = mode
+    self._launcher_image = launcher_image
     self._pipeline_name_param: Optional[dsl.PipelineParam] = None
     self._pipeline_root_param: Optional[dsl.PipelineParam] = None
 
@@ -664,7 +674,8 @@ class Compiler(object):
       if self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
         v2_compat.update_op(op,
                             pipeline_name=self._pipeline_name_param,
-                            pipeline_root=self._pipeline_root_param)
+                            pipeline_root=self._pipeline_root_param,
+                            launcher_image=self._launcher_image)
       templates.extend(op_to_templates_handler(op))
 
     return templates
@@ -1092,15 +1103,15 @@ Please create a new issue at https://github.com/kubeflow/pipelines/issues attach
     has_working_argo_lint = False
     try:
       has_working_argo_lint = _run_argo_lint("""
-        apiVersion: argoproj.io/v1alpha1 
-        kind: Workflow 
-        metadata: 
-          generateName: hello-world- 
-        spec: 
-          entrypoint: whalesay 
-          templates: 
-          - name: whalesay 
-            container: 
+        apiVersion: argoproj.io/v1alpha1
+        kind: Workflow
+        metadata:
+          generateName: hello-world-
+        spec:
+          entrypoint: whalesay
+          templates:
+          - name: whalesay
+            container:
               image: docker/whalesay:latest""")
     except:
       warnings.warn("Cannot validate the compiled workflow. Found the argo program in PATH, but it's not usable. argo v2.4.3 should work.")
