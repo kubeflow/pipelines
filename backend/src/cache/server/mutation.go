@@ -220,6 +220,7 @@ func generateCacheKeyFromTemplate(template string) (string, error) {
 			"volumeMounts": nil,
 		},
 		"inputs":         nil,
+		"outputs":        nil,  // Output artifact/parameter names and paths are important and need to be considered. We can include the whole section since Argo does not seem to put the artifact s3 specifications here, leaving them in archiveLocation.
 		"volumes":        nil,
 		"initContainers": nil,
 		"sidecars":       nil,
