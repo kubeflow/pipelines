@@ -64,7 +64,8 @@ class Compiler(object):
     Args:
       mode: The pipeline execution mode to use.
       launcher_image: Configurable image for KFP launcher to use. Only applies
-        when `mode == dsl.PipelineExecutionMode.V2_COMPATIBLE`.
+        when `mode == dsl.PipelineExecutionMode.V2_COMPATIBLE`. Should only be
+        needed for tests or custom deployments right now.
     """
     if mode == dsl.PipelineExecutionMode.V2_ENGINE:
       raise ValueError('V2_ENGINE execution mode is not supported yet.')
