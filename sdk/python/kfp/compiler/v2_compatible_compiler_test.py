@@ -51,20 +51,18 @@ train_op = components.create_component_from_func(train)
 
 class TestV2CompatibleModeCompiler(unittest.TestCase):
 
-  def setUp(self) -> None:
-    self._compiler = compiler.Compiler(
-        mode=dsl.PipelineExecutionMode.V2_COMPATIBLE)
-
-  def _assert_compiled_pipeline_equals_golden(self, pipeline_func: Callable,
+  def _assert_compiled_pipeline_equals_golden(self,
+                                              kfp_compiler: compiler.Compiler,
+                                              pipeline_func: Callable,
                                               golden_yaml_filename: str):
     compiled_file = os.path.join(tempfile.mkdtemp(), 'workflow.yaml')
-    self._compiler.compile(pipeline_func, package_path=compiled_file)
+    kfp_compiler.compile(pipeline_func, package_path=compiled_file)
 
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
     golden_file = os.path.join(test_data_dir, golden_yaml_filename)
     # Uncomment the following to update goldens.
     # TODO: place this behind some --update_goldens flag.
-    # self._compiler.compile(pipeline_func, package_path=golden_file)
+    # kfp_compiler.compile(pipeline_func, package_path=golden_file)
 
     with open(golden_file, 'r') as f:
       golden = yaml.safe_load(f)
@@ -90,8 +88,28 @@ class TestV2CompatibleModeCompiler(unittest.TestCase):
           num_steps=preprocess_task.outputs['output_parameter_one'],
           dataset=preprocess_task.outputs['output_dataset_one'])
 
+    kfp_compiler = compiler.Compiler(
+        mode=dsl.PipelineExecutionMode.V2_COMPATIBLE)
     self._assert_compiled_pipeline_equals_golden(
-        v2_compatible_two_step_pipeline, 'v2_compatible_two_step_pipeline.yaml')
+        kfp_compiler, v2_compatible_two_step_pipeline,
+        'v2_compatible_two_step_pipeline.yaml')
+
+  def test_custom_launcher(self):
+
+    @dsl.pipeline(pipeline_root='gs://output-directory/v2-artifacts',
+                  name='my-test-pipeline-with-custom-launcher')
+    def v2_compatible_two_step_pipeline():
+      preprocess_task = preprocess_op(uri='uri-to-import', some_int=12)
+      train_task = train_op(
+          num_steps=preprocess_task.outputs['output_parameter_one'],
+          dataset=preprocess_task.outputs['output_dataset_one'])
+
+    kfp_compiler = compiler.Compiler(
+        mode=dsl.PipelineExecutionMode.V2_COMPATIBLE,
+        launcher_image='my-custom-image')
+    self._assert_compiled_pipeline_equals_golden(
+        kfp_compiler, v2_compatible_two_step_pipeline,
+        'v2_compatible_two_step_pipeline_with_custom_launcher.yaml')
 
 
 if __name__ == '__main__':
