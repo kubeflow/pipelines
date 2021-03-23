@@ -714,7 +714,7 @@ message PipelineDeploymentConfig {
       // Resolves an existing artifact.
       ResolverSpec resolver = 3;
       // Starts a Google Cloud AI Platform CustomJob.
-      AIPlatformCustomJobSpec custom_job = 4;
+      AIPlatformCustomJobSpec custom_job = 4 [deprecated = true];
     }
   }
   // Map from executor label to executor spec.
