@@ -48,6 +48,256 @@ describe('Status', () => {
       expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', undefined);
     });
 
+    // TODO: Enable this test after react-scripts is upgraded to v4.0.0
+    // it('react testing for ERROR phase', async () => {
+    //   const { findByText, getByTestId } = render(
+    //     statusToIcon(NodePhase.ERROR),
+    //   );
+
+    //   fireEvent.mouseOver(getByTestId('node-status-sign'));
+    //   findByText('Error while running this resource');
+    // });
+
+    it('handles ERROR phase', () => {
+      const tree = shallow(statusToIcon(NodePhase.ERROR));
+      expect(tree.find('span')).toMatchInlineSnapshot(`
+        <span
+          style={
+            Object {
+              "height": 18,
+            }
+          }
+        >
+          <pure(ErrorIcon)
+            data-testid="node-status-sign"
+            style={
+              Object {
+                "color": "#d50000",
+                "height": 18,
+                "width": 18,
+              }
+            }
+          />
+        </span>
+      `);
+    });
+
+    it('handles FAILED phase', () => {
+      const tree = shallow(statusToIcon(NodePhase.FAILED));
+      expect(tree.find('span')).toMatchInlineSnapshot(`
+        <span
+          style={
+            Object {
+              "height": 18,
+            }
+          }
+        >
+          <pure(ErrorIcon)
+            data-testid="node-status-sign"
+            style={
+              Object {
+                "color": "#d50000",
+                "height": 18,
+                "width": 18,
+              }
+            }
+          />
+        </span>
+      `);
+    });
+
+    it('handles PENDING phase', () => {
+      const tree = shallow(statusToIcon(NodePhase.PENDING));
+      expect(tree.find('span')).toMatchInlineSnapshot(`
+        <span
+          style={
+            Object {
+              "height": 18,
+            }
+          }
+        >
+          <pure(ScheduleIcon)
+            data-testid="node-status-sign"
+            style={
+              Object {
+                "color": "#9aa0a6",
+                "height": 18,
+                "width": 18,
+              }
+            }
+          />
+        </span>
+      `);
+    });
+
+    it('handles RUNNING phase', () => {
+      const tree = shallow(statusToIcon(NodePhase.RUNNING));
+      expect(tree.find('span')).toMatchInlineSnapshot(`
+        <span
+          style={
+            Object {
+              "height": 18,
+            }
+          }
+        >
+          <StatusRunning
+            data-testid="node-status-sign"
+            style={
+              Object {
+                "color": "#4285f4",
+                "height": 18,
+                "width": 18,
+              }
+            }
+          />
+        </span>
+      `);
+    });
+
+    it('handles TERMINATING phase', () => {
+      const tree = shallow(statusToIcon(NodePhase.TERMINATING));
+      expect(tree.find('span')).toMatchInlineSnapshot(`
+        <span
+          style={
+            Object {
+              "height": 18,
+            }
+          }
+        >
+          <StatusRunning
+            data-testid="node-status-sign"
+            style={
+              Object {
+                "color": "#4285f4",
+                "height": 18,
+                "width": 18,
+              }
+            }
+          />
+        </span>
+      `);
+    });
+
+    it('handles SKIPPED phase', () => {
+      const tree = shallow(statusToIcon(NodePhase.SKIPPED));
+      expect(tree.find('span')).toMatchInlineSnapshot(`
+        <span
+          style={
+            Object {
+              "height": 18,
+            }
+          }
+        >
+          <pure(SkipNextIcon)
+            data-testid="node-status-sign"
+            style={
+              Object {
+                "color": "#5f6368",
+                "height": 18,
+                "width": 18,
+              }
+            }
+          />
+        </span>
+      `);
+    });
+
+    it('handles SUCCEEDED phase', () => {
+      const tree = shallow(statusToIcon(NodePhase.SUCCEEDED));
+      expect(tree.find('span')).toMatchInlineSnapshot(`
+        <span
+          style={
+            Object {
+              "height": 18,
+            }
+          }
+        >
+          <pure(CheckCircleIcon)
+            data-testid="node-status-sign"
+            style={
+              Object {
+                "color": "#34a853",
+                "height": 18,
+                "width": 18,
+              }
+            }
+          />
+        </span>
+      `);
+    });
+
+    it('handles CACHED phase', () => {
+      const tree = shallow(statusToIcon(NodePhase.CACHED));
+      expect(tree.find('span')).toMatchInlineSnapshot(`
+        <span
+          style={
+            Object {
+              "height": 18,
+            }
+          }
+        >
+          <StatusCached
+            data-testid="node-status-sign"
+            style={
+              Object {
+                "color": "#34a853",
+                "height": 18,
+                "width": 18,
+              }
+            }
+          />
+        </span>
+      `);
+    });
+
+    it('handles TERMINATED phase', () => {
+      const tree = shallow(statusToIcon(NodePhase.TERMINATED));
+      expect(tree.find('span')).toMatchInlineSnapshot(`
+        <span
+          style={
+            Object {
+              "height": 18,
+            }
+          }
+        >
+          <StatusRunning
+            data-testid="node-status-sign"
+            style={
+              Object {
+                "color": "#80868b",
+                "height": 18,
+                "width": 18,
+              }
+            }
+          />
+        </span>
+      `);
+    });
+
+    it('handles OMITTED phase', () => {
+      const tree = shallow(statusToIcon(NodePhase.OMITTED));
+      expect(tree.find('span')).toMatchInlineSnapshot(`
+        <span
+          style={
+            Object {
+              "height": 18,
+            }
+          }
+        >
+          <pure(BlockIcon)
+            data-testid="node-status-sign"
+            style={
+              Object {
+                "color": "#5f6368",
+                "height": 18,
+                "width": 18,
+              }
+            }
+          />
+        </span>
+      `);
+    });
+
     it('displays start and end dates if both are provided', () => {
       const tree = shallow(statusToIcon(NodePhase.SUCCEEDED, startDate, endDate));
       expect(tree).toMatchSnapshot();
