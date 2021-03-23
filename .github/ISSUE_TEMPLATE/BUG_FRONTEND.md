@@ -8,7 +8,7 @@ labels: kind/bug, area/frontend
 ### Environment
 
 *  How did you deploy Kubeflow Pipelines (KFP)?
-*  <!-- For more information, see an overview of KFP installation options: https://www.kubeflow.org/docs/pipelines/installation/overview/. -->
+<!-- For more information, see an overview of KFP installation options: https://www.kubeflow.org/docs/pipelines/installation/overview/. -->
 *  KFP version: 
 <!-- Specify the version of Kubeflow Pipelines that you are using. The version number appears in the left side navigation of user interface.
 To find the version number, See version number shows on bottom of KFP UI left sidenav. -->
