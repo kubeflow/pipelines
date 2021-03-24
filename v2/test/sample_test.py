@@ -1,3 +1,17 @@
+# Copyright 2021 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # %%
 import yaml
 
@@ -32,6 +46,7 @@ def v2_sample_test(
 ):
     download_src_op = download_gcs_tgz(gcs_path=context)
     download_src_op.set_display_name('download_src')
+    download_src_op.execution_options.caching_strategy.max_cache_staleness = "P0D"
     build_kfp_launcher_op = kaniko(
         context_artifact=download_src_op.outputs['folder'],
         context_sub_path='v2',
