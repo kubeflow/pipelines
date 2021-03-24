@@ -1,4 +1,4 @@
-from typing import Dict, Text
+from typing import Dict
 
 
 def mount_pvc(pvc_name='pipeline-claim', volume_name='pipeline', volume_mount_path='/mnt/pipeline'):
@@ -21,20 +21,20 @@ def mount_pvc(pvc_name='pipeline-claim', volume_name='pipeline', volume_mount_pa
         return (
             task
                 .add_volume(
-                k8s_client.V1Volume(name=volume_name, persistent_volume_claim=local_pvc)
-            )
+                    k8s_client.V1Volume(name=volume_name, persistent_volume_claim=local_pvc)
+                )
                 .add_volume_mount(
-                k8s_client.V1VolumeMount(mount_path=volume_mount_path, name=volume_name)
-            )
+                    k8s_client.V1VolumeMount(mount_path=volume_mount_path, name=volume_name)
+                )
         )
     return _mount_pvc
 
 
-def use_k8s_secret(secret_name: Text = 'k8s-secret', k8s_secret_key_to_env: Dict = {}):
+def use_k8s_secret(secret_name: str = 'k8s-secret', k8s_secret_key_to_env: Dict = {}):
     """An operator that configures the container to use k8s credentials.
 
-    k8s_secret_key_to_env specifies a mapping from the name of the keys in the k8s secret to the name of the environment
-    variables where the values will be added.
+    k8s_secret_key_to_env specifies a mapping from the name of the keys in the k8s secret to the name of the
+    environment variables where the values will be added.
 
     The secret needs to be deployed manually a priori.
 
