@@ -201,6 +201,14 @@ def _op_to_template(op: BaseOp):
                 processed_op.container
             )
         }
+        # Mapping the original output names to the mangled argo output names.
+        # The output names in op.file_outputs are already sanitized at this point.
+        # The op.outputs dictionary has duplicate entries for the legacy sanitized names.
+        # Solution: The original names are added to op.outputs first. Dedup preserving the ordering.
+        output_artifact_name_map = {}
+        for name, output_ref in (processed_op.outputs or {}).items():
+            if output_ref.full_name not in output_artifact_name_map:
+                output_artifact_name_map[output_ref.full_name] = name
     elif isinstance(op, dsl.ResourceOp):
         # no output artifacts
         output_artifacts = []
@@ -223,6 +231,22 @@ def _op_to_template(op: BaseOp):
     inputs = _inputs_to_json(processed_op.inputs, input_artifact_paths, artifact_arguments)
     if inputs:
         template['inputs'] = inputs
+    
+    if isinstance(processed_op, dsl.ContainerOp):
+        artifact_argument_constant_values = {}
+        input_artifact_name_map = {}
+        for name, artifact_argument in (artifact_arguments or {}).items():
+            if isinstance(artifact_argument, dsl.PipelineParam):
+                input_artifact_name_map[artifact_argument.full_name] = name
+            else:
+                # Checking whether the value is a single stringified PipelineParam.
+                # If that's the case, it will be converted to an artifact argument reference.
+                # We should not place such string in annotations, as it will interfere with the artifact passing conversion.
+                extracted_refs = dsl._pipeline_param._extract_pipelineparams(artifact_argument)
+                if len(extracted_refs) == 1:
+                    input_artifact_name_map[extracted_refs[0].full_name] = name
+                else:
+                    artifact_argument_constant_values[name] = artifact_argument
 
     # outputs
     if isinstance(op, dsl.ContainerOp):
@@ -296,6 +320,12 @@ def _op_to_template(op: BaseOp):
 
     if hasattr(op, '_parameter_arguments') and op._parameter_arguments:
         template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/arguments.parameters'] = json.dumps(op._parameter_arguments, sort_keys=True)
+    if isinstance(op, dsl.ContainerOp):
+        ###XXX### template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/arguments.raw_artifacts'] = json.dumps(artifact_argument_constant_values, sort_keys=True)
+        if input_artifact_name_map:
+            template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/input_artifact_name_map'] = json.dumps(input_artifact_name_map, sort_keys=True)
+        if output_artifact_name_map:
+            template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/output_artifact_name_map'] = json.dumps(output_artifact_name_map, sort_keys=True)
 
     if isinstance(op, dsl.ContainerOp) and op.execution_options:
         if op.execution_options.caching_strategy.max_cache_staleness:

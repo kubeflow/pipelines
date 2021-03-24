@@ -101,6 +101,11 @@ class TestCompiler(unittest.TestCase):
             {'name': 'msg2'},
           ]},
         'name': 'echo',
+        'metadata': {
+          'annotations': {
+            'pipelines.kubeflow.org/output_artifact_name_map': '{"echo-merged": "merged"}'
+          }
+        },
         'outputs': {
           'artifacts': [
             {
@@ -612,34 +617,27 @@ class TestCompiler(unittest.TestCase):
 
     compiler.Compiler()._compile(pipeline)
 
-  def _test_op_to_template_yaml(self, ops, file_base_name):
-    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
-    target_yaml = os.path.join(test_data_dir, file_base_name + '.yaml')
-    with open(target_yaml, 'r') as f:
-      expected = yaml.safe_load(f)['spec']['templates'][0]
-
-    compiled_template = compiler._op_to_template._op_to_template(ops)
-
-    del compiled_template['name'], expected['name']
-    for output in compiled_template['outputs'].get('parameters', []) + compiled_template['outputs'].get('artifacts', []) + expected['outputs'].get('parameters', []) + expected['outputs'].get('artifacts', []):
-      del output['name']
-    assert compiled_template == expected
-
   def test_tolerations(self):
     """Test a pipeline with a tolerations."""
-    op1 = dsl.ContainerOp(
-      name='download',
-      image='busybox',
-      command=['sh', '-c'],
-      arguments=['sleep 10; wget localhost:5678 -O /tmp/results.txt'],
-      file_outputs={'downloaded': '/tmp/results.txt'}) \
-      .add_toleration(V1Toleration(
-      effect='NoSchedule',
-      key='gpu',
-      operator='Equal',
-      value='run'))
+    def some_pipeline():
+      op1 = dsl.ContainerOp(
+        name='download',
+        image='busybox',
+        command=['sh', '-c'],
+        arguments=['sleep 10; wget localhost:5678 -O /tmp/results.txt'],
+        file_outputs={'downloaded': '/tmp/results.txt'}) \
+        .add_toleration(V1Toleration(
+          effect='NoSchedule',
+          key='gpu',
+          operator='Equal',
+          value='run'))
 
-    self._test_op_to_template_yaml(op1, file_base_name='tolerations')
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    template = [template for template in workflow_dict['spec']['templates'] if 'container' in template][0]
+    self.assertEquals(
+      template['tolerations'],
+      [{'effect': 'NoSchedule', 'key': 'gpu', 'operator': 'Equal', 'value': 'run'}],
+    )
 
   def test_set_display_name(self):
     """Test a pipeline with a customized task names."""

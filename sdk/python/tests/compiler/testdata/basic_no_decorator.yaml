@@ -81,6 +81,9 @@ spec:
           - name: get-frequent-word
             valueFrom:
               path: /tmp/message.txt
+      metadata:
+        annotations:
+          pipelines.kubeflow.org/output_artifact_name_map: '{"get-frequent-word": "word"}'
     - container:
         args:
           - echo {{inputs.parameters.get-frequent-word}} | tee /tmp/results.txt | gsutil
