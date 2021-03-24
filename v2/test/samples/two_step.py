@@ -13,8 +13,7 @@
 # limitations under the License.
 """Two step v2-compatible pipeline."""
 
-import kfp
-from kfp import compiler, components, dsl
+from kfp import components, dsl
 from kfp.components import InputPath, OutputPath
 
 
@@ -51,41 +50,10 @@ preprocess_op = components.create_component_from_func(
 train_op = components.create_component_from_func(train)
 
 
-@dsl.pipeline(
-    pipeline_root='gs://output-directory/v2-artifacts',
-    name='two-step-pipeline'
-)
-def v2_compatible_two_step_pipeline():
+@dsl.pipeline(name='two_step_pipeline')
+def two_step_pipeline():
     preprocess_task = preprocess_op(uri='uri-to-import', some_int=12)
     train_task = train_op(
         num_steps=preprocess_task.outputs['output_parameter_one'],
         dataset=preprocess_task.outputs['output_dataset_one']
     )
-
-
-def main(
-    pipeline_root: str,
-    host: str = 'http://ml-pipeline:8888',
-    launcher_image: 'URI' = None
-):
-    client = kfp.Client(host=host)
-    create_run_response = client.create_run_from_pipeline_func(
-        v2_compatible_two_step_pipeline,
-        mode=dsl.PipelineExecutionMode.V2_COMPATIBLE,
-        arguments={kfp.dsl.ROOT_PARAMETER_NAME: pipeline_root},
-        launcher_image=launcher_image
-    )
-    run_response = client.wait_for_run_completion(
-        run_id=create_run_response.run_id, timeout=60 * 10
-    )
-    run = run_response.run
-    print('run_id')
-    print(run.id)
-    print(f"{host}/#/runs/details/{run.id}")
-    from pprint import pprint
-    pprint(run_response.run)
-
-
-if __name__ == '__main__':
-    import fire
-    fire.Fire(main)

@@ -1,12 +1,16 @@
 # %%
-HOST = 'https://71a74112589c16e8-dot-asia-east1.pipelines.googleusercontent.com'
-CONTEXT = 'gs://gongyuan-pipeline-test/sample-test/src/context.tar.gz'
-SDK = 'gs://gongyuan-pipeline-test/sample-test/src/kfp-sdk.tar.gz'
+import yaml
 
-# %%
+SAMPLES_CONFIG = None
+with open('samples_config.yaml', 'r') as stream:
+    SAMPLES_CONFIG = yaml.safe_load(stream)
+
 import kfp
 import kfp.components as comp
 import json
+from typing import Optional
+
+MINUTE = 60  # seconds
 
 download_gcs_tgz = kfp.components.load_component_from_file(
     'components/download_gcs_tgz.yaml'
@@ -19,18 +23,12 @@ kaniko = kfp.components.load_component_from_file('components/kaniko.yaml')
 
 @kfp.dsl.pipeline(name='v2 sample test')
 def v2_sample_test(
-    context: 'URI' = CONTEXT,
+    context: 'URI' = 'gs://your-bucket/path/to/context.tar.gz',
     launcher_destination: 'URI' = 'gcr.io/gongyuan-pipeline-test/kfp-launcher',
     gcs_root: 'URI' = 'gs://gongyuan-test/v2',
     samples_destination: 'URI' = 'gcr.io/gongyuan-pipeline-test/v2-sample-test',
     kfp_host: 'URI' = 'http://ml-pipeline:8888',
-    samples_config: 'JSONArray' = json.dumps([{
-        'name': 'fail',
-        'path': 'v2/test/samples/fail.py'
-    }, {
-        'name': 'two_step',
-        'path': 'v2/test/samples/two_step.py'
-    }]),
+    samples_config: list = SAMPLES_CONFIG,
 ):
     download_src_op = download_gcs_tgz(gcs_path=context)
     download_src_op.set_display_name('download_src')
@@ -60,32 +58,30 @@ def v2_sample_test(
         run_sample_op.set_display_name(f'sample_{sample.name}')
 
 
-def main(context: str = CONTEXT, host: str = HOST):
+def main(context: str, host: str, gcr_root: str, gcs_root: str):
     client = kfp.Client(host=host)
-    create_run_response = client.create_run_from_pipeline_func(
+    run_result = client.create_run_from_pipeline_func(
         v2_sample_test, {
-            'context':
-                context,
-            'launcher_destination':
-                'gcr.io/gongyuan-pipeline-test/kfp-launcher',
-            'gcs_root':
-                'gs://gongyuan-test/v2',
-            'samples_destination':
-                'gcr.io/gongyuan-pipeline-test/v2-sample-test',
-            'kfp_host':
-                host,
+            'context': context,
+            'launcher_destination': f'{gcr_root}/kfp-launcher',
+            'gcs_root': gcs_root,
+            'samples_destination': f'{gcr_root}/v2-sample-test',
+            'kfp_host': host,
         }
     )
+    print("Run details page URL:")
+    print(f"{host}/#/runs/details/{run_result.run_id}")
+    run_response = run_result.wait_for_run_completion(10 * MINUTE)
+    run = run_response.run
     from pprint import pprint
-    pprint(create_run_response)
-    print(f"{host}/#/runs/details/{create_run_response.run_id}")
+    pprint(run_response.run)
+    print("Run details page URL:")
+    print(f"{host}/#/runs/details/{run_result.run_id}")
+    assert run.status == 'Succeeded'
+    # TODO(Bobgy): print debug info
 
-
-# main()
 
 # %%
 if __name__ == "__main__":
     import fire
     fire.Fire(main)
-
-# %%
