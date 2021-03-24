@@ -26,7 +26,7 @@ def main(
 ):
     client = kfp.Client(host=host)
     run_result = client.create_run_from_pipeline_func(
-        v2_compatible_two_step_pipeline,
+        two_step_pipeline,
         mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
         arguments={kfp.dsl.ROOT_PARAMETER_NAME: pipeline_root},
         launcher_image=launcher_image
