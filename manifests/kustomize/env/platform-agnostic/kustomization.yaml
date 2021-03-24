@@ -3,6 +3,7 @@ kind: Kustomization
 
 bases:
   - ../../base/installs/generic
+  - ../../base/metadata/base
   - ../../third-party/argo/installs/namespace
   - ../../third-party/minio
   - ../../third-party/mysql
