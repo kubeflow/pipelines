@@ -8,10 +8,14 @@ import kfp
 import kfp.components as comp
 import json
 
-
-download_gcs_tgz = kfp.components.load_component_from_file('components/download_gcs_tgz.yaml')
-run_sample = kfp.components.load_component_from_file('components/run_sample.yaml')
+download_gcs_tgz = kfp.components.load_component_from_file(
+    'components/download_gcs_tgz.yaml'
+)
+run_sample = kfp.components.load_component_from_file(
+    'components/run_sample.yaml'
+)
 kaniko = kfp.components.load_component_from_file('components/kaniko.yaml')
+
 
 @kfp.dsl.pipeline(name='v2 sample test')
 def v2_sample_test(
@@ -20,9 +24,13 @@ def v2_sample_test(
     gcs_root: 'URI' = 'gs://gongyuan-test/v2',
     samples_destination: 'URI' = 'gcr.io/gongyuan-pipeline-test/v2-sample-test',
     kfp_host: 'URI' = 'http://ml-pipeline:8888',
-    samples_config: 'JSONArray' = json.dumps([
-        {'name': 'fail', 'path': 'v2/test/samples/fail.py'},
-        {'name': 'two_step', 'path': 'v2/test/samples/two_step.py'}]),
+    samples_config: 'JSONArray' = json.dumps([{
+        'name': 'fail',
+        'path': 'v2/test/samples/fail.py'
+    }, {
+        'name': 'two_step',
+        'path': 'v2/test/samples/two_step.py'
+    }]),
 ):
     download_src_op = download_gcs_tgz(gcs_path=context)
     download_src_op.set_display_name('download_src')
@@ -46,10 +54,10 @@ def v2_sample_test(
             sample_path=sample.path,
             gcs_root=gcs_root,
             host=kfp_host,
+            launcher_image=build_kfp_launcher_op.outputs['digest']
         )
         run_sample_op.container.image = build_samples_image_op.outputs['digest']
         run_sample_op.set_display_name(f'sample_{sample.name}')
-        
 
 
 def main(context: str = CONTEXT, host: str = HOST):
@@ -64,7 +72,8 @@ def main(context: str = CONTEXT, host: str = HOST):
                 'gs://gongyuan-test/v2',
             'samples_destination':
                 'gcr.io/gongyuan-pipeline-test/v2-sample-test',
-            'kfp_host': host,
+            'kfp_host':
+                host,
         }
     )
     from pprint import pprint

@@ -4,6 +4,7 @@ inputs:
 - {name: Sample Path, type: Path}
 - {name: GCS Root, type: URI}
 - {name: Host, type: URI, default: "http://ml-pipeline:8888"}
+- {name: Launcher Image, type: URI, default: "gcr.io/ml-pipeline/kfp-launcher:latest"}
 implementation:
   container:
     image: python:3.7-alpine
@@ -15,10 +16,15 @@ implementation:
         name="$1"
         root="$2"
         host="$3"
+        launcher_image="$4"
 
-        python3 "$sample_path" --pipeline_root "$root/$name" --host "$host"
+        python3 "$sample_path" \
+          --pipeline_root "$root/$name" \
+          --host "$host" \
+          --launcher_image "$launcher_image"
 
     - inputValue: Sample Path
     - inputValue: Name
     - inputValue: GCS Root
     - inputValue: Host
+    - inputValue: Launcher Image

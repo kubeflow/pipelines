@@ -63,20 +63,28 @@ def v2_compatible_two_step_pipeline():
     )
 
 
-def main(pipeline_root: str, host: str = 'http://ml-pipeline:8888'):
+def main(
+    pipeline_root: str,
+    host: str = 'http://ml-pipeline:8888',
+    launcher_image: 'URI' = None
+):
     client = kfp.Client(host=host)
     create_run_response = client.create_run_from_pipeline_func(
         v2_compatible_two_step_pipeline,
         mode=dsl.PipelineExecutionMode.V2_COMPATIBLE,
         arguments={kfp.dsl.ROOT_PARAMETER_NAME: pipeline_root},
+        launcher_image=launcher_image
     )
-    run_response = client.wait_for_run_completion(run_id=create_run_response.run_id, timeout=60*10)
+    run_response = client.wait_for_run_completion(
+        run_id=create_run_response.run_id, timeout=60 * 10
+    )
     run = run_response.run
     print('run_id')
     print(run.id)
     print(f"{host}/#/runs/details/{run.id}")
     from pprint import pprint
     pprint(run_response.run)
+
 
 if __name__ == '__main__':
     import fire

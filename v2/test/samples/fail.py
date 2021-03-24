@@ -23,25 +23,34 @@ def fail():
     import sys
     sys.exit(1)
 
+
 fail_op = components.create_component_from_func(
     fail, base_image='alpine:latest'
 )
 
+
 @dsl.pipeline(
-    pipeline_root='gs://output-directory/v2-artifacts',
-    name='fail-pipeline'
+    pipeline_root='gs://output-directory/v2-artifacts', name='fail-pipeline'
 )
 def fail_pipeline():
     preprocess_task = fail_op()
 
-def main(pipeline_root: str, host: str = 'http://ml-pipeline:8888'):
+
+def main(
+    pipeline_root: str,
+    host: str = 'http://ml-pipeline:8888',
+    launcher_image: 'URI' = None
+):
     client = kfp.Client(host=host)
     create_run_response = client.create_run_from_pipeline_func(
         fail_pipeline,
         mode=dsl.PipelineExecutionMode.V2_COMPATIBLE,
         arguments={kfp.dsl.ROOT_PARAMETER_NAME: pipeline_root},
+        launcher_image=launcher_image
     )
-    run_response = client.wait_for_run_completion(run_id=create_run_response.run_id, timeout=60*10)
+    run_response = client.wait_for_run_completion(
+        run_id=create_run_response.run_id, timeout=60 * 10
+    )
     run = run_response.run
     print('run_id')
     print(run.id)
@@ -50,6 +59,7 @@ def main(pipeline_root: str, host: str = 'http://ml-pipeline:8888'):
     pprint(run_response.run)
     assert run.status == 'Failed'
     # TODO: add more MLMD verification
+
 
 if __name__ == '__main__':
     import fire
