@@ -2,4 +2,4 @@
 tmp
 
 # Environmental config for sample test
-.env
+*.env

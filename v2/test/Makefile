@@ -5,7 +5,8 @@ REPO_ROOT=../..
 # GCS_ROOT=gs://$(PROJECT)/v2-sample-test
 # GCR_ROOT=gcr.io/$(PROJECT)/v2-sample-test
 # HOST=https://71a74112589c16e8-dot-asia-east1.pipelines.googleusercontent.com
-include .env
+ENV_PATH?=.env
+include $(ENV_PATH)
 
 .PHONY: all
 all: sample-test

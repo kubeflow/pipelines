@@ -19,6 +19,7 @@ set -ex
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 cd "${DIR}"
 
+COMMIT_SHA="$(git rev-parse HEAD)"
 PROJECT="${PROJECT:-kfp-ci}"
 GCS_ROOT="gs://${PROJECT}/${COMMIT_SHA}/v2-sample-test"
 GCR_ROOT="gcr.io/${PROJECT}/${COMMIT_SHA}/v2-sample-test"
@@ -26,7 +27,7 @@ GCR_ROOT="gcr.io/${PROJECT}/${COMMIT_SHA}/v2-sample-test"
 HOST="https://$(curl https://raw.githubusercontent.com/kubeflow/testing/master/test-infra/kfp/endpoint)"
 
 pip3 install -r requirements.txt
-cat <<EOF >.env
+cat <<EOF >kfp-ci.env
 PROJECT=${PROJECT}
 GCS_ROOT=${GCS_ROOT}
 GCR_ROOT=${GCR_ROOT}
@@ -34,4 +35,4 @@ HOST=${HOST}
 EOF
 
 # Run sample test
-make
+ENV_PATH=kfp-ci.env make
