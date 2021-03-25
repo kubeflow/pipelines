@@ -22,14 +22,16 @@ MINUTE = 60
 def main(
     pipeline_root: str = 'gs://your-bucket/path/to/workdir',
     host: str = 'http://ml-pipeline:8888',
-    launcher_image: 'URI' = None
+    launcher_image: 'URI' = None,
+    experiment: str = 'v2_sample_test_samples',
 ):
     client = kfp.Client(host=host)
     run_result = client.create_run_from_pipeline_func(
         two_step_pipeline,
         mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
         arguments={kfp.dsl.ROOT_PARAMETER_NAME: pipeline_root},
-        launcher_image=launcher_image
+        launcher_image=launcher_image,
+        experiment_name=experiment,
     )
     print("Run details page URL:")
     print(f"{host}/#/runs/details/{run_result.run_id}")
