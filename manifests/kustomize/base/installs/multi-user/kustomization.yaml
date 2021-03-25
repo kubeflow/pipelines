@@ -5,7 +5,6 @@ commonLabels:
   app.kubernetes.io/name: kubeflow-pipelines
   app.kubernetes.io/component: ml-pipeline
 resources:
-- ../../application/cluster-scoped
 - ../../pipeline/cluster-scoped
 - ../../cache-deployer/cluster-scoped
 - ../generic
@@ -29,13 +28,6 @@ patchesStrategicMerge:
 - persistence-agent/deployment-patch.yaml
 - metadata-writer/deployment-patch.yaml
 - cache/deployment-patch.yaml
-patchesJson6902:
-- target:
-    group: app.k8s.io
-    version: v1beta1
-    kind: Application
-    name: $(kfp-app-name)
-  path: application-patch.json
 
 configurations:
 - params.yaml

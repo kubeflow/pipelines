@@ -62,5 +62,5 @@ read -p "Do you want to push the version change and tag $TAG tag to upstream? [y
 if [ "$REPLY" != "y" ]; then
    exit
 fi
-# git push --set-upstream origin "$BRANCH"
-# git push origin "$TAG"
+git push --set-upstream origin "$BRANCH"
+git push origin "$TAG"

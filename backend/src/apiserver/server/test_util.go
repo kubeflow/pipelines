@@ -15,7 +15,6 @@
 package server
 
 import (
-	"context"
 	"testing"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
@@ -265,9 +264,7 @@ func AssertUserError(t *testing.T, err error, expectedCode codes.Code) {
 	assert.Equal(t, expectedCode, userError.ExternalStatusCode())
 }
 
-func getPermissionDeniedError(ctx context.Context, resourceAttributes *authorizationv1.ResourceAttributes) error {
-	// Retrieve request details to compose the expected error
-	userIdentity, _ := getUserIdentity(ctx)
+func getPermissionDeniedError(userIdentity string, resourceAttributes *authorizationv1.ResourceAttributes) error {
 	return util.NewPermissionDeniedError(
 		errors.New("Unauthorized access"),
 		"User '%s' is not authorized with reason: %s (request: %+v)",

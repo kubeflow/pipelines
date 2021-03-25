@@ -1153,10 +1153,11 @@ export const WorkflowPhases: NodePhase[] = ['Pending', 'Running', 'Succeeded', '
 //     OMITTED: 'Omitted'
 // };
 export const NODE_PHASE = {
-  ERROR: 'Error',
-  FAILED: 'Failed',
   PENDING: 'Pending',
   RUNNING: 'Running',
-  SKIPPED: 'Skipped',
   SUCCEEDED: 'Succeeded',
+  SKIPPED: 'Skipped',
+  FAILED: 'Failed',
+  ERROR: 'Error',
+  OMITTED: 'Omitted',
 };

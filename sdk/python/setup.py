@@ -25,7 +25,7 @@ REQUIRES = [
     'absl-py>=0.9,<=0.11',
     'PyYAML>=5.3,<6',
     'google-cloud-storage>=1.13.0,<2',
-    'kubernetes>=8.0.0,<12.0.0',
+    'kubernetes>=8.0.0,<13',
     'google-auth>=1.6.1,<2',
     'requests-toolbelt>=0.8.0,<1',
     'cloudpickle>=1.3.0,<2',

@@ -33,7 +33,7 @@ popd # Changing the current directory to the repo root for correct coverall path
 # Test against TFX
 # Compile and setup bazel for compiling the protos
 # Instruction from https://docs.bazel.build/versions/master/install-ubuntu.html
-curl -sSL https://github.com/bazelbuild/bazel/releases/download/3.4.1/bazel-3.4.1-installer-linux-x86_64.sh -o bazel_installer.sh
+curl -sSL https://github.com/bazelbuild/bazel/releases/download/3.7.2/bazel-3.7.2-installer-linux-x86_64.sh -o bazel_installer.sh
 chmod +x bazel_installer.sh
 ./bazel_installer.sh
 

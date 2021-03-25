@@ -380,6 +380,7 @@ exports[`RunDetails keeps side pane open and on same tab when run status changes
       }
     >
       <pure(CheckCircleIcon)
+        data-testid="node-status-sign"
         style={
           Object {
             "color": "#34a853",
@@ -427,6 +428,7 @@ exports[`RunDetails keeps side pane open and on same tab when run status changes
       }
     >
       <pure(ErrorIcon)
+        data-testid="node-status-sign"
         style={
           Object {
             "color": "#d50000",
@@ -1198,6 +1200,7 @@ exports[`RunDetails shows failure run status in page title 1`] = `
       }
     >
       <pure(ErrorIcon)
+        data-testid="node-status-sign"
         style={
           Object {
             "color": "#d50000",
@@ -1469,6 +1472,7 @@ exports[`RunDetails shows success run status in page title 1`] = `
       }
     >
       <pure(CheckCircleIcon)
+        data-testid="node-status-sign"
         style={
           Object {
             "color": "#34a853",
