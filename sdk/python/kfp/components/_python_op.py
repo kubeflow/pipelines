@@ -716,9 +716,6 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
     arg_parse_code_lines.append(
         '_parsed_args = vars(_parser.parse_args())',
     )
-    arg_parse_code_lines.append(
-        '_parsed_args = vars(_parsed_known_args)',
-    )
     if outputs_passed_through_func_return_tuple:
         arg_parse_code_lines.append(
             '_output_files = _parsed_args.pop("_output_paths", [])',
