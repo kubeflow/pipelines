@@ -102,6 +102,8 @@ class Metrics(Artifact):
 
 T = TypeVar('T', bound=Artifact)
 
+_GCS_LOCAL_MOUNT_PREFIX = '/gcs/'
+
 
 class _IOArtifact():
   """Internal wrapper class for representing Input/Output Artifacts."""
@@ -131,11 +133,11 @@ class _IOArtifact():
 
   def _get_path(self) -> str:
     if self._artifact.uri.startswith('gs://'):
-      return '/gcs/' + self._artifact.uri[len('gs://'):]
+      return _GCS_LOCAL_MOUNT_PREFIX + self._artifact.uri[len('gs://'):]
 
   def _set_path(self, path):
-    if path.startswith('/gcs/'):
-      path = 'gs://' + path[len('/gcs/'):]
+    if path.startswith(_GCS_LOCAL_MOUNT_PREFIX):
+      path = 'gs://' + path[len(_GCS_LOCAL_MOUNT_PREFIX):]
     self._artifact.uri = path
 
 
