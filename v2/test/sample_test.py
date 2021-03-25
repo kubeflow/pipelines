@@ -73,8 +73,18 @@ def v2_sample_test(
         run_sample_op.set_display_name(f'sample_{sample.name}')
 
 
-def main(context: str, host: str, gcr_root: str, gcs_root: str):
+def main(
+    context: str,
+    host: str,
+    gcr_root: str,
+    gcs_root: str,
+    experiment: str = 'v2_sample_test'
+):
     client = kfp.Client(host=host)
+    client.create_experiment(
+        name=experiment,
+        description='An experiment with Kubeflow Pipelines v2 sample test runs.'
+    )
     run_result = client.create_run_from_pipeline_func(
         v2_sample_test, {
             'context': context,
@@ -82,7 +92,8 @@ def main(context: str, host: str, gcr_root: str, gcs_root: str):
             'gcs_root': gcs_root,
             'samples_destination': f'{gcr_root}/v2-sample-test',
             'kfp_host': host,
-        }
+        },
+        experiment_name=experiment
     )
     print("Run details page URL:")
     print(f"{host}/#/runs/details/{run_result.run_id}")
