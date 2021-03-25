@@ -24,7 +24,7 @@ PROJECT="${PROJECT:-kfp-ci}"
 GCS_ROOT="gs://${PROJECT}/${COMMIT_SHA}/v2-sample-test"
 GCR_ROOT="gcr.io/${PROJECT}/${COMMIT_SHA}/v2-sample-test"
 # This is kfp-ci endpoint.
-HOST="https://$(curl https://raw.githubusercontent.com/kubeflow/testing/master/test-infra/kfp/endpoint)"
+HOST=${HOST:-"https://$(curl https://raw.githubusercontent.com/kubeflow/testing/master/test-infra/kfp/endpoint)"}
 
 pip3 install -r requirements.txt
 cat <<EOF >kfp-ci.env

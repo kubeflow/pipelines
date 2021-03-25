@@ -13,7 +13,7 @@ all: sample-test
 
 .PHONY: sample-test
 sample-test: tmp/context.tar.gz
-	gsutil cp tmp/context.tar.gz $(GCS_ROOT)/src/context.tar.gz
+	python scripts/upload_gcs_blob.py tmp/context.tar.gz $(GCS_ROOT)/src/context.tar.gz
 	python sample_test.py \
 		--context $(GCS_ROOT)/src/context.tar.gz \
 		--host $(HOST) \
