@@ -24,8 +24,7 @@ python3 -m pip install --upgrade protobuf
 # Testing the component authoring library
 pushd "${source_root}/sdk/python"
 python3 -m pip install -e .
-cp -r "$source_root"/sdk/python/kfp/{components,components_tests} .
-python3 -m unittest discover --verbose --pattern '*test*.py' --top-level-directory .
+python3 -m unittest discover --verbose --pattern '*test*.py' --top-level-directory ..
 popd
 
 # Installing Argo CLI to lint all compiled workflows
