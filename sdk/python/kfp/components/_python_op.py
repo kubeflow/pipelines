@@ -14,6 +14,7 @@
 
 __all__ = [
     'create_component_from_func',
+    'create_component_from_func_v2',
     'func_to_container_op',
     'func_to_component_text',
     'default_base_image_or_builder',
@@ -35,12 +36,15 @@ from .structures import *
 from . import _structures as structures
 
 import inspect
+import itertools
 from pathlib import Path
 import textwrap
-from typing import Callable, List, Mapping, Optional, TypeVar
+from typing import Callable, Dict, List, Mapping, Optional, TypeVar
 import warnings
 
 import docstring_parser
+
+from kfp.dsl import io_types
 
 T = TypeVar('T')
 
@@ -64,12 +68,12 @@ class InputBinaryFile:
     def __init__(self, type=None):
         self.type = type
 
-
 class InputArtifact:
     """InputArtifact function parameter annotation.
 
-    When creating component from function. InputArtifact indicates that the
-    associated input parameter should be tracked as an MLMD artifact.
+    When creating a component from a Python function, indicates
+    to the system that function parameter with this annotation should be passed
+    as a RuntimeArtifact.
     """
     def __init__(self, type: Optional[str] = None):
         self.type = type
@@ -143,7 +147,7 @@ def _capture_function_code_using_cloudpickle(func, modules_to_capture: List[str]
         for module_name in modules_to_capture:
             if module_name in sys.modules:
                 old_modules[module_name] = sys.modules.pop(module_name)
-        # Hack to prevent cloudpickle from trying to pickle generic types that might be present in the signature. See https://github.com/cloudpipe/cloudpickle/issues/196 
+        # Hack to prevent cloudpickle from trying to pickle generic types that might be present in the signature. See https://github.com/cloudpipe/cloudpickle/issues/196
         # Currently the __signature__ is only set by Airflow components as a means to spoof/pass the function signature to _func_to_component_spec
         if hasattr(func, '__signature__'):
             del func.__signature__
@@ -257,29 +261,33 @@ def _strip_type_hints_using_lib2to3(source_code: str) -> str:
     stripped_code = str(Refactor([StripAnnotations]).refactor_string(source_code, ''))
     return stripped_code
 
-
-def _capture_function_code_using_source_copy(func) -> str:	
+def _get_function_source_definition(func: Callable) -> str:
     func_code = inspect.getsource(func)
 
-    #Function might be defined in some indented scope (e.g. in another function).
-    #We need to handle this and properly dedent the function source code
+    # Function might be defined in some indented scope (e.g. in another
+    # function). We need to handle this and properly dedent the function source
+    # code
     func_code = textwrap.dedent(func_code)
     func_code_lines = func_code.split('\n')
 
-    # Removing possible decorators (can be multiline) until the function definition is found
-    while func_code_lines and not func_code_lines[0].startswith('def '):
-        del func_code_lines[0]
+    # Removing possible decorators (can be multiline) until the function
+    # definition is found
+    func_code_lines = itertools.dropwhile(lambda x: not x.startswith('def'),
+                                          func_code_lines)
 
     if not func_code_lines:
-        raise ValueError('Failed to dedent and clean up the source of function "{}". It is probably not properly indented.'.format(func.__name__))
+        raise ValueError(
+            'Failed to dedent and clean up the source of function "{}". '
+            'It is probably not properly indented.'.format(func.__name__))
 
-    func_code = '\n'.join(func_code_lines)
+    return '\n'.join(func_code_lines)
+
+def _capture_function_code_using_source_copy(func: Callable) -> str:
+    func_code = _get_function_source_definition(func)
 
     # Stripping type annotations to prevent import errors.
     # The most common cases are InputPath/OutputPath and typing.NamedTuple annotations
-    func_code = strip_type_hints(func_code)
-
-    return func_code
+    return strip_type_hints(func_code)
 
 
 def _extract_component_interface(func: Callable) -> ComponentSpec:
@@ -325,8 +333,8 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
         io_name = parameter.name
         if isinstance(
             parameter_annotation,
-            (InputArtifact, InputPath, InputTextFile, InputBinaryFile,
-             OutputArtifact, OutputPath, OutputTextFile, OutputBinaryFile)):
+            (io_types.InputArtifact, InputArtifact, InputPath, InputTextFile, InputBinaryFile,
+             io_types.OutputArtifact, OutputArtifact, OutputPath, OutputTextFile, OutputBinaryFile)):
             passing_style = type(parameter_annotation)
             parameter_annotation = parameter_annotation.type
             if parameter.default is not inspect.Parameter.empty and not (passing_style == InputPath and parameter.default is None):
@@ -345,7 +353,7 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
 
         if isinstance(
             parameter.annotation,
-            (OutputArtifact, OutputPath, OutputTextFile, OutputBinaryFile)):
+            (io_types.OutputArtifact, OutputArtifact, OutputPath, OutputTextFile, OutputBinaryFile)):
             io_name = _make_name_unique_by_adding_index(io_name, output_names, '_')
             output_names.add(io_name)
             output_spec = OutputSpec(
@@ -438,6 +446,116 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
     )
     return component_spec
 
+
+def _get_packages_to_install_command(
+    package_list: Optional[List[str]] = None) -> List[str]:
+    result = []
+    if package_list is not None:
+        pip_install_command = (
+            'PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet '
+            '--no-warn-script-location {}').format(
+                ' '.join([repr(str(package))
+                          for package in package_list]))
+        result = [
+            'sh', '-c',
+            '({cmd} || {cmd} --user) && "$0" "$@"'.format(
+                cmd=pip_install_command)
+        ]
+    return result
+
+def _func_to_component_spec_v2(
+    func: Callable,
+    base_image : Optional[str] = None,
+    packages_to_install: Optional[List[str]] = None) -> ComponentSpec:
+    decorator_base_image = getattr(func, '_component_base_image', None)
+    if decorator_base_image is not None:
+        if base_image is not None and decorator_base_image != base_image:
+            raise ValueError('base_image ({}) conflicts with the decorator-specified base image metadata ({})'.format(base_image, decorator_base_image))
+        else:
+            base_image = decorator_base_image
+    else:
+        if base_image is None:
+            base_image = default_base_image_or_builder
+            if isinstance(base_image, Callable):
+                base_image = base_image()
+
+    from kfp.components import executor, executor_main
+
+    imports_source = [
+        "import json",
+        "import inspect",
+        "from typing import *"
+    ]
+
+    types_source = [
+        inspect.getsource(x) for x in
+        [io_types, InputPath, OutputPath, executor.Executor]
+    ]
+
+    func_source = _get_function_source_definition(func)
+
+    executor_main_source = inspect.getsource(executor_main.executor_main)
+
+
+    source = """
+{imports_source}
+
+{types_source}
+
+{func_source}
+
+{executor_main_source}
+
+if __name__ == '__main__':
+  executor_main()
+""".format(imports_source='\n'.join(imports_source),
+           types_source='\n'.join(types_source),
+           func_source=func_source,
+           executor_main_source=executor_main_source)
+
+    packages_to_install_command = _get_packages_to_install_command(package_list=packages_to_install)
+
+    from kfp.components._structures import ExecutorInputPlaceholder
+    component_spec = _extract_component_interface(func)
+
+    component_inputs = component_spec.inputs or []
+    component_outputs = component_spec.outputs or []
+
+    file_outputs_passed_using_func_parameters = [output for output in component_outputs if output._passing_style is not None]
+    arguments = []
+    for input in component_inputs + file_outputs_passed_using_func_parameters:
+        flag = "--" + input.name.replace("_", "-")
+
+        if input._passing_style in [InputPath, io_types.InputArtifact]:
+            arguments_for_input = [flag, InputPathPlaceholder(input.name)]
+        elif input._passing_style in [OutputPath, io_types.OutputArtifact]:
+            arguments_for_input = [flag, OutputPathPlaceholder(input.name)]
+        else:
+            arguments_for_input = [flag, InputValuePlaceholder(input.name)]
+
+        arguments.extend(arguments_for_input)
+
+    component_spec.implementation=ContainerImplementation(
+        container=ContainerSpec(
+            image=base_image,
+            command=packages_to_install_command + [
+                'sh',
+                '-ec',
+                textwrap.dedent('''\
+                    program_path=$(mktemp)
+                    printf "%s" "$0" > "$program_path"
+                    python3 -u "$program_path" "$@"
+                '''),
+                source,
+            ],
+            args=[
+                "--executor_input",
+                ExecutorInputPlaceholder(),
+                "--function_to_execute", func.__name__,
+                ] + arguments,
+        )
+    )
+    return component_spec
 
 def _func_to_component_spec(func, extra_code='', base_image : str = None, packages_to_install: List[str] = None, modules_to_capture: List[str] = None, use_code_pickling=False) -> ComponentSpec:
     '''Takes a self-contained python function and converts it to component.
@@ -720,7 +838,7 @@ def func_to_component_text(func, extra_code='', base_image: str = None, packages
         packages_to_install: Optional. List of [versioned] python packages to pip install before executing the user function.
         modules_to_capture: Optional. List of module names that will be captured (instead of just referencing) during the dependency scan. By default the :code:`func.__module__` is captured. The actual algorithm: Starting with the initial function, start traversing dependencies. If the dependency.__module__ is in the modules_to_capture list then it's captured and it's dependencies are traversed. Otherwise the dependency is only referenced instead of capturing and its dependencies are not traversed.
         use_code_pickling: Specifies whether the function code should be captured using pickling as opposed to source code manipulation. Pickling has better support for capturing dependencies, but is sensitive to version mismatch between python in component creation environment and runtime image.
-    
+
     Returns:
         Textual representation of a component definition
     '''
@@ -765,7 +883,7 @@ def func_to_component_file(func, output_component_file, base_image: str = None, 
         modules_to_capture=modules_to_capture,
         use_code_pickling=use_code_pickling,
     )
-    
+
     Path(output_component_file).write_text(component_yaml)
 
 
@@ -827,10 +945,26 @@ def func_to_container_op(
     return _create_task_factory_from_component_spec(component_spec)
 
 
+def create_component_from_func_v2(
+    func: Callable,
+    base_image: Optional[str] = None,
+    packages_to_install: List[str] = None,
+    output_component_file: Optional[str] = None):
+    component_spec = _func_to_component_spec_v2(
+        func=func,
+        base_image=base_image,
+        packages_to_install=packages_to_install,
+    )
+    if output_component_file:
+        component_spec.save(output_component_file)
+
+    return _create_task_factory_from_component_spec(component_spec)
+
+
 def create_component_from_func(
     func: Callable,
-    output_component_file: str=None,
-    base_image: str = None,
+    output_component_file: Optional[str] = None,
+    base_image: Optional[str] = None,
     packages_to_install: List[str] = None,
     annotations: Optional[Mapping[str, str]] = None,
 ):
