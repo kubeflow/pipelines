@@ -1,0 +1,71 @@
+# Copyright 2021 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Kaniko
+inputs:
+- {name: dockerfile, type: String}
+- name: context_uri
+  type: URI
+  default: ""
+  description: |
+    URI to download context, e.g. gs://mybucket/context.tar.gz.
+    At least one of context_uri and context_artifact should be specified.
+- name: context_artifact
+  type: Folder
+  default: ""
+  description: |
+    Input context artifact, it should be a folder.
+    At least one of context_uri and context_artifact should be specified.
+- {name: context_sub_path, type: Path, default: ""}
+- {name: destination, type: URI, description: destination should not contain tag}
+outputs:
+- {name: digest, type: URI, description: Image URI with full digest}
+metadata:
+  annotations:
+    author: Yuan Gong <gongyuan94@gmail.com>
+implementation:
+  container:
+    # The debug image contains busybox, while the normal images do not.
+    image: gcr.io/kaniko-project/executor:debug
+    command:
+    - sh
+    - -exc
+    - |
+        dockerfile="$0"
+        context_uri="$1"
+        context_artifact_path="$2"
+        context_sub_path="$3"
+        destination="$4"
+        digest_output_path="$5"
+        context=""
+        if [[ "${context_uri}" != "" ]]; then
+          context="${context_uri}"
+        else
+          context="dir://${context_artifact_path}"
+        fi
+        # Reference: https://github.com/GoogleContainerTools/kaniko
+        /kaniko/executor \
+            --dockerfile "${dockerfile}" \
+            --context "${context}" \
+            ${context_sub_path:+ --context-sub-path "${context_sub_path}"} \
+            --destination "${destination}" \
+            --digest-file "digest"
+        mkdir -p "$(dirname "${digest_output_path}")";
+        echo -n "${destination}@$(cat digest)" > "${digest_output_path}"
+    - inputValue: dockerfile
+    - inputValue: context_uri
+    - inputPath: context_artifact
+    - inputValue: context_sub_path
+    - inputValue: destination
+    - outputPath: digest

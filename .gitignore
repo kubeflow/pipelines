@@ -71,3 +71,6 @@ docs/_build
 
 # virtualenv
 .venv/
+
+# python sdk package
+*.tar.gz
