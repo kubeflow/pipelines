@@ -33,11 +33,24 @@ export interface Arguments {
  */
 export interface Artifact {
   /**
+   * Artifactory contains artifactory artifact location details
+   */
+  artifactory?: ArtifactoryArtifact;
+  /**
    * From allows an artifact to reference an artifact from a previous step
    */
   from?: string;
   /**
-   * mode bits to use on this file, must be a value between 0 and 0777 set when loading input artifacts.
+   * Git contains git artifact location details
+   */
+  git?: GitArtifact;
+  /**
+   * HTTP contains HTTP artifact location details
+   */
+  http?: HTTPArtifact;
+  /**
+   * mode bits to use on this file, must be a value between 0 and 0777 set
+   * when loading input artifacts.
    */
   mode?: number;
   /**
@@ -48,6 +61,10 @@ export interface Artifact {
    * Path is the container path to the artifact
    */
   path?: string;
+  /**
+   * Raw contains raw artifact location details
+   */
+  raw?: RawArtifact;
   /**
    * S3 contains S3 artifact location details
    */
@@ -510,10 +527,6 @@ export interface SidecarOptions {
   mirrorVolumeMounts?: boolean;
 }
 
-export interface ContainerNode extends kubernetes.Container {
-  dependencies?: string[];
-}
-
 /**
  * Template is a reusable and composable unit of execution in a workflow
  */
@@ -534,12 +547,9 @@ export interface Template {
    * Container is the main container image to run in the pod
    */
   container?: kubernetes.Container;
-
-  containerSet?: {
-    containers: ContainerNode[];
-  };
   /**
-   * Deamon will allow a workflow to proceed to the next step so long as the container reaches readiness
+   * Deamon will allow a workflow to proceed to the next step so long as the
+   * container reaches readiness
    */
   daemon?: boolean;
   /**
@@ -656,7 +666,6 @@ export interface Workflow {
 
 export type NodeType =
   | 'Pod'
-  | 'Container'
   | 'Steps'
   | 'StepGroup'
   | 'DAG'
@@ -673,7 +682,8 @@ export interface NodeStatus {
   id: string;
 
   /**
-   * Display name is a human readable representation of the node. Unique within a template boundary
+   * Display name is a human readable representation of the node. Unique
+   * within a template boundary
    */
   displayName: string;
 
@@ -1121,18 +1131,27 @@ export interface WorkflowStep {
   templateRef?: TemplateRef;
 }
 
-export type WorkflowPhase = 'Pending' | 'Running' | 'Succeeded' | 'Failed' | 'Error';
+export type NodePhase =
+  | ''
+  | 'Pending'
+  | 'Running'
+  | 'Succeeded'
+  | 'Skipped'
+  | 'Failed'
+  | 'Error'
+  | 'Omitted';
 
-export const WorkflowPhases: WorkflowPhase[] = [
-  'Pending',
-  'Running',
-  'Succeeded',
-  'Failed',
-  'Error',
-];
+export const WorkflowPhases: NodePhase[] = ['Pending', 'Running', 'Succeeded', 'Failed', 'Error'];
 
-export type NodePhase = 'Pending' | 'Running' | 'Succeeded' | 'Skipped' | 'Failed' | 'Error';
-
+// export const NODE_PHASE = {
+//     PENDING: 'Pending',
+//     RUNNING: 'Running',
+//     SUCCEEDED: 'Succeeded',
+//     SKIPPED: 'Skipped',
+//     FAILED: 'Failed',
+//     ERROR: 'Error',
+//     OMITTED: 'Omitted'
+// };
 export const NODE_PHASE = {
   ERROR: 'Error',
   FAILED: 'Failed',

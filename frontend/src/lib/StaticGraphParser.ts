@@ -219,6 +219,10 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
     throw new Error('Could not generate graph. Provided Pipeline had no components.');
   }
 
+  if (!workflow.spec.entrypoint) {
+    throw new Error('Could not generate graph. Provided Pipeline had no entrypoint.');
+  }
+
   const workflowTemplates = workflow.spec.templates;
 
   const templates = new Map<string, { nodeType: nodeType; template: Template }>();
@@ -250,7 +254,7 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
     }
   }
 
-  buildDag(graph, workflow.spec.entrypoint!, templates, new Map(), '');
+  buildDag(graph, workflow.spec.entrypoint, templates, new Map(), '');
 
   // DSL-compiled Pipelines will always include a DAG, so they should never reach this point.
   // It is, however, possible for users to upload manually constructed Pipelines, and extremely
