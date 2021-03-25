@@ -321,7 +321,8 @@ def _op_to_template(op: BaseOp):
     if hasattr(op, '_parameter_arguments') and op._parameter_arguments:
         template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/arguments.parameters'] = json.dumps(op._parameter_arguments, sort_keys=True)
     if isinstance(op, dsl.ContainerOp):
-        ###XXX### template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/arguments.raw_artifacts'] = json.dumps(artifact_argument_constant_values, sort_keys=True)
+        if artifact_argument_constant_values:
+            template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/arguments.raw_artifacts'] = json.dumps(artifact_argument_constant_values, sort_keys=True)
         if input_artifact_name_map:
             template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/input_artifact_name_map'] = json.dumps(input_artifact_name_map, sort_keys=True)
         if output_artifact_name_map:
