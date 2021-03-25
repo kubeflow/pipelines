@@ -513,7 +513,6 @@ if __name__ == '__main__':
            func_source=func_source,
            executor_main_source=executor_main_source)
 
-    print(source)
     packages_to_install_command = _get_packages_to_install_command(package_list=packages_to_install)
 
     from kfp.components._structures import ExecutorInputPlaceholder
@@ -526,7 +525,6 @@ if __name__ == '__main__':
     arguments = []
     for input in component_inputs + file_outputs_passed_using_func_parameters:
         flag = "--" + input.name.replace("_", "-")
-        print(flag)
 
         if input._passing_style in [InputPath, io_types.InputArtifact]:
             arguments_for_input = [flag, InputPathPlaceholder(input.name)]
@@ -716,7 +714,7 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
     arg_parse_code_lines = sorted(list(definitions)) + arg_parse_code_lines
 
     arg_parse_code_lines.append(
-        '_parsed_known_args, _ = _parser.parse_known_args()',
+        '_parsed_args = vars(_parser.parse_args())',
     )
     arg_parse_code_lines.append(
         '_parsed_args = vars(_parsed_known_args)',
