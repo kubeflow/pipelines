@@ -31,5 +31,5 @@ tmp/context.tar.gz:
 # available in gnutar.
 	mkdir -p tmp
 # cd $(REPO_ROOT) && git archive --format=tar $$(git stash create) | gzip >v2/test/tmp/context.tar.gz
-# TODO(Bobgy): figure out how to allow archiving dirty region.
+# TODO(Bobgy): figure out how to allow archiving dirty folder.
 	cd $(REPO_ROOT) && git archive --format=tar HEAD | gzip >v2/test/tmp/context.tar.gz
