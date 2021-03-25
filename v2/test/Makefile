@@ -13,8 +13,10 @@ all: sample-test
 
 .PHONY: sample-test
 sample-test: tmp/context.tar.gz
-	python scripts/upload_gcs_blob.py tmp/context.tar.gz $(GCS_ROOT)/src/context.tar.gz
-	python sample_test.py \
+# The -u flag makes python output unbuffered, so that we can see real time log.
+# Reference: https://stackoverflow.com/a/107717
+	python -u scripts/upload_gcs_blob.py tmp/context.tar.gz $(GCS_ROOT)/src/context.tar.gz
+	python -u sample_test.py \
 		--context $(GCS_ROOT)/src/context.tar.gz \
 		--host $(HOST) \
 		--gcs_root $(GCS_ROOT)/data \
