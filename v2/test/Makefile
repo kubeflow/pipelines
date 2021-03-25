@@ -28,4 +28,6 @@ tmp/context.tar.gz:
 # we want to use is not supported in MacOS (bsdtar). This feature is only
 # available in gnutar.
 	mkdir -p tmp
-	cd $(REPO_ROOT) && git archive --format=tar $$(git stash create) | gzip >v2/test/tmp/context.tar.gz
+# cd $(REPO_ROOT) && git archive --format=tar $$(git stash create) | gzip >v2/test/tmp/context.tar.gz
+# TODO(Bobgy): figure out how to allow archiving dirty region.
+	cd $(REPO_ROOT) && git archive --format=tar HEAD | gzip >v2/test/tmp/context.tar.gz

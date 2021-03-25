@@ -89,6 +89,8 @@ def main(context: str, host: str, gcr_root: str, gcs_root: str):
     run_response = run_result.wait_for_run_completion(10 * MINUTE)
     run = run_response.run
     from pprint import pprint
+    # Hide verbose content
+    run_response.run.pipeline_spec.workflow_manifest = None
     pprint(run_response.run)
     print("Run details page URL:")
     print(f"{host}/#/runs/details/{run_result.run_id}")
