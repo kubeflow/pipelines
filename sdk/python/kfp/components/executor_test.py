@@ -19,10 +19,9 @@ from typing import Callable
 import unittest
 import json
 
-from kfp.components import InputPath, OutputPath
+from kfp.components import executor, InputPath, OutputPath
 from kfp.dsl import io_types
 from kfp.dsl.io_types import Dataset, InputArtifact, Metrics, Model, OutputArtifact
-from kfp.components import executor
 
 _EXECUTOR_INPUT = """\
 {
