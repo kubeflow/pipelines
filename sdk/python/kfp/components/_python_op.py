@@ -333,8 +333,8 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
         io_name = parameter.name
         if isinstance(
             parameter_annotation,
-            (io_types.InputArtifact, InputPath, InputTextFile, InputBinaryFile,
-             io_types.OutputArtifact, OutputPath, OutputTextFile, OutputBinaryFile)):
+            (io_types.InputArtifact, InputArtifact, InputPath, InputTextFile, InputBinaryFile,
+             io_types.OutputArtifact, OutputArtifact, OutputPath, OutputTextFile, OutputBinaryFile)):
             passing_style = type(parameter_annotation)
             parameter_annotation = parameter_annotation.type
             if parameter.default is not inspect.Parameter.empty and not (passing_style == InputPath and parameter.default is None):
@@ -353,7 +353,7 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
 
         if isinstance(
             parameter.annotation,
-            (io_types.OutputArtifact, OutputPath, OutputTextFile, OutputBinaryFile)):
+            (io_types.OutputArtifact, OutputArtifact, OutputPath, OutputTextFile, OutputBinaryFile)):
             io_name = _make_name_unique_by_adding_index(io_name, output_names, '_')
             output_names.add(io_name)
             output_spec = OutputSpec(
