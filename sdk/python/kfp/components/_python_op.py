@@ -963,7 +963,7 @@ def create_component_from_func_v2(
 
 def create_component_from_func(
     func: Callable,
-    output_component_file: str=None,
+    output_component_file: Optional[str] = None,
     base_image: Optional[str] = None,
     packages_to_install: List[str] = None,
     annotations: Optional[Mapping[str, str]] = None,
