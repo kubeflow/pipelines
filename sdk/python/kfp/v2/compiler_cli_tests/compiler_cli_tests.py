@@ -94,6 +94,9 @@ class CompilerCliTests(unittest.TestCase):
   def test_pipeline_with_params_containing_format(self):
     self._test_compile_py_to_json('pipeline_with_params_containing_format')
 
+  def test_lightweight_python_functions_v2_pipeline(self):
+    self._test_compile_py_to_json('lightweight_python_functions_v2_pipeline')
+
 
 if __name__ == '__main__':
   unittest.main()
