@@ -1143,15 +1143,6 @@ export type NodePhase =
 
 export const WorkflowPhases: NodePhase[] = ['Pending', 'Running', 'Succeeded', 'Failed', 'Error'];
 
-// export const NODE_PHASE = {
-//     PENDING: 'Pending',
-//     RUNNING: 'Running',
-//     SUCCEEDED: 'Succeeded',
-//     SKIPPED: 'Skipped',
-//     FAILED: 'Failed',
-//     ERROR: 'Error',
-//     OMITTED: 'Omitted'
-// };
 export const NODE_PHASE = {
   PENDING: 'Pending',
   RUNNING: 'Running',
