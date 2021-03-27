@@ -67,7 +67,7 @@ implementation:
 
 
 @dsl.pipeline(name='pipeline-with-various-types')
-def my_pipeline(input1,
+def my_pipeline(input1: str,
                 input3,
                 input4='',
                 input5='gs://bucket/metrics',

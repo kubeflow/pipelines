@@ -3,71 +3,57 @@
     "pipelineInfo": {
       "name": "pipeline-with-pipelineparam-containing-format"
     },
-    "sdkVersion": "kfp-1.4.0",
-    "components": {
-      "comp-print-op": {
-        "inputDefinitions": {
-          "parameters": {
-            "s": {
-              "type": "STRING"
-            }
-          }
-        },
-        "outputDefinitions": {
-          "parameters": {
-            "Output": {
-              "type": "STRING"
-            }
-          }
-        },
-        "executorLabel": "exec-print-op"
-      }
-    },
-    "schemaVersion": "2.0.0",
-    "deploymentSpec": {
-      "executors": {
-        "exec-print-op": {
-          "container": {
-            "image": "python:3.7",
-            "args": [
-              "--s",
-              "{{$.inputs.parameters['s']}}",
-              "----output-paths",
-              "{{$.outputs.parameters['Output'].output_file}}"
-            ],
-            "command": [
-              "sh",
-              "-ec",
-              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
-              "def print_op(s):\n  print(s)\n  return s\n\ndef _serialize_str(str_value: str) -> str:\n    if not isinstance(str_value, str):\n        raise TypeError('Value \"{}\" has type \"{}\" instead of str.'.format(str(str_value), str(type(str_value))))\n    return str_value\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Print op', description='')\n_parser.add_argument(\"--s\", dest=\"s\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"----output-paths\", dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = print_op(**_parsed_args)\n\n_outputs = [_outputs]\n\n_output_serializers = [\n    _serialize_str,\n\n]\n\nimport os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except OSError:\n        pass\n    with open(output_file, 'w') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"
-            ]
-          }
-        }
-      }
-    },
     "root": {
       "dag": {
         "tasks": {
-          "task-print-op": {
+          "task-print-op-2": {
+            "taskInfo": {
+              "name": "task-print-op-2"
+            },
             "inputs": {
               "parameters": {
-                "s": {
+                "name": {
                   "runtimeValue": {
                     "constantValue": {
-                      "stringValue": "Hello {{$.inputs.parameters['s--name']}}"
+                      "stringValue": "{{$.inputs.parameters['pipelineparam--print-op-Output']}}, again."
                     }
                   }
                 },
-                "s--name": {
-                  "componentInputParameter": "name"
+                "pipelineparam--print-op-Output": {
+                  "taskOutputParameter": {
+                    "outputParameterKey": "Output",
+                    "producerTask": "task-print-op"
+                  }
                 }
               }
             },
             "componentRef": {
               "name": "comp-print-op"
             },
+            "dependentTasks": [
+              "task-print-op"
+            ]
+          },
+          "task-print-op": {
+            "inputs": {
+              "parameters": {
+                "pipelineparam--name": {
+                  "componentInputParameter": "name"
+                },
+                "name": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "Hello {{$.inputs.parameters['pipelineparam--name']}}"
+                    }
+                  }
+                }
+              }
+            },
             "taskInfo": {
               "name": "task-print-op"
+            },
+            "componentRef": {
+              "name": "comp-print-op"
             }
           }
         }
@@ -79,7 +65,49 @@
           }
         }
       }
-    }
+    },
+    "sdkVersion": "kfp-1.5.0-rc.0",
+    "deploymentSpec": {
+      "executors": {
+        "exec-print-op": {
+          "container": {
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def print_op(name):\n  print(name)\n  return name\n\ndef _serialize_str(str_value: str) -> str:\n    if not isinstance(str_value, str):\n        raise TypeError('Value \"{}\" has type \"{}\" instead of str.'.format(str(str_value), str(type(str_value))))\n    return str_value\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Print op', description='')\n_parser.add_argument(\"--name\", dest=\"name\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"----output-paths\", dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = print_op(**_parsed_args)\n\n_outputs = [_outputs]\n\n_output_serializers = [\n    _serialize_str,\n\n]\n\nimport os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except OSError:\n        pass\n    with open(output_file, 'w') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"
+            ],
+            "args": [
+              "--name",
+              "{{$.inputs.parameters['name']}}",
+              "----output-paths",
+              "{{$.outputs.parameters['Output'].output_file}}"
+            ],
+            "image": "python:3.7"
+          }
+        }
+      }
+    },
+    "components": {
+      "comp-print-op": {
+        "outputDefinitions": {
+          "parameters": {
+            "Output": {
+              "type": "STRING"
+            }
+          }
+        },
+        "inputDefinitions": {
+          "parameters": {
+            "name": {
+              "type": "STRING"
+            }
+          }
+        },
+        "executorLabel": "exec-print-op"
+      }
+    },
+    "schemaVersion": "2.0.0"
   },
   "runtimeConfig": {
     "parameters": {

@@ -29,7 +29,7 @@ training_op = components.load_component_from_file(
 @dsl.pipeline(
     name='two-step-pipeline-with-resource-spec',
     description='A linear two-step pipeline with resource specification.')
-def my_pipeline(input_location='gs://test-bucket/pipeline_root',
+def my_pipeline(input_location: str = 'gs://test-bucket/pipeline_root',
                 optimizer: str = 'sgd',
                 n_epochs: int = 200):
   ingestor = ingestion_op(input_location=input_location)

@@ -28,7 +28,7 @@ serving_op = components.load_component_from_file(
 @dsl.pipeline(
     name='two-step-pipeline-with-importer',
     description='A linear two-step pipeline.')
-def my_pipeline(input_gcs='gs://test-bucket/pipeline_root',
+def my_pipeline(input_gcs = 'gs://test-bucket/pipeline_root',
                 optimizer: str = 'sgd',
                 epochs: int = 200):
   trainer = trainer_op(

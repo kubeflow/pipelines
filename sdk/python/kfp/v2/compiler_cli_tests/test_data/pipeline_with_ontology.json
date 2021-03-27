@@ -50,14 +50,10 @@
         }
       },
       "inputDefinitions": {
-        "artifacts": {
-          "input_location": {
-            "artifactType": {
-              "instanceSchema": "title: kfp.Artifact\ntype: object\n"
-            }
-          }
-        },
         "parameters": {
+          "input_location": {
+            "type": "STRING"
+          },
           "n_epochs": {
             "type": "INT"
           },
