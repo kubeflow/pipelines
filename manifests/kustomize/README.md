@@ -30,7 +30,7 @@ It's based on in-cluster PersistentVolumeClaim storage.
 kubectl apply -k cluster-scoped-resources/
 kubectl wait crd/applications.app.k8s.io --for condition=established --timeout=60s
 kubectl apply -k env/platform-agnostic/
-kubectl wait applications/pipeline -n kubeflow --for condition=Ready --timeout=1800s
+kubectl wait pods -l application-crd-id=kubeflow-pipelines -n kubeflow --for condition=Ready --timeout=1800s
 kubectl port-forward -n kubeflow svc/ml-pipeline-ui 8080:80
 ```
 
