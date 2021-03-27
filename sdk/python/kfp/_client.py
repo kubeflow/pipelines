@@ -452,6 +452,29 @@ class Client(object):
       raise ValueError('Either experiment_id or experiment_name is required')
     if experiment_id is not None:
       return self._experiment_api.get_experiment(id=experiment_id)
+    pipeline_filter = json.dumps({ 
+        "predicates": [ 
+          { 
+            "op":  _FILTER_OPERATIONS["EQUALS"], 
+            "key": "name", 
+            "stringValue": experiment_name, 
+          },
+          {
+            "op":  _FILTER_OPERATIONS["EQUALS"], 
+            "key": "namespace", 
+            "stringValue": namespace, 
+          }
+        ] 
+      })
+    result = self._experiment_api.list_experiment(filter=pipeline_filter) 
+    if not result.experiments:
+      raise ValueError('No experiment found for the name {}.'.format(experiment_name))
+    if len(result.experiments) > 1:
+      raise ValueError("Multiple experiment found for the name {}".format(experiment_name))
+    return result.experiments[0]
+      
+    
+    
     next_page_token = ''
     while next_page_token is not None:
       list_experiments_response = self.list_experiments(page_size=100, page_token=next_page_token, namespace=namespace)
@@ -459,7 +482,7 @@ class Client(object):
       for experiment in list_experiments_response.experiments or []:
         if experiment.name.lower() == experiment_name.lower():
           return self._experiment_api.get_experiment(id=experiment.id)
-    raise ValueError('No experiment is found with name {}.'.format(experiment_name))
+    
 
   def delete_experiment(self, experiment_id):
     """Delete experiment.
