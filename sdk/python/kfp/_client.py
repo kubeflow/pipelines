@@ -452,7 +452,7 @@ class Client(object):
       raise ValueError('Either experiment_id or experiment_name is required')
     if experiment_id is not None:
       return self._experiment_api.get_experiment(id=experiment_id)
-    pipeline_filter = json.dumps({ 
+    experiment_filter = json.dumps({ 
         "predicates": [ 
           { 
             "op":  _FILTER_OPERATIONS["EQUALS"], 
@@ -466,7 +466,7 @@ class Client(object):
           }
         ] 
       })
-    result = self._experiment_api.list_experiment(filter=pipeline_filter) 
+    result = self._experiment_api.list_experiment(filter=experiment_filter) 
     if not result.experiments:
       raise ValueError('No experiment is found with name {}.'.format(experiment_name))
     if len(result.experiments) > 1:
