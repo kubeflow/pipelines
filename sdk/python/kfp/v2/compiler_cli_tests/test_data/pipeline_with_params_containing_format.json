@@ -28,7 +28,7 @@
               }
             },
             "componentRef": {
-              "name": "comp-print-op"
+              "name": "comp-print-op-2"
             },
             "dependentTasks": [
               "task-print-op"
@@ -90,6 +90,23 @@
     },
     "components": {
       "comp-print-op": {
+        "outputDefinitions": {
+          "parameters": {
+            "Output": {
+              "type": "STRING"
+            }
+          }
+        },
+        "inputDefinitions": {
+          "parameters": {
+            "name": {
+              "type": "STRING"
+            }
+          }
+        },
+        "executorLabel": "exec-print-op"
+      },
+      "comp-print-op-2": {
         "outputDefinitions": {
           "parameters": {
             "Output": {

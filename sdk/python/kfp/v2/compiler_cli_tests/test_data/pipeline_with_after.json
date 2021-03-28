@@ -16,7 +16,7 @@
               }
             },
             "componentRef": {
-              "name": "comp-print-text"
+              "name": "comp-print-text-2"
             },
             "taskInfo": {
               "name": "task-print-text-2"
@@ -49,7 +49,7 @@
               "name": "task-print-text-3"
             },
             "componentRef": {
-              "name": "comp-print-text"
+              "name": "comp-print-text-3"
             },
             "inputs": {
               "parameters": {
@@ -77,6 +77,26 @@
     },
     "components": {
       "comp-print-text": {
+        "inputDefinitions": {
+          "parameters": {
+            "text": {
+              "type": "STRING"
+            }
+          }
+        },
+        "executorLabel": "exec-print-text"
+      },
+      "comp-print-text-2": {
+        "inputDefinitions": {
+          "parameters": {
+            "text": {
+              "type": "STRING"
+            }
+          }
+        },
+        "executorLabel": "exec-print-text"
+      },
+      "comp-print-text-3": {
         "inputDefinitions": {
           "parameters": {
             "text": {

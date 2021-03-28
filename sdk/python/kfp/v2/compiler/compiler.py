@@ -674,11 +674,14 @@ class Compiler(object):
       else:
         subgroup_key = subgroup.name
 
-      subgroup_task_spec.task_info.name = dsl_utils.sanitize_task_name(
-          subgroup_key)
+      subgroup_task_spec.task_info.name = (
+          subgroup_task_spec.task_info.name or
+          dsl_utils.sanitize_task_name(subgroup_key))
       # human_name exists for ops only, and is used to de-dupe component spec.
-      subgroup_component_name = dsl_utils.sanitize_component_name(
-          getattr(subgroup, 'human_name', subgroup_key))
+      subgroup_component_name = (
+          subgroup_task_spec.component_ref.name or
+          dsl_utils.sanitize_component_name(
+              getattr(subgroup, 'human_name', subgroup_key)))
       subgroup_task_spec.component_ref.name = subgroup_component_name
 
       if isinstance(subgroup, dsl.OpsGroup) and subgroup.type == 'graph':

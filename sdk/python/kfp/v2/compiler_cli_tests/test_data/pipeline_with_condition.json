@@ -75,7 +75,27 @@
         },
         "executorLabel": "exec-print-msg"
       },
+      "comp-print-msg-2": {
+        "inputDefinitions": {
+          "parameters": {
+            "msg": {
+              "type": "STRING"
+            }
+          }
+        },
+        "executorLabel": "exec-print-msg"
+      },
       "comp-flip-coin": {
+        "outputDefinitions": {
+          "parameters": {
+            "Output": {
+              "type": "STRING"
+            }
+          }
+        },
+        "executorLabel": "exec-flip-coin"
+      },
+      "comp-flip-coin-2": {
         "outputDefinitions": {
           "parameters": {
             "Output": {
@@ -96,7 +116,7 @@
                 "name": "task-print-msg-2"
               },
               "componentRef": {
-                "name": "comp-print-msg"
+                "name": "comp-print-msg-2"
               },
               "inputs": {
                 "parameters": {
@@ -114,7 +134,7 @@
                 "name": "task-flip-coin-2"
               },
               "componentRef": {
-                "name": "comp-flip-coin"
+                "name": "comp-flip-coin-2"
               }
             }
           }

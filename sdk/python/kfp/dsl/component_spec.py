@@ -35,11 +35,14 @@ def additional_input_name_for_pipelineparam(
 
 def build_component_spec_from_structure(
     component_spec: structures.ComponentSpec,
+    actual_inputs: List[str],
 ) -> pipeline_spec_pb2.ComponentSpec:
   """Builds an IR ComponentSpec instance from structures.ComponentSpec.
 
   Args:
     component_spec: The structure component spec.
+    actual_inputs: The acutal arugments passed to the task. This is used as a
+      short term workaround to support optional inputs in component spec IR.
 
   Returns:
     An instance of IR ComponentSpec.
@@ -48,6 +51,9 @@ def build_component_spec_from_structure(
   result.executor_label = dsl_utils.sanitize_executor_label(component_spec.name)
 
   for input_spec in component_spec.inputs or []:
+    # skip inputs not present
+    if input_spec.name not in actual_inputs:
+      continue
     if type_utils.is_parameter_type(input_spec.type):
       result.input_definitions.parameters[
           input_spec.name].type = type_utils.get_parameter_type(input_spec.type)

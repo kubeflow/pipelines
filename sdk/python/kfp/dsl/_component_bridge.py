@@ -391,13 +391,15 @@ def _attach_v2_specs(
 
   # task.name is unique at this point.
   pipeline_task_spec.task_info.name = (dsl_utils.sanitize_task_name(task.name))
+  # TODO: use `component_spec.name` instead of `task.name` once IR supports
+  # optional input definitions
   pipeline_task_spec.component_ref.name = (
-      dsl_utils.sanitize_component_name(component_spec.name))
+      dsl_utils.sanitize_component_name(task.name))
 
   task.task_spec = pipeline_task_spec
   task.importer_specs = importer_specs
   task.component_spec = dsl_component_spec.build_component_spec_from_structure(
-      component_spec)
+      component_spec, arguments.keys())
 
   resolved_cmd = _resolve_commands_and_args_v2(
       component_spec=component_spec, arguments=original_arguments)

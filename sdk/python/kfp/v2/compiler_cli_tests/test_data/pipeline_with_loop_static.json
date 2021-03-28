@@ -30,6 +30,26 @@
           }
         }
       },
+      "comp-print-op-2": {
+        "executorLabel": "exec-print-op",
+        "inputDefinitions": {
+          "parameters": {
+            "s": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-print-op-3": {
+        "executorLabel": "exec-print-op",
+        "inputDefinitions": {
+          "parameters": {
+            "s": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
       "comp-for-loop-2": {
         "dag": {
           "tasks": {
@@ -44,7 +64,7 @@
                 "name": "task-print-op-2"
               },
               "componentRef": {
-                "name": "comp-print-op"
+                "name": "comp-print-op-2"
               }
             },
             "task-print-op-3": {
@@ -52,7 +72,7 @@
                 "name": "task-print-op-3"
               },
               "componentRef": {
-                "name": "comp-print-op"
+                "name": "comp-print-op-3"
               },
               "parameterIterator": {
                 "items": {
