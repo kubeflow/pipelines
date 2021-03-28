@@ -458,19 +458,20 @@ class Client(object):
             "op":  _FILTER_OPERATIONS["EQUALS"], 
             "key": "name", 
             "stringValue": experiment_name, 
-          },
-          {
-            "op":  _FILTER_OPERATIONS["EQUALS"], 
-            "key": "namespace", 
-            "stringValue": namespace, 
           }
         ] 
       })
-    result = self._experiment_api.list_experiment(filter=experiment_filter) 
+    if namespace:
+      result = self._experiment_api.list_experiment(
+        filter=experiment_filter,
+        resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.NAMESPACE, 
+        resource_reference_key_id=namespace)
+    else:
+      result = self._experiment_api.list_experiment(filter=experiment_filter)
     if not result.experiments:
       raise ValueError('No experiment is found with name {}.'.format(experiment_name))
     if len(result.experiments) > 1:
-      raise ValueError('Multiple experiment is found with name {}.'.format(experiment_name))
+      raise ValueError('Multiple experiments is found with name {}.'.format(experiment_name))
     return result.experiments[0]
 
   def delete_experiment(self, experiment_id):
