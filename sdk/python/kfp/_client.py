@@ -452,14 +452,27 @@ class Client(object):
       raise ValueError('Either experiment_id or experiment_name is required')
     if experiment_id is not None:
       return self._experiment_api.get_experiment(id=experiment_id)
-    next_page_token = ''
-    while next_page_token is not None:
-      list_experiments_response = self.list_experiments(page_size=100, page_token=next_page_token, namespace=namespace)
-      next_page_token = list_experiments_response.next_page_token
-      for experiment in list_experiments_response.experiments or []:
-        if experiment.name == experiment_name:
-          return self._experiment_api.get_experiment(id=experiment.id)
-    raise ValueError('No experiment is found with name {}.'.format(experiment_name))
+    experiment_filter = json.dumps({ 
+        "predicates": [ 
+          { 
+            "op":  _FILTER_OPERATIONS["EQUALS"], 
+            "key": "name", 
+            "stringValue": experiment_name, 
+          }
+        ] 
+      })
+    if namespace:
+      result = self._experiment_api.list_experiment(
+        filter=experiment_filter,
+        resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.NAMESPACE, 
+        resource_reference_key_id=namespace)
+    else:
+      result = self._experiment_api.list_experiment(filter=experiment_filter)
+    if not result.experiments:
+      raise ValueError('No experiment is found with name {}.'.format(experiment_name))
+    if len(result.experiments) > 1:
+      raise ValueError('Multiple experiments is found with name {}.'.format(experiment_name))
+    return result.experiments[0]
 
   def delete_experiment(self, experiment_id):
     """Delete experiment.
