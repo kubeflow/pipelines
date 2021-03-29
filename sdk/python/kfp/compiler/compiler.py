@@ -21,7 +21,8 @@ import tarfile
 import uuid
 import warnings
 import zipfile
-from typing import Callable, Set, List, Text, Dict, Tuple, Any, Union, Optional
+from typing import Callable, Set, List, Text, Dict, Tuple, Any, Union, Optional, \
+  cast
 
 import kfp
 from kfp.dsl import _for_loop
@@ -36,7 +37,8 @@ from ..components.structures import InputSpec
 from ..components._yaml_utils import dump_yaml
 from ..dsl._metadata import _extract_pipeline_metadata
 from ..dsl._ops_group import OpsGroup
-from ..dsl._pipeline_param import extract_pipelineparams_from_any, PipelineParam
+from ..dsl._pipeline_param import extract_pipelineparams_from_any, \
+  PipelineParam, ConditionOperator
 
 
 class Compiler(object):
@@ -495,12 +497,34 @@ class Compiler(object):
       if isinstance(sub_group, dsl.OpsGroup) and sub_group.type == 'condition':
         subgroup_inputs = inputs.get(sub_group.name, [])
         condition = sub_group.condition
-        operand1_value = self._resolve_value_or_reference(condition.operand1, subgroup_inputs)
-        operand2_value = self._resolve_value_or_reference(condition.operand2, subgroup_inputs)
-        if condition.operator in ['==', '!=']:
-          operand1_value = '"' + operand1_value + '"'
-          operand2_value = '"' + operand2_value + '"'
-        task['when'] = '{} {} {}'.format(operand1_value, condition.operator, operand2_value)
+
+        def compile_condition(cond_or_value: Union[ConditionOperator, Any]) -> str:
+          if not isinstance(cond_or_value, ConditionOperator):
+            return self._resolve_value_or_reference(cond_or_value, subgroup_inputs)
+
+          cond = cast(ConditionOperator, cond_or_value)
+          op1 = cond.operand1
+          op2 = cond.operand1
+          op1_val = compile_condition(op1)
+          op2_val = compile_condition(op2)
+
+          if cond.operator in ['==', '!=']:
+            op1_val = '"' + op1_val + '"'
+            op2_val = '"' + op2_val + '"'
+          elif cond.operator in ['&&', '||']:
+            if isinstance(op1, ConditionOperator) and op1.operator == cond.operator:
+              op1_val = op1_val[1:-1] # remove braces if it's the same operator
+            if isinstance(op2, ConditionOperator) and op2.operator == cond.operator:
+              op2_val = op2_val[1:-1] # remove braces if it's the same operator
+
+          s = '({} {} {})'.format(op1_val, cond.operator, op2_val)
+          return s
+
+        condition_string = compile_condition(condition)
+        # remove the outer-most brackets
+        condition_string = condition_string[1:-1]
+
+        task['when'] = condition_string
 
       # Generate dependencies section for this task.
       if dependencies.get(sub_group.name, None):
