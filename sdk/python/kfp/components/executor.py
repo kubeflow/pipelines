@@ -137,7 +137,8 @@ class Executor():
   @classmethod
   def _is_named_tuple(cls, annotation: Any) -> bool:
     if type(annotation) == type:
-      return issubclass(annotation, tuple) and hasattr(annotation, '_fields')
+      return issubclass(annotation, tuple) and hasattr(
+          annotation, '_fields') and hasattr(annotation, '__annotations__')
     return False
 
   def _handle_single_return_value(self, output_name: str, annotation_type: Any,
@@ -182,7 +183,7 @@ class Executor():
                   len(self._return_annotation._fields), self._func.__name__,
                   len(func_output)))
         for field in self._return_annotation._fields:
-          field_type = self._return_annotation._field_types[field]
+          field_type = self._return_annotation.__annotations__[field]
           field_value = getattr(func_output, field)
           self._handle_single_return_value(field, field_type, field_value)
       else:
