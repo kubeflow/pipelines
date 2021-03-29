@@ -504,6 +504,7 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 	createdWorkflow, err := c.workflowClient.Create(swf.Namespace, newWorkflow)
 	// here we create a run instead using the api,
 	// use the function from testy instead ...
+	// [HERE]
 
 	if err != nil {
 		return nil, err
