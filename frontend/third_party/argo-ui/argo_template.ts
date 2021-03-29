@@ -228,10 +228,6 @@ export interface Parameter {
    * ValueFrom is the source for the output parameter's value
    */
   valueFrom?: ValueFrom;
-  /**
-   * Enum holds a list of string values to choose from, for the actual value of the parameter
-   */
-  enum?: Array<string>;
 }
 
 /**
@@ -602,11 +598,6 @@ export interface Template {
    * DAG template
    */
   dag?: DAGTemplate;
-
-  /**
-   * Suspend template
-   */
-  suspend?: {};
 
   /**
    * Template is the name of the template which is used as the base of this template.
@@ -1048,7 +1039,7 @@ export interface DAGTemplate {
   /**
    * Target are one or more names of targets to execute in a DAG
    */
-  targets?: string;
+  targets: string;
 
   /**
    * Tasks are a list of DAG tasks
@@ -1073,17 +1064,17 @@ export interface DAGTask {
   /**
    * TemplateRef is the reference to the template resource to execute.
    */
-  templateRef?: TemplateRef;
+  templateRef: TemplateRef;
 
   /**
    * Arguments are the parameter and artifact arguments to the template
    */
-  arguments?: Arguments;
+  arguments: Arguments;
 
   /**
    * Dependencies are name of other targets which this depends on
    */
-  dependencies?: string[];
+  dependencies: string[];
 
   // TODO: This exists in https://github.com/argoproj/argo/blob/master/api/openapi-spec/swagger.json
   // but not in https://github.com/argoproj/argo-ui/blob/master/src/models/workflows.ts
@@ -1092,10 +1083,6 @@ export interface DAGTask {
    * When is an expression in which the task should conditionally execute
    */
   when?: string;
-  onExit?: string;
-  withItems?: any[];
-  withParam?: string;
-  withSequence?: Sequence;
 }
 
 /**
@@ -1118,13 +1105,10 @@ export interface WorkflowStep {
    * When is an expression in which the step should conditionally execute
    */
   when?: string;
-  onExit?: string;
   /**
    * WithParam expands a step into from the value in the parameter
    */
   withParam?: string;
-  withItems?: any[];
-  withSequence?: Sequence;
   /**
    * TemplateRef is the reference to the template resource which is used as the base of this template.
    */
@@ -1132,7 +1116,6 @@ export interface WorkflowStep {
 }
 
 export type NodePhase =
-  | ''
   | 'Pending'
   | 'Running'
   | 'Succeeded'
@@ -1140,8 +1123,6 @@ export type NodePhase =
   | 'Failed'
   | 'Error'
   | 'Omitted';
-
-export const WorkflowPhases: NodePhase[] = ['Pending', 'Running', 'Succeeded', 'Failed', 'Error'];
 
 export const NODE_PHASE = {
   PENDING: 'Pending',
