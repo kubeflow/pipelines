@@ -12,14 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import re
-from collections import namedtuple
-from typing import List, Dict, Union
+import attr
+from typing import List, Dict, Union, Any
 
-# TODO: Move this to a separate class
-# For now, this identifies a condition with only "==" operator supported.
-ConditionOperator = namedtuple('ConditionOperator',
-                               'operator operand1 operand2')
-PipelineParamTuple = namedtuple('PipelineParamTuple', 'name op pattern')
+@attr.s
+class ConditionOperator:
+  operator = attr.ib(type=str)
+  operand1 = attr.ib(type=Union['PipelineParam', Any])
+  operand2 = attr.ib(type=Union['PipelineParam', Any])
+
+@attr.s(hash=True)
+class PipelineParamTuple:
+  name    = attr.ib(type=str)
+  op      = attr.ib(type=str)
+  pattern = attr.ib(type=str)
 
 
 def sanitize_k8s_name(name, allow_capital_underscore=False):
