@@ -21,6 +21,20 @@ class ConditionOperator:
   operand1 = attr.ib(type=Union['PipelineParam', Any])
   operand2 = attr.ib(type=Union['PipelineParam', Any])
 
+  def __bool__(self) -> None:
+    msg = ' '.join([
+      "Treating comparison of PipelineParam as bool,",
+      "but its value is not known until the pipeline is run",
+    ])
+    raise ValueError(msg)
+
+  def __and__(self, other) -> 'ConditionOperator':
+    return ConditionOperator('&&', self, other)
+
+  def __or__(self, other) -> 'ConditionOperator':
+    return ConditionOperator('||', self, other)
+
+
 @attr.s(hash=True)
 class PipelineParamTuple:
   name    = attr.ib(type=str)
