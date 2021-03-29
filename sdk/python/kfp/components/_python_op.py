@@ -527,7 +527,7 @@ if __name__ == '__main__':
     ]
     arguments = []
     for input in component_inputs + outputs_passed_using_func_parameters:
-        flag = "--" + input.name.replace("_", "-")
+        flag = "--{}-output-path".format(input.name.replace("_", "-"))
 
         if input._passing_style in [InputPath, io_types.InputArtifact]:
             arguments_for_input = [flag, InputPathPlaceholder(input.name)]
