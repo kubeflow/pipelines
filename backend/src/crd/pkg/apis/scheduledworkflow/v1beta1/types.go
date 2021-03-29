@@ -78,6 +78,9 @@ type ScheduledWorkflowSpec struct {
 
 	// TODO: support additional resource types: K8 jobs, etc.
 
+	PipelineId string `json:"pipelineId,omitempty"`
+
+	PipelineVersion string `json:"pipelineVersion,omitempty"`
 }
 
 type WorkflowResource struct {

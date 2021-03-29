@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: shell-demo
+spec:
+  serviceAccountName: pipeline-runner
+  volumes:
+  - name: shared-data
+    emptyDir: {}
+  containers:
+  - name: testy
+    image: nikenano/testy:latest
+  hostNetwork: true
+  dnsPolicy: Default
