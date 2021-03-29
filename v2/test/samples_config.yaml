@@ -20,3 +20,5 @@
   path: v2.test.samples.fail_test
 - name: two_step
   path: v2.test.samples.two_step_test
+- name: use_run_info
+  path: samples.core.use_run_info.use_run_info_test
