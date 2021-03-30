@@ -18,4 +18,4 @@ patchesJson6902:
       group: apps
       kind: Deployment
       name: argo-server
-    path: ./overlays/argo-server-deployment.yaml
+    path: ./overlays/argo-server-deployment.json
