@@ -41,7 +41,7 @@ def build_component_spec_from_structure(
 
   Args:
     component_spec: The structure component spec.
-    actual_inputs: The acutal arugments passed to the task. This is used as a
+    actual_inputs: The actual arugments passed to the task. This is used as a
       short term workaround to support optional inputs in component spec IR.
 
   Returns:
