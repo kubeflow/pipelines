@@ -42,6 +42,7 @@ setup(
     extras_require={"tests": dependencies.make_required_test_packages()},
     include_package_data=True,
     install_requires=dependencies.make_required_install_packages(),
+    dependency_links=dependencies.make_dependency_links(),
     classifiers=[
         "Development Status :: 4 - Beta",
         "Operating System :: Unix",
@@ -63,6 +64,5 @@ setup(
     package_dir={
         "google_cloud_components": os.path.join(relative_directory, "google_cloud_components")
     },
-    package_data={"tensorflow_cloud": ["tuner/api/*.json"]},
     packages=find_packages(where=relative_directory),
 )

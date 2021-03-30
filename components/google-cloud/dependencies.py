@@ -18,6 +18,7 @@
 def make_required_install_packages():
     return [
         "absl-py",
+        "kfp",
     ]
 
 
@@ -25,4 +26,10 @@ def make_required_test_packages():
     return [
         "absl-py",
         "mock",
+        "kfp",
+    ]
+
+def make_dependency_links():
+    return [
+        "https://github.com/googleapis/python-aiplatform@mb-release"
     ]
