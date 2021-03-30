@@ -521,10 +521,13 @@ if __name__ == '__main__':
     component_inputs = component_spec.inputs or []
     component_outputs = component_spec.outputs or []
 
-    file_outputs_passed_using_func_parameters = [output for output in component_outputs if output._passing_style is not None]
+    outputs_passed_using_func_parameters = [
+        output for output in component_outputs
+        if output._passing_style is not None
+    ]
     arguments = []
-    for input in component_inputs + file_outputs_passed_using_func_parameters:
-        flag = "--" + input.name.replace("_", "-")
+    for input in component_inputs + outputs_passed_using_func_parameters:
+        flag = "--{}-output-path".format(input.name.replace("_", "-"))
 
         if input._passing_style in [InputPath, io_types.InputArtifact]:
             arguments_for_input = [flag, InputPathPlaceholder(input.name)]
@@ -534,6 +537,15 @@ if __name__ == '__main__':
             arguments_for_input = [flag, InputValuePlaceholder(input.name)]
 
         arguments.extend(arguments_for_input)
+
+    # Add output placeholders for return values from func.
+    func_outputs = [
+        output for output in component_outputs
+        if output._passing_style is None
+    ]
+    for output in func_outputs:
+        flag = "--" + output.name.replace("_", "-")
+        arguments.extend([flag, OutputPathPlaceholder(output.name)])
 
     component_spec.implementation=ContainerImplementation(
         container=ContainerSpec(

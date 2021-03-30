@@ -23,24 +23,33 @@ import kfp
 
 class CompilerCliTests(unittest.TestCase):
 
-  def _test_compile_py_to_json(self, file_base_name, additional_arguments=[]):
+  def _test_compile_py_to_json(self,
+                               file_base_name,
+                               additional_arguments=[],
+                               update_golden: bool = False):
     test_data_dir = os.path.join(os.path.dirname(__file__), 'test_data')
     py_file = os.path.join(test_data_dir, '{}.py'.format(file_base_name))
     tmpdir = tempfile.mkdtemp()
+    golden_compiled_file = os.path.join(test_data_dir, file_base_name + '.json')
+
     try:
-      target_json = os.path.join(tmpdir, file_base_name + '-pipeline.json')
+      if update_golden:
+        target_json = golden_compiled_file
+      else:
+        target_json = os.path.join(tmpdir, file_base_name + '-pipeline.json')
       subprocess.check_call([
           'dsl-compile-v2', '--py', py_file, '--pipeline-root', 'dummy_root',
           '--output', target_json
       ] + additional_arguments)
-      with open(os.path.join(test_data_dir, file_base_name + '.json'),
-                'r') as f:
+
+      with open(golden_compiled_file, 'r') as f:
         golden = json.load(f)
         # Correct the sdkVersion
-        golden['pipelineSpec']['sdkVersion'] = 'kfp-{}'.format(kfp.__version__)
+        del golden['pipelineSpec']['sdkVersion']
 
-      with open(os.path.join(test_data_dir, target_json), 'r') as f:
+      with open(target_json, 'r') as f:
         compiled = json.load(f)
+        del compiled['pipelineSpec']['sdkVersion']
 
       self.maxDiff = None
       self.assertEqual(golden, compiled)
@@ -99,6 +108,10 @@ class CompilerCliTests(unittest.TestCase):
 
   def test_lightweight_python_functions_v2_pipeline(self):
     self._test_compile_py_to_json('lightweight_python_functions_v2_pipeline')
+
+  def test_lightweight_python_functions_v2_with_outputs(self):
+    self._test_compile_py_to_json(
+        'lightweight_python_functions_v2_with_outputs')
 
 
 if __name__ == '__main__':

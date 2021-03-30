@@ -15,13 +15,13 @@
 
 import os
 import tempfile
-from typing import Callable
+from typing import Callable, NamedTuple, Optional
 import unittest
 import json
 
 from kfp.components import executor, InputPath, OutputPath
 from kfp.dsl import io_types
-from kfp.dsl.io_types import Dataset, InputArtifact, Metrics, Model, OutputArtifact
+from kfp.dsl.io_types import Artifact, Dataset, InputArtifact, Metrics, Model, OutputArtifact
 
 _EXECUTOR_INPUT = """\
 {
@@ -90,11 +90,17 @@ class ExecutorTest(unittest.TestCase):
     self.maxDiff = None
     self._test_dir = tempfile.mkdtemp()
     io_types._GCS_LOCAL_MOUNT_PREFIX = self._test_dir + '/'
-    self._executor_input = json.loads(_EXECUTOR_INPUT % self._test_dir)
     return super().setUp()
 
-  def _get_executor(self, func: Callable) -> executor.Executor:
-    return executor.Executor(executor_input=self._executor_input,
+  def _get_executor(self,
+                    func: Callable,
+                    executor_input: Optional[str] = None) -> executor.Executor:
+    if executor_input is None:
+      executor_input = _EXECUTOR_INPUT
+
+    executor_input_dict = json.loads(executor_input % self._test_dir)
+
+    return executor.Executor(executor_input=executor_input_dict,
                              function_to_execute=func)
 
   def test_input_parameter(self):
@@ -172,7 +178,6 @@ class ExecutorTest(unittest.TestCase):
     self._get_executor(test_func).execute()
     with open(os.path.join(self._test_dir, 'output_metadata.json'), 'r') as f:
       output_metadata = json.loads(f.read())
-    print(output_metadata)
     self.assertDictEqual(
         output_metadata, {
             'artifacts': {
@@ -196,3 +201,242 @@ class ExecutorTest(unittest.TestCase):
                 }
             }
         })
+
+  def test_function_string_output(self):
+    executor_input = """\
+    {
+      "inputs": {
+        "parameters": {
+          "first_message": {
+            "stringValue": "Hello"
+          },
+          "second_message": {
+            "stringValue": "World"
+          }
+        }
+      },
+      "outputs": {
+        "parameters": {
+          "output": {
+            "outputFile": "gs://some-bucket/output"
+          }
+        },
+        "outputFile": "%s/output_metadata.json"
+      }
+    }
+    """
+
+    def test_func(first_message: str, second_message: str) -> str:
+      return first_message + ", " + second_message
+
+    self._get_executor(test_func, executor_input).execute()
+    with open(os.path.join(self._test_dir, 'output_metadata.json'), 'r') as f:
+      output_metadata = json.loads(f.read())
+    self.assertDictEqual(output_metadata, {
+        "parameters": {
+            "Output": {
+                "stringValue": "Hello, World"
+            }
+        },
+    })
+
+  def test_function_with_int_output(self):
+    executor_input = """\
+    {
+      "inputs": {
+        "parameters": {
+          "first": {
+            "intValue": 40
+          },
+          "second": {
+            "intValue": 2
+          }
+        }
+      },
+      "outputs": {
+        "parameters": {
+          "output": {
+            "outputFile": "gs://some-bucket/output"
+          }
+        },
+        "outputFile": "%s/output_metadata.json"
+      }
+    }
+    """
+
+    def test_func(first: int, second: int) -> int:
+      return first + second
+
+    self._get_executor(test_func, executor_input).execute()
+    with open(os.path.join(self._test_dir, 'output_metadata.json'), 'r') as f:
+      output_metadata = json.loads(f.read())
+    self.assertDictEqual(output_metadata, {
+        "parameters": {
+            "Output": {
+                "intValue": 42
+            }
+        },
+    })
+
+  def test_function_with_int_output(self):
+    executor_input = """\
+    {
+      "inputs": {
+        "parameters": {
+          "first_message": {
+            "stringValue": "Hello"
+          },
+          "second_message": {
+            "stringValue": "World"
+          }
+        }
+      },
+      "outputs": {
+        "artifacts": {
+          "Output": {
+            "outputFile": "gs://some-bucket/output"
+          }
+        },
+        "outputFile": "%s/output_metadata.json"
+      }
+    }
+    """
+
+    def test_func(first_message: str, second_message: str) -> str:
+      return first_message + ", " + second_message
+
+    self._get_executor(test_func, executor_input).execute()
+    with open(os.path.join(self._test_dir, 'output_metadata.json'), 'r') as f:
+      output_metadata = json.loads(f.read())
+    self.assertDictEqual(output_metadata, {
+        "parameters": {
+            "Output": {
+                "stringValue": "Hello, World"
+            }
+        },
+    })
+
+  def test_artifact_output(self):
+    executor_input = """\
+    {
+      "inputs": {
+        "parameters": {
+          "first": {
+            "stringValue": "Hello"
+          },
+          "second": {
+            "stringValue": "World"
+          }
+        }
+      },
+      "outputs": {
+        "artifacts": {
+          "Output": {
+            "artifacts": [
+              {
+                "name": "output",
+                "type": {
+                  "schemaTitle": "kfp.Artifact"
+                },
+                "uri": "gs://some-bucket/output"
+              }
+            ]
+          }
+        },
+        "outputFile": "%s/output_metadata.json"
+      }
+    }
+    """
+
+    def test_func(first: str, second: str) -> Artifact:
+      return first + ", " + second
+
+    self._get_executor(test_func, executor_input).execute()
+    with open(os.path.join(self._test_dir, 'output_metadata.json'), 'r') as f:
+      output_metadata = json.loads(f.read())
+    self.assertDictEqual(
+        output_metadata, {
+            'artifacts': {
+                'Output': {
+                    'artifacts': [{
+                        'metadata': {},
+                        'name': 'output',
+                        'uri': 'gs://some-bucket/output/data'
+                    }]
+                }
+            }
+        })
+
+    with open(os.path.join(self._test_dir, 'some-bucket/output/data'),
+              'r') as f:
+      artifact_payload = f.read()
+    self.assertEqual(artifact_payload, "Hello, World")
+
+  def test_named_tuple_output(self):
+    executor_input = """\
+    {
+      "outputs": {
+        "artifacts": {
+          "output_dataset": {
+            "artifacts": [
+              {
+                "name": "output_dataset",
+                "type": {
+                  "schemaTitle": "kfp.Dataset"
+                },
+                "uri": "gs://some-bucket/output_dataset"
+              }
+            ]
+          }
+        },
+        "parameters": {
+          "output_int": {
+            "outputFile": "gs://some-bucket/output_int"
+          },
+          "output_string": {
+            "outputFile": "gs://some-bucket/output_string"
+          }
+        },
+        "outputFile": "%s/output_metadata.json"
+      }
+    }
+    """
+
+    def test_func() -> NamedTuple('Outputs', [
+        ("output_dataset", Dataset),
+        ("output_int", int),
+        ("output_string", str),
+    ]):
+      from collections import namedtuple
+      output = namedtuple('Outputs',
+                          ['output_dataset', 'output_int', 'output_string'])
+      return output("Dataset contents", 101, "Some output string")
+
+    self._get_executor(test_func, executor_input).execute()
+    with open(os.path.join(self._test_dir, 'output_metadata.json'), 'r') as f:
+      output_metadata = json.loads(f.read())
+    self.assertDictEqual(
+        output_metadata, {
+            'artifacts': {
+                'output_dataset': {
+                    'artifacts': [{
+                        'metadata': {},
+                        'name': 'output_dataset',
+                        'uri': 'gs://some-bucket/output_dataset/data'
+                    }]
+                }
+            },
+            "parameters": {
+                "output_string": {
+                    "stringValue": "Some output string"
+                },
+                "output_int": {
+                    "intValue": 101
+                }
+            },
+        })
+
+    with open(os.path.join(self._test_dir, 'some-bucket/output_dataset/data'),
+              'r') as f:
+      artifact_payload = f.read()
+    self.assertEqual(artifact_payload, "Dataset contents")
