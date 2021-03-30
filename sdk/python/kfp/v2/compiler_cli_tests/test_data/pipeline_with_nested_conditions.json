@@ -52,13 +52,13 @@
             ],
             "inputs": {
               "parameters": {
-                "flip-coin-Output": {
+                "pipelineparam--flip-coin-Output": {
                   "taskOutputParameter": {
                     "producerTask": "task-flip-coin",
                     "outputParameterKey": "Output"
                   }
                 },
-                "flip-coin 2-Output": {
+                "pipelineparam--flip-coin-2-Output": {
                   "taskOutputParameter": {
                     "producerTask": "task-flip-coin-2",
                     "outputParameterKey": "Output"
@@ -67,7 +67,7 @@
               }
             },
             "triggerPolicy": {
-              "condition": "inputs.parameters['flip-coin-Output'].string_value != 'no-such-result'"
+              "condition": "inputs.parameters['pipelineparam--flip-coin-Output'].string_value != 'no-such-result'"
             }
           },
           "task-print-msg": {
@@ -165,22 +165,22 @@
               ],
               "inputs": {
                 "parameters": {
-                  "flip-coin 2-Output": {
-                    "componentInputParameter": "flip-coin 2-Output"
+                  "pipelineparam--flip-coin-2-Output": {
+                    "componentInputParameter": "pipelineparam--flip-coin-2-Output"
                   },
-                  "flip-coin 3-Output": {
+                  "pipelineparam--flip-coin-3-Output": {
                     "taskOutputParameter": {
                       "producerTask": "task-flip-coin-3",
                       "outputParameterKey": "Output"
                     }
                   },
-                  "flip-coin-Output": {
-                    "componentInputParameter": "flip-coin-Output"
+                  "pipelineparam--flip-coin-Output": {
+                    "componentInputParameter": "pipelineparam--flip-coin-Output"
                   }
                 }
               },
               "triggerPolicy": {
-                "condition": "inputs.parameters['flip-coin 2-Output'].string_value == inputs.parameters['flip-coin 3-Output'].string_value"
+                "condition": "inputs.parameters['pipelineparam--flip-coin-2-Output'].string_value == inputs.parameters['pipelineparam--flip-coin-3-Output'].string_value"
               },
               "componentRef": {
                 "name": "comp-condition-2"
@@ -204,10 +204,10 @@
         },
         "inputDefinitions": {
           "parameters": {
-            "flip-coin-Output": {
+            "pipelineparam--flip-coin-Output": {
               "type": "STRING"
             },
-            "flip-coin 2-Output": {
+            "pipelineparam--flip-coin-2-Output": {
               "type": "STRING"
             }
           }
@@ -216,13 +216,13 @@
       "comp-condition-2": {
         "inputDefinitions": {
           "parameters": {
-            "flip-coin-Output": {
+            "pipelineparam--flip-coin-Output": {
               "type": "STRING"
             },
-            "flip-coin 2-Output": {
+            "pipelineparam--flip-coin-2-Output": {
               "type": "STRING"
             },
-            "flip-coin 3-Output": {
+            "pipelineparam--flip-coin-3-Output": {
               "type": "STRING"
             }
           }

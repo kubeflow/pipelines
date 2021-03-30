@@ -59,7 +59,7 @@ class CompilerTest(unittest.TestCase):
       """)
 
       @dsl.pipeline(name='two-step-pipeline')
-      def simple_pipeline(pipeline_input='Hello KFP!'):
+      def simple_pipeline(pipeline_input:str='Hello KFP!'):
         producer = producer_op(input_param=pipeline_input)
         consumer = consumer_op(
             input_model=producer.outputs['output_model'],

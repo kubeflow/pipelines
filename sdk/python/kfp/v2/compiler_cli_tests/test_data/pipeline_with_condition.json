@@ -29,11 +29,11 @@
               "task-flip-coin"
             ],
             "triggerPolicy": {
-              "condition": "inputs.parameters['flip-coin-Output'].string_value == 'heads'"
+              "condition": "inputs.parameters['pipelineparam--flip-coin-Output'].string_value == 'heads'"
             },
             "inputs": {
               "parameters": {
-                "flip-coin-Output": {
+                "pipelineparam--flip-coin-Output": {
                   "taskOutputParameter": {
                     "producerTask": "task-flip-coin",
                     "outputParameterKey": "Output"
@@ -121,7 +121,7 @@
         },
         "inputDefinitions": {
           "parameters": {
-            "flip-coin-Output": {
+            "pipelineparam--flip-coin-Output": {
               "type": "STRING"
             }
           }

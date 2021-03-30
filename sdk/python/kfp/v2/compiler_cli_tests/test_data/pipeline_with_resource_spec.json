@@ -149,13 +149,9 @@
           },
           "optimizer": {
             "type": "STRING"
-          }
-        },
-        "artifacts": {
+          },
           "input_location": {
-            "artifactType": {
-              "instanceSchema": "title: kfp.Artifact\ntype: object\n"
-            }
+            "type": "STRING"
           }
         }
       }

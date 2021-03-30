@@ -331,7 +331,8 @@ def _attach_v2_specs(
         for param in pipeline_params:
           # Form the name for the compiler injected input, and make sure it
           # doesn't collide with any existing input names.
-          additional_input_name = '{}--{}'.format(input_name, param.full_name)
+          additional_input_name = (
+              dsl_component_spec.additional_input_name_for_pipelineparam(param))
           for existing_input_name, _ in arguments.items():
             if existing_input_name == additional_input_name:
               raise ValueError('Name collision between existing input name '
@@ -343,15 +344,17 @@ def _attach_v2_specs(
           argument_value = argument_value.replace(param.pattern,
                                                   additional_input_placeholder)
 
+          # The output references are subject to change -- the producer task may
+          # not be whitin the same DAG.
           if param.op_name:
             pipeline_task_spec.inputs.parameters[
-                additional_input_name].producer_task = (
+                additional_input_name].task_output_parameter.producer_task = (
                     dsl_utils.sanitize_task_name(param.op_name))
             pipeline_task_spec.inputs.parameters[
-                additional_input_name].output_parameter_key = param.name
+                additional_input_name].task_output_parameter.output_parameter_key = param.name
           else:
             pipeline_task_spec.inputs.parameters[
-                additional_input_name].component_input_parameter = param.name
+                additional_input_name].component_input_parameter = param.full_name
 
       input_type = component_spec._inputs_dict[input_name].type
       if type_utils.is_parameter_type(input_type):

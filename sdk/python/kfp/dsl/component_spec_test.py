@@ -13,7 +13,7 @@
 # limitations under the License.
 """Tests for kfp.dsl.component_spec."""
 
-import unittest
+from absl.testing import parameterized
 
 from kfp.components import _structures as structures
 from kfp.dsl import _pipeline_param
@@ -23,7 +23,20 @@ from kfp.pipeline_spec import pipeline_spec_pb2
 from google.protobuf import json_format
 
 
-class ComponentSpecTest(unittest.TestCase):
+class ComponentSpecTest(parameterized.TestCase):
+
+  TEST_PIPELINE_PARAMS = [
+      _pipeline_param.PipelineParam(
+          name='output1', param_type='Dataset', op_name='op-1'),
+      _pipeline_param.PipelineParam(
+          name='output2', param_type='Integer', op_name='op-2'),
+      _pipeline_param.PipelineParam(
+          name='output3', param_type='Model', op_name='op-3'),
+      _pipeline_param.PipelineParam(
+          name='output4', param_type='Double', op_name='op-4'),
+      _pipeline_param.PipelineParam(
+          name='arg_input', param_type='String', op_name=None),
+  ]
 
   def setUp(self):
     self.maxDiff = None
@@ -50,7 +63,9 @@ class ComponentSpecTest(unittest.TestCase):
                 'input1': {
                     'artifactType': {
                         'instanceSchema':
-                            'title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string\n'
+                            'title: kfp.Dataset\ntype: object\nproperties:\n  '
+                            'payload_format:\n    type: string\n  '
+                            'container_format:\n    type: string\n'
                     }
                 }
             },
@@ -68,7 +83,9 @@ class ComponentSpecTest(unittest.TestCase):
                 'output1': {
                     'artifactType': {
                         'instanceSchema':
-                            'title: kfp.Model\ntype: object\nproperties:\n  framework:\n    type: string\n  framework_version:\n    type: string\n'
+                            'title: kfp.Model\ntype: object\nproperties:\n  '
+                            'framework:\n    type: string\n  '
+                            'framework_version:\n    type: string\n'
                     }
                 }
             }
@@ -84,42 +101,75 @@ class ComponentSpecTest(unittest.TestCase):
 
     self.assertEqual(expected_spec, component_spec)
 
-  def test_build_component_inputs_spec(self):
+  @parameterized.parameters(
+      {
+          'is_root_component': True,
+          'expected_result': {
+              'inputDefinitions': {
+                  'artifacts': {
+                      'input1': {
+                          'artifactType': {
+                              'instanceSchema':
+                                  'title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string\n'
+                          }
+                      }
+                  },
+                  'parameters': {
+                      'input2': {
+                          'type': 'INT'
+                      },
+                      'input3': {
+                          'type': 'STRING'
+                      },
+                      'input4': {
+                          'type': 'DOUBLE'
+                      }
+                  }
+              }
+          }
+      },
+      {
+          'is_root_component': False,
+          'expected_result': {
+              'inputDefinitions': {
+                  'artifacts': {
+                      'pipelineparam--input1': {
+                          'artifactType': {
+                              'instanceSchema':
+                                  'title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string\n'
+                          }
+                      }
+                  },
+                  'parameters': {
+                      'pipelineparam--input2': {
+                          'type': 'INT'
+                      },
+                      'pipelineparam--input3': {
+                          'type': 'STRING'
+                      },
+                      'pipelineparam--input4': {
+                          'type': 'DOUBLE'
+                      }
+                  }
+              }
+          }
+      },
+  )
+  def test_build_component_inputs_spec(self, is_root_component,
+                                       expected_result):
     pipeline_params = [
         _pipeline_param.PipelineParam(name='input1', param_type='Dataset'),
         _pipeline_param.PipelineParam(name='input2', param_type='Integer'),
         _pipeline_param.PipelineParam(name='input3', param_type='String'),
         _pipeline_param.PipelineParam(name='input4', param_type='Float'),
     ]
-    expected_dict = {
-        'inputDefinitions': {
-            'artifacts': {
-                'input1': {
-                    'artifactType': {
-                        'instanceSchema':
-                            'title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string\n'
-                    }
-                }
-            },
-            'parameters': {
-                'input2': {
-                    'type': 'INT'
-                },
-                'input3': {
-                    'type': 'STRING'
-                },
-                'input4': {
-                    'type': 'DOUBLE'
-                }
-            }
-        }
-    }
     expected_spec = pipeline_spec_pb2.ComponentSpec()
-    json_format.ParseDict(expected_dict, expected_spec)
+    json_format.ParseDict(expected_result, expected_spec)
 
     component_spec = pipeline_spec_pb2.ComponentSpec()
     dsl_component_spec.build_component_inputs_spec(component_spec,
-                                                   pipeline_params)
+                                                   pipeline_params,
+                                                   is_root_component)
 
     self.assertEqual(expected_spec, component_spec)
 
@@ -136,7 +186,9 @@ class ComponentSpecTest(unittest.TestCase):
                 'output1': {
                     'artifactType': {
                         'instanceSchema':
-                            'title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string\n'
+                            'title: kfp.Dataset\ntype: object\nproperties:\n  '
+                            'payload_format:\n    type: string\n  '
+                            'container_format:\n    type: string\n'
                     }
                 }
             },
@@ -162,46 +214,209 @@ class ComponentSpecTest(unittest.TestCase):
 
     self.assertEqual(expected_spec, component_spec)
 
-  def test_build_task_inputs_spec(self):
-    pipeline_params = [
-        _pipeline_param.PipelineParam(name='output1', param_type='Dataset', op_name='op-1'),
-        _pipeline_param.PipelineParam(name='output2', param_type='Integer', op_name='op-2'),
-        _pipeline_param.PipelineParam(name='output3', param_type='Model', op_name='op-3'),
-        _pipeline_param.PipelineParam(name='output4', param_type='Double', op_name='op-4'),
-    ]
-    tasks_in_current_dag = ['op-1', 'op-2']
-    expected_dict = {
-        'inputs': {
-            'artifacts': {
-                'op-1-output1': {
-                    'taskOutputArtifact': {
-                        'producerTask': 'task-op-1',
-                        'outputArtifactKey': 'output1'
-                    }
-                },
-                'op-3-output3': {
-                    'componentInputArtifact': 'op-3-output3'
-                }
-            },
-            'parameters': {
-                'op-2-output2': {
-                    'taskOutputParameter': {
-                        'producerTask': 'task-op-2',
-                        'outputParameterKey': 'output2'
-                    }
-                },
-                'op-4-output4': {
-                    'componentInputParameter': 'op-4-output4'
-                }
-            }
-        }
-    }
+  @parameterized.parameters(
+      {
+          'is_parent_component_root': True,
+          'expected_result': {
+              'inputs': {
+                  'artifacts': {
+                      'pipelineparam--op-1-output1': {
+                          'taskOutputArtifact': {
+                              'producerTask': 'task-op-1',
+                              'outputArtifactKey': 'output1'
+                          }
+                      },
+                      'pipelineparam--op-3-output3': {
+                          'componentInputArtifact': 'op-3-output3'
+                      }
+                  },
+                  'parameters': {
+                      'pipelineparam--op-2-output2': {
+                          'taskOutputParameter': {
+                              'producerTask': 'task-op-2',
+                              'outputParameterKey': 'output2'
+                          }
+                      },
+                      'pipelineparam--op-4-output4': {
+                          'componentInputParameter': 'op-4-output4'
+                      },
+                      'pipelineparam--arg_input': {
+                          'componentInputParameter': 'arg_input'
+                      }
+                  }
+              }
+          }
+      },
+      {
+          'is_parent_component_root': False,
+          'expected_result': {
+              'inputs': {
+                  'artifacts': {
+                      'pipelineparam--op-1-output1': {
+                          'taskOutputArtifact': {
+                              'producerTask': 'task-op-1',
+                              'outputArtifactKey': 'output1'
+                          }
+                      },
+                      'pipelineparam--op-3-output3': {
+                          'componentInputArtifact':
+                              'pipelineparam--op-3-output3'
+                      }
+                  },
+                  'parameters': {
+                      'pipelineparam--op-2-output2': {
+                          'taskOutputParameter': {
+                              'producerTask': 'task-op-2',
+                              'outputParameterKey': 'output2'
+                          }
+                      },
+                      'pipelineparam--op-4-output4': {
+                          'componentInputParameter':
+                              'pipelineparam--op-4-output4'
+                      },
+                      'pipelineparam--arg_input': {
+                          'componentInputParameter': 'pipelineparam--arg_input'
+                      }
+                  }
+              }
+          }
+      },
+  )
+  def test_build_task_inputs_spec(self, is_parent_component_root,
+                                  expected_result):
+    pipeline_params = self.TEST_PIPELINE_PARAMS
+    tasks_in_current_dag = ['task-op-1', 'task-op-2']
     expected_spec = pipeline_spec_pb2.PipelineTaskSpec()
-    json_format.ParseDict(expected_dict, expected_spec)
+    json_format.ParseDict(expected_result, expected_spec)
 
     task_spec = pipeline_spec_pb2.PipelineTaskSpec()
     dsl_component_spec.build_task_inputs_spec(task_spec, pipeline_params,
-                                              tasks_in_current_dag)
+                                              tasks_in_current_dag,
+                                              is_parent_component_root)
+
+    self.assertEqual(expected_spec, task_spec)
+
+  @parameterized.parameters(
+      {
+          'original_task_spec': {},
+          'parent_component_inputs': {},
+          'tasks_in_current_dag': [],
+          'expected_result': {},
+      },
+      { # Depending on tasks within the current DAG.
+          'original_task_spec': {
+              'inputs': {
+                  'artifacts': {
+                      'pipelineparam--op-1-output1': {
+                          'taskOutputArtifact': {
+                              'producerTask': 'task-op-1',
+                              'outputArtifactKey': 'output1'
+                          }
+                      },
+                  },
+                  'parameters': {
+                      'pipelineparam--op-2-output2': {
+                          'taskOutputParameter': {
+                              'producerTask': 'task-op-2',
+                              'outputParameterKey': 'output2'
+                          }
+                      },
+                  }
+              }
+          },
+          'parent_component_inputs': {},
+          'tasks_in_current_dag': ['task-op-1', 'task-op-2'],
+          'expected_result': {
+              'inputs': {
+                  'artifacts': {
+                      'pipelineparam--op-1-output1': {
+                          'taskOutputArtifact': {
+                              'producerTask': 'task-op-1',
+                              'outputArtifactKey': 'output1'
+                          }
+                      },
+                  },
+                  'parameters': {
+                      'pipelineparam--op-2-output2': {
+                          'taskOutputParameter': {
+                              'producerTask': 'task-op-2',
+                              'outputParameterKey': 'output2'
+                          }
+                      },
+                  }
+              }
+          },
+      },
+      { # Depending on tasks not available in the current DAG.
+          'original_task_spec': {
+              'inputs': {
+                  'artifacts': {
+                      'pipelineparam--op-1-output1': {
+                          'taskOutputArtifact': {
+                              'producerTask': 'task-op-1',
+                              'outputArtifactKey': 'output1'
+                          }
+                      },
+                  },
+                  'parameters': {
+                      'pipelineparam--op-2-output2': {
+                          'taskOutputParameter': {
+                              'producerTask': 'task-op-2',
+                              'outputParameterKey': 'output2'
+                          }
+                      },
+                  }
+              }
+          },
+          'parent_component_inputs': {
+              'artifacts': {
+                  'pipelineparam--op-1-output1': {
+                      'artifactType': {
+                          'instanceSchema': 'dummy_schema'
+                      }
+                  }
+              },
+              'parameters': {
+                'pipelineparam--op-2-output2' : {
+                  'type': 'INT'
+                }
+              }
+          },
+          'tasks_in_current_dag': ['task-op-3'],
+          'expected_result': {
+              'inputs': {
+                  'artifacts': {
+                      'pipelineparam--op-1-output1': {
+                          'componentInputArtifact':
+                              'pipelineparam--op-1-output1'
+                      },
+                  },
+                  'parameters': {
+                      'pipelineparam--op-2-output2': {
+                          'componentInputParameter':
+                              'pipelineparam--op-2-output2'
+                      },
+                  }
+              }
+          },
+      },
+  )
+  def test_update_task_inputs_spec(self, original_task_spec,
+                                   parent_component_inputs,
+                                   tasks_in_current_dag, expected_result):
+    pipeline_params = self.TEST_PIPELINE_PARAMS
+
+    expected_spec = pipeline_spec_pb2.PipelineTaskSpec()
+    json_format.ParseDict(expected_result, expected_spec)
+
+    task_spec = pipeline_spec_pb2.PipelineTaskSpec()
+    json_format.ParseDict(original_task_spec, task_spec)
+    parent_component_inputs_spec = pipeline_spec_pb2.ComponentInputsSpec()
+    json_format.ParseDict(parent_component_inputs, parent_component_inputs_spec)
+    dsl_component_spec.update_task_inputs_spec(task_spec,
+                                               parent_component_inputs_spec,
+                                               pipeline_params,
+                                               tasks_in_current_dag)
 
     self.assertEqual(expected_spec, task_spec)
 
@@ -338,6 +553,19 @@ class ComponentSpecTest(unittest.TestCase):
     # pop an input that doesn't exist, expect no-op.
     dsl_component_spec.pop_input_from_task_spec(task_spec, 'input4')
     self.assertEqual(expected_spec, task_spec)
+
+  def test_additional_input_name_for_pipelineparam(self):
+    self.assertEqual(
+        'pipelineparam--op1-param1',
+        dsl_component_spec.additional_input_name_for_pipelineparam(
+            _pipeline_param.PipelineParam(name='param1', op_name='op1')))
+    self.assertEqual(
+        'pipelineparam--param2',
+        dsl_component_spec.additional_input_name_for_pipelineparam(
+            _pipeline_param.PipelineParam(name='param2')))
+    self.assertEqual(
+        'pipelineparam--param3',
+        dsl_component_spec.additional_input_name_for_pipelineparam('param3'))
 
 
 if __name__ == '__main__':
