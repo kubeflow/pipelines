@@ -95,6 +95,7 @@ def pipeline(message: str):
 
 
 if __name__ == '__main__':
-  compiler.Compiler().compile(pipeline_func=my_pipeline,
-                              pipeline_root='dummy_root',
-                              output_path=__file__ + '.json')
+  compiler.Compiler().compile(
+      pipeline_func=pipeline,
+      pipeline_root='gs://ml-pipeline-artifacts/v2-artifacts',
+      output_path=__file__ + '.json')
