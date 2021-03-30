@@ -14,6 +14,7 @@
 
 from kfp.v2.dsl.component import component
 from kfp.dsl import (
+    dsl_utils,
     graph_component,
     pipeline,
     Condition,
