@@ -13,3 +13,11 @@
 # limitations under the License.
 
 from kfp.v2.dsl.component import component
+from kfp.dsl import (
+    graph_component,
+    pipeline,
+    Condition,
+    ContainerOp,
+    ExitHandler,
+    ParallelFor,
+)
