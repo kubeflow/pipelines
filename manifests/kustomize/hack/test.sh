@@ -22,6 +22,11 @@ set -ex
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 MANIFESTS_DIR="${DIR}/.."
 
+# Verify required tools are installed and show their versions.
+kubectl version --client=true
+kustomize version
+kpt version
+
 # These kustomization.yaml folders expect using kubectl kustomize (kustomize v2).
 kustomization_yamls=(
   "base/installs/generic"
