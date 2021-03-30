@@ -14,7 +14,7 @@
 
 from kubernetes.client.models import V1ConfigMap, V1Container, V1EnvVar
 from kfp.dsl import PipelineParam
-from kfp.dsl._pipeline_param import _extract_pipelineparams, extract_pipelineparams_from_any, additional_input_name_for_pipelineparam
+from kfp.dsl._pipeline_param import _extract_pipelineparams, extract_pipelineparams_from_any
 import unittest
 
 
@@ -89,14 +89,3 @@ class TestPipelineParam(unittest.TestCase):
     payload = [str(p1) + stuff_chars + str(p2), str(p2) + stuff_chars + str(p3)]
     params = _extract_pipelineparams(payload)
     self.assertListEqual([p1, p2, p3], params)
-
-  def test_additional_input_name_for_pipelineparam(self):
-    self.assertEqual(
-        'pipelineparam--op1-param1',
-        additional_input_name_for_pipelineparam(PipelineParam(name='param1', op_name='op1')))
-    self.assertEqual(
-        'pipelineparam--param2',
-        additional_input_name_for_pipelineparam(PipelineParam(name='param2')))
-    self.assertEqual(
-        'pipelineparam--param3',
-        additional_input_name_for_pipelineparam('param3'))

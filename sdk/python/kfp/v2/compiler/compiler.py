@@ -491,7 +491,7 @@ class Compiler(object):
         python types or PipelineParam
     """
     if isinstance(value_or_reference, dsl.PipelineParam):
-      input_name = _pipeline_param.additional_input_name_for_pipelineparam(
+      input_name = dsl_component_spec.additional_input_name_for_pipelineparam(
           value_or_reference)
       if type_utils.is_parameter_type(value_or_reference.param_type):
         return "inputs.parameters['{input_name}'].{value_field}".format(

@@ -554,6 +554,19 @@ class ComponentSpecTest(parameterized.TestCase):
     dsl_component_spec.pop_input_from_task_spec(task_spec, 'input4')
     self.assertEqual(expected_spec, task_spec)
 
+  def test_additional_input_name_for_pipelineparam(self):
+    self.assertEqual(
+        'pipelineparam--op1-param1',
+        dsl_component_spec.additional_input_name_for_pipelineparam(
+            _pipeline_param.PipelineParam(name='param1', op_name='op1')))
+    self.assertEqual(
+        'pipelineparam--param2',
+        dsl_component_spec.additional_input_name_for_pipelineparam(
+            _pipeline_param.PipelineParam(name='param2')))
+    self.assertEqual(
+        'pipelineparam--param3',
+        dsl_component_spec.additional_input_name_for_pipelineparam('param3'))
+
 
 if __name__ == '__main__':
   unittest.main()

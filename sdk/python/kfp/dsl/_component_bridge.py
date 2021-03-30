@@ -332,7 +332,7 @@ def _attach_v2_specs(
           # Form the name for the compiler injected input, and make sure it
           # doesn't collide with any existing input names.
           additional_input_name = (
-              _pipeline_param.additional_input_name_for_pipelineparam(param))
+              dsl_component_spec.additional_input_name_for_pipelineparam(param))
           for existing_input_name, _ in arguments.items():
             if existing_input_name == additional_input_name:
               raise ValueError('Name collision between existing input name '

@@ -13,13 +13,24 @@
 # limitations under the License.
 """Functions for creating IR ComponentSpec instance."""
 
-from typing import List
+from typing import List, Union
 
 from kfp.components import _structures as structures
 from kfp.dsl import _pipeline_param
 from kfp.dsl import dsl_utils
 from kfp.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
+
+
+def additional_input_name_for_pipelineparam(
+    param_or_name: Union[_pipeline_param.PipelineParam, str]) -> str:
+  """Gets the name for an additional (compiler-injected) input."""
+
+  # Adding a prefix to avoid (reduce chance of) name collision between the
+  # original component inputs and the injected input.
+  return 'pipelineparam--' + (
+      param_or_name.full_name if isinstance(
+          param_or_name, _pipeline_param.PipelineParam) else param_or_name)
 
 
 def build_component_spec_from_structure(
@@ -68,11 +79,12 @@ def build_component_inputs_spec(
   Args:
     component_spec: The component spec to fill in its inputs spec.
     pipeline_params: The list of pipeline params.
+    is_root_component: Whether the component is the root.
   """
   for param in pipeline_params:
     input_name = (
         param.full_name if is_root_component else
-        _pipeline_param.additional_input_name_for_pipelineparam(param))
+        additional_input_name_for_pipelineparam(param))
 
     if type_utils.is_parameter_type(param.param_type):
       component_spec.input_definitions.parameters[
@@ -122,7 +134,7 @@ def build_task_inputs_spec(
   """
   for param in pipeline_params or []:
 
-    input_name = _pipeline_param.additional_input_name_for_pipelineparam(param)
+    input_name = additional_input_name_for_pipelineparam(param)
     if type_utils.is_parameter_type(param.param_type):
       if param.op_name and dsl_utils.sanitize_task_name(
           param.op_name) in tasks_in_current_dag:
@@ -169,8 +181,8 @@ def update_task_inputs_spec(
   task, which is outside the sub-DAG. When compiling to IR, such cross DAG
   reference is disallowed. So we need to "punch a hole" in the sub-DAG to make
   the input available in the sub-DAG component inputs if it's not already there,
-  Next, we can cal this method to fix the tasks inside the sub-DAG to make them
-  reference the component inputs instead of directly referening the original
+  Next, we can call this method to fix the tasks inside the sub-DAG to make them
+  reference the component inputs instead of directly referencing the original
   producer task.
 
   Args:
@@ -196,7 +208,7 @@ def update_task_inputs_spec(
               task_spec.inputs.parameters[input_name].task_output_parameter
               .producer_task))
       component_input_parameter = (
-          _pipeline_param.additional_input_name_for_pipelineparam(param))
+          additional_input_name_for_pipelineparam(param))
       assert component_input_parameter in parent_component_inputs.parameters
 
       task_spec.inputs.parameters[
@@ -216,8 +228,7 @@ def update_task_inputs_spec(
               task_spec.inputs.artifacts[input_name].task_output_artifact
               .producer_task))
       component_input_artifact = (
-          #param.full_name if is_parent_component_root else
-          _pipeline_param.additional_input_name_for_pipelineparam(param))
+          additional_input_name_for_pipelineparam(param))
       assert component_input_artifact in parent_component_inputs.artifacts
 
       task_spec.inputs.artifacts[

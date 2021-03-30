@@ -249,14 +249,3 @@ class PipelineParam(object):
     """ignore_type ignores the type information such that type checking would also pass"""
     self.param_type = None
     return self
-
-
-def additional_input_name_for_pipelineparam(
-    param_or_name: Union[PipelineParam, str]) -> str:
-  """Gets the name for an additional (compiler-injected) input."""
-
-  # Adding a prefix to avoid (reduce chance of) name collision between the
-  # original component inputs and the injected input.
-  return 'pipelineparam--' + (
-      param_or_name.full_name
-      if isinstance(param_or_name, PipelineParam) else param_or_name)
