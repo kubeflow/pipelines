@@ -62,7 +62,8 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
     package_dir={
-        "google_cloud_components": os.path.join(relative_directory, "google_cloud_components")
+        "google_cloud_components":
+            os.path.join(relative_directory, "google_cloud_components")
     },
     packages=find_packages(where=relative_directory),
 )
