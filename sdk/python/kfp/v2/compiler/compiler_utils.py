@@ -18,6 +18,8 @@ from typing import Any, Mapping, Optional, Union
 
 from kfp.containers import _component_builder
 from kfp.dsl import _container_op
+from kfp.dsl import _pipeline_param
+from kfp.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 # Alias for PipelineContainerSpec
@@ -26,38 +28,47 @@ PipelineContainerSpec = pipeline_spec_pb2.PipelineDeploymentConfig.PipelineConta
 
 def build_runtime_config_spec(
     output_directory: str,
-    pipeline_parameters: Optional[Mapping[str, Any]] = None,
+    pipeline_parameters: Optional[Mapping[
+        str, _pipeline_param.PipelineParam]] = None,
 ) -> pipeline_spec_pb2.PipelineJob.RuntimeConfig:
   """Converts pipeine parameters to runtime parameters mapping.
 
   Args:
     output_directory: The root of pipeline outputs.
-    pipeline_parameters: The mapping from parameter names to values. Optional.
+    pipeline_parameters: The mapping from parameter names to PipelineParam
+      objects. Optional.
 
   Returns:
     A pipeline job RuntimeConfig object.
   """
 
-  def _get_value(value: Union[int, float, str]) -> pipeline_spec_pb2.Value:
-    assert value is not None, 'None values should be filterd out.'
+  def _get_value(
+      param: _pipeline_param.PipelineParam) -> pipeline_spec_pb2.Value:
+    assert param.value is not None, 'None values should be filterd out.'
 
     result = pipeline_spec_pb2.Value()
-    if isinstance(value, int):
-      result.int_value = value
-    elif isinstance(value, float):
-      result.double_value = value
-    elif isinstance(value, str):
-      result.string_value = value
+    # TODO(chensun): remove defaulting to 'String' for None param_type once we
+    # fix importer behavior.
+    param_type = type_utils.get_parameter_type(param.param_type or 'String')
+    if param_type == pipeline_spec_pb2.PrimitiveType.INT:
+      result.int_value = int(param.value)
+    elif param_type == pipeline_spec_pb2.PrimitiveType.DOUBLE:
+      result.double_value = float(param.value)
+    elif param_type == pipeline_spec_pb2.PrimitiveType.STRING:
+      result.string_value = str(param.value)
     else:
-      raise TypeError('Got unknown type of value: {}'.format(value))
+      # For every other type, defaults to 'String'.
+      # TODO(chensun): remove this default behavior once we migrate from
+      # `pipeline_spec_pb2.Value` to `protobuf.Value`.
+      result.string_value = str(param.value)
 
     return result
 
-  parameter_values = pipeline_parameters or {}
+  parameters = pipeline_parameters or {}
   return pipeline_spec_pb2.PipelineJob.RuntimeConfig(
       gcs_output_directory=output_directory,
       parameters={
-          k: _get_value(v) for k, v in parameter_values.items() if v is not None
+          k: _get_value(v) for k, v in parameters.items() if v.value is not None
       })
 
 

@@ -1050,10 +1050,16 @@ class Compiler(object):
     )
 
     pipeline_parameters = {
-        arg.name: arg.value for arg in args_list_with_defaults
+        param.name: param for param in args_list_with_defaults
     }
     # Update pipeline parameters override if there were any.
-    pipeline_parameters.update(pipeline_parameters_override or {})
+    pipeline_parameters_override = pipeline_parameters_override or {}
+    for k, v in pipeline_parameters_override.items():
+      if k not in pipeline_parameters:
+        raise ValueError('Pipeline parameter {} does not match any known '
+                         'pipeline argument.'.format(k))
+      pipeline_parameters[k].value = v
+
     runtime_config = compiler_utils.build_runtime_config_spec(
         output_directory=pipeline_root, pipeline_parameters=pipeline_parameters)
     pipeline_job = pipeline_spec_pb2.PipelineJob(runtime_config=runtime_config)
