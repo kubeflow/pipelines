@@ -24,14 +24,17 @@ sample-test: context
 
 .PHONY: context
 context:
+	# Package source dir into a context.tar.gz.
 	mkdir -p tmp
 # Benefit of using `git archive` over `tar` is that, `--exclude-vcs-ignore` flag
-# we want to use is not supported in MacOS (bsdtar). This feature is only
-# available in gnutar.
+# we want to use is not supported in MacOS (BSD tar). This feature is only
+# available in GNU tar.
 #
-# The following line is adapted based on an one-liner that can archive source
-# folder taking .gitignore into account. This command works no matter your
-# working dir is dirty or not. It always packages current content into the tarball.
-# Credits: https://stackoverflow.com/a/23486703/8745218
-# License: https://creativecommons.org/licenses/by-sa/3.0/
-	cd $(REPO_ROOT); uploadStash=`git stash create`; git archive --format=tar $${uploadStash:-HEAD} | gzip >v2/test/tmp/context.tar.gz
+# The following line is implemented based on the idea referenced below that can
+# archive source folder taking .gitignore into account. This command works no
+# matter your working dir is dirty or not. It always packages current content
+# into the tarball.
+# Reference: https://stackoverflow.com/a/23486703/8745218
+	cd $(REPO_ROOT); \
+	stash=$$(git stash create); \
+	git archive --format=tar "$${stash:-HEAD}" | gzip >v2/test/tmp/context.tar.gz
