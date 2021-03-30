@@ -13,13 +13,24 @@
 # limitations under the License.
 """Functions for creating IR ComponentSpec instance."""
 
-from typing import List
+from typing import List, Union
 
 from kfp.components import _structures as structures
 from kfp.dsl import _pipeline_param
 from kfp.dsl import dsl_utils
 from kfp.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
+
+
+def additional_input_name_for_pipelineparam(
+    param_or_name: Union[_pipeline_param.PipelineParam, str]) -> str:
+  """Gets the name for an additional (compiler-injected) input."""
+
+  # Adding a prefix to avoid (reduce chance of) name collision between the
+  # original component inputs and the injected input.
+  return 'pipelineparam--' + (
+      param_or_name.full_name if isinstance(
+          param_or_name, _pipeline_param.PipelineParam) else param_or_name)
 
 
 def build_component_spec_from_structure(
@@ -61,15 +72,19 @@ def build_component_spec_from_structure(
 def build_component_inputs_spec(
     component_spec: pipeline_spec_pb2.ComponentSpec,
     pipeline_params: List[_pipeline_param.PipelineParam],
+    is_root_component: bool,
 ) -> None:
   """Builds component inputs spec from pipeline params.
 
   Args:
     component_spec: The component spec to fill in its inputs spec.
     pipeline_params: The list of pipeline params.
+    is_root_component: Whether the component is the root.
   """
   for param in pipeline_params:
-    input_name = param.full_name
+    input_name = (
+        param.full_name if is_root_component else
+        additional_input_name_for_pipelineparam(param))
 
     if type_utils.is_parameter_type(param.param_type):
       component_spec.input_definitions.parameters[
@@ -107,6 +122,7 @@ def build_task_inputs_spec(
     task_spec: pipeline_spec_pb2.PipelineTaskSpec,
     pipeline_params: List[_pipeline_param.PipelineParam],
     tasks_in_current_dag: List[str],
+    is_parent_component_root: bool,
 ) -> None:
   """Builds task inputs spec from pipeline params.
 
@@ -114,11 +130,14 @@ def build_task_inputs_spec(
     task_spec: The task spec to fill in its inputs spec.
     pipeline_params: The list of pipeline params.
     tasks_in_current_dag: The list of tasks names for tasks in the same dag.
+    is_parent_component_root: Whether the task is in the root component.
   """
   for param in pipeline_params or []:
-    input_name = param.full_name
+
+    input_name = additional_input_name_for_pipelineparam(param)
     if type_utils.is_parameter_type(param.param_type):
-      if param.op_name in tasks_in_current_dag:
+      if param.op_name and dsl_utils.sanitize_task_name(
+          param.op_name) in tasks_in_current_dag:
         task_spec.inputs.parameters[
             input_name].task_output_parameter.producer_task = (
                 dsl_utils.sanitize_task_name(param.op_name))
@@ -126,10 +145,11 @@ def build_task_inputs_spec(
             input_name].task_output_parameter.output_parameter_key = (
                 param.name)
       else:
-        task_spec.inputs.parameters[
-            input_name].component_input_parameter = input_name
+        task_spec.inputs.parameters[input_name].component_input_parameter = (
+            param.full_name if is_parent_component_root else input_name)
     else:
-      if param.op_name in tasks_in_current_dag:
+      if param.op_name and dsl_utils.sanitize_task_name(
+          param.op_name) in tasks_in_current_dag:
         task_spec.inputs.artifacts[
             input_name].task_output_artifact.producer_task = (
                 dsl_utils.sanitize_task_name(param.op_name))
@@ -137,8 +157,82 @@ def build_task_inputs_spec(
             input_name].task_output_artifact.output_artifact_key = (
                 param.name)
       else:
-        task_spec.inputs.artifacts[
-            input_name].component_input_artifact = input_name
+        task_spec.inputs.artifacts[input_name].component_input_artifact = (
+            param.full_name if is_parent_component_root else input_name)
+
+
+def update_task_inputs_spec(
+    task_spec: pipeline_spec_pb2.PipelineTaskSpec,
+    parent_component_inputs: pipeline_spec_pb2.ComponentInputsSpec,
+    pipeline_params: List[_pipeline_param.PipelineParam],
+    tasks_in_current_dag: List[str],
+) -> None:
+  """Updates task inputs spec.
+
+  A task input may reference an output outside its immediate DAG.
+  For instance::
+
+    random_num = random_num_op(...)
+    with dsl.Condition(random_num.output > 5):
+      print_op('%s > 5' % random_num.output)
+
+  In this example, `dsl.Condition` forms a sub-DAG with one task from `print_op`
+  inside the sub-DAG. The task of `print_op` references output from `random_num`
+  task, which is outside the sub-DAG. When compiling to IR, such cross DAG
+  reference is disallowed. So we need to "punch a hole" in the sub-DAG to make
+  the input available in the sub-DAG component inputs if it's not already there,
+  Next, we can call this method to fix the tasks inside the sub-DAG to make them
+  reference the component inputs instead of directly referencing the original
+  producer task.
+
+  Args:
+    task_spec: The task spec to fill in its inputs spec.
+    parent_component_inputs: The input spec of the task's parent component.
+    pipeline_params: The list of pipeline params.
+    tasks_in_current_dag: The list of tasks names for tasks in the same dag.
+  """
+  if not hasattr(task_spec, 'inputs'):
+    return
+
+  for input_name in getattr(task_spec.inputs, 'parameters', []):
+
+    if task_spec.inputs.parameters[input_name].WhichOneof(
+        'kind') == 'task_output_parameter' and (
+            task_spec.inputs.parameters[input_name].task_output_parameter
+            .producer_task not in tasks_in_current_dag):
+
+      param = _pipeline_param.PipelineParam(
+          name=task_spec.inputs.parameters[input_name].task_output_parameter
+          .output_parameter_key,
+          op_name=dsl_utils.remove_task_name_prefix(
+              task_spec.inputs.parameters[input_name].task_output_parameter
+              .producer_task))
+      component_input_parameter = (
+          additional_input_name_for_pipelineparam(param))
+      assert component_input_parameter in parent_component_inputs.parameters
+
+      task_spec.inputs.parameters[
+          input_name].component_input_parameter = component_input_parameter
+
+  for input_name in getattr(task_spec.inputs, 'artifacts', []):
+
+    if task_spec.inputs.artifacts[input_name].WhichOneof(
+        'kind') == 'task_output_artifact' and (
+            task_spec.inputs.artifacts[input_name].task_output_artifact
+            .producer_task not in tasks_in_current_dag):
+
+      param = _pipeline_param.PipelineParam(
+          name=task_spec.inputs.artifacts[input_name].task_output_artifact
+          .output_artifact_key,
+          op_name=dsl_utils.remove_task_name_prefix(
+              task_spec.inputs.artifacts[input_name].task_output_artifact
+              .producer_task))
+      component_input_artifact = (
+          additional_input_name_for_pipelineparam(param))
+      assert component_input_artifact in parent_component_inputs.artifacts
+
+      task_spec.inputs.artifacts[
+          input_name].component_input_artifact = component_input_artifact
 
 
 def pop_input_from_component_spec(

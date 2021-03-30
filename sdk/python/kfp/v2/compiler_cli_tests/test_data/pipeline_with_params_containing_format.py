@@ -18,14 +18,15 @@ from kfp.v2 import compiler
 
 
 @components.create_component_from_func
-def print_op(s: str) -> str:
-  print(s)
-  return s
+def print_op(name: str) -> str:
+  print(name)
+  return name
 
 
 @dsl.pipeline(name='pipeline-with-pipelineparam-containing-format')
 def my_pipeline(name: str = 'KFP'):
-  print_op('Hello {}'.format(name))
+  print_task = print_op('Hello {}'.format(name))
+  print_op('{}, again.'.format(print_task.output))
 
 
 if __name__ == '__main__':
