@@ -21,7 +21,8 @@ WORKDIR /root
 RUN pip3 install git+https://github.com/googleapis/python-aiplatform@mb-release
 
 # Copies the trainer code to the docker image.
-# COPY remote_runner.py /root/remote_runner.py
+# TODO(chavoshi) change from using PR @531127d0f7af525976fae8581796a675d8703fbb version to master 
+RUN pip3 install "git+https://github.com/kubeflow/pipelines.git@531127d0f7af525976fae8581796a675d8703fbb#egg=google-cloud-components&subdirectory=components/google-cloud"
 
 # Sets up the entry point to invoke the trainer.
-# ENTRYPOINT ["python3", "remote_runner.py"]
+ENTRYPOINT ["python3","-m","google_cloud_components.mb_sdk_component.remote_runner"]
