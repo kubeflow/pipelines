@@ -12,7 +12,7 @@ patchesJson6902:
       group: apps
       kind: Deployment
       name: workflow-controller
-    path: ./overlays/workflow-controller-deployment.yaml
+    path: ./overlays/workflow-controller-deployment.json
   - target:
       version: v1
       group: apps
