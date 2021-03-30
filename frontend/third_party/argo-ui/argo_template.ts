@@ -70,6 +70,7 @@ export interface Artifact {
    */
   s3?: S3Artifact;
 }
+
 /**
  * ArtifactLocation describes a location for a single or multiple artifacts. It
  * is used as single artifact in the context of inputs/outputs (e.g.
@@ -182,6 +183,7 @@ export interface Metadata {
   annotations?: { [key: string]: string };
   labels?: { [key: string]: string };
 }
+
 /**
  * Outputs hold parameters, artifacts, and results from a step
  */
@@ -198,7 +200,12 @@ export interface Outputs {
    * Result holds the result (stdout) of a script template
    */
   result?: string;
+  /**
+   * ExitCode holds the exit code of a script template
+   */
+  exitCode?: number;
 }
+
 /**
  * Parameter indicate a passed string parameter to a service template with an optional default value
  */
@@ -222,6 +229,7 @@ export interface Parameter {
    */
   valueFrom?: ValueFrom;
 }
+
 /**
  * RawArtifact allows raw string content to be placed as an artifact in a container
  */
@@ -500,6 +508,7 @@ export interface Sidecar {
    */
   workingDir?: string;
 }
+
 /**
  * SidecarOptions provide a way to customize the behavior of a sidecar and how
  * it affects the main container.
@@ -531,13 +540,6 @@ export interface Template {
    */
   affinity?: kubernetes.Affinity;
   /**
-   * Location in which all files related to the step will be stored (logs,
-   * artifacts, etc...). Can be overridden by individual items in Outputs. If
-   * omitted, will use the default artifact repository location configured in
-   * the controller, appended with the <workflowname>/<nodename> in the key.
-   */
-  archiveLocation?: ArtifactLocation;
-  /**
    * Container is the main container image to run in the pod
    */
   container?: kubernetes.Container;
@@ -555,6 +557,7 @@ export interface Template {
    * Metdata sets the pods's metadata, i.e. annotations and labels
    */
   metadata?: Metadata;
+
   /**
    * Name is the name of the template
    */
@@ -594,8 +597,19 @@ export interface Template {
   /**
    * DAG template
    */
-  dag: DAGTemplate;
+  dag?: DAGTemplate;
+
+  /**
+   * Template is the name of the template which is used as the base of this template.
+   */
+  template?: string;
+
+  /**
+   * TemplateRef is the reference to the template resource which is used as the base of this template.
+   */
+  templateRef?: TemplateRef;
 }
+
 /**
  * ValueFrom describes a location in which to obtain the value to a parameter
  */
@@ -641,7 +655,15 @@ export interface Workflow {
   status: WorkflowStatus;
 }
 
-export type NodeType = 'Pod' | 'Steps' | 'StepGroup' | 'TaskGroup' | 'DAG' | 'Retry' | 'Skipped';
+export type NodeType =
+  | 'Pod'
+  | 'Steps'
+  | 'StepGroup'
+  | 'DAG'
+  | 'Retry'
+  | 'Skipped'
+  | 'TaskGroup'
+  | 'Suspend';
 
 export interface NodeStatus {
   /**
@@ -694,6 +716,21 @@ export interface NodeStatus {
   finishedAt: kubernetes.Time;
 
   /**
+   * Estimated duration in seconds.
+   */
+  estimatedDuration?: number;
+
+  /**
+   * Progress as numerator/denominator.
+   */
+  progress?: string;
+
+  /**
+   * How much resource was requested.
+   */
+  resourcesDuration?: { [resource: string]: number };
+
+  /**
    * PodIP captures the IP of the pod for daemoned steps
    */
   podIP: string;
@@ -716,22 +753,18 @@ export interface NodeStatus {
   children: string[];
 
   /**
-   * OutboundNodes tracks the node IDs which are considered "outbound" nodes
-   * to a template invocation. For every invocation of a template, there are
-   * nodes which we considered as "outbound". Essentially, these are last
-   * nodes in the execution sequence to run, before the template is
-   * considered completed. These nodes are then connected as parents to a
-   * following step.
+   * OutboundNodes tracks the node IDs which are considered "outbound" nodes to a template invocation.
+   * For every invocation of a template, there are nodes which we considered as "outbound". Essentially,
+   * these are last nodes in the execution sequence to run, before the template is considered completed.
+   * These nodes are then connected as parents to a following step.
    *
-   * In the case of single pod steps (i.e. container, script, resource
-   * templates), this list will be nil since the pod itself is already
-   * considered the "outbound" node. In the case of DAGs, outbound nodes are
-   * the "target" tasks (tasks with no children). In the case of steps,
-   * outbound nodes are all the containers involved in the last step group.
-   * NOTE: since templates are composable, the list of outbound nodes are
-   * carried upwards when a DAG/steps template invokes another DAG/steps
-   * template. In other words, the outbound nodes of a template, will be a
-   * superset of the outbound nodes of its last children.
+   * In the case of single pod steps (i.e. container, script, resource templates), this list will be nil
+   * since the pod itself is already considered the "outbound" node.
+   * In the case of DAGs, outbound nodes are the "target" tasks (tasks with no children).
+   * In the case of steps, outbound nodes are all the containers involved in the last step group.
+   * NOTE: since templates are composable, the list of outbound nodes are carried upwards when
+   * a DAG/steps template invokes another DAG/steps template. In other words, the outbound nodes of
+   * a template, will be a superset of the outbound nodes of its last children.
    */
   outboundNodes: string[];
   /**
@@ -744,6 +777,47 @@ export interface NodeStatus {
    * to this template invocation
    */
   inputs: Inputs;
+
+  /**
+   * TemplateRef is the reference to the template resource which this node corresponds to.
+   * Not applicable to virtual nodes (e.g. Retry, StepGroup)
+   */
+  templateRef?: TemplateRef;
+
+  /**
+   * TemplateScope is the template scope in which the template of this node was retrieved.
+   */
+  templateScope?: string;
+
+  /**
+   * HostNodeName name of the Kubernetes node on which the Pod is running, if applicable.
+   */
+  hostNodeName: string;
+
+  /**
+   * Memoization
+   */
+  memoizationStatus: MemoizationStatus;
+}
+
+export interface TemplateRef {
+  /**
+   * Name is the resource name of the template.
+   */
+  name: string;
+  /**
+   * Template is the name of referred template in the resource.
+   */
+  template: string;
+  /**
+   * RuntimeResolution skips validation at creation time.
+   * By enabling this option, you can create the referred workflow template before the actual runtime.
+   */
+  runtimeResolution?: boolean;
+  /**
+   * ClusterScope indicates the referred template is cluster scoped (i.e., a ClusterWorkflowTemplate).
+   */
+  clusterScope?: boolean;
 }
 
 export interface WorkflowStatus {
@@ -753,6 +827,15 @@ export interface WorkflowStatus {
   phase: NodePhase;
   startedAt: kubernetes.Time;
   finishedAt: kubernetes.Time;
+  /**
+   * Estimated duration in seconds.
+   */
+  estimatedDuration?: number;
+
+  /**
+   * Progress as numerator/denominator.
+   */
+  progress?: string;
   /**
    * A human readable message indicating details about why the workflow is in this condition.
    */
@@ -768,7 +851,62 @@ export interface WorkflowStatus {
    * The contents of this list are drained at the end of the workflow.
    */
   persistentVolumeClaims: kubernetes.Volume[];
+
+  compressedNodes: string;
+
+  /**
+   * StoredTemplates is a mapping between a template ref and the node's status.
+   */
+  storedTemplates: { [name: string]: Template };
+
+  /**
+   * ResourcesDuration tracks how much resources were requested.
+   */
+  resourcesDuration?: { [resource: string]: number };
+
+  /**
+   * Conditions is a list of WorkflowConditions
+   */
+  conditions?: Condition[];
+
+  /**
+   * StoredWorkflowTemplateSpec is a Workflow Spec of top level WorkflowTemplate.
+   */
+  storedWorkflowTemplateSpec?: WorkflowSpec;
 }
+
+/**
+ * MemoizationStatus holds information about a node with memoization enabled.
+ */
+
+export interface MemoizationStatus {
+  /**
+   * Hit is true if there was a previous cache entry and false otherwise
+   */
+  hit: boolean;
+  /**
+   * Key is the value used to query the cache for an entry
+   */
+  key: string;
+  /**
+   * Cache name stores the identifier of the cache used for this node
+   */
+  cacheName: string;
+}
+
+export interface Condition {
+  type: ConditionType;
+  status: ConditionStatus;
+  message: string;
+}
+
+export type ConditionType =
+  | 'Completed'
+  | 'SpecWarning'
+  | 'MetricsError'
+  | 'SubmissionError'
+  | 'SpecError';
+export type ConditionStatus = 'True' | 'False' | 'Unknown';
 
 /**
  * WorkflowList is list of Workflow resources
@@ -794,21 +932,45 @@ export interface WorkflowList {
  */
 export interface WorkflowSpec {
   /**
-   * Affinity sets the scheduling constraints for all pods in the workflow.
-   * Can be overridden by an affinity specified in the template
+   * Optional duration in seconds relative to the workflow start time which the workflow is
+   * allowed to run before the controller terminates the workflow. A value of zero is used to
+   * terminate a Running workflow
+   */
+  activeDeadlineSeconds?: number;
+  /**
+   * TTLStrategy limits the lifetime of a Workflow that has finished execution depending on if it
+   * Succeeded or Failed. If this struct is set, once the Workflow finishes, it will be
+   * deleted after the time to live expires. If this field is unset,
+   * the controller config map will hold the default values.
+   */
+  ttlStrategy?: {
+    secondsAfterCompletion?: number;
+    secondsAfterSuccess?: number;
+    secondsAfterFailure?: number;
+  };
+  /**
+   * PodGC describes the strategy to use when to deleting completed pods
+   */
+  podGC?: {
+    strategy?: string;
+  };
+  /**
+   * SecurityContext holds pod-level security attributes and common container settings.
+   */
+  securityContext?: kubernetes.SecurityContext;
+  /**
+   * Affinity sets the scheduling constraints for all pods in the workflow. Can be overridden by an affinity specified in the template
    */
   affinity?: kubernetes.Affinity;
   /**
-   * Arguments contain the parameters and artifacts sent to the workflow
-   * entrypoint.
-   * Parameters are referencable globally using the 'workflow' variable
-   * prefix. e.g. {{workflow.parameters.myparam}}
+   * Arguments contain the parameters and artifacts sent to the workflow entrypoint.
+   * Parameters are referencable globally using the 'workflow' variable prefix. e.g. {{workflow.parameters.myparam}}
    */
   arguments?: Arguments;
   /**
    * Entrypoint is a template reference to the starting point of the workflow
    */
-  entrypoint: string;
+  entrypoint?: string;
   /**
    * ImagePullSecrets is a list of references to secrets in the same
    * namespace to use for pulling any images in pods that reference this
@@ -838,7 +1000,7 @@ export interface WorkflowSpec {
   /**
    * Templates is a list of workflow templates used in a workflow
    */
-  templates: Template[];
+  templates?: Template[];
   /**
    * VolumeClaimTemplates is a list of claims that containers are allowed to reference.
    * The Workflow controller will create the claims at the beginning of the
@@ -849,6 +1011,28 @@ export interface WorkflowSpec {
    * Volumes is a list of volumes that can be mounted by containers in a workflow.
    */
   volumes?: kubernetes.Volume[];
+
+  /**
+   * Suspend will suspend the workflow and prevent execution of any future steps in the workflow
+   */
+  suspend?: boolean;
+
+  /**
+   * workflowTemplateRef is the reference to the workflow template resource to execute.
+   */
+  workflowTemplateRef?: WorkflowTemplateRef;
+}
+
+export interface WorkflowTemplateRef {
+  /**
+   * Name is the resource name of the template.
+   */
+  name: string;
+
+  /**
+   * ClusterScope indicates the referred template is cluster scoped (i.e., a ClusterWorkflowTemplate).
+   */
+  clusterScope?: boolean;
 }
 
 export interface DAGTemplate {
@@ -863,6 +1047,12 @@ export interface DAGTemplate {
   tasks: DAGTask[];
 }
 
+export interface Sequence {
+  start?: number;
+  end?: number;
+  count?: number;
+}
+
 export interface DAGTask {
   name: string;
 
@@ -870,6 +1060,11 @@ export interface DAGTask {
    * Name of template to execute
    */
   template: string;
+
+  /**
+   * TemplateRef is the reference to the template resource to execute.
+   */
+  templateRef: TemplateRef;
 
   /**
    * Arguments are the parameter and artifact arguments to the template
@@ -914,6 +1109,10 @@ export interface WorkflowStep {
    * WithParam expands a step into from the value in the parameter
    */
   withParam?: string;
+  /**
+   * TemplateRef is the reference to the template resource which is used as the base of this template.
+   */
+  templateRef?: TemplateRef;
 }
 
 export type NodePhase =

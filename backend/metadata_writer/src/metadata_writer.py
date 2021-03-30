@@ -70,6 +70,8 @@ KFP_COMPONENT_SPEC_ANNOTATION_KEY = 'pipelines.kubeflow.org/component_spec'
 KFP_PARAMETER_ARGUMENTS_ANNOTATION_KEY = 'pipelines.kubeflow.org/arguments.parameters'
 METADATA_EXECUTION_ID_LABEL_KEY = 'pipelines.kubeflow.org/metadata_execution_id'
 METADATA_CONTEXT_ID_LABEL_KEY = 'pipelines.kubeflow.org/metadata_context_id'
+KFP_SDK_TYPE_LABEL_KEY = 'pipelines.kubeflow.org/pipeline-sdk-type'
+TFX_SDK_TYPE_VALUE = 'tfx'
 METADATA_ARTIFACT_IDS_ANNOTATION_KEY = 'pipelines.kubeflow.org/metadata_artifact_ids'
 METADATA_INPUT_ARTIFACT_IDS_ANNOTATION_KEY = 'pipelines.kubeflow.org/metadata_input_artifact_ids'
 METADATA_OUTPUT_ARTIFACT_IDS_ANNOTATION_KEY = 'pipelines.kubeflow.org/metadata_output_artifact_ids'
@@ -112,6 +114,9 @@ def argo_artifact_to_uri(artifact: dict) -> str:
 
 
 def is_tfx_pod(pod) -> bool:
+    # Later versions of TFX pods do not match the pattern in command line, but now they have this label.
+    if pod.metadata.labels.get(KFP_SDK_TYPE_LABEL_KEY) == TFX_SDK_TYPE_VALUE:
+        return True
     main_containers = [container for container in pod.spec.containers if container.name == 'main']
     if len(main_containers) != 1:
         return False

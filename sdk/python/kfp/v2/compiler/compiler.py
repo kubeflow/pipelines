@@ -258,6 +258,7 @@ class Compiler(object):
   def _get_inputs_outputs(
       self,
       pipeline: dsl.Pipeline,
+      args: List[dsl.PipelineParam],
       root_group: dsl.OpsGroup,
       op_groups: Dict[str, List[dsl.OpsGroup]],
       opsgroup_groups: Dict[str, List[dsl.OpsGroup]],
@@ -269,6 +270,7 @@ class Compiler(object):
 
     Args:
       pipeline: The instantiated pipeline object.
+      args: The list of pipeline function arguments as PipelineParam.
       root_group: The root OpsGroup.
       op_groups: The dict of op name to parent groups.
       opsgroup_groups: The dict of opsgroup name to parent groups.
@@ -286,10 +288,25 @@ class Compiler(object):
     inputs = collections.defaultdict(set)
     outputs = collections.defaultdict(set)
 
+    # Fix possible missing type -- PipelineParam parsed from command line args
+    # doesn't contain the type information, as the `.param_type` is not included
+    # during PipelineParam serialization.
+    all_params = {param.pattern: param for param in args}
+    for op in pipeline.ops.values():
+      for param in op.inputs + list(op.outputs.values()) + list(
+          condition_params[op.name]):
+        if param.pattern not in all_params:
+          all_params[param.pattern] = param
+        else:
+          param.param_type = param.param_type or all_params[
+              param.pattern].param_type
+          all_params[param.pattern].param_type = param.param_type
+
     for op in pipeline.ops.values():
       # op's inputs and all params used in conditions for that op are both
       # considered.
       for param in op.inputs + list(condition_params[op.name]):
+
         # if the value is already provided (immediate value), then no need to
         # expose it as input for its parent groups.
         if param.value:
@@ -474,9 +491,8 @@ class Compiler(object):
         python types or PipelineParam
     """
     if isinstance(value_or_reference, dsl.PipelineParam):
-      input_name = (
-          value_or_reference.full_name
-          if value_or_reference.op_name else value_or_reference.name)
+      input_name = dsl_component_spec.additional_input_name_for_pipelineparam(
+          value_or_reference)
       if type_utils.is_parameter_type(value_or_reference.param_type):
         return "inputs.parameters['{input_name}'].{value_field}".format(
             input_name=input_name,
@@ -641,17 +657,6 @@ class Compiler(object):
     else:
       group_component_spec = pipeline_spec.components[group_component_name]
 
-    # Generate component inputs spec.
-    if inputs.get(group.name, None):
-      dsl_component_spec.build_component_inputs_spec(
-          group_component_spec, [param for param, _ in inputs[group.name]])
-
-    # Generate component outputs spec.
-    if outputs.get(group.name, None):
-      group_component_spec.output_definitions.CopyFrom(
-          dsl_component_spec.build_component_outputs_spec(
-              [param for param, _ in outputs[group.name]]))
-
     # Generate task specs and component specs for the dag.
     subgroups = group.groups + group.ops
     for subgroup in subgroups:
@@ -684,22 +689,84 @@ class Compiler(object):
         raise NotImplementedError(
             'dsl.ExitHandler is not yet supported in KFP v2 compiler.')
 
-      if isinstance(subgroup, dsl.OpsGroup) and subgroup.type == 'condition':
-        condition = subgroup.condition
-        operand_values = []
-        subgroup_inputs = inputs.get(subgroup.name, [])
-        subgroup_params = [param for param, _ in subgroup_inputs]
-        tasks_in_current_dag = [subgroup.name for subgroup in subgroups]
+      importer_tasks = []
+      # Add importer node when applicable
+      for input_name in subgroup_task_spec.inputs.artifacts:
+        if not subgroup_task_spec.inputs.artifacts[
+            input_name].task_output_artifact.producer_task:
+          type_schema = type_utils.get_input_artifact_type_schema(
+              input_name, subgroup._metadata.inputs)
 
-        dsl_component_spec.build_component_inputs_spec(
-            subgroup_component_spec,
+          importer_name = importer_node.generate_importer_base_name(
+              dependent_task_name=subgroup_task_spec.task_info.name,
+              input_name=input_name)
+          importer_task_spec = importer_node.build_importer_task_spec(
+              importer_name)
+          importer_comp_spec = importer_node.build_importer_component_spec(
+              importer_base_name=importer_name,
+              input_name=input_name,
+              input_type_schema=type_schema)
+          importer_task_name = importer_task_spec.task_info.name
+          importer_comp_name = importer_task_spec.component_ref.name
+          importer_exec_label = importer_comp_spec.executor_label
+          group_component_spec.dag.tasks[importer_task_name].CopyFrom(
+              importer_task_spec)
+          pipeline_spec.components[importer_comp_name].CopyFrom(
+              importer_comp_spec)
+
+          subgroup_task_spec.inputs.artifacts[
+              input_name].task_output_artifact.producer_task = (
+                  importer_task_name)
+          subgroup_task_spec.inputs.artifacts[
+              input_name].task_output_artifact.output_artifact_key = (
+                  importer_node.OUTPUT_KEY)
+
+          # Retrieve the pre-built importer spec
+          importer_spec = subgroup.importer_specs[input_name]
+          deployment_config.executors[importer_exec_label].importer.CopyFrom(
+              importer_spec)
+
+          importer_tasks.append(importer_task_name)
+
+      group_inputs = inputs.get(group.name, [])
+      subgroup_inputs = inputs.get(subgroup.name, [])
+      subgroup_params = [param for param, _ in subgroup_inputs]
+      tasks_in_current_dag = [
+          dsl_utils.sanitize_task_name(subgroup.name) for subgroup in subgroups
+      ] + importer_tasks
+
+      is_parent_component_root = group_component_spec == pipeline_spec.root
+
+      # Additional spec modifications for dsl.ParallelFor's subgroups.
+      if is_loop_subgroup:
+        self._update_loop_specs(group, subgroup, group_component_spec,
+                                subgroup_component_spec, subgroup_task_spec)
+
+      elif isinstance(subgroup, dsl.ContainerOp):
+        dsl_component_spec.update_task_inputs_spec(
+            subgroup_task_spec,
+            group_component_spec.input_definitions,
             subgroup_params,
+            tasks_in_current_dag,
+        )
+
+      if isinstance(subgroup, dsl.OpsGroup) and subgroup.type == 'condition':
+
+        # "punch the hole", adding inputs needed by its subgroup or tasks.
+        dsl_component_spec.build_component_inputs_spec(
+            component_spec=subgroup_component_spec,
+            pipeline_params=subgroup_params,
+            is_root_component=False,
         )
         dsl_component_spec.build_task_inputs_spec(
             subgroup_task_spec,
             subgroup_params,
             tasks_in_current_dag,
+            is_parent_component_root,
         )
+
+        condition = subgroup.condition
+        operand_values = []
 
         for operand in [condition.operand1, condition.operand2]:
           operand_values.append(self._resolve_value_or_reference(operand))
@@ -763,47 +830,6 @@ class Compiler(object):
             group_component_spec.input_definitions.parameters[
                 input_parameter_name].type = pipeline_spec_pb2.PrimitiveType.STRING
 
-      # Additional spec modifications for dsl.ParallelFor's subgroups.
-      if is_loop_subgroup:
-        self._update_loop_specs(group, subgroup, group_component_spec,
-                                subgroup_component_spec, subgroup_task_spec)
-
-      # Add importer node when applicable
-      for input_name in subgroup_task_spec.inputs.artifacts:
-        if not subgroup_task_spec.inputs.artifacts[
-            input_name].task_output_artifact.producer_task:
-          type_schema = type_utils.get_input_artifact_type_schema(
-              input_name, subgroup._metadata.inputs)
-
-          importer_name = importer_node.generate_importer_base_name(
-              dependent_task_name=subgroup_task_spec.task_info.name,
-              input_name=input_name)
-          importer_task_spec = importer_node.build_importer_task_spec(
-              importer_name)
-          importer_comp_spec = importer_node.build_importer_component_spec(
-              importer_base_name=importer_name,
-              input_name=input_name,
-              input_type_schema=type_schema)
-          importer_task_name = importer_task_spec.task_info.name
-          importer_comp_name = importer_task_spec.component_ref.name
-          importer_exec_label = importer_comp_spec.executor_label
-          group_component_spec.dag.tasks[importer_task_name].CopyFrom(
-              importer_task_spec)
-          pipeline_spec.components[importer_comp_name].CopyFrom(
-              importer_comp_spec)
-
-          subgroup_task_spec.inputs.artifacts[
-              input_name].task_output_artifact.producer_task = (
-                  importer_task_name)
-          subgroup_task_spec.inputs.artifacts[
-              input_name].task_output_artifact.output_artifact_key = (
-                  importer_node.OUTPUT_KEY)
-
-          # Retrieve the pre-built importer spec
-          importer_spec = subgroup.importer_specs[input_name]
-          deployment_config.executors[importer_exec_label].importer.CopyFrom(
-              importer_spec)
-
       # Add component spec if not exists
       if subgroup_component_name not in pipeline_spec.components:
         pipeline_spec.components[subgroup_component_name].CopyFrom(
@@ -862,7 +888,10 @@ class Compiler(object):
     # Schema version 2.0.0 is required for kfp-pipeline-spec>0.1.3.1
     pipeline_spec.schema_version = '2.0.0'
 
-    dsl_component_spec.build_component_inputs_spec(pipeline_spec.root, args)
+    dsl_component_spec.build_component_inputs_spec(
+        component_spec=pipeline_spec.root,
+        pipeline_params=args,
+        is_root_component=True)
 
     root_group = pipeline.groups[0]
     opsgroups = self._get_groups(root_group)
@@ -873,6 +902,7 @@ class Compiler(object):
     op_name_to_for_loop_op = self._get_for_loop_ops(root_group)
     inputs, outputs = self._get_inputs_outputs(
         pipeline,
+        args,
         root_group,
         op_name_to_parent_groups,
         opgroup_name_to_parent_groups,
@@ -900,6 +930,54 @@ class Compiler(object):
       )
 
     return pipeline_spec
+
+  # TODO: Sanitizing beforehand, so that we don't need to sanitize here.
+  def _sanitize_and_inject_artifact(self, pipeline: dsl.Pipeline) -> None:
+    """Sanitize operator/param names and inject pipeline artifact location. """
+
+    # Sanitize operator names and param names
+    sanitized_ops = {}
+
+    for op in pipeline.ops.values():
+      sanitized_name = sanitize_k8s_name(op.name)
+      op.name = sanitized_name
+      for param in op.outputs.values():
+        param.name = sanitize_k8s_name(param.name, True)
+        if param.op_name:
+          param.op_name = sanitize_k8s_name(param.op_name)
+      if op.output is not None and not isinstance(
+          op.output, dsl._container_op._MultipleOutputsError):
+        op.output.name = sanitize_k8s_name(op.output.name, True)
+        op.output.op_name = sanitize_k8s_name(op.output.op_name)
+      if op.dependent_names:
+        op.dependent_names = [
+            sanitize_k8s_name(name) for name in op.dependent_names
+        ]
+      if isinstance(op, dsl.ContainerOp) and op.file_outputs is not None:
+        sanitized_file_outputs = {}
+        for key in op.file_outputs.keys():
+          sanitized_file_outputs[sanitize_k8s_name(key,
+                                                   True)] = op.file_outputs[key]
+        op.file_outputs = sanitized_file_outputs
+      elif isinstance(op, dsl.ResourceOp) and op.attribute_outputs is not None:
+        sanitized_attribute_outputs = {}
+        for key in op.attribute_outputs.keys():
+          sanitized_attribute_outputs[sanitize_k8s_name(key, True)] = \
+            op.attribute_outputs[key]
+        op.attribute_outputs = sanitized_attribute_outputs
+      if isinstance(op, dsl.ContainerOp):
+        if op.input_artifact_paths:
+          op.input_artifact_paths = {
+              sanitize_k8s_name(key, True): value
+              for key, value in op.input_artifact_paths.items()
+          }
+        if op.artifact_arguments:
+          op.artifact_arguments = {
+              sanitize_k8s_name(key, True): value
+              for key, value in op.artifact_arguments.items()
+          }
+      sanitized_ops[sanitized_name] = op
+    pipeline.ops = sanitized_ops
 
   # The name of this method is used to check if compiling for v2.
   # See `is_compiling_for_v2` in `kfp/dsl/_component_bridge.py`
@@ -948,6 +1026,8 @@ class Compiler(object):
 
     with dsl.Pipeline(pipeline_name) as dsl_pipeline:
       pipeline_func(*args_list)
+
+    self._sanitize_and_inject_artifact(dsl_pipeline)
 
     # Fill in the default values.
     args_list_with_defaults = []
