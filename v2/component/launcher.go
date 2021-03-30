@@ -35,6 +35,7 @@ import (
 
 	"gocloud.dev/blob"
 	_ "gocloud.dev/blob/gcsblob"
+	_ "gocloud.dev/blob/s3blob"
 )
 
 // Launcher is used to launch KFP components. It handles the recording of the
@@ -99,8 +100,8 @@ func parseBucketConfig(path string) (*bucketConfig, error) {
 		return nil, fmt.Errorf("Unrecognized pipeline root format: %q", path)
 	}
 
-	// TODO: Verify/add support for s3:// and file:///.
-	if ms[1] != "gs://" {
+	// TODO: Verify/add support for file:///.
+	if ms[1] != "gs://" && ms[1] != "s3://"{
 		return nil, fmt.Errorf("Unsupported Cloud bucket: %q", path)
 	}
 
@@ -179,6 +180,7 @@ func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error
 }
 
 func (l *Launcher) prepareInputs(ctx context.Context) error {
+	fmt.Printf("bucket URL is %s", l.bucketConfig.bucketURL())
 	bucket, err := blob.OpenBucket(context.Background(), l.bucketConfig.bucketURL())
 	if err != nil {
 		return fmt.Errorf("Failed to open bucket %q: %v", l.bucketConfig.bucketName, err)

@@ -87,6 +87,16 @@ func Test_parseCloudBucket(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "Parses Minio - Bucket with query string",
+			path: "s3://my-bucket?region=minio&endpoint=minio-service.kubeflow:9000&disableSSL=true&s3ForcePathStyle=true",
+			want: &bucketConfig{
+				scheme:     "s3://",
+				bucketName: "my-bucket?region=minio&endpoint=minio-service.kubeflow:9000&disableSSL=true&s3ForcePathStyle=true",
+				prefix:     "",
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
