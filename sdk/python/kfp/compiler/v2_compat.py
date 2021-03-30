@@ -14,6 +14,7 @@
 """Utility functions for enabling v2-compatible pipelines in v1."""
 import collections
 import json
+from typing import Optional
 
 from kfp import dsl
 from kfp.compiler import _default_transformers
@@ -22,14 +23,13 @@ from kfp.v2 import compiler
 
 from kubernetes import client as k8s_client
 
-_LAUNCHER_CONTAINER = dsl.UserContainer(name="kfp-launcher",
-                                        image="gcr.io/ml-pipeline/kfp-launcher",
-                                        command="/bin/mount_launcher.sh",
-                                        mirror_volume_mounts=True)
+_DEFAULT_LAUNCHER_IMAGE = "gcr.io/ml-pipeline/kfp-launcher"
 
 
-def update_op(op: dsl.ContainerOp, pipeline_name: dsl.PipelineParam,
-              pipeline_root: dsl.PipelineParam) -> None:
+def update_op(op: dsl.ContainerOp,
+              pipeline_name: dsl.PipelineParam,
+              pipeline_root: dsl.PipelineParam,
+              launcher_image: Optional[str] = None) -> None:
   """Updates the passed in Op for running in v2-compatible mode.
 
     Args:
@@ -37,9 +37,16 @@ def update_op(op: dsl.ContainerOp, pipeline_name: dsl.PipelineParam,
       pipeline_spec: The PipelineSpec for the pipeline under which `op`
         runs.
       pipeline_root: The root output directory for pipeline artifacts.
+      launcher_image: An optional launcher image. Useful for tests.
     """
   # Inject the launcher binary and overwrite the entrypoint.
-  op.add_init_container(_LAUNCHER_CONTAINER)
+  image_name = launcher_image or _DEFAULT_LAUNCHER_IMAGE
+  launcher_container = dsl.UserContainer(name="kfp-launcher",
+                                         image=image_name,
+                                         command="/bin/mount_launcher.sh",
+                                         mirror_volume_mounts=True)
+
+  op.add_init_container(launcher_container)
   op.add_volume(k8s_client.V1Volume(name='kfp-launcher'))
   op.add_volume_mount(
       k8s_client.V1VolumeMount(name='kfp-launcher', mount_path='/kfp-launcher'))

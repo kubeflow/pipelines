@@ -50,14 +50,10 @@
         }
       },
       "inputDefinitions": {
-        "artifacts": {
-          "input_location": {
-            "artifactType": {
-              "instanceSchema": "title: kfp.Artifact\ntype: object\n"
-            }
-          }
-        },
         "parameters": {
+          "input_location": {
+            "type": "STRING"
+          },
           "n_epochs": {
             "type": "INT"
           },
@@ -115,7 +111,7 @@
           "artifacts": {
             "examples": {
               "artifactType": {
-                "instanceSchema": "title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string"
+                "instanceSchema": "title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string\n"
               }
             }
           }
@@ -134,7 +130,7 @@
           "artifacts": {
             "examples": {
               "artifactType": {
-                "instanceSchema": "title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string"
+                "instanceSchema": "title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string\n"
               }
             }
           }

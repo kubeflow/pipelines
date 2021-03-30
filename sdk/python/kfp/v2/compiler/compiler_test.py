@@ -59,7 +59,7 @@ class CompilerTest(unittest.TestCase):
       """)
 
       @dsl.pipeline(name='two-step-pipeline')
-      def simple_pipeline(pipeline_input='Hello KFP!'):
+      def simple_pipeline(pipeline_input:str='Hello KFP!'):
         producer = producer_op(input_param=pipeline_input)
         consumer = consumer_op(
             input_model=producer.outputs['output_model'],
@@ -372,24 +372,6 @@ class CompilerTest(unittest.TestCase):
       self.assertTrue('gcsOutputDirectory' not in job_spec['runtimeConfig'])
     finally:
       shutil.rmtree(tmpdir)
-
-  def test_task_input_contain_placedholder_should_fail(self):
-
-    @components.create_component_from_func
-    def print_op(s: str):
-      print(s)
-
-    @dsl.pipeline(
-        name='pipeline-with-placeholder-in-input-argument',
-        pipeline_root='dummy')
-    def my_pipeline(name: str = 'KFP'):
-      print_op('Hello {}'.format(name))
-
-    with self.assertRaisesRegex(
-        NotImplementedError,
-        'a component input can only accept either a constant value or '
-        'a reference to another pipeline parameter.'):
-      compiler.Compiler().compile(my_pipeline, 'dummy')
 
 
 if __name__ == '__main__':

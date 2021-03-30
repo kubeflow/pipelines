@@ -36,7 +36,7 @@ spec:
         - name: hooks
           mountPath: /hooks
         ports:
-        - containerPort: 80
+        - containerPort: 8080
       volumes:
       - name: hooks
         configMap:

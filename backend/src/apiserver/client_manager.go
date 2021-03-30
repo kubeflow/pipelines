@@ -25,6 +25,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -54,6 +55,9 @@ const (
 	visualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
 
 	initConnectionTimeout = "InitConnectionTimeout"
+
+	clientQPS   = "ClientQPS"
+	clientBurst = "ClientBurst"
 )
 
 // Container for all service clients
@@ -71,9 +75,11 @@ type ClientManager struct {
 	swfClient                 client.SwfClientInterface
 	k8sCoreClient             client.KubernetesCoreInterface
 	subjectAccessReviewClient client.SubjectAccessReviewInterface
+	tokenReviewClient         client.TokenReviewInterface
 	logArchive                archive.LogArchiveInterface
 	time                      util.TimeInterface
 	uuid                      util.UUIDGeneratorInterface
+	authenticators            []auth.Authenticator
 }
 
 func (c *ClientManager) ExperimentStore() storage.ExperimentStoreInterface {
@@ -124,6 +130,10 @@ func (c *ClientManager) SubjectAccessReviewClient() client.SubjectAccessReviewIn
 	return c.subjectAccessReviewClient
 }
 
+func (c *ClientManager) TokenReviewClient() client.TokenReviewInterface {
+	return c.tokenReviewClient
+}
+
 func (c *ClientManager) LogArchive() archive.LogArchiveInterface {
 	return c.logArchive
 }
@@ -134,6 +144,10 @@ func (c *ClientManager) Time() util.TimeInterface {
 
 func (c *ClientManager) UUID() util.UUIDGeneratorInterface {
 	return c.uuid
+}
+
+func (c *ClientManager) Authenticators() []auth.Authenticator {
+	return c.authenticators
 }
 
 func (c *ClientManager) init() {
@@ -155,11 +169,18 @@ func (c *ClientManager) init() {
 	c.defaultExperimentStore = storage.NewDefaultExperimentStore(db)
 	c.objectStore = initMinioClient(common.GetDurationConfig(initConnectionTimeout))
 
-	c.argoClient = client.NewArgoClientOrFatal(common.GetDurationConfig(initConnectionTimeout))
+	// Use default value of client QPS (5) & burst (10) defined in
+	// k8s.io/client-go/rest/config.go#RESTClientFor
+	clientParams := util.ClientParameters{
+		QPS:   common.GetFloat64ConfigWithDefault(clientQPS, 5),
+		Burst: common.GetIntConfigWithDefault(clientBurst, 10),
+	}
 
-	c.swfClient = client.NewScheduledWorkflowClientOrFatal(common.GetDurationConfig(initConnectionTimeout))
+	c.argoClient = client.NewArgoClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 
-	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout))
+	c.swfClient = client.NewScheduledWorkflowClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
+
+	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 
 	runStore := storage.NewRunStore(db, c.time)
 	c.runStore = runStore
@@ -168,7 +189,9 @@ func (c *ClientManager) init() {
 	c.logArchive = initLogArchive()
 
 	if common.IsMultiUserMode() {
-		c.subjectAccessReviewClient = client.CreateSubjectAccessReviewClientOrFatal(common.GetDurationConfig(initConnectionTimeout))
+		c.subjectAccessReviewClient = client.CreateSubjectAccessReviewClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
+		c.tokenReviewClient = client.CreateTokenReviewClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
+		c.authenticators = auth.GetAuthenticators(c.tokenReviewClient)
 	}
 	glog.Infof("Client manager initialized successfully")
 }

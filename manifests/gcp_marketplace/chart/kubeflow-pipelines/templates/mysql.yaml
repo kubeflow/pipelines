@@ -1,4 +1,11 @@
 apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mysql
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+---
+apiVersion: v1
 kind: Service
 metadata:
   name: mysql
@@ -35,6 +42,7 @@ spec:
         app: cloudsqlproxy
         app.kubernetes.io/name: {{ .Release.Name }}
     spec:
+      serviceAccountName: mysql
       containers:
         - image: {{ .Values.images.cloudsqlproxy}}
           name: cloudsqlproxy
@@ -108,12 +116,19 @@ spec:
         app: mysql
         app.kubernetes.io/name: {{ .Release.Name }}
     spec:
+      serviceAccountName: mysql
       containers:
-        - env:
+        - name: mysql
+          image: {{ .Values.images.mysql }}
+          args:
+          # https://dev.mysql.com/doc/refman/5.7/en/server-options.html#option_mysqld_ignore-db-dir
+          # Ext4, Btrfs etc. volumes root directories have a lost+found directory that should not be treated as a database.
+          - --ignore-db-dir=lost+found
+          - --datadir
+          - /var/lib/mysql
+          env:
             - name: MYSQL_ALLOW_EMPTY_PASSWORD
               value: "true"
-          image: {{ .Values.images.mysql }}
-          name: mysql
           ports:
             - containerPort: 3306
               name: mysql

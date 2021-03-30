@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 
@@ -32,23 +33,25 @@ import (
 )
 
 const (
-	KFPCacheEnabledLabelKey   string = "pipelines.kubeflow.org/cache_enabled"
-	KFPCacheEnabledLabelValue string = "true"
-	KFPCachedLabelKey         string = "pipelines.kubeflow.org/reused_from_cache"
-	KFPCachedLabelValue       string = "true"
-	ArgoWorkflowNodeName      string = "workflows.argoproj.io/node-name"
-	ArgoWorkflowTemplate      string = "workflows.argoproj.io/template"
-	ExecutionKey              string = "pipelines.kubeflow.org/execution_cache_key"
-	CacheIDLabelKey           string = "pipelines.kubeflow.org/cache_id"
-	ArgoWorkflowOutputs       string = "workflows.argoproj.io/outputs"
-	MetadataWrittenKey        string = "pipelines.kubeflow.org/metadata_written"
-	AnnotationPath            string = "/metadata/annotations"
-	LabelPath                 string = "/metadata/labels"
-	SpecContainersPath        string = "/spec/containers"
-	SpecInitContainersPath    string = "/spec/initContainers"
-	TFXPodSuffix              string = "tfx/orchestration/kubeflow/container_entrypoint.py"
-	SdkTypeLabel              string = "pipelines.kubeflow.org/pipeline-sdk-type"
-	TfxSdkTypeLabel           string = "tfx"
+	KFPCacheEnabledLabelKey    string = "pipelines.kubeflow.org/cache_enabled"
+	KFPCacheEnabledLabelValue  string = "true"
+	KFPCachedLabelKey          string = "pipelines.kubeflow.org/reused_from_cache"
+	KFPCachedLabelValue        string = "true"
+	ArgoWorkflowNodeName       string = "workflows.argoproj.io/node-name"
+	ArgoWorkflowTemplate       string = "workflows.argoproj.io/template"
+	ExecutionKey               string = "pipelines.kubeflow.org/execution_cache_key"
+	CacheIDLabelKey            string = "pipelines.kubeflow.org/cache_id"
+	ArgoWorkflowOutputs        string = "workflows.argoproj.io/outputs"
+	MetadataWrittenKey         string = "pipelines.kubeflow.org/metadata_written"
+	AnnotationPath             string = "/metadata/annotations"
+	LabelPath                  string = "/metadata/labels"
+	SpecContainersPath         string = "/spec/containers"
+	SpecInitContainersPath     string = "/spec/initContainers"
+	TFXPodSuffix               string = "tfx/orchestration/kubeflow/container_entrypoint.py"
+	SdkTypeLabel               string = "pipelines.kubeflow.org/pipeline-sdk-type"
+	TfxSdkTypeLabel            string = "tfx"
+	V2ComponentAnnotationKey   string = "pipelines.kubeflow.org/v2_component"
+	V2ComponentAnnotationValue string = "true"
 )
 
 var (
@@ -88,6 +91,12 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 
 	if isTFXPod(&pod) {
 		log.Printf("This pod %s is created by tfx pipelines.", pod.ObjectMeta.Name)
+		return nil, nil
+	}
+
+	if isV2Pod(&pod) {
+		// KFP v2 handles caching by its driver.
+		log.Printf("This pod %s is created by KFP v2 pipelines.", pod.ObjectMeta.Name)
 		return nil, nil
 	}
 
@@ -133,9 +142,15 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 		labels[MetadataExecutionIDKey] = getValueFromSerializedMap(cachedExecution.ExecutionOutput, MetadataExecutionIDKey)
 		labels[MetadataWrittenKey] = "true"
 
+		// Image selected from Google Container Register(gcr) for it small size, gcr since there
+		// is not image pull rate limit. For more info see issue: https://github.com/kubeflow/pipelines/issues/4099
+		image := "gcr.io/google-containers/busybox"
+		if v, ok := os.LookupEnv("CACHE_IMAGE"); ok {
+			image = v
+		}
 		dummyContainer := corev1.Container{
 			Name:    "main",
-			Image:   "alpine",
+			Image:   image,
 			Command: []string{`echo`, `"This step output is taken from cache."`},
 		}
 		dummyContainers := []corev1.Container{
@@ -205,6 +220,7 @@ func generateCacheKeyFromTemplate(template string) (string, error) {
 			"volumeMounts": nil,
 		},
 		"inputs":         nil,
+		"outputs":        nil,  // Output artifact/parameter names and paths are important and need to be considered. We can include the whole section since Argo does not seem to put the artifact s3 specifications here, leaving them in archiveLocation.
 		"volumes":        nil,
 		"initContainers": nil,
 		"sidecars":       nil,
@@ -267,4 +283,8 @@ func isTFXPod(pod *corev1.Pod) bool {
 	}
 	mainContainer := mainContainers[0]
 	return len(mainContainer.Command) != 0 && strings.HasSuffix(mainContainer.Command[len(mainContainer.Command)-1], TFXPodSuffix)
+}
+
+func isV2Pod(pod *corev1.Pod) bool {
+	return pod.Annotations[V2ComponentAnnotationKey] == V2ComponentAnnotationValue
 }

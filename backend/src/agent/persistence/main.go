@@ -43,6 +43,8 @@ var (
 	namespace                     string
 	ttlSecondsAfterWorkflowFinish int64
 	numWorker                     int
+	clientQPS                     float64
+	clientBurst                   int
 )
 
 const (
@@ -57,6 +59,8 @@ const (
 	namespaceFlagName                     = "namespace"
 	ttlSecondsAfterWorkflowFinishFlagName = "ttlSecondsAfterWorkflowFinish"
 	numWorkerName                         = "numWorker"
+	clientQPSFlagName                     = "clientQPS"
+	clientBurstFlagName                   = "clientBurst"
 )
 
 func main() {
@@ -69,6 +73,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error building kubeconfig: %s", err.Error())
 	}
+	cfg.QPS = float32(clientQPS)
+	cfg.Burst = clientBurst
 
 	swfClient, err := swfclientset.NewForConfig(cfg)
 	if err != nil {
@@ -128,4 +134,8 @@ func init() {
 	flag.StringVar(&namespace, namespaceFlagName, "", "The namespace name used for Kubernetes informers to obtain the listers.")
 	flag.Int64Var(&ttlSecondsAfterWorkflowFinish, ttlSecondsAfterWorkflowFinishFlagName, 604800 /* 7 days */, "The TTL for Argo workflow to persist after workflow finish.")
 	flag.IntVar(&numWorker, numWorkerName, 2, "Number of worker for sync job.")
+	// Use default value of client QPS (5) & burst (10) defined in
+	// k8s.io/client-go/rest/config.go#RESTClientFor
+	flag.Float64Var(&clientQPS, clientQPSFlagName, 5, "The maximum QPS to the master from this client.")
+	flag.IntVar(&clientBurst, clientBurstFlagName, 10, "Maximum burst for throttle from this client.")
 }

@@ -93,8 +93,7 @@ describe('RunDetails', () => {
   let terminateRunSpy: any;
   let artifactTypesSpy: any;
   let formatDateStringSpy: any;
-  let getTfxRunContextSpy: any;
-  let getKfpRunContextSpy: any;
+  let getRunContextSpy: any;
   let warnSpy: any;
 
   let testRun: ApiRunDetail = {};
@@ -158,11 +157,8 @@ describe('RunDetails', () => {
     // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
     // test environments
     formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
-    getTfxRunContextSpy = jest.spyOn(MlmdUtils, 'getTfxRunContext').mockImplementation(() => {
-      throw new Error('cannot find tfx run context');
-    });
-    getKfpRunContextSpy = jest.spyOn(MlmdUtils, 'getKfpRunContext').mockImplementation(() => {
-      throw new Error('cannot find kfp run context');
+    getRunContextSpy = jest.spyOn(MlmdUtils, 'getRunContext').mockImplementation(() => {
+      throw new Error('cannot find run context');
     });
     // Hide expected warning messages
     warnSpy = jest.spyOn(Utils.logger, 'warn').mockImplementation();

@@ -7666,6 +7666,7 @@ exports[`RunList renders status as icon 1`] = `
     }
   >
     <pure(CheckCircleIcon)
+      data-testid="node-status-sign"
       style={
         Object {
           "color": "#34a853",

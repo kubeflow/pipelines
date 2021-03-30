@@ -46,11 +46,9 @@
         }
       },
       "inputDefinitions": {
-        "artifacts": {
+        "parameters": {
           "text": {
-            "artifactType": {
-              "instanceSchema": "title: kfp.Artifact\ntype: object\n"
-            }
+            "type": "STRING"
           }
         }
       }

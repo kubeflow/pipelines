@@ -164,6 +164,14 @@ class Client(object):
       config.ssl_ca_cert = ssl_ca_cert
 
     host = host or ''
+
+    # Defaults to 'https' if host does not contain 'http' or 'https' protocol.
+    if host and not host.startswith('http'):
+      warnings.warn(
+          'The host %s does not contain the "http" or "https" protocol.'
+          ' Defaults to "https".' % host)
+      host = 'https://' + host
+
     # Preprocess the host endpoint to prevent some common user mistakes.
     if not client_id:
       # always preserving the protocol (http://localhost requires it)
@@ -444,14 +452,41 @@ class Client(object):
       raise ValueError('Either experiment_id or experiment_name is required')
     if experiment_id is not None:
       return self._experiment_api.get_experiment(id=experiment_id)
-    next_page_token = ''
-    while next_page_token is not None:
-      list_experiments_response = self.list_experiments(page_size=100, page_token=next_page_token, namespace=namespace)
-      next_page_token = list_experiments_response.next_page_token
-      for experiment in list_experiments_response.experiments or []:
-        if experiment.name == experiment_name:
-          return self._experiment_api.get_experiment(id=experiment.id)
-    raise ValueError('No experiment is found with name {}.'.format(experiment_name))
+    experiment_filter = json.dumps({ 
+        "predicates": [ 
+          { 
+            "op":  _FILTER_OPERATIONS["EQUALS"], 
+            "key": "name", 
+            "stringValue": experiment_name, 
+          }
+        ] 
+      })
+    if namespace:
+      result = self._experiment_api.list_experiment(
+        filter=experiment_filter,
+        resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.NAMESPACE, 
+        resource_reference_key_id=namespace)
+    else:
+      result = self._experiment_api.list_experiment(filter=experiment_filter)
+    if not result.experiments:
+      raise ValueError('No experiment is found with name {}.'.format(experiment_name))
+    if len(result.experiments) > 1:
+      raise ValueError('Multiple experiments is found with name {}.'.format(experiment_name))
+    return result.experiments[0]
+
+  def delete_experiment(self, experiment_id):
+    """Delete experiment.
+
+    Args:
+      experiment_id: id of the experiment.
+
+    Returns:
+      Object. If the method is called asynchronously, returns the request thread.
+
+    Throws:
+      Exception if experiment is not found.
+    """
+    return self._experiment_api.delete_experiment(id=experiment_id)
 
   def _extract_pipeline_yaml(self, package_file):
     def _choose_pipeline_yaml_file(file_list) -> str:
@@ -668,7 +703,8 @@ class Client(object):
       experiment_name: Optional[str] = None,
       pipeline_conf: Optional[dsl.PipelineConf] = None,
       namespace: Optional[str] = None,
-      mode: dsl.PipelineExecutionMode = dsl.PipelineExecutionMode.V1_LEGACY):
+      mode: dsl.PipelineExecutionMode = dsl.PipelineExecutionMode.V1_LEGACY,
+      launcher_image: Optional[str] = None):
     """Runs pipeline on KFP-enabled Kubernetes cluster.
 
     This command compiles the pipeline function, creates or gets an experiment and submits the pipeline for execution.
@@ -685,13 +721,16 @@ class Client(object):
         For multi user, input a namespace where the user is authorized
       mode: The PipelineExecutionMode to use when compiling and running
         pipeline_func.
+      launcher_image: The launcher image to use if the mode is specified as
+        PipelineExecutionMode.V2_COMPATIBLE. Should only be needed for tests
+        or custom deployments right now.
     """
     #TODO: Check arguments against the pipeline function
     pipeline_name = pipeline_func.__name__
     run_name = run_name or pipeline_name + ' ' + datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
     with tempfile.TemporaryDirectory() as tmpdir:
       pipeline_package_path = os.path.join(tmpdir, 'pipeline.yaml')
-      compiler.Compiler(mode=mode).compile(
+      compiler.Compiler(mode=mode, launcher_image=launcher_image).compile(
         pipeline_func=pipeline_func,
         package_path=pipeline_package_path,
         pipeline_conf=pipeline_conf)

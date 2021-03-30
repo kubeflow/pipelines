@@ -202,6 +202,7 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
         }
       >
         <pure(CheckCircleIcon)
+          data-testid="node-status-sign"
           style={
             Object {
               "color": "#34a853",
@@ -237,6 +238,7 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
         }
       >
         <pure(ScheduleIcon)
+          data-testid="node-status-sign"
           style={
             Object {
               "color": "#9aa0a6",
@@ -272,6 +274,7 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
         }
       >
         <pure(ErrorIcon)
+          data-testid="node-status-sign"
           style={
             Object {
               "color": "#d50000",
@@ -307,6 +310,7 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
         }
       >
         <pure(HelpIcon)
+          data-testid="node-status-sign"
           style={
             Object {
               "color": "#5f6368",
@@ -342,6 +346,7 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
         }
       >
         <pure(CheckCircleIcon)
+          data-testid="node-status-sign"
           style={
             Object {
               "color": "#34a853",

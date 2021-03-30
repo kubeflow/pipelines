@@ -6,21 +6,15 @@
     "sdkVersion": "kfp-1.3.0",
     "root": {
       "inputDefinitions": {
-        "artifacts": {
+        "parameters": {
           "input2": {
-            "artifactType": {
-              "instanceSchema": "title: kfp.Artifact\ntype: object\n"
-            }
+            "type": "STRING"
           },
           "input1": {
-            "artifactType": {
-              "instanceSchema": "title: kfp.Artifact\ntype: object\n"
-            }
+            "type": "STRING"
           },
           "input0": {
-            "artifactType": {
-              "instanceSchema": "title: kfp.Artifact\ntype: object\n"
-            }
+            "type": "STRING"
           }
         }
       },

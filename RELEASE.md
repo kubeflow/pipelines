@@ -179,12 +179,6 @@ Note, when releasing from master, all the below mentions of "release branch" mea
     - ...
     Contact @Bobgy if you are not sure what next version should be.
 
-1. Verify all the required tools are installed properly:
-
-    ```bash
-    ./hack/check-release-needed-tools.sh
-    ```
-
 1. Update all version refs in release branch by
 
     ```bash

@@ -60,7 +60,7 @@ const ARTIFACT_PROPERTY_REPOS = [ArtifactProperties, ArtifactCustomProperties];
 const PIPELINE_WORKSPACE_FIELDS = ['RUN_ID', 'PIPELINE_NAME', 'WORKSPACE'];
 const NAME_FIELDS = ['NAME'];
 
-class ArtifactList extends Page<{}, ArtifactListState> {
+export class ArtifactList extends Page<{}, ArtifactListState> {
   private tableRef = React.createRef<CustomTable>();
   private api = Api.getInstance();
   private artifactTypesMap: Map<number, ArtifactType>;
@@ -162,7 +162,7 @@ class ArtifactList extends Page<{}, ArtifactListState> {
         className={commonCss.link}
         to={RoutePageFactory.artifactDetails(Number(props.id))}
       >
-        {props.value}
+        <u>{props.value}</u>
       </Link>
     );
   };

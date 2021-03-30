@@ -24,7 +24,7 @@ _EXPECTED_COMPONENT_SPEC = {
         'artifacts': {
             'examples': {
                 'artifactType': {
-                    'instanceSchema': 'title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string'}}},
+                    'instanceSchema': 'title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string\n'}}},
         'parameters': {
             'optimizer': {'type': 'STRING'}
         }

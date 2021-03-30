@@ -36,13 +36,39 @@ class TypeUtilsTest(unittest.TestCase):
       self.assertFalse(type_utils.is_parameter_type(type_name))
 
   def test_get_artifact_type_schema(self):
-    self.assertEqual('title: kfp.Model\ntype: object\nproperties:\n  framework:\n    type: string\n  framework_version:\n    type: string\n',
-                     type_utils.get_artifact_type_schema('Model'))
-    self.assertEqual('title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string',
-                     type_utils.get_artifact_type_schema('Dataset'))
+    self.assertTrue(
+        'title: kfp.Model' in type_utils.get_artifact_type_schema('Model'))
+    self.assertTrue(
+        'title: kfp.Dataset' in type_utils.get_artifact_type_schema('Dataset'))
+    self.assertTrue(
+        'title: kfp.Metrics' in type_utils.get_artifact_type_schema('Metrics'))
+    self.assertTrue('title: kfp.ClassificationMetrics' in type_utils
+                    .get_artifact_type_schema('ClassificationMetrics'))
+    self.assertTrue('title: kfp.SlicedClassificationMetrics' in type_utils
+                    .get_artifact_type_schema('SlicedClassificationMetrics'))
+
     for type_name in _UNKNOWN_ARTIFACT_TYPES:
       self.assertEqual('title: kfp.Artifact\ntype: object\n',
                        type_utils.get_artifact_type_schema(type_name))
+
+  def test_get_artifact_type_schema_message(self):
+    self.assertTrue('title: kfp.SlicedClassificationMetrics' in
+                    type_utils.get_artifact_type_schema_message(
+                        'SlicedClassificationMetrics').instance_schema)
+    self.assertTrue('title: kfp.Model' in type_utils
+                    .get_artifact_type_schema_message('Model').instance_schema)
+    self.assertTrue(
+        'title: kfp.Dataset' in type_utils.get_artifact_type_schema_message(
+            'Dataset').instance_schema)
+    self.assertTrue(
+        'title: kfp.Metrics' in type_utils.get_artifact_type_schema_message(
+            'Metrics').instance_schema)
+    self.assertTrue('title: kfp.ClassificationMetrics' in
+                    type_utils.get_artifact_type_schema_message(
+                        'ClassificationMetrics').instance_schema)
+    self.assertTrue('title: kfp.SlicedClassificationMetrics' in
+                    type_utils.get_artifact_type_schema_message(
+                        'SlicedClassificationMetrics').instance_schema)
 
   def test_get_parameter_type(self):
     # Test get parameter type by name.

@@ -98,7 +98,7 @@ spec:
           {"parameterType": "INT", "fileOutputPath": "/tmp/outputs/output_parameter_one/data"}},
           "outputArtifacts": {"output_dataset_one": {"artifactSchema": "title: kfp.Dataset\ntype:
           object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type:
-          string", "fileOutputPath": "/tmp/outputs/output_dataset_one/data"}}}'}
+          string\n", "fileOutputPath": "/tmp/outputs/output_dataset_one/data"}}}'}
       envFrom:
       - configMapRef: {name: metadata-grpc-configmap, optional: true}
       image: python:3.9
