@@ -178,10 +178,10 @@
   "runtimeConfig": {
     "parameters": {
       "b": {
-        "stringValue": "5"
+        "intValue": "5"
       },
       "a": {
-        "stringValue": "2"
+        "intValue": "2"
       }
     },
     "gcsOutputDirectory": "dummy_root"

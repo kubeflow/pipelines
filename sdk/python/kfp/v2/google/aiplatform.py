@@ -20,8 +20,8 @@ from kfp import dsl
 from kfp.components import _structures
 from kfp.dsl import artifact
 from kfp.pipeline_spec import pipeline_spec_pb2
-from kfp.v2.dsl import dsl_utils
-from kfp.v2.dsl import type_utils
+from kfp.dsl import dsl_utils
+from kfp.dsl import type_utils
 
 _AIPlatformCustomJobSpec = pipeline_spec_pb2.PipelineDeploymentConfig.AIPlatformCustomJobSpec
 _DUMMY_CONTAINER_OP_IMAGE = 'dummy/image'

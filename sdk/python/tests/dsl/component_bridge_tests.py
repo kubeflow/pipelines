@@ -20,7 +20,7 @@ import kfp
 from pathlib import Path
 from kfp.components import load_component_from_text, create_component_from_func
 from kfp.dsl.types import InconsistentTypeException
-
+from kfp.dsl import PipelineParam
 
 class TestComponentBridge(unittest.TestCase):
     # Alternatively, we could use kfp.dsl.Pipleine().__enter__ and __exit__
@@ -243,6 +243,10 @@ class TestComponentBridge(unittest.TestCase):
 
         with self.assertWarnsRegex(FutureWarning, expected_regex='reusable'):
             kfp.dsl.ContainerOp(name='name', image='image')
+
+        with self.assertWarnsRegex(FutureWarning, expected_regex='reusable'):
+            kfp.dsl.ContainerOp(name='name', image='image', arguments=[PipelineParam('param1'), PipelineParam('param2')])
+
 
     def test_prevent_passing_container_op_as_argument(self):
         component_text = textwrap.dedent('''\

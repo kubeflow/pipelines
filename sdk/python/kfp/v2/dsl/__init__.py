@@ -12,4 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.dsl import *
+from kfp.v2.dsl.component_decorator import component
+from kfp.dsl import (
+    graph_component,
+    pipeline,
+    Condition,
+    ContainerOp,
+    ExitHandler,
+    ParallelFor,
+)
