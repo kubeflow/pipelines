@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Module for creating pipeline component definitions based on Model Builder SDK."""
+"""Module for creating pipeline components based on AI Platform SDK."""
 
 import inspect
 import kfp
