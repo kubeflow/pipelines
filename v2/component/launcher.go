@@ -180,7 +180,6 @@ func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error
 }
 
 func (l *Launcher) prepareInputs(ctx context.Context) error {
-	fmt.Printf("bucket URL is %s", l.bucketConfig.bucketURL())
 	bucket, err := blob.OpenBucket(context.Background(), l.bucketConfig.bucketURL())
 	if err != nil {
 		return fmt.Errorf("Failed to open bucket %q: %v", l.bucketConfig.bucketName, err)
