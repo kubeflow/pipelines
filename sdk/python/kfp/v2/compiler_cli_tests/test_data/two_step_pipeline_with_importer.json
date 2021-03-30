@@ -209,7 +209,7 @@
   "runtimeConfig": {
     "parameters": {
       "epochs": {
-        "stringValue": "200"
+        "intValue": "200"
       },
       "optimizer": {
         "stringValue": "sgd"

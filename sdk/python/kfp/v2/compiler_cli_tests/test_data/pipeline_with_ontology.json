@@ -158,7 +158,7 @@
         "stringValue": "gs://test-bucket/pipeline_root"
       },
       "n_epochs": {
-        "stringValue": "200"
+        "intValue": "200"
       }
     },
     "gcsOutputDirectory": "dummy_root"

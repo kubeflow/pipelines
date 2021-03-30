@@ -166,7 +166,7 @@
         "stringValue": "sgd"
       },
       "n_epochs": {
-        "stringValue": "200"
+        "intValue": "200"
       }
     },
     "gcsOutputDirectory": "dummy_root"
