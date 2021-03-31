@@ -68,9 +68,6 @@
             },
             "required_input": {
               "type": "STRING"
-            },
-            "optional_input_2": {
-              "type": "STRING"
             }
           }
         },

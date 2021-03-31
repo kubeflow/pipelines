@@ -52,6 +52,8 @@ class ComponentSpecTest(parameterized.TestCase):
                 name='input2', description='input2 desc', type='String'),
             structures.InputSpec(
                 name='input3', description='input3 desc', type='Integer'),
+            structures.InputSpec(
+                name='input4', description='optional inputs', optional=True),
         ],
         outputs=[
             structures.OutputSpec(
@@ -97,7 +99,10 @@ class ComponentSpecTest(parameterized.TestCase):
 
     component_spec = (
         dsl_component_spec.build_component_spec_from_structure(
-            structure_component_spec))
+            component_spec=structure_component_spec,
+            executor_label='exec-component1',
+            actual_inputs=['input1', 'input2', 'input3'],
+        ))
 
     self.assertEqual(expected_spec, component_spec)
 

@@ -75,6 +75,16 @@
         },
         "executorLabel": "exec-print-msg"
       },
+      "comp-print-msg-2": {
+        "inputDefinitions": {
+          "parameters": {
+            "msg": {
+              "type": "STRING"
+            }
+          }
+        },
+        "executorLabel": "exec-print-msg-2"
+      },
       "comp-flip-coin": {
         "outputDefinitions": {
           "parameters": {
@@ -84,6 +94,16 @@
           }
         },
         "executorLabel": "exec-flip-coin"
+      },
+      "comp-flip-coin-2": {
+        "outputDefinitions": {
+          "parameters": {
+            "Output": {
+              "type": "STRING"
+            }
+          }
+        },
+        "executorLabel": "exec-flip-coin-2"
       },
       "comp-condition-1": {
         "dag": {
@@ -96,7 +116,7 @@
                 "name": "task-print-msg-2"
               },
               "componentRef": {
-                "name": "comp-print-msg"
+                "name": "comp-print-msg-2"
               },
               "inputs": {
                 "parameters": {
@@ -114,7 +134,7 @@
                 "name": "task-flip-coin-2"
               },
               "componentRef": {
-                "name": "comp-flip-coin"
+                "name": "comp-flip-coin-2"
               }
             }
           }
@@ -145,7 +165,37 @@
             "image": "python:3.7"
           }
         },
+        "exec-print-msg-2": {
+          "container": {
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def print_msg(msg):\n  \"\"\"Print a message.\"\"\"\n  print(msg)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Print msg', description='Print a message.')\n_parser.add_argument(\"--msg\", dest=\"msg\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = print_msg(**_parsed_args)\n"
+            ],
+            "args": [
+              "--msg",
+              "{{$.inputs.parameters['msg']}}"
+            ],
+            "image": "python:3.7"
+          }
+        },
         "exec-flip-coin": {
+          "container": {
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def flip_coin():\n  \"\"\"Flip a coin and output heads or tails randomly.\"\"\"\n  import random\n  result = 'heads' if random.randint(0, 1) == 0 else 'tails'\n  return result\n\ndef _serialize_str(str_value: str) -> str:\n    if not isinstance(str_value, str):\n        raise TypeError('Value \"{}\" has type \"{}\" instead of str.'.format(str(str_value), str(type(str_value))))\n    return str_value\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Flip coin', description='Flip a coin and output heads or tails randomly.')\n_parser.add_argument(\"----output-paths\", dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = flip_coin(**_parsed_args)\n\n_outputs = [_outputs]\n\n_output_serializers = [\n    _serialize_str,\n\n]\n\nimport os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except OSError:\n        pass\n    with open(output_file, 'w') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"
+            ],
+            "args": [
+              "----output-paths",
+              "{{$.outputs.parameters['Output'].output_file}}"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-flip-coin-2": {
           "container": {
             "command": [
               "sh",

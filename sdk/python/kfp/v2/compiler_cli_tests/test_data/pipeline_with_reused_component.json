@@ -15,6 +15,32 @@
               "{{$.outputs.parameters['sum'].output_file}}"
             ]
           }
+        },
+        "exec-add-2": {
+          "container": {
+            "image": "google/cloud-sdk:latest",
+            "command": [
+              "sh",
+              "-c",
+              "set -e -x\necho \"$(($0+$1))\" | gsutil cp - \"$2\"\n",
+              "{{$.inputs.parameters['op1']}}",
+              "{{$.inputs.parameters['op2']}}",
+              "{{$.outputs.parameters['sum'].output_file}}"
+            ]
+          }
+        },
+        "exec-add-3": {
+          "container": {
+            "image": "google/cloud-sdk:latest",
+            "command": [
+              "sh",
+              "-c",
+              "set -e -x\necho \"$(($0+$1))\" | gsutil cp - \"$2\"\n",
+              "{{$.inputs.parameters['op1']}}",
+              "{{$.inputs.parameters['op2']}}",
+              "{{$.outputs.parameters['sum'].output_file}}"
+            ]
+          }
         }
       }
     },
@@ -39,7 +65,7 @@
               "name": "task-add-2"
             },
             "componentRef": {
-              "name": "comp-add"
+              "name": "comp-add-2"
             },
             "inputs": {
               "parameters": {
@@ -102,7 +128,7 @@
               "name": "task-add-3"
             },
             "componentRef": {
-              "name": "comp-add"
+              "name": "comp-add-3"
             }
           }
         }
@@ -115,6 +141,46 @@
     "components": {
       "comp-add": {
         "executorLabel": "exec-add",
+        "outputDefinitions": {
+          "parameters": {
+            "sum": {
+              "type": "INT"
+            }
+          }
+        },
+        "inputDefinitions": {
+          "parameters": {
+            "op1": {
+              "type": "INT"
+            },
+            "op2": {
+              "type": "INT"
+            }
+          }
+        }
+      },
+      "comp-add-2": {
+        "executorLabel": "exec-add-2",
+        "outputDefinitions": {
+          "parameters": {
+            "sum": {
+              "type": "INT"
+            }
+          }
+        },
+        "inputDefinitions": {
+          "parameters": {
+            "op1": {
+              "type": "INT"
+            },
+            "op2": {
+              "type": "INT"
+            }
+          }
+        }
+      },
+      "comp-add-3": {
+        "executorLabel": "exec-add-3",
         "outputDefinitions": {
           "parameters": {
             "sum": {
