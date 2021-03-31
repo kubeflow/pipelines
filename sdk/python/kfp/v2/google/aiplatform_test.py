@@ -40,7 +40,7 @@ _EXPECTED_COMPONENT_SPEC = {
     'executorLabel': 'exec-my-custom-job'}
 
 _EXPECTED_TASK_SPEC = {
-    'taskInfo': {'name': 'my-custom-job'},
+    'taskInfo': {'name': 'task-my-custom-job'},
     'inputs': {
         'parameters': {
             'optimizer': {

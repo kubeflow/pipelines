@@ -11,6 +11,33 @@
             ]
           }
         },
+        "exec-print-2": {
+          "container": {
+            "image": "python:alpine3.6",
+            "command": [
+              "echo",
+              "{{$.inputs.parameters['msg']}}"
+            ]
+          }
+        },
+        "exec-print-3": {
+          "container": {
+            "image": "python:alpine3.6",
+            "command": [
+              "echo",
+              "{{$.inputs.parameters['msg']}}"
+            ]
+          }
+        },
+        "exec-print-4": {
+          "container": {
+            "image": "python:alpine3.6",
+            "command": [
+              "echo",
+              "{{$.inputs.parameters['msg']}}"
+            ]
+          }
+        },
         "exec-flip-coin": {
           "container": {
             "image": "python:alpine3.6",
@@ -31,6 +58,21 @@
               "mkdir -p \"$(dirname $2)\" && python -c \"import random; print(random.randint($0, $1), end='')\" | tee $2",
               "0",
               "9",
+              "{{$.outputs.parameters['output'].output_file}}"
+            ],
+            "command": [
+              "sh",
+              "-c"
+            ]
+          }
+        },
+        "exec-generate-random-number-2": {
+          "container": {
+            "image": "python:alpine3.6",
+            "args": [
+              "mkdir -p \"$(dirname $2)\" && python -c \"import random; print(random.randint($0, $1), end='')\" | tee $2",
+              "10",
+              "19",
               "{{$.outputs.parameters['output'].output_file}}"
             ],
             "command": [
@@ -144,7 +186,7 @@
                 "name": "task-generate-random-number-2"
               },
               "componentRef": {
-                "name": "comp-generate-random-number"
+                "name": "comp-generate-random-number-2"
               }
             },
             "task-condition-6": {
@@ -202,7 +244,7 @@
                 "name": "task-print-3"
               },
               "componentRef": {
-                "name": "comp-print"
+                "name": "comp-print-3"
               },
               "inputs": {
                 "parameters": {
@@ -270,6 +312,36 @@
         },
         "executorLabel": "exec-print"
       },
+      "comp-print-2": {
+        "inputDefinitions": {
+          "parameters": {
+            "msg": {
+              "type": "STRING"
+            }
+          }
+        },
+        "executorLabel": "exec-print-2"
+      },
+      "comp-print-3": {
+        "inputDefinitions": {
+          "parameters": {
+            "msg": {
+              "type": "STRING"
+            }
+          }
+        },
+        "executorLabel": "exec-print-3"
+      },
+      "comp-print-4": {
+        "inputDefinitions": {
+          "parameters": {
+            "msg": {
+              "type": "STRING"
+            }
+          }
+        },
+        "executorLabel": "exec-print-4"
+      },
       "comp-condition-3": {
         "inputDefinitions": {
           "parameters": {
@@ -299,7 +371,7 @@
                 }
               },
               "componentRef": {
-                "name": "comp-print"
+                "name": "comp-print-2"
               },
               "taskInfo": {
                 "name": "task-print-2"
@@ -393,6 +465,16 @@
           }
         }
       },
+      "comp-generate-random-number-2": {
+        "executorLabel": "exec-generate-random-number-2",
+        "outputDefinitions": {
+          "parameters": {
+            "output": {
+              "type": "INT"
+            }
+          }
+        }
+      },
       "comp-condition-6": {
         "inputDefinitions": {
           "parameters": {
@@ -422,7 +504,7 @@
                 }
               },
               "componentRef": {
-                "name": "comp-print"
+                "name": "comp-print-4"
               },
               "taskInfo": {
                 "name": "task-print-4"
