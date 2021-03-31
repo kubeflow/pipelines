@@ -15,36 +15,12 @@
 
 import kfp
 from .fail import fail_pipeline
+from .util import run_pipeline_func
 
-MINUTE = 60  # seconds
 
-
-def main(
-    pipeline_root: str = 'gs://your-bucket/path/to/workdir',
-    host: str = 'http://ml-pipeline:8888',
-    launcher_image: 'URI' = None,
-    experiment: str = 'v2_sample_test_samples'
-):
-    client = kfp.Client(host=host)
-    run_result = client.create_run_from_pipeline_func(
-        fail_pipeline,
-        mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
-        arguments={kfp.dsl.ROOT_PARAMETER_NAME: pipeline_root},
-        launcher_image=launcher_image,
-        experiment_name=experiment,
-    )
-    print("Run details page URL:")
-    print(f"{host}/#/runs/details/{run_result.run_id}")
-    run_response = run_result.wait_for_run_completion(timeout=10 * MINUTE)
-    run = run_response.run
-    from pprint import pprint
-    pprint(run_response.run)
-    print("Run details page URL:")
-    print(f"{host}/#/runs/details/{run.id}")
+def verify(run, run_id: str):
     assert run.status == 'Failed'
-    # TODO: add more MLMD verification
+    # TODO(Bobgy): verify MLMD status
 
 
-if __name__ == '__main__':
-    import fire
-    fire.Fire(main)
+run_pipeline_func(pipeline_func=fail_pipeline, verify_func=verify)
