@@ -38,7 +38,7 @@ _EXECUTOR_INPUT = """\
             "metadata": {},
             "name": "input_artifact_one",
             "type": {
-              "schemaTitle": "kfp.Dataset"
+              "schemaTitle": "system.Dataset"
             },
             "uri": "gs://some-bucket/input_artifact_one"
           }
@@ -54,7 +54,7 @@ _EXECUTOR_INPUT = """\
             "metadata": {},
             "name": "output_artifact_one",
             "type": {
-              "schemaTitle": "kfp.Model"
+              "schemaTitle": "system.Model"
             },
             "uri": "gs://some-bucket/output_artifact_one"
           }
@@ -66,7 +66,7 @@ _EXECUTOR_INPUT = """\
             "metadata": {},
             "name": "output_artifact_two",
             "type": {
-              "schemaTitle": "kfp.Metrics"
+              "schemaTitle": "system.Metrics"
             },
             "uri": "gs://some-bucket/output_artifact_two"
           }
@@ -336,7 +336,7 @@ class ExecutorTest(unittest.TestCase):
               {
                 "name": "output",
                 "type": {
-                  "schemaTitle": "kfp.Artifact"
+                  "schemaTitle": "system.Artifact"
                 },
                 "uri": "gs://some-bucket/output"
               }
@@ -382,7 +382,7 @@ class ExecutorTest(unittest.TestCase):
               {
                 "name": "output_dataset",
                 "type": {
-                  "schemaTitle": "kfp.Dataset"
+                  "schemaTitle": "system.Dataset"
                 },
                 "uri": "gs://some-bucket/output_dataset"
               }
