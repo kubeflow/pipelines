@@ -11,5 +11,10 @@ implementation:
   container:
     image: gcr.io/my-project/my-image:123456
     command: [python, -m, kfp.containers.entrypoint]
-    args: [--executor_input_str, '{executorInput}', --function_name, test_function,
-      --output_metadata_path, '{outputMetadata}']
+    args:
+    - --executor_input_str
+    - {executorInput: null}
+    - --function_name
+    - test_function
+    - --output_metadata_path
+    - {outputMetadata: null}
