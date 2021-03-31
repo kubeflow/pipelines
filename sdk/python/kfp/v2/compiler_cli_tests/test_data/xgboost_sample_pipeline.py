@@ -17,7 +17,7 @@ from kfp import dsl
 from kfp.v2 import compiler
 
 chicago_taxi_dataset_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/e3337b8bdcd63636934954e592d4b32c95b49129/components/datasets/Chicago%20Taxi/component.yaml'
+    'https://raw.githubusercontent.com/kubeflow/pipelines/60a2612541ec08c6a85c237d2ec7525b12543a43/components/datasets/Chicago_Taxi_Trips/component.yaml'
 )
 convert_csv_to_apache_parquet_op = components.load_component_from_url(
     'https://raw.githubusercontent.com/kubeflow/pipelines/0d7d6f41c92bdc05c2825232afe2b47e5cb6c4b3/components/_converters/ApacheParquet/from_CSV/component.yaml'
