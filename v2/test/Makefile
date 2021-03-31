@@ -12,7 +12,7 @@ include $(ENV_PATH)
 all: sample-test
 
 .PHONY: sample-test
-sample-test: tmp/context.tar.gz
+sample-test: context
 # The -u flag makes python output unbuffered, so that we can see real time log.
 # Reference: https://stackoverflow.com/a/107717
 	python -u scripts/upload_gcs_blob.py tmp/context.tar.gz $(GCS_ROOT)/src/context.tar.gz
@@ -22,14 +22,19 @@ sample-test: tmp/context.tar.gz
 		--gcs_root $(GCS_ROOT)/data \
 		--gcr_root $(GCR_ROOT)
 
-.PHONY: tmp/context.tar.gz
-tmp/context.tar.gz:
-# Archive source folder
-# ref: https://stackoverflow.com/a/12010656
-# Benefit of using `git archive` over `tar` is that, `--exclude-vcs-ignore` flag
-# we want to use is not supported in MacOS (bsdtar). This feature is only
-# available in gnutar.
+.PHONY: context
+context:
+	# Package source dir into a context.tar.gz.
 	mkdir -p tmp
-# cd $(REPO_ROOT) && git archive --format=tar $$(git stash create) | gzip >v2/test/tmp/context.tar.gz
-# TODO(Bobgy): figure out how to allow archiving dirty region.
-	cd $(REPO_ROOT) && git archive --format=tar HEAD | gzip >v2/test/tmp/context.tar.gz
+# Benefit of using `git archive` over `tar` is that, `--exclude-vcs-ignore` flag
+# we want to use is not supported in MacOS (BSD tar). This feature is only
+# available in GNU tar.
+#
+# The following line is implemented based on the idea referenced below that can
+# archive source folder taking .gitignore into account. This command works no
+# matter your working dir is dirty or not. It always packages current content
+# into the tarball.
+# Reference: https://stackoverflow.com/a/23486703/8745218
+	cd $(REPO_ROOT); \
+	stash=$$(git stash create); \
+	git archive --format=tar "$${stash:-HEAD}" | gzip >v2/test/tmp/context.tar.gz
