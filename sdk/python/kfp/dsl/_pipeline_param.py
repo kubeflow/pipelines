@@ -14,6 +14,7 @@
 import re
 import attr
 from typing import List, Dict, Union, Any
+import warnings
 
 @attr.s
 class ConditionOperator:
@@ -21,13 +22,14 @@ class ConditionOperator:
   operand1 = attr.ib(type=Union['PipelineParam', Any])
   operand2 = attr.ib(type=Union['PipelineParam', Any])
 
-  def __bool__(self) -> None:
+  def __bool__(self) -> bool:
     msg = ' '.join([
       "Treating comparison of PipelineParam as bool,",
       "but its value is not known until the pipeline is run.",
       "If operator combinator was meant, use & or | instead."
     ])
-    raise ValueError(msg)
+    warnings.warn(msg)
+    return super().__bool__()
 
   def __and__(self, other) -> 'ConditionOperator':
     return ConditionOperator('&&', self, other)
