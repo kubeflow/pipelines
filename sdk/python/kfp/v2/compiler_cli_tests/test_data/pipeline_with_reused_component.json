@@ -15,6 +15,32 @@
               "{{$.outputs.parameters['sum'].output_file}}"
             ]
           }
+        },
+        "exec-add-2": {
+          "container": {
+            "image": "google/cloud-sdk:latest",
+            "command": [
+              "sh",
+              "-c",
+              "set -e -x\necho \"$(($0+$1))\" | gsutil cp - \"$2\"\n",
+              "{{$.inputs.parameters['op1']}}",
+              "{{$.inputs.parameters['op2']}}",
+              "{{$.outputs.parameters['sum'].output_file}}"
+            ]
+          }
+        },
+        "exec-add-3": {
+          "container": {
+            "image": "google/cloud-sdk:latest",
+            "command": [
+              "sh",
+              "-c",
+              "set -e -x\necho \"$(($0+$1))\" | gsutil cp - \"$2\"\n",
+              "{{$.inputs.parameters['op1']}}",
+              "{{$.inputs.parameters['op2']}}",
+              "{{$.outputs.parameters['sum'].output_file}}"
+            ]
+          }
         }
       }
     },
@@ -134,7 +160,7 @@
         }
       },
       "comp-add-2": {
-        "executorLabel": "exec-add",
+        "executorLabel": "exec-add-2",
         "outputDefinitions": {
           "parameters": {
             "sum": {
@@ -154,7 +180,7 @@
         }
       },
       "comp-add-3": {
-        "executorLabel": "exec-add",
+        "executorLabel": "exec-add-3",
         "outputDefinitions": {
           "parameters": {
             "sum": {

@@ -100,6 +100,7 @@ class ComponentSpecTest(parameterized.TestCase):
     component_spec = (
         dsl_component_spec.build_component_spec_from_structure(
             component_spec=structure_component_spec,
+            executor_label='exec-component1',
             actual_inputs=['input1', 'input2', 'input3'],
         ))
 

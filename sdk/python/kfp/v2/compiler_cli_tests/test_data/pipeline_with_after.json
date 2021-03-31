@@ -94,7 +94,7 @@
             }
           }
         },
-        "executorLabel": "exec-print-text"
+        "executorLabel": "exec-print-text-2"
       },
       "comp-print-text-3": {
         "inputDefinitions": {
@@ -104,12 +104,34 @@
             }
           }
         },
-        "executorLabel": "exec-print-text"
+        "executorLabel": "exec-print-text-3"
       }
     },
     "deploymentSpec": {
       "executors": {
         "exec-print-text": {
+          "container": {
+            "image": "alpine",
+            "command": [
+              "sh",
+              "-c",
+              "set -e -x\necho \"$0\"\n",
+              "{{$.inputs.parameters['text']}}"
+            ]
+          }
+        },
+        "exec-print-text-2": {
+          "container": {
+            "image": "alpine",
+            "command": [
+              "sh",
+              "-c",
+              "set -e -x\necho \"$0\"\n",
+              "{{$.inputs.parameters['text']}}"
+            ]
+          }
+        },
+        "exec-print-text-3": {
           "container": {
             "image": "alpine",
             "command": [

@@ -11,6 +11,33 @@
             ]
           }
         },
+        "exec-print-2": {
+          "container": {
+            "image": "python:alpine3.6",
+            "command": [
+              "echo",
+              "{{$.inputs.parameters['msg']}}"
+            ]
+          }
+        },
+        "exec-print-3": {
+          "container": {
+            "image": "python:alpine3.6",
+            "command": [
+              "echo",
+              "{{$.inputs.parameters['msg']}}"
+            ]
+          }
+        },
+        "exec-print-4": {
+          "container": {
+            "image": "python:alpine3.6",
+            "command": [
+              "echo",
+              "{{$.inputs.parameters['msg']}}"
+            ]
+          }
+        },
         "exec-flip-coin": {
           "container": {
             "image": "python:alpine3.6",
@@ -31,6 +58,21 @@
               "mkdir -p \"$(dirname $2)\" && python -c \"import random; print(random.randint($0, $1), end='')\" | tee $2",
               "0",
               "9",
+              "{{$.outputs.parameters['output'].output_file}}"
+            ],
+            "command": [
+              "sh",
+              "-c"
+            ]
+          }
+        },
+        "exec-generate-random-number-2": {
+          "container": {
+            "image": "python:alpine3.6",
+            "args": [
+              "mkdir -p \"$(dirname $2)\" && python -c \"import random; print(random.randint($0, $1), end='')\" | tee $2",
+              "10",
+              "19",
               "{{$.outputs.parameters['output'].output_file}}"
             ],
             "command": [
@@ -278,7 +320,7 @@
             }
           }
         },
-        "executorLabel": "exec-print"
+        "executorLabel": "exec-print-2"
       },
       "comp-print-3": {
         "inputDefinitions": {
@@ -288,7 +330,7 @@
             }
           }
         },
-        "executorLabel": "exec-print"
+        "executorLabel": "exec-print-3"
       },
       "comp-print-4": {
         "inputDefinitions": {
@@ -298,7 +340,7 @@
             }
           }
         },
-        "executorLabel": "exec-print"
+        "executorLabel": "exec-print-4"
       },
       "comp-condition-3": {
         "inputDefinitions": {
@@ -424,7 +466,7 @@
         }
       },
       "comp-generate-random-number-2": {
-        "executorLabel": "exec-generate-random-number",
+        "executorLabel": "exec-generate-random-number-2",
         "outputDefinitions": {
           "parameters": {
             "output": {
