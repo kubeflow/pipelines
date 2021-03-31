@@ -24,7 +24,8 @@ class ConditionOperator:
   def __bool__(self) -> None:
     msg = ' '.join([
       "Treating comparison of PipelineParam as bool,",
-      "but its value is not known until the pipeline is run",
+      "but its value is not known until the pipeline is run.",
+      "If operator combinator was meant, use & or | instead."
     ])
     raise ValueError(msg)
 
