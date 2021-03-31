@@ -17,12 +17,15 @@ FROM gcr.io/google-appengine/python
 
 WORKDIR /root
 
+# Upgrade pip to latest
+RUN pip3 install --upgrade pip
+
 # Installs additional packages
 RUN pip3 install git+https://github.com/googleapis/python-aiplatform@mb-release
 
 # Copies the trainer code to the docker image.
 # TODO(chavoshi) change from using PR @531127d0f7af525976fae8581796a675d8703fbb version to master 
-RUN pip3 install "git+https://github.com/kubeflow/pipelines.git@531127d0f7af525976fae8581796a675d8703fbb#egg=google-cloud-components&subdirectory=components/google-cloud"
+RUN pip3 install "git+https://github.com/kubeflow/pipelines.git@fcd24983168bca93d9e0c3ef91cafa46f3612977#egg=google-cloud-components&subdirectory=components/google-cloud"
 
 # Sets up the entry point to invoke the trainer.
 ENTRYPOINT ["python3","-m","google_cloud_components.mb_sdk_component.remote_runner"]
