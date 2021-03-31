@@ -35,6 +35,11 @@ context:
 # matter your working dir is dirty or not. It always packages current content
 # into the tarball.
 # Reference: https://stackoverflow.com/a/23486703/8745218
+#
+# Note, there's one caveat, for any files not tracked by git, they will not be uploaded.
+# So recommend doing a `git add -A` before running this if you added new files. However,
+# it's OK to have dirty files, the dirty version in your workdir will be uploaded
+# as expected.
 	cd $(REPO_ROOT); \
 	stash=$$(git stash create); \
 	git archive --format=tar "$${stash:-HEAD}" | gzip >v2/test/tmp/context.tar.gz

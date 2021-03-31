@@ -19,7 +19,7 @@ Currently, it's not possible to grant KFP UI only permission, but we can grant
 such access to [Kubeflow ci-viewer google group](https://github.com/kubeflow/internal-acls/blob/master/google_groups/groups/ci-viewer.yaml).
 Contact @Bobgy if you have such a need.
 
-## How to run sample test in your own KFP?
+## How to run the entire sample test suite in your own KFP?
 
 You need to create an `.env` file in this folder and add the following config to
 it:
@@ -42,6 +42,22 @@ Run sample test by:
 
 ```bash
 make sample-test
+```
+
+Note, there's one caveat, for any files not tracked by git, they will not be uploaded.
+So recommend doing a `git add -A` before running this if you added new files. However,
+it's OK to have dirty files, the dirty version in your workdir will be uploaded
+as expected.
+
+For why the caveat exists, refer to context rule in [Makefile](./Makefile).
+
+## How to develop one single sample?
+
+```bash
+cd ${REPO_ROOT}
+python -m v2.test.samples.<your_test_name> --host <your-KFP-host> --output_directory gs://your-bucket/path/to/output/dir
+# or to see all available command line arguments
+python -m v2.test.samples.<your_test_name> --help
 ```
 
 ## How to add a sample to this test infra?
