@@ -32,9 +32,10 @@ loader.exec_module(version)
 setup(
     name="google-cloud-components",
     version=version.__version__,
-    description="The TensorFlow Cloud repository provides APIs that will allow "
-    "to easily go from debugging and training your Keras and TensorFlow "
-    "code in a local environment to distributed training in the cloud.",
+    description="This SDK enables a set of First Party (Google owned) pipeline"
+    " components that allow users to take their experience from AI Platform"
+    " SDK and other Google Cloud services and create a corresponding pipeline"
+    " using KFP or Managed Pipelines.",
     url="https://github.com/kubeflow/pipelines/tree/master/components/google-cloud",
     author="The Google Cloud Components authors",
     author_email="TBD",
