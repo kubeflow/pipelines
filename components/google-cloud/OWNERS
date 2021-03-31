@@ -1,6 +1,9 @@
 # Where component owners are known, add them here.
 
-# TODO(b/184188620) Add the owners to `CODEOWNERS` file in root so that they are used for PRs.
-# Google Cloud components - MB SDK - asobran@ chavoshi@
-/google_cloud_components/mb_sdk_component/* asobran@google.com chavosvhi@google.com
-/containers/uCAIP_MB_SDK/* asobran@google.com chavosvhi@google.com
+# Google Cloud components - MB SDK
+asobran
+chavoshi
+
+# TODO(b/184188620) Add the owners specified below to `CODEOWNERS` file in root so that they are used for PRs.
+#/components/google_cloud_components/mb_sdk_component/* asobran@google.com chavosvhi@google.com
+#/components/containers/uCAIP_MB_SDK/* asobran@google.com chavosvhi@google.com
