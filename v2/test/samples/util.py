@@ -49,7 +49,7 @@ def run_pipeline_func(
         pprint(run_response.run)
         print("Run details page URL:")
         print(f"{host}/#/runs/details/{run_result.run_id}")
-        verify_func(run_result.run_id, run)
+        verify_func(run_id=run_result.run_id, run=run)
 
     import fire
     fire.Fire(main)
