@@ -1,3 +1,5 @@
 # Where component owners are known, add them here.
 
 # Google Cloud components - MB SDK - asobran@ chavoshi@
+/google_cloud_components/mb_sdk_component/* asobran@google.com chavosvhi@google.com
+/containers/uCAIP_MB_SDK/* asobran@google.com chavosvhi@google.com
