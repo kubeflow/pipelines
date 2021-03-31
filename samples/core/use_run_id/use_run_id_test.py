@@ -14,7 +14,7 @@
 # limitations under the License.
 
 import kfp
-from .use_run_info import pipeline_with_run_info
+from .use_run_id import pipeline_use_run_id
 
 MINUTE = 60  # seconds
 
@@ -27,7 +27,7 @@ def main(
 ):
     client = kfp.Client(host=host)
     run_result = client.create_run_from_pipeline_func(
-        pipeline_with_run_info,
+        pipeline_use_run_id,
         mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
         arguments={},
         experiment_name=experiment,
