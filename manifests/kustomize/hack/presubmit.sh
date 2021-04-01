@@ -28,9 +28,16 @@ kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 chmod +x install_kustomize.sh
 ./install_kustomize.sh "${KUSTOMIZE_VERSION}" /usr/local/bin/
 
+# Reference: https://github.com/mikefarah/yq/releases/tag/3.4.1
+curl -s -O "https://github.com/mikefarah/yq/releases/download/3.4.1/yq_linux_amd64"
+chmod +x yq_linux_amd64
+mv yq_linux_amd64 /usr/local/bin/yq
+
 # kpt and kubectl should already be installed in gcr.io/google.com/cloudsdktool/cloud-sdk:latest
 # so we do not need to install them here
 
 # trigger real unit tests
 ${DIR}/test.sh
+# verify release script runs properly
+${DIR}/release.sh v1.2.3-dummy
 
