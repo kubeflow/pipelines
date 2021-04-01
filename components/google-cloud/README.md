@@ -1,3 +1,3 @@
 # Google Cloud Components
 
-TBD
+Note, this SKD is in early prototyping state and it is not ready for consumption. 
