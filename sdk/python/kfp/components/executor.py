@@ -182,9 +182,13 @@ class Executor():
               'Expected {} return values from function `{}`, got {}'.format(
                   len(self._return_annotation._fields), self._func.__name__,
                   len(func_output)))
-        for field in self._return_annotation._fields:
+        for i in range(len(self._return_annotation._fields)):
+          field = self._return_annotation._fields[i]
           field_type = self._return_annotation.__annotations__[field]
-          field_value = getattr(func_output, field)
+          if type(func_output) == tuple:
+            field_value = func_output[i]
+          else:
+            field_value = getattr(func_output, field)
           self._handle_single_return_value(field, field_type, field_value)
       else:
         raise RuntimeError(

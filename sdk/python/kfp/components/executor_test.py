@@ -402,7 +402,8 @@ class ExecutorTest(unittest.TestCase):
     }
     """
 
-    def test_func() -> NamedTuple('Outputs', [
+    # Functions returning named tuples should work.
+    def func_returning_named_tuple() -> NamedTuple('Outputs', [
         ("output_dataset", Dataset),
         ("output_int", int),
         ("output_string", str),
@@ -412,31 +413,40 @@ class ExecutorTest(unittest.TestCase):
                           ['output_dataset', 'output_int', 'output_string'])
       return output("Dataset contents", 101, "Some output string")
 
-    self._get_executor(test_func, executor_input).execute()
-    with open(os.path.join(self._test_dir, 'output_metadata.json'), 'r') as f:
-      output_metadata = json.loads(f.read())
-    self.assertDictEqual(
-        output_metadata, {
-            'artifacts': {
-                'output_dataset': {
-                    'artifacts': [{
-                        'metadata': {},
-                        'name': 'output_dataset',
-                        'uri': 'gs://some-bucket/output_dataset/data'
-                    }]
-                }
-            },
-            "parameters": {
-                "output_string": {
-                    "stringValue": "Some output string"
-                },
-                "output_int": {
-                    "intValue": 101
-                }
-            },
-        })
+    # Functions returning plain tuples should work too.
+    def func_returning_plain_tuple() -> NamedTuple('Outputs', [
+        ("output_dataset", Dataset),
+        ("output_int", int),
+        ("output_string", str),
+    ]):
+      return ("Dataset contents", 101, "Some output string")
 
-    with open(os.path.join(self._test_dir, 'some-bucket/output_dataset/data'),
-              'r') as f:
-      artifact_payload = f.read()
-    self.assertEqual(artifact_payload, "Dataset contents")
+    for test_func in [func_returning_named_tuple, func_returning_plain_tuple]:
+      self._get_executor(test_func, executor_input).execute()
+      with open(os.path.join(self._test_dir, 'output_metadata.json'), 'r') as f:
+        output_metadata = json.loads(f.read())
+      self.assertDictEqual(
+          output_metadata, {
+              'artifacts': {
+                  'output_dataset': {
+                      'artifacts': [{
+                          'metadata': {},
+                          'name': 'output_dataset',
+                          'uri': 'gs://some-bucket/output_dataset/data'
+                      }]
+                  }
+              },
+              "parameters": {
+                  "output_string": {
+                      "stringValue": "Some output string"
+                  },
+                  "output_int": {
+                      "intValue": 101
+                  }
+              },
+          })
+
+      with open(os.path.join(self._test_dir, 'some-bucket/output_dataset/data'),
+                'r') as f:
+        artifact_payload = f.read()
+      self.assertEqual(artifact_payload, "Dataset contents")
