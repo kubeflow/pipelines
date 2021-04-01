@@ -13,19 +13,18 @@
 # limitations under the License.
 """Setup configuration of  Google Cloud Components client side libraries."""
 
-
 def make_required_install_packages():
   return [
-      "absl-py",
-      "kfp",
+      "kfp>=1.4.0,<2.0.0",
+      "google-cloud-aiplatform>=0.6.0,<1.0.0"
   ]
 
 
 def make_required_test_packages():
   return [
-      "absl-py",
-      "mock",
-      "kfp",
+      "mock>=4.0.0",
+      "kfp>=1.4.0,<2.0.0",
+      "google-cloud-aiplatform>=0.6.0,<1.0.0"
   ]
 
 
