@@ -19,3 +19,27 @@ spec:
         port:
           number: 80
     timeout: 300s
+
+---
+
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: metadata-grpc
+  namespace: kubeflow
+spec:
+  gateways:
+  - kubeflow-gateway
+  hosts:
+  - '*'
+  http:
+  - match:
+    - uri:
+        prefix: /ml_metadata
+    rewrite:
+      uri: /ml_metadata
+    route:
+    - destination:
+        host: ml-pipeline-ui.$(kfp-namespace).svc.cluster.local
+        port:
+          number: 80
