@@ -12,11 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# sample test config
-# path corresponds to python module path
-# e.g. if folder path is `v2/test/samples/fail_test.py`, then module path is
-# `v2.test.samples.fail_test`.
+# kubeflow-pipelines-samples-v2 test config
+# Documentation: https://github.com/kubeflow/pipelines/tree/master/v2/test
+#
+#### config format
+#
+# Each item in the list corresponds to test for one sample.
+#
+# The field `path` corresponds to the test's python module path
+# e.g. if folder path is `samples/test/fail_test.py`, then module path is
+# `samples.test.fail_test`.
 - name: fail
-  path: v2.test.samples.fail_test
+  path: samples.test.fail_test
 - name: two_step
-  path: v2.test.samples.two_step_test
+  path: samples.test.two_step_test
