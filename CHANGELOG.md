@@ -1,5 +1,43 @@
 # Changelog
 
+## [1.5.0-rc.1](https://github.com/kubeflow/pipelines/compare/1.5.0-rc.0...1.5.0-rc.1) (2021-04-01)
+
+
+### Features
+
+* **components:** Converters - OnnxModel - to_TensorflowSavedModel ([\#5325](https://github.com/kubeflow/pipelines/issues/5325)) ([42930d1](https://github.com/kubeflow/pipelines/commit/42930d1eba5f232415750769da23141774062b88))
+* **frontend:** Support showing Omitted node phase with new Argo version ([\#5339](https://github.com/kubeflow/pipelines/issues/5339)) ([92ca406](https://github.com/kubeflow/pipelines/commit/92ca406d4ecf4c43baa6c9e0a8819bd929218202))
+* **frontend:** Upgrade argo template on UI. Fix [\#5358](https://github.com/kubeflow/pipelines/issues/5358) ([\#5359](https://github.com/kubeflow/pipelines/issues/5359)) ([a9f8eec](https://github.com/kubeflow/pipelines/commit/a9f8eec3ca96e475b7f14d47e6b3748c1f1194f7))
+* **sdk:** Add a component decorator for v2 components. ([\#5388](https://github.com/kubeflow/pipelines/issues/5388)) ([539cbeb](https://github.com/kubeflow/pipelines/commit/539cbebbe3287307e44c66411178c06b81fc2dc3))
+* **sdk:** Enable InputArtifact/OutputArtifact in lightweight Python-based components ([\#5378](https://github.com/kubeflow/pipelines/issues/5378)) ([bf8392d](https://github.com/kubeflow/pipelines/commit/bf8392d9147f1a836cbdfc7e5aa314290465cd62))
+* **sdk:** relax kubernetes upper constraint from <12 to <13 ([\#5349](https://github.com/kubeflow/pipelines/issues/5349)) ([6603e8b](https://github.com/kubeflow/pipelines/commit/6603e8ba1f0921171f48e7367110a3a3ab9e50cb))
+* **sdk:** Support return values in lightweight Python function components v2. ([\#5384](https://github.com/kubeflow/pipelines/issues/5384)) ([2fc1016](https://github.com/kubeflow/pipelines/commit/2fc1016cd23a8ae607069478b6b48024bb1149bd))
+* **sdk.v2:** Support optional component inputs in v2. ([\#5383](https://github.com/kubeflow/pipelines/issues/5383)) ([eb3a092](https://github.com/kubeflow/pipelines/commit/eb3a092b64472b235e12eb96bcb0eda161b0b509))
+
+
+### Bug Fixes
+
+* **backend:** Caching - Make the cache key depend on output names and paths ([\#4675](https://github.com/kubeflow/pipelines/issues/4675)) ([5fbf224](https://github.com/kubeflow/pipelines/commit/5fbf2249fbd95185ebc9d2a7c0dfc7007a5cc3c2))
+* **deployment:** fix default resource requests. Fixes [\#5148](https://github.com/kubeflow/pipelines/issues/5148) ([\#5409](https://github.com/kubeflow/pipelines/issues/5409)) ([5d0f3a3](https://github.com/kubeflow/pipelines/commit/5d0f3a3d32f35d3dbca9cd27f4ee476e87f6d41e))
+* **deployment:** Manifests fixes for KF 1.3 ([\#5406](https://github.com/kubeflow/pipelines/issues/5406)) ([ec2da24](https://github.com/kubeflow/pipelines/commit/ec2da24bc06278500715d23b1617609767a2f814))
+* **deployment:** pipelines profile controller uses pipelines.kubeflow.org/enabled label ([\#5407](https://github.com/kubeflow/pipelines/issues/5407)) ([5ba3054](https://github.com/kubeflow/pipelines/commit/5ba3054ac91d69313ddb1986b3cec2137f3a9e0f))
+* **docs:** updated readme wait condition ([\#5371](https://github.com/kubeflow/pipelines/issues/5371)) ([a73a255](https://github.com/kubeflow/pipelines/commit/a73a255fed07ff48f5cacf068320e34fe9849b54))
+* **manifests:** fix error when kpt pkg get manifests. Part of [\#5368](https://github.com/kubeflow/pipelines/issues/5368) ([\#5390](https://github.com/kubeflow/pipelines/issues/5390)) ([1b13be7](https://github.com/kubeflow/pipelines/commit/1b13be77a7ae6607bc3427c572d26cd4947418ea))
+* **metadata-writer:** skip latest TFX pods ([\#5364](https://github.com/kubeflow/pipelines/issues/5364)) ([6620dbd](https://github.com/kubeflow/pipelines/commit/6620dbd7133b54f19a71a589288ee605f5a697c6))
+* **samples:** Allow user to set the namespace and name  for the sample as parameters. ([\#5212](https://github.com/kubeflow/pipelines/issues/5212)) ([b397ec1](https://github.com/kubeflow/pipelines/commit/b397ec16a9053264ffb95fa68e4b1247938bed7f))
+* **sdk:** Enable FutureWarning with PipelineParam. Fix [\#5280](https://github.com/kubeflow/pipelines/issues/5280) ([\#5299](https://github.com/kubeflow/pipelines/issues/5299)) ([d8028c5](https://github.com/kubeflow/pipelines/commit/d8028c5d9e2de429574446dc87f8212242075468))
+* **sdk:** faster get experiment by name respects casing. Fixes [\#5172](https://github.com/kubeflow/pipelines/issues/5172) ([\#5370](https://github.com/kubeflow/pipelines/issues/5370)) ([43486e7](https://github.com/kubeflow/pipelines/commit/43486e772bc0267656a7e4427e841ccb35d17a0f))
+* **sdk:** fix bug in store_value_bytes when read old data. Fixes [\#5288](https://github.com/kubeflow/pipelines/issues/5288) ([\#5290](https://github.com/kubeflow/pipelines/issues/5290)) ([42630cb](https://github.com/kubeflow/pipelines/commit/42630cb5ff07cf5a5c0b890b3c709c921adb02d3))
+* **sdk:** Fix serialization of ExecutorInput. ([\#5403](https://github.com/kubeflow/pipelines/issues/5403)) ([c46d6a2](https://github.com/kubeflow/pipelines/commit/c46d6a25c017437e803c15852d393c5efc03c68b))
+* **sdk:** v2 - Compiler - Fixed the v2 component detection ([\#5340](https://github.com/kubeflow/pipelines/issues/5340)) ([e11241f](https://github.com/kubeflow/pipelines/commit/e11241f135de0c645c77e37321e0dce4646e9cc1))
+* **test:** Update reference link in test README.md ([\#5354](https://github.com/kubeflow/pipelines/issues/5354)) ([3d441b0](https://github.com/kubeflow/pipelines/commit/3d441b04c8fb7ae38c52e31ab919ddd3d0cd18b8))
+
+
+### Other Pull Requests
+
+* Adds classification metrics type to io_types ([\#5387](https://github.com/kubeflow/pipelines/issues/5387)) ([0e7e543](https://github.com/kubeflow/pipelines/commit/0e7e543694a1f77f05966da0273dbca5a512c344))
+* Update pipeline_spec.proto ([\#5342](https://github.com/kubeflow/pipelines/issues/5342)) ([1e8d499](https://github.com/kubeflow/pipelines/commit/1e8d4991c865a955aa284abe075e60e35dd72550))
+
 ## [1.5.0-rc.0](https://github.com/kubeflow/pipelines/compare/1.4.0...1.5.0-rc.0) (2021-03-22)
 
 
