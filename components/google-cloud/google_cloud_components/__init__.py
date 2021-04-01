@@ -14,7 +14,7 @@
 """Google Cloud Components root."""
 
 from google.cloud import aiplatform
-from google_cloud_components.mb_sdk_component import utils
+from google_cloud_components.aiplatform import utils
 
 DatasetCreateOp = utils.convert_method_to_component(aiplatform.Dataset.create)
 

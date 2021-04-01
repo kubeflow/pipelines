@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Module for remote execution of Model Builder SDK as a pipeline component."""
+"""Module for remote execution of AI Platform component."""
 
 import argparse
 import inspect

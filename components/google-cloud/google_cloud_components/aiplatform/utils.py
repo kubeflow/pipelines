@@ -74,7 +74,7 @@ outputs:
 - {name: resource_name_output, type: Artifact}
 implementation:
   container:
-    image: gcr.io/sashaproject-1/mb_sdk_component:latest
+    image: gcr.io/sashaproject-1/AIPlatform_component:latest
     command:
     - python3
     - remote_runner.py
