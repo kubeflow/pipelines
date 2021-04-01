@@ -19,7 +19,9 @@
 set -ex
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
+TMP="$(mktemp -d)"
 
+pushd "${TMP}"
 # Install Kustomize
 KUSTOMIZE_VERSION=3.10.0
 # Reference: https://kubectl.docs.kubernetes.io/installation/kustomize/binaries/
@@ -28,9 +30,20 @@ kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 chmod +x install_kustomize.sh
 ./install_kustomize.sh "${KUSTOMIZE_VERSION}" /usr/local/bin/
 
+# Reference: https://github.com/mikefarah/yq/releases/tag/3.4.1
+curl -s -LO "https://github.com/mikefarah/yq/releases/download/3.4.1/yq_linux_amd64"
+chmod +x yq_linux_amd64
+mv yq_linux_amd64 /usr/local/bin/yq
+popd
+
 # kpt and kubectl should already be installed in gcr.io/google.com/cloudsdktool/cloud-sdk:latest
 # so we do not need to install them here
 
 # trigger real unit tests
 ${DIR}/test.sh
+# verify release script runs properly
 
+${DIR}/release.sh v1.2.3-dummy
+# --no-pager sends output to stdout
+# Show git diff, so people can manually verify results of the release script
+git --no-pager diff
