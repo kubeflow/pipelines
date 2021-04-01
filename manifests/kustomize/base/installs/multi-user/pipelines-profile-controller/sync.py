@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2020-2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,14 +27,10 @@ mlpipeline_minio_secret_key = base64.b64encode(
 
 class Controller(BaseHTTPRequestHandler):
     def sync(self, parent, children):
-        # HACK: Currently using serving.kubeflow.org/inferenceservice to identify
-        # kubeflow user namespaces.
-        # TODO: let Kubeflow profile controller add a pipeline specific label to
-        # user namespaces and use that label instead.
         pipeline_enabled = parent.get("metadata", {}).get(
-            "labels", {}).get("serving.kubeflow.org/inferenceservice")
+            "labels", {}).get("pipelines.kubeflow.org/enabled")
 
-        if not pipeline_enabled:
+        if pipeline_enabled != "true":
             return {"status": {}, "children": []}
 
         # Compute status based on observed state.
