@@ -45,7 +45,7 @@ def split_args(kwargs):
 def write_to_gcs(project, gcs_uri, text):
   """Helper method to write resouce names to gcs for downstream components."""
 
-  gcs_uri = gcs_uri[5:]
+  gcs_uri = gcs_uri[len('gs://'):]
   gcs_bucket, gcs_blob = gcs_uri.split('/', 1)
 
   with open('resource_name.txt', 'w') as f:
