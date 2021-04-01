@@ -22,6 +22,7 @@ from google.cloud import storage
 INIT_KEY = 'init'
 METHOD_KEY = 'method'
 
+
 # TODO(b/184202941) Add type-hinting the functions
 # TODO(b/184203034) Add explanation / exmaples and validation for kwargs
 def split_args(kwargs):
@@ -67,8 +68,8 @@ def read_from_gcs(project, gcs_uri):
 
 
 def resolve_project(serialized_args):
-  return serialized_args[INIT_KEY].get('project',
-                                     serialized_args[METHOD_KEY].get('project'))
+  return serialized_args[INIT_KEY].get(
+      'project', serialized_args[METHOD_KEY].get('project'))
 
 
 def resolve_input_args(value, inpu_type, project):
