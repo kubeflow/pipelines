@@ -24,7 +24,7 @@ import { ApiTrigger } from '../apis/job';
 import { HelpButton } from '../atoms/HelpButton';
 import Input from '../atoms/Input';
 import Separator from '../atoms/Separator';
-import { commonCss } from '../Css';
+import { color, commonCss } from '../Css';
 import {
   buildCron,
   buildTrigger,
@@ -68,11 +68,16 @@ interface TriggerState {
   startTime: string;
   type: TriggerType;
   catchup: boolean;
+  startTimeMessage: string;
+  endTimeMessage: string;
 }
 
 const css = stylesheet({
   noMargin: {
     margin: 0,
+  },
+  alert: {
+    color: color.alert,
   },
 });
 
@@ -119,6 +124,8 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
       // interval state
       intervalCategory: parsedTrigger.intervalCategory ?? PeriodicInterval.MINUTE,
       intervalValue: parsedTrigger.intervalValue ?? 1,
+      startTimeMessage: '',
+      endTimeMessage: '',
     };
   })();
 
@@ -145,6 +152,8 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
       startTime,
       type,
       catchup,
+      startTimeMessage,
+      endTimeMessage,
     } = this.state;
 
     return (
@@ -206,6 +215,13 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
               style={{ visibility: hasStartDate ? 'visible' : 'hidden' }}
             />
           </div>
+          <div
+            data-testid='startTimeMessage'
+            className={css.alert}
+            style={{ visibility: hasStartDate ? 'visible' : 'hidden' }}
+          >
+            {startTimeMessage}
+          </div>
 
           <div className={commonCss.flex}>
             <FormControlLabel
@@ -239,6 +255,13 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
               InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true }}
               variant='outlined'
             />
+          </div>
+          <div
+            data-testid='endTimeMessage'
+            className={css.alert}
+            style={{ visibility: hasEndDate ? 'visible' : 'hidden' }}
+          >
+            {endTimeMessage}
           </div>
           <span className={commonCss.flex}>
             <FormControlLabel
@@ -405,8 +428,39 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
       catchup,
     } = this.state;
 
-    const startDateTime = pickersToDate(hasStartDate, startDate, startTime);
-    const endDateTime = pickersToDate(hasEndDate, endDate, endTime);
+    var startDateTime: Date | undefined = undefined;
+    var endDateTime: Date | undefined = undefined;
+    var startTimeMessage = '';
+    var endTimeMessage = '';
+
+    try {
+      if (hasStartDate) {
+        startDateTime = pickersToDate(hasStartDate, startDate, startTime);
+      }
+    } catch (e) {
+      if (e.message === 'Invalid picker format') {
+        startTimeMessage = "Invalid start date or time, start time won't be set";
+      } else {
+        throw e;
+      }
+    }
+
+    try {
+      if (hasEndDate) {
+        endDateTime = pickersToDate(hasEndDate, endDate, endTime);
+      }
+    } catch (e) {
+      if (e.message === 'Invalid picker format') {
+        endTimeMessage = "Invalid end date or time, end time won't be set";
+      } else {
+        throw e;
+      }
+    }
+
+    this.setState({
+      startTimeMessage: startTimeMessage,
+      endTimeMessage: endTimeMessage,
+    });
 
     // TODO: Why build the cron string unless the TriggerType is not CRON?
     // Unless cron editing is enabled, calculate the new cron string, set it in state,
