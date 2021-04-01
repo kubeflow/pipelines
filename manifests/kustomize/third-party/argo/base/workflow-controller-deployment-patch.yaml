@@ -13,3 +13,7 @@ spec:
             - workflow-controller-configmap
             - --executor-image
             - gcr.io/ml-pipeline/argoexec:v2.12.9-license-compliance
+          resources:
+            requests:
+              cpu: 100m
+              memory: 500Mi
