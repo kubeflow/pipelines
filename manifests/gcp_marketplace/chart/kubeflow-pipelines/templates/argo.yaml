@@ -332,7 +332,7 @@ spec:
           resources:
             requests:
               cpu: 100m
-              memory: 500m
+              memory: 500Mi
       securityContext:
         runAsNonRoot: true
       nodeSelector:

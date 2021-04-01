@@ -522,7 +522,7 @@ spec:
           resources:
             requests:
               cpu: 120m
-              memory: 500m
+              memory: 500Mi
       serviceAccountName: ml-pipeline-persistenceagent
 ---
 apiVersion: apps/v1
@@ -694,7 +694,7 @@ spec:
           resources:
             requests:
               cpu: 30m
-              memory: 500m
+              memory: 500Mi
       serviceAccountName: ml-pipeline-visualizationserver
 ---
 apiVersion: apps/v1
@@ -798,7 +798,7 @@ spec:
           resources:
             requests:
               cpu: 250m
-              memory: 500m
+              memory: 500Mi
       serviceAccountName: ml-pipeline
 ---
 apiVersion: v1
