@@ -13,7 +13,6 @@
 # limitations under the License.
 """Fail pipeline."""
 
-import kfp
 from .fail import fail_pipeline
 from .util import run_pipeline_func
 

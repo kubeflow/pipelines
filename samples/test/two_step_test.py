@@ -13,7 +13,6 @@
 # limitations under the License.
 """Two step v2-compatible pipeline."""
 
-import kfp
 from .two_step import two_step_pipeline
 from .util import run_pipeline_func
 
