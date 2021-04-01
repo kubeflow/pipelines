@@ -7,6 +7,7 @@ bases:
   - ../../third-party/argo/installs/cluster
   - ../../third-party/mysql
   - ../../third-party/minio
+  - ../../third-party/metacontroller/base
 
 # Identifier for application manager to apply ownerReference.
 # The ownerReference ensures the resources get garbage collected
