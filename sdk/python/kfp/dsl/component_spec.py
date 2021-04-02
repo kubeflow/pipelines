@@ -174,6 +174,8 @@ def update_task_inputs_spec(
     parent_component_inputs: pipeline_spec_pb2.ComponentInputsSpec,
     pipeline_params: List[_pipeline_param.PipelineParam],
     tasks_in_current_dag: List[str],
+    input_parameters_in_current_dag: List[str],
+    input_artifacts_in_current_dag: List[str],
 ) -> None:
   """Updates task inputs spec.
 
@@ -198,6 +200,10 @@ def update_task_inputs_spec(
     parent_component_inputs: The input spec of the task's parent component.
     pipeline_params: The list of pipeline params.
     tasks_in_current_dag: The list of tasks names for tasks in the same dag.
+    input_parameters_in_current_dag: The list of input parameters in the DAG
+      component.
+    input_artifacts_in_current_dag: The list of input artifacts in the DAG
+      component.
   """
   if not hasattr(task_spec, 'inputs'):
     return
@@ -222,6 +228,22 @@ def update_task_inputs_spec(
       task_spec.inputs.parameters[
           input_name].component_input_parameter = component_input_parameter
 
+    elif task_spec.inputs.parameters[input_name].WhichOneof(
+        'kind') == 'component_input_parameter':
+
+      component_input_parameter = (
+          task_spec.inputs.parameters[input_name].component_input_parameter)
+
+      if component_input_parameter not in input_parameters_in_current_dag:
+        component_input_parameter = (
+            additional_input_name_for_pipelineparam(
+                task_spec.inputs.parameters[input_name]
+                .component_input_parameter))
+        assert component_input_parameter in parent_component_inputs.parameters
+
+        task_spec.inputs.parameters[
+            input_name].component_input_parameter = component_input_parameter
+
   for input_name in getattr(task_spec.inputs, 'artifacts', []):
 
     if task_spec.inputs.artifacts[input_name].WhichOneof(
@@ -241,6 +263,21 @@ def update_task_inputs_spec(
 
       task_spec.inputs.artifacts[
           input_name].component_input_artifact = component_input_artifact
+
+    elif task_spec.inputs.artifacts[input_name].WhichOneof(
+        'kind') == 'component_input_artifact':
+
+      component_input_artifact = (
+          task_spec.inputs.artifacts[input_name].component_input_artifact)
+
+      if component_input_artifact not in input_artifacts_in_current_dag:
+        component_input_artifact = (
+            additional_input_name_for_pipelineparam(
+                task_spec.inputs.artifacts[input_name].component_input_artifact))
+        assert component_input_artifact in parent_component_inputs.artifacts
+
+        task_spec.inputs.artifacts[
+            input_name].component_input_artifact = component_input_artifact
 
 
 def pop_input_from_component_spec(

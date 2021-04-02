@@ -731,12 +731,20 @@ class Compiler(object):
 
           importer_tasks.append(importer_task_name)
 
-      group_inputs = inputs.get(group.name, [])
       subgroup_inputs = inputs.get(subgroup.name, [])
       subgroup_params = [param for param, _ in subgroup_inputs]
       tasks_in_current_dag = [
           dsl_utils.sanitize_task_name(subgroup.name) for subgroup in subgroups
       ] + importer_tasks
+
+      input_parameters_in_current_dag = [
+          input_name
+          for input_name in group_component_spec.input_definitions.parameters
+      ]
+      input_artifacts_in_current_dag = [
+          input_name
+          for input_name in group_component_spec.input_definitions.artifacts
+      ]
 
       is_parent_component_root = group_component_spec == pipeline_spec.root
 
@@ -751,6 +759,8 @@ class Compiler(object):
             group_component_spec.input_definitions,
             subgroup_params,
             tasks_in_current_dag,
+            input_parameters_in_current_dag,
+            input_artifacts_in_current_dag,
         )
 
       if isinstance(subgroup, dsl.OpsGroup) and subgroup.type == 'condition':
