@@ -21,10 +21,8 @@ def make_required_install_packages():
 
 
 def make_required_test_packages():
-  return [
+  return make_required_install_packages() + [
       "mock>=4.0.0",
-      "kfp>=1.4.0,<2.0.0",
-      "google-cloud-aiplatform>=0.6.0,<1.0.0"
   ]
 
 
