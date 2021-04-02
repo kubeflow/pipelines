@@ -306,9 +306,11 @@ class ComponentSpecTest(parameterized.TestCase):
           'original_task_spec': {},
           'parent_component_inputs': {},
           'tasks_in_current_dag': [],
+          'input_parameters_in_current_dag': [],
+          'input_artifacts_in_current_dag': [],
           'expected_result': {},
       },
-      { # Depending on tasks within the current DAG.
+      { # Depending on tasks & inputs within the current DAG.
           'original_task_spec': {
               'inputs': {
                   'artifacts': {
@@ -318,6 +320,9 @@ class ComponentSpecTest(parameterized.TestCase):
                               'outputArtifactKey': 'output1'
                           }
                       },
+                      'artifact1': {
+                        'componentInputArtifact': 'artifact1'
+                      },
                   },
                   'parameters': {
                       'pipelineparam--op-2-output2': {
@@ -326,11 +331,29 @@ class ComponentSpecTest(parameterized.TestCase):
                               'outputParameterKey': 'output2'
                           }
                       },
+                      'param1': {
+                        'componentInputParameter': 'param1'
+                      },
                   }
               }
           },
-          'parent_component_inputs': {},
+          'parent_component_inputs': {
+            'artifacts': {
+              'artifact1': {
+                'artifactType': {
+                  'instanceSchema': 'dummy_schema'
+                }
+              },
+            },
+            'parameters': {
+              'param1': {
+                'type': 'STRING'
+              },
+            }
+          },
           'tasks_in_current_dag': ['task-op-1', 'task-op-2'],
+          'input_parameters_in_current_dag': ['param1'],
+          'input_artifacts_in_current_dag': ['artifact1'],
           'expected_result': {
               'inputs': {
                   'artifacts': {
@@ -340,6 +363,9 @@ class ComponentSpecTest(parameterized.TestCase):
                               'outputArtifactKey': 'output1'
                           }
                       },
+                      'artifact1': {
+                        'componentInputArtifact': 'artifact1'
+                      },
                   },
                   'parameters': {
                       'pipelineparam--op-2-output2': {
@@ -348,11 +374,14 @@ class ComponentSpecTest(parameterized.TestCase):
                               'outputParameterKey': 'output2'
                           }
                       },
+                      'param1': {
+                        'componentInputParameter': 'param1'
+                      },
                   }
               }
           },
       },
-      { # Depending on tasks not available in the current DAG.
+      { # Depending on tasks and inputs not available in the current DAG.
           'original_task_spec': {
               'inputs': {
                   'artifacts': {
@@ -362,6 +391,9 @@ class ComponentSpecTest(parameterized.TestCase):
                               'outputArtifactKey': 'output1'
                           }
                       },
+                      'artifact1': {
+                        'componentInputArtifact': 'artifact1'
+                      },
                   },
                   'parameters': {
                       'pipelineparam--op-2-output2': {
@@ -369,6 +401,9 @@ class ComponentSpecTest(parameterized.TestCase):
                               'producerTask': 'task-op-2',
                               'outputParameterKey': 'output2'
                           }
+                      },
+                      'param1': {
+                        'componentInputParameter': 'param1'
                       },
                   }
               }
@@ -379,15 +414,25 @@ class ComponentSpecTest(parameterized.TestCase):
                       'artifactType': {
                           'instanceSchema': 'dummy_schema'
                       }
-                  }
+                  },
+                  'pipelineparam--artifact1': {
+                    'artifactType': {
+                      'instanceSchema': 'dummy_schema'
+                    }
+                  },
               },
               'parameters': {
                 'pipelineparam--op-2-output2' : {
                   'type': 'INT'
-                }
+                },
+                'pipelineparam--param1': {
+                  'type': 'STRING'
+                },
               }
           },
           'tasks_in_current_dag': ['task-op-3'],
+          'input_parameters_in_current_dag': ['pipelineparam--op-2-output2', 'pipelineparam--param1'],
+          'input_artifacts_in_current_dag': ['pipelineparam--op-1-output1', 'pipelineparam--artifact1'],
           'expected_result': {
               'inputs': {
                   'artifacts': {
@@ -395,11 +440,17 @@ class ComponentSpecTest(parameterized.TestCase):
                           'componentInputArtifact':
                               'pipelineparam--op-1-output1'
                       },
+                      'artifact1': {
+                        'componentInputArtifact': 'pipelineparam--artifact1'
+                      },
                   },
                   'parameters': {
                       'pipelineparam--op-2-output2': {
                           'componentInputParameter':
                               'pipelineparam--op-2-output2'
+                      },
+                      'param1': {
+                        'componentInputParameter': 'pipelineparam--param1'
                       },
                   }
               }
@@ -408,7 +459,10 @@ class ComponentSpecTest(parameterized.TestCase):
   )
   def test_update_task_inputs_spec(self, original_task_spec,
                                    parent_component_inputs,
-                                   tasks_in_current_dag, expected_result):
+                                   tasks_in_current_dag,
+                                   input_parameters_in_current_dag,
+                                   input_artifacts_in_current_dag,
+                                   expected_result):
     pipeline_params = self.TEST_PIPELINE_PARAMS
 
     expected_spec = pipeline_spec_pb2.PipelineTaskSpec()
@@ -421,7 +475,9 @@ class ComponentSpecTest(parameterized.TestCase):
     dsl_component_spec.update_task_inputs_spec(task_spec,
                                                parent_component_inputs_spec,
                                                pipeline_params,
-                                               tasks_in_current_dag)
+                                               tasks_in_current_dag,
+                                               input_parameters_in_current_dag,
+                                               input_artifacts_in_current_dag)
 
     self.assertEqual(expected_spec, task_spec)
 
