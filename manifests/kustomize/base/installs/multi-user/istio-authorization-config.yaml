@@ -12,18 +12,16 @@ spec:
     - source:
         namespaces:
         - istio-system
-    to:
-    - operation: {}
 ---
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
-  name: ml-pipeline-internal
+  name: ml-pipeline
   namespace: kubeflow
 spec:
   selector:
-    matchExpressions:
-    - {key: app, operator: In, values: [ml-pipeline,ml-pipeline-ui,ml-pipeline-visualizationserver,mysql]}
+    matchLabels:
+      app: ml-pipeline
   rules:
   - from:
     - source:
@@ -34,8 +32,27 @@ spec:
         - cluster.local/ns/kubeflow/sa/ml-pipeline-scheduledworkflow
         - cluster.local/ns/kubeflow/sa/ml-pipeline-viewer-crd-service-account
         - cluster.local/ns/kubeflow/sa/kubeflow-pipelines-cache
-    to:
-    - operation: {}
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: ml-pipeline-visualizationserver
+  namespace: kubeflow
+spec:
+  selector:
+    matchLabels:
+      app: ml-pipeline-visualizationserver
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/kubeflow/sa/ml-pipeline
+        - cluster.local/ns/kubeflow/sa/ml-pipeline-ui
+        - cluster.local/ns/kubeflow/sa/ml-pipeline-persistenceagent
+        - cluster.local/ns/kubeflow/sa/ml-pipeline-scheduledworkflow
+        - cluster.local/ns/kubeflow/sa/ml-pipeline-viewer-crd-service-account
+        - cluster.local/ns/kubeflow/sa/kubeflow-pipelines-cache
+
 ---
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
@@ -47,8 +64,21 @@ spec:
     matchLabels:
       app: cache-server
   rules:
-  - to:
-    - operation: {}
+  - {}
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: metadata-grpc-service
+spec:
+  action: ALLOW
+  selector:
+    matchLabels:
+      component: metadata-grpc-server
+  rules:
+  - {}
+
 ---
 apiVersion: "networking.istio.io/v1alpha3"
 kind: DestinationRule
@@ -76,16 +106,6 @@ metadata:
   name: ml-pipeline-visualizationserver
 spec:
   host: ml-pipeline-visualizationserver.kubeflow.svc.cluster.local
-  trafficPolicy:
-    tls:
-      mode: ISTIO_MUTUAL
----
-apiVersion: "networking.istio.io/v1alpha3"
-kind: DestinationRule
-metadata:
-  name: ml-pipeline-mysql
-spec:
-  host: mysql.kubeflow.svc.cluster.local
   trafficPolicy:
     tls:
       mode: ISTIO_MUTUAL

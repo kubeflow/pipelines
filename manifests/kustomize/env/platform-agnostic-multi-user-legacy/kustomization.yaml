@@ -5,8 +5,10 @@ bases:
   - ../../base/installs/multi-user
   - ../../base/metadata/overlays/db
   - ../../third-party/argo/installs/cluster
-  - ../../third-party/mysql
-  - ../../third-party/minio
+  - ../../third-party/mysql/base
+  - ../../third-party/mysql/options/istio
+  - ../../third-party/minio/base
+  - ../../third-party/minio/options/istio
   - ../../third-party/metacontroller/base
 
 # Identifier for application manager to apply ownerReference.

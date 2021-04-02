@@ -20,7 +20,7 @@ spec:
         - name: KFP_VERSION
           valueFrom:
             configMapKeyRef:
-              name: pipeline-upstream-install-config
+              name: pipeline-install-config
               key: appVersion
         - name: MINIO_ACCESS_KEY
           valueFrom:
