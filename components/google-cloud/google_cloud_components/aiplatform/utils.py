@@ -55,7 +55,7 @@ def convert_method_to_component(method, should_serialize_init=False):
 
     for key, value in kwargs.items():
       prefix_key = "init" if key in init_arg_names else "method"
-      if isinstance(value, kfp.dsl._pipeline_param.PipelineParam):  # pylint: disable=protected-access
+      if isinstance(value, kfp.dsl.PipelineParam):
         name = key
         inputs.append("- {name: %s, type: Artifact}" % (name))
         input_args.append("""
