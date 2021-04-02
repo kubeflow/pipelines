@@ -100,6 +100,28 @@ spec:
       component: metadata-grpc-server
   rules:
   - {}
+
+---
+
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: minio-service
+spec:
+  action: ALLOW
+  selector:
+    matchLabels:
+      app: minio
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/kubeflow/sa/ml-pipeline
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/kubeflow/sa/ml-pipeline-ui
+  - {}
 ---
 apiVersion: "networking.istio.io/v1alpha3"
 kind: DestinationRule
@@ -137,6 +159,16 @@ metadata:
   name: ml-pipeline-mysql
 spec:
   host: mysql.kubeflow.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+---
+apiVersion: "networking.istio.io/v1alpha3"
+kind: DestinationRule
+metadata:
+  name: ml-pipeline-minio
+spec:
+  host: minio-service.kubeflow.svc.cluster.local
   trafficPolicy:
     tls:
       mode: ISTIO_MUTUAL
