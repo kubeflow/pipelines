@@ -137,14 +137,15 @@ pods_with_written_metadata = set()
 
 while True:
     print("Start watching Kubernetes Pods created by Argo")
-    pod_stream = k8s_watch.stream(
-        k8s_api.list_namespaced_pod,
-        namespace=namespace_to_watch,
-        label_selector=ARGO_WORKFLOW_LABEL_KEY,
-        timeout_seconds=1800,  # Sometimes watch gets stuck
-        _request_timeout=2000,  # Sometimes HTTP GET gets stuck
-    )
-    if not namespace_to_watch:
+    if namespace_to_watch:
+        pod_stream = k8s_watch.stream(
+            k8s_api.list_namespaced_pod,
+            namespace=namespace_to_watch,
+            label_selector=ARGO_WORKFLOW_LABEL_KEY,
+            timeout_seconds=1800,  # Sometimes watch gets stuck
+            _request_timeout=2000,  # Sometimes HTTP GET gets stuck
+        )
+    else:
         pod_stream = k8s_watch.stream(
             k8s_api.list_pod_for_all_namespaces,
             label_selector=ARGO_WORKFLOW_LABEL_KEY,
