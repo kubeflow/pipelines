@@ -83,7 +83,8 @@ class Executor():
 
     import os
     path = parameter.get('outputFile', None)
-    os.makedirs(os.path.basename(path), exist_ok=True)
+    if path:
+      os.makedirs(os.path.basename(path), exist_ok=True)
     return path
 
   def _get_output_artifact_path(self, artifact_name: str):
