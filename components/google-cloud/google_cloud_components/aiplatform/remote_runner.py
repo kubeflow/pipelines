@@ -58,7 +58,7 @@ def write_to_gcs(project, gcs_uri, text):
 
 
 def read_from_gcs(project, gcs_uri):
-  gcs_uri = gcs_uri[5:]
+  gcs_uri = gcs_uri[len('gs://'):]
   gcs_bucket, gcs_blob = gcs_uri.split('/', 1)
   client = storage.Client(project=project)
   bucket = client.get_bucket(gcs_bucket)
