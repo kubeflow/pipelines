@@ -23,8 +23,8 @@ INIT_KEY = 'init'
 METHOD_KEY = 'method'
 
 
-# TODO(b/184202941) Add type-hinting the functions
-# TODO(b/184203034) Add explanation / exmaples and validation for kwargs
+# TODO() Add type-hinting the functions
+# TODO() Add explanation / exmaples and validation for kwargs
 def split_args(kwargs):
   """Split args to match MB SDK input format for init, method and config."""
   init_args = {}

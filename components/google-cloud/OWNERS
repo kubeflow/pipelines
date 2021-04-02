@@ -15,6 +15,6 @@ reviewers:
   - sasha-gitg
   - sinachavoshi
 
-# TODO(b/184188620) Add the owners specified below to `CODEOWNERS` file in root so that they are used for PRs.
+# TODO() Add the owners specified below to `CODEOWNERS` file in root so that they are used for PRs.
 # /components/google_cloud_components/mb_sdk_component/* sasha-gitg sinachavoshi
 # /components/containers/uCAIP_MB_SDK/* sasha-gitg sinachavoshi

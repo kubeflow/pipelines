@@ -24,7 +24,7 @@ RUN pip3 install --upgrade pip
 RUN pip3 install git+https://github.com/googleapis/python-aiplatform@mb-release
 
 # Copies the trainer code to the docker image.
-# TODO(chavoshi) change from using PR @fcd24983168bca93d9e0c3ef91cafa46f3612977 version to master 
+# TODO() change from using PR @fcd24983168bca93d9e0c3ef91cafa46f3612977 version to master 
 RUN pip3 install "git+https://github.com/kubeflow/pipelines.git@fcd24983168bca93d9e0c3ef91cafa46f3612977#egg=google-cloud-components&subdirectory=components/google-cloud"
 
 # Sets up the entry point to invoke the trainer.
