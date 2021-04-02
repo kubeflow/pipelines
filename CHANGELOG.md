@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.5.0-rc.2](https://github.com/kubeflow/pipelines/compare/1.5.0-rc.1...1.5.0-rc.2) (2021-04-02)
+
+
+### Bug Fixes
+
+* **frontend:** Avoid crashing, and show error message for invalid trigger date/time format. ([\#5418](https://github.com/kubeflow/pipelines/issues/5418)) ([19667e1](https://github.com/kubeflow/pipelines/commit/19667e1086593075bb0db3168b4500b5a89e73fe))
+* **manifests:** Multi-User manifests fixes for 1.3 ([\#5416](https://github.com/kubeflow/pipelines/issues/5416)) ([6033718](https://github.com/kubeflow/pipelines/commit/6033718786574cd64b1ebd59e0246e7c5ba1fc88))
+* **sdk:** Support returning plain tuples in lightweight function components v2. ([\#5412](https://github.com/kubeflow/pipelines/issues/5412)) ([a6a7255](https://github.com/kubeflow/pipelines/commit/a6a725560c30a769da3c49de739c5e008e761a4f))
+* **sdk.v2:** fix bug for component input parameter/artifact referencing ([\#5419](https://github.com/kubeflow/pipelines/issues/5419)) ([eb55842](https://github.com/kubeflow/pipelines/commit/eb558423ecdca969f2dea55e0d1b0197fafbcb13))
+
+
+### Other Pull Requests
+
+* metadata-writer: Fix multi-user mode ([\#5417](https://github.com/kubeflow/pipelines/issues/5417)) ([684d639](https://github.com/kubeflow/pipelines/commit/684d6392d35f9d847caec373ff13b947243da424))
+
 ## [1.5.0-rc.1](https://github.com/kubeflow/pipelines/compare/1.5.0-rc.0...1.5.0-rc.1) (2021-04-01)
 
 
