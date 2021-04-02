@@ -54,28 +54,6 @@ spec:
         - cluster.local/ns/kubeflow/sa/kubeflow-pipelines-cache
 
 ---
-
-apiVersion: security.istio.io/v1beta1
-kind: AuthorizationPolicy
-metadata:
-  name: mysql
-  namespace: kubeflow
-spec:
-  selector:
-    matchLabels:
-      app: mysql
-  rules:
-  - from:
-    - source:
-        principals:
-        - cluster.local/ns/kubeflow/sa/ml-pipeline
-        - cluster.local/ns/kubeflow/sa/ml-pipeline-ui
-        - cluster.local/ns/kubeflow/sa/ml-pipeline-persistenceagent
-        - cluster.local/ns/kubeflow/sa/ml-pipeline-scheduledworkflow
-        - cluster.local/ns/kubeflow/sa/ml-pipeline-viewer-crd-service-account
-        - cluster.local/ns/kubeflow/sa/kubeflow-pipelines-cache
-        - cluster.local/ns/kubeflow/sa/metadata-grpc-server
----
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
@@ -101,27 +79,6 @@ spec:
   rules:
   - {}
 
----
-
-apiVersion: security.istio.io/v1beta1
-kind: AuthorizationPolicy
-metadata:
-  name: minio-service
-spec:
-  action: ALLOW
-  selector:
-    matchLabels:
-      app: minio
-  rules:
-  - from:
-    - source:
-        principals:
-        - cluster.local/ns/kubeflow/sa/ml-pipeline
-  - from:
-    - source:
-        principals:
-        - cluster.local/ns/kubeflow/sa/ml-pipeline-ui
-  - {}
 ---
 apiVersion: "networking.istio.io/v1alpha3"
 kind: DestinationRule
@@ -149,26 +106,6 @@ metadata:
   name: ml-pipeline-visualizationserver
 spec:
   host: ml-pipeline-visualizationserver.kubeflow.svc.cluster.local
-  trafficPolicy:
-    tls:
-      mode: ISTIO_MUTUAL
----
-apiVersion: "networking.istio.io/v1alpha3"
-kind: DestinationRule
-metadata:
-  name: ml-pipeline-mysql
-spec:
-  host: mysql.kubeflow.svc.cluster.local
-  trafficPolicy:
-    tls:
-      mode: ISTIO_MUTUAL
----
-apiVersion: "networking.istio.io/v1alpha3"
-kind: DestinationRule
-metadata:
-  name: ml-pipeline-minio
-spec:
-  host: minio-service.kubeflow.svc.cluster.local
   trafficPolicy:
     tls:
       mode: ISTIO_MUTUAL
