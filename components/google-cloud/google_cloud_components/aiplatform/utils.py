@@ -45,7 +45,8 @@ def convert_method_to_component(method, should_serialize_init=False):
         additional_args.append(f"    - --{key}.{arg_key}={value}")
     return "\n".join(additional_args)
 
-  def f(**kwargs):
+  def component_yaml_generator(**kwargs):
+    """Funciton to create the actual component yaml for the input kwargs.""" 
     inputs = ["inputs:"]
     input_args = []
     input_kwargs = {}
@@ -92,4 +93,4 @@ implementation:
 
     return components.load_component_from_text(component_text)(**input_kwargs)
 
-  return f
+  return component_yaml_generator
