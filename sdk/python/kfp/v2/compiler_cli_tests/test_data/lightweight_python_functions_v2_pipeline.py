@@ -83,7 +83,7 @@ preprocess_op = components.create_component_from_func_v2(preprocess)
 train_op = components.create_component_from_func_v2(train)
 
 
-@dsl.pipeline(pipeline_root='gs://ml-pipeline-artifacts/v2-artifacts',
+@dsl.pipeline(pipeline_root='dummy_root',
               name='my-test-pipeline-beta')
 def pipeline(message: str):
   preprocess_task = preprocess_op(message=message)
@@ -97,5 +97,5 @@ def pipeline(message: str):
 if __name__ == '__main__':
   compiler.Compiler().compile(
       pipeline_func=pipeline,
-      pipeline_root='gs://ml-pipeline-artifacts/v2-artifacts',
+      pipeline_root='dummy_root',
       output_path=__file__ + '.json')

@@ -391,13 +391,6 @@ def _attach_v2_specs(
 
   # task.name is unique at this point.
   pipeline_task_spec.task_info.name = (dsl_utils.sanitize_task_name(task.name))
-  pipeline_task_spec.component_ref.name = (
-      dsl_utils.sanitize_component_name(component_spec.name))
-
-  task.task_spec = pipeline_task_spec
-  task.importer_specs = importer_specs
-  task.component_spec = dsl_component_spec.build_component_spec_from_structure(
-      component_spec)
 
   resolved_cmd = _resolve_commands_and_args_v2(
       component_spec=component_spec, arguments=original_arguments)
@@ -407,6 +400,17 @@ def _attach_v2_specs(
           image=component_spec.implementation.container.image,
           command=resolved_cmd.command,
           args=resolved_cmd.args))
+
+  # TODO(chensun): dedupe IR component_spec and contaienr_spec
+  pipeline_task_spec.component_ref.name = (
+      dsl_utils.sanitize_component_name(task.name))
+  executor_label = dsl_utils.sanitize_executor_label(task.name)
+
+  task.component_spec = dsl_component_spec.build_component_spec_from_structure(
+      component_spec, executor_label, arguments.keys())
+
+  task.task_spec = pipeline_task_spec
+  task.importer_specs = importer_specs
 
   # Override command and arguments if compiling to v2.
   if is_compiling_for_v2:

@@ -17,7 +17,7 @@ These are only compatible with v2 Pipelines.
 """
 
 import os
-from typing import Dict, Optional, Type, TypeVar
+from typing import Dict, List, Optional, Type, TypeVar
 
 
 class Artifact(object):
@@ -45,7 +45,7 @@ class Artifact(object):
 
 class Model(Artifact):
   """An artifact representing an ML Model."""
-  TYPE_NAME = "kfp.Model"
+  TYPE_NAME = "system.Model"
 
   def __init__(self,
                name: Optional[str] = None,
@@ -70,7 +70,7 @@ class Model(Artifact):
 
 class Dataset(Artifact):
   """An artifact representing an ML Dataset."""
-  TYPE_NAME = "kfp.Dataset"
+  TYPE_NAME = "system.Dataset"
 
   def __init__(self,
                name: Optional[str] = None,
@@ -82,7 +82,7 @@ class Dataset(Artifact):
 class Metrics(Artifact):
   """Represent a simple base Artifact type to store key-value scalar metrics.
   """
-  TYPE_NAME = "kfp.Metrics"
+  TYPE_NAME = "system.Metrics"
 
   def __init__(self,
                name: Optional[str] = None,
@@ -99,6 +99,142 @@ class Metrics(Artifact):
     """
     self.metadata[metric] = value
 
+class ClassificationMetrics(Artifact):
+  """Represents Artifact class to store Classification Metrics."""
+  TYPE_NAME = "system.ClassificationMetrics"
+
+  def __init__(self,
+               name: Optional[str] = None,
+               uri: Optional[str] = None,
+               metadata: Optional[Dict] = None):
+    super().__init__(uri=uri, name=name, metadata=metadata)
+
+  def log_roc_reading(self, threshold: float, tpr: float, fpr: float):
+    """Logs a single data point in the ROC Curve.
+
+    Args:
+      threshold: Thresold value for the data point.
+      tpr: True positive rate value of the data point.
+      fpr: False positive rate value of the data point.
+    """
+
+    roc_reading = {'confidenceThreshold': threshold, 'recall': tpr, 'falsePositiveRate': fpr}
+    if 'confidenceMetrics' not in self.metadata.keys():
+      self.metadata['confidenceMetrics'] = []
+
+    self.metadata['confidenceMetrics'].append(roc_reading)
+
+  def load_roc_readings(self, readings: List[List[float]]):
+    """Supports bulk loading ROC Curve readings.
+
+    Args:
+      readings: A 2-D list providing ROC Curve data points.
+                The expected order of the data points is:
+                  threshold, true_positive_rate, false_positive_rate.
+    """
+    self.metadata['confidenceMetrics'] = []
+    for reading in readings:
+      if len(reading) != 3:
+        raise ValueError('Invalid ROC curve reading provided: {}. \
+          Expected 3 values.'.format(reading))
+
+      self.log_roc_reading(reading[0], reading[1], reading[2])
+
+  def set_confusion_matrix_categories(self, categories: List[str]):
+    """Stores confusion matrix categories.
+
+    Args:
+      categories: List of strings specifying the categories.
+    """
+
+    self._categories =[]
+    annotation_specs = []
+    for category in categories:
+      annotation_spec = {
+        'displayName' : category
+      }
+      self._categories.append(category)
+      annotation_specs.append(annotation_spec)
+
+    self._matrix = [
+        [ 0 for i in range(len(self._categories)) ]
+          for j in range(len(self._categories)) ]
+
+    self._confusion_matrix = {}
+    self._confusion_matrix['annotationSpecs'] = annotation_specs
+    self._confusion_matrix['rows'] = self._matrix
+    self.metadata['confusionMatrix'] = self._confusion_matrix
+
+  def log_confusion_matrix_row(self, row_category: str, row: List[float]):
+    """Logs a confusion matrix row.
+
+    Args:
+      row_category: Category to which the row belongs.
+      row: List of integers specifying the values for the row.
+
+     Raises:
+      ValueError: If row_category is not in the list of categories
+      set in set_categories call.
+    """
+    if row_category not in self._categories:
+      raise ValueError('Invalid category: {} passed. Expected one of: {}'.\
+        format(row_category, self._categories))
+
+    if len(row) != len(self._categories):
+      raise ValueError('Invalid row. Expected size: {} got: {}'.\
+        format(len(self._categories), len(row)))
+
+    self._matrix[self._categories.index(row_category)] = row
+    self.metadata['confusionMatrix'] = self._confusion_matrix
+
+  def log_confusion_matrix_cell(self, row_category: str, col_category: str, value: int):
+    """Logs a cell in the confusion matrix.
+
+    Args:
+      row_category: String representing the name of the row category.
+      col_category: String representing the name of the column category.
+      value: Int value of the cell.
+
+    Raises:
+      ValueError: If row_category or col_category is not in the list of
+       categories set in set_categories.
+    """
+    if row_category not in self._categories:
+      raise ValueError('Invalid category: {} passed. Expected one of: {}'.\
+        format(row_category, self._categories))
+
+    if col_category not in self._categories:
+      raise ValueError('Invalid category: {} passed. Expected one of: {}'.\
+        format(row_category, self._categories))
+
+    self._matrix[self._categories.index(row_category)][
+      self._categories.index(col_category)] = value
+    self.metadata['confusionMatrix'] = self._confusion_matrix
+
+  def load_confusion_matrix(self, categories: List[str], matrix: List[List[int]]):
+    """Supports bulk loading the whole confusion matrix.
+
+    Args:
+      categories: List of the category names.
+      matrix: Complete confusion matrix.
+
+    Raises:
+      ValueError: Length of categories does not match number of rows or columns.
+    """
+    self.set_confusion_matrix_categories(categories)
+
+    if len(matrix) != len(categories):
+      raise ValueError('Invalid matrix: {} passed for categories: {}'.\
+        format(matrix, categories))
+
+    for index in range(len(categories)):
+      if len(matrix[index]) != len(categories):
+        raise ValueError('Invalid matrix: {} passed for categories: {}'.\
+          format(matrix, categories))
+
+      self.log_confusion_matrix_row(categories[index], matrix[index])
+
+    self.metadata['confusionMatrix'] = self._confusion_matrix
 
 T = TypeVar('T', bound=Artifact)
 
@@ -157,7 +293,7 @@ class OutputArtifact(_IOArtifact):
 
 
 _SCHEMA_TITLE_TO_TYPE: Dict[str, Artifact] = {
-    x.TYPE_NAME: x for x in [Artifact, Model, Dataset, Metrics]
+    x.TYPE_NAME: x for x in [Artifact, Model, Dataset, Metrics, ClassificationMetrics]
 }
 
 

@@ -89,6 +89,15 @@ exports[`Trigger enables a single day on click 1`] = `
       />
     </div>
     <div
+      className="alert"
+      data-testid="startTimeMessage"
+      style={
+        Object {
+          "visibility": "hidden",
+        }
+      }
+    />
+    <div
       className="flex"
     >
       <WithStyles(WithFormControlContext(FormControlLabel))
@@ -145,6 +154,15 @@ exports[`Trigger enables a single day on click 1`] = `
         width={120}
       />
     </div>
+    <div
+      className="alert"
+      data-testid="endTimeMessage"
+      style={
+        Object {
+          "visibility": "hidden",
+        }
+      }
+    />
     <span
       className="flex"
     >
@@ -430,6 +448,15 @@ exports[`Trigger renders all week days enabled 1`] = `
       />
     </div>
     <div
+      className="alert"
+      data-testid="startTimeMessage"
+      style={
+        Object {
+          "visibility": "hidden",
+        }
+      }
+    />
+    <div
       className="flex"
     >
       <WithStyles(WithFormControlContext(FormControlLabel))
@@ -486,6 +513,15 @@ exports[`Trigger renders all week days enabled 1`] = `
         width={120}
       />
     </div>
+    <div
+      className="alert"
+      data-testid="endTimeMessage"
+      style={
+        Object {
+          "visibility": "hidden",
+        }
+      }
+    />
     <span
       className="flex"
     >
@@ -771,6 +807,15 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
       />
     </div>
     <div
+      className="alert"
+      data-testid="startTimeMessage"
+      style={
+        Object {
+          "visibility": "hidden",
+        }
+      }
+    />
+    <div
       className="flex"
     >
       <WithStyles(WithFormControlContext(FormControlLabel))
@@ -827,6 +872,15 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
         width={120}
       />
     </div>
+    <div
+      className="alert"
+      data-testid="endTimeMessage"
+      style={
+        Object {
+          "visibility": "hidden",
+        }
+      }
+    />
     <span
       className="flex"
     >
@@ -1010,6 +1064,15 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
       />
     </div>
     <div
+      className="alert"
+      data-testid="startTimeMessage"
+      style={
+        Object {
+          "visibility": "hidden",
+        }
+      }
+    />
+    <div
       className="flex"
     >
       <WithStyles(WithFormControlContext(FormControlLabel))
@@ -1066,6 +1129,15 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
         width={120}
       />
     </div>
+    <div
+      className="alert"
+      data-testid="endTimeMessage"
+      style={
+        Object {
+          "visibility": "hidden",
+        }
+      }
+    />
     <span
       className="flex"
     >
@@ -1272,6 +1344,15 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
       />
     </div>
     <div
+      className="alert"
+      data-testid="startTimeMessage"
+      style={
+        Object {
+          "visibility": "hidden",
+        }
+      }
+    />
+    <div
       className="flex"
     >
       <WithStyles(WithFormControlContext(FormControlLabel))
@@ -1328,6 +1409,15 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
         width={120}
       />
     </div>
+    <div
+      className="alert"
+      data-testid="endTimeMessage"
+      style={
+        Object {
+          "visibility": "hidden",
+        }
+      }
+    />
     <span
       className="flex"
     >

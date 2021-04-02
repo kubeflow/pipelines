@@ -137,13 +137,22 @@ pods_with_written_metadata = set()
 
 while True:
     print("Start watching Kubernetes Pods created by Argo")
-    for event in k8s_watch.stream(
-        k8s_api.list_namespaced_pod,
-        namespace=namespace_to_watch,
-        label_selector=ARGO_WORKFLOW_LABEL_KEY,
-        timeout_seconds=1800,  # Sometimes watch gets stuck
-        _request_timeout=2000,  # Sometimes HTTP GET gets stuck
-    ):
+    if namespace_to_watch:
+        pod_stream = k8s_watch.stream(
+            k8s_api.list_namespaced_pod,
+            namespace=namespace_to_watch,
+            label_selector=ARGO_WORKFLOW_LABEL_KEY,
+            timeout_seconds=1800,  # Sometimes watch gets stuck
+            _request_timeout=2000,  # Sometimes HTTP GET gets stuck
+        )
+    else:
+        pod_stream = k8s_watch.stream(
+            k8s_api.list_pod_for_all_namespaces,
+            label_selector=ARGO_WORKFLOW_LABEL_KEY,
+            timeout_seconds=1800,  # Sometimes watch gets stuck
+            _request_timeout=2000,  # Sometimes HTTP GET gets stuck
+        )
+    for event in pod_stream:
         try:
             obj = event['object']
             print('Kubernetes Pod event: ', event['type'], obj.metadata.name, obj.metadata.resource_version)
@@ -313,7 +322,7 @@ while True:
                         if art_name.startswith(output_prefix):
                             art_name = art_name[len(output_prefix):]
                         argo_output_artifacts[art_name] = artifact
-                    
+
                     output_artifacts = []
                     for name, art in argo_output_artifacts.items():
                         artifact_uri = argo_artifact_to_uri(art)
@@ -354,7 +363,7 @@ while True:
                         METADATA_OUTPUT_ARTIFACT_IDS_ANNOTATION_KEY: json.dumps(artifact_ids),
                     },
                 }
-                
+
                 patch_pod_metadata(
                     namespace=obj.metadata.namespace,
                     pod_name=obj.metadata.name,

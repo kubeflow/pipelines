@@ -12,10 +12,10 @@ patchesJson6902:
       group: apps
       kind: Deployment
       name: workflow-controller
-    path: ./overlays/workflow-controller-deployment.yaml
+    path: ./overlays/workflow-controller-deployment.json
   - target:
       version: v1
       group: apps
       kind: Deployment
       name: argo-server
-    path: ./overlays/argo-server-deployment.yaml
+    path: ./overlays/argo-server-deployment.json
