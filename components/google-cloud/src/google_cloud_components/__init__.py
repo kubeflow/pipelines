@@ -12,19 +12,3 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Google Cloud Components root."""
-
-from google.cloud import aiplatform as aip
-from google_cloud_components.aiplatform import utils
-
-DatasetCreateOp = utils.convert_method_to_component(aip.Dataset.create)
-
-DatasetExportDataOp = utils.convert_method_to_component(
-    aip.Dataset.export_data, should_serialize_init=True)
-
-CustomContainerTrainingJobRunOp = utils.convert_method_to_component(
-    aip.CustomContainerTrainingJob.run, should_serialize_init=True)
-
-ModelDeployOp = utils.convert_method_to_component(
-    aip.Model.deploy, should_serialize_init=True)
-
-ModelUploadOp = utils.convert_method_to_component(aip.Model.upload)
