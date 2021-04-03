@@ -50,7 +50,7 @@ func (w *Workflow) OverrideParameters(desiredParams map[string]string) {
 		var desiredValue *string = nil
 		if param, ok := desiredParams[currentParam.Name]; ok {
 			desiredValue = &param
-		} else {
+		} else if currentParam.Value != nil {
 			desired := currentParam.Value.String()
 			desiredValue = &desired
 		}
