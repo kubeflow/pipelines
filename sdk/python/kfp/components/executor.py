@@ -81,7 +81,11 @@ class Executor():
     if parameter is None:
       return None
 
-    return parameter.get('outputFile', None)
+    import os
+    path = parameter.get('outputFile', None)
+    if path:
+      os.makedirs(os.path.basename(path), exist_ok=True)
+    return path
 
   def _get_output_artifact_path(self, artifact_name: str):
     artifact_name = self._maybe_strip_path_suffix(artifact_name)
