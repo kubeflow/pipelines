@@ -33,7 +33,7 @@ implementation:
         launcher_image="$4"
 
         python3 -m "$sample_path" \
-          --pipeline_root "$root/$name" \
+          --output_directory "$root/$name" \
           --host "$host" \
           --launcher_image "$launcher_image"
 

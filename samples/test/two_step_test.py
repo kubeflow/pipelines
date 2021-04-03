@@ -11,12 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Two step v2-compatible pipeline."""
 
-# sample test config
-# path corresponds to python module path
-# e.g. if folder path is `v2/test/samples/fail_test.py`, then module path is
-# `v2.test.samples.fail_test`.
-- name: fail
-  path: v2.test.samples.fail_test
-- name: two_step
-  path: v2.test.samples.two_step_test
+from .two_step import two_step_pipeline
+from .util import run_pipeline_func
+
+
+def verify(run, run_id: str):
+    assert run.status == 'Succeeded'
+    # TODO(Bobgy): verify MLMD status
+
+
+run_pipeline_func(pipeline_func=two_step_pipeline, verify_func=verify)

@@ -11,4 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Fail pipeline."""
 
+from .fail import fail_pipeline
+from .util import run_pipeline_func
+
+
+def verify(run, run_id: str):
+    assert run.status == 'Failed'
+    # TODO(Bobgy): verify MLMD status
+
+
+run_pipeline_func(pipeline_func=fail_pipeline, verify_func=verify)
