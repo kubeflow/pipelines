@@ -16,7 +16,7 @@
 def make_required_install_packages():
   return [
       "kfp>=1.4.0,<2.0.0",
-      "google-cloud-aiplatform>=0.6.0,<1.0.0"
+      "google-cloud-aiplatform>=0.5.0,<1.0.0"
   ]
 
 
