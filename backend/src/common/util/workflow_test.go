@@ -180,48 +180,120 @@ func TestWorkflow_OverrideName(t *testing.T) {
 }
 
 func TestWorkflow_OverrideParameters(t *testing.T) {
-	workflow := NewWorkflow(&workflowapi.Workflow{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "WORKFLOW_NAME",
-		},
-		Spec: workflowapi.WorkflowSpec{
-			Arguments: workflowapi.Arguments{
-				Parameters: []workflowapi.Parameter{
-					{Name: "PARAM1", Value: workflowapi.AnyStringPtr("VALUE1")},
-					{Name: "PARAM2", Value: workflowapi.AnyStringPtr("VALUE2")},
-					{Name: "PARAM3", Value: workflowapi.AnyStringPtr("VALUE3")},
-					{Name: "PARAM4", Value: workflowapi.AnyStringPtr("")},
-					{Name: "PARAM5", Value: workflowapi.AnyStringPtr("VALUE5")},
+	var tests = []struct {
+		name      string
+		workflow  *workflowapi.Workflow
+		overrides map[string]string
+		expected  *workflowapi.Workflow
+	}{
+		{
+			name: "override parameters",
+			workflow: &workflowapi.Workflow{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "WORKFLOW_NAME",
+				},
+				Spec: workflowapi.WorkflowSpec{
+					Arguments: workflowapi.Arguments{
+						Parameters: []workflowapi.Parameter{
+							{Name: "PARAM1", Value: workflowapi.AnyStringPtr("VALUE1")},
+							{Name: "PARAM2", Value: workflowapi.AnyStringPtr("VALUE2")},
+							{Name: "PARAM3", Value: workflowapi.AnyStringPtr("VALUE3")},
+							{Name: "PARAM4", Value: workflowapi.AnyStringPtr("")},
+							{Name: "PARAM5", Value: workflowapi.AnyStringPtr("VALUE5")},
+						},
+					},
+				},
+			},
+			overrides: map[string]string{
+				"PARAM1": "NEW_VALUE1",
+				"PARAM3": "NEW_VALUE3",
+				"PARAM4": "NEW_VALUE4",
+				"PARAM5": "",
+				"PARAM9": "NEW_VALUE9",
+			},
+			expected: &workflowapi.Workflow{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "WORKFLOW_NAME",
+				},
+				Spec: workflowapi.WorkflowSpec{
+					Arguments: workflowapi.Arguments{
+						Parameters: []workflowapi.Parameter{
+							{Name: "PARAM1", Value: workflowapi.AnyStringPtr("NEW_VALUE1")},
+							{Name: "PARAM2", Value: workflowapi.AnyStringPtr("VALUE2")},
+							{Name: "PARAM3", Value: workflowapi.AnyStringPtr("NEW_VALUE3")},
+							{Name: "PARAM4", Value: workflowapi.AnyStringPtr("NEW_VALUE4")},
+							{Name: "PARAM5", Value: workflowapi.AnyStringPtr("")},
+						},
+					},
 				},
 			},
 		},
-	})
-
-	workflow.OverrideParameters(map[string]string{
-		"PARAM1": "NEW_VALUE1",
-		"PARAM3": "NEW_VALUE3",
-		"PARAM4": "NEW_VALUE4",
-		"PARAM5": "",
-		"PARAM9": "NEW_VALUE9",
-	})
-
-	expected := &workflowapi.Workflow{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "WORKFLOW_NAME",
+		{
+			name: "handles missing parameter values",
+			workflow: &workflowapi.Workflow{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "NAME",
+				},
+				Spec: workflowapi.WorkflowSpec{
+					Arguments: workflowapi.Arguments{
+						Parameters: []workflowapi.Parameter{
+							{Name: "PARAM1"}, // note, there's no value here
+						},
+					},
+				},
+			},
+			overrides: nil,
+			expected: &workflowapi.Workflow{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "NAME",
+				},
+				Spec: workflowapi.WorkflowSpec{
+					Arguments: workflowapi.Arguments{
+						Parameters: []workflowapi.Parameter{
+							{Name: "PARAM1"},
+						},
+					},
+				},
+			},
 		},
-		Spec: workflowapi.WorkflowSpec{
-			Arguments: workflowapi.Arguments{
-				Parameters: []workflowapi.Parameter{
-					{Name: "PARAM1", Value: workflowapi.AnyStringPtr("NEW_VALUE1")},
-					{Name: "PARAM2", Value: workflowapi.AnyStringPtr("VALUE2")},
-					{Name: "PARAM3", Value: workflowapi.AnyStringPtr("NEW_VALUE3")},
-					{Name: "PARAM4", Value: workflowapi.AnyStringPtr("NEW_VALUE4")},
-					{Name: "PARAM5", Value: workflowapi.AnyStringPtr("")},
+		{
+			name: "overrides a missing parameter value",
+			workflow: &workflowapi.Workflow{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "NAME",
+				},
+				Spec: workflowapi.WorkflowSpec{
+					Arguments: workflowapi.Arguments{
+						Parameters: []workflowapi.Parameter{
+							{Name: "PARAM1"}, // note, there's no value here
+						},
+					},
+				},
+			},
+			overrides: map[string]string{
+				"PARAM1": "VALUE1",
+			},
+			expected: &workflowapi.Workflow{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "NAME",
+				},
+				Spec: workflowapi.WorkflowSpec{
+					Arguments: workflowapi.Arguments{
+						Parameters: []workflowapi.Parameter{
+							{Name: "PARAM1", Value: workflowapi.AnyStringPtr("VALUE1")},
+						},
+					},
 				},
 			},
 		},
 	}
-	assert.Equal(t, expected, workflow.Get())
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			workflow := NewWorkflow(tt.workflow)
+			workflow.OverrideParameters(tt.overrides)
+			assert.Equal(t, tt.expected, workflow.Get())
+		})
+	}
 }
 
 func TestWorkflow_SetOwnerReferences(t *testing.T) {
