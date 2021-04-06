@@ -69,7 +69,7 @@ def v2_sample_test(
             name=sample.name,
             sample_path=sample.path,
             gcs_root=gcs_root,
-            host=kfp_host,
+            external_host=kfp_host,
             launcher_image=build_kfp_launcher_op.outputs['digest']
         )
         run_sample_op.container.image = build_samples_image_op.outputs['digest']
