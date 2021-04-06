@@ -29,7 +29,7 @@ class ConditionOperator:
       "If operator combinator was meant, use & or | instead."
     ])
     warnings.warn(msg)
-    return super().__bool__()
+    return True
 
   def __and__(self, other) -> 'ConditionOperator':
     return ConditionOperator('&&', self, other)
