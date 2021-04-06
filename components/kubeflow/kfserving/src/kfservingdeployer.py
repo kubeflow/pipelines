@@ -381,10 +381,10 @@ def main():
         service_account=service_account,
         enable_istio_sidecar=enable_istio_sidecar,
         inferenceservice_yaml=inferenceservice_yaml,
+        request_timeout=request_timeout,
         watch_timeout=watch_timeout,
         min_replicas=min_replicas,
-        max_replicas=max_replicas,
-        request_timeout=request_timeout
+        max_replicas=max_replicas
     )
 
     print(model_status)
