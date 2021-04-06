@@ -1082,7 +1082,7 @@ class Compiler(object):
 
   def compile(self,
               pipeline_func: Callable[..., Any],
-              output_path: str,
+              package_path: str,
               pipeline_root: Optional[str] = None,
               pipeline_name: Optional[str] = None,
               pipeline_parameters: Optional[Mapping[str, Any]] = None,
@@ -1091,7 +1091,7 @@ class Compiler(object):
 
     Args:
       pipeline_func: Pipeline function with @dsl.pipeline decorator.
-      output_path: The output pipeline job .json file path. for example,
+      package_path: The output pipeline job .json file path. for example,
         "~/pipeline_job.json"
       pipeline_root: The root of the pipeline outputs. Optional. The
         pipeline_root value can be specified either from this `compile()` method
@@ -1109,7 +1109,7 @@ class Compiler(object):
           pipeline_root=pipeline_root,
           pipeline_name=pipeline_name,
           pipeline_parameters_override=pipeline_parameters)
-      self._write_pipeline(pipeline_job, output_path)
+      self._write_pipeline(pipeline_job, package_path)
     finally:
       kfp.TYPE_CHECK = type_check_old_value
 

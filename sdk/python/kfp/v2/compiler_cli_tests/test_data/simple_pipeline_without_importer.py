@@ -66,4 +66,4 @@ if __name__ == '__main__':
       pipeline_func=my_pipeline,
       pipeline_root='dummy_root',
       pipeline_parameters={'text': 'Hello KFP!'},
-      output_path=__file__.replace('.py' ,'.json'))
+      package_path=__file__.replace('.py', '.json'))

@@ -60,7 +60,7 @@ def parse_arguments() -> argparse.Namespace:
 def _compile_pipeline_function(pipeline_funcs: List[Callable],
                                function_name: Optional[str], pipeline_root: str,
                                pipeline_parameters: Optional[Mapping[str, Any]],
-                               output_path: str, type_check: bool) -> None:
+                               package_path: str, type_check: bool) -> None:
   """Compiles a pipeline function.
 
   Args:
@@ -69,7 +69,7 @@ def _compile_pipeline_function(pipeline_funcs: List[Callable],
       multiple.
     pipeline_root: The root output directory for pipeline runtime.
     pipeline_parameters: The pipeline parameters as a dict of {name: value}.
-    output_path: The output path of the compiled result.
+    package_path: The output path of the compiled result.
     type_check: Whether to enable the type checking.
   """
   if len(pipeline_funcs) == 0:
@@ -96,7 +96,7 @@ def _compile_pipeline_function(pipeline_funcs: List[Callable],
       pipeline_func=pipeline_func,
       pipeline_root=pipeline_root,
       pipeline_parameters=pipeline_parameters,
-      output_path=output_path,
+      package_path=package_path,
       type_check=type_check)
 
 
@@ -120,7 +120,7 @@ class PipelineCollectorContext():
 def compile_pyfile(pyfile: str, function_name: Optional[str],
                    pipeline_root: str,
                    pipeline_parameters: Optional[Mapping[str, Any]],
-                   output_path: str, type_check: bool) -> None:
+                   package_path: str, type_check: bool) -> None:
   """Compiles a pipeline written in a .py file.
 
   Args:
@@ -128,7 +128,7 @@ def compile_pyfile(pyfile: str, function_name: Optional[str],
     function_name: The name of the pipeline function.
     pipeline_root: The root output directory for pipeline runtime.
     pipeline_parameters: The pipeline parameters as a dict of {name: value}.
-    output_path: The output path of the compiled result.
+    package_path: The output path of the compiled result.
     type_check: Whether to enable the type checking.
   """
   sys.path.insert(0, os.path.dirname(pyfile))
@@ -141,7 +141,7 @@ def compile_pyfile(pyfile: str, function_name: Optional[str],
         function_name=function_name,
         pipeline_root=pipeline_root,
         pipeline_parameters=pipeline_parameters,
-        output_path=output_path,
+        package_path=package_path,
         type_check=type_check)
   finally:
     del sys.path[0]
@@ -156,6 +156,6 @@ def main():
       function_name=args.function,
       pipeline_root=args.pipeline_root,
       pipeline_parameters=args.pipeline_parameters,
-      output_path=args.output,
+      package_path=args.output,
       type_check=not args.disable_type_check,
   )
