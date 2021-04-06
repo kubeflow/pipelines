@@ -47,5 +47,4 @@ def my_pipeline(text: str = 'condition test'):
 if __name__ == '__main__':
   compiler.Compiler().compile(
       pipeline_func=my_pipeline,
-      pipeline_root='dummy_root',
-      output_path=__file__.replace('.py', '.json'))
+      package_path=__file__.replace('.py', '.json'))
