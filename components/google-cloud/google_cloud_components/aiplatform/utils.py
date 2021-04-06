@@ -46,7 +46,7 @@ def convert_method_to_component(method, should_serialize_init=False):
     return "\n".join(additional_args)
 
   def component_yaml_generator(**kwargs):
-    """Funciton to create the actual component yaml for the input kwargs.""" 
+    """Function to create the actual component yaml for the input kwargs."""
     inputs = ["inputs:"]
     input_args = []
     input_kwargs = {}
