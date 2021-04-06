@@ -76,9 +76,6 @@ spec:
               - retry
               - preemptible_tpu_gpu
               - volume_snapshot_ops
-              - loop_output
-              - loop_parameter
-              - loop_static
               - resource_ops
               - multiple_outputs
               - caching
