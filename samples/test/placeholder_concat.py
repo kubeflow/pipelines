@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,21 +13,25 @@
 # limitations under the License.
 
 from kfp import components
-from kfp import dsl
+from kfp.v2 import dsl
+import kfp.v2.compiler as compiler
+
+component_op = components.load_component_from_text(
+    '''
+name: Component with concat placeholder
+inputs:
+- {name: input_prefix, type: String}
+implementation:
+  container:
+    image: gcr.io/google-containers/busybox
+    command:
+    - echo
+    args:
+    - concat: [{inputValue: input_prefix}, 'some value']
+    '''
+)
 
 
-@components.create_component_from_func
-def args_generator_op() -> str:
-    return '[1.1, 1.2, 1.3]'
-
-
-@components.create_component_from_func
-def print_op(s: float):
-    print(s)
-
-
-@dsl.pipeline(name='pipeline-with-loop-output')
-def my_pipeline():
-    args_generator = args_generator_op()
-    with dsl.ParallelFor(args_generator.output) as item:
-        print_op(item)
+@dsl.pipeline(name='one-step-pipeline-with-concat-placeholder')
+def pipeline_with_concat_placeholder():
+    component = component_op(input_prefix='some prefix:')

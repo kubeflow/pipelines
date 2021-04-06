@@ -26,3 +26,49 @@
   path: samples.test.fail_test
 - name: two_step
   path: samples.test.two_step_test
+- name: after
+  path: samples.test.after_test
+- name: condition
+  path: samples.core.condition.condition_test
+- name: nested_condition
+  path: samples.core.condition.nested_condition_test
+- name: loop_output
+  path: samples.core.loop_output.loop_output_test
+- name: loop_static
+  path: samples.core.loop_static.loop_static_test
+- name: loop_parameter
+  path: samples.core.loop_parameter.loop_parameter_test
+- name: parameter_with_format
+  path: samples.test.parameter_with_format_test
+- name: resource_spec
+  path: samples.core.resource_spec.resource_spec_test
+- name: reused_component
+  path: samples.test.reused_component_test
+- name: various_io_types
+  path: samples.test.various_io_types
+- name: simple_pipeline_without_importer
+  path: samples.test.simple_pipeline_without_importer_test
+- name: xgboost_sample
+  path: samples.core.XGBoost.xgboost_sample_test
+
+# TODO(v2-compatible): support pipeline: pipeline_with_ontology.py
+# TODO(v2-compatible): support two_step_pipeline_with_importer.py
+# TODO(v2-compatible): support IR placeholder
+- name: placeholder_concat
+  path: samples.test.placeholder_concat_test
+
+# TODO(v2-compatible): fix & enable these by supporting {{$}} placeholder, currently
+# fails with the following because root placeholder is not replaced:
+# ```
+# json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+# F0403 14:34:22.509052       1 main.go:56] Failed to successfuly execute component: %vexit status 1
+# ```
+# - name: lightweight_python_functions_v2_with_outputs
+#   path: samples.test.lightweight_python_functions_v2_with_outputs_test
+# - name: lightweight_python_functions_v2_pipeline
+#   path: samples.test.lightweight_python_functions_v2_pipeline_test
+
+# TODO(Bobgy): enable this test when https://github.com/kubeflow/pipelines/pull/5424
+# is deployed to test infra.
+# - name: fail_parameter_value_missing
+#   path: samples.test.fail_parameter_value_missing_test

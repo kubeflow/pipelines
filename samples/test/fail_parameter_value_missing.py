@@ -11,23 +11,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from kfp import dsl, components
 
-from kfp import components
-from kfp import dsl
+echo = components.load_component_from_text(
+    """
+name: Echo
+inputs:
+- {name: text, type: String}
+implementation:
+  container:
+    image: alpine
+    command:
+    - echo
+    - {inputValue: text}
+"""
+)
 
 
-@components.create_component_from_func
-def args_generator_op() -> str:
-    return '[1.1, 1.2, 1.3]'
-
-
-@components.create_component_from_func
-def print_op(s: float):
-    print(s)
-
-
-@dsl.pipeline(name='pipeline-with-loop-output')
-def my_pipeline():
-    args_generator = args_generator_op()
-    with dsl.ParallelFor(args_generator.output) as item:
-        print_op(item)
+@dsl.pipeline(name='parameter_value_missing')
+def pipeline(
+    parameter:
+    str  # parameter should be specified when submitting, but we are missing it in the test
+):
+    echo_op = echo(text=parameter)

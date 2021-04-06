@@ -12,22 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import components
-from kfp import dsl
+from .placeholder_concat import pipeline_with_concat_placeholder
+from .util import run_pipeline_func, TestCase
 
 
-@components.create_component_from_func
-def args_generator_op() -> str:
-    return '[1.1, 1.2, 1.3]'
+def verify(run, run_id: str):
+    assert run.status == 'Succeeded'
+    # TODO(Bobgy): verify echo output
+    # TODO(v2-compatible): support IR placeholder like {{$.inputs.parameters['input_prefix']}}
 
 
-@components.create_component_from_func
-def print_op(s: float):
-    print(s)
-
-
-@dsl.pipeline(name='pipeline-with-loop-output')
-def my_pipeline():
-    args_generator = args_generator_op()
-    with dsl.ParallelFor(args_generator.output) as item:
-        print_op(item)
+run_pipeline_func([
+    TestCase(
+        pipeline_func=pipeline_with_concat_placeholder,
+        verify_func=verify,
+    )
+])
