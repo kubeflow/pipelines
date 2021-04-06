@@ -96,8 +96,6 @@ def _run_test(callback):
             # Hide detailed information
             run.pipeline_spec.workflow_manifest = None
             pprint(run)
-            print("Run details page URL:")
-            print(f"{external_host}/#/runs/details/{run_result.run_id}")
             return run
 
         callback(run_pipeline=run_pipeline)
