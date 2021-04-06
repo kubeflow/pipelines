@@ -10,6 +10,7 @@ import logging
 import requests
 import tempfile
 from typing import Callable, Iterable
+from uri_template import URITemplate
 from . import _components as comp
 from .structures import ComponentReference
 from ._key_value_store import KeyValueStore
@@ -20,9 +21,16 @@ _COMPONENT_FILENAME = 'component.yaml'
 
 class ComponentStore:
     def __init__(
-        self, local_search_paths=None, url_search_prefixes=None, auth=None):
+        self,
+        local_search_paths=None,
+        uri_search_template=None,
+        url_search_prefixes=None,
+        auth=None,
+    ):
         """Instantiates a ComponentStore."""
         self.local_search_paths = local_search_paths or ['.']
+        if uri_search_template:
+            self.uri_search_template = URITemplate(uri_search_template)
         self.url_search_prefixes = url_search_prefixes or []
         self._auth = auth
 
@@ -143,22 +151,36 @@ class ComponentStore:
                 component_ref.spec = comp._load_component_spec_from_file(str(component_path))
                 return component_ref
 
+        #Trying URI template
+        if self.uri_search_template:
+            url = self.uri_search_template.expand(name=name, digest=digest, tag=tag)
+            tried_locations.append(url)
+            if self._load_component_spec_from_url(component_ref, url):
+                return component_ref
+
         #Trying URL prefixes
         for url_search_prefix in self.url_search_prefixes:
             url = url_search_prefix + path_suffix
             tried_locations.append(url)
-            try:
-                response = requests.get(url, auth=self._auth) #Does not throw exceptions on bad status, but throws on dead domains and malformed URLs. Should we log those cases?
-                response.raise_for_status()
-            except:
-                continue
-            if response.content:
-                # TODO: Verify that the content matches the digest (if specified).
-                component_ref.url = url
-                component_ref.spec = comp._load_component_spec_from_yaml_or_zip_bytes(response.content)
+            if self._load_component_spec_from_url(component_ref, url):
                 return component_ref
 
         raise RuntimeError('Component {} was not found. Tried the following locations:\n{}'.format(name, '\n'.join(tried_locations)))
+
+    def _load_component_spec_from_url(self, component_ref, url):
+        try:
+            response = requests.get(url, auth=self._auth)  # Does not throw exceptions on bad status, but throws on dead domains and malformed URLs. Should we log those cases?
+            response.raise_for_status()
+        except:
+            return False
+
+        if response.content:
+            # TODO: Verify that the content matches the digest (if specified).
+            component_ref.url = url
+            component_ref.spec = comp._load_component_spec_from_yaml_or_zip_bytes(response.content)
+            return True
+        
+        return False
 
     def _load_component_from_ref(self, component_ref: ComponentReference) -> Callable:
         component_ref = self._load_component_spec_in_component_ref(component_ref)
@@ -296,6 +318,7 @@ ComponentStore.default_store = ComponentStore(
     local_search_paths=[
         '.',
     ],
+    uri_search_template='https://raw.githubusercontent.com/kubeflow/pipelines/{tag}/components/{name}/component.yaml',
     url_search_prefixes=[
         'https://raw.githubusercontent.com/kubeflow/pipelines/master/components/'
     ],

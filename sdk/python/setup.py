@@ -43,7 +43,8 @@ REQUIRES = [
     'docstring-parser>=0.7.3,<1',
     'kfp-pipeline-spec>=0.1.5,<0.2.0',
     'fire>=0.3.1,<1',
-    'protobuf>=3.13.0,<4'
+    'protobuf>=3.13.0,<4',
+    'uri-template>=1.1.0,<2'
 ]
 
 TESTS_REQUIRE = [
