@@ -1,6 +1,6 @@
 import kfp
 import os
-from typing import Dict, List, Callable
+from typing import Dict, List, Callable, Optional
 from dataclasses import dataclass
 
 MINUTE = 60
@@ -15,7 +15,7 @@ class TestCase:
     '''Test case for running a KFP sample'''
     pipeline_func: Callable
     mode: kfp.dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE
-    arguments: Dict[str, str] = None
+    arguments: Optional[Dict[str, str]] = None
     verify_func: Callable = _default_verify_func
 
 
@@ -41,10 +41,10 @@ def run_pipeline_func(test_cases: List[TestCase]):
 def _run_test(callback):
 
     def main(
-        output_directory: str = None,  # example
-        host: str = None,
-        external_host: str = None,
-        launcher_image: 'URI' = None,
+        output_directory: Optional[str] = None,  # example
+        host: Optional[str] = None,
+        external_host: Optional[str] = None,
+        launcher_image: Optional['URI'] = None,
         experiment: str = 'v2_sample_test_samples',
     ):
         """Test file CLI entrypoint used by Fire.
@@ -74,8 +74,9 @@ def _run_test(callback):
         client = kfp.Client(host=host)
 
         def run_pipeline(
-            pipeline_func,
-            mode: str = kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
+            pipeline_func: Callable,
+            mode: kfp.dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode.
+            V2_COMPATIBLE,
             arguments: dict = {},
         ):
             run_result = client.create_run_from_pipeline_func(
