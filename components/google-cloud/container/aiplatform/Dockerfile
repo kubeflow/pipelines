@@ -21,11 +21,9 @@ WORKDIR /root
 RUN pip3 install --upgrade pip
 
 # Installs additional packages
-RUN pip3 install git+https://github.com/googleapis/python-aiplatform@mb-release
+RUN pip3 install git+https://github.com/googleapis/python-aiplatform@dev
 
-# Copies the trainer code to the docker image.
 # TODO() change from using PR @fcd24983168bca93d9e0c3ef91cafa46f3612977 version to master 
 RUN pip3 install "git+https://github.com/kubeflow/pipelines.git@fcd24983168bca93d9e0c3ef91cafa46f3612977#egg=google-cloud-components&subdirectory=components/google-cloud"
 
-# Sets up the entry point to invoke the trainer.
 ENTRYPOINT ["python3","-m","google_cloud_components.mb_sdk_component.remote_runner"]
