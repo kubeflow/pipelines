@@ -14,7 +14,7 @@
 """Two step v2-compatible pipeline."""
 
 from .two_step import two_step_pipeline
-from .util import run_pipeline_func
+from .util import run_pipeline_func, TestCase
 
 
 def verify(run, run_id: str):
@@ -22,4 +22,6 @@ def verify(run, run_id: str):
     # TODO(Bobgy): verify MLMD status
 
 
-run_pipeline_func(pipeline_func=two_step_pipeline, verify_func=verify)
+run_pipeline_func([
+    TestCase(pipeline_func=two_step_pipeline, verify_func=verify)
+])
