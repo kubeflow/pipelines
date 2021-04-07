@@ -370,7 +370,6 @@ def convert_method_to_component(method: Callable, should_serialize_init:bool=Fal
         method_kwargs = {}
 
         for key, value in kwargs.items():
-            print(key, value)
             if key in init_arg_names:
                 prefix_key = INIT_KEY
                 init_kwargs[key] = value
