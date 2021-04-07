@@ -51,7 +51,7 @@ AVAILABLE_FRAMEWORKS = {
 
 
 def create_predictor_spec(framework, storage_uri, canary_traffic_percent,
-                          service_account, min_replicas, max_replicas, containers):
+                          service_account, min_replicas, max_replicas, containers, request_timeout):
     """
     Create and return V1beta1PredictorSpec to be used in a V1beta1InferenceServiceSpec
     object.
@@ -68,9 +68,9 @@ def create_predictor_spec(framework, storage_uri, canary_traffic_percent,
                       else None
                      ),
         containers=(containers or None),
-        canary_traffic_percent=canary_traffic_percent
+        canary_traffic_percent=canary_traffic_percent,
+        timeout=request_timeout
     )
-
     # If the containers field was set, then this is custom model serving.
     if containers:
         return predictor_spec
@@ -180,8 +180,8 @@ def submit_api_request(kfs_client, action, name, isvc, namespace=None,
 
 def perform_action(action, model_name, model_uri, canary_traffic_percent, namespace,
                    framework, custom_model_spec, service_account, inferenceservice_yaml,
-                   autoscaling_target=0, enable_istio_sidecar=True, watch_timeout=300,
-                   min_replicas=0, max_replicas=0):
+                   request_timeout, autoscaling_target=0, enable_istio_sidecar=True, 
+                   watch_timeout=300, min_replicas=0, max_replicas=0):
     """
     Perform the specified action. If the action is not 'delete' and `inferenceService_yaml`
     was provided, the dict representation of the YAML will be sent directly to the
@@ -225,7 +225,7 @@ def perform_action(action, model_name, model_uri, canary_traffic_percent, namesp
         # Build the V1beta1PredictorSpec.
         predictor_spec = create_predictor_spec(
             framework, model_uri, canary_traffic_percent, service_account,
-            min_replicas, max_replicas, containers
+            min_replicas, max_replicas, containers, request_timeout
         )
 
         kfsvc = create_inference_service(metadata, predictor_spec)
@@ -325,6 +325,10 @@ def main():
     parser.add_argument(
         "--max-replicas", type=str, help="Maximum number of replicas", default="-1"
     )
+    parser.add_argument("--request-timeout",
+                        type=str,
+                        help="Specifies the number of seconds to wait before timing out a request to the component.",
+                        default="60")
 
     args = parser.parse_args()
 
@@ -343,6 +347,7 @@ def main():
     watch_timeout = int(args.watch_timeout)
     min_replicas = int(args.min_replicas)
     max_replicas = int(args.max_replicas)
+    request_timeout = int(args.request_timeout)
 
     # Default the namespace.
     if not namespace:
@@ -376,6 +381,7 @@ def main():
         service_account=service_account,
         enable_istio_sidecar=enable_istio_sidecar,
         inferenceservice_yaml=inferenceservice_yaml,
+        request_timeout=request_timeout,
         watch_timeout=watch_timeout,
         min_replicas=min_replicas,
         max_replicas=max_replicas
