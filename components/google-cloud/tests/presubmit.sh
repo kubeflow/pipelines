@@ -15,6 +15,14 @@
 
 source_root=$(pwd)
 
+# Run unit tests
 cd "$source_root/components/google-cloud"
-./run_test.sh
- 
+./tests/run_test.sh
+
+# Verify package build correctly  
+python setup.py bdist_wheel clean
+
+# Verify package can be installed and loaded correctly
+WHEEL_FILE=$(find "$source_root/components/google-cloud/dist/" -name "google_cloud_components*.whl")
+pip install --upgrade $WHEEL_FILE
+python -c "import google_cloud_components"
