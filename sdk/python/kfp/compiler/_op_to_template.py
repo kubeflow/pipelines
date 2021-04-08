@@ -252,6 +252,7 @@ def _op_to_template(op: BaseOp):
             template['metadata']['annotations'] = processed_op.pod_annotations
         if processed_op.pod_labels:
             template['metadata']['labels'] = processed_op.pod_labels
+
     # retries
     if processed_op.num_retries or processed_op.retry_policy:
         template['retryStrategy'] = {}
@@ -287,6 +288,14 @@ def _op_to_template(op: BaseOp):
     if processed_op.volumes:
         template['volumes'] = [convert_k8s_obj_to_json(volume) for volume in processed_op.volumes]
         template['volumes'].sort(key=lambda x: x['name'])
+
+    # resource requests at runtime
+    if processed_op.cpu_request and not processed_op.memory_request:
+        template['podSpecPatch'] = '{"containers":[{"name":"main", "resources":{"limits":{"cpu": "%s" }}}]}'% (processed_op.cpu_request)
+    if processed_op.memory_request and not processed_op.cpu_request:
+        template['podSpecPatch'] = '{"containers":[{"name":"main", "resources":{"limits":{"memory": "%s" }}}]}'% (processed_op.memory_request)
+    if processed_op.cpu_request and processed_op.memory_request:
+        template['podSpecPatch'] = '{"containers":[{"name":"main", "resources":{"limits":{"memory": "%s","cpu": "%s"}}}]}'% (processed_op.memory_request, processed_op.cpu_request)
 
     if isinstance(op, dsl.ContainerOp) and op._metadata:
         template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/component_spec'] = json.dumps(op._metadata.to_dict(), sort_keys=True)

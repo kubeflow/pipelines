@@ -439,6 +439,10 @@ class Compiler(object):
 
   @staticmethod
   def _resolve_task_pipeline_param(pipeline_param: PipelineParam, group_type) -> str:
+    print(pipeline_param)
+    print(pipeline_param)
+    print(pipeline_param)
+    print("HERE HERE HERE HERE HERE")
     if pipeline_param.op_name is None:
       return '{{workflow.parameters.%s}}' % pipeline_param.name
     param_name = '%s-%s' % (sanitize_k8s_name(pipeline_param.op_name), pipeline_param.name)
@@ -456,9 +460,17 @@ class Compiler(object):
       template["parallelism"] = group.parallelism
 
     # Generate inputs section.
+    print(group.name)
+    print(group.name)
+    print(group.name)
+    print(group.name)
     if inputs.get(group.name, None):
       template_inputs = [{'name': x[0]} for x in inputs[group.name]]
       template_inputs.sort(key=lambda x: x['name'])
+      print(template_inputs)
+      print(template_inputs)
+      print(template_inputs)
+      print(template)
       template['inputs'] = {
         'parameters': template_inputs
       }
@@ -511,7 +523,12 @@ class Compiler(object):
       # Generate arguments section for this task.
       if inputs.get(sub_group.name, None):
         task['arguments'] = {'parameters': self.get_arguments_for_sub_group(sub_group, is_recursive_subgroup, inputs)}
-
+        print(task['arguments'])
+        print(task['arguments'])
+        print(task['arguments'])
+        print(task['arguments'])
+        print(task)
+        print(task)
       # additional task modifications for withItems and withParam
       if isinstance(sub_group, dsl.ParallelFor):
         if sub_group.items_is_pipeline_param:
@@ -1089,6 +1106,7 @@ def _validate_workflow(workflow: dict):
       argument['value'] = ''
 
   yaml_text = dump_yaml(workflow)
+  print(yaml_text)
   if '{{pipelineparam' in yaml_text:
     raise RuntimeError(
         '''Internal compiler error: Found unresolved PipelineParam.
