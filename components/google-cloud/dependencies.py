@@ -29,4 +29,4 @@ def make_required_test_packages():
 
 
 def make_dependency_links():
-  return ["https://github.com/googleapis/python-aiplatform@mb-release"]
+  return ["https://github.com/googleapis/python-aiplatform@dev"]
