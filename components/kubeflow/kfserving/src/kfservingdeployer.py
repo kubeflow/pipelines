@@ -410,6 +410,13 @@ def main():
             sys.exit(1)
 
     if output_path:
+        try:
+            # Remove some less needed fields to reduce output size.
+            del model_status['metadata']['managedFields']
+            del model_status['status']['conditions']
+        except KeyError:
+            pass
+
         if not os.path.exists(os.path.dirname(output_path)):
             os.makedirs(os.path.dirname(output_path))
         with open(output_path, "w") as report:
