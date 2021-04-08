@@ -40,10 +40,10 @@ class TypeUtilsTest(unittest.TestCase):
         'title: kfp.Model' in type_utils.get_artifact_type_schema('Model'))
     self.assertTrue(
         'title: kfp.Dataset' in type_utils.get_artifact_type_schema('Dataset'))
-    self.assertTrue(
-        'title: kfp.Metrics' in type_utils.get_artifact_type_schema('Metrics'))
-    self.assertTrue('title: kfp.ClassificationMetrics' in type_utils
-                    .get_artifact_type_schema('ClassificationMetrics'))
+    self.assertEquals(
+        'system.Metrics', type_utils.get_artifact_type_schema('Metrics').schema_title)
+    self.assertEquals('system.ClassificationMetrics', type_utils
+                    .get_artifact_type_schema('ClassificationMetrics').schema_title)
     self.assertTrue('title: kfp.SlicedClassificationMetrics' in type_utils
                     .get_artifact_type_schema('SlicedClassificationMetrics'))
 
@@ -61,11 +61,11 @@ class TypeUtilsTest(unittest.TestCase):
         'title: kfp.Dataset' in type_utils.get_artifact_type_schema_message(
             'Dataset').instance_schema)
     self.assertTrue(
-        'title: kfp.Metrics' in type_utils.get_artifact_type_schema_message(
-            'Metrics').instance_schema)
-    self.assertTrue('title: kfp.ClassificationMetrics' in
+        'system.Metrics' in type_utils.get_artifact_type_schema_message(
+            'Metrics').schema_title)
+    self.assertTrue('system.ClassificationMetrics' in
                     type_utils.get_artifact_type_schema_message(
-                        'ClassificationMetrics').instance_schema)
+                        'ClassificationMetrics').schema_title)
     self.assertTrue('title: kfp.SlicedClassificationMetrics' in
                     type_utils.get_artifact_type_schema_message(
                         'SlicedClassificationMetrics').instance_schema)

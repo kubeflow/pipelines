@@ -35,6 +35,7 @@ from kfp.v2.compiler import compiler_utils
 from kfp.dsl import component_spec as dsl_component_spec
 from kfp.dsl import dsl_utils
 from kfp.dsl import importer_node
+from kfp.dsl import io_types
 from kfp.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 
@@ -625,6 +626,38 @@ class Compiler(object):
       dsl_component_spec.pop_input_from_component_spec(group_component_spec,
                                                        loop_argument_name)
 
+  def _populate_metrics_in_dag_outputs(
+      self, subgroup_component_spec: pipeline_spec_pb2.ComponentSpec,
+      subgroup_task_spec: pipeline_spec_pb2.PipelineTaskSpec,
+      group_component_spec: pipeline_spec_pb2.ComponentSpec) -> None:
+    """Populates metrics artifacts in dag outputs.
+
+    Args:
+      subgroup_component_spec: The component spec of the subgroup that may
+        produce outputs.
+      subgroup_task_spec: The task spec of the subgroup that may produce
+        outputs.
+      group_component_spec: The component spec of the parent group. Outputs from
+        its subtasks are populated here.
+    """
+    for output_name, artifact_spec in \
+        subgroup_component_spec.output_definitions.artifacts.items():
+      if artifact_spec.artifact_type.WhichOneof(
+          'kind'
+      ) == 'schema_title' and artifact_spec.artifact_type.schema_title in [
+          io_types.Metrics.TYPE_NAME, io_types.ClassificationMetrics.TYPE_NAME
+      ]:
+        unique_output_name = '{}-artifact-{}'.format(
+            subgroup_task_spec.task_info.name, output_name)
+        group_component_spec.output_definitions.artifacts[
+            unique_output_name].CopyFrom(artifact_spec)
+        artifact_selector = pipeline_spec_pb2.DagOutputsSpec.ArtifactSelectorSpec(
+            producer_subtask=subgroup_task_spec.task_info.name,
+            output_artifact_key=output_name,
+        )
+        group_component_spec.dag.outputs.artifacts[
+            unique_output_name].artifact_selectors.append(artifact_selector)
+
   def _group_to_dag_spec(
       self,
       group: dsl.OpsGroup,
@@ -664,6 +697,7 @@ class Compiler(object):
                                    pipeline_spec_pb2.PipelineTaskSpec())
       subgroup_component_spec = getattr(subgroup, 'component_spec',
                                         pipeline_spec_pb2.ComponentSpec())
+
       is_loop_subgroup = (isinstance(group, dsl.ParallelFor))
       is_recursive_subgroup = (
           isinstance(subgroup, dsl.OpsGroup) and subgroup.recursive_ref)
@@ -870,6 +904,11 @@ class Compiler(object):
         if executor_label not in deployment_config.executors:
           deployment_config.executors[
               executor_label].custom_job.custom_job.update(custom_job_spec)
+
+      # populates metrics outputs
+      self._populate_metrics_in_dag_outputs(subgroup_component_spec,
+                                            subgroup_task_spec,
+                                            group_component_spec)
 
     pipeline_spec.deployment_spec.update(
         json_format.MessageToDict(deployment_config))

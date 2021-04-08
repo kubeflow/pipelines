@@ -18,19 +18,21 @@ from kfp.components import structures
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.dsl import artifact
 from kfp.dsl import ontology_artifacts
+from kfp.dsl import io_types
 
 # ComponentSpec I/O types to (IR) PipelineTaskSpec I/O types mapping.
 # The keys are normalized (lowercased). These are types viewed as Artifacts.
 # The values are the corresponding IR artifact ontology types.
+# TODO: migrate/merge other ontology_artifacts types to io_types
 _ARTIFACT_TYPES_MAPPING = {
     'model':
         ontology_artifacts.Model.get_artifact_type(),
     'dataset':
         ontology_artifacts.Dataset.get_artifact_type(),
     'metrics':
-        ontology_artifacts.Metrics.get_artifact_type(),
+        io_types.Metrics.get_ir_type(),
     'classificationmetrics':
-        ontology_artifacts.ClassificationMetrics.get_artifact_type(),
+        io_types.ClassificationMetrics.get_ir_type(),
     'slicedclassificationmetrics':
         ontology_artifacts.SlicedClassificationMetrics.get_artifact_type(),
 }
@@ -42,9 +44,9 @@ _ARTIFACT_CLASSES_MAPPING = {
     'dataset':
         ontology_artifacts.Dataset,
     'metrics':
-        ontology_artifacts.Metrics,
+        io_types.Metrics,
     'classificationmetrics':
-        ontology_artifacts.ClassificationMetrics,
+        io_types.ClassificationMetrics,
     'slicedclassificationmetrics':
         ontology_artifacts.SlicedClassificationMetrics,
 }
