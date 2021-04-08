@@ -755,7 +755,7 @@ class BaseOp(object):
   # in the compilation process to generate the DAGs and task io parameters.
   attrs_with_pipelineparams = [
       'node_selector', 'volumes', 'pod_annotations', 'pod_labels',
-      'num_retries', 'init_containers', 'sidecars', 'tolerations'
+      'num_retries', 'init_containers', 'sidecars', 'tolerations',
   ]
 
   def __init__(self,
@@ -1109,7 +1109,8 @@ class ContainerOp(BaseOp):
                      is_exit_handler=is_exit_handler)
 
     self.attrs_with_pipelineparams = BaseOp.attrs_with_pipelineparams + [
-        '_container', 'artifact_arguments', '_parameter_arguments'
+        '_container', 'artifact_arguments', '_parameter_arguments',
+        'cpu_request', 'memory_request'
     ]  #Copying the BaseOp class variable!
 
     input_artifact_paths = {}
@@ -1240,6 +1241,9 @@ class ContainerOp(BaseOp):
 
     self.pvolumes = {}
     self.add_pvolumes(pvolumes)
+    
+    self.cpu_request = None
+    self.memory_request = None
 
   @property
   def is_v2(self):
@@ -1369,6 +1373,25 @@ class ContainerOp(BaseOp):
       self.container_spec.resources.accelerator.CopyFrom(accelerator_config)
 
     super(ContainerOp, self).add_node_selector_constraint(label_name, value)
+    return self
+
+  def add_cpu_request(self, cpu: str) -> 'ContainerOp':
+    """Adds a cpu request to which can be a parameter
+
+    Args:
+        cpu (str): kubernetes cpu request, https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/#specify-a-cpu-request-and-a-cpu-limit
+    """
+
+    self.cpu_request = cpu
+    return self
+
+  def add_memory_request(self, memory: str) -> 'ContainerOp':
+    """Adds a memory request to which can be a parameter
+
+    Args:
+        memory (str): kubernetes memory request, https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-memory
+    """
+    self.memory_request = memory
     return self
 
 
