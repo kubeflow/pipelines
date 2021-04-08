@@ -44,3 +44,7 @@ def my_pipeline():
         with dsl.Condition(flip2.output == flip3.output):
             flip4 = flip_coin_op()
             print_op(flip4.output)
+
+
+if __name__ == '__main__':
+    kfp.compiler.Compiler().compile(my_pipeline, __file__ + '.yaml')

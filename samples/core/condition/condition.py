@@ -44,3 +44,7 @@ def my_pipeline(text: str = 'condition test', force_flip_result: str = ''):
         flip2 = flip_coin_op()
         print_op(flip2.output)
         print_op(text)
+
+
+if __name__ == '__main__':
+    kfp.compiler.Compiler().compile(my_pipeline, __file__ + '.yaml')
