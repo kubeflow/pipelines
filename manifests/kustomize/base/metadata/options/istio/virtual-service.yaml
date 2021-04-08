@@ -18,4 +18,4 @@ spec:
     - destination:
         host: metadata-envoy-service.kubeflow.svc.cluster.local
         port:
-          number: 80
+          number: 9090
