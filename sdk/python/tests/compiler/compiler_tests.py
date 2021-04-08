@@ -404,7 +404,7 @@ class TestCompiler(unittest.TestCase):
       def my_pipeline(memory: str, cpu: str):
         some_op().add_cpu_request(memory)
 
-      workflow = compiler.Compiler().compile(my_pipeline)
+      workflow = kfp.compiler.Compiler()._create_workflow(my_pipeline)
       name_to_template = {template['name']: template for template in workflow['spec']['templates']}
       main_dag_tasks = name_to_template[workflow['spec']['entrypoint']]['dag']['tasks']
       template = name_to_template[main_dag_tasks[0]['template']]
