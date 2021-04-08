@@ -409,7 +409,7 @@ class TestCompiler(unittest.TestCase):
       main_dag_tasks = name_to_template[workflow['spec']['entrypoint']]['dag']['tasks']
       template = name_to_template[main_dag_tasks[0]['template']]
 
-      self.assertEqual(template['podSpecPatch'], '{"containers":[{"name":"main", "resources":{"limits":{cpu": "{{inputs.parameters.memory}}" }}}]}')
+      self.assertEqual(template['podSpecPatch'], '{"containers":[{"name":"main", "resources":{"limits":{"cpu": "{{inputs.parameters.memory}}" }}}]}')
       
 
   def test_py_retry_policy_invalid(self):
