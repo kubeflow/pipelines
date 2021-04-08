@@ -16,12 +16,62 @@
               "def print_op(s):\n  print(s)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Print op', description='')\n_parser.add_argument(\"--s\", dest=\"s\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = print_op(**_parsed_args)\n"
             ]
           }
+        },
+        "exec-print-op-2": {
+          "container": {
+            "image": "python:3.7",
+            "args": [
+              "--s",
+              "{{$.inputs.parameters['s']}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def print_op(s):\n  print(s)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Print op', description='')\n_parser.add_argument(\"--s\", dest=\"s\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = print_op(**_parsed_args)\n"
+            ]
+          }
+        },
+        "exec-print-op-3": {
+          "container": {
+            "image": "python:3.7",
+            "args": [
+              "--s",
+              "{{$.inputs.parameters['s']}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def print_op(s):\n  print(s)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Print op', description='')\n_parser.add_argument(\"--s\", dest=\"s\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = print_op(**_parsed_args)\n"
+            ]
+          }
         }
       }
     },
     "components": {
       "comp-print-op": {
         "executorLabel": "exec-print-op",
+        "inputDefinitions": {
+          "parameters": {
+            "s": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-print-op-2": {
+        "executorLabel": "exec-print-op-2",
+        "inputDefinitions": {
+          "parameters": {
+            "s": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-print-op-3": {
+        "executorLabel": "exec-print-op-3",
         "inputDefinitions": {
           "parameters": {
             "s": {
@@ -44,7 +94,7 @@
                 "name": "task-print-op-2"
               },
               "componentRef": {
-                "name": "comp-print-op"
+                "name": "comp-print-op-2"
               }
             },
             "task-print-op-3": {
@@ -52,7 +102,7 @@
                 "name": "task-print-op-3"
               },
               "componentRef": {
-                "name": "comp-print-op"
+                "name": "comp-print-op-3"
               },
               "parameterIterator": {
                 "items": {

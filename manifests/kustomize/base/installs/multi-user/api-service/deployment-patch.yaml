@@ -12,12 +12,6 @@ spec:
             name: pipeline-api-server-config
         env:
         - name: KUBEFLOW_USERID_HEADER
-          valueFrom:
-            configMapKeyRef:
-              name: kubeflow-config
-              key: userid-header
+          value: kubeflow-userid
         - name: KUBEFLOW_USERID_PREFIX
-          valueFrom:
-            configMapKeyRef:
-              name: kubeflow-config
-              key: userid-prefix
+          value: ""

@@ -20,8 +20,8 @@ from kfp import dsl
 from kfp.components import _structures
 from kfp.dsl import artifact
 from kfp.pipeline_spec import pipeline_spec_pb2
-from kfp.v2.dsl import dsl_utils
-from kfp.v2.dsl import type_utils
+from kfp.dsl import dsl_utils
+from kfp.dsl import type_utils
 
 _AIPlatformCustomJobSpec = pipeline_spec_pb2.PipelineDeploymentConfig.AIPlatformCustomJobSpec
 _DUMMY_CONTAINER_OP_IMAGE = 'dummy/image'
@@ -126,7 +126,7 @@ def _get_custom_job_op(
   pipeline_component_spec = pipeline_spec_pb2.ComponentSpec()
 
   pipeline_task_spec.task_info.CopyFrom(
-      pipeline_spec_pb2.PipelineTaskInfo(name=task_name))
+      pipeline_spec_pb2.PipelineTaskInfo(name=dsl_utils.sanitize_task_name(task_name)))
 
   # Iterate through the inputs/outputs declaration to get pipeline component
   # spec.
@@ -166,7 +166,7 @@ def _get_custom_job_op(
       pipeline_task_spec.inputs.parameters[input_name].CopyFrom(
           pipeline_spec_pb2.TaskInputsSpec.InputParameterSpec(
               task_output_parameter=pipeline_spec_pb2.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec(
-                  producer_task='task-{}'.format(param.op_name),
+                  producer_task=dsl_utils.sanitize_task_name(param.op_name),
                   output_parameter_key=param.name
               )))
     elif isinstance(param, dsl.PipelineParam) and not param.op_name:
@@ -188,7 +188,7 @@ def _get_custom_job_op(
       pipeline_task_spec.inputs.artifacts[input_name].CopyFrom(
           pipeline_spec_pb2.TaskInputsSpec.InputArtifactSpec(
               task_output_artifact=pipeline_spec_pb2.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec(
-                  producer_task='task-{}'.format(art.op_name),
+                  producer_task=dsl_utils.sanitize_task_name(art.op_name),
                   output_artifact_key=art.name)))
     else:
       # Otherwise, this should be from the input of the subdag.

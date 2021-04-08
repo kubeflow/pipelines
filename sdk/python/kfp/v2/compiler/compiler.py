@@ -674,11 +674,14 @@ class Compiler(object):
       else:
         subgroup_key = subgroup.name
 
-      subgroup_task_spec.task_info.name = dsl_utils.sanitize_task_name(
-          subgroup_key)
+      subgroup_task_spec.task_info.name = (
+          subgroup_task_spec.task_info.name or
+          dsl_utils.sanitize_task_name(subgroup_key))
       # human_name exists for ops only, and is used to de-dupe component spec.
-      subgroup_component_name = dsl_utils.sanitize_component_name(
-          getattr(subgroup, 'human_name', subgroup_key))
+      subgroup_component_name = (
+          subgroup_task_spec.component_ref.name or
+          dsl_utils.sanitize_component_name(
+              getattr(subgroup, 'human_name', subgroup_key)))
       subgroup_task_spec.component_ref.name = subgroup_component_name
 
       if isinstance(subgroup, dsl.OpsGroup) and subgroup.type == 'graph':
@@ -728,12 +731,20 @@ class Compiler(object):
 
           importer_tasks.append(importer_task_name)
 
-      group_inputs = inputs.get(group.name, [])
       subgroup_inputs = inputs.get(subgroup.name, [])
       subgroup_params = [param for param, _ in subgroup_inputs]
       tasks_in_current_dag = [
           dsl_utils.sanitize_task_name(subgroup.name) for subgroup in subgroups
       ] + importer_tasks
+
+      input_parameters_in_current_dag = [
+          input_name
+          for input_name in group_component_spec.input_definitions.parameters
+      ]
+      input_artifacts_in_current_dag = [
+          input_name
+          for input_name in group_component_spec.input_definitions.artifacts
+      ]
 
       is_parent_component_root = group_component_spec == pipeline_spec.root
 
@@ -748,6 +759,8 @@ class Compiler(object):
             group_component_spec.input_definitions,
             subgroup_params,
             tasks_in_current_dag,
+            input_parameters_in_current_dag,
+            input_artifacts_in_current_dag,
         )
 
       if isinstance(subgroup, dsl.OpsGroup) and subgroup.type == 'condition':
@@ -1050,10 +1063,16 @@ class Compiler(object):
     )
 
     pipeline_parameters = {
-        arg.name: arg.value for arg in args_list_with_defaults
+        param.name: param for param in args_list_with_defaults
     }
     # Update pipeline parameters override if there were any.
-    pipeline_parameters.update(pipeline_parameters_override or {})
+    pipeline_parameters_override = pipeline_parameters_override or {}
+    for k, v in pipeline_parameters_override.items():
+      if k not in pipeline_parameters:
+        raise ValueError('Pipeline parameter {} does not match any known '
+                         'pipeline argument.'.format(k))
+      pipeline_parameters[k].value = v
+
     runtime_config = compiler_utils.build_runtime_config_spec(
         output_directory=pipeline_root, pipeline_parameters=pipeline_parameters)
     pipeline_job = pipeline_spec_pb2.PipelineJob(runtime_config=runtime_config)
@@ -1063,7 +1082,7 @@ class Compiler(object):
 
   def compile(self,
               pipeline_func: Callable[..., Any],
-              output_path: str,
+              package_path: str,
               pipeline_root: Optional[str] = None,
               pipeline_name: Optional[str] = None,
               pipeline_parameters: Optional[Mapping[str, Any]] = None,
@@ -1072,7 +1091,7 @@ class Compiler(object):
 
     Args:
       pipeline_func: Pipeline function with @dsl.pipeline decorator.
-      output_path: The output pipeline job .json file path. for example,
+      package_path: The output pipeline job .json file path. for example,
         "~/pipeline_job.json"
       pipeline_root: The root of the pipeline outputs. Optional. The
         pipeline_root value can be specified either from this `compile()` method
@@ -1090,7 +1109,7 @@ class Compiler(object):
           pipeline_root=pipeline_root,
           pipeline_name=pipeline_name,
           pipeline_parameters_override=pipeline_parameters)
-      self._write_pipeline(pipeline_job, output_path)
+      self._write_pipeline(pipeline_job, package_path)
     finally:
       kfp.TYPE_CHECK = type_check_old_value
 

@@ -14,9 +14,12 @@
 
 # %%
 import yaml
+import os
 
+REPO_ROOT = os.path.join('..', '..')
+SAMPLES_CONFIG_PATH = os.path.join(REPO_ROOT, 'samples', 'test', 'config.yaml')
 SAMPLES_CONFIG = None
-with open('samples_config.yaml', 'r') as stream:
+with open(SAMPLES_CONFIG_PATH, 'r') as stream:
     SAMPLES_CONFIG = yaml.safe_load(stream)
 
 import kfp
@@ -66,7 +69,7 @@ def v2_sample_test(
             name=sample.name,
             sample_path=sample.path,
             gcs_root=gcs_root,
-            host=kfp_host,
+            external_host=kfp_host,
             launcher_image=build_kfp_launcher_op.outputs['digest']
         )
         run_sample_op.container.image = build_samples_image_op.outputs['digest']

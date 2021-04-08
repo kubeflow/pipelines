@@ -113,6 +113,9 @@ class CompilerCliTests(unittest.TestCase):
     self._test_compile_py_to_json(
         'lightweight_python_functions_v2_with_outputs')
 
+  def test_xgboost_sample_pipeline(self):
+    self._test_compile_py_to_json('xgboost_sample_pipeline')
+
 
 if __name__ == '__main__':
   unittest.main()

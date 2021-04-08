@@ -1,0 +1,20 @@
+# Google Cloud components - MB SDK
+approvers:
+  - Ark-kun
+  - Bobgy
+  - chensun
+  - IronPan
+  - neuromage
+  - paveldournov
+  - sasha-gitg
+  - sinachavoshi
+reviewers:
+  - Ark-kun
+  - Bobgy
+  - chensun 
+  - sasha-gitg
+  - sinachavoshi
+
+# TODO() Add the owners specified below to `CODEOWNERS` file in root so that they are used for PRs.
+# /components/google_cloud_components/mb_sdk_component/* sasha-gitg sinachavoshi
+# /components/containers/uCAIP_MB_SDK/* sasha-gitg sinachavoshi

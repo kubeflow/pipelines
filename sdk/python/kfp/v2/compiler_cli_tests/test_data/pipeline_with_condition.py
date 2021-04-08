@@ -35,16 +35,16 @@ print_op = components.create_component_from_func(print_msg)
 
 
 @dsl.pipeline(name='single-condition-pipeline')
-def my_pipeline():
+def my_pipeline(text: str = 'condition test'):
   flip1 = flip_coin_op()
   print_op(flip1.output)
 
   with dsl.Condition(flip1.output == 'heads'):
     flip2 = flip_coin_op()
     print_op(flip2.output)
+    print_op(text)
 
 if __name__ == '__main__':
   compiler.Compiler().compile(
       pipeline_func=my_pipeline,
-      pipeline_root='dummy_root',
-      output_path=__file__.replace('.py', '.json'))
+      package_path=__file__.replace('.py', '.json'))

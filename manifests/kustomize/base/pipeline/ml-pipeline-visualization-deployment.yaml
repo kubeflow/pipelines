@@ -46,4 +46,8 @@ spec:
           initialDelaySeconds: 3
           periodSeconds: 5
           timeoutSeconds: 2
+        resources:
+            requests:
+              cpu: 30m
+              memory: 500Mi
       serviceAccountName: ml-pipeline-visualizationserver

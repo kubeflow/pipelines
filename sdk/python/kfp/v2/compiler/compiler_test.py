@@ -69,7 +69,7 @@ class CompilerTest(unittest.TestCase):
       compiler.Compiler().compile(
           pipeline_func=simple_pipeline,
           pipeline_root='dummy_root',
-          output_path=target_json_file)
+          package_path=target_json_file)
 
       self.assertTrue(os.path.exists(target_json_file))
     finally:
@@ -118,7 +118,7 @@ class CompilerTest(unittest.TestCase):
       compiler.Compiler().compile(
           pipeline_func=download_and_print,
           pipeline_root='dummy_root',
-          output_path='output.json')
+          package_path='output.json')
 
   def test_compile_pipeline_with_dsl_graph_component_should_raise_error(self):
 
@@ -151,7 +151,7 @@ class CompilerTest(unittest.TestCase):
       compiler.Compiler().compile(
           pipeline_func=opsgroups_pipeline,
           pipeline_root='dummy_root',
-          output_path='output.json')
+          package_path='output.json')
 
   def test_compile_pipeline_with_misused_inputvalue_should_raise_error(self):
 
@@ -175,7 +175,7 @@ class CompilerTest(unittest.TestCase):
       compiler.Compiler().compile(
           pipeline_func=my_pipeline,
           pipeline_root='dummy',
-          output_path='output.json')
+          package_path='output.json')
 
   def test_compile_pipeline_with_misused_inputpath_should_raise_error(self):
 
@@ -199,7 +199,7 @@ class CompilerTest(unittest.TestCase):
       compiler.Compiler().compile(
           pipeline_func=my_pipeline,
           pipeline_root='dummy',
-          output_path='output.json')
+          package_path='output.json')
 
   def test_compile_pipeline_with_misused_inputuri_should_raise_error(self):
 
@@ -222,7 +222,7 @@ class CompilerTest(unittest.TestCase):
       compiler.Compiler().compile(
           pipeline_func=my_pipeline,
           pipeline_root='dummy',
-          output_path='output.json')
+          package_path='output.json')
 
   def test_compile_pipeline_with_misused_outputuri_should_raise_error(self):
 
@@ -246,7 +246,7 @@ class CompilerTest(unittest.TestCase):
       compiler.Compiler().compile(
           pipeline_func=my_pipeline,
           pipeline_root='dummy',
-          output_path='output.json')
+          package_path='output.json')
 
   def test_compile_pipeline_with_invalid_name_should_raise_error(self):
 
@@ -260,7 +260,7 @@ class CompilerTest(unittest.TestCase):
       compiler.Compiler().compile(
           pipeline_func=my_pipeline,
           pipeline_root='dummy',
-          output_path='output.json')
+          package_path='output.json')
 
   def test_compile_pipeline_with_importer_on_inputpath_should_raise_error(self):
 
@@ -287,7 +287,7 @@ class CompilerTest(unittest.TestCase):
       compiler.Compiler().compile(
           pipeline_func=my_pipeline,
           pipeline_root='dummy',
-          output_path='output.json')
+          package_path='output.json')
 
     # Python function based component authoring
     def my_component(datasets: components.InputPath('Datasets')):
@@ -306,7 +306,7 @@ class CompilerTest(unittest.TestCase):
       compiler.Compiler().compile(
           pipeline_func=my_pipeline,
           pipeline_root='dummy',
-          output_path='output.json')
+          package_path='output.json')
 
   def test_set_pipeline_root_through_pipeline_decorator(self):
 
@@ -319,7 +319,7 @@ class CompilerTest(unittest.TestCase):
 
       target_json_file = os.path.join(tmpdir, 'result.json')
       compiler.Compiler().compile(
-          pipeline_func=my_pipeline, output_path=target_json_file)
+          pipeline_func=my_pipeline, package_path=target_json_file)
 
       self.assertTrue(os.path.exists(target_json_file))
       with open(target_json_file) as f:
@@ -342,7 +342,7 @@ class CompilerTest(unittest.TestCase):
       compiler.Compiler().compile(
           pipeline_func=my_pipeline,
           pipeline_root='gs://path-override',
-          output_path=target_json_file)
+          package_path=target_json_file)
 
       self.assertTrue(os.path.exists(target_json_file))
       with open(target_json_file) as f:
@@ -364,7 +364,7 @@ class CompilerTest(unittest.TestCase):
       target_json_file = os.path.join(tmpdir, 'result.json')
       with self.assertWarnsRegex(UserWarning, 'pipeline_root is None or empty'):
         compiler.Compiler().compile(
-            pipeline_func=my_pipeline, output_path=target_json_file)
+            pipeline_func=my_pipeline, package_path=target_json_file)
 
       self.assertTrue(os.path.exists(target_json_file))
       with open(target_json_file) as f:
