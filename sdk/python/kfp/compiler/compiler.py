@@ -678,6 +678,9 @@ class Compiler(object):
                             launcher_image=self._launcher_image)
       templates.extend(op_to_templates_handler(op))
 
+      if hasattr(op, 'custom_job_spec'):
+        raise AttributeError('Cannot use `.set_custome_job_spec()` in v1.')
+
     return templates
 
   def _create_pipeline_workflow(self,

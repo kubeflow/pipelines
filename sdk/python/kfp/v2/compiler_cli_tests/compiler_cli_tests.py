@@ -116,6 +116,8 @@ class CompilerCliTests(unittest.TestCase):
   def test_xgboost_sample_pipeline(self):
     self._test_compile_py_to_json('xgboost_sample_pipeline')
 
+  def test_pipeline_with_custom_job_spec(self):
+    self._test_compile_py_to_json('pipeline_with_custom_job_spec')
 
 if __name__ == '__main__':
   unittest.main()

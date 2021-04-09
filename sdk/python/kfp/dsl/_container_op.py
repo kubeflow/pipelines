@@ -1357,6 +1357,25 @@ class ContainerOp(BaseOp):
     super(ContainerOp, self).add_node_selector_constraint(label_name, value)
     return self
 
+  def set_custom_job_spec(self,
+                          custom_job_spec: Dict[str, Any]) -> 'ContainerOp':
+    """Sets custom job spec.
+
+    When compiling for v2, this function can be used to set custom job spec used
+    for AI Platform (Unified) service.
+
+    Args:
+      custom_job_spec: JSON struct of the CustomJob spec, representing the job
+        that will be submitted to AI Platform (Unified) service. See
+        https://cloud.google.com/ai-platform-unified/docs/reference/rest/v1beta1/CustomJobSpec
+        for detailed reference.
+
+    Returns:
+      self return to allow chained call with other set method.
+    """
+    self.custom_job_spec = custom_job_spec
+    return self
+
 
 # proxy old ContainerOp properties to ContainerOp.container
 # with PendingDeprecationWarning.
