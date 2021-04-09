@@ -24,15 +24,19 @@ def print_op(text: str):
 
 @dsl.pipeline(name='pipeline-with-custom-job-spec')
 def my_pipeline():
+
+  # Normal container execution.
   print_op('container execution')
-  print_op('custom job execution').set_custom_job_spec({
-      'name': 'test-custom-job',
+
+  # Full custom job spec execution.
+  print_op('custom job execution - full custom job').set_custom_job_spec({
+      'name': 'test-custom-job-full',
       'jobSpec': {
           'workerPoolSpecs': [{
               'containerSpec': {
                   'command': [
                       'sh', '-c', 'set -e -x\necho "$0"\n',
-                      '{{$.inputs.parameters["text"]}}'
+                      '{{$.inputs.parameters[\'text\']}}'
                   ],
                   'imageUri': 'alpine:latest',
               },
@@ -42,6 +46,12 @@ def my_pipeline():
               }
           }]
       }
+  })
+
+  # Custom job spec with 'jobSpec' omitted - jobSpec will be auto-filled using
+  # the container spec.
+  print_op('custom job execution - partial custom job').set_custom_job_spec({
+      'name': 'test-custom-job-partial',
   })
 
 

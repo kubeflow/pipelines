@@ -62,6 +62,8 @@ _KI = 1 << 10  # Kilo: power-of-two approximate
 
 _GKE_ACCELERATOR_LABEL = 'cloud.google.com/gke-accelerator'
 
+_DEFAULT_CUSTOM_JOB_MACHINE_TYPE = 'n1-standard-4'
+
 
 # util functions
 def deprecation_warning(func: Callable, op_name: str,
@@ -1374,6 +1376,26 @@ class ContainerOp(BaseOp):
       self return to allow chained call with other set method.
     """
     self.custom_job_spec = custom_job_spec
+    if 'jobSpec' not in self.custom_job_spec or \
+       'workerPoolSpecs' not in self.custom_job_spec['jobSpec']:
+      worker_pool_spec = {
+          'machineSpec': {
+              'machineType': _DEFAULT_CUSTOM_JOB_MACHINE_TYPE
+          },
+          'replicaCount': '1',
+          'containerSpec': {
+              'imageUri': self._container.image,
+          }
+      }
+      if self._container.command:
+        worker_pool_spec['containerSpec']['command'] = self._container.command
+      if self._container.args:
+        worker_pool_spec['containerSpec']['args'] = self._container.args
+
+      if 'jobSpec' not in self.custom_job_spec:
+        self.custom_job_spec['jobSpec'] = {}
+      self.custom_job_spec['jobSpec']['workerPoolSpecs'] = [worker_pool_spec]
+
     return self
 
 
