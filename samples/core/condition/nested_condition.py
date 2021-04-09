@@ -16,34 +16,34 @@ from kfp import components
 from kfp import dsl
 
 
-def flip_coin(force_flip_result: str = '') -> str:
+@components.create_component_from_func
+def flip_coin_op() -> str:
     """Flip a coin and output heads or tails randomly."""
-    if force_flip_result:
-        return force_flip_result
     import random
     result = 'heads' if random.randint(0, 1) == 0 else 'tails'
     return result
 
 
-def print_msg(msg: str):
+@components.create_component_from_func
+def print_op(msg: str):
     """Print a message."""
     print(msg)
 
 
-flip_coin_op = components.create_component_from_func(flip_coin)
-
-print_op = components.create_component_from_func(print_msg)
-
-
-@dsl.pipeline(name='single-condition-pipeline')
-def my_pipeline(text: str = 'condition test', force_flip_result: str = ''):
-    flip1 = flip_coin_op(force_flip_result)
+@dsl.pipeline(name='nested-conditions-pipeline')
+def my_pipeline():
+    flip1 = flip_coin_op()
     print_op(flip1.output)
+    flip2 = flip_coin_op()
+    print_op(flip2.output)
 
-    with dsl.Condition(flip1.output == 'heads'):
-        flip2 = flip_coin_op()
-        print_op(flip2.output)
-        print_op(text)
+    with dsl.Condition(flip1.output != 'no-such-result'):  # always true
+        flip3 = flip_coin_op()
+        print_op(flip3.output)
+
+        with dsl.Condition(flip2.output == flip3.output):
+            flip4 = flip_coin_op()
+            print_op(flip4.output)
 
 
 if __name__ == '__main__':
