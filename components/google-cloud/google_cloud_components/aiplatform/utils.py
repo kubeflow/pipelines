@@ -420,7 +420,9 @@ def convert_method_to_component(method: Callable, should_serialize_init:bool=Fal
             '  container:',
             '    image: gcr.io/sashaproject-1/aiplatform_component:latest',
             '    command:',
-            '    - python3 -m google_cloud_components.aiplatform.remote_runner'
+            '    - python3',
+            '    - -m',
+            '    - google_cloud_components.aiplatform.remote_runner',
             f'    - --cls_name={cls_name}',
             f'    - --method_name={method_name}',
             f'{make_args(serialized_args)}',

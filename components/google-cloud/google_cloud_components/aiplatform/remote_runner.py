@@ -75,7 +75,7 @@ def read_from_gcs(project, gcs_uri):
     resource_name = blob.download_as_string().decode('utf-8')
     return resource_name
 
-def resolve_project(serialized_args: Dict[Dict[str, Any]]) -> str:
+def resolve_project(serialized_args: Dict[str, Dict[str, Any]]) -> str:
     """Gets the project from either constructor or method.
     """
     return serialized_args['init'].get('project', serialized_args['method'].get('project'))
