@@ -79,8 +79,7 @@ def read_from_gcs(project, gcs_uri):
 
 
 def resolve_project(serialized_args: Dict[str, Dict[str, Any]]) -> str:
-    """Gets the project from either constructor or method.
-    """
+    """Gets the project from either constructor or method."""
     return serialized_args['init'].get(
         'project', serialized_args['method'].get('project')
     )

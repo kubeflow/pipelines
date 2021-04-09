@@ -70,7 +70,7 @@ def resolve_annotation(annotation: Any) -> Any:
     Args:
         annotation: Annotation to resolve
     Returns:
-        Direct annotation 
+        Direct annotation
     """
 
     # handle forward refernce string
@@ -128,7 +128,7 @@ def is_mb_sdk_resource_noun_type(mb_sdk_type: Any) -> bool:
 
 def get_serializer(annotation: Any) -> Optional[Callable]:
     """Get serailizer for objects to pass them as strings.
-    
+
     Remote runner will deserialize.
     # TODO handle proto.Message
 
@@ -136,7 +136,6 @@ def get_serializer(annotation: Any) -> Optional[Callable]:
         annotation: Parameter annotation
     Returns:
         serializer for that annotation type
-
     """
     if is_serializable_to_json(annotation):
         return json.dumps
@@ -144,7 +143,7 @@ def get_serializer(annotation: Any) -> Optional[Callable]:
 
 def get_deserializer(annotation: Any) -> Optional[Callable[..., str]]:
     """Get deserailizer for objects to pass them as strings.
-    
+
     Remote runner will deserialize.
     # TODO handle proto.Message
     Args:
@@ -378,7 +377,8 @@ def convert_method_to_component(
         ])
 
     def make_args(args_to_serialize: Dict[str, Dict[str, Any]]) -> str:
-        """Takes the args dicitionary and return serailized Component string for args.
+        """Takes the args dicitionary and return serailized Component string
+        for args.
 
         Args:
             args_to_serialize: Dictionary of format
