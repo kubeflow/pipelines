@@ -17,20 +17,23 @@ from typing import Dict, List, Optional, Type, Union
 from kfp.components import structures
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.dsl import artifact
+from kfp.dsl import artifact_utils
 from kfp.dsl import ontology_artifacts
+from kfp.dsl import io_types
 
 # ComponentSpec I/O types to (IR) PipelineTaskSpec I/O types mapping.
 # The keys are normalized (lowercased). These are types viewed as Artifacts.
 # The values are the corresponding IR artifact ontology types.
+# TODO: migrate/merge other ontology_artifacts types to io_types
 _ARTIFACT_TYPES_MAPPING = {
     'model':
         ontology_artifacts.Model.get_artifact_type(),
     'dataset':
         ontology_artifacts.Dataset.get_artifact_type(),
     'metrics':
-        ontology_artifacts.Metrics.get_artifact_type(),
+        artifact_utils.read_schema_file('metrics.yaml'),
     'classificationmetrics':
-        ontology_artifacts.ClassificationMetrics.get_artifact_type(),
+        artifact_utils.read_schema_file('classification_metrics.yaml'),
     'slicedclassificationmetrics':
         ontology_artifacts.SlicedClassificationMetrics.get_artifact_type(),
 }
@@ -42,9 +45,9 @@ _ARTIFACT_CLASSES_MAPPING = {
     'dataset':
         ontology_artifacts.Dataset,
     'metrics':
-        ontology_artifacts.Metrics,
+        io_types.Metrics,
     'classificationmetrics':
-        ontology_artifacts.ClassificationMetrics,
+        io_types.ClassificationMetrics,
     'slicedclassificationmetrics':
         ontology_artifacts.SlicedClassificationMetrics,
 }
@@ -106,8 +109,14 @@ def get_artifact_type_schema_message(
     type_name: str) -> pipeline_spec_pb2.ArtifactTypeSchema:
   """Gets the IR I/O artifact type msg for the given ComponentSpec I/O type."""
   if isinstance(type_name, str):
-    return _ARTIFACT_CLASSES_MAPPING.get(type_name.lower(),
-                                         artifact.Artifact).get_ir_type()
+    artifact_class = _ARTIFACT_CLASSES_MAPPING.get(type_name.lower(),
+                                                   artifact.Artifact)
+    # TODO: migrate all types to system. namespace.
+    if artifact_class.TYPE_NAME.startswith('system.'):
+      return pipeline_spec_pb2.ArtifactTypeSchema(
+          schema_title=artifact_class.TYPE_NAME)
+    else:
+      return artifact_class.get_ir_type()
   else:
     return artifact.Artifact.get_ir_type()
 
