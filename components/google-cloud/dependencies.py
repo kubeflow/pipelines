@@ -29,4 +29,5 @@ def make_required_test_packages():
 
 
 def make_dependency_links():
+  # TODO: change to google-cloud-aiplatform
   return ["https://github.com/googleapis/python-aiplatform@dev"]
