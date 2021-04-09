@@ -21,7 +21,7 @@ from typing import Any, Dict, Tuple
 
 from google.cloud import aiplatform
 from google.cloud import storage
-from google_cloud_components.aipltform import utils
+from google_cloud_components.aiplatform import utils
 
 
 INIT_KEY = 'init'
