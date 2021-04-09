@@ -92,8 +92,29 @@ func Test_parseCloudBucket(t *testing.T) {
 			path: "s3://my-bucket?region=minio&endpoint=minio-service.kubeflow:9000&disableSSL=true&s3ForcePathStyle=true",
 			want: &bucketConfig{
 				scheme:     "s3://",
-				bucketName: "my-bucket?region=minio&endpoint=minio-service.kubeflow:9000&disableSSL=true&s3ForcePathStyle=true",
+				bucketName: "my-bucket",
 				prefix:     "",
+				queryString: "?region=minio&endpoint=minio-service.kubeflow:9000&disableSSL=true&s3ForcePathStyle=true",
+			},
+			wantErr: false,
+		},{
+			name: "Parses Minio - Bucket with prefix and  query string",
+			path: "s3://my-bucket/my-path?region=minio&endpoint=minio-service.kubeflow:9000&disableSSL=true&s3ForcePathStyle=true",
+			want: &bucketConfig{
+				scheme:     "s3://",
+				bucketName: "my-bucket",
+				prefix:     "my-path/",
+				queryString: "?region=minio&endpoint=minio-service.kubeflow:9000&disableSSL=true&s3ForcePathStyle=true",
+			},
+			wantErr: false,
+		},{
+			name: "Parses Minio - Bucket with multiple path components in prefix and  query string",
+			path: "s3://my-bucket/my-path/123?region=minio&endpoint=minio-service.kubeflow:9000&disableSSL=true&s3ForcePathStyle=true",
+			want: &bucketConfig{
+				scheme:     "s3://",
+				bucketName: "my-bucket",
+				prefix:     "my-path/123/",
+				queryString: "?region=minio&endpoint=minio-service.kubeflow:9000&disableSSL=true&s3ForcePathStyle=true",
 			},
 			wantErr: false,
 		},

@@ -64,13 +64,21 @@ type bucketConfig struct {
 	scheme     string
 	bucketName string
 	prefix     string
+	queryString string
 }
 
 func (b *bucketConfig) bucketURL() string {
 	u := b.scheme + b.bucketName
 
-	if len(b.prefix) > 0 {
-		u = fmt.Sprintf("%s?prefix=%s", u, b.prefix)
+	if len(b.prefix) > 0 && len(b.queryString) > 0 {
+		u = fmt.Sprintf("%s%s&prefix=%s", u, b.queryString, b.prefix)
+	} else {
+		if len(b.prefix) > 0 {
+			u = fmt.Sprintf("%s?prefix=%s", u, b.prefix)
+		}
+		if len(b.queryString) > 0 {
+			u = fmt.Sprintf("%s%s", u, b.queryString)
+		}
 	}
 	return u
 }
@@ -92,11 +100,11 @@ func (b *bucketConfig) uriFromKey(blobKey string) string {
 	return b.scheme + path.Join(b.bucketName, b.prefix, blobKey)
 }
 
-var bucketPattern = regexp.MustCompile(`^([a-z][a-z0-9]+:///?)([^/]+)(/[^ ?]*)?$`)
+var bucketPattern = regexp.MustCompile(`(^[a-z][a-z0-9]+:///?)([^/?]+)(/[^?]*)?(\?.+)?$`)
 
 func parseBucketConfig(path string) (*bucketConfig, error) {
 	ms := bucketPattern.FindStringSubmatch(path)
-	if ms == nil || len(ms) != 4 {
+	if ms == nil || len(ms) != 5 {
 		return nil, fmt.Errorf("Unrecognized pipeline root format: %q", path)
 	}
 
@@ -114,6 +122,7 @@ func parseBucketConfig(path string) (*bucketConfig, error) {
 		scheme:     ms[1],
 		bucketName: ms[2],
 		prefix:     prefix,
+		queryString: ms[4],
 	}, nil
 }
 
