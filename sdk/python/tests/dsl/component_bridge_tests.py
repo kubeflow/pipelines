@@ -345,3 +345,67 @@ class TestComponentBridge(unittest.TestCase):
         task_factory_b = load_component_from_text(component_b)
         a_task = task_factory_a()
         b_task = task_factory_b(in1=a_task.outputs['out1'])
+
+    # v2 tests
+
+    def test_input_output_uri_resolving(self):
+        component_text = textwrap.dedent('''\
+            inputs:
+            - {name: In1}
+            outputs:
+            - {name: Out1}
+            implementation:
+              container:
+                image: busybox
+                command:
+                - program
+                - --in1-uri
+                - {inputUri: In1}
+                - --out1-uri
+                - {outputUri: Out1}
+            '''
+        )
+        op = load_component_from_text(text=component_text)
+        task = op(in1='foo')
+
+        self.assertEqual(
+            [
+                'program',
+                '--in1-uri',
+                '{{pipelineparam:op=;name=pipeline-output-directory}}/{{kfp.run_uid}}/{{inputs.parameters.In1-producer-pod-id-}}/In1',
+                '--out1-uri',
+                '{{pipelineparam:op=;name=pipeline-output-directory}}/{{kfp.run_uid}}/{{pod.name}}/Out1',
+            ],
+            task.command
+        )
+
+    def test_convert_executor_input_and_output_metadata_placeholder(self):
+        test_component = textwrap.dedent("""\
+        inputs:
+          - {name: in1}
+        outputs:
+          - {name: out1}
+        implementation:
+          container:
+            image: busybox
+            command: [echo, {executorInput}, {outputMetadata}]
+        """)
+        task_factory = load_component_from_text(test_component)
+        task = task_factory(in1='foo')
+        self.assertListEqual(
+            ['echo', '{{$}}', '/tmp/outputs/executor_output.json'],
+            task.command)
+
+    def test_fail_executor_input_with_key(self):
+        test_component = textwrap.dedent("""\
+        inputs:
+          - {name: in1}
+        outputs:
+          - {name: out1}
+        implementation:
+          container:
+            image: busybox
+            command: [echo, {executorInput: a_bad_key}]
+        """)
+        with self.assertRaises(TypeError):
+            _ = load_component_from_text(test_component)
