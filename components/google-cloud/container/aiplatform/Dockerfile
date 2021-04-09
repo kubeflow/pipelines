@@ -23,7 +23,7 @@ RUN pip3 install --upgrade pip
 # Installs additional packages
 RUN pip3 install git+https://github.com/googleapis/python-aiplatform@dev
 
-# TODO() change from using PR @fcd24983168bca93d9e0c3ef91cafa46f3612977 version to master 
-RUN pip3 install "git+https://github.com/kubeflow/pipelines.git@fcd24983168bca93d9e0c3ef91cafa46f3612977#egg=google-cloud-components&subdirectory=components/google-cloud"
+# TODO() change from using PR commit id to release 
+RUN pip3 install "git+https://github.com/kubeflow/pipelines.git@9793aa444cc8459bed3e2d4dab86a96f090b544b#egg=google-cloud-components&subdirectory=components/google-cloud"
 
-ENTRYPOINT ["python3","-m","google_cloud_components.mb_sdk_component.remote_runner"]
+ENTRYPOINT ["python3","-m","google_cloud_components.aiplatform.remote_runner"]

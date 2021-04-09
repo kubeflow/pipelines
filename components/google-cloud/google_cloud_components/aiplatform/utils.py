@@ -418,7 +418,7 @@ def convert_method_to_component(method: Callable, should_serialize_init:bool=Fal
             outputs,
             'implementation:',
             '  container:',
-            '    image: gcr.io/sashaproject-1/AIPlatform_component:latest',
+            '    image: gcr.io/sashaproject-1/aiplatform_component:latest',
             '    command:',
             '    - python3',
             '    - remote_runner.py',
