@@ -85,10 +85,10 @@ def resolve_project(serialized_args: Dict[str, Dict[str, Any]]) -> str:
     )
 
 
-def resolve_input_args(value, _type, project):
+def resolve_input_args(value, type_to_resolve, project):
     """If this is an input from Pipelines, read it directly from gcs."""
-    if inspect.isclass(_type) and issubclass(
-            _type, aiplatform.base.AiPlatformResourceNoun):
+    if inspect.isclass(type_to_resolve) and issubclass(
+            type_to_resolve, aiplatform.base.AiPlatformResourceNoun):
         if value.startswith('gs://'):  # not a resource noun:
             value = read_from_gcs(project, value)
     return value
