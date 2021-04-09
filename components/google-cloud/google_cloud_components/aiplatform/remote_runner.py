@@ -23,9 +23,9 @@ from google.cloud import aiplatform
 from google.cloud import storage
 from google_cloud_components.aiplatform import utils
 
-
 INIT_KEY = 'init'
 METHOD_KEY = 'method'
+
 
 # TODO() Add type-hinting the functions
 # TODO() Add explanation / exmaples and validation for kwargs
@@ -39,14 +39,15 @@ def split_args(kwargs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """
     init_args = {}
     method_args = {}
-    
+
     for key, arg in kwargs.items():
         if key.startswith(INIT_KEY):
             init_args[key.split(".")[-1]] = arg
         elif key.startswith(METHOD_KEY):
             method_args[key.split(".")[-1]] = arg
-    
+
     return init_args, method_args
+
 
 def write_to_gcs(project, gcs_uri, text):
     """helper method to write to gcs
@@ -54,7 +55,7 @@ def write_to_gcs(project, gcs_uri, text):
     """
     gcs_uri = gcs_uri[5:]
     gcs_bucket, gcs_blob = gcs_uri.split('/', 1)
-    
+
     with open('resource_name.txt', 'w') as f:
         f.write(text)
 
@@ -62,6 +63,7 @@ def write_to_gcs(project, gcs_uri, text):
     bucket = client.get_bucket(gcs_bucket)
     blob = bucket.blob(os.path.join(gcs_blob, 'resource_name.txt'))
     blob.upload_from_filename('resource_name.txt')
+
 
 def read_from_gcs(project, gcs_uri):
     """helper method to read from gcs
@@ -75,24 +77,31 @@ def read_from_gcs(project, gcs_uri):
     resource_name = blob.download_as_string().decode('utf-8')
     return resource_name
 
+
 def resolve_project(serialized_args: Dict[str, Dict[str, Any]]) -> str:
     """Gets the project from either constructor or method.
     """
-    return serialized_args['init'].get('project', serialized_args['method'].get('project'))
+    return serialized_args['init'].get(
+        'project', serialized_args['method'].get('project')
+    )
+
 
 def resolve_input_args(value, _type, project):
     """If this is an input from Pipelines, read it directly from gcs."""
-    if inspect.isclass(_type) and issubclass(_type, aiplatform.base.AiPlatformResourceNoun):
-        if value.startswith('gs://'): # not a resource noun:
+    if inspect.isclass(_type) and issubclass(
+            _type, aiplatform.base.AiPlatformResourceNoun):
+        if value.startswith('gs://'):  # not a resource noun:
             value = read_from_gcs(project, value)
     return value
+
 
 def resolve_init_args(key, value, project):
     """Resolves Metadata/InputPath parameters to resource names."""
     if key.endswith('_name'):
-        if value.startswith('gs://'): # not a resource noun
+        if value.startswith('gs://'):  # not a resource noun
             value = read_from_gcs(project, value)
     return value
+
 
 def make_output(output_object: Any) -> str:
     if utils.is_mb_sdk_resource_noun_type(type(output_object)):
@@ -110,25 +119,22 @@ def runner(cls_name, method_name, resource_name_output_uri, kwargs):
 
     init_args, method_args = split_args(kwargs)
 
-    serialized_args = {
-        'init': init_args,
-        'method': method_args
-    }
+    serialized_args = {'init': init_args, 'method': method_args}
 
     project = resolve_project(serialized_args)
 
     for key, param in inspect.signature(cls.__init__).parameters.items():
         if key in serialized_args['init']:
             serialized_args['init'][key] = resolve_init_args(
-                key,
-                serialized_args['init'][key],
-                project)
+                key, serialized_args['init'][key], project
+            )
             param_type = utils.resolve_annotation(param.annotation)
             deserializer = utils.get_deserializer(param_type)
             if deserializer:
-                serialized_args['init'][key] = deserializer(serialized_args['init'][key])
-            
-    
+                serialized_args['init'][key] = deserializer(
+                    serialized_args['init'][key]
+                )
+
     print(serialized_args['init'])
     obj = cls(**serialized_args['init']) if serialized_args['init'] else cls
 
@@ -138,17 +144,23 @@ def runner(cls_name, method_name, resource_name_output_uri, kwargs):
         if key in serialized_args['method']:
             param_type = utils.resolve_annotation(param.annotation)
             print(key, param_type)
-            serialized_args['method'][key] = resolve_input_args(serialized_args['method'][key], param_type, project)
+            serialized_args['method'][key] = resolve_input_args(
+                serialized_args['method'][key], param_type, project
+            )
             deserializer = utils.get_deserializer(param_type)
             if deserializer:
-                serialized_args['method'][key] = deserializer(serialized_args['method'][key])
+                serialized_args['method'][key] = deserializer(
+                    serialized_args['method'][key]
+                )
             else:
-                serialized_args['method'][key] = param_type(serialized_args['method'][key])
-    
+                serialized_args['method'][key] = param_type(
+                    serialized_args['method'][key]
+                )
+
     print(serialized_args['method'])
     output = method(**serialized_args['method'])
     print(output)
-    
+
     if output:
         write_to_gcs(project, resource_name_output_uri, make_output(output))
         return output
@@ -176,13 +188,12 @@ def main():
                 kwargs[key_value] = arg
                 key_value = None
 
-        
-    print(runner(
-        args.cls_name,
-        args.method_name,
-        args.resource_name_output_uri,    
-        kwargs))
-
+    print(
+        runner(
+            args.cls_name, args.method_name, args.resource_name_output_uri,
+            kwargs
+        )
+    )
 
 
 if __name__ == "__main__":
