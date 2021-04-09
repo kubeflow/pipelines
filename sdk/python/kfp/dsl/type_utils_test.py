@@ -40,10 +40,11 @@ class TypeUtilsTest(unittest.TestCase):
         'title: kfp.Model' in type_utils.get_artifact_type_schema('Model'))
     self.assertTrue(
         'title: kfp.Dataset' in type_utils.get_artifact_type_schema('Dataset'))
-    self.assertEquals(
-        'system.Metrics', type_utils.get_artifact_type_schema('Metrics').schema_title)
-    self.assertEquals('system.ClassificationMetrics', type_utils
-                    .get_artifact_type_schema('ClassificationMetrics').schema_title)
+    print(type_utils.get_artifact_type_schema('Metrics'))
+    self.assertTrue(
+        'system.Metrics' in type_utils.get_artifact_type_schema('Metrics'))
+    self.assertTrue('system.ClassificationMetrics' in type_utils
+                    .get_artifact_type_schema('ClassificationMetrics'))
     self.assertTrue('title: kfp.SlicedClassificationMetrics' in type_utils
                     .get_artifact_type_schema('SlicedClassificationMetrics'))
 

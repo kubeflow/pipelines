@@ -19,8 +19,6 @@ These are only compatible with v2 Pipelines.
 import os
 from typing import Dict, List, Optional, Type, TypeVar
 
-from kfp.pipeline_spec import pipeline_spec_pb2
-
 
 class Artifact(object):
   """Generic Artifact class.
@@ -34,11 +32,6 @@ class Artifact(object):
   metadata related to this artifact.
   """
   TYPE_NAME = "system.Artifact"
-
-  @classmethod
-  def get_ir_type(cls) -> pipeline_spec_pb2.ArtifactTypeSchema:
-    return pipeline_spec_pb2.ArtifactTypeSchema(
-        schema_title=cls.TYPE_NAME)
 
   def __init__(self,
                name: Optional[str] = None,

@@ -17,6 +17,7 @@ from typing import Dict, List, Optional, Type, Union
 from kfp.components import structures
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.dsl import artifact
+from kfp.dsl import artifact_utils
 from kfp.dsl import ontology_artifacts
 from kfp.dsl import io_types
 
@@ -30,9 +31,9 @@ _ARTIFACT_TYPES_MAPPING = {
     'dataset':
         ontology_artifacts.Dataset.get_artifact_type(),
     'metrics':
-        io_types.Metrics.get_ir_type(),
+        artifact_utils.read_schema_file('metrics.yaml'),
     'classificationmetrics':
-        io_types.ClassificationMetrics.get_ir_type(),
+        artifact_utils.read_schema_file('classification_metrics.yaml'),
     'slicedclassificationmetrics':
         ontology_artifacts.SlicedClassificationMetrics.get_artifact_type(),
 }
@@ -108,8 +109,14 @@ def get_artifact_type_schema_message(
     type_name: str) -> pipeline_spec_pb2.ArtifactTypeSchema:
   """Gets the IR I/O artifact type msg for the given ComponentSpec I/O type."""
   if isinstance(type_name, str):
-    return _ARTIFACT_CLASSES_MAPPING.get(type_name.lower(),
-                                         artifact.Artifact).get_ir_type()
+    artifact_class = _ARTIFACT_CLASSES_MAPPING.get(type_name.lower(),
+                                                   artifact.Artifact)
+    # TODO: migrate all types to system. namespace.
+    if artifact_class.TYPE_NAME.startswith('system.'):
+      return pipeline_spec_pb2.ArtifactTypeSchema(
+          schema_title=artifact_class.TYPE_NAME)
+    else:
+      return artifact_class.get_ir_type()
   else:
     return artifact.Artifact.get_ir_type()
 
