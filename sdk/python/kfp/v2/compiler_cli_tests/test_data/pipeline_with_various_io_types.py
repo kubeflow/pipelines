@@ -25,7 +25,7 @@ inputs:
 - {name: input_2, type: Float}
 - {name: input_3, type: }
 - {name: input_4}
-- {name: input_5, type: Metrics}
+- {name: input_5, type: Model}
 - {name: input_6, type: Datasets}
 - {name: input_7, type: Some arbitrary type}
 - {name: input_8, type: {GcsPath: {data_type: TSV}}}
@@ -70,7 +70,7 @@ implementation:
 def my_pipeline(input1: str,
                 input3,
                 input4='',
-                input5='gs://bucket/metrics',
+                input5='gs://bucket/model',
                 input6='gs://bucket/dataset',
                 input7='arbitrary value',
                 input8='gs://path2'):

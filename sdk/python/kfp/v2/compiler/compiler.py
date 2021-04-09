@@ -35,6 +35,7 @@ from kfp.v2.compiler import compiler_utils
 from kfp.dsl import component_spec as dsl_component_spec
 from kfp.dsl import dsl_utils
 from kfp.dsl import importer_node
+from kfp.dsl import io_types
 from kfp.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 
@@ -66,8 +67,8 @@ class Compiler(object):
       kfp.v2.compiler.Compiler().compile(my_pipeline, 'path/to/pipeline.json')
   """
 
-  def _get_groups_for_ops(
-      self, root_group: dsl.OpsGroup) -> Dict[str, List[dsl.OpsGroup]]:
+  def _get_groups_for_ops(self,
+                          root_group: dsl.OpsGroup) -> Dict[str, List[str]]:
     """Helper function to get groups that contain the specified ops.
 
     Each pipeline has a root group. Each group has a list of operators (leaf)
@@ -107,7 +108,7 @@ class Compiler(object):
 
   #TODO: combine with the _get_groups_for_ops
   def _get_groups_for_opsgroups(
-      self, root_group: dsl.OpsGroup) -> Dict[str, List[dsl.OpsGroup]]:
+      self, root_group: dsl.OpsGroup) -> Dict[str, List[str]]:
     """Helper function to get groups that contain the specified opsgroup.
 
     Each pipeline has a root group. Each group has a list of operators (leaf)
@@ -160,8 +161,8 @@ class Compiler(object):
 
   def _get_uncommon_ancestors(
       self,
-      op_groups: Dict[str, List[dsl.OpsGroup]],
-      opsgroup_groups: Dict[str, List[dsl.OpsGroup]],
+      op_groups: Dict[str, List[str]],
+      opsgroup_groups: Dict[str, List[str]],
       op1: dsl.BaseOp,
       op2: dsl.BaseOp,
   ) -> Tuple[List[_GroupOrOp], List[_GroupOrOp]]:
@@ -260,8 +261,8 @@ class Compiler(object):
       pipeline: dsl.Pipeline,
       args: List[dsl.PipelineParam],
       root_group: dsl.OpsGroup,
-      op_groups: Dict[str, List[dsl.OpsGroup]],
-      opsgroup_groups: Dict[str, List[dsl.OpsGroup]],
+      op_groups: Dict[str, List[str]],
+      opsgroup_groups: Dict[str, List[str]],
       condition_params: Dict[str, dsl.PipelineParam],
       op_name_to_for_loop_op: Dict[str, dsl.ParallelFor],
   ) -> Tuple[Dict[str, List[Tuple[dsl.PipelineParam, str]]], Dict[
@@ -405,8 +406,8 @@ class Compiler(object):
       self,
       pipeline: dsl.Pipeline,
       root_group: dsl.OpsGroup,
-      op_groups: Dict[str, dsl.OpsGroup],
-      opsgroups_groups: Dict[str, dsl.OpsGroup],
+      op_groups: Dict[str, List[str]],
+      opsgroups_groups: Dict[str, List[str]],
       opsgroups: Dict[str, dsl.OpsGroup],
       condition_params: Dict[str, dsl.PipelineParam],
   ) -> Dict[str, List[_GroupOrOp]]:
@@ -625,6 +626,60 @@ class Compiler(object):
       dsl_component_spec.pop_input_from_component_spec(group_component_spec,
                                                        loop_argument_name)
 
+  def _populate_metrics_in_dag_outputs(
+      self,
+      ops: List[dsl.ContainerOp],
+      op_to_parent_groups: Dict[str, List[str]],
+      pipeline_spec: pipeline_spec_pb2.PipelineSpec,
+  ) -> None:
+    """Populates metrics artifacts in dag outputs.
+
+    Args:
+      ops: The list of ops that may produce metrics outputs.
+      op_to_parent_groups: The dict of op name to parent groups. Key is the op's
+        name. Value is a list of ancestor groups including the op itself. The
+        list of a given op is sorted in a way that the farthest group is the
+        first and the op itself is the last.
+      pipeline_spec: The pipeline_spec to update in-place.
+    """
+    for op in ops:
+      op_task_spec = getattr(op, 'task_spec',
+                             pipeline_spec_pb2.PipelineTaskSpec())
+      op_component_spec = getattr(op, 'component_spec',
+                                  pipeline_spec_pb2.ComponentSpec())
+
+      # Get the component spec for all its parent groups.
+      parent_groups_component_specs = [pipeline_spec.root]
+      # skip the op itself and the root group which cannot be retrived via name.
+      for group_name in op_to_parent_groups[op.name][1:-1]:
+        component_name = dsl_utils.sanitize_component_name(group_name)
+        parent_groups_component_specs.append(
+            pipeline_spec.components[component_name])
+      # Reverse the order to make the farthest group in the end.
+      parent_groups_component_specs.reverse()
+
+      for output_name, artifact_spec in \
+          op_component_spec.output_definitions.artifacts.items():
+
+        if artifact_spec.artifact_type.WhichOneof(
+            'kind'
+        ) == 'schema_title' and artifact_spec.artifact_type.schema_title in [
+            io_types.Metrics.TYPE_NAME,
+            io_types.ClassificationMetrics.TYPE_NAME,
+        ]:
+          unique_output_name = '{}-{}'.format(op_task_spec.task_info.name,
+                                              output_name)
+
+          for group_component_spec in parent_groups_component_specs:
+            group_component_spec.output_definitions.artifacts[
+                unique_output_name].CopyFrom(artifact_spec)
+            group_component_spec.dag.outputs.artifacts[
+                unique_output_name].artifact_selectors.append(
+                    pipeline_spec_pb2.DagOutputsSpec.ArtifactSelectorSpec(
+                        producer_subtask=op_task_spec.task_info.name,
+                        output_artifact_key=output_name,
+                    ))
+
   def _group_to_dag_spec(
       self,
       group: dsl.OpsGroup,
@@ -634,6 +689,7 @@ class Compiler(object):
       pipeline_spec: pipeline_spec_pb2.PipelineSpec,
       deployment_config: pipeline_spec_pb2.PipelineDeploymentConfig,
       rootgroup_name: str,
+      op_to_parent_groups: Dict[str, List[str]],
   ) -> None:
     """Generate IR spec given an OpsGroup.
 
@@ -649,6 +705,10 @@ class Compiler(object):
       deployment_config: The deployment_config to hold all executors.
       rootgroup_name: The name of the group root. Used to determine whether the
         component spec for the current group should be the root dag.
+      op_to_parent_groups: The dict of op name to parent groups. Key is the op's
+        name. Value is a list of ancestor groups including the op itself. The
+        list of a given op is sorted in a way that the farthest group is the
+        first and the op itself is the last.
     """
     group_component_name = dsl_utils.sanitize_component_name(group.name)
 
@@ -664,6 +724,7 @@ class Compiler(object):
                                    pipeline_spec_pb2.PipelineTaskSpec())
       subgroup_component_spec = getattr(subgroup, 'component_spec',
                                         pipeline_spec_pb2.ComponentSpec())
+
       is_loop_subgroup = (isinstance(group, dsl.ParallelFor))
       is_recursive_subgroup = (
           isinstance(subgroup, dsl.OpsGroup) and subgroup.recursive_ref)
@@ -874,6 +935,13 @@ class Compiler(object):
     pipeline_spec.deployment_spec.update(
         json_format.MessageToDict(deployment_config))
 
+    # Surface metrics outputs to the top.
+    self._populate_metrics_in_dag_outputs(
+        group.ops,
+        op_to_parent_groups,
+        pipeline_spec,
+    )
+
   def _create_pipeline_spec(
       self,
       args: List[dsl.PipelineParam],
@@ -940,6 +1008,7 @@ class Compiler(object):
           pipeline_spec,
           deployment_config,
           root_group.name,
+          op_name_to_parent_groups,
       )
 
     return pipeline_spec
