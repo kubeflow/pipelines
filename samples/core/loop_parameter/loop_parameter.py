@@ -1,47 +1,31 @@
-# Copyright 2019 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-import kfp
+from kfp import components
 from kfp import dsl
+from typing import List
 
 
-@dsl.pipeline(name='my-pipeline')
-def pipeline(loopidy_doop=[{'a': 1, 'b': 2}, {'a': 10, 'b': 20}]):
-    op0 = dsl.ContainerOp(
-        name="my-out-cop0",
-        image='python:alpine3.6',
-        command=["sh", "-c"],
-        arguments=[
-            'python -c "import json; import sys; json.dump([i for i in range(20, 31)], open(\'/tmp/out.json\', \'w\'))"'],
-        file_outputs={'out': '/tmp/out.json'},
-    )
-
-    with dsl.ParallelFor(loopidy_doop) as item:
-        op1 = dsl.ContainerOp(
-            name="my-in-cop1",
-            image="library/bash:4.4.23",
-            command=["sh", "-c"],
-            arguments=["echo no output global op1, item.a: %s" % item.a],
-        ).after(op0)
-
-    op_out = dsl.ContainerOp(
-        name="my-out-cop2",
-        image="library/bash:4.4.23",
-        command=["sh", "-c"],
-        arguments=["echo no output global op2, outp: %s" % op0.output],
-    )
+@components.create_component_from_func
+def print_op(text: str) -> str:
+    print(text)
+    return text
 
 
-if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(pipeline, __file__ + '.yaml')
+@components.create_component_from_func
+def sum_op(a: float, b: float) -> float:
+    print(a + b)
+    return a + b
+
+
+@components.create_component_from_func
+def generate_op() -> list:
+    return [{'a': i, 'b': i * 10} for i in range(1, 5)]
+
+
+@dsl.pipeline(name='pipeline-with-loop-parameter')
+def my_pipeline(greeting='this is a test for looping through parameters'):
+    print_task = print_op(text=greeting)
+
+    generate_task = generate_op()
+    with dsl.ParallelFor(generate_task.output) as item:
+        sum_task = sum_op(a=item.a, b=item.b)
+        sum_task.after(print_task)
+        print_task_2 = print_op(sum_task.output.ignore_type())

@@ -127,7 +127,6 @@ spec:
             - name: test-name
               value: "{{item}}"
         withItems:
-          - condition
           - exit_handler
           - recursion
           - sequential
