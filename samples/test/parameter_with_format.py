@@ -17,17 +17,12 @@ from kfp import dsl
 
 
 @components.create_component_from_func
-def args_generator_op() -> str:
-    return '[1.1, 1.2, 1.3]'
+def print_op(name: str) -> str:
+    print(name)
+    return name
 
 
-@components.create_component_from_func
-def print_op(s: float):
-    print(s)
-
-
-@dsl.pipeline(name='pipeline-with-loop-output')
-def my_pipeline():
-    args_generator = args_generator_op()
-    with dsl.ParallelFor(args_generator.output) as item:
-        print_op(item)
+@dsl.pipeline(name='pipeline-with-pipelineparam-containing-format')
+def my_pipeline(name: str = 'KFP'):
+    print_task = print_op('Hello {}'.format(name))
+    print_op('{}, again.'.format(print_task.output))
