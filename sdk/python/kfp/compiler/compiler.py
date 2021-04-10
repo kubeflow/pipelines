@@ -678,6 +678,10 @@ class Compiler(object):
                             launcher_image=self._launcher_image)
       templates.extend(op_to_templates_handler(op))
 
+      if hasattr(op, 'custom_job_spec'):
+        warnings.warn('CustomJob spec is not supported yet when running on KFP.'
+                      ' The component will execute within the KFP cluster.')
+
     return templates
 
   def _create_pipeline_workflow(self,

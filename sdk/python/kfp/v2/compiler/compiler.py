@@ -913,9 +913,18 @@ class Compiler(object):
       group_component_spec.dag.tasks[
           subgroup_task_spec.task_info.name].CopyFrom(subgroup_task_spec)
 
+      # Add AIPlatformCustomJobSpec, if applicable.
+      custom_job_spec = getattr(subgroup, 'custom_job_spec', None)
+      if custom_job_spec:
+        executor_label = subgroup_component_spec.executor_label
+        if executor_label not in deployment_config.executors:
+          deployment_config.executors[
+              executor_label].custom_job.custom_job.update(custom_job_spec)
+
       # Add executor spec, if applicable.
       container_spec = getattr(subgroup, 'container_spec', None)
-      if container_spec:
+      # Ignore contaienr_spec if custom_job_spec exists.
+      if container_spec and not custom_job_spec:
         if compiler_utils.is_v2_component(subgroup):
           compiler_utils.refactor_v2_container_spec(container_spec)
         executor_label = subgroup_component_spec.executor_label
@@ -924,13 +933,6 @@ class Compiler(object):
           deployment_config.executors[executor_label].container.CopyFrom(
               container_spec)
 
-      # Add AIPlatformCustomJobSpec, if applicable.
-      custom_job_spec = getattr(subgroup, 'custom_job_spec', None)
-      if custom_job_spec:
-        executor_label = subgroup_component_spec.executor_label
-        if executor_label not in deployment_config.executors:
-          deployment_config.executors[
-              executor_label].custom_job.custom_job.update(custom_job_spec)
 
     pipeline_spec.deployment_spec.update(
         json_format.MessageToDict(deployment_config))
