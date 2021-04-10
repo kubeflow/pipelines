@@ -16,6 +16,7 @@
 from typing import List, Union
 
 from kfp.components import _structures as structures
+from kfp.dsl import _for_loop
 from kfp.dsl import _pipeline_param
 from kfp.dsl import dsl_utils
 from kfp.dsl import type_utils
@@ -31,6 +32,40 @@ def additional_input_name_for_pipelineparam(
   return 'pipelineparam--' + (
       param_or_name.full_name if isinstance(
           param_or_name, _pipeline_param.PipelineParam) else param_or_name)
+
+
+def _exclude_loop_arguments_variables(
+    param: _pipeline_param.PipelineParam) -> str:
+  """Gets the pipeline param name excluding loop argument variables.
+
+  Args:
+    param: The pipeline param object which may or may not be a loop argument.
+
+  Returns:
+    The full name of the pipeline param without loop arguments subvar name.
+  """
+  param_name = param.full_name
+
+  # Special handling for loop arguments.
+  # In case of looping over a list of maps, each subvar (a key in the map)
+  # referencing yields a pipeline param. For example:
+  # - some-param-loop-item: referencing the whole map
+  # - some-param-loop-item-subvar-key1: referencing key1 in the map.
+  # Because of the way IR is designed to support looping over a subvar (using
+  # `parameter_expression_selector`), we don't create inputs for subvariables.
+  # So if we see a pipeline param named 'some-param-loop-item-subvar-key1',
+  # we build the component_spec/task_spec inputs using 'some-param-loop-item'
+  # (without the subvar suffix).
+  if _for_loop.LoopArguments.name_is_loop_argument(param_name):
+    # Subvar pipeline params may not have types, defaults to string type.
+    param.param_type = param.param_type or 'String'
+    loop_args_name_and_var_name = (
+        _for_loop.LoopArgumentVariable.parse_loop_args_name_and_this_var_name(
+            param_name))
+    if loop_args_name_and_var_name:
+      param_name = loop_args_name_and_var_name[0]
+
+  return param_name
 
 
 def build_component_spec_from_structure(
@@ -90,9 +125,11 @@ def build_component_inputs_spec(
     is_root_component: Whether the component is the root.
   """
   for param in pipeline_params:
+    param_name = _exclude_loop_arguments_variables(param)
+
     input_name = (
-        param.full_name if is_root_component else
-        additional_input_name_for_pipelineparam(param))
+        param_name if is_root_component else
+        additional_input_name_for_pipelineparam(param_name))
 
     if type_utils.is_parameter_type(param.param_type):
       component_spec.input_definitions.parameters[
@@ -141,8 +178,9 @@ def build_task_inputs_spec(
     is_parent_component_root: Whether the task is in the root component.
   """
   for param in pipeline_params or []:
+    param_name = _exclude_loop_arguments_variables(param)
 
-    input_name = additional_input_name_for_pipelineparam(param)
+    input_name = additional_input_name_for_pipelineparam(param_name)
     if type_utils.is_parameter_type(param.param_type):
       if param.op_name and dsl_utils.sanitize_task_name(
           param.op_name) in tasks_in_current_dag:
@@ -154,7 +192,7 @@ def build_task_inputs_spec(
                 param.name)
       else:
         task_spec.inputs.parameters[input_name].component_input_parameter = (
-            param.full_name if is_parent_component_root else input_name)
+            param_name if is_parent_component_root else input_name)
     else:
       if param.op_name and dsl_utils.sanitize_task_name(
           param.op_name) in tasks_in_current_dag:
@@ -166,7 +204,7 @@ def build_task_inputs_spec(
                 param.name)
       else:
         task_spec.inputs.artifacts[input_name].component_input_artifact = (
-            param.full_name if is_parent_component_root else input_name)
+            param_name if is_parent_component_root else input_name)
 
 
 def update_task_inputs_spec(
@@ -221,9 +259,15 @@ def update_task_inputs_spec(
           op_name=dsl_utils.remove_task_name_prefix(
               task_spec.inputs.parameters[input_name].task_output_parameter
               .producer_task))
+
+      param_name = _exclude_loop_arguments_variables(param)
+
       component_input_parameter = (
-          additional_input_name_for_pipelineparam(param))
-      assert component_input_parameter in parent_component_inputs.parameters
+          additional_input_name_for_pipelineparam(param_name))
+
+      assert component_input_parameter in parent_component_inputs.parameters, \
+          'component_input_parameter: {} not found. All inputs: {}'.format(
+              component_input_parameter, parent_component_inputs)
 
       task_spec.inputs.parameters[
           input_name].component_input_parameter = component_input_parameter
@@ -239,7 +283,9 @@ def update_task_inputs_spec(
             additional_input_name_for_pipelineparam(
                 task_spec.inputs.parameters[input_name]
                 .component_input_parameter))
-        assert component_input_parameter in parent_component_inputs.parameters
+        assert component_input_parameter in parent_component_inputs.parameters, \
+          'component_input_parameter: {} not found. All inputs: {}'.format(
+              component_input_parameter, parent_component_inputs)
 
         task_spec.inputs.parameters[
             input_name].component_input_parameter = component_input_parameter
@@ -259,7 +305,9 @@ def update_task_inputs_spec(
               .producer_task))
       component_input_artifact = (
           additional_input_name_for_pipelineparam(param))
-      assert component_input_artifact in parent_component_inputs.artifacts
+      assert component_input_artifact in parent_component_inputs.artifacts, \
+        'component_input_artifact: {} not found. All inputs: {}'.format(
+            component_input_artifact, parent_component_inputs)
 
       task_spec.inputs.artifacts[
           input_name].component_input_artifact = component_input_artifact
@@ -273,8 +321,11 @@ def update_task_inputs_spec(
       if component_input_artifact not in input_artifacts_in_current_dag:
         component_input_artifact = (
             additional_input_name_for_pipelineparam(
-                task_spec.inputs.artifacts[input_name].component_input_artifact))
-        assert component_input_artifact in parent_component_inputs.artifacts
+                task_spec.inputs.artifacts[input_name].component_input_artifact)
+        )
+        assert component_input_artifact in parent_component_inputs.artifacts, \
+        'component_input_artifact: {} not found. All inputs: {}'.format(
+            component_input_artifact, parent_component_inputs)
 
         task_spec.inputs.artifacts[
             input_name].component_input_artifact = component_input_artifact
