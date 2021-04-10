@@ -679,7 +679,8 @@ class Compiler(object):
       templates.extend(op_to_templates_handler(op))
 
       if hasattr(op, 'custom_job_spec'):
-        raise AttributeError('Cannot use `.set_custome_job_spec()` in v1.')
+        warnings.warn('CustomJob spec is not supported yet when running on KFP.'
+                      ' The component will execute within the KFP cluster.')
 
     return templates
 
