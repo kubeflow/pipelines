@@ -27,7 +27,7 @@ _AIPlatformCustomJobSpec = pipeline_spec_pb2.PipelineDeploymentConfig.AIPlatform
 _DUMMY_CONTAINER_OP_IMAGE = 'dummy/image'
 _DUMMY_PATH = 'dummy/path'
 _MAX_PACKAGE_URIS = 100
-_DEFAULT_CUSTOM_JOB_MACHINE_TYPE = 'n1-standard-2'
+_DEFAULT_CUSTOM_JOB_MACHINE_TYPE = 'n1-standard-4'
 
 _ValueOrPipelineParam = Union[dsl.PipelineParam, str, float, int]
 
