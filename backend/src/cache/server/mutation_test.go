@@ -17,6 +17,7 @@ package server
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
 	"testing"
 
@@ -201,6 +202,25 @@ func TestSetImage(t *testing.T) {
 	assert.Nil(t, err)
 	container := patchOperation[0].Value.([]corev1.Container)[0]
 	assert.Equal(t, testImage, container.Image)
+}
+
+func TestCacheNodeRestriction(t *testing.T) {
+	os.Setenv("CACHE_NODE_RESTRICTIONS", "false")
+	defer os.Unsetenv("CACHE_NODE_RESTRICTIONS")
+
+	executionCache := &model.ExecutionCache{
+		ExecutionCacheKey: "f5fe913be7a4516ebfe1b5de29bcb35edd12ecc776b2f33f10ca19709ea3b2f0",
+		ExecutionOutput:   "testOutput",
+		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.7"}},"affinity:{"nodeAffinity":{}}"`,
+		MaxCacheStaleness: -1,
+	}
+	fakeClientManager.CacheStore().CreateExecutionCache(executionCache)
+	patchOperation, err := MutatePodIfCached(&fakeAdmissionRequest, fakeClientManager)
+	assert.Nil(t, err)
+	fmt.Println(patchOperation[1])
+	assert.Equal(t, OperationTypeRemove, patchOperation[1].Op)
+	assert.Nil(t, patchOperation[1].Value)
+
 }
 
 func TestMutatePodIfCachedWithTeamplateCleanup(t *testing.T) {

@@ -145,7 +145,7 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 		// Image selected from Google Container Register(gcr) for it small size, gcr since there
 		// is not image pull rate limit. For more info see issue: https://github.com/kubeflow/pipelines/issues/4099
 		image := "gcr.io/google-containers/busybox"
-		if v, ok := os.LookupEnv("CACHE_IMAGE"); ok {
+		if v, ok := os.LookupEnv("	"); ok {
 			image = v
 		}
 		dummyContainer := corev1.Container{
@@ -161,6 +161,16 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 			Path:  SpecContainersPath,
 			Value: dummyContainers,
 		})
+		if v, ok := os.LookupEnv("CACHE_NODE_RESTRICTIONS"); ok && v != "" {
+			patches = append(patches, patchOperation{
+				Op:   OperationTypeRemove,
+				Path: "spec/affinity",
+			})
+			patches = append(patches, patchOperation{
+				Op:   OperationTypeRemove,
+				Path: "spec/nodeSelector",
+			})
+		}
 		if pod.Spec.InitContainers != nil || len(pod.Spec.InitContainers) != 0 {
 			patches = append(patches, patchOperation{
 				Op:   OperationTypeRemove,
@@ -220,7 +230,7 @@ func generateCacheKeyFromTemplate(template string) (string, error) {
 			"volumeMounts": nil,
 		},
 		"inputs":         nil,
-		"outputs":        nil,  // Output artifact/parameter names and paths are important and need to be considered. We can include the whole section since Argo does not seem to put the artifact s3 specifications here, leaving them in archiveLocation.
+		"outputs":        nil, // Output artifact/parameter names and paths are important and need to be considered. We can include the whole section since Argo does not seem to put the artifact s3 specifications here, leaving them in archiveLocation.
 		"volumes":        nil,
 		"initContainers": nil,
 		"sidecars":       nil,

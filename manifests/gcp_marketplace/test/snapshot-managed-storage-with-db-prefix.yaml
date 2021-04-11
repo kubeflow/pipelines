@@ -270,6 +270,11 @@ spec:
               configMapKeyRef:
                 name: cache-configmap
                 key: cache_image
+          - name: REMOVE_NODE_RESTRICTIONS
+            valueFrom:
+              configMapKeyRef:
+                name: cache-configmap
+                key: cache-node-restrictions
           - name: DBCONFIG_DRIVER
             valueFrom:
               configMapKeyRef:
