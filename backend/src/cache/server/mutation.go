@@ -145,7 +145,7 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 		// Image selected from Google Container Register(gcr) for it small size, gcr since there
 		// is not image pull rate limit. For more info see issue: https://github.com/kubeflow/pipelines/issues/4099
 		image := "gcr.io/google-containers/busybox"
-		if v, ok := os.LookupEnv("	"); ok {
+		if v, ok := os.LookupEnv("CACHE_IMAGE"); ok {
 			image = v
 		}
 		dummyContainer := corev1.Container{
@@ -161,7 +161,11 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 			Path:  SpecContainersPath,
 			Value: dummyContainers,
 		})
-		if v, ok := os.LookupEnv("CACHE_NODE_RESTRICTIONS"); ok && v != "" {
+		node_restrictions, err := getEnvBool("CACHE_NODE_RESTRICTIONS")
+		if err != nil {
+			return nil, err
+		}
+		if !node_restrictions {
 			patches = append(patches, patchOperation{
 				Op:   OperationTypeRemove,
 				Path: "spec/affinity",
@@ -297,4 +301,16 @@ func isTFXPod(pod *corev1.Pod) bool {
 
 func isV2Pod(pod *corev1.Pod) bool {
 	return pod.Annotations[V2ComponentAnnotationKey] == V2ComponentAnnotationValue
+}
+
+func getEnvBool(key string) (bool, error) {
+	v, ok := os.LookupEnv("CACHE_NODE_RESTRICTIONS")
+	if !ok {
+		return false, nil
+	}
+	b, err := strconv.ParseBool(v)
+	if err != nil {
+		return false, err
+	}
+	return b, nil
 }
