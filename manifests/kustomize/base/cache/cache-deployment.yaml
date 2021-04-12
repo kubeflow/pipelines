@@ -27,7 +27,7 @@ spec:
             valueFrom:
               configMapKeyRef:
                 name: cache-configmap
-                key: cache-node-restrictions
+                key: cacheNodeRestrictions
           - name: DBCONFIG_DRIVER
             value: mysql
           - name: DBCONFIG_DB_NAME
