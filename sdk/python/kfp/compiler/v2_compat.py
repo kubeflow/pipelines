@@ -39,6 +39,7 @@ def update_op(op: dsl.ContainerOp,
       pipeline_root: The root output directory for pipeline artifacts.
       launcher_image: An optional launcher image. Useful for tests.
     """
+  op.is_v2 = True
   # Inject the launcher binary and overwrite the entrypoint.
   image_name = launcher_image or _DEFAULT_LAUNCHER_IMAGE
   launcher_container = dsl.UserContainer(name="kfp-launcher",
@@ -105,7 +106,11 @@ def update_op(op: dsl.ContainerOp,
 
   for artifact_name, spec in sorted(
       component_spec.input_definitions.artifacts.items()):
-    artifact_info = {"fileInputPath": op.input_artifact_paths[artifact_name]}
+    artifact_info = {
+        "metadataInputPath": op.input_artifact_paths[artifact_name],
+        "schemaTitle": spec.artifact_type.schema_title,
+        "instanceSchema": spec.artifact_type.instance_schema,
+    }
     runtime_info["inputArtifacts"][artifact_name] = artifact_info
 
   for parameter, spec in sorted(
@@ -113,7 +118,7 @@ def update_op(op: dsl.ContainerOp,
     parameter_info = {
         "parameterType":
             pipeline_spec_pb2.PrimitiveType.PrimitiveTypeEnum.Name(spec.type),
-        "fileOutputPath":
+        "parameterOutputPath":
             op.file_outputs[parameter],
     }
     runtime_info["outputParameters"][parameter] = parameter_info
@@ -123,9 +128,10 @@ def update_op(op: dsl.ContainerOp,
     # TODO: Assert instance_schema.
     artifact_info = {
         # Type used to register output artifacts.
-        "artifactSchema": spec.artifact_type.instance_schema,
+        "schemaTitle": spec.artifact_type.schema_title,
+        "instanceSchema": spec.artifact_type.instance_schema,
         # File used to write out the registered artifact ID.
-        "fileOutputPath": op.file_outputs[artifact_name],
+        "metadataOutputPath": op.file_outputs[artifact_name],
     }
     runtime_info["outputArtifacts"][artifact_name] = artifact_info
 

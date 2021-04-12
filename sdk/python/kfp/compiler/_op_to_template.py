@@ -288,7 +288,7 @@ def _op_to_template(op: BaseOp):
         template['volumes'] = [convert_k8s_obj_to_json(volume) for volume in processed_op.volumes]
         template['volumes'].sort(key=lambda x: x['name'])
 
-    if isinstance(op, dsl.ContainerOp) and op._metadata:
+    if isinstance(op, dsl.ContainerOp) and op._metadata and not op.is_v2:
         template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/component_spec'] = json.dumps(op._metadata.to_dict(), sort_keys=True)
 
     if hasattr(op, '_component_ref'):

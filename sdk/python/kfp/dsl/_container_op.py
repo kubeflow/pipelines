@@ -1115,6 +1115,8 @@ class ContainerOp(BaseOp):
     file_outputs = dict(file_outputs or {})  # Making a copy
     output_artifact_paths = dict(output_artifact_paths or {})  # Making a copy
 
+    self._is_v2 = False
+
     def resolve_artifact_argument(artarg):
       from ..components._components import _generate_input_file_name
       if not isinstance(artarg, InputArgumentPath):
@@ -1236,6 +1238,14 @@ class ContainerOp(BaseOp):
 
     self.pvolumes = {}
     self.add_pvolumes(pvolumes)
+
+  @property
+  def is_v2(self):
+    return self._is_v2
+
+  @is_v2.setter
+  def is_v2(self, is_v2: bool):
+    self._is_v2 = is_v2
 
   # v2 container spec
   @property
