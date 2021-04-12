@@ -10,6 +10,11 @@ def _default_verify_func(run_id, run):
     assert run.status == 'Succeeded'
 
 
+def NEEDS_A_FIX(run_id, run):
+    '''confirms a sample test case is failing and it needs to be fixed '''
+    assert run.status == 'Failed'
+
+
 @dataclass
 class TestCase:
     '''Test case for running a KFP sample'''
@@ -79,12 +84,17 @@ def _run_test(callback):
             V2_COMPATIBLE,
             arguments: dict = {},
         ):
+            extra_arguments = {}
+            if mode != kfp.dsl.PipelineExecutionMode.V1_LEGACY:
+                extra_arguments = {
+                    kfp.dsl.ROOT_PARAMETER_NAME: output_directory
+                }
             run_result = client.create_run_from_pipeline_func(
                 pipeline_func,
                 mode=mode,
                 arguments={
-                    kfp.dsl.ROOT_PARAMETER_NAME: output_directory,
-                    **arguments
+                    **extra_arguments,
+                    **arguments,
                 },
                 launcher_image=launcher_image,
                 experiment_name=experiment,

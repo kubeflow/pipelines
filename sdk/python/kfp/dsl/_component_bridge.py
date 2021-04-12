@@ -15,6 +15,7 @@
 import collections
 import copy
 import inspect
+import pathlib
 from typing import Any, Mapping, Optional
 
 from kfp.components import _structures
@@ -29,6 +30,160 @@ from kfp.dsl import dsl_utils
 from kfp.dsl import importer_node
 from kfp.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
+
+
+# Placeholder to represent the output directory hosting all the generated URIs.
+# Its actual value will be specified during pipeline compilation.
+# The format of OUTPUT_DIR_PLACEHOLDER is serialized dsl.PipelineParam, to
+# ensure being extracted as a pipeline parameter during compilation.
+# Note that we cannot direclty import dsl module here due to circular
+# dependencies.
+OUTPUT_DIR_PLACEHOLDER = '{{pipelineparam:op=;name=pipeline-output-directory}}'
+# Placeholder to represent to UID of the current pipeline at runtime.
+# Will be replaced by engine-specific placeholder during compilation.
+RUN_ID_PLACEHOLDER = '{{kfp.run_uid}}'
+# Format of the Argo parameter used to pass the producer's Pod ID to
+# the consumer.
+PRODUCER_POD_NAME_PARAMETER = '{}-producer-pod-id-'
+# Format of the input output port name placeholder.
+INPUT_OUTPUT_NAME_PATTERN = '{{{{kfp.input-output-name.{}}}}}'
+# Fixed name for per-task output metadata json file.
+OUTPUT_METADATA_JSON = '/tmp/outputs/executor_output.json'
+# Executor input placeholder.
+_EXECUTOR_INPUT_PLACEHOLDER = '{{$}}'
+
+
+def _generate_output_uri(port_name: str) -> str:
+  """Generates a unique URI for an output.
+
+  Args:
+    port_name: The name of the output associated with this URI.
+
+  Returns:
+    The URI assigned to this output, which is unique within the pipeline.
+  """
+  return str(pathlib.PurePosixPath(
+    OUTPUT_DIR_PLACEHOLDER,
+    RUN_ID_PLACEHOLDER, '{{pod.name}}', port_name))
+
+
+def _generate_input_uri(port_name: str) -> str:
+  """Generates the URI for an input.
+
+  Args:
+    port_name: The name of the input associated with this URI.
+
+  Returns:
+    The URI assigned to this input, will be consistent with the URI where
+    the actual content is written after compilation.
+  """
+  return str(pathlib.PurePosixPath(
+    OUTPUT_DIR_PLACEHOLDER,
+    RUN_ID_PLACEHOLDER,
+    '{{{{inputs.parameters.{input}}}}}'.format(
+      input=PRODUCER_POD_NAME_PARAMETER.format(port_name)),
+    port_name
+  ))
+
+
+def _generate_output_metadata_path() -> str:
+  """Generates the URI to write the output metadata JSON file."""
+
+  return OUTPUT_METADATA_JSON
+
+
+def _generate_input_metadata_path(port_name: str) -> str:
+  """Generates the placeholder for input artifact metadata file."""
+
+  # Return a placeholder for path to input artifact metadata, which will be
+  # rewritten during pipeline compilation.
+  return str(pathlib.PurePosixPath(
+    OUTPUT_DIR_PLACEHOLDER,
+    RUN_ID_PLACEHOLDER,
+    '{{{{inputs.parameters.{input}}}}}'.format(
+      input=PRODUCER_POD_NAME_PARAMETER.format(port_name)),
+    OUTPUT_METADATA_JSON
+  ))
+
+
+def _generate_input_output_name(port_name: str) -> str:
+  """Generates the placeholder for input artifact's output name."""
+
+  # Return a placeholder for the output port name of the input artifact, which
+  # will be rewritten during pipeline compilation.
+  return INPUT_OUTPUT_NAME_PATTERN.format(port_name)
+
+
+def _generate_executor_input() -> str:
+  """Generates the placeholder for serialized executor input."""
+  return _EXECUTOR_INPUT_PLACEHOLDER
+
+class ExtraPlaceholderResolver:
+  def __init__(self):
+    self.input_uris = {}
+    self.input_metadata_paths = {}
+    self.output_uris = {}
+
+  def resolve_placeholder(
+    self,
+    arg,
+    component_spec: _structures.ComponentSpec,
+    arguments: dict,
+  ) -> str:
+    inputs_dict = {input_spec.name: input_spec for input_spec in component_spec.inputs or []}
+
+    if isinstance(arg, _structures.InputUriPlaceholder):
+      input_name = arg.input_name
+      if input_name in arguments:
+        input_uri = _generate_input_uri(input_name)
+        self.input_uris[input_name] = input_uri
+        return input_uri
+      else:
+        input_spec = inputs_dict[input_name]
+        if input_spec.optional:
+          return None
+        else:
+          raise ValueError('No value provided for input {}'.format(input_name))
+
+    elif isinstance(arg, _structures.OutputUriPlaceholder):
+      output_name = arg.output_name
+      output_uri = _generate_output_uri(output_name)
+      self.output_uris[output_name] = output_uri
+      return output_uri
+
+    elif isinstance(arg, _structures.InputMetadataPlaceholder):
+      input_name = arg.input_name
+      if input_name in arguments:
+        input_metadata_path = _generate_input_metadata_path(input_name)
+        self.input_metadata_paths[input_name] = input_metadata_path
+        return input_metadata_path
+      else:
+        input_spec = inputs_dict[input_name]
+        if input_spec.optional:
+          return None
+        else:
+          raise ValueError(
+            'No value provided for input {}'.format(input_name))
+
+    elif isinstance(arg, _structures.InputOutputPortNamePlaceholder):
+      input_name = arg.input_name
+      if input_name in arguments:
+        return _generate_input_output_name(input_name)
+      else:
+        input_spec = inputs_dict[input_name]
+        if input_spec.optional:
+          return None
+        else:
+          raise ValueError(
+            'No value provided for input {}'.format(input_name))
+
+    elif isinstance(arg, _structures.OutputMetadataPlaceholder):
+      # TODO: Consider making the output metadata per-artifact.
+      return _generate_output_metadata_path()
+    elif isinstance(arg, _structures.ExecutorInputPlaceholder):
+      return _generate_executor_input()
+
+    return None
 
 
 def _create_container_op_from_component_and_arguments(
@@ -63,10 +218,11 @@ def _create_container_op_from_component_and_arguments(
       raise TypeError(
           'ContainerOp object was passed to component as an input argument. '
           'Pass a single output instead.')
-
+  placeholder_resolver = ExtraPlaceholderResolver()
   resolved_cmd = _components._resolve_command_line_and_paths(
       component_spec=component_spec,
       arguments=arguments,
+      placeholder_resolver=placeholder_resolver.resolve_placeholder,
   )
 
   container_spec = component_spec.implementation.container
@@ -76,9 +232,9 @@ def _create_container_op_from_component_and_arguments(
 
   output_paths_and_uris = collections.OrderedDict(resolved_cmd.output_paths or
                                                   {})
-  output_paths_and_uris.update(resolved_cmd.output_uris)
+  output_paths_and_uris.update(placeholder_resolver.output_uris)
   input_paths_and_uris = collections.OrderedDict(resolved_cmd.input_paths or {})
-  input_paths_and_uris.update(resolved_cmd.input_uris)
+  input_paths_and_uris.update(placeholder_resolver.input_uris)
 
   artifact_argument_paths = [
       dsl.InputArgumentPath(
@@ -254,14 +410,54 @@ def _attach_v2_specs(
       else:
         return _output_artifact_path_placeholder(output_key)
 
+    placeholder_resolver = ExtraPlaceholderResolver()
+    def _resolve_ir_placeholders_v2(
+        arg,
+        component_spec: _structures.ComponentSpec,
+        arguments: dict,
+    ) -> str:
+      inputs_dict = {input_spec.name: input_spec for input_spec in component_spec.inputs or []}
+      if isinstance(arg, _structures.InputValuePlaceholder):
+        input_name = arg.input_name
+        input_value = arguments.get(input_name, None)
+        if input_value is not None:
+          return _input_parameter_placeholder(input_name)
+        else:
+          input_spec = inputs_dict[input_name]
+          if input_spec.optional:
+            return None
+          else:
+            raise ValueError('No value provided for input {}'.format(input_name))
+
+      elif isinstance(arg, _structures.InputUriPlaceholder):
+        input_name = arg.input_name
+        if input_name in arguments:
+          input_uri = _input_artifact_uri_placeholder(input_name)
+          return input_uri
+        else:
+          input_spec = inputs_dict[input_name]
+          if input_spec.optional:
+            return None
+          else:
+            raise ValueError('No value provided for input {}'.format(input_name))
+
+      elif isinstance(arg, _structures.OutputUriPlaceholder):
+        output_name = arg.output_name
+        output_uri = _output_artifact_uri_placeholder(output_name)
+        return output_uri
+
+      return placeholder_resolver.resolve_placeholder(
+        arg=arg,
+        component_spec=component_spec,
+        arguments=arguments,
+      )
+
     resolved_cmd = _components._resolve_command_line_and_paths(
         component_spec=component_spec,
         arguments=arguments,
-        input_value_generator=_input_parameter_placeholder,
-        input_uri_generator=_input_artifact_uri_placeholder,
-        output_uri_generator=_output_artifact_uri_placeholder,
         input_path_generator=_input_artifact_path_placeholder,
         output_path_generator=_resolve_output_path_placeholder,
+        placeholder_resolver=_resolve_ir_placeholders_v2,
     )
     return resolved_cmd
 

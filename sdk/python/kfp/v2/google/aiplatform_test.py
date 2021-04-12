@@ -64,7 +64,7 @@ class AiplatformTest(unittest.TestCase):
         'jobSpec': {
             'workerPoolSpecs': [
                 {
-                    'machineSpec': {'machineType': 'n1-standard-2'},
+                    'machineSpec': {'machineType': 'n1-standard-4'},
                     'replicaCount': '1',
                     'containerSpec': {
                         'imageUri': 'my_image:latest',

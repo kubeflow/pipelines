@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.5.0-rc.3](https://github.com/kubeflow/pipelines/compare/1.5.0-rc.2...1.5.0-rc.3) (2021-04-09)
+
+
+### Features
+
+* **frontend:** Shorten output names ([\#5408](https://github.com/kubeflow/pipelines/issues/5408)) ([5c27e7c](https://github.com/kubeflow/pipelines/commit/5c27e7c54d9090f4a4224bc6dda7486fd4c3cb89))
+* **sdk.v2:** use consistent argument name in v2 compiler ([\#5430](https://github.com/kubeflow/pipelines/issues/5430)) ([0e921c3](https://github.com/kubeflow/pipelines/commit/0e921c308370ad03cbf47bd5f7c35e455e7a7034))
+* **sdk/extensions:** Add kfp.onprem.use_k8s_secret method that puts k8s secrets in env vars ([\#5365](https://github.com/kubeflow/pipelines/issues/5365)) ([65f7669](https://github.com/kubeflow/pipelines/commit/65f766928bbfff9e6ae2733bf65d0f91b9dcbc4d))
+
+
+### Bug Fixes
+
+* **backend:** api server panics on workflow with parameter without value. Fixes [\#5423](https://github.com/kubeflow/pipelines/issues/5423) ([\#5424](https://github.com/kubeflow/pipelines/issues/5424)) ([d95764b](https://github.com/kubeflow/pipelines/commit/d95764b7560cf6782168f559157615a09a45a6da))
+* **components:** add bypass for BrokenPipeError in gcp ml engine client. Fixes [\#5085](https://github.com/kubeflow/pipelines/issues/5085) ([\#5250](https://github.com/kubeflow/pipelines/issues/5250)) ([3f91fe2](https://github.com/kubeflow/pipelines/commit/3f91fe2c9db3de489a69cb4abc8cfeea9adb0544))
+* **components:** Delete unused to_table component item ([\#4937](https://github.com/kubeflow/pipelines/issues/4937)) ([d2fd499](https://github.com/kubeflow/pipelines/commit/d2fd499214bac488ff90942787a81b0fd6362ac9))
+* **sdk:** Always create output paths for parameters in addition to artifacts in v2 Python components. ([\#5421](https://github.com/kubeflow/pipelines/issues/5421)) ([1e32f01](https://github.com/kubeflow/pipelines/commit/1e32f01dc4c32ab9d9173ae3e78ed22c7ca890d1))
+
 ## [1.5.0-rc.2](https://github.com/kubeflow/pipelines/compare/1.5.0-rc.1...1.5.0-rc.2) (2021-04-02)
 
 

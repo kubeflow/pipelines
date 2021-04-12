@@ -61,8 +61,8 @@ def build_component_spec_from_structure(
           input_spec.name].type = type_utils.get_parameter_type(input_spec.type)
     else:
       result.input_definitions.artifacts[
-          input_spec.name].artifact_type.instance_schema = (
-              type_utils.get_artifact_type_schema(input_spec.type))
+          input_spec.name].artifact_type.CopyFrom(
+              type_utils.get_artifact_type_schema_message(input_spec.type))
 
   for output_spec in component_spec.outputs or []:
     if type_utils.is_parameter_type(output_spec.type):
@@ -71,8 +71,8 @@ def build_component_spec_from_structure(
               output_spec.type)
     else:
       result.output_definitions.artifacts[
-          output_spec.name].artifact_type.instance_schema = (
-              type_utils.get_artifact_type_schema(output_spec.type))
+          output_spec.name].artifact_type.CopyFrom(
+              type_utils.get_artifact_type_schema_message(output_spec.type))
 
   return result
 
@@ -100,8 +100,8 @@ def build_component_inputs_spec(
     elif input_name not in getattr(component_spec.input_definitions,
                                    'parameters', []):
       component_spec.input_definitions.artifacts[
-          input_name].artifact_type.instance_schema = (
-              type_utils.get_artifact_type_schema(param.param_type))
+          input_name].artifact_type.CopyFrom(
+              type_utils.get_artifact_type_schema_message(param.param_type))
 
 
 def build_component_outputs_spec(
@@ -122,8 +122,8 @@ def build_component_outputs_spec(
     elif output_name not in getattr(component_spec.output_definitions,
                                     'parameters', []):
       component_spec.output_definitions.artifacts[
-          output_name].artifact_type.instance_schema = (
-              type_utils.get_artifact_type_schema(param.param_type))
+          output_name].artifact_type.CopyFrom(
+              type_utils.get_artifact_type_schema_message(param.param_type))
 
 
 def build_task_inputs_spec(
