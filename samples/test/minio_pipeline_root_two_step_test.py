@@ -27,6 +27,6 @@ def verify(run, run_id: str):
 run_pipeline_func([
     TestCase(pipeline_func=minio_pipeline_root_two_step_pipeline,
              arguments={
-                 kfp.dsl.ROOT_PARAMETER_NAME: 's3://output-directory/v2-artifacts?region=minio&endpoint=minio-service.kubeflow:9000&disableSSL=true&s3ForcePathStyle=true'},
+                 kfp.dsl.ROOT_PARAMETER_NAME: 's3://mlpipeline/output-directory/v2-artifacts?region=minio&endpoint=minio-service.kubeflow:9000&disableSSL=true&s3ForcePathStyle=true'},
              verify_func=verify)
 ])
