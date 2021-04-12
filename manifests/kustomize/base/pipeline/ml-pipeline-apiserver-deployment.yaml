@@ -67,10 +67,7 @@ spec:
           valueFrom:
             secretKeyRef:
               name: mlpipeline-minio-artifact
-              key: secretkey
-        - name: DEPLOYMENT_TYPE
-          value: "standalone"
-          
+              key: secretkey          
         image: gcr.io/ml-pipeline/api-server:dummy
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-api-server

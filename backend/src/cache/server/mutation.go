@@ -166,14 +166,18 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 			return nil, err
 		}
 		if !node_restrictions {
-			patches = append(patches, patchOperation{
-				Op:   OperationTypeRemove,
-				Path: "spec/affinity",
-			})
-			patches = append(patches, patchOperation{
-				Op:   OperationTypeRemove,
-				Path: "spec/nodeSelector",
-			})
+			if pod.Spec.Affinity != nil {
+				patches = append(patches, patchOperation{
+					Op:   OperationTypeRemove,
+					Path: "spec/affinity",
+				})
+			}
+			if pod.Spec.NodeSelector != nil {
+				patches = append(patches, patchOperation{
+					Op:   OperationTypeRemove,
+					Path: "spec/nodeSelector",
+				})
+			}
 		}
 		if pod.Spec.InitContainers != nil || len(pod.Spec.InitContainers) != 0 {
 			patches = append(patches, patchOperation{

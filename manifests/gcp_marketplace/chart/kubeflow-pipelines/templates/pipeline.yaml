@@ -747,8 +747,6 @@ spec:
               value: 'pipeline-runner'
             - name: OBJECTSTORECONFIG_SECURE
               value: "false"
-            - name: DEPLOYMENT_TYPE
-              value: "gcp_marketplace"
             {{ if .Values.managedstorage.enabled }}
             - name: OBJECTSTORECONFIG_BUCKETNAME
               value: "{{ .Values.managedstorage.gcsBucketName }}"

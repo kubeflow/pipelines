@@ -241,7 +241,7 @@ spec:
             valueFrom:
               configMapKeyRef:
                 name: cache-configmap
-                key: cache-node-restrictions
+                key: cache_node_restrictions
           - name: DBCONFIG_DRIVER
             valueFrom:
               configMapKeyRef:

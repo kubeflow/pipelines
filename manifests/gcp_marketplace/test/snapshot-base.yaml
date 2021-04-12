@@ -222,6 +222,8 @@ data:
   mysql_host: "mysql"
   mysql_port: "3306"
   cache_image: "gcr.io/google-containers/busybox"
+  cache_node_restrictions: "false"
+  
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -260,7 +262,7 @@ spec:
             valueFrom:
               configMapKeyRef:
                 name: cache-configmap
-                key: cache-node-restrictions
+                key: cache_node_restrictions
           - name: DBCONFIG_DRIVER
             valueFrom:
               configMapKeyRef:

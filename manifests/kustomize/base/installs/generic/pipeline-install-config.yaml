@@ -27,3 +27,9 @@ data:
   ## the cached step result will be used. If not set it will default to 
   ## 'gcr.io/google-containers/busybox'
   cacheImage: "gcr.io/google-containers/busybox"
+  ## cacheNodeRestrictions the dummy container runing if output is cached
+  ## will run with the same affinity and node selector as the default pipeline
+  ## step. This is defaulted to 'false' to allow the pod to be scheduled on 
+  ## any node and avoid defaulting to specific nodes. Allowed values are:
+  ## 'false' and 'true'.
+  cacheNodeRestrictions: "false"
