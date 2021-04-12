@@ -156,9 +156,9 @@ class ClassificationMetrics(Artifact):
       self._categories.append(category)
       annotation_specs.append(annotation_spec)
 
-    self._matrix = [
-        [ 0 for i in range(len(self._categories)) ]
-          for j in range(len(self._categories)) ]
+    self._matrix = []
+    for row in range(len(self._categories)):
+      self._matrix.append({'row' : [0] * len(self._categories)})
 
     self._confusion_matrix = {}
     self._confusion_matrix['annotationSpecs'] = annotation_specs
@@ -184,7 +184,7 @@ class ClassificationMetrics(Artifact):
       raise ValueError('Invalid row. Expected size: {} got: {}'.\
         format(len(self._categories), len(row)))
 
-    self._matrix[self._categories.index(row_category)] = row
+    self._matrix[self._categories.index(row_category)] = {'row': row}
     self.metadata['confusionMatrix'] = self._confusion_matrix
 
   def log_confusion_matrix_cell(self, row_category: str, col_category: str, value: int):
@@ -207,7 +207,7 @@ class ClassificationMetrics(Artifact):
       raise ValueError('Invalid category: {} passed. Expected one of: {}'.\
         format(row_category, self._categories))
 
-    self._matrix[self._categories.index(row_category)][
+    self._matrix[self._categories.index(row_category)]['row'][
       self._categories.index(col_category)] = value
     self.metadata['confusionMatrix'] = self._confusion_matrix
 
