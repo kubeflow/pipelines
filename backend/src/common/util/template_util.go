@@ -56,5 +56,12 @@ func ValidateWorkflow(template []byte) (*v1alpha1.Workflow, error) {
 	if wf.Kind != argoK8sResource {
 		return nil, NewInvalidInputError("Unexpected resource type. Expected: %v. Received: %v", argoK8sResource, wf.Kind)
 	}
+	// as long as we don't use cluster or workflow templates.
+	_, err = validate.ValidateWorkflow(nil, nil, &wf, validate.ValidateOpts{
+		Lint: true,
+	})
+	if err != nil {
+		return nil, err
+	}
 	return &wf, nil
 }
