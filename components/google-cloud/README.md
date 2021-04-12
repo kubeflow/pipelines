@@ -19,7 +19,7 @@ via the python SDK please refer to [usage guide #4](#usage-guide).
 -   An
     [authenticated GCP account](https://cloud.google.com/ai-platform/docs/getting-started-keras#authenticate_your_gcp_account)
 -   [Google AI platform](https://cloud.google.com/ai-platform/) APIs enabled for
-    your GCP account. We use the AI platform for deploying docker images on GCP.
+    your GCP account.
 
 #### Install latest release
 
