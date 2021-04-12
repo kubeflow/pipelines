@@ -42,6 +42,7 @@ from kfp.pipeline_spec import pipeline_spec_pb2
 from google.protobuf import json_format
 
 _GroupOrOp = Union[dsl.OpsGroup, dsl.BaseOp]
+_LOOP_ITERATOR_COMPONENT_NAME_SUFFIX = '-iterator'
 
 
 class Compiler(object):
@@ -508,7 +509,94 @@ class Compiler(object):
       else:
         return str(value_or_reference)
 
-  def _update_loop_specs(
+  def _insert_loop_iterator_component(
+      self,
+      group: dsl.OpsGroup,
+      subgroup: _GroupOrOp,
+      group_component_spec: pipeline_spec_pb2.ComponentSpec,
+      subgroup_component_spec: pipeline_spec_pb2.ComponentSpec,
+      subgroup_task_spec: pipeline_spec_pb2.PipelineTaskSpec,
+      pipeline_spec: pipeline_spec_pb2.PipelineSpec,
+  ) -> None:
+    """Inserts a component that holds the loop args item from each iteration.
+
+    Args:
+      group: The dsl.ParallelFor OpsGroup.
+      subgroup: One of the subgroups of dsl.ParallelFor.
+      group_component_spec: The component spec of the group to update in place.
+      subgroup_component_spec: The component spec of the subgroup to update.
+      subgroup_task_spec: The task spec of the subgroup to update.
+      pipeline_spec: The pipeline spec to insert the intermediate component.
+    """
+    if subgroup.items_is_pipeline_param:
+      # This loop_args is a 'withParam' rather than a 'withItems'.
+      # i.e., rather than a static list, it is either the output of
+      # another task or an input as global pipeline parameters.
+      input_parameter_name = (
+          dsl_component_spec.additional_input_name_for_pipelineparam(
+              subgroup.loop_args.items_or_pipeline_param))
+    else:
+      # This loop_args is a 'withItems'. i.e., a static list (raw values).
+      input_parameter_name = (
+          dsl_component_spec.additional_input_name_for_pipelineparam(
+              subgroup.loop_args.full_name))
+
+    # Insert an intermediate component.
+    loop_iterator_component_base_name = (
+        subgroup.name + _LOOP_ITERATOR_COMPONENT_NAME_SUFFIX)
+    loop_iterator_component_spec = pipeline_spec_pb2.ComponentSpec()
+    loop_iterator_component_spec.input_definitions.CopyFrom(
+        subgroup_component_spec.input_definitions)
+
+    loop_argument_base_name = '{}-{}'.format(
+        input_parameter_name, _for_loop.LoopArguments.LOOP_ITEM_NAME_BASE)
+
+    if subgroup.items_is_pipeline_param:
+      # pop, since we only need the '-loop-item' version
+      dsl_component_spec.pop_input_from_component_spec(
+          loop_iterator_component_spec, input_parameter_name)
+      loop_iterator_component_spec.input_definitions.parameters[
+          loop_argument_base_name].type = pipeline_spec_pb2.PrimitiveType.STRING
+    else:
+      loop_iterator_component_spec.input_definitions.parameters[
+          input_parameter_name].type = pipeline_spec_pb2.PrimitiveType.STRING
+
+    loop_iterator_component_name = dsl_utils.sanitize_component_name(
+        loop_iterator_component_base_name)
+    pipeline_spec.components[loop_iterator_component_name].CopyFrom(
+        loop_iterator_component_spec)
+
+    loop_iterator_task_name = dsl_utils.sanitize_task_name(
+        loop_iterator_component_base_name)
+    loop_iterator_task_spec = pipeline_spec_pb2.PipelineTaskSpec()
+    loop_iterator_task_spec.task_info.name = loop_iterator_task_name
+    loop_iterator_task_spec.component_ref.name = loop_iterator_component_name
+    if subgroup.items_is_pipeline_param:
+      loop_iterator_task_spec.inputs.parameters[
+          input_parameter_name].component_input_parameter = (
+              input_parameter_name)
+      loop_iterator_task_spec.parameter_iterator.items.input_parameter = (
+          input_parameter_name)
+      loop_iterator_task_spec.parameter_iterator.item_input = (
+          loop_argument_base_name)
+    else:
+      raw_values = subgroup.loop_args.to_list_for_task_yaml()
+      loop_iterator_task_spec.parameter_iterator.items.raw = json.dumps(
+          raw_values, sort_keys=True)
+      loop_iterator_task_spec.parameter_iterator.item_input = (
+          input_parameter_name)
+
+    for input_name in loop_iterator_component_spec.input_definitions.parameters:
+      if input_name == loop_iterator_task_spec.parameter_iterator.item_input:
+        continue
+      loop_iterator_task_spec.inputs.parameters[
+          input_name].component_input_parameter = input_name
+
+    # Add task spec
+    subgroup_component_spec.dag.tasks[loop_iterator_task_name].CopyFrom(
+        loop_iterator_task_spec)
+
+  def _update_loop_subgroup_specs(
       self,
       group: dsl.OpsGroup,
       subgroup: _GroupOrOp,
@@ -516,7 +604,7 @@ class Compiler(object):
       subgroup_component_spec: pipeline_spec_pb2.ComponentSpec,
       subgroup_task_spec: pipeline_spec_pb2.PipelineTaskSpec,
   ) -> None:
-    """Update IR specs for loop.
+    """Updates IR specs for loop subgroup.
 
     Args:
       group: The dsl.ParallelFor OpsGroup.
@@ -547,84 +635,39 @@ class Compiler(object):
       if _for_loop.LoopArguments.name_is_withparams_loop_argument(
           loop_argument_name):
 
-        arg_and_var_name = (
-            _for_loop.LoopArgumentVariable
-            .parse_loop_args_name_and_this_var_name(loop_argument_name))
-        # The current IR representation is insufficient for referencing a subvar
-        # which is a key in a list of dictionaries.
-        if arg_and_var_name:
-          raise NotImplementedError(
-              'Use subvar in dsl.ParallelFor with dynamic loop arguments is not '
-              'supported. Got subvar: {}'.format(arg_and_var_name[1]))
-
         assert group.items_is_pipeline_param
         pipeline_param = group.loop_args.items_or_pipeline_param
-        input_parameter_name = pipeline_param.full_name
+        input_parameter_name = (
+            dsl_component_spec.additional_input_name_for_pipelineparam(
+                pipeline_param))
 
-        # Correct loop argument input type in the parent component spec.
-        # The loop argument was categorized as an artifact due to its missing
-        # or non-primitive type annotation. But it should always be String
-        # typed, as its value is a serialized JSON string.
-        dsl_component_spec.pop_input_from_component_spec(
-            group_component_spec, input_parameter_name)
-        group_component_spec.input_definitions.parameters[
-            input_parameter_name].type = pipeline_spec_pb2.PrimitiveType.STRING
-
+        loop_argument_base_name = '{}-{}'.format(
+            pipeline_param.full_name,
+            _for_loop.LoopArguments.LOOP_ITEM_NAME_BASE)
         subgroup_task_spec.inputs.parameters[
-            input_parameter_name].component_input_parameter = (
-                input_parameter_name)
-        subgroup_task_spec.parameter_iterator.item_input = input_name
-        subgroup_task_spec.parameter_iterator.items.input_parameter = (
-            input_parameter_name)
+            input_name].component_input_parameter = (
+                dsl_component_spec.additional_input_name_for_pipelineparam(
+                    loop_argument_base_name))
 
-      # Loop arguments comme from static raw values known at compile time.
+      # Loop arguments come from static raw values known at compile time.
       elif _for_loop.LoopArguments.name_is_withitems_loop_argument(
           loop_argument_name):
 
-        # Prepare the raw values, either the whole list or the sliced list based
-        # on subvar_name.
-        subvar_name = None
-        if _for_loop.LoopArgumentVariable.name_is_loop_arguments_variable(
-            loop_argument_name):
-          subvar_name = _for_loop.LoopArgumentVariable.get_subvar_name(
-              loop_argument_name)
+        pipeline_param_name = group.loop_args.full_name
 
-        loop_args = group.loop_args.to_list_for_task_yaml()
-        if subvar_name:
-          raw_values = [loop_arg.get(subvar_name) for loop_arg in loop_args]
-        else:
-          raw_values = loop_args
+        subgroup_task_spec.inputs.parameters[
+            input_name].component_input_parameter = (
+                dsl_component_spec.additional_input_name_for_pipelineparam(
+                    pipeline_param_name))
 
-        # If the loop iterator component expects `str` or `int` typed items from
-        # the loop argument, make sure the item values are string values.
-        # This is because both integers and strings are assigned to protobuf
-        # [Value.string_value](https://github.com/protocolbuffers/protobuf/blob/133e5e75263be696c06599ab97614a1e1e6d9c66/src/google/protobuf/struct.proto#L70)
-        # Such a  conversion is not needed for `float` type. which uses protobuf
-        # [Value.number_value](https://github.com/protocolbuffers/protobuf/blob/133e5e75263be696c06599ab97614a1e1e6d9c66/src/google/protobuf/struct.proto#L68)
-        if subgroup_component_spec.input_definitions.parameters[
-            input_name].type in [
-                pipeline_spec_pb2.PrimitiveType.STRING,
-                pipeline_spec_pb2.PrimitiveType.INT
-            ]:
-          raw_values = [str(v) for v in raw_values]
-          if subgroup_component_spec.input_definitions.parameters[
-              input_name].type == pipeline_spec_pb2.PrimitiveType.INT:
-            warnings.warn(
-                'The loop iterator component is expecting an `int` value.'
-                'Consider changing the input type to either `str` or `float`.')
-
-        subgroup_task_spec.parameter_iterator.item_input = input_name
-        subgroup_task_spec.parameter_iterator.items.raw = json.dumps(raw_values)
-
-      else:
-        raise AssertionError(
-            'Unexpected loop argument: {}'.format(loop_argument_name))
-
-      # Clean up unused inputs from task spec and parent component spec.
-      dsl_component_spec.pop_input_from_task_spec(subgroup_task_spec,
-                                                  input_name)
-      dsl_component_spec.pop_input_from_component_spec(group_component_spec,
-                                                       loop_argument_name)
+      # Loop arguments contain subvar referencing.
+      if _for_loop.LoopArgumentVariable.name_is_loop_arguments_variable(
+          loop_argument_name):
+        subvar_name = _for_loop.LoopArgumentVariable.get_subvar_name(
+            loop_argument_name)
+        subgroup_task_spec.inputs.parameters[
+            input_name].parameter_expression_selector = (
+                'parseJson(string_value)["{}"]'.format(subvar_name))
 
   def _populate_metrics_in_dag_outputs(
       self,
@@ -792,8 +835,20 @@ class Compiler(object):
 
           importer_tasks.append(importer_task_name)
 
+      if is_loop_subgroup:
+        # Retrieve the real parent component, which is the compiler injected
+        # loop iterator component.
+        loop_iterator_component_name = dsl_utils.sanitize_component_name(
+            group.name + _LOOP_ITERATOR_COMPONENT_NAME_SUFFIX)
+        group_component_spec = pipeline_spec.components[
+            loop_iterator_component_name]
+        self._update_loop_subgroup_specs(group, subgroup, group_component_spec,
+                                         subgroup_component_spec,
+                                         subgroup_task_spec)
+
       subgroup_inputs = inputs.get(subgroup.name, [])
       subgroup_params = [param for param, _ in subgroup_inputs]
+
       tasks_in_current_dag = [
           dsl_utils.sanitize_task_name(subgroup.name) for subgroup in subgroups
       ] + importer_tasks
@@ -809,12 +864,8 @@ class Compiler(object):
 
       is_parent_component_root = group_component_spec == pipeline_spec.root
 
-      # Additional spec modifications for dsl.ParallelFor's subgroups.
-      if is_loop_subgroup:
-        self._update_loop_specs(group, subgroup, group_component_spec,
-                                subgroup_component_spec, subgroup_task_spec)
+      if isinstance(subgroup, dsl.ContainerOp):
 
-      elif isinstance(subgroup, dsl.ContainerOp):
         dsl_component_spec.update_task_inputs_spec(
             subgroup_task_spec,
             group_component_spec.input_definitions,
@@ -823,6 +874,44 @@ class Compiler(object):
             input_parameters_in_current_dag,
             input_artifacts_in_current_dag,
         )
+
+      if isinstance(subgroup, dsl.ParallelFor):
+        if subgroup.parallelism is not None:
+          warnings.warn(
+              'Setting parallelism in ParallelFor is not supported yet.'
+              'The setting is ignored.')
+
+        # "Punch the hole", adding additional inputs (other than loop arguments
+        # which will be handled separately) needed by its subgroup or tasks.
+        loop_subgroup_params = []
+        for param in subgroup_params:
+          if isinstance(
+              param, (_for_loop.LoopArguments, _for_loop.LoopArgumentVariable)):
+            continue
+          loop_subgroup_params.append(param)
+
+        if subgroup.items_is_pipeline_param:
+          # This loop_args is a 'withParam' rather than a 'withItems'.
+          # i.e., rather than a static list, it is either the output of
+          # another task or an input as global pipeline parameters.
+          loop_subgroup_params.append(
+              subgroup.loop_args.items_or_pipeline_param)
+
+        dsl_component_spec.build_component_inputs_spec(
+            component_spec=subgroup_component_spec,
+            pipeline_params=loop_subgroup_params,
+            is_root_component=False,
+        )
+        dsl_component_spec.build_task_inputs_spec(
+            subgroup_task_spec,
+            loop_subgroup_params,
+            tasks_in_current_dag,
+            is_parent_component_root,
+        )
+        self._insert_loop_iterator_component(group, subgroup,
+                                             group_component_spec,
+                                             subgroup_component_spec,
+                                             subgroup_task_spec, pipeline_spec)
 
       if isinstance(subgroup, dsl.OpsGroup) and subgroup.type == 'condition':
 
@@ -860,50 +949,6 @@ class Compiler(object):
         subgroup_task_spec.dependent_tasks.extend(
             [dsl_utils.sanitize_task_name(dep) for dep in group_dependencies])
 
-      if isinstance(subgroup, dsl.ParallelFor):
-        if subgroup.parallelism is not None:
-          warnings.warn(
-              'Setting parallelism in ParallelFor is not supported yet.'
-              'The setting is ignored.')
-
-        # Remove loop arguments related inputs from parent group component spec.
-        input_names = [param.full_name for param, _ in inputs[subgroup.name]]
-        for input_name in input_names:
-          if _for_loop.LoopArguments.name_is_loop_argument(input_name):
-            dsl_component_spec.pop_input_from_component_spec(
-                group_component_spec, input_name)
-
-        if subgroup.items_is_pipeline_param:
-          # These loop args are a 'withParam' rather than 'withItems'.
-          # i.e., rather than a static list, they are either the output of
-          # another task or were input as global pipeline parameters.
-
-          pipeline_param = subgroup.loop_args.items_or_pipeline_param
-          input_parameter_name = pipeline_param.full_name
-
-          if pipeline_param.op_name:
-            subgroup_task_spec.inputs.parameters[
-                input_parameter_name].task_output_parameter.producer_task = (
-                    dsl_utils.sanitize_task_name(pipeline_param.op_name))
-            subgroup_task_spec.inputs.parameters[
-                input_parameter_name].task_output_parameter.output_parameter_key = (
-                    pipeline_param.name)
-          else:
-            subgroup_task_spec.inputs.parameters[
-                input_parameter_name].component_input_parameter = (
-                    input_parameter_name)
-
-          if pipeline_param.op_name is None:
-            # Input parameter is from pipeline func rather than component output.
-            # Correct loop argument input type in the parent component spec.
-            # The loop argument was categorized as an artifact due to its missing
-            # or non-primitive type annotation. But it should always be String
-            # typed, as its value is a serialized JSON string.
-            dsl_component_spec.pop_input_from_component_spec(
-                group_component_spec, input_parameter_name)
-            group_component_spec.input_definitions.parameters[
-                input_parameter_name].type = pipeline_spec_pb2.PrimitiveType.STRING
-
       # Add component spec if not exists
       if subgroup_component_name not in pipeline_spec.components:
         pipeline_spec.components[subgroup_component_name].CopyFrom(
@@ -932,7 +977,6 @@ class Compiler(object):
         if executor_label not in deployment_config.executors:
           deployment_config.executors[executor_label].container.CopyFrom(
               container_spec)
-
 
     pipeline_spec.deployment_spec.update(
         json_format.MessageToDict(deployment_config))
