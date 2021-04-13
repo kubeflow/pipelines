@@ -12,44 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utilities for component I/O type mapping."""
-
+import inspect
 from typing import Dict, List, Optional, Type, Union
 from kfp.components import structures
 from kfp.pipeline_spec import pipeline_spec_pb2
-from kfp.dsl import artifact
 from kfp.dsl import artifact_utils
-from kfp.dsl import ontology_artifacts
 from kfp.dsl import io_types
-
-# ComponentSpec I/O types to (IR) PipelineTaskSpec I/O types mapping.
-# The keys are normalized (lowercased). These are types viewed as Artifacts.
-# The values are the corresponding IR artifact ontology types.
-# TODO: migrate/merge other ontology_artifacts types to io_types
-_ARTIFACT_TYPES_MAPPING = {
-    'model':
-        ontology_artifacts.Model.get_artifact_type(),
-    'dataset':
-        ontology_artifacts.Dataset.get_artifact_type(),
-    'metrics':
-        artifact_utils.read_schema_file('metrics.yaml'),
-    'classificationmetrics':
-        artifact_utils.read_schema_file('classification_metrics.yaml'),
-    'slicedclassificationmetrics':
-        ontology_artifacts.SlicedClassificationMetrics.get_artifact_type(),
-}
 
 # ComponentSpec I/O types to DSL ontology artifact classes mapping.
 _ARTIFACT_CLASSES_MAPPING = {
-    'model':
-        ontology_artifacts.Model,
-    'dataset':
-        ontology_artifacts.Dataset,
-    'metrics':
-        io_types.Metrics,
-    'classificationmetrics':
-        io_types.ClassificationMetrics,
-    'slicedclassificationmetrics':
-        ontology_artifacts.SlicedClassificationMetrics,
+    'model': io_types.Model,
+    'dataset': io_types.Dataset,
+    'metrics': io_types.Metrics,
+    'classificationmetrics': io_types.ClassificationMetrics,
+    'slicedclassificationmetrics': io_types.SlicedClassificationMetrics,
 }
 
 # ComponentSpec I/O types to (IR) PipelineTaskSpec I/O types mapping.
@@ -89,36 +65,20 @@ def is_parameter_type(type_name: Optional[str]) -> bool:
     return False
 
 
-def get_artifact_type_schema(type_name: Union[str, Dict, List]) -> str:
-  """Gets the IR I/O artifact type for the given ComponentSpec I/O type.
-
-  Args:
-    type_name: type name of the ComponentSpec I/O type.
-
-  Returns:
-     The string value of artifact type schema. Defaults to generic artifact.
-  """
-  if isinstance(type_name, str):
-    return _ARTIFACT_TYPES_MAPPING.get(type_name.lower(),
-                                       artifact.Artifact.get_artifact_type())
-  else:
-    return artifact.Artifact.get_artifact_type()
-
-
-def get_artifact_type_schema_message(
-    type_name: str) -> pipeline_spec_pb2.ArtifactTypeSchema:
+def get_artifact_type_schema(
+    artifact_class_or_type_name: Optional[Union[str, Type[io_types.Artifact]]]
+) -> pipeline_spec_pb2.ArtifactTypeSchema:
   """Gets the IR I/O artifact type msg for the given ComponentSpec I/O type."""
-  if isinstance(type_name, str):
-    artifact_class = _ARTIFACT_CLASSES_MAPPING.get(type_name.lower(),
-                                                   artifact.Artifact)
-    # TODO: migrate all types to system. namespace.
-    if artifact_class.TYPE_NAME.startswith('system.'):
-      return pipeline_spec_pb2.ArtifactTypeSchema(
-          schema_title=artifact_class.TYPE_NAME)
-    else:
-      return artifact_class.get_ir_type()
-  else:
-    return artifact.Artifact.get_ir_type()
+  artifact_class = io_types.Artifact
+  if isinstance(artifact_class_or_type_name, str):
+    artifact_class = _ARTIFACT_CLASSES_MAPPING.get(
+        artifact_class_or_type_name.lower(), io_types.Artifact)
+  elif inspect.isclass(artifact_class_or_type_name) and issubclass(
+      artifact_class_or_type_name, io_types.Artifact):
+    artifact_class = artifact_class_or_type_name
+
+  return pipeline_spec_pb2.ArtifactTypeSchema(
+      schema_title=artifact_class.TYPE_NAME)
 
 
 def get_parameter_type(
