@@ -44,7 +44,7 @@ TextDatasetExportDataOp = utils.convert_method_to_component(
     aiplatform_sdk.TextDataset.export_data, should_serialize_init=True
 )
 
-VideoDatasetImportDataOp = utils.convert_method_to_component(
+VideoDatasetExportDataOp = utils.convert_method_to_component(
     aiplatform_sdk.VideoDataset.export_data, should_serialize_init=True
 )
 
