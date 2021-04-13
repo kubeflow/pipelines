@@ -12,125 +12,153 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from absl.testing import parameterized
 import unittest
+
+from kfp.dsl import _pipeline_param
 from kfp.dsl import importer_node
 from kfp.pipeline_spec import pipeline_spec_pb2 as pb
 from google.protobuf import json_format
 
 
-class ImporterNodeTest(unittest.TestCase):
+class ImporterNodeTest(parameterized.TestCase):
 
-  def test_build_importer_task_spec(self):
-    expected_task = {
-        'taskInfo': {
-            'name': 'task-importer-task0-input1'
-        },
-        'componentRef': {
-            'name': 'comp-importer-task0-input1'
-        },
-    }
+  @parameterized.parameters(
+      {
+          # artifact_uri is a constant value
+          'input_uri':
+              'gs://artifact',
+          'artifact_type_schema':
+              pb.ArtifactTypeSchema(schema_title='system.Dataset'),
+          'expected_result': {
+              'artifactUri': {
+                  'constantValue': {
+                      'stringValue': 'gs://artifact'
+                  }
+              },
+              'typeSchema': {
+                  'schemaTitle': 'system.Dataset'
+              }
+          }
+      },
+      {
+          # artifact_uri is from PipelineParam
+          'input_uri':
+              _pipeline_param.PipelineParam(name='uri_to_import'),
+          'artifact_type_schema':
+              pb.ArtifactTypeSchema(schema_title='system.Model'),
+          'expected_result': {
+              'artifactUri': {
+                  'runtimeParameter': 'uri'
+              },
+              'typeSchema': {
+                  'schemaTitle': 'system.Model'
+              }
+          },
+      })
+  def test_build_importer_spec(self, input_uri, artifact_type_schema,
+                               expected_result):
+    expected_importer_spec = pb.PipelineDeploymentConfig.ImporterSpec()
+    json_format.ParseDict(expected_result, expected_importer_spec)
+    importer_spec = importer_node._build_importer_spec(
+        artifact_uri=input_uri, artifact_type_schema=artifact_type_schema)
+
+    self.maxDiff = None
+    self.assertEqual(expected_importer_spec, importer_spec)
+
+  @parameterized.parameters(
+      {
+          # artifact_uri is a constant value
+          'importer_name': 'importer-1',
+          'input_uri': 'gs://artifact',
+          'expected_result': {
+              'taskInfo': {
+                  'name': 'task-importer-1'
+              },
+              'inputs': {
+                  'parameters': {
+                      'uri': {
+                          'runtimeValue': {
+                              'constantValue': {
+                                  'stringValue': 'gs://artifact'
+                              }
+                          }
+                      }
+                  }
+              },
+              'componentRef': {
+                  'name': 'comp-importer-1'
+              },
+          }
+      },
+      {
+          # artifact_uri is from PipelineParam
+          'importer_name': 'importer-2',
+          'input_uri': _pipeline_param.PipelineParam(name='uri_to_import'),
+          'expected_result': {
+              'taskInfo': {
+                  'name': 'task-importer-2'
+              },
+              'inputs': {
+                  'parameters': {
+                      'uri': {
+                          'componentInputParameter': 'uri_to_import'
+                      }
+                  }
+              },
+              'componentRef': {
+                  'name': 'comp-importer-2'
+              },
+          },
+      })
+  def test_build_importer_task_spec(self, importer_name, input_uri,
+                                    expected_result):
     expected_task_spec = pb.PipelineTaskSpec()
-    json_format.ParseDict(expected_task, expected_task_spec)
+    json_format.ParseDict(expected_result, expected_task_spec)
 
-    task_spec = importer_node.build_importer_task_spec(
-        importer_base_name='importer-task0-input1')
+    task_spec = importer_node._build_importer_task_spec(
+        importer_base_name=importer_name, artifact_uri=input_uri)
 
     self.maxDiff = None
     self.assertEqual(expected_task_spec, task_spec)
-
-  def test_build_importer_spec_from_pipeline_param(self):
-    expected_importer = {
-        'artifactUri': {
-            'runtimeParameter': 'param1'
-        },
-        'typeSchema': {
-            'schemaTitle': 'system.Artifact'
-        }
-    }
-    expected_importer_spec = pb.PipelineDeploymentConfig.ImporterSpec()
-    json_format.ParseDict(expected_importer, expected_importer_spec)
-    importer_spec = importer_node.build_importer_spec(
-        input_type_schema=pb.ArtifactTypeSchema(schema_title='system.Artifact'),
-        pipeline_param_name='param1')
-
-    self.maxDiff = None
-    self.assertEqual(expected_importer_spec, importer_spec)
-
-  def test_build_importer_spec_from_constant_value(self):
-    expected_importer = {
-        'artifactUri': {
-            'constantValue': {
-                'stringValue': 'some_uri'
-            }
-        },
-        'typeSchema': {
-            'schemaTitle': 'system.Artifact'
-        }
-    }
-    expected_importer_spec = pb.PipelineDeploymentConfig.ImporterSpec()
-    json_format.ParseDict(expected_importer, expected_importer_spec)
-    importer_spec = importer_node.build_importer_spec(
-        input_type_schema=pb.ArtifactTypeSchema(schema_title='system.Artifact'),
-        constant_value='some_uri')
-
-    self.maxDiff = None
-    self.assertEqual(expected_importer_spec, importer_spec)
-
-  def test_build_importer_spec_with_invalid_inputs_should_fail(self):
-    with self.assertRaisesRegex(
-        AssertionError,
-        'importer spec should be built using either pipeline_param_name or '
-        'constant_value'):
-      importer_node.build_importer_spec(
-          input_type_schema=pb.ArtifactTypeSchema(
-              schema_title='system.Artifact'),
-          pipeline_param_name='param1',
-          constant_value='some_uri')
-
-    with self.assertRaisesRegex(
-        AssertionError,
-        'importer spec should be built using either pipeline_param_name or '
-        'constant_value'):
-      importer_node.build_importer_spec(
-          input_type_schema=pb.ArtifactTypeSchema(
-              schema_title='system.Artifact'))
 
   def test_build_importer_component_spec(self):
     expected_importer_component = {
         'inputDefinitions': {
             'parameters': {
-                'input1': {
+                'uri': {
                     'type': 'STRING'
                 }
             }
         },
         'outputDefinitions': {
             'artifacts': {
-                'result': {
+                'artifact': {
                     'artifactType': {
                         'schemaTitle': 'system.Artifact'
                     }
                 }
             }
         },
-        'executorLabel': 'exec-importer-task0-input1'
+        'executorLabel': 'exec-importer-1'
     }
     expected_importer_comp_spec = pb.ComponentSpec()
     json_format.ParseDict(expected_importer_component,
                           expected_importer_comp_spec)
-    importer_comp_spec = importer_node.build_importer_component_spec(
-        importer_base_name='importer-task0-input1',
-        input_name='input1',
-        input_type_schema=pb.ArtifactTypeSchema(schema_title='system.Artifact'))
+    importer_comp_spec = importer_node._build_importer_component_spec(
+        importer_base_name='importer-1',
+        artifact_type_schema=pb.ArtifactTypeSchema(
+            schema_title='system.Artifact'))
 
     self.maxDiff = None
     self.assertEqual(expected_importer_comp_spec, importer_comp_spec)
 
-  def test_generate_importer_base_name(self):
-    self.assertEqual(
-        'importer-task0-input1',
-        importer_node.generate_importer_base_name(
-            dependent_task_name='task0', input_name='input1'))
+  def test_import_with_invalid_artifact_uri_value_should_fail(self):
+    from kfp.dsl.io_types import Dataset
+    with self.assertRaisesRegex(
+        ValueError,
+        "Importer got unexpected artifact_uri: 123 of type: <class 'int'>."):
+      importer_node.importer(artifact_uri=123, artifact_class=Dataset)
 
 
 if __name__ == '__main__':
