@@ -582,11 +582,25 @@ def _attach_v2_specs(
             'Input argument supports only the following types: PipelineParam'
             ', str, int, float. Got: "{}".'.format(argument_value))
 
+  component_spec = copy.deepcopy(component_spec)
+
   if not component_spec.name:
     component_spec.name = _components._default_component_name
 
   # task.name is unique at this point.
   pipeline_task_spec.task_info.name = (dsl_utils.sanitize_task_name(task.name))
+
+  # IR only supports constant arguments for parameter inputs.
+  # Converting inputs that have constant arguments to parameter inputs.
+  inputs_with_constant_arguments = {
+    name
+    for name, argument in pipeline_task_spec.inputs.parameters.items()
+    if argument.runtime_value.constant_value
+  }
+  for input_spec in component_spec.inputs or []:
+    if (input_spec.name in inputs_with_constant_arguments and
+        not type_utils.is_parameter_type(input_spec.type)):
+      input_spec.type = 'String'
 
   resolved_cmd = _resolve_commands_and_args_v2(
       component_spec=component_spec, arguments=original_arguments)
