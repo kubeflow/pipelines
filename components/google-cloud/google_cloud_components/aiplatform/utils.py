@@ -28,7 +28,7 @@ METHOD_KEY = 'method'
 
 # map of MB SDK type to Metadata type
 RESOURCE_TO_METADATA_TYPE = {
-    aiplatform.Dataset: "Dataset",
+    aiplatform.datasets.dataset._Dataset: "Dataset",
     aiplatform.Model: "Model",
     aiplatform.Endpoint: "Artifact",
     aiplatform.BatchPredictionJob: "Artifact"
@@ -73,7 +73,7 @@ def resolve_annotation(annotation: Any) -> Any:
         Direct annotation
     """
 
-    # handle forward refernce string
+    # handle forward reference string
 
     # if this is an Ai Platform resource noun
     if inspect.isclass(annotation):
@@ -102,7 +102,7 @@ def resolve_annotation(annotation: Any) -> Any:
 
 
 def is_serializable_to_json(annotation: Any) -> bool:
-    """Checks if type is serializable.
+    """Checks if the type is serializable.
 
     Args:
         annotation: parameter annotation
@@ -127,7 +127,7 @@ def is_mb_sdk_resource_noun_type(mb_sdk_type: Any) -> bool:
 
 
 def get_serializer(annotation: Any) -> Optional[Callable]:
-    """Get serailizer for objects to pass them as strings.
+    """Get a serializer for objects to pass them as strings.
 
     Remote runner will deserialize.
     # TODO handle proto.Message
@@ -142,12 +142,12 @@ def get_serializer(annotation: Any) -> Optional[Callable]:
 
 
 def get_deserializer(annotation: Any) -> Optional[Callable[..., str]]:
-    """Get deserailizer for objects to pass them as strings.
+    """Get deserializer for objects to pass them as strings.
 
     Remote runner will deserialize.
     # TODO handle proto.Message
     Args:
-        annotation: parameter annotatoin
+        annotation: parameter annotation
     Returns:
         deserializer for annotation type
     """
@@ -164,17 +164,27 @@ def map_resource_to_metadata_type(
         Tuple of component parameter name and metadata type.
         ie aiplatform.Model -> "model", "Model"
     """
+
     # type should always be in this map
     if is_mb_sdk_resource_noun_type(mb_sdk_type):
         for key in RESOURCE_TO_METADATA_TYPE.keys():
             if issubclass(mb_sdk_type, key):
-                return key.__name__.split('.')[-1].lower(
-                ), RESOURCE_TO_METADATA_TYPE[key]
+                parameter_name = key.__name__.split('.')[-1].lower()
 
-    # handles case of exported_dataset
+                # replace leading _ for example _Dataset
+                if parameter_name.startswith("_"):
+                    parameter_name = parameter_name[1:]
+
+                return parameter_name, RESOURCE_TO_METADATA_TYPE[key]
+
+    # handles the case of exported_dataset
     # TODO generalize to all serializable outputs
     if is_serializable_to_json(mb_sdk_type):
         return "exported_dataset", "JsonArray"
+
+    # handles the case of imported datasets
+    if mb_sdk_type == '_Dataset':
+        return "dataset", "Dataset"
 
 
 def should_be_metadata_type(mb_sdk_type: Any) -> bool:
@@ -245,7 +255,7 @@ def signatures_union(
 
     Args:
         init_sig (inspect.Signature): Constructor signature
-        method_sig (inspect.Signature): Method siganture
+        method_sig (inspect.Signature): Method signature
 
     Returns:
         A Union of the the two Signatures as a single Signature
@@ -280,7 +290,7 @@ def convert_method_to_component(
 
     Which can be called:
         model_deploy_step = ModelDeployOp(
-            project=project,  # Pipeline paramter
+            project=project,  # Pipeline parameter
             endpoint=endpoint_create_step.outputs['endpoint'],
             model=model_upload_step.outputs['model'],
             deployed_model_display_name='my-deployed-model',
@@ -320,8 +330,8 @@ def convert_method_to_component(
     Args:
         method (Callable): A MB SDK Method
         should_serialize_init (bool): Whether to also include the constructor params
-            in the compoennt
-    Retruns:
+            in the component
+    Returns:
         A Component wrapper that accepts the MB SDK params and returns a Task.
     """
     method_name = method.__name__
@@ -377,8 +387,8 @@ def convert_method_to_component(
         ])
 
     def make_args(args_to_serialize: Dict[str, Dict[str, Any]]) -> str:
-        """Takes the args dicitionary and return serailized Component string
-        for args.
+        """Takes the args dictionary and return serialized Component string for
+        args.
 
         Args:
             args_to_serialize: Dictionary of format
@@ -397,7 +407,7 @@ def convert_method_to_component(
         input_args = []
         input_kwargs = {}
 
-        serialized_args = {"init": {}, "method": {}}
+        serialized_args = {INIT_KEY: {}, METHOD_KEY: {}}
 
         init_kwargs = {}
         method_kwargs = {}
@@ -421,7 +431,7 @@ def convert_method_to_component(
 
             # TODO: remove PipelineParam check when Metadata Importer component available
             # if we serialize we need to include the argument as input
-            # perhaps, another option is to embed in yaml as json seralized list
+            # perhaps, another option is to embed in yaml as json serialized list
             component_param_name = component_param_name_to_mb_sdk_param_name.get(
                 key, key
             )

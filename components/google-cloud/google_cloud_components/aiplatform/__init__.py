@@ -16,14 +16,6 @@
 from google.cloud import aiplatform as aiplatform_sdk
 from google_cloud_components.aiplatform import utils
 
-DatasetCreateOp = utils.convert_method_to_component(
-    aiplatform_sdk.Dataset.create
-)
-
-DatasetExportDataOp = utils.convert_method_to_component(
-    aiplatform_sdk.Dataset.export_data, should_serialize_init=True
-)
-
 ImageDatasetCreateOp = utils.convert_method_to_component(
     aiplatform_sdk.ImageDataset.create
 )
@@ -38,6 +30,22 @@ TextDatasetCreateOp = utils.convert_method_to_component(
 
 VideoDatasetCreateOp = utils.convert_method_to_component(
     aiplatform_sdk.VideoDataset.create
+)
+
+ImageDatasetExportDataOp = utils.convert_method_to_component(
+    aiplatform_sdk.ImageDataset.export_data, should_serialize_init=True
+)
+
+TabularDatasetExportDataOp = utils.convert_method_to_component(
+    aiplatform_sdk.TabularDataset.export_data, should_serialize_init=True
+)
+
+TextDatasetExportDataOp = utils.convert_method_to_component(
+    aiplatform_sdk.TextDataset.export_data, should_serialize_init=True
+)
+
+VideoDatasetExportDataOp = utils.convert_method_to_component(
+    aiplatform_sdk.VideoDataset.export_data, should_serialize_init=True
 )
 
 ImageDatasetImportDataOp = utils.convert_method_to_component(
