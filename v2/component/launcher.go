@@ -448,7 +448,11 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 		}
 
 		// TODO(neuromage): Consider batching these instead of recording one by one.
-		mlmdArtifact, err = l.metadataClient.RecordArtifact(ctx, outputArtifact.Type.GetInstanceSchema(), mlmdArtifact)
+		schema, err := getRuntimeArtifactSchema(outputArtifact)
+		if err != nil {
+			return fmt.Errorf("failed to determine schema for output %q: %w", name, err)
+		}
+		mlmdArtifact, err = l.metadataClient.RecordArtifact(ctx, schema, mlmdArtifact)
 		if err != nil {
 			return metadataErr(err)
 		}
@@ -504,6 +508,19 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 	}
 
 	return l.metadataClient.PublishExecution(ctx, execution, outputParameters, outputArtifacts)
+}
+
+func getRuntimeArtifactSchema(rta *pipeline_spec.RuntimeArtifact) (string, error) {
+	switch t := rta.Type.Kind.(type) {
+	case *pipeline_spec.ArtifactTypeSchema_InstanceSchema:
+		return t.InstanceSchema, nil
+	case *pipeline_spec.ArtifactTypeSchema_SchemaTitle:
+		return "title: " + t.SchemaTitle, nil
+	case *pipeline_spec.ArtifactTypeSchema_SchemaUri:
+		return "", fmt.Errorf("SchemaUri is unsupported, found in RuntimeArtifact %+v", rta)
+	default:
+		return "", fmt.Errorf("unknown type %T in RuntimeArtifact %+v", t, rta)
+	}
 }
 
 func mergeRuntimeArtifacts(src, dst *pipeline_spec.RuntimeArtifact) {
