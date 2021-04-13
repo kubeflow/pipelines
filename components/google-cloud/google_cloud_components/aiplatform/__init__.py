@@ -32,7 +32,7 @@ VideoDatasetCreateOp = utils.convert_method_to_component(
     aiplatform_sdk.VideoDataset.create
 )
 
-ImageDatasetImportDataOp = utils.convert_method_to_component(
+ImageDatasetExportDataOp = utils.convert_method_to_component(
     aiplatform_sdk.ImageDataset.export_data, should_serialize_init=True
 )
 
