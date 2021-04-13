@@ -140,14 +140,18 @@ def build_component_inputs_spec(
         param_name if is_root_component else
         additional_input_name_for_pipelineparam(param_name))
 
-    if type_utils.is_parameter_type(param.param_type):
+    input_type = param.param_type
+    if is_root_component and not type_utils.is_parameter_type(input_type):
+      input_type = 'String'
+
+    if type_utils.is_parameter_type(input_type):
       component_spec.input_definitions.parameters[
-          input_name].type = type_utils.get_parameter_type(param.param_type)
+          input_name].type = type_utils.get_parameter_type(input_type)
     elif input_name not in getattr(component_spec.input_definitions,
                                    'parameters', []):
       component_spec.input_definitions.artifacts[
           input_name].artifact_type.CopyFrom(
-              type_utils.get_artifact_type_schema(param.param_type))
+              type_utils.get_artifact_type_schema(input_type))
 
 
 def build_component_outputs_spec(

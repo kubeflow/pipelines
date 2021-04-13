@@ -25,6 +25,7 @@ inputs:
 - {name: input_2, type: Float}
 - {name: input_3, type: }
 - {name: input_4}
+- {name: input_date, type: Date}
 outputs:
 - {name: output_1, type: Integer}
 - {name: output_2, type: Model}
@@ -41,6 +42,7 @@ implementation:
     - {inputValue: input_2}
     - {inputUri: input_3}
     - {inputUri: input_4}
+    - {inputValue: input_date}
     - {outputPath: output_1}
     - {outputUri: output_2}
     - {outputPath: output_3}
@@ -83,6 +85,7 @@ def my_pipeline(input1: str,
       input_2=3.1415926,
       input_3=input3,
       input_4=input4,
+      input_date='2021-04-12',
   )
   component_2 = component_op_2(
       input_a=component_1.outputs['output_1'],

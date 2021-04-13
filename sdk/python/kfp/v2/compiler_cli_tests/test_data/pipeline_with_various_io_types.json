@@ -47,6 +47,9 @@
             "input_2": {
               "type": "DOUBLE"
             },
+            "input_date": {
+              "type": "STRING"
+            },
             "input_1": {
               "type": "STRING"
             }
@@ -131,6 +134,7 @@
               "{{$.inputs.parameters['input_2']}}",
               "{{$.inputs.artifacts['input_3'].uri}}",
               "{{$.inputs.artifacts['input_4'].uri}}",
+              "{{$.inputs.parameters['input_date']}}",
               "{{$.outputs.parameters['output_1'].output_file}}",
               "{{$.outputs.artifacts['output_2'].uri}}",
               "{{$.outputs.artifacts['output_3'].path}}",
@@ -175,6 +179,13 @@
                   "runtimeValue": {
                     "constantValue": {
                       "doubleValue": 3.1415926
+                    }
+                  }
+                },
+                "input_date": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "2021-04-12"
                     }
                   }
                 },

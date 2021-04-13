@@ -343,6 +343,7 @@ def _attach_v2_specs(
     Returns:
       A named tuple: _components._ResolvedCommandLineAndPaths.
     """
+    component_spec = copy.deepcopy(component_spec)
     inputs_dict = {
         input_spec.name: input_spec
         for input_spec in component_spec.inputs or []
@@ -463,7 +464,6 @@ def _attach_v2_specs(
           param for param in arguments.values()
           if isinstance(param, _pipeline_param.PipelineParam)
       ]))
-
   for input_name, argument_value in arguments.items():
     if isinstance(argument_value, _pipeline_param.PipelineParam):
       input_type = component_spec._inputs_dict[input_name].type
@@ -494,6 +494,13 @@ def _attach_v2_specs(
           pipeline_task_spec.inputs.artifacts[
               input_name].task_output_artifact.output_artifact_key = (
                   argument_value.name)
+        else:
+          # Argument is a reference to a pipeline input.
+          # Pipleine inputs can only be parameters. Fixing accordingly.
+          if not type_utils.is_parameter_type(input_type):
+            component_spec._inputs_dict[input_name].type = 'String'
+          pipeline_task_spec.inputs.parameters[
+              input_name].component_input_parameter = argument_value.name
     elif isinstance(argument_value, str):
       pipeline_params = _pipeline_param.extract_pipelineparams_from_any(
           argument_value)
@@ -529,14 +536,26 @@ def _attach_v2_specs(
                 additional_input_name].component_input_parameter = param.full_name
 
       input_type = component_spec._inputs_dict[input_name].type
+      # In IR, constant arguments can only be passed to parameter inputs.
+      # Converting inputs that have constant arguments to parameter inputs.
+      if not type_utils.is_parameter_type(input_type):
+        component_spec._inputs_dict[input_name].type = 'String'
       if type_utils.is_parameter_type(input_type):
         pipeline_task_spec.inputs.parameters[
             input_name].runtime_value.constant_value.string_value = (
                 argument_value)
     elif isinstance(argument_value, int):
+      # In IR, constant arguments can only be passed to parameter inputs.
+      # Converting inputs that have constant arguments to parameter inputs.
+      if not type_utils.is_parameter_type(input_type):
+        component_spec._inputs_dict[input_name].type = 'Integer'
       pipeline_task_spec.inputs.parameters[
           input_name].runtime_value.constant_value.int_value = argument_value
     elif isinstance(argument_value, float):
+      # In IR, constant arguments can only be passed to parameter inputs.
+      # Converting inputs that have constant arguments to parameter inputs.
+      if not type_utils.is_parameter_type(input_type):
+        component_spec._inputs_dict[input_name].type = 'Float'
       pipeline_task_spec.inputs.parameters[
           input_name].runtime_value.constant_value.double_value = argument_value
     elif isinstance(argument_value, _container_op.ContainerOp):
