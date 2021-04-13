@@ -380,14 +380,11 @@ def _attach_v2_specs(
       else:
         return "{{{{$.inputs.artifacts['{}'].path}}}}".format(input_key)
 
-    def _input_parameter_placeholder(input_key: str) -> str:
-      if is_compiling_for_v2 and not type_utils.is_parameter_type(
-          inputs_dict[input_key].type):
-        raise TypeError('Input "{}" with type "{}" cannot be paired with '
-                        'InputValuePlaceholder.'.format(
-                            input_key, inputs_dict[input_key].type))
-      else:
+    def _input_value_placeholder(input_key: str) -> str:
+      if type_utils.is_parameter_type(inputs_dict[input_key].type):
         return "{{{{$.inputs.parameters['{}']}}}}".format(input_key)
+      else:
+        return "{{{{$.inputs.artifacts['{}'].value}}}}".format(input_key)
 
     def _output_artifact_uri_placeholder(output_key: str) -> str:
       if is_compiling_for_v2 and type_utils.is_parameter_type(
@@ -421,7 +418,7 @@ def _attach_v2_specs(
         input_name = arg.input_name
         input_value = arguments.get(input_name, None)
         if input_value is not None:
-          return _input_parameter_placeholder(input_name)
+          return _input_value_placeholder(input_name)
         else:
           input_spec = inputs_dict[input_name]
           if input_spec.optional:
