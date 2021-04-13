@@ -19,6 +19,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"github.com/lestrrat-go/strftime"
 )
 
 const (
@@ -30,6 +31,10 @@ const (
 	currentTimePrefix       = "[[CurrentTime."
 	defaultTimeFormat       = "20060102150405"
 	suffix                  = "]]"
+
+	scheduledTimePrefix2    = "{{$.scheduledTime.strftime('"
+	currentTimePrefix2      = "{{$.currentTime.strftime('"
+	suffix2                 = "')}}"
 )
 
 const (
@@ -79,7 +84,7 @@ func (p *ParameterFormatter) FormatWorkflowParameters(
 
 // Format substitutes special strings in the provided string.
 func (p *ParameterFormatter) Format(s string) string {
-	re := regexp.MustCompile(`\[\[(.*?)\]\]`)
+	re := regexp.MustCompile(`\[\[(.*?)\]\]|\{\{$\.(.*?)\}\}`)
 	matches := re.FindAllString(s, -1)
 	if matches == nil {
 		return s
@@ -113,6 +118,22 @@ func (p *ParameterFormatter) createSubstitutes(match string) string {
 		match = strings.Replace(match, currentTimePrefix, "", 1)
 		match = strings.Replace(match, suffix, "", 1)
 		return time.Unix(p.nowEpoch, 0).UTC().Format(match)
+	} else if p.scheduledEpoch != disabledField && strings.HasPrefix(match, scheduledTimePrefix2) {
+		match = strings.Replace(match, scheduledTimePrefix2, "", 1)
+		match = strings.Replace(match, suffix2, "", 1)
+		formatter, err := strftime.New(`%s`, strftime.WithUnixSeconds('s'))
+		if err != nil {
+			return match
+		}
+		return formatter.Format(match, time.Unix(p.scheduledEpoch, 0).UTC(), time.Now())
+	} else if p.scheduledEpoch != disabledField && strings.HasPrefix(match, currentTimePrefix2) {
+		match = strings.Replace(match, currentTimePrefix2, "", 1)
+		match = strings.Replace(match, suffix2, "", 1)
+		formatter, err := strftime.New(`%s`, strftime.WithUnixSeconds('s'))
+		if err != nil {
+			return match
+		}
+		return formatter.Format(match, time.Unix(p.scheduledEpoch, 0).UTC(), time.Now())
 	} else {
 		return match
 	}
