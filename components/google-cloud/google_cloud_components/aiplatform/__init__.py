@@ -40,7 +40,7 @@ TabularDatasetImportDataOp = utils.convert_method_to_component(
     aiplatform_sdk.TabularDataset.export_data, should_serialize_init=True
 )
 
-TextDatasetImportDataOp = utils.convert_method_to_component(
+TextDatasetExportDataOp = utils.convert_method_to_component(
     aiplatform_sdk.TextDataset.export_data, should_serialize_init=True
 )
 
