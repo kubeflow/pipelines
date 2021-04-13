@@ -274,6 +274,11 @@ func (l *Launcher) prepareOutputs(ctx context.Context, executorInput *pipeline_s
 	for name, parameter := range executorInput.Outputs.Parameters {
 		key := fmt.Sprintf(`{{$.outputs.parameters['%s'].output_file}}`, name)
 		l.placeholderReplacements[key] = parameter.OutputFile
+
+		dir := filepath.Dir(parameter.OutputFile)
+		if err := os.MkdirAll(dir, 0644); err != nil {
+			return fmt.Errorf("failed to create directory %q for output parameter %q: %w", dir, name, err)
+		}
 	}
 
 	for name, artifactList := range executorInput.Outputs.Artifacts {
