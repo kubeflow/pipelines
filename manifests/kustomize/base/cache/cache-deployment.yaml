@@ -26,7 +26,7 @@ spec:
           - name: CACHE_NODE_RESTRICTIONS
             valueFrom:
               configMapKeyRef:
-                name: cache-configmap
+                name: pipeline-install-config
                 key: cacheNodeRestrictions
           - name: DBCONFIG_DRIVER
             value: mysql
