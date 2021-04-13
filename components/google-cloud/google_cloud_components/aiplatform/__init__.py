@@ -36,7 +36,7 @@ ImageDatasetExportDataOp = utils.convert_method_to_component(
     aiplatform_sdk.ImageDataset.export_data, should_serialize_init=True
 )
 
-TabularDatasetImportDataOp = utils.convert_method_to_component(
+TabularDatasetExportDataOp = utils.convert_method_to_component(
     aiplatform_sdk.TabularDataset.export_data, should_serialize_init=True
 )
 
