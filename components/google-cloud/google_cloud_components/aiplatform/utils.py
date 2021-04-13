@@ -184,7 +184,7 @@ def map_resource_to_metadata_type(
 
     # handles the case of imported datasets
     if mb_sdk_type == '_Dataset':
-        return "Dataset", "Dataset"
+        return "dataset", "Dataset"
 
 
 def should_be_metadata_type(mb_sdk_type: Any) -> bool:
