@@ -28,7 +28,7 @@ METHOD_KEY = 'method'
 
 
 # TODO() Add type-hinting the functions
-# TODO() Add explanation / exmaples and validation for kwargs
+# TODO() Add explanation / examples and validation for kwargs
 def split_args(kwargs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """Splits args into constructor and method args.
 
@@ -51,9 +51,9 @@ def split_args(kwargs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
 def write_to_gcs(project, gcs_uri, text):
     """helper method to write to gcs
-    TODO: remove and use native support from Pipeline
-    """
-    gcs_uri = gcs_uri[5:]
+   TODO: remove and use native support from Pipeline
+   """
+    gcs_uri = gcs_uri[len('gs://'):]
     gcs_bucket, gcs_blob = gcs_uri.split('/', 1)
 
     with open('resource_name.txt', 'w') as f:
@@ -67,9 +67,9 @@ def write_to_gcs(project, gcs_uri, text):
 
 def read_from_gcs(project, gcs_uri):
     """helper method to read from gcs
-    TODO: remove and use native support from Pipelines
-    """
-    gcs_uri = gcs_uri[5:]
+   TODO: remove and use native support from Pipelines
+   """
+    gcs_uri = gcs_uri[len('gs://'):]
     gcs_bucket, gcs_blob = gcs_uri.split('/', 1)
     client = storage.Client(project=project)
     bucket = client.get_bucket(gcs_bucket)
@@ -80,8 +80,8 @@ def read_from_gcs(project, gcs_uri):
 
 def resolve_project(serialized_args: Dict[str, Dict[str, Any]]) -> str:
     """Gets the project from either constructor or method."""
-    return serialized_args['init'].get(
-        'project', serialized_args['method'].get('project')
+    return serialized_args[INIT_KEY].get(
+        'project', serialized_args[METHOD_KEY].get('project')
     )
 
 
@@ -118,46 +118,46 @@ def runner(cls_name, method_name, resource_name_output_uri, kwargs):
 
     init_args, method_args = split_args(kwargs)
 
-    serialized_args = {'init': init_args, 'method': method_args}
+    serialized_args = {INIT_KEY: init_args, METHOD_KEY: method_args}
 
     project = resolve_project(serialized_args)
 
     for key, param in inspect.signature(cls.__init__).parameters.items():
-        if key in serialized_args['init']:
-            serialized_args['init'][key] = resolve_init_args(
-                key, serialized_args['init'][key], project
+        if key in serialized_args[INIT_KEY]:
+            serialized_args[INIT_KEY][key] = resolve_init_args(
+                key, serialized_args[INIT_KEY][key], project
             )
             param_type = utils.resolve_annotation(param.annotation)
             deserializer = utils.get_deserializer(param_type)
             if deserializer:
-                serialized_args['init'][key] = deserializer(
-                    serialized_args['init'][key]
+                serialized_args[INIT_KEY][key] = deserializer(
+                    serialized_args[INIT_KEY][key]
                 )
 
-    print(serialized_args['init'])
-    obj = cls(**serialized_args['init']) if serialized_args['init'] else cls
+    print(serialized_args[INIT_KEY])
+    obj = cls(**serialized_args[INIT_KEY]) if serialized_args[INIT_KEY] else cls
 
     method = getattr(obj, method_name)
 
     for key, param in inspect.signature(method).parameters.items():
-        if key in serialized_args['method']:
+        if key in serialized_args[METHOD_KEY]:
             param_type = utils.resolve_annotation(param.annotation)
             print(key, param_type)
-            serialized_args['method'][key] = resolve_input_args(
-                serialized_args['method'][key], param_type, project
+            serialized_args[METHOD_KEY][key] = resolve_input_args(
+                serialized_args[METHOD_KEY][key], param_type, project
             )
             deserializer = utils.get_deserializer(param_type)
             if deserializer:
-                serialized_args['method'][key] = deserializer(
-                    serialized_args['method'][key]
+                serialized_args[METHOD_KEY][key] = deserializer(
+                    serialized_args[METHOD_KEY][key]
                 )
             else:
-                serialized_args['method'][key] = param_type(
-                    serialized_args['method'][key]
+                serialized_args[METHOD_KEY][key] = param_type(
+                    serialized_args[METHOD_KEY][key]
                 )
 
-    print(serialized_args['method'])
-    output = method(**serialized_args['method'])
+    print(serialized_args[METHOD_KEY])
+    output = method(**serialized_args[METHOD_KEY])
     print(output)
 
     if output:
