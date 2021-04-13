@@ -50,23 +50,16 @@
   path: samples.test.simple_pipeline_without_importer_test
 - name: xgboost_sample
   path: samples.core.XGBoost.xgboost_sample_test
+- name: lightweight_python_functions_v2_with_outputs
+  path: samples.test.lightweight_python_functions_v2_with_outputs_test
+- name: lightweight_python_functions_v2_pipeline
+  path: samples.test.lightweight_python_functions_v2_pipeline_test
 
 # TODO(v2-compatible): support pipeline: pipeline_with_ontology.py
 # TODO(v2-compatible): support two_step_pipeline_with_importer.py
 # TODO(v2-compatible): support IR placeholder
 - name: placeholder_concat
   path: samples.test.placeholder_concat_test
-
-# TODO(v2-compatible): fix & enable these by supporting {{$}} placeholder, currently
-# fails with the following because root placeholder is not replaced:
-# ```
-# json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
-# F0403 14:34:22.509052       1 main.go:56] Failed to successfuly execute component: %vexit status 1
-# ```
-# - name: lightweight_python_functions_v2_with_outputs
-#   path: samples.test.lightweight_python_functions_v2_with_outputs_test
-# - name: lightweight_python_functions_v2_pipeline
-#   path: samples.test.lightweight_python_functions_v2_pipeline_test
 
 # TODO(Bobgy): enable this test when https://github.com/kubeflow/pipelines/pull/5424
 # is deployed to test infra.
