@@ -27,30 +27,37 @@ import (
 )
 
 type inputParameter struct {
-	ParameterType  string
-	ParameterValue string
+	// Type should be one of "INT", "STRING" or "DOUBLE".
+	Type string
+	// File used to read input parameters.
+	Value string
 }
 
 type inputArtifact struct {
+	// Schema description of the input artifact.
 	InstanceSchema string
 	SchemaTitle    string
 
-	// Where to read MLMD artifact. File is passed using Argo artifacts.
-	MetadataInputPath string
+	// Where to read the input MLMD artifact metadata. This file is passed using
+	// Argo artifacts.
+	MetadataFilePath string
 }
 
 type outputParameter struct {
-	// ParameterType should be one of "INT", "STRING" or "DOUBLE".
-	ParameterType string
+	// Type should be one of "INT", "STRING" or "DOUBLE".
+	Type string
 	// File used to write output parameters to.
-	ParameterOutputPath string
+	FilePath string
 }
 
 type outputArtifact struct {
+	// Schema description of the output artifact.
 	InstanceSchema string
 	SchemaTitle    string
-	// Where to write MLMD artifact.
-	MetadataOutputPath string
+
+	// Where to write the output MLMD artifact metadata. This file is passed using
+	// Argo artifacts.
+	MetadataFilePath string
 }
 
 // runtimeInfo represents JSON object present in all ML components compiled
@@ -257,35 +264,35 @@ func (r *runtimeInfo) generateExecutorInput(genOutputURI generateOutputURI, outp
 
 	for name, ip := range r.InputParameters {
 		value := &pipeline_spec.Value{}
-		switch ip.ParameterType {
+		switch ip.Type {
 		case "STRING":
-			value.Value = &pipeline_spec.Value_StringValue{StringValue: ip.ParameterValue}
+			value.Value = &pipeline_spec.Value_StringValue{StringValue: ip.Value}
 		case "INT":
-			i, err := strconv.ParseInt(ip.ParameterValue, 10, 0)
+			i, err := strconv.ParseInt(ip.Value, 10, 0)
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse int parameter %q from '%v': %w", name, i, err)
 			}
 			value.Value = &pipeline_spec.Value_IntValue{IntValue: i}
 		case "DOUBLE":
-			f, err := strconv.ParseFloat(ip.ParameterValue, 0)
+			f, err := strconv.ParseFloat(ip.Value, 0)
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse double parameter %q from '%v': %w", name, f, err)
 			}
 			value.Value = &pipeline_spec.Value_DoubleValue{DoubleValue: f}
 		default:
-			return nil, fmt.Errorf("unknown ParameterType for parameter %q: %q", name, ip.ParameterType)
+			return nil, fmt.Errorf("unknown ParameterType for parameter %q: %q", name, ip.Type)
 		}
 		inputs.Parameters[name] = value
 	}
 
 	for name, ia := range r.InputArtifacts {
-		if len(ia.MetadataInputPath) == 0 {
+		if len(ia.MetadataFilePath) == 0 {
 			return nil, fmt.Errorf("missing input artifact metadata file for input %q", name)
 		}
 
-		artifact, err := readArtifact(ia.MetadataInputPath)
+		artifact, err := readArtifact(ia.MetadataFilePath)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read Artifact %q from file %s: %w", name, ia.MetadataInputPath, err)
+			return nil, fmt.Errorf("failed to read Artifact %q from file %s: %w", name, ia.MetadataFilePath, err)
 		}
 
 		rta, err := toRuntimeArtifact(artifact, ia.InstanceSchema, ia.SchemaTitle)
@@ -299,7 +306,7 @@ func (r *runtimeInfo) generateExecutorInput(genOutputURI generateOutputURI, outp
 
 	for name, op := range r.OutputParameters {
 		outputParameter := &pipeline_spec.ExecutorInput_OutputParameter{
-			OutputFile: op.ParameterOutputPath,
+			OutputFile: op.FilePath,
 		}
 		outputs.Parameters[name] = outputParameter
 	}

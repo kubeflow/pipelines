@@ -97,9 +97,9 @@ def update_op(op: dsl.ContainerOp,
   for parameter, spec in sorted(
       component_spec.input_definitions.parameters.items()):
     parameter_info = {
-        "parameterType":
+        "type":
             pipeline_spec_pb2.PrimitiveType.PrimitiveTypeEnum.Name(spec.type),
-        "parameterValue":
+        "value":
             op._parameter_arguments[parameter],
     }
     runtime_info["inputParameters"][parameter] = parameter_info
@@ -107,7 +107,7 @@ def update_op(op: dsl.ContainerOp,
   for artifact_name, spec in sorted(
       component_spec.input_definitions.artifacts.items()):
     artifact_info = {
-        "metadataInputPath": op.input_artifact_paths[artifact_name],
+        "metadataFilePath": op.input_artifact_paths[artifact_name],
         "schemaTitle": spec.artifact_type.schema_title,
         "instanceSchema": spec.artifact_type.instance_schema,
     }
@@ -116,9 +116,9 @@ def update_op(op: dsl.ContainerOp,
   for parameter, spec in sorted(
       component_spec.output_definitions.parameters.items()):
     parameter_info = {
-        "parameterType":
+        "type":
             pipeline_spec_pb2.PrimitiveType.PrimitiveTypeEnum.Name(spec.type),
-        "parameterOutputPath":
+        "filePath":
             op.file_outputs[parameter],
     }
     runtime_info["outputParameters"][parameter] = parameter_info
@@ -131,7 +131,7 @@ def update_op(op: dsl.ContainerOp,
         "schemaTitle": spec.artifact_type.schema_title,
         "instanceSchema": spec.artifact_type.instance_schema,
         # File used to write out the registered artifact ID.
-        "metadataOutputPath": op.file_outputs[artifact_name],
+        "metadataFilePath": op.file_outputs[artifact_name],
     }
     runtime_info["outputArtifacts"][artifact_name] = artifact_info
 

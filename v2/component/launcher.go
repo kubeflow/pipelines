@@ -165,11 +165,6 @@ func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error
 		return nil, err
 	}
 
-	// generateOutputURI := func(name string) string {
-	// 	blobKey := path.Join(options.PipelineName, options.PipelineRunID, options.TaskName, name)
-	// 	return bc.uriFromKey(blobKey)
-	// }
-
 	// Placeholder replacements.
 	pr := make(map[string]string)
 
@@ -403,7 +398,7 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 		if !ok {
 			return fmt.Errorf("unknown parameter %q found in ExecutorOutput", name)
 		}
-		filename := outputParam.ParameterOutputPath
+		filename := outputParam.FilePath
 		if err := ioutil.WriteFile(filename, []byte(value), 0644); err != nil {
 			return fmt.Errorf("failed to write output parameter %q to file %q: %w", name, filename, err)
 		}
@@ -458,7 +453,7 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 		if !ok {
 			return metadataErr(errors.New("unable to find output artifact in RuntimeInfo"))
 		}
-		if err := os.MkdirAll(path.Dir(rtoa.MetadataOutputPath), 0644); err != nil {
+		if err := os.MkdirAll(path.Dir(rtoa.MetadataFilePath), 0644); err != nil {
 			return metadataErr(err)
 		}
 
@@ -467,7 +462,7 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 			return err
 		}
 
-		if err := ioutil.WriteFile(rtoa.MetadataOutputPath, b, 0644); err != nil {
+		if err := ioutil.WriteFile(rtoa.MetadataFilePath, b, 0644); err != nil {
 			return err
 		}
 	}
@@ -480,11 +475,11 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 	}
 
 	for n, op := range l.runtimeInfo.OutputParameters {
-		b, err := ioutil.ReadFile(op.ParameterOutputPath)
+		b, err := ioutil.ReadFile(op.FilePath)
 		if err != nil {
 			return err
 		}
-		switch op.ParameterType {
+		switch op.Type {
 		case "STRING":
 			outputParameters.StringParameters[n] = string(b)
 		case "INT":
