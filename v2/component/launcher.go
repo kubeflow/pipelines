@@ -70,16 +70,17 @@ type bucketConfig struct {
 func (b *bucketConfig) bucketURL() string {
 	u := b.scheme + b.bucketName
 
-	if len(b.prefix) > 0 && len(b.queryString) > 0 {
-		u = fmt.Sprintf("%s%s&prefix=%s", u, b.queryString, b.prefix)
-	} else {
-		if len(b.prefix) > 0 {
-			u = fmt.Sprintf("%s?prefix=%s", u, b.prefix)
-		}
-		if len(b.queryString) > 0 {
-			u = fmt.Sprintf("%s%s", u, b.queryString)
+	// append prefix=b.prefix to existing queryString
+	q := b.queryString
+	if len(b.prefix) > 0 {
+		if len(q) > 0 {
+			q = q + "&prefix=" + b.prefix
+		} else {
+			q = "?prefix=" + b.prefix
 		}
 	}
+
+	u = u + q
 	return u
 }
 

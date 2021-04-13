@@ -15,7 +15,7 @@
 
 import kfp
 
-from .minio_pipeline_root_two_step import minio_pipeline_root_two_step_pipeline
+from .two_step import two_step_pipeline
 from .util import run_pipeline_func, TestCase
 
 
@@ -25,7 +25,7 @@ def verify(run, run_id: str):
 
 
 run_pipeline_func([
-    TestCase(pipeline_func=minio_pipeline_root_two_step_pipeline,
+    TestCase(pipeline_func=two_step_pipeline,
              arguments={
                  kfp.dsl.ROOT_PARAMETER_NAME: 's3://mlpipeline/output-directory/v2-artifacts?region=minio&endpoint=minio-service.kubeflow:9000&disableSSL=true&s3ForcePathStyle=true'},
              verify_func=verify)
