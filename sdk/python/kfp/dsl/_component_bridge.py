@@ -595,7 +595,7 @@ def _attach_v2_specs(
   inputs_with_constant_arguments = {
     name
     for name, argument in pipeline_task_spec.inputs.parameters.items()
-    if argument.runtime_value.constant_value
+    if argument.runtime_value.HasField("constant_value")
   }
   for input_spec in component_spec.inputs or []:
     if (input_spec.name in inputs_with_constant_arguments and
