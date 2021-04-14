@@ -24,6 +24,6 @@ RUN pip3 install --upgrade pip
 RUN pip3 install git+https://github.com/googleapis/python-aiplatform@dev
 
 # TODO() change from using PR commit id to release 
-RUN pip3 install "git+https://github.com/kubeflow/pipelines.git@561be8b769bb16c44eb380b40bddb8fba7153c88#egg=google-cloud-components&subdirectory=components/google-cloud"
+RUN pip3 install "git+https://github.com/kubeflow/pipelines.git#egg=google-cloud-components&subdirectory=components/google-cloud"
 
 ENTRYPOINT ["python3","-m","google_cloud_components.aiplatform.remote_runner"]

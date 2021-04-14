@@ -26,9 +26,13 @@ from kfp import components
 INIT_KEY = 'init'
 METHOD_KEY = 'method'
 
+# Container image that is used for component containers
+# TODO tie the container version to sdk release version instead of latest
+DEFAULT_CONTAINER_IMAGE = 'gcr.io/sashaproject-1/aiplatform_component:latest'
+
 # map of MB SDK type to Metadata type
 RESOURCE_TO_METADATA_TYPE = {
-    aiplatform.datasets.dataset._Dataset: "Dataset",
+    aiplatform.datasets.dataset._Dataset: "Dataset",  # pylint: disable=protected-access
     aiplatform.Model: "Model",
     aiplatform.Endpoint: "Artifact",
     aiplatform.BatchPredictionJob: "Artifact"
@@ -317,14 +321,14 @@ def convert_method_to_component(
         - --method.deployed_model_display_name=my-deployed-model
         - --method.machine_type=n1-standard-4
         args:
-        - --resource_name_output_uri
-        - {outputUri: endpoint}
+        - --resource_name_output_artifact_path
+        - {outputPath: endpoint}
         - --init.project
         - {inputValue: project}
         - --method.endpoint
-        - {inputUri: endpoint}
+        - {inputPath: endpoint}
         - --init.model_name
-        - {inputUri: model}
+        - {inputPath: model}
 
 
     Args:
@@ -382,8 +386,8 @@ def convert_method_to_component(
             f'- {{name: {output_metadata_name}, type: {output_metadata_type}}}'
         ])
         output_args = '\n'.join([
-            '    - --resource_name_output_uri',
-            f'    - {{outputUri: {output_metadata_name}}}',
+            '    - --resource_name_output_artifact_path',
+            f'    - {{outputPath: {output_metadata_name}}}',
         ])
 
     def make_args(args_to_serialize: Dict[str, Dict[str, Any]]) -> str:
@@ -429,7 +433,7 @@ def convert_method_to_component(
                 param_type = str
                 value = serializer(value)
 
-            # TODO: remove PipelineParam check when Metadata Importer component available
+            # TODO remove PipelineParam check when Metadata Importer component available
             # if we serialize we need to include the argument as input
             # perhaps, another option is to embed in yaml as json serialized list
             component_param_name = component_param_name_to_mb_sdk_param_name.get(
@@ -439,7 +443,7 @@ def convert_method_to_component(
                           kfp.dsl._pipeline_param.PipelineParam) or serializer:
                 if is_mb_sdk_resource_noun_type(param_type):
                     metadata_type = map_resource_to_metadata_type(param_type)[1]
-                    component_param_type, component_type = metadata_type, 'inputUri'
+                    component_param_type, component_type = metadata_type, 'inputPath'
                 else:
                     component_param_type, component_type = 'String', 'inputValue'
 
@@ -466,8 +470,8 @@ def convert_method_to_component(
         component_text = "\n".join([
             f'name: {cls_name}-{method_name}', f'{inputs}', outputs,
             'implementation:', '  container:',
-            '    image: gcr.io/sashaproject-1/aiplatform_component:latest',
-            '    command:', '    - python3', '    - -m',
+            f'    image: {DEFAULT_CONTAINER_IMAGE}', '    command:',
+            '    - python3', '    - -m',
             '    - google_cloud_components.aiplatform.remote_runner',
             f'    - --cls_name={cls_name}',
             f'    - --method_name={method_name}',
@@ -485,9 +489,9 @@ def convert_method_to_component(
         init_signature, method_signature
     ) if should_serialize_init else method_signature
 
-    # TODO:union docs based on signatures union
+    # TODO Union docs based on signatures union
     component_yaml_generator.__doc__ = method.__doc__
 
-    # TODO: Possibly rename method
+    # TODO Possibly rename method
 
     return component_yaml_generator
