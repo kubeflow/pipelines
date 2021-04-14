@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2020-2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,15 +18,16 @@
 # To output a file, create a new file at the output path location.
 # To output a directory, create a new directory at the output path location.
 
-
 import kfp
 from kfp.components import create_component_from_func, load_component_from_text, InputPath, OutputPath
 
-
 # Outputting directories from Python-based components:
 
+
 @create_component_from_func
-def produce_dir_with_files_python_op(output_dir_path: OutputPath(), num_files: int = 10):
+def produce_dir_with_files_python_op(
+    output_dir_path: OutputPath(), num_files: int = 10
+):
     import os
     os.makedirs(output_dir_path, exist_ok=True)
     for i in range(num_files):
@@ -45,7 +46,8 @@ def list_dir_files_python_op(input_dir_path: InputPath()):
 
 # Outputting directories from general command-line based components:
 
-produce_dir_with_files_general_op = load_component_from_text('''
+produce_dir_with_files_general_op = load_component_from_text(
+    '''
 name: Produce directory
 inputs:
 - {name: num_files, type: Integer}
@@ -66,10 +68,11 @@ implementation:
       done
     - {inputValue: num_files}
     - {outputPath: output_dir}
-''')
+'''
+)
 
-
-list_dir_files_general_op = load_component_from_text('''
+list_dir_files_general_op = load_component_from_text(
+    '''
 name: List dir files
 inputs:
 - {name: input_dir}
@@ -79,11 +82,11 @@ implementation:
     command:
     - ls
     - {inputPath: input_dir}
-''')
+'''
+)
 
 
-# Test pipeline
-
+@kfp.dsl.pipeline(name='dir_pipeline')
 def dir_pipeline():
     produce_dir_python_task = produce_dir_with_files_python_op(num_files=15)
     list_dir_files_python_op(input_dir=produce_dir_python_task.output)
@@ -93,5 +96,7 @@ def dir_pipeline():
 
 
 if __name__ == '__main__':
-    kfp_endpoint=None
-    kfp.Client(host=kfp_endpoint).create_run_from_pipeline_func(dir_pipeline, arguments={})
+    kfp_endpoint = None
+    kfp.Client(host=kfp_endpoint).create_run_from_pipeline_func(
+        dir_pipeline, arguments={}
+    )
