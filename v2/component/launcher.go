@@ -323,10 +323,12 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 	}
 
 	// Update command.
-	for i, v := range args {
-		if _, ok := l.placeholderReplacements[v]; ok {
-			args[i] = l.placeholderReplacements[v]
+	for i := range args {
+		arg := args[i]
+		for placeholder, replacement := range l.placeholderReplacements {
+			arg = strings.ReplaceAll(arg, placeholder, replacement)
 		}
+		args[i] = arg
 	}
 
 	// Record Execution in MLMD.

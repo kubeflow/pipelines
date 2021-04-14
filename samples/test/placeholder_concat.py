@@ -17,21 +17,23 @@ from kfp.v2 import dsl
 import kfp.v2.compiler as compiler
 
 component_op = components.load_component_from_text(
-    '''
+"""
 name: Component with concat placeholder
 inputs:
-- {name: input_prefix, type: String}
+- {name: input_one, type: String}
+- {name: input_two, type: String}
 implementation:
   container:
     image: gcr.io/google-containers/busybox
     command:
-    - echo
+    - sh
+    - -ec
     args:
-    - concat: [{inputValue: input_prefix}, 'some value']
-    '''
+    - concat: ['echo ', {inputValue: input_one}, '+', {inputValue: input_two}, '=three', ' > ', '/tmp/test ', '&&', " [[ $(cat /tmp/test) == 'one+two=three' ]]"]
+"""
 )
 
 
 @dsl.pipeline(name='one-step-pipeline-with-concat-placeholder')
 def pipeline_with_concat_placeholder():
-    component = component_op(input_prefix='some prefix:')
+    component = component_op(input_one='one', input_two='two')

@@ -84,7 +84,7 @@ func parseRuntimeInfo(jsonEncoded string) (*runtimeInfo, error) {
 	return r, nil
 }
 
-func pipelineSpecValuetoMLMDValue(v *pipeline_spec.Value) (*pb.Value, error) {
+func pipelineSpecValueToMLMDValue(v *pipeline_spec.Value) (*pb.Value, error) {
 	switch t := v.Value.(type) {
 	case *pipeline_spec.Value_StringValue:
 		return &pb.Value{Value: &pb.Value_StringValue{StringValue: v.GetStringValue()}}, nil
@@ -144,7 +144,7 @@ func toMLMDArtifact(runtimeArtifact *pipeline_spec.RuntimeArtifact) (*pb.Artifac
 	}
 
 	for k, v := range runtimeArtifact.Properties {
-		value, err := pipelineSpecValuetoMLMDValue(v)
+		value, err := pipelineSpecValueToMLMDValue(v)
 		if err != nil {
 			return nil, errorF(err)
 		}
@@ -152,7 +152,7 @@ func toMLMDArtifact(runtimeArtifact *pipeline_spec.RuntimeArtifact) (*pb.Artifac
 	}
 
 	for k, v := range runtimeArtifact.CustomProperties {
-		value, err := pipelineSpecValuetoMLMDValue(v)
+		value, err := pipelineSpecValueToMLMDValue(v)
 		if err != nil {
 			return nil, errorF(err)
 		}

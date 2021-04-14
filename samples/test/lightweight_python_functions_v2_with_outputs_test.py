@@ -21,4 +21,4 @@ def verify(run, run_id: str):
   # TODO: verify output and MLMD artifacts.
 
 
-run_pipeline_func([TestCase(pipeline_func=pipeline)])
+run_pipeline_func([TestCase(pipeline_func=pipeline, verify_func=verify)])
