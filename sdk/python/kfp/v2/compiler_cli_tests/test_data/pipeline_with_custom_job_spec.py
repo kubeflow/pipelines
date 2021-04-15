@@ -22,7 +22,7 @@ def print_op(text: str):
   print(text)
 
 
-@dsl.pipeline(name='pipeline-with-custom-job-spec')
+@dsl.pipeline(name='pipeline-with-custom-job-spec', pipeline_root='dummy_root')
 def my_pipeline():
 
   # Normal container execution.
@@ -58,5 +58,4 @@ def my_pipeline():
 if __name__ == '__main__':
   compiler.Compiler().compile(
       pipeline_func=my_pipeline,
-      pipeline_root='dummy_root',
       package_path=__file__.replace('.py', '.json'))

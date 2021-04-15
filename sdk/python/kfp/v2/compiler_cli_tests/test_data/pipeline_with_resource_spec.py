@@ -28,6 +28,7 @@ training_op = components.load_component_from_file(
 
 @dsl.pipeline(
     name='two-step-pipeline-with-resource-spec',
+    pipeline_root='dummy_root',
     description='A linear two-step pipeline with resource specification.')
 def my_pipeline(input_location: str = 'gs://test-bucket/pipeline_root',
                 optimizer: str = 'sgd',

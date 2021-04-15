@@ -36,7 +36,7 @@ xgboost_predict_on_parquet_op = components.load_component_from_url(
 )
 
 
-@dsl.pipeline(name='xgboost-sample-pipeline')
+@dsl.pipeline(name='xgboost-sample-pipeline', pipeline_root='dummy_root')
 def xgboost_pipeline():
   training_data_csv = chicago_taxi_dataset_op(
       where='trip_start_timestamp >= "2019-01-01" AND trip_start_timestamp < "2019-02-01"',
@@ -92,5 +92,4 @@ def xgboost_pipeline():
 if __name__ == '__main__':
   compiler.Compiler().compile(
       pipeline_func=xgboost_pipeline,
-      pipeline_root='dummy_root',
       package_path=__file__.replace('.py', '.json'))
