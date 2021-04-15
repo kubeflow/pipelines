@@ -16,6 +16,7 @@
 import argparse
 import inspect
 import json
+import os
 from typing import Any, Dict, Tuple
 
 from google.cloud import aiplatform
@@ -47,6 +48,10 @@ def split_args(kwargs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
 def write_to_artifact(artifact_path, text):
     """Write output to local artifact path (uses GCSFuse)."""
+
+    # Create the artifact dir if it does not exist
+    os.makedirs(os.path.dirname(artifact_path), exist_ok=True)
+
     with open(artifact_path, 'w') as f:
         f.write(text)
 
