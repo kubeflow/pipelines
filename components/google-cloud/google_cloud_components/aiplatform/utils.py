@@ -334,7 +334,9 @@ def generate_docstring(
     try:
         parsed_docstring = docstring_parser.parse(method_docstring)
     except ValueError:
-        return "Could not parse docstring."
+        # If failed to parse docstring use the origional instread 
+        # TODO Log Warning that parsing docstring failed.
+        return method_docstring
 
     doc = f"{parsed_docstring.short_description}\n"
     if parsed_docstring.long_description:
