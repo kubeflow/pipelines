@@ -149,5 +149,5 @@ start, let's walk through a simple workflow using this API.
         """Exports Video data to output dir to GCS."""
 
     VideoDatasetImportDataOp(...)
-        """Upload data to existing managed dataset."""
+        """Upload data to existing managed Video dataset."""
     ```
