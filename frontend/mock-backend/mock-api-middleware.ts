@@ -336,7 +336,9 @@ export default (app: express.Application) => {
     const runDetail = fixedData.runs.find(r => r.run!.id === req.params.rid);
     if (runDetail) {
       runDetail.run!.storage_state =
-        req.params.method === 'archive' ? ApiRunStorageState.ARCHIVED : ApiRunStorageState.AVAILABLE;
+        req.params.method === 'archive'
+          ? ApiRunStorageState.ARCHIVED
+          : ApiRunStorageState.AVAILABLE;
       res.json({});
     } else {
       res.status(500).send('Cannot find a run with id ' + req.params.rid);

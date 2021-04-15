@@ -233,7 +233,9 @@ describe('ExperimentDetails', () => {
     tree = shallow(<ExperimentDetails {...generateProps()} />);
     await TestUtils.flushPromises();
 
-    expect(tree.find('RunListsRouter').prop('storageState')).toBe(ApiExperimentStorageState.AVAILABLE);
+    expect(tree.find('RunListsRouter').prop('storageState')).toBe(
+      ApiExperimentStorageState.AVAILABLE,
+    );
   });
 
   it('shows a list of archived runs', async () => {
@@ -248,7 +250,9 @@ describe('ExperimentDetails', () => {
     tree = shallow(<ExperimentDetails {...generateProps()} />);
     await TestUtils.flushPromises();
 
-    expect(tree.find('RunListsRouter').prop('storageState')).toBe(ApiExperimentStorageState.ARCHIVED);
+    expect(tree.find('RunListsRouter').prop('storageState')).toBe(
+      ApiExperimentStorageState.ARCHIVED,
+    );
   });
 
   it("fetches this experiment's recurring runs", async () => {

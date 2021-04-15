@@ -189,7 +189,9 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           noFilterBox={this.props.noFilterBox}
           emptyMessage={
             `No` +
-            `${this.props.storageState === ApiRunStorageState.ARCHIVED ? ' archived' : ' available'}` +
+            `${
+              this.props.storageState === ApiRunStorageState.ARCHIVED ? ' archived' : ' available'
+            }` +
             ` runs found` +
             `${
               this.props.experimentIdMask
