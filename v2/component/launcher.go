@@ -199,6 +199,11 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 	}
 
 	// Update command.
+	for placeholder, replacement := range l.placeholderReplacements {
+		cmd = strings.ReplaceAll(cmd, placeholder, replacement)
+	}
+
+	// Update args.
 	for i := range args {
 		arg := args[i]
 		for placeholder, replacement := range l.placeholderReplacements {
@@ -208,6 +213,8 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 	}
 
 	// Record Execution in MLMD.
+	// TODO(neuromage): Refactor launcher.go and split these functions up into
+	// testable units.
 	pipeline, err := l.metadataClient.GetPipeline(ctx, l.options.PipelineName, l.options.PipelineRunID)
 	if err != nil {
 		return err
@@ -299,6 +306,7 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 		if len(artifactList.Artifacts) == 0 {
 			continue
 		}
+		// TODO: Support multiple artifacts someday, probably through the v2 engine.
 		outputArtifact := artifactList.Artifacts[0]
 
 		if list, ok := executorOutput.Artifacts[name]; ok && len(list.Artifacts) > 0 {
