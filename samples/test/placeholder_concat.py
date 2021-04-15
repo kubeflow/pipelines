@@ -16,8 +16,7 @@ from kfp import components
 from kfp.v2 import dsl
 import kfp.v2.compiler as compiler
 
-component_op = components.load_component_from_text(
-"""
+component_op = components.load_component_from_text("""
 name: Component with concat placeholder
 inputs:
 - {name: input_one, type: String}
@@ -29,11 +28,11 @@ implementation:
     - sh
     - -ec
     args:
-    - concat: ['echo ', {inputValue: input_one}, '+', {inputValue: input_two}, '=three', ' > ', '/tmp/test ', '&&', " [[ $(cat /tmp/test) == 'one+two=three' ]]"]
-"""
-)
+    - echo "$0" > /tmp/test && [[ "$0" == 'one+two=three' ]]
+    - concat: [{inputValue: input_one}, '+', {inputValue: input_two}, '=three']
+""")
 
 
 @dsl.pipeline(name='one-step-pipeline-with-concat-placeholder')
 def pipeline_with_concat_placeholder():
-    component = component_op(input_one='one', input_two='two')
+  component = component_op(input_one='one', input_two='two')

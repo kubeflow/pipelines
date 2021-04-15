@@ -40,16 +40,16 @@ func Test_parseRuntimeInfo(t *testing.T) {
 			jsonEncoded: `{
 				"inputParameters": {
 					"my_param": {
-						"parameterType": "INT",
-						"parameterValue": "123"
+						"type": "INT",
+						"value": "123"
 					}
 				}
 			}`,
 			want: &runtimeInfo{
 				InputParameters: map[string]*inputParameter{
 					"my_param": {
-						ParameterType:  "INT",
-						ParameterValue: "123",
+						Type:  "INT",
+						Value: "123",
 					},
 				},
 			},
@@ -60,16 +60,16 @@ func Test_parseRuntimeInfo(t *testing.T) {
 			jsonEncoded: `{
 				"outputParameters": {
 					"my_param": {
-						"parameterType": "INT",
-						"parameterOutputPath": "/tmp/outputs/my_param/data"
+						"type": "INT",
+						"path": "/tmp/outputs/my_param/data"
 					}
 				}
 			}`,
 			want: &runtimeInfo{
 				OutputParameters: map[string]*outputParameter{
 					"my_param": {
-						ParameterType:       "INT",
-						ParameterOutputPath: "/tmp/outputs/my_param/data",
+						Type: "INT",
+						Path: "/tmp/outputs/my_param/data",
 					},
 				},
 			},
@@ -81,15 +81,15 @@ func Test_parseRuntimeInfo(t *testing.T) {
 				"outputArtifacts": {
 					"my_artifact": {
 						"instanceSchema": "properties:\ntitle: kfp.Dataset\ntype: object\n",
-					  "metadataOutputPath": "/tmp/outputs/my_artifact/data"
+					  "metadataPath": "/tmp/outputs/my_artifact/data"
 					}
 				}
 			}`,
 			want: &runtimeInfo{
 				OutputArtifacts: map[string]*outputArtifact{
 					"my_artifact": {
-						InstanceSchema:     "properties:\ntitle: kfp.Dataset\ntype: object\n",
-						MetadataOutputPath: "/tmp/outputs/my_artifact/data",
+						InstanceSchema: "properties:\ntitle: kfp.Dataset\ntype: object\n",
+						MetadataPath:   "/tmp/outputs/my_artifact/data",
 					},
 				},
 			},
@@ -148,46 +148,46 @@ func TestExecutorInputGeneration(t *testing.T) {
 			jsonEncoded: fmt.Sprintf(`{
 				"inputParameters": {
 					"message": {
-						"parameterType": "STRING",
-						"parameterValue": "Some string value"
+						"type": "STRING",
+						"value": "Some string value"
 					},
 					"num_steps": {
-						"parameterType": "INT",
-						"parameterValue": "5"
+						"type": "INT",
+						"value": "5"
 					}
 				},
 				"inputArtifacts": {
 					"dataset_one": {
-						"metadataInputPath": "%s",
+						"metadataPath": "%s",
 						"schemaTitle": "",
 						"instanceSchema": "title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string\n"
 					},
 					"dataset_two": {
-						"metadataInputPath": "%s",
+						"metadataPath": "%s",
 						"schemaTitle": "kfp.Model",
 						"instanceSchema": ""
 					}
 				},
 				"outputParameters": {
 					"output_parameter_one": {
-						"parameterType": "STRING",
-						"parameterOutputPath": "/tmp/outputs/output_parameter_one/data"
+						"type": "STRING",
+						"path": "/tmp/outputs/output_parameter_one/data"
 					},
 					"output_parameter_two": {
-						"parameterType": "INT",
-						"parameterOutputPath": "/tmp/outputs/output_parameter_two/data"
+						"type": "INT",
+						"path": "/tmp/outputs/output_parameter_two/data"
 					}
 				},
 				"outputArtifacts": {
 					"model": {
 						"schemaTitle": "",
 						"instanceSchema": "title: kfp.Model\ntype: object\nproperties:\n  framework:\n    type: string\n  framework_version:\n    type: string\n",
-						"metadataOutputPath": "/tmp/outputs/model/data"
+						"metadataPath": "/tmp/outputs/model/data"
 					},
 					"metrics": {
 						"schemaTitle": "kfp.Metrics",
 						"instanceSchema": "",
-						"metadataOutputPath": "/tmp/outputs/metrics/data"
+						"metadataPath": "/tmp/outputs/metrics/data"
 					}
 				}
 			}`, dataset_one_path, dataset_two_path),
