@@ -146,7 +146,7 @@ start, let's walk through a simple workflow using this API.
         """Creates a new video dataset and optionally imports data into dataset when"""
 
     VideoDatasetExportDataOp(...)
-        """Exports data to output dir to GCS."""
+        """Exports Video data to output dir to GCS."""
 
     VideoDatasetImportDataOp(...)
         """Upload data to existing managed dataset."""
