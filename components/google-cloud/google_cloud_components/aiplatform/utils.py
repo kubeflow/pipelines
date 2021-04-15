@@ -504,6 +504,12 @@ def convert_method_to_component(
                 method_kwargs[key] = value
                 signature = method_signature
 
+            # no need to add this argument because it's optional
+            # this param is validated against the signature because
+            # of init_kwargs, method_kwargs
+            if value is None:
+                continue
+
             param_type = signature.parameters[key].annotation
             param_type = resolve_annotation(param_type)
             serializer = get_serializer(param_type)
