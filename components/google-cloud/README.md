@@ -98,7 +98,7 @@ start, let's walk through a simple workflow using this API.
         """Runs an AutoML Image training job and returns a model."""
 
     CustomContainerTrainingJobRunOp(...)
-        """Runs the custom training job."""
+        """Runs a custom container training job."""
 
     CustomPythonPackageTrainingJobRunOp(...)
         """Runs the custom training job."""
