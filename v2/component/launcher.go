@@ -405,7 +405,7 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 		if !ok {
 			return fmt.Errorf("unknown parameter %q found in ExecutorOutput", name)
 		}
-		filename := outputParam.FilePath
+		filename := outputParam.Path
 		if err := ioutil.WriteFile(filename, []byte(value), 0644); err != nil {
 			return fmt.Errorf("failed to write output parameter %q to file %q: %w", name, filename, err)
 		}
@@ -464,7 +464,7 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 		if !ok {
 			return metadataErr(errors.New("unable to find output artifact in RuntimeInfo"))
 		}
-		if err := os.MkdirAll(path.Dir(rtoa.MetadataFilePath), 0644); err != nil {
+		if err := os.MkdirAll(path.Dir(rtoa.MetadataPath), 0644); err != nil {
 			return metadataErr(err)
 		}
 
@@ -473,7 +473,7 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 			return err
 		}
 
-		if err := ioutil.WriteFile(rtoa.MetadataFilePath, b, 0644); err != nil {
+		if err := ioutil.WriteFile(rtoa.MetadataPath, b, 0644); err != nil {
 			return err
 		}
 	}
@@ -486,7 +486,7 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 	}
 
 	for n, op := range l.runtimeInfo.OutputParameters {
-		b, err := ioutil.ReadFile(op.FilePath)
+		b, err := ioutil.ReadFile(op.Path)
 		if err != nil {
 			return err
 		}
