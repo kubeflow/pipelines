@@ -107,7 +107,7 @@ def update_op(op: dsl.ContainerOp,
   for artifact_name, spec in sorted(
       component_spec.input_definitions.artifacts.items()):
     artifact_info = {
-        "metadataFilePath": op.input_artifact_paths[artifact_name],
+        "metadataPath": op.input_artifact_paths[artifact_name],
         "schemaTitle": spec.artifact_type.schema_title,
         "instanceSchema": spec.artifact_type.instance_schema,
     }
@@ -118,7 +118,7 @@ def update_op(op: dsl.ContainerOp,
     parameter_info = {
         "type":
             pipeline_spec_pb2.PrimitiveType.PrimitiveTypeEnum.Name(spec.type),
-        "filePath":
+        "path":
             op.file_outputs[parameter],
     }
     runtime_info["outputParameters"][parameter] = parameter_info
@@ -131,7 +131,7 @@ def update_op(op: dsl.ContainerOp,
         "schemaTitle": spec.artifact_type.schema_title,
         "instanceSchema": spec.artifact_type.instance_schema,
         # File used to write out the registered artifact ID.
-        "metadataFilePath": op.file_outputs[artifact_name],
+        "metadataPath": op.file_outputs[artifact_name],
     }
     runtime_info["outputArtifacts"][artifact_name] = artifact_info
 

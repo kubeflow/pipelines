@@ -40,14 +40,14 @@ type inputArtifact struct {
 
 	// Where to read the input MLMD artifact metadata. This file is passed using
 	// Argo artifacts.
-	MetadataFilePath string
+	MetadataPath string
 }
 
 type outputParameter struct {
 	// Type should be one of "INT", "STRING" or "DOUBLE".
 	Type string
 	// File used to write output parameters to.
-	FilePath string
+	Path string
 }
 
 type outputArtifact struct {
@@ -57,7 +57,7 @@ type outputArtifact struct {
 
 	// Where to write the output MLMD artifact metadata. This file is passed using
 	// Argo artifacts.
-	MetadataFilePath string
+	MetadataPath string
 }
 
 // runtimeInfo represents JSON object present in all ML components compiled
@@ -286,13 +286,13 @@ func (r *runtimeInfo) generateExecutorInput(genOutputURI generateOutputURI, outp
 	}
 
 	for name, ia := range r.InputArtifacts {
-		if len(ia.MetadataFilePath) == 0 {
+		if len(ia.MetadataPath) == 0 {
 			return nil, fmt.Errorf("missing input artifact metadata file for input %q", name)
 		}
 
-		artifact, err := readArtifact(ia.MetadataFilePath)
+		artifact, err := readArtifact(ia.MetadataPath)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read Artifact %q from file %s: %w", name, ia.MetadataFilePath, err)
+			return nil, fmt.Errorf("failed to read Artifact %q from file %s: %w", name, ia.MetadataPath, err)
 		}
 
 		rta, err := toRuntimeArtifact(artifact, ia.InstanceSchema, ia.SchemaTitle)
@@ -306,7 +306,7 @@ func (r *runtimeInfo) generateExecutorInput(genOutputURI generateOutputURI, outp
 
 	for name, op := range r.OutputParameters {
 		outputParameter := &pipeline_spec.ExecutorInput_OutputParameter{
-			OutputFile: op.FilePath,
+			OutputFile: op.Path,
 		}
 		outputs.Parameters[name] = outputParameter
 	}

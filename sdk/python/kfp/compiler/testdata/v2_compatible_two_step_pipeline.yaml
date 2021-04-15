@@ -4,7 +4,7 @@ metadata:
   generateName: my-test-pipeline-
   annotations:
     pipelines.kubeflow.org/kfp_sdk_version: 1.5.0-rc.3
-    pipelines.kubeflow.org/pipeline_compilation_time: '2021-04-13T09:03:50.776302'
+    pipelines.kubeflow.org/pipeline_compilation_time: '2021-04-14T20:16:36.291080'
     pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "gs://output-directory/v2-artifacts",
       "name": "pipeline-output-directory"}, {"default": "my-test-pipeline", "name":
       "pipeline-name"}], "name": "my-test-pipeline"}'
@@ -95,10 +95,10 @@ spec:
       - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {"some_int": {"type":
           "INT", "value": "12"}, "uri": {"type": "STRING", "value": "uri-to-import"}},
           "inputArtifacts": {}, "outputParameters": {"output_parameter_one": {"type":
-          "INT", "filePath": "/tmp/outputs/output_parameter_one/data"}}, "outputArtifacts":
+          "INT", "path": "/tmp/outputs/output_parameter_one/data"}}, "outputArtifacts":
           {"output_dataset_one": {"schemaTitle": "", "instanceSchema": "title: kfp.Dataset\ntype:
           object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type:
-          string\n", "metadataFilePath": "/tmp/outputs/output_dataset_one/data"}}}'}
+          string\n", "metadataPath": "/tmp/outputs/output_dataset_one/data"}}}'}
       envFrom:
       - configMapRef: {name: metadata-grpc-configmap, optional: true}
       image: python:3.9
@@ -185,12 +185,12 @@ spec:
       - {name: KFP_V2_IMAGE, value: 'python:3.7'}
       - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {"num_steps": {"type":
           "INT", "value": "{{inputs.parameters.preprocess-output_parameter_one}}"}},
-          "inputArtifacts": {"dataset": {"metadataFilePath": "/tmp/inputs/dataset/data",
+          "inputArtifacts": {"dataset": {"metadataPath": "/tmp/inputs/dataset/data",
           "schemaTitle": "", "instanceSchema": "title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type:
           string\n  container_format:\n    type: string\n"}}, "outputParameters":
           {}, "outputArtifacts": {"model": {"schemaTitle": "", "instanceSchema": "title:
           kfp.Model\ntype: object\nproperties:\n  framework:\n    type: string\n  framework_version:\n    type:
-          string\n", "metadataFilePath": "/tmp/outputs/model/data"}}}'}
+          string\n", "metadataPath": "/tmp/outputs/model/data"}}}'}
       envFrom:
       - configMapRef: {name: metadata-grpc-configmap, optional: true}
       image: python:3.7
