@@ -182,130 +182,6 @@ func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error
 	}, nil
 }
 
-func (l *Launcher) generateOutputURI(name string) string {
-	blobKey := path.Join(l.options.PipelineName, l.options.PipelineRunID, l.options.TaskName, name)
-	return l.bucketConfig.uriFromKey(blobKey)
-}
-
-func localPathForURI(uri string) (string, error) {
-	if strings.HasPrefix(uri, "gs://") {
-		return "/gcs/" + strings.TrimPrefix(uri, "gs://"), nil
-	}
-	// TODO(capri-xiyue): Re-enable when support lands.
-	// if strings.HasPrefix(uri, "minio://") {
-	// 	return "/minio/" + strings.TrimPrefix(uri, "minio://"), nil
-	// }
-	// if strings.HasPrefix(uri, "s3://") {
-	// 	return "/s3/" + strings.TrimPrefix(uri, "s3://"), nil
-	// }
-	return "", fmt.Errorf("found URI with unsupported storage scheme: %s", uri)
-}
-
-func (l *Launcher) prepareInputs(ctx context.Context, executorInput *pipeline_spec.ExecutorInput) error {
-	executorInputJSON, err := protojson.Marshal(executorInput)
-	if err != nil {
-		return fmt.Errorf("failed to convert ExecutorInput into JSON: %w", err)
-	}
-	l.placeholderReplacements["{{$}}"] = string(executorInputJSON)
-
-	bucket, err := blob.OpenBucket(context.Background(), l.bucketConfig.bucketURL())
-	if err != nil {
-		return fmt.Errorf("Failed to open bucket %q: %v", l.bucketConfig.bucketName, err)
-	}
-	defer bucket.Close()
-
-	// Read input artifact metadata.
-	for name, artifactList := range executorInput.Inputs.Artifacts {
-		// TODO(neuromage): Support concat-based placholders for arguments.
-		if len(artifactList.Artifacts) == 0 {
-			continue
-		}
-		inputArtifact := artifactList.Artifacts[0]
-
-		// Prepare input uri placeholder.
-		key := fmt.Sprintf(`{{$.inputs.artifacts['%s'].uri}}`, name)
-		l.placeholderReplacements[key] = inputArtifact.Uri
-
-		localPath, err := localPathForURI(inputArtifact.Uri)
-		if err != nil {
-			glog.Warningf("Input Artifact %q does not have a recognized storage URI %q. Skipping downloading to local path.", name, inputArtifact.Uri)
-			continue
-		}
-
-		// Prepare input path placeholder.
-		key = fmt.Sprintf(`{{$.inputs.artifacts['%s'].path}}`, name)
-		l.placeholderReplacements[key] = localPath
-
-		// Copy artifact to local storage.
-		copyErr := func(err error) error {
-			return fmt.Errorf("failed to download input artifact %q from remote storage URI %q: %w", name, inputArtifact.Uri, err)
-		}
-		// TODO: Selectively copy artifacts for which .path was actually specified
-		// on the command line.
-		blobKey, err := l.bucketConfig.keyFromURI(inputArtifact.Uri)
-		if err != nil {
-			return copyErr(err)
-		}
-
-		if err := downloadBlob(ctx, bucket, localPath, blobKey); err != nil {
-			return copyErr(err)
-		}
-	}
-
-	// Prepare input parameter placeholders.
-	for name, parameter := range executorInput.Inputs.Parameters {
-		key := fmt.Sprintf(`{{$.inputs.parameters['%s']}}`, name)
-		switch t := parameter.Value.(type) {
-		case *pipeline_spec.Value_StringValue:
-			l.placeholderReplacements[key] = parameter.GetStringValue()
-		case *pipeline_spec.Value_DoubleValue:
-			l.placeholderReplacements[key] = strconv.FormatFloat(parameter.GetDoubleValue(), 'f', -1, 64)
-		case *pipeline_spec.Value_IntValue:
-			l.placeholderReplacements[key] = strconv.FormatInt(parameter.GetIntValue(), 10)
-		default:
-			return fmt.Errorf("unknown PipelineSpec Value type %T", t)
-		}
-	}
-
-	return nil
-}
-
-func (l *Launcher) prepareOutputs(ctx context.Context, executorInput *pipeline_spec.ExecutorInput) error {
-	for name, parameter := range executorInput.Outputs.Parameters {
-		key := fmt.Sprintf(`{{$.outputs.parameters['%s'].output_file}}`, name)
-		l.placeholderReplacements[key] = parameter.OutputFile
-
-		dir := filepath.Dir(parameter.OutputFile)
-		if err := os.MkdirAll(dir, 0644); err != nil {
-			return fmt.Errorf("failed to create directory %q for output parameter %q: %w", dir, name, err)
-		}
-	}
-
-	for name, artifactList := range executorInput.Outputs.Artifacts {
-		if len(artifactList.Artifacts) == 0 {
-			continue
-		}
-		outputArtifact := artifactList.Artifacts[0]
-
-		key := fmt.Sprintf(`{{$.outputs.artifacts['%s'].uri}}`, name)
-		l.placeholderReplacements[key] = outputArtifact.Uri
-
-		localPath, err := localPathForURI(outputArtifact.Uri)
-		if err != nil {
-			return fmt.Errorf("failed to generate local storage path for output artifact %q with URI %q: %w", name, outputArtifact.Uri, err)
-		}
-
-		if err := os.MkdirAll(filepath.Base(localPath), 0644); err != nil {
-			return fmt.Errorf("unable to create directory %q for output artifact %q: %w", localPath, name, err)
-		}
-
-		key = fmt.Sprintf(`{{$.outputs.artifacts['%s'].path}}`, name)
-		l.placeholderReplacements[key] = localPath
-	}
-
-	return nil
-}
-
 // RunComponent runs the current KFP component using the specified command and
 // arguments.
 func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string) error {
@@ -510,6 +386,130 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 	}
 
 	return l.metadataClient.PublishExecution(ctx, execution, outputParameters, outputArtifacts)
+}
+
+func (l *Launcher) generateOutputURI(name string) string {
+	blobKey := path.Join(l.options.PipelineName, l.options.PipelineRunID, l.options.TaskName, name)
+	return l.bucketConfig.uriFromKey(blobKey)
+}
+
+func localPathForURI(uri string) (string, error) {
+	if strings.HasPrefix(uri, "gs://") {
+		return "/gcs/" + strings.TrimPrefix(uri, "gs://"), nil
+	}
+	// TODO(capri-xiyue): Re-enable when support lands.
+	// if strings.HasPrefix(uri, "minio://") {
+	// 	return "/minio/" + strings.TrimPrefix(uri, "minio://"), nil
+	// }
+	// if strings.HasPrefix(uri, "s3://") {
+	// 	return "/s3/" + strings.TrimPrefix(uri, "s3://"), nil
+	// }
+	return "", fmt.Errorf("found URI with unsupported storage scheme: %s", uri)
+}
+
+func (l *Launcher) prepareInputs(ctx context.Context, executorInput *pipeline_spec.ExecutorInput) error {
+	executorInputJSON, err := protojson.Marshal(executorInput)
+	if err != nil {
+		return fmt.Errorf("failed to convert ExecutorInput into JSON: %w", err)
+	}
+	l.placeholderReplacements["{{$}}"] = string(executorInputJSON)
+
+	bucket, err := blob.OpenBucket(context.Background(), l.bucketConfig.bucketURL())
+	if err != nil {
+		return fmt.Errorf("Failed to open bucket %q: %v", l.bucketConfig.bucketName, err)
+	}
+	defer bucket.Close()
+
+	// Read input artifact metadata.
+	for name, artifactList := range executorInput.Inputs.Artifacts {
+		// TODO(neuromage): Support concat-based placholders for arguments.
+		if len(artifactList.Artifacts) == 0 {
+			continue
+		}
+		inputArtifact := artifactList.Artifacts[0]
+
+		// Prepare input uri placeholder.
+		key := fmt.Sprintf(`{{$.inputs.artifacts['%s'].uri}}`, name)
+		l.placeholderReplacements[key] = inputArtifact.Uri
+
+		localPath, err := localPathForURI(inputArtifact.Uri)
+		if err != nil {
+			glog.Warningf("Input Artifact %q does not have a recognized storage URI %q. Skipping downloading to local path.", name, inputArtifact.Uri)
+			continue
+		}
+
+		// Prepare input path placeholder.
+		key = fmt.Sprintf(`{{$.inputs.artifacts['%s'].path}}`, name)
+		l.placeholderReplacements[key] = localPath
+
+		// Copy artifact to local storage.
+		copyErr := func(err error) error {
+			return fmt.Errorf("failed to download input artifact %q from remote storage URI %q: %w", name, inputArtifact.Uri, err)
+		}
+		// TODO: Selectively copy artifacts for which .path was actually specified
+		// on the command line.
+		blobKey, err := l.bucketConfig.keyFromURI(inputArtifact.Uri)
+		if err != nil {
+			return copyErr(err)
+		}
+
+		if err := downloadBlob(ctx, bucket, localPath, blobKey); err != nil {
+			return copyErr(err)
+		}
+	}
+
+	// Prepare input parameter placeholders.
+	for name, parameter := range executorInput.Inputs.Parameters {
+		key := fmt.Sprintf(`{{$.inputs.parameters['%s']}}`, name)
+		switch t := parameter.Value.(type) {
+		case *pipeline_spec.Value_StringValue:
+			l.placeholderReplacements[key] = parameter.GetStringValue()
+		case *pipeline_spec.Value_DoubleValue:
+			l.placeholderReplacements[key] = strconv.FormatFloat(parameter.GetDoubleValue(), 'f', -1, 64)
+		case *pipeline_spec.Value_IntValue:
+			l.placeholderReplacements[key] = strconv.FormatInt(parameter.GetIntValue(), 10)
+		default:
+			return fmt.Errorf("unknown PipelineSpec Value type %T", t)
+		}
+	}
+
+	return nil
+}
+
+func (l *Launcher) prepareOutputs(ctx context.Context, executorInput *pipeline_spec.ExecutorInput) error {
+	for name, parameter := range executorInput.Outputs.Parameters {
+		key := fmt.Sprintf(`{{$.outputs.parameters['%s'].output_file}}`, name)
+		l.placeholderReplacements[key] = parameter.OutputFile
+
+		dir := filepath.Dir(parameter.OutputFile)
+		if err := os.MkdirAll(dir, 0644); err != nil {
+			return fmt.Errorf("failed to create directory %q for output parameter %q: %w", dir, name, err)
+		}
+	}
+
+	for name, artifactList := range executorInput.Outputs.Artifacts {
+		if len(artifactList.Artifacts) == 0 {
+			continue
+		}
+		outputArtifact := artifactList.Artifacts[0]
+
+		key := fmt.Sprintf(`{{$.outputs.artifacts['%s'].uri}}`, name)
+		l.placeholderReplacements[key] = outputArtifact.Uri
+
+		localPath, err := localPathForURI(outputArtifact.Uri)
+		if err != nil {
+			return fmt.Errorf("failed to generate local storage path for output artifact %q with URI %q: %w", name, outputArtifact.Uri, err)
+		}
+
+		if err := os.MkdirAll(filepath.Base(localPath), 0644); err != nil {
+			return fmt.Errorf("unable to create directory %q for output artifact %q: %w", localPath, name, err)
+		}
+
+		key = fmt.Sprintf(`{{$.outputs.artifacts['%s'].path}}`, name)
+		l.placeholderReplacements[key] = localPath
+	}
+
+	return nil
 }
 
 func getRuntimeArtifactSchema(rta *pipeline_spec.RuntimeArtifact) (string, error) {
