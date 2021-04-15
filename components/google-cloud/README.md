@@ -49,7 +49,7 @@ pip3 install --upgrade $WHEEL_FILE
 
 ### High level overview
 
-Google Cloud Components provides the an API for constructing your pipeline. To
+Google Cloud Pipeline Components provides the an API for constructing your pipeline. To
 start, let's walk through a simple workflow using this API.
 
 1.  Let's begin with a Keras model training code such as the following, saved as
@@ -78,4 +78,73 @@ start, let's walk through a simple workflow using this API.
 
     #endpoint
     model_deploy_step.outputs['endpoint_metadata']
+    ```
+
+
+    ### Supported Components 
+    Following is the list of currently supproted components. 
+
+    ```python
+    AutoMLImageTrainingJobRunOp(...)
+        """Runs an AutoML Image training job and returns a model."""
+
+    AutoMLTabularTrainingJobRunOp(...)
+        """Runs an AutoML Tabular training job and returns a model."""
+
+    AutoMLTextTrainingJobRunOp(...)
+        """Runs an AutoML Text training job and returns a model."""
+
+    AutoMLVideoTrainingJobRunOp(...)
+        """Runs an AutoML Image training job and returns a model."""
+
+    CustomContainerTrainingJobRunOp(...)
+        """Runs a custom container training job."""
+
+    CustomPythonPackageTrainingJobRunOp(...)
+        """Runs the custom training job."""
+
+    EndpointCreateOp(...)
+        """Creates a new endpoint."""
+
+    ImageDatasetCreateOp(...)
+        """Creates a new image dataset and optionally imports data into dataset when"""
+
+    ImageDatasetExportDataOp(...)
+        """Exports data to output dir to GCS."""
+
+    ImageDatasetImportDataOp(...)
+        """Upload data to existing managed dataset."""
+
+    ModelBatchPredictOp(...)
+        """Creates a batch prediction job using this Model and outputs prediction"""
+
+    ModelDeployOp(...)
+        """Deploys model to endpoint. Endpoint will be created if unspecified."""
+
+    ModelUploadOp(...)
+        """Uploads a model and returns a Model representing the uploaded Model resource."""
+
+    TabularDatasetCreateOp(...)
+        """Creates a new tabular dataset."""
+
+    TabularDatasetExportDataOp(...)
+        """Exports data to output dir to GCS."""
+
+    TextDatasetCreateOp(...)
+        """Creates a new text dataset and optionally imports data into dataset when"""
+
+    TextDatasetExportDataOp(...)
+        """Exports Text data to output dir to GCS."""
+
+    TextDatasetImportDataOp(...)
+        """Upload data to existing managed Text dataset."""
+
+    VideoDatasetCreateOp(...)
+        """Creates a new video dataset and optionally imports data into dataset when"""
+
+    VideoDatasetExportDataOp(...)
+        """Exports Video data to output dir to GCS."""
+
+    VideoDatasetImportDataOp(...)
+        """Upload data to existing managed Video dataset."""
     ```
