@@ -427,7 +427,8 @@ def convert_method_to_component(
     method_signature = inspect.signature(method)
 
     cls_name = cls.__name__
-    init_signature = inspect.signature(cls.__init__)
+    init_method = cls.__init__
+    init_signature = inspect.signature(init_method)
 
     should_serialize_init = inspect.isfunction(method)
 
