@@ -334,7 +334,7 @@ def generate_docstring(
     try:
         parsed_docstring = docstring_parser.parse(method_docstring)
     except ValueError:
-        # If failed to parse docstring use the origional instread 
+        # If failed to parse docstring use the origional instread
         # TODO Log Warning that parsing docstring failed.
         return method_docstring
 
