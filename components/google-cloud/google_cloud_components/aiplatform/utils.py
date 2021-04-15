@@ -14,6 +14,7 @@
 """Module for creating pipeline components based on AI Platform SDK."""
 
 import collections
+import docstring_parser
 import inspect
 import json
 from typing import Any, Callable, Dict, Optional, Tuple, Union
@@ -280,6 +281,90 @@ def signatures_union(
     )
 
 
+def filter_docstring_args(
+    signature: inspect.Signature,
+    docstring: str,
+    is_init_signature: bool = False,
+) -> Dict[str, str]:
+    """Removes unused params from docstring Args section.
+
+    Args:
+        signature (inspect.Signature): Model Builder SDK Method Signature.
+        docstring (str): Model Builder SDK Method docstring from method.__doc__
+        is_init_signature (bool): is this constructor signature
+
+    Returns:
+        Dictionary of Arg names as keys and descriptions as values.
+    """
+    try:
+        parsed_docstring = docstring_parser.parse(docstring)
+    except ValueError:
+        return {}
+    args_dict = {p.arg_name: p.description for p in parsed_docstring.params}
+
+    new_args_dict = {}
+    for param in signature.parameters.values():
+        if param.name not in PARAMS_TO_REMOVE:
+            new_arg_name = param.name
+            # change resource name signatures to resource types
+            # to match new param.names ie: model_name -> model
+            if is_init_signature and is_resource_name_parameter_name(param.name
+                                                                    ):
+                new_arg_name = param.name[:-len('_name')]
+
+            # check if there was an arg description for this parameter.
+            if args_dict.get(param.name):
+                new_args_dict[new_arg_name] = args_dict.get(param.name)
+    return new_args_dict
+
+
+def generate_docstring(
+    args_dict: Dict[str, str], signature: inspect.Signature,
+    method_docstring: str
+) -> str:
+    """Generates a new doc string using args_dict provided.
+
+    Args:
+        args_dict (Dict[str, str]): A dictionary of Arg names as keys and descriptions as values.
+        signature (inspect.Signature): Method Signature of the converted method.
+        method_docstring (str): Model Builder SDK Method docstring from method.__doc__
+    Returns:
+        A doc string for converted method.
+    """
+    try:
+        parsed_docstring = docstring_parser.parse(method_docstring)
+    except ValueError:
+        # If failed to parse docstring use the origional instead
+        # TODO Log Warning that parsing docstring failed.
+        return method_docstring
+
+    doc = f"{parsed_docstring.short_description}\n"
+    if parsed_docstring.long_description:
+        doc += f"{parsed_docstring.long_description}\n"
+    if args_dict:
+        doc += "Args:\n"
+        for key, val in args_dict.items():
+            formated_description = val.replace("\n", "\n        ")
+            doc = doc + f"    {key}:\n        {formated_description}\n"
+
+    if parsed_docstring.returns:
+        formated_return = parsed_docstring.returns.description.replace(
+            "\n", "\n        "
+        )
+        doc += "Returns:\n"
+        doc += f"        {formated_return}\n"
+
+    if parsed_docstring.raises:
+        doc += "Raises:\n"
+        raises_dict = {
+            p.type_name: p.description for p in parsed_docstring.raises
+        }
+        for key, val in args_dict.items():
+            formated_description = val.replace("\n", "\n        ")
+            doc = doc + f"    {key}:\n        {formated_description}\n"
+    return doc
+
+
 def convert_method_to_component(
     method: Callable, should_serialize_init: bool = False
 ) -> Callable:
@@ -346,6 +431,7 @@ def convert_method_to_component(
         cls = method.__self__
         cls_name = cls.__name__
         init_signature = inspect.signature(method.__self__.__init__)
+        init_method = method.__self__.__init__
     else:
         cls = getattr(
             inspect.getmodule(method),
@@ -353,6 +439,7 @@ def convert_method_to_component(
         )
         cls_name = cls.__name__
         init_signature = inspect.signature(cls.__init__)
+        init_method = cls.__init__
 
     # map to store parameter names that are changed in components
     # this is generally used for constructor where the mb sdk takes
@@ -489,8 +576,28 @@ def convert_method_to_component(
         init_signature, method_signature
     ) if should_serialize_init else method_signature
 
-    # TODO Union docs based on signatures union
-    component_yaml_generator.__doc__ = method.__doc__
+    # Create a docstring based on the new signature.
+    new_args_dict = {}
+    new_args_dict.update(
+        filter_docstring_args(
+            signature=method_signature,
+            docstring=inspect.getdoc(method),
+            is_init_signature=False
+        )
+    )
+    if should_serialize_init:
+        new_args_dict.update(
+            filter_docstring_args(
+                signature=init_signature,
+                docstring=inspect.getdoc(init_method),
+                is_init_signature=True
+            )
+        )
+    component_yaml_generator.__doc__ = generate_docstring(
+        args_dict=new_args_dict,
+        signature=component_yaml_generator.__signature__,
+        method_docstring=inspect.getdoc(method)
+    )
 
     # TODO Possibly rename method
 
