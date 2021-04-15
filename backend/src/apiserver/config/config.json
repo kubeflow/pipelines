@@ -20,5 +20,4 @@
   "CACHE_IMAGE": "gcr.io/google-containers/busybox", 
   "CACHE_NODE_RESTRICTIONS": "false"
 
-
 }
