@@ -290,10 +290,8 @@ def filter_docstring_args(
 
     Args:
         signature (inspect.Signature): Model Builder SDK Method Signature.
-        docstring (str): target method docstring from method.__doc__
+        docstring (str): Model Builder SDK Method docstring from method.__doc__
         is_init_signature (bool): is this constructor signature
-        self_type (aiplatform.base.AiPlatformResourceNoun): This is used to replace *_name str fields with resource
-            name type.
 
     Returns:
         Dictionary of Arg names as keys and descriptions as values.
