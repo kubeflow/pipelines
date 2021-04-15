@@ -465,8 +465,8 @@ def _attach_v2_specs(
           if isinstance(param, _pipeline_param.PipelineParam)
       ]))
   for input_name, argument_value in arguments.items():
+    input_type = component_spec._inputs_dict[input_name].type
     if isinstance(argument_value, _pipeline_param.PipelineParam):
-      input_type = component_spec._inputs_dict[input_name].type
       reference_type = argument_value.param_type
       types.verify_type_compatibility(
           reference_type, input_type,
@@ -535,7 +535,6 @@ def _attach_v2_specs(
             pipeline_task_spec.inputs.parameters[
                 additional_input_name].component_input_parameter = param.full_name
 
-      input_type = component_spec._inputs_dict[input_name].type
       # In IR, constant arguments can only be passed to parameter inputs.
       # Converting inputs that have constant arguments to parameter inputs.
       if not type_utils.is_parameter_type(input_type):
