@@ -140,7 +140,7 @@ start, let's walk through a simple workflow using this API.
         """Exports Text data to output dir to GCS."""
 
     TextDatasetImportDataOp(...)
-        """Upload data to existing managed dataset."""
+        """Upload data to existing managed Text dataset."""
 
     VideoDatasetCreateOp(...)
         """Creates a new video dataset and optionally imports data into dataset when"""
