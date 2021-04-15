@@ -313,7 +313,7 @@ def filter_docstring_args(
                 new_arg_name = param.name[:-len('_name')]
 
             # check if there was an arg description for this parameter.
-            if args_dict.get(param.name, False):
+            if args_dict.get(param.name):
                 new_args_dict[new_arg_name] = args_dict.get(param.name)
     return new_args_dict
 
