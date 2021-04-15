@@ -86,7 +86,7 @@ start, let's walk through a simple workflow using this API.
 
     ```python
     AutoMLImageTrainingJobRunOp(...)
-        """Runs the AutoML Image training job and returns a model."""
+        """Runs an AutoML Image training job and returns a model."""
 
     AutoMLTabularTrainingJobRunOp(...)
         """Runs an AutoML Tabular training job and returns a model."""
