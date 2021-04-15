@@ -91,6 +91,21 @@ def make_output(output_object: Any) -> str:
     return json.dumps(list(output_object))
 
 
+def prepare_parameters(kwargs, method, is_init=False):
+    for key, param in inspect.signature(method).parameters.items():
+        if key in kwargs:
+            value = kwargs[key]
+            param_type = utils.resolve_annotation(param.annotation)
+            print(method, key, param_type, value)
+            value = resolve_init_args(key, value) is is_init else resolve_input_args(value, param_type)
+            deserializer = utils.get_deserializer(param_type)
+            if deserializer:
+                value = deserializer(value)
+            else:
+                value = param_type(value)
+            kwargs[key] = value
+
+
 def runner(cls_name, method_name, resource_name_output_artifact_path, kwargs):
     cls = getattr(aiplatform, cls_name)
 
@@ -98,40 +113,42 @@ def runner(cls_name, method_name, resource_name_output_artifact_path, kwargs):
 
     serialized_args = {INIT_KEY: init_args, METHOD_KEY: method_args}
 
-    for key, param in inspect.signature(cls.__init__).parameters.items():
-        if key in serialized_args[INIT_KEY]:
-            serialized_args[INIT_KEY][key] = resolve_init_args(
-                key, serialized_args[INIT_KEY][key]
-            )
-            param_type = utils.resolve_annotation(param.annotation)
-            deserializer = utils.get_deserializer(param_type)
-            if deserializer:
-                serialized_args[INIT_KEY][key] = deserializer(
-                    serialized_args[INIT_KEY][key]
-                )
+    prepare_parameters(serialized_args[INIT_KEY], cls.__init__, is_init=True)
+
+    # for key, param in inspect.signature(cls.__init__).parameters.items():
+    #     if key in serialized_args[INIT_KEY]:
+    #         value = serialized_args[INIT_KEY][key] 
+    #         value = resolve_init_args(key, value)
+    #         param_type = utils.resolve_annotation(param.annotation)
+    #         deserializer = utils.get_deserializer(param_type)
+    #         if deserializer:
+    #             value = deserializer(value)
+    #         else:
+    #             value = param_type(value)
+    #         serialized_args[INIT_KEY][key] = value
+
+
     # TODO(chavoshi): use logging instead.
     print(serialized_args[INIT_KEY])
     obj = cls(**serialized_args[INIT_KEY]) if serialized_args[INIT_KEY] else cls
 
     method = getattr(obj, method_name)
 
-    for key, param in inspect.signature(method).parameters.items():
-        if key in serialized_args[METHOD_KEY]:
-            param_type = utils.resolve_annotation(param.annotation)
-            print(key, param_type)
-            serialized_args[METHOD_KEY][key] = resolve_input_args(
-                serialized_args[METHOD_KEY][key], param_type
-            )
-            deserializer = utils.get_deserializer(param_type)
-            if deserializer:
-                serialized_args[METHOD_KEY][key] = deserializer(
-                    serialized_args[METHOD_KEY][key]
-                )
-            else:
-                serialized_args[METHOD_KEY][key] = param_type(
-                    serialized_args[METHOD_KEY][key]
-                )
+    # for key, param in inspect.signature(method).parameters.items():
+    #     if key in serialized_args[METHOD_KEY]:
+    #         value = serialized_args[METHOD_KEY][key]
 
+    #         param_type = utils.resolve_annotation(param.annotation)
+    #         print(key, param_type)
+    #         serialized_args[METHOD_KEY][key] = resolve_input_args(value, param_type)
+    #         deserializer = utils.get_deserializer(param_type)
+    #         if deserializer:
+    #             value = deserializer(value)
+    #         else:
+    #             value = param_type(value)
+    #         serialized_args[METHOD_KEY][key] = value
+
+    prepare_parameters(serialized_args[METHOD_KEY], method, is_init=False)
     print(serialized_args[METHOD_KEY])
     output = method(**serialized_args[METHOD_KEY])
     print(output)
