@@ -130,9 +130,6 @@ start, let's walk through a simple workflow using this API.
     TabularDatasetExportDataOp(...)
         """Exports data to output dir to GCS."""
 
-    TabularDatasetImportDataOp(...)
-        """Upload data to existing managed dataset."""
-
     TextDatasetCreateOp(...)
         """Creates a new text dataset and optionally imports data into dataset when"""
 
