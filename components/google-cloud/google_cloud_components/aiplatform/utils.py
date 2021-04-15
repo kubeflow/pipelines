@@ -366,7 +366,7 @@ def generate_docstring(
 
 
 def convert_method_to_component(
-    method: Callable, should_serialize_init: bool = False
+    cls: aiplatform.base.AiPlatformResourceNoun, method: Callable
 ) -> Callable:
     """Converts a MB SDK Method to a Component wrapper.
 
@@ -426,20 +426,11 @@ def convert_method_to_component(
     method_name = method.__name__
     method_signature = inspect.signature(method)
 
-    # get class name and constructor signature
-    if inspect.ismethod(method):
-        cls = method.__self__
-        cls_name = cls.__name__
-        init_signature = inspect.signature(method.__self__.__init__)
-        init_method = method.__self__.__init__
-    else:
-        cls = getattr(
-            inspect.getmodule(method),
-            method.__qualname__.split('.<locals>', 1)[0].rsplit('.', 1)[0]
-        )
-        cls_name = cls.__name__
-        init_signature = inspect.signature(cls.__init__)
-        init_method = cls.__init__
+    cls_name = cls.__name__
+    init_method = cls.__init__
+    init_signature = inspect.signature(init_method)
+
+    should_serialize_init = inspect.isfunction(method)
 
     # map to store parameter names that are changed in components
     # this is generally used for constructor where the mb sdk takes

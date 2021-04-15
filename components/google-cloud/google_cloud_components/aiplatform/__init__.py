@@ -17,84 +17,100 @@ from google.cloud import aiplatform as aiplatform_sdk
 from google_cloud_components.aiplatform import utils
 
 ImageDatasetCreateOp = utils.convert_method_to_component(
-    aiplatform_sdk.ImageDataset.create
+    aiplatform_sdk.ImageDataset, aiplatform_sdk.ImageDataset.create
 )
 
 TabularDatasetCreateOp = utils.convert_method_to_component(
-    aiplatform_sdk.TabularDataset.create
+    aiplatform_sdk.TabularDataset, aiplatform_sdk.TabularDataset.create
 )
 
 TextDatasetCreateOp = utils.convert_method_to_component(
-    aiplatform_sdk.TextDataset.create
+    aiplatform_sdk.TextDataset, aiplatform_sdk.TextDataset.create
 )
 
 VideoDatasetCreateOp = utils.convert_method_to_component(
-    aiplatform_sdk.VideoDataset.create
+    aiplatform_sdk.VideoDataset, aiplatform_sdk.VideoDataset.create
 )
 
 ImageDatasetExportDataOp = utils.convert_method_to_component(
-    aiplatform_sdk.ImageDataset.export_data, should_serialize_init=True
+    aiplatform_sdk.ImageDataset,
+    aiplatform_sdk.ImageDataset.export_data,
 )
 
 TabularDatasetExportDataOp = utils.convert_method_to_component(
-    aiplatform_sdk.TabularDataset.export_data, should_serialize_init=True
+    aiplatform_sdk.TabularDataset,
+    aiplatform_sdk.TabularDataset.export_data,
 )
 
 TextDatasetExportDataOp = utils.convert_method_to_component(
-    aiplatform_sdk.TextDataset.export_data, should_serialize_init=True
+    aiplatform_sdk.TextDataset,
+    aiplatform_sdk.TextDataset.export_data,
 )
 
 VideoDatasetExportDataOp = utils.convert_method_to_component(
-    aiplatform_sdk.VideoDataset.export_data, should_serialize_init=True
+    aiplatform_sdk.VideoDataset,
+    aiplatform_sdk.VideoDataset.export_data,
 )
 
 ImageDatasetImportDataOp = utils.convert_method_to_component(
-    aiplatform_sdk.ImageDataset.import_data, should_serialize_init=True
+    aiplatform_sdk.ImageDataset,
+    aiplatform_sdk.ImageDataset.import_data,
 )
 
 TextDatasetImportDataOp = utils.convert_method_to_component(
-    aiplatform_sdk.TextDataset.import_data, should_serialize_init=True
+    aiplatform_sdk.TextDataset,
+    aiplatform_sdk.TextDataset.import_data,
 )
 
 VideoDatasetImportDataOp = utils.convert_method_to_component(
-    aiplatform_sdk.VideoDataset.import_data, should_serialize_init=True
+    aiplatform_sdk.VideoDataset,
+    aiplatform_sdk.VideoDataset.import_data,
 )
 
 CustomContainerTrainingJobRunOp = utils.convert_method_to_component(
-    aiplatform_sdk.CustomContainerTrainingJob.run, should_serialize_init=True
+    aiplatform_sdk.CustomContainerTrainingJob,
+    aiplatform_sdk.CustomContainerTrainingJob.run,
 )
 
 CustomPythonPackageTrainingJobRunOp = utils.convert_method_to_component(
+    aiplatform_sdk.CustomPythonPackageTrainingJob,
     aiplatform_sdk.CustomPythonPackageTrainingJob.run,
-    should_serialize_init=True
 )
 
 AutoMLImageTrainingJobRunOp = utils.convert_method_to_component(
-    aiplatform_sdk.AutoMLImageTrainingJob.run, should_serialize_init=True
+    aiplatform_sdk.AutoMLImageTrainingJob,
+    aiplatform_sdk.AutoMLImageTrainingJob.run,
 )
 
 AutoMLTextTrainingJobRunOp = utils.convert_method_to_component(
-    aiplatform_sdk.AutoMLTextTrainingJob.run, should_serialize_init=True
+    aiplatform_sdk.AutoMLTextTrainingJob,
+    aiplatform_sdk.AutoMLTextTrainingJob.run,
 )
 
 AutoMLTabularTrainingJobRunOp = utils.convert_method_to_component(
-    aiplatform_sdk.AutoMLTabularTrainingJob.run, should_serialize_init=True
+    aiplatform_sdk.AutoMLTabularTrainingJob,
+    aiplatform_sdk.AutoMLTabularTrainingJob.run,
 )
 
 AutoMLVideoTrainingJobRunOp = utils.convert_method_to_component(
-    aiplatform_sdk.AutoMLVideoTrainingJob.run, should_serialize_init=True
+    aiplatform_sdk.AutoMLVideoTrainingJob,
+    aiplatform_sdk.AutoMLVideoTrainingJob.run,
 )
 
 ModelDeployOp = utils.convert_method_to_component(
-    aiplatform_sdk.Model.deploy, should_serialize_init=True
+    aiplatform_sdk.Model,
+    aiplatform_sdk.Model.deploy,
 )
 
 ModelBatchPredictOp = utils.convert_method_to_component(
-    aiplatform_sdk.Model.batch_predict, should_serialize_init=True
+    aiplatform_sdk.Model,
+    aiplatform_sdk.Model.batch_predict,
 )
 
-ModelUploadOp = utils.convert_method_to_component(aiplatform_sdk.Model.upload)
+ModelUploadOp = utils.convert_method_to_component(
+    aiplatform_sdk.Model, aiplatform_sdk.Model.upload
+)
 
 EndpointCreateOp = utils.convert_method_to_component(
-    aiplatform_sdk.Endpoint.create
+    aiplatform_sdk.Endpoint, aiplatform_sdk.Endpoint.create
 )
