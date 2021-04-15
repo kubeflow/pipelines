@@ -137,7 +137,7 @@ start, let's walk through a simple workflow using this API.
         """Creates a new text dataset and optionally imports data into dataset when"""
 
     TextDatasetExportDataOp(...)
-        """Exports data to output dir to GCS."""
+        """Exports Text data to output dir to GCS."""
 
     TextDatasetImportDataOp(...)
         """Upload data to existing managed dataset."""
