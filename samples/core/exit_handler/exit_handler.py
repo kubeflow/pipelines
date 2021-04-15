@@ -17,17 +17,9 @@ import kfp
 import os
 from kfp import dsl, components
 
-gcs_download_op = kfp.components.load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__),
-        "../../../components/google-cloud/storage/download_blob/component.yaml"
-    )
+gcs_download_op = kfp.components.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/1.5.0-rc.3/components/google-cloud/storage/download_blob/component.yaml'
 )
-
-# Uncomment the code below instead to load the component remotely.
-# gcs_download_op = kfp.components.load_component_from_url(
-#     'https://raw.githubusercontent.com/kubeflow/pipelines/1.5.0-rc.3/components/google-cloud/storage/download_blob/component.yaml'
-# )
 
 
 @components.create_component_from_func
