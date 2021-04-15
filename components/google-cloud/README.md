@@ -92,7 +92,7 @@ start, let's walk through a simple workflow using this API.
         """Runs an AutoML Tabular training job and returns a model."""
 
     AutoMLTextTrainingJobRunOp(...)
-        """Runs the training job and returns a model."""
+        """Runs an AutoML Text training job and returns a model."""
 
     AutoMLVideoTrainingJobRunOp(...)
         """Runs the AutoML Image training job and returns a model."""
