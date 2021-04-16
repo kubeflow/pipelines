@@ -498,8 +498,6 @@ def convert_method_to_component(
         init_kwargs = {}
         method_kwargs = {}
 
-        print(init_arg_names)
-
         for key, value in kwargs.items():
             if key in init_arg_names:
                 prefix_key = INIT_KEY
@@ -509,8 +507,6 @@ def convert_method_to_component(
                 prefix_key = METHOD_KEY
                 method_kwargs[key] = value
                 signature = method_signature
-
-            print(prefix_key, key)
 
             # no need to add this argument because it's optional
             # this param is validated against the signature because
