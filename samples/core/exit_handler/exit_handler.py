@@ -14,7 +14,6 @@
 # limitations under the License.
 
 import kfp
-import os
 from kfp import dsl, components
 
 gcs_download_op = kfp.components.load_component_from_url(

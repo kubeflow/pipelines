@@ -17,10 +17,10 @@ from .output_a_directory import dir_pipeline
 from ...test.util import run_pipeline_func, TestCase
 
 run_pipeline_func([
-    TestCase(
-        pipeline_func=dir_pipeline,
-        mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
-    ),
+    # TestCase(
+    #     pipeline_func=dir_pipeline,
+    #     mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
+    # ),
 
     # TODO(v2-compatible): error when the pipeline does not have a @pipeline.
     # Failed to create component launcher: %vMust specify PipelineName
@@ -32,8 +32,8 @@ run_pipeline_func([
     #
     # 1 main.go:56] Failed to successfuly execute component: %vread /tmp/kfp_launcher_outputs/output_dir/data: is a directory
     #
-    # TestCase(
-    #     pipeline_func=dir_pipeline,
-    #     mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
-    # ),
+    TestCase(
+        pipeline_func=dir_pipeline,
+        mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
+    ),
 ])
