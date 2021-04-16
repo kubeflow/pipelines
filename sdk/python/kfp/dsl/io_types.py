@@ -17,7 +17,7 @@ These are only compatible with v2 Pipelines.
 """
 
 import os
-from typing import Dict, List, Optional, Type, TypeVar
+from typing import Dict, List, Optional, Type, TypeVar, Union
 
 
 class Artifact(object):
@@ -109,13 +109,13 @@ class ClassificationMetrics(Artifact):
                metadata: Optional[Dict] = None):
     super().__init__(uri=uri, name=name, metadata=metadata)
 
-  def log_roc_reading(self, threshold: float, tpr: float, fpr: float):
+  def log_roc_data_point(self, fpr: float, tpr: float, threshold: float):
     """Logs a single data point in the ROC Curve.
 
     Args:
-      threshold: Thresold value for the data point.
-      tpr: True positive rate value of the data point.
       fpr: False positive rate value of the data point.
+      tpr: True positive rate value of the data point.
+      threshold: Threshold value for the data point.
     """
 
     roc_reading = {
@@ -128,21 +128,25 @@ class ClassificationMetrics(Artifact):
 
     self.metadata['confidenceMetrics'].append(roc_reading)
 
-  def load_roc_readings(self, readings: List[List[float]]):
-    """Supports bulk loading ROC Curve readings.
+  def log_roc_curve(self, fpr: List[float], tpr: List[float],
+                    threshold: List[float]):
+    """Logs an ROC curve.
+
+    The list length of fpr, tpr and threshold must be the same.
 
     Args:
-      readings: A 2-D list providing ROC Curve data points.
-                The expected order of the data points is: threshold,
-                  true_positive_rate, false_positive_rate.
+      fpr: List of false positive rate values.
+      tpr: List of true positive rate values.
+      threshold: List of threshold values.
     """
-    self.metadata['confidenceMetrics'] = []
-    for reading in readings:
-      if len(reading) != 3:
-        raise ValueError('Invalid ROC curve reading provided: {}. \
-          Expected 3 values.'.format(reading))
+    if len(fpr) != len(tpr) or len(fpr) != len(threshold) or len(tpr) != len(
+        threshold):
+      raise ValueError('Length of fpr, tpr and threshold must be the same. '
+                       'Got lengths {}, {} and {} respectively.'.format(
+                           len(fpr), len(tpr), len(threshold)))
 
-      self.log_roc_reading(reading[0], reading[1], reading[2])
+    for i in range(len(fpr)):
+      self.log_roc_data_point(fpr=fpr[i], tpr=tpr[i], threshold=threshold[i])
 
   def set_confusion_matrix_categories(self, categories: List[str]):
     """Stores confusion matrix categories.
@@ -214,9 +218,8 @@ class ClassificationMetrics(Artifact):
         self._categories.index(col_category)] = value
     self.metadata['confusionMatrix'] = self._confusion_matrix
 
-  def load_confusion_matrix(self, categories: List[str],
-                            matrix: List[List[int]]):
-    """Supports bulk loading the whole confusion matrix.
+  def log_confusion_matrix(self, categories: List[str], matrix: List[List[int]]):
+    """Logs a confusion matrix.
 
     Args:
       categories: List of the category names.
