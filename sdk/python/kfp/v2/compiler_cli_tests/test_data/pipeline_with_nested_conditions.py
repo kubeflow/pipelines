@@ -34,7 +34,7 @@ flip_coin_op = components.create_component_from_func(flip_coin)
 print_op = components.create_component_from_func(print_msg)
 
 
-@dsl.pipeline(name='nested-conditions-pipeline')
+@dsl.pipeline(name='nested-conditions-pipeline', pipeline_root='dummy_root')
 def my_pipeline():
   flip1 = flip_coin_op()
   print_op(flip1.output)
@@ -52,5 +52,4 @@ def my_pipeline():
 if __name__ == '__main__':
   compiler.Compiler().compile(
       pipeline_func=my_pipeline,
-      pipeline_root='dummy_root',
       package_path=__file__.replace('.py', '.json'))
