@@ -14,6 +14,7 @@
 """Module for remote execution of AI Platform component."""
 
 import argparse
+from distutils import util as distutil
 import inspect
 import json
 import os
@@ -91,18 +92,23 @@ def make_output(output_object: Any) -> str:
     return json.dumps(list(output_object))
 
 
+def cast(value, annotation_type):
+    if annotation_type is bool:
+        return bool(distutil.strtobool(value))
+    return annotation_type(value)
+
+
 def prepare_parameters(kwargs, method, is_init=False):
     for key, param in inspect.signature(method).parameters.items():
         if key in kwargs:
             value = kwargs[key]
             param_type = utils.resolve_annotation(param.annotation)
-            print(method, key, param_type, value)
-            value = resolve_init_args(key, value) is is_init else resolve_input_args(value, param_type)
+            value = resolve_init_args(key, value) if is_init else resolve_input_args(value, param_type)
             deserializer = utils.get_deserializer(param_type)
             if deserializer:
                 value = deserializer(value)
             else:
-                value = param_type(value)
+                value = cast(value, param_type)
             kwargs[key] = value
 
 
@@ -150,6 +156,9 @@ def runner(cls_name, method_name, resource_name_output_artifact_path, kwargs):
 
     prepare_parameters(serialized_args[METHOD_KEY], method, is_init=False)
     print(serialized_args[METHOD_KEY])
+
+    for key, value in serialized_args[METHOD_KEY].items():
+        print(key, type(value), value)
     output = method(**serialized_args[METHOD_KEY])
     print(output)
 
