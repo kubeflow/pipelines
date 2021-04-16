@@ -201,7 +201,9 @@ def should_be_metadata_type(mb_sdk_type: Any) -> bool:
 
 def is_resource_name_parameter_name(param_name: str) -> bool:
     """Determines if the mb_sdk parameter is a resource name."""
-    return param_name != 'display_name' and param_name.endswith('_name')
+    return param_name != 'display_name' and \
+            not param_name.endswith('encryption_spec_key_name') and \
+            param_name.endswith('_name')
 
 
 # These parameters are filtered from MB SDK methods
