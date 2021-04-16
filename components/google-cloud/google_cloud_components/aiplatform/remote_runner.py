@@ -46,14 +46,20 @@ def split_args(kwargs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     return init_args, method_args
 
 
-def write_to_artifact(artifact_path, text):
-    """Write output to local artifact path (uses GCSFuse)."""
+def write_to_artifact(artifact_path, metadata_path, text):
+    """Write output to local artifact and methadata path (uses GCSFuse)."""
 
     # Create the artifact dir if it does not exist
     os.makedirs(os.path.dirname(artifact_path), exist_ok=True)
 
     with open(artifact_path, 'w') as f:
         f.write(text)
+
+    # Create the artifact dir if it does not exist
+    os.makedirs(os.path.dirname(metadata_path), exist_ok=True)
+    runtime_artifact = f"{'uri':{text}}"
+    with open(metadata_path, 'a') as f:
+        json.dump(runtime_artifact, f)
 
 
 def read_from_artifact(artifact_path):
@@ -91,7 +97,10 @@ def make_output(output_object: Any) -> str:
     return json.dumps(list(output_object))
 
 
-def runner(cls_name, method_name, resource_name_output_artifact_path, kwargs):
+def runner(
+    cls_name, method_name, resource_name_output_artifact_path,
+    output_metadata_path, kwargs
+):
     cls = getattr(aiplatform, cls_name)
 
     init_args, method_args = split_args(kwargs)
@@ -138,7 +147,8 @@ def runner(cls_name, method_name, resource_name_output_artifact_path, kwargs):
 
     if output:
         write_to_artifact(
-            resource_name_output_artifact_path, make_output(output)
+            resource_name_output_artifact_path, output_metadata_path,
+            make_output(output)
         )
         return output
 
@@ -150,6 +160,7 @@ def main():
     parser.add_argument(
         "--resource_name_output_artifact_path", type=str, default=None
     )
+    parser.add_argument("--output_metadata_uri", type=str, default=None)
 
     args, unknown_args = parser.parse_known_args()
     kwargs = {}
@@ -170,7 +181,8 @@ def main():
     print(
         runner(
             args.cls_name, args.method_name,
-            args.resource_name_output_artifact_path, kwargs
+            args.resource_name_output_artifact_path, args.output_metadata_uri,
+            kwargs
         )
     )
 
