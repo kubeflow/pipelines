@@ -3,13 +3,13 @@ kind: Workflow
 metadata:
   generateName: my-test-pipeline-
   annotations:
-    pipelines.kubeflow.org/kfp_sdk_version: 1.4.1
-    pipelines.kubeflow.org/pipeline_compilation_time: '2021-03-08T06:53:16.328199'
+    pipelines.kubeflow.org/kfp_sdk_version: 1.5.0-rc.3
+    pipelines.kubeflow.org/pipeline_compilation_time: '2021-04-14T20:16:36.291080'
     pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "gs://output-directory/v2-artifacts",
       "name": "pipeline-output-directory"}, {"default": "my-test-pipeline", "name":
       "pipeline-name"}], "name": "my-test-pipeline"}'
     pipelines.kubeflow.org/v2_pipeline: "true"
-  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.4.1}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.5.0-rc.3}
 spec:
   entrypoint: my-test-pipeline
   templates:
@@ -92,13 +92,13 @@ spec:
         valueFrom:
           fieldRef: {fieldPath: 'metadata.labels[''workflows.argoproj.io/workflow'']'}
       - {name: KFP_V2_IMAGE, value: 'python:3.9'}
-      - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {"some_int": {"parameterType":
-          "INT", "parameterValue": "12"}, "uri": {"parameterType": "STRING", "parameterValue":
-          "uri-to-import"}}, "inputArtifacts": {}, "outputParameters": {"output_parameter_one":
-          {"parameterType": "INT", "fileOutputPath": "/tmp/outputs/output_parameter_one/data"}},
-          "outputArtifacts": {"output_dataset_one": {"artifactSchema": "title: kfp.Dataset\ntype:
+      - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {"some_int": {"type":
+          "INT", "value": "12"}, "uri": {"type": "STRING", "value": "uri-to-import"}},
+          "inputArtifacts": {}, "outputParameters": {"output_parameter_one": {"type":
+          "INT", "path": "/tmp/outputs/output_parameter_one/data"}}, "outputArtifacts":
+          {"output_dataset_one": {"schemaTitle": "", "instanceSchema": "title: kfp.Dataset\ntype:
           object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type:
-          string\n", "fileOutputPath": "/tmp/outputs/output_dataset_one/data"}}}'}
+          string\n", "metadataPath": "/tmp/outputs/output_dataset_one/data"}}}'}
       envFrom:
       - configMapRef: {name: metadata-grpc-configmap, optional: true}
       image: python:3.9
@@ -118,28 +118,6 @@ spec:
     metadata:
       annotations:
         pipelines.kubeflow.org/v2_component: "true"
-        pipelines.kubeflow.org/component_spec: '{"description": "Dummy Preprocess
-          Step.", "implementation": {"container": {"args": ["--uri", {"inputValue":
-          "uri"}, "--some-int", {"inputValue": "some_int"}, "--output-parameter-one",
-          {"outputPath": "output_parameter_one"}, "--output-dataset-one", {"outputPath":
-          "output_dataset_one"}], "command": ["sh", "-ec", "program_path=$(mktemp)\nprintf
-          \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
-          "def _make_parent_dirs_and_return_path(file_path: str):\n    import os\n    os.makedirs(os.path.dirname(file_path),
-          exist_ok=True)\n    return file_path\n\ndef preprocess(uri, some_int, output_parameter_one,\n               output_dataset_one):\n  ''''''Dummy
-          Preprocess Step.''''''\n  with open(output_dataset_one, ''w'') as f:\n    f.write(''Output
-          dataset'')\n  with open(output_parameter_one, ''w'') as f:\n    f.write(\"{}\".format(1234))\n\nimport
-          argparse\n_parser = argparse.ArgumentParser(prog=''Preprocess'', description=''Dummy
-          Preprocess Step.'')\n_parser.add_argument(\"--uri\", dest=\"uri\", type=str,
-          required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--some-int\",
-          dest=\"some_int\", type=int, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--output-parameter-one\",
-          dest=\"output_parameter_one\", type=_make_parent_dirs_and_return_path, required=True,
-          default=argparse.SUPPRESS)\n_parser.add_argument(\"--output-dataset-one\",
-          dest=\"output_dataset_one\", type=_make_parent_dirs_and_return_path, required=True,
-          default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs
-          = preprocess(**_parsed_args)\n"], "image": "python:3.9"}}, "inputs": [{"name":
-          "uri", "type": "String"}, {"name": "some_int", "type": "Integer"}], "name":
-          "Preprocess", "outputs": [{"name": "output_parameter_one", "type": "Integer"},
-          {"name": "output_dataset_one", "type": "Dataset"}]}'
         pipelines.kubeflow.org/component_ref: '{}'
         pipelines.kubeflow.org/arguments.parameters: '{"some_int": "12", "uri": "uri-to-import"}'
     initContainers:
@@ -205,12 +183,14 @@ spec:
         valueFrom:
           fieldRef: {fieldPath: 'metadata.labels[''workflows.argoproj.io/workflow'']'}
       - {name: KFP_V2_IMAGE, value: 'python:3.7'}
-      - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {"num_steps": {"parameterType":
-          "INT", "parameterValue": "{{inputs.parameters.preprocess-output_parameter_one}}"}},
-          "inputArtifacts": {"dataset": {"fileInputPath": "/tmp/inputs/dataset/data"}},
-          "outputParameters": {}, "outputArtifacts": {"model": {"artifactSchema":
-          "title: kfp.Model\ntype: object\nproperties:\n  framework:\n    type: string\n  framework_version:\n    type:
-          string\n", "fileOutputPath": "/tmp/outputs/model/data"}}}'}
+      - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {"num_steps": {"type":
+          "INT", "value": "{{inputs.parameters.preprocess-output_parameter_one}}"}},
+          "inputArtifacts": {"dataset": {"metadataPath": "/tmp/inputs/dataset/data",
+          "schemaTitle": "", "instanceSchema": "title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type:
+          string\n  container_format:\n    type: string\n"}}, "outputParameters":
+          {}, "outputArtifacts": {"model": {"schemaTitle": "", "instanceSchema": "title:
+          kfp.Model\ntype: object\nproperties:\n  framework:\n    type: string\n  framework_version:\n    type:
+          string\n", "metadataPath": "/tmp/outputs/model/data"}}}'}
       envFrom:
       - configMapRef: {name: metadata-grpc-configmap, optional: true}
       image: python:3.7
@@ -229,26 +209,6 @@ spec:
     metadata:
       annotations:
         pipelines.kubeflow.org/v2_component: "true"
-        pipelines.kubeflow.org/component_spec: '{"description": "Dummy Training Step.",
-          "implementation": {"container": {"args": ["--dataset", {"inputPath": "dataset"},
-          {"if": {"cond": {"isPresent": "num_steps"}, "then": ["--num-steps", {"inputValue":
-          "num_steps"}]}}, "--model", {"outputPath": "model"}], "command": ["sh",
-          "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
-          -u \"$program_path\" \"$@\"\n", "def _make_parent_dirs_and_return_path(file_path:
-          str):\n    import os\n    os.makedirs(os.path.dirname(file_path), exist_ok=True)\n    return
-          file_path\n\ndef train(dataset,\n          model,\n          num_steps =
-          100):\n  ''''''Dummy Training Step.''''''\n\n  with open(dataset, ''r'')
-          as input_file:\n    input_string = input_file.read()\n    with open(model,
-          ''w'') as output_file:\n      for i in range(num_steps):\n        output_file.write(\"Step
-          {}\\n{}\\n=====\\n\".format(i, input_string))\n\nimport argparse\n_parser
-          = argparse.ArgumentParser(prog=''Train'', description=''Dummy Training Step.'')\n_parser.add_argument(\"--dataset\",
-          dest=\"dataset\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--num-steps\",
-          dest=\"num_steps\", type=int, required=False, default=argparse.SUPPRESS)\n_parser.add_argument(\"--model\",
-          dest=\"model\", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)\n_parsed_args
-          = vars(_parser.parse_args())\n\n_outputs = train(**_parsed_args)\n"], "image":
-          "python:3.7"}}, "inputs": [{"name": "dataset", "type": "Dataset"}, {"default":
-          "100", "name": "num_steps", "optional": true, "type": "Integer"}], "name":
-          "Train", "outputs": [{"name": "model", "type": "Model"}]}'
         pipelines.kubeflow.org/component_ref: '{}'
         pipelines.kubeflow.org/arguments.parameters: '{"num_steps": "{{inputs.parameters.preprocess-output_parameter_one}}"}'
     initContainers:

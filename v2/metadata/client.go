@@ -79,8 +79,8 @@ type Parameters struct {
 
 // ExecutionConfig represents the input parameters and artifacts to an Execution.
 type ExecutionConfig struct {
-	InputParameters *Parameters
-	InputArtifacts  []*InputArtifact
+	InputParameters  *Parameters
+	InputArtifactIDs []int64
 }
 
 // InputArtifact is a wrapper around an MLMD artifact used as component inputs.
@@ -221,11 +221,11 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, taskNa
 		Contexts:  []*pb.Context{pipeline.pipelineCtx, pipeline.pipelineRunCtx},
 	}
 
-	for _, ia := range config.InputArtifacts {
+	for _, id := range config.InputArtifactIDs {
 		aePair := &pb.PutExecutionRequest_ArtifactAndEvent{
 			Event: &pb.Event{
 				Type:       pb.Event_INPUT.Enum(),
-				ArtifactId: ia.Artifact.Id,
+				ArtifactId: &id,
 			},
 		}
 		req.ArtifactEventPairs = append(req.ArtifactEventPairs, aePair)
