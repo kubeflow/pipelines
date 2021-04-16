@@ -15,7 +15,7 @@ inputs:
 - {name: model, type: XGBoostModel}
 - {name: label_column, type: Integer, optional: true}
 outputs:
-- {name: predictions, type: Text}
+- {name: predictions, type: Predictions}
 implementation:
   container:
     image: python:3.7

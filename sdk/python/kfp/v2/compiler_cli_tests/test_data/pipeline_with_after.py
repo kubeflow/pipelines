@@ -33,7 +33,7 @@ implementation:
 """)
 
 
-@dsl.pipeline(name='pipeline-with-after')
+@dsl.pipeline(name='pipeline-with-after', pipeline_root='dummy_root')
 def my_pipeline():
   task1 = component_op(text='1st task')
   task2 = component_op(text='2nd task').after(task1)
@@ -43,5 +43,4 @@ def my_pipeline():
 if __name__ == '__main__':
   compiler.Compiler().compile(
       pipeline_func=my_pipeline,
-      pipeline_root='dummy_root',
       package_path=__file__.replace('.py', '.json'))

@@ -97,5 +97,4 @@ def pipeline(message: str):
 if __name__ == '__main__':
   compiler.Compiler().compile(
       pipeline_func=pipeline,
-      pipeline_root='dummy_root',
       package_path=__file__.replace('.py', '.json'))

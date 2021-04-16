@@ -34,7 +34,7 @@ flip_coin_op = components.create_component_from_func(flip_coin)
 print_op = components.create_component_from_func(print_msg)
 
 
-@dsl.pipeline(name='single-condition-pipeline')
+@dsl.pipeline(name='single-condition-pipeline', pipeline_root='dummy_root')
 def my_pipeline(text: str = 'condition test'):
   flip1 = flip_coin_op()
   print_op(flip1.output)

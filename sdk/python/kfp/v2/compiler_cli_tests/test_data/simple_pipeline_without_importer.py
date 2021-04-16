@@ -54,7 +54,7 @@ implementation:
 """)
 
 
-@dsl.pipeline(name='simple-two-step-pipeline')
+@dsl.pipeline(name='simple-two-step-pipeline', pipeline_root='dummy_root')
 def my_pipeline(text: str = 'Hello world!'):
   component_1 = component_op_1(text=text)
   component_2 = component_op_2(
@@ -64,6 +64,5 @@ def my_pipeline(text: str = 'Hello world!'):
 if __name__ == '__main__':
   compiler.Compiler().compile(
       pipeline_func=my_pipeline,
-      pipeline_root='dummy_root',
       pipeline_parameters={'text': 'Hello KFP!'},
       package_path=__file__.replace('.py', '.json'))
