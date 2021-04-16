@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 from typing import List
 
 from kfp import components
@@ -23,7 +24,7 @@ from kfp.v2 import compiler
 def args_generator_op() -> str:
   import json
   return json.dumps(
-      [{'A_a': '1'}, {'A_a': '10'}], sort_keys=True)
+      [{'A_a': '1', 'B_b': '2'}, {'A_a': '10', 'B_b': '20'}], sort_keys=True)
 
 
 @components.create_component_from_func
@@ -44,6 +45,7 @@ def flip_coin_op() -> str:
     pipeline_root='dummy_root',
 )
 def my_pipeline(text_parameter: str = 'Hello world!'):
+
   flip1 = flip_coin_op()
 
   with dsl.Condition(flip1.output != 'no-such-result'): # always true
