@@ -34,10 +34,6 @@ def parse_arguments() -> argparse.Namespace:
       type=str,
       help='The name of the function to compile if there are multiple.')
   parser.add_argument(
-      '--pipeline-root',
-      type=str,
-      help='The root of the pipeline outputs.')
-  parser.add_argument(
       '--pipeline-parameters',
       type=json.loads,
       help='The pipeline parameters in JSON dict format.')
@@ -58,7 +54,7 @@ def parse_arguments() -> argparse.Namespace:
 
 
 def _compile_pipeline_function(pipeline_funcs: List[Callable],
-                               function_name: Optional[str], pipeline_root: str,
+                               function_name: Optional[str],
                                pipeline_parameters: Optional[Mapping[str, Any]],
                                package_path: str, type_check: bool) -> None:
   """Compiles a pipeline function.
@@ -67,7 +63,6 @@ def _compile_pipeline_function(pipeline_funcs: List[Callable],
     pipeline_funcs: A list of pipeline_functions.
     function_name: The name of the pipeline function to compile if there were
       multiple.
-    pipeline_root: The root output directory for pipeline runtime.
     pipeline_parameters: The pipeline parameters as a dict of {name: value}.
     package_path: The output path of the compiled result.
     type_check: Whether to enable the type checking.
@@ -94,7 +89,6 @@ def _compile_pipeline_function(pipeline_funcs: List[Callable],
 
   compiler.Compiler().compile(
       pipeline_func=pipeline_func,
-      pipeline_root=pipeline_root,
       pipeline_parameters=pipeline_parameters,
       package_path=package_path,
       type_check=type_check)
@@ -118,7 +112,6 @@ class PipelineCollectorContext():
 
 
 def compile_pyfile(pyfile: str, function_name: Optional[str],
-                   pipeline_root: str,
                    pipeline_parameters: Optional[Mapping[str, Any]],
                    package_path: str, type_check: bool) -> None:
   """Compiles a pipeline written in a .py file.
@@ -126,7 +119,6 @@ def compile_pyfile(pyfile: str, function_name: Optional[str],
   Args:
     pyfile: The path to the .py file that contains the pipeline definition.
     function_name: The name of the pipeline function.
-    pipeline_root: The root output directory for pipeline runtime.
     pipeline_parameters: The pipeline parameters as a dict of {name: value}.
     package_path: The output path of the compiled result.
     type_check: Whether to enable the type checking.
@@ -139,7 +131,6 @@ def compile_pyfile(pyfile: str, function_name: Optional[str],
     _compile_pipeline_function(
         pipeline_funcs=pipeline_funcs,
         function_name=function_name,
-        pipeline_root=pipeline_root,
         pipeline_parameters=pipeline_parameters,
         package_path=package_path,
         type_check=type_check)
@@ -154,7 +145,6 @@ def main():
   compile_pyfile(
       pyfile=args.py,
       function_name=args.function,
-      pipeline_root=args.pipeline_root,
       pipeline_parameters=args.pipeline_parameters,
       package_path=args.output,
       type_check=not args.disable_type_check,

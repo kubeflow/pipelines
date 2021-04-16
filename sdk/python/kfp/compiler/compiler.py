@@ -1008,7 +1008,7 @@ class Compiler(object):
         pull secrets and other pipeline-level configuration options. Overrides
         any configuration that may be set by the pipeline.
     """
-    pipeline_root_dir = getattr(pipeline_func, 'output_directory', None)
+    pipeline_root_dir = getattr(pipeline_func, 'pipeline_root', None)
     if (pipeline_root_dir is not None or
         self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE):
       self._pipeline_root_param = dsl.PipelineParam(
