@@ -1,4 +1,4 @@
-title: kfp.ConfidenceMetrics
+title: system.ConfidenceMetrics
 type: object
 properties:
   confidenceThreshold:
