@@ -498,7 +498,7 @@ def _attach_v2_specs(
                   argument_value.name)
         else:
           # Argument is a reference to a pipeline input.
-          # Pipleine inputs can only be parameters. Fixing accordingly.
+          # Pipeline inputs can only be parameters. Fixing accordingly.
           if not type_utils.is_parameter_type(input_type):
             component_spec._inputs_dict[input_name].type = 'String'
           pipeline_task_spec.inputs.parameters[
