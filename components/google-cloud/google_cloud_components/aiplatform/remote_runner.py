@@ -14,10 +14,11 @@
 """Module for remote execution of AI Platform component."""
 
 import argparse
+from distutils import util as distutil
 import inspect
 import json
 import os
-from typing import Any, Dict, Tuple
+from typing import Any, Callable, Dict, Tuple, Type, TypeVar
 
 from google.cloud import aiplatform
 from google_cloud_components.aiplatform import utils
@@ -91,6 +92,55 @@ def make_output(output_object: Any) -> str:
     return json.dumps(list(output_object))
 
 
+T = TypeVar('T')
+
+
+def cast(value: str, annotation_type: Type[T]) -> T:
+    """Casts a value to the annotation type.
+
+    Includes special handling for bools passed as strings.
+
+    Args:
+        value (str): The value represented as a string.
+        annotation_type (Type[T]): The type to cast the value to.
+    Returns:
+        An instance of annotation_type value.
+    """
+    if annotation_type is bool:
+        return bool(distutil.strtobool(value))
+    return annotation_type(value)
+
+
+def prepare_parameters(
+    kwargs: Dict[str, Any], method: Callable, is_init: bool = False
+):
+    """Prepares paramters passed into components before calling SDK.
+
+    1. Determines the annotation type that should used with the parameter
+    2. Reads input values if needed
+    3. Deserializes thos value where appropriate
+    4. Or casts to the correct type.
+
+    Args:
+        kwargs (Dict[str, Any]): The kwargs that will be passed into method. Mutates in place.
+        method (Callable): The method the kwargs used to invoke the method.
+        is_init (bool): Whether this method is a constructor
+    """
+    for key, param in inspect.signature(method).parameters.items():
+        if key in kwargs:
+            value = kwargs[key]
+            param_type = utils.resolve_annotation(param.annotation)
+            value = resolve_init_args(
+                key, value
+            ) if is_init else resolve_input_args(value, param_type)
+            deserializer = utils.get_deserializer(param_type)
+            if deserializer:
+                value = deserializer(value)
+            else:
+                value = cast(value, param_type)
+            kwargs[key] = value
+
+
 def runner(cls_name, method_name, resource_name_output_artifact_path, kwargs):
     cls = getattr(aiplatform, cls_name)
 
@@ -98,43 +148,12 @@ def runner(cls_name, method_name, resource_name_output_artifact_path, kwargs):
 
     serialized_args = {INIT_KEY: init_args, METHOD_KEY: method_args}
 
-    for key, param in inspect.signature(cls.__init__).parameters.items():
-        if key in serialized_args[INIT_KEY]:
-            serialized_args[INIT_KEY][key] = resolve_init_args(
-                key, serialized_args[INIT_KEY][key]
-            )
-            param_type = utils.resolve_annotation(param.annotation)
-            deserializer = utils.get_deserializer(param_type)
-            if deserializer:
-                serialized_args[INIT_KEY][key] = deserializer(
-                    serialized_args[INIT_KEY][key]
-                )
-    # TODO(chavoshi): use logging instead.
-    print(serialized_args[INIT_KEY])
+    prepare_parameters(serialized_args[INIT_KEY], cls.__init__, is_init=True)
     obj = cls(**serialized_args[INIT_KEY]) if serialized_args[INIT_KEY] else cls
 
     method = getattr(obj, method_name)
-
-    for key, param in inspect.signature(method).parameters.items():
-        if key in serialized_args[METHOD_KEY]:
-            param_type = utils.resolve_annotation(param.annotation)
-            print(key, param_type)
-            serialized_args[METHOD_KEY][key] = resolve_input_args(
-                serialized_args[METHOD_KEY][key], param_type
-            )
-            deserializer = utils.get_deserializer(param_type)
-            if deserializer:
-                serialized_args[METHOD_KEY][key] = deserializer(
-                    serialized_args[METHOD_KEY][key]
-                )
-            else:
-                serialized_args[METHOD_KEY][key] = param_type(
-                    serialized_args[METHOD_KEY][key]
-                )
-
-    print(serialized_args[METHOD_KEY])
+    prepare_parameters(serialized_args[METHOD_KEY], method, is_init=False)
     output = method(**serialized_args[METHOD_KEY])
-    print(output)
 
     if output:
         write_to_artifact(
