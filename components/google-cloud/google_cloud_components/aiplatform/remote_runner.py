@@ -105,7 +105,6 @@ def cast(value: str, annotation_type: Type[T]) -> T:
         annotation_type (Type[T]): The type to cast the value to.
     Returns:
         An instance of annotation_type value.
-        
     """
     if annotation_type is bool:
         return bool(distutil.strtobool(value))
@@ -121,7 +120,7 @@ def prepare_parameters(
     2. Reads input values if needed
     3. Deserializes thos value where appropriate
     4. Or casts to the correct type.
-    
+
     Args:
         kwargs (Dict[str, Any]): The kwargs that will be passed into method. Mutates in place.
         method (Callable): The method the kwargs used to invoke the method.
