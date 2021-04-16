@@ -96,9 +96,7 @@ spec:
           "INT", "value": "12"}, "uri": {"type": "STRING", "value": "uri-to-import"}},
           "inputArtifacts": {}, "outputParameters": {"output_parameter_one": {"type":
           "INT", "path": "/tmp/outputs/output_parameter_one/data"}}, "outputArtifacts":
-          {"output_dataset_one": {"schemaTitle": "", "instanceSchema": "title: kfp.Dataset\ntype:
-          object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type:
-          string\n", "metadataPath": "/tmp/outputs/output_dataset_one/data"}}}'}
+          {"output_dataset_one": {"schemaTitle": "system.Dataset", "instanceSchema": "", "metadataPath": "/tmp/outputs/output_dataset_one/data"}}}'}
       envFrom:
       - configMapRef: {name: metadata-grpc-configmap, optional: true}
       image: python:3.9
@@ -186,11 +184,8 @@ spec:
       - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {"num_steps": {"type":
           "INT", "value": "{{inputs.parameters.preprocess-output_parameter_one}}"}},
           "inputArtifacts": {"dataset": {"metadataPath": "/tmp/inputs/dataset/data",
-          "schemaTitle": "", "instanceSchema": "title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type:
-          string\n  container_format:\n    type: string\n"}}, "outputParameters":
-          {}, "outputArtifacts": {"model": {"schemaTitle": "", "instanceSchema": "title:
-          kfp.Model\ntype: object\nproperties:\n  framework:\n    type: string\n  framework_version:\n    type:
-          string\n", "metadataPath": "/tmp/outputs/model/data"}}}'}
+          "schemaTitle": "system.Dataset", "instanceSchema": ""}}, "outputParameters":
+          {}, "outputArtifacts": {"model": {"schemaTitle": "system.Model", "instanceSchema": "", "metadataPath": "/tmp/outputs/model/data"}}}'}
       envFrom:
       - configMapRef: {name: metadata-grpc-configmap, optional: true}
       image: python:3.7
