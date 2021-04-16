@@ -13,6 +13,12 @@
 # limitations under the License.
 
 from .lightweight_python_functions_v2_with_outputs import pipeline
-from .util import run_pipeline_func
+from .util import run_pipeline_func, TestCase
 
-run_pipeline_func([TestCase(pipeline_func=pipeline)])
+
+def verify(run, run_id: str):
+  assert run.status == 'Succeeded'
+  # TODO: verify output and MLMD artifacts.
+
+
+run_pipeline_func([TestCase(pipeline_func=pipeline, verify_func=verify)])
