@@ -24,8 +24,8 @@ class IOTypesTest(unittest.TestCase):
 
   def test_complex_metrics(self):
     metrics = io_types.ClassificationMetrics()
-    metrics.log_roc_reading(0.1, 98.2, 96.2)
-    metrics.log_roc_reading(24.3, 24.5, 98.4)
+    metrics.log_roc_data_point(threshold=0.1, tpr=98.2, fpr=96.2)
+    metrics.log_roc_data_point(threshold=24.3, tpr=24.5, fpr=98.4)
     metrics.set_confusion_matrix_categories(['dog', 'cat', 'horses'])
     metrics.log_confusion_matrix_row('dog', [2, 6, 0])
     metrics.log_confusion_matrix_cell('cat', 'dog', 3)
@@ -35,14 +35,14 @@ class IOTypesTest(unittest.TestCase):
         'test_data', 'expected_io_types_classification_metrics.json')) as json_file:
       expected_json = json.load(json_file)
       self.assertEqual(expected_json, metrics.metadata)
-  
+
   def test_complex_metrics_bulk_loading(self):
     metrics = io_types.ClassificationMetrics()
-    metrics.load_roc_readings([
-      [53.6, 52.6, 85.1],
-      [53.6, 52.6, 85.1],
-      [53.6, 52.6, 85.1]])
-    metrics.load_confusion_matrix(['dog', 'cat', 'horses'], [[2, 6, 0], [3, 5,6], [5,7,8]])
+    metrics.log_roc_curve(fpr=[85.1, 85.1, 85.1],
+                          tpr=[52.6, 52.6, 52.6],
+                          threshold=[53.6, 53.6, 53.6])
+    metrics.log_confusion_matrix(['dog', 'cat', 'horses'],
+                                 [[2, 6, 0], [3, 5, 6], [5, 7, 8]])
     with open(os.path.join(os.path.dirname(__file__),
         'test_data', 'expected_io_types_bulk_load_classification_metrics.json')) as json_file:
       expected_json = json.load(json_file)
