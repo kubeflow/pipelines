@@ -201,7 +201,11 @@ def should_be_metadata_type(mb_sdk_type: Any) -> bool:
 
 def is_resource_name_parameter_name(param_name: str) -> bool:
     """Determines if the mb_sdk parameter is a resource name."""
-    return param_name != 'display_name' and param_name.endswith('_name')
+    return (
+        param_name != 'display_name' and
+        not param_name.endswith('encryption_spec_key_name') and
+        param_name.endswith('_name')
+    )
 
 
 # These parameters are filtered from MB SDK methods
@@ -494,6 +498,8 @@ def convert_method_to_component(
         init_kwargs = {}
         method_kwargs = {}
 
+        print(init_arg_names)
+
         for key, value in kwargs.items():
             if key in init_arg_names:
                 prefix_key = INIT_KEY
@@ -503,6 +509,8 @@ def convert_method_to_component(
                 prefix_key = METHOD_KEY
                 method_kwargs[key] = value
                 signature = method_signature
+
+            print(prefix_key, key)
 
             # no need to add this argument because it's optional
             # this param is validated against the signature because
