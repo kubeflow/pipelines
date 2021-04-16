@@ -150,20 +150,11 @@ def runner(cls_name, method_name, resource_name_output_artifact_path, kwargs):
     serialized_args = {INIT_KEY: init_args, METHOD_KEY: method_args}
 
     prepare_parameters(serialized_args[INIT_KEY], cls.__init__, is_init=True)
-
-    # TODO(chavoshi): use logging instead.
-    print(serialized_args[INIT_KEY])
     obj = cls(**serialized_args[INIT_KEY]) if serialized_args[INIT_KEY] else cls
 
     method = getattr(obj, method_name)
-
     prepare_parameters(serialized_args[METHOD_KEY], method, is_init=False)
-    print(serialized_args[METHOD_KEY])
-
-    for key, value in serialized_args[METHOD_KEY].items():
-        print(key, type(value), value)
     output = method(**serialized_args[METHOD_KEY])
-    print(output)
 
     if output:
         write_to_artifact(
