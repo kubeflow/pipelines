@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from kfp.components._structures import InputValuePlaceholder
 from kfp import components
 from kfp import dsl
 from kfp.v2 import compiler
@@ -30,29 +31,37 @@ def my_pipeline():
 
   # Full custom job spec execution.
   print_op('custom job execution - full custom job').set_custom_job_spec({
-      'name': 'test-custom-job-full',
-      'jobSpec': {
-          'workerPoolSpecs': [{
-              'containerSpec': {
-                  'command': [
-                      'sh', '-c', 'set -e -x\necho "$0"\n',
-                      '{{$.inputs.parameters[\'text\']}}'
-                  ],
-                  'imageUri': 'alpine:latest',
-              },
-              'replicaCount': '1',
-              'machineSpec': {
-                  'machineType': 'n1-standard-4'
-              }
-          }]
-      }
+      'workerPoolSpecs': [{
+          'containerSpec': {
+              'command': [
+                  'sh',
+                  '-c',
+                  'set -e -x\necho "$0"\n',
+                  InputValuePlaceholder('text'),
+              ],
+              'imageUri': 'alpine:latest',
+          },
+          'replicaCount': '1',
+          'machineSpec': {
+              'machineType': 'n1-standard-4'
+          }
+      }]
   })
 
-  # Custom job spec with 'jobSpec' omitted - jobSpec will be auto-filled using
-  # the container spec.
+  # Custom job spec with 'containerSpec' omitted - jobSpec will be auto-filled
+  # using the container spec.
   print_op('custom job execution - partial custom job').set_custom_job_spec({
-      'name': 'test-custom-job-partial',
+      'workerPoolSpecs': [{
+          'replicaCount': '1',
+          'machineSpec': {
+              'machineType': 'n1-standard-8'
+          }
+      }]
   })
+
+  # Custom job spec with 'workerPoolSpec' omitted - jobSpec will be auto-filled
+  # using the container spec.
+  print_op('custom job execution - empty custom job').set_custom_job_spec({})
 
 
 if __name__ == '__main__':
