@@ -465,7 +465,7 @@ def convert_method_to_component(
         ])
         output_args = '\n'.join([
             '    - --resource_name_output_artifact_path',
-            '- --output_metadata_uri {{$.outputs.output_file}}',
+            '    - --output_metadata_uri {{$.outputs.output_file}}',
             f'    - {{outputPath: {output_metadata_name}}}',
         ])
 
