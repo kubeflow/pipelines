@@ -18,27 +18,18 @@
 import sys
 import logging
 import unittest
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import Tuple
+from pprint import pprint
 
 import kfp
 import kfp_server_api
 
 from .two_step import two_step_pipeline
 from .util import run_pipeline_func, TestCase, KfpMlmdClient
-# sys.path.append('.')
-# from two_step import two_step_pipeline
-# from util import run_pipeline_func, TestCase, KfpMlmdClient
 
 from ml_metadata import metadata_store
 from ml_metadata.proto import metadata_store_pb2
-
-# %%
-# argo_workflow_name = 'two-step-pipeline-8ddd7'
-# mlmd_connection_config = metadata_store_pb2.MetadataStoreClientConfig(
-#     host='localhost',
-#     port=8080,
-# )
 
 
 def verify(
@@ -57,28 +48,59 @@ def verify(
 
     preprocess: KfpTask = tasks.get('preprocess')
     train: KfpTask = tasks.get('train-op')
+
+    pprint('======= preprocess task =======')
+    pprint(preprocess.get_dict())
+    pprint('======= train task =======')
+    pprint(train.get_dict())
+    pprint('==============')
+
     t.assertEqual(
-        train.inputs.parameters,
-        {
-            'num_steps': 1234,
-        },
-        'train task input parameters',
+        preprocess.get_dict(), {
+            'inputs': {
+                'artifacts': [{
+                    'name': '',
+                    'type': 'kfp.Dataset'
+                }],
+                'parameters': {
+                    'some_int': 12,
+                    'uri': 'uri-to-import'
+                }
+            },
+            'name': 'preprocess',
+            'outputs': {
+                'artifacts': [{
+                    'name': '',
+                    'type': 'kfp.Dataset'
+                }],
+                'parameters': {
+                    'output_parameter_one': 1234
+                }
+            },
+            'type': 'kfp.ContainerExecution'
+        }
     )
     t.assertEqual(
-        train.outputs.parameters,
-        {},
-        'train task output parameters',
-    )
-    t.assertEqual(
-        preprocess.inputs.parameters, {
-            'uri': 'uri-to-import',
-            'some_int': 12,
-        }, 'preprocess task input parameters'
-    )
-    t.assertEqual(
-        preprocess.outputs.parameters, {
-            'output_parameter_one': 1234,
-        }, 'preprocess task output parameters'
+        train.get_dict(), {
+            'name': 'train-op',
+            'inputs': {
+                'artifacts': [{
+                    'name': '',
+                    'type': 'kfp.Model',
+                }],
+                'parameters': {
+                    'num_steps': 1234
+                }
+            },
+            'outputs': {
+                'artifacts': [{
+                    'name': '',
+                    'type': 'kfp.Model',
+                }],
+                'parameters': {}
+            },
+            'type': 'kfp.ContainerExecution'
+        }
     )
 
 

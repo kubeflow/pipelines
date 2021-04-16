@@ -64,11 +64,20 @@ For why the caveat exists, refer to context rule in [Makefile](./Makefile).
 ## How to develop one single sample?
 
 ```bash
+# These env vars are loaded by default, recommend configuring them in your
+# .bashrc or .zshrc
+export KFP_HOST=https://your.KFP.host
+export KFP_OUTPUT_DIRECTORY=gs://your-bucket/path/to/output/dir
+export METADATA_GRPC_SERVICE_HOST=localhost
+
 cd ${REPO_ROOT}
 # if you have a sample test at samples/path/to/your/sample_test.py
-python -m samples.path.to.your.sample_test --host https://your.KFP.host --output_directory gs://your-bucket/path/to/output/dir
+python -m samples.path.to.your.sample_test
 # or to look at command help
 python -m samples.path.to.your.sample_test --help
+
+# Note, for tests that use metadata grpc api, you should port-forward it locally in a separate terminal by:
+make mlmd-port-forward
 ```
 
 ## How to add a sample to this sample test?

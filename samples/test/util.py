@@ -2,10 +2,11 @@ import os
 import logging
 import json
 from pprint import pprint
+from typing import Dict, List, Callable, Optional
+from dataclasses import dataclass, asdict
+
 import kfp
 import kfp_server_api
-from typing import Dict, List, Callable, Optional
-from dataclasses import dataclass
 from ml_metadata import metadata_store
 from ml_metadata.proto import metadata_store_pb2
 
@@ -66,6 +67,7 @@ def run_pipeline_func(test_cases: List[TestCase]):
                 mlmd_connection_config=mlmd_connection_config,
                 argo_workflow_name=argo_workflow.get('metadata').get('name')
             )
+        print('OK: all test cases passed!')
 
     _run_test(test_wrapper)
 
@@ -150,6 +152,17 @@ def _run_test(callback):
             run_detail.pipeline_runtime.workflow_manifest = workflow_manifest
             return run_detail
 
+        # When running locally, port forward MLMD grpc service to localhost:8080 by:
+        #
+        # ```bash
+        # NAMESPACE=kubeflow kubectl port-forward svc/metadata-grpc-service 8080:8080 -n $NAMESPACE
+        # ```
+        #
+        # Then you can uncomment the following config instead.
+        # mlmd_connection_config = metadata_store_pb2.MetadataStoreClientConfig(
+        #     host='localhost',
+        #     port=8080,
+        # )
         mlmd_connection_config = metadata_store_pb2.MetadataStoreClientConfig(
             host=metadata_service_host,
             port=metadata_service_port,
@@ -164,22 +177,103 @@ def _run_test(callback):
 
 
 @dataclass
+class KfpArtifact:
+    name: str
+    uri: str
+    type: str
+
+    @classmethod
+    def new(
+        cls, mlmd_artifact: metadata_store_pb2.Artifact,
+        mlmd_artifact_type: metadata_store_pb2.ArtifactType
+    ):
+        return cls(
+            name=mlmd_artifact.name,
+            type=mlmd_artifact_type.name,
+            uri=mlmd_artifact.uri,
+        )
+
+
+@dataclass
 class TaskInputs:
     parameters: dict
+    artifacts: List[KfpArtifact]
 
 
 @dataclass
 class TaskOutputs:
     parameters: dict
+    artifacts: List[KfpArtifact]
 
 
 @dataclass
 class KfpTask:
     '''A KFP runtime task'''
-    context: metadata_store_pb2.Context
-    execution: metadata_store_pb2.Execution
+    name: str
+    type: str
     inputs: TaskInputs
     outputs: TaskOutputs
+
+    def get_dict(self):
+        d = asdict(self)
+        # remove uri, because they are not deterministic
+        for artifact in d.get('inputs').get('artifacts'):
+            artifact.pop('uri')
+        for artifact in d.get('outputs').get('artifacts'):
+            artifact.pop('uri')
+        return d
+
+    @classmethod
+    def new(
+        cls,
+        context: metadata_store_pb2.Context,
+        execution: metadata_store_pb2.Execution,
+        execution_types_by_id,  # dict[int, metadata_store_pb2.ExecutionType]
+        events_by_execution_id,  # dict[int, List[metadata_store_pb2.Event]]
+        artifacts_by_id,  # dict[int, metadata_store_pb2.Artifact]
+        artifact_types_by_id,  # dict[int, metadata_store_pb2.ArtifactType]
+    ):
+        execution_type = execution_types_by_id[execution.type_id]
+        params = _parse_parameters(execution)
+        events = events_by_execution_id[execution.id]
+        input_artifacts = []
+        output_artifacts = []
+        if events:
+            input_artifact_ids = [
+                e.artifact_id
+                for e in events
+                if e.type == metadata_store_pb2.Event.OUTPUT
+            ]
+            output_artifact_ids = [
+                e.artifact_id
+                for e in events
+                if e.type == metadata_store_pb2.Event.OUTPUT
+            ]
+
+            def kfp_artifact(aid):
+                mlmd_artifact = artifacts_by_id[aid]
+                mlmd_type = artifact_types_by_id[mlmd_artifact.type_id]
+                return KfpArtifact.new(
+                    mlmd_artifact=mlmd_artifact,
+                    mlmd_artifact_type=artifact_types_by_id[
+                        mlmd_artifact.type_id]
+                )
+
+            input_artifacts = [kfp_artifact(aid) for aid in input_artifact_ids]
+            output_artifacts = [
+                kfp_artifact(aid) for aid in output_artifact_ids
+            ]
+
+        return cls(
+            name=execution.custom_properties.get('task_name').string_value,
+            type=execution_type.name,
+            inputs=TaskInputs(
+                parameters=params['inputs'], artifacts=input_artifacts
+            ),
+            outputs=TaskOutputs(
+                parameters=params['outputs'], artifacts=output_artifacts
+            ),
+        )
 
 
 class KfpMlmdClient:
@@ -198,29 +292,42 @@ class KfpMlmdClient:
         logging.info(
             f'run_context: name={run_context.name} id={run_context.id}'
         )
-        execution_list = self.mlmd_store.get_executions_by_context(
+        executions = self.mlmd_store.get_executions_by_context(
             context_id=run_context.id
         )
-        _validate_executions_have_task_names(execution_list)
-        tasks = {
-            e.custom_properties.get('task_name').string_value:
-            _kfp_task(context=run_context, execution=e) for e in execution_list
-        }
-
-        return tasks
-
-
-def _kfp_task(
-    context: metadata_store_pb2.Execution,
-    execution: metadata_store_pb2.Execution,
-):
-    params = _parse_parameters(execution)
-    return KfpTask(
-        context=context,
-        execution=execution,
-        inputs=TaskInputs(parameters=params['inputs']),
-        outputs=TaskOutputs(parameters=params['outputs']),
-    )
+        execution_types = self.mlmd_store.get_execution_types_by_id(
+            list(set([e.type_id for e in executions]))
+        )
+        execution_types_by_id = {et.id: et for et in execution_types}
+        events = self.mlmd_store.get_events_by_execution_ids([
+            e.id for e in executions
+        ])
+        events_by_execution_id = {}
+        for e in events:
+            events_by_execution_id[
+                e.execution_id
+            ] = (events_by_execution_id.get(e.execution_id) or []) + [e]
+        artifacts = self.mlmd_store.get_artifacts_by_context(
+            context_id=run_context.id
+        )
+        artifacts_by_id = {a.id: a for a in artifacts}
+        artifact_types = self.mlmd_store.get_artifact_types_by_id(
+            list(set([a.type_id for a in artifacts]))
+        )
+        artifact_types_by_id = {at.id: at for at in artifact_types}
+        _validate_executions_have_task_names(executions)
+        tasks = [
+            KfpTask.new(
+                context=run_context,
+                execution=e,
+                execution_types_by_id=execution_types_by_id,
+                events_by_execution_id=events_by_execution_id,
+                artifacts_by_id=artifacts_by_id,
+                artifact_types_by_id=artifact_types_by_id,
+            ) for e in executions
+        ]
+        tasks_by_name = {t.name: t for t in tasks}
+        return tasks_by_name
 
 
 def _validate_executions_have_task_names(execution_list):
