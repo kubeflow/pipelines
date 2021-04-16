@@ -44,13 +44,14 @@ class ImporterNodeTest(unittest.TestCase):
             'runtimeParameter': 'param1'
         },
         'typeSchema': {
-            'instanceSchema': 'title: kfp.Artifact'
+            'schemaTitle': 'system.Artifact'
         }
     }
     expected_importer_spec = pb.PipelineDeploymentConfig.ImporterSpec()
     json_format.ParseDict(expected_importer, expected_importer_spec)
     importer_spec = importer_node.build_importer_spec(
-        input_type_schema='title: kfp.Artifact', pipeline_param_name='param1')
+        input_type_schema=pb.ArtifactTypeSchema(schema_title='system.Artifact'),
+        pipeline_param_name='param1')
 
     self.maxDiff = None
     self.assertEqual(expected_importer_spec, importer_spec)
@@ -63,13 +64,14 @@ class ImporterNodeTest(unittest.TestCase):
             }
         },
         'typeSchema': {
-            'instanceSchema': 'title: kfp.Artifact'
+            'schemaTitle': 'system.Artifact'
         }
     }
     expected_importer_spec = pb.PipelineDeploymentConfig.ImporterSpec()
     json_format.ParseDict(expected_importer, expected_importer_spec)
     importer_spec = importer_node.build_importer_spec(
-        input_type_schema='title: kfp.Artifact', constant_value='some_uri')
+        input_type_schema=pb.ArtifactTypeSchema(schema_title='system.Artifact'),
+        constant_value='some_uri')
 
     self.maxDiff = None
     self.assertEqual(expected_importer_spec, importer_spec)
@@ -80,7 +82,8 @@ class ImporterNodeTest(unittest.TestCase):
         'importer spec should be built using either pipeline_param_name or '
         'constant_value'):
       importer_node.build_importer_spec(
-          input_type_schema='title: kfp.Artifact',
+          input_type_schema=pb.ArtifactTypeSchema(
+              schema_title='system.Artifact'),
           pipeline_param_name='param1',
           constant_value='some_uri')
 
@@ -88,7 +91,9 @@ class ImporterNodeTest(unittest.TestCase):
         AssertionError,
         'importer spec should be built using either pipeline_param_name or '
         'constant_value'):
-      importer_node.build_importer_spec(input_type_schema='title: kfp.Artifact')
+      importer_node.build_importer_spec(
+          input_type_schema=pb.ArtifactTypeSchema(
+              schema_title='system.Artifact'))
 
   def test_build_importer_component_spec(self):
     expected_importer_component = {
@@ -103,7 +108,7 @@ class ImporterNodeTest(unittest.TestCase):
             'artifacts': {
                 'result': {
                     'artifactType': {
-                        'instanceSchema': 'title: kfp.Artifact'
+                        'schemaTitle': 'system.Artifact'
                     }
                 }
             }
@@ -116,7 +121,7 @@ class ImporterNodeTest(unittest.TestCase):
     importer_comp_spec = importer_node.build_importer_component_spec(
         importer_base_name='importer-task0-input1',
         input_name='input1',
-        input_type_schema='title: kfp.Artifact')
+        input_type_schema=pb.ArtifactTypeSchema(schema_title='system.Artifact'))
 
     self.maxDiff = None
     self.assertEqual(expected_importer_comp_spec, importer_comp_spec)

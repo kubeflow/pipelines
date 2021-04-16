@@ -64,10 +64,7 @@ class ComponentSpecTest(parameterized.TestCase):
             'artifacts': {
                 'input1': {
                     'artifactType': {
-                        'instanceSchema':
-                            'title: kfp.Dataset\ntype: object\nproperties:\n  '
-                            'payload_format:\n    type: string\n  '
-                            'container_format:\n    type: string\n'
+                        'schemaTitle': 'system.Dataset'
                     }
                 }
             },
@@ -84,10 +81,7 @@ class ComponentSpecTest(parameterized.TestCase):
             'artifacts': {
                 'output1': {
                     'artifactType': {
-                        'instanceSchema':
-                            'title: kfp.Model\ntype: object\nproperties:\n  '
-                            'framework:\n    type: string\n  '
-                            'framework_version:\n    type: string\n'
+                        'schemaTitle': 'system.Model'
                     }
                 }
             }
@@ -114,8 +108,7 @@ class ComponentSpecTest(parameterized.TestCase):
                   'artifacts': {
                       'input1': {
                           'artifactType': {
-                              'instanceSchema':
-                                  'title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string\n'
+                              'schemaTitle': 'system.Dataset'
                           }
                       }
                   },
@@ -140,8 +133,7 @@ class ComponentSpecTest(parameterized.TestCase):
                   'artifacts': {
                       'pipelineparam--input1': {
                           'artifactType': {
-                              'instanceSchema':
-                                  'title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string\n'
+                              'schemaTitle': 'system.Dataset'
                           }
                       }
                   },
@@ -190,10 +182,7 @@ class ComponentSpecTest(parameterized.TestCase):
             'artifacts': {
                 'output1': {
                     'artifactType': {
-                        'instanceSchema':
-                            'title: kfp.Dataset\ntype: object\nproperties:\n  '
-                            'payload_format:\n    type: string\n  '
-                            'container_format:\n    type: string\n'
+                        'schemaTitle': 'system.Dataset'
                     }
                 }
             },
@@ -486,9 +475,7 @@ class ComponentSpecTest(parameterized.TestCase):
         executor_label='exec-component1')
 
     component_spec.input_definitions.artifacts[
-        'input1'].artifact_type.instance_schema = (
-            'properties:\ntitle: '
-            'kfp.Dataset\ntype: object\n')
+        'input1'].artifact_type.schema_title = 'system.Dataset'
     component_spec.input_definitions.parameters[
         'input2'].type = pipeline_spec_pb2.PrimitiveType.STRING
     component_spec.input_definitions.parameters[

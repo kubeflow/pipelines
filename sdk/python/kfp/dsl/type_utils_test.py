@@ -12,9 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from absl.testing import parameterized
+
 import sys
 import unittest
 from kfp.components import structures
+from kfp.dsl import io_types
 from kfp.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2 as pb
 
@@ -27,7 +30,11 @@ _UNKNOWN_ARTIFACT_TYPES = [{
 }, None, 'Arbtrary Model', 'dummy']
 
 
-class TypeUtilsTest(unittest.TestCase):
+class _ArbitraryClass:
+  pass
+
+
+class TypeUtilsTest(parameterized.TestCase):
 
   def test_is_parameter_type(self):
     for type_name in _PARAMETER_TYPES:
@@ -35,41 +42,60 @@ class TypeUtilsTest(unittest.TestCase):
     for type_name in _KNOWN_ARTIFACT_TYPES + _UNKNOWN_ARTIFACT_TYPES:
       self.assertFalse(type_utils.is_parameter_type(type_name))
 
-  def test_get_artifact_type_schema(self):
-    self.assertTrue(
-        'title: kfp.Model' in type_utils.get_artifact_type_schema('Model'))
-    self.assertTrue(
-        'title: kfp.Dataset' in type_utils.get_artifact_type_schema('Dataset'))
-    print(type_utils.get_artifact_type_schema('Metrics'))
-    self.assertTrue(
-        'system.Metrics' in type_utils.get_artifact_type_schema('Metrics'))
-    self.assertTrue('system.ClassificationMetrics' in type_utils
-                    .get_artifact_type_schema('ClassificationMetrics'))
-    self.assertTrue('title: kfp.SlicedClassificationMetrics' in type_utils
-                    .get_artifact_type_schema('SlicedClassificationMetrics'))
-
-    for type_name in _UNKNOWN_ARTIFACT_TYPES:
-      self.assertEqual('title: kfp.Artifact\ntype: object\n',
-                       type_utils.get_artifact_type_schema(type_name))
-
-  def test_get_artifact_type_schema_message(self):
-    self.assertTrue('title: kfp.SlicedClassificationMetrics' in
-                    type_utils.get_artifact_type_schema_message(
-                        'SlicedClassificationMetrics').instance_schema)
-    self.assertTrue('title: kfp.Model' in type_utils
-                    .get_artifact_type_schema_message('Model').instance_schema)
-    self.assertTrue(
-        'title: kfp.Dataset' in type_utils.get_artifact_type_schema_message(
-            'Dataset').instance_schema)
-    self.assertTrue(
-        'system.Metrics' in type_utils.get_artifact_type_schema_message(
-            'Metrics').schema_title)
-    self.assertTrue('system.ClassificationMetrics' in
-                    type_utils.get_artifact_type_schema_message(
-                        'ClassificationMetrics').schema_title)
-    self.assertTrue('title: kfp.SlicedClassificationMetrics' in
-                    type_utils.get_artifact_type_schema_message(
-                        'SlicedClassificationMetrics').instance_schema)
+  @parameterized.parameters(
+    {
+        'artifact_class_or_type_name': 'Model',
+        'expected_result': pb.ArtifactTypeSchema(schema_title='system.Model')
+    },
+    {
+        'artifact_class_or_type_name': io_types.Model,
+        'expected_result': pb.ArtifactTypeSchema(schema_title='system.Model')
+    },
+    {
+        'artifact_class_or_type_name': 'Dataset',
+        'expected_result': pb.ArtifactTypeSchema(schema_title='system.Dataset')
+    },
+    {
+        'artifact_class_or_type_name': io_types.Dataset,
+        'expected_result': pb.ArtifactTypeSchema(schema_title='system.Dataset')
+    },
+    {
+        'artifact_class_or_type_name': 'Metrics',
+        'expected_result': pb.ArtifactTypeSchema(schema_title='system.Metrics')
+    },
+    {
+        'artifact_class_or_type_name': io_types.Metrics,
+        'expected_result': pb.ArtifactTypeSchema(schema_title='system.Metrics')
+    },
+    {
+        'artifact_class_or_type_name': 'ClassificationMetrics',
+        'expected_result': pb.ArtifactTypeSchema(schema_title='system.ClassificationMetrics')
+    },
+    {
+        'artifact_class_or_type_name': io_types.ClassificationMetrics,
+        'expected_result': pb.ArtifactTypeSchema(schema_title='system.ClassificationMetrics')
+    },
+    {
+        'artifact_class_or_type_name': 'SlicedClassificationMetrics',
+        'expected_result': pb.ArtifactTypeSchema(schema_title='system.SlicedClassificationMetrics')
+    },
+    {
+        'artifact_class_or_type_name': io_types.SlicedClassificationMetrics,
+        'expected_result': pb.ArtifactTypeSchema(schema_title='system.SlicedClassificationMetrics')
+    },
+    {
+        'artifact_class_or_type_name': 'arbitrary name',
+        'expected_result': pb.ArtifactTypeSchema(schema_title='system.Artifact')
+    },
+    {
+        'artifact_class_or_type_name': _ArbitraryClass,
+        'expected_result': pb.ArtifactTypeSchema(schema_title='system.Artifact')
+    },
+  )
+  def test_get_artifact_type_schema(self, artifact_class_or_type_name, expected_result):
+    self.assertEqual(expected_result,
+                    type_utils.get_artifact_type_schema(
+                        artifact_class_or_type_name))
 
   def test_get_parameter_type(self):
     # Test get parameter type by name.
@@ -116,13 +142,13 @@ class TypeUtilsTest(unittest.TestCase):
 
     # input found, and a matching artifact type schema returned.
     self.assertEqual(
-        'title: kfp.Model\ntype: object\nproperties:\n  framework:\n    type: string\n  framework_version:\n    type: string\n',
-        type_utils.get_input_artifact_type_schema('input2', input_specs))
+        'system.Model',
+        type_utils.get_input_artifact_type_schema('input2', input_specs).schema_title)
 
     # input found, and the default artifact type schema returned.
     self.assertEqual(
-        'title: kfp.Artifact\ntype: object\n',
-        type_utils.get_input_artifact_type_schema('input3', input_specs))
+        'system.Artifact',
+        type_utils.get_input_artifact_type_schema('input3', input_specs).schema_title)
 
   def test_get_parameter_type_field_name(self):
     self.assertEqual('string_value',

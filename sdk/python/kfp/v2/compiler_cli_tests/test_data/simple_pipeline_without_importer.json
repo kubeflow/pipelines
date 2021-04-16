@@ -88,7 +88,7 @@
           "artifacts": {
             "input_gcs_path": {
               "artifactType": {
-                "instanceSchema": "title: kfp.Artifact\ntype: object\n"
+                "schemaTitle": "system.Artifact"
               }
             }
           }
@@ -106,7 +106,7 @@
           "artifacts": {
             "output_gcs_path": {
               "artifactType": {
-                "instanceSchema": "title: kfp.Artifact\ntype: object\n"
+                "schemaTitle": "system.Artifact"
               }
             }
           }

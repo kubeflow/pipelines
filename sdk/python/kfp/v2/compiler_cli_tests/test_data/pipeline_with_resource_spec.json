@@ -57,7 +57,7 @@
           "artifacts": {
             "examples": {
               "artifactType": {
-                "instanceSchema": "title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string\n"
+                "schemaTitle": "system.Dataset"
               }
             }
           }
@@ -68,7 +68,7 @@
           "artifacts": {
             "model": {
               "artifactType": {
-                "instanceSchema": "title: kfp.Model\ntype: object\nproperties:\n  framework:\n    type: string\n  framework_version:\n    type: string\n"
+                "schemaTitle": "system.Model"
               }
             }
           }
@@ -78,7 +78,7 @@
           "artifacts": {
             "examples": {
               "artifactType": {
-                "instanceSchema": "title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string\n"
+                "schemaTitle": "system.Dataset"
               }
             }
           },

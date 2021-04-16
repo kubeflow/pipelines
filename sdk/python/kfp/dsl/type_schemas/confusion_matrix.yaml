@@ -1,4 +1,4 @@
-title: kfp.ConfusionMatrix
+title: system.ConfusionMatrix
 type: object
 properties:
   annotationSpecs:
