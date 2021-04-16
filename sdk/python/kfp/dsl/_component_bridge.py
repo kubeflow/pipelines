@@ -330,6 +330,9 @@ def _attach_v2_specs(
       is_compiling_for_v2 = True
       break
 
+  # Make a copy of the spec, since some hacks change it
+  component_spec = copy.deepcopy(component_spec)
+
   def _resolve_commands_and_args_v2(
       component_spec: _structures.ComponentSpec,
       arguments: Mapping[str, Any],
@@ -343,7 +346,6 @@ def _attach_v2_specs(
     Returns:
       A named tuple: _components._ResolvedCommandLineAndPaths.
     """
-    component_spec = copy.deepcopy(component_spec)
     inputs_dict = {
         input_spec.name: input_spec
         for input_spec in component_spec.inputs or []
