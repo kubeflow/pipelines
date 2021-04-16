@@ -18,7 +18,7 @@ from distutils import util as distutil
 import inspect
 import json
 import os
-from typing import Any, Dict, Tuple
+from typing import Any, Callable, Dict, Tuple, Type, TypeVar
 
 from google.cloud import aiplatform
 from google_cloud_components.aiplatform import utils
@@ -92,18 +92,48 @@ def make_output(output_object: Any) -> str:
     return json.dumps(list(output_object))
 
 
-def cast(value, annotation_type):
+T = TypeVar('T')
+
+
+def cast(value: str, annotation_type: Type[T]) -> T:
+    """Casts a value to the annotation type.
+
+    Includes special handling for bools passed as strings.
+
+    Args:
+        value (str): The value represented as a string.
+        annotation_type (Type[T]): The type to cast the value to.
+    Returns:
+        An instance of annotation_type value.
+        
+    """
     if annotation_type is bool:
         return bool(distutil.strtobool(value))
     return annotation_type(value)
 
 
-def prepare_parameters(kwargs, method, is_init=False):
+def prepare_parameters(
+    kwargs: Dict[str, Any], method: Callable, is_init: bool = False
+):
+    """Prepares paramters passed into components before calling SDK.
+
+    1. Determines the annotation type that should used with the parameter
+    2. Reads input values if needed
+    3. Deserializes thos value where appropriate
+    4. Or casts to the correct type.
+    
+    Args:
+        kwargs (Dict[str, Any]): The kwargs that will be passed into method. Mutates in place.
+        method (Callable): The method the kwargs used to invoke the method.
+        is_init (bool): Whether this method is a constructor
+    """
     for key, param in inspect.signature(method).parameters.items():
         if key in kwargs:
             value = kwargs[key]
             param_type = utils.resolve_annotation(param.annotation)
-            value = resolve_init_args(key, value) if is_init else resolve_input_args(value, param_type)
+            value = resolve_init_args(
+                key, value
+            ) if is_init else resolve_input_args(value, param_type)
             deserializer = utils.get_deserializer(param_type)
             if deserializer:
                 value = deserializer(value)
