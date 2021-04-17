@@ -45,6 +45,10 @@ To use the component, the following requirements must be met:
 - The Kubeflow user service account is a member of:
     - `roles/dataflow.developer` role of the project.
     - `roles/storage.objectCreator` role of the Cloud Storage Object for `staging_dir.` and output data folder.
+- The dataflow controller service account is a member of:
+    - `roles/bigquery.readSessionUser` role to create read sessions in the project.
+    - `roles/bigquery.jobUser` role to run jobs including queries.
+    - `roles/bigquery.dataViewer` role to read data and metadata from the table of view
 
 
 ---
@@ -71,6 +75,7 @@ help(dataflow_template_op)
 #### 3. Configure job parameters
 ```python
 PROJECT_ID = '[Your PROJECT_ID]'
+BIGQUERY_TABLE_SPEC = '[Your PROJECT_ID:DATASET_ID.TABLE_ID]'
 GCS_OUTPUT_FOLDER = 'gs://[Your output GCS folder]'
 GCS_STAGING_FOLDER = 'gs://[Your staging GCS folder]'
 LOCATION = 'us'
@@ -79,7 +84,7 @@ EXPERIMENT_NAME = 'Dataflow - Launch Flex Template'
 
 flex_temp_launch_parameters = {
     "parameters": {
-        "tableRef": "bigquery-public-data:samples.shakespeare",
+        "tableRef": BIGQUERY_TABLE_SPEC,
         "bucket": GCS_OUTPUT_FOLDER
     },
     "containerSpecGcsPath": "gs://dataflow-templates/2021-03-29-00_RC00/flex/BigQuery_to_Parquet",
