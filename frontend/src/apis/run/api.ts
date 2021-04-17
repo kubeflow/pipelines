@@ -94,13 +94,13 @@ export interface ApiListRunsResponse {
    */
   runs?: Array<ApiRun>;
   /**
-   *
+   * The total number of runs for the given query.
    * @type {number}
    * @memberof ApiListRunsResponse
    */
   total_size?: number;
   /**
-   *
+   * The token to list the next page of runs.
    * @type {string}
    * @memberof ApiListRunsResponse
    */
@@ -323,11 +323,11 @@ export interface ApiRun {
    */
   name?: string;
   /**
-   *
-   * @type {RunStorageState}
+   * Output. Specify whether this run is in archived or available mode.
+   * @type {ApiRunStorageState}
    * @memberof ApiRun
    */
-  storage_state?: RunStorageState;
+  storage_state?: ApiRunStorageState;
   /**
    *
    * @type {string}
@@ -341,7 +341,7 @@ export interface ApiRun {
    */
   pipeline_spec?: ApiPipelineSpec;
   /**
-   * Optional input field. Specify which resource this run belongs to.
+   * Optional input field. Specify which resource this run belongs to. When creating a run from a particular pipeline version, the pipeline version can be specified here.
    * @type {Array<ApiResourceReference>}
    * @memberof ApiRun
    */
@@ -445,6 +445,16 @@ export interface ApiRunMetric {
 /**
  *
  * @export
+ * @enum {string}
+ */
+export enum ApiRunStorageState {
+  AVAILABLE = <any>'STORAGESTATE_AVAILABLE',
+  ARCHIVED = <any>'STORAGESTATE_ARCHIVED',
+}
+
+/**
+ *
+ * @export
  * @interface ApiStatus
  */
 export interface ApiStatus {
@@ -475,7 +485,7 @@ export interface ApiStatus {
  */
 export interface ProtobufAny {
   /**
-   * A URL/resource name that uniquely identifies the type of the serialized protocol buffer message. The last segment of the URL's path must represent the fully qualified name of the type (as in `path/google.protobuf.Duration`). The name should be in a canonical form (e.g., leading \".\" is not accepted).  In practice, teams usually precompile into the binary all types that they expect it to use in the context of Any. However, for URLs which use the scheme `http`, `https`, or no scheme, one can optionally set up a type server that maps type URLs to message definitions as follows:  * If no scheme is provided, `https` is assumed. * An HTTP GET on the URL must yield a [google.protobuf.Type][]   value in binary format, or produce an error. * Applications are allowed to cache lookup results based on the   URL, or have them precompiled into a binary to avoid any   lookup. Therefore, binary compatibility needs to be preserved   on changes to types. (Use versioned type names to manage   breaking changes.)  Note: this functionality is not currently available in the official protobuf release, and it is not used for type URLs beginning with type.googleapis.com.  Schemes other than `http`, `https` (or the empty scheme) might be used with implementation specific semantics.
+   * A URL/resource name that uniquely identifies the type of the serialized protocol buffer message. This string must contain at least one \"/\" character. The last segment of the URL's path must represent the fully qualified name of the type (as in `path/google.protobuf.Duration`). The name should be in a canonical form (e.g., leading \".\" is not accepted).  In practice, teams usually precompile into the binary all types that they expect it to use in the context of Any. However, for URLs which use the scheme `http`, `https`, or no scheme, one can optionally set up a type server that maps type URLs to message definitions as follows:  * If no scheme is provided, `https` is assumed. * An HTTP GET on the URL must yield a [google.protobuf.Type][]   value in binary format, or produce an error. * Applications are allowed to cache lookup results based on the   URL, or have them precompiled into a binary to avoid any   lookup. Therefore, binary compatibility needs to be preserved   on changes to types. (Use versioned type names to manage   breaking changes.)  Note: this functionality is not currently available in the official protobuf release, and it is not used for type URLs beginning with type.googleapis.com.  Schemes other than `http`, `https` (or the empty scheme) might be used with implementation specific semantics.
    * @type {string}
    * @memberof ProtobufAny
    */
@@ -545,16 +555,6 @@ export enum RunMetricFormat {
 }
 
 /**
- *
- * @export
- * @enum {string}
- */
-export enum RunStorageState {
-  AVAILABLE = <any>'STORAGESTATE_AVAILABLE',
-  ARCHIVED = <any>'STORAGESTATE_ARCHIVED',
-}
-
-/**
  * RunServiceApi - fetch parameter creator
  * @export
  */
@@ -562,8 +562,8 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
   return {
     /**
      *
-     * @summary Archive a run.
-     * @param {string} id
+     * @summary Archives a run.
+     * @param {string} id The ID of the run to be archived.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -610,7 +610,7 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
     },
     /**
      *
-     * @summary Create a new run.
+     * @summary Creates a new run.
      * @param {ApiRun} body
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -661,8 +661,8 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
     },
     /**
      *
-     * @summary Delete a run.
-     * @param {string} id
+     * @summary Deletes a run.
+     * @param {string} id The ID of the run to be deleted.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -709,8 +709,8 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
     },
     /**
      *
-     * @summary Find a specific run by ID.
-     * @param {string} run_id
+     * @summary Finds a specific run by ID.
+     * @param {string} run_id The ID of the run to be retrieved.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -757,10 +757,10 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
     },
     /**
      *
-     * @summary Find all runs.
-     * @param {string} [page_token]
-     * @param {number} [page_size]
-     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; (Example, \&quot;name asc\&quot; or \&quot;id des\&quot;). Ascending by default.
+     * @summary Finds all runs.
+     * @param {string} [page_token] A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListRuns call or can be omitted when fetching the first page.
+     * @param {number} [page_size] The number of runs to be listed per page. If there are more runs than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
+     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; (Example, \&quot;name asc\&quot; or \&quot;id desc\&quot;). Ascending by default.
      * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
      * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
      * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
@@ -838,7 +838,7 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
     },
     /**
      *
-     * @summary Find a run's artifact data.
+     * @summary Finds a run's artifact data.
      * @param {string} run_id The ID of the run.
      * @param {string} node_id The ID of the running node.
      * @param {string} artifact_name The name of the artifact.
@@ -973,8 +973,8 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
     },
     /**
      *
-     * @summary Re-initiate a failed or terminated run.
-     * @param {string} run_id
+     * @summary Re-initiates a failed or terminated run.
+     * @param {string} run_id The ID of the run to be retried.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1021,8 +1021,8 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
     },
     /**
      *
-     * @summary Terminate an active run.
-     * @param {string} run_id
+     * @summary Terminates an active run.
+     * @param {string} run_id The ID of the run to be terminated.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1069,8 +1069,8 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
     },
     /**
      *
-     * @summary Restore an archived run.
-     * @param {string} id
+     * @summary Restores an archived run.
+     * @param {string} id The ID of the run to be restored.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1126,8 +1126,8 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
   return {
     /**
      *
-     * @summary Archive a run.
-     * @param {string} id
+     * @summary Archives a run.
+     * @param {string} id The ID of the run to be archived.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1148,7 +1148,7 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
-     * @summary Create a new run.
+     * @summary Creates a new run.
      * @param {ApiRun} body
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1173,8 +1173,8 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
-     * @summary Delete a run.
-     * @param {string} id
+     * @summary Deletes a run.
+     * @param {string} id The ID of the run to be deleted.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1195,8 +1195,8 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
-     * @summary Find a specific run by ID.
-     * @param {string} run_id
+     * @summary Finds a specific run by ID.
+     * @param {string} run_id The ID of the run to be retrieved.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1220,10 +1220,10 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
-     * @summary Find all runs.
-     * @param {string} [page_token]
-     * @param {number} [page_size]
-     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; (Example, \&quot;name asc\&quot; or \&quot;id des\&quot;). Ascending by default.
+     * @summary Finds all runs.
+     * @param {string} [page_token] A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListRuns call or can be omitted when fetching the first page.
+     * @param {number} [page_size] The number of runs to be listed per page. If there are more runs than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
+     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; (Example, \&quot;name asc\&quot; or \&quot;id desc\&quot;). Ascending by default.
      * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
      * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
      * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
@@ -1266,7 +1266,7 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
-     * @summary Find a run's artifact data.
+     * @summary Finds a run's artifact data.
      * @param {string} run_id The ID of the run.
      * @param {string} node_id The ID of the running node.
      * @param {string} artifact_name The name of the artifact.
@@ -1325,8 +1325,8 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
-     * @summary Re-initiate a failed or terminated run.
-     * @param {string} run_id
+     * @summary Re-initiates a failed or terminated run.
+     * @param {string} run_id The ID of the run to be retried.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1347,8 +1347,8 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
-     * @summary Terminate an active run.
-     * @param {string} run_id
+     * @summary Terminates an active run.
+     * @param {string} run_id The ID of the run to be terminated.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1372,8 +1372,8 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
-     * @summary Restore an archived run.
-     * @param {string} id
+     * @summary Restores an archived run.
+     * @param {string} id The ID of the run to be restored.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1407,8 +1407,8 @@ export const RunServiceApiFactory = function(
   return {
     /**
      *
-     * @summary Archive a run.
-     * @param {string} id
+     * @summary Archives a run.
+     * @param {string} id The ID of the run to be archived.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1417,7 +1417,7 @@ export const RunServiceApiFactory = function(
     },
     /**
      *
-     * @summary Create a new run.
+     * @summary Creates a new run.
      * @param {ApiRun} body
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1427,8 +1427,8 @@ export const RunServiceApiFactory = function(
     },
     /**
      *
-     * @summary Delete a run.
-     * @param {string} id
+     * @summary Deletes a run.
+     * @param {string} id The ID of the run to be deleted.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1437,8 +1437,8 @@ export const RunServiceApiFactory = function(
     },
     /**
      *
-     * @summary Find a specific run by ID.
-     * @param {string} run_id
+     * @summary Finds a specific run by ID.
+     * @param {string} run_id The ID of the run to be retrieved.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1447,10 +1447,10 @@ export const RunServiceApiFactory = function(
     },
     /**
      *
-     * @summary Find all runs.
-     * @param {string} [page_token]
-     * @param {number} [page_size]
-     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; (Example, \&quot;name asc\&quot; or \&quot;id des\&quot;). Ascending by default.
+     * @summary Finds all runs.
+     * @param {string} [page_token] A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListRuns call or can be omitted when fetching the first page.
+     * @param {number} [page_size] The number of runs to be listed per page. If there are more runs than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
+     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; (Example, \&quot;name asc\&quot; or \&quot;id desc\&quot;). Ascending by default.
      * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
      * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
      * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
@@ -1484,7 +1484,7 @@ export const RunServiceApiFactory = function(
     },
     /**
      *
-     * @summary Find a run's artifact data.
+     * @summary Finds a run's artifact data.
      * @param {string} run_id The ID of the run.
      * @param {string} node_id The ID of the running node.
      * @param {string} artifact_name The name of the artifact.
@@ -1516,8 +1516,8 @@ export const RunServiceApiFactory = function(
     },
     /**
      *
-     * @summary Re-initiate a failed or terminated run.
-     * @param {string} run_id
+     * @summary Re-initiates a failed or terminated run.
+     * @param {string} run_id The ID of the run to be retried.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1526,8 +1526,8 @@ export const RunServiceApiFactory = function(
     },
     /**
      *
-     * @summary Terminate an active run.
-     * @param {string} run_id
+     * @summary Terminates an active run.
+     * @param {string} run_id The ID of the run to be terminated.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1536,8 +1536,8 @@ export const RunServiceApiFactory = function(
     },
     /**
      *
-     * @summary Restore an archived run.
-     * @param {string} id
+     * @summary Restores an archived run.
+     * @param {string} id The ID of the run to be restored.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1556,8 +1556,8 @@ export const RunServiceApiFactory = function(
 export class RunServiceApi extends BaseAPI {
   /**
    *
-   * @summary Archive a run.
-   * @param {string} id
+   * @summary Archives a run.
+   * @param {string} id The ID of the run to be archived.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof RunServiceApi
@@ -1568,7 +1568,7 @@ export class RunServiceApi extends BaseAPI {
 
   /**
    *
-   * @summary Create a new run.
+   * @summary Creates a new run.
    * @param {ApiRun} body
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
@@ -1580,8 +1580,8 @@ export class RunServiceApi extends BaseAPI {
 
   /**
    *
-   * @summary Delete a run.
-   * @param {string} id
+   * @summary Deletes a run.
+   * @param {string} id The ID of the run to be deleted.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof RunServiceApi
@@ -1592,8 +1592,8 @@ export class RunServiceApi extends BaseAPI {
 
   /**
    *
-   * @summary Find a specific run by ID.
-   * @param {string} run_id
+   * @summary Finds a specific run by ID.
+   * @param {string} run_id The ID of the run to be retrieved.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof RunServiceApi
@@ -1604,10 +1604,10 @@ export class RunServiceApi extends BaseAPI {
 
   /**
    *
-   * @summary Find all runs.
-   * @param {string} [page_token]
-   * @param {number} [page_size]
-   * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; (Example, \&quot;name asc\&quot; or \&quot;id des\&quot;). Ascending by default.
+   * @summary Finds all runs.
+   * @param {string} [page_token] A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListRuns call or can be omitted when fetching the first page.
+   * @param {number} [page_size] The number of runs to be listed per page. If there are more runs than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
+   * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; (Example, \&quot;name asc\&quot; or \&quot;id desc\&quot;). Ascending by default.
    * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
    * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
    * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
@@ -1643,7 +1643,7 @@ export class RunServiceApi extends BaseAPI {
 
   /**
    *
-   * @summary Find a run's artifact data.
+   * @summary Finds a run's artifact data.
    * @param {string} run_id The ID of the run.
    * @param {string} node_id The ID of the running node.
    * @param {string} artifact_name The name of the artifact.
@@ -1679,8 +1679,8 @@ export class RunServiceApi extends BaseAPI {
 
   /**
    *
-   * @summary Re-initiate a failed or terminated run.
-   * @param {string} run_id
+   * @summary Re-initiates a failed or terminated run.
+   * @param {string} run_id The ID of the run to be retried.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof RunServiceApi
@@ -1691,8 +1691,8 @@ export class RunServiceApi extends BaseAPI {
 
   /**
    *
-   * @summary Terminate an active run.
-   * @param {string} run_id
+   * @summary Terminates an active run.
+   * @param {string} run_id The ID of the run to be terminated.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof RunServiceApi
@@ -1706,8 +1706,8 @@ export class RunServiceApi extends BaseAPI {
 
   /**
    *
-   * @summary Restore an archived run.
-   * @param {string} id
+   * @summary Restores an archived run.
+   * @param {string} id The ID of the run to be restored.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof RunServiceApi

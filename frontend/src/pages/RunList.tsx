@@ -18,7 +18,7 @@ import * as React from 'react';
 import CustomTable, { Column, Row, CustomRendererProps } from '../components/CustomTable';
 import Metric from '../components/Metric';
 import RunUtils, { MetricMetadata, ExperimentInfo } from '../../src/lib/RunUtils';
-import { ApiRun, ApiRunMetric, RunStorageState, ApiRunDetail } from '../../src/apis/run';
+import { ApiRun, ApiRunMetric, ApiRunStorageState, ApiRunDetail } from '../../src/apis/run';
 import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { NodePhase } from '../lib/StatusUtils';
@@ -74,7 +74,7 @@ export type RunListProps = MaskProps &
     onSelectionChange?: (selectedRunIds: string[]) => void;
     runIdListMask?: string[];
     selectedIds?: string[];
-    storageState?: RunStorageState;
+    storageState?: ApiRunStorageState;
   };
 
 interface RunListState {
@@ -189,7 +189,9 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           noFilterBox={this.props.noFilterBox}
           emptyMessage={
             `No` +
-            `${this.props.storageState === RunStorageState.ARCHIVED ? ' archived' : ' available'}` +
+            `${
+              this.props.storageState === ApiRunStorageState.ARCHIVED ? ' archived' : ' available'
+            }` +
             ` runs found` +
             `${
               this.props.experimentIdMask
@@ -346,10 +348,10 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
               // Use EQUALS ARCHIVED or NOT EQUALS ARCHIVED to account for cases where the field
               // is missing, in which case it should be counted as available.
               op:
-                this.props.storageState === RunStorageState.ARCHIVED
+                this.props.storageState === ApiRunStorageState.ARCHIVED
                   ? PredicateOp.EQUALS
                   : PredicateOp.NOTEQUALS,
-              string_value: RunStorageState.ARCHIVED.toString(),
+              string_value: ApiRunStorageState.ARCHIVED.toString(),
             },
           ]);
           request.filter = encodeURIComponent(JSON.stringify(filter));
