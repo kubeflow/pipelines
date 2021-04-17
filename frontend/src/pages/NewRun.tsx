@@ -30,7 +30,7 @@ import ResourceSelector from './ResourceSelector';
 import RunUtils from '../lib/RunUtils';
 import { TextFieldProps } from '@material-ui/core/TextField';
 import Trigger from '../components/Trigger';
-import { ApiExperiment, ExperimentStorageState } from '../apis/experiment';
+import { ApiExperiment, ApiExperimentStorageState } from '../apis/experiment';
 import { ApiPipeline, ApiParameter, ApiPipelineVersion } from '../apis/pipeline';
 import {
   ApiRun,
@@ -423,7 +423,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                     {
                       key: 'storage_state',
                       op: PredicateOp.NOTEQUALS,
-                      string_value: ExperimentStorageState.ARCHIVED.toString(),
+                      string_value: ApiExperimentStorageState.ARCHIVED.toString(),
                     },
                   ]);
                   const response = await Apis.experimentServiceApi.listExperiment(
