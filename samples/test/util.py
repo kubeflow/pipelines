@@ -242,7 +242,7 @@ class KfpTask:
             input_artifact_ids = [
                 e.artifact_id
                 for e in events
-                if e.type == metadata_store_pb2.Event.OUTPUT
+                if e.type == metadata_store_pb2.Event.INPUT
             ]
             output_artifact_ids = [
                 e.artifact_id

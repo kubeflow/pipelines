@@ -37,6 +37,8 @@ def verify(
     **kwargs
 ):
     t = unittest.TestCase()
+    t.maxDiff = None  # we always want to see full diff
+
     t.assertEqual(run.status, 'Succeeded')
 
     # Verify MLMD state
@@ -57,21 +59,18 @@ def verify(
 
     t.assertEqual(
         preprocess.get_dict(), {
+            'name': 'preprocess',
             'inputs': {
-                'artifacts': [{
-                    'name': '',
-                    'type': 'kfp.Dataset'
-                }],
+                'artifacts': [],
                 'parameters': {
                     'some_int': 12,
                     'uri': 'uri-to-import'
                 }
             },
-            'name': 'preprocess',
             'outputs': {
                 'artifacts': [{
                     'name': '',
-                    'type': 'kfp.Dataset'
+                    'type': 'system.Dataset'
                 }],
                 'parameters': {
                     'output_parameter_one': 1234
@@ -86,7 +85,7 @@ def verify(
             'inputs': {
                 'artifacts': [{
                     'name': '',
-                    'type': 'kfp.Model',
+                    'type': 'system.Dataset',
                 }],
                 'parameters': {
                     'num_steps': 1234
@@ -95,7 +94,7 @@ def verify(
             'outputs': {
                 'artifacts': [{
                     'name': '',
-                    'type': 'kfp.Model',
+                    'type': 'system.Model',
                 }],
                 'parameters': {}
             },
