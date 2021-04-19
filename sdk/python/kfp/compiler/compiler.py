@@ -681,6 +681,9 @@ class Compiler(object):
       if hasattr(op, 'custom_job_spec'):
         warnings.warn('CustomJob spec is not supported yet when running on KFP.'
                       ' The component will execute within the KFP cluster.')
+      if hasattr(op, 'importer_spec'):
+        raise NotImplementedError(
+            'dsl.importer is not supported yet when running on KFP.')
 
     return templates
 

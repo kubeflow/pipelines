@@ -1,213 +1,126 @@
 {
   "pipelineSpec": {
-    "schemaVersion": "2.0.0",
-    "root": {
-      "dag": {
-        "tasks": {
-          "task-importer-task-upstream-input-6": {
-            "taskInfo": {
-              "name": "task-importer-task-upstream-input-6"
-            },
-            "componentRef": {
-              "name": "comp-importer-task-upstream-input-6"
+    "components": {
+      "comp-upstream": {
+        "outputDefinitions": {
+          "parameters": {
+            "output_1": {
+              "type": "INT"
             }
           },
-          "task-importer-task-upstream-input-8": {
-            "taskInfo": {
-              "name": "task-importer-task-upstream-input-8"
-            },
-            "componentRef": {
-              "name": "comp-importer-task-upstream-input-8"
-            }
-          },
-          "task-downstream": {
-            "componentRef": {
-              "name": "comp-downstream"
-            },
-            "taskInfo": {
-              "name": "task-downstream"
-            },
-            "inputs": {
-              "artifacts": {
-                "input_b": {
-                  "taskOutputArtifact": {
-                    "producerTask": "task-upstream",
-                    "outputArtifactKey": "output_2"
-                  }
-                },
-                "input_c": {
-                  "taskOutputArtifact": {
-                    "producerTask": "task-upstream",
-                    "outputArtifactKey": "output_3"
-                  }
-                }
-              },
-              "parameters": {
-                "input_a": {
-                  "taskOutputParameter": {
-                    "producerTask": "task-upstream",
-                    "outputParameterKey": "output_1"
-                  }
-                }
+          "artifacts": {
+            "output_3": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
               }
             },
-            "dependentTasks": [
-              "task-upstream"
-            ]
-          },
-          "task-importer-task-upstream-input-4": {
-            "taskInfo": {
-              "name": "task-importer-task-upstream-input-4"
-            },
-            "componentRef": {
-              "name": "comp-importer-task-upstream-input-4"
-            }
-          },
-          "task-upstream": {
-            "inputs": {
-              "parameters": {
-                "input_1": {
-                  "componentInputParameter": "input1"
-                },
-                "input_2": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "doubleValue": 3.1415926
-                    }
-                  }
-                }
-              },
-              "artifacts": {
-                "input_6": {
-                  "taskOutputArtifact": {
-                    "outputArtifactKey": "result",
-                    "producerTask": "task-importer-task-upstream-input-6"
-                  }
-                },
-                "input_5": {
-                  "taskOutputArtifact": {
-                    "producerTask": "task-importer-task-upstream-input-5",
-                    "outputArtifactKey": "result"
-                  }
-                },
-                "input_4": {
-                  "taskOutputArtifact": {
-                    "outputArtifactKey": "result",
-                    "producerTask": "task-importer-task-upstream-input-4"
-                  }
-                },
-                "input_3": {
-                  "taskOutputArtifact": {
-                    "outputArtifactKey": "result",
-                    "producerTask": "task-importer-task-upstream-input-3"
-                  }
-                },
-                "input_8": {
-                  "taskOutputArtifact": {
-                    "producerTask": "task-importer-task-upstream-input-8",
-                    "outputArtifactKey": "result"
-                  }
-                },
-                "input_7": {
-                  "taskOutputArtifact": {
-                    "outputArtifactKey": "result",
-                    "producerTask": "task-importer-task-upstream-input-7"
-                  }
-                }
+            "output_7": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
               }
             },
-            "componentRef": {
-              "name": "comp-upstream"
+            "output_2": {
+              "artifactType": {
+                "schemaTitle": "system.Model"
+              }
             },
-            "taskInfo": {
-              "name": "task-upstream"
+            "output_6": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            },
+            "output_5": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            },
+            "output_4": {
+              "artifactType": {
+                "schemaTitle": "system.Model"
+              }
+            }
+          }
+        },
+        "executorLabel": "exec-upstream",
+        "inputDefinitions": {
+          "parameters": {
+            "input_2": {
+              "type": "DOUBLE"
+            },
+            "input_1": {
+              "type": "STRING"
             }
           },
-          "task-importer-task-upstream-input-7": {
-            "taskInfo": {
-              "name": "task-importer-task-upstream-input-7"
+          "artifacts": {
+            "input_4": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
             },
-            "componentRef": {
-              "name": "comp-importer-task-upstream-input-7"
-            }
-          },
-          "task-importer-task-upstream-input-5": {
-            "taskInfo": {
-              "name": "task-importer-task-upstream-input-5"
-            },
-            "componentRef": {
-              "name": "comp-importer-task-upstream-input-5"
-            }
-          },
-          "task-importer-task-upstream-input-3": {
-            "taskInfo": {
-              "name": "task-importer-task-upstream-input-3"
-            },
-            "componentRef": {
-              "name": "comp-importer-task-upstream-input-3"
+            "input_3": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
             }
           }
         }
       },
-      "inputDefinitions": {
-        "artifacts": {
-          "input6": {
-            "artifactType": {
-              "schemaTitle": "system.Artifact"
+      "comp-downstream": {
+        "executorLabel": "exec-downstream",
+        "inputDefinitions": {
+          "parameters": {
+            "input_a": {
+              "type": "INT"
             }
           },
-          "input8": {
-            "artifactType": {
-              "schemaTitle": "system.Artifact"
+          "artifacts": {
+            "input_g": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            },
+            "input_b": {
+              "artifactType": {
+                "schemaTitle": "system.Model"
+              }
+            },
+            "input_c": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            },
+            "input_d": {
+              "artifactType": {
+                "schemaTitle": "system.Model"
+              }
+            },
+            "input_f": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
+            },
+            "input_e": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
             }
-          },
-          "input3": {
-            "artifactType": {
-              "schemaTitle": "system.Artifact"
-            }
-          },
-          "input7": {
-            "artifactType": {
-              "schemaTitle": "system.Artifact"
-            }
-          },
-          "input5": {
-            "artifactType": {
-              "schemaTitle": "system.Artifact"
-            }
-          },
-          "input4": {
-            "artifactType": {
-              "schemaTitle": "system.Artifact"
-            }
-          }
-        },
-        "parameters": {
-          "input1": {
-            "type": "STRING"
           }
         }
       }
     },
     "deploymentSpec": {
       "executors": {
-        "exec-importer-task-upstream-input-3": {
-          "importer": {
-            "typeSchema": {
-              "schemaTitle": "system.Artifact"
-            },
-            "artifactUri": {
-              "runtimeParameter": "input3"
-            }
-          }
-        },
         "exec-downstream": {
           "container": {
             "image": "gcr.io/image",
             "args": [
               "{{$.inputs.parameters['input_a']}}",
               "{{$.inputs.artifacts['input_b'].uri}}",
-              "{{$.inputs.artifacts['input_c'].path}}"
+              "{{$.inputs.artifacts['input_c'].path}}",
+              "{{$.inputs.artifacts['input_d'].uri}}",
+              "{{$.inputs.artifacts['input_e'].uri}}",
+              "{{$.inputs.artifacts['input_f'].path}}",
+              "{{$.inputs.artifacts['input_g'].path}}"
             ]
           }
         },
@@ -218,293 +131,132 @@
               "{{$.inputs.parameters['input_2']}}",
               "{{$.inputs.artifacts['input_3'].uri}}",
               "{{$.inputs.artifacts['input_4'].uri}}",
-              "{{$.inputs.artifacts['input_5'].uri}}",
-              "{{$.inputs.artifacts['input_6'].uri}}",
-              "{{$.inputs.artifacts['input_7'].uri}}",
-              "{{$.inputs.artifacts['input_8'].uri}}",
               "{{$.outputs.parameters['output_1'].output_file}}",
               "{{$.outputs.artifacts['output_2'].uri}}",
-              "{{$.outputs.artifacts['output_3'].path}}"
+              "{{$.outputs.artifacts['output_3'].path}}",
+              "{{$.outputs.artifacts['output_4'].uri}}",
+              "{{$.outputs.artifacts['output_5'].uri}}",
+              "{{$.outputs.artifacts['output_6'].path}}",
+              "{{$.outputs.artifacts['output_7'].path}}"
             ],
             "image": "gcr.io/image"
           }
-        },
-        "exec-importer-task-upstream-input-4": {
-          "importer": {
-            "typeSchema": {
-              "schemaTitle": "system.Artifact"
-            },
-            "artifactUri": {
-              "runtimeParameter": "input4"
-            }
+        }
+      }
+    },
+    "schemaVersion": "2.0.0",
+    "sdkVersion": "kfp-1.5.0-rc.3",
+    "root": {
+      "inputDefinitions": {
+        "parameters": {
+          "input1": {
+            "type": "STRING"
           }
         },
-        "exec-importer-task-upstream-input-7": {
-          "importer": {
-            "artifactUri": {
-              "runtimeParameter": "input7"
-            },
-            "typeSchema": {
+        "artifacts": {
+          "input4": {
+            "artifactType": {
+              "schemaTitle": "system.Artifact"
+            }
+          },
+          "input3": {
+            "artifactType": {
               "schemaTitle": "system.Artifact"
             }
           }
-        },
-        "exec-importer-task-upstream-input-5": {
-          "importer": {
-            "typeSchema": {
-              "schemaTitle": "system.Model"
-            },
-            "artifactUri": {
-              "constantValue": {
-                "stringValue": "gs://bucket/metrics"
+        }
+      },
+      "dag": {
+        "tasks": {
+          "task-upstream": {
+            "inputs": {
+              "parameters": {
+                "input_2": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "doubleValue": 3.1415926
+                    }
+                  }
+                },
+                "input_1": {
+                  "componentInputParameter": "input1"
+                }
               }
-            }
-          }
-        },
-        "exec-importer-task-upstream-input-6": {
-          "importer": {
-            "typeSchema": {
-              "schemaTitle": "system.Artifact"
             },
-            "artifactUri": {
-              "runtimeParameter": "input6"
-            }
-          }
-        },
-        "exec-importer-task-upstream-input-8": {
-          "importer": {
-            "artifactUri": {
-              "runtimeParameter": "input8"
+            "taskInfo": {
+              "name": "task-upstream"
             },
-            "typeSchema": {
-              "schemaTitle": "system.Artifact"
+            "componentRef": {
+              "name": "comp-upstream"
             }
+          },
+          "task-downstream": {
+            "inputs": {
+              "artifacts": {
+                "input_e": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "output_5",
+                    "producerTask": "task-upstream"
+                  }
+                },
+                "input_f": {
+                  "taskOutputArtifact": {
+                    "producerTask": "task-upstream",
+                    "outputArtifactKey": "output_6"
+                  }
+                },
+                "input_c": {
+                  "taskOutputArtifact": {
+                    "producerTask": "task-upstream",
+                    "outputArtifactKey": "output_3"
+                  }
+                },
+                "input_g": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "output_7",
+                    "producerTask": "task-upstream"
+                  }
+                },
+                "input_b": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "output_2",
+                    "producerTask": "task-upstream"
+                  }
+                },
+                "input_d": {
+                  "taskOutputArtifact": {
+                    "producerTask": "task-upstream",
+                    "outputArtifactKey": "output_4"
+                  }
+                }
+              },
+              "parameters": {
+                "input_a": {
+                  "taskOutputParameter": {
+                    "outputParameterKey": "output_1",
+                    "producerTask": "task-upstream"
+                  }
+                }
+              }
+            },
+            "componentRef": {
+              "name": "comp-downstream"
+            },
+            "taskInfo": {
+              "name": "task-downstream"
+            },
+            "dependentTasks": [
+              "task-upstream"
+            ]
           }
         }
       }
     },
     "pipelineInfo": {
       "name": "pipeline-with-various-types"
-    },
-    "sdkVersion": "kfp-1.5.0-rc.2",
-    "components": {
-      "comp-importer-task-upstream-input-7": {
-        "inputDefinitions": {
-          "parameters": {
-            "input_7": {
-              "type": "STRING"
-            }
-          }
-        },
-        "outputDefinitions": {
-          "artifacts": {
-            "result": {
-              "artifactType": {
-                "schemaTitle": "system.Artifact"
-              }
-            }
-          }
-        },
-        "executorLabel": "exec-importer-task-upstream-input-7"
-      },
-      "comp-upstream": {
-        "inputDefinitions": {
-          "parameters": {
-            "input_1": {
-              "type": "STRING"
-            },
-            "input_2": {
-              "type": "DOUBLE"
-            }
-          },
-          "artifacts": {
-            "input_8": {
-              "artifactType": {
-                "schemaTitle": "system.Artifact"
-              }
-            },
-            "input_6": {
-              "artifactType": {
-                "schemaTitle": "system.Artifact"
-              }
-            },
-            "input_4": {
-              "artifactType": {
-                "schemaTitle": "system.Artifact"
-              }
-            },
-            "input_5": {
-              "artifactType": {
-                "schemaTitle": "system.Model"
-              }
-            },
-            "input_7": {
-              "artifactType": {
-                "schemaTitle": "system.Artifact"
-              }
-            },
-            "input_3": {
-              "artifactType": {
-                "schemaTitle": "system.Artifact"
-              }
-            }
-          }
-        },
-        "outputDefinitions": {
-          "artifacts": {
-            "output_3": {
-              "artifactType": {
-                "schemaTitle": "system.Artifact"
-              }
-            },
-            "output_2": {
-              "artifactType": {
-                "schemaTitle": "system.Model"
-              }
-            }
-          },
-          "parameters": {
-            "output_1": {
-              "type": "INT"
-            }
-          }
-        },
-        "executorLabel": "exec-upstream"
-      },
-      "comp-importer-task-upstream-input-4": {
-        "executorLabel": "exec-importer-task-upstream-input-4",
-        "outputDefinitions": {
-          "artifacts": {
-            "result": {
-              "artifactType": {
-                "schemaTitle": "system.Artifact"
-              }
-            }
-          }
-        },
-        "inputDefinitions": {
-          "parameters": {
-            "input_4": {
-              "type": "STRING"
-            }
-          }
-        }
-      },
-      "comp-downstream": {
-        "executorLabel": "exec-downstream",
-        "inputDefinitions": {
-          "artifacts": {
-            "input_c": {
-              "artifactType": {
-                "schemaTitle": "system.Artifact"
-              }
-            },
-            "input_b": {
-              "artifactType": {
-                "schemaTitle": "system.Model"
-              }
-            }
-          },
-          "parameters": {
-            "input_a": {
-              "type": "INT"
-            }
-          }
-        }
-      },
-      "comp-importer-task-upstream-input-5": {
-        "executorLabel": "exec-importer-task-upstream-input-5",
-        "inputDefinitions": {
-          "parameters": {
-            "input_5": {
-              "type": "STRING"
-            }
-          }
-        },
-        "outputDefinitions": {
-          "artifacts": {
-            "result": {
-              "artifactType": {
-                "schemaTitle": "system.Model"
-              }
-            }
-          }
-        }
-      },
-      "comp-importer-task-upstream-input-6": {
-        "executorLabel": "exec-importer-task-upstream-input-6",
-        "outputDefinitions": {
-          "artifacts": {
-            "result": {
-              "artifactType": {
-                "schemaTitle": "system.Artifact"
-              }
-            }
-          }
-        },
-        "inputDefinitions": {
-          "parameters": {
-            "input_6": {
-              "type": "STRING"
-            }
-          }
-        }
-      },
-      "comp-importer-task-upstream-input-3": {
-        "executorLabel": "exec-importer-task-upstream-input-3",
-        "inputDefinitions": {
-          "parameters": {
-            "input_3": {
-              "type": "STRING"
-            }
-          }
-        },
-        "outputDefinitions": {
-          "artifacts": {
-            "result": {
-              "artifactType": {
-                "schemaTitle": "system.Artifact"
-              }
-            }
-          }
-        }
-      },
-      "comp-importer-task-upstream-input-8": {
-        "executorLabel": "exec-importer-task-upstream-input-8",
-        "inputDefinitions": {
-          "parameters": {
-            "input_8": {
-              "type": "STRING"
-            }
-          }
-        },
-        "outputDefinitions": {
-          "artifacts": {
-            "result": {
-              "artifactType": {
-                "schemaTitle": "system.Artifact"
-              }
-            }
-          }
-        }
-      }
     }
   },
   "runtimeConfig": {
-    "parameters": {
-      "input7": {
-        "stringValue": "arbitrary value"
-      },
-      "input5": {
-        "stringValue": "gs://bucket/model"
-      },
-      "input6": {
-        "stringValue": "gs://bucket/dataset"
-      },
-      "input8": {
-        "stringValue": "gs://path2"
-      }
-    },
     "gcsOutputDirectory": "dummy_root"
   }
 }

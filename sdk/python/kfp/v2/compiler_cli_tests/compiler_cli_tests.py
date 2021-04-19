@@ -55,13 +55,13 @@ class CompilerCliTests(unittest.TestCase):
     finally:
       shutil.rmtree(tmpdir)
 
-  def test_two_step_pipeline_with_importer(self):
-    self._test_compile_py_to_json('two_step_pipeline_with_importer')
-
-  def test_simple_pipeline_without_importer(self):
+  def test_two_step_pipeline(self):
     self._test_compile_py_to_json(
-        'simple_pipeline_without_importer',
+        'two_step_pipeline',
         ['--pipeline-parameters', '{"text":"Hello KFP!"}'])
+
+  def test_pipeline_with_importer(self):
+    self._test_compile_py_to_json('pipeline_with_importer')
 
   def test_pipeline_with_ontology(self):
     self._test_compile_py_to_json('pipeline_with_ontology')
