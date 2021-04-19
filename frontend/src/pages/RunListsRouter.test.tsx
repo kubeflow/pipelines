@@ -19,7 +19,7 @@ import produce from 'immer';
 import RunListsRouter, { RunListsRouterProps } from './RunListsRouter';
 import React from 'react';
 import { RouteParams } from 'src/components/Router';
-import { ApiRunDetail, RunStorageState } from 'src/apis/run';
+import { ApiRunDetail, ApiRunStorageState } from 'src/apis/run';
 import { ApiExperiment } from 'src/apis/experiment';
 import { Apis } from 'src/lib/Apis';
 import * as Utils from '../lib/Utils';
@@ -28,7 +28,7 @@ import { PredicateOp } from 'src/apis/filter';
 
 describe('RunListsRouter', () => {
   let historyPushSpy: any;
-  let runStorageState = RunStorageState.AVAILABLE;
+  let runStorageState = ApiRunStorageState.AVAILABLE;
 
   const onSelectionChangeMock = jest.fn();
   const listRunsSpy = jest.spyOn(Apis.runServiceApi, 'listRuns');
@@ -55,9 +55,9 @@ describe('RunListsRouter', () => {
       onTabSwitch: jest.fn((newTab: number) => {
         // this.refresh();
         if (newTab === 1) {
-          runStorageState = RunStorageState.ARCHIVED;
+          runStorageState = ApiRunStorageState.ARCHIVED;
         } else {
-          runStorageState = RunStorageState.AVAILABLE;
+          runStorageState = ApiRunStorageState.AVAILABLE;
         }
       }),
       hideExperimentColumn: true,
@@ -96,7 +96,7 @@ describe('RunListsRouter', () => {
             {
               key: 'storage_state',
               op: PredicateOp.EQUALS,
-              string_value: RunStorageState.ARCHIVED.toString(),
+              string_value: ApiRunStorageState.ARCHIVED.toString(),
             },
           ],
         }),

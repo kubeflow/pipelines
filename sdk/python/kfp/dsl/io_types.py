@@ -17,7 +17,7 @@ These are only compatible with v2 Pipelines.
 """
 
 import os
-from typing import Dict, List, Optional, Type, TypeVar
+from typing import Dict, List, Optional, Type, TypeVar, Union
 
 
 class Artifact(object):
@@ -31,7 +31,7 @@ class Artifact(object):
   Artifacts carry a `metadata` field, which is a dictionary for storing
   metadata related to this artifact.
   """
-  TYPE_NAME = "system.Artifact"
+  TYPE_NAME = 'system.Artifact'
 
   def __init__(self,
                name: Optional[str] = None,
@@ -45,7 +45,7 @@ class Artifact(object):
 
 class Model(Artifact):
   """An artifact representing an ML Model."""
-  TYPE_NAME = "system.Model"
+  TYPE_NAME = 'system.Model'
 
   def __init__(self,
                name: Optional[str] = None,
@@ -70,7 +70,7 @@ class Model(Artifact):
 
 class Dataset(Artifact):
   """An artifact representing an ML Dataset."""
-  TYPE_NAME = "system.Dataset"
+  TYPE_NAME = 'system.Dataset'
 
   def __init__(self,
                name: Optional[str] = None,
@@ -80,9 +80,8 @@ class Dataset(Artifact):
 
 
 class Metrics(Artifact):
-  """Represent a simple base Artifact type to store key-value scalar metrics.
-  """
-  TYPE_NAME = "system.Metrics"
+  """Represent a simple base Artifact type to store key-value scalar metrics."""
+  TYPE_NAME = 'system.Metrics'
 
   def __init__(self,
                name: Optional[str] = None,
@@ -99,9 +98,10 @@ class Metrics(Artifact):
     """
     self.metadata[metric] = value
 
+
 class ClassificationMetrics(Artifact):
   """Represents Artifact class to store Classification Metrics."""
-  TYPE_NAME = "system.ClassificationMetrics"
+  TYPE_NAME = 'system.ClassificationMetrics'
 
   def __init__(self,
                name: Optional[str] = None,
@@ -109,36 +109,44 @@ class ClassificationMetrics(Artifact):
                metadata: Optional[Dict] = None):
     super().__init__(uri=uri, name=name, metadata=metadata)
 
-  def log_roc_reading(self, threshold: float, tpr: float, fpr: float):
+  def log_roc_data_point(self, fpr: float, tpr: float, threshold: float):
     """Logs a single data point in the ROC Curve.
 
     Args:
-      threshold: Thresold value for the data point.
-      tpr: True positive rate value of the data point.
       fpr: False positive rate value of the data point.
+      tpr: True positive rate value of the data point.
+      threshold: Threshold value for the data point.
     """
 
-    roc_reading = {'confidenceThreshold': threshold, 'recall': tpr, 'falsePositiveRate': fpr}
+    roc_reading = {
+        'confidenceThreshold': threshold,
+        'recall': tpr,
+        'falsePositiveRate': fpr
+    }
     if 'confidenceMetrics' not in self.metadata.keys():
       self.metadata['confidenceMetrics'] = []
 
     self.metadata['confidenceMetrics'].append(roc_reading)
 
-  def load_roc_readings(self, readings: List[List[float]]):
-    """Supports bulk loading ROC Curve readings.
+  def log_roc_curve(self, fpr: List[float], tpr: List[float],
+                    threshold: List[float]):
+    """Logs an ROC curve.
+
+    The list length of fpr, tpr and threshold must be the same.
 
     Args:
-      readings: A 2-D list providing ROC Curve data points.
-                The expected order of the data points is:
-                  threshold, true_positive_rate, false_positive_rate.
+      fpr: List of false positive rate values.
+      tpr: List of true positive rate values.
+      threshold: List of threshold values.
     """
-    self.metadata['confidenceMetrics'] = []
-    for reading in readings:
-      if len(reading) != 3:
-        raise ValueError('Invalid ROC curve reading provided: {}. \
-          Expected 3 values.'.format(reading))
+    if len(fpr) != len(tpr) or len(fpr) != len(threshold) or len(tpr) != len(
+        threshold):
+      raise ValueError('Length of fpr, tpr and threshold must be the same. '
+                       'Got lengths {}, {} and {} respectively.'.format(
+                           len(fpr), len(tpr), len(threshold)))
 
-      self.log_roc_reading(reading[0], reading[1], reading[2])
+    for i in range(len(fpr)):
+      self.log_roc_data_point(fpr=fpr[i], tpr=tpr[i], threshold=threshold[i])
 
   def set_confusion_matrix_categories(self, categories: List[str]):
     """Stores confusion matrix categories.
@@ -147,18 +155,16 @@ class ClassificationMetrics(Artifact):
       categories: List of strings specifying the categories.
     """
 
-    self._categories =[]
+    self._categories = []
     annotation_specs = []
     for category in categories:
-      annotation_spec = {
-        'displayName' : category
-      }
+      annotation_spec = {'displayName': category}
       self._categories.append(category)
       annotation_specs.append(annotation_spec)
 
-    self._matrix = [
-        [ 0 for i in range(len(self._categories)) ]
-          for j in range(len(self._categories)) ]
+    self._matrix = []
+    for row in range(len(self._categories)):
+      self._matrix.append({'row': [0] * len(self._categories)})
 
     self._confusion_matrix = {}
     self._confusion_matrix['annotationSpecs'] = annotation_specs
@@ -184,10 +190,11 @@ class ClassificationMetrics(Artifact):
       raise ValueError('Invalid row. Expected size: {} got: {}'.\
         format(len(self._categories), len(row)))
 
-    self._matrix[self._categories.index(row_category)] = row
+    self._matrix[self._categories.index(row_category)] = {'row': row}
     self.metadata['confusionMatrix'] = self._confusion_matrix
 
-  def log_confusion_matrix_cell(self, row_category: str, col_category: str, value: int):
+  def log_confusion_matrix_cell(self, row_category: str, col_category: str,
+                                value: int):
     """Logs a cell in the confusion matrix.
 
     Args:
@@ -207,12 +214,12 @@ class ClassificationMetrics(Artifact):
       raise ValueError('Invalid category: {} passed. Expected one of: {}'.\
         format(row_category, self._categories))
 
-    self._matrix[self._categories.index(row_category)][
-      self._categories.index(col_category)] = value
+    self._matrix[self._categories.index(row_category)]['row'][
+        self._categories.index(col_category)] = value
     self.metadata['confusionMatrix'] = self._confusion_matrix
 
-  def load_confusion_matrix(self, categories: List[str], matrix: List[List[int]]):
-    """Supports bulk loading the whole confusion matrix.
+  def log_confusion_matrix(self, categories: List[str], matrix: List[List[int]]):
+    """Logs a confusion matrix.
 
     Args:
       categories: List of the category names.
@@ -235,6 +242,130 @@ class ClassificationMetrics(Artifact):
       self.log_confusion_matrix_row(categories[index], matrix[index])
 
     self.metadata['confusionMatrix'] = self._confusion_matrix
+
+
+class SlicedClassificationMetrics(Artifact):
+  """Metrics class representing Sliced Classification Metrics.
+
+  Similar to ClassificationMetrics clients using this class are expected to use
+  log methods of the class to log metrics with the difference being each log
+  method takes a slice to associate the ClassificationMetrics.
+
+  """
+
+  TYPE_NAME = 'system.SlicedClassificationMetrics'
+
+  def __init__(self,
+               name: Optional[str] = None,
+               uri: Optional[str] = None,
+               metadata: Optional[Dict] = None):
+    super().__init__(uri=uri, name=name, metadata=metadata)
+
+  def _upsert_classification_metrics_for_slice(self, slice: str):
+    """Upserts the classification metrics instance for a slice."""
+    if slice not in self._sliced_metrics:
+      self._sliced_metrics[slice] = ClassificationMetrics()
+
+  def _update_metadata(self, slice: str):
+    """Updates metadata to adhere to the metrics schema."""
+    self.metadata = {}
+    self.metadata['evaluationSlices'] = []
+    for slice in self._sliced_metrics.keys():
+      slice_metrics = {
+          'slice': slice,
+          'sliceClassificationMetrics': self._sliced_metrics[slice].metadata
+      }
+      self.metadata['evaluationSlices'].append(slice_metrics)
+
+  def log_roc_reading(self, slice: str, threshold: float, tpr: float,
+                      fpr: float):
+    """Logs a single data point in the ROC Curve of a slice.
+
+    Args:
+      slice: String representing slice label.
+      threshold: Thresold value for the data point.
+      tpr: True positive rate value of the data point.
+      fpr: False positive rate value of the data point.
+    """
+
+    self._upsert_classification_metrics_for_slice(slice)
+    self._sliced_metrics[slice].log_roc_reading(threshold, tpr, fpr)
+    self._update_metadata(slice)
+
+  def load_roc_readings(self, slice: str, readings: List[List[float]]):
+    """Supports bulk loading ROC Curve readings for a slice.
+
+    Args:
+      slice: String representing slice label.
+      readings: A 2-D list providing ROC Curve data points.
+                The expected order of the data points is: threshold,
+                  true_positive_rate, false_positive_rate.
+    """
+    self._upsert_classification_metrics_for_slice(slice)
+    self._sliced_metrics[slice].load_roc_readings(readings)
+    self._update_metadata(slice)
+
+  def set_confusion_matrix_categories(self, slice: str, categories: List[str]):
+    """Stores confusion matrix categories for a slice..
+
+    Categories are stored in the internal metrics_utils.ConfusionMatrix
+    instance of the slice.
+
+    Args:
+      slice: String representing slice label.
+      categories: List of strings specifying the categories.
+    """
+    self._upsert_classification_metrics_for_slice(slice)
+    self._sliced_metrics[slice].set_confusion_matrix_categories(categories)
+    self._update_metadata(slice)
+
+  def log_confusion_matrix_row(self, slice: str, row_category: str,
+                               row: List[int]):
+    """Logs a confusion matrix row for a slice.
+
+    Row is updated on the internal metrics_utils.ConfusionMatrix
+    instance of the slice.
+
+    Args:
+      slice: String representing slice label.
+      row_category: Category to which the row belongs.
+      row: List of integers specifying the values for the row.
+    """
+    self._upsert_classification_metrics_for_slice(slice)
+    self._sliced_metrics[slice].log_confusion_matrix_row(row_category, row)
+    self._update_metadata(slice)
+
+  def log_confusion_matrix_cell(self, slice: str, row_category: str,
+                                col_category: str, value: int):
+    """Logs a confusion matrix cell for a slice..
+
+    Cell is updated on the internal metrics_utils.ConfusionMatrix
+    instance of the slice.
+
+    Args:
+      slice: String representing slice label.
+      row_category: String representing the name of the row category.
+      col_category: String representing the name of the column category.
+      value: Int value of the cell.
+    """
+    self._upsert_classification_metrics_for_slice(slice)
+    self._sliced_metrics[slice].log_confusion_matrix_cell(
+        row_category, col_category, value)
+    self._update_metadata(slice)
+
+  def load_confusion_matrix(self, slice: str, categories: List[str],
+                            matrix: List[List[int]]):
+    """Supports bulk loading the whole confusion matrix for a slice.
+
+    Args:
+      slice: String representing slice label.
+      categories: List of the category names.
+      matrix: Complete confusion matrix.
+    """
+    self._upsert_classification_metrics_for_slice(slice)
+    self._sliced_metrics[slice].log_confusion_matrix_cell(categories, matrix)
+    self._update_metadata(slice)
+
 
 T = TypeVar('T', bound=Artifact)
 
@@ -293,7 +424,8 @@ class OutputArtifact(_IOArtifact):
 
 
 _SCHEMA_TITLE_TO_TYPE: Dict[str, Artifact] = {
-    x.TYPE_NAME: x for x in [Artifact, Model, Dataset, Metrics, ClassificationMetrics]
+    x.TYPE_NAME: x
+    for x in [Artifact, Model, Dataset, Metrics, ClassificationMetrics]
 }
 
 

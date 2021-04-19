@@ -17,9 +17,7 @@ from .util import run_pipeline_func, TestCase
 
 
 def verify(run, run_id: str):
-    assert run.status == 'Succeeded'
-    # TODO(Bobgy): verify echo output
-    # TODO(v2-compatible): support IR placeholder like {{$.inputs.parameters['input_prefix']}}
+  assert run.status == 'Succeeded'
 
 
 run_pipeline_func([

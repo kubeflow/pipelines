@@ -30,7 +30,7 @@ import {
   Workflow,
 } from '../../third_party/argo-ui/argo_template';
 import { ApiExperiment } from '../apis/experiment';
-import { ApiRun, RunStorageState } from '../apis/run';
+import { ApiRun, ApiRunStorageState } from '../apis/run';
 import { ApiVisualization, ApiVisualizationType } from '../apis/visualization';
 import Hr from '../atoms/Hr';
 import MD2Tabs from '../atoms/MD2Tabs';
@@ -757,7 +757,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       const breadcrumbs: Array<{ displayName: string; href: string }> = [];
       // If this is an archived run, only show Archive in breadcrumbs, otherwise show
       // the full path, including the experiment if any.
-      if (runMetadata.storage_state === RunStorageState.ARCHIVED) {
+      if (runMetadata.storage_state === ApiRunStorageState.ARCHIVED) {
         breadcrumbs.push({ displayName: 'Archive', href: RoutePage.ARCHIVED_RUNS });
       } else {
         if (experiment) {
@@ -789,7 +789,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         this.getInitialToolbarState().actions,
       );
       const idGetter = () => (runMetadata ? [runMetadata!.id!] : []);
-      runMetadata!.storage_state === RunStorageState.ARCHIVED
+      runMetadata!.storage_state === ApiRunStorageState.ARCHIVED
         ? buttons.restore('run', idGetter, true, () => this.refresh())
         : buttons.archive('run', idGetter, true, () => this.refresh());
       const actions = buttons.getToolbarActionMap();

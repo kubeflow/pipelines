@@ -22,7 +22,7 @@ OUTPUT_KEY = 'result'
 
 
 def build_importer_spec(
-    input_type_schema: str,
+    input_type_schema: pipeline_spec_pb2.ArtifactTypeSchema,
     pipeline_param_name: Optional[str] = None,
     constant_value: Optional[str] = None
 ) -> pipeline_spec_pb2.PipelineDeploymentConfig.ImporterSpec:
@@ -44,7 +44,7 @@ def build_importer_spec(
       'importer spec should be built using either pipeline_param_name or '
       'constant_value.')
   importer_spec = pipeline_spec_pb2.PipelineDeploymentConfig.ImporterSpec()
-  importer_spec.type_schema.instance_schema = input_type_schema
+  importer_spec.type_schema.CopyFrom(input_type_schema)
   # TODO: subject to IR change on artifact_uri message type.
   if pipeline_param_name:
     importer_spec.artifact_uri.runtime_parameter = pipeline_param_name
@@ -75,7 +75,7 @@ def build_importer_task_spec(
 def build_importer_component_spec(
     importer_base_name: str,
     input_name: str,
-    input_type_schema: str,
+    input_type_schema: pipeline_spec_pb2.ArtifactTypeSchema,
 ) -> pipeline_spec_pb2.ComponentSpec:
   """Builds an importer component spec.
 
@@ -93,7 +93,7 @@ def build_importer_component_spec(
   result.input_definitions.parameters[
       input_name].type = pipeline_spec_pb2.PrimitiveType.STRING
   result.output_definitions.artifacts[
-      OUTPUT_KEY].artifact_type.instance_schema = input_type_schema
+      OUTPUT_KEY].artifact_type.CopyFrom(input_type_schema)
 
   return result
 

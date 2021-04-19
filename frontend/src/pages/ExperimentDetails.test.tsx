@@ -17,7 +17,7 @@
 import * as React from 'react';
 import EnhancedExperimentDetails, { ExperimentDetails } from './ExperimentDetails';
 import TestUtils from '../TestUtils';
-import { ApiExperiment, ExperimentStorageState } from '../apis/experiment';
+import { ApiExperiment, ApiExperimentStorageState } from '../apis/experiment';
 import { Apis } from '../lib/Apis';
 import { PageProps } from './Page';
 import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
@@ -233,7 +233,9 @@ describe('ExperimentDetails', () => {
     tree = shallow(<ExperimentDetails {...generateProps()} />);
     await TestUtils.flushPromises();
 
-    expect(tree.find('RunListsRouter').prop('storageState')).toBe(ExperimentStorageState.AVAILABLE);
+    expect(tree.find('RunListsRouter').prop('storageState')).toBe(
+      ApiExperimentStorageState.AVAILABLE,
+    );
   });
 
   it('shows a list of archived runs', async () => {
@@ -241,14 +243,16 @@ describe('ExperimentDetails', () => {
 
     getExperimentSpy.mockImplementation(() => {
       let apiExperiment = newMockExperiment();
-      apiExperiment['storage_state'] = ExperimentStorageState.ARCHIVED;
+      apiExperiment['storage_state'] = ApiExperimentStorageState.ARCHIVED;
       return apiExperiment;
     });
 
     tree = shallow(<ExperimentDetails {...generateProps()} />);
     await TestUtils.flushPromises();
 
-    expect(tree.find('RunListsRouter').prop('storageState')).toBe(ExperimentStorageState.ARCHIVED);
+    expect(tree.find('RunListsRouter').prop('storageState')).toBe(
+      ApiExperimentStorageState.ARCHIVED,
+    );
   });
 
   it("fetches this experiment's recurring runs", async () => {

@@ -14,21 +14,19 @@
 """Module for remote execution of AI Platform component."""
 
 import argparse
+from distutils import util as distutil
 import inspect
 import json
 import os
-from typing import Any, Dict, Tuple
+from typing import Any, Callable, Dict, Tuple, Type, TypeVar
 
 from google.cloud import aiplatform
-from google.cloud import storage
 from google_cloud_components.aiplatform import utils
 
 INIT_KEY = 'init'
 METHOD_KEY = 'method'
 
 
-# TODO() Add type-hinting the functions
-# TODO() Add explanation / exmaples and validation for kwargs
 def split_args(kwargs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """Splits args into constructor and method args.
 
@@ -49,56 +47,37 @@ def split_args(kwargs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     return init_args, method_args
 
 
-def write_to_gcs(project, gcs_uri, text):
-    """helper method to write to gcs
-    TODO: remove and use native support from Pipeline
-    """
-    gcs_uri = gcs_uri[5:]
-    gcs_bucket, gcs_blob = gcs_uri.split('/', 1)
+def write_to_artifact(artifact_path, text):
+    """Write output to local artifact path (uses GCSFuse)."""
 
-    with open('resource_name.txt', 'w') as f:
+    # Create the artifact dir if it does not exist
+    os.makedirs(os.path.dirname(artifact_path), exist_ok=True)
+
+    with open(artifact_path, 'w') as f:
         f.write(text)
 
-    client = storage.Client(project=project)
-    bucket = client.get_bucket(gcs_bucket)
-    blob = bucket.blob(os.path.join(gcs_blob, 'resource_name.txt'))
-    blob.upload_from_filename('resource_name.txt')
 
-
-def read_from_gcs(project, gcs_uri):
-    """helper method to read from gcs
-    TODO: remove and use native support from Pipelines
-    """
-    gcs_uri = gcs_uri[5:]
-    gcs_bucket, gcs_blob = gcs_uri.split('/', 1)
-    client = storage.Client(project=project)
-    bucket = client.get_bucket(gcs_bucket)
-    blob = bucket.get_blob(os.path.join(gcs_blob, 'resource_name.txt'))
-    resource_name = blob.download_as_string().decode('utf-8')
+def read_from_artifact(artifact_path):
+    """Read input from local artifact path(uses GCSFuse)."""
+    with open(artifact_path, 'r') as input_file:
+        resource_name = input_file.read()
     return resource_name
 
 
-def resolve_project(serialized_args: Dict[str, Dict[str, Any]]) -> str:
-    """Gets the project from either constructor or method."""
-    return serialized_args['init'].get(
-        'project', serialized_args['method'].get('project')
-    )
-
-
-def resolve_input_args(value, type_to_resolve, project):
+def resolve_input_args(value, type_to_resolve):
     """If this is an input from Pipelines, read it directly from gcs."""
     if inspect.isclass(type_to_resolve) and issubclass(
             type_to_resolve, aiplatform.base.AiPlatformResourceNoun):
-        if value.startswith('gs://'):  # not a resource noun:
-            value = read_from_gcs(project, value)
+        if value.startswith('/gcs/'):  # not a resource noun:
+            value = read_from_artifact(value)
     return value
 
 
-def resolve_init_args(key, value, project):
+def resolve_init_args(key, value):
     """Resolves Metadata/InputPath parameters to resource names."""
     if key.endswith('_name'):
-        if value.startswith('gs://'):  # not a resource noun
-            value = read_from_gcs(project, value)
+        if value.startswith('/gcs/'):  # not a resource noun
+            value = read_from_artifact(value)
     return value
 
 
@@ -113,55 +92,73 @@ def make_output(output_object: Any) -> str:
     return json.dumps(list(output_object))
 
 
-def runner(cls_name, method_name, resource_name_output_uri, kwargs):
+T = TypeVar('T')
+
+
+def cast(value: str, annotation_type: Type[T]) -> T:
+    """Casts a value to the annotation type.
+
+    Includes special handling for bools passed as strings.
+
+    Args:
+        value (str): The value represented as a string.
+        annotation_type (Type[T]): The type to cast the value to.
+    Returns:
+        An instance of annotation_type value.
+    """
+    if annotation_type is bool:
+        return bool(distutil.strtobool(value))
+    return annotation_type(value)
+
+
+def prepare_parameters(
+    kwargs: Dict[str, Any], method: Callable, is_init: bool = False
+):
+    """Prepares paramters passed into components before calling SDK.
+
+    1. Determines the annotation type that should used with the parameter
+    2. Reads input values if needed
+    3. Deserializes thos value where appropriate
+    4. Or casts to the correct type.
+
+    Args:
+        kwargs (Dict[str, Any]): The kwargs that will be passed into method. Mutates in place.
+        method (Callable): The method the kwargs used to invoke the method.
+        is_init (bool): Whether this method is a constructor
+    """
+    for key, param in inspect.signature(method).parameters.items():
+        if key in kwargs:
+            value = kwargs[key]
+            param_type = utils.resolve_annotation(param.annotation)
+            value = resolve_init_args(
+                key, value
+            ) if is_init else resolve_input_args(value, param_type)
+            deserializer = utils.get_deserializer(param_type)
+            if deserializer:
+                value = deserializer(value)
+            else:
+                value = cast(value, param_type)
+            kwargs[key] = value
+
+
+def runner(cls_name, method_name, resource_name_output_artifact_path, kwargs):
     cls = getattr(aiplatform, cls_name)
 
     init_args, method_args = split_args(kwargs)
 
-    serialized_args = {'init': init_args, 'method': method_args}
+    serialized_args = {INIT_KEY: init_args, METHOD_KEY: method_args}
 
-    project = resolve_project(serialized_args)
-
-    for key, param in inspect.signature(cls.__init__).parameters.items():
-        if key in serialized_args['init']:
-            serialized_args['init'][key] = resolve_init_args(
-                key, serialized_args['init'][key], project
-            )
-            param_type = utils.resolve_annotation(param.annotation)
-            deserializer = utils.get_deserializer(param_type)
-            if deserializer:
-                serialized_args['init'][key] = deserializer(
-                    serialized_args['init'][key]
-                )
-
-    print(serialized_args['init'])
-    obj = cls(**serialized_args['init']) if serialized_args['init'] else cls
+    prepare_parameters(serialized_args[INIT_KEY], cls.__init__, is_init=True)
+    obj = cls(**serialized_args[INIT_KEY]) if serialized_args[INIT_KEY] else cls
 
     method = getattr(obj, method_name)
-
-    for key, param in inspect.signature(method).parameters.items():
-        if key in serialized_args['method']:
-            param_type = utils.resolve_annotation(param.annotation)
-            print(key, param_type)
-            serialized_args['method'][key] = resolve_input_args(
-                serialized_args['method'][key], param_type, project
-            )
-            deserializer = utils.get_deserializer(param_type)
-            if deserializer:
-                serialized_args['method'][key] = deserializer(
-                    serialized_args['method'][key]
-                )
-            else:
-                serialized_args['method'][key] = param_type(
-                    serialized_args['method'][key]
-                )
-
-    print(serialized_args['method'])
-    output = method(**serialized_args['method'])
-    print(output)
+    prepare_parameters(serialized_args[METHOD_KEY], method, is_init=False)
+    output = method(**serialized_args[METHOD_KEY])
 
     if output:
-        write_to_gcs(project, resource_name_output_uri, make_output(output))
+        write_to_artifact(
+            resource_name_output_artifact_path, make_output(output)
+        )
         return output
 
 
@@ -169,7 +166,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--cls_name", type=str)
     parser.add_argument("--method_name", type=str)
-    parser.add_argument("--resource_name_output_uri", type=str, default=None)
+    parser.add_argument(
+        "--resource_name_output_artifact_path", type=str, default=None
+    )
 
     args, unknown_args = parser.parse_known_args()
     kwargs = {}
@@ -189,8 +188,8 @@ def main():
 
     print(
         runner(
-            args.cls_name, args.method_name, args.resource_name_output_uri,
-            kwargs
+            args.cls_name, args.method_name,
+            args.resource_name_output_artifact_path, kwargs
         )
     )
 

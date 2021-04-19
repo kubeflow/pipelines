@@ -12,26 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
+
 from kfp import components
-from kfp.v2 import dsl
+from kfp import dsl
 from kfp.v2 import compiler
-from typing import List
 
 
 @components.create_component_from_func
-def print_op(s: float):
-  print(s)
+def print_op(msg: str):
+  print(msg)
 
 
-@dsl.pipeline(name='pipeline-with-loop-parameter')
-def my_pipeline(loop_arguments: List[float] = [1.1, 2.2, 3.3]):
-
+@dsl.pipeline(
+    name='pipeline-with-loop-parameter-args',
+    pipeline_root='dummy_root',
+)
+def my_pipeline(loop_arguments: str = json.dumps(
+      [{'A_a': '1', 'B_b': '2'}, {'A_a': '10', 'B_b': '20'}],
+      sort_keys=True)
+):
   with dsl.ParallelFor(loop_arguments) as item:
     print_op(item)
+    print_op(item.A_a)
+    print_op(item.B_b)
 
 
 if __name__ == '__main__':
   compiler.Compiler().compile(
       pipeline_func=my_pipeline,
-      pipeline_root='dummy_root',
       package_path=__file__.replace('.py', '.json'))

@@ -18,7 +18,7 @@ import * as React from 'react';
 import { ArchivedExperiments } from './ArchivedExperiments';
 import TestUtils from '../TestUtils';
 import { PageProps } from './Page';
-import { ExperimentStorageState } from '../apis/experiment';
+import { ApiExperimentStorageState } from '../apis/experiment';
 import { ShallowWrapper, shallow } from 'enzyme';
 import { ButtonKeys } from '../lib/Buttons';
 
@@ -71,7 +71,7 @@ describe('ArchivedExperiemnts', () => {
   it('shows a list of archived experiments', () => {
     tree = shallow(<ArchivedExperiments {...generateProps()} />);
     expect(tree.find('ExperimentList').prop('storageState')).toBe(
-      ExperimentStorageState.ARCHIVED.toString(),
+      ApiExperimentStorageState.ARCHIVED.toString(),
     );
   });
 });

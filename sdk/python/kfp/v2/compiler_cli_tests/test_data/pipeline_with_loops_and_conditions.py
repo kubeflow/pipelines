@@ -23,7 +23,7 @@ from kfp.v2 import compiler
 def args_generator_op() -> str:
   import json
   return json.dumps(
-      [{'A_a': '1', 'B_b': '2'}, {'A_a': '10', 'B_b': '20'}], sort_keys=True)
+      [{'A_a': '1'}, {'A_a': '10'}], sort_keys=True)
 
 
 @components.create_component_from_func
@@ -31,17 +31,37 @@ def print_op(msg: str):
   print(msg)
 
 
+@components.create_component_from_func
+def flip_coin_op() -> str:
+  """Flip a coin and output heads or tails randomly."""
+  import random
+  result = 'heads' if random.randint(0, 1) == 0 else 'tails'
+  return result
+
+
 @dsl.pipeline(
-    name='pipeline-with-loop-output-args',
+    name='pipeline-with-loops-and-conditions',
     pipeline_root='dummy_root',
 )
-def my_pipeline():
+def my_pipeline(text_parameter: str = 'Hello world!'):
+  flip1 = flip_coin_op()
 
-  args_generator = args_generator_op()
-  with dsl.ParallelFor(args_generator.output) as item:
-    print_op(item)
-    print_op(item.A_a)
-    print_op(item.B_b)
+  with dsl.Condition(flip1.output != 'no-such-result'): # always true
+
+    args_generator = args_generator_op()
+    with dsl.ParallelFor(args_generator.output) as item:
+      print_op(text_parameter)
+      print_op(item)
+
+      with dsl.Condition(flip1.output == 'heads'):
+        print_op(item.A_a)
+
+      with dsl.Condition(flip1.output == 'tails'):
+        print_op(item.B_b)
+
+      with dsl.Condition(flip1.output != 'no-such-result'): # always true
+        with dsl.ParallelFor(['a', 'b','c']) as item:
+          print_op(item)
 
 
 if __name__ == '__main__':

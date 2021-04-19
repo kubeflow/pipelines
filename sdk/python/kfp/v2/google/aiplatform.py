@@ -18,7 +18,7 @@ from absl import logging
 import collections
 from kfp import dsl
 from kfp.components import _structures
-from kfp.dsl import artifact
+from kfp.dsl import io_types
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.dsl import dsl_utils
 from kfp.dsl import type_utils
@@ -33,14 +33,12 @@ _ValueOrPipelineParam = Union[dsl.PipelineParam, str, float, int]
 
 # TODO: Support all declared types in
 # components._structures.CommandlineArgumenType
-_CommandlineArgumentType = Union[
-  str, int, float,
-  _structures.InputValuePlaceholder,
-  _structures.InputPathPlaceholder,
-  _structures.OutputPathPlaceholder,
-  _structures.InputUriPlaceholder,
-  _structures.OutputUriPlaceholder,
-]
+_CommandlineArgumentType = Union[str, int, float,
+                                 _structures.InputValuePlaceholder,
+                                 _structures.InputPathPlaceholder,
+                                 _structures.OutputPathPlaceholder,
+                                 _structures.InputUriPlaceholder,
+                                 _structures.OutputUriPlaceholder,]
 
 
 # TODO: extract this to a utils module, and share with dsl.component_bridge
@@ -77,12 +75,12 @@ class AiPlatformCustomJobOp(dsl.ContainerOp):
   """
 
   def __init__(self,
-      name: str,
-      custom_job_spec: Dict[str, Any],
-      component_spec: pipeline_spec_pb2.ComponentSpec,
-      task_spec: pipeline_spec_pb2.PipelineTaskSpec,
-      task_inputs: Optional[List[dsl.InputArgumentPath]] = None,
-      task_outputs: Optional[Dict[str, str]] = None):
+               name: str,
+               custom_job_spec: Dict[str, Any],
+               component_spec: pipeline_spec_pb2.ComponentSpec,
+               task_spec: pipeline_spec_pb2.PipelineTaskSpec,
+               task_inputs: Optional[List[dsl.InputArgumentPath]] = None,
+               task_outputs: Optional[Dict[str, str]] = None):
     """Instantiates the AiPlatformCustomJobOp object.
 
     Args:
@@ -90,13 +88,12 @@ class AiPlatformCustomJobOp(dsl.ContainerOp):
       custom_job_spec: JSON struct of the CustomJob spec, representing the job
         that will be submitted to AI Platform (Unified) service. See
         https://cloud.google.com/ai-platform-unified/docs/reference/rest/v1beta1/CustomJobSpec
-        for detailed reference.
+          for detailed reference.
       task_inputs: Optional. List of InputArgumentPath of this task. Each
-        InputArgumentPath object has 3 attributes: input, path and argument
-        we actually only care about the input, which will be translated to the
-        input name of the component spec.
-        Path and argument are tied to artifact argument in Argo, which is not
-        used in this case.
+        InputArgumentPath object has 3 attributes: input, path and argument we
+          actually only care about the input, which will be translated to the
+          input name of the component spec. Path and argument are tied to
+          artifact argument in Argo, which is not used in this case.
       task_outputs: Optional. Mapping of task outputs to its URL.
     """
     old_warn_value = dsl.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING
@@ -105,8 +102,7 @@ class AiPlatformCustomJobOp(dsl.ContainerOp):
         name=name,
         image=_DUMMY_CONTAINER_OP_IMAGE,
         artifact_argument_paths=task_inputs,
-        file_outputs=task_outputs
-    )
+        file_outputs=task_outputs)
     self.component_spec = component_spec
     self.task_spec = task_spec
     self.custom_job_spec = custom_job_spec
@@ -118,7 +114,7 @@ def _get_custom_job_op(
     job_spec: Dict[str, Any],
     input_artifacts: Optional[Dict[str, dsl.PipelineParam]] = None,
     input_parameters: Optional[Dict[str, _ValueOrPipelineParam]] = None,
-    output_artifacts: Optional[Dict[str, Type[artifact.Artifact]]] = None,
+    output_artifacts: Optional[Dict[str, Type[io_types.Artifact]]] = None,
     output_parameters: Optional[Dict[str, Any]] = None,
 ) -> AiPlatformCustomJobOp:
   """Gets an AiPlatformCustomJobOp from job spec and I/O definition."""
@@ -126,34 +122,36 @@ def _get_custom_job_op(
   pipeline_component_spec = pipeline_spec_pb2.ComponentSpec()
 
   pipeline_task_spec.task_info.CopyFrom(
-      pipeline_spec_pb2.PipelineTaskInfo(name=dsl_utils.sanitize_task_name(task_name)))
+      pipeline_spec_pb2.PipelineTaskInfo(
+          name=dsl_utils.sanitize_task_name(task_name)))
 
   # Iterate through the inputs/outputs declaration to get pipeline component
   # spec.
   for input_name, param in input_parameters.items():
     if isinstance(param, dsl.PipelineParam):
       pipeline_component_spec.input_definitions.parameters[
-        input_name].type = type_utils.get_parameter_type(param.param_type)
+          input_name].type = type_utils.get_parameter_type(param.param_type)
     else:
       pipeline_component_spec.input_definitions.parameters[
-        input_name].type = type_utils.get_parameter_type(type(param))
+          input_name].type = type_utils.get_parameter_type(type(param))
 
   for input_name, art in input_artifacts.items():
     if not isinstance(art, dsl.PipelineParam):
-      raise RuntimeError(
-          'Get unresolved input artifact for input %s. Input '
-          'artifacts must be connected to a producer task.' % input_name)
+      raise RuntimeError('Get unresolved input artifact for input %s. Input '
+                         'artifacts must be connected to a producer task.' %
+                         input_name)
     pipeline_component_spec.input_definitions.artifacts[
-      input_name].artifact_type.CopyFrom(
-        type_utils.get_artifact_type_schema_message(art.param_type))
+        input_name].artifact_type.CopyFrom(
+            type_utils.get_artifact_type_schema(art.param_type))
 
   for output_name, param_type in output_parameters.items():
     pipeline_component_spec.output_definitions.parameters[
-      output_name].type = type_utils.get_parameter_type(param_type)
+        output_name].type = type_utils.get_parameter_type(param_type)
 
   for output_name, artifact_type in output_artifacts.items():
     pipeline_component_spec.output_definitions.artifacts[
-      output_name].artifact_type.CopyFrom(artifact_type.get_ir_type())
+        output_name].artifact_type.CopyFrom(
+            type_utils.get_artifact_type_schema(artifact_type))
 
   pipeline_component_spec.executor_label = dsl_utils.sanitize_executor_label(
       task_name)
@@ -165,10 +163,10 @@ def _get_custom_job_op(
       # produced by an upstream task.
       pipeline_task_spec.inputs.parameters[input_name].CopyFrom(
           pipeline_spec_pb2.TaskInputsSpec.InputParameterSpec(
-              task_output_parameter=pipeline_spec_pb2.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec(
+              task_output_parameter=pipeline_spec_pb2.TaskInputsSpec
+              .InputParameterSpec.TaskOutputParameterSpec(
                   producer_task=dsl_utils.sanitize_task_name(param.op_name),
-                  output_parameter_key=param.name
-              )))
+                  output_parameter_key=param.name)))
     elif isinstance(param, dsl.PipelineParam) and not param.op_name:
       # If a valid op_name is missing, this should be a pipeline parameter.
       pipeline_task_spec.inputs.parameters[input_name].CopyFrom(
@@ -187,15 +185,15 @@ def _get_custom_job_op(
       # by an upstream task.
       pipeline_task_spec.inputs.artifacts[input_name].CopyFrom(
           pipeline_spec_pb2.TaskInputsSpec.InputArtifactSpec(
-              task_output_artifact=pipeline_spec_pb2.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec(
+              task_output_artifact=pipeline_spec_pb2.TaskInputsSpec
+              .InputArtifactSpec.TaskOutputArtifactSpec(
                   producer_task=dsl_utils.sanitize_task_name(art.op_name),
                   output_artifact_key=art.name)))
     else:
       # Otherwise, this should be from the input of the subdag.
       pipeline_task_spec.inputs.artifacts[input_name].CopyFrom(
           pipeline_spec_pb2.TaskInputsSpec.InputArtifactSpec(
-              component_input_artifact=art.name
-          ))
+              component_input_artifact=art.name))
 
   # TODO: Add task dependencies/trigger policies/caching/iterator
   pipeline_task_spec.component_ref.name = dsl_utils.sanitize_component_name(
@@ -237,15 +235,14 @@ def _get_custom_job_op(
               path=path,
           ) for input_name, path in dummy_inputs.items()
       ],
-      task_outputs=dummy_outputs
-  )
+      task_outputs=dummy_outputs)
 
 
 def custom_job(
     name: str,
     input_artifacts: Optional[Dict[str, dsl.PipelineParam]] = None,
     input_parameters: Optional[Dict[str, _ValueOrPipelineParam]] = None,
-    output_artifacts: Optional[Dict[str, Type[artifact.Artifact]]] = None,
+    output_artifacts: Optional[Dict[str, Type[io_types.Artifact]]] = None,
     output_parameters: Optional[Dict[str, Type[Union[str, float, int]]]] = None,
     # Custom container training specs.
     image_uri: Optional[str] = None,
@@ -271,10 +268,8 @@ def custom_job(
     input_artifacts: The input artifact specification. Should be a mapping from
       input name to output from upstream tasks.
     input_parameters: The input parameter specification. Should be a mapping
-      from input name to one of the following three:
-      - output from upstream tasks, or
-      - pipeline parameter, or
-      - constant value
+      from input name to one of the following three: - output from upstream
+        tasks, or - pipeline parameter, or - constant value
     output_artifacts: The output artifact declaration. Should be a mapping from
       output name to a type subclassing artifact.Artifact.
     output_parameters: The output parameter declaration. Should be a mapping
@@ -299,7 +294,6 @@ def custom_job(
     additional_job_spec: Full-fledged custom job API spec. The value specified
       in this field will override the defaults provided through other function
       parameters.
-
       For details please see:
       https://cloud.google.com/ai-platform-unified/docs/reference/rest/v1beta1/CustomJobSpec
 
@@ -326,7 +320,7 @@ def custom_job(
     raise KeyError('Output key conflict between output parameters and '
                    'artifacts.')
 
-  if not additional_job_spec and  bool(image_uri) == bool(executor_image_uri):
+  if not additional_job_spec and bool(image_uri) == bool(executor_image_uri):
     raise ValueError('The user program needs to be either a custom container '
                      'training job, or a custom Python training job')
 
@@ -344,12 +338,12 @@ def custom_job(
     if image_uri:
       # Single node custom container training
       worker_pool_spec = {
-          "machineSpec": {
-              "machineType": machine_type or _DEFAULT_CUSTOM_JOB_MACHINE_TYPE
+          'machineSpec': {
+              'machineType': machine_type or _DEFAULT_CUSTOM_JOB_MACHINE_TYPE
           },
-          "replicaCount": "1",
-          "containerSpec": {
-              "imageUri": image_uri,
+          'replicaCount': '1',
+          'containerSpec': {
+              'imageUri': image_uri,
           }
       }
       if commands:
@@ -359,15 +353,15 @@ def custom_job(
       custom_job_spec['workerPoolSpecs'] = [worker_pool_spec]
     if executor_image_uri:
       worker_pool_spec = {
-          "machineSpec": {
-              "machineType": machine_type or _DEFAULT_CUSTOM_JOB_MACHINE_TYPE
+          'machineSpec': {
+              'machineType': machine_type or _DEFAULT_CUSTOM_JOB_MACHINE_TYPE
           },
-          "replicaCount": "1",
-          "pythonPackageSpec": {
-              "executorImageUri": executor_image_uri,
-              "packageUris": package_uris,
-              "pythonModule": python_module,
-              "args": args
+          'replicaCount': '1',
+          'pythonPackageSpec': {
+              'executorImageUri': executor_image_uri,
+              'packageUris': package_uris,
+              'pythonModule': python_module,
+              'args': args
           }
       }
       custom_job_spec['workerPoolSpecs'] = [worker_pool_spec]
@@ -376,35 +370,35 @@ def custom_job(
     # possible, and patch some top-level parameters.
     for spec in custom_job_spec['workerPoolSpecs']:
       if image_uri:
-        if (not spec.get('pythonPackageSpec')
-            and not spec.get('containerSpec', {}).get('imageUri')):
+        if (not spec.get('pythonPackageSpec') and
+            not spec.get('containerSpec', {}).get('imageUri')):
           spec['containerSpec'] = spec.get('containerSpec', {})
           spec['containerSpec']['imageUri'] = image_uri
       if commands:
-        if (not spec.get('pythonPackageSpec')
-            and not spec.get('containerSpec', {}).get('command')):
+        if (not spec.get('pythonPackageSpec') and
+            not spec.get('containerSpec', {}).get('command')):
           spec['containerSpec'] = spec.get('containerSpec', {})
           spec['containerSpec']['command'] = commands
       if executor_image_uri:
-        if (not spec.get('containerSpec')
-            and not spec.get('pythonPackageSpec', {}).get('executorImageUri')):
+        if (not spec.get('containerSpec') and
+            not spec.get('pythonPackageSpec', {}).get('executorImageUri')):
           spec['pythonPackageSpec'] = spec.get('pythonPackageSpec', {})
           spec['pythonPackageSpec']['executorImageUri'] = executor_image_uri
       if package_uris:
-        if (not spec.get('containerSpec')
-            and not spec.get('pythonPackageSpec', {}).get('packageUris')):
+        if (not spec.get('containerSpec') and
+            not spec.get('pythonPackageSpec', {}).get('packageUris')):
           spec['pythonPackageSpec'] = spec.get('pythonPackageSpec', {})
           spec['pythonPackageSpec']['packageUris'] = package_uris
       if python_module:
-        if (not spec.get('containerSpec')
-            and not spec.get('pythonPackageSpec', {}).get('pythonModule')):
+        if (not spec.get('containerSpec') and
+            not spec.get('pythonPackageSpec', {}).get('pythonModule')):
           spec['pythonPackageSpec'] = spec.get('pythonPackageSpec', {})
           spec['pythonPackageSpec']['pythonModule'] = python_module
       if args:
         if spec.get('containerSpec') and not spec['containerSpec'].get('args'):
           spec['containerSpec']['args'] = args
-        if (spec.get('pythonPackageSpec')
-            and not spec['pythonPackageSpec'].get('args')):
+        if (spec.get('pythonPackageSpec') and
+            not spec['pythonPackageSpec'].get('args')):
           spec['pythonPackageSpec']['args'] = args
 
   # Resolve the custom job spec by wiring it with the I/O spec.
@@ -433,7 +427,8 @@ def custom_job(
     else:
       raise TypeError('Got unexpected placeholder type for %s' % cmd)
 
-  def _resolve_cmd_lines(cmds: Optional[List[_CommandlineArgumentType]]) -> None:
+  def _resolve_cmd_lines(
+      cmds: Optional[List[_CommandlineArgumentType]]) -> None:
     """Resolves a list of commands/args."""
     if not cmds:
       return
@@ -456,10 +451,7 @@ def custom_job(
       if 'args' in python_spec:
         _resolve_cmd_lines(python_spec['args'])
 
-  job_spec = {
-      'name': name,
-      'jobSpec': custom_job_spec
-  }
+  job_spec = {'name': name, 'jobSpec': custom_job_spec}
 
   return _get_custom_job_op(
       task_name=name,
@@ -467,5 +459,4 @@ def custom_job(
       input_artifacts=input_artifacts,
       input_parameters=input_parameters,
       output_artifacts=output_artifacts,
-      output_parameters=output_parameters
-  )
+      output_parameters=output_parameters)
