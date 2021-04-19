@@ -13,53 +13,53 @@
 # limitations under the License.
 """Utility function for building Importer Node spec."""
 
-from typing import Optional
+from typing import Optional, Union, Type
 
+from kfp.dsl import _container_op
+from kfp.dsl import _pipeline_param
 from kfp.dsl import dsl_utils
+from kfp.dsl import io_types
+from kfp.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 
-OUTPUT_KEY = 'result'
+INPUT_KEY = 'uri'
+OUTPUT_KEY = 'artifact'
 
 
-def build_importer_spec(
-    input_type_schema: pipeline_spec_pb2.ArtifactTypeSchema,
-    pipeline_param_name: Optional[str] = None,
-    constant_value: Optional[str] = None
+def _build_importer_spec(
+    artifact_uri: Union[_pipeline_param.PipelineParam, str],
+    artifact_type_schema: pipeline_spec_pb2.ArtifactTypeSchema,
 ) -> pipeline_spec_pb2.PipelineDeploymentConfig.ImporterSpec:
   """Builds an importer executor spec.
 
   Args:
-    input_type_schema: The type of the input artifact.
-    pipeline_param_name: The name of the pipeline parameter if the importer gets
-      its artifacts_uri via a pipeline parameter. This argument is mutually
-      exclusive with constant_value.
-    constant_value: The value of artifact_uri in case a contant value is passed
-      directly into the compoent op. This argument is mutually exclusive with
-      pipeline_param_name.
+    artifact_uri: The artifact uri to import from.
+    artifact_type_schema: The user specified artifact type schema of the
+      artifact to be imported.
 
   Returns:
     An importer spec.
   """
-  assert bool(pipeline_param_name is None) != bool(constant_value is None), (
-      'importer spec should be built using either pipeline_param_name or '
-      'constant_value.')
   importer_spec = pipeline_spec_pb2.PipelineDeploymentConfig.ImporterSpec()
-  importer_spec.type_schema.CopyFrom(input_type_schema)
-  # TODO: subject to IR change on artifact_uri message type.
-  if pipeline_param_name:
-    importer_spec.artifact_uri.runtime_parameter = pipeline_param_name
-  elif constant_value:
-    importer_spec.artifact_uri.constant_value.string_value = constant_value
+  importer_spec.type_schema.CopyFrom(artifact_type_schema)
+
+  if isinstance(artifact_uri, _pipeline_param.PipelineParam):
+    importer_spec.artifact_uri.runtime_parameter = INPUT_KEY
+  elif isinstance(artifact_uri, str):
+    importer_spec.artifact_uri.constant_value.string_value = artifact_uri
+
   return importer_spec
 
 
-def build_importer_task_spec(
+def _build_importer_task_spec(
     importer_base_name: str,
+    artifact_uri: Union[_pipeline_param.PipelineParam, str],
 ) -> pipeline_spec_pb2.PipelineTaskSpec:
   """Builds an importer task spec.
 
   Args:
     importer_base_name: The base name of the importer node.
+    artifact_uri: The artifact uri to import from.
 
   Returns:
     An importer node task spec.
@@ -69,21 +69,26 @@ def build_importer_task_spec(
   result.component_ref.name = dsl_utils.sanitize_component_name(
       importer_base_name)
 
+  if isinstance(artifact_uri, _pipeline_param.PipelineParam):
+    result.inputs.parameters[
+        INPUT_KEY].component_input_parameter = artifact_uri.full_name
+  elif isinstance(artifact_uri, str):
+    result.inputs.parameters[
+        INPUT_KEY].runtime_value.constant_value.string_value = artifact_uri
+
   return result
 
 
-def build_importer_component_spec(
+def _build_importer_component_spec(
     importer_base_name: str,
-    input_name: str,
-    input_type_schema: pipeline_spec_pb2.ArtifactTypeSchema,
+    artifact_type_schema: pipeline_spec_pb2.ArtifactTypeSchema,
 ) -> pipeline_spec_pb2.ComponentSpec:
   """Builds an importer component spec.
 
   Args:
     importer_base_name: The base name of the importer node.
-    dependent_task: The task requires importer node.
-    input_name: The name of the input artifact needs to be imported.
-    input_type_schema: The type of the input artifact.
+    artifact_type_schema: The user specified artifact type schema of the
+      artifact to be imported.
 
   Returns:
     An importer node component spec.
@@ -91,25 +96,61 @@ def build_importer_component_spec(
   result = pipeline_spec_pb2.ComponentSpec()
   result.executor_label = dsl_utils.sanitize_executor_label(importer_base_name)
   result.input_definitions.parameters[
-      input_name].type = pipeline_spec_pb2.PrimitiveType.STRING
-  result.output_definitions.artifacts[
-      OUTPUT_KEY].artifact_type.CopyFrom(input_type_schema)
+      INPUT_KEY].type = pipeline_spec_pb2.PrimitiveType.STRING
+  result.output_definitions.artifacts[OUTPUT_KEY].artifact_type.CopyFrom(
+      artifact_type_schema)
 
   return result
 
 
-def generate_importer_base_name(dependent_task_name: str,
-                                input_name: str) -> str:
-  """Generates the base name of an importer node.
-
-  The base name is formed by connecting the dependent task name and the input
-  artifact name. It's used to form task name, component ref, and executor label.
+def importer(artifact_uri: Union[_pipeline_param.PipelineParam, str],
+             artifact_class: Type[io_types.Artifact],
+             reimport: bool = False) -> _container_op.ContainerOp:
+  """dsl.importer for importing an existing artifact. Only for v2 pipeline.
 
   Args:
-    dependent_task_name: The name of the task requires importer node.
-    input_name: The name of the input artifact needs to be imported.
+    artifact_uri: The artifact uri to import from.
+    artifact_type_schema: The user specified artifact type schema of the
+      artifact to be imported.
+    reimport: Whether to reimport the artifact. Defaults to False.
 
   Returns:
-    A base importer node name.
+    A ContainerOp instance.
+
+  Raises:
+    ValueError if the passed in artifact_uri is neither a PipelineParam nor a
+      constant string value.
   """
-  return 'importer-{}-{}'.format(dependent_task_name, input_name)
+
+  if isinstance(artifact_uri, _pipeline_param.PipelineParam):
+    input_param = artifact_uri
+  elif isinstance(artifact_uri, str):
+    input_param = _pipeline_param.PipelineParam(
+        name='uri', value=artifact_uri, param_type='String')
+  else:
+    raise ValueError(
+        'Importer got unexpected artifact_uri: {} of type: {}.'.format(
+            artifact_uri, type(artifact_uri)))
+
+  old_warn_value = _container_op.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING
+  _container_op.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = True
+
+  task = _container_op.ContainerOp(
+      name='importer',
+      image='importer_image',  # TODO: need a v1 implementation of importer.
+      file_outputs={
+          OUTPUT_KEY: "{{{{$.outputs.artifacts['{}'].uri}}}}".format(OUTPUT_KEY)
+      },
+  )
+  _container_op.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = old_warn_value
+
+  artifact_type_schema = type_utils.get_artifact_type_schema(artifact_class)
+  task.importer_spec = _build_importer_spec(
+      artifact_uri=artifact_uri, artifact_type_schema=artifact_type_schema)
+  task.task_spec = _build_importer_task_spec(
+      importer_base_name=task.name, artifact_uri=artifact_uri)
+  task.component_spec = _build_importer_component_spec(
+      importer_base_name=task.name, artifact_type_schema=artifact_type_schema)
+  task.inputs = [input_param]
+
+  return task
