@@ -89,6 +89,10 @@ Your sample test needs to conform to the standard interface in
 [components/run_sample.yaml](components/run_sample.yaml). You can refer to
 existing [sample tests](../../samples/test) for how to implement the interface.
 
+## How can a sample verify MLMD status of a run?
+
+Refer to [an existing test](../../samples/test/two_step_test.py).
+
 ## Implementation Details
 
 When kubeflow-pipelines-samples-v2 test is called from presubmit, it goes through
