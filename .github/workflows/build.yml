@@ -1,0 +1,42 @@
+name: build_push
+on:
+  push:
+    branches:
+      - stc-master
+# Environment variables available to all jobs and steps in this workflow
+env:
+  REGISTRY_NAME: k8scc01covidacr
+  CLUSTER_NAME: k8s-cancentral-02-covid-aks
+  CLUSTER_RESOURCE_GROUP: k8s-cancentral-01-covid-aks
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Add SHORT_SHA env property with commit short sha
+      run:  echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
+
+    - name: Build image
+      run: |
+        cd frontend
+        docker build . -t ${{ env.REGISTRY_NAME }}.azurecr.io/kubeflow-pipeline/kubeflow-pipeline:$SHORT_SHA \
+          -t ${{ env.REGISTRY_NAME }}.azurecr.io/kubeflow-pipeline/kubeflow-pipeline:${GITHUB_REF#refs/*/}
+        docker image prune
+    # Scan image for vulnerabilities
+    - uses: Azure/container-scan@v0
+      with:
+        image-name: ${{ env.REGISTRY_NAME }}.azurecr.io/kubeflow-pipeline/kubeflow-pipeline:${{ env.SHORT_SHA }}
+        severity-threshold: CRITICAL
+        run-quality-checks: false
+
+    - uses: azure/docker-login@v1
+      with:
+        login-server: ${{ env.REGISTRY_NAME }}.azurecr.io
+        username: ${{ secrets.REGISTRY_USERNAME }}
+        password: ${{ secrets.REGISTRY_PASSWORD }}
+
+    # Push image
+    - name: Docker push
+      run: |
+        docker push ${{ env.REGISTRY_NAME }}.azurecr.io/kubeflow-pipeline/kubeflow-pipeline:${{ env.SHORT_SHA }}
+        docker push ${{ env.REGISTRY_NAME }}.azurecr.io/kubeflow-pipeline/kubeflow-pipeline:${GITHUB_REF#refs/*/}

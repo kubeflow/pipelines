@@ -7,12 +7,12 @@ ENV TAG_NAME=${TAG_NAME}
 
 ARG DATE
 
-WORKDIR ./src
+WORKDIR /frontend/
 
 COPY . .
 
-WORKDIR ./frontend
-
+RUN cd  /frontend
+RUN npm update & npm cache clean --force
 RUN npm ci && npm run postinstall
 RUN npm run build
 
@@ -28,12 +28,10 @@ RUN node gen_licenses . && node gen_licenses server && \
     cat dependency-licenses.txt >> server/dependency-licenses.txt
 
 FROM node:12.14.1-alpine
-
-COPY --from=build ./src/frontend/server /server
-COPY --from=build ./src/frontend/build /client
+COPY --from=build /frontend/server /server
+COPY --from=build /frontend/build /client
 
 WORKDIR /server
-
 EXPOSE 3000
 RUN npm run build
 ENV API_SERVER_ADDRESS http://localhost:3001
