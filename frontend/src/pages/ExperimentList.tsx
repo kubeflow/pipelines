@@ -28,9 +28,9 @@ import { ApiFilter, PredicateOp } from '../apis/filter';
 import {
   ApiListExperimentsResponse,
   ApiExperiment,
-  ExperimentStorageState,
+  ApiExperimentStorageState,
 } from '../apis/experiment';
-import { ApiRun, RunStorageState } from '../apis/run';
+import { ApiRun, ApiRunStorageState } from '../apis/run';
 import { Apis, ExperimentSortKeys, ListRequest, RunSortKeys } from '../lib/Apis';
 import { Link } from 'react-router-dom';
 import { NodePhase } from '../lib/StatusUtils';
@@ -191,7 +191,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
         {
           key: 'storage_state',
           op: PredicateOp.NOTEQUALS,
-          string_value: ExperimentStorageState.ARCHIVED.toString(),
+          string_value: ApiExperimentStorageState.ARCHIVED.toString(),
         },
       ]);
       request.filter = encodeURIComponent(JSON.stringify(filter));
@@ -228,7 +228,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
                   {
                     key: 'storage_state',
                     op: PredicateOp.NOTEQUALS,
-                    string_value: RunStorageState.ARCHIVED.toString(),
+                    string_value: ApiRunStorageState.ARCHIVED.toString(),
                   },
                 ],
               } as ApiFilter),
@@ -280,7 +280,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
         disablePaging={false}
         selectedIds={this.state.selectedIds}
         noFilterBox={true}
-        storageState={RunStorageState.AVAILABLE}
+        storageState={ApiRunStorageState.AVAILABLE}
         onSelectionChange={this._selectionChanged.bind(this)}
         disableSorting={true}
       />
