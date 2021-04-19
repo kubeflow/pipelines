@@ -23,7 +23,8 @@ def print_op(name: str) -> str:
   return name
 
 
-@dsl.pipeline(name='pipeline-with-pipelineparam-containing-format')
+@dsl.pipeline(name='pipeline-with-pipelineparam-containing-format',
+              pipeline_root='dummy_root')
 def my_pipeline(name: str = 'KFP'):
   print_task = print_op('Hello {}'.format(name))
   print_op('{}, again.'.format(print_task.output))
@@ -32,5 +33,4 @@ def my_pipeline(name: str = 'KFP'):
 if __name__ == '__main__':
   compiler.Compiler().compile(
       pipeline_func=my_pipeline,
-      pipeline_root='dummy_root',
       package_path=__file__.replace('.py', '.json'))

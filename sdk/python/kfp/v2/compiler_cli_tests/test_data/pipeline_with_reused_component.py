@@ -23,7 +23,7 @@ add_op = components.load_component_from_file(
     str(test_data_dir / 'add_component.yaml'))
 
 
-@dsl.pipeline(name='add-pipeline')
+@dsl.pipeline(name='add-pipeline', pipeline_root='dummy_root')
 def my_pipeline(
     a: int = 2,
     b: int = 5,
@@ -36,5 +36,4 @@ def my_pipeline(
 if __name__ == '__main__':
   compiler.Compiler().compile(
       pipeline_func=my_pipeline,
-      pipeline_root='dummy_root',
       package_path=__file__.replace('.py', '.json'))

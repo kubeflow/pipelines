@@ -66,7 +66,7 @@ implementation:
 """)
 
 
-@dsl.pipeline(name='pipeline-with-various-types')
+@dsl.pipeline(name='pipeline-with-various-types', pipeline_root='dummy_root')
 def my_pipeline(input1: str,
                 input3,
                 input4='',
@@ -92,5 +92,4 @@ def my_pipeline(input1: str,
 if __name__ == '__main__':
   compiler.Compiler().compile(
       pipeline_func=my_pipeline,
-      pipeline_root='dummy_root',
       package_path=__file__.replace('.py', '.json'))
