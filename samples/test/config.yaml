@@ -47,8 +47,6 @@
   path: samples.test.fail_test
 - name: two_step
   path: samples.test.two_step_test
-- name: minio_pipeline_root_two_step
-  path: samples.test.minio_pipeline_root_two_step_test
 - name: after
   path: samples.test.after_test
 - name: parameter_with_format
