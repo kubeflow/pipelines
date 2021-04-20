@@ -17,7 +17,7 @@ from .resource_spec import my_pipeline
 from ...test.util import run_pipeline_func, TestCase
 
 
-def EXPECTED_OOM(run_id, run):
+def EXPECTED_OOM(run_id, run, **kwargs):
     '''confirms a sample test case is failing, because of OOM '''
     assert run.status == 'Failed'
 
