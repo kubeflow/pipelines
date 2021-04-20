@@ -25,13 +25,24 @@ import (
 )
 
 func TestGetParameters(t *testing.T) {
-	wf := unmarshalWf(yamlStr)
+	wf := unmarshalWf(validWorkflow)
 	wf.TypeMeta = v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"}
 	wf.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "dup", Value: v1alpha1.AnyStringPtr("value1")}}
 	templateBytes, _ := yaml.Marshal(wf)
 	paramString, err := GetParameters([]byte(templateBytes))
 	assert.Nil(t, err)
 	assert.Equal(t, `[{"name":"dup","value":"value1"}]`, paramString)
+}
+
+func TestFailValidation(t *testing.T) {
+	wf := unmarshalWf(emptyName)
+	wf.TypeMeta = v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"}
+	wf.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "dup", Value: v1alpha1.AnyStringPtr("value1")}}
+	templateBytes, _ := yaml.Marshal(wf)
+	_, err := GetParameters([]byte(templateBytes))
+	if assert.NotNil(t, err) {
+		assert.Contains(t, err.Error(), "name is required")
+	}
 }
 
 func TestGetParameters_ParametersTooLong(t *testing.T) {
@@ -56,7 +67,7 @@ func unmarshalWf(yamlStr string) *wfv1.Workflow {
 	return &wf
 }
 
-var yamlStr = `
+var validWorkflow = `
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
@@ -68,6 +79,22 @@ spec:
     inputs:
       parameters:
       - name: dup
+        value: "value1"
+    container:
+      image: docker/whalesay:latest`
+
+var emptyName = `
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: hello-world-
+spec:
+  entrypoint: whalesay
+  templates:
+  - name: whalesay
+    inputs:
+      parameters:
+      - name: ""
         value: "value1"
     container:
       image: docker/whalesay:latest`
