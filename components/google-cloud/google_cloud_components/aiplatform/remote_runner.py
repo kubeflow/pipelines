@@ -80,6 +80,23 @@ def write_to_artifact(executor_input, text):
         f.write(json.dumps(executor_output))
 
 
+def resolve_input_args(value, type_to_resolve):
+    """If this is an input from Pipelines, read it directly from gcs."""
+    if inspect.isclass(type_to_resolve) and issubclass(
+            type_to_resolve, aiplatform.base.AiPlatformResourceNoun):
+        if value.startswith('/gcs/'):  # not a resource noun:
+            value = value[len('/gcs/'):]
+    return value
+
+
+def resolve_init_args(key, value):
+    """Resolves Metadata/InputPath parameters to resource names."""
+    if key.endswith('_name'):
+        if value.startswith('/gcs/'):  # not a resource noun
+            value = value[len('/gcs/'):]
+    return value
+
+
 def make_output(output_object: Any) -> str:
     if utils.is_mb_sdk_resource_noun_type(type(output_object)):
         return output_object.resource_name
@@ -129,6 +146,9 @@ def prepare_parameters(
         if key in kwargs:
             value = kwargs[key]
             param_type = utils.resolve_annotation(param.annotation)
+            value = resolve_init_args(
+                key, value
+            ) if is_init else resolve_input_args(value, param_type)
             deserializer = utils.get_deserializer(param_type)
             if deserializer:
                 value = deserializer(value)
