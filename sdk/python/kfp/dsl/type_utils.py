@@ -19,6 +19,7 @@ from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.dsl import artifact_utils
 from kfp.dsl import io_types
 
+
 # ComponentSpec I/O types to DSL ontology artifact classes mapping.
 _ARTIFACT_CLASSES_MAPPING = {
     'model': io_types.Model,
