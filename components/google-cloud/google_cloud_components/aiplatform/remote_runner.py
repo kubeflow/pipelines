@@ -61,24 +61,23 @@ def write_to_artifact(executor_input, text):
     if output_artifacts:
         executor_output['artifacts'] = {}
 
-    for name, artifact in output_artifacts.items():
-        runtime_artifact = {
-            "name": artifact.get('name'),
-            "uri": text,
-            "metadata": artifact.get('metadata', "{}")
-        }
-        artifacts_list = {'artifacts': [runtime_artifact]}
+        # TODO - Support multiple outputs, current implmentation
+        # sets all output uri's to text
+        for name, artifact in output_artifacts.items():
+            runtime_artifact = {
+                "name": artifact.get('name'),
+                "uri": text,
+                "metadata": artifact.get('metadata', "{}")
+            }
+            artifacts_list = {'artifacts': [runtime_artifact]}
 
-        executor_output['artifacts'][name] = artifacts_list
+            executor_output['artifacts'][name] = artifacts_list
 
     os.makedirs(
         os.path.dirname(executor_input['outputs']['outputFile']), exist_ok=True
     )
     with open(executor_input['outputs']['outputFile'], 'w') as f:
         f.write(json.dumps(executor_output))
-    import pprint
-    pprint.pprint(json.dumps(executor_input))
-    pprint.pprint(json.dumps(executor_output))
 
 
 def make_output(output_object: Any) -> str:
