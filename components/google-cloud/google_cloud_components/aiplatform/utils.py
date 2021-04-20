@@ -466,6 +466,8 @@ def convert_method_to_component(
             f'- {{name: {output_metadata_name}, type: {output_metadata_type}}}'
         ])
         output_args = '\n'.join([
+            '    - --executor_input',
+            '    - "{{$}}"',
             '    - --resource_name_output_artifact_path',
             f'    - {{outputPath: {output_metadata_name}}}',
         ])
