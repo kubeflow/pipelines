@@ -22,39 +22,47 @@
 # The field `path` corresponds to the test's python module path
 # e.g. if folder path is `samples/test/fail_test.py`, then module path is
 # `samples.test.fail_test`.
-- name: fail
-  path: samples.test.fail_test
-- name: two_step
-  path: samples.test.two_step_test
-- name: after
-  path: samples.test.after_test
 - name: condition
   path: samples.core.condition.condition_test
 - name: nested_condition
   path: samples.core.condition.nested_condition_test
+- name: exit_handler
+  path: samples.core.exit_handler.exit_handler_test
+- name: output_a_directory
+  path: samples.core.output_a_directory.output_a_directory_test
 - name: loop_output
   path: samples.core.loop_output.loop_output_test
 - name: loop_static
   path: samples.core.loop_static.loop_static_test
 - name: loop_parameter
   path: samples.core.loop_parameter.loop_parameter_test
-- name: parameter_with_format
-  path: samples.test.parameter_with_format_test
+- name: loop_parallelism
+  path: samples.core.loop_parallelism.loop_parallelism_test
 - name: resource_spec
   path: samples.core.resource_spec.resource_spec_test
+- name: xgboost_sample
+  path: samples.core.XGBoost.xgboost_sample_test
+
+- name: fail
+  path: samples.test.fail_test
+- name: two_step
+  path: samples.test.two_step_test
+- name: after
+  path: samples.test.after_test
+- name: parameter_with_format
+  path: samples.test.parameter_with_format_test
 - name: reused_component
   path: samples.test.reused_component_test
+- name: legacy_exit_handler
+  path: samples.test.legacy_exit_handler_test
 - name: various_io_types
   path: samples.test.various_io_types
 - name: simple_pipeline_without_importer
   path: samples.test.simple_pipeline_without_importer_test
-- name: xgboost_sample
-  path: samples.core.XGBoost.xgboost_sample_test
 - name: lightweight_python_functions_v2_with_outputs
   path: samples.test.lightweight_python_functions_v2_with_outputs_test
 - name: lightweight_python_functions_v2_pipeline
   path: samples.test.lightweight_python_functions_v2_pipeline_test
-
 # TODO(v2-compatible): support pipeline: pipeline_with_ontology.py
 # TODO(v2-compatible): support two_step_pipeline_with_importer.py
 # TODO(v2-compatible): support IR placeholder
