@@ -25,8 +25,8 @@
 import argparse
 import json
 import os
-import urlparse
 import pandas as pd
+from urllib.parse import urlparse
 from sklearn.metrics import confusion_matrix, accuracy_score
 from tensorflow.python.lib.io import file_io
 
@@ -41,7 +41,7 @@ def main(argv=None):
                            'If not set, the input must include a "target" column.')
   args = parser.parse_args()
 
-  storage_service_scheme = urlparse.urlparse(args.output).scheme
+  storage_service_scheme = urlparse(args.output).scheme
   on_cloud = True if storage_service_scheme else False
   if not on_cloud and not os.path.exists(args.output):
     os.makedirs(args.output)
