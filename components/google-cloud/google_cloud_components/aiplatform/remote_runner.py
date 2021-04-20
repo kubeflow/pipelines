@@ -67,7 +67,7 @@ def write_to_artifact(executor_input, text):
             runtime_artifact = {
                 "name": artifact.get('name'),
                 "uri": text,
-                "metadata": artifact.get('metadata', "{}")
+                "metadata": artifact.get('metadata', {})
             }
             artifacts_list = {'artifacts': [runtime_artifact]}
 
