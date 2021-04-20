@@ -65,7 +65,7 @@ def write_to_artifact(executor_input, text):
         runtime_artifact = {
             "name": artifact.get('name'),
             "uri": text,
-            "metadata": artifact.get('metadata', "")
+            "metadata": artifact.get('metadata', "{}")
         }
         artifacts_list = {'artifacts': [runtime_artifact]}
 
@@ -76,8 +76,9 @@ def write_to_artifact(executor_input, text):
     )
     with open(executor_input['outputs']['outputFile'], 'w') as f:
         f.write(json.dumps(executor_output))
-
-    print(json.dumps(executor_output))
+    import pprint
+    pprint.pprint(json.dumps(executor_input))
+    pprint.pprint(json.dumps(executor_output))
 
 
 def make_output(output_object: Any) -> str:
