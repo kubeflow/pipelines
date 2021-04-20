@@ -16,4 +16,6 @@ FROM python:3.7-slim
 
 WORKDIR /workdir
 COPY . /workdir
-RUN pip3 install --no-cache-dir -e sdk/python
+# relative path in requirements.txt are relative to workdir, so we need to
+# cd to that folder first
+RUN cd v2/test && pip3 install --no-cache-dir -r requirements.txt

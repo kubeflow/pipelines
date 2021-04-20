@@ -1,7 +1,6 @@
 REPO_ROOT=../..
 
 # These vars are expected in .env:
-# PROJECT=gongyuan-pipeline-test
 # GCS_ROOT=gs://$(PROJECT)/v2-sample-test
 # GCR_ROOT=gcr.io/$(PROJECT)/v2-sample-test
 # HOST=https://71a74112589c16e8-dot-asia-east1.pipelines.googleusercontent.com
@@ -43,3 +42,7 @@ context:
 	cd $(REPO_ROOT); \
 	stash=$$(git stash create); \
 	git archive --format=tar "$${stash:-HEAD}" | gzip >v2/test/tmp/context.tar.gz
+
+.PHONY: mlmd-port-forward
+mlmd-port-forward:
+	kubectl port-forward svc/metadata-grpc-service 8080:8080

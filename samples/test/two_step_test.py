@@ -13,15 +13,107 @@
 # limitations under the License.
 """Two step v2-compatible pipeline."""
 
+# %%
+
+import sys
+import logging
+import unittest
+from dataclasses import dataclass, asdict
+from typing import Tuple
+from pprint import pprint
+
+import kfp
+import kfp_server_api
+
 from .two_step import two_step_pipeline
-from .util import run_pipeline_func, TestCase
+from .util import run_pipeline_func, TestCase, KfpMlmdClient
+
+from ml_metadata import metadata_store
+from ml_metadata.proto import metadata_store_pb2
 
 
-def verify(run, run_id: str):
-    assert run.status == 'Succeeded'
-    # TODO(Bobgy): verify MLMD status
+def verify(
+    run: kfp_server_api.ApiRun, mlmd_connection_config, argo_workflow_name: str,
+    **kwargs
+):
+    t = unittest.TestCase()
+    t.maxDiff = None  # we always want to see full diff
+
+    t.assertEqual(run.status, 'Succeeded')
+
+    # Verify MLMD state
+    client = KfpMlmdClient(mlmd_connection_config=mlmd_connection_config)
+
+    tasks = client.get_tasks(argo_workflow_name=argo_workflow_name)
+    task_names = [*tasks.keys()]
+    t.assertEqual(task_names, ['train-op', 'preprocess'], 'task names')
+
+    preprocess: KfpTask = tasks.get('preprocess')
+    train: KfpTask = tasks.get('train-op')
+
+    pprint('======= preprocess task =======')
+    pprint(preprocess.get_dict())
+    pprint('======= train task =======')
+    pprint(train.get_dict())
+    pprint('==============')
+
+    t.assertEqual(
+        preprocess.get_dict(), {
+            'name': 'preprocess',
+            'inputs': {
+                'artifacts': [],
+                'parameters': {
+                    'some_int': 12,
+                    'uri': 'uri-to-import'
+                }
+            },
+            'outputs': {
+                'artifacts': [{
+                    'name': '',
+                    'type': 'system.Dataset'
+                }],
+                'parameters': {
+                    'output_parameter_one': 1234
+                }
+            },
+            'type': 'kfp.ContainerExecution'
+        }
+    )
+    t.assertEqual(
+        train.get_dict(), {
+            'name': 'train-op',
+            'inputs': {
+                'artifacts': [{
+                    'name': '',
+                    'type': 'system.Dataset',
+                }],
+                'parameters': {
+                    'num_steps': 1234
+                }
+            },
+            'outputs': {
+                'artifacts': [{
+                    'name': '',
+                    'type': 'system.Model',
+                }],
+                'parameters': {}
+            },
+            'type': 'kfp.ContainerExecution'
+        }
+    )
 
 
-run_pipeline_func([
-    TestCase(pipeline_func=two_step_pipeline, verify_func=verify)
-])
+if __name__ == '__main__':
+    run_pipeline_func([
+        TestCase(
+            pipeline_func=two_step_pipeline,
+            verify_func=verify,
+            mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
+        ),
+        TestCase(
+            pipeline_func=two_step_pipeline,
+            mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY
+        )
+    ])
+
+# %%
