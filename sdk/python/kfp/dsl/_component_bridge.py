@@ -27,7 +27,6 @@ from kfp.dsl import types
 from kfp.dsl import component_spec as dsl_component_spec
 from kfp.dsl import _container_op
 from kfp.dsl import dsl_utils
-from kfp.dsl import importer_node
 from kfp.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 
@@ -368,15 +367,6 @@ def _attach_v2_specs(
         raise TypeError('Input "{}" with type "{}" cannot be paired with '
                         'InputPathPlaceholder.'.format(
                             input_key, inputs_dict[input_key].type))
-      elif is_compiling_for_v2 and input_key in importer_specs:
-        raise TypeError(
-            'Input "{}" with type "{}" is not connected to any upstream output. '
-            'However it is used with InputPathPlaceholder. '
-            'If you want to import an existing artifact using a system-connected'
-            ' importer node, use InputUriPlaceholder instead. '
-            'Or if you just want to pass a string parameter, use string type and'
-            ' InputValuePlaceholder instead.'.format(
-                input_key, inputs_dict[input_key].type))
       else:
         return "{{{{$.inputs.artifacts['{}'].path}}}}".format(input_key)
 
@@ -463,9 +453,6 @@ def _attach_v2_specs(
 
   pipeline_task_spec = pipeline_spec_pb2.PipelineTaskSpec()
 
-  # Keep track of auto-injected importer spec.
-  importer_specs = {}
-
   # Check types of the reference arguments and serialize PipelineParams
   original_arguments = arguments
   arguments = arguments.copy()
@@ -507,17 +494,6 @@ def _attach_v2_specs(
           pipeline_task_spec.inputs.artifacts[
               input_name].task_output_artifact.output_artifact_key = (
                   argument_value.name)
-        elif is_compiling_for_v2:
-          # argument_value.op_name could be none, in which case an importer node
-          # will be inserted later.
-          # Importer node is only applicable for v2 engine.
-          pipeline_task_spec.inputs.artifacts[
-              input_name].task_output_artifact.producer_task = ''
-          type_schema = type_utils.get_input_artifact_type_schema(
-              input_name, component_spec.inputs)
-          importer_specs[input_name] = importer_node.build_importer_spec(
-              input_type_schema=type_schema,
-              pipeline_param_name=argument_value.name)
     elif isinstance(argument_value, str):
       pipeline_params = _pipeline_param.extract_pipelineparams_from_any(
           argument_value)
@@ -557,15 +533,6 @@ def _attach_v2_specs(
         pipeline_task_spec.inputs.parameters[
             input_name].runtime_value.constant_value.string_value = (
                 argument_value)
-      elif is_compiling_for_v2:
-        # An importer node with constant value artifact_uri will be inserted.
-        # Importer node is only applicable for v2 engine.
-        pipeline_task_spec.inputs.artifacts[
-            input_name].task_output_artifact.producer_task = ''
-        type_schema = type_utils.get_input_artifact_type_schema(
-            input_name, component_spec.inputs)
-        importer_specs[input_name] = importer_node.build_importer_spec(
-            input_type_schema=type_schema, constant_value=argument_value)
     elif isinstance(argument_value, int):
       pipeline_task_spec.inputs.parameters[
           input_name].runtime_value.constant_value.int_value = argument_value
@@ -606,7 +573,6 @@ def _attach_v2_specs(
       component_spec, executor_label, arguments.keys())
 
   task.task_spec = pipeline_task_spec
-  task.importer_specs = importer_specs
 
   # Override command and arguments if compiling to v2.
   if is_compiling_for_v2:
