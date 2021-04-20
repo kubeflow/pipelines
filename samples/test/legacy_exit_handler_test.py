@@ -18,7 +18,7 @@ from .legacy_exit_handler import download_and_print
 from .util import run_pipeline_func, TestCase
 
 
-def verify(run, run_id: str):
+def verify(run, run_id: str, **kwargs):
     assert run.status == 'Succeeded'
     # TODO(Bobgy): verify exit handler pod ran
 
