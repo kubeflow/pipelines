@@ -47,44 +47,35 @@ def split_args(kwargs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     return init_args, method_args
 
 
-def write_to_artifact(artifact_path, metadata_path, text):
+def write_to_artifact(executor_input, text):
     """Write output to local artifact and methadata path (uses GCSFuse)."""
 
-    # Create the artifact dir if it does not exist
-    os.makedirs(os.path.dirname(artifact_path), exist_ok=True)
+    output_artifacts = {}
+    for name, artifacts in executor_input.get('outputs', {}).get('artifacts',
+                                                                 {}).items():
+        artifacts_list = artifacts.get('artifacts')
+        if artifacts_list:
+            output_artifacts[name] = artifacts_list[0]
 
-    with open(artifact_path, 'w') as f:
-        f.write(text)
+    executor_output = {}
+    if output_artifacts:
+        executor_output['artifacts'] = {}
 
-    # Create the artifact dir if it does not exist
-    os.makedirs(os.path.dirname(metadata_path), exist_ok=True)
-    runtime_artifact = f"{'uri':{text}}"
-    with open(metadata_path, 'a') as f:
-        json.dump(runtime_artifact, f)
+    for name, artifact in output_artifacts.items():
+        runtime_artifact = {
+            "name": artifact.get('name'),
+            "uri": text,
+            "metadata": artifact.get('metadata', "")
+        }
+        artifacts_list = {'artifacts': [runtime_artifact]}
 
+        executor_output['artifacts'][name] = artifacts_list
 
-def read_from_artifact(artifact_path):
-    """Read input from local artifact path(uses GCSFuse)."""
-    with open(artifact_path, 'r') as input_file:
-        resource_name = input_file.read()
-    return resource_name
-
-
-def resolve_input_args(value, type_to_resolve):
-    """If this is an input from Pipelines, read it directly from gcs."""
-    if inspect.isclass(type_to_resolve) and issubclass(
-            type_to_resolve, aiplatform.base.AiPlatformResourceNoun):
-        if value.startswith('/gcs/'):  # not a resource noun:
-            value = read_from_artifact(value)
-    return value
-
-
-def resolve_init_args(key, value):
-    """Resolves Metadata/InputPath parameters to resource names."""
-    if key.endswith('_name'):
-        if value.startswith('/gcs/'):  # not a resource noun
-            value = read_from_artifact(value)
-    return value
+    os.makedirs(
+        os.path.dirname(executor_input['outputs']['outputFile']), exist_ok=True
+    )
+    with open(executor_input['outputs']['outputFile'], 'w') as f:
+        f.write(json.dumps(executor_output))
 
 
 def make_output(output_object: Any) -> str:
@@ -136,9 +127,6 @@ def prepare_parameters(
         if key in kwargs:
             value = kwargs[key]
             param_type = utils.resolve_annotation(param.annotation)
-            value = resolve_init_args(
-                key, value
-            ) if is_init else resolve_input_args(value, param_type)
             deserializer = utils.get_deserializer(param_type)
             if deserializer:
                 value = deserializer(value)
@@ -147,7 +135,7 @@ def prepare_parameters(
             kwargs[key] = value
 
 
-def runner(cls_name, method_name, resource_name_output_artifact_path, kwargs):
+def runner(cls_name, method_name, executor_input, kwargs):
     cls = getattr(aiplatform, cls_name)
 
     init_args, method_args = split_args(kwargs)
@@ -162,10 +150,7 @@ def runner(cls_name, method_name, resource_name_output_artifact_path, kwargs):
     output = method(**serialized_args[METHOD_KEY])
 
     if output:
-        write_to_artifact(
-            resource_name_output_artifact_path, output_metadata_path,
-            make_output(output)
-        )
+        write_to_artifact(executor_input, make_output(output))
         return output
 
 
@@ -173,13 +158,12 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--cls_name", type=str)
     parser.add_argument("--method_name", type=str)
-    parser.add_argument(
-        "--resource_name_output_artifact_path", type=str, default=None
-    )
-    parser.add_argument("--output_metadata_uri", type=str, default=None)
+    parser.add_argument("--executor_input", type=str, default=None)
 
     args, unknown_args = parser.parse_known_args()
     kwargs = {}
+
+    executor_input = json.loads(args.executor_input)
 
     key_value = None
     for arg in unknown_args:
@@ -194,13 +178,7 @@ def main():
                 kwargs[key_value] = arg
                 key_value = None
 
-    print(
-        runner(
-            args.cls_name, args.method_name,
-            args.resource_name_output_artifact_path, args.output_metadata_uri,
-            kwargs
-        )
-    )
+    print(runner(args.cls_name, args.method_name, executor_input, kwargs))
 
 
 if __name__ == "__main__":
