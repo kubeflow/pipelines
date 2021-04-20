@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-LAUNCHER_IMAGE=gcr.io/xiyue-kfp/kfp-launcher
+LAUNCHER_IMAGE=gcr.io/ml-pipeline/kfp-launcher
 
 build-launcher:
 	@docker build -t ${LAUNCHER_IMAGE} -f launcher_container/Dockerfile .

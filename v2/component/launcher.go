@@ -73,12 +73,6 @@ type bucketConfig struct {
 }
 
 func (b *bucketConfig) bucketURL() string {
-	//scheme := b.scheme
-	//// use go cdk to access minio, therefore we need to translate minio path to s3 path
-	//if b.scheme == "minio://" {
-	//	scheme = "s3://"
-	//}
-	//u := scheme + b.bucketName
 	u := b.scheme + b.bucketName
 
 	// append prefix=b.prefix to existing queryString
