@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Module for remote execution of AI Platform component."""
+"""Module for remote execution of AI Platform pipeline component."""
 
 import argparse
 from distutils import util as distutil
@@ -21,7 +21,7 @@ import os
 from typing import Any, Callable, Dict, Tuple, Type, TypeVar
 
 from google.cloud import aiplatform
-from google_cloud_components.aiplatform import utils
+from google_cloud_pipeline_components.aiplatform import utils
 
 INIT_KEY = 'init'
 METHOD_KEY = 'method'
