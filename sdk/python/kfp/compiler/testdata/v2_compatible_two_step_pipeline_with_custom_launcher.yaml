@@ -91,12 +91,6 @@ spec:
       - name: WORKFLOW_ID
         valueFrom:
           fieldRef: {fieldPath: 'metadata.labels[''workflows.argoproj.io/workflow'']'}
-      - name: AWS_ACCESS_KEY_ID
-        valueFrom:
-          secretKeyRef: {key: accesskey, name: kfp-s3-secret, optional: true}
-      - name: AWS_SECRET_ACCESS_KEY
-        valueFrom:
-          secretKeyRef: {key: secretkey, name: kfp-s3-secret, optional: true}
       - {name: KFP_V2_IMAGE, value: 'python:3.9'}
       - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {"some_int": {"type":
           "INT", "value": "12"}, "uri": {"type": "STRING", "value": "uri-to-import"}},
@@ -186,12 +180,6 @@ spec:
       - name: WORKFLOW_ID
         valueFrom:
           fieldRef: {fieldPath: 'metadata.labels[''workflows.argoproj.io/workflow'']'}
-      - name: AWS_ACCESS_KEY_ID
-        valueFrom:
-          secretKeyRef: {key: accesskey, name: kfp-s3-secret, optional: true}
-      - name: AWS_SECRET_ACCESS_KEY
-        valueFrom:
-          secretKeyRef: {key: secretkey, name: kfp-s3-secret, optional: true}
       - {name: KFP_V2_IMAGE, value: 'python:3.7'}
       - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {"num_steps": {"type":
           "INT", "value": "{{inputs.parameters.preprocess-output_parameter_one}}"}},

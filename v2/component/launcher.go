@@ -35,9 +35,12 @@ import (
 	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
 	"google.golang.org/protobuf/encoding/protojson"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"gocloud.dev/blob"
 	_ "gocloud.dev/blob/gcsblob"
-	_ "gocloud.dev/blob/s3blob"
+	"gocloud.dev/blob/s3blob"
 )
 
 // Launcher is used to launch KFP components. It handles the recording of the
@@ -63,13 +66,19 @@ type LauncherOptions struct {
 }
 
 type bucketConfig struct {
-	scheme     string
-	bucketName string
-	prefix     string
+	scheme      string
+	bucketName  string
+	prefix      string
 	queryString string
 }
 
 func (b *bucketConfig) bucketURL() string {
+	//scheme := b.scheme
+	//// use go cdk to access minio, therefore we need to translate minio path to s3 path
+	//if b.scheme == "minio://" {
+	//	scheme = "s3://"
+	//}
+	//u := scheme + b.bucketName
 	u := b.scheme + b.bucketName
 
 	// append prefix=b.prefix to existing queryString
@@ -112,7 +121,7 @@ func parseBucketConfig(path string) (*bucketConfig, error) {
 	}
 
 	// TODO: Verify/add support for file:///.
-	if ms[1] != "gs://" && ms[1] != "s3://"{
+	if ms[1] != "gs://" && ms[1] != "s3://" && ms[1] != "minio://" {
 		return nil, fmt.Errorf("Unsupported Cloud bucket: %q", path)
 	}
 
@@ -122,9 +131,9 @@ func parseBucketConfig(path string) (*bucketConfig, error) {
 	}
 
 	return &bucketConfig{
-		scheme:     ms[1],
-		bucketName: ms[2],
-		prefix:     prefix,
+		scheme:      ms[1],
+		bucketName:  ms[2],
+		prefix:      prefix,
 		queryString: ms[4],
 	}, nil
 }
@@ -305,7 +314,7 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 		}
 	}
 
-	bucket, err := blob.OpenBucket(context.Background(), l.bucketConfig.bucketURL())
+	bucket, err := l.openBucket()
 	if err != nil {
 		return fmt.Errorf("Failed to open bucket %q: %v", l.bucketConfig.bucketName, err)
 	}
@@ -416,13 +425,12 @@ func localPathForURI(uri string) (string, error) {
 	if strings.HasPrefix(uri, "gs://") {
 		return "/gcs/" + strings.TrimPrefix(uri, "gs://"), nil
 	}
-	// TODO(capri-xiyue): Re-enable when support lands.
-	// if strings.HasPrefix(uri, "minio://") {
-	// 	return "/minio/" + strings.TrimPrefix(uri, "minio://"), nil
-	// }
-	// if strings.HasPrefix(uri, "s3://") {
-	// 	return "/s3/" + strings.TrimPrefix(uri, "s3://"), nil
-	// }
+	if strings.HasPrefix(uri, "minio://") {
+		return "/minio/" + strings.TrimPrefix(uri, "minio://"), nil
+	}
+	if strings.HasPrefix(uri, "s3://") {
+		return "/s3/" + strings.TrimPrefix(uri, "s3://"), nil
+	}
 	return "", fmt.Errorf("found URI with unsupported storage scheme: %s", uri)
 }
 
@@ -433,7 +441,7 @@ func (l *Launcher) prepareInputs(ctx context.Context, executorInput *pipeline_sp
 	}
 	l.placeholderReplacements["{{$}}"] = string(executorInputJSON)
 
-	bucket, err := blob.OpenBucket(context.Background(), l.bucketConfig.bucketURL())
+	bucket, err := l.openBucket()
 	if err != nil {
 		return fmt.Errorf("Failed to open bucket %q: %v", l.bucketConfig.bucketName, err)
 	}
@@ -471,7 +479,6 @@ func (l *Launcher) prepareInputs(ctx context.Context, executorInput *pipeline_sp
 		if err != nil {
 			return copyErr(err)
 		}
-
 		if err := downloadBlob(ctx, bucket, localPath, blobKey); err != nil {
 			return copyErr(err)
 		}
@@ -707,4 +714,22 @@ func getExecutorOutput() (*pipeline_spec.ExecutorOutput, error) {
 	}
 
 	return executorOutput, nil
+}
+
+func (l *Launcher) openBucket() (*blob.Bucket, error) {
+	if l.bucketConfig.scheme == "minio://" {
+		sess, err := session.NewSession(&aws.Config{
+			Credentials:      credentials.NewStaticCredentials("minio", "minio123", ""),
+			Region:           aws.String("minio"),
+			Endpoint:         aws.String("minio-service.kubeflow:9000"),
+			DisableSSL:       aws.Bool(true),
+			S3ForcePathStyle: aws.Bool(true),
+		})
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to create session to access minio: %v", err)
+		}
+		return s3blob.OpenBucket(context.Background(), sess, l.bucketConfig.bucketName, nil)
+	}
+	return blob.OpenBucket(context.Background(), l.bucketConfig.bucketURL())
 }

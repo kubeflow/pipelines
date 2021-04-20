@@ -29,12 +29,6 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.labels['workflows.argoproj.io/workflow']
-      - name: AWS_ACCESS_KEY_ID
-        valueFrom:
-          secretKeyRef: {key: accesskey, name: kfp-s3-secret, optional: true}
-      - name: AWS_SECRET_ACCESS_KEY
-        valueFrom:
-          secretKeyRef: {key: secretkey, name: kfp-s3-secret, optional: true}
       image: library/bash
     metadata:
       labels:

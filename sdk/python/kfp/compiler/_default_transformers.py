@@ -53,20 +53,5 @@ def add_kfp_pod_env(op: BaseOp) -> BaseOp:
           value_from=k8s_client.
           V1EnvVarSource(field_ref=k8s_client.V1ObjectFieldSelector(
               field_path="metadata.labels['workflows.argoproj.io/workflow']")))
-  ).add_env_variable(
-      k8s_client.V1EnvVar(
-          name = 'AWS_ACCESS_KEY_ID',
-          value_from=k8s_client.V1EnvVarSource(secret_key_ref=k8s_client.V1SecretKeySelector(
-              name='kfp-s3-secret',
-              key='accesskey',
-              optional=True
-      )))
-  ).add_env_variable(
-      k8s_client.V1EnvVar(
-          name = 'AWS_SECRET_ACCESS_KEY',
-          value_from=k8s_client.V1EnvVarSource(secret_key_ref=k8s_client.V1SecretKeySelector(
-              name='kfp-s3-secret',
-              key='secretkey',
-              optional=True
-          ))))
+  )
   return op
