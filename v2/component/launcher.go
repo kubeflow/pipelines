@@ -715,7 +715,7 @@ func (l *Launcher) openBucket() (*blob.Bucket, error) {
 		sess, err := session.NewSession(&aws.Config{
 			Credentials:      credentials.NewStaticCredentials("minio", "minio123", ""),
 			Region:           aws.String("minio"),
-			Endpoint:         aws.String("minio-service.kubeflow:9000"),
+			Endpoint:         aws.String("minio-service:9000"),
 			DisableSSL:       aws.Bool(true),
 			S3ForcePathStyle: aws.Bool(true),
 		})
