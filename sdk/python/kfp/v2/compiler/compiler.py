@@ -34,7 +34,6 @@ from kfp.dsl import _pipeline_param
 from kfp.v2.compiler import compiler_utils
 from kfp.dsl import component_spec as dsl_component_spec
 from kfp.dsl import dsl_utils
-from kfp.dsl import importer_node
 from kfp.dsl import io_types
 from kfp.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
@@ -796,44 +795,17 @@ class Compiler(object):
         raise NotImplementedError(
             'dsl.ExitHandler is not yet supported in KFP v2 compiler.')
 
-      importer_tasks = []
-      # Add importer node when applicable
-      for input_name in subgroup_task_spec.inputs.artifacts:
-        if not subgroup_task_spec.inputs.artifacts[
-            input_name].task_output_artifact.producer_task:
-          type_schema = type_utils.get_input_artifact_type_schema(
-              input_name, subgroup._metadata.inputs)
-
-          importer_name = importer_node.generate_importer_base_name(
-              dependent_task_name=subgroup_task_spec.task_info.name,
-              input_name=input_name)
-          importer_task_spec = importer_node.build_importer_task_spec(
-              importer_name)
-          importer_comp_spec = importer_node.build_importer_component_spec(
-              importer_base_name=importer_name,
-              input_name=input_name,
-              input_type_schema=type_schema)
-          importer_task_name = importer_task_spec.task_info.name
-          importer_comp_name = importer_task_spec.component_ref.name
-          importer_exec_label = importer_comp_spec.executor_label
+      if isinstance(subgroup, dsl.ContainerOp):
+        if hasattr(subgroup, 'importer_spec'):
+          importer_task_name = subgroup.task_spec.task_info.name
+          importer_comp_name = subgroup.task_spec.component_ref.name
+          importer_exec_label = subgroup.component_spec.executor_label
           group_component_spec.dag.tasks[importer_task_name].CopyFrom(
-              importer_task_spec)
+              subgroup.task_spec)
           pipeline_spec.components[importer_comp_name].CopyFrom(
-              importer_comp_spec)
-
-          subgroup_task_spec.inputs.artifacts[
-              input_name].task_output_artifact.producer_task = (
-                  importer_task_name)
-          subgroup_task_spec.inputs.artifacts[
-              input_name].task_output_artifact.output_artifact_key = (
-                  importer_node.OUTPUT_KEY)
-
-          # Retrieve the pre-built importer spec
-          importer_spec = subgroup.importer_specs[input_name]
+              subgroup.component_spec)
           deployment_config.executors[importer_exec_label].importer.CopyFrom(
-              importer_spec)
-
-          importer_tasks.append(importer_task_name)
+              subgroup.importer_spec)
 
       if is_loop_subgroup:
         # Retrieve the real parent component, which is the compiler injected
@@ -851,7 +823,7 @@ class Compiler(object):
 
       tasks_in_current_dag = [
           dsl_utils.sanitize_task_name(subgroup.name) for subgroup in subgroups
-      ] + importer_tasks
+      ]
 
       input_parameters_in_current_dag = [
           input_name
