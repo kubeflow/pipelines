@@ -1,3 +1,5 @@
+# Pin golang to 1.15 because of https://github.com/golang/go/issues/44129.
+# Remove 1.15 pin when the issue gets resolved
 FROM golang:1.15-alpine
 
 ENV GO111MODULE=on \
