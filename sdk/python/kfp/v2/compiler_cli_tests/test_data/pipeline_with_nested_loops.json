@@ -1,0 +1,152 @@
+{
+  "pipelineSpec": {
+    "components": {
+      "comp-for-loop-2": {
+        "inputDefinitions": {
+          "parameters": {
+            "pipelineparam--text_parameter-loop-item-subvar-p_a-loop-item": {
+              "type": "STRING"
+            },
+            "pipelineparam--text_parameter-loop-item-subvar-p_a": {
+              "type": "STRING"
+            }
+          }
+        },
+        "dag": {
+          "tasks": {
+            "task-print-op": {
+              "inputs": {
+                "parameters": {
+                  "msg": {
+                    "parameterExpressionSelector": "parseJson(string_value)[\"q_a\"]",
+                    "componentInputParameter": "pipelineparam--text_parameter-loop-item-subvar-p_a-loop-item"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "task-print-op"
+              },
+              "componentRef": {
+                "name": "comp-print-op"
+              }
+            }
+          }
+        }
+      },
+      "comp-for-loop-1": {
+        "inputDefinitions": {
+          "parameters": {
+            "pipelineparam--text_parameter": {
+              "type": "STRING"
+            },
+            "pipelineparam--text_parameter-loop-item": {
+              "type": "STRING"
+            }
+          }
+        },
+        "dag": {
+          "tasks": {
+            "task-for-loop-2": {
+              "taskInfo": {
+                "name": "task-for-loop-2"
+              },
+              "inputs": {
+                "parameters": {
+                  "pipelineparam--text_parameter-loop-item-subvar-p_a": {
+                    "parameterExpressionSelector": "parseJson(string_value)[\"p_a\"]",
+                    "componentInputParameter": "pipelineparam--text_parameter-loop-item"
+                  }
+                }
+              },
+              "parameterIterator": {
+                "itemInput": "pipelineparam--text_parameter-loop-item-subvar-p_a-loop-item",
+                "items": {
+                  "inputParameter": "pipelineparam--text_parameter-loop-item-subvar-p_a"
+                }
+              },
+              "componentRef": {
+                "name": "comp-for-loop-2"
+              }
+            }
+          }
+        }
+      },
+      "comp-print-op": {
+        "executorLabel": "exec-print-op",
+        "inputDefinitions": {
+          "parameters": {
+            "msg": {
+              "type": "STRING"
+            }
+          }
+        }
+      }
+    },
+    "root": {
+      "dag": {
+        "tasks": {
+          "task-for-loop-1": {
+            "parameterIterator": {
+              "itemInput": "pipelineparam--text_parameter-loop-item",
+              "items": {
+                "inputParameter": "pipelineparam--text_parameter"
+              }
+            },
+            "componentRef": {
+              "name": "comp-for-loop-1"
+            },
+            "inputs": {
+              "parameters": {
+                "pipelineparam--text_parameter": {
+                  "componentInputParameter": "text_parameter"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "task-for-loop-1"
+            }
+          }
+        }
+      },
+      "inputDefinitions": {
+        "parameters": {
+          "text_parameter": {
+            "type": "STRING"
+          }
+        }
+      }
+    },
+    "sdkVersion": "kfp-1.5.0",
+    "deploymentSpec": {
+      "executors": {
+        "exec-print-op": {
+          "container": {
+            "args": [
+              "--msg",
+              "{{$.inputs.parameters['msg']}}"
+            ],
+            "image": "python:3.7",
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def print_op(msg):\n  print(msg)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Print op', description='')\n_parser.add_argument(\"--msg\", dest=\"msg\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = print_op(**_parsed_args)\n"
+            ]
+          }
+        }
+      }
+    },
+    "schemaVersion": "2.0.0",
+    "pipelineInfo": {
+      "name": "pipeline-with-loops-and-conditions"
+    }
+  },
+  "runtimeConfig": {
+    "parameters": {
+      "text_parameter": {
+        "stringValue": "[{\"p_a\": [{\"q_a\":1}, {\"q_a\":2}], \"p_b\": \"hello\"}, {\"p_a\": [{\"q_a\":11},{\"q_a\":22}], \"p_b\": \"halo\"}]"
+      }
+    },
+    "gcsOutputDirectory": "dummy_root"
+  }
+}

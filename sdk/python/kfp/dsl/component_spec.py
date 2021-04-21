@@ -132,7 +132,9 @@ def build_component_inputs_spec(
     is_root_component: Whether the component is the root.
   """
   for param in pipeline_params:
-    param_name, _ = _exclude_loop_arguments_variables(param)
+    param_name = param.full_name
+    if _for_loop.LoopArguments.name_is_loop_argument(param_name):
+      param.param_type = param.param_type or 'String'
 
     input_name = (
         param_name if is_root_component else
@@ -185,9 +187,14 @@ def build_task_inputs_spec(
     is_parent_component_root: Whether the task is in the root component.
   """
   for param in pipeline_params or []:
-    param_name, _ = _exclude_loop_arguments_variables(param)
 
-    input_name = additional_input_name_for_pipelineparam(param_name)
+    param_name, subvar_name = _exclude_loop_arguments_variables(param)
+    input_name = additional_input_name_for_pipelineparam(param.full_name)
+
+    if subvar_name:
+      task_spec.inputs.parameters[input_name].parameter_expression_selector = (
+          'parseJson(string_value)["{}"]'.format(subvar_name))
+
     if type_utils.is_parameter_type(param.param_type):
       if param.op_name and dsl_utils.sanitize_task_name(
           param.op_name) in tasks_in_current_dag:
@@ -199,7 +206,8 @@ def build_task_inputs_spec(
                 param.name)
       else:
         task_spec.inputs.parameters[input_name].component_input_parameter = (
-            param_name if is_parent_component_root else input_name)
+            param_name if is_parent_component_root else
+            additional_input_name_for_pipelineparam(param_name))
     else:
       if param.op_name and dsl_utils.sanitize_task_name(
           param.op_name) in tasks_in_current_dag:
@@ -267,14 +275,20 @@ def update_task_inputs_spec(
               task_spec.inputs.parameters[input_name].task_output_parameter
               .producer_task))
 
-      param_name, subvar_name = _exclude_loop_arguments_variables(param)
-      if subvar_name:
-        task_spec.inputs.parameters[
-            input_name].parameter_expression_selector = (
-                'parseJson(string_value)["{}"]'.format(subvar_name))
-
       component_input_parameter = (
-          additional_input_name_for_pipelineparam(param_name))
+          additional_input_name_for_pipelineparam(param.full_name))
+
+      if component_input_parameter not in parent_component_inputs.parameters:
+        # The input not found in parent's component input definitions
+        # This could happen because of loop arguments variables
+        param_name, subvar_name = _exclude_loop_arguments_variables(param)
+        if subvar_name:
+          task_spec.inputs.parameters[
+              input_name].parameter_expression_selector = (
+                  'parseJson(string_value)["{}"]'.format(subvar_name))
+
+        component_input_parameter = (
+            additional_input_name_for_pipelineparam(param_name))
 
       assert component_input_parameter in parent_component_inputs.parameters, \
           'component_input_parameter: {} not found. All inputs: {}'.format(
@@ -291,6 +305,7 @@ def update_task_inputs_spec(
 
       component_input_parameter, subvar_name = _exclude_loop_arguments_variables(
           component_input_parameter)
+
       if subvar_name:
         task_spec.inputs.parameters[
             input_name].parameter_expression_selector = (

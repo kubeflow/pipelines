@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
 from typing import List
 
 from kfp import components
@@ -53,7 +52,6 @@ def my_pipeline(text_parameter: str = 'Hello world!'):
     args_generator = args_generator_op()
     with dsl.ParallelFor(args_generator.output) as item:
       print_op(text_parameter)
-      print_op(item)
 
       with dsl.Condition(flip1.output == 'heads'):
         print_op(item.A_a)
@@ -61,9 +59,9 @@ def my_pipeline(text_parameter: str = 'Hello world!'):
       with dsl.Condition(flip1.output == 'tails'):
         print_op(item.B_b)
 
-      with dsl.Condition(flip1.output != 'no-such-result'): # always true
-        with dsl.ParallelFor(['a', 'b','c']) as item:
-          print_op(item)
+      with dsl.Condition(item.A_a == '1'):
+        with dsl.ParallelFor([{'a':'-1'}, {'a':'-2'}]) as item:
+          print_op(item.a)
 
 
 if __name__ == '__main__':
