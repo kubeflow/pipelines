@@ -13,10 +13,209 @@
 # limitations under the License.
 """Test remote_runner module."""
 
-import mock
+import json
+import os
 import unittest
+from unittest import mock
+from google.cloud import aiplatform
+from google_cloud_pipeline_components.aiplatform import remote_runner
+from google_cloud_pipeline_components.aiplatform import utils
+
+INIT_KEY = 'init'
+METHOD_KEY = 'method'
+
 
 class RemoteRunnerTests(unittest.TestCase):
 
-    def test_placeholder(self):
-        pass
+    def setUp(self):
+        super(RemoteRunnerTests, self).setUp()
+
+    def test_split_args_separates_init_and_method_args(self):
+        test_kargs = {
+            f"{INIT_KEY}.test.class.init_1": 1,
+            f"{INIT_KEY}.testclass.init_2": 2,
+            f"{METHOD_KEY}.testclass.method_1": 1,
+            f"{METHOD_KEY}.testclass.method_2": 2
+        }
+
+        init_args, method_args = remote_runner.split_args(test_kargs)
+
+        self.assertDictEqual(init_args, {'init_1': 1, 'init_2': 2})
+        self.assertDictEqual(method_args, {'method_1': 1, 'method_2': 2})
+
+    def test_split_args_on_emtpy_init_returns_empty_dict(self):
+        test_kargs = {
+            f"{INIT_KEY}.test.class.init_1": 1,
+            f"{INIT_KEY}.testclass.init_2": 2,
+        }
+
+        init_args, method_args = remote_runner.split_args(test_kargs)
+
+        self.assertDictEqual(init_args, {'init_1': 1, 'init_2': 2})
+        self.assertDictEqual(method_args, {})
+
+    def test_split_args_on_emtpy_method_returns_empty_dict(self):
+        test_kargs = {
+            f"{METHOD_KEY}.testclass.method_1": 1,
+            f"{METHOD_KEY}.testclass.method_2": 2
+        }
+
+        init_args, method_args = remote_runner.split_args(test_kargs)
+
+        self.assertDictEqual(init_args, {})
+        self.assertDictEqual(method_args, {'method_1': 1, 'method_2': 2})
+
+    @mock.patch('builtins.open', new_callable=mock.mock_open())
+    @mock.patch.object(os, "makedirs", autospec=True)
+    def test_write_to_artifact_preserves_uri_name_metadata(
+        self, mock_makedirs, mock_open
+    ):
+        executor_input_dict = {
+            "outputs": {
+                "artifacts": {
+                    "dataset": {
+                        "artifacts": [{
+                            "name": "test_name",
+                            "type": {
+                                "instanceSchema":
+                                    "properties:\ntitle: kfp.Dataset\ntype: object\n"
+                            },
+                            "uri": "gs://test_path/dataset"
+                        }]
+                    }
+                },
+                "outputFile": "/gcs/test_path/executor_output.json"
+            }
+        }
+        expected_output = {
+            "artifacts": {
+                "dataset": {
+                    "artifacts": [{
+                        "name": "test_name",
+                        "uri": "test_resource_uri",
+                        "metadata": {}
+                    }]
+                }
+            }
+        }
+
+        remote_runner.write_to_artifact(
+            executor_input_dict, "test_resource_uri"
+        )
+
+        mock_open.return_value.__enter__().write.assert_called_once_with(
+            json.dumps(expected_output)
+        )
+
+    @mock.patch('builtins.open', new_callable=mock.mock_open())
+    @mock.patch.object(os, "makedirs", autospec=True)
+    def test_write_to_artifact_with_no_artifacts_writes_emtpy_dict(
+        self, mock_makedirs, mock_open
+    ):
+        remote_runner.write_to_artifact({
+            "outputs": {
+                "artifacts": {},
+                "outputFile": "/gcs/test_path/executor_output.json"
+            }
+        }, "test_resource_uri")
+
+        mock_open.return_value.__enter__().write.assert_called_once_with(
+            json.dumps({})
+        )
+
+    def test_resolve_input_args_non_resouce_noun_removes_gcs_prefix(self):
+        type_to_resolve = aiplatform.base.AiPlatformResourceNoun
+        value = '/gcs/test_resouce_name'
+        expected_result = 'test_resouce_name'
+
+        result = remote_runner.resolve_input_args(value, type_to_resolve)
+        self.assertEqual(result, expected_result)
+
+    def test_resolve_input_args_resouce_noun_not_changed(self):
+        type_to_resolve = aiplatform.base.AiPlatformResourceNoun
+        value = 'test_resouce_name'
+        expected_result = 'test_resouce_name'
+
+        result = remote_runner.resolve_input_args(value, type_to_resolve)
+        self.assertEqual(result, expected_result)
+
+    def test_resolve_input_args_not_type_to_resolve_not_changed(self):
+        type_to_resolve = object
+        value = '/gcs/test_resouce_name'
+        expected_result = '/gcs/test_resouce_name'
+
+        result = remote_runner.resolve_input_args(value, type_to_resolve)
+        self.assertEqual(result, expected_result)
+
+    def test_resolve_init_args_key_does_not_end_with_name_not_changed(self):
+        key = 'resouce'
+        value = '/gcs/test_resouce_name'
+        expected_result = '/gcs/test_resouce_name'
+
+        result = remote_runner.resolve_init_args(key, value)
+        self.assertEqual(result, expected_result)
+
+    def test_resolve_init_args_key_ends_with_name_removes_gcs_prefix(self):
+        key = 'resouce_name'
+        value = '/gcs/test_resouce_name'
+        expected_result = 'test_resouce_name'
+
+        result = remote_runner.resolve_init_args(key, value)
+        self.assertEqual(result, expected_result)
+
+    @mock.patch.object(
+        utils,
+        "is_mb_sdk_resource_noun_type",
+        autospec=True,
+        return_value=False
+    )
+    def test_make_output_with_not_resouce_name_returns_serialized_list_json(
+        self, mock_utils
+    ):
+        output_object = ["a", 2]
+        expected_result = '["a", 2]'
+        result = remote_runner.make_output(output_object)
+        self.assertEqual(result, expected_result)
+
+    @mock.patch.object(
+        utils, "is_mb_sdk_resource_noun_type", autospec=True, return_value=True
+    )
+    def test_make_output_with_resouce_name_returns_resouce_name_value(
+        self, mock_utils
+    ):
+        output_object = mock.Mock()
+        output_object.resource_name = 'test_resouce_name'
+        expected_result = 'test_resouce_name'
+        result = remote_runner.make_output(output_object)
+        self.assertEqual(result, expected_result)
+
+    def test_cast_with_str_value_to_bool(self):
+        expected_result = True
+        result = remote_runner.cast('True', bool)
+        self.assertEqual(result, expected_result)
+
+    def test_cast_with_str_value_to_list(self):
+        expected_result = int(2)
+        result = remote_runner.cast('2', int)
+        self.assertIsInstance(result, type(expected_result))
+        self.assertEqual(result, expected_result)
+
+    @mock.patch.object(
+        utils,
+        "resolve_annotation",
+        autospec=True,
+        return_value=bool
+    )
+    @mock.patch.object(
+        utils,
+        "get_deserializer",
+        autospec=True,
+        return_value=str
+    )
+    def test_prepare_parameters_with_init_params(self, mock_get_deserializer ,mock_resolve_annotation):
+        def sample_method(input:str):
+            pass
+        kwargs = 
+        result = remote_runner.make_output(output_object)
+        self.assertEqual(result, expected_result)
+
