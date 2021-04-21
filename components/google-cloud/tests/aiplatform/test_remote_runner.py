@@ -125,7 +125,7 @@ class RemoteRunnerTests(unittest.TestCase):
 
     def test_resolve_input_args_non_resouce_noun_removes_gcs_prefix(self):
         type_to_resolve = aiplatform.base.AiPlatformResourceNoun
-        value = '/gcs/test_resouce_name'
+        value = '/gcs/test_resource_name'
         expected_result = 'test_resouce_name'
 
         result = remote_runner.resolve_input_args(value, type_to_resolve)
