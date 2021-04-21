@@ -34,6 +34,8 @@ import (
 	"github.com/kubeflow/pipelines/v2/metadata"
 	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
 	"google.golang.org/protobuf/encoding/protojson"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -41,6 +43,8 @@ import (
 	"gocloud.dev/blob"
 	_ "gocloud.dev/blob/gcsblob"
 	"gocloud.dev/blob/s3blob"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 // Launcher is used to launch KFP components. It handles the recording of the
@@ -712,8 +716,15 @@ func getExecutorOutput() (*pipeline_spec.ExecutorOutput, error) {
 
 func (l *Launcher) openBucket() (*blob.Bucket, error) {
 	if l.bucketConfig.scheme == "minio://" {
+		secret, err := getMinioCredential()
+		if err != nil {
+			return nil, fmt.Errorf("Failed to get minio credential: %v", err)
+		}
+		accessKey := string(secret.Data["accesskey"])
+		secretKey := string(secret.Data["secretkey"])
+		fmt.Printf("accessKey is %s, secret key is %s", accessKey, secretKey)
 		sess, err := session.NewSession(&aws.Config{
-			Credentials:      credentials.NewStaticCredentials("minio", "minio123", ""),
+			Credentials:      credentials.NewStaticCredentials(accessKey, secretKey, ""),
 			Region:           aws.String("minio"),
 			Endpoint:         aws.String("minio-service:9000"),
 			DisableSSL:       aws.Bool(true),
@@ -726,4 +737,18 @@ func (l *Launcher) openBucket() (*blob.Bucket, error) {
 		return s3blob.OpenBucket(context.Background(), sess, l.bucketConfig.bucketName, nil)
 	}
 	return blob.OpenBucket(context.Background(), l.bucketConfig.bucketURL())
+}
+
+func getMinioCredential() (*v1.Secret, error) {
+	restConfig, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to initialize kubernetes client: %v", err)
+	}
+	clientSet, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to initialize kubernetes client set: %v", err)
+	}
+	namespace := os.Getenv("KFP_NAMESPACE")
+	secret, err := clientSet.CoreV1().Secrets(namespace).Get(context.Background(), "mlpipeline-minio-artifact", metav1.GetOptions{})
+	return secret, err
 }

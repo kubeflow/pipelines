@@ -11,4 +11,5 @@ require (
 	google.golang.org/grpc v1.36.0
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/yaml.v2 v2.4.0
+	k8s.io/client-go v0.20.4 // indirect
 )
