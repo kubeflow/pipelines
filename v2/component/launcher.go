@@ -36,6 +36,8 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -43,8 +45,6 @@ import (
 	"gocloud.dev/blob"
 	_ "gocloud.dev/blob/gcsblob"
 	"gocloud.dev/blob/s3blob"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
 // Launcher is used to launch KFP components. It handles the recording of the
@@ -722,7 +722,6 @@ func (l *Launcher) openBucket() (*blob.Bucket, error) {
 		}
 		accessKey := string(secret.Data["accesskey"])
 		secretKey := string(secret.Data["secretkey"])
-		fmt.Printf("accessKey is %s, secret key is %s", accessKey, secretKey)
 		sess, err := session.NewSession(&aws.Config{
 			Credentials:      credentials.NewStaticCredentials(accessKey, secretKey, ""),
 			Region:           aws.String("minio"),
