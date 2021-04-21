@@ -201,21 +201,84 @@ class RemoteRunnerTests(unittest.TestCase):
         self.assertEqual(result, expected_result)
 
     @mock.patch.object(
-        utils,
-        "resolve_annotation",
-        autospec=True,
-        return_value=bool
+        utils, "resolve_annotation", autospec=True, return_value=bool
     )
     @mock.patch.object(
-        utils,
-        "get_deserializer",
-        autospec=True,
-        return_value=str
+        utils, "get_deserializer", autospec=True, return_value=bool
     )
-    def test_prepare_parameters_with_init_params(self, mock_get_deserializer ,mock_resolve_annotation):
-        def sample_method(input:str):
-            pass
-        kwargs = 
-        result = remote_runner.make_output(output_object)
-        self.assertEqual(result, expected_result)
+    @mock.patch.object(
+        remote_runner, "resolve_input_args", autospec=True, return_value="True"
+    )
+    @mock.patch.object(
+        remote_runner, "resolve_init_args", autospec=True, return_value="True"
+    )
+    def test_prepare_parameters_with_init_params(
+        self, mock_resolve_init_args, mock_resolve_input_args,
+        mock_get_deserializer, mock_resolve_annotation
+    ):
 
+        def sample_method(input: bool):
+            pass
+
+        input_kwargs = {"input": "True"}
+        expected_kwargs = {"input": True}
+        remote_runner.prepare_parameters(input_kwargs, sample_method, True)
+        mock_resolve_annotation.assert_called_once_with(bool)
+        mock_get_deserializer.assert_called_once_with(bool)
+        mock_resolve_init_args.assert_called_once_with("input", "True")
+        mock_resolve_input_args.assert_not_called()
+        self.assertDictEqual(input_kwargs, expected_kwargs)
+
+    @mock.patch.object(
+        utils, "resolve_annotation", autospec=True, return_value=bool
+    )
+    @mock.patch.object(
+        utils, "get_deserializer", autospec=True, return_value=None
+    )
+    @mock.patch.object(
+        remote_runner, "resolve_init_args", autospec=True, return_value="True"
+    )
+    def test_prepare_parameters_with_init_params_no_serializer(
+        self, mock_resolve_init_args, mock_get_deserializer,
+        mock_resolve_annotation
+    ):
+
+        def sample_method(input: bool):
+            pass
+
+        input_kwargs = {"input": "True"}
+        expected_kwargs = {"input": True}
+        remote_runner.prepare_parameters(input_kwargs, sample_method, True)
+        mock_resolve_annotation.assert_called_once_with(bool)
+        mock_get_deserializer.assert_called_once_with(bool)
+        mock_resolve_init_args.assert_called_once_with("input", "True")
+        self.assertDictEqual(input_kwargs, expected_kwargs)
+
+    @mock.patch.object(
+        utils, "resolve_annotation", autospec=True, return_value=bool
+    )
+    @mock.patch.object(
+        utils, "get_deserializer", autospec=True, return_value=bool
+    )
+    @mock.patch.object(
+        remote_runner, "resolve_input_args", autospec=True, return_value="True"
+    )
+    @mock.patch.object(
+        remote_runner, "resolve_init_args", autospec=True, return_value="True"
+    )
+    def test_prepare_parameters_with_method_params(
+        self, mock_resolve_init_args, mock_resolve_input_args,
+        mock_get_deserializer, mock_resolve_annotation
+    ):
+
+        def sample_method(input: bool):
+            pass
+
+        input_kwargs = {"input": "True"}
+        expected_kwargs = {"input": True}
+        remote_runner.prepare_parameters(input_kwargs, sample_method, False)
+        mock_resolve_annotation.assert_called_once_with(bool)
+        mock_get_deserializer.assert_called_once_with(bool)
+        mock_resolve_input_args.assert_called_once_with('True', bool)
+        mock_resolve_init_args.assert_not_called()
+        self.assertDictEqual(input_kwargs, expected_kwargs)
