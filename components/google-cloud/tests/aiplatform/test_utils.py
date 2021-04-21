@@ -13,10 +13,21 @@
 # limitations under the License.
 """Test remote_runner module."""
 
+import json
+import os
 import unittest
+from unittest import mock
+from google.cloud import aiplatform
+from google_cloud_pipeline_components.aiplatform import remote_runner
+from google_cloud_pipeline_components.aiplatform import utils
 
+INIT_KEY = 'init'
+METHOD_KEY = 'method'
 
 class UtilsTests(unittest.TestCase):
 
-    def test_placeholder(self):
+    def setUp(self):
+        super(RemoteRunnerTests, self).setUp()
+
+    def test_get_forward_reference_with_annotation_str (self):
         pass
