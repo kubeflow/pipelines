@@ -31,7 +31,7 @@ class RemoteRunnerTests(unittest.TestCase):
         super(RemoteRunnerTests, self).setUp()
 
     def test_split_args_separates_init_and_method_args(self):
-        test_kargs = {
+        test_kwargs = {
             f"{INIT_KEY}.test.class.init_1": 1,
             f"{INIT_KEY}.testclass.init_2": 2,
             f"{METHOD_KEY}.testclass.method_1": 1,
@@ -123,10 +123,10 @@ class RemoteRunnerTests(unittest.TestCase):
             json.dumps({})
         )
 
-    def test_resolve_input_args_non_resouce_noun_removes_gcs_prefix(self):
+    def test_resolve_input_args_non_resource_noun_removes_gcs_prefix(self):
         type_to_resolve = aiplatform.base.AiPlatformResourceNoun
-        value = '/gcs/test_resouce_name'
-        expected_result = 'test_resouce_name'
+        value = '/gcs/test_resource_name'
+        expected_result = 'test_resource_name'
 
         result = remote_runner.resolve_input_args(value, type_to_resolve)
         self.assertEqual(result, expected_result)
