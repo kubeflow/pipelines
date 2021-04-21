@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Core modules for AI Platform Components."""
+"""Core modules for AI Platform Pipeline Components."""
 
 from google.cloud import aiplatform as aiplatform_sdk
-from google_cloud_components.aiplatform import utils
+from google_cloud_pipeline_components.aiplatform import utils
 
 ImageDatasetCreateOp = utils.convert_method_to_component(
     aiplatform_sdk.ImageDataset, aiplatform_sdk.ImageDataset.create

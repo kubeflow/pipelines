@@ -1,6 +1,6 @@
-# Google Cloud Components
+# Google Cloud Pipeline Components
 
-Google Cloud Components provides an sdk as well as a set of components for users
+Google Cloud Pipeline Components provides an sdk as well as a set of components for users
 to interact with Google Cloud services such as AI Platform. You can use any of
 the predefined components in this repo to construct your pipeline directly using
 KFP DSL.
@@ -24,7 +24,7 @@ via the python SDK please refer to [usage guide #4](#usage-guide).
 #### Install latest release
 
 ```shell
-pip install -U google-cloud-components
+pip install -U google-cloud-pipeline-components
 ```
 
 #### Install from source
@@ -43,7 +43,7 @@ git clone https://github.com/kubeflow/pipelines.git
 cd pipelines/components/google-cloud
 python setup.py bdist_wheel clean
 
-WHEEL_FILE=$(find "$source_root/pipelines/components/google-cloud/dist/" -name "google_cloud_components*.whl")
+WHEEL_FILE=$(find "$source_root/pipelines/components/google-cloud/dist/" -name "google_cloud_pipeline_components*.whl")
 pip3 install --upgrade $WHEEL_FILE
 ```
 
@@ -56,7 +56,7 @@ start, let's walk through a simple workflow using this API.
     `mnist_example.py`.
 
     ```python
-    from google_cloud_components as gcc
+    from google_cloud_pipeline_components as gcc
     from kfp.v2 import dsl
 
     @dsl.pipeline

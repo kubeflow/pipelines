@@ -11,12 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Setup configuration of  Google Cloud Components client side libraries."""
+"""Setup configuration of  Google Cloud Pipeline Components client side libraries."""
 
 def make_required_install_packages():
   return [
       "kfp>=1.4.0,<2.0.0",
-      "google-cloud-aiplatform>=0.5.0,<1.0.0"
+      "google-cloud-aiplatform>=0.5.0,<1.0.0",
   ]
 
 
