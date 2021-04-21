@@ -31,14 +31,14 @@ class RemoteRunnerTests(unittest.TestCase):
         super(RemoteRunnerTests, self).setUp()
 
     def test_split_args_separates_init_and_method_args(self):
-        test_kargs = {
+        test_kwargs = {
             f"{INIT_KEY}.test.class.init_1": 1,
             f"{INIT_KEY}.testclass.init_2": 2,
             f"{METHOD_KEY}.testclass.method_1": 1,
             f"{METHOD_KEY}.testclass.method_2": 2
         }
 
-        init_args, method_args = remote_runner.split_args(test_kargs)
+        init_args, method_args = remote_runner.split_args(test_kwargs)
 
         self.assertDictEqual(init_args, {'init_1': 1, 'init_2': 2})
         self.assertDictEqual(method_args, {'method_1': 1, 'method_2': 2})
@@ -123,10 +123,10 @@ class RemoteRunnerTests(unittest.TestCase):
             json.dumps({})
         )
 
-    def test_resolve_input_args_non_resouce_noun_removes_gcs_prefix(self):
-        type_to_resolve = aiplatform.base.AiPlatformResourceNoun
-        value = '/gcs/test_resouce_name'
-        expected_result = 'test_resouce_name'
+    def test_resolve_input_args_resource_noun_removes_gcs_prefix(self):
+        type_to_resolve = aiplatform.Model
+        value = '/gcs/test_resource_name'
+        expected_result = 'test_resource_name'
 
         result = remote_runner.resolve_input_args(value, type_to_resolve)
         self.assertEqual(result, expected_result)
@@ -163,28 +163,21 @@ class RemoteRunnerTests(unittest.TestCase):
         result = remote_runner.resolve_init_args(key, value)
         self.assertEqual(result, expected_result)
 
-    @mock.patch.object(
-        utils,
-        "is_mb_sdk_resource_noun_type",
-        autospec=True,
-        return_value=False
-    )
     def test_make_output_with_not_resouce_name_returns_serialized_list_json(
-        self, mock_utils
+        self
     ):
         output_object = ["a", 2]
         expected_result = '["a", 2]'
         result = remote_runner.make_output(output_object)
         self.assertEqual(result, expected_result)
 
-    @mock.patch.object(
-        utils, "is_mb_sdk_resource_noun_type", autospec=True, return_value=True
-    )
-    def test_make_output_with_resouce_name_returns_resouce_name_value(
-        self, mock_utils
-    ):
-        output_object = mock.Mock()
-        output_object.resource_name = 'test_resouce_name'
+    def test_make_output_with_resouce_name_returns_resouce_name_value(self):
+        output_object = aiplatform.Model._empty_constructor(
+            project='test-project'
+        )
+        output_object._gca_resource = aiplatform.gapic.Model(
+            name='test_resouce_name'
+        )
         expected_result = 'test_resouce_name'
         result = remote_runner.make_output(output_object)
         self.assertEqual(result, expected_result)
