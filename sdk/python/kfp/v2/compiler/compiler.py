@@ -1116,7 +1116,8 @@ class Compiler(object):
       arg_type = None
       for pipeline_input in pipeline_meta.inputs or []:
         if arg_name == pipeline_input.name:
-          arg_type = pipeline_input.type
+          # For untyped pipeline argument, default to 'String' type.
+          arg_type = pipeline_input.type or 'String'
           break
       args_list.append(
           dsl.PipelineParam(
@@ -1133,7 +1134,8 @@ class Compiler(object):
       args_list_with_defaults = [
           dsl.PipelineParam(
               sanitize_k8s_name(input_spec.name, True),
-              param_type=input_spec.type,
+              # For untyped pipeline argument, default to 'String' type.
+              param_type=input_spec.type or 'String',
               value=input_spec.default) for input_spec in pipeline_meta.inputs
       ]
 
