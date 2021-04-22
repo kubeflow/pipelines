@@ -30,6 +30,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	authorizationv1 "k8s.io/api/authorization/v1"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -55,6 +56,38 @@ var testWorkflowPatch = util.NewWorkflow(&v1alpha1.Workflow{
 	Spec:       v1alpha1.WorkflowSpec{Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}, {Name: "param2"}}}},
 })
 
+var testRunWorkflowPatch = util.NewWorkflow(&v1alpha1.Workflow{
+	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow2"},
+	Spec: v1alpha1.WorkflowSpec{
+		Entrypoint: "testy",
+		Templates: []v1alpha1.Template{v1alpha1.Template{
+			Name: "testy",
+			Container: &corev1.Container{
+				Image:   "docker/whalesay",
+				Command: []string{"cowsay"},
+				Args:    []string{"hello world"},
+			},
+		}},
+		Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}, {Name: "param2"}}}},
+})
+
+var testRunWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
+	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow1", Namespace: "ns1"},
+	Spec: v1alpha1.WorkflowSpec{
+		Entrypoint: "testy",
+		Templates: []v1alpha1.Template{v1alpha1.Template{
+			Name: "testy",
+			Container: &corev1.Container{
+				Image:   "docker/whalesay",
+				Command: []string{"cowsay"},
+				Args:    []string{"hello world"},
+			},
+		}},
+		Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}}},
+	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
+})
 var validReference = []*api.ResourceReference{
 	{
 		Key: &api.ResourceKey{
@@ -160,7 +193,7 @@ func initWithExperimentAndPipelineVersion(t *testing.T) (*resource.FakeClientMan
 	assert.Nil(t, err)
 
 	// Create a pipeline and then a pipeline version.
-	_, err = resourceManager.CreatePipeline("pipeline", "", "", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+	_, err = resourceManager.CreatePipeline("pipeline", "", "", []byte(testRunWorkflow.ToStringForStore()))
 	assert.Nil(t, err)
 	_, err = resourceManager.CreatePipelineVersion(&api.PipelineVersion{
 		Name: "pipeline_version",
@@ -232,7 +265,7 @@ func initWithOneTimeRun(t *testing.T) (*resource.FakeClientManager, *resource.Re
 	apiRun := &api.Run{
 		Name: "run1",
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testWorkflow.ToStringForStore(),
+			WorkflowManifest: testRunWorkflow.ToStringForStore(),
 			Parameters: []*api.Parameter{
 				{Name: "param1", Value: "world"},
 			},

@@ -29,19 +29,24 @@ func TestCreateRun(t *testing.T) {
 		Name:               "run1",
 		ResourceReferences: validReference,
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testWorkflow.ToStringForStore(),
+			WorkflowManifest: testRunWorkflow.ToStringForStore(),
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 		},
 	}
 	runDetail, err := server.CreateRun(nil, &api.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 
-	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	expectedRuntimeWorkflow := testRunWorkflow.DeepCopy()
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "pipeline-runner"
+	template := expectedRuntimeWorkflow.Spec.Templates[0]
+	template.Metadata.Annotations = map[string]string{"sidecar.istio.io/inject": "false"}
+	template.Metadata.Labels = map[string]string{"pipelines.kubeflow.org/cache_enabled": "true"}
+	expectedRuntimeWorkflow.Spec.Templates[0] = template
+
 	expectedRunDetail := api.RunDetail{
 		Run: &api.Run{
 			Id:             "123e4567-e89b-12d3-a456-426655440000",
@@ -51,8 +56,9 @@ func TestCreateRun(t *testing.T) {
 			CreatedAt:      &timestamp.Timestamp{Seconds: 2},
 			ScheduledAt:    &timestamp.Timestamp{},
 			FinishedAt:     &timestamp.Timestamp{},
+			Status:         "Running",
 			PipelineSpec: &api.PipelineSpec{
-				WorkflowManifest: testWorkflow.ToStringForStore(),
+				WorkflowManifest: testRunWorkflow.ToStringForStore(),
 				Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 			},
 			ResourceReferences: []*api.ResourceReference{
@@ -77,7 +83,7 @@ func TestCreateRunPatch(t *testing.T) {
 		Name:               "run1",
 		ResourceReferences: validReference,
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testWorkflowPatch.ToStringForStore(),
+			WorkflowManifest: testRunWorkflowPatch.ToStringForStore(),
 			Parameters: []*api.Parameter{
 				{Name: "param1", Value: "test-default-bucket"},
 				{Name: "param2", Value: "test-project-id"}},
@@ -86,7 +92,7 @@ func TestCreateRunPatch(t *testing.T) {
 	runDetail, err := server.CreateRun(nil, &api.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 
-	expectedRuntimeWorkflow := testWorkflowPatch.DeepCopy()
+	expectedRuntimeWorkflow := testRunWorkflowPatch.DeepCopy()
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: v1alpha1.AnyStringPtr("test-default-bucket")},
 		{Name: "param2", Value: v1alpha1.AnyStringPtr("test-project-id")},
@@ -94,6 +100,11 @@ func TestCreateRunPatch(t *testing.T) {
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "pipeline-runner"
+	template := expectedRuntimeWorkflow.Spec.Templates[0]
+	template.Metadata.Annotations = map[string]string{"sidecar.istio.io/inject": "false"}
+	template.Metadata.Labels = map[string]string{"pipelines.kubeflow.org/cache_enabled": "true"}
+	expectedRuntimeWorkflow.Spec.Templates[0] = template
+
 	expectedRunDetail := api.RunDetail{
 		Run: &api.Run{
 			Id:             "123e4567-e89b-12d3-a456-426655440000",
@@ -104,7 +115,7 @@ func TestCreateRunPatch(t *testing.T) {
 			ScheduledAt:    &timestamp.Timestamp{},
 			FinishedAt:     &timestamp.Timestamp{},
 			PipelineSpec: &api.PipelineSpec{
-				WorkflowManifest: testWorkflowPatch.ToStringForStore(),
+				WorkflowManifest: testRunWorkflowPatch.ToStringForStore(),
 				Parameters: []*api.Parameter{
 					{Name: "param1", Value: "test-default-bucket"},
 					{Name: "param2", Value: "test-project-id"}},
@@ -176,30 +187,36 @@ func TestCreateRun_Multiuser(t *testing.T) {
 		Name:               "run1",
 		ResourceReferences: validReference,
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testWorkflow.ToStringForStore(),
+			WorkflowManifest: testRunWorkflow.ToStringForStore(),
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 		},
 	}
 	runDetail, err := server.CreateRun(ctx, &api.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 
-	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	expectedRuntimeWorkflow := testRunWorkflow.DeepCopy()
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "default-editor" // In multi-user mode, we use default service account.
+	template := expectedRuntimeWorkflow.Spec.Templates[0]
+	template.Metadata.Annotations = map[string]string{"sidecar.istio.io/inject": "false"}
+	template.Metadata.Labels = map[string]string{"pipelines.kubeflow.org/cache_enabled": "true"}
+	expectedRuntimeWorkflow.Spec.Templates[0] = template
+
 	expectedRunDetail := api.RunDetail{
 		Run: &api.Run{
 			Id:             "123e4567-e89b-12d3-a456-426655440000",
 			Name:           "run1",
+			Status:         "Running",
 			ServiceAccount: "default-editor",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE,
 			CreatedAt:      &timestamp.Timestamp{Seconds: 2},
 			ScheduledAt:    &timestamp.Timestamp{},
 			FinishedAt:     &timestamp.Timestamp{},
 			PipelineSpec: &api.PipelineSpec{
-				WorkflowManifest: testWorkflow.ToStringForStore(),
+				WorkflowManifest: testRunWorkflow.ToStringForStore(),
 				Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 			},
 			ResourceReferences: []*api.ResourceReference{
@@ -224,7 +241,7 @@ func TestListRun(t *testing.T) {
 		Name:               "run1",
 		ResourceReferences: validReference,
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testWorkflow.ToStringForStore(),
+			WorkflowManifest: testRunWorkflow.ToStringForStore(),
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 		},
 	}
@@ -239,8 +256,9 @@ func TestListRun(t *testing.T) {
 		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
 		ScheduledAt:    &timestamp.Timestamp{},
 		FinishedAt:     &timestamp.Timestamp{},
+		Status:         "Running",
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testWorkflow.ToStringForStore(),
+			WorkflowManifest: testRunWorkflow.ToStringForStore(),
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 		},
 		ResourceReferences: []*api.ResourceReference{
@@ -304,7 +322,7 @@ func TestListRuns_Multiuser(t *testing.T) {
 		Name:               "run1",
 		ResourceReferences: validReference,
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testWorkflow.ToStringForStore(),
+			WorkflowManifest: testRunWorkflow.ToStringForStore(),
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 		},
 	}
@@ -319,8 +337,9 @@ func TestListRuns_Multiuser(t *testing.T) {
 		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
 		ScheduledAt:    &timestamp.Timestamp{},
 		FinishedAt:     &timestamp.Timestamp{},
+		Status:         "Running",
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testWorkflow.ToStringForStore(),
+			WorkflowManifest: testRunWorkflow.ToStringForStore(),
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 		},
 		ResourceReferences: []*api.ResourceReference{
@@ -686,7 +705,7 @@ func TestCanAccessRun_Unauthorized(t *testing.T) {
 	apiRun := &api.Run{
 		Name: "run1",
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testWorkflow.ToStringForStore(),
+			WorkflowManifest: testRunWorkflow.ToStringForStore(),
 			Parameters: []*api.Parameter{
 				{Name: "param1", Value: "world"},
 			},
@@ -735,7 +754,7 @@ func TestCanAccessRun_Authorized(t *testing.T) {
 	apiRun := &api.Run{
 		Name: "run1",
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testWorkflow.ToStringForStore(),
+			WorkflowManifest: testRunWorkflow.ToStringForStore(),
 			Parameters: []*api.Parameter{
 				{Name: "param1", Value: "world"},
 			},
@@ -767,7 +786,7 @@ func TestCanAccessRun_Unauthenticated(t *testing.T) {
 	apiRun := &api.Run{
 		Name: "run1",
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testWorkflow.ToStringForStore(),
+			WorkflowManifest: testRunWorkflow.ToStringForStore(),
 			Parameters: []*api.Parameter{
 				{Name: "param1", Value: "world"},
 			},

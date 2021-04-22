@@ -423,7 +423,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 		WorkflowTemplateValidation: false, // not used by kubeflow
 	})
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to validate workflow for (%s)", workflow.Name)
+		return nil, util.NewInternalServerError(err, "Failed to validate workflow for (%+v)", workflow.Workflow.Name)
 	}
 	// Create argo workflow CR resource
 	newWorkflow, err := r.getWorkflowClient(namespace).Create(ctx, workflow.Get(), v1.CreateOptions{})
