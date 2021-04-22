@@ -13,8 +13,8 @@
 # limitations under the License.
 """Test remote_runner module."""
 
-import mock
 import unittest
+
 
 class UtilsTests(unittest.TestCase):
 
