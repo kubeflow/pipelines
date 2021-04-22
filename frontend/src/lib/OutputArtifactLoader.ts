@@ -49,6 +49,8 @@ export interface PlotMetadata {
   source: string;
   storage?: 'gcs' | 'inline';
   target_col?: string;
+  pod_template_spec?: string; // only available for tensorboard
+  image?: string; // only available for tensorboard
   type: PlotType;
 }
 
@@ -213,6 +215,8 @@ export class OutputArtifactLoader {
       type: PlotType.TENSORBOARD,
       url: metadata.source,
       namespace,
+      podTemplateSpec: metadata.pod_template_spec,
+      image: metadata.image,
     };
   }
 

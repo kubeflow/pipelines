@@ -166,10 +166,18 @@ describe('Apis', () => {
 
   it('getTensorboardApp', async () => {
     const spy = fetchSpy(
-      JSON.stringify({ podAddress: 'http://some/address', tfVersion: '1.14.0' }),
+      JSON.stringify({
+        podAddress: 'http://some/address',
+        tfVersion: '1.14.0',
+        image: 'tensorflow/tensorflow:1.14.0',
+      }),
     );
     const tensorboardInstance = await Apis.getTensorboardApp('gs://log/dir', 'test-ns');
-    expect(tensorboardInstance).toEqual({ podAddress: 'http://some/address', tfVersion: '1.14.0' });
+    expect(tensorboardInstance).toEqual({
+      podAddress: 'http://some/address',
+      tfVersion: '1.14.0',
+      image: 'tensorflow/tensorflow:1.14.0',
+    });
     expect(spy).toHaveBeenCalledWith(
       `apps/tensorboard?logdir=${encodeURIComponent('gs://log/dir')}&namespace=test-ns`,
       { credentials: 'same-origin' },
@@ -178,12 +186,17 @@ describe('Apis', () => {
 
   it('startTensorboardApp', async () => {
     const spy = fetchSpy('http://some/address');
-    await Apis.startTensorboardApp('gs://log/dir', '1.14.0', 'test-ns');
+    await Apis.startTensorboardApp({
+      logdir: 'gs://log/dir',
+      image: 'tensorflow/tensorflow:1.14.0',
+      namespace: 'test-ns',
+    });
     expect(spy).toHaveBeenCalledWith(
       'apps/tensorboard?logdir=' +
         encodeURIComponent('gs://log/dir') +
-        '&tfversion=1.14.0' +
-        '&namespace=test-ns',
+        '&namespace=test-ns' +
+        '&image=' +
+        encodeURIComponent('tensorflow/tensorflow:1.14.0'),
       {
         credentials: 'same-origin',
         headers: { 'content-type': 'application/json' },
