@@ -279,28 +279,6 @@ class CompilerTest(unittest.TestCase):
     finally:
       shutil.rmtree(tmpdir)
 
-  def test_missing_pipeline_root_is_allowed_but_warned(self):
-
-    tmpdir = tempfile.mkdtemp()
-    try:
-
-      @dsl.pipeline(name='test-pipeline')
-      def my_pipeline():
-        pass
-
-      target_json_file = os.path.join(tmpdir, 'result.json')
-      with self.assertWarnsRegex(UserWarning, 'pipeline_root is None or empty'):
-        compiler.Compiler().compile(
-            pipeline_func=my_pipeline,
-            package_path=target_json_file)
-
-      self.assertTrue(os.path.exists(target_json_file))
-      with open(target_json_file) as f:
-        job_spec = json.load(f)
-      self.assertTrue('gcsOutputDirectory' not in job_spec['runtimeConfig'])
-    finally:
-      shutil.rmtree(tmpdir)
-
 
 if __name__ == '__main__':
   unittest.main()
