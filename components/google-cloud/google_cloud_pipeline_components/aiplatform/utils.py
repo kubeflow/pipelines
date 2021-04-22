@@ -466,6 +466,8 @@ def convert_method_to_component(
             f'- {{name: {output_metadata_name}, type: {output_metadata_type}}}'
         ])
         output_args = '\n'.join([
+            '    - --executor_input',
+            '    - "{{$}}"',
             '    - --resource_name_output_artifact_path',
             f'    - {{outputPath: {output_metadata_name}}}',
         ])
@@ -558,7 +560,7 @@ def convert_method_to_component(
             'implementation:', '  container:',
             f'    image: {DEFAULT_CONTAINER_IMAGE}', '    command:',
             '    - python3', '    - -m',
-            '    - google_cloud_components.aiplatform.remote_runner',
+            '    - google_cloud_pipeline_components.aiplatform.remote_runner',
             f'    - --cls_name={cls_name}',
             f'    - --method_name={method_name}',
             f'{make_args(serialized_args)}', '    args:', output_args,

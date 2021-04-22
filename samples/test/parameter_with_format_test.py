@@ -17,7 +17,7 @@ from .parameter_with_format import my_pipeline
 from .util import run_pipeline_func, TestCase
 
 
-def verify(run, run_id: str):
+def verify(run, run_id: str, **kwargs):
     assert run.status == 'Succeeded'
     # TODO(Bobgy): verify output
 
