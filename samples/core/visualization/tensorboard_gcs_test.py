@@ -1,0 +1,35 @@
+# Copyright 2021 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import kfp
+from .tensorboard_gcs import my_pipeline
+from ...test.util import run_pipeline_func, TestCase
+
+run_pipeline_func([
+    # TODO(v2-compatible): fails with
+    #   File "/home/gongyuan_google_com/kfp/pipelines/sdk/python/kfp/compiler/compiler.py", line 678, in _create_dag_templates
+    #     launcher_image=self._launcher_image)
+    #   File "/home/gongyuan_google_com/kfp/pipelines/sdk/python/kfp/compiler/v2_compat.py", line 110, in update_op
+    #     "metadataPath": op.input_artifact_paths[artifact_name],
+    # KeyError: 'Log dir URI'
+    #
+    # TestCase(
+    #     pipeline_func=my_pipeline,
+    #     mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
+    # ),
+    TestCase(
+        pipeline_func=my_pipeline,
+        mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
+    ),
+])

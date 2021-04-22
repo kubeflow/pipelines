@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,17 +13,16 @@
 # limitations under the License.
 
 import kfp
-from .xgboost_sample import xgboost_pipeline
-from ...test.util import run_pipeline_func, TestCase, NEEDS_A_FIX
+from .tensorboard_minio import my_pipeline
+from ...test.util import run_pipeline_func, TestCase
 
 run_pipeline_func([
     TestCase(
-        pipeline_func=xgboost_pipeline,
-        mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
-        verify_func=NEEDS_A_FIX,
-    ),
-    TestCase(
-        pipeline_func=xgboost_pipeline,
+        pipeline_func=my_pipeline,
         mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
     ),
+    # TestCase(
+    #     pipeline_func=my_pipeline,
+    #     mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
+    # ),
 ])
