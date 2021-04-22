@@ -196,6 +196,48 @@ func TestReconcile_EachViewerCreatesADeployment(t *testing.T) {
 	}
 }
 
+func TestReconcile_ImageWithoutTagCountAsTFv2(t *testing.T) {
+	customImageWithoutTag := "potentially_custom_tensorflow_without_tag"
+	viewer := &viewerV1beta1.Viewer{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "viewer-123",
+			Namespace: "kubeflow",
+		},
+		Spec: viewerV1beta1.ViewerSpec{
+			Type: viewerV1beta1.ViewerTypeTensorboard,
+			TensorboardSpec: viewerV1beta1.TensorboardSpec{
+				LogDir:          "gs://tensorboard/logdir",
+				TensorflowImage: customImageWithoutTag,
+			},
+		},
+	}
+
+	cli := fake.NewFakeClient(viewer)
+	reconciler, _ := New(cli, scheme.Scheme, &Options{MaxNumViewers: 10})
+
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{Name: "viewer-123", Namespace: "kubeflow"},
+	}
+	_, err := reconciler.Reconcile(req)
+
+	if err != nil {
+		t.Fatalf("Reconcile(%+v) = %v; Want nil error", req, err)
+	}
+
+	gotDpls := getDeployments(t, cli)
+	actualArgs := gotDpls[0].Spec.Template.Spec.Containers[0].Args
+	hasBindAllArg := false
+	for _, arg := range actualArgs {
+		if arg == "--bind_all" {
+			hasBindAllArg = true
+		}
+	}
+	if !hasBindAllArg {
+		t.Errorf("Created viewer CRD %+v\nWant --bind_all arg\nGot args: %+v",
+			viewer, actualArgs)
+	}
+}
+
 func TestReconcile_ViewerUsesSpecifiedVolumeMountsForDeployment(t *testing.T) {
 	viewer := &viewerV1beta1.Viewer{
 		ObjectMeta: metav1.ObjectMeta{
