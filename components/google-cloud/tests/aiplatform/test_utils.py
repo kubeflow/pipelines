@@ -239,5 +239,12 @@ class UtilsTests(unittest.TestCase):
             signature=converted_method_signature,
             method_docstring=self._test_method.__doc__
         )
-        expected_results = "Test short description.\nLong descirption\nArgs:\n    input:\n        input_name\n    input_param:\n        input_param\n"
+        expected_results = "".join(
+            "Test short description.\n"
+            "Long descirption\nArgs:\n"
+            "    input:\n"
+            "        input_name\n"
+            "    input_param:\n"
+            "        input_param\n"
+        )
         self.assertEqual(results, expected_results)
