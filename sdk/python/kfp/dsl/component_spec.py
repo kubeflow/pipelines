@@ -278,17 +278,21 @@ def update_task_inputs_spec(
       component_input_parameter = (
           additional_input_name_for_pipelineparam(param.full_name))
 
-      if component_input_parameter not in parent_component_inputs.parameters:
-        # The input not found in parent's component input definitions
-        # This could happen because of loop arguments variables
-        param_name, subvar_name = _exclude_loop_arguments_variables(param)
-        if subvar_name:
-          task_spec.inputs.parameters[
-              input_name].parameter_expression_selector = (
-                  'parseJson(string_value)["{}"]'.format(subvar_name))
+      if component_input_parameter in parent_component_inputs.parameters:
+        task_spec.inputs.parameters[
+            input_name].component_input_parameter = component_input_parameter
+        continue
 
-        component_input_parameter = (
-            additional_input_name_for_pipelineparam(param_name))
+      # The input not found in parent's component input definitions
+      # This could happen because of loop arguments variables
+      param_name, subvar_name = _exclude_loop_arguments_variables(param)
+      if subvar_name:
+        task_spec.inputs.parameters[
+            input_name].parameter_expression_selector = (
+                'parseJson(string_value)["{}"]'.format(subvar_name))
+
+      component_input_parameter = (
+          additional_input_name_for_pipelineparam(param_name))
 
       assert component_input_parameter in parent_component_inputs.parameters, \
           'component_input_parameter: {} not found. All inputs: {}'.format(
@@ -303,6 +307,17 @@ def update_task_inputs_spec(
       component_input_parameter = (
           task_spec.inputs.parameters[input_name].component_input_parameter)
 
+      if component_input_parameter in parent_component_inputs.parameters:
+        continue
+
+      if additional_input_name_for_pipelineparam(
+          component_input_parameter) in parent_component_inputs.parameters:
+        task_spec.inputs.parameters[input_name].component_input_parameter = (
+            additional_input_name_for_pipelineparam(component_input_parameter))
+        continue
+
+      # The input not found in parent's component input definitions
+      # This could happen because of loop arguments variables
       component_input_parameter, subvar_name = _exclude_loop_arguments_variables(
           component_input_parameter)
 
@@ -314,12 +329,17 @@ def update_task_inputs_spec(
       if component_input_parameter not in input_parameters_in_current_dag:
         component_input_parameter = (
             additional_input_name_for_pipelineparam(component_input_parameter))
-        assert component_input_parameter in parent_component_inputs.parameters, \
-          'component_input_parameter: {} not found. All inputs: {}'.format(
-              component_input_parameter, parent_component_inputs)
 
-        task_spec.inputs.parameters[
-            input_name].component_input_parameter = component_input_parameter
+      if component_input_parameter not in parent_component_inputs.parameters:
+        component_input_parameter = (
+            additional_input_name_for_pipelineparam(component_input_parameter))
+
+      assert component_input_parameter in parent_component_inputs.parameters, \
+        'component_input_parameter: {} not found. All inputs: {}'.format(
+            component_input_parameter, parent_component_inputs)
+
+      task_spec.inputs.parameters[
+          input_name].component_input_parameter = component_input_parameter
 
   for input_name in getattr(task_spec.inputs, 'artifacts', []):
 

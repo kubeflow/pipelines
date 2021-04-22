@@ -480,32 +480,44 @@ class Compiler(object):
 
     return dependencies
 
-  def _resolve_value_or_reference(
-      self, value_or_reference: Union[str, dsl.PipelineParam]) -> str:
-    """_resolve_value_or_reference resolves values and PipelineParams.
+  def _resolve_condition_operands(
+      self, operand1: Union[str, dsl.PipelineParam],
+      operand2: Union[str, dsl.PipelineParam]) -> Tuple[str, str]:
+    """Resolves values and PipelineParams for condition operands."""
 
-    The values and PipelineParams could be task parameters or input parameters.
+    # Pre-scan the operand to get the type of constant value if there's any.
+    # The value_type can be used to backfill missing PipelineParam.param_type.
+    value_type = None
+    for value_or_reference in [operand1, operand2]:
+      if isinstance(value_or_reference, dsl.PipelineParam):
+        continue
+      if isinstance(value_or_reference, float):
+        value_type = 'Float'
+      elif isinstance(value_or_reference, int):
+        value_type = 'Integer'
+      else:
+        value_type = 'String'
 
-    Args:
-      value_or_reference: value or reference to be resolved. It could be basic
-        python types or PipelineParam
-    """
-    if isinstance(value_or_reference, dsl.PipelineParam):
-      input_name = dsl_component_spec.additional_input_name_for_pipelineparam(
-          value_or_reference)
-      if type_utils.is_parameter_type(value_or_reference.param_type):
-        return "inputs.parameters['{input_name}'].{value_field}".format(
-            input_name=input_name,
-            value_field=type_utils.get_parameter_type_field_name(
-                value_or_reference.param_type))
+    operand_values = []
+    for value_or_reference in [operand1, operand2]:
+      if isinstance(value_or_reference, dsl.PipelineParam):
+        input_name = dsl_component_spec.additional_input_name_for_pipelineparam(
+            value_or_reference)
+        # Condition operand is always parameters for now.
+        value_or_reference.param_type = (
+            value_or_reference.param_type or value_type)
+        operand_values.append(
+            "inputs.parameters['{input_name}'].{value_field}".format(
+                input_name=input_name,
+                value_field=type_utils.get_parameter_type_field_name(
+                    value_or_reference.param_type)))
       else:
-        raise NotImplementedError(
-            'Use artifact as dsl.Condition operand is not implemented yet.')
-    else:
-      if isinstance(value_or_reference, str):
-        return "'{}'".format(value_or_reference)
-      else:
-        return str(value_or_reference)
+        if isinstance(value_or_reference, str):
+          operand_values.append("'{}'".format(value_or_reference))
+        else:
+          operand_values.append(str(value_or_reference))
+
+    return tuple(operand_values)
 
   def _populate_metrics_in_dag_outputs(
       self,
@@ -766,12 +778,11 @@ class Compiler(object):
         condition = subgroup.condition
         operand_values = []
 
-        for operand in [condition.operand1, condition.operand2]:
-          operand_values.append(self._resolve_value_or_reference(operand))
+        operand1_value, operand2_value = self._resolve_condition_operands(
+            condition.operand1, condition.operand2)
 
-        condition_string = '{} {} {}'.format(operand_values[0],
-                                             condition.operator,
-                                             operand_values[1])
+        condition_string = '{} {} {}'.format(operand1_value, condition.operator,
+                                             operand2_value)
 
         subgroup_task_spec.trigger_policy.CopyFrom(
             pipeline_spec_pb2.PipelineTaskSpec.TriggerPolicy(

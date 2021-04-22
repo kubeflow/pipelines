@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import json
 from typing import List
 
 from kfp import components
@@ -43,7 +43,11 @@ def flip_coin_op() -> str:
     name='pipeline-with-loops-and-conditions',
     pipeline_root='dummy_root',
 )
-def my_pipeline(text_parameter: str = 'Hello world!'):
+def my_pipeline(text_parameter: str = json.dumps([
+    {'p_a': -1, 'p_b': 'hello'},
+    {'p_a': 2, 'p_b': 'halo'},
+    {'p_a': 3, 'p_b': 'ni hao'},
+], sort_keys=True)):
 
   flip1 = flip_coin_op()
 
@@ -61,7 +65,12 @@ def my_pipeline(text_parameter: str = 'Hello world!'):
 
       with dsl.Condition(item.A_a == '1'):
         with dsl.ParallelFor([{'a':'-1'}, {'a':'-2'}]) as item:
-          print_op(item.a)
+          print_op(item)
+
+  with dsl.ParallelFor(text_parameter) as item:
+    with dsl.Condition(item.p_a > 0):
+      print_op(item.p_a)
+      print_op(item.p_b)
 
 
 if __name__ == '__main__':
