@@ -83,7 +83,7 @@ describe.only('Tensorboard', () => {
                   />
                 }
                 onChange={[Function]}
-                value="tensorflow/tensorflow:2.3.1"
+                value="tensorflow/tensorflow:2.2.2"
               >
                 <WithStyles(ListSubheader)>
                   Tensoflow 1.x
@@ -150,11 +150,6 @@ describe.only('Tensorboard', () => {
                   value="tensorflow/tensorflow:2.2.2"
                 >
                   TensorFlow 2.2.2
-                </WithStyles(MenuItem)>
-                <WithStyles(MenuItem)
-                  value="tensorflow/tensorflow:2.3.2"
-                >
-                  TensorFlow 2.3.2
                 </WithStyles(MenuItem)>
               </WithStyles(WithFormControlContext(Select))>
             </WithStyles(FormControl)>
@@ -326,7 +321,7 @@ describe.only('Tensorboard', () => {
     expect(startAppMock).toHaveBeenCalledWith({
       logdir: config.url,
       namespace: config.namespace,
-      image: 'tensorflow/tensorflow:2.3.1',
+      image: expect.stringContaining('tensorflow/tensorflow:'), // default image
     });
   });
 
@@ -347,7 +342,7 @@ describe.only('Tensorboard', () => {
     const expectedUrl = `Series1:${config.url},Series2:${config2.url}`;
     expect(startAppMock).toHaveBeenCalledWith({
       logdir: expectedUrl,
-      image: 'tensorflow/tensorflow:2.3.1',
+      image: expect.stringContaining('tensorflow/tensorflow:'), // default image
       namespace: config.namespace,
     });
   });

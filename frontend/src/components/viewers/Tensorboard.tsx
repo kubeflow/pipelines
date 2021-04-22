@@ -78,7 +78,9 @@ interface TensorboardViewerState {
   errorMessage?: string;
 }
 
-const DEFAULT_TF_IMAGE = 'tensorflow/tensorflow:2.3.1';
+// TODO: bump default version when https://github.com/kubeflow/pipelines/issues/5521
+// is resolved.
+const DEFAULT_TF_IMAGE = 'tensorflow/tensorflow:2.2.2';
 
 class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewerState> {
   timerID: NodeJS.Timeout;
@@ -226,7 +228,6 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                   <MenuItem value={'tensorflow/tensorflow:2.0.4'}>TensorFlow 2.0.4</MenuItem>
                   <MenuItem value={'tensorflow/tensorflow:2.1.2'}>TensorFlow 2.1.2</MenuItem>
                   <MenuItem value={'tensorflow/tensorflow:2.2.2'}>TensorFlow 2.2.2</MenuItem>
-                  <MenuItem value={'tensorflow/tensorflow:2.3.2'}>TensorFlow 2.3.2</MenuItem>
                 </Select>
               </FormControl>
             </div>
