@@ -1,58 +1,39 @@
 {
   "pipelineSpec": {
-    "schemaVersion": "2.0.0",
-    "pipelineInfo": {
-      "name": "pipeline-with-loop-parameter-args"
-    },
-    "root": {
-      "inputDefinitions": {
-        "parameters": {
-          "loop_arguments": {
-            "type": "STRING"
-          }
-        }
-      },
-      "dag": {
-        "tasks": {
-          "task-for-loop-1": {
-            "componentRef": {
-              "name": "comp-for-loop-1"
-            },
-            "inputs": {
-              "parameters": {
-                "pipelineparam--loop_arguments": {
-                  "componentInputParameter": "loop_arguments"
-                }
-              }
-            },
-            "taskInfo": {
-              "name": "task-for-loop-1"
-            }
-          }
-        }
-      }
-    },
-    "sdkVersion": "kfp-1.5.0-rc.3",
     "deploymentSpec": {
       "executors": {
-        "exec-print-op-3": {
+        "exec-print-op-2": {
           "container": {
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def print_op(msg):\n  print(msg)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Print op', description='')\n_parser.add_argument(\"--msg\", dest=\"msg\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = print_op(**_parsed_args)\n"
+            ],
+            "image": "python:3.7",
             "args": [
               "--msg",
               "{{$.inputs.parameters['msg']}}"
-            ],
+            ]
+          }
+        },
+        "exec-print-op-3": {
+          "container": {
             "image": "python:3.7",
             "command": [
               "sh",
               "-ec",
               "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
               "def print_op(msg):\n  print(msg)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Print op', description='')\n_parser.add_argument(\"--msg\", dest=\"msg\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = print_op(**_parsed_args)\n"
+            ],
+            "args": [
+              "--msg",
+              "{{$.inputs.parameters['msg']}}"
             ]
           }
         },
         "exec-print-op": {
           "container": {
-            "image": "python:3.7",
             "command": [
               "sh",
               "-ec",
@@ -62,29 +43,19 @@
             "args": [
               "--msg",
               "{{$.inputs.parameters['msg']}}"
-            ]
-          }
-        },
-        "exec-print-op-2": {
-          "container": {
-            "args": [
-              "--msg",
-              "{{$.inputs.parameters['msg']}}"
             ],
-            "image": "python:3.7",
-            "command": [
-              "sh",
-              "-ec",
-              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
-              "def print_op(msg):\n  print(msg)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Print op', description='')\n_parser.add_argument(\"--msg\", dest=\"msg\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = print_op(**_parsed_args)\n"
-            ]
+            "image": "python:3.7"
           }
         }
       }
     },
+    "pipelineInfo": {
+      "name": "pipeline-with-loop-parameter-args"
+    },
+    "schemaVersion": "2.0.0",
     "components": {
-      "comp-print-op": {
-        "executorLabel": "exec-print-op",
+      "comp-print-op-3": {
+        "executorLabel": "exec-print-op-3",
         "inputDefinitions": {
           "parameters": {
             "msg": {
@@ -103,8 +74,8 @@
         },
         "executorLabel": "exec-print-op-2"
       },
-      "comp-print-op-3": {
-        "executorLabel": "exec-print-op-3",
+      "comp-print-op": {
+        "executorLabel": "exec-print-op",
         "inputDefinitions": {
           "parameters": {
             "msg": {
@@ -113,54 +84,47 @@
           }
         }
       },
-      "comp-for-loop-1-iterator": {
-        "inputDefinitions": {
-          "parameters": {
-            "pipelineparam--loop_arguments-loop-item": {
-              "type": "STRING"
-            }
-          }
-        },
+      "comp-for-loop-1": {
         "dag": {
           "tasks": {
-            "task-print-op-3": {
-              "taskInfo": {
-                "name": "task-print-op-3"
-              },
-              "componentRef": {
-                "name": "comp-print-op-3"
-              },
-              "inputs": {
-                "parameters": {
-                  "msg": {
-                    "componentInputParameter": "pipelineparam--loop_arguments-loop-item",
-                    "parameterExpressionSelector": "parseJson(string_value)[\"B_b\"]"
-                  }
-                }
-              }
-            },
             "task-print-op-2": {
-              "taskInfo": {
-                "name": "task-print-op-2"
-              },
               "componentRef": {
                 "name": "comp-print-op-2"
               },
               "inputs": {
                 "parameters": {
                   "msg": {
-                    "parameterExpressionSelector": "parseJson(string_value)[\"A_a\"]",
+                    "componentInputParameter": "pipelineparam--loop_arguments-loop-item",
+                    "parameterExpressionSelector": "parseJson(string_value)[\"A_a\"]"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "task-print-op-2"
+              }
+            },
+            "task-print-op-3": {
+              "componentRef": {
+                "name": "comp-print-op-3"
+              },
+              "taskInfo": {
+                "name": "task-print-op-3"
+              },
+              "inputs": {
+                "parameters": {
+                  "msg": {
+                    "parameterExpressionSelector": "parseJson(string_value)[\"B_b\"]",
                     "componentInputParameter": "pipelineparam--loop_arguments-loop-item"
                   }
                 }
               }
             },
             "task-print-op": {
-              "taskInfo": {
-                "name": "task-print-op"
-              },
               "componentRef": {
                 "name": "comp-print-op"
+              },
+              "taskInfo": {
+                "name": "task-print-op"
               },
               "inputs": {
                 "parameters": {
@@ -171,43 +135,54 @@
               }
             }
           }
-        }
-      },
-      "comp-for-loop-1": {
-        "dag": {
-          "tasks": {
-            "task-for-loop-1-iterator": {
-              "parameterIterator": {
-                "itemInput": "pipelineparam--loop_arguments-loop-item",
-                "items": {
-                  "inputParameter": "pipelineparam--loop_arguments"
-                }
-              },
-              "componentRef": {
-                "name": "comp-for-loop-1-iterator"
-              },
-              "inputs": {
-                "parameters": {
-                  "pipelineparam--loop_arguments": {
-                    "componentInputParameter": "pipelineparam--loop_arguments"
-                  }
-                }
-              },
-              "taskInfo": {
-                "name": "task-for-loop-1-iterator"
-              }
-            }
-          }
         },
         "inputDefinitions": {
           "parameters": {
+            "pipelineparam--loop_arguments-loop-item": {
+              "type": "STRING"
+            },
             "pipelineparam--loop_arguments": {
               "type": "STRING"
             }
           }
         }
       }
-    }
+    },
+    "root": {
+      "dag": {
+        "tasks": {
+          "task-for-loop-1": {
+            "parameterIterator": {
+              "items": {
+                "inputParameter": "pipelineparam--loop_arguments"
+              },
+              "itemInput": "pipelineparam--loop_arguments-loop-item"
+            },
+            "componentRef": {
+              "name": "comp-for-loop-1"
+            },
+            "taskInfo": {
+              "name": "task-for-loop-1"
+            },
+            "inputs": {
+              "parameters": {
+                "pipelineparam--loop_arguments": {
+                  "componentInputParameter": "loop_arguments"
+                }
+              }
+            }
+          }
+        }
+      },
+      "inputDefinitions": {
+        "parameters": {
+          "loop_arguments": {
+            "type": "STRING"
+          }
+        }
+      }
+    },
+    "sdkVersion": "kfp-1.5.0-rc.3"
   },
   "runtimeConfig": {
     "parameters": {
