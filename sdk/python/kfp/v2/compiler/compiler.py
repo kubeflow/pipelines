@@ -980,10 +980,6 @@ class Compiler(object):
 
     pipeline_root = getattr(pipeline_func, 'pipeline_root', None)
 
-    if not pipeline_root:
-      warnings.warn('pipeline_root is None or empty. A valid pipeline_root '
-                    'must be provided at job submission.')
-
     args_list = []
     signature = inspect.signature(pipeline_func)
     for arg_name in signature.parameters:
