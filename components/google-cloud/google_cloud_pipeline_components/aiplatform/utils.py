@@ -14,10 +14,10 @@
 """Module for creating pipeline components based on AI Platform SDK."""
 
 import collections
-import docstring_parser
 import inspect
 import json
 from typing import Any, Callable, Dict, Optional, Tuple, Union
+import docstring_parser
 
 from google.cloud import aiplatform
 import kfp
@@ -221,10 +221,11 @@ def filter_signature(
     Args:
         signature (inspect.Signature): Model Builder SDK Method Signature.
         is_init_signature (bool): is this constructor signature
-        self_type (aiplatform.base.AiPlatformResourceNoun): This is used to replace *_name str fields with resource
-            name type.
-        component_param_name_to_mb_sdk_param_name dict[str, str]: Mapping to keep track of param names changed
-            to make them component friendly( ie: model_name -> model)
+        self_type (aiplatform.base.AiPlatformResourceNoun): This is used to
+            replace *_name str fields with resource name type.
+        component_param_name_to_mb_sdk_param_name dict[str, str]: Mapping to
+            keep track of param names changed to make them component
+            friendly( ie: model_name -> model)
 
     Returns:
         Signature appropriate for component creation.
