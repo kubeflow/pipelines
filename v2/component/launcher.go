@@ -718,10 +718,16 @@ func (l *Launcher) openBucket() (*blob.Bucket, error) {
 	if l.bucketConfig.scheme == "minio://" {
 		secret, err := getMinioCredential()
 		if err != nil {
-			return nil, fmt.Errorf("Failed to get minio credential: %v", err)
+			return nil, fmt.Errorf("Failed to get minio credential: %w", err)
 		}
 		accessKey := string(secret.Data["accesskey"])
 		secretKey := string(secret.Data["secretkey"])
+		if accessKey == "" {
+			return nil, fmt.Errorf("The secret which stores minio credential does not have 'accesskey' entry")
+		}
+		if secretKey == "" {
+			return nil, fmt.Errorf("The secret which stores minio credential does not have 'secretkey' entry")
+		}
 		sess, err := session.NewSession(&aws.Config{
 			Credentials:      credentials.NewStaticCredentials(accessKey, secretKey, ""),
 			Region:           aws.String("minio"),
@@ -741,13 +747,16 @@ func (l *Launcher) openBucket() (*blob.Bucket, error) {
 func getMinioCredential() (*v1.Secret, error) {
 	restConfig, err := rest.InClusterConfig()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to initialize kubernetes client: %v", err)
+		return nil, fmt.Errorf("Failed to initialize kubernetes client: %w", err)
 	}
 	clientSet, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to initialize kubernetes client set: %v", err)
+		return nil, fmt.Errorf("Failed to initialize kubernetes client set: %w", err)
 	}
 	namespace := os.Getenv("KFP_NAMESPACE")
+	if namespace == "" {
+		return nil, fmt.Errorf("Env variable 'KFP_NAMESPACE' is empty")
+	}
 	secret, err := clientSet.CoreV1().Secrets(namespace).Get(context.Background(), "mlpipeline-minio-artifact", metav1.GetOptions{})
 	return secret, err
 }
