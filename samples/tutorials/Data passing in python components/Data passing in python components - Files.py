@@ -41,7 +41,7 @@ from kfp.components import func_to_container_op, InputPath, OutputPath
 # 
 # Some examples of typical types of small data are: number, URL, small string (e.g. column name).
 # 
-# Small lists, dictionaries and JSON structures are fine, but keep an eye on the size and consider switching to file-based data passing methods taht are more suitable for bigger data (more than several kilobytes) or binary data.
+# Small lists, dictionaries and JSON structures are fine, but keep an eye on the size and consider switching to file-based data passing methods that are more suitable for bigger data (more than several kilobytes) or binary data.
 # 
 # All small data outputs will be at some point serialized to strings and all small data input values will be at some point deserialized from strings (passed as command-line argumants). There are built-in serializers and deserializers for several common types (e.g. `str`, `int`, `float`, `bool`, `list`, `dict`). All other types of data need to be serialized manually before returning the data. Make sure to properly specify type annotations, otherwize there would be no automatic deserialization and the component function will receive strings instead of deserialized objects.
 
