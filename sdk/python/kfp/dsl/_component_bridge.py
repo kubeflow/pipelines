@@ -467,6 +467,7 @@ def _attach_v2_specs(
 
   for input_name, argument_value in arguments.items():
     input_type = component_spec._inputs_dict[input_name].type
+    reference_type = None
 
     if isinstance(argument_value, _pipeline_param.PipelineParam):
       reference_type = argument_value.param_type
