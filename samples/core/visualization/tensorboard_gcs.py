@@ -65,7 +65,7 @@ train_op = create_component_from_func(
 
 @dsl.pipeline(name='pipeline-tensorboard-gcs')
 def my_pipeline(
-    log_dir=f'gs://gongyuan-test/tensorboard/logs/{dsl.RUN_ID_PLACEHOLDER}'
+    log_dir=f'gs://{{kfp-default-bucket}}/tensorboard/logs/{dsl.RUN_ID_PLACEHOLDER}'
 ):
     prepare_tb_task = prepare_tensorboard(log_dir_uri=log_dir)
     tensorboard_task = train_op(log_dir=prepare_tb_task.outputs['log_dir_uri'],)
