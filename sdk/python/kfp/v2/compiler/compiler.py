@@ -1116,8 +1116,13 @@ class Compiler(object):
       arg_type = None
       for pipeline_input in pipeline_meta.inputs or []:
         if arg_name == pipeline_input.name:
-          # For untyped pipeline argument, default to 'String' type.
-          arg_type = pipeline_input.type or 'String'
+          # Do not alter type here (like defaulting to 'String'). It will affect
+          # verify_type_compatibility check as we allow pasing a `None` typed
+          # PipelineParam to a component input with an arbitrary type, e.g.:
+          # 'Path'. If we default `None` type to `String`, the type compatibility
+          # check will fail when passing `String` typed PipelineParm to `Path`
+          # typed component input.
+          arg_type = pipeline_input.type
           break
       args_list.append(
           dsl.PipelineParam(

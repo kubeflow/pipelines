@@ -320,7 +320,7 @@ class CompilerTest(unittest.TestCase):
       component_op(some_input=input1)
     with self.assertRaisesRegex(
         TypeError,
-        'Passing PipelineParam "input1" with type "String" \(as "Parameter"\) '
+        'Passing pipeline parameter "input1" with type "String" \(as "Parameter"\) '
         'to component input "some_input" with type "None" \(as "Artifact"\) is '
         'incompatible. Please fix the type of the component input.'
     ):

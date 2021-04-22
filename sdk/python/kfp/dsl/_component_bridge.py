@@ -562,16 +562,24 @@ def _attach_v2_specs(
             'Input argument supports only the following types: PipelineParam'
             ', str, int, float. Got: "{}".'.format(argument_value))
 
+    # Make sure we're not passing parameter to artifact, or vice versa.
+    if isinstance(argument_value, _pipeline_param.PipelineParam):
+      if argument_value.op_name is None:
+        # For pipeline function argument, default missing type to 'String'
+        reference_type = reference_type or 'String'
+
+        param_or_value_msg = 'pipeline parameter "{}"'.format(
+            argument_value.name)
+      else:
+        param_or_value_msg = 'component ouput "{}"'.format(
+            argument_value.full_name)
+    else:
+      param_or_value_msg = 'value "{}"'.format(argument_value)
+
     reference_is_parameter_type = type_utils.is_parameter_type(reference_type)
     input_is_parameter_type = type_utils.is_parameter_type(input_type)
     if is_compiling_for_v2 and (reference_is_parameter_type !=
                                 input_is_parameter_type):
-      if isinstance(argument_value, dsl.PipelineParam):
-        param_or_value_msg = 'PipelineParam "{}"'.format(
-            argument_value.full_name)
-      else:
-        param_or_value_msg = 'value "{}"'.format(argument_value)
-
       raise TypeError(
           'Passing '
           '{param_or_value} with type "{ref_type}" (as "{ref_category}") to '
