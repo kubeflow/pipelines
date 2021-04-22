@@ -59,7 +59,7 @@ class CompilerTest(unittest.TestCase):
       """)
 
       @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
-      def simple_pipeline(pipeline_input:str='Hello KFP!'):
+      def simple_pipeline(pipeline_input: str = 'Hello KFP!'):
         producer = producer_op(input_param=pipeline_input)
         consumer = consumer_op(
             input_model=producer.outputs['output_model'],
@@ -67,8 +67,7 @@ class CompilerTest(unittest.TestCase):
 
       target_json_file = os.path.join(tmpdir, 'result.json')
       compiler.Compiler().compile(
-          pipeline_func=simple_pipeline,
-          package_path=target_json_file)
+          pipeline_func=simple_pipeline, package_path=target_json_file)
 
       self.assertTrue(os.path.exists(target_json_file))
     finally:
@@ -102,7 +101,8 @@ class CompilerTest(unittest.TestCase):
       """)
 
     @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
-    def download_and_print(url='gs://ml-pipeline/shakespeare/shakespeare1.txt'):
+    def download_and_print(
+        url: str = 'gs://ml-pipeline/shakespeare/shakespeare1.txt'):
       """A sample pipeline showing exit handler."""
 
       exit_task = echo_op('exit!')
@@ -115,8 +115,7 @@ class CompilerTest(unittest.TestCase):
         NotImplementedError,
         'dsl.ExitHandler is not yet supported in KFP v2 compiler.'):
       compiler.Compiler().compile(
-          pipeline_func=download_and_print,
-          package_path='output.json')
+          pipeline_func=download_and_print, package_path='output.json')
 
   def test_compile_pipeline_with_dsl_graph_component_should_raise_error(self):
 
@@ -147,12 +146,21 @@ class CompilerTest(unittest.TestCase):
         step2_graph_component.after(step1_graph_component)
 
       compiler.Compiler().compile(
-          pipeline_func=opsgroups_pipeline,
-          package_path='output.json')
+          pipeline_func=opsgroups_pipeline, package_path='output.json')
 
   def test_compile_pipeline_with_misused_inputvalue_should_raise_error(self):
 
-    component_op = components.load_component_from_text("""
+    upstream_op = components.load_component_from_text("""
+        name: upstream compoent
+        outputs:
+        - {name: model, type: Model}
+        implementation:
+          container:
+            image: dummy
+            args:
+            - {outputPath: model}
+        """)
+    downstream_op = components.load_component_from_text("""
         name: compoent with misused placeholder
         inputs:
         - {name: model, type: Model}
@@ -164,15 +172,14 @@ class CompilerTest(unittest.TestCase):
         """)
 
     @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
-    def my_pipeline(model):
-      component_op(model=model)
+    def my_pipeline():
+      downstream_op(model=upstream_op().output)
 
     with self.assertRaisesRegex(
         TypeError,
         ' type "Model" cannot be paired with InputValuePlaceholder.'):
       compiler.Compiler().compile(
-          pipeline_func=my_pipeline,
-          package_path='output.json')
+          pipeline_func=my_pipeline, package_path='output.json')
 
   def test_compile_pipeline_with_misused_inputpath_should_raise_error(self):
 
@@ -188,15 +195,14 @@ class CompilerTest(unittest.TestCase):
         """)
 
     @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
-    def my_pipeline(text):
+    def my_pipeline(text: str):
       component_op(text=text)
 
     with self.assertRaisesRegex(
         TypeError,
         ' type "String" cannot be paired with InputPathPlaceholder.'):
       compiler.Compiler().compile(
-          pipeline_func=my_pipeline,
-          package_path='output.json')
+          pipeline_func=my_pipeline, package_path='output.json')
 
   def test_compile_pipeline_with_misused_inputuri_should_raise_error(self):
 
@@ -212,14 +218,13 @@ class CompilerTest(unittest.TestCase):
         """)
 
     @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
-    def my_pipeline(value):
+    def my_pipeline(value: float):
       component_op(value=value)
 
     with self.assertRaisesRegex(
         TypeError, ' type "Float" cannot be paired with InputUriPlaceholder.'):
       compiler.Compiler().compile(
-          pipeline_func=my_pipeline,
-          package_path='output.json')
+          pipeline_func=my_pipeline, package_path='output.json')
 
   def test_compile_pipeline_with_misused_outputuri_should_raise_error(self):
 
@@ -242,8 +247,7 @@ class CompilerTest(unittest.TestCase):
         TypeError,
         ' type "Integer" cannot be paired with OutputUriPlaceholder.'):
       compiler.Compiler().compile(
-          pipeline_func=my_pipeline,
-          package_path='output.json')
+          pipeline_func=my_pipeline, package_path='output.json')
 
   def test_compile_pipeline_with_invalid_name_should_raise_error(self):
 
@@ -255,8 +259,7 @@ class CompilerTest(unittest.TestCase):
         'Invalid pipeline name: .*\nPlease specify a pipeline name that matches'
     ):
       compiler.Compiler().compile(
-          pipeline_func=my_pipeline,
-          package_path='output.json')
+          pipeline_func=my_pipeline, package_path='output.json')
 
   def test_set_pipeline_root_through_pipeline_decorator(self):
 
@@ -278,6 +281,31 @@ class CompilerTest(unittest.TestCase):
                        job_spec['runtimeConfig']['gcsOutputDirectory'])
     finally:
       shutil.rmtree(tmpdir)
+
+  def test_passing_string_parameter_to_artifact_should_error(self):
+
+    component_op = components.load_component_from_text("""
+      name: compoent
+      inputs:
+      - {name: some_input, type: , description: an uptyped input}
+      implementation:
+        container:
+          image: dummy
+          args:
+          - {inputPath: some_input}
+      """)
+
+    @dsl.pipeline(name='test-pipeline', pipeline_root='gs://path')
+    def my_pipeline(input1: str):
+      component_op(some_input=input1)
+
+    with self.assertRaisesRegex(
+        TypeError,
+        'Passing PipelineParam "input1" with type "String" \(as "Parameter"\) '
+        'to component input "some_input" with type "None" \(as "Artifact"\) is '
+        'incompatible. Please fix the type of the component input.'):
+      compiler.Compiler().compile(
+          pipeline_func=my_pipeline, package_path='output.json')
 
 
 if __name__ == '__main__':
