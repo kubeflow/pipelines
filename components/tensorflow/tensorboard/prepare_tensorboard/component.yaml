@@ -6,7 +6,7 @@ description: |
 inputs:
 - {name: Log dir URI}
 - {name: Image, default: ''}
-- {name: Pod Template Spec, default: '""'}
+- {name: Pod Template Spec, default: 'null'}
 outputs:
 - {name: Log dir URI}
 - {name: MLPipeline UI Metadata}
