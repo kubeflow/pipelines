@@ -15,11 +15,9 @@
 
 from inspect import signature
 import json
-from typing import Optional, Sequence, Dict, Tuple, Union, List, ForwardRef, NoReturn
+from typing import Optional, Dict, Tuple, Union, List, ForwardRef
 import unittest
-from unittest import mock
 from google.cloud import aiplatform
-from google_cloud_pipeline_components.aiplatform import remote_runner
 from google_cloud_pipeline_components.aiplatform import utils
 
 INIT_KEY = 'init'
