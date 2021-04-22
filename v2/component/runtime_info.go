@@ -18,7 +18,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strconv"
+	"strings"
 
 	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
 	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
@@ -136,7 +138,6 @@ func toMLMDArtifact(runtimeArtifact *pipeline_spec.RuntimeArtifact) (*pb.Artifac
 	errorF := func(err error) error {
 		return fmt.Errorf("failed to convert RuntimeArtifact to MLMD artifact: %w", err)
 	}
-
 	artifact := &pb.Artifact{
 		Uri:              &runtimeArtifact.Uri,
 		Properties:       make(map[string]*pb.Value),
@@ -316,7 +317,14 @@ func (r *runtimeInfo) generateExecutorInput(genOutputURI generateOutputURI, outp
 		rta := &pipeline_spec.RuntimeArtifact{
 			Name: name,
 			Uri:  uri,
+			Metadata: &structpb.Struct{
+				Fields: make(map[string]*structpb.Value)},
 		}
+		if strings.HasPrefix(uri, "s3://") {
+			s3Region := os.Getenv("AWS_REGION")
+			rta.Metadata.Fields["s3_region"] = &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: s3Region}}
+		}
+
 		if err := setRuntimeArtifactType(rta, oa.InstanceSchema, oa.SchemaTitle); err != nil {
 			return nil, fmt.Errorf("failed to generate output RuntimeArtifact: %w", err)
 		}
