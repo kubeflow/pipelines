@@ -58,6 +58,7 @@ func ValidateWorkflow(template []byte) (*v1alpha1.Workflow, error) {
 	}
 	_, err = validate.ValidateWorkflow(nil, nil, &wf, validate.ValidateOpts{
 		Lint:                       true,
+		IgnoreEntrypoint:           true,
 		WorkflowTemplateValidation: false, // not used by kubeflow
 	})
 	if err != nil {
