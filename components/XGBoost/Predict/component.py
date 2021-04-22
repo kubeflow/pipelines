@@ -3,7 +3,7 @@ from kfp.components import InputPath, OutputPath, create_component_from_func
 def xgboost_predict(
     data_path: InputPath('CSV'),  # Also supports LibSVM
     model_path: InputPath('XGBoostModel'),
-    predictions_path: OutputPath('Text'),
+    predictions_path: OutputPath('Predictions'),
     label_column: int = None,
 ):
     '''Make predictions using a trained XGBoost model.

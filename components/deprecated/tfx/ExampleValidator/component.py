@@ -11,7 +11,7 @@ def ExampleValidator(
     A TFX component to validate input examples.
 
     The ExampleValidator component uses [Tensorflow Data
-    Validation](https://www.tensorflow.org/tfx/data_validation) to
+    Validation](https://www.tensorflow.org/tfx/data_validation/get_started) to
     validate the statistics of some splits on input examples against a schema.
 
     The ExampleValidator component identifies anomalies in training and serving
@@ -29,7 +29,7 @@ def ExampleValidator(
     schema. The schema codifies properties which the input data is expected to
     satisfy, and is provided and maintained by the user.
 
-    Please see https://www.tensorflow.org/tfx/data_validation for more details.
+    Please see https://www.tensorflow.org/tfx/data_validation/get_started for more details.
 
     Args:
         statistics: A Channel of 'ExampleStatistics` type. This should contain at

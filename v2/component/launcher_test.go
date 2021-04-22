@@ -87,6 +87,37 @@ func Test_parseCloudBucket(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "Parses Minio - Bucket with query string",
+			path: "minio://my-bucket",
+			want: &bucketConfig{
+				scheme:     "minio://",
+				bucketName: "my-bucket",
+				prefix:     "",
+				queryString: "",
+			},
+			wantErr: false,
+		},{
+			name: "Parses Minio - Bucket with prefix",
+			path: "minio://my-bucket/my-path",
+			want: &bucketConfig{
+				scheme:     "minio://",
+				bucketName: "my-bucket",
+				prefix:     "my-path/",
+				queryString: "",
+			},
+			wantErr: false,
+		},{
+			name: "Parses Minio - Bucket with multiple path components in prefix",
+			path: "minio://my-bucket/my-path/123",
+			want: &bucketConfig{
+				scheme:     "minio://",
+				bucketName: "my-bucket",
+				prefix:     "my-path/123/",
+				queryString: "",
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

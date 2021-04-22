@@ -28,7 +28,13 @@ def preprocess(
         f.write("{}".format(1234))
 
 
-def train(
+preprocess_op = components.create_component_from_func(
+    preprocess, base_image='python:3.9'
+)
+
+
+@components.create_component_from_func
+def train_op(
     dataset: InputPath('Dataset'),
     model: OutputPath('Model'),
     num_steps: int = 100
@@ -42,12 +48,6 @@ def train(
                 output_file.write(
                     "Step {}\n{}\n=====\n".format(i, input_string)
                 )
-
-
-preprocess_op = components.create_component_from_func(
-    preprocess, base_image='python:3.9'
-)
-train_op = components.create_component_from_func(train)
 
 
 @dsl.pipeline(name='two_step_pipeline')

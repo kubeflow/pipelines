@@ -1,4 +1,4 @@
-title: kfp.ClassificationMetrics
+title: system.ClassificationMetrics
 type: object
 properties:
   auPrc:

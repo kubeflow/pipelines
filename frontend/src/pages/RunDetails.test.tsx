@@ -22,7 +22,7 @@ import * as React from 'react';
 import { Router } from 'react-router-dom';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { Workflow } from 'third_party/argo-ui/argo_template';
-import { ApiResourceType, ApiRunDetail, RunStorageState } from '../apis/run';
+import { ApiResourceType, ApiRunDetail, ApiRunStorageState } from '../apis/run';
 import { QUERY_PARAMS, RoutePage, RouteParams } from '../components/Router';
 import { PlotType } from '../components/viewers/Viewer';
 import { Apis, JSONObject } from '../lib/Apis';
@@ -420,7 +420,7 @@ describe('RunDetails', () => {
   });
 
   it('has a Restore button if the run is archived', async () => {
-    testRun.run!.storage_state = RunStorageState.ARCHIVED;
+    testRun.run!.storage_state = ApiRunStorageState.ARCHIVED;
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
@@ -429,7 +429,7 @@ describe('RunDetails', () => {
   });
 
   it('shows Archive in breadcrumbs if the run is archived', async () => {
-    testRun.run!.storage_state = RunStorageState.ARCHIVED;
+    testRun.run!.storage_state = ApiRunStorageState.ARCHIVED;
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();

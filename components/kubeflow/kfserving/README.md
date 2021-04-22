@@ -1,6 +1,11 @@
 # KFServing Component
 
-This is the Kubeflow Pipelines component for KFServing. This uses the [V1beta1 API](https://github.com/kubeflow/kfserving/blob/master/docs/apis/v1beta1/README.md).
+This is the Kubeflow Pipelines component for KFServing. This uses the [V1beta1 API](https://github.com/kubeflow/kfserving/blob/master/docs/apis/v1beta1/README.md),
+so your cluster must have a KFServing version >= v0.5.0 in order to use this.
+
+If you are using KFServing version prior to v0.5.0, an older deprecated version of the KFServing Pipelines component must be used
+and can be found at [this commit](https://github.com/kubeflow/pipelines/tree/65bed9b6d1d676ef2d541a970d3edc0aee12400d/components/kubeflow/kfserving).
+Sample usage of this component can be found [here](https://github.com/kubeflow/kfserving/blob/master/docs/samples/pipelines/kfs-pipeline-v1alpha2.ipynb).
 
 ## Usage
 
@@ -177,5 +182,4 @@ kfserving_op(
     inferenceservice_yaml=isvc_yaml
 )
 ```
-
 

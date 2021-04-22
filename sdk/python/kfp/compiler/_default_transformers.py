@@ -52,5 +52,6 @@ def add_kfp_pod_env(op: BaseOp) -> BaseOp:
           name='WORKFLOW_ID',
           value_from=k8s_client.
           V1EnvVarSource(field_ref=k8s_client.V1ObjectFieldSelector(
-              field_path="metadata.labels['workflows.argoproj.io/workflow']"))))
+              field_path="metadata.labels['workflows.argoproj.io/workflow']")))
+  )
   return op

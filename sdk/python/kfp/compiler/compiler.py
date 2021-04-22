@@ -678,6 +678,13 @@ class Compiler(object):
                             launcher_image=self._launcher_image)
       templates.extend(op_to_templates_handler(op))
 
+      if hasattr(op, 'custom_job_spec'):
+        warnings.warn('CustomJob spec is not supported yet when running on KFP.'
+                      ' The component will execute within the KFP cluster.')
+      if hasattr(op, 'importer_spec'):
+        raise NotImplementedError(
+            'dsl.importer is not supported yet when running on KFP.')
+
     return templates
 
   def _create_pipeline_workflow(self,
@@ -1004,7 +1011,7 @@ class Compiler(object):
         pull secrets and other pipeline-level configuration options. Overrides
         any configuration that may be set by the pipeline.
     """
-    pipeline_root_dir = getattr(pipeline_func, 'output_directory', None)
+    pipeline_root_dir = getattr(pipeline_func, 'pipeline_root', None)
     if (pipeline_root_dir is not None or
         self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE):
       self._pipeline_root_param = dsl.PipelineParam(

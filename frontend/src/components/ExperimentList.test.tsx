@@ -19,8 +19,8 @@ import * as Utils from '../lib/Utils';
 import { ExperimentList, ExperimentListProps } from './ExperimentList';
 import TestUtils from '../TestUtils';
 import { ApiFilter, PredicateOp } from '../apis/filter';
-import { RunStorageState } from '../apis/run';
-import { ExperimentStorageState } from '../apis/experiment';
+import { ApiRunStorageState } from '../apis/run';
+import { ApiExperimentStorageState } from '../apis/experiment';
 import { ExpandState } from './CustomTable';
 
 import { Apis, ExperimentSortKeys, ListRequest } from '../lib/Apis';
@@ -96,14 +96,14 @@ describe('ExperimentList', () => {
 
   it('renders the empty experience in ARCHIVED state', () => {
     const props = generateProps();
-    props.storageState = ExperimentStorageState.ARCHIVED;
+    props.storageState = ApiExperimentStorageState.ARCHIVED;
     expect(shallow(<ExperimentList {...props} />)).toMatchSnapshot();
   });
 
   it('loads experiments whose storage state is not ARCHIVED when storage state equals AVAILABLE', async () => {
     mockNExperiments(1);
     const props = generateProps();
-    props.storageState = ExperimentStorageState.AVAILABLE;
+    props.storageState = ApiExperimentStorageState.AVAILABLE;
     tree = shallow(<ExperimentList {...props} />);
     await (tree.instance() as ExperimentListTest)._loadExperiments({});
     expect(Apis.experimentServiceApi.listExperiment).toHaveBeenLastCalledWith(
@@ -116,7 +116,7 @@ describe('ExperimentList', () => {
             {
               key: 'storage_state',
               op: PredicateOp.NOTEQUALS,
-              string_value: ExperimentStorageState.ARCHIVED.toString(),
+              string_value: ApiExperimentStorageState.ARCHIVED.toString(),
             },
           ],
         } as ApiFilter),
@@ -129,7 +129,7 @@ describe('ExperimentList', () => {
   it('loads experiments whose storage state is ARCHIVED when storage state equals ARCHIVED', async () => {
     mockNExperiments(1);
     const props = generateProps();
-    props.storageState = ExperimentStorageState.ARCHIVED;
+    props.storageState = ApiExperimentStorageState.ARCHIVED;
     tree = shallow(<ExperimentList {...props} />);
     await (tree.instance() as ExperimentListTest)._loadExperiments({});
     expect(Apis.experimentServiceApi.listExperiment).toHaveBeenLastCalledWith(
@@ -142,7 +142,7 @@ describe('ExperimentList', () => {
             {
               key: 'storage_state',
               op: PredicateOp.EQUALS,
-              string_value: ExperimentStorageState.ARCHIVED.toString(),
+              string_value: ApiExperimentStorageState.ARCHIVED.toString(),
             },
           ],
         } as ApiFilter),
@@ -155,7 +155,7 @@ describe('ExperimentList', () => {
   it('augments request filter with storage state predicates', async () => {
     mockNExperiments(1);
     const props = generateProps();
-    props.storageState = ExperimentStorageState.ARCHIVED;
+    props.storageState = ApiExperimentStorageState.ARCHIVED;
     tree = shallow(<ExperimentList {...props} />);
     await (tree.instance() as ExperimentListTest)._loadExperiments({
       filter: encodeURIComponent(
@@ -179,7 +179,7 @@ describe('ExperimentList', () => {
             {
               key: 'storage_state',
               op: PredicateOp.EQUALS,
-              string_value: ExperimentStorageState.ARCHIVED.toString(),
+              string_value: ApiExperimentStorageState.ARCHIVED.toString(),
             },
           ],
         } as ApiFilter),
@@ -290,7 +290,7 @@ describe('ExperimentList', () => {
             {
               key: 'storage_state',
               op: PredicateOp.NOTEQUALS,
-              string_value: RunStorageState.ARCHIVED.toString(),
+              string_value: ApiRunStorageState.ARCHIVED.toString(),
             },
           ],
         } as ApiFilter),
@@ -302,7 +302,7 @@ describe('ExperimentList', () => {
     listRunsSpy.mockImplementation(() => {});
     mockNExperiments(1);
     const props = generateProps();
-    props.storageState = ExperimentStorageState.ARCHIVED;
+    props.storageState = ApiExperimentStorageState.ARCHIVED;
     tree = TestUtils.mountWithRouter(<ExperimentList {...props} />);
     await (tree.instance() as ExperimentListTest)._loadExperiments({});
     tree.update();
@@ -341,7 +341,7 @@ describe('ExperimentList', () => {
             {
               key: 'storage_state',
               op: PredicateOp.EQUALS,
-              string_value: RunStorageState.ARCHIVED.toString(),
+              string_value: ApiRunStorageState.ARCHIVED.toString(),
             },
           ],
         } as ApiFilter),

@@ -160,6 +160,14 @@ export default class WorkflowParser {
     return g;
   }
 
+  static trimPrefix(str: string, prefix: string): string {
+    if (str.startsWith(prefix)) {
+      return str.slice(prefix.length);
+    } else {
+      return str;
+    }
+  }
+
   public static getParameters(workflow?: Workflow): Parameter[] {
     if (workflow && workflow.spec && workflow.spec.arguments) {
       return workflow.spec.arguments.parameters || [];
@@ -187,12 +195,16 @@ export default class WorkflowParser {
       return { inputParams, outputParams };
     }
 
-    const { inputs, outputs } = workflow.status.nodes[nodeId];
+    const { inputs, outputs, templateName } = workflow.status.nodes[nodeId];
+    const namePrefixToStrip = templateName + '-';
     if (!!inputs && !!inputs.parameters) {
       inputParams = inputs.parameters.map(p => [p.name, p.value || '']);
     }
     if (!!outputs && !!outputs.parameters) {
-      outputParams = outputs.parameters.map(p => [p.name, p.value || '']);
+      outputParams = outputs.parameters.map(p => [
+        WorkflowParser.trimPrefix(p.name, namePrefixToStrip),
+        p.value || '',
+      ]);
     }
     return { inputParams, outputParams };
   }
@@ -217,12 +229,16 @@ export default class WorkflowParser {
       return { inputArtifacts, outputArtifacts };
     }
 
-    const { inputs, outputs } = workflow.status.nodes[nodeId];
+    const { inputs, outputs, templateName } = workflow.status.nodes[nodeId];
+    const namePrefixToStrip = templateName + '-';
     if (!!inputs && !!inputs.artifacts) {
       inputArtifacts = inputs.artifacts.map(({ name, s3 }) => [name, s3]);
     }
     if (!!outputs && !!outputs.artifacts) {
-      outputArtifacts = outputs.artifacts.map(({ name, s3 }) => [name, s3]);
+      outputArtifacts = outputs.artifacts.map(({ name, s3 }) => [
+        WorkflowParser.trimPrefix(name, namePrefixToStrip),
+        s3,
+      ]);
     }
     return { inputArtifacts, outputArtifacts };
   }

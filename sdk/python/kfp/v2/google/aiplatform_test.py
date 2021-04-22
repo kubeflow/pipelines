@@ -16,7 +16,7 @@ from google.protobuf import json_format
 import unittest
 from kfp.v2.google import aiplatform
 from kfp import dsl
-from kfp.dsl import ontology_artifacts
+from kfp.dsl import io_types
 from kfp.components import _structures as structures
 
 _EXPECTED_COMPONENT_SPEC = {
@@ -24,7 +24,7 @@ _EXPECTED_COMPONENT_SPEC = {
         'artifacts': {
             'examples': {
                 'artifactType': {
-                    'instanceSchema': 'title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string\n'}}},
+                    'schemaTitle': 'system.Dataset'}}},
         'parameters': {
             'optimizer': {'type': 'STRING'}
         }
@@ -33,7 +33,7 @@ _EXPECTED_COMPONENT_SPEC = {
         'artifacts': {
             'model': {
                 'artifactType': {
-                    'instanceSchema': 'title: kfp.Model\ntype: object\nproperties:\n  framework:\n    type: string\n  framework_version:\n    type: string\n'}}},
+                    'schemaTitle': 'system.Model'}}},
         'parameters': {
             'out_param': {
                 'type': 'STRING'}}},
@@ -64,7 +64,7 @@ class AiplatformTest(unittest.TestCase):
         'jobSpec': {
             'workerPoolSpecs': [
                 {
-                    'machineSpec': {'machineType': 'n1-standard-2'},
+                    'machineSpec': {'machineType': 'n1-standard-4'},
                     'replicaCount': '1',
                     'containerSpec': {
                         'imageUri': 'my_image:latest',
@@ -89,7 +89,7 @@ class AiplatformTest(unittest.TestCase):
                 param_type='Dataset')},
         input_parameters={'optimizer': 'sgd'},
         output_artifacts={
-            'model': ontology_artifacts.Model},
+            'model': io_types.Model},
         output_parameters={
             'out_param': str},
         image_uri='my_image:latest',
@@ -136,7 +136,7 @@ class AiplatformTest(unittest.TestCase):
                 param_type='Dataset')},
         input_parameters={'optimizer': 'sgd'},
         output_artifacts={
-            'model': ontology_artifacts.Model},
+            'model': io_types.Model},
         output_parameters={
             'out_param': str},
         executor_image_uri='my_image:latest',
@@ -219,7 +219,7 @@ class AiplatformTest(unittest.TestCase):
                 param_type='Dataset')},
         input_parameters={'optimizer': 'sgd'},
         output_artifacts={
-            'model': ontology_artifacts.Model},
+            'model': io_types.Model},
         output_parameters={
             'out_param': str},
         additional_job_spec={
@@ -326,7 +326,7 @@ class AiplatformTest(unittest.TestCase):
                 param_type='Dataset')},
         input_parameters={'optimizer': 'sgd'},
         output_artifacts={
-            'model': ontology_artifacts.Model},
+            'model': io_types.Model},
         output_parameters={
             'out_param': str},
         image_uri='my_image:latest',

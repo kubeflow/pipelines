@@ -185,6 +185,11 @@ class Artifact(object):
     return serialization_utils.yaml_dump(result_map)
 
   @classmethod
+  def get_ir_type(cls) -> pipeline_spec_pb2.ArtifactTypeSchema:
+    return pipeline_spec_pb2.ArtifactTypeSchema(
+        instance_schema=cls.get_artifact_type())
+
+  @classmethod
   def get_from_runtime_artifact(
       cls, artifact: pipeline_spec_pb2.RuntimeArtifact) -> Any:
     """Deserializes an Artifact object from RuntimeArtifact message."""

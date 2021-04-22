@@ -21,6 +21,7 @@ from ._pipeline_volume import PipelineVolume
 from ._volume_snapshot_op import VolumeSnapshotOp
 from ._ops_group import OpsGroup, ExitHandler, Condition, ParallelFor, SubGraph
 from ._component import python_component, graph_component, component
+from .importer_node import importer
 
 EXECUTION_ID_PLACEHOLDER = '{{workflow.uid}}-{{pod.name}}'
 RUN_ID_PLACEHOLDER = '{{workflow.uid}}'

@@ -14,9 +14,3 @@
     * `test: fix CI failure. Part of #1234`
         Use `part of` to indicate that a PR is working on an issue, but shouldn't close the issue when merged.
 -->
-- [ ] Do you want this pull request (PR) cherry-picked into the current release branch?
-
-    [Learn more about cherry-picking updates into the release branch](https://github.com/kubeflow/pipelines/blob/master/RELEASE.md#cherry-picking-pull-requests-to-release-branch).
-<!--
-    **(Recommended.)** Ask the PR approver to add the `cherrypick-approved` label to this PR. The release manager adds this PR to the release branch in a batch update before release.
--->

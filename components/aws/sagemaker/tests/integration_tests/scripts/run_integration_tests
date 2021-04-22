@@ -110,7 +110,7 @@ function launch_eks() {
   [ ! -z "${EKS_PUBLIC_SUBNETS}" ] && eksctl_args+=( --vpc-public-subnets="${EKS_PUBLIC_SUBNETS}" )
   [ ! -z "${EKS_PRIVATE_SUBNETS}" ] && eksctl_args+=( --vpc-private-subnets="${EKS_PRIVATE_SUBNETS}" )
 
-  eksctl create cluster "${EKS_CLUSTER_NAME}" "${eksctl_args[@]}"
+  eksctl create cluster "${EKS_CLUSTER_NAME}" "${eksctl_args[@]}" --enable-ssm
 
   aws eks update-kubeconfig --name "$EKS_CLUSTER_NAME" --region "$REGION"
 

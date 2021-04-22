@@ -26,7 +26,7 @@ import {
   ApiResourceType,
   ApiRunMetric,
   RunMetricFormat,
-  RunStorageState,
+  ApiRunStorageState,
 } from '../apis/run';
 import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
 import { MetricMetadata } from '../lib/RunUtils';
@@ -131,14 +131,14 @@ describe('RunList', () => {
   describe('in archived state', () => {
     it('renders the empty experience', () => {
       const props = generateProps();
-      props.storageState = RunStorageState.ARCHIVED;
+      props.storageState = ApiRunStorageState.ARCHIVED;
       expect(shallow(<RunList {...props} />)).toMatchSnapshot();
     });
 
     it('loads runs whose storage state is not ARCHIVED when storage state equals AVAILABLE', async () => {
       mockNRuns(1, {});
       const props = generateProps();
-      props.storageState = RunStorageState.AVAILABLE;
+      props.storageState = ApiRunStorageState.AVAILABLE;
       tree = shallow(<RunList {...props} />);
       await (tree.instance() as RunListTest)._loadRuns({});
       expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(
@@ -153,7 +153,7 @@ describe('RunList', () => {
               {
                 key: 'storage_state',
                 op: PredicateOp.NOTEQUALS,
-                string_value: RunStorageState.ARCHIVED.toString(),
+                string_value: ApiRunStorageState.ARCHIVED.toString(),
               },
             ],
           } as ApiFilter),
@@ -164,7 +164,7 @@ describe('RunList', () => {
     it('loads runs whose storage state is ARCHIVED when storage state equals ARCHIVED', async () => {
       mockNRuns(1, {});
       const props = generateProps();
-      props.storageState = RunStorageState.ARCHIVED;
+      props.storageState = ApiRunStorageState.ARCHIVED;
       tree = shallow(<RunList {...props} />);
       await (tree.instance() as RunListTest)._loadRuns({});
       expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(
@@ -179,7 +179,7 @@ describe('RunList', () => {
               {
                 key: 'storage_state',
                 op: PredicateOp.EQUALS,
-                string_value: RunStorageState.ARCHIVED.toString(),
+                string_value: ApiRunStorageState.ARCHIVED.toString(),
               },
             ],
           } as ApiFilter),
@@ -190,7 +190,7 @@ describe('RunList', () => {
     it('augments request filter with storage state predicates', async () => {
       mockNRuns(1, {});
       const props = generateProps();
-      props.storageState = RunStorageState.ARCHIVED;
+      props.storageState = ApiRunStorageState.ARCHIVED;
       tree = shallow(<RunList {...props} />);
       await (tree.instance() as RunListTest)._loadRuns({
         filter: encodeURIComponent(
@@ -216,7 +216,7 @@ describe('RunList', () => {
               {
                 key: 'storage_state',
                 op: PredicateOp.EQUALS,
-                string_value: RunStorageState.ARCHIVED.toString(),
+                string_value: ApiRunStorageState.ARCHIVED.toString(),
               },
             ],
           } as ApiFilter),

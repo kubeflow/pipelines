@@ -18,7 +18,7 @@ import * as React from 'react';
 import { AllRunsList } from './AllRunsList';
 import { PageProps } from './Page';
 import { RoutePage } from '../components/Router';
-import { RunStorageState } from '../apis/run';
+import { ApiRunStorageState } from '../apis/run';
 import { shallow, ShallowWrapper } from 'enzyme';
 import { ButtonKeys } from '../lib/Buttons';
 
@@ -128,6 +128,6 @@ describe('AllRunsList', () => {
 
   it('shows a list of available runs', () => {
     shallowMountComponent();
-    expect(tree.find('RunList').prop('storageState')).toBe(RunStorageState.AVAILABLE.toString());
+    expect(tree.find('RunList').prop('storageState')).toBe(ApiRunStorageState.AVAILABLE.toString());
   });
 });

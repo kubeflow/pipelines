@@ -85,6 +85,9 @@ KF_PIPELINES_ENDPOINT_ENV = 'KF_PIPELINES_ENDPOINT'
 KF_PIPELINES_UI_ENDPOINT_ENV = 'KF_PIPELINES_UI_ENDPOINT'
 KF_PIPELINES_DEFAULT_EXPERIMENT_NAME = 'KF_PIPELINES_DEFAULT_EXPERIMENT_NAME'
 KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME = 'KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME'
+KF_PIPELINES_IAP_OAUTH2_CLIENT_ID_ENV = 'KF_PIPELINES_IAP_OAUTH2_CLIENT_ID'
+KF_PIPELINES_APP_OAUTH2_CLIENT_ID_ENV = 'KF_PIPELINES_APP_OAUTH2_CLIENT_ID'
+KF_PIPELINES_APP_OAUTH2_CLIENT_SECRET_ENV = 'KF_PIPELINES_APP_OAUTH2_CLIENT_SECRET'
 
 
 class Client(object):
@@ -128,6 +131,10 @@ class Client(object):
     """
     host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
     self._uihost = os.environ.get(KF_PIPELINES_UI_ENDPOINT_ENV, host)
+    client_id = client_id or os.environ.get(KF_PIPELINES_IAP_OAUTH2_CLIENT_ID_ENV)
+    other_client_id = other_client_id or os.environ.get(KF_PIPELINES_APP_OAUTH2_CLIENT_ID_ENV)
+    other_client_secret = other_client_secret or os.environ.get(KF_PIPELINES_APP_OAUTH2_CLIENT_SECRET_ENV)
+
     config = self._load_config(host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy, ssl_ca_cert, kube_context)
     # Save the loaded API client configuration, as a reference if update is
     # needed.

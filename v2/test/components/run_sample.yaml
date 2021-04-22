@@ -12,33 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Run KFP Sample
+name: Run KFP Test Sample
 inputs:
 - {name: Name, type: String}
 - {name: Sample Path, type: Path}
 - {name: GCS Root, type: URI}
 - {name: Host, type: URI, default: "http://ml-pipeline:8888"}
+- {name: External Host, type: URI}
 - {name: Launcher Image, type: URI, default: "gcr.io/ml-pipeline/kfp-launcher:latest"}
 implementation:
   container:
     image: python:3.7-alpine
     command:
-    - sh
-    - -exc
-    - |
-        sample_path="$0"
-        name="$1"
-        root="$2"
-        host="$3"
-        launcher_image="$4"
-
-        python3 -m "$sample_path" \
-          --output_directory "$root/$name" \
-          --host "$host" \
-          --launcher_image "$launcher_image"
-
+    - python3
+    - -m
     - inputValue: Sample Path
-    - inputValue: Name
-    - inputValue: GCS Root
+    - --output_directory
+    - concat: [{inputValue: GCS Root}, '/', {inputValue: Name}]
+    - --host
     - inputValue: Host
+    - --external_host
+    - inputValue: External Host
+    - --launcher_image
     - inputValue: Launcher Image

@@ -4,6 +4,7 @@ kind: Kustomization
 bases:
   - ../../base/installs/multi-user
   - ../../base/metadata/base
+  - ../../base/metadata/options/istio
   - ../../third-party/argo/installs/cluster
   - ../../third-party/mysql/base
   - ../../third-party/mysql/options/istio

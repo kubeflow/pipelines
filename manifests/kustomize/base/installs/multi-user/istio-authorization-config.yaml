@@ -71,19 +71,6 @@ spec:
   - {}
 
 ---
-apiVersion: security.istio.io/v1beta1
-kind: AuthorizationPolicy
-metadata:
-  name: metadata-grpc-service
-spec:
-  action: ALLOW
-  selector:
-    matchLabels:
-      component: metadata-grpc-server
-  rules:
-  - {}
-
----
 apiVersion: "networking.istio.io/v1alpha3"
 kind: DestinationRule
 metadata:

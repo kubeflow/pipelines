@@ -535,6 +535,29 @@ describe('WorkflowParser', () => {
       });
     });
 
+    it('handles trimming output parameter name', () => {
+      const workflow = {
+        status: {
+          nodes: {
+            node1: {
+              templateName: 'my-component',
+              outputs: {
+                parameters: [
+                  {
+                    name: 'my-component-output-param1',
+                    value: 'output param1 value',
+                  },
+                ],
+              },
+            },
+          },
+        },
+      };
+      expect(WorkflowParser.getNodeInputOutputParams(workflow as any, 'node1')).toEqual({
+        inputParams: [],
+        outputParams: [['output-param1', 'output param1 value']],
+      });
+    });
     it('handles a node with one input and one output parameter', () => {
       const workflow = {
         status: {
@@ -770,6 +793,30 @@ describe('WorkflowParser', () => {
       expect(WorkflowParser.getNodeInputOutputArtifacts(workflow as any, 'node1')).toEqual({
         inputArtifacts: [],
         outputArtifacts: [['output art1', s3]],
+      });
+    });
+
+    it('handles trimming output artifact name', () => {
+      const workflow = {
+        status: {
+          nodes: {
+            node1: {
+              templateName: 'my-component',
+              outputs: {
+                artifacts: [
+                  {
+                    name: 'my-component-output-art1',
+                    s3,
+                  },
+                ],
+              },
+            },
+          },
+        },
+      };
+      expect(WorkflowParser.getNodeInputOutputArtifacts(workflow as any, 'node1')).toEqual({
+        inputArtifacts: [],
+        outputArtifacts: [['output-art1', s3]],
       });
     });
 

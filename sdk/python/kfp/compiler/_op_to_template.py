@@ -297,7 +297,7 @@ def _op_to_template(op: BaseOp):
     if processed_op.cpu_request and processed_op.memory_request:
         template['podSpecPatch'] = '{"containers":[{"name":"main", "resources":{"limits":{"memory": "%s","cpu": "%s"}}}]}'% (processed_op.memory_request, processed_op.cpu_request)
 
-    if isinstance(op, dsl.ContainerOp) and op._metadata:
+    if isinstance(op, dsl.ContainerOp) and op._metadata and not op.is_v2:
         template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/component_spec'] = json.dumps(op._metadata.to_dict(), sort_keys=True)
 
     if hasattr(op, '_component_ref'):

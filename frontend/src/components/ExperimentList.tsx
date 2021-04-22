@@ -20,13 +20,13 @@ import { Link, RouteComponentProps } from 'react-router-dom';
 import {
   ApiListExperimentsResponse,
   ApiExperiment,
-  ExperimentStorageState,
+  ApiExperimentStorageState,
 } from '../apis/experiment';
 import { errorToMessage } from '../lib/Utils';
 import { RoutePage, RouteParams } from './Router';
 import { commonCss } from '../Css';
 import { Apis, ExperimentSortKeys, ListRequest } from '../lib/Apis';
-import { RunStorageState } from 'src/apis/run';
+import { ApiRunStorageState } from 'src/apis/run';
 import RunList from '../pages/RunList';
 import { PredicateOp, ApiFilter } from '../apis/filter';
 import produce from 'immer';
@@ -34,7 +34,7 @@ import Tooltip from '@material-ui/core/Tooltip';
 
 export interface ExperimentListProps extends RouteComponentProps {
   namespace?: string;
-  storageState?: ExperimentStorageState;
+  storageState?: ApiExperimentStorageState;
   onError: (message: string, error: Error) => void;
 }
 
@@ -137,10 +137,10 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
             // Use EQUALS ARCHIVED or NOT EQUALS ARCHIVED to account for cases where the field
             // is missing, in which case it should be counted as available.
             op:
-              this.props.storageState === ExperimentStorageState.ARCHIVED
+              this.props.storageState === ApiExperimentStorageState.ARCHIVED
                 ? PredicateOp.EQUALS
                 : PredicateOp.NOTEQUALS,
-            string_value: ExperimentStorageState.ARCHIVED.toString(),
+            string_value: ApiExperimentStorageState.ARCHIVED.toString(),
           },
         ]);
         request.filter = encodeURIComponent(JSON.stringify(filter));
@@ -196,9 +196,9 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
         disablePaging={false}
         noFilterBox={true}
         storageState={
-          this.props.storageState === ExperimentStorageState.ARCHIVED
-            ? RunStorageState.ARCHIVED
-            : RunStorageState.AVAILABLE
+          this.props.storageState === ApiExperimentStorageState.ARCHIVED
+            ? ApiRunStorageState.ARCHIVED
+            : ApiRunStorageState.AVAILABLE
         }
         disableSorting={true}
         disableSelection={true}

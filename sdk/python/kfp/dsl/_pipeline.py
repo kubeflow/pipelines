@@ -72,7 +72,7 @@ def pipeline(
     if description:
       func._component_description = description
     if pipeline_root:
-      func.output_directory = pipeline_root
+      func.pipeline_root = pipeline_root
 
     if _pipeline_decorator_handler:
       return _pipeline_decorator_handler(func) or func

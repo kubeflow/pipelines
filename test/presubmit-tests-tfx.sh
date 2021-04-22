@@ -41,7 +41,7 @@ chmod +x bazel_installer.sh
 cd $source_root
 git clone --depth 1 https://github.com/tensorflow/tfx.git
 cd $source_root/tfx
-python3 -m pip install . --upgrade --use-feature=2020-resolver \
+python3 -m pip install .[test] --upgrade \
   --extra-index-url https://pypi-nightly.tensorflow.org/simple
 
 # Three KFP-related unittests
