@@ -6,13 +6,13 @@ description: |
 inputs:
 - {name: Log dir URI}
 - {name: Image, default: ''}
-- {name: Pod Template Spec, default: ''}
+- {name: Pod Template Spec, default: '""'}
 outputs:
 - {name: Log dir URI}
 - {name: MLPipeline UI Metadata}
 implementation:
   container:
-    image: python:3.7-alpine
+    image: alpine
     command:
     - sh
     - -ex
@@ -24,10 +24,6 @@ implementation:
       pod_template_spec="$3"
       image="$4"
 
-      json_escape () {
-          printf '%s' "$1" | python -c 'import json,sys; print(json.dumps(sys.stdin.read()))'
-      }
-
       mkdir -p "$(dirname "$output_log_dir_path")"
       mkdir -p "$(dirname "$output_metadata_path")"
       echo "$log_dir" > "$output_log_dir_path"
@@ -38,7 +34,7 @@ implementation:
               "type": "tensorboard",
               "source": "'"$log_dir"'",
               "image": "'"$image"'",
-              "pod_template_spec": '"$(json_escape "$pod_template_spec")"'
+              "pod_template_spec": '"$pod_template_spec"'
             }]
           }
       ' >"$output_metadata_path"

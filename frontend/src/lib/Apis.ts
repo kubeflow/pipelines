@@ -275,14 +275,14 @@ export class Apis {
     logdir: string;
     namespace: string;
     image?: string;
-    podTemplateSpec?: string;
+    podTemplateSpec?: any;
   }): Promise<string> {
     return this._fetch(
       `apps/tensorboard${buildQuery({
         logdir,
         namespace,
-        podtemplatespec: podTemplateSpec,
         image,
+        podtemplatespec: podTemplateSpec && JSON.stringify(podTemplateSpec),
       })}`,
       undefined,
       undefined,
