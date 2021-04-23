@@ -541,10 +541,9 @@ def _attach_v2_specs(
       # Converting inputs that have constant arguments to parameter inputs.
       if not type_utils.is_parameter_type(input_type):
         component_spec._inputs_dict[input_name].type = 'String'
-      if type_utils.is_parameter_type(input_type):
-        pipeline_task_spec.inputs.parameters[
-            input_name].runtime_value.constant_value.string_value = (
-                argument_value)
+      pipeline_task_spec.inputs.parameters[
+          input_name].runtime_value.constant_value.string_value = (
+              argument_value)
     elif isinstance(argument_value, int):
       # In IR, constant arguments can only be passed to parameter inputs.
       # Converting inputs that have constant arguments to parameter inputs.
