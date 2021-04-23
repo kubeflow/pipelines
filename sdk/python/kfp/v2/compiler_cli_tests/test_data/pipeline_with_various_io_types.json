@@ -52,18 +52,12 @@
             },
             "input_1": {
               "type": "STRING"
-            }
-          },
-          "artifacts": {
-            "input_4": {
-              "artifactType": {
-                "schemaTitle": "system.Artifact"
-              }
             },
             "input_3": {
-              "artifactType": {
-                "schemaTitle": "system.Artifact"
-              }
+              "type": "STRING"
+            },
+            "input_4": {
+              "type": "STRING"
             }
           }
         }
@@ -132,8 +126,8 @@
             "args": [
               "{{$.inputs.parameters['input_1']}}",
               "{{$.inputs.parameters['input_2']}}",
-              "{{$.inputs.artifacts['input_3'].uri}}",
-              "{{$.inputs.artifacts['input_4'].uri}}",
+              "{{$.inputs.parameters['input_3']}}",
+              "{{$.inputs.parameters['input_4']}}",
               "{{$.inputs.parameters['input_date']}}",
               "{{$.outputs.parameters['output_1'].output_file}}",
               "{{$.outputs.artifacts['output_2'].uri}}",
@@ -149,24 +143,18 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.5.0-rc.3",
+    "sdkVersion": "kfp-1.5.0",
     "root": {
       "inputDefinitions": {
         "parameters": {
           "input1": {
             "type": "STRING"
-          }
-        },
-        "artifacts": {
-          "input4": {
-            "artifactType": {
-              "schemaTitle": "system.Artifact"
-            }
           },
           "input3": {
-            "artifactType": {
-              "schemaTitle": "system.Artifact"
-            }
+            "type": "STRING"
+          },
+          "input4": {
+            "type": "STRING"
           }
         }
       },
@@ -191,6 +179,12 @@
                 },
                 "input_1": {
                   "componentInputParameter": "input1"
+                },
+                "input_3": {
+                  "componentInputParameter": "input3"
+                },
+                "input_4": {
+                  "componentInputParameter": "input4"
                 }
               }
             },

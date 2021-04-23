@@ -40,8 +40,8 @@ implementation:
     args:
     - {inputValue: input_1}
     - {inputValue: input_2}
-    - {inputUri: input_3}
-    - {inputUri: input_4}
+    - {inputValue: input_3}
+    - {inputValue: input_4}
     - {inputValue: input_date}
     - {outputPath: output_1}
     - {outputUri: output_2}
