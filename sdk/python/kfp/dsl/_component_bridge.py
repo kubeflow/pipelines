@@ -472,12 +472,6 @@ def _attach_v2_specs(
     if isinstance(argument_value, _pipeline_param.PipelineParam):
       reference_type = argument_value.param_type
 
-      # Loop arguments defaults to 'String' type if type is unknown.
-      if reference_type is None and isinstance(
-          argument_value, (_for_loop.LoopArguments,
-                           _for_loop.LoopArgumentVariable)):
-        reference_type = 'String'
-
       types.verify_type_compatibility(
           reference_type, input_type,
           'Incompatible argument passed to the input "{}" of component "{}": '
@@ -564,10 +558,18 @@ def _attach_v2_specs(
 
     # Make sure we're not passing parameter to artifact, or vice versa.
     if isinstance(argument_value, _pipeline_param.PipelineParam):
-      if argument_value.op_name is None:
-        # For pipeline function argument, default missing type to 'String'
-        reference_type = reference_type or 'String'
 
+      # Pipeline function argument defaults to 'String' type if type is unknown.
+      if reference_type is None and argument_value.op_name is None:
+        reference_type = 'String'
+
+      # Loop arguments defaults to 'String' type if type is unknown.
+      if reference_type is None and isinstance(
+          argument_value,
+          (_for_loop.LoopArguments, _for_loop.LoopArgumentVariable)):
+        reference_type = 'String'
+
+      if argument_value.op_name is None:
         param_or_value_msg = 'pipeline parameter "{}"'.format(
             argument_value.name)
       else:

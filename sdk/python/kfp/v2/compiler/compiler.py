@@ -986,12 +986,6 @@ class Compiler(object):
       arg_type = None
       for pipeline_input in pipeline_meta.inputs or []:
         if arg_name == pipeline_input.name:
-          # Do not alter type here (like defaulting to 'String'). It will affect
-          # verify_type_compatibility check as we allow pasing a `None` typed
-          # PipelineParam to a component input with an arbitrary type, e.g.:
-          # 'Path'. If we default `None` type to `String`, the type compatibility
-          # check will fail when passing `String` typed PipelineParm to `Path`
-          # typed component input.
           arg_type = pipeline_input.type
           break
       args_list.append(
@@ -1004,12 +998,12 @@ class Compiler(object):
     self._sanitize_and_inject_artifact(dsl_pipeline)
 
     # Fill in the default values.
+    # Also fill in default type 'String' if user didn't specify any type.
     args_list_with_defaults = []
     if pipeline_meta.inputs:
       args_list_with_defaults = [
           dsl.PipelineParam(
               sanitize_k8s_name(input_spec.name, True),
-              # For untyped pipeline argument, default to 'String' type.
               param_type=input_spec.type or 'String',
               value=input_spec.default) for input_spec in pipeline_meta.inputs
       ]
