@@ -56,7 +56,7 @@ var testWorkflowPatch = util.NewWorkflow(&v1alpha1.Workflow{
 	Spec:       v1alpha1.WorkflowSpec{Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}, {Name: "param2"}}}},
 })
 
-var testRunWorkflowPatch = util.NewWorkflow(&v1alpha1.Workflow{
+var testWorkflowPatchValid = util.NewWorkflow(&v1alpha1.Workflow{
 	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
 	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow2"},
 	Spec: v1alpha1.WorkflowSpec{
@@ -72,7 +72,7 @@ var testRunWorkflowPatch = util.NewWorkflow(&v1alpha1.Workflow{
 		Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}, {Name: "param2"}}}},
 })
 
-var testRunWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
+var testWorkflowValid = util.NewWorkflow(&v1alpha1.Workflow{
 	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
 	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow1", Namespace: "ns1"},
 	Spec: v1alpha1.WorkflowSpec{
@@ -193,7 +193,7 @@ func initWithExperimentAndPipelineVersion(t *testing.T) (*resource.FakeClientMan
 	assert.Nil(t, err)
 
 	// Create a pipeline and then a pipeline version.
-	_, err = resourceManager.CreatePipeline("pipeline", "", "", []byte(testRunWorkflow.ToStringForStore()))
+	_, err = resourceManager.CreatePipeline("pipeline", "", "", []byte(testWorkflowValid.ToStringForStore()))
 	assert.Nil(t, err)
 	_, err = resourceManager.CreatePipelineVersion(&api.PipelineVersion{
 		Name: "pipeline_version",
@@ -265,7 +265,7 @@ func initWithOneTimeRun(t *testing.T) (*resource.FakeClientManager, *resource.Re
 	apiRun := &api.Run{
 		Name: "run1",
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testRunWorkflow.ToStringForStore(),
+			WorkflowManifest: testWorkflowValid.ToStringForStore(),
 			Parameters: []*api.Parameter{
 				{Name: "param1", Value: "world"},
 			},

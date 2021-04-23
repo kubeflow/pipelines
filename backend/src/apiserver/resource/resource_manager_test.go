@@ -75,7 +75,7 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 	Status:     v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
 })
 
-var testRunWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
+var testWorkflowValid = util.NewWorkflow(&v1alpha1.Workflow{
 	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
 	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow1", Namespace: "ns1"},
 	Spec: v1alpha1.WorkflowSpec{
@@ -119,7 +119,7 @@ func initWithExperimentAndPipeline(t *testing.T) (*FakeClientManager, *ResourceM
 	apiExperiment := &api.Experiment{Name: "e1"}
 	experiment, err := manager.CreateExperiment(apiExperiment)
 	assert.Nil(t, err)
-	pipeline, err := manager.CreatePipeline("p1", "", "", []byte(testRunWorkflow.ToStringForStore()))
+	pipeline, err := manager.CreatePipeline("p1", "", "", []byte(testWorkflowValid.ToStringForStore()))
 	assert.Nil(t, err)
 	return store, manager, experiment, pipeline
 }
@@ -149,7 +149,7 @@ func initWithOneTimeRun(t *testing.T) (*FakeClientManager, *ResourceManager, *mo
 	apiRun := &api.Run{
 		Name: "run1",
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testRunWorkflow.ToStringForStore(),
+			WorkflowManifest: testWorkflowValid.ToStringForStore(),
 			Parameters: []*api.Parameter{
 				{Name: "param1", Value: "world"},
 			},
@@ -171,7 +171,7 @@ func initWithPatchedRun(t *testing.T) (*FakeClientManager, *ResourceManager, *mo
 	apiRun := &api.Run{
 		Name: "run1",
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testRunWorkflow.ToStringForStore(),
+			WorkflowManifest: testWorkflowValid.ToStringForStore(),
 			Parameters: []*api.Parameter{
 				{Name: "param1", Value: "{{kfp-default-bucket}}"},
 			},
@@ -193,7 +193,7 @@ func initWithOneTimeFailedRun(t *testing.T) (*FakeClientManager, *ResourceManage
 	apiRun := &api.Run{
 		Name: "run1",
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testRunWorkflow.ToStringForStore(),
+			WorkflowManifest: testWorkflowValid.ToStringForStore(),
 			Parameters: []*api.Parameter{
 				{Name: "param1", Value: "world"},
 			},
@@ -207,7 +207,7 @@ func initWithOneTimeFailedRun(t *testing.T) (*FakeClientManager, *ResourceManage
 	}
 	runDetail, err := manager.CreateRun(apiRun)
 	assert.Nil(t, err)
-	updatedWorkflow := util.NewWorkflow(testRunWorkflow.DeepCopy())
+	updatedWorkflow := util.NewWorkflow(testWorkflowValid.DeepCopy())
 	updatedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
 	updatedWorkflow.Status.Phase = v1alpha1.NodeFailed
 	updatedWorkflow.Status.Nodes = map[string]v1alpha1.NodeStatus{"node1": {Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed}}
@@ -345,7 +345,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 				Relationship: api.Relationship_OWNER,
 			},
 		},
-	}, []byte(testRunWorkflow.ToStringForStore()), true)
+	}, []byte(testWorkflowValid.ToStringForStore()), true)
 	assert.Nil(t, err)
 
 	// The pipeline specified via pipeline id will be converted to this
@@ -368,7 +368,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	runDetail, err := manager.CreateRun(apiRun)
 	assert.Nil(t, err)
 
-	expectedRuntimeWorkflow := testRunWorkflow.DeepCopy()
+	expectedRuntimeWorkflow := testWorkflowValid.DeepCopy()
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
@@ -394,7 +394,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:           p.UUID,
 				PipelineName:         "p1",
-				WorkflowSpecManifest: testRunWorkflow.ToStringForStore(),
+				WorkflowSpecManifest: testWorkflowValid.ToStringForStore(),
 				Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
 			},
 			ResourceReferences: []*model.ResourceReference{
@@ -430,7 +430,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRun(t)
 	expectedExperimentUUID := runDetail.ExperimentUUID
-	expectedRuntimeWorkflow := testRunWorkflow.DeepCopy()
+	expectedRuntimeWorkflow := testWorkflowValid.DeepCopy()
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
@@ -452,7 +452,7 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 			CreatedAtInSec: 2,
 			Conditions:     "Running",
 			PipelineSpec: model.PipelineSpec{
-				WorkflowSpecManifest: testRunWorkflow.ToStringForStore(),
+				WorkflowSpecManifest: testWorkflowValid.ToStringForStore(),
 				Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
 			},
 			ResourceReferences: []*model.ResourceReference{
@@ -483,7 +483,7 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 	viper.Set(DefaultBucketNameEnvVar, "test-default-bucket")
 	store, manager, runDetail := initWithPatchedRun(t)
 	expectedExperimentUUID := runDetail.ExperimentUUID
-	expectedRuntimeWorkflow := testRunWorkflow.DeepCopy()
+	expectedRuntimeWorkflow := testWorkflowValid.DeepCopy()
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: v1alpha1.AnyStringPtr("test-default-bucket")}}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
@@ -507,7 +507,7 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 			CreatedAtInSec: 2,
 			Conditions:     "Running",
 			PipelineSpec: model.PipelineSpec{
-				WorkflowSpecManifest: testRunWorkflow.ToStringForStore(),
+				WorkflowSpecManifest: testWorkflowValid.ToStringForStore(),
 				Parameters:           "[{\"name\":\"param1\",\"value\":\"test-default-bucket\"}]",
 			},
 			ResourceReferences: []*model.ResourceReference{
@@ -550,7 +550,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 				Relationship: api.Relationship_OWNER,
 			},
 		},
-	}, []byte(testRunWorkflow.ToStringForStore()), true)
+	}, []byte(testWorkflowValid.ToStringForStore()), true)
 	assert.Nil(t, err)
 
 	apiRun := &api.Run{
@@ -575,7 +575,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 	runDetail, err := manager.CreateRun(apiRun)
 	assert.Nil(t, err)
 
-	expectedRuntimeWorkflow := testRunWorkflow.DeepCopy()
+	expectedRuntimeWorkflow := testWorkflowValid.DeepCopy()
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
@@ -598,7 +598,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 			CreatedAtInSec: 4,
 			Conditions:     "Running",
 			PipelineSpec: model.PipelineSpec{
-				WorkflowSpecManifest: testRunWorkflow.ToStringForStore(),
+				WorkflowSpecManifest: testWorkflowValid.ToStringForStore(),
 				Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
 			},
 			ResourceReferences: []*model.ResourceReference{
@@ -649,7 +649,7 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 				Relationship: api.Relationship_OWNER,
 			},
 		},
-	}, []byte(testRunWorkflow.ToStringForStore()), true)
+	}, []byte(testWorkflowValid.ToStringForStore()), true)
 	assert.Nil(t, err)
 
 	apiRun := &api.Run{
@@ -675,7 +675,7 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 	runDetail, err := manager.CreateRun(apiRun)
 	assert.Nil(t, err)
 
-	expectedRuntimeWorkflow := testRunWorkflow.DeepCopy()
+	expectedRuntimeWorkflow := testWorkflowValid.DeepCopy()
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
@@ -700,7 +700,7 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:           pipeline.UUID,
 				PipelineName:         "p1",
-				WorkflowSpecManifest: testRunWorkflow.ToStringForStore(),
+				WorkflowSpecManifest: testWorkflowValid.ToStringForStore(),
 				Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
 			},
 			ResourceReferences: []*model.ResourceReference{
@@ -744,7 +744,7 @@ func TestCreateRun_NoExperiment(t *testing.T) {
 	apiRun := &api.Run{
 		Name: "No experiment",
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testRunWorkflow.ToStringForStore(),
+			WorkflowManifest: testWorkflowValid.ToStringForStore(),
 			Parameters: []*api.Parameter{
 				{Name: "param1", Value: "world"},
 			},
@@ -848,7 +848,7 @@ func TestCreateRun_CreateWorkflowError(t *testing.T) {
 	apiRun := &api.Run{
 		Name: "run1",
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testRunWorkflow.ToStringForStore(),
+			WorkflowManifest: testWorkflowValid.ToStringForStore(),
 			Parameters: []*api.Parameter{
 				{Name: "param1", Value: "world"},
 			},
@@ -1596,7 +1596,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 		CreatedAtInSec: 2,
 		Conditions:     "Running",
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: testRunWorkflow.ToStringForStore(),
+			WorkflowSpecManifest: testWorkflowValid.ToStringForStore(),
 			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
 		},
 		ResourceReferences: []*model.ResourceReference{
