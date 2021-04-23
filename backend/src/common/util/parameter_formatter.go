@@ -119,21 +119,21 @@ func (p *ParameterFormatter) createSubstitutes(match string) string {
 		match = strings.Replace(match, suffix, "", 1)
 		return time.Unix(p.nowEpoch, 0).UTC().Format(match)
 	} else if p.scheduledEpoch != disabledField && strings.HasPrefix(match, scheduledTimePrefix2) {
-		match = strings.Replace(match, scheduledTimePrefix2, "", 1)
-		match = strings.Replace(match, suffix2, "", 1)
-		formatter, err := strftime.New(`%s`, strftime.WithUnixSeconds('s'))
+		format = strings.Replace(match, scheduledTimePrefix2, "", 1)
+		format := strings.Replace(format, suffix2, "", 1)
+		formatter, err := strftime.New(format, strftime.WithUnixSeconds('s'))
 		if err != nil {
 			return match
 		}
-		return formatter.Format(match, time.Unix(p.scheduledEpoch, 0).UTC())
+		return formatter.FormatString(time.Unix(p.scheduledEpoch, 0).UTC())
 	} else if p.scheduledEpoch != disabledField && strings.HasPrefix(match, currentTimePrefix2) {
-		match = strings.Replace(match, currentTimePrefix2, "", 1)
-		match = strings.Replace(match, suffix2, "", 1)
-		formatter, err := strftime.New(`%s`, strftime.WithUnixSeconds('s'))
+		format = strings.Replace(match, currentTimePrefix2, "", 1)
+		format := strings.Replace(format, suffix2, "", 1)
+		formatter, err := strftime.New(format, strftime.WithUnixSeconds('s'))
 		if err != nil {
 			return match
 		}
-		return formatter.Format(match, time.Unix(p.scheduledEpoch, 0).UTC())
+		return formatter.FormatString(time.Unix(p.scheduledEpoch, 0).UTC())
 	} else {
 		return match
 	}
