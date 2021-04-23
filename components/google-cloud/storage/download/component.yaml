@@ -1,8 +1,8 @@
 name: Download from GCS
 inputs:
-- {name: GCS path, type: URI}
+- {name: GCS path, type: String}
 outputs:
-- {name: Data}
+- {name: Data, type: Artifact}
 implementation:
     container:
         image: google/cloud-sdk

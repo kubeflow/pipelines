@@ -1,10 +1,10 @@
 name: Upload to GCS
 description: Upload to GCS with unique URI suffix
 inputs:
-- {name: Data}
-- {name: GCS path prefix, type: URI}
+- {name: Data, type: Artifact}
+- {name: GCS path prefix, type: String}
 outputs:
-- {name: GCS path, type: URI}
+- {name: GCS path, type: String}
 implementation:
     container:
         image: google/cloud-sdk
