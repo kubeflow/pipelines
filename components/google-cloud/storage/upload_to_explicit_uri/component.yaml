@@ -1,6 +1,6 @@
 name: Upload to GCS
 inputs:
-- {name: Data, type: Artifact}
+- {name: Data}
 - {name: GCS path, type: String}
 outputs:
 - {name: GCS path, type: String}
