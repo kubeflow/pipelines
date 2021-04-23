@@ -1,6 +1,7 @@
 name: Download from GCS
 inputs:
 - {name: GCS path, type: URI}
+- {name: Default data, optional: true}
 outputs:
 - {name: Data}
 implementation:
@@ -14,7 +15,26 @@ implementation:
             if [ -n "${GOOGLE_APPLICATION_CREDENTIALS}" ]; then
                 gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
             fi
-            mkdir -p "$(dirname "$1")"
-            gsutil -m cp -r "$0" "$1"
+
+            uri="$0"
+            output_path="$1"
+            default_data_path="$2"
+            
+            # Checking whether the URI exists
+            # TODO: Distinguish between NotFound error and other errors
+            if gsutil ls "$uri"; then
+                mkdir -p "$(dirname "$output_path")"
+                gsutil -m cp -r "$uri" "$output_path"
+            elif [ "$default_data_path" != '' ]; then
+                mkdir -p "$(dirname "$output_path")"
+                cp -r "$default_data_path" "$output_path"
+            else
+                echo "The URI does not exist and the default data was not provided"
+                exit 1
+            fi
         - inputValue: GCS path
         - outputPath: Data
+        - if:
+            cond: {isPresent: Default data}
+            then: [{inputPath: Default data}]
+            else: [""]
