@@ -34,6 +34,10 @@ import (
 	"github.com/kubeflow/pipelines/v2/metadata"
 	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
 	"google.golang.org/protobuf/encoding/protojson"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -712,8 +716,20 @@ func getExecutorOutput() (*pipeline_spec.ExecutorOutput, error) {
 
 func (l *Launcher) openBucket() (*blob.Bucket, error) {
 	if l.bucketConfig.scheme == "minio://" {
+		secret, err := getMinioCredential()
+		if err != nil {
+			return nil, fmt.Errorf("Failed to get minio credential: %w", err)
+		}
+		accessKey := string(secret.Data["accesskey"])
+		secretKey := string(secret.Data["secretkey"])
+		if accessKey == "" {
+			return nil, fmt.Errorf("The secret which stores minio credential does not have 'accesskey' entry")
+		}
+		if secretKey == "" {
+			return nil, fmt.Errorf("The secret which stores minio credential does not have 'secretkey' entry")
+		}
 		sess, err := session.NewSession(&aws.Config{
-			Credentials:      credentials.NewStaticCredentials("minio", "minio123", ""),
+			Credentials:      credentials.NewStaticCredentials(accessKey, secretKey, ""),
 			Region:           aws.String("minio"),
 			Endpoint:         aws.String("minio-service:9000"),
 			DisableSSL:       aws.Bool(true),
@@ -726,4 +742,21 @@ func (l *Launcher) openBucket() (*blob.Bucket, error) {
 		return s3blob.OpenBucket(context.Background(), sess, l.bucketConfig.bucketName, nil)
 	}
 	return blob.OpenBucket(context.Background(), l.bucketConfig.bucketURL())
+}
+
+func getMinioCredential() (*v1.Secret, error) {
+	restConfig, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to initialize kubernetes client: %w", err)
+	}
+	clientSet, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to initialize kubernetes client set: %w", err)
+	}
+	namespace := os.Getenv("KFP_NAMESPACE")
+	if namespace == "" {
+		return nil, fmt.Errorf("Env variable 'KFP_NAMESPACE' is empty")
+	}
+	secret, err := clientSet.CoreV1().Secrets(namespace).Get(context.Background(), "mlpipeline-minio-artifact", metav1.GetOptions{})
+	return secret, err
 }
