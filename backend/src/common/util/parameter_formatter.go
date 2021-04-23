@@ -125,7 +125,7 @@ func (p *ParameterFormatter) createSubstitutes(match string) string {
 		if err != nil {
 			return match
 		}
-		return formatter.Format(match, time.Unix(p.scheduledEpoch, 0).UTC(), time.Now())
+		return formatter.Format(match, time.Unix(p.scheduledEpoch, 0).UTC())
 	} else if p.scheduledEpoch != disabledField && strings.HasPrefix(match, currentTimePrefix2) {
 		match = strings.Replace(match, currentTimePrefix2, "", 1)
 		match = strings.Replace(match, suffix2, "", 1)
@@ -133,7 +133,7 @@ func (p *ParameterFormatter) createSubstitutes(match string) string {
 		if err != nil {
 			return match
 		}
-		return formatter.Format(match, time.Unix(p.scheduledEpoch, 0).UTC(), time.Now())
+		return formatter.Format(match, time.Unix(p.scheduledEpoch, 0).UTC())
 	} else {
 		return match
 	}
