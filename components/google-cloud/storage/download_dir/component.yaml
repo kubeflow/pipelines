@@ -1,6 +1,6 @@
 name: Download from GCS
 inputs:
-- {name: GCS path, type: URI}
+- {name: GCS path, type: String}
 outputs:
 - {name: Data}
 implementation:
