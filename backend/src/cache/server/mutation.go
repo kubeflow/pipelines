@@ -161,6 +161,24 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 			Path:  SpecContainersPath,
 			Value: dummyContainers,
 		})
+		node_restrictions, err := getEnvBool("CACHE_NODE_RESTRICTIONS")
+		if err != nil {
+			return nil, err
+		}
+		if !node_restrictions {
+			if pod.Spec.Affinity != nil {
+				patches = append(patches, patchOperation{
+					Op:   OperationTypeRemove,
+					Path: "spec/affinity",
+				})
+			}
+			if pod.Spec.NodeSelector != nil {
+				patches = append(patches, patchOperation{
+					Op:   OperationTypeRemove,
+					Path: "spec/nodeSelector",
+				})
+			}
+		}
 		if pod.Spec.InitContainers != nil || len(pod.Spec.InitContainers) != 0 {
 			patches = append(patches, patchOperation{
 				Op:   OperationTypeRemove,
@@ -220,7 +238,7 @@ func generateCacheKeyFromTemplate(template string) (string, error) {
 			"volumeMounts": nil,
 		},
 		"inputs":         nil,
-		"outputs":        nil,  // Output artifact/parameter names and paths are important and need to be considered. We can include the whole section since Argo does not seem to put the artifact s3 specifications here, leaving them in archiveLocation.
+		"outputs":        nil, // Output artifact/parameter names and paths are important and need to be considered. We can include the whole section since Argo does not seem to put the artifact s3 specifications here, leaving them in archiveLocation.
 		"volumes":        nil,
 		"initContainers": nil,
 		"sidecars":       nil,
@@ -287,4 +305,16 @@ func isTFXPod(pod *corev1.Pod) bool {
 
 func isV2Pod(pod *corev1.Pod) bool {
 	return pod.Annotations[V2ComponentAnnotationKey] == V2ComponentAnnotationValue
+}
+
+func getEnvBool(key string) (bool, error) {
+	v, ok := os.LookupEnv("CACHE_NODE_RESTRICTIONS")
+	if !ok {
+		return false, nil
+	}
+	b, err := strconv.ParseBool(v)
+	if err != nil {
+		return false, err
+	}
+	return b, nil
 }

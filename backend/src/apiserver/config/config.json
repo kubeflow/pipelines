@@ -17,6 +17,7 @@
   "DefaultPipelineRunnerServiceAccount": "pipeline-runner",
   "CacheEnabled": "true",
   "CRON_SCHEDULE_TIMEZONE": "UTC",
-  "CACHE_IMAGE": "gcr.io/google-containers/busybox"
+  "CACHE_IMAGE": "gcr.io/google-containers/busybox", 
+  "CACHE_NODE_RESTRICTIONS": "false"
 
 }

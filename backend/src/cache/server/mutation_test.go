@@ -53,6 +53,7 @@ var (
 					Command: []string{"python"},
 				},
 			},
+			NodeSelector: map[string]string{"disktype": "ssd"},
 		},
 	}
 	fakeAdmissionRequest = v1beta1.AdmissionRequest{
@@ -87,6 +88,13 @@ func GetFakeRequestFromPod(pod *corev1.Pod) *v1beta1.AdmissionRequest {
 	fakeRequest := fakeAdmissionRequest
 	fakeRequest.Object.Raw = EncodePod(pod)
 	return &fakeRequest
+}
+
+func TestMain(m *testing.M) {
+	os.Setenv("CACHE_NODE_RESTRICTIONS", "true")
+	defer os.Unsetenv("CACHE_NODE_RESTRICTIONS")
+	code := m.Run()
+	os.Exit(code)
 }
 
 func TestMutatePodIfCachedWithErrorPodResource(t *testing.T) {
@@ -201,6 +209,23 @@ func TestSetImage(t *testing.T) {
 	assert.Nil(t, err)
 	container := patchOperation[0].Value.([]corev1.Container)[0]
 	assert.Equal(t, testImage, container.Image)
+}
+
+func TestCacheNodeRestriction(t *testing.T) {
+	os.Setenv("CACHE_NODE_RESTRICTIONS", "false")
+
+	executionCache := &model.ExecutionCache{
+		ExecutionCacheKey: "f5fe913be7a4516ebfe1b5de29bcb35edd12ecc776b2f33f10ca19709ea3b2f0",
+		ExecutionOutput:   "testOutput",
+		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.7"},"nodeSelector":{"disktype":"ssd"}}`,
+		MaxCacheStaleness: -1,
+	}
+	fakeClientManager.CacheStore().CreateExecutionCache(executionCache)
+	patchOperation, err := MutatePodIfCached(&fakeAdmissionRequest, fakeClientManager)
+	assert.Nil(t, err)
+	assert.Equal(t, OperationTypeRemove, patchOperation[1].Op)
+	assert.Nil(t, patchOperation[1].Value)
+	os.Setenv("CACHE_NODE_RESTRICTIONS", "true")
 }
 
 func TestMutatePodIfCachedWithTeamplateCleanup(t *testing.T) {
