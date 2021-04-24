@@ -178,15 +178,23 @@ func setPodSpecForTensorboard(view *viewerV1beta1.Viewer, s *corev1.PodSpec) {
 		fmt.Sprintf("--logdir=%s", view.Spec.TensorboardSpec.LogDir),
 		fmt.Sprintf("--path_prefix=/tensorboard/%s/", view.Name),
 	}
-
-	tfImageVersion := strings.Split(view.Spec.TensorboardSpec.TensorflowImage, ":")[1]
-	// This is needed for tf 2.0
-	if !strings.HasPrefix(tfImageVersion, `1.`) {
+	isTensorflowV1 := false
+	parts := strings.Split(view.Spec.TensorboardSpec.TensorflowImage, ":")
+	// an image might not contain a tag
+	if len(parts) == 2 {
+		tfImageVersion := parts[1]
+		if strings.HasPrefix(tfImageVersion, `1.`) {
+			isTensorflowV1 = true
+		}
+	}
+	if !isTensorflowV1 {
+		// This is needed for tf 2.0.
+		// https://github.com/kubeflow/pipelines/issues/2440
 		c.Args = append(c.Args, "--bind_all")
 	}
 
 	c.Ports = []corev1.ContainerPort{
-		corev1.ContainerPort{ContainerPort: viewerTargetPort},
+		{ContainerPort: viewerTargetPort},
 	}
 
 }
@@ -259,7 +267,7 @@ func serviceFrom(v *viewerV1beta1.Viewer, deploymentName string) *corev1.Service
 				"viewer":     v.Name,
 			},
 			Ports: []corev1.ServicePort{
-				corev1.ServicePort{
+				{
 					Name:       "http",
 					Protocol:   corev1.ProtocolTCP,
 					Port:       80,
