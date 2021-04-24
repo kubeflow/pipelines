@@ -105,14 +105,10 @@ class ComponentSpecTest(parameterized.TestCase):
           'is_root_component': True,
           'expected_result': {
               'inputDefinitions': {
-                  'artifacts': {
-                      'input1': {
-                          'artifactType': {
-                              'schemaTitle': 'system.Dataset'
-                          }
-                      }
-                  },
                   'parameters': {
+                      'input1': {
+                          'type': 'STRING'
+                      },
                       'input2': {
                           'type': 'INT'
                       },

@@ -152,8 +152,19 @@ class CompilerTest(unittest.TestCase):
 
   def test_compile_pipeline_with_misused_inputvalue_should_raise_error(self):
 
-    component_op = components.load_component_from_text("""
-        name: compoent with misused placeholder
+    produce_op = components.load_component_from_text("""
+        name: Produce model
+        outputs:
+        - {name: model, type: Model}
+        implementation:
+          container:
+            image: dummy
+            args:
+            - {outputPath: model}
+        """)
+
+    consume_op = components.load_component_from_text("""
+        name: Consume model as value
         inputs:
         - {name: model, type: Model}
         implementation:
@@ -164,8 +175,9 @@ class CompilerTest(unittest.TestCase):
         """)
 
     @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
-    def my_pipeline(model):
-      component_op(model=model)
+    def my_pipeline():
+      model = produce_op().output
+      consume_op(model=model)
 
     with self.assertRaisesRegex(
         TypeError,
