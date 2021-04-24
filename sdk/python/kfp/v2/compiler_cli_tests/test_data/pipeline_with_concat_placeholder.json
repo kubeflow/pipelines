@@ -32,6 +32,9 @@
       "dag": {
         "tasks": {
           "task-component-with-concat-placeholder": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-component-with-concat-placeholder"
             },

@@ -5,6 +5,9 @@
         "dag": {
           "tasks": {
             "task-flip-coin-2": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-flip-coin-2"
               },
@@ -13,6 +16,9 @@
               }
             },
             "task-print-msg-2": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-print-msg-2"
               },
@@ -34,6 +40,9 @@
               }
             },
             "task-print-msg-3": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-print-msg-3"
               },
@@ -225,6 +234,9 @@
             }
           },
           "task-flip-coin": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-flip-coin"
             },
@@ -233,6 +245,9 @@
             }
           },
           "task-print-msg": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-print-msg"
             },

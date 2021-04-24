@@ -439,6 +439,9 @@
       "dag": {
         "tasks": {
           "task-chicago-taxi-trips-dataset": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-chicago-taxi-trips-dataset"
             },
@@ -479,6 +482,9 @@
             }
           },
           "task-convert-csv-to-apache-parquet": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-convert-csv-to-apache-parquet"
             },
@@ -500,6 +506,9 @@
             }
           },
           "task-xgboost-predict": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-xgboost-predict"
             },
@@ -537,6 +546,9 @@
             }
           },
           "task-xgboost-predict-2": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-xgboost-predict-2"
             },
@@ -574,6 +586,9 @@
             }
           },
           "task-xgboost-predict-3": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-xgboost-predict-3"
             },
@@ -611,6 +626,9 @@
             }
           },
           "task-xgboost-predict-4": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-xgboost-predict-4"
             },
@@ -648,6 +666,9 @@
             }
           },
           "task-xgboost-train": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-xgboost-train"
             },
@@ -692,6 +713,9 @@
             }
           },
           "task-xgboost-train-2": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-xgboost-train-2"
             },

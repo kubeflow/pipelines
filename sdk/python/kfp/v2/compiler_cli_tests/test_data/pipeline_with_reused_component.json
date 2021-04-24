@@ -112,6 +112,9 @@
       "dag": {
         "tasks": {
           "task-add": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-add"
             },
@@ -134,6 +137,9 @@
             }
           },
           "task-add-2": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-add-2"
             },
@@ -158,6 +164,9 @@
             }
           },
           "task-add-3": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-add-3"
             },

@@ -212,6 +212,9 @@
         },
         "tasks": {
           "task-add-numbers": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-add-numbers"
             },
@@ -230,6 +233,9 @@
             }
           },
           "task-concat-message": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-concat-message"
             },
@@ -248,6 +254,9 @@
             }
           },
           "task-output-artifact": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-output-artifact"
             },
@@ -276,6 +285,9 @@
             }
           },
           "task-output-named-tuple": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-output-named-tuple"
             },

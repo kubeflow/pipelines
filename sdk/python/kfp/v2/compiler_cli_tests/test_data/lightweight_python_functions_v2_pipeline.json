@@ -128,6 +128,9 @@
       "dag": {
         "tasks": {
           "task-preprocess": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-preprocess"
             },
@@ -143,6 +146,9 @@
             }
           },
           "task-train": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-train"
             },

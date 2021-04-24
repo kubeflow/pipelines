@@ -151,6 +151,9 @@
       "dag": {
         "tasks": {
           "task-downstream": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-downstream"
             },
@@ -210,6 +213,9 @@
             }
           },
           "task-upstream": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-upstream"
             },

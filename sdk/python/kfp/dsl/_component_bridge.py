@@ -572,6 +572,8 @@ def _attach_v2_specs(
   task.component_spec = dsl_component_spec.build_component_spec_from_structure(
       component_spec, executor_label, arguments.keys())
 
+  # Enable caching by default
+  pipeline_task_spec.caching_options.enable_cache = True
   task.task_spec = pipeline_task_spec
 
   # Override command and arguments if compiling to v2.

@@ -114,6 +114,9 @@
       "dag": {
         "tasks": {
           "task-print-op": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-print-op"
             },
@@ -133,6 +136,9 @@
             }
           },
           "task-print-op-2": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-print-op-2"
             },
@@ -152,6 +158,9 @@
             }
           },
           "task-print-op-3": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-print-op-3"
             },

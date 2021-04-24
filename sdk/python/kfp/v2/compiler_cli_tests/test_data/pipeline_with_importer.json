@@ -20,6 +20,9 @@
               }
             },
             "task-train-2": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-train-2"
               },
@@ -269,6 +272,9 @@
             }
           },
           "task-train": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-train"
             },

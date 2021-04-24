@@ -87,6 +87,9 @@
       "dag": {
         "tasks": {
           "task-ingestion": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-ingestion"
             },
@@ -102,6 +105,9 @@
             }
           },
           "task-trainer": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-trainer"
             },
