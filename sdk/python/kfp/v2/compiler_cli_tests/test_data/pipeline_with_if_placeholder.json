@@ -1,47 +1,20 @@
 {
   "pipelineSpec": {
-    "pipelineInfo": {
-      "name": "one-step-pipeline-with-if-placeholder"
-    },
-    "sdkVersion": "kfp-1.3.0",
-    "root": {
-      "inputDefinitions": {
-        "parameters": {
-          "input2": {
-            "type": "STRING"
-          },
-          "input1": {
-            "type": "STRING"
-          },
-          "input0": {
-            "type": "STRING"
-          }
-        }
-      },
-      "dag": {
-        "tasks": {
-          "task-component-with-optional-inputs": {
-            "inputs": {
-              "parameters": {
-                "required_input": {
-                  "componentInputParameter": "input0"
-                },
-                "optional_input_1": {
-                  "componentInputParameter": "input1"
-                }
-              }
+    "components": {
+      "comp-component-with-optional-inputs": {
+        "executorLabel": "exec-component-with-optional-inputs",
+        "inputDefinitions": {
+          "parameters": {
+            "optional_input_1": {
+              "type": "STRING"
             },
-            "componentRef": {
-              "name": "comp-component-with-optional-inputs"
-            },
-            "taskInfo": {
-              "name": "task-component-with-optional-inputs"
+            "required_input": {
+              "type": "STRING"
             }
           }
         }
       }
     },
-    "schemaVersion": "2.0.0",
     "deploymentSpec": {
       "executors": {
         "exec-component-with-optional-inputs": {
@@ -59,21 +32,48 @@
         }
       }
     },
-    "components": {
-      "comp-component-with-optional-inputs": {
-        "inputDefinitions": {
-          "parameters": {
-            "optional_input_1": {
-              "type": "STRING"
+    "pipelineInfo": {
+      "name": "one-step-pipeline-with-if-placeholder"
+    },
+    "root": {
+      "dag": {
+        "tasks": {
+          "task-component-with-optional-inputs": {
+            "componentRef": {
+              "name": "comp-component-with-optional-inputs"
             },
-            "required_input": {
-              "type": "STRING"
+            "inputs": {
+              "parameters": {
+                "optional_input_1": {
+                  "componentInputParameter": "input1"
+                },
+                "required_input": {
+                  "componentInputParameter": "input0"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "task-component-with-optional-inputs"
             }
           }
-        },
-        "executorLabel": "exec-component-with-optional-inputs"
+        }
+      },
+      "inputDefinitions": {
+        "parameters": {
+          "input0": {
+            "type": "STRING"
+          },
+          "input1": {
+            "type": "STRING"
+          },
+          "input2": {
+            "type": "STRING"
+          }
+        }
       }
-    }
+    },
+    "schemaVersion": "2.0.0",
+    "sdkVersion": "kfp-1.5.0"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"

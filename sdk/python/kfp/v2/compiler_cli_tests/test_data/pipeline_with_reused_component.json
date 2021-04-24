@@ -1,87 +1,120 @@
 {
   "pipelineSpec": {
-    "sdkVersion": "kfp-1.3.0",
-    "deploymentSpec": {
-      "executors": {
-        "exec-add": {
-          "container": {
-            "image": "google/cloud-sdk:latest",
-            "command": [
-              "sh",
-              "-c",
-              "set -e -x\necho \"$(($0+$1))\" | gsutil cp - \"$2\"\n",
-              "{{$.inputs.parameters['op1']}}",
-              "{{$.inputs.parameters['op2']}}",
-              "{{$.outputs.parameters['sum'].output_file}}"
-            ]
+    "components": {
+      "comp-add": {
+        "executorLabel": "exec-add",
+        "inputDefinitions": {
+          "parameters": {
+            "op1": {
+              "type": "INT"
+            },
+            "op2": {
+              "type": "INT"
+            }
           }
         },
-        "exec-add-2": {
-          "container": {
-            "image": "google/cloud-sdk:latest",
-            "command": [
-              "sh",
-              "-c",
-              "set -e -x\necho \"$(($0+$1))\" | gsutil cp - \"$2\"\n",
-              "{{$.inputs.parameters['op1']}}",
-              "{{$.inputs.parameters['op2']}}",
-              "{{$.outputs.parameters['sum'].output_file}}"
-            ]
+        "outputDefinitions": {
+          "parameters": {
+            "sum": {
+              "type": "INT"
+            }
+          }
+        }
+      },
+      "comp-add-2": {
+        "executorLabel": "exec-add-2",
+        "inputDefinitions": {
+          "parameters": {
+            "op1": {
+              "type": "INT"
+            },
+            "op2": {
+              "type": "INT"
+            }
           }
         },
-        "exec-add-3": {
-          "container": {
-            "image": "google/cloud-sdk:latest",
-            "command": [
-              "sh",
-              "-c",
-              "set -e -x\necho \"$(($0+$1))\" | gsutil cp - \"$2\"\n",
-              "{{$.inputs.parameters['op1']}}",
-              "{{$.inputs.parameters['op2']}}",
-              "{{$.outputs.parameters['sum'].output_file}}"
-            ]
+        "outputDefinitions": {
+          "parameters": {
+            "sum": {
+              "type": "INT"
+            }
+          }
+        }
+      },
+      "comp-add-3": {
+        "executorLabel": "exec-add-3",
+        "inputDefinitions": {
+          "parameters": {
+            "op1": {
+              "type": "INT"
+            },
+            "op2": {
+              "type": "INT"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "sum": {
+              "type": "INT"
+            }
           }
         }
       }
     },
-    "root": {
-      "inputDefinitions": {
-        "parameters": {
-          "b": {
-            "type": "INT"
-          },
-          "a": {
-            "type": "INT"
+    "deploymentSpec": {
+      "executors": {
+        "exec-add": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "set -e -x\necho \"$(($0+$1))\" | gsutil cp - \"$2\"\n",
+              "{{$.inputs.parameters['op1']}}",
+              "{{$.inputs.parameters['op2']}}",
+              "{{$.outputs.parameters['sum'].output_file}}"
+            ],
+            "image": "google/cloud-sdk:latest"
+          }
+        },
+        "exec-add-2": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "set -e -x\necho \"$(($0+$1))\" | gsutil cp - \"$2\"\n",
+              "{{$.inputs.parameters['op1']}}",
+              "{{$.inputs.parameters['op2']}}",
+              "{{$.outputs.parameters['sum'].output_file}}"
+            ],
+            "image": "google/cloud-sdk:latest"
+          }
+        },
+        "exec-add-3": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "set -e -x\necho \"$(($0+$1))\" | gsutil cp - \"$2\"\n",
+              "{{$.inputs.parameters['op1']}}",
+              "{{$.inputs.parameters['op2']}}",
+              "{{$.outputs.parameters['sum'].output_file}}"
+            ],
+            "image": "google/cloud-sdk:latest"
           }
         }
-      },
+      }
+    },
+    "pipelineInfo": {
+      "name": "add-pipeline"
+    },
+    "root": {
       "dag": {
         "tasks": {
-          "task-add-2": {
-            "dependentTasks": [
-              "task-add"
-            ],
-            "taskInfo": {
-              "name": "task-add-2"
-            },
-            "componentRef": {
-              "name": "comp-add-2"
-            },
-            "inputs": {
-              "parameters": {
-                "op2": {
-                  "componentInputParameter": "b"
-                },
-                "op1": {
-                  "taskOutputParameter": {
-                    "outputParameterKey": "sum",
-                    "producerTask": "task-add"
-                  }
-                }
-              }
-            }
-          },
           "task-add": {
+            "componentRef": {
+              "name": "comp-add"
+            },
             "inputs": {
               "parameters": {
                 "op1": {
@@ -98,118 +131,85 @@
             },
             "taskInfo": {
               "name": "task-add"
-            },
+            }
+          },
+          "task-add-2": {
             "componentRef": {
-              "name": "comp-add"
+              "name": "comp-add-2"
+            },
+            "dependentTasks": [
+              "task-add"
+            ],
+            "inputs": {
+              "parameters": {
+                "op1": {
+                  "taskOutputParameter": {
+                    "outputParameterKey": "sum",
+                    "producerTask": "task-add"
+                  }
+                },
+                "op2": {
+                  "componentInputParameter": "b"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "task-add-2"
             }
           },
           "task-add-3": {
+            "componentRef": {
+              "name": "comp-add-3"
+            },
             "dependentTasks": [
               "task-add-2"
             ],
             "inputs": {
               "parameters": {
+                "op1": {
+                  "taskOutputParameter": {
+                    "outputParameterKey": "sum",
+                    "producerTask": "task-add-2"
+                  }
+                },
                 "op2": {
                   "runtimeValue": {
                     "constantValue": {
                       "intValue": "7"
                     }
                   }
-                },
-                "op1": {
-                  "taskOutputParameter": {
-                    "outputParameterKey": "sum",
-                    "producerTask": "task-add-2"
-                  }
                 }
               }
             },
             "taskInfo": {
               "name": "task-add-3"
-            },
-            "componentRef": {
-              "name": "comp-add-3"
             }
           }
         }
+      },
+      "inputDefinitions": {
+        "parameters": {
+          "a": {
+            "type": "INT"
+          },
+          "b": {
+            "type": "INT"
+          }
+        }
       }
-    },
-    "pipelineInfo": {
-      "name": "add-pipeline"
     },
     "schemaVersion": "2.0.0",
-    "components": {
-      "comp-add": {
-        "executorLabel": "exec-add",
-        "outputDefinitions": {
-          "parameters": {
-            "sum": {
-              "type": "INT"
-            }
-          }
-        },
-        "inputDefinitions": {
-          "parameters": {
-            "op1": {
-              "type": "INT"
-            },
-            "op2": {
-              "type": "INT"
-            }
-          }
-        }
-      },
-      "comp-add-2": {
-        "executorLabel": "exec-add-2",
-        "outputDefinitions": {
-          "parameters": {
-            "sum": {
-              "type": "INT"
-            }
-          }
-        },
-        "inputDefinitions": {
-          "parameters": {
-            "op1": {
-              "type": "INT"
-            },
-            "op2": {
-              "type": "INT"
-            }
-          }
-        }
-      },
-      "comp-add-3": {
-        "executorLabel": "exec-add-3",
-        "outputDefinitions": {
-          "parameters": {
-            "sum": {
-              "type": "INT"
-            }
-          }
-        },
-        "inputDefinitions": {
-          "parameters": {
-            "op1": {
-              "type": "INT"
-            },
-            "op2": {
-              "type": "INT"
-            }
-          }
-        }
-      }
-    }
+    "sdkVersion": "kfp-1.5.0"
   },
   "runtimeConfig": {
+    "gcsOutputDirectory": "dummy_root",
     "parameters": {
-      "b": {
-        "intValue": "5"
-      },
       "a": {
         "intValue": "2"
+      },
+      "b": {
+        "intValue": "5"
       }
-    },
-    "gcsOutputDirectory": "dummy_root"
+    }
   }
 }
