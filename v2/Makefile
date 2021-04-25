@@ -33,6 +33,8 @@ dev-build-launcher: build/launcher launcher_container/Dockerfile.dev launcher_co
 dev-push-launcher: dev-build-launcher
 	@docker push ${LAUNCHER_IMAGE_DEV}
 
+# always rebuild, it's hard to set up exact dependencies
+.PHONY: build/launcher
 build/launcher:
 	GO111MODULE=on \
 	CGO_ENABLED=0 \
