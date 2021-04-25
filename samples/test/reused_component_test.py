@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import unittest
-from pprint import pprint
 
 import kfp
 from .reused_component import my_pipeline
