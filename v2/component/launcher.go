@@ -138,7 +138,7 @@ func parseBucketConfig(path string) (*bucketConfig, error) {
 
 func (o *LauncherOptions) validate() error {
 	empty := func(s string) bool { return len(s) == 0 }
-	err := func(s string) error { return fmt.Errorf("Must specify %s", s) }
+	err := func(s string) error { return fmt.Errorf("Invalid launcher options: must specify %s", s) }
 
 	if empty(o.PipelineName) {
 		return err("PipelineName")
