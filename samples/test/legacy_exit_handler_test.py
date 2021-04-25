@@ -19,9 +19,9 @@ from .util import run_pipeline_func, TestCase
 
 
 run_pipeline_func([
+    # This sample is expected to not work on v2 compatible mode.
     TestCase(
         pipeline_func=download_and_print,
-        verify_func=verify,
         mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY
     )
 ])
