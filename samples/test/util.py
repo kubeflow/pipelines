@@ -1,3 +1,17 @@
+# Copyright 2021 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 import logging
 import json
@@ -60,12 +74,14 @@ def run_pipeline_func(test_cases: List[TestCase]):
             )
             pipeline_runtime: kfp_server_api.ApiPipelineRuntime = run_detail.pipeline_runtime
             argo_workflow = json.loads(pipeline_runtime.workflow_manifest)
+            argo_workflow_name = argo_workflow.get('metadata').get('name')
+            print(f'argo workflow name: {argo_workflow_name}')
             case.verify_func(
                 run=run_detail.run,
                 run_detail=run_detail,
                 run_id=run_detail.run.id,
                 mlmd_connection_config=mlmd_connection_config,
-                argo_workflow_name=argo_workflow.get('metadata').get('name')
+                argo_workflow_name=argo_workflow_name,
             )
         print('OK: all test cases passed!')
 
@@ -235,7 +251,7 @@ class KfpTask:
     ):
         execution_type = execution_types_by_id[execution.type_id]
         params = _parse_parameters(execution)
-        events = events_by_execution_id[execution.id]
+        events = events_by_execution_id.get(execution.id, [])
         input_artifacts = []
         output_artifacts = []
         if events:
@@ -280,8 +296,14 @@ class KfpMlmdClient:
 
     def __init__(
         self,
-        mlmd_connection_config: metadata_store_pb2.MetadataStoreClientConfig
+        mlmd_connection_config: Optional[metadata_store_pb2.MetadataStoreClientConfig] = None,
     ):
+        if mlmd_connection_config is None:
+            # default to value suitable for local testing
+            mlmd_connection_config = metadata_store_pb2.MetadataStoreClientConfig(
+                host='localhost',
+                port=8080,
+            )
         self.mlmd_store = metadata_store.MetadataStore(mlmd_connection_config)
 
     def get_tasks(self, argo_workflow_name: str):

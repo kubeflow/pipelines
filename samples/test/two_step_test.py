@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,11 +15,7 @@
 
 # %%
 
-import sys
-import logging
 import unittest
-from dataclasses import dataclass, asdict
-from typing import Tuple
 from pprint import pprint
 
 import kfp
@@ -27,9 +23,6 @@ import kfp_server_api
 
 from .two_step import two_step_pipeline
 from .util import run_pipeline_func, TestCase, KfpMlmdClient
-
-from ml_metadata import metadata_store
-from ml_metadata.proto import metadata_store_pb2
 
 
 def verify(
