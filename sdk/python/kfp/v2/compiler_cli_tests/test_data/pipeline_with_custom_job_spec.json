@@ -1,29 +1,28 @@
 {
   "pipelineSpec": {
-    "schemaVersion": "2.0.0",
     "components": {
       "comp-print-op": {
+        "executorLabel": "exec-print-op",
         "inputDefinitions": {
           "parameters": {
             "text": {
               "type": "STRING"
             }
           }
-        },
-        "executorLabel": "exec-print-op"
-      },
-      "comp-print-op-3": {
-        "inputDefinitions": {
-          "parameters": {
-            "text": {
-              "type": "STRING"
-            }
-          }
-        },
-        "executorLabel": "exec-print-op-3"
+        }
       },
       "comp-print-op-2": {
         "executorLabel": "exec-print-op-2",
+        "inputDefinitions": {
+          "parameters": {
+            "text": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-print-op-3": {
+        "executorLabel": "exec-print-op-3",
         "inputDefinitions": {
           "parameters": {
             "text": {
@@ -35,128 +34,86 @@
     },
     "deploymentSpec": {
       "executors": {
-        "exec-print-op-3": {
-          "customJob": {
-            "customJob": {
-              "name": "test-custom-job-partial",
-              "jobSpec": {
-                "workerPoolSpecs": [
-                  {
-                    "replicaCount": "1",
-                    "machineSpec": {
-                      "machineType": "n1-standard-4"
-                    },
-                    "containerSpec": {
-                      "command": [
-                        "sh",
-                        "-ec",
-                        "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
-                        "def print_op(text):\n  print(text)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Print op', description='')\n_parser.add_argument(\"--text\", dest=\"text\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = print_op(**_parsed_args)\n"
-                      ],
-                      "imageUri": "python:3.7",
-                      "args": [
-                        "--text",
-                        "{{$.inputs.parameters['text']}}"
-                      ]
-                    }
-                  }
-                ]
-              }
-            }
-          }
-        },
         "exec-print-op": {
           "container": {
             "args": [
               "--text",
               "{{$.inputs.parameters['text']}}"
             ],
-            "image": "python:3.7",
             "command": [
               "sh",
               "-ec",
               "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
               "def print_op(text):\n  print(text)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Print op', description='')\n_parser.add_argument(\"--text\", dest=\"text\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = print_op(**_parsed_args)\n"
-            ]
+            ],
+            "image": "python:3.7"
           }
         },
         "exec-print-op-2": {
           "customJob": {
             "customJob": {
-              "name": "test-custom-job-full",
               "jobSpec": {
                 "workerPoolSpecs": [
                   {
-                    "replicaCount": "1",
                     "containerSpec": {
-                      "imageUri": "alpine:latest",
                       "command": [
                         "sh",
                         "-c",
                         "set -e -x\necho \"$0\"\n",
                         "{{$.inputs.parameters['text']}}"
-                      ]
+                      ],
+                      "imageUri": "alpine:latest"
                     },
                     "machineSpec": {
                       "machineType": "n1-standard-4"
-                    }
+                    },
+                    "replicaCount": "1"
                   }
                 ]
-              }
+              },
+              "name": "test-custom-job-full"
+            }
+          }
+        },
+        "exec-print-op-3": {
+          "customJob": {
+            "customJob": {
+              "jobSpec": {
+                "workerPoolSpecs": [
+                  {
+                    "containerSpec": {
+                      "args": [
+                        "--text",
+                        "{{$.inputs.parameters['text']}}"
+                      ],
+                      "command": [
+                        "sh",
+                        "-ec",
+                        "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+                        "def print_op(text):\n  print(text)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Print op', description='')\n_parser.add_argument(\"--text\", dest=\"text\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = print_op(**_parsed_args)\n"
+                      ],
+                      "imageUri": "python:3.7"
+                    },
+                    "machineSpec": {
+                      "machineType": "n1-standard-4"
+                    },
+                    "replicaCount": "1"
+                  }
+                ]
+              },
+              "name": "test-custom-job-partial"
             }
           }
         }
       }
     },
-    "sdkVersion": "kfp-1.5.0-rc.2",
     "pipelineInfo": {
       "name": "pipeline-with-custom-job-spec"
     },
     "root": {
       "dag": {
         "tasks": {
-          "task-print-op-2": {
-            "inputs": {
-              "parameters": {
-                "text": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": "custom job execution - full custom job"
-                    }
-                  }
-                }
-              }
-            },
-            "taskInfo": {
-              "name": "task-print-op-2"
-            },
-            "componentRef": {
-              "name": "comp-print-op-2"
-            }
-          },
-          "task-print-op-3": {
-            "inputs": {
-              "parameters": {
-                "text": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": "custom job execution - partial custom job"
-                    }
-                  }
-                }
-              }
-            },
-            "taskInfo": {
-              "name": "task-print-op-3"
-            },
-            "componentRef": {
-              "name": "comp-print-op-3"
-            }
-          },
           "task-print-op": {
-            "taskInfo": {
-              "name": "task-print-op"
-            },
             "componentRef": {
               "name": "comp-print-op"
             },
@@ -170,11 +127,54 @@
                   }
                 }
               }
+            },
+            "taskInfo": {
+              "name": "task-print-op"
+            }
+          },
+          "task-print-op-2": {
+            "componentRef": {
+              "name": "comp-print-op-2"
+            },
+            "inputs": {
+              "parameters": {
+                "text": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "custom job execution - full custom job"
+                    }
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "task-print-op-2"
+            }
+          },
+          "task-print-op-3": {
+            "componentRef": {
+              "name": "comp-print-op-3"
+            },
+            "inputs": {
+              "parameters": {
+                "text": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "custom job execution - partial custom job"
+                    }
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "task-print-op-3"
             }
           }
         }
       }
-    }
+    },
+    "schemaVersion": "2.0.0",
+    "sdkVersion": "kfp-1.5.0"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"

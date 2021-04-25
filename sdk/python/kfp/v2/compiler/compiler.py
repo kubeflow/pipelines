@@ -1074,7 +1074,7 @@ class Compiler(object):
       ValueError: if the specified output path doesn't end with the acceptable
       extentions.
     """
-    json_text = json_format.MessageToJson(pipeline_job)
+    json_text = json_format.MessageToJson(pipeline_job, sort_keys=True)
 
     if output_path.endswith('.json'):
       with open(output_path, 'w') as json_file:
