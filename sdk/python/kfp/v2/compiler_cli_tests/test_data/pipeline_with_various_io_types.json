@@ -257,6 +257,11 @@
     "sdkVersion": "kfp-1.5.0"
   },
   "runtimeConfig": {
-    "gcsOutputDirectory": "dummy_root"
+    "gcsOutputDirectory": "dummy_root",
+    "parameters": {
+      "input4": {
+        "stringValue": ""
+      }
+    }
   }
 }
