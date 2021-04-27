@@ -15,6 +15,7 @@ from typing import Union
 import uuid
 
 from kfp.dsl import _for_loop, _pipeline_param
+from kfp.dsl._pipeline_param import ConditionOperator
 
 from . import _container_op
 from . import _pipeline
@@ -169,7 +170,7 @@ class Condition(OpsGroup):
         ContainerOp(...) op2 = ContainerOp(...)
   """
 
-  def __init__(self, condition, name=None):
+  def __init__(self, condition: ConditionOperator, name: str = None):
     super(Condition, self).__init__('condition', name)
     self.condition = condition
 

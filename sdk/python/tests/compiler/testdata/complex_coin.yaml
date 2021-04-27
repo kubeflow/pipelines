@@ -1,0 +1,71 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: pipeline-flip-coin-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.5.0-rc.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-03-29T23:50:31.188631',
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "shows how to use dsl.Condition.",
+      "name": "pipeline flip coin"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.5.0-rc.0}
+spec:
+  entrypoint: pipeline-flip-coin
+  templates:
+  - name: condition-1
+    dag:
+      tasks:
+      - {name: print-bad, template: print-bad}
+  - name: condition-2
+    dag:
+      tasks:
+      - {name: print-good, template: print-good}
+  - name: flip0
+    container:
+      args: ['python -c "import random; result = ''heads'' if random.randint(0,1)
+          == 0 else ''tails''; print(result)" | tee /tmp/output']
+      command: [sh, -c]
+      image: python:alpine3.6
+    outputs:
+      artifacts:
+      - {name: flip0-output, path: /tmp/output}
+  - name: flip1
+    container:
+      args: ['python -c "import random; result = ''heads'' if random.randint(0,1)
+          == 0 else ''tails''; print(result)" | tee /tmp/output']
+      command: [sh, -c]
+      image: python:alpine3.6
+    outputs:
+      artifacts:
+      - {name: flip1-output, path: /tmp/output}
+  - name: flip2
+    container:
+      args: ['python -c "import random; result = ''heads'' if random.randint(0,1)
+          == 0 else ''tails''; print(result)" | tee /tmp/output']
+      command: [sh, -c]
+      image: python:alpine3.6
+    outputs:
+      artifacts:
+      - {name: flip2-output, path: /tmp/output}
+  - name: pipeline-flip-coin
+    dag:
+      tasks:
+      - {name: condition-1, template: condition-1, when: '("{{inputs.parameters.flip0-output}}"
+          == "{{inputs.parameters.flip0-output}}") && ("{{inputs.parameters.flip0-output}}"
+          == "{{inputs.parameters.flip0-output}}")'}
+      - {name: condition-2, template: condition-2, when: '("{{inputs.parameters.flip0-output}}"
+          == "{{inputs.parameters.flip0-output}}") && ("{{inputs.parameters.flip0-output}}"
+          == "{{inputs.parameters.flip0-output}}") && ("{{inputs.parameters.flip0-output}}"
+          == "{{inputs.parameters.flip0-output}}") && ("{{inputs.parameters.flip0-output}}"
+          == "{{inputs.parameters.flip0-output}}")'}
+      - {name: flip0, template: flip0}
+      - {name: flip1, template: flip1}
+      - {name: flip2, template: flip2}
+  - name: print-bad
+    container:
+      command: [echo, Bad luck]
+      image: alpine:3.6
+  - name: print-good
+    container:
+      command: [echo, Good luck!]
+      image: alpine:3.6
+  arguments:
+    parameters: []
+  serviceAccountName: pipeline-runner
