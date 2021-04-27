@@ -69,6 +69,8 @@ For why the caveat exists, refer to context rule in [Makefile](./Makefile).
 export KFP_HOST=https://your.KFP.host
 export KFP_OUTPUT_DIRECTORY=gs://your-bucket/path/to/output/dir
 export METADATA_GRPC_SERVICE_HOST=localhost
+# optional, when you want to override launcher image to your dev project
+# export KFP_LAUNCHER_IMAGE=gcr.io/your-project/dev/kfp-launcher
 
 cd ${REPO_ROOT}
 # if you have a sample test at samples/path/to/your/sample_test.py
