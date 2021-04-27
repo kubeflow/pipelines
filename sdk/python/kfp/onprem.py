@@ -6,8 +6,9 @@ def mount_pvc(
     volume_name='pipeline',
     volume_mount_path='/mnt/pipeline'
 ):
-    """Modifier function to apply to a Container Op to simplify volume, volume mount addition and
-    enable better reuse of volumes, volume claims across container ops.
+    """Modifier function to apply to a Container Op to simplify volume, volume
+    mount addition and enable better reuse of volumes, volume claims across
+    container ops.
 
     Example:
         ::
