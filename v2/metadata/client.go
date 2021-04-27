@@ -270,7 +270,7 @@ type schemaObject struct {
 	Title string `yaml:"title"`
 }
 
-func schemaToArtifactType(schema string) (*pb.ArtifactType, error) {
+func SchemaToArtifactType(schema string) (*pb.ArtifactType, error) {
 	so := &schemaObject{}
 	if err := yaml.Unmarshal([]byte(schema), so); err != nil {
 		return nil, err
@@ -286,7 +286,7 @@ func schemaToArtifactType(schema string) (*pb.ArtifactType, error) {
 
 // RecordArtifact ...
 func (c *Client) RecordArtifact(ctx context.Context, schema string, artifact *pb.Artifact) (*pb.Artifact, error) {
-	at, err := schemaToArtifactType(schema)
+	at, err := SchemaToArtifactType(schema)
 	if err != nil {
 		return nil, err
 	}
@@ -318,49 +318,58 @@ func (c *Client) RecordArtifact(ctx context.Context, schema string, artifact *pb
 	return getRes.Artifacts[0], nil
 }
 
-func getOrInsertContext(ctx context.Context, svc pb.MetadataStoreServiceClient, contextName string, contextType *pb.ContextType) (*pb.Context, error) {
-	// See if the context already exists.
-	getCtxRes, err := svc.GetContextByTypeAndName(ctx, &pb.GetContextByTypeAndNameRequest{TypeName: contextType.Name, ContextName: proto.String(contextName)})
+func getOrInsertContext(ctx context.Context, svc pb.MetadataStoreServiceClient, name string, contextType *pb.ContextType) (*pb.Context, error) {
+	// The most common case -- the context is already created by upstream tasks.
+	// So we try to get the context first.
+	getCtxRes, err := svc.GetContextByTypeAndName(ctx, &pb.GetContextByTypeAndNameRequest{TypeName: contextType.Name, ContextName: proto.String(name)})
 
-	// Bug in MLMD GetContextsByTypeAndName, where we return status OK even when
-	// no context was found.
-	if err == nil && getCtxRes.Context != nil {
+	if err != nil {
+		return nil, fmt.Errorf("Failed GetContextByTypeAndName(type=%q, name=%q)", contextType.GetName(), name)
+	}
+	// Bug in MLMD GetContextsByTypeAndName? It doesn't return error even when no
+	// context was found.
+	if getCtxRes.Context != nil {
 		return getCtxRes.Context, nil
 	}
 
-	// Otherwise, create the Context.
-	// First, lookup or create the ContextType.
-	var typeID *int64
-	getTypeRes, err := svc.GetContextType(ctx, &pb.GetContextTypeRequest{TypeName: contextType.Name})
+	// Get the ContextType ID.
+	var typeID int64
+	putTypeRes, err := svc.PutContextType(ctx, &pb.PutContextTypeRequest{ContextType: contextType})
 	if err == nil {
-		typeID = getTypeRes.ContextType.Id
+		typeID = putTypeRes.GetTypeId()
 	} else {
-		if status.Convert(err).Code() != codes.NotFound { // Something else went wrong.
-			return nil, err
+		if status.Convert(err).Code() != codes.AlreadyExists {
+			return nil, fmt.Errorf("Failed PutContextType(type=%q): %w", contextType.GetName(), err)
 		}
-		// Create the ContextType.
-		res, err := svc.PutContextType(ctx, &pb.PutContextTypeRequest{ContextType: contextType})
+		// It's expected other tasks may try to create the context type at the same time.
+		// Handle codes.AlreadyExists:
+		getTypeRes, err := svc.GetContextType(ctx, &pb.GetContextTypeRequest{TypeName: contextType.Name})
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Failed GetContextType(type=%q): %w", contextType.GetName(), err)
 		}
-		typeID = res.TypeId
+		typeID = getTypeRes.ContextType.GetId()
 	}
 
 	// Next, create the Context.
 	putReq := &pb.PutContextsRequest{
 		Contexts: []*pb.Context{
 			{
-				Name:   proto.String(contextName),
-				TypeId: typeID,
+				Name:   proto.String(name),
+				TypeId: proto.Int64(typeID),
 			},
 		},
 	}
 	_, err = svc.PutContexts(ctx, putReq)
-	if err != nil {
-		return nil, err
+	// It's expected other tasks may try to create the context at the same time,
+	// so ignore AlreadyExists error.
+	if err != nil && status.Convert(err).Code() != codes.AlreadyExists {
+		return nil, fmt.Errorf("Failed PutContext(name=%q, type=%q, typeid=%v): %w", name, contextType.GetName(), typeID, err)
 	}
 
 	// Get the created context.
-	getCtxRes, err = svc.GetContextByTypeAndName(ctx, &pb.GetContextByTypeAndNameRequest{TypeName: contextType.Name, ContextName: proto.String(contextName)})
-	return getCtxRes.GetContext(), err
+	getCtxRes, err = svc.GetContextByTypeAndName(ctx, &pb.GetContextByTypeAndNameRequest{TypeName: contextType.Name, ContextName: proto.String(name)})
+	if err != nil {
+		return nil, fmt.Errorf("Failed GetContext(name=%q, type=%q): %w", name, contextType.GetName(), err)
+	}
+	return getCtxRes.GetContext(), nil
 }

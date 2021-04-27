@@ -41,3 +41,12 @@ build/launcher:
 	GOOS=linux \
 	GOARCH=amd64 \
 	go build -tags netgo -ldflags '-extldflags "-static"' -o build/launcher github.com/kubeflow/pipelines/v2/cmd/launch
+
+.PHONY: start-mlmd
+start-mlmd:
+# Run a temporary MLMD server, useful for development / testing.
+	docker run -p 8080:8080 \
+		--env MLMD_CONFIG=connection_config{sqlite{filename_uri:\"file:///mlmd.db\"}} \
+		--entrypoint /bin/bash \
+		gcr.io/tfx-oss-public/ml_metadata_store_server:0.25.1 \
+		-exc 'echo "$${MLMD_CONFIG}" > config && /bin/metadata_store_server -metadata_store_server_config_file config'
