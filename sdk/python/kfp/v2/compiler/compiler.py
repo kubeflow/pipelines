@@ -620,10 +620,9 @@ class Compiler(object):
 
       is_recursive_subgroup = (
           isinstance(subgroup, dsl.OpsGroup) and subgroup.recursive_ref)
-
-      # Special handling for recursive subgroup: use the existing opsgroup name
       if is_recursive_subgroup:
-        subgroup_key = subgroup.recursive_ref.name
+        raise NotImplementedError(
+            'Recursive subgroup is not supported in v2 yet.')
       else:
         subgroup_key = subgroup.name
 
