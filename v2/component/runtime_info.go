@@ -80,7 +80,8 @@ func parseRuntimeInfo(jsonEncoded string) (*runtimeInfo, error) {
 	}
 
 	if err := json.Unmarshal([]byte(jsonEncoded), r); err != nil {
-		return nil, err
+		// Do not quote jsonEncoded, because JSON format is hard to read if quoted.
+		return nil, fmt.Errorf("Invalid runtime info: %w.\n===RuntimeInfo===\n%s\n======", err, jsonEncoded)
 	}
 
 	return r, nil
