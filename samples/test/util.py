@@ -114,6 +114,8 @@ def _run_test(callback):
             metadata_service_host = os.getenv(
                 'METADATA_GRPC_SERVICE_HOST', 'metadata-grpc-service'
             )
+        if launcher_image is None:
+            launcher_image = os.getenv('KFP_LAUNCHER_IMAGE')
 
         client = kfp.Client(host=host)
 
