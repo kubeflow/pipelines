@@ -14,9 +14,10 @@
 """Setup configuration of  Google Cloud Pipeline Components client side libraries."""
 
 def make_required_install_packages():
+  # TODO(vinnysenthil): change to google-cloud-aiplatform
   return [
       "kfp>=1.4.0,<2.0.0",
-      "google-cloud-aiplatform>=0.7.1,<1.0.0",
+      "git+git://github.com/googleapis/python-aiplatform@master#egg=google-cloud-aiplatform",
   ]
 
 
@@ -29,5 +30,4 @@ def make_required_test_packages():
 
 
 def make_dependency_links():
-  # TODO: change to google-cloud-aiplatform
   return []
