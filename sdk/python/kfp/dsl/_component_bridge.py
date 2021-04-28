@@ -16,21 +16,21 @@ import collections
 import copy
 import inspect
 import pathlib
-from typing import Any, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional, Union
 
-from kfp.components import _structures
 from kfp.components import _components
 from kfp.components import _naming
+from kfp.components import _structures
 from kfp import dsl
 from kfp.dsl import _container_op
 from kfp.dsl import _for_loop
 from kfp.dsl import _pipeline_param
 from kfp.dsl import component_spec as dsl_component_spec
 from kfp.dsl import dsl_utils
+from kfp.dsl import io_types
 from kfp.dsl import types
 from kfp.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
-
 
 # Placeholder to represent the output directory hosting all the generated URIs.
 # Its actual value will be specified during pipeline compilation.
@@ -62,9 +62,9 @@ def _generate_output_uri(port_name: str) -> str:
   Returns:
     The URI assigned to this output, which is unique within the pipeline.
   """
-  return str(pathlib.PurePosixPath(
-    OUTPUT_DIR_PLACEHOLDER,
-    RUN_ID_PLACEHOLDER, '{{pod.name}}', port_name))
+  return str(
+      pathlib.PurePosixPath(OUTPUT_DIR_PLACEHOLDER, RUN_ID_PLACEHOLDER,
+                            '{{pod.name}}', port_name))
 
 
 def _generate_input_uri(port_name: str) -> str:
@@ -77,13 +77,11 @@ def _generate_input_uri(port_name: str) -> str:
     The URI assigned to this input, will be consistent with the URI where
     the actual content is written after compilation.
   """
-  return str(pathlib.PurePosixPath(
-    OUTPUT_DIR_PLACEHOLDER,
-    RUN_ID_PLACEHOLDER,
-    '{{{{inputs.parameters.{input}}}}}'.format(
-      input=PRODUCER_POD_NAME_PARAMETER.format(port_name)),
-    port_name
-  ))
+  return str(
+      pathlib.PurePosixPath(
+          OUTPUT_DIR_PLACEHOLDER, RUN_ID_PLACEHOLDER,
+          '{{{{inputs.parameters.{input}}}}}'.format(
+              input=PRODUCER_POD_NAME_PARAMETER.format(port_name)), port_name))
 
 
 def _generate_output_metadata_path() -> str:
@@ -97,13 +95,12 @@ def _generate_input_metadata_path(port_name: str) -> str:
 
   # Return a placeholder for path to input artifact metadata, which will be
   # rewritten during pipeline compilation.
-  return str(pathlib.PurePosixPath(
-    OUTPUT_DIR_PLACEHOLDER,
-    RUN_ID_PLACEHOLDER,
-    '{{{{inputs.parameters.{input}}}}}'.format(
-      input=PRODUCER_POD_NAME_PARAMETER.format(port_name)),
-    OUTPUT_METADATA_JSON
-  ))
+  return str(
+      pathlib.PurePosixPath(
+          OUTPUT_DIR_PLACEHOLDER, RUN_ID_PLACEHOLDER,
+          '{{{{inputs.parameters.{input}}}}}'.format(
+              input=PRODUCER_POD_NAME_PARAMETER.format(port_name)),
+          OUTPUT_METADATA_JSON))
 
 
 def _generate_input_output_name(port_name: str) -> str:
@@ -118,19 +115,24 @@ def _generate_executor_input() -> str:
   """Generates the placeholder for serialized executor input."""
   return _EXECUTOR_INPUT_PLACEHOLDER
 
+
 class ExtraPlaceholderResolver:
+
   def __init__(self):
     self.input_uris = {}
     self.input_metadata_paths = {}
     self.output_uris = {}
 
   def resolve_placeholder(
-    self,
-    arg,
-    component_spec: _structures.ComponentSpec,
-    arguments: dict,
+      self,
+      arg,
+      component_spec: _structures.ComponentSpec,
+      arguments: dict,
   ) -> str:
-    inputs_dict = {input_spec.name: input_spec for input_spec in component_spec.inputs or []}
+    inputs_dict = {
+        input_spec.name: input_spec
+        for input_spec in component_spec.inputs or []
+    }
 
     if isinstance(arg, _structures.InputUriPlaceholder):
       input_name = arg.input_name
@@ -162,8 +164,7 @@ class ExtraPlaceholderResolver:
         if input_spec.optional:
           return None
         else:
-          raise ValueError(
-            'No value provided for input {}'.format(input_name))
+          raise ValueError('No value provided for input {}'.format(input_name))
 
     elif isinstance(arg, _structures.InputOutputPortNamePlaceholder):
       input_name = arg.input_name
@@ -174,8 +175,7 @@ class ExtraPlaceholderResolver:
         if input_spec.optional:
           return None
         else:
-          raise ValueError(
-            'No value provided for input {}'.format(input_name))
+          raise ValueError('No value provided for input {}'.format(input_name))
 
     elif isinstance(arg, _structures.OutputMetadataPlaceholder):
       # TODO: Consider making the output metadata per-artifact.
@@ -331,6 +331,104 @@ def _attach_v2_specs(
       is_compiling_for_v2 = True
       break
 
+  inputs_dict = {
+      input_spec.name: input_spec for input_spec in component_spec.inputs or []
+  }
+  outputs_dict = {
+      output_spec.name: output_spec
+      for output_spec in component_spec.outputs or []
+  }
+
+  def _input_artifact_uri_placeholder(input_key: str) -> str:
+    if is_compiling_for_v2 and type_utils.is_parameter_type(
+        inputs_dict[input_key].type):
+      raise TypeError('Input "{}" with type "{}" cannot be paired with '
+                      'InputUriPlaceholder.'.format(
+                          input_key, inputs_dict[input_key].type))
+    else:
+      return "{{{{$.inputs.artifacts['{}'].uri}}}}".format(input_key)
+
+  def _input_artifact_path_placeholder(input_key: str) -> str:
+    if is_compiling_for_v2 and type_utils.is_parameter_type(
+        inputs_dict[input_key].type):
+      raise TypeError('Input "{}" with type "{}" cannot be paired with '
+                      'InputPathPlaceholder.'.format(
+                          input_key, inputs_dict[input_key].type))
+    else:
+      return "{{{{$.inputs.artifacts['{}'].path}}}}".format(input_key)
+
+  def _input_parameter_placeholder(input_key: str) -> str:
+    if is_compiling_for_v2 and not type_utils.is_parameter_type(
+        inputs_dict[input_key].type):
+      raise TypeError('Input "{}" with type "{}" cannot be paired with '
+                      'InputValuePlaceholder.'.format(
+                          input_key, inputs_dict[input_key].type))
+    else:
+      return "{{{{$.inputs.parameters['{}']}}}}".format(input_key)
+
+  def _output_artifact_uri_placeholder(output_key: str) -> str:
+    if is_compiling_for_v2 and type_utils.is_parameter_type(
+        outputs_dict[output_key].type):
+      raise TypeError('Output "{}" with type "{}" cannot be paired with '
+                      'OutputUriPlaceholder.'.format(
+                          output_key, outputs_dict[output_key].type))
+    else:
+      return "{{{{$.outputs.artifacts['{}'].uri}}}}".format(output_key)
+
+  def _output_artifact_path_placeholder(output_key: str) -> str:
+    return "{{{{$.outputs.artifacts['{}'].path}}}}".format(output_key)
+
+  def _output_parameter_path_placeholder(output_key: str) -> str:
+    return "{{{{$.outputs.parameters['{}'].output_file}}}}".format(output_key)
+
+  def _resolve_commands_and_args_in_custom_job_spec(
+      custom_job_spec: Dict[str, Any],
+      component_spec: _structures.ComponentSpec,
+  ) -> None:
+    """Resolves command line argument placeholders in custom job spec in place.
+
+    Args:
+      custom_job_spec: The custom_job_spec to be updated in place.
+      component_spec: The component spec object.
+    """
+
+    def _resolve_args(args: List[Union[str, _pipeline_param.PipelineParam]]):
+      for i in range(len(args)):
+        # Nothing needs to be resolved if it's not a PipelineParam
+        if not isinstance(args[i], _pipeline_param.PipelineParam):
+          continue
+
+        arg_name = args[i].name
+        if arg_name in inputs_dict:
+          if type_utils.is_parameter_type(inputs_dict[arg_name].type):
+            args[i] = _input_parameter_placeholder(arg_name)
+          else:
+            # TODO(chensun): swap InputAnnotation with InputUri
+            if inputs_dict[arg_name]._passing_style in [
+                io_types.InputAnnotation
+            ]:
+              args[i] = _input_artifact_uri_placeholder(arg_name)
+            else:
+              args[i] = _input_artifact_path_placeholder(arg_name)
+        elif arg_name in outputs_dict:
+          if type_utils.is_parameter_type(outputs_dict[arg_name].type):
+            args[i] = _output_parameter_path_placeholder(arg_name)
+          else:
+            # TODO(chensun): swap OutputAnnotation with OutputUri
+            if outputs_dict[arg_name]._passing_style in [
+                io_types.OutputAnnotation
+            ]:
+              args[i] = _output_artifact_uri_placeholder(arg_name)
+            else:
+              args[i] = _output_artifact_path_placeholder(arg_name)
+        else:
+          raise AssertionError('Argument {} not found.'.format(arg_name))
+
+    for worker_pool_spec in custom_job_spec.get('workerPoolSpecs', []):
+      _resolve_args(worker_pool_spec.get('containerSpec', {}).get('args', []))
+      _resolve_args(
+          worker_pool_spec.get('containerSpec', {}).get('command', []))
+
   def _resolve_commands_and_args_v2(
       component_spec: _structures.ComponentSpec,
       arguments: Mapping[str, Any],
@@ -344,56 +442,6 @@ def _attach_v2_specs(
     Returns:
       A named tuple: _components._ResolvedCommandLineAndPaths.
     """
-    inputs_dict = {
-        input_spec.name: input_spec
-        for input_spec in component_spec.inputs or []
-    }
-    outputs_dict = {
-        output_spec.name: output_spec
-        for output_spec in component_spec.outputs or []
-    }
-
-    def _input_artifact_uri_placeholder(input_key: str) -> str:
-      if is_compiling_for_v2 and type_utils.is_parameter_type(
-          inputs_dict[input_key].type):
-        raise TypeError('Input "{}" with type "{}" cannot be paired with '
-                        'InputUriPlaceholder.'.format(
-                            input_key, inputs_dict[input_key].type))
-      else:
-        return "{{{{$.inputs.artifacts['{}'].uri}}}}".format(input_key)
-
-    def _input_artifact_path_placeholder(input_key: str) -> str:
-      if is_compiling_for_v2 and type_utils.is_parameter_type(
-          inputs_dict[input_key].type):
-        raise TypeError('Input "{}" with type "{}" cannot be paired with '
-                        'InputPathPlaceholder.'.format(
-                            input_key, inputs_dict[input_key].type))
-      else:
-        return "{{{{$.inputs.artifacts['{}'].path}}}}".format(input_key)
-
-    def _input_parameter_placeholder(input_key: str) -> str:
-      if is_compiling_for_v2 and not type_utils.is_parameter_type(
-          inputs_dict[input_key].type):
-        raise TypeError('Input "{}" with type "{}" cannot be paired with '
-                        'InputValuePlaceholder.'.format(
-                            input_key, inputs_dict[input_key].type))
-      else:
-        return "{{{{$.inputs.parameters['{}']}}}}".format(input_key)
-
-    def _output_artifact_uri_placeholder(output_key: str) -> str:
-      if is_compiling_for_v2 and type_utils.is_parameter_type(
-          outputs_dict[output_key].type):
-        raise TypeError('Output "{}" with type "{}" cannot be paired with '
-                        'OutputUriPlaceholder.'.format(
-                            output_key, outputs_dict[output_key].type))
-      else:
-        return "{{{{$.outputs.artifacts['{}'].uri}}}}".format(output_key)
-
-    def _output_artifact_path_placeholder(output_key: str) -> str:
-      return "{{{{$.outputs.artifacts['{}'].path}}}}".format(output_key)
-
-    def _output_parameter_path_placeholder(output_key: str) -> str:
-      return "{{{{$.outputs.parameters['{}'].output_file}}}}".format(output_key)
 
     def _resolve_output_path_placeholder(output_key: str) -> str:
       if type_utils.is_parameter_type(outputs_dict[output_key].type):
@@ -402,12 +450,16 @@ def _attach_v2_specs(
         return _output_artifact_path_placeholder(output_key)
 
     placeholder_resolver = ExtraPlaceholderResolver()
+
     def _resolve_ir_placeholders_v2(
         arg,
         component_spec: _structures.ComponentSpec,
         arguments: dict,
     ) -> str:
-      inputs_dict = {input_spec.name: input_spec for input_spec in component_spec.inputs or []}
+      inputs_dict = {
+          input_spec.name: input_spec
+          for input_spec in component_spec.inputs or []
+      }
       if isinstance(arg, _structures.InputValuePlaceholder):
         input_name = arg.input_name
         input_value = arguments.get(input_name, None)
@@ -418,7 +470,8 @@ def _attach_v2_specs(
           if input_spec.optional:
             return None
           else:
-            raise ValueError('No value provided for input {}'.format(input_name))
+            raise ValueError(
+                'No value provided for input {}'.format(input_name))
 
       elif isinstance(arg, _structures.InputUriPlaceholder):
         input_name = arg.input_name
@@ -430,7 +483,8 @@ def _attach_v2_specs(
           if input_spec.optional:
             return None
           else:
-            raise ValueError('No value provided for input {}'.format(input_name))
+            raise ValueError(
+                'No value provided for input {}'.format(input_name))
 
       elif isinstance(arg, _structures.OutputUriPlaceholder):
         output_name = arg.output_name
@@ -438,9 +492,9 @@ def _attach_v2_specs(
         return output_uri
 
       return placeholder_resolver.resolve_placeholder(
-        arg=arg,
-        component_spec=component_spec,
-        arguments=arguments,
+          arg=arg,
+          component_spec=component_spec,
+          arguments=arguments,
       )
 
     resolved_cmd = _components._resolve_command_line_and_paths(
@@ -480,8 +534,8 @@ def _attach_v2_specs(
       # Loop arguments defaults to 'String' type if type is unknown.
       # This has to be done after the type compatiblity check.
       if argument_type is None and isinstance(
-          argument_value, (_for_loop.LoopArguments,
-                           _for_loop.LoopArgumentVariable)):
+          argument_value,
+          (_for_loop.LoopArguments, _for_loop.LoopArgumentVariable)):
         argument_type = 'String'
 
       arguments[input_name] = str(argument_value)
@@ -595,14 +649,48 @@ def _attach_v2_specs(
   # task.name is unique at this point.
   pipeline_task_spec.task_info.name = (dsl_utils.sanitize_task_name(task.name))
 
-  resolved_cmd = _resolve_commands_and_args_v2(
-      component_spec=component_spec, arguments=original_arguments)
+  if hasattr(component_spec, 'custom_job_factory'):
+    # The component is a serverless custom job implementation.
 
-  task.container_spec = (
-      pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec(
-          image=component_spec.implementation.container.image,
-          command=resolved_cmd.command,
-          args=resolved_cmd.args))
+    func = getattr(component_spec, 'custom_job_factory')
+    args_list = []
+    signature = inspect.signature(func)
+    for arg_name in signature.parameters:
+      arg_type = None
+      for pipeline_input in component_spec.inputs or []:
+        if arg_name == pipeline_input.name:
+          arg_type = pipeline_input.type
+          break
+      args_list.append(
+          _pipeline_param.PipelineParam(
+              _pipeline_param.sanitize_k8s_name(arg_name, True),
+              param_type=arg_type))
+
+    # Execute the custom job factory function to get the job spec.
+    custom_job_spec = func(*args_list)
+    _resolve_commands_and_args_in_custom_job_spec(custom_job_spec,
+                                                  component_spec)
+    task.custom_job_spec = {'jobSpec': custom_job_spec}
+
+  else:
+    # The component is a nomral container implementation.
+
+    resolved_cmd = _resolve_commands_and_args_v2(
+        component_spec=component_spec, arguments=original_arguments)
+
+    task.container_spec = (
+        pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec(
+            image=component_spec.implementation.container.image,
+            command=resolved_cmd.command,
+            args=resolved_cmd.args))
+
+    # Override command and arguments if compiling to v2.
+    if is_compiling_for_v2:
+      task.command = resolved_cmd.command
+      task.arguments = resolved_cmd.args
+
+      # limit this to v2 compiling only to avoid possible behavior change in v1.
+      task.inputs = input_params
 
   # TODO(chensun): dedupe IR component_spec and contaienr_spec
   pipeline_task_spec.component_ref.name = (
@@ -613,11 +701,3 @@ def _attach_v2_specs(
       component_spec, executor_label, arguments.keys())
 
   task.task_spec = pipeline_task_spec
-
-  # Override command and arguments if compiling to v2.
-  if is_compiling_for_v2:
-    task.command = resolved_cmd.command
-    task.arguments = resolved_cmd.args
-
-    # limit this to v2 compiling only to avoid possible behavior change in v1.
-    task.inputs = input_params

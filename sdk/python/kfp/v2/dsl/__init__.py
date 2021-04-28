@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from kfp.v2.dsl.component_decorator import component
+from kfp.v2.dsl.custom_job_decorator import ai_platform_custom_job
 from kfp.dsl.io_types import (
     Input,
     Output,

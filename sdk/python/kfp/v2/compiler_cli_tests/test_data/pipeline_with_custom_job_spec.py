@@ -13,49 +13,39 @@
 # limitations under the License.
 
 from kfp import components
-from kfp import dsl
+from kfp.v2 import dsl
 from kfp.v2 import compiler
+from kfp.v2.dsl import Artifact, Output
 
+MACHINE_TYPE = 'n1-standard-4'
 
-@components.create_component_from_func
-def print_op(text: str):
-  print(text)
+@dsl.ai_platform_custom_job
+def hello_world_op(input1: str, output1: Output[Artifact]):
+  return {
+      'workerPoolSpecs': [{
+          'containerSpec': {
+              'command': [
+                  'sh',
+                  '-exc',
+                  'echo "$0" | gsutil cp - "$1"',
+                  input1,
+                  output1
+              ],
+              'imageUri': 'google/cloud-sdk:slim',
+          },
+          'replicaCount': '1',
+          'machineSpec': {
+              'machineType': MACHINE_TYPE
+          }
+      }]
+  }
 
 
 @dsl.pipeline(name='pipeline-with-custom-job-spec', pipeline_root='dummy_root')
-def my_pipeline():
-
-  # Normal container execution.
-  print_op('container execution')
-
-  # Full custom job spec execution.
-  print_op('custom job execution - full custom job').set_custom_job_spec({
-      'name': 'test-custom-job-full',
-      'jobSpec': {
-          'workerPoolSpecs': [{
-              'containerSpec': {
-                  'command': [
-                      'sh', '-c', 'set -e -x\necho "$0"\n',
-                      '{{$.inputs.parameters[\'text\']}}'
-                  ],
-                  'imageUri': 'alpine:latest',
-              },
-              'replicaCount': '1',
-              'machineSpec': {
-                  'machineType': 'n1-standard-4'
-              }
-          }]
-      }
-  })
-
-  # Custom job spec with 'jobSpec' omitted - jobSpec will be auto-filled using
-  # the container spec.
-  print_op('custom job execution - partial custom job').set_custom_job_spec({
-      'name': 'test-custom-job-partial',
-  })
+def my_pipeline(text: str = 'hello world'):
+  hello_world_op(input1=text)
 
 
 if __name__ == '__main__':
   compiler.Compiler().compile(
-      pipeline_func=my_pipeline,
-      package_path=__file__.replace('.py', '.json'))
+      pipeline_func=my_pipeline, package_path=__file__.replace('.py', '.json'))

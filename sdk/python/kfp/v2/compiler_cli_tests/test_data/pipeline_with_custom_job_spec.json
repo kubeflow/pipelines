@@ -1,32 +1,21 @@
 {
   "pipelineSpec": {
     "components": {
-      "comp-print-op": {
-        "executorLabel": "exec-print-op",
+      "comp-hello-world-op": {
+        "executorLabel": "exec-hello-world-op",
         "inputDefinitions": {
           "parameters": {
-            "text": {
+            "input1": {
               "type": "STRING"
             }
           }
-        }
-      },
-      "comp-print-op-2": {
-        "executorLabel": "exec-print-op-2",
-        "inputDefinitions": {
-          "parameters": {
-            "text": {
-              "type": "STRING"
-            }
-          }
-        }
-      },
-      "comp-print-op-3": {
-        "executorLabel": "exec-print-op-3",
-        "inputDefinitions": {
-          "parameters": {
-            "text": {
-              "type": "STRING"
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "output1": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
             }
           }
         }
@@ -34,22 +23,7 @@
     },
     "deploymentSpec": {
       "executors": {
-        "exec-print-op": {
-          "container": {
-            "args": [
-              "--text",
-              "{{$.inputs.parameters['text']}}"
-            ],
-            "command": [
-              "sh",
-              "-ec",
-              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
-              "def print_op(text):\n  print(text)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Print op', description='')\n_parser.add_argument(\"--text\", dest=\"text\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = print_op(**_parsed_args)\n"
-            ],
-            "image": "python:3.7"
-          }
-        },
-        "exec-print-op-2": {
+        "exec-hello-world-op": {
           "customJob": {
             "customJob": {
               "jobSpec": {
@@ -58,11 +32,12 @@
                     "containerSpec": {
                       "command": [
                         "sh",
-                        "-c",
-                        "set -e -x\necho \"$0\"\n",
-                        "{{$.inputs.parameters['text']}}"
+                        "-exc",
+                        "echo \"$0\" | gsutil cp - \"$1\"",
+                        "{{$.inputs.parameters['input1']}}",
+                        "{{$.outputs.artifacts['output1'].uri}}"
                       ],
-                      "imageUri": "alpine:latest"
+                      "imageUri": "google/cloud-sdk:slim"
                     },
                     "machineSpec": {
                       "machineType": "n1-standard-4"
@@ -70,38 +45,7 @@
                     "replicaCount": "1"
                   }
                 ]
-              },
-              "name": "test-custom-job-full"
-            }
-          }
-        },
-        "exec-print-op-3": {
-          "customJob": {
-            "customJob": {
-              "jobSpec": {
-                "workerPoolSpecs": [
-                  {
-                    "containerSpec": {
-                      "args": [
-                        "--text",
-                        "{{$.inputs.parameters['text']}}"
-                      ],
-                      "command": [
-                        "sh",
-                        "-ec",
-                        "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
-                        "def print_op(text):\n  print(text)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Print op', description='')\n_parser.add_argument(\"--text\", dest=\"text\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = print_op(**_parsed_args)\n"
-                      ],
-                      "imageUri": "python:3.7"
-                    },
-                    "machineSpec": {
-                      "machineType": "n1-standard-4"
-                    },
-                    "replicaCount": "1"
-                  }
-                ]
-              },
-              "name": "test-custom-job-partial"
+              }
             }
           }
         }
@@ -113,62 +57,27 @@
     "root": {
       "dag": {
         "tasks": {
-          "task-print-op": {
+          "task-hello-world-op": {
             "componentRef": {
-              "name": "comp-print-op"
+              "name": "comp-hello-world-op"
             },
             "inputs": {
               "parameters": {
-                "text": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": "container execution"
-                    }
-                  }
+                "input1": {
+                  "componentInputParameter": "text"
                 }
               }
             },
             "taskInfo": {
-              "name": "task-print-op"
+              "name": "task-hello-world-op"
             }
-          },
-          "task-print-op-2": {
-            "componentRef": {
-              "name": "comp-print-op-2"
-            },
-            "inputs": {
-              "parameters": {
-                "text": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": "custom job execution - full custom job"
-                    }
-                  }
-                }
-              }
-            },
-            "taskInfo": {
-              "name": "task-print-op-2"
-            }
-          },
-          "task-print-op-3": {
-            "componentRef": {
-              "name": "comp-print-op-3"
-            },
-            "inputs": {
-              "parameters": {
-                "text": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": "custom job execution - partial custom job"
-                    }
-                  }
-                }
-              }
-            },
-            "taskInfo": {
-              "name": "task-print-op-3"
-            }
+          }
+        }
+      },
+      "inputDefinitions": {
+        "parameters": {
+          "text": {
+            "type": "STRING"
           }
         }
       }
@@ -177,6 +86,11 @@
     "sdkVersion": "kfp-1.5.0"
   },
   "runtimeConfig": {
-    "gcsOutputDirectory": "dummy_root"
+    "gcsOutputDirectory": "dummy_root",
+    "parameters": {
+      "text": {
+        "stringValue": "hello world"
+      }
+    }
   }
 }

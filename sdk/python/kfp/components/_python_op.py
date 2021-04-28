@@ -976,12 +976,16 @@ def create_component_from_func_v2(
     func: Callable,
     base_image: Optional[str] = None,
     packages_to_install: List[str] = None,
-    output_component_file: Optional[str] = None):
+    output_component_file: Optional[str] = None,
+    is_custom_job: bool = False):
     component_spec = _func_to_component_spec_v2(
         func=func,
         base_image=base_image,
         packages_to_install=packages_to_install,
     )
+    if is_custom_job:
+      component_spec.custom_job_factory = func
+
     if output_component_file:
         component_spec.save(output_component_file)
 

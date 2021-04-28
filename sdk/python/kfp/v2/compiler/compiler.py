@@ -806,6 +806,7 @@ class Compiler(object):
       # Add AIPlatformCustomJobSpec, if applicable.
       custom_job_spec = getattr(subgroup, 'custom_job_spec', None)
       if custom_job_spec:
+        custom_job_spec = custom_job_spec
         executor_label = subgroup_component_spec.executor_label
         if executor_label not in deployment_config.executors:
           deployment_config.executors[
