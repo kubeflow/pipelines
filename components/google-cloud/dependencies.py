@@ -13,21 +13,22 @@
 # limitations under the License.
 """Setup configuration of  Google Cloud Pipeline Components client side libraries."""
 
+
 def make_required_install_packages():
-  # TODO(vinnysenthil): change to google-cloud-aiplatform
-  return [
-      "kfp>=1.4.0,<2.0.0",
-      "git+git://github.com/googleapis/python-aiplatform@master#egg=google-cloud-aiplatform",
-  ]
+    # TODO(vinnysenthil): change to google-cloud-aiplatform
+    return [
+        "kfp>=1.4.0,<2.0.0",
+        "google-cloud-aiplatform @ git+ssh://git@github.com/googleapis/python-aiplatform@mb-release#egg=google-cloud-aiplatform",
+    ]
 
 
 def make_required_test_packages():
-  return make_required_install_packages() + [
-      "mock>=4.0.0",
-      "flake8>=3.0.0",
-      "pytest>=6.0.0",
-  ]
+    return make_required_install_packages() + [
+        "mock>=4.0.0",
+        "flake8>=3.0.0",
+        "pytest>=6.0.0",
+    ]
 
 
 def make_dependency_links():
-  return []
+    return []
