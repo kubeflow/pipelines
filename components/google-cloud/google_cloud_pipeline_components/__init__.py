@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Google Cloud Pipeline Components root."""
-from google_cloud_pipeline_components import aiplatform
+from .version import __version__

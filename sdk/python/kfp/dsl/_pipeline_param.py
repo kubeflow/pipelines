@@ -13,7 +13,7 @@
 # limitations under the License.
 import re
 from collections import namedtuple
-from typing import List, Dict, Union
+from typing import Dict, List, Optional, Union
 
 # TODO: Move this to a separate class
 # For now, this identifies a condition with only "==" operator supported.
@@ -162,10 +162,10 @@ class PipelineParam(object):
 
   def __init__(self,
                name: str,
-               op_name: str = None,
-               value: str = None,
-               param_type: Union[str, Dict] = None,
-               pattern: str = None):
+               op_name: Optional[str] = None,
+               value: Optional[str] = None,
+               param_type: Optional[Union[str, Dict]] = None,
+               pattern: Optional[str] = None):
     valid_name_regex = r'^[A-Za-z][A-Za-z0-9\s_-]*$'
     if not re.match(valid_name_regex, name):
       raise ValueError(
@@ -180,7 +180,7 @@ class PipelineParam(object):
     # so that serialization and unserialization remain consistent
     # (i.e. None => '' => None)
     self.op_name = op_name if op_name else None
-    self.value = value if value else None
+    self.value = value
     self.param_type = param_type
     self.pattern = pattern or str(self)
 
