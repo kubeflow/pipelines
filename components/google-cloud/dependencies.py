@@ -18,7 +18,7 @@ def make_required_install_packages():
     # TODO(vinnysenthil): change to google-cloud-aiplatform
     return [
         "kfp>=1.4.0,<2.0.0",
-        "google-cloud-aiplatform @ git+ssh://git@github.com/googleapis/python-aiplatform@mb-release#egg=google-cloud-aiplatform",
+        "google-cloud-aiplatform @ git+https://github.com/googleapis/python-aiplatform@master#egg=google-cloud-aiplatform",
     ]
 
 
