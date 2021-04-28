@@ -140,7 +140,8 @@ class CompilerTest(unittest.TestCase):
             arguments=['echo "$0"', text2])
 
       @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
-      def opsgroups_pipeline(text1='message 1', text2='message 2'):
+      def opsgroups_pipeline(text1: str = 'message 1',
+                             text2: str = 'message 2'):
         step1_graph_component = echo1_graph_component(text1)
         step2_graph_component = echo2_graph_component(text2)
         step2_graph_component.after(step1_graph_component)
@@ -304,6 +305,21 @@ class CompilerTest(unittest.TestCase):
         'Passing PipelineParam "input1" with type "String" \(as "Parameter"\) '
         'to component input "some_input" with type "None" \(as "Artifact"\) is '
         'incompatible. Please fix the type of the component input.'):
+      compiler.Compiler().compile(
+          pipeline_func=my_pipeline, package_path='output.json')
+
+  def test_passing_missing_type_annotation_on_pipeline_input_should_error(self):
+
+    @dsl.pipeline(name='test-pipeline', pipeline_root='gs://path')
+    def my_pipeline(input1):
+      pass
+
+    with self.assertRaisesRegex(
+        TypeError,
+        'The pipeline argument \"input1\" is viewed as an artifact due to its '
+        'type \"None\". And we currently do not support passing artifacts as '
+        'pipeline inputs. Consider type annotating the argument with a primitive'
+        ' type, such as \"str\", \"int\", and \"float\".'):
       compiler.Compiler().compile(
           pipeline_func=my_pipeline, package_path='output.json')
 
