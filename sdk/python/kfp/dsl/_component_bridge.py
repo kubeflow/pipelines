@@ -472,16 +472,17 @@ def _attach_v2_specs(
     if isinstance(argument_value, _pipeline_param.PipelineParam):
       argument_type = argument_value.param_type
 
-      # Loop arguments defaults to 'String' type if type is unknown.
-      if argument_type is None and isinstance(
-          argument_value, (_for_loop.LoopArguments,
-                           _for_loop.LoopArgumentVariable)):
-        argument_type = 'String'
-
       types.verify_type_compatibility(
           argument_type, input_type,
           'Incompatible argument passed to the input "{}" of component "{}": '
           .format(input_name, component_spec.name))
+
+      # Loop arguments defaults to 'String' type if type is unknown.
+      # This has to be done after the type compatiblity check.
+      if argument_type is None and isinstance(
+          argument_value, (_for_loop.LoopArguments,
+                           _for_loop.LoopArgumentVariable)):
+        argument_type = 'String'
 
       arguments[input_name] = str(argument_value)
 
