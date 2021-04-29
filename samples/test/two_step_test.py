@@ -69,7 +69,7 @@ def verify(
             },
             'outputs': {
                 'artifacts': [{
-                    'name': '',
+                    'name': 'output_dataset_one',
                     'type': 'system.Dataset'
                 }],
                 'parameters': {
@@ -93,7 +93,7 @@ def verify(
             },
             'outputs': {
                 'artifacts': [{
-                    'name': '',
+                    'name': 'model',
                     'type': 'system.Model',
                 }],
                 'parameters': {}
