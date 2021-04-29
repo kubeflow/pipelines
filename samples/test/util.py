@@ -1,6 +1,7 @@
 import os
 import logging
 import json
+import random
 from pprint import pprint
 from typing import Dict, List, Callable, Optional
 from dataclasses import dataclass, asdict
@@ -72,6 +73,22 @@ def run_pipeline_func(test_cases: List[TestCase]):
     _run_test(test_wrapper)
 
 
+def _retry_with_backoff(fn: Callable, retries=5, backoff_in_seconds=1):
+    i = 0
+    while True:
+        try:
+            return fn()
+        except:
+            if i >= retries:
+                print(f"Failed after {retires} retries:")
+                raise
+            else:
+                sleep = (backoff_in_seconds * 2**i + random.uniform(0, 1))
+                print("  Sleep :", str(sleep) + "s")
+                time.sleep(sleep)
+                i += 1
+
+
 def _run_test(callback):
 
     def main(
@@ -130,16 +147,20 @@ def _run_test(callback):
                 extra_arguments = {
                     kfp.dsl.ROOT_PARAMETER_NAME: output_directory
                 }
-            run_result = client.create_run_from_pipeline_func(
-                pipeline_func,
-                mode=mode,
-                arguments={
-                    **extra_arguments,
-                    **arguments,
-                },
-                launcher_image=launcher_image,
-                experiment_name=experiment,
-            )
+
+            def _create_run():
+                return client.create_run_from_pipeline_func(
+                    pipeline_func,
+                    mode=mode,
+                    arguments={
+                        **extra_arguments,
+                        **arguments,
+                    },
+                    launcher_image=launcher_image,
+                    experiment_name=experiment,
+                )
+
+            run_result = _retry_with_backoff(fn=_create_run)
             print("Run details page URL:")
             print(f"{external_host}/#/runs/details/{run_result.run_id}")
             run_detail = run_result.wait_for_run_completion(20 * MINUTE)
