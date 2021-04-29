@@ -945,6 +945,7 @@ class Compiler(object):
 
     metadata = workflow.setdefault('metadata', {})
     annotations = metadata.setdefault('annotations', {})
+    labels = metadata.setdefault('labels', {})
 
     annotations['pipelines.kubeflow.org/kfp_sdk_version'] = kfp.__version__
     annotations['pipelines.kubeflow.org/pipeline_compilation_time'] = datetime.datetime.now().isoformat()
@@ -952,9 +953,10 @@ class Compiler(object):
 
     if self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
       annotations['pipelines.kubeflow.org/v2_pipeline'] = "true"
+      labels['pipelines.kubeflow.org/v2_pipeline'] = "true"
+
 
     # Labels might be logged better than annotations so adding some information here as well
-    labels = metadata.setdefault('labels', {})
     labels['pipelines.kubeflow.org/kfp_sdk_version'] = kfp.__version__
 
     return workflow
