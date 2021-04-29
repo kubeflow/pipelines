@@ -18,6 +18,7 @@ import json
 import os
 
 from kfp.dsl import io_types
+from kfp.dsl.io_types import Input, InputAnnotation, Output, Model, OutputAnnotation
 
 
 class IOTypesTest(unittest.TestCase):
@@ -47,6 +48,53 @@ class IOTypesTest(unittest.TestCase):
         'test_data', 'expected_io_types_bulk_load_classification_metrics.json')) as json_file:
       expected_json = json.load(json_file)
       self.assertEqual(expected_json, metrics.metadata)
+
+
+class InputOutputArtifacts(unittest.TestCase):
+
+  def test_is_artifact_annotation(self):
+    self.assertTrue(io_types.is_artifact_annotation(Input[Model]))
+    self.assertTrue(io_types.is_artifact_annotation(Output[Model]))
+
+    self.assertFalse(io_types.is_artifact_annotation(Model))
+    self.assertFalse(io_types.is_artifact_annotation(int))
+    self.assertFalse(io_types.is_artifact_annotation('Dataset'))
+
+  def test_is_input_artifact(self):
+    self.assertTrue(io_types.is_input_artifact(Input[Model]))
+    self.assertTrue(io_types.is_input_artifact(Input))
+
+    self.assertFalse(io_types.is_input_artifact(Output[Model]))
+    self.assertFalse(io_types.is_input_artifact(Output))
+
+  def test_is_output_artifact(self):
+    self.assertTrue(io_types.is_output_artifact(Output[Model]))
+    self.assertTrue(io_types.is_output_artifact(Output))
+
+    self.assertFalse(io_types.is_output_artifact(Input[Model]))
+    self.assertFalse(io_types.is_output_artifact(Input))
+
+  def test_get_io_artifact_class(self):
+    self.assertEqual(io_types.get_io_artifact_class(Output[Model]), Model)
+
+    self.assertEqual(io_types.get_io_artifact_class(Input), None)
+    self.assertEqual(io_types.get_io_artifact_class(Output), None)
+    self.assertEqual(io_types.get_io_artifact_class(Model), None)
+    self.assertEqual(io_types.get_io_artifact_class(str), None)
+
+  def test_get_io_artifact_annotation(self):
+    self.assertEqual(io_types.get_io_artifact_annotation(Output[Model]),
+                     OutputAnnotation)
+    self.assertEqual(io_types.get_io_artifact_annotation(Input[Model]),
+                     InputAnnotation)
+    self.assertEqual(io_types.get_io_artifact_annotation(Input),
+                     InputAnnotation)
+    self.assertEqual(io_types.get_io_artifact_annotation(Output),
+                     OutputAnnotation)
+
+    self.assertEqual(io_types.get_io_artifact_annotation(Model), None)
+    self.assertEqual(io_types.get_io_artifact_annotation(str), None)
+
 
 if __name__ == '__main__':
   unittest.main()

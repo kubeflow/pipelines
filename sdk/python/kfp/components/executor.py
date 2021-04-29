@@ -15,7 +15,7 @@ import json
 import inspect
 from typing import Any, Callable, Dict, Optional, Union
 from kfp.components._python_op import InputPath, OutputPath
-from kfp.dsl.io_types import Artifact, InputArtifact, OutputArtifact, create_runtime_artifact
+from kfp.dsl.io_types import Artifact, Input, Output, create_runtime_artifact, is_artifact_annotation, is_input_artifact, is_output_artifact
 
 
 class Executor():
@@ -24,8 +24,8 @@ class Executor():
   def __init__(self, executor_input: Dict, function_to_execute: Callable):
     self._func = function_to_execute
     self._input = executor_input
-    self._input_artifacts: Dict[str, InputArtifact] = {}
-    self._output_artifacts: Dict[str, OutputArtifact] = {}
+    self._input_artifacts: Dict[str, Artifact] = {}
+    self._output_artifacts: Dict[str, Artifact] = {}
 
     for name, artifacts in self._input.get('inputs', {}).get('artifacts',
                                                              {}).items():
@@ -46,13 +46,14 @@ class Executor():
 
   @classmethod
   def _make_input_artifact(cls, runtime_artifact: Dict):
-    artifact = create_runtime_artifact(runtime_artifact)
-    return InputArtifact(artifact_type=type(artifact), artifact=artifact)
+    return create_runtime_artifact(runtime_artifact)
 
   @classmethod
   def _make_output_artifact(cls, runtime_artifact: Dict):
+    import os
     artifact = create_runtime_artifact(runtime_artifact)
-    return OutputArtifact(artifact_type=type(artifact), artifact=artifact)
+    os.makedirs(os.path.dirname(artifact.path), exist_ok=True)
+    return  artifact
 
   def _get_input_artifact(self, name: str):
     return self._input_artifacts.get(name)
@@ -92,7 +93,7 @@ class Executor():
     output_artifact = self._output_artifacts.get(artifact_name)
     if not output_artifact:
       raise ValueError(
-          'Failed to get OutputArtifact path for artifact name {}'.format(
+          'Failed to get output artifact path for artifact name {}'.format(
               artifact_name))
     return output_artifact.path
 
@@ -101,7 +102,7 @@ class Executor():
     input_artifact = self._input_artifacts.get(artifact_name)
     if not input_artifact:
       raise ValueError(
-          'Failed to get InputArtifact path for artifact name {}'.format(
+          'Failed to get input artifact path for artifact name {}'.format(
               artifact_name))
     return input_artifact.path
 
@@ -166,9 +167,9 @@ class Executor():
 
     for name, artifact in self._output_artifacts.items():
       runtime_artifact = {
-          "name": artifact.get().name,
-          "uri": artifact.get().uri,
-          "metadata": artifact.get().metadata,
+          "name": artifact.name,
+          "uri": artifact.uri,
+          "metadata": artifact.metadata,
       }
       artifacts_list = {'artifacts': [runtime_artifact]}
 
@@ -226,20 +227,19 @@ class Executor():
       if v in [str, float, int]:
         func_kwargs[k] = self._get_input_parameter_value(k)
 
-      if isinstance(v, OutputPath):
+      if is_artifact_annotation(v):
+        if is_input_artifact(v):
+          func_kwargs[k] = self._get_input_artifact(k)
+        if is_output_artifact(v):
+          func_kwargs[k] = self._get_output_artifact(k)
+
+      elif isinstance(v, OutputPath):
         if v.type in [str, float, int]:
           func_kwargs[k] = self._get_output_parameter_path(k)
         else:
           func_kwargs[k] = self._get_output_artifact_path(k)
-
-      if isinstance(v, InputPath):
+      elif isinstance(v, InputPath):
         func_kwargs[k] = self._get_input_artifact_path(k)
-
-      if isinstance(v, InputArtifact):
-        func_kwargs[k] = self._get_input_artifact(k)
-
-      if isinstance(v, OutputArtifact):
-        func_kwargs[k] = self._get_output_artifact(k)
 
     result = self._func(**func_kwargs)
     self._write_executor_output(result)

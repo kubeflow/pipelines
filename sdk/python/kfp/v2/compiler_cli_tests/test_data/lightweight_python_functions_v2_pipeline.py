@@ -15,16 +15,17 @@
 from kfp import dsl
 from kfp import components
 from kfp.components import InputPath, OutputPath
-from kfp.dsl.io_types import InputArtifact, OutputArtifact, Dataset, Model
+from kfp.v2.dsl import Input, Output, Dataset, Model, component
 import kfp.v2.compiler as compiler
 
 
+@component
 def preprocess(
     # An input parameter of type string.
     message: str,
-    # Use OutputArtifact to get a metadata-rich handle to the output artifact
+    # Use Output[T] to get a metadata-rich handle to the output artifact
     # of type `Dataset`.
-    output_dataset_one: OutputArtifact(Dataset),
+    output_dataset_one: Output[Dataset],
     # A locally accessible filepath for another output artifact of type
     # `Dataset`.
     output_dataset_two_path: OutputPath('Dataset'),
@@ -32,8 +33,8 @@ def preprocess(
     output_parameter_path: OutputPath(str)):
   '''Dummy preprocessing step'''
 
-  # Use OutputArtifact.path to access a local file path for writing.
-  # One can also use OutputArtifact.uri to access the actual URI file path.
+  # Use Dataset.path to access a local file path for writing.
+  # One can also use Dataset.uri to access the actual URI file path.
   with open(output_dataset_one.path, 'w') as f:
     f.write(message)
 
@@ -46,18 +47,19 @@ def preprocess(
     f.write(message)
 
 
+@component
 def train(
     # Use InputPath to get a locally accessible path for the input artifact
     # of type `Dataset`.
     dataset_one_path: InputPath('Dataset'),
-    # Use InputArtifact to get a metadata-rich handle to the input artifact
+    # Use Input[T] to get a metadata-rich handle to the input artifact
     # of type `Dataset`.
-    dataset_two: InputArtifact(Dataset),
+    dataset_two: Input[Dataset],
     # An input parameter of type string.
     message: str,
-    # Use OutputArtifact to get a metadata-rich handle to the output artifact
+    # Use Output[T] to get a metadata-rich handle to the output artifact
     # of type `Dataset`.
-    model: OutputArtifact(Model),
+    model: Output[Model],
     # An input parameter of type int with a default value.
     num_steps: int = 100):
   '''Dummy Training step'''
@@ -76,22 +78,17 @@ def train(
 
   # Use model.get() to get a Model artifact, which has a .metadata dictionary
   # to store arbitrary metadata for the output artifact.
-  model.get().metadata['accuracy'] = 0.9
-
-
-preprocess_op = components.create_component_from_func_v2(preprocess)
-train_op = components.create_component_from_func_v2(train)
+  model.metadata['accuracy'] = 0.9
 
 
 @dsl.pipeline(pipeline_root='dummy_root',
               name='my-test-pipeline-beta')
 def pipeline(message: str):
-  preprocess_task = preprocess_op(message=message)
-  train_task = train_op(
-      dataset_one=preprocess_task.outputs['output_dataset_one'],
-      dataset_two=preprocess_task.outputs['output_dataset_two'],
-      message=preprocess_task.outputs['output_parameter'],
-      num_steps=5)
+  preprocess_task = preprocess(message=message)
+  train_task = train(dataset_one=preprocess_task.outputs['output_dataset_one'],
+                     dataset_two=preprocess_task.outputs['output_dataset_two'],
+                     message=preprocess_task.outputs['output_parameter'],
+                     num_steps=5)
 
 
 if __name__ == '__main__':

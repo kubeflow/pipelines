@@ -15,7 +15,7 @@
 from typing import NamedTuple
 from kfp import components, dsl
 from kfp.v2 import compiler
-from kfp.dsl.io_types import InputArtifact, Dataset, Model, Metrics
+from kfp.v2.dsl import Input, Dataset, Model, Metrics
 
 
 def concat_message(first: str, second: str) -> str:
@@ -31,12 +31,13 @@ def output_artifact(number: int, message: str) -> Dataset:
   return '\n'.join(result)
 
 
-def output_named_tuple(artifact: InputArtifact(Dataset)) -> NamedTuple(
-    'Outputs', [
-        ('scalar', str),
-        ('metrics', Metrics),
-        ('model', Model),
-    ]):
+def output_named_tuple(
+    artifact: Input[Dataset]
+) -> NamedTuple('Outputs', [
+    ('scalar', str),
+    ('metrics', Metrics),
+    ('model', Model),
+]):
   scalar = "123"
 
   import json
