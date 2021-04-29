@@ -140,3 +140,4 @@ def update_op(op: dsl.ContainerOp,
                           value=json.dumps(runtime_info)))
 
   op.pod_annotations['pipelines.kubeflow.org/v2_component'] = "true"
+  op.pod_labels['pipelines.kubeflow.org/v2_component']= "true"
