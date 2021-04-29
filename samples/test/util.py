@@ -142,7 +142,7 @@ def _run_test(callback):
             )
             print("Run details page URL:")
             print(f"{external_host}/#/runs/details/{run_result.run_id}")
-            run_detail = run_result.wait_for_run_completion(10 * MINUTE)
+            run_detail = run_result.wait_for_run_completion(20 * MINUTE)
             # Hide detailed information for pretty printing
             workflow_spec = run_detail.run.pipeline_spec.workflow_manifest
             workflow_manifest = run_detail.pipeline_runtime.workflow_manifest
