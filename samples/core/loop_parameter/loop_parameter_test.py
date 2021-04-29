@@ -17,29 +17,12 @@ from .loop_parameter import my_pipeline
 from ...test.util import run_pipeline_func, TestCase, NEEDS_A_FIX
 
 run_pipeline_func([
-    # TODO(v2-compatible): fix this sample for v2 mode.
-    # V2_COMPATIBLE mode fails with:
-    # File "/Users/gongyuan/kfp/pipelines/sdk/python/kfp/compiler/v2_compat.py", line 108, in update_op
-    # artifact_info = {"fileInputPath": op.input_artifact_paths[artifact_name]}
-    # KeyError: 'text'
-    #
-    # And another error:
-    # This step is in Error state with this message: withParam value could not
-    # be parsed as a JSON list:
-    # {
-    #   "id":"733",
-    #   "typeId":"114",
-    #   "uri":"gs://gongyuan-test/kfp/output/pipeline-with-loop-parameter/pipeline-with-loop-parameter-pn8nj/pipeline-with-loop-parameter-pn8nj-1197421549/data",
-    #   "createTimeSinceEpoch":"1617689193656",
-    #   "lastUpdateTimeSinceEpoch":"1617689193656"
-    # }
-    # TestCase(
-    #     pipeline_func=my_pipeline,
-    #     mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
-    #     verify_func=NEEDS_A_FIX,
-    # ),
     TestCase(
         pipeline_func=my_pipeline,
         mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
+    ),
+    TestCase(
+        pipeline_func=my_pipeline,
+        mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
     ),
 ])
