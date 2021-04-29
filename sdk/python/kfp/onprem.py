@@ -46,7 +46,7 @@ def use_k8s_secret(
     secret_name: str = 'k8s-secret',
     k8s_secret_key_to_env: Dict = {},
     k8s_secret_key_to_volume: Dict = {},
-    mount_path="/mnt"
+    mount_path: str = "/mnt"
 ):
     """An operator that configures the container to use k8s credentials.
 
