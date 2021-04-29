@@ -23,8 +23,8 @@ name: upstream
 inputs:
 - {name: input_1, type: String}
 - {name: input_2, type: Float}
-- {name: input_3, type: }
-- {name: input_4}
+- {name: input_3, type: String}
+- {name: input_4, type: String}
 outputs:
 - {name: output_1, type: Integer}
 - {name: output_2, type: Model}
@@ -39,8 +39,8 @@ implementation:
     args:
     - {inputValue: input_1}
     - {inputValue: input_2}
-    - {inputUri: input_3}
-    - {inputUri: input_4}
+    - {inputValue: input_3}
+    - {inputValue: input_4}
     - {outputPath: output_1}
     - {outputUri: output_2}
     - {outputPath: output_3}
@@ -76,8 +76,8 @@ implementation:
 
 @dsl.pipeline(name='pipeline-with-various-types', pipeline_root='dummy_root')
 def my_pipeline(input1: str,
-                input3,
-                input4=''):
+                input3: str,
+                input4: str=''):
   component_1 = component_op_1(
       input_1=input1,
       input_2=3.1415926,
