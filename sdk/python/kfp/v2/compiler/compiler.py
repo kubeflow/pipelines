@@ -987,6 +987,13 @@ class Compiler(object):
         if arg_name == pipeline_input.name:
           arg_type = pipeline_input.type
           break
+      if not type_utils.is_parameter_type(arg_type):
+        raise TypeError(
+            'The pipeline argument "{arg_name}" is viewed as an artifact due to '
+            'its type "{arg_type}". And we currently do not support passing '
+            'artifacts as pipeline inputs. Consider type annotating the argument'
+            ' with a primitive type, such as "str", "int", and "float".'.format(
+                arg_name=arg_name, arg_type=arg_type))
       args_list.append(
           dsl.PipelineParam(
               sanitize_k8s_name(arg_name, True), param_type=arg_type))
