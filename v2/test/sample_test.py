@@ -100,7 +100,7 @@ def main(
     )
     print("Run details page URL:")
     print(f"{host}/#/runs/details/{run_result.run_id}")
-    run_response = run_result.wait_for_run_completion(10 * MINUTE)
+    run_response = run_result.wait_for_run_completion(20 * MINUTE)
     run = run_response.run
     from pprint import pprint
     # Hide verbose content
