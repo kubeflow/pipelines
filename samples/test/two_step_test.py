@@ -70,8 +70,7 @@ def verify(
             'outputs': {
                 'artifacts': [{
                     'name': '',
-                    'type': 'system.Dataset',
-                    'custom_properties': {'name': 'output_dataset_one'}
+                    'type': 'system.Dataset'
                 }],
                 'parameters': {
                     'output_parameter_one': 1234
@@ -96,7 +95,6 @@ def verify(
                 'artifacts': [{
                     'name': '',
                     'type': 'system.Model',
-                    'custom_properties': {'name': 'model'}
                 }],
                 'parameters': {}
             },
