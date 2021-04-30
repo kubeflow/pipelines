@@ -217,8 +217,6 @@ class KfpArtifact:
                 raw_value = v.string_value
             if v.int_value:
                 raw_value = v.int_value
-            if v.float_value:
-                raw_value = v.float_value
             custom_properties[k] = raw_value
         artifact_name = ''
         if mlmd_artifact.name != '':
