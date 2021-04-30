@@ -325,6 +325,7 @@ func (r *runtimeInfo) generateExecutorInput(genOutputURI generateOutputURI, outp
 			s3Region := os.Getenv("AWS_REGION")
 			rta.Metadata.Fields["s3_region"] = &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: s3Region}}
 		}
+		rta.Metadata.Fields["name"] = &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: name}}
 
 		if err := setRuntimeArtifactType(rta, oa.InstanceSchema, oa.SchemaTitle); err != nil {
 			return nil, fmt.Errorf("failed to generate output RuntimeArtifact: %w", err)

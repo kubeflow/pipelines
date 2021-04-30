@@ -15,11 +15,7 @@
 
 # %%
 
-import sys
-import logging
 import unittest
-from dataclasses import dataclass, asdict
-from typing import Tuple
 from pprint import pprint
 
 import kfp
@@ -28,13 +24,10 @@ import kfp_server_api
 from .two_step import two_step_pipeline
 from .util import run_pipeline_func, TestCase, KfpMlmdClient
 
-from ml_metadata import metadata_store
-from ml_metadata.proto import metadata_store_pb2
-
 
 def verify(
-    run: kfp_server_api.ApiRun, mlmd_connection_config, argo_workflow_name: str,
-    **kwargs
+        run: kfp_server_api.ApiRun, mlmd_connection_config, argo_workflow_name: str,
+        **kwargs
 ):
     t = unittest.TestCase()
     t.maxDiff = None  # we always want to see full diff
@@ -68,10 +61,10 @@ def verify(
                 }
             },
             'outputs': {
-                'artifacts': [{
-                    'name': '',
-                    'type': 'system.Dataset'
-                }],
+                'artifacts': [{'custom_properties': {'name': 'output_dataset_one'},
+                               'name': 'output_dataset_one',
+                               'type': 'system.Dataset'
+                               }],
                 'parameters': {
                     'output_parameter_one': 1234
                 }
@@ -83,19 +76,19 @@ def verify(
         train.get_dict(), {
             'name': 'train-op',
             'inputs': {
-                'artifacts': [{
-                    'name': '',
-                    'type': 'system.Dataset',
-                }],
+                'artifacts': [{'custom_properties': {'name': 'output_dataset_one'},
+                               'name': 'output_dataset_one',
+                               'type': 'system.Dataset',
+                               }],
                 'parameters': {
                     'num_steps': 1234
                 }
             },
             'outputs': {
-                'artifacts': [{
-                    'name': '',
-                    'type': 'system.Model',
-                }],
+                'artifacts': [{'custom_properties': {'name': 'model'},
+                               'name': 'model',
+                               'type': 'system.Model',
+                               }],
                 'parameters': {}
             },
             'type': 'kfp.ContainerExecution'

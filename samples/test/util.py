@@ -1,10 +1,10 @@
-import os
-import logging
 import json
+import logging
+import os
 import random
+from dataclasses import dataclass, asdict
 from pprint import pprint
 from typing import Dict, List, Callable, Optional
-from dataclasses import dataclass, asdict
 
 import kfp
 import kfp_server_api
@@ -17,9 +17,9 @@ MINUTE = 60
 # Add **kwargs, so that when new arguments are added, this doesn't fail for
 # unknown arguments.
 def _default_verify_func(
-    run_id: int, run: kfp_server_api.ApiRun,
-    mlmd_connection_config: metadata_store_pb2.MetadataStoreClientConfig,
-    **kwargs
+        run_id: int, run: kfp_server_api.ApiRun,
+        mlmd_connection_config: metadata_store_pb2.MetadataStoreClientConfig,
+        **kwargs
 ):
     assert run.status == 'Succeeded'
 
@@ -36,9 +36,9 @@ class TestCase:
     mode: kfp.dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE
     arguments: Optional[Dict[str, str]] = None
     verify_func: Callable[[
-        int, kfp_server_api.ApiRun, kfp_server_api.
-        ApiRunDetail, metadata_store_pb2.MetadataStoreClientConfig
-    ], None] = _default_verify_func
+                              int, kfp_server_api.ApiRun, kfp_server_api.
+            ApiRunDetail, metadata_store_pb2.MetadataStoreClientConfig
+                          ], None] = _default_verify_func
 
 
 def run_pipeline_func(test_cases: List[TestCase]):
@@ -49,9 +49,9 @@ def run_pipeline_func(test_cases: List[TestCase]):
     """
 
     def test_wrapper(
-        run_pipeline: Callable[[Callable, kfp.dsl.PipelineExecutionMode, dict],
-                               kfp_server_api.ApiRunDetail],
-        mlmd_connection_config: metadata_store_pb2.MetadataStoreClientConfig,
+            run_pipeline: Callable[[Callable, kfp.dsl.PipelineExecutionMode, dict],
+                                   kfp_server_api.ApiRunDetail],
+            mlmd_connection_config: metadata_store_pb2.MetadataStoreClientConfig,
     ):
         for case in test_cases:
             run_detail = run_pipeline(
@@ -83,22 +83,21 @@ def _retry_with_backoff(fn: Callable, retries=5, backoff_in_seconds=1):
                 print(f"Failed after {retires} retries:")
                 raise
             else:
-                sleep = (backoff_in_seconds * 2**i + random.uniform(0, 1))
+                sleep = (backoff_in_seconds * 2 ** i + random.uniform(0, 1))
                 print("  Sleep :", str(sleep) + "s")
                 time.sleep(sleep)
                 i += 1
 
 
 def _run_test(callback):
-
     def main(
-        output_directory: Optional[str] = None,  # example
-        host: Optional[str] = None,
-        external_host: Optional[str] = None,
-        launcher_image: Optional['URI'] = None,
-        experiment: str = 'v2_sample_test_samples',
-        metadata_service_host: Optional[str] = None,
-        metadata_service_port: int = 8080,
+            output_directory: Optional[str] = None,  # example
+            host: Optional[str] = None,
+            external_host: Optional[str] = None,
+            launcher_image: Optional['URI'] = None,
+            experiment: str = 'v2_sample_test_samples',
+            metadata_service_host: Optional[str] = None,
+            metadata_service_port: int = 8080,
     ):
         """Test file CLI entrypoint used by Fire.
 
@@ -137,10 +136,10 @@ def _run_test(callback):
         client = kfp.Client(host=host)
 
         def run_pipeline(
-            pipeline_func: Callable,
-            mode: kfp.dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode.
-            V2_COMPATIBLE,
-            arguments: dict = {},
+                pipeline_func: Callable,
+                mode: kfp.dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode.
+                    V2_COMPATIBLE,
+                arguments: dict = {},
         ) -> kfp_server_api.ApiRunDetail:
             extra_arguments = {}
             if mode != kfp.dsl.PipelineExecutionMode.V1_LEGACY:
@@ -204,16 +203,32 @@ class KfpArtifact:
     name: str
     uri: str
     type: str
+    custom_properties: dict
 
     @classmethod
     def new(
-        cls, mlmd_artifact: metadata_store_pb2.Artifact,
-        mlmd_artifact_type: metadata_store_pb2.ArtifactType
+            cls, mlmd_artifact: metadata_store_pb2.Artifact,
+            mlmd_artifact_type: metadata_store_pb2.ArtifactType
     ):
+        custom_properties = {}
+        for k, v in mlmd_artifact.custom_properties.items():
+            raw_value = None
+            if v.string_value:
+                raw_value = v.string_value
+            if v.int_value:
+                raw_value = v.int_value
+            custom_properties[k] = raw_value
+        artifact_name = ''
+        if mlmd_artifact.name != '':
+            artifact_name = mlmd_artifact.name
+        else:
+            if 'name' in custom_properties.keys():
+                artifact_name = custom_properties['name']
         return cls(
-            name=mlmd_artifact.name,
+            name=artifact_name,
             type=mlmd_artifact_type.name,
             uri=mlmd_artifact.uri,
+            custom_properties=custom_properties
         )
 
 
@@ -248,13 +263,13 @@ class KfpTask:
 
     @classmethod
     def new(
-        cls,
-        context: metadata_store_pb2.Context,
-        execution: metadata_store_pb2.Execution,
-        execution_types_by_id,  # dict[int, metadata_store_pb2.ExecutionType]
-        events_by_execution_id,  # dict[int, List[metadata_store_pb2.Event]]
-        artifacts_by_id,  # dict[int, metadata_store_pb2.Artifact]
-        artifact_types_by_id,  # dict[int, metadata_store_pb2.ArtifactType]
+            cls,
+            context: metadata_store_pb2.Context,
+            execution: metadata_store_pb2.Execution,
+            execution_types_by_id,  # dict[int, metadata_store_pb2.ExecutionType]
+            events_by_execution_id,  # dict[int, List[metadata_store_pb2.Event]]
+            artifacts_by_id,  # dict[int, metadata_store_pb2.Artifact]
+            artifact_types_by_id,  # dict[int, metadata_store_pb2.ArtifactType]
     ):
         execution_type = execution_types_by_id[execution.type_id]
         params = _parse_parameters(execution)
@@ -302,8 +317,8 @@ class KfpTask:
 class KfpMlmdClient:
 
     def __init__(
-        self,
-        mlmd_connection_config: metadata_store_pb2.MetadataStoreClientConfig
+            self,
+            mlmd_connection_config: metadata_store_pb2.MetadataStoreClientConfig
     ):
         self.mlmd_store = metadata_store.MetadataStore(mlmd_connection_config)
 
