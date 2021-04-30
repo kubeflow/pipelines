@@ -14,8 +14,8 @@
 
 from kfp.v2.dsl.component_decorator import component
 from kfp.dsl.io_types import (
-    InputArtifact,
-    OutputArtifact,
+    Input,
+    Output,
     Artifact,
     Dataset,
     Model,

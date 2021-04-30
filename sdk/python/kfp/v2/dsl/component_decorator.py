@@ -29,14 +29,14 @@ def component(func: Optional[Callable] = None,
 
   from kfp.v2 import dsl
   @dsl.component
-  def my_function_one(input: str, output: OutputArtifact(Model)):
+  def my_function_one(input: str, output: Output[Model]):
     ...
 
   @dsl.component(
     base_image='python:3.9',
     output_component_file='my_function.yaml'
   )
-  def my_function_two(input: InputArtifact(Model)):
+  def my_function_two(input: Input[Mode])):
     ...
 
   @dsl.pipeline(pipeline_root='...',

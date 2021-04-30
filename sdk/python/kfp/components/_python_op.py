@@ -328,15 +328,31 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
     input_names = set()
     output_names = set()
     for parameter in parameters:
-        parameter_annotation = parameter.annotation
+        parameter_type = parameter.annotation
         passing_style = None
         io_name = parameter.name
-        if isinstance(
-            parameter_annotation,
-            (io_types.InputArtifact, InputArtifact, InputPath, InputTextFile, InputBinaryFile,
-             io_types.OutputArtifact, OutputArtifact, OutputPath, OutputTextFile, OutputBinaryFile)):
-            passing_style = type(parameter_annotation)
-            parameter_annotation = parameter_annotation.type
+
+        if io_types.is_artifact_annotation(parameter.annotation):
+            # passing_style is either io_types.InputAnnotation or
+            # io_types.OutputAnnotation.
+            passing_style = io_types.get_io_artifact_annotation(parameter.annotation)
+
+            # parameter_type is io_types.Artifact or one of its subclasses.
+            parameter_type = io_types.get_io_artifact_class(parameter.annotation)
+            if not issubclass(parameter_type, io_types.Artifact):
+                raise ValueError(
+                    'Input[T] and Output[T] are only supported when T is a '
+                    'subclass of Artifact. Found `{} with type {}`'.format(
+                        io_name, parameter_type))
+
+            if parameter.default is not inspect.Parameter.empty:
+                raise ValueError('Default values for Input/Output artifacts are not supported.')
+        elif isinstance(
+            parameter.annotation,
+            (InputArtifact, InputPath, InputTextFile, InputBinaryFile,
+             OutputArtifact, OutputPath, OutputTextFile, OutputBinaryFile)):
+            passing_style = type(parameter.annotation)
+            parameter_type = parameter.annotation.type
             if parameter.default is not inspect.Parameter.empty and not (passing_style == InputPath and parameter.default is None):
                 raise ValueError('Path inputs only support default values of None. Default values for outputs are not supported.')
             # Removing the "_path" and "_file" suffixes from the input/output names as the argument passed to the component needs to be the data itself, not local file path.
@@ -348,12 +364,11 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
                 io_name = io_name[0:-len('_path')]
             if io_name.endswith('_file'):
                 io_name = io_name[0:-len('_file')]
-        type_struct = annotation_to_type_struct(parameter_annotation)
-        #TODO: Humanize the input/output names
 
-        if isinstance(
-            parameter.annotation,
-            (io_types.OutputArtifact, OutputArtifact, OutputPath, OutputTextFile, OutputBinaryFile)):
+        type_struct = annotation_to_type_struct(parameter_type)
+
+        if passing_style in [io_types.OutputAnnotation, OutputArtifact,
+                             OutputPath, OutputTextFile, OutputBinaryFile]:
             io_name = _make_name_unique_by_adding_index(io_name, output_names, '_')
             output_names.add(io_name)
             output_spec = OutputSpec(
@@ -529,9 +544,9 @@ if __name__ == '__main__':
     for input in component_inputs + outputs_passed_using_func_parameters:
         flag = "--{}-output-path".format(input.name.replace("_", "-"))
 
-        if input._passing_style in [InputPath, io_types.InputArtifact]:
+        if input._passing_style in [InputPath, io_types.InputAnnotation]:
             arguments_for_input = [flag, InputPathPlaceholder(input.name)]
-        elif input._passing_style in [OutputPath, io_types.OutputArtifact]:
+        elif input._passing_style in [OutputPath, io_types.OutputAnnotation]:
             arguments_for_input = [flag, OutputPathPlaceholder(input.name)]
         else:
             arguments_for_input = [flag, InputValuePlaceholder(input.name)]

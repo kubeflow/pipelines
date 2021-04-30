@@ -15,23 +15,27 @@
 from typing import NamedTuple
 from kfp import components, dsl
 from kfp.v2 import compiler
-from kfp.dsl.io_types import InputArtifact, Dataset, Model, Metrics
+from kfp.v2.dsl import Input, Dataset, Model, Metrics, component
 
 
+@component
 def concat_message(first: str, second: str) -> str:
     return first + second
 
 
+@component
 def add_numbers(first: int, second: int) -> int:
     return first + second
 
 
+@component
 def output_artifact(number: int, message: str) -> Dataset:
     result = [message for _ in range(number)]
     return '\n'.join(result)
 
 
-def output_named_tuple(artifact: InputArtifact(Dataset)) -> NamedTuple(
+@component
+def output_named_tuple(artifact: Input[Dataset]) -> NamedTuple(
         'Outputs', [
             ('scalar', str),
             ('metrics', Metrics),
@@ -58,14 +62,6 @@ def output_named_tuple(artifact: InputArtifact(Dataset)) -> NamedTuple(
     return output(scalar, metrics, model)
 
 
-concat_op = components.create_component_from_func_v2(concat_message)
-add_op = components.create_component_from_func_v2(add_numbers)
-output_artifact_op = components.create_component_from_func_v2(output_artifact)
-output_named_tuple_op = components.create_component_from_func_v2(
-    output_named_tuple
-)
-
-
 @dsl.pipeline(pipeline_root='dummy_root', name='functions-with-outputs')
 def pipeline(
     first_message: str = 'first',
@@ -73,12 +69,12 @@ def pipeline(
     first_number: int = 1,
     second_number: int = 2,
 ):
-    concat = concat_op(first=first_message, second=second_message)
-    add_numbers = add_op(first=first_number, second=second_number)
-    output_artifact = output_artifact_op(
-        number=add_numbers.output, message=concat.output
+    concat_task = concat_message(first=first_message, second=second_message)
+    add_numbers_task = add_numbers(first=first_number, second=second_number)
+    output_artifact_task = output_artifact(
+        number=add_numbers_task.output, message=concat_task.output
     )
-    output_name_tuple = output_named_tuple_op(output_artifact.output)
+    output_name_tuple = output_named_tuple(output_artifact_task.output)
 
 
 if __name__ == '__main__':
