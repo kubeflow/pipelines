@@ -16,15 +16,16 @@
 from typing import NamedTuple
 from kfp import components
 from kfp import dsl
-from kfp.dsl.io_types import Dataset, Model, InputArtifact
 from kfp.v2 import compiler
+from kfp.v2.dsl import Dataset, Model, Input
 
 
-def train(dataset: InputArtifact(Dataset)) -> NamedTuple(
-    'Outputs', [
-        ('scalar', str),
-        ('model', Model),
-    ]):
+def train(
+    dataset: Input[Dataset]
+) -> NamedTuple('Outputs', [
+    ('scalar', str),
+    ('model', Model),
+]):
   """Dummy Training step."""
   with open(dataset.path, 'r') as f:
     data = f.read()

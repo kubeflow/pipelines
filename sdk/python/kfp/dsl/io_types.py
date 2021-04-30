@@ -17,7 +17,10 @@ These are only compatible with v2 Pipelines.
 """
 
 import os
-from typing import Dict, List, Optional, Type, TypeVar, Union
+from typing import Dict, Generic, List, Optional, Type, TypeVar, Union
+
+
+_GCS_LOCAL_MOUNT_PREFIX = '/gcs/'
 
 
 class Artifact(object):
@@ -41,6 +44,23 @@ class Artifact(object):
     self.uri = uri or ''
     self.name = name or ''
     self.metadata = metadata or {}
+
+  @property
+  def path(self):
+    return self._get_path()
+
+  @path.setter
+  def path(self, path):
+    self._set_path(path)
+
+  def _get_path(self) -> str:
+    if self.uri.startswith('gs://'):
+      return _GCS_LOCAL_MOUNT_PREFIX + self.uri[len('gs://'):]
+
+  def _set_path(self, path):
+    if path.startswith(_GCS_LOCAL_MOUNT_PREFIX):
+      path = 'gs://' + path[len(_GCS_LOCAL_MOUNT_PREFIX):]
+    self.uri = path
 
 
 class Model(Artifact):
@@ -218,7 +238,8 @@ class ClassificationMetrics(Artifact):
         self._categories.index(col_category)] = value
     self.metadata['confusionMatrix'] = self._confusion_matrix
 
-  def log_confusion_matrix(self, categories: List[str], matrix: List[List[int]]):
+  def log_confusion_matrix(self, categories: List[str],
+                           matrix: List[List[int]]):
     """Logs a confusion matrix.
 
     Args:
@@ -367,60 +388,100 @@ class SlicedClassificationMetrics(Artifact):
     self._update_metadata(slice)
 
 
-T = TypeVar('T', bound=Artifact)
-
-_GCS_LOCAL_MOUNT_PREFIX = '/gcs/'
+T = TypeVar('T')
 
 
-class _IOArtifact():
-  """Internal wrapper class for representing Input/Output Artifacts."""
-
-  def __init__(self, artifact_type: Type[T], artifact: Optional[T] = None):
-    self.type = artifact_type
-    self._artifact = artifact
-
-  def get(self) -> T:
-    return self._artifact
-
-  @property
-  def uri(self):
-    return self._artifact.uri
-
-  @uri.setter
-  def uri(self, uri):
-    self._artifact.uri = uri
-
-  @property
-  def path(self):
-    return self._get_path()
-
-  @path.setter
-  def path(self, path):
-    self._set_path(path)
-
-  def _get_path(self) -> str:
-    if self._artifact.uri.startswith('gs://'):
-      return _GCS_LOCAL_MOUNT_PREFIX + self._artifact.uri[len('gs://'):]
-
-  def _set_path(self, path):
-    if path.startswith(_GCS_LOCAL_MOUNT_PREFIX):
-      path = 'gs://' + path[len(_GCS_LOCAL_MOUNT_PREFIX):]
-    self._artifact.uri = path
+class InputAnnotation():
+  """Marker type for input artifacts."""
+  pass
 
 
-class InputArtifact(_IOArtifact):
 
-  def __init__(self, artifact_type: Type[T], artifact: Optional[T] = None):
-    super().__init__(artifact_type=artifact_type, artifact=artifact)
+class OutputAnnotation():
+  """Marker type for output artifacts."""
+  pass
 
 
-class OutputArtifact(_IOArtifact):
+# TODO: Use typing.Annotated instead of this hack.
+# With typing.Annotated (Python 3.9+ or typing_extensions package), the
+# following would look like:
+# Input = typing.Annotated[T, InputAnnotation]
+# Output = typing.Annotated[T, OutputAnnotation]
 
-  def __init__(self, artifact_type: Type[T], artifact: Optional[T] = None):
-    super().__init__(artifact_type=artifact_type, artifact=artifact)
-    if artifact is not None:
-      os.makedirs(self.path, exist_ok=True)
-      self.path = os.path.join(self.path, 'data')
+
+# Input represents an Input artifact of type T.
+Input = Union[T, InputAnnotation]
+
+# Output represents an Output artifact of type T.
+Output = Union[T, OutputAnnotation]
+
+
+def is_artifact_annotation(typ) -> bool:
+  if hasattr(typ, '_subs_tree'):  # Python 3.6
+    subs_tree = typ._subs_tree()
+    return len(subs_tree) == 3 and subs_tree[0] == Union and subs_tree[2] in [InputAnnotation, OutputAnnotation]
+
+  if not hasattr(typ, '__origin__'):
+    return False
+
+
+  if typ.__origin__ != Union and type(typ.__origin__) != type(Union):
+    return False
+
+
+  if not hasattr(typ, '__args__') or len(typ.__args__) != 2:
+    return False
+
+  return True
+
+def is_input_artifact(typ) -> bool:
+  """Returns True if typ is of type Input[T]."""
+  if not is_artifact_annotation(typ):
+    return False
+
+  if hasattr(typ, '_subs_tree'):  # Python 3.6
+    subs_tree = typ._subs_tree()
+    return len(subs_tree) == 3 and subs_tree[2]  == InputAnnotation
+
+  return typ.__args__[1] == InputAnnotation
+
+def is_output_artifact(typ) -> bool:
+  """Returns True if typ is of type Output[T]."""
+  if not is_artifact_annotation(typ):
+    return False
+
+  if hasattr(typ, '_subs_tree'):  # Python 3.6
+    subs_tree = typ._subs_tree()
+    return len(subs_tree) == 3 and subs_tree[2]  == OutputAnnotation
+
+  return typ.__args__[1] == OutputAnnotation
+
+def get_io_artifact_class(typ):
+  if not is_artifact_annotation(typ):
+    return None
+  if typ == Input or typ == Output:
+    return None
+
+  if hasattr(typ, '_subs_tree'):  # Python 3.6
+    subs_tree = typ._subs_tree()
+    if len(subs_tree) != 3:
+      return None
+    return subs_tree[1]
+
+  return typ.__args__[0]
+
+def get_io_artifact_annotation(typ):
+  if not is_artifact_annotation(typ):
+    return None
+
+  if hasattr(typ, '_subs_tree'):  # Python 3.6
+    subs_tree = typ._subs_tree()
+    if len(subs_tree) != 3:
+      return None
+    return subs_tree[2]
+
+  return typ.__args__[1]
+
 
 
 _SCHEMA_TITLE_TO_TYPE: Dict[str, Artifact] = {
