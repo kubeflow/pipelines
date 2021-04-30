@@ -417,8 +417,18 @@ Output = Union[T, OutputAnnotation]
 
 
 def is_artifact_annotation(typ) -> bool:
-  if not hasattr(typ, '__origin__') or typ.__origin__ != Union:
+  if hasattr(typ, '_subs_tree'):  # Python 3.6
+    subs_tree = typ._subs_tree()
+    return len(subs_tree) == 3 and subs_tree[0] == Union and subs_tree[2] in [InputAnnotation, OutputAnnotation]
+
+  if not hasattr(typ, '__origin__'):
     return False
+
+
+  if typ.__origin__ != Union and type(typ.__origin__) != type(Union):
+    return False
+
+
   if not hasattr(typ, '__args__') or len(typ.__args__) != 2:
     return False
 
@@ -426,22 +436,50 @@ def is_artifact_annotation(typ) -> bool:
 
 def is_input_artifact(typ) -> bool:
   """Returns True if typ is of type Input[T]."""
-  return is_artifact_annotation(typ) and typ.__args__[1] == InputAnnotation
+  if not is_artifact_annotation(typ):
+    return False
+
+  if hasattr(typ, '_subs_tree'):  # Python 3.6
+    subs_tree = typ._subs_tree()
+    return len(subs_tree) == 3 and subs_tree[2]  == InputAnnotation
+
+  return typ.__args__[1] == InputAnnotation
 
 def is_output_artifact(typ) -> bool:
   """Returns True if typ is of type Output[T]."""
-  return is_artifact_annotation(typ) and typ.__args__[1] == OutputAnnotation
+  if not is_artifact_annotation(typ):
+    return False
+
+  if hasattr(typ, '_subs_tree'):  # Python 3.6
+    subs_tree = typ._subs_tree()
+    return len(subs_tree) == 3 and subs_tree[2]  == OutputAnnotation
+
+  return typ.__args__[1] == OutputAnnotation
 
 def get_io_artifact_class(typ):
   if not is_artifact_annotation(typ):
     return None
   if typ == Input or typ == Output:
     return None
+
+  if hasattr(typ, '_subs_tree'):  # Python 3.6
+    subs_tree = typ._subs_tree()
+    if len(subs_tree) != 3:
+      return None
+    return subs_tree[1]
+
   return typ.__args__[0]
 
 def get_io_artifact_annotation(typ):
   if not is_artifact_annotation(typ):
     return None
+
+  if hasattr(typ, '_subs_tree'):  # Python 3.6
+    subs_tree = typ._subs_tree()
+    if len(subs_tree) != 3:
+      return None
+    return subs_tree[2]
+
   return typ.__args__[1]
 
 

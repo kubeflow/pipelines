@@ -328,7 +328,6 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
     input_names = set()
     output_names = set()
     for parameter in parameters:
-        # parameter_annotation = parameter.annotation
         parameter_type = parameter.annotation
         passing_style = None
         io_name = parameter.name
@@ -338,7 +337,7 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
             # io_types.OutputAnnotation.
             passing_style = io_types.get_io_artifact_annotation(parameter.annotation)
 
-            # parameter_annotation is io_types.Artifact or one of its subclasses.
+            # parameter_type is io_types.Artifact or one of its subclasses.
             # TODO(neuromage): Check and raise friendly message here.
             parameter_type = io_types.get_io_artifact_class(parameter.annotation)
 

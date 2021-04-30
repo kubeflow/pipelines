@@ -72,7 +72,7 @@ def pipeline(
     concat_task = concat_message(first=first_message, second=second_message)
     add_numbers_task = add_numbers(first=first_number, second=second_number)
     output_artifact_task = output_artifact(
-        number=add_numbers.output, message=concat_task.output
+        number=add_numbers_task.output, message=concat_task.output
     )
     output_name_tuple = output_named_tuple(output_artifact.output)
 
