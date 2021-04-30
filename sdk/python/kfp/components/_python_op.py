@@ -338,8 +338,12 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
             passing_style = io_types.get_io_artifact_annotation(parameter.annotation)
 
             # parameter_type is io_types.Artifact or one of its subclasses.
-            # TODO(neuromage): Check and raise friendly message here.
             parameter_type = io_types.get_io_artifact_class(parameter.annotation)
+            if not issubclass(parameter_type, io_types.Artifact):
+                raise ValueError(
+                    'Input[T] and Output[T] are only supported when T is a '
+                    'subclass of Artifact. Found `{} with type {}`'.format(
+                        io_name, parameter_type))
 
             if parameter.default is not inspect.Parameter.empty:
                 raise ValueError('Default values for Input/Output artifacts are not supported.')
