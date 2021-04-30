@@ -128,7 +128,7 @@ def _run_test(callback):
             output_directory = os.getenv('KFP_OUTPUT_DIRECTORY')
         if metadata_service_host is None:
             metadata_service_host = os.getenv(
-                'METADATA_GRPC_SERVICE_HOST', 'localhost'
+                'METADATA_GRPC_SERVICE_HOST', 'metadata-grpc-service'
             )
         if launcher_image is None:
             launcher_image = os.getenv('KFP_LAUNCHER_IMAGE')
@@ -217,6 +217,8 @@ class KfpArtifact:
                 raw_value = v.string_value
             if v.int_value:
                 raw_value = v.int_value
+            if v.float_value:
+                raw_value = v.float_value
             custom_properties[k] = raw_value
         artifact_name = ''
         if mlmd_artifact.name != '':
