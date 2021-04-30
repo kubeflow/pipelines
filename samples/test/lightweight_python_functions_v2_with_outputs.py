@@ -74,7 +74,7 @@ def pipeline(
     output_artifact_task = output_artifact(
         number=add_numbers_task.output, message=concat_task.output
     )
-    output_name_tuple = output_named_tuple(output_artifact.output)
+    output_name_tuple = output_named_tuple(output_artifact_task.output)
 
 
 if __name__ == '__main__':
