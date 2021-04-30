@@ -5,6 +5,7 @@ import random
 from pprint import pprint
 from typing import Dict, List, Callable, Optional
 from dataclasses import dataclass, asdict
+import copy
 
 import kfp
 import kfp_server_api
@@ -204,6 +205,7 @@ class KfpArtifact:
     name: str
     uri: str
     type: str
+    custom_properties:dict
 
     @classmethod
     def new(
@@ -214,6 +216,7 @@ class KfpArtifact:
             name=mlmd_artifact.name,
             type=mlmd_artifact_type.name,
             uri=mlmd_artifact.uri,
+            custom_properties=copy.deepcopy(mlmd_artifact.custom_properties)
         )
 
 
