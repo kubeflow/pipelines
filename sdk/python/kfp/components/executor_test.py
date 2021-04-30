@@ -75,7 +75,7 @@ _EXECUTOR_INPUT = """\
     },
     "parameters": {
       "output_parameter": {
-        "outputFile": "gs://some-bucket/output_parameter"
+        "outputFile": "gs://some-bucket/some_task/nested/output_parameter"
       }
     },
     "outputFile": "%s/output_metadata.json"
@@ -140,7 +140,12 @@ class ExecutorTest(unittest.TestCase):
     def test_func(output_parameter_path: OutputPath(str)):
       # Test that output parameters just use the passed in filename.
       self.assertEqual(output_parameter_path,
-                       'gs://some-bucket/output_parameter')
+                       'gs://some-bucket/some_task/nested/output_parameter')
+
+      # Test writing to the path succeeds. This fails if parent directories
+      # don't exist.
+      with open(output_parameter_path, 'w') as f:
+        f.write('Hello, World!')
 
     self._get_executor(test_func).execute()
 
