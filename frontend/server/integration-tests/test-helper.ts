@@ -54,3 +54,7 @@ export function buildQuery(queriesMap: { [key: string]: string | undefined }): s
   }
   return `?${queryContent}`;
 }
+
+export function mkTempDir(): string {
+  return fs.mkdtempSync(path.join(os.tmpdir(), 'kfp-test-'));
+}

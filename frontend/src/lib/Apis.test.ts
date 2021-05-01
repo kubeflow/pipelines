@@ -166,30 +166,109 @@ describe('Apis', () => {
 
   it('getTensorboardApp', async () => {
     const spy = fetchSpy(
-      JSON.stringify({ podAddress: 'http://some/address', tfVersion: '1.14.0' }),
+      JSON.stringify({
+        podAddress: 'http://some/address',
+        tfVersion: '1.14.0',
+        image: 'tensorflow/tensorflow:1.14.0',
+      }),
     );
     const tensorboardInstance = await Apis.getTensorboardApp('gs://log/dir', 'test-ns');
-    expect(tensorboardInstance).toEqual({ podAddress: 'http://some/address', tfVersion: '1.14.0' });
+    expect(tensorboardInstance).toEqual({
+      podAddress: 'http://some/address',
+      tfVersion: '1.14.0',
+      image: 'tensorflow/tensorflow:1.14.0',
+    });
     expect(spy).toHaveBeenCalledWith(
       `apps/tensorboard?logdir=${encodeURIComponent('gs://log/dir')}&namespace=test-ns`,
       { credentials: 'same-origin' },
     );
   });
 
-  it('startTensorboardApp', async () => {
-    const spy = fetchSpy('http://some/address');
-    await Apis.startTensorboardApp('gs://log/dir', '1.14.0', 'test-ns');
-    expect(spy).toHaveBeenCalledWith(
-      'apps/tensorboard?logdir=' +
-        encodeURIComponent('gs://log/dir') +
-        '&tfversion=1.14.0' +
-        '&namespace=test-ns',
-      {
-        credentials: 'same-origin',
-        headers: { 'content-type': 'application/json' },
-        method: 'POST',
-      },
-    );
+  describe('startTensorboardApp', () => {
+    const defaultArgs = {
+      logdir: 'gs://log/dir',
+      image: 'tensorflow/tensorflow:1.14.0',
+      namespace: 'test-ns',
+    };
+    it('starts tensorboard app', async () => {
+      const spy = fetchSpy('http://some/address');
+      await Apis.startTensorboardApp(defaultArgs);
+      expect(spy).toHaveBeenCalledWith(
+        'apps/tensorboard?logdir=' +
+          encodeURIComponent(defaultArgs.logdir) +
+          '&namespace=' +
+          defaultArgs.namespace +
+          '&image=' +
+          encodeURIComponent(defaultArgs.image),
+        {
+          credentials: 'same-origin',
+          headers: { 'content-type': 'application/json' },
+          method: 'POST',
+        },
+      );
+    });
+    it('encodes podTemplateSpec as JSON in arg', async () => {
+      const spy = fetchSpy('http://some/address');
+      const args = {
+        ...defaultArgs,
+        podTemplateSpec: {
+          spec: {
+            containers: [
+              {
+                env: [
+                  {
+                    name: 'AWS_ACCESS_KEY_ID',
+                    valueFrom: {
+                      secretKeyRef: {
+                        name: 'mlpipeline-minio-artifact',
+                        key: 'accesskey',
+                      },
+                    },
+                  },
+                  {
+                    name: 'AWS_SECRET_ACCESS_KEY',
+                    valueFrom: {
+                      secretKeyRef: {
+                        name: 'mlpipeline-minio-artifact',
+                        key: 'secretkey',
+                      },
+                    },
+                  },
+                  {
+                    name: 'AWS_REGION',
+                    value: 'minio',
+                  },
+                  {
+                    name: 'S3_ENDPOINT',
+                    value: 'http://minio-service:9000',
+                  },
+                  {
+                    name: 'S3_USE_HTTPS',
+                    value: '0',
+                  },
+                  {
+                    name: 'S3_VERIFY_SSL',
+                    value: '0',
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      };
+      await Apis.startTensorboardApp(args);
+      expect(spy).toHaveBeenCalledWith(
+        'apps/tensorboard?logdir=' +
+          encodeURIComponent(args.logdir) +
+          '&namespace=' +
+          args.namespace +
+          '&image=' +
+          encodeURIComponent(args.image) +
+          '&podtemplatespec=' +
+          encodeURIComponent(JSON.stringify(args.podTemplateSpec)),
+        expect.anything(),
+      );
+    });
   });
 
   it('deleteTensorboardApp', async () => {

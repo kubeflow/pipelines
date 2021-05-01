@@ -16,7 +16,6 @@ import { Storage as GCSStorage } from '@google-cloud/storage';
 import * as fs from 'fs';
 import * as minio from 'minio';
 import fetch from 'node-fetch';
-import * as os from 'os';
 import * as path from 'path';
 import { PassThrough } from 'stream';
 import requests from 'supertest';
@@ -24,7 +23,7 @@ import { UIServer } from '../app';
 import { loadConfigs } from '../configs';
 import * as serverInfo from '../helpers/server-info';
 import * as minioHelper from '../minio-helper';
-import { commonSetup } from './test-helper';
+import { commonSetup, mkTempDir } from './test-helper';
 
 const MinioClient = minio.Client;
 jest.mock('minio');
@@ -290,7 +289,7 @@ describe('/artifacts', () => {
 
     it('responds with a volume artifact if source=volume', done => {
       const artifactContent = 'hello world';
-      const tempPath = path.join(fs.mkdtempSync(os.tmpdir()), 'content');
+      const tempPath = path.join(mkTempDir(), 'content');
       fs.writeFileSync(tempPath, artifactContent);
 
       jest.spyOn(serverInfo, 'getHostPod').mockImplementation(() =>
@@ -334,7 +333,7 @@ describe('/artifacts', () => {
 
     it('responds with a partial volume artifact if peek=5 is set', done => {
       const artifactContent = 'hello world';
-      const tempPath = path.join(fs.mkdtempSync(os.tmpdir()), 'content');
+      const tempPath = path.join(mkTempDir(), 'content');
       fs.writeFileSync(tempPath, artifactContent);
 
       jest.spyOn(serverInfo, 'getHostPod').mockImplementation(() =>

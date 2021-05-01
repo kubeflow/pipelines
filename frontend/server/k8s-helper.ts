@@ -114,6 +114,7 @@ export async function newTensorboardInstance(
       );
     }
   }
+  const tensorboardImage = tfImageName + (tfversion ? `:${tfversion}` : '');
   const body = {
     apiVersion: viewerGroup + '/' + viewerVersion,
     kind: 'Viewer',
@@ -125,7 +126,7 @@ export async function newTensorboardInstance(
       podTemplateSpec,
       tensorboardSpec: {
         logDir: parseTensorboardLogDir(logdir, podTemplateSpec),
-        tensorflowImage: tfImageName + ':' + tfversion,
+        tensorflowImage: tensorboardImage,
       },
       type: 'tensorboard',
     },
@@ -146,7 +147,7 @@ export async function newTensorboardInstance(
 export async function getTensorboardInstance(
   logdir: string,
   namespace: string,
-): Promise<{ podAddress: string; tfVersion: string }> {
+): Promise<{ podAddress: string; tfVersion: string; image: string }> {
   return await k8sV1CustomObjectClient
     .getNamespacedCustomObject(
       viewerGroup,
@@ -168,11 +169,12 @@ export async function getTensorboardInstance(
       (viewer: any) => {
         if (viewer && viewer.body && viewer.body.spec.type === 'tensorboard') {
           const address = `http://${viewer.body.metadata.name}-service.${namespace}.svc.cluster.local:80/tensorboard/${viewer.body.metadata.name}/`;
-          const tfImageParts = viewer.body.spec.tensorboardSpec.tensorflowImage.split(':', 2);
+          const image = viewer.body.spec.tensorboardSpec.tensorflowImage;
+          const tfImageParts = image.split(':', 2);
           const tfVersion = tfImageParts.length == 2 ? tfImageParts[1] : '';
-          return { podAddress: address, tfVersion: tfVersion };
+          return { podAddress: address, tfVersion: tfVersion, image };
         } else {
-          return { podAddress: '', tfVersion: '' };
+          return { podAddress: '', tfVersion: '', image: '' };
         }
       },
       // No existing custom object with the given name, i.e., no existing
@@ -183,7 +185,7 @@ export async function getTensorboardInstance(
           `Failed getting viewer custom object for logdir=${logdir} in ${namespace} namespace, err: `,
           err?.body || err,
         );
-        return { podAddress: '', tfVersion: '' };
+        return { podAddress: '', tfVersion: '', image: '' };
       },
     );
 }
