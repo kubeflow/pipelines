@@ -12,24 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import unittest
+
 import kfp
 from .reused_component import my_pipeline
-from .util import run_pipeline_func, TestCase, NEEDS_A_FIX
+from .util import run_pipeline_func, TestCase, KfpMlmdClient
 
 
-def verify(run, run_id: str, **kwargs):
-    assert run.status == 'Succeeded'
-    # TODO(Bobgy): verify MLMD status
+def verify(run, argo_workflow_name: str, mlmd_connection_config, **kwargs):
+    t = unittest.TestCase()
+    t.maxDiff = None  # we always want to see full diff
+    t.assertEqual(run.status, 'Succeeded')
+
+    client = KfpMlmdClient(mlmd_connection_config=mlmd_connection_config)
+
+    tasks = client.get_tasks(argo_workflow_name=argo_workflow_name)
+    t.assertEqual(
+        tasks.get('add-3').outputs.parameters.get('sum'),
+        17, 'add result should be 17')
 
 
 run_pipeline_func([
+    TestCase(pipeline_func=my_pipeline, verify_func=verify),
     TestCase(
         pipeline_func=my_pipeline,
-        verify_func=verify,
         mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
     ),
-    # TODO(v2-compatibility): fix this
-    # Current failure:
-    # main.go:56] Failed to successfuly execute component: %vstrconv.ParseInt: parsing "5\n": invalid syntax
-    TestCase(pipeline_func=my_pipeline, verify_func=NEEDS_A_FIX),
 ])

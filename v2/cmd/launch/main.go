@@ -49,10 +49,10 @@ func main() {
 	}
 	launcher, err := component.NewLauncher(*runtimeInfoJSON, opts)
 	if err != nil {
-		glog.Fatalf("Failed to create component launcher: %v", err)
+		glog.Exitf("Failed to create component launcher: %v", err)
 	}
 
 	if err := launcher.RunComponent(ctx, flag.Args()[0], flag.Args()[1:]...); err != nil {
-		glog.Fatalf("Failed to successfuly execute component: %v", err)
+		glog.Exitf("Failed to execute component: %v", err)
 	}
 }
