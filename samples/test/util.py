@@ -273,7 +273,7 @@ class KfpTask:
     ):
         execution_type = execution_types_by_id[execution.type_id]
         params = _parse_parameters(execution)
-        events = events_by_execution_id[execution.id]
+        events = events_by_execution_id.get(execution.id, [])
         input_artifacts = []
         output_artifacts = []
         if events:
