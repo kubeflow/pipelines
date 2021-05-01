@@ -525,8 +525,11 @@ func (l *Launcher) prepareOutputs(ctx context.Context, executorInput *pipeline_s
 			return fmt.Errorf("failed to generate local storage path for output artifact %q with URI %q: %w", name, outputArtifact.Uri, err)
 		}
 
-		if err := os.MkdirAll(filepath.Base(localPath), 0644); err != nil {
-			return fmt.Errorf("unable to create directory %q for output artifact %q: %w", localPath, name, err)
+		if err := os.MkdirAll(filepath.Dir(localPath), 0644); err != nil {
+			return fmt.Errorf("unable to create directory %q for output artifact %q: %w", filepath.Dir(localPath), name, err)
+		}
+		if _, err:= os.Create(localPath); err != nil {
+			return fmt.Errorf("unable to create file %q for output artifact %q: %w", localPath, name, err)
 		}
 
 		key = fmt.Sprintf(`{{$.outputs.artifacts['%s'].path}}`, name)
