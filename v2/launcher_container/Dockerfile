@@ -26,7 +26,7 @@ ENV GO111MODULE=on \
 RUN go build -tags netgo -ldflags '-extldflags "-static"'  github.com/kubeflow/pipelines/v2/cmd/launch
 
 # 2. Copy built binary into a minimal image.
-FROM gcr.io/google-containers/busybox
+FROM gcr.io/google-containers/busybox:1.27.2
 # include copyright notices and licenses, needs update each time dependencies change
 COPY third_party/NOTICES /NOTICES
 WORKDIR /bin
