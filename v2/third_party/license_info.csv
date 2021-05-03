@@ -2,7 +2,7 @@
 cloud.google.com/go, https://github.com/googleapis/google-cloud-go/blob/v0.72.0/LICENSE, Apache-2.0
 cloud.google.com/go/cmd/go-cloud-debug-agent/internal/debug/elf, https://github.com/googleapis/google-cloud-go/blob/v0.72.0/cmd/go-cloud-debug-agent/internal/debug/elf/elf.go#L1-L43, BSD-2-Clause
 cloud.google.com/go/third_party/pkgsite, https://github.com/googleapis/google-cloud-go/blob/v0.72.0/third_party/pkgsite/LICENSE, BSD-3-Clause
-cloud.google.com/go/storage, https://github.com/googleapis/google-cloud-go/raw/storage/v1.12.0/LICENSE, Apache-2.0
+cloud.google.com/go/storage, https://github.com/googleapis/google-cloud-go/blob/storage/v1.12.0/LICENSE, Apache-2.0
 github.com/aws/aws-sdk-go, https://github.com/aws/aws-sdk-go/blob/v1.36.1/LICENSE.txt, Apache-2.0
 github.com/aws/aws-sdk-go/internal/sync/singleflight, https://github.com/aws/aws-sdk-go/blob/v1.36.1/internal/sync/singleflight/LICENSE, BSD-3-Clause
 github.com/davecgh/go-spew, https://github.com/davecgh/go-spew/blob/v1.1.1/LICENSE, ISC
@@ -20,7 +20,7 @@ github.com/jmespath/go-jmespath, https://github.com/jmespath/go-jmespath/blob/v0
 github.com/json-iterator/go, https://github.com/json-iterator/go/blob/v1.1.10/LICENSE, MIT
 github.com/modern-go/concurrent, https://github.com/modern-go/concurrent/blob/bacd9c7ef1dd/LICENSE, Apache-2.0
 github.com/modern-go/reflect2, https://github.com/modern-go/reflect2/blob/v1.0.1/LICENSE, Apache-2.0
-go.opencensus.io, https://github.com/census-instrumentation/opencensus-go/raw/v0.22.5/LICENSE, Apache-2.0
+go.opencensus.io, https://github.com/census-instrumentation/opencensus-go/blob/v0.22.5/LICENSE, Apache-2.0
 gocloud.dev, https://github.com/google/go-cloud/blob/v0.22.0/LICENSE, Apache-2.0
 golang.org/x/crypto, https://github.com/golang/crypto/blob/be400aefbc4c/LICENSE, BSD-3-Clause
 golang.org/x/net, https://github.com/golang/net/blob/c7110b5ffcbb/LICENSE, BSD-3-Clause

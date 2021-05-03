@@ -34,7 +34,7 @@ module:
     version: v1.12.0
     license:
       path: LICENSE
-      url: https://github.com/googleapis/google-cloud-go/raw/storage/v1.12.0/LICENSE
+      url: https://github.com/googleapis/google-cloud-go/blob/storage/v1.12.0/LICENSE
       spdxId: Apache-2.0
   - name: github.com/jmespath/go-jmespath
     version: v0.4.0
@@ -83,7 +83,7 @@ module:
     version: v0.22.5
     license:
       path: LICENSE
-      url: https://github.com/census-instrumentation/opencensus-go/raw/v0.22.5/LICENSE
+      url: https://github.com/census-instrumentation/opencensus-go/blob/v0.22.5/LICENSE
       spdxId: Apache-2.0
   - name: sigs.k8s.io/yaml
     version: v1.2.0
