@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ def echo_op():
     )
 
 @dsl.pipeline(
-    name='My first pipeline',
+    name='Resource request pipeline',
     description='A hello world pipeline.'
 )
 def resource_request_pipeline(memory_request: str="100Mi", cpu_request: str="100m"):
