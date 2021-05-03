@@ -37,7 +37,7 @@ metadata:
 implementation:
   container:
     # The debug image contains busybox, while the normal images do not.
-    image: gcr.io/kaniko-project/executor:debug
+    image: gcr.io/kaniko-project/executor:v1.6.0-debug
     command:
     - sh
     - -exc
