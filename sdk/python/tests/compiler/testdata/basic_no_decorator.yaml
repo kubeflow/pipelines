@@ -60,7 +60,7 @@ spec:
       name: exiting
       metadata:
         labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
+          pipelines.kubeflow.org/kfp_sdk_version: "1.5.0"
     - container:
         args:
           - python -c "from collections import Counter; words = Counter('{{inputs.parameters.message}}'.split());
@@ -78,7 +78,7 @@ spec:
       name: get-frequent
       metadata:
         labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
+          pipelines.kubeflow.org/kfp_sdk_version: "1.5.0"
       outputs:
         artifacts:
           - name: get-frequent-word
@@ -106,7 +106,7 @@ spec:
           - name: outputpath
       metadata:
         labels:
-          pipelines.kubeflow.org/pipeline-sdk-type: kfp
+          pipelines.kubeflow.org/kfp_sdk_version: "1.5.0"
         annotations:
           tf-version.cloud-tpus.google.com: "1.12"
       name: save

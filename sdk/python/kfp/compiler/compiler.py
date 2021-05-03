@@ -30,7 +30,7 @@ from kfp.compiler import _data_passing_rewriter, v2_compat
 from .. import dsl
 from ._k8s_helper import convert_k8s_obj_to_json, sanitize_k8s_name
 from ._op_to_template import _op_to_template, _process_obj
-from ._default_transformers import add_pod_env, add_pod_labels, get_default_telemetry_labels
+from ._default_transformers import add_pod_env, add_pod_labels
 
 from ..components.structures import InputSpec
 from ..components._yaml_utils import dump_yaml
@@ -38,7 +38,7 @@ from ..dsl._metadata import _extract_pipeline_metadata
 from ..dsl._ops_group import OpsGroup
 from ..dsl._pipeline_param import extract_pipelineparams_from_any, PipelineParam
 
-
+_SDK_VERSION_LABEL = 'pipelines.kubeflow.org/kfp_sdk_version'
 class Compiler(object):
   """DSL Compiler that compiles pipeline functions into workflow yaml.
 
@@ -920,7 +920,7 @@ class Compiler(object):
                 default=default_param_values[param.name]))
 
     op_transformers = [add_pod_env]
-    pod_labels = get_default_telemetry_labels()
+    pod_labels = {_SDK_VERSION_LABEL: kfp.__version__}
     op_transformers.append(add_pod_labels(pod_labels))
     op_transformers.extend(pipeline_conf.op_transformers)
 
@@ -949,7 +949,7 @@ class Compiler(object):
     annotations = metadata.setdefault('annotations', {})
     labels = metadata.setdefault('labels', {})
 
-    annotations['pipelines.kubeflow.org/kfp_sdk_version'] = kfp.__version__
+    annotations[_SDK_VERSION_LABEL] = kfp.__version__
     annotations['pipelines.kubeflow.org/pipeline_compilation_time'] = datetime.datetime.now().isoformat()
     annotations['pipelines.kubeflow.org/pipeline_spec'] = json.dumps(pipeline_meta.to_dict(), sort_keys=True)
 
@@ -959,7 +959,7 @@ class Compiler(object):
 
 
     # Labels might be logged better than annotations so adding some information here as well
-    labels['pipelines.kubeflow.org/kfp_sdk_version'] = kfp.__version__
+    labels[_SDK_VERSION_LABEL] = kfp.__version__
 
     return workflow
 

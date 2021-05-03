@@ -16,19 +16,6 @@ import warnings
 from kubernetes import client as k8s_client
 from typing import Callable, Dict, Optional, Text
 from ..dsl._container_op import BaseOp, ContainerOp
-# Pod label indicating the SDK type from which the pipeline is
-# generated. By default it's set to kfp.
-_SDK_ENV_LABEL = 'pipelines.kubeflow.org/pipeline-sdk-type'
-_SDK_ENV_DEFAULT = 'kfp'
-
-
-def get_default_telemetry_labels() -> Dict[Text, Text]:
-    """Returns the default pod labels for telemetry purpose."""
-    result = {
-        _SDK_ENV_LABEL: _SDK_ENV_DEFAULT,
-    }
-    return result
-
 
 def add_pod_env(op: BaseOp) -> BaseOp:
   """Adds environment info if the Pod has the label `add-pod-env = true`.
