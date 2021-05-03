@@ -528,9 +528,6 @@ func (l *Launcher) prepareOutputs(ctx context.Context, executorInput *pipeline_s
 		if err := os.MkdirAll(filepath.Dir(localPath), 0644); err != nil {
 			return fmt.Errorf("unable to create directory %q for output artifact %q: %w", filepath.Dir(localPath), name, err)
 		}
-		if _, err:= os.Create(localPath); err != nil {
-			return fmt.Errorf("unable to create file %q for output artifact %q: %w", localPath, name, err)
-		}
 
 		key = fmt.Sprintf(`{{$.outputs.artifacts['%s'].path}}`, name)
 		l.placeholderReplacements[key] = localPath

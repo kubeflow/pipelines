@@ -13,20 +13,14 @@
 # limitations under the License.
 
 import kfp
-from .metrics_visualization import metrics_visualization_pipeline
+from .metrics_visualization_v2 import metrics_visualization_pipeline
 from .util import run_pipeline_func, TestCase
 
 
 def verify(run, run_id: str, **kwargs):
     assert run.status == 'Succeeded'
-    # TODO(Bobgy): verify MLMD status
 
 
 run_pipeline_func([
-    # TestCase(
-    #     pipeline_func=metrics_visualization_pipeline,
-    #     verify_func=verify,
-    #     mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
-    # ),
     TestCase(pipeline_func=metrics_visualization_pipeline, verify_func=verify,  mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE),
 ])
