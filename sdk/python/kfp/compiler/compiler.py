@@ -30,7 +30,7 @@ from kfp.compiler import _data_passing_rewriter, v2_compat
 from .. import dsl
 from ._k8s_helper import convert_k8s_obj_to_json, sanitize_k8s_name
 from ._op_to_template import _op_to_template, _process_obj
-from ._default_transformers import add_pod_env
+from ._default_transformers import add_pod_env, add_pod_labels, get_default_telemetry_labels
 
 from ..components.structures import InputSpec
 from ..components._yaml_utils import dump_yaml
@@ -920,6 +920,8 @@ class Compiler(object):
                 default=default_param_values[param.name]))
 
     op_transformers = [add_pod_env]
+    pod_labels = get_default_telemetry_labels()
+    op_transformers.append(add_pod_labels(pod_labels))
     op_transformers.extend(pipeline_conf.op_transformers)
 
     if self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
