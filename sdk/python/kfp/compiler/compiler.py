@@ -39,6 +39,8 @@ from ..dsl._ops_group import OpsGroup
 from ..dsl._pipeline_param import extract_pipelineparams_from_any, PipelineParam
 
 _SDK_VERSION_LABEL = 'pipelines.kubeflow.org/kfp_sdk_version'
+_SDK_ENV_LABEL = 'pipelines.kubeflow.org/pipeline-sdk-type'
+_SDK_ENV_DEFAULT = 'kfp'
 class Compiler(object):
   """DSL Compiler that compiles pipeline functions into workflow yaml.
 
@@ -920,7 +922,7 @@ class Compiler(object):
                 default=default_param_values[param.name]))
 
     op_transformers = [add_pod_env]
-    pod_labels = {_SDK_VERSION_LABEL: kfp.__version__}
+    pod_labels = {_SDK_VERSION_LABEL: kfp.__version__, _SDK_ENV_LABEL:_SDK_ENV_DEFAULT}
     op_transformers.append(add_pod_labels(pod_labels))
     op_transformers.extend(pipeline_conf.op_transformers)
 
