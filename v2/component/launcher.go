@@ -623,8 +623,14 @@ func downloadFile(ctx context.Context, bucket *blob.Bucket, blobFilePath, localF
 }
 
 func uploadBlob(ctx context.Context, bucket *blob.Bucket, localPath, blobPath string) error {
+
 	fileInfo, err := os.Stat(localPath)
 	if err != nil {
+		//  We allow components to not produce output files
+		if os.IsNotExist(err) {
+			glog.Warningf("local filepath %q does not exist", localPath)
+			return nil
+		}
 		return fmt.Errorf("unable to stat local filepath %q: %w", localPath, err)
 	}
 
