@@ -18,6 +18,8 @@ import * as React from 'react';
 import { mount } from 'enzyme';
 import MarkdownViewer, { MarkdownViewerConfig } from './MarkdownViewer';
 import { PlotType } from './Viewer';
+import * as Constants from './Constants';
+import { render, screen, within } from '@testing-library/react';
 
 describe('MarkdownViewer', () => {
   it('does not break on empty data', () => {
@@ -52,5 +54,17 @@ describe('MarkdownViewer', () => {
 
   it('returns a user friendly display name', () => {
     expect(MarkdownViewer.prototype.getDisplayName()).toBe('Markdown');
+  });
+
+  it.only('capped at maximum markdown size', () => {
+    jest.spyOn(Constants, 'getMaxMarkdownStrLength').mockReturnValue(10);
+    const config: MarkdownViewerConfig = {
+      markdownContent: 'X'.repeat(11),
+      type: PlotType.MARKDOWN,
+    };
+
+    const { getByTestId } = render(<MarkdownViewer configs={[config]} />);
+    const { getByText } = within(getByTestId('markdown-large-size-warning'));
+    getByText('This markdown is too large to render completely.');
   });
 });
