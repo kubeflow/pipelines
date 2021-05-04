@@ -215,6 +215,8 @@ class TestCompiler(unittest.TestCase):
 
       for workflow in golden, compiled_workflow:
         del workflow['metadata']
+        for template in workflow['spec']['templates']:
+          template.pop('metadata', None)
 
       self.assertEqual(golden, compiled_workflow)
     finally:

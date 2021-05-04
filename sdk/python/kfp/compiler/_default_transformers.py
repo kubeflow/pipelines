@@ -55,7 +55,8 @@ def add_kfp_pod_env(op: BaseOp) -> BaseOp:
   )
   return op
 
-def add_pod_labels(labels: Optional[Dict[Text, Text]] = None) -> Callable:
+
+def add_pod_labels(labels: Optional[Dict] = None) -> Callable:
     """Adds provided pod labels to each pod."""
 
     def _add_pod_labels(task):
