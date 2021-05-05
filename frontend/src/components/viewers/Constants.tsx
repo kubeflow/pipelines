@@ -14,6 +14,6 @@
  * limitations under the License.
  */
 
-const MAX_MARKDOWN_STR_LENGTH = 10 * 1000 * 1000; // 10MB
+const MAX_MARKDOWN_STR_LENGTH = 50 * 1000 * 8; // 50KB
 
 export const getMaxMarkdownStrLength = () => MAX_MARKDOWN_STR_LENGTH;
