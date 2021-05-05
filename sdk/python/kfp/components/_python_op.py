@@ -56,6 +56,10 @@ class InputPath:
     def __init__(self, type=None):
         self.type = type
 
+class InputUri:
+    '''When creating component from function, :class:`.InputUri` should be used as function parameter annotation to tell the system to pass the *artifact uri* to the function instead of passing the actual data.'''
+    def __init__(self, type=None):
+        self.type = type
 
 class InputTextFile:
     '''When creating component from function, :class:`.InputTextFile` should be used as function parameter annotation to tell the system to pass the *text data stream* object (`io.TextIOWrapper`) to the function instead of passing the actual data.'''
@@ -84,6 +88,10 @@ class OutputPath:
     def __init__(self, type=None):
         self.type = type
 
+class OutputUri:
+    '''When creating component from function, :class:`.OutputUri` should be used as function parameter annotation to tell the system that the function wants to output data by writing it into a file with the given URI instead of returning the data from the function.'''
+    def __init__(self, type=None):
+        self.type = type
 
 class OutputTextFile:
     '''When creating component from function, :class:`.OutputTextFile` should be used as function parameter annotation to tell the system that the function wants to output data by writing it into a given text file stream (`io.TextIOWrapper`) instead of returning the data from the function.'''
