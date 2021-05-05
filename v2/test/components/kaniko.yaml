@@ -37,7 +37,7 @@ metadata:
 implementation:
   container:
     # The debug image contains busybox, while the normal images do not.
-    image: gcr.io/kaniko-project/executor:debug
+    image: gcr.io/kaniko-project/executor:v1.6.0-debug
     command:
     - sh
     - -exc
@@ -54,15 +54,16 @@ implementation:
         else
           context="dir://${context_artifact_path}"
         fi
+        mkdir -p "$(dirname "${digest_output_path}")";
         # Reference: https://github.com/GoogleContainerTools/kaniko
+        # snapshotMode added because: https://github.com/GoogleContainerTools/kaniko/issues/1333
         /kaniko/executor \
             --dockerfile "${dockerfile}" \
             --context "${context}" \
             ${context_sub_path:+ --context-sub-path "${context_sub_path}"} \
             --destination "${destination}" \
-            --digest-file "digest"
-        mkdir -p "$(dirname "${digest_output_path}")";
-        echo -n "${destination}@$(cat digest)" > "${digest_output_path}"
+            --snapshotMode redo \
+            --image-name-with-digest-file "${digest_output_path}"
     - inputValue: dockerfile
     - inputValue: context_uri
     - inputPath: context_artifact
