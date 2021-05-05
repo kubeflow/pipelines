@@ -217,6 +217,8 @@ class KfpArtifact:
                 raw_value = v.string_value
             if v.int_value:
                 raw_value = v.int_value
+            if v.double_value:
+                raw_value = v.double_value
             custom_properties[k] = raw_value
         artifact_name = ''
         if mlmd_artifact.name != '':
@@ -389,6 +391,8 @@ def _parse_parameters(execution: metadata_store_pb2.Execution) -> dict:
             raw_value = value.string_value
         if value.int_value:
             raw_value = value.int_value
+        if value.double_value:
+            raw_value = value.double_value
         if name.startswith('input:'):
             parameters['inputs'][name[len('input:'):]] = raw_value
         if name.startswith('output:'):
