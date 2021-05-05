@@ -213,8 +213,16 @@ class TestCompiler(unittest.TestCase):
       with open(os.path.join(test_data_dir, 'basic_no_decorator.yaml'), 'r') as f:
         golden = yaml.safe_load(f)
 
+      name_to_template = {template['name']: template for template in compiled_workflow['spec']['templates']}
+      for k, v in name_to_template.items():
+        if k in ['exiting', 'get-frequent', 'save']:
+          self.assertEqual(v['metadata']['labels']['pipelines.kubeflow.org/pipeline-sdk-type'], 'kfp')
+          self.assertTrue(v['metadata']['labels']['pipelines.kubeflow.org/kfp_sdk_version'] is not None)
+
       for workflow in golden, compiled_workflow:
         del workflow['metadata']
+        for template in workflow['spec']['templates']:
+          template.pop('metadata', None)
 
       self.assertEqual(golden, compiled_workflow)
     finally:
