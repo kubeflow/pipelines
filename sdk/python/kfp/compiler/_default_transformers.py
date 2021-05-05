@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -52,5 +52,6 @@ def add_kfp_pod_env(op: BaseOp) -> BaseOp:
           name='WORKFLOW_ID',
           value_from=k8s_client.
           V1EnvVarSource(field_ref=k8s_client.V1ObjectFieldSelector(
-              field_path="metadata.labels['workflows.argoproj.io/workflow']"))))
+              field_path="metadata.labels['workflows.argoproj.io/workflow']")))
+  )
   return op

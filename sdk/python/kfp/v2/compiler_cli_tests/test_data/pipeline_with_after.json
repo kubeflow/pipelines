@@ -1,33 +1,83 @@
 {
   "pipelineSpec": {
+    "components": {
+      "comp-print-text": {
+        "executorLabel": "exec-print-text",
+        "inputDefinitions": {
+          "parameters": {
+            "text": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-print-text-2": {
+        "executorLabel": "exec-print-text-2",
+        "inputDefinitions": {
+          "parameters": {
+            "text": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-print-text-3": {
+        "executorLabel": "exec-print-text-3",
+        "inputDefinitions": {
+          "parameters": {
+            "text": {
+              "type": "STRING"
+            }
+          }
+        }
+      }
+    },
+    "deploymentSpec": {
+      "executors": {
+        "exec-print-text": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "set -e -x\necho \"$0\"\n",
+              "{{$.inputs.parameters['text']}}"
+            ],
+            "image": "alpine"
+          }
+        },
+        "exec-print-text-2": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "set -e -x\necho \"$0\"\n",
+              "{{$.inputs.parameters['text']}}"
+            ],
+            "image": "alpine"
+          }
+        },
+        "exec-print-text-3": {
+          "container": {
+            "command": [
+              "sh",
+              "-c",
+              "set -e -x\necho \"$0\"\n",
+              "{{$.inputs.parameters['text']}}"
+            ],
+            "image": "alpine"
+          }
+        }
+      }
+    },
+    "pipelineInfo": {
+      "name": "pipeline-with-after"
+    },
     "root": {
       "dag": {
         "tasks": {
-          "task-print-text-2": {
-            "inputs": {
-              "parameters": {
-                "text": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": "2nd task"
-                    }
-                  }
-                }
-              }
-            },
-            "componentRef": {
-              "name": "comp-print-text-2"
-            },
-            "taskInfo": {
-              "name": "task-print-text-2"
-            },
-            "dependentTasks": [
-              "task-print-text"
-            ]
-          },
           "task-print-text": {
-            "taskInfo": {
-              "name": "task-print-text"
+            "componentRef": {
+              "name": "comp-print-text"
             },
             "inputs": {
               "parameters": {
@@ -40,17 +90,40 @@
                 }
               }
             },
+            "taskInfo": {
+              "name": "task-print-text"
+            }
+          },
+          "task-print-text-2": {
             "componentRef": {
-              "name": "comp-print-text"
+              "name": "comp-print-text-2"
+            },
+            "dependentTasks": [
+              "task-print-text"
+            ],
+            "inputs": {
+              "parameters": {
+                "text": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "2nd task"
+                    }
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "task-print-text-2"
             }
           },
           "task-print-text-3": {
-            "taskInfo": {
-              "name": "task-print-text-3"
-            },
             "componentRef": {
               "name": "comp-print-text-3"
             },
+            "dependentTasks": [
+              "task-print-text",
+              "task-print-text-2"
+            ],
             "inputs": {
               "parameters": {
                 "text": {
@@ -62,88 +135,15 @@
                 }
               }
             },
-            "dependentTasks": [
-              "task-print-text",
-              "task-print-text-2"
-            ]
+            "taskInfo": {
+              "name": "task-print-text-3"
+            }
           }
         }
       }
     },
-    "sdkVersion": "kfp-1.3.0",
     "schemaVersion": "2.0.0",
-    "pipelineInfo": {
-      "name": "pipeline-with-after"
-    },
-    "components": {
-      "comp-print-text": {
-        "inputDefinitions": {
-          "parameters": {
-            "text": {
-              "type": "STRING"
-            }
-          }
-        },
-        "executorLabel": "exec-print-text"
-      },
-      "comp-print-text-2": {
-        "inputDefinitions": {
-          "parameters": {
-            "text": {
-              "type": "STRING"
-            }
-          }
-        },
-        "executorLabel": "exec-print-text-2"
-      },
-      "comp-print-text-3": {
-        "inputDefinitions": {
-          "parameters": {
-            "text": {
-              "type": "STRING"
-            }
-          }
-        },
-        "executorLabel": "exec-print-text-3"
-      }
-    },
-    "deploymentSpec": {
-      "executors": {
-        "exec-print-text": {
-          "container": {
-            "image": "alpine",
-            "command": [
-              "sh",
-              "-c",
-              "set -e -x\necho \"$0\"\n",
-              "{{$.inputs.parameters['text']}}"
-            ]
-          }
-        },
-        "exec-print-text-2": {
-          "container": {
-            "image": "alpine",
-            "command": [
-              "sh",
-              "-c",
-              "set -e -x\necho \"$0\"\n",
-              "{{$.inputs.parameters['text']}}"
-            ]
-          }
-        },
-        "exec-print-text-3": {
-          "container": {
-            "image": "alpine",
-            "command": [
-              "sh",
-              "-c",
-              "set -e -x\necho \"$0\"\n",
-              "{{$.inputs.parameters['text']}}"
-            ]
-          }
-        }
-      }
-    }
+    "sdkVersion": "kfp-1.5.0"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"

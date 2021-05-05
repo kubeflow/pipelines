@@ -1,4 +1,4 @@
-# Copyright 2018-2019 Google LLC
+# Copyright 2018-2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ from ._pipeline_volume import PipelineVolume
 from ._volume_snapshot_op import VolumeSnapshotOp
 from ._ops_group import OpsGroup, ExitHandler, Condition, ParallelFor, SubGraph
 from ._component import python_component, graph_component, component
+from .importer_node import importer
 
 EXECUTION_ID_PLACEHOLDER = '{{workflow.uid}}-{{pod.name}}'
 RUN_ID_PLACEHOLDER = '{{workflow.uid}}'

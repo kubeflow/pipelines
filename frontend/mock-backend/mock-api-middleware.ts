@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import { ApiFilter, PredicateOp } from '../src/apis/filter';
 import { ApiListExperimentsResponse, ApiExperiment } from '../src/apis/experiment';
 import { ApiListJobsResponse, ApiJob } from '../src/apis/job';
 import { ApiListPipelinesResponse, ApiPipeline } from '../src/apis/pipeline';
-import { ApiListRunsResponse, ApiResourceType, ApiRun, RunStorageState } from '../src/apis/run';
+import { ApiListRunsResponse, ApiResourceType, ApiRun, ApiRunStorageState } from '../src/apis/run';
 import { ExperimentSortKeys, PipelineSortKeys, RunSortKeys } from '../src/lib/Apis';
 import { Response } from 'express-serve-static-core';
 import { data as fixedData, namedPipelines } from './fixed-data';
@@ -336,7 +336,9 @@ export default (app: express.Application) => {
     const runDetail = fixedData.runs.find(r => r.run!.id === req.params.rid);
     if (runDetail) {
       runDetail.run!.storage_state =
-        req.params.method === 'archive' ? RunStorageState.ARCHIVED : RunStorageState.AVAILABLE;
+        req.params.method === 'archive'
+          ? ApiRunStorageState.ARCHIVED
+          : ApiRunStorageState.AVAILABLE;
       res.json({});
     } else {
       res.status(500).send('Cannot find a run with id ' + req.params.rid);

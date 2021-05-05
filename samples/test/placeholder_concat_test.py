@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,8 +16,10 @@ from .placeholder_concat import pipeline_with_concat_placeholder
 from .util import run_pipeline_func, TestCase
 
 
-def verify(run, run_id: str):
-  assert run.status == 'Succeeded'
+def verify(run, run_id: str, **kwargs):
+    assert run.status == 'Succeeded'
+    # TODO(Bobgy): verify echo output
+    # TODO(v2-compatible): support IR placeholder like {{$.inputs.parameters['input_prefix']}}
 
 
 run_pipeline_func([

@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,12 +22,12 @@ from kfp.components import _structures
 from kfp.components import _components
 from kfp.components import _naming
 from kfp import dsl
-from kfp.dsl import _pipeline_param
-from kfp.dsl import types
-from kfp.dsl import component_spec as dsl_component_spec
 from kfp.dsl import _container_op
+from kfp.dsl import _for_loop
+from kfp.dsl import _pipeline_param
+from kfp.dsl import component_spec as dsl_component_spec
 from kfp.dsl import dsl_utils
-from kfp.dsl import importer_node
+from kfp.dsl import types
 from kfp.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 
@@ -207,9 +207,9 @@ def _create_container_op_from_component_and_arguments(
   for input_name, argument_value in arguments.items():
     if isinstance(argument_value, _pipeline_param.PipelineParam):
       input_type = component_spec._inputs_dict[input_name].type
-      reference_type = argument_value.param_type
+      argument_type = argument_value.param_type
       types.verify_type_compatibility(
-          reference_type, input_type,
+          argument_type, input_type,
           'Incompatible argument passed to the input "{}" of component "{}": '
           .format(input_name, component_spec.name))
 
@@ -368,15 +368,6 @@ def _attach_v2_specs(
         raise TypeError('Input "{}" with type "{}" cannot be paired with '
                         'InputPathPlaceholder.'.format(
                             input_key, inputs_dict[input_key].type))
-      elif is_compiling_for_v2 and input_key in importer_specs:
-        raise TypeError(
-            'Input "{}" with type "{}" is not connected to any upstream output. '
-            'However it is used with InputPathPlaceholder. '
-            'If you want to import an existing artifact using a system-connected'
-            ' importer node, use InputUriPlaceholder instead. '
-            'Or if you just want to pass a string parameter, use string type and'
-            ' InputValuePlaceholder instead.'.format(
-                input_key, inputs_dict[input_key].type))
       else:
         return "{{{{$.inputs.artifacts['{}'].path}}}}".format(input_key)
 
@@ -463,14 +454,11 @@ def _attach_v2_specs(
 
   pipeline_task_spec = pipeline_spec_pb2.PipelineTaskSpec()
 
-  # Keep track of auto-injected importer spec.
-  importer_specs = {}
-
   # Check types of the reference arguments and serialize PipelineParams
   original_arguments = arguments
   arguments = arguments.copy()
 
-  # Preserver input params for ContainerOp.inputs
+  # Preserve input params for ContainerOp.inputs
   input_params = list(
       set([
           param for param in arguments.values()
@@ -478,13 +466,23 @@ def _attach_v2_specs(
       ]))
 
   for input_name, argument_value in arguments.items():
+    input_type = component_spec._inputs_dict[input_name].type
+    argument_type = None
+
     if isinstance(argument_value, _pipeline_param.PipelineParam):
-      input_type = component_spec._inputs_dict[input_name].type
-      reference_type = argument_value.param_type
+      argument_type = argument_value.param_type
+
       types.verify_type_compatibility(
-          reference_type, input_type,
+          argument_type, input_type,
           'Incompatible argument passed to the input "{}" of component "{}": '
           .format(input_name, component_spec.name))
+
+      # Loop arguments defaults to 'String' type if type is unknown.
+      # This has to be done after the type compatiblity check.
+      if argument_type is None and isinstance(
+          argument_value, (_for_loop.LoopArguments,
+                           _for_loop.LoopArgumentVariable)):
+        argument_type = 'String'
 
       arguments[input_name] = str(argument_value)
 
@@ -507,18 +505,8 @@ def _attach_v2_specs(
           pipeline_task_spec.inputs.artifacts[
               input_name].task_output_artifact.output_artifact_key = (
                   argument_value.name)
-        elif is_compiling_for_v2:
-          # argument_value.op_name could be none, in which case an importer node
-          # will be inserted later.
-          # Importer node is only applicable for v2 engine.
-          pipeline_task_spec.inputs.artifacts[
-              input_name].task_output_artifact.producer_task = ''
-          type_schema = type_utils.get_input_artifact_type_schema(
-              input_name, component_spec.inputs)
-          importer_specs[input_name] = importer_node.build_importer_spec(
-              input_type_schema=type_schema,
-              pipeline_param_name=argument_value.name)
     elif isinstance(argument_value, str):
+      argument_type = 'String'
       pipeline_params = _pipeline_param.extract_pipelineparams_from_any(
           argument_value)
       if pipeline_params and is_compiling_for_v2:
@@ -557,19 +545,12 @@ def _attach_v2_specs(
         pipeline_task_spec.inputs.parameters[
             input_name].runtime_value.constant_value.string_value = (
                 argument_value)
-      elif is_compiling_for_v2:
-        # An importer node with constant value artifact_uri will be inserted.
-        # Importer node is only applicable for v2 engine.
-        pipeline_task_spec.inputs.artifacts[
-            input_name].task_output_artifact.producer_task = ''
-        type_schema = type_utils.get_input_artifact_type_schema(
-            input_name, component_spec.inputs)
-        importer_specs[input_name] = importer_node.build_importer_spec(
-            input_type_schema=type_schema, constant_value=argument_value)
     elif isinstance(argument_value, int):
+      argument_type = 'Integer'
       pipeline_task_spec.inputs.parameters[
           input_name].runtime_value.constant_value.int_value = argument_value
     elif isinstance(argument_value, float):
+      argument_type = 'Float'
       pipeline_task_spec.inputs.parameters[
           input_name].runtime_value.constant_value.double_value = argument_value
     elif isinstance(argument_value, _container_op.ContainerOp):
@@ -581,6 +562,32 @@ def _attach_v2_specs(
         raise NotImplementedError(
             'Input argument supports only the following types: PipelineParam'
             ', str, int, float. Got: "{}".'.format(argument_value))
+
+    argument_is_parameter_type = type_utils.is_parameter_type(argument_type)
+    input_is_parameter_type = type_utils.is_parameter_type(input_type)
+    if is_compiling_for_v2 and (argument_is_parameter_type !=
+                                input_is_parameter_type):
+      if isinstance(argument_value, dsl.PipelineParam):
+        param_or_value_msg = 'PipelineParam "{}"'.format(
+            argument_value.full_name)
+      else:
+        param_or_value_msg = 'value "{}"'.format(argument_value)
+
+      raise TypeError(
+          'Passing '
+          '{param_or_value} with type "{arg_type}" (as "{arg_category}") to '
+          'component input '
+          '"{input_name}" with type "{input_type}" (as "{input_category}") is '
+          'incompatible. Please fix the type of the component input.'.format(
+              param_or_value=param_or_value_msg,
+              arg_type=argument_type,
+              arg_category='Parameter'
+              if argument_is_parameter_type else 'Artifact',
+              input_name=input_name,
+              input_type=input_type,
+              input_category='Paramter'
+              if input_is_parameter_type else 'Artifact',
+          ))
 
   if not component_spec.name:
     component_spec.name = _components._default_component_name
@@ -606,7 +613,6 @@ def _attach_v2_specs(
       component_spec, executor_label, arguments.keys())
 
   task.task_spec = pipeline_task_spec
-  task.importer_specs = importer_specs
 
   # Override command and arguments if compiling to v2.
   if is_compiling_for_v2:

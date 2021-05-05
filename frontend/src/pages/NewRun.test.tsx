@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ import { MemoryRouter } from 'react-router';
 import { logger } from '../lib/Utils';
 import { NamespaceContext } from '../lib/KubeflowClient';
 import { ApiFilter, PredicateOp } from '../apis/filter';
-import { ExperimentStorageState } from '../apis/experiment';
+import { ApiExperimentStorageState } from '../apis/experiment';
 import { ApiJob } from 'src/apis/job';
 
 class TestNewRun extends NewRun {
@@ -630,7 +630,7 @@ describe('NewRun', () => {
               {
                 key: 'storage_state',
                 op: PredicateOp.NOTEQUALS,
-                string_value: ExperimentStorageState.ARCHIVED.toString(),
+                string_value: ApiExperimentStorageState.ARCHIVED.toString(),
               },
             ],
           } as ApiFilter),
@@ -661,7 +661,7 @@ describe('NewRun', () => {
               {
                 key: 'storage_state',
                 op: PredicateOp.NOTEQUALS,
-                string_value: ExperimentStorageState.ARCHIVED.toString(),
+                string_value: ApiExperimentStorageState.ARCHIVED.toString(),
               },
             ],
           } as ApiFilter),

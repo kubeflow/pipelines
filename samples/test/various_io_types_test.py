@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ from .various_io_types import my_pipeline
 from .util import run_pipeline_func, TestCase
 
 
-def verify(run, run_id: str):
+def verify(run, run_id: str, **kwargs):
     assert run.status == 'Succeeded'
     # TODO(Bobgy): verify MLMD status
 

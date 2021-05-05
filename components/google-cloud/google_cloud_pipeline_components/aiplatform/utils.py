@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC. All Rights Reserved.
+# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,10 +14,10 @@
 """Module for creating pipeline components based on AI Platform SDK."""
 
 import collections
-import docstring_parser
 import inspect
 import json
 from typing import Any, Callable, Dict, Optional, Tuple, Union
+import docstring_parser
 
 from google.cloud import aiplatform
 import kfp
@@ -201,7 +201,9 @@ def should_be_metadata_type(mb_sdk_type: Any) -> bool:
 
 def is_resource_name_parameter_name(param_name: str) -> bool:
     """Determines if the mb_sdk parameter is a resource name."""
-    return param_name != 'display_name' and param_name.endswith('_name')
+    return param_name != 'display_name' and \
+            not param_name.endswith('encryption_spec_key_name') and \
+            param_name.endswith('_name')
 
 
 # These parameters are filtered from MB SDK methods
@@ -219,10 +221,11 @@ def filter_signature(
     Args:
         signature (inspect.Signature): Model Builder SDK Method Signature.
         is_init_signature (bool): is this constructor signature
-        self_type (aiplatform.base.AiPlatformResourceNoun): This is used to replace *_name str fields with resource
-            name type.
-        component_param_name_to_mb_sdk_param_name dict[str, str]: Mapping to keep track of param names changed
-            to make them component friendly( ie: model_name -> model)
+        self_type (aiplatform.base.AiPlatformResourceNoun): This is used to
+            replace *_name str fields with resource name type.
+        component_param_name_to_mb_sdk_param_name dict[str, str]: Mapping to
+            keep track of param names changed to make them component
+            friendly( ie: model_name -> model)
 
     Returns:
         Signature appropriate for component creation.
@@ -464,6 +467,8 @@ def convert_method_to_component(
             f'- {{name: {output_metadata_name}, type: {output_metadata_type}}}'
         ])
         output_args = '\n'.join([
+            '    - --executor_input',
+            '    - "{{$}}"',
             '    - --resource_name_output_artifact_path',
             f'    - {{outputPath: {output_metadata_name}}}',
         ])
@@ -556,7 +561,7 @@ def convert_method_to_component(
             'implementation:', '  container:',
             f'    image: {DEFAULT_CONTAINER_IMAGE}', '    command:',
             '    - python3', '    - -m',
-            '    - google_cloud_components.aiplatform.remote_runner',
+            '    - google_cloud_pipeline_components.aiplatform.remote_runner',
             f'    - --cls_name={cls_name}',
             f'    - --method_name={method_name}',
             f'{make_args(serialized_args)}', '    args:', output_args,

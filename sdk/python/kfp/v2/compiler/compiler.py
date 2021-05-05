@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,7 +34,6 @@ from kfp.dsl import _pipeline_param
 from kfp.v2.compiler import compiler_utils
 from kfp.dsl import component_spec as dsl_component_spec
 from kfp.dsl import dsl_utils
-from kfp.dsl import importer_node
 from kfp.dsl import io_types
 from kfp.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
@@ -42,7 +41,6 @@ from kfp.pipeline_spec import pipeline_spec_pb2
 from google.protobuf import json_format
 
 _GroupOrOp = Union[dsl.OpsGroup, dsl.BaseOp]
-_LOOP_ITERATOR_COMPONENT_NAME_SUFFIX = '-iterator'
 
 
 class Compiler(object):
@@ -482,192 +480,44 @@ class Compiler(object):
 
     return dependencies
 
-  def _resolve_value_or_reference(
-      self, value_or_reference: Union[str, dsl.PipelineParam]) -> str:
-    """_resolve_value_or_reference resolves values and PipelineParams.
+  def _resolve_condition_operands(
+      self, operand1: Union[str, dsl.PipelineParam],
+      operand2: Union[str, dsl.PipelineParam]) -> Tuple[str, str]:
+    """Resolves values and PipelineParams for condition operands."""
 
-    The values and PipelineParams could be task parameters or input parameters.
-
-    Args:
-      value_or_reference: value or reference to be resolved. It could be basic
-        python types or PipelineParam
-    """
-    if isinstance(value_or_reference, dsl.PipelineParam):
-      input_name = dsl_component_spec.additional_input_name_for_pipelineparam(
-          value_or_reference)
-      if type_utils.is_parameter_type(value_or_reference.param_type):
-        return "inputs.parameters['{input_name}'].{value_field}".format(
-            input_name=input_name,
-            value_field=type_utils.get_parameter_type_field_name(
-                value_or_reference.param_type))
-      else:
-        raise NotImplementedError(
-            'Use artifact as dsl.Condition operand is not implemented yet.')
-    else:
-      if isinstance(value_or_reference, str):
-        return "'{}'".format(value_or_reference)
-      else:
-        return str(value_or_reference)
-
-  def _insert_loop_iterator_component(
-      self,
-      group: dsl.OpsGroup,
-      subgroup: _GroupOrOp,
-      group_component_spec: pipeline_spec_pb2.ComponentSpec,
-      subgroup_component_spec: pipeline_spec_pb2.ComponentSpec,
-      subgroup_task_spec: pipeline_spec_pb2.PipelineTaskSpec,
-      pipeline_spec: pipeline_spec_pb2.PipelineSpec,
-  ) -> None:
-    """Inserts a component that holds the loop args item from each iteration.
-
-    Args:
-      group: The dsl.ParallelFor OpsGroup.
-      subgroup: One of the subgroups of dsl.ParallelFor.
-      group_component_spec: The component spec of the group to update in place.
-      subgroup_component_spec: The component spec of the subgroup to update.
-      subgroup_task_spec: The task spec of the subgroup to update.
-      pipeline_spec: The pipeline spec to insert the intermediate component.
-    """
-    if subgroup.items_is_pipeline_param:
-      # This loop_args is a 'withParam' rather than a 'withItems'.
-      # i.e., rather than a static list, it is either the output of
-      # another task or an input as global pipeline parameters.
-      input_parameter_name = (
-          dsl_component_spec.additional_input_name_for_pipelineparam(
-              subgroup.loop_args.items_or_pipeline_param))
-    else:
-      # This loop_args is a 'withItems'. i.e., a static list (raw values).
-      input_parameter_name = (
-          dsl_component_spec.additional_input_name_for_pipelineparam(
-              subgroup.loop_args.full_name))
-
-    # Insert an intermediate component.
-    loop_iterator_component_base_name = (
-        subgroup.name + _LOOP_ITERATOR_COMPONENT_NAME_SUFFIX)
-    loop_iterator_component_spec = pipeline_spec_pb2.ComponentSpec()
-    loop_iterator_component_spec.input_definitions.CopyFrom(
-        subgroup_component_spec.input_definitions)
-
-    loop_argument_base_name = '{}-{}'.format(
-        input_parameter_name, _for_loop.LoopArguments.LOOP_ITEM_NAME_BASE)
-
-    if subgroup.items_is_pipeline_param:
-      # pop, since we only need the '-loop-item' version
-      dsl_component_spec.pop_input_from_component_spec(
-          loop_iterator_component_spec, input_parameter_name)
-      loop_iterator_component_spec.input_definitions.parameters[
-          loop_argument_base_name].type = pipeline_spec_pb2.PrimitiveType.STRING
-    else:
-      loop_iterator_component_spec.input_definitions.parameters[
-          input_parameter_name].type = pipeline_spec_pb2.PrimitiveType.STRING
-
-    loop_iterator_component_name = dsl_utils.sanitize_component_name(
-        loop_iterator_component_base_name)
-    pipeline_spec.components[loop_iterator_component_name].CopyFrom(
-        loop_iterator_component_spec)
-
-    loop_iterator_task_name = dsl_utils.sanitize_task_name(
-        loop_iterator_component_base_name)
-    loop_iterator_task_spec = pipeline_spec_pb2.PipelineTaskSpec()
-    loop_iterator_task_spec.task_info.name = loop_iterator_task_name
-    loop_iterator_task_spec.component_ref.name = loop_iterator_component_name
-    if subgroup.items_is_pipeline_param:
-      loop_iterator_task_spec.inputs.parameters[
-          input_parameter_name].component_input_parameter = (
-              input_parameter_name)
-      loop_iterator_task_spec.parameter_iterator.items.input_parameter = (
-          input_parameter_name)
-      loop_iterator_task_spec.parameter_iterator.item_input = (
-          loop_argument_base_name)
-    else:
-      raw_values = subgroup.loop_args.to_list_for_task_yaml()
-      loop_iterator_task_spec.parameter_iterator.items.raw = json.dumps(
-          raw_values, sort_keys=True)
-      loop_iterator_task_spec.parameter_iterator.item_input = (
-          input_parameter_name)
-
-    for input_name in loop_iterator_component_spec.input_definitions.parameters:
-      if input_name == loop_iterator_task_spec.parameter_iterator.item_input:
+    # Pre-scan the operand to get the type of constant value if there's any.
+    # The value_type can be used to backfill missing PipelineParam.param_type.
+    value_type = None
+    for value_or_reference in [operand1, operand2]:
+      if isinstance(value_or_reference, dsl.PipelineParam):
         continue
-      loop_iterator_task_spec.inputs.parameters[
-          input_name].component_input_parameter = input_name
-
-    # Add task spec
-    subgroup_component_spec.dag.tasks[loop_iterator_task_name].CopyFrom(
-        loop_iterator_task_spec)
-
-  def _update_loop_subgroup_specs(
-      self,
-      group: dsl.OpsGroup,
-      subgroup: _GroupOrOp,
-      group_component_spec: pipeline_spec_pb2.ComponentSpec,
-      subgroup_component_spec: pipeline_spec_pb2.ComponentSpec,
-      subgroup_task_spec: pipeline_spec_pb2.PipelineTaskSpec,
-  ) -> None:
-    """Updates IR specs for loop subgroup.
-
-    Args:
-      group: The dsl.ParallelFor OpsGroup.
-      subgroup: One of the subgroups of dsl.ParallelFor.
-      group_component_spec: The component spec of the group to update in place.
-      subgroup_component_spec: The component spec of the subgroup to update.
-      subgroup_task_spec: The task spec of the subgroup to update.
-    """
-    input_names = [
-        input_name for input_name in subgroup_task_spec.inputs.parameters
-    ]
-    for input_name in input_names:
-
-      if subgroup_task_spec.inputs.parameters[input_name].HasField(
-          'component_input_parameter'):
-        loop_argument_name = subgroup_task_spec.inputs.parameters[
-            input_name].component_input_parameter
+      if isinstance(value_or_reference, float):
+        value_type = 'Float'
+      elif isinstance(value_or_reference, int):
+        value_type = 'Integer'
       else:
-        producer_task_name = dsl_utils.remove_task_name_prefix(
-            subgroup_task_spec.inputs.parameters[input_name]
-            .task_output_parameter.producer_task)
-        producer_task_output_key = subgroup_task_spec.inputs.parameters[
-            input_name].task_output_parameter.output_parameter_key
-        loop_argument_name = '{}-{}'.format(producer_task_name,
-                                            producer_task_output_key)
+        value_type = 'String'
 
-      # Loop arguments are from dynamic input: pipeline param or task output
-      if _for_loop.LoopArguments.name_is_withparams_loop_argument(
-          loop_argument_name):
+    operand_values = []
+    for value_or_reference in [operand1, operand2]:
+      if isinstance(value_or_reference, dsl.PipelineParam):
+        input_name = dsl_component_spec.additional_input_name_for_pipelineparam(
+            value_or_reference)
+        # Condition operand is always parameters for now.
+        value_or_reference.param_type = (
+            value_or_reference.param_type or value_type)
+        operand_values.append(
+            "inputs.parameters['{input_name}'].{value_field}".format(
+                input_name=input_name,
+                value_field=type_utils.get_parameter_type_field_name(
+                    value_or_reference.param_type)))
+      else:
+        if isinstance(value_or_reference, str):
+          operand_values.append("'{}'".format(value_or_reference))
+        else:
+          operand_values.append(str(value_or_reference))
 
-        assert group.items_is_pipeline_param
-        pipeline_param = group.loop_args.items_or_pipeline_param
-        input_parameter_name = (
-            dsl_component_spec.additional_input_name_for_pipelineparam(
-                pipeline_param))
-
-        loop_argument_base_name = '{}-{}'.format(
-            pipeline_param.full_name,
-            _for_loop.LoopArguments.LOOP_ITEM_NAME_BASE)
-        subgroup_task_spec.inputs.parameters[
-            input_name].component_input_parameter = (
-                dsl_component_spec.additional_input_name_for_pipelineparam(
-                    loop_argument_base_name))
-
-      # Loop arguments come from static raw values known at compile time.
-      elif _for_loop.LoopArguments.name_is_withitems_loop_argument(
-          loop_argument_name):
-
-        pipeline_param_name = group.loop_args.full_name
-
-        subgroup_task_spec.inputs.parameters[
-            input_name].component_input_parameter = (
-                dsl_component_spec.additional_input_name_for_pipelineparam(
-                    pipeline_param_name))
-
-      # Loop arguments contain subvar referencing.
-      if _for_loop.LoopArgumentVariable.name_is_loop_arguments_variable(
-          loop_argument_name):
-        subvar_name = _for_loop.LoopArgumentVariable.get_subvar_name(
-            loop_argument_name)
-        subgroup_task_spec.inputs.parameters[
-            input_name].parameter_expression_selector = (
-                'parseJson(string_value)["{}"]'.format(subvar_name))
+    return tuple(operand_values)
 
   def _populate_metrics_in_dag_outputs(
       self,
@@ -768,13 +618,11 @@ class Compiler(object):
       subgroup_component_spec = getattr(subgroup, 'component_spec',
                                         pipeline_spec_pb2.ComponentSpec())
 
-      is_loop_subgroup = (isinstance(group, dsl.ParallelFor))
       is_recursive_subgroup = (
           isinstance(subgroup, dsl.OpsGroup) and subgroup.recursive_ref)
-
-      # Special handling for recursive subgroup: use the existing opsgroup name
       if is_recursive_subgroup:
-        subgroup_key = subgroup.recursive_ref.name
+        raise NotImplementedError(
+            'Recursive subgroup is not supported in v2 yet.')
       else:
         subgroup_key = subgroup.name
 
@@ -796,62 +644,24 @@ class Compiler(object):
         raise NotImplementedError(
             'dsl.ExitHandler is not yet supported in KFP v2 compiler.')
 
-      importer_tasks = []
-      # Add importer node when applicable
-      for input_name in subgroup_task_spec.inputs.artifacts:
-        if not subgroup_task_spec.inputs.artifacts[
-            input_name].task_output_artifact.producer_task:
-          type_schema = type_utils.get_input_artifact_type_schema(
-              input_name, subgroup._metadata.inputs)
-
-          importer_name = importer_node.generate_importer_base_name(
-              dependent_task_name=subgroup_task_spec.task_info.name,
-              input_name=input_name)
-          importer_task_spec = importer_node.build_importer_task_spec(
-              importer_name)
-          importer_comp_spec = importer_node.build_importer_component_spec(
-              importer_base_name=importer_name,
-              input_name=input_name,
-              input_type_schema=type_schema)
-          importer_task_name = importer_task_spec.task_info.name
-          importer_comp_name = importer_task_spec.component_ref.name
-          importer_exec_label = importer_comp_spec.executor_label
+      if isinstance(subgroup, dsl.ContainerOp):
+        if hasattr(subgroup, 'importer_spec'):
+          importer_task_name = subgroup.task_spec.task_info.name
+          importer_comp_name = subgroup.task_spec.component_ref.name
+          importer_exec_label = subgroup.component_spec.executor_label
           group_component_spec.dag.tasks[importer_task_name].CopyFrom(
-              importer_task_spec)
+              subgroup.task_spec)
           pipeline_spec.components[importer_comp_name].CopyFrom(
-              importer_comp_spec)
-
-          subgroup_task_spec.inputs.artifacts[
-              input_name].task_output_artifact.producer_task = (
-                  importer_task_name)
-          subgroup_task_spec.inputs.artifacts[
-              input_name].task_output_artifact.output_artifact_key = (
-                  importer_node.OUTPUT_KEY)
-
-          # Retrieve the pre-built importer spec
-          importer_spec = subgroup.importer_specs[input_name]
+              subgroup.component_spec)
           deployment_config.executors[importer_exec_label].importer.CopyFrom(
-              importer_spec)
-
-          importer_tasks.append(importer_task_name)
-
-      if is_loop_subgroup:
-        # Retrieve the real parent component, which is the compiler injected
-        # loop iterator component.
-        loop_iterator_component_name = dsl_utils.sanitize_component_name(
-            group.name + _LOOP_ITERATOR_COMPONENT_NAME_SUFFIX)
-        group_component_spec = pipeline_spec.components[
-            loop_iterator_component_name]
-        self._update_loop_subgroup_specs(group, subgroup, group_component_spec,
-                                         subgroup_component_spec,
-                                         subgroup_task_spec)
+              subgroup.importer_spec)
 
       subgroup_inputs = inputs.get(subgroup.name, [])
       subgroup_params = [param for param, _ in subgroup_inputs]
 
       tasks_in_current_dag = [
           dsl_utils.sanitize_task_name(subgroup.name) for subgroup in subgroups
-      ] + importer_tasks
+      ]
 
       input_parameters_in_current_dag = [
           input_name
@@ -865,7 +675,6 @@ class Compiler(object):
       is_parent_component_root = group_component_spec == pipeline_spec.root
 
       if isinstance(subgroup, dsl.ContainerOp):
-
         dsl_component_spec.update_task_inputs_spec(
             subgroup_task_spec,
             group_component_spec.input_definitions,
@@ -908,10 +717,47 @@ class Compiler(object):
             tasks_in_current_dag,
             is_parent_component_root,
         )
-        self._insert_loop_iterator_component(group, subgroup,
-                                             group_component_spec,
-                                             subgroup_component_spec,
-                                             subgroup_task_spec, pipeline_spec)
+
+        if subgroup.items_is_pipeline_param:
+          input_parameter_name = (
+              dsl_component_spec.additional_input_name_for_pipelineparam(
+                  subgroup.loop_args.items_or_pipeline_param))
+          loop_arguments_item = '{}-{}'.format(
+              input_parameter_name, _for_loop.LoopArguments.LOOP_ITEM_NAME_BASE)
+
+          subgroup_component_spec.input_definitions.parameters[
+              loop_arguments_item].type = pipeline_spec_pb2.PrimitiveType.STRING
+          subgroup_task_spec.parameter_iterator.items.input_parameter = (
+              input_parameter_name)
+          subgroup_task_spec.parameter_iterator.item_input = (
+              loop_arguments_item)
+
+          # If the loop arguments itself is a loop arguments variable, handle
+          # the subvar name.
+          loop_args_name, subvar_name = (
+              dsl_component_spec._exclude_loop_arguments_variables(
+                  subgroup.loop_args.items_or_pipeline_param))
+          if subvar_name:
+            subgroup_task_spec.inputs.parameters[
+                input_parameter_name].parameter_expression_selector = (
+                    'parseJson(string_value)["{}"]'.format(subvar_name))
+            subgroup_task_spec.inputs.parameters[
+                input_parameter_name].component_input_parameter = (
+                    dsl_component_spec.additional_input_name_for_pipelineparam(
+                        loop_args_name))
+
+        else:
+          input_parameter_name = (
+              dsl_component_spec.additional_input_name_for_pipelineparam(
+                  subgroup.loop_args.full_name))
+          raw_values = subgroup.loop_args.to_list_for_task_yaml()
+
+          subgroup_component_spec.input_definitions.parameters[
+              input_parameter_name].type = pipeline_spec_pb2.PrimitiveType.STRING
+          subgroup_task_spec.parameter_iterator.items.raw = json.dumps(
+              raw_values, sort_keys=True)
+          subgroup_task_spec.parameter_iterator.item_input = (
+              input_parameter_name)
 
       if isinstance(subgroup, dsl.OpsGroup) and subgroup.type == 'condition':
 
@@ -931,12 +777,11 @@ class Compiler(object):
         condition = subgroup.condition
         operand_values = []
 
-        for operand in [condition.operand1, condition.operand2]:
-          operand_values.append(self._resolve_value_or_reference(operand))
+        operand1_value, operand2_value = self._resolve_condition_operands(
+            condition.operand1, condition.operand2)
 
-        condition_string = '{} {} {}'.format(operand_values[0],
-                                             condition.operator,
-                                             operand_values[1])
+        condition_string = '{} {} {}'.format(operand1_value, condition.operator,
+                                             operand2_value)
 
         subgroup_task_spec.trigger_policy.CopyFrom(
             pipeline_spec_pb2.PipelineTaskSpec.TriggerPolicy(
@@ -1112,7 +957,6 @@ class Compiler(object):
   def _create_pipeline_v2(
       self,
       pipeline_func: Callable[..., Any],
-      pipeline_root: Optional[str] = None,
       pipeline_name: Optional[str] = None,
       pipeline_parameters_override: Optional[Mapping[str, Any]] = None,
   ) -> pipeline_spec_pb2.PipelineJob:
@@ -1120,7 +964,6 @@ class Compiler(object):
 
     Args:
       pipeline_func: Pipeline function with @dsl.pipeline decorator.
-      pipeline_root: The root of the pipeline outputs. Optional.
       pipeline_name: The name of the pipeline. Optional.
       pipeline_parameters_override: The mapping from parameter names to values.
         Optional.
@@ -1134,11 +977,7 @@ class Compiler(object):
     pipeline_meta = _python_op._extract_component_interface(pipeline_func)
     pipeline_name = pipeline_name or pipeline_meta.name
 
-    pipeline_root = pipeline_root or getattr(pipeline_func, 'output_directory',
-                                             None)
-    if not pipeline_root:
-      warnings.warn('pipeline_root is None or empty. A valid pipeline_root '
-                    'must be provided at job submission.')
+    pipeline_root = getattr(pipeline_func, 'pipeline_root', None)
 
     args_list = []
     signature = inspect.signature(pipeline_func)
@@ -1148,6 +987,13 @@ class Compiler(object):
         if arg_name == pipeline_input.name:
           arg_type = pipeline_input.type
           break
+      if not type_utils.is_parameter_type(arg_type):
+        raise TypeError(
+            'The pipeline argument "{arg_name}" is viewed as an artifact due to '
+            'its type "{arg_type}". And we currently do not support passing '
+            'artifacts as pipeline inputs. Consider type annotating the argument'
+            ' with a primitive type, such as "str", "int", and "float".'.format(
+                arg_name=arg_name, arg_type=arg_type))
       args_list.append(
           dsl.PipelineParam(
               sanitize_k8s_name(arg_name, True), param_type=arg_type))
@@ -1198,7 +1044,6 @@ class Compiler(object):
   def compile(self,
               pipeline_func: Callable[..., Any],
               package_path: str,
-              pipeline_root: Optional[str] = None,
               pipeline_name: Optional[str] = None,
               pipeline_parameters: Optional[Mapping[str, Any]] = None,
               type_check: bool = True) -> None:
@@ -1208,10 +1053,6 @@ class Compiler(object):
       pipeline_func: Pipeline function with @dsl.pipeline decorator.
       package_path: The output pipeline job .json file path. for example,
         "~/pipeline_job.json"
-      pipeline_root: The root of the pipeline outputs. Optional. The
-        pipeline_root value can be specified either from this `compile()` method
-        or through the `@dsl.pipeline` decorator. If it's specified in both
-        places, the value provided here prevails.
       pipeline_name: The name of the pipeline. Optional.
       pipeline_parameters: The mapping from parameter names to values. Optional.
       type_check: Whether to enable the type check or not, default: True.
@@ -1221,7 +1062,6 @@ class Compiler(object):
       kfp.TYPE_CHECK = type_check
       pipeline_job = self._create_pipeline_v2(
           pipeline_func=pipeline_func,
-          pipeline_root=pipeline_root,
           pipeline_name=pipeline_name,
           pipeline_parameters_override=pipeline_parameters)
       self._write_pipeline(pipeline_job, package_path)
@@ -1240,7 +1080,7 @@ class Compiler(object):
       ValueError: if the specified output path doesn't end with the acceptable
       extentions.
     """
-    json_text = json_format.MessageToJson(pipeline_job)
+    json_text = json_format.MessageToJson(pipeline_job, sort_keys=True)
 
     if output_path.endswith('.json'):
       with open(output_path, 'w') as json_file:

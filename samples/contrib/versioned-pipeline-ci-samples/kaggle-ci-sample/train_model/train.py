@@ -1,5 +1,5 @@
 """
-Copyright 2020 Google LLC
+Copyright 2020 The Kubeflow Authors
 Copyright (c) 2017 Sergei Neviadomski
 
 This file is modified based on code from kaggle user Sergei Neviadomski.

@@ -1,6 +1,6 @@
 name: List blobs
 inputs:
-- {name: GCS path, type: URI, description: 'GCS path for listing. For recursive listing use the "gs://bucket/path/**" syntax".'}
+- {name: GCS path, type: String, description: 'GCS path for listing. For recursive listing use the "gs://bucket/path/**" syntax".'}
 outputs:
 - {name: Paths}
 metadata:

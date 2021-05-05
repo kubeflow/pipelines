@@ -1,156 +1,157 @@
 {
   "pipelineSpec": {
-    "deploymentSpec": {
-      "executors": {
-        "exec-print": {
-          "container": {
-            "image": "python:alpine3.6",
-            "command": [
-              "echo",
-              "{{$.inputs.parameters['msg']}}"
-            ]
-          }
-        },
-        "exec-print-2": {
-          "container": {
-            "image": "python:alpine3.6",
-            "command": [
-              "echo",
-              "{{$.inputs.parameters['msg']}}"
-            ]
-          }
-        },
-        "exec-print-3": {
-          "container": {
-            "image": "python:alpine3.6",
-            "command": [
-              "echo",
-              "{{$.inputs.parameters['msg']}}"
-            ]
-          }
-        },
-        "exec-print-4": {
-          "container": {
-            "image": "python:alpine3.6",
-            "command": [
-              "echo",
-              "{{$.inputs.parameters['msg']}}"
-            ]
-          }
-        },
-        "exec-flip-coin": {
-          "container": {
-            "image": "python:alpine3.6",
-            "command": [
-              "sh",
-              "-c"
-            ],
-            "args": [
-              "mkdir -p \"$(dirname $0)\" && python -c \"import random; result = 'heads' if random.randint(0,1) == 0 else 'tails'; print(result, end='')\" | tee $0",
-              "{{$.outputs.parameters['output'].output_file}}"
-            ]
-          }
-        },
-        "exec-generate-random-number": {
-          "container": {
-            "image": "python:alpine3.6",
-            "args": [
-              "mkdir -p \"$(dirname $2)\" && python -c \"import random; print(random.randint($0, $1), end='')\" | tee $2",
-              "0",
-              "9",
-              "{{$.outputs.parameters['output'].output_file}}"
-            ],
-            "command": [
-              "sh",
-              "-c"
-            ]
-          }
-        },
-        "exec-generate-random-number-2": {
-          "container": {
-            "image": "python:alpine3.6",
-            "args": [
-              "mkdir -p \"$(dirname $2)\" && python -c \"import random; print(random.randint($0, $1), end='')\" | tee $2",
-              "10",
-              "19",
-              "{{$.outputs.parameters['output'].output_file}}"
-            ],
-            "command": [
-              "sh",
-              "-c"
-            ]
-          }
-        }
-      }
-    },
-    "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.5.0-rc.0",
-    "root": {
-      "dag": {
-        "tasks": {
-          "task-flip-coin": {
-            "taskInfo": {
-              "name": "task-flip-coin"
-            },
-            "componentRef": {
-              "name": "comp-flip-coin"
-            }
-          },
-          "task-condition-1": {
-            "triggerPolicy": {
-              "condition": "inputs.parameters['pipelineparam--flip-coin-output'].string_value == 'heads'"
-            },
-            "inputs": {
-              "parameters": {
-                "pipelineparam--flip-coin-output": {
-                  "taskOutputParameter": {
-                    "producerTask": "task-flip-coin",
-                    "outputParameterKey": "output"
-                  }
-                }
-              }
-            },
-            "componentRef": {
-              "name": "comp-condition-1"
-            },
-            "dependentTasks": [
-              "task-flip-coin"
-            ],
-            "taskInfo": {
-              "name": "task-condition-1"
-            }
-          },
-          "task-condition-4": {
-            "triggerPolicy": {
-              "condition": "inputs.parameters['pipelineparam--flip-coin-output'].string_value == 'tails'"
-            },
-            "dependentTasks": [
-              "task-flip-coin"
-            ],
-            "componentRef": {
-              "name": "comp-condition-4"
-            },
-            "taskInfo": {
-              "name": "task-condition-4"
-            },
-            "inputs": {
-              "parameters": {
-                "pipelineparam--flip-coin-output": {
-                  "taskOutputParameter": {
-                    "producerTask": "task-flip-coin",
-                    "outputParameterKey": "output"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "pipelineInfo": {
-      "name": "conditional-execution-pipeline"
-    },
     "components": {
+      "comp-condition-1": {
+        "dag": {
+          "tasks": {
+            "task-condition-2": {
+              "componentRef": {
+                "name": "comp-condition-2"
+              },
+              "dependentTasks": [
+                "task-generate-random-number"
+              ],
+              "inputs": {
+                "parameters": {
+                  "pipelineparam--flip-coin-output": {
+                    "componentInputParameter": "pipelineparam--flip-coin-output"
+                  },
+                  "pipelineparam--generate-random-number-output": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "output",
+                      "producerTask": "task-generate-random-number"
+                    }
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "task-condition-2"
+              },
+              "triggerPolicy": {
+                "condition": "inputs.parameters['pipelineparam--generate-random-number-output'].int_value > 5"
+              }
+            },
+            "task-condition-3": {
+              "componentRef": {
+                "name": "comp-condition-3"
+              },
+              "dependentTasks": [
+                "task-generate-random-number"
+              ],
+              "inputs": {
+                "parameters": {
+                  "pipelineparam--flip-coin-output": {
+                    "componentInputParameter": "pipelineparam--flip-coin-output"
+                  },
+                  "pipelineparam--generate-random-number-output": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "output",
+                      "producerTask": "task-generate-random-number"
+                    }
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "task-condition-3"
+              },
+              "triggerPolicy": {
+                "condition": "inputs.parameters['pipelineparam--generate-random-number-output'].int_value <= 5"
+              }
+            },
+            "task-generate-random-number": {
+              "componentRef": {
+                "name": "comp-generate-random-number"
+              },
+              "taskInfo": {
+                "name": "task-generate-random-number"
+              }
+            }
+          }
+        },
+        "inputDefinitions": {
+          "parameters": {
+            "pipelineparam--flip-coin-output": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-condition-2": {
+        "dag": {
+          "tasks": {
+            "task-print": {
+              "componentRef": {
+                "name": "comp-print"
+              },
+              "inputs": {
+                "parameters": {
+                  "msg": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "heads and {{$.inputs.parameters['pipelineparam--generate-random-number-output']}} > 5!"
+                      }
+                    }
+                  },
+                  "pipelineparam--generate-random-number-output": {
+                    "componentInputParameter": "pipelineparam--generate-random-number-output"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "task-print"
+              }
+            }
+          }
+        },
+        "inputDefinitions": {
+          "parameters": {
+            "pipelineparam--flip-coin-output": {
+              "type": "STRING"
+            },
+            "pipelineparam--generate-random-number-output": {
+              "type": "INT"
+            }
+          }
+        }
+      },
+      "comp-condition-3": {
+        "dag": {
+          "tasks": {
+            "task-print-2": {
+              "componentRef": {
+                "name": "comp-print-2"
+              },
+              "inputs": {
+                "parameters": {
+                  "msg": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "heads and {{$.inputs.parameters['pipelineparam--generate-random-number-output']}} <= 5!"
+                      }
+                    }
+                  },
+                  "pipelineparam--generate-random-number-output": {
+                    "componentInputParameter": "pipelineparam--generate-random-number-output"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "task-print-2"
+              }
+            }
+          }
+        },
+        "inputDefinitions": {
+          "parameters": {
+            "pipelineparam--flip-coin-output": {
+              "type": "STRING"
+            },
+            "pipelineparam--generate-random-number-output": {
+              "type": "INT"
+            }
+          }
+        }
+      },
       "comp-condition-4": {
         "dag": {
           "tasks": {
@@ -158,62 +159,62 @@
               "componentRef": {
                 "name": "comp-condition-5"
               },
-              "triggerPolicy": {
-                "condition": "inputs.parameters['pipelineparam--generate-random-number-2-output'].int_value > 15"
-              },
+              "dependentTasks": [
+                "task-generate-random-number-2"
+              ],
               "inputs": {
                 "parameters": {
                   "pipelineparam--flip-coin-output": {
                     "componentInputParameter": "pipelineparam--flip-coin-output"
                   },
-                  "pipelineparam--generate-random-number-2-output": {
-                    "taskOutputParameter": {
-                      "producerTask": "task-generate-random-number-2",
-                      "outputParameterKey": "output"
-                    }
-                  }
-                }
-              },
-              "dependentTasks": [
-                "task-generate-random-number-2"
-              ],
-              "taskInfo": {
-                "name": "task-condition-5"
-              }
-            },
-            "task-generate-random-number-2": {
-              "taskInfo": {
-                "name": "task-generate-random-number-2"
-              },
-              "componentRef": {
-                "name": "comp-generate-random-number-2"
-              }
-            },
-            "task-condition-6": {
-              "inputs": {
-                "parameters": {
                   "pipelineparam--generate-random-number-2-output": {
                     "taskOutputParameter": {
                       "outputParameterKey": "output",
                       "producerTask": "task-generate-random-number-2"
                     }
-                  },
-                  "pipelineparam--flip-coin-output": {
-                    "componentInputParameter": "pipelineparam--flip-coin-output"
                   }
                 }
               },
-              "triggerPolicy": {
-                "condition": "inputs.parameters['pipelineparam--generate-random-number-2-output'].int_value <= 15"
+              "taskInfo": {
+                "name": "task-condition-5"
               },
+              "triggerPolicy": {
+                "condition": "inputs.parameters['pipelineparam--generate-random-number-2-output'].int_value > 15"
+              }
+            },
+            "task-condition-6": {
               "componentRef": {
                 "name": "comp-condition-6"
               },
               "dependentTasks": [
                 "task-generate-random-number-2"
               ],
+              "inputs": {
+                "parameters": {
+                  "pipelineparam--flip-coin-output": {
+                    "componentInputParameter": "pipelineparam--flip-coin-output"
+                  },
+                  "pipelineparam--generate-random-number-2-output": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "output",
+                      "producerTask": "task-generate-random-number-2"
+                    }
+                  }
+                }
+              },
               "taskInfo": {
                 "name": "task-condition-6"
+              },
+              "triggerPolicy": {
+                "condition": "inputs.parameters['pipelineparam--generate-random-number-2-output'].int_value <= 15"
+              }
+            },
+            "task-generate-random-number-2": {
+              "componentRef": {
+                "name": "comp-generate-random-number-2"
+              },
+              "taskInfo": {
+                "name": "task-generate-random-number-2"
               }
             }
           }
@@ -227,66 +228,28 @@
         }
       },
       "comp-condition-5": {
-        "inputDefinitions": {
-          "parameters": {
-            "pipelineparam--generate-random-number-2-output": {
-              "type": "INT"
-            },
-            "pipelineparam--flip-coin-output": {
-              "type": "STRING"
-            }
-          }
-        },
         "dag": {
           "tasks": {
             "task-print-3": {
-              "taskInfo": {
-                "name": "task-print-3"
-              },
               "componentRef": {
                 "name": "comp-print-3"
               },
               "inputs": {
                 "parameters": {
-                  "pipelineparam--generate-random-number-2-output": {
-                    "componentInputParameter": "pipelineparam--generate-random-number-2-output"
-                  },
                   "msg": {
                     "runtimeValue": {
                       "constantValue": {
                         "stringValue": "tails and {{$.inputs.parameters['pipelineparam--generate-random-number-2-output']}} > 15!"
                       }
                     }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "comp-condition-2": {
-        "dag": {
-          "tasks": {
-            "task-print": {
-              "taskInfo": {
-                "name": "task-print"
-              },
-              "componentRef": {
-                "name": "comp-print"
-              },
-              "inputs": {
-                "parameters": {
-                  "pipelineparam--generate-random-number-output": {
-                    "componentInputParameter": "pipelineparam--generate-random-number-output"
                   },
-                  "msg": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "heads and {{$.inputs.parameters['pipelineparam--generate-random-number-output']}} > 5!"
-                      }
-                    }
+                  "pipelineparam--generate-random-number-2-output": {
+                    "componentInputParameter": "pipelineparam--generate-random-number-2-output"
                   }
                 }
+              },
+              "taskInfo": {
+                "name": "task-print-3"
               }
             }
           }
@@ -296,161 +259,56 @@
             "pipelineparam--flip-coin-output": {
               "type": "STRING"
             },
-            "pipelineparam--generate-random-number-output": {
+            "pipelineparam--generate-random-number-2-output": {
               "type": "INT"
             }
           }
         }
       },
-      "comp-print": {
-        "inputDefinitions": {
-          "parameters": {
-            "msg": {
-              "type": "STRING"
-            }
-          }
-        },
-        "executorLabel": "exec-print"
-      },
-      "comp-print-2": {
-        "inputDefinitions": {
-          "parameters": {
-            "msg": {
-              "type": "STRING"
-            }
-          }
-        },
-        "executorLabel": "exec-print-2"
-      },
-      "comp-print-3": {
-        "inputDefinitions": {
-          "parameters": {
-            "msg": {
-              "type": "STRING"
-            }
-          }
-        },
-        "executorLabel": "exec-print-3"
-      },
-      "comp-print-4": {
-        "inputDefinitions": {
-          "parameters": {
-            "msg": {
-              "type": "STRING"
-            }
-          }
-        },
-        "executorLabel": "exec-print-4"
-      },
-      "comp-condition-3": {
-        "inputDefinitions": {
-          "parameters": {
-            "pipelineparam--generate-random-number-output": {
-              "type": "INT"
-            },
-            "pipelineparam--flip-coin-output": {
-              "type": "STRING"
-            }
-          }
-        },
+      "comp-condition-6": {
         "dag": {
           "tasks": {
-            "task-print-2": {
+            "task-print-4": {
+              "componentRef": {
+                "name": "comp-print-4"
+              },
               "inputs": {
                 "parameters": {
-                  "pipelineparam--generate-random-number-output": {
-                    "componentInputParameter": "pipelineparam--generate-random-number-output"
-                  },
                   "msg": {
                     "runtimeValue": {
                       "constantValue": {
-                        "stringValue": "heads and {{$.inputs.parameters['pipelineparam--generate-random-number-output']}} <= 5!"
+                        "stringValue": "tails and {{$.inputs.parameters['pipelineparam--generate-random-number-2-output']}} <= 15!"
                       }
                     }
+                  },
+                  "pipelineparam--generate-random-number-2-output": {
+                    "componentInputParameter": "pipelineparam--generate-random-number-2-output"
                   }
                 }
               },
-              "componentRef": {
-                "name": "comp-print-2"
-              },
               "taskInfo": {
-                "name": "task-print-2"
+                "name": "task-print-4"
               }
+            }
+          }
+        },
+        "inputDefinitions": {
+          "parameters": {
+            "pipelineparam--flip-coin-output": {
+              "type": "STRING"
+            },
+            "pipelineparam--generate-random-number-2-output": {
+              "type": "INT"
             }
           }
         }
       },
-      "comp-condition-1": {
-        "inputDefinitions": {
+      "comp-flip-coin": {
+        "executorLabel": "exec-flip-coin",
+        "outputDefinitions": {
           "parameters": {
-            "pipelineparam--flip-coin-output": {
+            "output": {
               "type": "STRING"
-            }
-          }
-        },
-        "dag": {
-          "tasks": {
-            "task-condition-3": {
-              "componentRef": {
-                "name": "comp-condition-3"
-              },
-              "triggerPolicy": {
-                "condition": "inputs.parameters['pipelineparam--generate-random-number-output'].int_value <= 5"
-              },
-              "taskInfo": {
-                "name": "task-condition-3"
-              },
-              "dependentTasks": [
-                "task-generate-random-number"
-              ],
-              "inputs": {
-                "parameters": {
-                  "pipelineparam--generate-random-number-output": {
-                    "taskOutputParameter": {
-                      "producerTask": "task-generate-random-number",
-                      "outputParameterKey": "output"
-                    }
-                  },
-                  "pipelineparam--flip-coin-output": {
-                    "componentInputParameter": "pipelineparam--flip-coin-output"
-                  }
-                }
-              }
-            },
-            "task-generate-random-number": {
-              "taskInfo": {
-                "name": "task-generate-random-number"
-              },
-              "componentRef": {
-                "name": "comp-generate-random-number"
-              }
-            },
-            "task-condition-2": {
-              "triggerPolicy": {
-                "condition": "inputs.parameters['pipelineparam--generate-random-number-output'].int_value > 5"
-              },
-              "taskInfo": {
-                "name": "task-condition-2"
-              },
-              "dependentTasks": [
-                "task-generate-random-number"
-              ],
-              "inputs": {
-                "parameters": {
-                  "pipelineparam--generate-random-number-output": {
-                    "taskOutputParameter": {
-                      "producerTask": "task-generate-random-number",
-                      "outputParameterKey": "output"
-                    }
-                  },
-                  "pipelineparam--flip-coin-output": {
-                    "componentInputParameter": "pipelineparam--flip-coin-output"
-                  }
-                }
-              },
-              "componentRef": {
-                "name": "comp-condition-2"
-              }
             }
           }
         }
@@ -475,55 +333,197 @@
           }
         }
       },
-      "comp-condition-6": {
+      "comp-print": {
+        "executorLabel": "exec-print",
         "inputDefinitions": {
           "parameters": {
-            "pipelineparam--generate-random-number-2-output": {
-              "type": "INT"
-            },
-            "pipelineparam--flip-coin-output": {
+            "msg": {
               "type": "STRING"
-            }
-          }
-        },
-        "dag": {
-          "tasks": {
-            "task-print-4": {
-              "inputs": {
-                "parameters": {
-                  "pipelineparam--generate-random-number-2-output": {
-                    "componentInputParameter": "pipelineparam--generate-random-number-2-output"
-                  },
-                  "msg": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "tails and {{$.inputs.parameters['pipelineparam--generate-random-number-2-output']}} <= 15!"
-                      }
-                    }
-                  }
-                }
-              },
-              "componentRef": {
-                "name": "comp-print-4"
-              },
-              "taskInfo": {
-                "name": "task-print-4"
-              }
             }
           }
         }
       },
-      "comp-flip-coin": {
-        "outputDefinitions": {
+      "comp-print-2": {
+        "executorLabel": "exec-print-2",
+        "inputDefinitions": {
           "parameters": {
-            "output": {
+            "msg": {
               "type": "STRING"
             }
           }
-        },
-        "executorLabel": "exec-flip-coin"
+        }
+      },
+      "comp-print-3": {
+        "executorLabel": "exec-print-3",
+        "inputDefinitions": {
+          "parameters": {
+            "msg": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-print-4": {
+        "executorLabel": "exec-print-4",
+        "inputDefinitions": {
+          "parameters": {
+            "msg": {
+              "type": "STRING"
+            }
+          }
+        }
       }
-    }
+    },
+    "deploymentSpec": {
+      "executors": {
+        "exec-flip-coin": {
+          "container": {
+            "args": [
+              "mkdir -p \"$(dirname $0)\" && python -c \"import random; result = 'heads' if random.randint(0,1) == 0 else 'tails'; print(result, end='')\" | tee $0",
+              "{{$.outputs.parameters['output'].output_file}}"
+            ],
+            "command": [
+              "sh",
+              "-c"
+            ],
+            "image": "python:alpine3.6"
+          }
+        },
+        "exec-generate-random-number": {
+          "container": {
+            "args": [
+              "mkdir -p \"$(dirname $2)\" && python -c \"import random; print(random.randint($0, $1), end='')\" | tee $2",
+              "0",
+              "9",
+              "{{$.outputs.parameters['output'].output_file}}"
+            ],
+            "command": [
+              "sh",
+              "-c"
+            ],
+            "image": "python:alpine3.6"
+          }
+        },
+        "exec-generate-random-number-2": {
+          "container": {
+            "args": [
+              "mkdir -p \"$(dirname $2)\" && python -c \"import random; print(random.randint($0, $1), end='')\" | tee $2",
+              "10",
+              "19",
+              "{{$.outputs.parameters['output'].output_file}}"
+            ],
+            "command": [
+              "sh",
+              "-c"
+            ],
+            "image": "python:alpine3.6"
+          }
+        },
+        "exec-print": {
+          "container": {
+            "command": [
+              "echo",
+              "{{$.inputs.parameters['msg']}}"
+            ],
+            "image": "python:alpine3.6"
+          }
+        },
+        "exec-print-2": {
+          "container": {
+            "command": [
+              "echo",
+              "{{$.inputs.parameters['msg']}}"
+            ],
+            "image": "python:alpine3.6"
+          }
+        },
+        "exec-print-3": {
+          "container": {
+            "command": [
+              "echo",
+              "{{$.inputs.parameters['msg']}}"
+            ],
+            "image": "python:alpine3.6"
+          }
+        },
+        "exec-print-4": {
+          "container": {
+            "command": [
+              "echo",
+              "{{$.inputs.parameters['msg']}}"
+            ],
+            "image": "python:alpine3.6"
+          }
+        }
+      }
+    },
+    "pipelineInfo": {
+      "name": "conditional-execution-pipeline"
+    },
+    "root": {
+      "dag": {
+        "tasks": {
+          "task-condition-1": {
+            "componentRef": {
+              "name": "comp-condition-1"
+            },
+            "dependentTasks": [
+              "task-flip-coin"
+            ],
+            "inputs": {
+              "parameters": {
+                "pipelineparam--flip-coin-output": {
+                  "taskOutputParameter": {
+                    "outputParameterKey": "output",
+                    "producerTask": "task-flip-coin"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "task-condition-1"
+            },
+            "triggerPolicy": {
+              "condition": "inputs.parameters['pipelineparam--flip-coin-output'].string_value == 'heads'"
+            }
+          },
+          "task-condition-4": {
+            "componentRef": {
+              "name": "comp-condition-4"
+            },
+            "dependentTasks": [
+              "task-flip-coin"
+            ],
+            "inputs": {
+              "parameters": {
+                "pipelineparam--flip-coin-output": {
+                  "taskOutputParameter": {
+                    "outputParameterKey": "output",
+                    "producerTask": "task-flip-coin"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "task-condition-4"
+            },
+            "triggerPolicy": {
+              "condition": "inputs.parameters['pipelineparam--flip-coin-output'].string_value == 'tails'"
+            }
+          },
+          "task-flip-coin": {
+            "componentRef": {
+              "name": "comp-flip-coin"
+            },
+            "taskInfo": {
+              "name": "task-flip-coin"
+            }
+          }
+        }
+      }
+    },
+    "schemaVersion": "2.0.0",
+    "sdkVersion": "kfp-1.5.0"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"

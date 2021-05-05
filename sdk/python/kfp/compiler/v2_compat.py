@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -140,3 +140,4 @@ def update_op(op: dsl.ContainerOp,
                           value=json.dumps(runtime_info)))
 
   op.pod_annotations['pipelines.kubeflow.org/v2_component'] = "true"
+  op.pod_labels['pipelines.kubeflow.org/v2_component']= "true"

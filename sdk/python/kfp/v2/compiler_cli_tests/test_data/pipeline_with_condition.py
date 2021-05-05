@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ flip_coin_op = components.create_component_from_func(flip_coin)
 print_op = components.create_component_from_func(print_msg)
 
 
-@dsl.pipeline(name='single-condition-pipeline')
+@dsl.pipeline(name='single-condition-pipeline', pipeline_root='dummy_root')
 def my_pipeline(text: str = 'condition test'):
   flip1 = flip_coin_op()
   print_op(flip1.output)

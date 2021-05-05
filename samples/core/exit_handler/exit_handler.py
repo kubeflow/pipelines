@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2019 Google LLC
+# Copyright 2019-2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,37 +13,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import kfp
-from kfp import dsl
+from kfp import dsl, components
+
+gcs_download_op = kfp.components.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/1.5.0-rc.3/components/google-cloud/storage/download_blob/component.yaml'
+)
 
 
-def gcs_download_op(url):
-    return dsl.ContainerOp(
-        name='GCS - Download',
-        image='google/cloud-sdk:279.0.0',
-        command=['sh', '-c'],
-        arguments=['gsutil cat $0 | tee $1', url, '/tmp/results.txt'],
-        file_outputs={
-            'data': '/tmp/results.txt',
-        }
-    )
-
-
-def echo_op(text):
-    return dsl.ContainerOp(
-        name='echo',
-        image='library/bash:4.4.23',
-        command=['sh', '-c'],
-        arguments=['echo "$0"', text],
-    )
+@components.create_component_from_func
+def echo_op(msg: str):
+    """Print a message."""
+    print(msg)
 
 
 @dsl.pipeline(
     name='Exit Handler',
-    description='Downloads a message and prints it. The exit handler will run after the pipeline finishes (successfully or not).'
+    description=
+    'Downloads a message and prints it. The exit handler will run after the pipeline finishes (successfully or not).'
 )
-def download_and_print(url='gs://ml-pipeline/shakespeare/shakespeare1.txt'):
+def pipeline_exit_handler(url='gs://ml-pipeline/shakespeare1.txt'):
     """A sample pipeline showing exit handler."""
 
     exit_task = echo_op('exit!')
@@ -54,4 +43,4 @@ def download_and_print(url='gs://ml-pipeline/shakespeare/shakespeare1.txt'):
 
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(download_and_print, __file__ + '.yaml')
+    kfp.compiler.Compiler().compile(pipeline_exit_handler, __file__ + '.yaml')

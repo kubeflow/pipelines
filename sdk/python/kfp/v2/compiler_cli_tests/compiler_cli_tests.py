@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,8 +38,7 @@ class CompilerCliTests(unittest.TestCase):
       else:
         target_json = os.path.join(tmpdir, file_base_name + '-pipeline.json')
       subprocess.check_call([
-          'dsl-compile-v2', '--py', py_file, '--pipeline-root', 'dummy_root',
-          '--output', target_json
+          'dsl-compile-v2', '--py', py_file, '--output', target_json
       ] + additional_arguments)
 
       with open(golden_compiled_file, 'r') as f:
@@ -56,13 +55,13 @@ class CompilerCliTests(unittest.TestCase):
     finally:
       shutil.rmtree(tmpdir)
 
-  def test_two_step_pipeline_with_importer(self):
-    self._test_compile_py_to_json('two_step_pipeline_with_importer')
-
-  def test_simple_pipeline_without_importer(self):
+  def test_two_step_pipeline(self):
     self._test_compile_py_to_json(
-        'simple_pipeline_without_importer',
+        'two_step_pipeline',
         ['--pipeline-parameters', '{"text":"Hello KFP!"}'])
+
+  def test_pipeline_with_importer(self):
+    self._test_compile_py_to_json('pipeline_with_importer')
 
   def test_pipeline_with_ontology(self):
     self._test_compile_py_to_json('pipeline_with_ontology')
@@ -102,6 +101,9 @@ class CompilerCliTests(unittest.TestCase):
 
   def test_pipeline_with_loop_output(self):
     self._test_compile_py_to_json('pipeline_with_loop_output')
+
+  def test_pipeline_with_nested_loops(self):
+    self._test_compile_py_to_json('pipeline_with_nested_loops')
 
   def test_pipeline_with_loops_and_conditions(self):
     self._test_compile_py_to_json('pipeline_with_loops_and_conditions')

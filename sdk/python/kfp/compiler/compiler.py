@@ -1,4 +1,4 @@
-# Copyright 2018-2019 Google LLC
+# Copyright 2018-2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -681,6 +681,9 @@ class Compiler(object):
       if hasattr(op, 'custom_job_spec'):
         warnings.warn('CustomJob spec is not supported yet when running on KFP.'
                       ' The component will execute within the KFP cluster.')
+      if hasattr(op, 'importer_spec'):
+        raise NotImplementedError(
+            'dsl.importer is not supported yet when running on KFP.')
 
     return templates
 
@@ -942,6 +945,7 @@ class Compiler(object):
 
     metadata = workflow.setdefault('metadata', {})
     annotations = metadata.setdefault('annotations', {})
+    labels = metadata.setdefault('labels', {})
 
     annotations['pipelines.kubeflow.org/kfp_sdk_version'] = kfp.__version__
     annotations['pipelines.kubeflow.org/pipeline_compilation_time'] = datetime.datetime.now().isoformat()
@@ -949,9 +953,10 @@ class Compiler(object):
 
     if self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
       annotations['pipelines.kubeflow.org/v2_pipeline'] = "true"
+      labels['pipelines.kubeflow.org/v2_pipeline'] = "true"
+
 
     # Labels might be logged better than annotations so adding some information here as well
-    labels = metadata.setdefault('labels', {})
     labels['pipelines.kubeflow.org/kfp_sdk_version'] = kfp.__version__
 
     return workflow
@@ -1008,7 +1013,7 @@ class Compiler(object):
         pull secrets and other pipeline-level configuration options. Overrides
         any configuration that may be set by the pipeline.
     """
-    pipeline_root_dir = getattr(pipeline_func, 'output_directory', None)
+    pipeline_root_dir = getattr(pipeline_func, 'pipeline_root', None)
     if (pipeline_root_dir is not None or
         self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE):
       self._pipeline_root_param = dsl.PipelineParam(
