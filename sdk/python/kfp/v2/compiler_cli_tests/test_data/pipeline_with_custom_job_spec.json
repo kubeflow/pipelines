@@ -30,6 +30,16 @@
             }
           }
         }
+      },
+      "comp-print-op-4": {
+        "executorLabel": "exec-print-op-4",
+        "inputDefinitions": {
+          "parameters": {
+            "text": {
+              "type": "STRING"
+            }
+          }
+        }
       }
     },
     "deploymentSpec": {
@@ -71,11 +81,41 @@
                   }
                 ]
               },
-              "name": "test-custom-job-full"
+              "name": "print-op 2"
             }
           }
         },
         "exec-print-op-3": {
+          "customJob": {
+            "customJob": {
+              "jobSpec": {
+                "workerPoolSpecs": [
+                  {
+                    "containerSpec": {
+                      "args": [
+                        "--text",
+                        "{{$.inputs.parameters['text']}}"
+                      ],
+                      "command": [
+                        "sh",
+                        "-ec",
+                        "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+                        "def print_op(text):\n  print(text)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Print op', description='')\n_parser.add_argument(\"--text\", dest=\"text\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = print_op(**_parsed_args)\n"
+                      ],
+                      "imageUri": "python:3.7"
+                    },
+                    "machineSpec": {
+                      "machineType": "n1-standard-8"
+                    },
+                    "replicaCount": "1"
+                  }
+                ]
+              },
+              "name": "print-op 3"
+            }
+          }
+        },
+        "exec-print-op-4": {
           "customJob": {
             "customJob": {
               "jobSpec": {
@@ -101,7 +141,7 @@
                   }
                 ]
               },
-              "name": "test-custom-job-partial"
+              "name": "print-op 4"
             }
           }
         }
@@ -168,6 +208,25 @@
             },
             "taskInfo": {
               "name": "task-print-op-3"
+            }
+          },
+          "task-print-op-4": {
+            "componentRef": {
+              "name": "comp-print-op-4"
+            },
+            "inputs": {
+              "parameters": {
+                "text": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "custom job execution - empty custom job"
+                    }
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "task-print-op-4"
             }
           }
         }
