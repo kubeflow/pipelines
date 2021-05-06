@@ -1371,63 +1371,6 @@ class ContainerOp(BaseOp):
     super(ContainerOp, self).add_node_selector_constraint(label_name, value)
     return self
 
-  def set_custom_job_spec(self, job_spec: Dict[str, Any]) -> 'ContainerOp':
-    """Sets custom job spec.
-
-    When compiling for v2, this function can be used to set custom job spec used
-    for AI Platform (Unified) service.
-
-    Args:
-      job_spec: JSON struct of the CustomJob spec, representing the job
-        that will be submitted to AI Platform (Unified) service. See
-        https://cloud.google.com/ai-platform-unified/docs/reference/rest/v1beta1/CustomJobSpec
-        for detailed reference.
-
-    Returns:
-      self return to allow chained call with other set method.
-    """
-    job_spec = copy.deepcopy(job_spec)
-
-    def _is_output_parameter(output_key: str) -> bool:
-      return output_key in (
-          self.component_spec.output_definitions.parameters.keys())
-
-    if 'workerPoolSpecs' not in job_spec:
-      job_spec['workerPoolSpecs'] = [{
-          'machineSpec': {
-              'machineType': _DEFAULT_CUSTOM_JOB_MACHINE_TYPE
-          },
-          'replicaCount': '1',
-      }]
-    for worker_pool_spec in job_spec['workerPoolSpecs']:
-      if 'containerSpec' in worker_pool_spec:
-        container_spec = worker_pool_spec['containerSpec']
-        if 'command' in container_spec:
-          dsl_utils.resolve_cmd_lines(container_spec['command'], _is_output_parameter)
-        if 'args' in container_spec:
-          dsl_utils.resolve_cmd_lines(container_spec['args'], _is_output_parameter)
-
-      elif 'pythonPackageSpec' in worker_pool_spec:
-        # For custom Python training, resolve placeholders in args only.
-        python_spec = worker_pool_spec['pythonPackageSpec']
-        if 'args' in python_spec:
-          dsl_utils.resolve_cmd_lines(python_spec['args'], _is_output_parameter)
-
-      else:
-        # If neither 'containerSpec' nor 'pythonPackageSpec' presents, fill in
-        # 'containerSpec' using existing information.
-        worker_pool_spec['containerSpec'] = {
-            'imageUri': self._container.image,
-        }
-        if self._container.command:
-          worker_pool_spec['containerSpec']['command'] = self._container.command
-        if self._container.args:
-          worker_pool_spec['containerSpec']['args'] = self._container.args
-
-    self.custom_job_spec = {'name': self.name, 'jobSpec': job_spec}
-
-    return self
-
 
 # proxy old ContainerOp properties to ContainerOp.container
 # with PendingDeprecationWarning.

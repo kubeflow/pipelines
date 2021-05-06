@@ -89,6 +89,7 @@ setup(
         'kfp.v2.compiler',
         'kfp.v2.components',
         'kfp.v2.dsl',
+        'kfp.v2.google.experimental',
     ],
     classifiers=[
         'Intended Audience :: Developers',
