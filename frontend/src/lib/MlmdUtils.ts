@@ -22,11 +22,13 @@ import {
   getResourcePropertyViaFallBack,
   ExecutionProperties,
   getResourceProperty,
+  Artifact,
 } from '@kubeflow/frontend';
 import {
   GetContextByTypeAndNameRequest,
   GetExecutionsByContextRequest,
 } from '@kubeflow/frontend/src/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
+import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import { Workflow } from 'third_party/argo-ui/argo_template';
 import { logger } from './Utils';
 
@@ -125,27 +127,43 @@ export const ExecutionHelpers = {
   getWorkspace(execution: Execution): string | number | undefined {
     return (
       getResourcePropertyViaFallBack(execution, EXECUTION_PROPERTY_REPOS, ['RUN_ID']) ||
-      getResourceProperty(execution, ExecutionCustomProperties.WORKSPACE, true) ||
-      getResourceProperty(execution, ExecutionProperties.PIPELINE_NAME) ||
+      getStringProperty(execution, ExecutionCustomProperties.WORKSPACE, true) ||
+      getStringProperty(execution, ExecutionProperties.PIPELINE_NAME) ||
       undefined
     );
   },
   getName(execution: Execution): string | number | undefined {
     return (
-      getResourceProperty(execution, ExecutionProperties.NAME) ||
-      getResourceProperty(execution, ExecutionProperties.COMPONENT_ID) ||
-      getResourceProperty(execution, ExecutionCustomProperties.TASK_ID, true) ||
+      getStringProperty(execution, ExecutionProperties.NAME) ||
+      getStringProperty(execution, ExecutionProperties.COMPONENT_ID) ||
+      getStringProperty(execution, ExecutionCustomProperties.TASK_ID, true) ||
       undefined
     );
   },
   getState(execution: Execution): string | number | undefined {
-    return getResourceProperty(execution, ExecutionProperties.STATE) || undefined;
+    return getStringProperty(execution, ExecutionProperties.STATE) || undefined;
   },
   getKfpPod(execution: Execution): string | number | undefined {
     return (
-      getResourceProperty(execution, KfpExecutionProperties.KFP_POD_NAME) ||
-      getResourceProperty(execution, KfpExecutionProperties.KFP_POD_NAME, true) ||
+      getStringProperty(execution, KfpExecutionProperties.KFP_POD_NAME) ||
+      getStringProperty(execution, KfpExecutionProperties.KFP_POD_NAME, true) ||
       undefined
     );
   },
 };
+
+function getStringProperty(
+  resource: Artifact | Execution,
+  propertyName: string,
+  fromCustomProperties = false,
+): string | undefined {
+  const value = getResourceProperty(resource, propertyName, fromCustomProperties);
+  return getStringValue(value);
+}
+
+function getStringValue(value?: string | number | Struct | null): string | undefined {
+  if (typeof value != 'string') {
+    return undefined;
+  }
+  return value;
+}
