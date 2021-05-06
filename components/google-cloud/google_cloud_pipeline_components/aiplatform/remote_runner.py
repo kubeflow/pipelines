@@ -200,6 +200,9 @@ def main():
                 kwargs[key_value] = arg
                 key_value = None
 
+    # Update user agent header for metrics reporting
+    aiplatform.constants.USER_AGENT_PRODUCT = "google-cloud-pipeline-components"
+
     print(runner(args.cls_name, args.method_name, executor_input, kwargs))
 
 
