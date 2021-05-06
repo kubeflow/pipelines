@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import { Artifact, Execution, getMetadataValue } from '@kubeflow/frontend';
+import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import * as React from 'react';
 import { stylesheet } from 'typestyle';
 import { color, commonCss } from '../Css';
@@ -93,7 +94,7 @@ export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
               <div className={css.field} key={k[0]}>
                 <dt className={css.term}>{k[0]}</dt>
                 <dd className={css.value}>
-                  {propertyMap && prettyPrintJsonValue(getMetadataValue(propertyMap.get(k[0])))}
+                  {propertyMap && prettyPrintValue(getMetadataValue(propertyMap.get(k[0])))}
                 </dd>
               </div>
             ))}
@@ -105,7 +106,7 @@ export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
               <dt className={css.term}>{k[0]}</dt>
               <dd className={css.value}>
                 {customPropertyMap &&
-                  prettyPrintJsonValue(getMetadataValue(customPropertyMap.get(k[0])))}
+                  prettyPrintValue(getMetadataValue(customPropertyMap.get(k[0])))}
               </dd>
             </div>
           ))}
@@ -115,11 +116,23 @@ export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
   }
 }
 
-function prettyPrintJsonValue(value: string | number): JSX.Element | number | string {
+function prettyPrintValue(
+  value: string | number | Struct | undefined,
+): JSX.Element | number | string {
+  if (value == null) {
+    return '';
+  }
+  if (typeof value === 'string') {
+    return prettyPrintJsonValue(value);
+  }
   if (typeof value === 'number') {
     return value;
   }
+  // value is Struct
+  return value.toString();
+}
 
+function prettyPrintJsonValue(value: string): JSX.Element | string {
   try {
     const jsonValue = JSON.parse(value);
     return <pre>{JSON.stringify(jsonValue, null, 2)}</pre>;
