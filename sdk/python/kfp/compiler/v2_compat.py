@@ -100,7 +100,8 @@ def update_op(op: dsl.ContainerOp,
         "type":
             pipeline_spec_pb2.PrimitiveType.PrimitiveTypeEnum.Name(spec.type),
         "value":
-            op._parameter_arguments[parameter],
+            "BEGIN-KFP-PARAM[{}]END-KFP-PARAM".format(
+                op._parameter_arguments[parameter])
     }
     runtime_info["inputParameters"][parameter] = parameter_info
 

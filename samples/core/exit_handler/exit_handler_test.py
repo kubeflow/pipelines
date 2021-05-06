@@ -21,15 +21,8 @@ run_pipeline_func([
         pipeline_func=pipeline_exit_handler,
         mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
     ),
-    # TODO(v2-compatible): The following test case fails with:
-    #   File "/Users/gongyuan/kfp/pipelines/sdk/python/kfp/compiler/compiler.py", line 678, in _create_dag_templates
-    #     launcher_image=self._launcher_image)
-    #   File "/Users/gongyuan/kfp/pipelines/sdk/python/kfp/compiler/v2_compat.py", line 108, in update_op
-    #     artifact_info = {"fileInputPath": op.input_artifact_paths[artifact_name]}
-    # KeyError: 'GCS path'
-    #
-    # TestCase(
-    #     pipeline_func=pipeline_exit_handler,
-    #     mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
-    # ),
+    TestCase(
+        pipeline_func=pipeline_exit_handler,
+        mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
+    ),
 ])
