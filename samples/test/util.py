@@ -217,6 +217,8 @@ class KfpArtifact:
                 raw_value = v.string_value
             if v.int_value:
                 raw_value = v.int_value
+            if v.double_value:
+                raw_value = v.double_value
             custom_properties[k] = raw_value
         artifact_name = ''
         if mlmd_artifact.name != '':
@@ -273,7 +275,7 @@ class KfpTask:
     ):
         execution_type = execution_types_by_id[execution.type_id]
         params = _parse_parameters(execution)
-        events = events_by_execution_id[execution.id]
+        events = events_by_execution_id.get(execution.id, [])
         input_artifacts = []
         output_artifacts = []
         if events:
@@ -389,6 +391,8 @@ def _parse_parameters(execution: metadata_store_pb2.Execution) -> dict:
             raw_value = value.string_value
         if value.int_value:
             raw_value = value.int_value
+        if value.double_value:
+            raw_value = value.double_value
         if name.startswith('input:'):
             parameters['inputs'][name[len('input:'):]] = raw_value
         if name.startswith('output:'):
