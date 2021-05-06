@@ -31,40 +31,6 @@ _DEFAULT_CUSTOM_JOB_MACHINE_TYPE = 'n1-standard-4'
 
 _ValueOrPipelineParam = Union[dsl.PipelineParam, str, float, int]
 
-# TODO: Support all declared types in
-# components._structures.CommandlineArgumenType
-_CommandlineArgumentType = Union[str, int, float,
-                                 _structures.InputValuePlaceholder,
-                                 _structures.InputPathPlaceholder,
-                                 _structures.OutputPathPlaceholder,
-                                 _structures.InputUriPlaceholder,
-                                 _structures.OutputUriPlaceholder,]
-
-
-# TODO: extract this to a utils module, and share with dsl.component_bridge
-def _input_artifact_uri_placeholder(input_key: str) -> str:
-  return "{{{{$.inputs.artifacts['{}'].uri}}}}".format(input_key)
-
-
-def _input_artifact_path_placeholder(input_key: str) -> str:
-  return "{{{{$.inputs.artifacts['{}'].path}}}}".format(input_key)
-
-
-def _input_parameter_placeholder(input_key: str) -> str:
-  return "{{{{$.inputs.parameters['{}']}}}}".format(input_key)
-
-
-def _output_artifact_uri_placeholder(output_key: str) -> str:
-  return "{{{{$.outputs.artifacts['{}'].uri}}}}".format(output_key)
-
-
-def _output_artifact_path_placeholder(output_key: str) -> str:
-  return "{{{{$.outputs.artifacts['{}'].path}}}}".format(output_key)
-
-
-def _output_parameter_path_placeholder(output_key: str) -> str:
-  return "{{{{$.outputs.parameters['{}'].output_file}}}}".format(output_key)
-
 
 class AiPlatformCustomJobOp(dsl.ContainerOp):
   """V2 AiPlatformCustomJobOp class.
@@ -402,38 +368,8 @@ def custom_job(
           spec['pythonPackageSpec']['args'] = args
 
   # Resolve the custom job spec by wiring it with the I/O spec.
-  def _resolve_output_path_placeholder(output_key: str) -> str:
-    if output_key in output_parameters:
-      return _output_parameter_path_placeholder(output_key)
-    else:
-      return _output_artifact_path_placeholder(output_key)
-
-  def _resolve_cmd(cmd: Optional[_CommandlineArgumentType]) -> Optional[str]:
-    """Resolves a single command line cmd/arg."""
-    if cmd is None:
-      return None
-    elif isinstance(cmd, (str, float, int)):
-      return str(cmd)
-    elif isinstance(cmd, _structures.InputValuePlaceholder):
-      return _input_parameter_placeholder(cmd.input_name)
-    elif isinstance(cmd, _structures.InputPathPlaceholder):
-      return _input_artifact_path_placeholder(cmd.input_name)
-    elif isinstance(cmd, _structures.InputUriPlaceholder):
-      return _input_artifact_uri_placeholder(cmd.input_name)
-    elif isinstance(cmd, _structures.OutputPathPlaceholder):
-      return _resolve_output_path_placeholder(cmd.output_name)
-    elif isinstance(cmd, _structures.OutputUriPlaceholder):
-      return _output_artifact_uri_placeholder(cmd.output_name)
-    else:
-      raise TypeError('Got unexpected placeholder type for %s' % cmd)
-
-  def _resolve_cmd_lines(
-      cmds: Optional[List[_CommandlineArgumentType]]) -> None:
-    """Resolves a list of commands/args."""
-    if not cmds:
-      return
-    for idx, cmd in enumerate(cmds):
-      cmds[idx] = _resolve_cmd(cmd)
+  def _is_output_parameter(output_key: str) -> str:
+    return output_key in output_parameters
 
   for wp_spec in custom_job_spec['workerPoolSpecs']:
     if 'containerSpec' in wp_spec:
@@ -441,15 +377,15 @@ def custom_job(
       # program args.
       container_spec = wp_spec['containerSpec']
       if 'command' in container_spec:
-        _resolve_cmd_lines(container_spec['command'])
+        dsl_utils.resolve_cmd_lines(container_spec['command'], _is_output_parameter)
       if 'args' in container_spec:
-        _resolve_cmd_lines(container_spec['args'])
+        dsl_utils.resolve_cmd_lines(container_spec['args'], _is_output_parameter)
     else:
       assert 'pythonPackageSpec' in wp_spec
       # For custom Python training, resolve placeholders in args only.
       python_spec = wp_spec['pythonPackageSpec']
       if 'args' in python_spec:
-        _resolve_cmd_lines(python_spec['args'])
+        dsl_utils.resolve_cmd_lines(python_spec['args'], _is_output_parameter)
 
   job_spec = {'name': name, 'jobSpec': custom_job_spec}
 
