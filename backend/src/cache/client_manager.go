@@ -27,6 +27,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/cache/model"
 	"github.com/kubeflow/pipelines/backend/src/cache/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/spf13/cast"
 )
 
 const (
@@ -110,7 +111,7 @@ func initMysql(params WhSvrDBParameters, initConnectionTimeout time.Duration) st
 		params.dbPort,
 		"",
 		params.dbGroupConcatMaxLen,
-		map[string]string{},
+		cast.ToStringMapString(params.dbExtraParams),
 	)
 
 	var db *sql.DB
