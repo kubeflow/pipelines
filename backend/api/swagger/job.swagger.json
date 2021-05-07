@@ -312,6 +312,10 @@
           "type": "string",
           "description": "Optional input field. Specify which Kubernetes service account this job uses."
         },
+        "artifact_repository_ref_cm": {
+          "type": "string",
+          "description": "Optional input field. Specify which Kubernetes configMap this job uses."
+        },
         "max_concurrency": {
           "type": "string",
           "format": "int64",

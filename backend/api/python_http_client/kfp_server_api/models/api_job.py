@@ -39,6 +39,7 @@ class ApiJob(object):
         'pipeline_spec': 'ApiPipelineSpec',
         'resource_references': 'list[ApiResourceReference]',
         'service_account': 'str',
+        'artifact_repository_ref_cm': 'str',
         'max_concurrency': 'str',
         'trigger': 'ApiTrigger',
         'mode': 'JobMode',
@@ -57,6 +58,7 @@ class ApiJob(object):
         'pipeline_spec': 'pipeline_spec',
         'resource_references': 'resource_references',
         'service_account': 'service_account',
+        'artifact_repository_ref_cm': 'artifact_repository_ref_cm',
         'max_concurrency': 'max_concurrency',
         'trigger': 'trigger',
         'mode': 'mode',
@@ -68,7 +70,7 @@ class ApiJob(object):
         'no_catchup': 'no_catchup'
     }
 
-    def __init__(self, id=None, name=None, description=None, pipeline_spec=None, resource_references=None, service_account=None, max_concurrency=None, trigger=None, mode=None, created_at=None, updated_at=None, status=None, error=None, enabled=None, no_catchup=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, id=None, name=None, description=None, pipeline_spec=None, resource_references=None, service_account=None, artifact_repository_ref_cm=None, max_concurrency=None, trigger=None, mode=None, created_at=None, updated_at=None, status=None, error=None, enabled=None, no_catchup=None, local_vars_configuration=None):  # noqa: E501
         """ApiJob - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -80,6 +82,7 @@ class ApiJob(object):
         self._pipeline_spec = None
         self._resource_references = None
         self._service_account = None
+        self._artifact_repository_ref_cm = None
         self._max_concurrency = None
         self._trigger = None
         self._mode = None
@@ -103,6 +106,8 @@ class ApiJob(object):
             self.resource_references = resource_references
         if service_account is not None:
             self.service_account = service_account
+        if artifact_repository_ref_cm is not None:
+            self.artifact_repository_ref_cm = artifact_repository_ref_cm
         if max_concurrency is not None:
             self.max_concurrency = max_concurrency
         if trigger is not None:
@@ -255,6 +260,29 @@ class ApiJob(object):
         """
 
         self._service_account = service_account
+
+    @property
+    def artifact_repository_ref_cm(self):
+        """Gets the artifact_repository_ref_cm of this ApiJob.  # noqa: E501
+
+        Optional input field. Specify which Kubernetes configMap this job uses.  # noqa: E501
+
+        :return: The artifact_repository_ref_cm of this ApiJob.  # noqa: E501
+        :rtype: str
+        """
+        return self._artifact_repository_ref_cm
+
+    @artifact_repository_ref_cm.setter
+    def artifact_repository_ref_cm(self, artifact_repository_ref_cm):
+        """Sets the artifact_repository_ref_cm of this ApiJob.
+
+        Optional input field. Specify which Kubernetes configMap this job uses.  # noqa: E501
+
+        :param artifact_repository_ref_cm: The artifact_repository_ref_cm of this ApiJob.  # noqa: E501
+        :type artifact_repository_ref_cm: str
+        """
+
+        self._artifact_repository_ref_cm = artifact_repository_ref_cm
 
     @property
     def max_concurrency(self):

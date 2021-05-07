@@ -392,6 +392,8 @@ func TestGetWorkflowSpec(t *testing.T) {
 		},
 	})
 
+	workflow.SetArtifactRepositoryRef("MYCONFIGMAP", "MYKEY")
+
 	expected := &workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "WORKFLOW_NAME",
@@ -401,6 +403,10 @@ func TestGetWorkflowSpec(t *testing.T) {
 				Parameters: []workflowapi.Parameter{
 					{Name: "PARAM", Value: workflowapi.AnyStringPtr("VALUE")},
 				},
+			},
+			ArtifactRepositoryRef: &workflowapi.ArtifactRepositoryRef{
+				ConfigMap: "MYCONFIGMAP",
+				Key: "MYKEY",
 			},
 		},
 	}

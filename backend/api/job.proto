@@ -221,6 +221,9 @@ message Job {
   // Optional input field. Specify which Kubernetes service account this job uses.
   string service_account = 18;
 
+  // Optional input field. Specify which Kubernetes configMap this job uses.
+  string artifact_repository_ref_cm = 19;
+
   // Required input field.
   // Specify how many runs can be executed concurrently. Rage [1-10]
   int64 max_concurrency = 6;

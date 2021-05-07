@@ -60,6 +60,7 @@ class TestApiRunDetail(unittest.TestCase):
                             relationship = 'UNKNOWN_RELATIONSHIP', )
                         ], 
                     service_account = '0', 
+                    artifact_repository_ref_cm = '0', 
                     created_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                     scheduled_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                     finished_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 

@@ -58,6 +58,7 @@ class TestApiJob(unittest.TestCase):
                         relationship = 'UNKNOWN_RELATIONSHIP', )
                     ], 
                 service_account = '0', 
+                artifact_repository_ref_cm = '0', 
                 max_concurrency = '0', 
                 trigger = kfp_server_api.models.api_trigger.apiTrigger(
                     cron_schedule = kfp_server_api.models.cron_schedule_allow_scheduling_the_job_with_unix_like_cron.CronSchedule allow scheduling the job with unix-like cron(

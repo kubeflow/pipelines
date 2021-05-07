@@ -55,7 +55,7 @@ func (m *FakeBadObjectStore) DeleteFile(filePath string) error {
 	return errors.New("Not implemented.")
 }
 
-func (m *FakeBadObjectStore) GetFile(filePath string) ([]byte, error) {
+func (m *FakeBadObjectStore) GetFile(filePath string, bucketName string) ([]byte, error) {
 	return []byte(""), nil
 }
 
@@ -356,7 +356,10 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = defaultPipelineRunnerServiceAccount
-
+	expectedRuntimeWorkflow.Spec.ArtifactRepositoryRef = &v1alpha1.ArtifactRepositoryRef{
+		ConfigMap: "artifact-repositories",
+		Key:       "mlpipeline-repository",
+	}
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
 			UUID:           "123e4567-e89b-12d3-a456-426655440000",
@@ -413,6 +416,10 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = defaultPipelineRunnerServiceAccount
+	expectedRuntimeWorkflow.Spec.ArtifactRepositoryRef = &v1alpha1.ArtifactRepositoryRef{
+		ConfigMap: "artifact-repositories",
+		Key:       "mlpipeline-repository",
+	}
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
 			UUID:           "123e4567-e89b-12d3-a456-426655440000",
@@ -462,6 +469,10 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = defaultPipelineRunnerServiceAccount
+	expectedRuntimeWorkflow.Spec.ArtifactRepositoryRef = &v1alpha1.ArtifactRepositoryRef{
+		ConfigMap: "artifact-repositories",
+		Key:       "mlpipeline-repository",
+	}
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
 			UUID:           "123e4567-e89b-12d3-a456-426655440000",
@@ -548,7 +559,10 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "sa1"
-
+	expectedRuntimeWorkflow.Spec.ArtifactRepositoryRef = &v1alpha1.ArtifactRepositoryRef{
+		ConfigMap: "artifact-repositories",
+		Key:       "mlpipeline-repository",
+	}
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
 			UUID:           "123e4567-e89b-12d3-a456-426655440000",
@@ -644,7 +658,10 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "sa1"
-
+	expectedRuntimeWorkflow.Spec.ArtifactRepositoryRef = &v1alpha1.ArtifactRepositoryRef{
+		ConfigMap: "artifact-repositories",
+		Key:       "mlpipeline-repository",
+	}
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
 			UUID:           "123e4567-e89b-12d3-a456-426655440000",

@@ -19,6 +19,9 @@ import (
 // swagger:model apiRun
 type APIRun struct {
 
+	// Optional input field. Specify which Kubernetes configMap this run uses.
+	ArtifactRepositoryRefCm string `json:"artifact_repository_ref_cm,omitempty"`
+
 	// Output. The time that the run created.
 	// Format: date-time
 	CreatedAt strfmt.DateTime `json:"created_at,omitempty"`

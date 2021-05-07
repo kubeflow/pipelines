@@ -32,7 +32,7 @@ const (
 type ObjectStoreInterface interface {
 	AddFile(template []byte, filePath string) error
 	DeleteFile(filePath string) error
-	GetFile(filePath string) ([]byte, error)
+	GetFile(filePath string, bucketName string) ([]byte, error)
 	AddAsYamlFile(o interface{}, filePath string) error
 	GetFromYamlFile(o interface{}, filePath string) error
 	GetPipelineKey(pipelineId string) string
@@ -78,8 +78,12 @@ func (m *MinioObjectStore) DeleteFile(filePath string) error {
 	return nil
 }
 
-func (m *MinioObjectStore) GetFile(filePath string) ([]byte, error) {
-	reader, err := m.minioClient.GetObject(m.bucketName, filePath, minio.GetObjectOptions{})
+func (m *MinioObjectStore) GetFile(filePath string, bucketName string) ([]byte, error) {
+	if bucketName == "" {
+		bucketName = m.bucketName
+	}
+
+	reader, err := m.minioClient.GetObject(bucketName, filePath, minio.GetObjectOptions{})
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to get %v", filePath)
 	}
@@ -111,7 +115,7 @@ func (m *MinioObjectStore) AddAsYamlFile(o interface{}, filePath string) error {
 }
 
 func (m *MinioObjectStore) GetFromYamlFile(o interface{}, filePath string) error {
-	bytes, err := m.GetFile(filePath)
+	bytes, err := m.GetFile(filePath, "")
 	if err != nil {
 		return util.Wrap(err, "Failed to read from a yaml file.")
 	}

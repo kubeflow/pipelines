@@ -42,6 +42,10 @@ func TestCreateRun(t *testing.T) {
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "pipeline-runner"
+	expectedRuntimeWorkflow.Spec.ArtifactRepositoryRef = &v1alpha1.ArtifactRepositoryRef{
+		ConfigMap: "artifact-repositories",
+		Key:       "mlpipeline-repository",
+	}
 	expectedRunDetail := api.RunDetail{
 		Run: &api.Run{
 			Id:             "123e4567-e89b-12d3-a456-426655440000",
@@ -94,6 +98,10 @@ func TestCreateRunPatch(t *testing.T) {
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "pipeline-runner"
+	expectedRuntimeWorkflow.Spec.ArtifactRepositoryRef = &v1alpha1.ArtifactRepositoryRef{
+		ConfigMap: "artifact-repositories",
+		Key:       "mlpipeline-repository",
+	}
 	expectedRunDetail := api.RunDetail{
 		Run: &api.Run{
 			Id:             "123e4567-e89b-12d3-a456-426655440000",
@@ -189,6 +197,10 @@ func TestCreateRun_Multiuser(t *testing.T) {
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "default-editor" // In multi-user mode, we use default service account.
+	expectedRuntimeWorkflow.Spec.ArtifactRepositoryRef = &v1alpha1.ArtifactRepositoryRef{
+		ConfigMap: "artifact-repositories",
+		Key:       "mlpipeline-repository",
+	}
 	expectedRunDetail := api.RunDetail{
 		Run: &api.Run{
 			Id:             "123e4567-e89b-12d3-a456-426655440000",
