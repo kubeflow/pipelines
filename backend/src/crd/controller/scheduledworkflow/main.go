@@ -34,16 +34,25 @@ import (
 )
 
 var (
-	masterURL   string
-	kubeconfig  string
-	namespace   string
-	location    *time.Location
-	clientQPS   float64
-	clientBurst int
+	masterURL                   string
+	kubeconfig                  string
+	namespace                   string
+	mlPipelineAPIServerName     string
+	mlPipelineAPIServerBasePath string
+	mlPipelineServiceHttpPort   string
+	mlPipelineServiceGRPCPort   string
+	clientQPS                   float64
+	clientBurst                 int
 )
 
 func main() {
 	flag.Parse()
+
+	location, err := util.GetLocation()
+	if err != nil {
+		log.Fatalf("Failed get location: %s", err.Error())
+	}
+	log.Infof("Location: %s", location.String())
 
 	// set up signals so we handle the first shutdown signal gracefully
 	stopCh := signals.SetupSignalHandler()
@@ -80,12 +89,24 @@ func main() {
 		workflowInformerFactory = workflowinformers.NewFilteredSharedInformerFactory(workflowClient, time.Second*30, namespace, nil)
 	}
 
+	runServiceClient, err := util.NewRunPipelineClient(
+		2*time.Minute,
+		1*time.Minute,
+		mlPipelineAPIServerBasePath,
+		mlPipelineAPIServerName,
+		mlPipelineServiceHttpPort,
+		mlPipelineServiceGRPCPort)
+	if err != nil {
+		log.Fatalf("Error creating ML pipeline API Server client: %v", err)
+	}
+
 	controller := NewController(
 		kubeClient,
 		scheduleClient,
 		workflowClient,
 		scheduleInformerFactory,
 		workflowInformerFactory,
+		runServiceClient,
 		commonutil.NewRealTime(),
 		location)
 
@@ -97,28 +118,24 @@ func main() {
 	}
 }
 
-func initEnv() {
+func init() {
+
 	// Import environment variable, support nested vars e.g. OBJECTSTORECONFIG_ACCESSKEY
 	replacer := strings.NewReplacer(".", "_")
 	viper.SetEnvKeyReplacer(replacer)
 	viper.AutomaticEnv()
 	viper.AllowEmptyEnv(true)
-}
-
-func init() {
-	initEnv()
 
 	flag.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&namespace, "namespace", "", "The namespace name used for Kubernetes informers to obtain the listers.")
+	flag.StringVar(&mlPipelineAPIServerName, "pipelineAPIServerName", "ml-pipeline", "Name of the ML pipeline API server.")
+	flag.StringVar(&mlPipelineAPIServerBasePath, "pipelineAPIServerBasePath",
+		"/apis/v1beta1", "The base path for the ML pipeline API server.")
+	flag.StringVar(&mlPipelineServiceHttpPort, "pipelineServiceHttpPort", "8888", "Http Port of the ML pipeline API server.")
+	flag.StringVar(&mlPipelineServiceGRPCPort, "pipelineServiceGRPCPort", "8887", "GRPC Port of the ML pipeline API server.")
 	// Use default value of client QPS (5) & burst (10) defined in
 	// k8s.io/client-go/rest/config.go#RESTClientFor
 	flag.Float64Var(&clientQPS, "clientQPS", 5, "The maximum QPS to the master from this client.")
 	flag.IntVar(&clientBurst, "clientBurst", 10, "Maximum burst for throttle from this client.")
-	var err error
-	location, err = util.GetLocation()
-	if err != nil {
-		log.Fatalf("Error running controller: %s", err.Error())
-	}
-	log.Infof("Location: %s", location.String())
 }

@@ -22,6 +22,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/job_model"
 	uploadParams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	runParams "github.com/kubeflow/pipelines/backend/api/go_http_client/run_client/run_service"
+
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/run_model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
@@ -241,7 +242,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 			return fmt.Errorf("expected total size 1, got: %v", totalSize)
 		}
 		helloWorldRun := runs[0]
-		return s.checkHelloWorldRun(helloWorldRun, helloWorldExperiment.ID, helloWorldExperiment.Name, helloWorldJob.ID, helloWorldJob.Name)
+		return s.checkHelloWorldRun(helloWorldRun, helloWorldExperiment.ID, helloWorldExperiment.Name, helloWorldJob.ID, helloWorldJob.Name, helloWorldPipelineVersion.ID, helloWorldPipelineVersion.Name)
 	}); err != nil {
 		assert.Nil(t, err)
 	}
@@ -413,10 +414,9 @@ func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob
 	assert.Contains(t, job.PipelineSpec.WorkflowManifest, "whalesay")
 
 	expectedJob := &job_model.APIJob{
-		ID:             job.ID,
-		Name:           "hello world",
-		Description:    "this is hello world",
-		ServiceAccount: "pipeline-runner",
+		ID:          job.ID,
+		Name:        "hello world",
+		Description: "this is hello world",
 		PipelineSpec: &job_model.APIPipelineSpec{
 			WorkflowManifest: job.PipelineSpec.WorkflowManifest,
 		},
@@ -526,7 +526,7 @@ func equal(expected, actual interface{}) bool {
 	return bytes.Equal(exp, act)
 }
 
-func (s *JobApiTestSuite) checkHelloWorldRun(run *run_model.APIRun, experimentID string, experimentName string, jobID string, jobName string) error {
+func (s *JobApiTestSuite) checkHelloWorldRun(run *run_model.APIRun, experimentID, experimentName, jobID, jobName, pipelineVersionID, pipelineVersionName string) error {
 	// Check workflow manifest is not empty
 	if !strings.Contains(run.PipelineSpec.WorkflowManifest, "whalesay") {
 		return fmt.Errorf("expected: %+v got: %+v", "whalesay", run.PipelineSpec.WorkflowManifest)
@@ -543,6 +543,9 @@ func (s *JobApiTestSuite) checkHelloWorldRun(run *run_model.APIRun, experimentID
 		},
 		{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeJOB, ID: jobID},
 			Name: jobName, Relationship: run_model.APIRelationshipCREATOR,
+		},
+		{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersionID},
+			Name: pipelineVersionName, Relationship: run_model.APIRelationshipCREATOR,
 		},
 	}
 

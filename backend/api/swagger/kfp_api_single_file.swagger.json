@@ -1740,6 +1740,13 @@
             "$ref": "#/definitions/apiRunMetric"
           },
           "description": "Output. The metrics of the run. The metrics are reported by ReportMetrics\nAPI."
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Optional. The labels that will be put on the resource."
         }
       }
     },

@@ -2,6 +2,7 @@ package template
 
 import (
 	"fmt"
+
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v3/workflow/validate"
 	"github.com/ghodss/yaml"
@@ -89,15 +90,38 @@ func (t *Argo) ScheduledWorkflow(apiJob *api.Job) (*scheduledworkflow.ScheduledW
 	if err != nil {
 		return nil, util.Wrap(err, "Create job failed")
 	}
+	//
+
+	var pipelineID *string
+	var pipelineVersionID *string
+	spec := workflow.Spec
+	for _, ref := range apiJob.ResourceReferences {
+		if ref.Key.Type == api.ResourceType_PIPELINE_VERSION {
+			pipelineVersionID = &ref.GetKey().Id
+			spec = workflowapi.WorkflowSpec{
+				ServiceAccountName: workflow.Spec.ServiceAccountName,
+			}
+		}
+	}
+	// pipelineID will only be used if pipelineVersionID is not provided
+	if id := apiJob.PipelineSpec.GetPipelineId(); id != "" {
+		pipelineID = &id
+		spec = workflowapi.WorkflowSpec{
+			ServiceAccountName: workflow.Spec.ServiceAccountName,
+		}
+	}
+
 	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{GenerateName: swfGeneratedName},
 		Spec: scheduledworkflow.ScheduledWorkflowSpec{
-			Enabled:        apiJob.Enabled,
-			MaxConcurrency: &apiJob.MaxConcurrency,
-			Trigger:        *toCRDTrigger(apiJob.Trigger),
+			PipelineVersionID: pipelineVersionID,
+			PipelineID:        pipelineID,
+			Enabled:           apiJob.Enabled,
+			MaxConcurrency:    &apiJob.MaxConcurrency,
+			Trigger:           *toCRDTrigger(apiJob.Trigger),
 			Workflow: &scheduledworkflow.WorkflowResource{
 				Parameters: toCRDParameter(apiJob.GetPipelineSpec().GetParameters()),
-				Spec:       workflow.Spec,
+				Spec:       spec,
 			},
 			NoCatchup: util.BoolPointer(apiJob.NoCatchup),
 		},
@@ -200,4 +224,3 @@ func ValidateWorkflow(template []byte) (*util.Workflow, error) {
 	}
 	return util.NewWorkflow(&wf), nil
 }
-

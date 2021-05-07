@@ -18,10 +18,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v3/util/file"
@@ -667,7 +668,6 @@ func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
 }
-
 
 func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRun(t)

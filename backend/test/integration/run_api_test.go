@@ -257,8 +257,8 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_
 		ID:             runDetail.Run.ID,
 		Name:           "long running",
 		Description:    "this pipeline will run long enough for us to manually terminate it before it finishes",
-		Status:         "Terminating",
 		ServiceAccount: "pipeline-runner",
+		Status:         "Terminating",
 		PipelineSpec: &run_model.APIPipelineSpec{
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
 		},

@@ -23,6 +23,7 @@ import (
 	"time"
 
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -108,8 +109,17 @@ func (s *ScheduledWorkflow) lastIndex() int64 {
 	}
 }
 
-func (s *ScheduledWorkflow) nextIndex() int64 {
+func (s *ScheduledWorkflow) NextIndex() int64 {
 	return s.lastIndex() + 1
+}
+
+func (s *ScheduledWorkflow) GetParameters() []*api.Parameter {
+	params := []*api.Parameter{}
+	for _, param := range s.Spec.Workflow.Parameters {
+		param := api.Parameter{Name: param.Name, Value: param.Value}
+		params = append(params, &param)
+	}
+	return params
 }
 
 // MinIndex returns the minimum index of the workflow to retrieve as part of the workflow
@@ -128,7 +138,7 @@ func (s *ScheduledWorkflow) isOneOffRun() bool {
 }
 
 func (s *ScheduledWorkflow) nextResourceID() string {
-	return s.Name + "-" + strconv.FormatInt(s.nextIndex(), 10)
+	return s.Name + "-" + strconv.FormatInt(s.NextIndex(), 10)
 }
 
 // NextResourceName creates a deterministic resource name for the next resource.
@@ -139,7 +149,7 @@ func (s *ScheduledWorkflow) NextResourceName() string {
 	return fmt.Sprintf("%s-%v", nextResourceID, h.Sum32())
 }
 
-func (s *ScheduledWorkflow) getWorkflowParametersAsMap() map[string]string {
+func (s *ScheduledWorkflow) GetWorkflowParametersAsMap() map[string]string {
 	resultAsArray := s.Spec.Workflow.Parameters
 	resultAsMap := make(map[string]string)
 	for _, param := range resultAsArray {
@@ -176,13 +186,13 @@ func (s *ScheduledWorkflow) NewWorkflow(
 	result.OverrideName(s.NextResourceName())
 
 	// Get the workflow parameters and format them.
-	formatter := commonutil.NewSWFParameterFormatter(uuid.String(), nextScheduledEpoch, nowEpoch, s.nextIndex())
-	formattedParams := formatter.FormatWorkflowParameters(s.getWorkflowParametersAsMap())
+	formatter := commonutil.NewSWFParameterFormatter(uuid.String(), nextScheduledEpoch, nowEpoch, s.NextIndex())
+	formattedParams := formatter.FormatWorkflowParameters(s.GetWorkflowParametersAsMap())
 
 	// Set the parameters.
 	result.OverrideParameters(formattedParams)
 
-	result.SetCannonicalLabels(s.Name, nextScheduledEpoch, s.nextIndex())
+	result.SetCannonicalLabels(s.Name, nextScheduledEpoch, s.NextIndex())
 	result.SetLabels(commonutil.LabelKeyWorkflowRunId, uuid.String())
 	// Pod pipeline/runid label is used by v2 compatible mode.
 	result.SetPodMetadataLabels(commonutil.LabelKeyWorkflowRunId, uuid.String())
@@ -275,7 +285,7 @@ func (s *ScheduledWorkflow) setLabel(key string, value string) {
 }
 
 // UpdateStatus updates the status of a workflow in the Kubernetes API server.
-func (s *ScheduledWorkflow) UpdateStatus(updatedEpoch int64, workflow *commonutil.Workflow,
+func (s *ScheduledWorkflow) UpdateStatus(updatedEpoch int64, submitted bool,
 	scheduledEpoch int64, active []swfapi.WorkflowStatus,
 	completed []swfapi.WorkflowStatus, location *time.Location) {
 
@@ -315,9 +325,9 @@ func (s *ScheduledWorkflow) UpdateStatus(updatedEpoch int64, workflow *commonuti
 		s.enabled()))
 	s.setLabel(commonutil.LabelKeyScheduledWorkflowStatus, string(conditionType))
 
-	if workflow != nil {
+	if submitted {
 		s.updateLastTriggeredTime(scheduledEpoch)
-		s.Status.Trigger.LastIndex = commonutil.Int64Pointer(s.nextIndex())
+		s.Status.Trigger.LastIndex = commonutil.Int64Pointer(s.NextIndex())
 		nextTriggerTime := s.getNextScheduledEpoch(0, *location)
 		s.updateNextTriggeredTime(nextTriggerTime)
 	} else {

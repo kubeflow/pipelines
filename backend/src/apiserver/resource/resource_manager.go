@@ -18,9 +18,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"io"
 	"strconv"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	workflowclient "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
@@ -37,6 +38,8 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	swfregister "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
+	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
@@ -46,7 +49,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 )
 
@@ -360,6 +365,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "failed to generate the workflow.")
 	}
+
 	// Add a reference to the default experiment if run does not already have a containing experiment
 	ref, err := r.getDefaultExperimentIfNoExperiment(apiRun.GetResourceReferences())
 	if err != nil {
@@ -369,11 +375,56 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 		apiRun.ResourceReferences = append(apiRun.GetResourceReferences(), ref)
 	}
 
+	/*
+		parameters := toParametersMap(apiRun.GetPipelineSpec().GetParameters())
+		// Verify no additional parameter provided
+		if err = workflow.VerifyParameters(parameters); err != nil {
+			return nil, util.Wrap(err, "Failed to verify parameters.")
+		}
+		// Append provided parameter
+		workflow.OverrideParameters(parameters)
+
+		// Replace macros
+		formatter := util.NewRunParameterFormatter(uuid.String(), runAt)
+		formattedParams := formatter.FormatWorkflowParameters(workflow.GetWorkflowParametersAsMap())
+		workflow.OverrideParameters(formattedParams)
+
+		r.setDefaultServiceAccount(&workflow, apiRun.GetServiceAccount())
+
+		// Disable istio sidecar injection if not specified
+		workflow.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
+		// Add a KFP specific label for cache service filtering. The cache_enabled flag here is a global control for whether cache server will
+		// receive targeting pods. Since cache server only receives pods in step level, the resource manager here will set this global label flag
+		// on every single step/pod so the cache server can understand.
+		// TODO: Add run_level flag with similar logic by reading flag value from create_run api.
+		workflow.SetLabelsToAllTemplates(util.LabelKeyCacheEnabled, common.IsCacheEnabled())
+
+		err = OverrideParameterWithSystemDefault(workflow, apiRun)
+	*/
 	namespace, err := r.getNamespaceFromExperiment(apiRun.GetResourceReferences())
 	if err != nil {
 		return nil, err
 	}
+	// Set owner reference, should be set for scheduled runs
+	owner := getOwner(apiRun.ResourceReferences)
 
+	if owner.id != "" && owner.name != "" {
+		blockOwnerDeletion := true
+		isController := true
+		gvk := schema.GroupVersionKind{
+			Group:   scheduledworkflow.SchemeGroupVersion.Group,
+			Version: scheduledworkflow.SchemeGroupVersion.Version,
+			Kind:    swfregister.Kind,
+		}
+		workflow.OwnerReferences = []v1.OwnerReference{v1.OwnerReference{
+			APIVersion:         gvk.GroupVersion().String(),
+			Kind:               gvk.Kind,
+			Name:               owner.name,
+			UID:                types.UID(owner.id),
+			BlockOwnerDeletion: &blockOwnerDeletion,
+			Controller:         &isController,
+		}}
+	}
 	_, err = validate.ValidateWorkflow(nil, nil, workflow.Workflow, validate.ValidateOpts{
 		Lint:                       false,
 		IgnoreEntrypoint:           false,
@@ -390,13 +441,13 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 
 	// Patched the default value to apiRun
 	if common.GetBoolConfigWithDefault(common.HasDefaultBucketEnvVar, false) {
-	for _, param := range apiRun.PipelineSpec.Parameters {
-		var err error
-		param.Value, err = common.PatchPipelineDefaultParameter(param.Value)
-		if err != nil {
-			return nil, fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
+		for _, param := range apiRun.PipelineSpec.Parameters {
+			var err error
+			param.Value, err = common.PatchPipelineDefaultParameter(param.Value)
+			if err != nil {
+				return nil, fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
+			}
 		}
-	}
 	}
 
 	// Store run metadata into database
@@ -408,6 +459,23 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 	// Assign the create at time.
 	runDetail.CreatedAtInSec = runAt
 	return r.runStore.CreateRun(runDetail)
+}
+
+type owner struct {
+	name string
+	id   string
+}
+
+func getOwner(resourceRef []*api.ResourceReference) owner {
+	for _, ref := range resourceRef {
+		if ref.Relationship == api.Relationship_OWNER {
+			return owner{
+				name: ref.Name,
+				id:   ref.Key.Id,
+			}
+		}
+	}
+	return owner{}
 }
 
 func (r *ResourceManager) GetRun(runId string) (*model.RunDetail, error) {
@@ -694,6 +762,14 @@ func (r *ResourceManager) CreateJob(ctx context.Context, apiJob *api.Job) (*mode
 		apiJob.ResourceReferences = append(apiJob.GetResourceReferences(), ref)
 	}
 
+	// Get the ExperimentUUID
+	experimentID, err := r.getOwningExperimentUUID(apiJob.GetResourceReferences())
+	if err != nil {
+		return nil, err
+	}
+
+	scheduledWorkflow.Spec.ExperimentID = &experimentID
+
 	namespace, err := r.getNamespaceFromExperiment(apiJob.GetResourceReferences())
 	if err != nil {
 		return nil, err
@@ -781,6 +857,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, workflow *
 		return util.NewInvalidInputError("Workflow[%s] missing the Run ID label", workflow.Name)
 	}
 	runId := workflow.ObjectMeta.Labels[util.LabelKeyWorkflowRunId]
+
 	jobId := workflow.ScheduledWorkflowUUIDAsStringOrEmpty()
 	if len(workflow.Namespace) == 0 {
 		return util.NewInvalidInputError("Workflow missing namespace")
@@ -810,6 +887,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, workflow *
 		!workflow.IsInFinalState() {
 		condition = model.RunTerminatingConditions
 	}
+
 	if jobId == "" {
 		// If a run doesn't have job ID, it's a one-time run created by Pipeline API server.
 		// In this case the DB entry should already been created when argo workflow CR is created.

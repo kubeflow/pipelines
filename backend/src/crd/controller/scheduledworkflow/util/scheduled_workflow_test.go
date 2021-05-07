@@ -114,7 +114,7 @@ func TestScheduledWorkflow_lastIndex(t *testing.T) {
 func TestScheduledWorkflow_nextIndex(t *testing.T) {
 	// Never ran a workflow
 	schedule := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{})
-	assert.Equal(t, int64(1), schedule.nextIndex())
+	assert.Equal(t, int64(1), schedule.NextIndex())
 
 	// Ran one workflow
 	schedule = NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
@@ -124,7 +124,7 @@ func TestScheduledWorkflow_nextIndex(t *testing.T) {
 			},
 		},
 	})
-	assert.Equal(t, int64(51), schedule.nextIndex())
+	assert.Equal(t, int64(51), schedule.NextIndex())
 }
 
 func TestScheduledWorkflow_MinIndex(t *testing.T) {
@@ -534,7 +534,7 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_UpdateStatus_NoWorkflow(t *test
 
 	schedule.UpdateStatus(
 		updatedEpoch,
-		nil, /* no workflow created during this run */
+		false, /* no workflow created during this run */
 		scheduledEpoch,
 		[]swfapi.WorkflowStatus{*status1, *status2, *status3},
 		[]swfapi.WorkflowStatus{*status1, *status2, *status3, *status4}, &time.Location{})
@@ -613,10 +613,9 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_UpdateStatus_WithWorkflow(t *te
 	status3 := createStatus("WORKFLOW3", 7)
 	status4 := createStatus("WORKFLOW4", 4)
 
-	workflow := commonutil.NewWorkflow(&workflowapi.Workflow{})
 	schedule.UpdateStatus(
 		updatedEpoch,
-		workflow, /* no workflow created during this run */
+		true, /* no workflow created during this run */
 		scheduledEpoch,
 		[]swfapi.WorkflowStatus{*status1, *status2, *status3},
 		[]swfapi.WorkflowStatus{*status1, *status2, *status3, *status4}, &time.Location{})

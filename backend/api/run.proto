@@ -262,8 +262,13 @@ message Run {
   // Output. The metrics of the run. The metrics are reported by ReportMetrics
   // API.
   repeated RunMetric metrics = 9;
+
+  // Optional. The labels that will be put on the resource. 
+  map<string, string> labels = 15;
+
 }
-// Next field number of Run will be 15
+// Next field number of Run will be 16
+
 
 message PipelineRuntime {
   // Output. The runtime JSON manifest of the pipeline, including the status
