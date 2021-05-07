@@ -80,7 +80,7 @@ gcloud iam service-accounts keys create application_default_credentials.json --i
 # Attempt to create a k8s secret. If already exists, override.
 kubectl create secret generic user-gcp-sa \
   --from-file=user-gcp-sa.json=application_default_credentials.json \
-  -n $NAMESPACE --dry-run -o yaml  |  kubectl apply -f -
+  -n $NAMESPACE --dry-run=client -o yaml  |  kubectl apply -f -
 ```
 Remove the private key file if needed
 ```
