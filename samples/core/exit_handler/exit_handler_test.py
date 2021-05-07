@@ -30,7 +30,7 @@ def verify(
     t = unittest.TestCase()
     t.maxDiff = None  # we always want to see full diff
 
-    # t.assertEqual(run.status, 'Succeeded')
+    t.assertEqual(run.status, 'Succeeded')
 
     # Verify MLMD state
     client = KfpMlmdClient(mlmd_connection_config=mlmd_connection_config)
