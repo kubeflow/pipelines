@@ -21,8 +21,7 @@ def mount_pvc(
         from kubernetes import client as k8s_client
         # there can be other ops in a pipeline (e.g. ResourceOp, VolumeOp)
         # refer to #3906
-        if not hasattr(task, "add_volume") or not hasattr(task,
-                                                          "add_volume_mount"):
+        if not hasattr(task, "add_volume") or not hasattr(task, "add_volume_mount"):
             return task
         local_pvc = k8s_client.V1PersistentVolumeClaimVolumeSource(
             claim_name=pvc_name
