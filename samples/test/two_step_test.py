@@ -26,8 +26,8 @@ from .util import run_pipeline_func, TestCase, KfpMlmdClient
 
 
 def verify(
-    run: kfp_server_api.ApiRun, mlmd_connection_config, argo_workflow_name: str,
-    **kwargs
+        run: kfp_server_api.ApiRun, mlmd_connection_config, argo_workflow_name: str,
+        **kwargs
 ):
     t = unittest.TestCase()
     t.maxDiff = None  # we always want to see full diff
@@ -61,10 +61,10 @@ def verify(
                 }
             },
             'outputs': {
-                'artifacts': [{
-                    'name': '',
-                    'type': 'system.Dataset'
-                }],
+                'artifacts': [{'custom_properties': {'name': 'output_dataset_one'},
+                               'name': 'output_dataset_one',
+                               'type': 'system.Dataset'
+                               }],
                 'parameters': {
                     'output_parameter_one': 1234
                 }
@@ -76,19 +76,19 @@ def verify(
         train.get_dict(), {
             'name': 'train-op',
             'inputs': {
-                'artifacts': [{
-                    'name': '',
-                    'type': 'system.Dataset',
-                }],
+                'artifacts': [{'custom_properties': {'name': 'output_dataset_one'},
+                               'name': 'output_dataset_one',
+                               'type': 'system.Dataset',
+                               }],
                 'parameters': {
                     'num_steps': 1234
                 }
             },
             'outputs': {
-                'artifacts': [{
-                    'name': '',
-                    'type': 'system.Model',
-                }],
+                'artifacts': [{'custom_properties': {'name': 'model'},
+                               'name': 'model',
+                               'type': 'system.Model',
+                               }],
                 'parameters': {}
             },
             'type': 'kfp.ContainerExecution'

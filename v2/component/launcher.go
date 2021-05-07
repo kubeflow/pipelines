@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2021 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -138,7 +138,7 @@ func parseBucketConfig(path string) (*bucketConfig, error) {
 
 func (o *LauncherOptions) validate() error {
 	empty := func(s string) bool { return len(s) == 0 }
-	err := func(s string) error { return fmt.Errorf("Must specify %s", s) }
+	err := func(s string) error { return fmt.Errorf("Invalid launcher options: must specify %s", s) }
 
 	if empty(o.PipelineName) {
 		return err("PipelineName")
@@ -388,27 +388,31 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 	}
 
 	for n, op := range l.runtimeInfo.OutputParameters {
+		msg := func(err error) error {
+			return fmt.Errorf("Failed to read output parameter name=%q type=%q path=%q: %w", n, op.Type, op.Path, err)
+		}
 		b, err := ioutil.ReadFile(op.Path)
 		if err != nil {
-			return err
+			return msg(err)
 		}
 		switch op.Type {
 		case "STRING":
 			outputParameters.StringParameters[n] = string(b)
 		case "INT":
-			i, err := strconv.ParseInt(string(b), 10, 0)
+			i, err := strconv.ParseInt(strings.TrimSpace(string(b)), 10, 0)
 			if err != nil {
-				return err
+				return msg(err)
 			}
 			outputParameters.IntParameters[n] = i
 		case "DOUBLE":
-			f, err := strconv.ParseFloat(string(b), 0)
+			f, err := strconv.ParseFloat(strings.TrimSpace(string(b)), 0)
 			if err != nil {
-				return err
+				return msg(err)
 			}
 			outputParameters.DoubleParameters[n] = f
+		default:
+			return msg(fmt.Errorf("unknown type. Expected STRING, INT or DOUBLE"))
 		}
-
 	}
 
 	return l.metadataClient.PublishExecution(ctx, execution, outputParameters, outputArtifacts)

@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -620,10 +620,9 @@ class Compiler(object):
 
       is_recursive_subgroup = (
           isinstance(subgroup, dsl.OpsGroup) and subgroup.recursive_ref)
-
-      # Special handling for recursive subgroup: use the existing opsgroup name
       if is_recursive_subgroup:
-        subgroup_key = subgroup.recursive_ref.name
+        raise NotImplementedError(
+            'Recursive subgroup is not supported in v2 yet.')
       else:
         subgroup_key = subgroup.name
 
@@ -988,6 +987,13 @@ class Compiler(object):
         if arg_name == pipeline_input.name:
           arg_type = pipeline_input.type
           break
+      if not type_utils.is_parameter_type(arg_type):
+        raise TypeError(
+            'The pipeline argument "{arg_name}" is viewed as an artifact due to '
+            'its type "{arg_type}". And we currently do not support passing '
+            'artifacts as pipeline inputs. Consider type annotating the argument'
+            ' with a primitive type, such as "str", "int", and "float".'.format(
+                arg_name=arg_name, arg_type=arg_type))
       args_list.append(
           dsl.PipelineParam(
               sanitize_k8s_name(arg_name, True), param_type=arg_type))

@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2021 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -80,7 +80,8 @@ func parseRuntimeInfo(jsonEncoded string) (*runtimeInfo, error) {
 	}
 
 	if err := json.Unmarshal([]byte(jsonEncoded), r); err != nil {
-		return nil, err
+		// Do not quote jsonEncoded, because JSON format is hard to read if quoted.
+		return nil, fmt.Errorf("Invalid runtime info: %w.\n===RuntimeInfo===\n%s\n======", err, jsonEncoded)
 	}
 
 	return r, nil
@@ -324,6 +325,7 @@ func (r *runtimeInfo) generateExecutorInput(genOutputURI generateOutputURI, outp
 			s3Region := os.Getenv("AWS_REGION")
 			rta.Metadata.Fields["s3_region"] = &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: s3Region}}
 		}
+		rta.Metadata.Fields["name"] = &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: name}}
 
 		if err := setRuntimeArtifactType(rta, oa.InstanceSchema, oa.SchemaTitle); err != nil {
 			return nil, fmt.Errorf("failed to generate output RuntimeArtifact: %w", err)

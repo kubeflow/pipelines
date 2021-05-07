@@ -1,0 +1,92 @@
+module:
+  go:
+    module: github.com/kubeflow/pipelines/v2
+    path: .
+    binary:
+      path: build/launcher
+  csv:
+    path: third_party/license_info.csv
+  notices:
+    path: third_party/NOTICES
+  overrides:
+  - name: github.com/kubeflow/pipelines/v2
+    skip: true # no need to include our own license
+    excludePaths:
+    - build # built binaries
+    - test/tmp # temporary files for test
+  - name: cloud.google.com/go
+    version: v0.72.0
+    license:
+      path: LICENSE
+      spdxId: Apache-2.0
+    subModules:
+    - path: cmd/go-cloud-debug-agent/internal/debug/elf
+      license:
+        path: elf.go
+        spdxId: BSD-2-Clause
+        lineStart: 1
+        lineEnd: 43
+    - path: third_party/pkgsite
+      license:
+        path: LICENSE
+        spdxId: BSD-3-Clause
+  - name: cloud.google.com/go/storage
+    version: v1.12.0
+    license:
+      path: LICENSE
+      url: https://github.com/googleapis/google-cloud-go/blob/storage/v1.12.0/LICENSE
+      spdxId: Apache-2.0
+  - name: github.com/jmespath/go-jmespath
+    version: v0.4.0
+    license: # non-standard license file
+      path: LICENSE
+      spdxId: Apache-2.0
+  - name: github.com/aws/aws-sdk-go
+    version: v1.36.1
+    license:
+      path: LICENSE.txt
+      spdxId: Apache-2.0
+    subModules:
+    - path: internal/sync/singleflight
+      license:
+        path: LICENSE
+        spdxId: BSD-3-Clause
+  - name: github.com/davecgh/go-spew
+    version: v1.1.1
+    license:
+      path: LICENSE
+      spdxId: ISC
+  - name: github.com/googleapis/gax-go/v2
+    version: v2.0.5
+    license:
+      path: LICENSE
+      spdxId: BSD-3-Clause
+  - name: golang.org/x/net
+    excludePaths:
+    - html/testdata
+  - name: github.com/gogo/protobuf
+    version: v1.3.1
+    license:
+      path: LICENSE
+      spdxId: BSD-3-Clause / BSD-2-Clause
+  - name: google.golang.org/protobuf
+    version: v1.25.0
+    license:
+      path: LICENSE
+      spdxId: BSD-3-Clause
+  - name: gopkg.in/yaml.v2
+    version: v2.4.0
+    license:
+      path: LICENSE
+      spdxId: Apache-2.0 / MIT # gopkg.in/yaml.v2 is port of a MIT licensed library
+  - name: go.opencensus.io
+    version: v0.22.5
+    license:
+      path: LICENSE
+      url: https://github.com/census-instrumentation/opencensus-go/blob/v0.22.5/LICENSE
+      spdxId: Apache-2.0
+  - name: sigs.k8s.io/yaml
+    version: v1.2.0
+    license:
+      path: LICENSE
+      spdxId: MIT / BSD-3-Clause
