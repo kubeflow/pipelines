@@ -7,4 +7,3 @@ google-cloud
    dependencies
    google_cloud_pipeline_components
    setup
-   tests
