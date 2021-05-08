@@ -33,13 +33,14 @@ def echo_msg(msg: str):
     """Echo a message by parameter."""
     print(msg)
 
+
 @dsl.pipeline(
     name='Exit Handler',
     description=
     'Downloads a message and prints it. The exit handler will run after the pipeline finishes (successfully or not).'
 )
 def pipeline_exit_handler(url='gs://ml-pipeline/shakespeare1.txt'):
-  """A sample pipeline showing exit handler."""
+    """A sample pipeline showing exit handler."""
 
     exit_task = echo_msg('exit!')
 
@@ -49,4 +50,4 @@ def pipeline_exit_handler(url='gs://ml-pipeline/shakespeare1.txt'):
 
 
 if __name__ == '__main__':
-  kfp.compiler.Compiler().compile(pipeline_exit_handler, __file__ + '.yaml')
+    kfp.compiler.Compiler().compile(pipeline_exit_handler, __file__ + '.yaml')
