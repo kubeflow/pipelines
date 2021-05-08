@@ -277,7 +277,7 @@ class Client(object):
         return 'http://' + self._uihost
 
     # In-cluster pod. We could use relative URL.
-    return '/pipeline'
+    return '/_/pipeline'
 
   def _load_context_setting_or_default(self):
     if os.path.exists(Client.LOCAL_KFP_CONTEXT):
