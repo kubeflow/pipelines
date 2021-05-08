@@ -72,6 +72,8 @@ type runtimeInfo struct {
 	OutputArtifacts  map[string]*outputArtifact
 }
 
+// paramDelimiterRE is used to find all instances of parameter string that need
+// to be escaped. We use .+? to do a non-greedy match here.
 var paramDelimiterRE = regexp.MustCompile(`"BEGIN-KFP-PARAM[[].+?[]]END-KFP-PARAM"`)
 
 func escapeParameters(unescaped string) (string, error) {
