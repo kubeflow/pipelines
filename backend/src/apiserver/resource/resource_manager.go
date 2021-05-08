@@ -23,6 +23,7 @@ import (
 
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
+	"github.com/argoproj/argo/workflow/validate"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
@@ -415,6 +416,14 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		return nil, err
 	}
 
+	_, err = validate.ValidateWorkflow(nil, nil, workflow.Workflow, validate.ValidateOpts{
+		Lint:                       false,
+		IgnoreEntrypoint:           false,
+		WorkflowTemplateValidation: false, // not used by kubeflow
+	})
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to validate workflow for (%+v)", workflow.Workflow.Name)
+	}
 	// Create argo workflow CR resource
 	newWorkflow, err := r.getWorkflowClient(namespace).Create(workflow.Get())
 	if err != nil {
