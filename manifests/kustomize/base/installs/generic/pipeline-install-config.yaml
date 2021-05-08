@@ -33,3 +33,7 @@ data:
   ## any node and avoid defaulting to specific nodes. Allowed values are:
   ## 'false' and 'true'.
   cacheNodeRestrictions: "false"
+  ## ConMaxLifeTimeSec will set the connection max lifetime for MySQL
+  ## this is very important to setup when using external databases.
+  ## See this issue for more details: https://github.com/kubeflow/pipelines/issues/5329
+  ConMaxLifeTimeSec: "120"
