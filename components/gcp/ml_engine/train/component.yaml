@@ -96,6 +96,12 @@ inputs:
       Defaults to 30.'
     default: '30'
     type: Integer
+  - name: labels
+    description: >-
+      One or more labels that you can add, to organize your jobs. Each label is a key-value pair,
+      where both the key and the value are arbitrary strings that you supply.
+    default: ''
+    type: JsonObject
 outputs:
   - name: job_id
     description: 'The ID of the created job.'
@@ -127,6 +133,7 @@ implementation:
       --job_id_prefix, {inputValue: job_id_prefix},
       --job_id, {inputValue: job_id},
       --wait_interval, {inputValue: wait_interval},
+      --labels, {inputValue: labels},
       --job_id_output_path, {outputPath: job_id},
       --job_dir_output_path, {outputPath: job_dir},
     ]
