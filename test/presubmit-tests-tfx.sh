@@ -37,12 +37,8 @@ curl -sSL https://github.com/bazelbuild/bazel/releases/download/3.7.2/bazel-3.7.
 chmod +x bazel_installer.sh
 ./bazel_installer.sh
 
-# Install TFX from head
-cd $source_root
-git clone --depth 1 https://github.com/tensorflow/tfx.git
-cd $source_root/tfx
-python3 -m pip install .[test] --upgrade \
-  --extra-index-url https://pypi-nightly.tensorflow.org/simple
+# Install TFX from nightly
+python3 -m pip install -i https://pypi-nightly.tensorflow.org/simple tfx[test] --upgrade
 
 # Three KFP-related unittests
 cd $source_root/tfx/tfx/orchestration/kubeflow
