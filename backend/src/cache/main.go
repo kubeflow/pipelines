@@ -15,6 +15,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"log"
 	"net/http"
@@ -52,6 +53,7 @@ type WhSvrDBParameters struct {
 	dbUser              string
 	dbPwd               string
 	dbGroupConcatMaxLen string
+	dbExtraParams       map[string]string
 	namespaceToWatch    string
 }
 
@@ -65,13 +67,18 @@ func main() {
 	flag.StringVar(&params.dbUser, "db_user", "root", "Database user name.")
 	flag.StringVar(&params.dbPwd, "db_password", "", "Database password.")
 	flag.StringVar(&params.dbGroupConcatMaxLen, "db_group_concat_max_len", mysqlDBGroupConcatMaxLenDefault, "Database group concat max length.")
+	dbExtraParams := flag.String("db_extra_params", "{}", "Database extra parameters in JSON form.")
 	flag.StringVar(&params.namespaceToWatch, "namespace_to_watch", "kubeflow", "Namespace to watch.")
 	// Use default value of client QPS (5) & burst (10) defined in
 	// k8s.io/client-go/rest/config.go#RESTClientFor
 	flag.Float64Var(&clientParams.QPS, "kube_client_qps", 5, "The maximum QPS to the master from this client.")
 	flag.IntVar(&clientParams.Burst, "kube_client_burst", 10, "Maximum burst for throttle from this client.")
-
 	flag.Parse()
+
+	err := json.Unmarshal([]byte(*dbExtraParams), &params.dbExtraParams)
+	if err != nil {
+		log.Fatalf("Failed to get db_extra_params. Error: ", err)
+	}
 
 	log.Println("Initing client manager....")
 	clientManager := NewClientManager(params, clientParams)
