@@ -13,4 +13,5 @@
 # limitations under the License.
 
 from ._launch_template import launch_template
+from ._launch_flex_template import launch_flex_template
 from ._launch_python import launch_python
