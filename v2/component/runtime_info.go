@@ -81,8 +81,10 @@ func escapeParameters(unescaped string) (string, error) {
 	escapeFunc := func(value string) string {
 		value = strings.TrimPrefix(value, `"BEGIN-KFP-PARAM[`)
 		value = strings.TrimSuffix(value, `]END-KFP-PARAM"`)
-		var b []byte
-		b, jsonEncodeErr = json.Marshal(value)
+		b, err := json.Marshal(value)
+		if err != nil {
+			jsonEncodeErr = err
+		}
 		return string(b)
 	}
 
