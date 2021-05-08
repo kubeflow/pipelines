@@ -1,9 +1,14 @@
 from typing import Dict
 
 
-def mount_pvc(pvc_name='pipeline-claim', volume_name='pipeline', volume_mount_path='/mnt/pipeline'):
-    """Modifier function to apply to a Container Op to simplify volume, volume mount addition and
-    enable better reuse of volumes, volume claims across container ops.
+def mount_pvc(
+    pvc_name='pipeline-claim',
+    volume_name='pipeline',
+    volume_mount_path='/mnt/pipeline'
+):
+    """Modifier function to apply to a Container Op to simplify volume, volume
+    mount addition and enable better reuse of volumes, volume claims across
+    container ops.
 
     Example:
         ::
@@ -11,30 +16,44 @@ def mount_pvc(pvc_name='pipeline-claim', volume_name='pipeline', volume_mount_pa
             train = train_op(...)
             train.apply(mount_pvc('claim-name', 'pipeline', '/mnt/pipeline'))
     """
+
     def _mount_pvc(task):
         from kubernetes import client as k8s_client
         # there can be other ops in a pipeline (e.g. ResourceOp, VolumeOp)
         # refer to #3906
         if not hasattr(task, "add_volume") or not hasattr(task, "add_volume_mount"):
             return task
-        local_pvc = k8s_client.V1PersistentVolumeClaimVolumeSource(claim_name=pvc_name)
-        return (
-            task
-                .add_volume(
-                    k8s_client.V1Volume(name=volume_name, persistent_volume_claim=local_pvc)
-                )
-                .add_volume_mount(
-                    k8s_client.V1VolumeMount(mount_path=volume_mount_path, name=volume_name)
-                )
+        local_pvc = k8s_client.V1PersistentVolumeClaimVolumeSource(
+            claim_name=pvc_name
         )
+        return (
+            task.add_volume(
+                k8s_client.V1Volume(
+                    name=volume_name, persistent_volume_claim=local_pvc
+                )
+            ).add_volume_mount(
+                k8s_client.V1VolumeMount(
+                    mount_path=volume_mount_path, name=volume_name
+                )
+            )
+        )
+
     return _mount_pvc
 
 
-def use_k8s_secret(secret_name: str = 'k8s-secret', k8s_secret_key_to_env: Dict = {}):
+def use_k8s_secret(
+    secret_name: str = 'k8s-secret',
+    k8s_secret_key_to_env: Dict = {},
+    k8s_secret_key_to_volume: Dict = {},
+    mount_path: str = "/mnt"
+):
     """An operator that configures the container to use k8s credentials.
 
     k8s_secret_key_to_env specifies a mapping from the name of the keys in the k8s secret to the name of the
     environment variables where the values will be added.
+
+    k8s_secret_key_to_volume specifies a mapping from the name of the keys in the k8s secret to volume paths in
+    the container
 
     The secret needs to be deployed manually a priori.
 
@@ -53,6 +72,16 @@ def use_k8s_secret(secret_name: str = 'k8s-secret', k8s_secret_key_to_env: Dict 
             secretKeyRef:
               name: s3-secret
               key: secret_key
+
+        ::
+            train = train_op(...)
+            train.apply(use_k8s_secret(
+              secret_name='auth-secret',
+              k8s_secret_key_to_volume={'secret_key': '/subpath'},
+              mount_path='/secrets'
+            ))
+
+        This will mount the secret key `secret_key` from secret `auth-secret` to the path `/secrets/subpath/secret_key`
     """
 
     def _use_k8s_secret(task):
@@ -70,6 +99,30 @@ def use_k8s_secret(secret_name: str = 'k8s-secret', k8s_secret_key_to_env: Dict 
                     )
                 )
             )
+
+        if k8s_secret_key_to_volume:
+            items = []
+            for secret_key, volume_path in k8s_secret_key_to_volume.items():
+                items.append(
+                    k8s_client.V1KeyToPath(key=secret_key, path=volume_path)
+                )
+
+            task.add_volume(
+                k8s_client.V1Volume(
+                    name=secret_name,
+                    secret=k8s_client.V1SecretVolumeSource(
+                        secret_name=secret_name,
+                        items=items,
+                    )
+                )
+            )
+            task.container.add_volume_mount(
+                k8s_client.V1VolumeMount(
+                    name=secret_name,
+                    mount_path=mount_path,
+                )
+            )
+
         return task
 
     return _use_k8s_secret
