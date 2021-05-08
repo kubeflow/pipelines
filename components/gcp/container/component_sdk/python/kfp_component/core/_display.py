@@ -17,7 +17,6 @@ import json
 import threading
 import logging
 
-_OUTPUT_PATH = os.environ.get('KFP_UI_METADATA_PATH', '/mlpipeline-ui-metadata.json')
 _OUTPUT_FILE_LOCK = threading.Lock()
 
 def display(obj):
@@ -66,6 +65,7 @@ def display_kfpmetadata(obj):
 
 def _output_ui_metadata(output):
     with _OUTPUT_FILE_LOCK:
+        _OUTPUT_PATH = os.environ.get('KFP_UI_METADATA_PATH', '/mlpipeline-ui-metadata.json')
         metadata = {}
         if os.path.isfile(_OUTPUT_PATH):
             with open(_OUTPUT_PATH, 'r') as f:
