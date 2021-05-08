@@ -38,7 +38,7 @@ chmod +x bazel_installer.sh
 ./bazel_installer.sh
 
 # Install TFX from nightly
-python3 -m pip install -i https://pypi-nightly.tensorflow.org/simple tfx[test] --upgrade
+python3 -m pip install -i https://pypi-nightly.tensorflow.org/simple tfx[kfp] --upgrade
 
 # Three KFP-related unittests
 cd $source_root/tfx/tfx/orchestration/kubeflow
