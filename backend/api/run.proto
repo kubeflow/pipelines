@@ -239,6 +239,9 @@ message Run {
   // Optional input field. Specify which Kubernetes service account this run uses.
   string service_account = 14;
 
+  // Optional input field. Specify which Kubernetes configMap this run uses.
+  string artifact_repository_ref_cm = 15;
+
   // Output. The time that the run created.
   google.protobuf.Timestamp created_at = 6;
 

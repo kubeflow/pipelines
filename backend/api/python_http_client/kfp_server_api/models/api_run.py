@@ -40,6 +40,7 @@ class ApiRun(object):
         'pipeline_spec': 'ApiPipelineSpec',
         'resource_references': 'list[ApiResourceReference]',
         'service_account': 'str',
+        'artifact_repository_ref_cm': 'str',
         'created_at': 'datetime',
         'scheduled_at': 'datetime',
         'finished_at': 'datetime',
@@ -56,6 +57,7 @@ class ApiRun(object):
         'pipeline_spec': 'pipeline_spec',
         'resource_references': 'resource_references',
         'service_account': 'service_account',
+        'artifact_repository_ref_cm': 'artifact_repository_ref_cm',
         'created_at': 'created_at',
         'scheduled_at': 'scheduled_at',
         'finished_at': 'finished_at',
@@ -64,7 +66,7 @@ class ApiRun(object):
         'metrics': 'metrics'
     }
 
-    def __init__(self, id=None, name=None, storage_state=None, description=None, pipeline_spec=None, resource_references=None, service_account=None, created_at=None, scheduled_at=None, finished_at=None, status=None, error=None, metrics=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, id=None, name=None, storage_state=None, description=None, pipeline_spec=None, resource_references=None, service_account=None, artifact_repository_ref_cm=None, created_at=None, scheduled_at=None, finished_at=None, status=None, error=None, metrics=None, local_vars_configuration=None):  # noqa: E501
         """ApiRun - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -77,6 +79,7 @@ class ApiRun(object):
         self._pipeline_spec = None
         self._resource_references = None
         self._service_account = None
+        self._artifact_repository_ref_cm = None
         self._created_at = None
         self._scheduled_at = None
         self._finished_at = None
@@ -99,6 +102,8 @@ class ApiRun(object):
             self.resource_references = resource_references
         if service_account is not None:
             self.service_account = service_account
+        if artifact_repository_ref_cm is not None:
+            self.artifact_repository_ref_cm = artifact_repository_ref_cm
         if created_at is not None:
             self.created_at = created_at
         if scheduled_at is not None:
@@ -266,6 +271,29 @@ class ApiRun(object):
         """
 
         self._service_account = service_account
+
+    @property
+    def artifact_repository_ref_cm(self):
+        """Gets the artifact_repository_ref_cm of this ApiRun.  # noqa: E501
+
+        Optional input field. Specify which Kubernetes configMap this run uses.  # noqa: E501
+
+        :return: The artifact_repository_ref_cm of this ApiRun.  # noqa: E501
+        :rtype: str
+        """
+        return self._artifact_repository_ref_cm
+
+    @artifact_repository_ref_cm.setter
+    def artifact_repository_ref_cm(self, artifact_repository_ref_cm):
+        """Sets the artifact_repository_ref_cm of this ApiRun.
+
+        Optional input field. Specify which Kubernetes configMap this run uses.  # noqa: E501
+
+        :param artifact_repository_ref_cm: The artifact_repository_ref_cm of this ApiRun.  # noqa: E501
+        :type artifact_repository_ref_cm: str
+        """
+
+        self._artifact_repository_ref_cm = artifact_repository_ref_cm
 
     @property
     def created_at(self):

@@ -19,6 +19,9 @@ import (
 // swagger:model apiJob
 type APIJob struct {
 
+	// Optional input field. Specify which Kubernetes configMap this job uses.
+	ArtifactRepositoryRefCm string `json:"artifact_repository_ref_cm,omitempty"`
+
 	// Output. The time this job is created.
 	// Format: date-time
 	CreatedAt strfmt.DateTime `json:"created_at,omitempty"`

@@ -639,6 +639,10 @@
           "type": "string",
           "description": "Optional input field. Specify which Kubernetes service account this run uses."
         },
+        "artifact_repository_ref_cm": {
+          "type": "string",
+          "description": "Optional input field. Specify which Kubernetes configMap this run uses."
+        },
         "created_at": {
           "type": "string",
           "format": "date-time",

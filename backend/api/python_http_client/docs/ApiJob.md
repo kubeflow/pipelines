@@ -9,6 +9,7 @@ Name | Type | Description | Notes
 **pipeline_spec** | [**ApiPipelineSpec**](ApiPipelineSpec.md) |  | [optional] 
 **resource_references** | [**list[ApiResourceReference]**](ApiResourceReference.md) | Optional input field. Specify which resource this job belongs to. | [optional] 
 **service_account** | **str** | Optional input field. Specify which Kubernetes service account this job uses. | [optional] 
+**artifact_repository_ref_cm** | **str** | Optional input field. Specify which Kubernetes configMap this job uses. | [optional] 
 **max_concurrency** | **str** |  | [optional] 
 **trigger** | [**ApiTrigger**](ApiTrigger.md) |  | [optional] 
 **mode** | [**JobMode**](JobMode.md) |  | [optional] 

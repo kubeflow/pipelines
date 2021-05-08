@@ -62,14 +62,14 @@ func TestAddFileError(t *testing.T) {
 func TestGetFile(t *testing.T) {
 	manager := &MinioObjectStore{minioClient: NewFakeMinioClient(), baseFolder: "pipeline"}
 	manager.AddFile([]byte("abc"), manager.GetPipelineKey("1"))
-	file, error := manager.GetFile(manager.GetPipelineKey("1"))
+	file, error := manager.GetFile(manager.GetPipelineKey("1"), "")
 	assert.Nil(t, error)
 	assert.Equal(t, file, []byte("abc"))
 }
 
 func TestGetFileError(t *testing.T) {
 	manager := &MinioObjectStore{minioClient: &FakeBadMinioClient{}, baseFolder: "pipeline"}
-	_, error := manager.GetFile(manager.GetPipelineKey("1"))
+	_, error := manager.GetFile(manager.GetPipelineKey("1"), "")
 	assert.Equal(t, codes.Internal, error.(*util.UserError).ExternalStatusCode())
 }
 

@@ -316,7 +316,7 @@ func (r *ResourceManager) GetPipelineTemplate(pipelineId string) ([]byte, error)
 		return nil, util.Wrap(err,
 			"Get pipeline template failed since no default version is defined")
 	}
-	template, err := r.objectStore.GetFile(r.objectStore.GetPipelineKey(fmt.Sprint(pipeline.DefaultVersion.UUID)))
+	template, err := r.objectStore.GetFile(r.objectStore.GetPipelineKey(fmt.Sprint(pipeline.DefaultVersion.UUID)), "")
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline template failed")
 	}
@@ -367,6 +367,9 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	workflow.OverrideParameters(formattedParams)
 
 	r.setDefaultServiceAccount(&workflow, apiRun.GetServiceAccount())
+
+	// Add artifactRepositoryRef to the workflow so that artifacts are saved in the corresponding namespace bucket
+	r.setDefaultArtifactRepositoryCm(&workflow, apiRun.GetArtifactRepositoryRefCm())
 
 	// Disable istio sidecar injection
 	workflow.SetAnnotationsToAllTemplates(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
@@ -622,7 +625,7 @@ func (r *ResourceManager) readRunLogFromArchive(run *model.RunDetail, nodeId str
 		return err
 	}
 
-	logContent, err := r.objectStore.GetFile(logPath)
+	logContent, err := r.objectStore.GetFile(logPath, "")
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to retrieve the log file from archive")
 	}
@@ -682,6 +685,9 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 	}
 
 	r.setDefaultServiceAccount(&workflow, apiJob.GetServiceAccount())
+
+	// Add artifactRepositoryRef to the workflow so that artifacts are saved in the corresponding namespace bucket
+	r.setDefaultArtifactRepositoryCm(&workflow, apiJob.GetArtifactRepositoryRefCm())
 
 	// Disable istio sidecar injection
 	workflow.SetAnnotationsToAllTemplates(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
@@ -1114,7 +1120,19 @@ func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName
 		return nil, util.NewResourceNotFoundError(
 			"artifact", common.CreateArtifactPath(runID, nodeID, artifactName))
 	}
-	return r.objectStore.GetFile(artifactPath)
+
+	// TODO: metrics are namespaced artifacts. Any other kind of artifact that is namesapaced?
+	if artifactName == "mlpipeline-metrics" {
+		namespace, err := r.GetNamespaceFromRunID(runID)
+		if err != nil {
+			return nil, util.NewInternalServerError(
+				err, "failed to resolve namespace from runID '%s'", run.WorkflowRuntimeManifest)
+		}
+		glog.Info("Successfully resolved namespace to fetch namespaced artifact")
+		return r.objectStore.GetFile(artifactPath, namespace)
+	}
+
+	return r.objectStore.GetFile(artifactPath, "")
 }
 
 func (r *ResourceManager) GetDefaultExperimentId() (string, error) {
@@ -1226,7 +1244,7 @@ func (r *ResourceManager) GetPipelineVersionTemplate(versionId string) ([]byte, 
 		return nil, util.Wrap(err, "Get pipeline version template failed")
 	}
 
-	template, err := r.objectStore.GetFile(r.objectStore.GetPipelineKey(fmt.Sprint(versionId)))
+	template, err := r.objectStore.GetFile(r.objectStore.GetPipelineKey(fmt.Sprint(versionId)), "")
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline version template failed")
 	}
@@ -1332,6 +1350,14 @@ func (r *ResourceManager) setDefaultServiceAccount(workflow *util.Workflow, serv
 		// serviceaccount when it is empty or equal to default value set by SDK.
 		workflow.SetServiceAccount(r.getDefaultSA())
 	}
+}
+
+func (r *ResourceManager) setDefaultArtifactRepositoryCm(workflow *util.Workflow, artifactRepositoryRefCm string) {
+	if len(artifactRepositoryRefCm) > 0 {
+		workflow.SetArtifactRepositoryRef(artifactRepositoryRefCm, util.ArtifactRepositoryRefKey)
+		return
+	}
+	workflow.SetArtifactRepositoryRef(util.ArtifactRepositoryRefConfigMap, util.ArtifactRepositoryRefKey)
 }
 
 func (r *ResourceManager) getNamespaceFromExperiment(references []*api.ResourceReference) (string, error) {
