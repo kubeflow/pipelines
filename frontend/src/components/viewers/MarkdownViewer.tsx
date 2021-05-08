@@ -18,6 +18,7 @@ import * as React from 'react';
 import Viewer, { ViewerConfig } from './Viewer';
 import { cssRaw } from 'typestyle';
 import Markdown from 'markdown-to-jsx';
+import { getMaxMarkdownStrLength } from './Constants';
 
 cssRaw(`
 .markdown-viewer h1,
@@ -72,6 +73,16 @@ class MarkdownViewer extends Viewer<MarkdownViewerProps, any> {
   public render(): JSX.Element | null {
     if (!this._config) {
       return null;
+    }
+    if (this._config.markdownContent.length > getMaxMarkdownStrLength()) {
+      return (
+        <div className='markdown-viewer'>
+          <div data-testid='markdown-large-size-warning'>
+            This markdown is too large to render completely.
+          </div>
+          <Markdown>{this._config.markdownContent.substr(0, getMaxMarkdownStrLength())}</Markdown>
+        </div>
+      );
     }
     return (
       <div className='markdown-viewer'>
