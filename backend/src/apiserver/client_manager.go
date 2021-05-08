@@ -154,7 +154,7 @@ func (c *ClientManager) Authenticators() []auth.Authenticator {
 func (c *ClientManager) init() {
 	glog.Info("Initializing client manager")
 	db := initDBClient(common.GetDurationConfig(initConnectionTimeout))
-	db.SetConnMaxLifetime(time.Second * time.Duration(common.GetIntConfigWithDefault(dbConMaxLifeTimeSec, 120)))
+	db.SetConnMaxLifetime(common.GetDurationConfig(dbConMaxLifeTimeSec))
 
 	// time
 	c.time = util.NewRealTime()
