@@ -1,0 +1,293 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: vulnerability-checking-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.3.0, pipelines.kubeflow.org/pipeline_compilation_time: '2021-02-02T16:00:14.924668',
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "A pipeline to check vulnerability
+      for all Kubeflow Pipelines images", "inputs": [{"default": "1.3.0", "name":
+      "version", "optional": true, "type": "String"}, {"default": "gcr.io/gongyuan-pipeline-test/dev",
+      "name": "registry_url", "optional": true, "type": "String"}], "name": "Vulnerability
+      Checking"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.3.0}
+spec:
+  entrypoint: vulnerability-checking
+  templates:
+  - name: fetch-image-digest
+    container:
+      args: [--image, '{{inputs.parameters.kfp-images-Output-loop-item}}', '----output-paths',
+        /tmp/outputs/Output/data]
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        echo -n "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def fetch_image_digest(image):
+            """ Fetch digest of an image.
+
+            Args:
+                image (str): image url
+
+            Returns:
+                str: full image url with sha256 digest
+            """
+            import subprocess
+            import sys
+            digest = subprocess.check_output([
+                'gcloud', 'container', 'images', 'describe', image,
+                "--format=value(image_summary.fully_qualified_digest)"
+            ]).decode(sys.stdout.encoding)
+            return digest
+
+        def _serialize_str(str_value: str) -> str:
+            if not isinstance(str_value, str):
+                raise TypeError('Value "{}" has type "{}" instead of str.'.format(str(str_value), str(type(str_value))))
+            return str_value
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Fetch image digest', description='Fetch digest of an image.')
+        _parser.add_argument("--image", dest="image", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = fetch_image_digest(**_parsed_args)
+
+        _outputs = [_outputs]
+
+        _output_serializers = [
+            _serialize_str,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      image: google/cloud-sdk:alpine
+    inputs:
+      parameters:
+      - {name: kfp-images-Output-loop-item}
+    outputs:
+      parameters:
+      - name: fetch-image-digest-Output
+        valueFrom: {path: /tmp/outputs/Output/data}
+      artifacts:
+      - {name: fetch-image-digest-Output, path: /tmp/outputs/Output/data}
+    metadata:
+      annotations: {pipelines.kubeflow.org/component_spec: '{"description": "Fetch
+          digest of an image.", "implementation": {"container": {"args": ["--image",
+          {"inputValue": "image"}, "----output-paths", {"outputPath": "Output"}],
+          "command": ["sh", "-ec", "program_path=$(mktemp)\necho -n \"$0\" > \"$program_path\"\npython3
+          -u \"$program_path\" \"$@\"\n", "def fetch_image_digest(image):\n    \"\"\"
+          Fetch digest of an image.\n\n    Args:\n        image (str): image url\n\n    Returns:\n        str:
+          full image url with sha256 digest\n    \"\"\"\n    import subprocess\n    import
+          sys\n    digest = subprocess.check_output([\n        ''gcloud'', ''container'',
+          ''images'', ''describe'', image,\n        \"--format=value(image_summary.fully_qualified_digest)\"\n    ]).decode(sys.stdout.encoding)\n    return
+          digest\n\ndef _serialize_str(str_value: str) -> str:\n    if not isinstance(str_value,
+          str):\n        raise TypeError(''Value \"{}\" has type \"{}\" instead of
+          str.''.format(str(str_value), str(type(str_value))))\n    return str_value\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Fetch image digest'',
+          description=''Fetch digest of an image.'')\n_parser.add_argument(\"--image\",
+          dest=\"image\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"----output-paths\",
+          dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files
+          = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = fetch_image_digest(**_parsed_args)\n\n_outputs
+          = [_outputs]\n\n_output_serializers = [\n    _serialize_str,\n\n]\n\nimport
+          os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except
+          OSError:\n        pass\n    with open(output_file, ''w'') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"],
+          "image": "google/cloud-sdk:alpine"}}, "inputs": [{"description": "image
+          url", "name": "image", "type": "String"}], "name": "Fetch image digest",
+          "outputs": [{"name": "Output", "type": "String"}]}', pipelines.kubeflow.org/component_ref: '{}',
+        pipelines.kubeflow.org/arguments.parameters: '{"image": "{{inputs.parameters.kfp-images-Output-loop-item}}"}'}
+  - name: for-loop-for-loop-e004ce5b-1
+    inputs:
+      parameters:
+      - {name: kfp-images-Output-loop-item}
+    dag:
+      tasks:
+      - name: fetch-image-digest
+        template: fetch-image-digest
+        arguments:
+          parameters:
+          - {name: kfp-images-Output-loop-item, value: '{{inputs.parameters.kfp-images-Output-loop-item}}'}
+      - name: kritis-check
+        template: kritis-check
+        dependencies: [fetch-image-digest]
+        arguments:
+          parameters:
+          - {name: fetch-image-digest-Output, value: '{{tasks.fetch-image-digest.outputs.parameters.fetch-image-digest-Output}}'}
+  - name: kfp-images
+    container:
+      args: [--version, '{{inputs.parameters.version}}', --registry-url, '{{inputs.parameters.registry_url}}',
+        '----output-paths', /tmp/outputs/Output/data]
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        echo -n "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def kfp_images(version, registry_url):
+            images = [
+                'persistenceagent', 'scheduledworkflow', 'frontend',
+                'viewer-crd-controller', 'visualization-server', 'inverse-proxy-agent',
+                'metadata-writer', 'cache-server', 'cache-deployer', 'metadata-envoy'
+            ]
+            import json
+            return json.dumps([
+                '{}/{}:{}'.format(registry_url, image, version) for image in images
+            ])
+
+        def _serialize_str(str_value: str) -> str:
+            if not isinstance(str_value, str):
+                raise TypeError('Value "{}" has type "{}" instead of str.'.format(str(str_value), str(type(str_value))))
+            return str_value
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Kfp images', description='')
+        _parser.add_argument("--version", dest="version", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--registry-url", dest="registry_url", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = kfp_images(**_parsed_args)
+
+        _outputs = [_outputs]
+
+        _output_serializers = [
+            _serialize_str,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      image: python:3.7
+    inputs:
+      parameters:
+      - {name: registry_url}
+      - {name: version}
+    outputs:
+      parameters:
+      - name: kfp-images-Output
+        valueFrom: {path: /tmp/outputs/Output/data}
+      artifacts:
+      - {name: kfp-images-Output, path: /tmp/outputs/Output/data}
+    metadata:
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--version", {"inputValue": "version"}, "--registry-url", {"inputValue":
+          "registry_url"}, "----output-paths", {"outputPath": "Output"}], "command":
+          ["sh", "-ec", "program_path=$(mktemp)\necho -n \"$0\" > \"$program_path\"\npython3
+          -u \"$program_path\" \"$@\"\n", "def kfp_images(version, registry_url):\n    images
+          = [\n        ''persistenceagent'', ''scheduledworkflow'', ''frontend'',\n        ''viewer-crd-controller'',
+          ''visualization-server'', ''inverse-proxy-agent'',\n        ''metadata-writer'',
+          ''cache-server'', ''cache-deployer'', ''metadata-envoy''\n    ]\n    import
+          json\n    return json.dumps([\n        ''{}/{}:{}''.format(registry_url,
+          image, version) for image in images\n    ])\n\ndef _serialize_str(str_value:
+          str) -> str:\n    if not isinstance(str_value, str):\n        raise TypeError(''Value
+          \"{}\" has type \"{}\" instead of str.''.format(str(str_value), str(type(str_value))))\n    return
+          str_value\n\nimport argparse\n_parser = argparse.ArgumentParser(prog=''Kfp
+          images'', description='''')\n_parser.add_argument(\"--version\", dest=\"version\",
+          type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--registry-url\",
+          dest=\"registry_url\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"----output-paths\",
+          dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files
+          = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = kfp_images(**_parsed_args)\n\n_outputs
+          = [_outputs]\n\n_output_serializers = [\n    _serialize_str,\n\n]\n\nimport
+          os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except
+          OSError:\n        pass\n    with open(output_file, ''w'') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "version", "type": "String"},
+          {"name": "registry_url", "type": "String"}], "name": "Kfp images", "outputs":
+          [{"name": "Output", "type": "String"}]}', pipelines.kubeflow.org/component_ref: '{}',
+        pipelines.kubeflow.org/arguments.parameters: '{"registry_url": "{{inputs.parameters.registry_url}}",
+          "version": "{{inputs.parameters.version}}"}'}
+  - name: kritis-check
+    container:
+      args: []
+      command:
+      - /bin/bash
+      - -exc
+      - |
+        set -o pipefail
+
+        export PATH=/bin # this image does not have PATH defined
+        mkdir -p "$(dirname "$1")";
+        mkdir -p /workspace
+        cd /workspace
+        cat >policy.yaml <<EOF
+        apiVersion: kritis.grafeas.io/v1beta1
+        kind: VulnzSigningPolicy
+        metadata:
+          name: kfp-vsp
+        spec:
+          imageVulnerabilityRequirements:
+            maximumFixableSeverity: MEDIUM
+            maximumUnfixableSeverity: HIGH
+            allowlistCVEs:
+            - projects/goog-vulnz/notes/CVE-2019-19814
+        EOF
+        cat policy.yaml
+
+        /kritis/signer         -v=10         -logtostderr         -image="$0"         -policy="policy.yaml"         -mode=check-only         |& tee "$1"
+      - '{{inputs.parameters.fetch-image-digest-Output}}'
+      - /tmp/outputs/Vulnerability_Report/data
+      image: gcr.io/gongyuan-pipeline-test/kritis-signer
+    inputs:
+      parameters:
+      - {name: fetch-image-digest-Output}
+    outputs:
+      artifacts:
+      - {name: kritis-check-Vulnerability-Report, path: /tmp/outputs/Vulnerability_Report/data}
+    metadata:
+      annotations: {author: Yuan Gong <gongyuan94@gmail.com>, pipelines.kubeflow.org/component_spec: '{"implementation":
+          {"container": {"command": ["/bin/bash", "-exc", "set -o pipefail\n\nexport
+          PATH=/bin # this image does not have PATH defined\nmkdir -p \"$(dirname
+          \"$1\")\";\nmkdir -p /workspace\ncd /workspace\ncat >policy.yaml <<EOF\napiVersion:
+          kritis.grafeas.io/v1beta1\nkind: VulnzSigningPolicy\nmetadata:\n  name:
+          kfp-vsp\nspec:\n  imageVulnerabilityRequirements:\n    maximumFixableSeverity:
+          MEDIUM\n    maximumUnfixableSeverity: HIGH\n    allowlistCVEs:\n    - projects/goog-vulnz/notes/CVE-2019-19814\nEOF\ncat
+          policy.yaml\n\n/kritis/signer         -v=10         -logtostderr         -image=\"$0\"         -policy=\"policy.yaml\"         -mode=check-only         |&
+          tee \"$1\"\n", {"inputValue": "Image"}, {"outputPath": "Vulnerability Report"}],
+          "image": "gcr.io/gongyuan-pipeline-test/kritis-signer"}}, "inputs": [{"name":
+          "Image", "type": "String"}], "metadata": {"annotations": {"author": "Yuan
+          Gong <gongyuan94@gmail.com>"}}, "name": "Kritis Check", "outputs": [{"name":
+          "Vulnerability Report", "type": "String"}]}', pipelines.kubeflow.org/component_ref: '{"digest":
+          "bee5f1b51a7c69af055b9e146860c925648572eb81bc5fec70ced72cdef3a7f5"}', pipelines.kubeflow.org/arguments.parameters: '{"Image":
+          "{{inputs.parameters.fetch-image-digest-Output}}"}'}
+  - name: vulnerability-checking
+    inputs:
+      parameters:
+      - {name: registry_url}
+      - {name: version}
+    dag:
+      tasks:
+      - name: for-loop-for-loop-e004ce5b-1
+        template: for-loop-for-loop-e004ce5b-1
+        dependencies: [kfp-images]
+        arguments:
+          parameters:
+          - {name: kfp-images-Output-loop-item, value: '{{item}}'}
+        withParam: '{{tasks.kfp-images.outputs.parameters.kfp-images-Output}}'
+      - name: kfp-images
+        template: kfp-images
+        arguments:
+          parameters:
+          - {name: registry_url, value: '{{inputs.parameters.registry_url}}'}
+          - {name: version, value: '{{inputs.parameters.version}}'}
+  arguments:
+    parameters:
+    - {name: version, value: 1.3.0}
+    - {name: registry_url, value: gcr.io/gongyuan-pipeline-test/dev}
+  serviceAccountName: pipeline-runner
