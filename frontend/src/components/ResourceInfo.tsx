@@ -135,6 +135,9 @@ function prettyPrintValue(
   }
   // value is Struct
   const jsObject = value.toJavaScript();
+  // When Struct is converted to js object, it may contain a top level "struct"
+  // or "list" key depending on its type, but the key is meaningless and we can
+  // omit it in visualization.
   return <pre>{JSON.stringify(jsObject?.struct || jsObject?.list || jsObject, null, 2)}</pre>;
 }
 
