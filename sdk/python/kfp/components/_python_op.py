@@ -790,15 +790,18 @@ for idx, output_file in enumerate(_output_files):
 
 {func_code}
 
+if __name__ == "__main__":
 {arg_parse_code}
 
-_outputs = {func_name}(**_parsed_args)
+{func_call}
+
+
 '''.format(
-        func_name=func.__name__,
+        func_call=textwrap.indent('_outputs = {func_name}(**_parsed_args)'.format(func_name=func.__name__), ' '*4),
         func_code=func_code,
         pre_func_code=pre_func_code,
         extra_code=extra_code,
-        arg_parse_code='\n'.join(arg_parse_code_lines),
+        arg_parse_code=textwrap.indent('\n'.join(arg_parse_code_lines), ' '*4),
     )
 
     if outputs_passed_through_func_return_tuple:
