@@ -72,9 +72,11 @@
           }
         },
         "outputDefinitions": {
-          "parameters": {
+          "artifacts": {
             "predictions": {
-              "type": "STRING"
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
             }
           }
         }
@@ -101,9 +103,11 @@
           }
         },
         "outputDefinitions": {
-          "parameters": {
+          "artifacts": {
             "predictions": {
-              "type": "STRING"
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
             }
           }
         }
@@ -130,9 +134,11 @@
           }
         },
         "outputDefinitions": {
-          "parameters": {
+          "artifacts": {
             "predictions": {
-              "type": "STRING"
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
             }
           }
         }
@@ -159,9 +165,11 @@
           }
         },
         "outputDefinitions": {
-          "parameters": {
+          "artifacts": {
             "predictions": {
-              "type": "STRING"
+              "artifactType": {
+                "schemaTitle": "system.Artifact"
+              }
             }
           }
         }
@@ -288,7 +296,7 @@
               "--label-column",
               "{{$.inputs.parameters['label_column']}}",
               "--predictions",
-              "{{$.outputs.parameters['predictions'].output_file}}"
+              "{{$.outputs.artifacts['predictions'].path}}"
             ],
             "command": [
               "sh",
@@ -312,7 +320,7 @@
               "--label-column-name",
               "{{$.inputs.parameters['label_column_name']}}",
               "--predictions",
-              "{{$.outputs.parameters['predictions'].output_file}}"
+              "{{$.outputs.artifacts['predictions'].path}}"
             ],
             "command": [
               "sh",
@@ -336,7 +344,7 @@
               "--label-column-name",
               "{{$.inputs.parameters['label_column_name']}}",
               "--predictions",
-              "{{$.outputs.parameters['predictions'].output_file}}"
+              "{{$.outputs.artifacts['predictions'].path}}"
             ],
             "command": [
               "sh",
@@ -360,7 +368,7 @@
               "--label-column",
               "{{$.inputs.parameters['label_column']}}",
               "--predictions",
-              "{{$.outputs.parameters['predictions'].output_file}}"
+              "{{$.outputs.artifacts['predictions'].path}}"
             ],
             "command": [
               "sh",

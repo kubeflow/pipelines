@@ -26,13 +26,13 @@ xgboost_train_on_csv_op = components.load_component_from_url(
     'https://raw.githubusercontent.com/kubeflow/pipelines/567c04c51ff00a1ee525b3458425b17adbe3df61/components/XGBoost/Train/component.yaml'
 )
 xgboost_predict_on_csv_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/567c04c51ff00a1ee525b3458425b17adbe3df61/components/XGBoost/Predict/component.yaml'
+    'https://raw.githubusercontent.com/kubeflow/pipelines/31939086d66d633732f75300ce69eb60e9fb0269/components/XGBoost/Predict/component.yaml'
 )
 xgboost_train_on_parquet_op = components.load_component_from_url(
     'https://raw.githubusercontent.com/kubeflow/pipelines/0ae2f30ff24beeef1c64cc7c434f1f652c065192/components/XGBoost/Train/from_ApacheParquet/component.yaml'
 )
 xgboost_predict_on_parquet_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/0ae2f30ff24beeef1c64cc7c434f1f652c065192/components/XGBoost/Predict/from_ApacheParquet/component.yaml'
+    'https://raw.githubusercontent.com/kubeflow/pipelines/31939086d66d633732f75300ce69eb60e9fb0269/components/XGBoost/Predict/from_ApacheParquet/component.yaml'
 )
 
 
