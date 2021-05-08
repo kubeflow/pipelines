@@ -15,16 +15,23 @@
 
 import kfp
 from kfp import dsl, components
+from kfp.components import InputPath
 
 gcs_download_op = kfp.components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/master/components/google-cloud/storage/download_blob/component.yaml'
+    'https://raw.githubusercontent.com/kubeflow/pipelines/961b17fa6844e1d79e5d3686bb557d830d7b5a95/components/google-cloud/storage/download_blob/component.yaml'
 )
 
 
 @components.create_component_from_func
-def echo_op(msg: str):
-  """Print a message."""
-  print(msg)
+def print_file(file_path: InputPath('Any')):
+    """Print a file."""
+    with open(file_path) as f:
+        print(f.read())
+
+@components.create_component_from_func
+def echo_msg(msg: str):
+    """Echo a message by parameter."""
+    print(msg)
 
 
 @dsl.pipeline(
@@ -33,14 +40,14 @@ def echo_op(msg: str):
     'Downloads a message and prints it. The exit handler will run after the pipeline finishes (successfully or not).'
 )
 def pipeline_exit_handler(url='gs://ml-pipeline/shakespeare1.txt'):
-  """A sample pipeline showing exit handler."""
+    """A sample pipeline showing exit handler."""
 
-  exit_task = echo_op('exit!')
+    exit_task = echo_msg('exit!')
 
-  with dsl.ExitHandler(exit_task):
-    download_task = gcs_download_op(url)
-    echo_task = echo_op(download_task.output)
+    with dsl.ExitHandler(exit_task):
+        download_task = gcs_download_op(url)
+        echo_task = print_file(download_task.output)
 
 
 if __name__ == '__main__':
-  kfp.compiler.Compiler().compile(pipeline_exit_handler, __file__ + '.yaml')
+    kfp.compiler.Compiler().compile(pipeline_exit_handler, __file__ + '.yaml')
