@@ -165,6 +165,11 @@ properties:
     type: string
     x-google-marketplace:
       type: NAMESPACE
+  needDefaultBucket:
+    type: string
+    title: Whether you need a default GCS bucket to be provisioned.
+    x-google-marketplace:
+      type: STRING
   managedstorage.enabled:
     type: boolean
     title: Use managed storage
