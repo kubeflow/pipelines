@@ -20,6 +20,7 @@ import (
 	"log"
 	"time"
 
+	"encoding/json"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
@@ -27,7 +28,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/cache/model"
 	"github.com/kubeflow/pipelines/backend/src/cache/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"github.com/spf13/cast"
 )
 
 const (
@@ -104,6 +104,10 @@ func initDBClient(params WhSvrDBParameters, initConnectionTimeout time.Duration)
 }
 
 func initMysql(params WhSvrDBParameters, initConnectionTimeout time.Duration) string {
+
+	var mysqlExtraParams = map[string]string{}
+	data := []byte(params.dbExtraParams)
+	json.Unmarshal(data, &mysqlExtraParams)
 	mysqlConfig := client.CreateMySQLConfig(
 		params.dbUser,
 		params.dbPwd,
@@ -111,7 +115,7 @@ func initMysql(params WhSvrDBParameters, initConnectionTimeout time.Duration) st
 		params.dbPort,
 		"",
 		params.dbGroupConcatMaxLen,
-		cast.ToStringMapString(params.dbExtraParams),
+		mysqlExtraParams,
 	)
 
 	var db *sql.DB
