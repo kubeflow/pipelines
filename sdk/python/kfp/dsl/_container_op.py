@@ -755,7 +755,8 @@ class BaseOp(object):
   # in the compilation process to generate the DAGs and task io parameters.
   attrs_with_pipelineparams = [
       'node_selector', 'volumes', 'pod_annotations', 'pod_labels',
-      'num_retries', 'init_containers', 'sidecars', 'tolerations'
+      'num_retries', 'init_containers', 'sidecars', 'tolerations',
+      'cpu_request', 'memory_request'
   ]
 
   def __init__(self,
@@ -804,6 +805,10 @@ class BaseOp(object):
     # attributes specific to `BaseOp`
     self._inputs = []
     self.dependent_names = []
+
+    # resource requests
+    self.cpu_request = None
+    self.memory_request = None
 
   @property
   def inputs(self):
@@ -1000,6 +1005,25 @@ class BaseOp(object):
 
   def __repr__(self):
     return str({self.__class__.__name__: self.__dict__})
+
+  def add_cpu_request(self, cpu: str):
+    """Adds a cpu request to which can be a parameter
+
+    Args:
+        cpu (str): kubernetes cpu request, https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/#specify-a-cpu-request-and-a-cpu-limit
+    """
+
+    self.cpu_request = cpu
+    return self
+
+  def add_memory_request(self, memory: str):
+    """Adds a memory request to which can be a parameter
+
+    Args:
+        memory (str): kubernetes memory request, https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-memory
+    """
+    self.memory_request = memory
+    return self
 
 
 from ._pipeline_volume import PipelineVolume  # The import is here to prevent circular reference problems.
