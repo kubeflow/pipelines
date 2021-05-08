@@ -5,4 +5,4 @@ sphinx:
 python:
   version: 3.8
   install:
-    - requirements: components/google-cloud/docs/source/conf.py
+    - requirements: components/google-cloud/docs/requirements.txt
