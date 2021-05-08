@@ -50,6 +50,7 @@ const (
 	mysqlExtraParams       = "DBConfig.ExtraParams"
 	archiveLogFileName     = "ARCHIVE_CONFIG_LOG_FILE_NAME"
 	archiveLogPathPrefix   = "ARCHIVE_CONFIG_LOG_PATH_PREFIX"
+	dbConMaxLifeTimeSec    = "DBConfig.ConMaxLifeTimeSec"
 
 	visualizationServiceHost = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST"
 	visualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
@@ -153,6 +154,7 @@ func (c *ClientManager) Authenticators() []auth.Authenticator {
 func (c *ClientManager) init() {
 	glog.Info("Initializing client manager")
 	db := initDBClient(common.GetDurationConfig(initConnectionTimeout))
+	db.SetConnMaxLifetime(common.GetDurationConfig(dbConMaxLifeTimeSec))
 
 	// time
 	c.time = util.NewRealTime()
