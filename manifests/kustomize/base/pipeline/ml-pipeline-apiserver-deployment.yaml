@@ -58,6 +58,11 @@ spec:
             configMapKeyRef:
               name: pipeline-install-config
               key: dbPort
+        - name: DBCONFIG_CONMAXLIFETIMESEC
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: ConMaxLifeTimeSec
         - name: OBJECTSTORECONFIG_ACCESSKEY
           valueFrom:
             secretKeyRef:
