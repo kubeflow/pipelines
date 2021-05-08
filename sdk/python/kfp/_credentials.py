@@ -1,4 +1,4 @@
-# Copyright 2018 The Kubeflow Authors
+# Copyright 2021 Arrikto Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,17 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# `kfp` is a namespace package.
-# https://packaging.python.org/guides/packaging-namespace-packages/#pkgutil-style-namespace-packages
-__path__ = __import__("pkgutil").extend_path(__path__, __name__)
+import abc
 
-__version__ = '1.5.0'
 
-from . import components
-from . import containers
-from . import dsl
-from ._client import Client
-from ._config import *
-from ._local_client import LocalClient
-from ._runners import *
-from ._credentials import *
+__all__ = [
+    "TokenCredentials",
+]
+
+
+class TokenCredentials(object):
+
+    __metaclass__ = abc.ABCMeta
+
+    def refresh_api_key_hook(self, config):
+        """Refresh the api key.
+
+        This is a helper function for registering token refresh with swagger
+        generated clients.
+        """
+        config.api_key["authorization"] = self.get_token()
+
+    @abc.abstractmethod
+    def get_token(self):
+        raise NotImplementedError()
