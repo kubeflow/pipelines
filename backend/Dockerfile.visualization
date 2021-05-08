@@ -18,7 +18,7 @@
 # limitations under the License.
 
 # This image should be in sync with image in backend/src/apiserver/visualization/update_requirements.sh.
-FROM tensorflow/tensorflow:2.4.0
+FROM tensorflow/tfx:0.26.1
 
 RUN apt-get update \
   && apt-get install -y wget curl tar openssl
@@ -30,10 +30,6 @@ RUN /usr/local/gcloud/google-cloud-sdk/install.sh
 ENV PATH $PATH:/usr/local/gcloud/google-cloud-sdk/bin
 
 WORKDIR /src
-
-COPY backend/src/apiserver/visualization/requirements.txt /src
-
-RUN python3 -m pip install -r requirements.txt --no-cache-dir
 
 COPY backend/src/apiserver/visualization /src
 
