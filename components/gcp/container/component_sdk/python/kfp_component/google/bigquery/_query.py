@@ -57,10 +57,12 @@ def query(query, project_id, dataset_id=None, table_id=None,
         The API representation of the completed query job.
     """
     client = bigquery.Client(project=project_id, location=dataset_location)
-    if not job_config:
+    if not job_config and (output_gcs_path or dataset_id):
         job_config = bigquery.QueryJobConfig()
         job_config.create_disposition = bigquery.job.CreateDisposition.CREATE_IF_NEEDED
         job_config.write_disposition = bigquery.job.WriteDisposition.WRITE_TRUNCATE
+    elif not job_config:
+        job_config = bigquery.QueryJobConfig()
     else:
         job_config = bigquery.QueryJobConfig.from_api_repr(job_config)
     job_id = None
