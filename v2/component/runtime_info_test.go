@@ -36,12 +36,12 @@ func Test_parseRuntimeInfo(t *testing.T) {
 		wantErr     bool
 	}{
 		{
-			name: "Parses InputParameters Correctly",
+			name: "Parse input ints",
 			jsonEncoded: `{
 				"inputParameters": {
 					"my_param": {
 						"type": "INT",
-						"value": "123"
+						"value": "BEGIN-KFP-PARAM[123]END-KFP-PARAM"
 					}
 				}
 			}`,
@@ -50,6 +50,46 @@ func Test_parseRuntimeInfo(t *testing.T) {
 					"my_param": {
 						Type:  "INT",
 						Value: "123",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Parse input strings with quotes",
+			jsonEncoded: `{
+				"inputParameters": {
+					"my_param": {
+						"type": "STRING",
+						"value": "BEGIN-KFP-PARAM[some random "value" 'with' "quotes"]END-KFP-PARAM"
+					}
+				}
+			}`,
+			want: &runtimeInfo{
+				InputParameters: map[string]*inputParameter{
+					"my_param": {
+						Type:  "STRING",
+						Value: "some random \"value\" 'with' \"quotes\"",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Parse serialized dictionaries",
+			jsonEncoded: `{
+				"inputParameters": {
+					"my_param": {
+						"type": "STRING",
+						"value": "BEGIN-KFP-PARAM[{"A": "a-value", "B": 123}]END-KFP-PARAM"
+					}
+				}
+			}`,
+			want: &runtimeInfo{
+				InputParameters: map[string]*inputParameter{
+					"my_param": {
+						Type:  "STRING",
+						Value: "{\"A\": \"a-value\", \"B\": 123}",
 					},
 				},
 			},

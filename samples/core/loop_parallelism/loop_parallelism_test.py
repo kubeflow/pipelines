@@ -21,28 +21,8 @@ run_pipeline_func([
         pipeline_func=pipeline,
         mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
     ),
-
-    # TODO(v2-compatible): one pod fails randomly with this error
-    # F0414 13:49:21.024015       1 main.go:56] Failed to successfuly execute component: %vrpc error: code = AlreadyExists desc = Given node already exists: type_id: 57
-    # name: "my-pipeline"
-    # Internal: mysql_query failed: errno: 1062, error: Duplicate entry '57-my-pipeline' for key 'type_id'
-    # goroutine 1 [running]:
-
-    # TODO(v2-compatible): two pods fail stably at the following op:
-    # print_op(item)
-    #
-    # Error message:
-    # F0414 13:52:28.364169       1 main.go:52] Failed to create component launcher: %vinvalid character 'A' after object key:value pair
-    # goroutine 1 [running]:
-    #
-    # The following was the runtime info, the problem was that one parameter
-    # value contains a JSON string, but we didn't escape it.
-    #
-    # {"inputParameters": {"s": {"parameterType": "STRING",
-    # "parameterValue": "{"A_a":1,"B_b":2}"}}, "inputArtifacts": {},
-    # "outputParameters": {}, "outputArtifacts": {}}
-    # TestCase(
-    #     pipeline_func=pipeline,
-    #     mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
-    # ),
+    TestCase(
+        pipeline_func=pipeline,
+        mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
+    ),
 ])

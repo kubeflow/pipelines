@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -71,6 +72,31 @@ type runtimeInfo struct {
 	OutputArtifacts  map[string]*outputArtifact
 }
 
+// paramDelimiterRE is used to find all instances of parameter string that need
+// to be escaped. We use .+? to do a non-greedy match here.
+var paramDelimiterRE = regexp.MustCompile(`"BEGIN-KFP-PARAM[[].+?[]]END-KFP-PARAM"`)
+
+func escapeParameters(unescaped string) (string, error) {
+	var jsonEncodeErr error
+	escapeFunc := func(value string) string {
+		value = strings.TrimPrefix(value, `"BEGIN-KFP-PARAM[`)
+		value = strings.TrimSuffix(value, `]END-KFP-PARAM"`)
+		b, err := json.Marshal(value)
+		if err != nil {
+			jsonEncodeErr = err
+		}
+		return string(b)
+	}
+
+	escaped := paramDelimiterRE.ReplaceAllStringFunc(unescaped, escapeFunc)
+
+	if jsonEncodeErr != nil {
+		return "", fmt.Errorf("failed to JSON-encode parameter %q: %w", unescaped, jsonEncodeErr)
+	}
+
+	return escaped, nil
+}
+
 func parseRuntimeInfo(jsonEncoded string) (*runtimeInfo, error) {
 	r := &runtimeInfo{
 		InputParameters:  make(map[string]*inputParameter),
@@ -79,9 +105,14 @@ func parseRuntimeInfo(jsonEncoded string) (*runtimeInfo, error) {
 		OutputArtifacts:  make(map[string]*outputArtifact),
 	}
 
-	if err := json.Unmarshal([]byte(jsonEncoded), r); err != nil {
+	escaped, err := escapeParameters(jsonEncoded)
+	if err != nil {
+		return nil, fmt.Errorf("failed to escape parameters from RuntimeInfo: %w", err)
+	}
+
+	if err := json.Unmarshal([]byte(escaped), r); err != nil {
 		// Do not quote jsonEncoded, because JSON format is hard to read if quoted.
-		return nil, fmt.Errorf("Invalid runtime info: %w.\n===RuntimeInfo===\n%s\n======", err, jsonEncoded)
+		return nil, fmt.Errorf("Invalid runtime info: %w.\n===RuntimeInfo===\n%s\n======", err, escaped)
 	}
 
 	return r, nil
