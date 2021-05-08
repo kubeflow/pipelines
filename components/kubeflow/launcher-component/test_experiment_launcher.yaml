@@ -1,0 +1,105 @@
+kind: Job
+apiVersion: batch/v1
+metadata:
+  name: test-experiment-launcher
+  namespace: launcher-test
+  annotations:
+    sidecar.istio.io/inject: "false"
+spec:
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      serviceAccountName: launcher-test
+      restartPolicy: Never
+      containers:
+        - name: test-experiment-launcher
+          image: docker.io/chongchuanbing/kubeflow-launcher-component:v1
+          imagePullPolicy: Always
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          args:
+            - --group
+            - "kubeflow.org"
+            - --plural
+            - "experiments"
+            - --version
+            - "v1alpha3"
+            - --exception_clear
+            - "False"
+            - --spec
+            - |
+              apiVersion: "kubeflow.org/v1alpha3"
+              kind: Experiment
+              metadata:
+                generateName: tfjob-mnist-experiment-example-
+              spec:
+                parallelTrialCount: 3
+                maxTrialCount: 12
+                maxFailedTrialCount: 3
+                objective:
+                  type: maximize
+                  goal: 0.99
+                  objectiveMetricName: accuracy_1
+                algorithm:
+                  algorithmName: random
+                metricsCollectorSpec:
+                  source:
+                    fileSystemPath:
+                      path: /train
+                      kind: Directory
+                  collector:
+                    kind: TensorFlowEvent
+                parameters:
+                  - name: --learning_rate
+                    parameterType: double
+                    feasibleSpace:
+                      min: "0.01"
+                      max: "0.05"
+                  - name: --batch_size
+                    parameterType: int
+                    feasibleSpace:
+                      min: "100"
+                      max: "200"
+                trialTemplate:
+                  goTemplate:
+                    rawTemplate: |-
+                      apiVersion: "kubeflow.org/v1"
+                      kind: TFJob
+                      metadata:
+                        name: {{.Trial}}
+                        namespace: {{.NameSpace}}
+                      spec:
+                       tfReplicaSpecs:
+                        Worker:
+                          replicas: 1
+                          restartPolicy: OnFailure
+                          template:
+                            spec:
+                              containers:
+                                - name: tensorflow
+                                  image: docker.io/chongchuanbing/kubeflow-ci.tf-mnist-with-summaries:1.0
+                                  imagePullPolicy: Always
+                                  command:
+                                    - "python"
+                                    - "/var/tf_mnist/mnist_with_summaries.py"
+                                    - "--log_dir=/train/metrics"
+                                    {{- with .HyperParameters}}
+                                    {{- range .}}
+                                    - "{{.Name}}={{.Value}}"
+                                    {{- end}}
+                                    {{- end}}
+                                  env:
+                                    - name: NVIDIA_VISIBLE_DEVICES
+                                      value: "all"
+                                  resources:
+                                    limits:
+                                      aliyun.com/gpu-mem: 1

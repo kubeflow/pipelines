@@ -1,0 +1,143 @@
+kind: Job
+apiVersion: batch/v1
+metadata:
+  name: test-mpijob-launcher
+  namespace: ccb
+  annotations:
+    sidecar.istio.io/inject: "false"
+spec:
+  template:
+    metadata:
+      name: test-mpijob-launcher
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      serviceAccountName: ccb
+      restartPolicy: Never
+      containers:
+        - name: test-mpijob-launcher
+          image: docker.io/chongchuanbing/kubeflow-launcher-component:v1.2.1
+          imagePullPolicy: Always
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          args:
+            - --group
+            - "kubeflow.org"
+            - --plural
+            - "mpijobs"
+            - --version
+            - "v1"
+            - --spec
+            - |
+              apiVersion: kubeflow.org/v1
+              kind: MPIJob
+              metadata:
+                generateName: mnist-player-mpijob-demo-
+              spec:
+              #  backoffLimit: 0
+                slotsPerWorker: 1
+                cleanPodPolicy: Running
+                mpiReplicaSpecs:
+                  Launcher:
+                    replicas: 1
+                    template:
+                      metadata:
+                        annotations:
+                          sidecar.istio.io/inject: "false"
+                      spec:
+                        initContainers:
+                          - name: install-py-dependency
+                            image: python:3.6-slim
+                            imagePullPolicy: IfNotPresent
+                            command:
+                              - "pip"
+                              - "install"
+                              - "--user"
+                              - "tensorflow-gpu==1.14.0"
+                              - "-i"
+                              - "http://mirrors.aliyun.com/pypi/simple/"
+                              - "--trusted-host"
+                              - "mirrors.aliyun.com"
+                            volumeMounts:
+                              - name: py-site-package
+                                mountPath: /root/.local/lib
+                        containers:
+                        - name: mpi-launcher
+                          image: docker.io/chongchuanbing/horovod-mnist-player:v1
+                          imagePullPolicy: Always
+                          command:
+                            - mpirun
+                          args:
+                            - -np
+                            - "2"
+                            - --allow-run-as-root
+                            - -bind-to
+                            - none
+                            - -map-by
+                            - slot
+                            - -x
+                            - LD_LIBRARY_PATH
+                            - -x
+                            - PATH
+                            - -mca
+                            - pml
+                            - ob1
+                            - -mca
+                            - btl
+                            - ^openib
+                            - python
+                            - /examples/tensorflow_mnist.py
+                            - --num-steps
+                            - 500
+                          resources:
+                            limits:
+                              aliyun.com/gpu-mem: 1
+                          volumeMounts:
+                            - name: py-site-package
+                              mountPath: /root/.local/lib
+                        volumes:
+                          - name: py-site-package
+                            emptyDir: {}
+                  Worker:
+                    replicas: 2
+                    template:
+                      metadata:
+                        annotations:
+                          sidecar.istio.io/inject: "false"
+                      spec:
+                        initContainers:
+                          - name: install-py-dependency
+                            image: python:3.6-slim
+                            imagePullPolicy: IfNotPresent
+                            command:
+                              - "pip"
+                              - "install"
+                              - "--user"
+                              - "tensorflow-gpu==1.14.0"
+                              - "-i"
+                              - "http://mirrors.aliyun.com/pypi/simple/"
+                              - "--trusted-host"
+                              - "mirrors.aliyun.com"
+                            volumeMounts:
+                              - name: py-site-package
+                                mountPath: /root/.local/lib
+                        containers:
+                        - name: mpi-worker
+                          image: docker.io/chongchuanbing/horovod-mnist-player:v1
+                          imagePullPolicy: Always
+                          resources:
+                            limits:
+                              aliyun.com/gpu-mem: 1
+                          volumeMounts:
+                            - name: py-site-package
+                              mountPath: /root/.local/lib
+                        volumes:
+                          - name: py-site-package
+                            emptyDir: {}
