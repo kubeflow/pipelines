@@ -25,6 +25,7 @@ _DEFAULT_CUSTOM_JOB_MACHINE_TYPE = 'n1-standard-4'
 def run_as_aiplatform_custom_job(
     op: dsl.ContainerOp,
     display_name: Optional[str] = None,
+    replica_count: Optional[int] = None,
     machine_type: Optional[str] = None,
     accelerator_type: Optional[str] = None,
     accelerator_count: Optional[int] = None,
@@ -35,7 +36,7 @@ def run_as_aiplatform_custom_job(
     service_account: Optional[str] = None,
     network: Optional[str] = None,
     output_uri_prefix: Optional[str] = None,
-    additional_worker_pool_specs: Optional[List[Mapping[str, Any]]] = None,
+    worker_pool_specs: Optional[List[Mapping[str, Any]]] = None,
 ) -> None:
   """Run a pipeline task using AI Platform (Unified) custom training job.
 
@@ -45,6 +46,8 @@ def run_as_aiplatform_custom_job(
   Args:
     op: The task (ContainerOp) object to run as aiplatform custom job.
     display_name: Optional. The name of the custom job.
+    replica_count: Optional. The number of replicas to be split between master
+      workerPoolSpec and woker workerPoolSpec. (master always has 1 replica).
     machine_type: Optional. The type of the machine to run the custom job. The
       default value is "n1-standard-4".
     accelerator_type: Optional. The type of accelerator(s) that may be attached
@@ -71,52 +74,9 @@ def run_as_aiplatform_custom_job(
       https://cloud.google.com/ai-platform-unified/docs/training/distributed-training
   """
   job_spec = {}
-  worker_pool_spec = {
-      'machineSpec': {
-          'machineType': machine_type or _DEFAULT_CUSTOM_JOB_MACHINE_TYPE
-      },
-      'replicaCount': '1',
-      'containerSpec': {
-          'imageUri': op.container.image,
-      }
-  }
-  if op.container.command:
-    worker_pool_spec['containerSpec']['command'] = op.container.command
-  if op.container.args:
-    worker_pool_spec['containerSpec']['args'] = op.container.args
-  if accelerator_type is not None:
-    worker_pool_spec['machineSpec']['acceleratorType'] = accelerator_type
-  if accelerator_count is not None:
-    worker_pool_spec['machineSpec']['acceleratorCount'] = accelerator_count
-  if boot_disk_type is not None:
-    if 'diskSpec' not in worker_pool_spec:
-      worker_pool_spec['diskSpec'] = {}
-    worker_pool_spec['diskSpec']['bootDiskType'] = boot_disk_type
-  if boot_disk_size_gb is not None:
-    if 'diskSpec' not in worker_pool_spec:
-      worker_pool_spec['diskSpec'] = {}
-    worker_pool_spec['diskSpec']['bootDiskSizeGb'] = boot_disk_size_gb
 
-  job_spec['workerPoolSpecs'] = [worker_pool_spec]
-
-  if timeout is not None:
-    if 'scheduling' not in job_spec:
-      job_spec['scheduling'] = {}
-    job_spec['scheduling']['timeout'] = timeout
-  if restart_job_on_worker_restart is not None:
-    if 'scheduling' not in job_spec:
-      job_spec['scheduling'] = {}
-    job_spec['scheduling'][
-        'restartJobOnWorkerRestart'] = restart_job_on_worker_restart
-  if service_account is not None:
-    job_spec['serviceAccount'] = service_account
-  if network is not None:
-    job_spec['network'] = network
-  if output_uri_prefix is not None:
-    job_spec['baseOutputDirectory'] = {'outputUriPrefix': output_uri_prefix}
-
-  if additional_worker_pool_specs is not None:
-    worker_pool_specs = copy.deepcopy(additional_worker_pool_specs)
+  if worker_pool_specs is not None:
+    worker_pool_specs = copy.deepcopy(worker_pool_specs)
 
     def _is_output_parameter(output_key: str) -> bool:
       return output_key in (
@@ -143,7 +103,57 @@ def run_as_aiplatform_custom_job(
             'Expect either "containerSpec" or "pythonPackageSpec" in each '
             'workerPoolSpec. Got: {}'.format(custom_job_spec))
 
-    job_spec['workerPoolSpecs'].extend(worker_pool_specs)
+    job_spec['workerPoolSpecs'] = worker_pool_specs
+
+  else:
+    worker_pool_spec = {
+        'machineSpec': {
+            'machineType': machine_type or _DEFAULT_CUSTOM_JOB_MACHINE_TYPE
+        },
+        'replicaCount': '1',
+        'containerSpec': {
+            'imageUri': op.container.image,
+        }
+    }
+    if op.container.command:
+      worker_pool_spec['containerSpec']['command'] = op.container.command
+    if op.container.args:
+      worker_pool_spec['containerSpec']['args'] = op.container.args
+    if accelerator_type is not None:
+      worker_pool_spec['machineSpec']['acceleratorType'] = accelerator_type
+    if accelerator_count is not None:
+      worker_pool_spec['machineSpec']['acceleratorCount'] = accelerator_count
+    if boot_disk_type is not None:
+      if 'diskSpec' not in worker_pool_spec:
+        worker_pool_spec['diskSpec'] = {}
+      worker_pool_spec['diskSpec']['bootDiskType'] = boot_disk_type
+    if boot_disk_size_gb is not None:
+      if 'diskSpec' not in worker_pool_spec:
+        worker_pool_spec['diskSpec'] = {}
+      worker_pool_spec['diskSpec']['bootDiskSizeGb'] = boot_disk_size_gb
+
+    job_spec['workerPoolSpecs'] = [worker_pool_spec]
+    if replica_count > 1:
+      additional_worker_pool_spec = copy.deepcopy(worker_pool_spec)
+      additional_worker_pool_spec['replicaCount'] = str(replica_count-1)
+      job_spec['workerPoolSpecs'].append(additional_worker_pool_spec)
+
+  if timeout is not None:
+    if 'scheduling' not in job_spec:
+      job_spec['scheduling'] = {}
+    job_spec['scheduling']['timeout'] = timeout
+  if restart_job_on_worker_restart is not None:
+    if 'scheduling' not in job_spec:
+      job_spec['scheduling'] = {}
+    job_spec['scheduling'][
+        'restartJobOnWorkerRestart'] = restart_job_on_worker_restart
+  if service_account is not None:
+    job_spec['serviceAccount'] = service_account
+  if network is not None:
+    job_spec['network'] = network
+  if output_uri_prefix is not None:
+    job_spec['baseOutputDirectory'] = {'outputUriPrefix': output_uri_prefix}
+
 
   op.custom_job_spec = {
       'displayName': display_name or op.name,

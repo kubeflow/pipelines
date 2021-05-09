@@ -29,13 +29,13 @@ def my_pipeline():
 
   training_task1 = training_op('hello-world')
   experimental.run_as_aiplatform_custom_job(
-      training_task1, display_name='single-node training')
+      training_task1, replica_count=10, display_name='custom-job-simple')
 
-  training_task2 = training_op('distributed training')
+  training_task2 = training_op('advanced setting - raw workerPoolSpec')
   experimental.run_as_aiplatform_custom_job(
       training_task2,
-      display_name='distributed training',
-      additional_worker_pool_specs=[
+      display_name='custom-job-advanced',
+      worker_pool_specs=[
           {
               'containerSpec': {
                   'imageUri':
@@ -48,7 +48,7 @@ def my_pipeline():
               'machineSpec': {
                   'machineType': 'n1-standard-4'
               },
-              'replicaCount': '2',
+              'replicaCount': '1',
           },
       ])
 

@@ -21,7 +21,7 @@ from kfp.v2.google.experimental import run_as_aiplatform_custom_job
 
 class CustomJobTest(unittest.TestCase):
 
-  def test_run_as_aiplatform_custom_job_with_master_settings(self):
+  def test_run_as_aiplatform_custom_job_simple_mode(self):
     task = _container_op.ContainerOp(
         name='test-task',
         image='python:3.7',
@@ -30,6 +30,7 @@ class CustomJobTest(unittest.TestCase):
     run_as_aiplatform_custom_job(
         task,
         display_name='custom-job1',
+        replica_count=10,
         machine_type='n1-standard-8',
         accelerator_type='NVIDIA_TESLA_K80',
         accelerator_count=2,
@@ -45,12 +46,28 @@ class CustomJobTest(unittest.TestCase):
         'displayName': 'custom-job1',
         'jobSpec': {
             'workerPoolSpecs': [{
+                'replicaCount': '1',
                 'machineSpec': {
                     'machineType': 'n1-standard-8',
                     'acceleratorType': 'NVIDIA_TESLA_K80',
                     'acceleratorCount': 2
                 },
-                'replicaCount': '1',
+                'containerSpec': {
+                    'imageUri': 'python:3.7',
+                    'command': ['python3', 'main.py'],
+                    'args': ['arg1', 'arg2']
+                },
+                'diskSpec': {
+                    'bootDiskType': 'pd-ssd',
+                    'bootDiskSizeGb': 200
+                }
+            }, {
+                'replicaCount': '9',
+                'machineSpec': {
+                    'machineType': 'n1-standard-8',
+                    'acceleratorType': 'NVIDIA_TESLA_K80',
+                    'acceleratorCount': 2
+                },
                 'containerSpec': {
                     'imageUri': 'python:3.7',
                     'command': ['python3', 'main.py'],
@@ -75,7 +92,7 @@ class CustomJobTest(unittest.TestCase):
     self.maxDiff = None
     self.assertDictEqual(task.custom_job_spec, expected_custom_job_spec)
 
-  def test_run_as_aiplatform_custom_job_with_additional_worker_pool_specs(self):
+  def test_run_as_aiplatform_custom_job_use_specified_worker_pool_specs(self):
     task = _container_op.ContainerOp(
         name='test-task',
         image='python:3.7',
@@ -84,13 +101,13 @@ class CustomJobTest(unittest.TestCase):
     run_as_aiplatform_custom_job(
         task,
         display_name='custom-job1',
-        additional_worker_pool_specs=[
+        worker_pool_specs=[
             {
                 'containerSpec': {
                     'imageUri': 'alpine',
                     'command': ['sh', '-c', 'echo 1'],
                 },
-                'replicaCount': '2',
+                'replicaCount': '1',
                 'machineSpec': {
                     'machineType': 'n1-standard-8',
                 },
@@ -101,21 +118,11 @@ class CustomJobTest(unittest.TestCase):
         'displayName': 'custom-job1',
         'jobSpec': {
             'workerPoolSpecs': [{
-                'machineSpec': {
-                    'machineType': 'n1-standard-4'
-                },
-                'replicaCount': '1',
-                'containerSpec': {
-                    'imageUri': 'python:3.7',
-                    'command': ['python3', 'main.py'],
-                    'args': ['arg1', 'arg2']
-                }
-            }, {
                 'containerSpec': {
                     'imageUri': 'alpine',
                     'command': ['sh', '-c', 'echo 1']
                 },
-                'replicaCount': '2',
+                'replicaCount': '1',
                 'machineSpec': {
                     'machineType': 'n1-standard-8'
                 }
