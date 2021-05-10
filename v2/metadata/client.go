@@ -196,6 +196,7 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, taskNa
 	e := &pb.Execution{
 		TypeId: &typeID,
 		CustomProperties: map[string]*pb.Value{
+			"name":            stringValue(taskName),
 			"task_name":       stringValue(taskName),
 			"pipeline_name":   stringValue(*pipeline.pipelineCtx.Name),
 			"pipeline_run_id": stringValue(*pipeline.pipelineRunCtx.Name),
