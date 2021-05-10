@@ -78,22 +78,31 @@ def train(minio_endpoint: 'URI', log_bucket: str, log_dir: 'Path'):
     # frameworks only support local path.
     from minio import Minio
     import os
+    minio_access_key = os.getenv('MINIO_ACCESS_KEY')
+    minio_secret_key = os.getenv('MINIO_SECRET_KEY')
+    if not minio_access_key or not minio_secret_key:
+        raise Exception('MINIO_ACCESS_KEY or MINIO_SECRET_KEY env is not set')
     client = Minio(
         minio_endpoint,
-        access_key=os.getenv('MINIO_ACCESS_KEY'),
-        secret_key=os.getenv('MINIO_SECRET_KEY'),
+        access_key=minio_access_key,
+        secret_key=minio_secret_key,
         secure=False
     )
+    count = 0
     from pathlib import Path
     for path in Path("logs").rglob("*"):
         if not path.is_dir():
+            object_name = os.path.join(
+                log_dir, os.path.relpath(start=log_dir_local, path=path)
+            )
             client.fput_object(
                 bucket_name=log_bucket,
-                object_name=os.path.join(
-                    log_dir, os.path.relpath(start=log_dir_local, path=path)
-                ),
+                object_name=object_name,
                 file_path=path,
             )
+            count = count + 1
+            print(f'{path} uploaded to minio://{log_bucket}/{object_name}')
+    print(f'{count} log files uploaded to minio://{log_bucket}/{log_dir}')
 
 
 # tensorflow/tensorflow:2.4 may fail with image pull backoff, because of dockerhub rate limiting.
