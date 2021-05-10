@@ -114,26 +114,10 @@ def resolve_input_args(value, type_to_resolve):
         if value.startswith(RESOURCE_PREFIX.get("aiplatform")):
             prefix_str = f"{RESOURCE_PREFIX['aiplatform']}/{AIPLATFORM_API_VERSION}/"
             value = value[len(prefix_str):]
-            print("aiplatform:// -> ''", value)
 
-        # Replace Google Cloud Storage prefix with /gcs/.
-        if value.startswith(RESOURCE_PREFIX.get("google_cloud_storage")):
-            value = value.replace(
-                RESOURCE_PREFIX.get("google_cloud_storage"),
-                RESOURCE_PREFIX.get("google_cloud_storage_gcs_fuse")
-            )
-            print("gs:// -> /gcs/", value)
-
+    # No action needed for Google Cloud Storage prefix.
     # No action needed for Cloud Storage GCS Fuse prefix from the resource name.
-    # Added for readability.
-    if value.startswith(RESOURCE_PREFIX.get("google_cloud_storage_gcs_fuse")):
-        return value
-
     # No action needed for BigQuery resource names.
-    # Added for readability.
-    if value.startswith(RESOURCE_PREFIX.get("bigquery")):
-        return value
-
     return value
 
 
@@ -144,26 +128,10 @@ def resolve_init_args(key, value):
         if value.startswith(RESOURCE_PREFIX.get("aiplatform")):
             prefix_str = f"{RESOURCE_PREFIX['aiplatform']}/{AIPLATFORM_API_VERSION}/"
             value = value[len(prefix_str):]
-            print("aiplatform:// -> ''", value)
 
-        # Replace Google Cloud Storage prefix with /gcs/.
-        if value.startswith(RESOURCE_PREFIX.get("google_cloud_storage")):
-            value = value.replace(
-                RESOURCE_PREFIX.get("google_cloud_storage"),
-                RESOURCE_PREFIX.get("google_cloud_storage_gcs_fuse")
-            )
-            print("gs:// -> /gcs/", value)
-
+    # No action needed for Google Cloud Storage prefix.
     # No action needed for Cloud Storage GCS Fuse prefix from the resource name.
-    # Added for readability.
-    if value.startswith(RESOURCE_PREFIX.get("google_cloud_storage_gcs_fuse")):
-        return value
-
     # No action needed for BigQuery resource names.
-    # Added for readability.
-    if value.startswith(RESOURCE_PREFIX.get("bigquery")):
-        return value
-
     return value
 
 
@@ -225,6 +193,7 @@ def prepare_parameters(
             else:
                 value = cast(value, param_type)
             kwargs[key] = value
+            print(key, value)
 
 
 def runner(cls_name, method_name, executor_input, kwargs):
