@@ -225,9 +225,8 @@ describe.only('Tensorboard', () => {
     const config = { ...DEFAULT_CONFIG, url: 'http://test/url' };
     const getAppMock = () =>
       Promise.resolve({
+        ...GET_APP_FOUND,
         podAddress: 'test/address',
-        tfVersion: '1.14.0',
-        image: 'tensorflow/tensorflow:1.14.0',
       });
     jest.spyOn(Apis, 'getTensorboardApp').mockImplementation(getAppMock);
     jest.spyOn(Apis, 'isTensorboardPodReady').mockImplementation(() => Promise.resolve(true));
@@ -250,7 +249,7 @@ describe.only('Tensorboard', () => {
           </a>
           <div>
             <WithStyles(Button) className=\\"button\\" disabled={false} id=\\"delete\\" title=\\"stop tensorboard and delete its instance\\" onClick={[Function]} color=\\"default\\">
-              Delete Tensorboard
+              Stop Tensorboard
             </WithStyles(Button)>
             <WithStyles(Dialog) open={false} onClose={[Function]} aria-labelledby=\\"dialog-title\\">
               <WithStyles(DialogTitle) id=\\"dialog-title\\">
@@ -443,7 +442,7 @@ describe.only('Tensorboard', () => {
       .simulate('click');
 
     expect(tree.findWhere(el => el.text() === 'Open Tensorboard').exists()).toBeTruthy();
-    expect(tree.findWhere(el => el.text() === 'Delete Tensorboard').exists()).toBeTruthy();
+    expect(tree.findWhere(el => el.text() === 'Stop Tensorboard').exists()).toBeTruthy();
   });
 
   it('asks user to wait when Tensorboard status is not ready', async () => {
@@ -468,7 +467,7 @@ describe.only('Tensorboard', () => {
         )
         .exists(),
     ).toBeTruthy();
-    expect(tree.findWhere(el => el.text() === 'Delete Tensorboard').exists()).toBeTruthy();
+    expect(tree.findWhere(el => el.text() === 'Stop Tensorboard').exists()).toBeTruthy();
 
     // After a while, it is ready and wait message is not shwon any more
     jest.spyOn(Apis, 'isTensorboardPodReady').mockImplementation(() => Promise.resolve(true));

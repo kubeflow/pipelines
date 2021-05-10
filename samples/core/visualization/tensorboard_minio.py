@@ -14,6 +14,7 @@
 
 import os
 import json
+from kfp.onprem import use_k8s_secret
 from kfp import dsl, components
 from kfp.components import OutputPath, create_component_from_func
 
@@ -77,8 +78,11 @@ def train(minio_endpoint: 'URI', log_bucket: str, log_dir: 'Path'):
     # frameworks only support local path.
     from minio import Minio
     import os
-    client = Minio( # TODO: we should read access_key and secret_key from a secret
-        minio_endpoint, access_key="minio", secret_key="minio123", secure=False
+    client = Minio(
+        minio_endpoint,
+        access_key=os.getenv('MINIO_ACCESS_KEY'),
+        secret_key=os.getenv('MINIO_SECRET_KEY'),
+        secure=False
     )
     from pathlib import Path
     for path in Path("logs").rglob("*"):
@@ -156,6 +160,15 @@ def my_pipeline(
         minio_endpoint=minio_endpoint,
         log_bucket=log_bucket,
         log_dir=log_dir,
+    )
+    train_task.apply(
+        use_k8s_secret(
+            secret_name='mlpipeline-minio-artifact',
+            k8s_secret_key_to_env={
+                'secretkey': 'MINIO_SECRET_KEY',
+                'accesskey': 'MINIO_ACCESS_KEY'
+            },
+        )
     )
     # optional, let training task use the same tensorflow image as specified tensorboard
     train_task.container.image = tf_image

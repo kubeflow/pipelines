@@ -57,7 +57,9 @@ def train(log_dir: 'URI'):
     )
 
 
-# tensorflow/tensorflow:2.4 may fail with image pull backoff, because of dockerhub rate limiting
+# Be careful when choosing a tensorboard image:
+# * tensorflow/tensorflow may fail with image pull backoff, because of dockerhub rate limiting.
+# * tensorboard in tensorflow 2.3+ does not work with KFP, refer to https://github.com/kubeflow/pipelines/issues/5521.
 train_op = create_component_from_func(
     train, base_image='gcr.io/deeplearning-platform-release/tf2-cpu.2-4'
 )

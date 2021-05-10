@@ -165,7 +165,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                 onClick={this._handleDeleteOpen}
                 color={'default'}
               >
-                Delete Tensorboard
+                Stop Tensorboard
               </Button>
               <Dialog
                 open={this.state.deleteDialogOpen}
