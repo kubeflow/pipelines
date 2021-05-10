@@ -114,17 +114,23 @@ def resolve_input_args(value, type_to_resolve):
         if value.startswith(RESOURCE_PREFIX.get("aiplatform")):
             prefix_str = f"{RESOURCE_PREFIX['aiplatform']}/{AIPLATFORM_API_VERSION}/"
             value = value[len(prefix_str):]
+            print("aiplatform:// -> ''", value)
 
-    # Remove Google Cloud Storage prefix from the resource name.
-    if value.startswith(RESOURCE_PREFIX.get("google_cloud_storage")):
-        value = value[len(RESOURCE_PREFIX.get("google_cloud_storage")):]
+        # Replace Google Cloud Storage prefix with /gcs/.
+        if value.startswith(RESOURCE_PREFIX.get("google_cloud_storage")):
+            value = value.replace(
+                RESOURCE_PREFIX.get("google_cloud_storage"),
+                RESOURCE_PREFIX.get("google_cloud_storage_gcs_fuse")
+            )
+            print("gs:// -> /gcs/", value)
 
-    # Remove Google Cloud Storage GCS Fuse prefix from the resource name.
+    # No action needed for Cloud Storage GCS Fuse prefix from the resource name.
+    # Added for readability.
     if value.startswith(RESOURCE_PREFIX.get("google_cloud_storage_gcs_fuse")):
-        value = value[len(RESOURCE_PREFIX.
-                          get("google_cloud_storage_gcs_fuse")):]
+        return value
 
-    # No action needed for BigQuery resource names. Added for readability.
+    # No action needed for BigQuery resource names.
+    # Added for readability.
     if value.startswith(RESOURCE_PREFIX.get("bigquery")):
         return value
 
@@ -138,17 +144,23 @@ def resolve_init_args(key, value):
         if value.startswith(RESOURCE_PREFIX.get("aiplatform")):
             prefix_str = f"{RESOURCE_PREFIX['aiplatform']}/{AIPLATFORM_API_VERSION}/"
             value = value[len(prefix_str):]
+            print("aiplatform:// -> ''", value)
 
-    # Remove Google Cloud Storage prefix from the resource name.
-    if value.startswith(RESOURCE_PREFIX.get("google_cloud_storage")):
-        value = value[len(RESOURCE_PREFIX.get("google_cloud_storage")):]
+        # Replace Google Cloud Storage prefix with /gcs/.
+        if value.startswith(RESOURCE_PREFIX.get("google_cloud_storage")):
+            value = value.replace(
+                RESOURCE_PREFIX.get("google_cloud_storage"),
+                RESOURCE_PREFIX.get("google_cloud_storage_gcs_fuse")
+            )
+            print("gs:// -> /gcs/", value)
 
-    # Remove Google Cloud Storage GCS Fuse prefix from the resource name.
+    # No action needed for Cloud Storage GCS Fuse prefix from the resource name.
+    # Added for readability.
     if value.startswith(RESOURCE_PREFIX.get("google_cloud_storage_gcs_fuse")):
-        value = value[len(RESOURCE_PREFIX.
-                          get("google_cloud_storage_gcs_fuse")):]
+        return value
 
-    # No action needed for BigQuery resource names. Added for readability.
+    # No action needed for BigQuery resource names.
+    # Added for readability.
     if value.startswith(RESOURCE_PREFIX.get("bigquery")):
         return value
 
@@ -188,7 +200,7 @@ def cast(value: str, annotation_type: Type[T]) -> T:
 def prepare_parameters(
     kwargs: Dict[str, Any], method: Callable, is_init: bool = False
 ):
-    """Prepares paramters passed into components before calling SDK.
+    """Prepares parameters passed into components before calling SDK.
 
     1. Determines the annotation type that should used with the parameter
     2. Reads input values if needed

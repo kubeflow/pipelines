@@ -129,7 +129,7 @@ class RemoteRunnerTests(unittest.TestCase):
     def test_resolve_input_args_resource_noun_removes_gcs_prefix(self):
         type_to_resolve = aiplatform.Model
         value = '/gcs/test_resource_name'
-        expected_result = 'test_resource_name'
+        expected_result = '/gcs/test_resource_name'
 
         result = remote_runner.resolve_input_args(value, type_to_resolve)
         self.assertEqual(result, expected_result)
@@ -145,7 +145,7 @@ class RemoteRunnerTests(unittest.TestCase):
     def test_resolve_input_args_not_type_to_resolve_not_changed(self):
         type_to_resolve = object
         value = '/gcs/test_resource_name'
-        expected_result = 'test_resource_name'
+        expected_result = '/gcs/test_resource_name'
 
         result = remote_runner.resolve_input_args(value, type_to_resolve)
         self.assertEqual(result, expected_result)
@@ -153,7 +153,7 @@ class RemoteRunnerTests(unittest.TestCase):
     def test_resolve_init_args_key_does_not_end_with_name_not_changed(self):
         key = 'resource'
         value = '/gcs/test_resource_name'
-        expected_result = 'test_resource_name'
+        expected_result = '/gcs/test_resource_name'
 
         result = remote_runner.resolve_init_args(key, value)
         self.assertEqual(result, expected_result)
@@ -161,7 +161,7 @@ class RemoteRunnerTests(unittest.TestCase):
     def test_resolve_init_args_key_ends_with_name_removes_gcs_prefix(self):
         key = 'resource_name'
         value = '/gcs/test_resource_name'
-        expected_result = 'test_resource_name'
+        expected_result = '/gcs/test_resource_name'
 
         result = remote_runner.resolve_init_args(key, value)
         self.assertEqual(result, expected_result)
