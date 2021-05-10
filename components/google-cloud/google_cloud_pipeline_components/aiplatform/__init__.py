@@ -16,6 +16,18 @@
 from google.cloud import aiplatform as aiplatform_sdk
 from google_cloud_pipeline_components.aiplatform import utils
 
+__all__ = [
+    'ImageDatasetCreateOp', 'TabularDatasetCreateOp', 'TextDatasetCreateOp',
+    'VideoDatasetCreateOp', 'ImageDatasetExportDataOp',
+    'TabularDatasetExportDataOp', 'TextDatasetExportDataOp',
+    'VideoDatasetExportDataOp', 'ImageDatasetImportDataOp',
+    'TextDatasetImportDataOp', 'VideoDatasetImportDataOp',
+    'CustomContainerTrainingJobRunOp', 'CustomPythonPackageTrainingJobRunOp',
+    'AutoMLImageTrainingJobRunOp', 'AutoMLTextTrainingJobRunOp',
+    'AutoMLTabularTrainingJobRunOp', 'AutoMLVideoTrainingJobRunOp',
+    'ModelDeployOp', 'ModelBatchPredictOp', 'ModelUploadOp', 'EndpointCreateOp'
+]
+
 ImageDatasetCreateOp = utils.convert_method_to_component(
     aiplatform_sdk.ImageDataset, aiplatform_sdk.ImageDataset.create
 )

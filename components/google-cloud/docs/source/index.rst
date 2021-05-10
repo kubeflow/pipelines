@@ -18,7 +18,7 @@ To learn more about AI Platform compoents see;
    :maxdepth: 2
    :caption: Contents:
 
-
+   modules
 
 Indices and tables
 ==================
