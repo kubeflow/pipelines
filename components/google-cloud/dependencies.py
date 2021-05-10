@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC. All Rights Reserved.
+# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 def make_required_install_packages():
   return [
       "kfp>=1.4.0,<2.0.0",
-      "google-cloud-aiplatform>=0.5.0,<1.0.0",
+      "google-cloud-aiplatform>=0.7.1,<1.0.0",
   ]
 
 
@@ -30,4 +30,4 @@ def make_required_test_packages():
 
 def make_dependency_links():
   # TODO: change to google-cloud-aiplatform
-  return ["https://github.com/googleapis/python-aiplatform@dev"]
+  return []

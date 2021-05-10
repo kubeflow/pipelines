@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2021 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -34,6 +34,10 @@ import (
 	"github.com/kubeflow/pipelines/v2/metadata"
 	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
 	"google.golang.org/protobuf/encoding/protojson"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -134,7 +138,7 @@ func parseBucketConfig(path string) (*bucketConfig, error) {
 
 func (o *LauncherOptions) validate() error {
 	empty := func(s string) bool { return len(s) == 0 }
-	err := func(s string) error { return fmt.Errorf("Must specify %s", s) }
+	err := func(s string) error { return fmt.Errorf("Invalid launcher options: must specify %s", s) }
 
 	if empty(o.PipelineName) {
 		return err("PipelineName")
@@ -384,27 +388,31 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 	}
 
 	for n, op := range l.runtimeInfo.OutputParameters {
+		msg := func(err error) error {
+			return fmt.Errorf("Failed to read output parameter name=%q type=%q path=%q: %w", n, op.Type, op.Path, err)
+		}
 		b, err := ioutil.ReadFile(op.Path)
 		if err != nil {
-			return err
+			return msg(err)
 		}
 		switch op.Type {
 		case "STRING":
 			outputParameters.StringParameters[n] = string(b)
 		case "INT":
-			i, err := strconv.ParseInt(string(b), 10, 0)
+			i, err := strconv.ParseInt(strings.TrimSpace(string(b)), 10, 0)
 			if err != nil {
-				return err
+				return msg(err)
 			}
 			outputParameters.IntParameters[n] = i
 		case "DOUBLE":
-			f, err := strconv.ParseFloat(string(b), 0)
+			f, err := strconv.ParseFloat(strings.TrimSpace(string(b)), 0)
 			if err != nil {
-				return err
+				return msg(err)
 			}
 			outputParameters.DoubleParameters[n] = f
+		default:
+			return msg(fmt.Errorf("unknown type. Expected STRING, INT or DOUBLE"))
 		}
-
 	}
 
 	return l.metadataClient.PublishExecution(ctx, execution, outputParameters, outputArtifacts)
@@ -712,8 +720,20 @@ func getExecutorOutput() (*pipeline_spec.ExecutorOutput, error) {
 
 func (l *Launcher) openBucket() (*blob.Bucket, error) {
 	if l.bucketConfig.scheme == "minio://" {
+		secret, err := getMinioCredential()
+		if err != nil {
+			return nil, fmt.Errorf("Failed to get minio credential: %w", err)
+		}
+		accessKey := string(secret.Data["accesskey"])
+		secretKey := string(secret.Data["secretkey"])
+		if accessKey == "" {
+			return nil, fmt.Errorf("The secret which stores minio credential does not have 'accesskey' entry")
+		}
+		if secretKey == "" {
+			return nil, fmt.Errorf("The secret which stores minio credential does not have 'secretkey' entry")
+		}
 		sess, err := session.NewSession(&aws.Config{
-			Credentials:      credentials.NewStaticCredentials("minio", "minio123", ""),
+			Credentials:      credentials.NewStaticCredentials(accessKey, secretKey, ""),
 			Region:           aws.String("minio"),
 			Endpoint:         aws.String("minio-service:9000"),
 			DisableSSL:       aws.Bool(true),
@@ -726,4 +746,21 @@ func (l *Launcher) openBucket() (*blob.Bucket, error) {
 		return s3blob.OpenBucket(context.Background(), sess, l.bucketConfig.bucketName, nil)
 	}
 	return blob.OpenBucket(context.Background(), l.bucketConfig.bucketURL())
+}
+
+func getMinioCredential() (*v1.Secret, error) {
+	restConfig, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to initialize kubernetes client: %w", err)
+	}
+	clientSet, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to initialize kubernetes client set: %w", err)
+	}
+	namespace := os.Getenv("KFP_NAMESPACE")
+	if namespace == "" {
+		return nil, fmt.Errorf("Env variable 'KFP_NAMESPACE' is empty")
+	}
+	secret, err := clientSet.CoreV1().Secrets(namespace).Get(context.Background(), "mlpipeline-minio-artifact", metav1.GetOptions{})
+	return secret, err
 }

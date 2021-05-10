@@ -1,4 +1,4 @@
-REM Copyright 2019 Google LLC
+REM Copyright 2019 The Kubeflow Authors
 REM
 REM Licensed under the Apache License, Version 2.0 (the "License");
 REM you may not use this file except in compliance with the License.

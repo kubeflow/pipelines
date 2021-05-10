@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,14 +29,14 @@ def component(func: Optional[Callable] = None,
 
   from kfp.v2 import dsl
   @dsl.component
-  def my_function_one(input: str, output: OutputArtifact(Model)):
+  def my_function_one(input: str, output: Output[Model]):
     ...
 
   @dsl.component(
     base_image='python:3.9',
     output_component_file='my_function.yaml'
   )
-  def my_function_two(input: InputArtifact(Model)):
+  def my_function_two(input: Input[Mode])):
     ...
 
   @dsl.pipeline(pipeline_root='...',

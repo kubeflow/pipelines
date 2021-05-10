@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -101,6 +101,9 @@ class CompilerCliTests(unittest.TestCase):
 
   def test_pipeline_with_loop_output(self):
     self._test_compile_py_to_json('pipeline_with_loop_output')
+
+  def test_pipeline_with_nested_loops(self):
+    self._test_compile_py_to_json('pipeline_with_nested_loops')
 
   def test_pipeline_with_loops_and_conditions(self):
     self._test_compile_py_to_json('pipeline_with_loops_and_conditions')

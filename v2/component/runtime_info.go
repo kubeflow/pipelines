@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2021 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +18,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
+	"regexp"
 	"strconv"
+	"strings"
 
 	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
 	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
@@ -69,6 +72,31 @@ type runtimeInfo struct {
 	OutputArtifacts  map[string]*outputArtifact
 }
 
+// paramDelimiterRE is used to find all instances of parameter string that need
+// to be escaped. We use .+? to do a non-greedy match here.
+var paramDelimiterRE = regexp.MustCompile(`"BEGIN-KFP-PARAM[[].+?[]]END-KFP-PARAM"`)
+
+func escapeParameters(unescaped string) (string, error) {
+	var jsonEncodeErr error
+	escapeFunc := func(value string) string {
+		value = strings.TrimPrefix(value, `"BEGIN-KFP-PARAM[`)
+		value = strings.TrimSuffix(value, `]END-KFP-PARAM"`)
+		b, err := json.Marshal(value)
+		if err != nil {
+			jsonEncodeErr = err
+		}
+		return string(b)
+	}
+
+	escaped := paramDelimiterRE.ReplaceAllStringFunc(unescaped, escapeFunc)
+
+	if jsonEncodeErr != nil {
+		return "", fmt.Errorf("failed to JSON-encode parameter %q: %w", unescaped, jsonEncodeErr)
+	}
+
+	return escaped, nil
+}
+
 func parseRuntimeInfo(jsonEncoded string) (*runtimeInfo, error) {
 	r := &runtimeInfo{
 		InputParameters:  make(map[string]*inputParameter),
@@ -77,8 +105,14 @@ func parseRuntimeInfo(jsonEncoded string) (*runtimeInfo, error) {
 		OutputArtifacts:  make(map[string]*outputArtifact),
 	}
 
-	if err := json.Unmarshal([]byte(jsonEncoded), r); err != nil {
-		return nil, err
+	escaped, err := escapeParameters(jsonEncoded)
+	if err != nil {
+		return nil, fmt.Errorf("failed to escape parameters from RuntimeInfo: %w", err)
+	}
+
+	if err := json.Unmarshal([]byte(escaped), r); err != nil {
+		// Do not quote jsonEncoded, because JSON format is hard to read if quoted.
+		return nil, fmt.Errorf("Invalid runtime info: %w.\n===RuntimeInfo===\n%s\n======", err, escaped)
 	}
 
 	return r, nil
@@ -136,7 +170,6 @@ func toMLMDArtifact(runtimeArtifact *pipeline_spec.RuntimeArtifact) (*pb.Artifac
 	errorF := func(err error) error {
 		return fmt.Errorf("failed to convert RuntimeArtifact to MLMD artifact: %w", err)
 	}
-
 	artifact := &pb.Artifact{
 		Uri:              &runtimeArtifact.Uri,
 		Properties:       make(map[string]*pb.Value),
@@ -316,7 +349,15 @@ func (r *runtimeInfo) generateExecutorInput(genOutputURI generateOutputURI, outp
 		rta := &pipeline_spec.RuntimeArtifact{
 			Name: name,
 			Uri:  uri,
+			Metadata: &structpb.Struct{
+				Fields: make(map[string]*structpb.Value)},
 		}
+		if strings.HasPrefix(uri, "s3://") {
+			s3Region := os.Getenv("AWS_REGION")
+			rta.Metadata.Fields["s3_region"] = &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: s3Region}}
+		}
+		rta.Metadata.Fields["name"] = &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: name}}
+
 		if err := setRuntimeArtifactType(rta, oa.InstanceSchema, oa.SchemaTitle); err != nil {
 			return nil, fmt.Errorf("failed to generate output RuntimeArtifact: %w", err)
 		}

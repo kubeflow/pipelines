@@ -1,9 +1,9 @@
 name: Upload to GCS
 inputs:
 - {name: Data}
-- {name: GCS path, type: URI}
+- {name: GCS path, type: String}
 outputs:
-- {name: GCS path, type: URI}
+- {name: GCS path, type: String}
 implementation:
     container:
         image: google/cloud-sdk

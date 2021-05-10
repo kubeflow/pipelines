@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -50,6 +50,7 @@ const (
 	mysqlExtraParams       = "DBConfig.ExtraParams"
 	archiveLogFileName     = "ARCHIVE_CONFIG_LOG_FILE_NAME"
 	archiveLogPathPrefix   = "ARCHIVE_CONFIG_LOG_PATH_PREFIX"
+	dbConMaxLifeTimeSec    = "DBConfig.ConMaxLifeTimeSec"
 
 	visualizationServiceHost = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST"
 	visualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
@@ -153,6 +154,7 @@ func (c *ClientManager) Authenticators() []auth.Authenticator {
 func (c *ClientManager) init() {
 	glog.Info("Initializing client manager")
 	db := initDBClient(common.GetDurationConfig(initConnectionTimeout))
+	db.SetConnMaxLifetime(common.GetDurationConfig(dbConMaxLifeTimeSec))
 
 	// time
 	c.time = util.NewRealTime()

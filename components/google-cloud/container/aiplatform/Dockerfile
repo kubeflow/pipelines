@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC. All Rights Reserved.
+# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,9 +19,6 @@ WORKDIR /root
 
 # Upgrade pip to latest
 RUN pip3 install --upgrade pip
-
-# Installs additional packages
-RUN pip3 install git+https://github.com/googleapis/python-aiplatform@dev
 
 # TODO() change from using PR commit id to release 
 RUN pip3 install "git+https://github.com/kubeflow/pipelines.git#egg=google-cloud-pipeline-components&subdirectory=components/google-cloud"
