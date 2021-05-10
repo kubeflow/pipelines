@@ -47,7 +47,7 @@ def run_as_aiplatform_custom_job(
     op: The task (ContainerOp) object to run as aiplatform custom job.
     display_name: Optional. The name of the custom job.
     replica_count: Optional. The number of replicas to be split between master
-      workerPoolSpec and woker workerPoolSpec. (master always has 1 replica).
+      workerPoolSpec and worker workerPoolSpec. (master always has 1 replica).
     machine_type: Optional. The type of the machine to run the custom job. The
       default value is "n1-standard-4".
     accelerator_type: Optional. The type of accelerator(s) that may be attached
