@@ -339,7 +339,12 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 
 		blobKey, err := l.bucketConfig.keyFromURI(outputArtifact.Uri)
 		if err := uploadBlob(ctx, bucket, localDir, blobKey); err != nil {
-			return fmt.Errorf("failed to upload output artifact %q to remote storage URI %q: %w", name, outputArtifact.Uri, err)
+			//  We allow components to not produce output files
+			if errors.Is(err, os.ErrNotExist) {
+				glog.Warningf("local filepath %q does not exist", localDir)
+			} else {
+				return fmt.Errorf("failed to upload output artifact %q to remote storage URI %q: %w", name, outputArtifact.Uri, err)
+			}
 		}
 
 		// Write out the metadata.
@@ -529,8 +534,8 @@ func (l *Launcher) prepareOutputs(ctx context.Context, executorInput *pipeline_s
 			return fmt.Errorf("failed to generate local storage path for output artifact %q with URI %q: %w", name, outputArtifact.Uri, err)
 		}
 
-		if err := os.MkdirAll(filepath.Base(localPath), 0644); err != nil {
-			return fmt.Errorf("unable to create directory %q for output artifact %q: %w", localPath, name, err)
+		if err := os.MkdirAll(filepath.Dir(localPath), 0644); err != nil {
+			return fmt.Errorf("unable to create directory %q for output artifact %q: %w", filepath.Dir(localPath), name, err)
 		}
 
 		key = fmt.Sprintf(`{{$.outputs.artifacts['%s'].path}}`, name)
@@ -627,6 +632,7 @@ func downloadFile(ctx context.Context, bucket *blob.Bucket, blobFilePath, localF
 }
 
 func uploadBlob(ctx context.Context, bucket *blob.Bucket, localPath, blobPath string) error {
+
 	fileInfo, err := os.Stat(localPath)
 	if err != nil {
 		return fmt.Errorf("unable to stat local filepath %q: %w", localPath, err)
