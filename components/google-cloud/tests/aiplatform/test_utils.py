@@ -241,7 +241,7 @@ class UtilsTests(unittest.TestCase):
         )
         expected_results = "".join(
             "Test short description.\n"
-            "Long descirption\nArgs:\n"
+            "Long descirption\n\nArgs:\n"
             "    input:\n"
             "        input_name\n"
             "    input_param:\n"
