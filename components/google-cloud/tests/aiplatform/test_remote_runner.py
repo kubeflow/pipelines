@@ -91,8 +91,10 @@ class RemoteRunnerTests(unittest.TestCase):
             "artifacts": {
                 "dataset": {
                     "artifacts": [{
-                        "name": "test_name",
-                        "uri": "test_resource_uri",
+                        "name":
+                            "test_name",
+                        "uri":
+                            "aiplatform:///v1beta1/projects/513263813639/locations/us-central1/models/7027708888837259264",
                         "metadata": {}
                     }]
                 }
@@ -100,7 +102,8 @@ class RemoteRunnerTests(unittest.TestCase):
         }
 
         remote_runner.write_to_artifact(
-            executor_input_dict, "test_resource_uri"
+            executor_input_dict,
+            "projects/513263813639/locations/us-central1/models/7027708888837259264"
         )
 
         mock_open.return_value.__enter__().write.assert_called_once_with(
@@ -142,7 +145,7 @@ class RemoteRunnerTests(unittest.TestCase):
     def test_resolve_input_args_not_type_to_resolve_not_changed(self):
         type_to_resolve = object
         value = '/gcs/test_resouce_name'
-        expected_result = '/gcs/test_resouce_name'
+        expected_result = 'test_resouce_name'
 
         result = remote_runner.resolve_input_args(value, type_to_resolve)
         self.assertEqual(result, expected_result)
@@ -150,7 +153,7 @@ class RemoteRunnerTests(unittest.TestCase):
     def test_resolve_init_args_key_does_not_end_with_name_not_changed(self):
         key = 'resouce'
         value = '/gcs/test_resouce_name'
-        expected_result = '/gcs/test_resouce_name'
+        expected_result = 'test_resouce_name'
 
         result = remote_runner.resolve_init_args(key, value)
         self.assertEqual(result, expected_result)

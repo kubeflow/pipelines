@@ -25,6 +25,14 @@ from google_cloud_pipeline_components.aiplatform import utils
 
 INIT_KEY = 'init'
 METHOD_KEY = 'method'
+AIPLATFORM_API_VERSION = 'v1beta1'
+
+RESOURCE_PREFIX = {
+    "bigquery": "bq://",
+    "aiplatform": "aiplatform://",
+    "google_cloud_storage": "gs://",
+    "google_cloud_storage_gcs_fuse": "/gcs/",
+}
 
 
 def split_args(kwargs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
@@ -60,13 +68,29 @@ def write_to_artifact(executor_input, text):
     executor_output = {}
     if output_artifacts:
         executor_output['artifacts'] = {}
+        uri_with_prefix = ""
 
         # TODO - Support multiple outputs, current implmentation
         # sets all output uri's to text
         for name, artifact in output_artifacts.items():
+            # Add URI Prefix
+            # "aiplatform://API_VERSION/": For AI Platform resource names, current version is defined in AIPLATFORM_API_VERSION.
+            if aiplatform.utils.RESOURCE_NAME_PATTERN.match(text):
+                uri_with_prefix = f"{RESOURCE_PREFIX['aiplatform']}/{AIPLATFORM_API_VERSION}/{text}"
+
+            # "gcs://": For Google Cloud Storage resources.
+            elif text.startswith('/gcs/'):
+                uri_with_prefix = text.replace(
+                    '/gcs/', RESOURCE_PREFIX.get("google_cloud_storage")
+                )
+
+            # "bq://": For BigQuery resources.
+            elif text.startswith(RESOURCE_PREFIX.get('bigquery')):
+                uri_with_prefix = text
+
             runtime_artifact = {
                 "name": artifact.get('name'),
-                "uri": text,
+                "uri": uri_with_prefix,
                 "metadata": artifact.get('metadata', {})
             }
             artifacts_list = {'artifacts': [runtime_artifact]}
@@ -84,16 +108,49 @@ def resolve_input_args(value, type_to_resolve):
     """If this is an input from Pipelines, read it directly from gcs."""
     if inspect.isclass(type_to_resolve) and issubclass(
             type_to_resolve, aiplatform.base.AiPlatformResourceNoun):
-        if value.startswith('/gcs/'):  # not a resource noun:
-            value = value[len('/gcs/'):]
+
+        # Remove AIPlatform prefix from resource name
+        if value.startswith(RESOURCE_PREFIX.get("aiplatform")):
+            prefix_str = f"{RESOURCE_PREFIX['aiplatform']}/{AIPLATFORM_API_VERSION}/"
+            value = value[len(prefix_str):]
+
+    # Remove Google Cloud Storage prefix from the resource name.
+    if value.startswith(RESOURCE_PREFIX.get("google_cloud_storage")):
+        value = value[len(RESOURCE_PREFIX.get("google_cloud_storage")):]
+
+    # Remove Google Cloud Storage GCS Fuse prefix from the resource name.
+    if value.startswith(RESOURCE_PREFIX.get("google_cloud_storage_gcs_fuse")):
+        value = value[len(RESOURCE_PREFIX.
+                          get("google_cloud_storage_gcs_fuse")):]
+
+    # No action needed for BigQuery resource names. Added for readability.
+    if value.startswith(RESOURCE_PREFIX.get("bigquery")):
+        return value
+
     return value
 
 
 def resolve_init_args(key, value):
     """Resolves Metadata/InputPath parameters to resource names."""
     if key.endswith('_name'):
-        if value.startswith('/gcs/'):  # not a resource noun
-            value = value[len('/gcs/'):]
+        # Remove AIPlatform prefix from resource name
+        if value.startswith(RESOURCE_PREFIX.get("aiplatform")):
+            prefix_str = f"{RESOURCE_PREFIX['aiplatform']}/{AIPLATFORM_API_VERSION}/"
+            value = value[len(prefix_str):]
+
+    # Remove Google Cloud Storage prefix from the resource name.
+    if value.startswith(RESOURCE_PREFIX.get("google_cloud_storage")):
+        value = value[len(RESOURCE_PREFIX.get("google_cloud_storage")):]
+
+    # Remove Google Cloud Storage GCS Fuse prefix from the resource name.
+    if value.startswith(RESOURCE_PREFIX.get("google_cloud_storage_gcs_fuse")):
+        value = value[len(RESOURCE_PREFIX.
+                          get("google_cloud_storage_gcs_fuse")):]
+
+    # No action needed for BigQuery resource names. Added for readability.
+    if value.startswith(RESOURCE_PREFIX.get("bigquery")):
+        return value
+
     return value
 
 
