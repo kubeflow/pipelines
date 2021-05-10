@@ -1,29 +1,10 @@
 google\_cloud\_pipeline\_components.aiplatform package
 ======================================================
 
-Submodules
-----------
-
-google\_cloud\_pipeline\_components.aiplatform.remote\_runner module
---------------------------------------------------------------------
-
-.. automodule:: google_cloud_pipeline_components.aiplatform.remote_runner
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-google\_cloud\_pipeline\_components.aiplatform.utils module
------------------------------------------------------------
-
-.. automodule:: google_cloud_pipeline_components.aiplatform.utils
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Module contents
 ---------------
 
 .. automodule:: google_cloud_pipeline_components.aiplatform
-   :members:
+   :members: ImageDatasetCreateOp, TabularDatasetCreateOp, TextDatasetCreateOp, VideoDatasetCreateOp ,ImageDatasetExportDataOp, TabularDatasetExportDataOp, TextDatasetExportDataOp, VideoDatasetExportDataOp, ImageDatasetImportDataOp, TextDatasetImportDataOp, VideoDatasetImportDataOp, CustomContainerTrainingJobRunOp, CustomPythonPackageTrainingJobRunOp, AutoMLImageTrainingJobRunOp, AutoMLTextTrainingJobRunOp, AutoMLTabularTrainingJobRunOp, AutoMLVideoTrainingJobRunOp, ModelDeployOp, ModelBatchPredictOp, ModelUploadOp, EndpointCreateOp
    :undoc-members:
    :show-inheritance:
