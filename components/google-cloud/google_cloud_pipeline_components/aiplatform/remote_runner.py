@@ -56,7 +56,7 @@ def split_args(kwargs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
 
 def write_to_artifact(executor_input, text):
-    """Write output to local artifact and methadata path (uses GCSFuse)."""
+    """Write output to local artifact and metadata path (uses GCSFuse)."""
 
     output_artifacts = {}
     for name, artifacts in executor_input.get('outputs', {}).get('artifacts',
@@ -70,7 +70,8 @@ def write_to_artifact(executor_input, text):
         executor_output['artifacts'] = {}
         uri_with_prefix = ""
 
-        # TODO - Support multiple outputs, current implmentation
+        # TODO - Support multiple outputs, current implementation.
+
         # sets all output uri's to text
         for name, artifact in output_artifacts.items():
             # Add URI Prefix
