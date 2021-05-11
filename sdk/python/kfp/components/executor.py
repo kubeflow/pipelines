@@ -14,7 +14,7 @@
 import json
 import inspect
 from typing import Any, Callable, Dict, Optional, Union
-from kfp.components._python_op import InputPath, OutputPath
+from kfp.components._python_op import InputPath, InputUri, OutputPath, OutputUri
 from kfp.dsl.io_types import Artifact, Input, Output, create_runtime_artifact, is_artifact_annotation, is_input_artifact, is_output_artifact
 
 
@@ -88,23 +88,35 @@ class Executor():
       os.makedirs(os.path.dirname(path), exist_ok=True)
     return path
 
-  def _get_output_artifact_path(self, artifact_name: str):
+  def _get_output_artifact(self, artifact_name: str) -> Artifact:
     artifact_name = self._maybe_strip_path_suffix(artifact_name)
     output_artifact = self._output_artifacts.get(artifact_name)
     if not output_artifact:
       raise ValueError(
           'Failed to get output artifact path for artifact name {}'.format(
               artifact_name))
-    return output_artifact.path
+    return output_artifact
 
-  def _get_input_artifact_path(self, artifact_name: str):
+  def _get_output_artifact_path(self, artifact_name: str) -> str:
+    return self._get_output_artifact(artifact_name).path
+
+  def _get_output_artifact_uri(self, artifact_name: str) -> str:
+    return self._get_output_artifact(artifact_name).uri
+
+  def _get_input_artifact(self, artifact_name: str) -> Artifact:
     artifact_name = self._maybe_strip_path_suffix(artifact_name)
     input_artifact = self._input_artifacts.get(artifact_name)
     if not input_artifact:
       raise ValueError(
           'Failed to get input artifact path for artifact name {}'.format(
               artifact_name))
-    return input_artifact.path
+    return input_artifact
+
+  def _get_input_artifact_path(self, artifact_name: str) -> str:
+    return self._get_input_artifact(artifact_name).path
+
+  def _get_input_artifact_uri(self, artifact_name: str) -> str:
+    return self._get_input_artifact(artifact_name).uri
 
   def _write_output_parameter_value(self, name: str, value: Union[str, int,
                                                                   float]):
@@ -238,8 +250,12 @@ class Executor():
           func_kwargs[k] = self._get_output_parameter_path(k)
         else:
           func_kwargs[k] = self._get_output_artifact_path(k)
+      elif isinstance(v, OutputUri):
+        func_kwargs[k] = self._get_output_artifact_uri(k)
       elif isinstance(v, InputPath):
         func_kwargs[k] = self._get_input_artifact_path(k)
+      elif isinstance(v, InputUri):
+        func_kwargs[k] = self._get_input_artifact_uri(k)
 
     result = self._func(**func_kwargs)
     self._write_executor_output(result)

@@ -14,12 +14,12 @@
 """Sample pipeline for passing data in KFP v2."""
 from kfp import dsl
 from kfp import components
-from kfp.components import InputPath, OutputPath
+from kfp.components import InputPath, InputUri, OutputPath, OutputUri
 from kfp.v2.dsl import Input, Output, Dataset, Model, component
 import kfp.v2.compiler as compiler
 
 
-@component
+@component(base_image='tensorflow/tensorflow:2.4.1')
 def preprocess(
     # An input parameter of type string.
     message: str,
@@ -29,6 +29,8 @@ def preprocess(
     # A locally accessible filepath for another output artifact of type
     # `Dataset`.
     output_dataset_two_path: OutputPath('Dataset'),
+    # A URI for for another output artifact of type `Dataset`.
+    output_dataset_three: OutputUri('Dataset'),
     # A locally accessible filepath for an output parameter of type string.
     output_parameter_path: OutputPath(str)):
   '''Dummy preprocessing step'''
@@ -46,8 +48,13 @@ def preprocess(
   with open(output_parameter_path, 'w') as f:
     f.write(message)
 
+  # Use tf.gfile.GFile which works with GCS URI: "gs://"
+  import tensorflow as tf
+  with tf.io.gfile.GFile(output_dataset_three, 'w') as f:
+    f.write(message)
 
-@component
+
+@component(base_image='tensorflow/tensorflow:2.4.1')
 def train(
     # Use InputPath to get a locally accessible path for the input artifact
     # of type `Dataset`.
@@ -55,6 +62,8 @@ def train(
     # Use Input[T] to get a metadata-rich handle to the input artifact
     # of type `Dataset`.
     dataset_two: Input[Dataset],
+    # Use InputUri to get the URI for the input artifact of type `Dataset`.
+    dataset_three: InputUri('Dataset'),
     # An input parameter of type string.
     message: str,
     # Use Output[T] to get a metadata-rich handle to the output artifact
@@ -69,8 +78,13 @@ def train(
   with open(dataset_two.path, 'r') as input_file:
     dataset_two_contents = input_file.read()
 
-  line = "dataset_one_contents: {} || dataset_two_contents: {} || message: {}\n".format(
-      dataset_one_contents, dataset_two_contents, message)
+  # Use tf.gfile.GFile which works with GCS URI: "gs://"
+  import tensorflow as tf
+  with tf.io.gfile.GFile(dataset_three, 'r') as f:
+    dataset_three_contents = f.read()
+
+  line = 'dataset_one_contents: {} || dataset_two_contents: {} || dataset_three_contents: {} || message: {}\n'.format(
+      dataset_one_contents, dataset_two_contents, dataset_three_contents, message)
 
   with open(model.path, 'w') as output_file:
     for i in range(num_steps):
@@ -87,6 +101,7 @@ def pipeline(message: str):
   preprocess_task = preprocess(message=message)
   train_task = train(dataset_one=preprocess_task.outputs['output_dataset_one'],
                      dataset_two=preprocess_task.outputs['output_dataset_two'],
+                     dataset_three=preprocess_task.outputs['output_dataset_three'],
                      message=preprocess_task.outputs['output_parameter'],
                      num_steps=5)
 

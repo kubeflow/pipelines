@@ -20,10 +20,12 @@ __all__ = [
     'default_base_image_or_builder',
     'InputArtifact',
     'InputPath',
+    'InputUri',
     'InputTextFile',
     'InputBinaryFile',
     'OutputArtifact',
     'OutputPath',
+    'OutputUri',
     'OutputTextFile',
     'OutputBinaryFile',
 ]
@@ -357,8 +359,8 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
                 raise ValueError('Default values for Input/Output artifacts are not supported.')
         elif isinstance(
             parameter.annotation,
-            (InputArtifact, InputPath, InputTextFile, InputBinaryFile,
-             OutputArtifact, OutputPath, OutputTextFile, OutputBinaryFile)):
+            (InputArtifact, InputPath, InputUri, InputTextFile, InputBinaryFile,
+             OutputArtifact, OutputPath, OutputUri, OutputTextFile, OutputBinaryFile)):
             passing_style = type(parameter.annotation)
             parameter_type = parameter.annotation.type
             if parameter.default is not inspect.Parameter.empty and not (passing_style == InputPath and parameter.default is None):
@@ -376,7 +378,7 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
         type_struct = annotation_to_type_struct(parameter_type)
 
         if passing_style in [io_types.OutputAnnotation, OutputArtifact,
-                             OutputPath, OutputTextFile, OutputBinaryFile]:
+                             OutputPath, OutputUri, OutputTextFile, OutputBinaryFile]:
             io_name = _make_name_unique_by_adding_index(io_name, output_names, '_')
             output_names.add(io_name)
             output_spec = OutputSpec(
@@ -512,7 +514,7 @@ def _func_to_component_spec_v2(
 
     types_source = [
         inspect.getsource(x) for x in
-        [io_types, InputPath, OutputPath, executor.Executor]
+        [io_types, InputPath, InputUri, OutputPath, OutputUri, executor.Executor]
     ]
 
     func_source = _get_function_source_definition(func)
@@ -556,6 +558,10 @@ if __name__ == '__main__':
             arguments_for_input = [flag, InputPathPlaceholder(input.name)]
         elif input._passing_style in [OutputPath, io_types.OutputAnnotation]:
             arguments_for_input = [flag, OutputPathPlaceholder(input.name)]
+        elif input._passing_style == InputUri:
+            arguments_for_input = [flag, InputUriPlaceholder(input.name)]
+        elif input._passing_style == OutputUri:
+            arguments_for_input = [flag, OutputUriPlaceholder(input.name)]
         else:
             arguments_for_input = [flag, InputValuePlaceholder(input.name)]
 
@@ -712,6 +718,10 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
         elif input._passing_style in [OutputPath, OutputTextFile,
                                       OutputBinaryFile, OutputArtifact]:
             arguments_for_input = [param_flag, OutputPathPlaceholder(input.name)]
+        elif input._passing_style == InputUri:
+            arguments_for_input = [param_flag, InputUriPlaceholder(input.name)]
+        elif input._passing_style == OutputUri:
+            arguments_for_input = [param_flag, OutputUriPlaceholder(input.name)]
         else:
             arguments_for_input = [param_flag, InputValuePlaceholder(input.name)]
 

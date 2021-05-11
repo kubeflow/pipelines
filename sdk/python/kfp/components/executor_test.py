@@ -19,7 +19,7 @@ from typing import Callable, NamedTuple, Optional
 import unittest
 import json
 
-from kfp.components import executor, InputPath, OutputPath
+from kfp.components import executor, InputPath, InputUri, OutputPath, OutputUri
 from kfp.dsl import io_types
 from kfp.dsl.io_types import Artifact, Dataset, Input, Metrics, Model, Output
 
@@ -158,12 +158,30 @@ class ExecutorTest(unittest.TestCase):
 
     self._get_executor(test_func).execute()
 
+  def test_input_uri_artifact(self):
+
+    def test_func(input_artifact_one: InputUri('Dataset')):
+      self.assertEqual(
+          input_artifact_one,
+          'gs://some-bucket/input_artifact_one')
+
+    self._get_executor(test_func).execute()
+
   def test_output_path_artifact(self):
 
     def test_func(output_artifact_one_path: OutputPath('Model')):
       self.assertEqual(
           output_artifact_one_path,
           os.path.join(self._test_dir, 'some-bucket/output_artifact_one'))
+
+    self._get_executor(test_func).execute()
+
+  def test_output_uri_artifact(self):
+
+    def test_func(output_artifact_one: OutputUri('Model')):
+      self.assertEqual(
+          output_artifact_one,
+          'gs://some-bucket/output_artifact_one')
 
     self._get_executor(test_func).execute()
 

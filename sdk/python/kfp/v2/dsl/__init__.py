@@ -24,7 +24,9 @@ from kfp.dsl.io_types import (
 )
 from kfp.components import (
     InputPath,
+    InputUri,
     OutputPath,
+    OutputUri,
 )
 from kfp.dsl import (
     graph_component,
