@@ -134,6 +134,8 @@ export const ExecutionHelpers = {
   },
   getName(execution: Execution): string | number | undefined {
     return (
+      // TODO(Bobgy): move task_name to a const when ExecutionCustomProperties are moved back to this repo.
+      getStringProperty(execution, 'task_name', true) ||
       getStringProperty(execution, ExecutionProperties.NAME) ||
       getStringProperty(execution, ExecutionProperties.COMPONENT_ID) ||
       getStringProperty(execution, ExecutionCustomProperties.TASK_ID, true) ||
