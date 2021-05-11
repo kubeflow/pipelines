@@ -1,4 +1,4 @@
-// Copyright 2019 The Kubeflow Authors
+// Copyright 2019-2021 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -63,10 +63,14 @@ export const getTensorboardHandlers = (
    * tensorboard instance to be ready, and return the endpoint to the instance.
    * The handler expects the following query strings in the request:
    * - `logdir`
-   * - `tfversion`
+   * - `tfversion`, optional. TODO: consider deprecate
+   * - `image`, optional
+   * - `podtemplatespec`, optional
+   *
+   * image or tfversion should be specified.
    */
   const create: Handler = async (req, res) => {
-    const { logdir, namespace, tfversion } = req.query;
+    const { logdir, namespace, tfversion, image, podtemplatespec: podTemplateSpecRaw } = req.query;
     if (!logdir) {
       res.status(400).send('logdir argument is required');
       return;
@@ -75,9 +79,22 @@ export const getTensorboardHandlers = (
       res.status(400).send('namespace argument is required');
       return;
     }
-    if (!tfversion) {
-      res.status(400).send('tfversion (tensorflow version) argument is required');
+    if (!tfversion && !image) {
+      res.status(400).send('missing required argument: tfversion (tensorflow version) or image');
       return;
+    }
+    if (tfversion && image) {
+      res.status(400).send('tfversion and image cannot be specified at the same time');
+      return;
+    }
+    let podTemplateSpec: any | undefined;
+    if (podTemplateSpecRaw) {
+      try {
+        podTemplateSpec = JSON.parse(podTemplateSpecRaw);
+      } catch (err) {
+        res.status(400).send(`podtemplatespec is not valid JSON: ${err}`);
+        return;
+      }
     }
 
     try {
@@ -96,9 +113,9 @@ export const getTensorboardHandlers = (
       await k8sHelper.newTensorboardInstance(
         logdir,
         namespace,
-        tensorboardConfig.tfImageName,
+        image || tensorboardConfig.tfImageName,
         tfversion,
-        tensorboardConfig.podTemplateSpec,
+        podTemplateSpec || tensorboardConfig.podTemplateSpec,
       );
       const tensorboardAddress = await k8sHelper.waitForTensorboardInstance(
         logdir,

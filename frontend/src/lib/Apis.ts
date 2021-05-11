@@ -257,26 +257,33 @@ export class Apis {
   public static getTensorboardApp(
     logdir: string,
     namespace: string,
-  ): Promise<{ podAddress: string; tfVersion: string }> {
-    return this._fetchAndParse<{ podAddress: string; tfVersion: string }>(
-      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}&namespace=${encodeURIComponent(
-        namespace,
-      )}`,
+  ): Promise<{ podAddress: string; tfVersion: string; image: string }> {
+    return this._fetchAndParse<{ podAddress: string; tfVersion: string; image: string }>(
+      `apps/tensorboard${buildQuery({ logdir, namespace })}`,
     );
   }
 
   /**
-   * Starts a deployment and service for Tensorboard given the logdir
+   * Starts a deployment and service for Tensorboard given the logdir.
    */
-  public static startTensorboardApp(
-    logdir: string,
-    tfversion: string,
-    namespace: string,
-  ): Promise<string> {
+  public static startTensorboardApp({
+    logdir,
+    namespace,
+    image,
+    podTemplateSpec,
+  }: {
+    logdir: string;
+    namespace: string;
+    image?: string;
+    podTemplateSpec?: any;
+  }): Promise<string> {
     return this._fetch(
-      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}&tfversion=${encodeURIComponent(
-        tfversion,
-      )}&namespace=${encodeURIComponent(namespace)}`,
+      `apps/tensorboard${buildQuery({
+        logdir,
+        namespace,
+        image,
+        podtemplatespec: podTemplateSpec && JSON.stringify(podTemplateSpec),
+      })}`,
       undefined,
       undefined,
       { headers: { 'content-type': 'application/json' }, method: 'POST' },

@@ -266,7 +266,6 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     const selectedExecution = mlmdExecutions?.find(
       execution => ExecutionHelpers.getKfpPod(execution) === selectedNodeId,
     );
-    // const selectedExecution = mlmdExecutions && mlmdExecutions.find(execution => execution.getPropertiesMap())
     const hasMetrics = runMetadata && runMetadata.metrics && runMetadata.metrics.length > 0;
     const visualizationCreatorConfig: VisualizationCreatorConfig = {
       allowCustomVisualizations,

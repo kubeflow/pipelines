@@ -241,9 +241,10 @@ def main():
     for arg in unknown_args:
 
         print(arg)
-        # Remove whitespace from arg.
 
+        # Remove whitespace from arg.
         arg = arg.strip()
+
         if "=" in arg:
             key, value = arg[2:].split("=")
             kwargs[key] = value
