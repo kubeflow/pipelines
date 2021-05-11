@@ -25,6 +25,14 @@ from google_cloud_pipeline_components.aiplatform import utils
 
 INIT_KEY = 'init'
 METHOD_KEY = 'method'
+AIPLATFORM_API_VERSION = 'v1'
+
+RESOURCE_PREFIX = {
+    "bigquery": "bq://",
+    "aiplatform": "aiplatform://",
+    "google_cloud_storage": "gs://",
+    "google_cloud_storage_gcs_fuse": "/gcs/",
+}
 
 
 def split_args(kwargs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
@@ -48,7 +56,7 @@ def split_args(kwargs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
 
 def write_to_artifact(executor_input, text):
-    """Write output to local artifact and methadata path (uses GCSFuse)."""
+    """Write output to local artifact and metadata path (uses GCSFuse)."""
 
     output_artifacts = {}
     for name, artifacts in executor_input.get('outputs', {}).get('artifacts',
@@ -60,13 +68,32 @@ def write_to_artifact(executor_input, text):
     executor_output = {}
     if output_artifacts:
         executor_output['artifacts'] = {}
+        uri_with_prefix = ""
 
-        # TODO - Support multiple outputs, current implmentation
+        # TODO - Support multiple outputs, current implementation.
+
         # sets all output uri's to text
         for name, artifact in output_artifacts.items():
+            # Add URI Prefix
+            # "aiplatform://API_VERSION/": For AI Platform resource names, current version is defined in AIPLATFORM_API_VERSION.
+            if aiplatform.utils.RESOURCE_NAME_PATTERN.match(text):
+                uri_with_prefix = f"{RESOURCE_PREFIX['aiplatform']}{AIPLATFORM_API_VERSION}/{text}"
+
+            # "gcs://": For Google Cloud Storage resources.
+            elif text.startswith(
+                    RESOURCE_PREFIX['google_cloud_storage_gcs_fuse']):
+                uri_with_prefix = text.replace(
+                    RESOURCE_PREFIX['google_cloud_storage_gcs_fuse'],
+                    RESOURCE_PREFIX.get("google_cloud_storage")
+                )
+
+            # "bq://": For BigQuery resources.
+            elif text.startswith(RESOURCE_PREFIX.get('bigquery')):
+                uri_with_prefix = text
+
             runtime_artifact = {
                 "name": artifact.get('name'),
-                "uri": text,
+                "uri": uri_with_prefix,
                 "metadata": artifact.get('metadata', {})
             }
             artifacts_list = {'artifacts': [runtime_artifact]}
@@ -84,16 +111,35 @@ def resolve_input_args(value, type_to_resolve):
     """If this is an input from Pipelines, read it directly from gcs."""
     if inspect.isclass(type_to_resolve) and issubclass(
             type_to_resolve, aiplatform.base.AiPlatformResourceNoun):
-        if value.startswith('/gcs/'):  # not a resource noun:
-            value = value[len('/gcs/'):]
+        # Remove '/gcs/' prefix before attempting to remove `aiplatform` prefix
+        if value.startswith(RESOURCE_PREFIX['google_cloud_storage_gcs_fuse']):
+            value = value[len(RESOURCE_PREFIX['google_cloud_storage_gcs_fuse']):
+                         ]
+        # Remove `aiplatform` prefix from resource name
+        if value.startswith(RESOURCE_PREFIX.get("aiplatform")):
+            prefix_str = f"{RESOURCE_PREFIX['aiplatform']}{AIPLATFORM_API_VERSION}/"
+            value = value[len(prefix_str):]
+
+    # No action needed for Google Cloud Storage prefix.
+    # No action needed for BigQuery resource names.
     return value
 
 
 def resolve_init_args(key, value):
     """Resolves Metadata/InputPath parameters to resource names."""
     if key.endswith('_name'):
-        if value.startswith('/gcs/'):  # not a resource noun
-            value = value[len('/gcs/'):]
+        # Remove '/gcs/' prefix before attempting to remove `aiplatform` prefix
+        if value.startswith(RESOURCE_PREFIX['google_cloud_storage_gcs_fuse']):
+            # not a resource noun, remove the /gcs/ prefix
+            value = value[len(RESOURCE_PREFIX['google_cloud_storage_gcs_fuse']):
+                         ]
+        # Remove `aiplatform` prefix from resource name
+        if value.startswith(RESOURCE_PREFIX.get("aiplatform")):
+            prefix_str = f"{RESOURCE_PREFIX['aiplatform']}{AIPLATFORM_API_VERSION}/"
+            value = value[len(prefix_str):]
+
+    # No action needed for Google Cloud Storage prefix.
+    # No action needed for BigQuery resource names.
     return value
 
 
@@ -130,7 +176,7 @@ def cast(value: str, annotation_type: Type[T]) -> T:
 def prepare_parameters(
     kwargs: Dict[str, Any], method: Callable, is_init: bool = False
 ):
-    """Prepares paramters passed into components before calling SDK.
+    """Prepares parameters passed into components before calling SDK.
 
     1. Determines the annotation type that should used with the parameter
     2. Reads input values if needed
@@ -169,6 +215,10 @@ def runner(cls_name, method_name, executor_input, kwargs):
 
     method = getattr(obj, method_name)
     prepare_parameters(serialized_args[METHOD_KEY], method, is_init=False)
+
+    print(
+        f"method:{method} is being called with parameters {serialized_args[METHOD_KEY]}"
+    )
     output = method(**serialized_args[METHOD_KEY])
 
     if output:
@@ -189,7 +239,12 @@ def main():
 
     key_value = None
     for arg in unknown_args:
+
         print(arg)
+
+        # Remove whitespace from arg.
+        arg = arg.strip()
+
         if "=" in arg:
             key, value = arg[2:].split("=")
             kwargs[key] = value

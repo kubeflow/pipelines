@@ -23,7 +23,7 @@ import docstring_parser
 from google.cloud import aiplatform
 import kfp
 from kfp import components
-from kfp.components.structures import ComponentSpec, ContainerImplementation, ContainerSpec, InputPathPlaceholder, InputSpec, InputValuePlaceholder, OutputPathPlaceholder, OutputSpec
+from kfp.components.structures import ComponentSpec, ContainerImplementation, ContainerSpec, InputPathPlaceholder, InputSpec, InputValuePlaceholder, OutputPathPlaceholder, OutputSpec, OutputUriPlaceholder, InputUriPlaceholder
 
 # prefix for keyword arguments to separate constructor and method args
 INIT_KEY = 'init'
@@ -464,16 +464,18 @@ def convert_method_to_component(
         output_metadata_name, output_metadata_type = map_resource_to_metadata_type(
             output_type
         )
-        output_specs.append(OutputSpec(
-            name=output_metadata_name,
-            type=output_metadata_type,
-        ))
+        output_specs.append(
+            OutputSpec(
+                name=output_metadata_name,
+                type=output_metadata_type,
+            )
+        )
 
         output_args = [
             '--executor_input',
             '{{$}}',
-            '--resource_name_output_artifact_path',
-            OutputPathPlaceholder(output_name=output_metadata_name),
+            '--resource_name_output_artifact_uri',
+            OutputUriPlaceholder(output_name=output_metadata_name),
         ]
 
     def make_args(args_to_serialize: Dict[str, Dict[str, Any]]) -> List[str]:
@@ -547,7 +549,7 @@ def convert_method_to_component(
                 )
                 input_args.append(f'--{prefix_key}.{component_param_name}')
                 if is_mb_sdk_resource_noun_type(param_type):
-                    input_args.append(InputPathPlaceholder(input_name=key))
+                    input_args.append(InputUriPlaceholder(input_name=key))
                 else:
                     input_args.append(InputValuePlaceholder(input_name=key))
 
@@ -566,19 +568,21 @@ def convert_method_to_component(
             name=f'{cls_name}-{method_name}',
             inputs=input_specs,
             outputs=output_specs,
-            implementation=ContainerImplementation(container=ContainerSpec(
-                image=DEFAULT_CONTAINER_IMAGE,
-                command=[
-                    'python3',
-                    '-m',
-                    'google_cloud_pipeline_components.aiplatform.remote_runner',
-                    '--cls_name',
-                    cls_name,
-                    '--method_name',
-                    method_name,
-                ],
-                args=make_args(serialized_args) + output_args + input_args,
-            ))
+            implementation=ContainerImplementation(
+                container=ContainerSpec(
+                    image=DEFAULT_CONTAINER_IMAGE,
+                    command=[
+                        'python3',
+                        '-m',
+                        'google_cloud_pipeline_components.aiplatform.remote_runner',
+                        '--cls_name',
+                        cls_name,
+                        '--method_name',
+                        method_name,
+                    ],
+                    args=make_args(serialized_args) + output_args + input_args,
+                )
+            )
         )
         component_path = tempfile.mktemp()
         component_spec.save(component_path)
