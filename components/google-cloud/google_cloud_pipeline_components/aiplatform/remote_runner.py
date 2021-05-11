@@ -199,9 +199,10 @@ def prepare_parameters(
             else:
                 value = cast(value, param_type)
             kwargs[key] = value
+            print("kwarg",key,value)
         print(
             key,
-            value,
+            param,
         )
 
 
