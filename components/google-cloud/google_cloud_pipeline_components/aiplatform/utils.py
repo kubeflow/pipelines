@@ -469,8 +469,8 @@ def convert_method_to_component(
         output_args = '\n'.join([
             '    - --executor_input',
             '    - "{{$}}"',
-            '    - --resource_name_output_artifact_path',
-            f'    - {{outputPath: {output_metadata_name}}}',
+            '    - --resource_name_output_artifact_uri',
+            f'    - {{outputUri: {output_metadata_name}}}',
         ])
 
     def make_args(args_to_serialize: Dict[str, Dict[str, Any]]) -> str:
