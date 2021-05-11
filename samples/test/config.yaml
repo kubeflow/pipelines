@@ -59,6 +59,8 @@
   path: samples.test.various_io_types
 - name: simple_pipeline_without_importer
   path: samples.test.simple_pipeline_without_importer_test
+- name: tensorboard_minio
+  path: samples.core.visualization.tensorboard_minio_test
 - name: lightweight_python_functions_v2_with_outputs
   path: samples.test.lightweight_python_functions_v2_with_outputs_test
 - name: lightweight_python_functions_v2_pipeline
