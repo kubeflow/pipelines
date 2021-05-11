@@ -199,7 +199,10 @@ def prepare_parameters(
             else:
                 value = cast(value, param_type)
             kwargs[key] = value
-            print(key, value)
+        print(
+            key,
+            value,
+        )
 
 
 def runner(cls_name, method_name, executor_input, kwargs):
@@ -214,7 +217,10 @@ def runner(cls_name, method_name, executor_input, kwargs):
 
     method = getattr(obj, method_name)
     prepare_parameters(serialized_args[METHOD_KEY], method, is_init=False)
+
+    print(f"running method {method} with:", **serialized_args[METHOD_KEY])
     output = method(**serialized_args[METHOD_KEY])
+    print("method completed successfully.")
 
     if output:
         write_to_artifact(executor_input, make_output(output))
