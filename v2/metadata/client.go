@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 
 	"github.com/golang/glog"
 	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
@@ -58,7 +59,14 @@ type Client struct {
 
 // NewClient creates a Client given the MLMD server address and port.
 func NewClient(serverAddress, serverPort string) (*Client, error) {
-	conn, err := grpc.Dial(fmt.Sprintf("%s:%s", serverAddress, serverPort), grpc.WithInsecure())
+	opts := []grpc_retry.CallOption{
+		grpc_retry.WithMax(5),
+	}
+	conn, err := grpc.Dial(fmt.Sprintf("%s:%s", serverAddress, serverPort),
+		grpc.WithInsecure(),
+		grpc.WithStreamInterceptor(grpc_retry.StreamClientInterceptor(opts...)),
+		grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(opts...)),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("metadata.NewClient() failed: %w", err)
 	}
