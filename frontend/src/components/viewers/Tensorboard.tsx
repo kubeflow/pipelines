@@ -58,6 +58,8 @@ export const css = stylesheet({
 export interface TensorboardViewerConfig extends ViewerConfig {
   url: string;
   namespace: string;
+  podTemplateSpec?: any; // JSON object of pod template spec
+  image?: string;
 }
 
 interface TensorboardViewerProps {
@@ -70,14 +72,15 @@ interface TensorboardViewerState {
   busy: boolean;
   deleteDialogOpen: boolean;
   podAddress: string;
-  tensorflowVersion: string;
+  tfImage: string;
   // When podAddress is not null, we need to further tell whether the TensorBoard pod is accessible or not
   tensorboardReady: boolean;
   errorMessage?: string;
 }
 
-// TODO(jingzhang36): we'll later parse Tensorboard version from mlpipeline-ui-metadata.json file.
-const DEFAULT_TENSORBOARD_VERSION = '2.0.0';
+// TODO: bump default version when https://github.com/kubeflow/pipelines/issues/5521
+// is resolved.
+const DEFAULT_TF_IMAGE = 'tensorflow/tensorflow:2.2.2';
 
 class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewerState> {
   timerID: NodeJS.Timeout;
@@ -89,7 +92,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
       busy: false,
       deleteDialogOpen: false,
       podAddress: '',
-      tensorflowVersion: DEFAULT_TENSORBOARD_VERSION,
+      tfImage: this._image() || DEFAULT_TF_IMAGE,
       tensorboardReady: false,
       errorMessage: undefined,
     };
@@ -115,11 +118,11 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     clearInterval(this.timerID);
   }
 
-  public handleVersionSelect = (e: React.ChangeEvent<{ name?: string; value: unknown }>): void => {
+  public handleImageSelect = (e: React.ChangeEvent<{ name?: string; value: unknown }>): void => {
     if (typeof e.target.value !== 'string') {
       throw new Error('Invalid event value type, expected string');
     }
-    this.setState({ tensorflowVersion: e.target.value });
+    this.setState({ tfImage: e.target.value });
   };
 
   public render(): JSX.Element {
@@ -130,7 +133,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
           <div>
             <div
               className={padding(20, 'b')}
-            >{`Tensorboard ${this.state.tensorflowVersion} is running for this output.`}</div>
+            >{`Tensorboard ${this.state.tfImage} is running for this output.`}</div>
             <a
               href={makeProxyUrl(this.state.podAddress)}
               target='_blank'
@@ -162,16 +165,14 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                 onClick={this._handleDeleteOpen}
                 color={'default'}
               >
-                Delete Tensorboard
+                Stop Tensorboard
               </Button>
               <Dialog
                 open={this.state.deleteDialogOpen}
                 onClose={this._handleDeleteClose}
                 aria-labelledby='dialog-title'
               >
-                <DialogTitle id='dialog-title'>
-                  {`Stop Tensorboard ${this.state.tensorflowVersion}?`}
-                </DialogTitle>
+                <DialogTitle id='dialog-title'>{`Stop Tensorboard?`}</DialogTitle>
                 <DialogContent>
                   <DialogContentText>
                     You can stop the current running tensorboard. The tensorboard viewer will also
@@ -205,35 +206,35 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
           <div>
             <div className={padding(30, 'b')}>
               <FormControl className={css.formControl}>
-                <InputLabel htmlFor='grouped-select'>TF Version</InputLabel>
+                <InputLabel htmlFor='viewer-tb-image-select'>TF Image</InputLabel>
                 <Select
                   className={css.select}
-                  value={this.state.tensorflowVersion}
-                  input={<Input id='grouped-select' />}
-                  onChange={this.handleVersionSelect}
+                  value={this.state.tfImage}
+                  input={<Input id='viewer-tb-image-select' />}
+                  onChange={this.handleImageSelect}
                 >
+                  {this._image() && <MenuItem value={this._image()}>{this._image()}</MenuItem>}
                   <ListSubheader>Tensoflow 1.x</ListSubheader>
-                  <MenuItem value={'1.4.0'}>TensorFlow 1.4.0</MenuItem>
-                  <MenuItem value={'1.5.0'}>TensorFlow 1.5.0</MenuItem>
-                  <MenuItem value={'1.6.0'}>TensorFlow 1.6.0</MenuItem>
-                  <MenuItem value={'1.7.0'}>TensorFlow 1.7.0</MenuItem>
-                  <MenuItem value={'1.8.0'}>TensorFlow 1.8.0</MenuItem>
-                  <MenuItem value={'1.9.0'}>TensorFlow 1.9.0</MenuItem>
-                  <MenuItem value={'1.10.0'}>TensorFlow 1.10.0</MenuItem>
-                  <MenuItem value={'1.11.0'}>TensorFlow 1.11.0</MenuItem>
-                  <MenuItem value={'1.12.0'}>TensorFlow 1.12.0</MenuItem>
-                  <MenuItem value={'1.13.2'}>TensorFlow 1.13.2</MenuItem>
-                  <MenuItem value={'1.14.0'}>TensorFlow 1.14.0</MenuItem>
-                  <MenuItem value={'1.15.0'}>TensorFlow 1.15.0</MenuItem>
+                  <MenuItem value={'tensorflow/tensorflow:1.7.1'}>TensorFlow 1.7.1</MenuItem>
+                  <MenuItem value={'tensorflow/tensorflow:1.8.0'}>TensorFlow 1.8.0</MenuItem>
+                  <MenuItem value={'tensorflow/tensorflow:1.9.0'}>TensorFlow 1.9.0</MenuItem>
+                  <MenuItem value={'tensorflow/tensorflow:1.10.1'}>TensorFlow 1.10.1</MenuItem>
+                  <MenuItem value={'tensorflow/tensorflow:1.11.0'}>TensorFlow 1.11.0</MenuItem>
+                  <MenuItem value={'tensorflow/tensorflow:1.12.3'}>TensorFlow 1.12.3</MenuItem>
+                  <MenuItem value={'tensorflow/tensorflow:1.13.2'}>TensorFlow 1.13.2</MenuItem>
+                  <MenuItem value={'tensorflow/tensorflow:1.14.0'}>TensorFlow 1.14.0</MenuItem>
+                  <MenuItem value={'tensorflow/tensorflow:1.15.5'}>TensorFlow 1.15.5</MenuItem>
                   <ListSubheader>TensorFlow 2.x</ListSubheader>
-                  <MenuItem value={'2.0.0'}>TensorFlow 2.0.0</MenuItem>
+                  <MenuItem value={'tensorflow/tensorflow:2.0.4'}>TensorFlow 2.0.4</MenuItem>
+                  <MenuItem value={'tensorflow/tensorflow:2.1.2'}>TensorFlow 2.1.2</MenuItem>
+                  <MenuItem value={'tensorflow/tensorflow:2.2.2'}>TensorFlow 2.2.2</MenuItem>
                 </Select>
               </FormControl>
             </div>
             <div>
               <BusyButton
                 className={commonCss.buttonAction}
-                disabled={!this.state.tensorflowVersion}
+                disabled={!this.state.tfImage}
                 onClick={this._startTensorboard}
                 busy={this.state.busy}
                 title={`Start ${this.props.configs.length > 1 ? 'Combined ' : ''}Tensorboard`}
@@ -263,6 +264,16 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     return urls.length === 1 ? urls[0] : urls.map((c, i) => `Series${i + 1}:` + c).join(',');
   }
 
+  private _podTemplateSpec(): any | undefined {
+    const podTemplateSpec = this.props.configs[0]?.podTemplateSpec;
+    // TODO: how to handle multiple config with different pod template specs?
+    return podTemplateSpec || undefined;
+  }
+
+  private _image(): string | undefined {
+    return this.props.configs[0]?.image || undefined;
+  }
+
   private async _checkTensorboardPodStatus(): Promise<void> {
     // If pod address is not null and tensorboard pod doesn't seem to be read, pull status again
     if (this.state.podAddress && !this.state.tensorboardReady) {
@@ -276,12 +287,13 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   private async _checkTensorboardApp(): Promise<void> {
     this.setState({ busy: true }, async () => {
       try {
-        const { podAddress, tfVersion } = await Apis.getTensorboardApp(
+        // TODO: parse tfImage here
+        const { podAddress, image } = await Apis.getTensorboardApp(
           this._buildUrl(),
           this._getNamespace(),
         );
         if (podAddress) {
-          this.setState({ busy: false, podAddress, tensorflowVersion: tfVersion });
+          this.setState({ busy: false, podAddress, tfImage: image });
         } else {
           // No existing pod
           this.setState({ busy: false });
@@ -295,11 +307,12 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   private _startTensorboard = async () => {
     this.setState({ busy: true, errorMessage: undefined }, async () => {
       try {
-        await Apis.startTensorboardApp(
-          this._buildUrl(),
-          this.state.tensorflowVersion,
-          this._getNamespace(),
-        );
+        await Apis.startTensorboardApp({
+          logdir: this._buildUrl(),
+          namespace: this._getNamespace(),
+          image: this.state.tfImage,
+          podTemplateSpec: this._podTemplateSpec(),
+        });
         this.setState({ busy: false, tensorboardReady: false }, () => {
           this._checkTensorboardApp();
         });
@@ -319,7 +332,6 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
           busy: false,
           deleteDialogOpen: false,
           podAddress: '',
-          tensorflowVersion: DEFAULT_TENSORBOARD_VERSION,
           tensorboardReady: false,
         });
       } catch (err) {

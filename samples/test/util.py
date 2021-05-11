@@ -15,6 +15,7 @@
 import json
 import logging
 import os
+import time
 import random
 from dataclasses import dataclass, asdict
 from pprint import pprint
@@ -31,9 +32,9 @@ MINUTE = 60
 # Add **kwargs, so that when new arguments are added, this doesn't fail for
 # unknown arguments.
 def _default_verify_func(
-        run_id: int, run: kfp_server_api.ApiRun,
-        mlmd_connection_config: metadata_store_pb2.MetadataStoreClientConfig,
-        **kwargs
+    run_id: int, run: kfp_server_api.ApiRun,
+    mlmd_connection_config: metadata_store_pb2.MetadataStoreClientConfig,
+    **kwargs
 ):
     assert run.status == 'Succeeded'
 
@@ -50,9 +51,9 @@ class TestCase:
     mode: kfp.dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE
     arguments: Optional[Dict[str, str]] = None
     verify_func: Callable[[
-                              int, kfp_server_api.ApiRun, kfp_server_api.
-            ApiRunDetail, metadata_store_pb2.MetadataStoreClientConfig
-                          ], None] = _default_verify_func
+        int, kfp_server_api.ApiRun, kfp_server_api.
+        ApiRunDetail, metadata_store_pb2.MetadataStoreClientConfig
+    ], None] = _default_verify_func
 
 
 def run_pipeline_func(test_cases: List[TestCase]):
@@ -63,9 +64,9 @@ def run_pipeline_func(test_cases: List[TestCase]):
     """
 
     def test_wrapper(
-            run_pipeline: Callable[[Callable, kfp.dsl.PipelineExecutionMode, dict],
-                                   kfp_server_api.ApiRunDetail],
-            mlmd_connection_config: metadata_store_pb2.MetadataStoreClientConfig,
+        run_pipeline: Callable[[Callable, kfp.dsl.PipelineExecutionMode, dict],
+                               kfp_server_api.ApiRunDetail],
+        mlmd_connection_config: metadata_store_pb2.MetadataStoreClientConfig,
     ):
         for case in test_cases:
             run_detail = run_pipeline(
@@ -94,26 +95,28 @@ def _retry_with_backoff(fn: Callable, retries=5, backoff_in_seconds=1):
     while True:
         try:
             return fn()
-        except:
+        except Exception as e:
             if i >= retries:
-                print(f"Failed after {retires} retries:")
+                print(f"Failed after {retries} retries:")
                 raise
             else:
-                sleep = (backoff_in_seconds * 2 ** i + random.uniform(0, 1))
-                print("  Sleep :", str(sleep) + "s")
+                print(e)
+                sleep = (backoff_in_seconds * 2**i + random.uniform(0, 1))
+                print("  Retry after ", str(sleep) + "s")
                 time.sleep(sleep)
                 i += 1
 
 
 def _run_test(callback):
+
     def main(
-            output_directory: Optional[str] = None,  # example
-            host: Optional[str] = None,
-            external_host: Optional[str] = None,
-            launcher_image: Optional['URI'] = None,
-            experiment: str = 'v2_sample_test_samples',
-            metadata_service_host: Optional[str] = None,
-            metadata_service_port: int = 8080,
+        output_directory: Optional[str] = None,  # example
+        host: Optional[str] = None,
+        external_host: Optional[str] = None,
+        launcher_image: Optional['URI'] = None,
+        experiment: str = 'v2_sample_test_samples',
+        metadata_service_host: Optional[str] = None,
+        metadata_service_port: int = 8080,
     ):
         """Test file CLI entrypoint used by Fire.
 
@@ -152,10 +155,10 @@ def _run_test(callback):
         client = kfp.Client(host=host)
 
         def run_pipeline(
-                pipeline_func: Callable,
-                mode: kfp.dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode.
-                    V2_COMPATIBLE,
-                arguments: dict = {},
+            pipeline_func: Callable,
+            mode: kfp.dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode.
+            V2_COMPATIBLE,
+            arguments: dict = {},
         ) -> kfp_server_api.ApiRunDetail:
             extra_arguments = {}
             if mode != kfp.dsl.PipelineExecutionMode.V1_LEGACY:
@@ -223,8 +226,8 @@ class KfpArtifact:
 
     @classmethod
     def new(
-            cls, mlmd_artifact: metadata_store_pb2.Artifact,
-            mlmd_artifact_type: metadata_store_pb2.ArtifactType
+        cls, mlmd_artifact: metadata_store_pb2.Artifact,
+        mlmd_artifact_type: metadata_store_pb2.ArtifactType
     ):
         custom_properties = {}
         for k, v in mlmd_artifact.custom_properties.items():
@@ -281,13 +284,13 @@ class KfpTask:
 
     @classmethod
     def new(
-            cls,
-            context: metadata_store_pb2.Context,
-            execution: metadata_store_pb2.Execution,
-            execution_types_by_id,  # dict[int, metadata_store_pb2.ExecutionType]
-            events_by_execution_id,  # dict[int, List[metadata_store_pb2.Event]]
-            artifacts_by_id,  # dict[int, metadata_store_pb2.Artifact]
-            artifact_types_by_id,  # dict[int, metadata_store_pb2.ArtifactType]
+        cls,
+        context: metadata_store_pb2.Context,
+        execution: metadata_store_pb2.Execution,
+        execution_types_by_id,  # dict[int, metadata_store_pb2.ExecutionType]
+        events_by_execution_id,  # dict[int, List[metadata_store_pb2.Event]]
+        artifacts_by_id,  # dict[int, metadata_store_pb2.Artifact]
+        artifact_types_by_id,  # dict[int, metadata_store_pb2.ArtifactType]
     ):
         execution_type = execution_types_by_id[execution.type_id]
         params = _parse_parameters(execution)
@@ -336,7 +339,8 @@ class KfpMlmdClient:
 
     def __init__(
         self,
-        mlmd_connection_config: Optional[metadata_store_pb2.MetadataStoreClientConfig] = None,
+        mlmd_connection_config: Optional[
+            metadata_store_pb2.MetadataStoreClientConfig] = None,
     ):
         if mlmd_connection_config is None:
             # default to value suitable for local testing
