@@ -215,7 +215,6 @@ def runner(cls_name, method_name, executor_input, kwargs):
     method = getattr(obj, method_name)
     prepare_parameters(serialized_args[METHOD_KEY], method, is_init=False)
 
-    print(f"method is called with:{serialized_args[METHOD_KEY]}")
     output = method(**serialized_args[METHOD_KEY])
 
     if output:
