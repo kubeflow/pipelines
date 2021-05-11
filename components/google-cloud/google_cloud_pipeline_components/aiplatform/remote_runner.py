@@ -114,9 +114,12 @@ def resolve_input_args(value, type_to_resolve):
         if value.startswith(RESOURCE_PREFIX.get("aiplatform")):
             prefix_str = f"{RESOURCE_PREFIX['aiplatform']}/{AIPLATFORM_API_VERSION}/"
             value = value[len(prefix_str):]
+        if value.startswith(RESOURCE_PREFIX['google_cloud_storage_gcs_fuse']):
+            # not a resource noun, remove the /gcs/ prefix
+            value = value[len(RESOURCE_PREFIX['google_cloud_storage_gcs_fuse']):
+                         ]
 
     # No action needed for Google Cloud Storage prefix.
-    # No action needed for Cloud Storage GCS Fuse prefix from the resource name.
     # No action needed for BigQuery resource names.
     return value
 
@@ -128,9 +131,12 @@ def resolve_init_args(key, value):
         if value.startswith(RESOURCE_PREFIX.get("aiplatform")):
             prefix_str = f"{RESOURCE_PREFIX['aiplatform']}/{AIPLATFORM_API_VERSION}/"
             value = value[len(prefix_str):]
+        if value.startswith(RESOURCE_PREFIX['google_cloud_storage_gcs_fuse']):
+            # not a resource noun, remove the /gcs/ prefix
+            value = value[len(RESOURCE_PREFIX['google_cloud_storage_gcs_fuse']):
+                         ]
 
     # No action needed for Google Cloud Storage prefix.
-    # No action needed for Cloud Storage GCS Fuse prefix from the resource name.
     # No action needed for BigQuery resource names.
     return value
 
