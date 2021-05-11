@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC. All Rights Reserved.
+# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -241,7 +241,7 @@ class UtilsTests(unittest.TestCase):
         )
         expected_results = "".join(
             "Test short description.\n"
-            "Long descirption\nArgs:\n"
+            "Long descirption\n\nArgs:\n"
             "    input:\n"
             "        input_name\n"
             "    input_param:\n"

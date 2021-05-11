@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Google LLC
+ * Copyright 2018-2019 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -266,7 +266,6 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     const selectedExecution = mlmdExecutions?.find(
       execution => ExecutionHelpers.getKfpPod(execution) === selectedNodeId,
     );
-    // const selectedExecution = mlmdExecutions && mlmdExecutions.find(execution => execution.getPropertiesMap())
     const hasMetrics = runMetadata && runMetadata.metrics && runMetadata.metrics.length > 0;
     const visualizationCreatorConfig: VisualizationCreatorConfig = {
       allowCustomVisualizations,

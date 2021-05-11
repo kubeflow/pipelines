@@ -17,6 +17,8 @@ source_root=$(pwd)
 
 # TODO(#5051) Unpin pip version once we figure out how to make the new dependency resolver in pip 20.3+ work in our case.
 python3 -m pip install --upgrade pip==20.2.3
+# Pin google-cloud-bigquery due to https://github.com/kubeflow/pipelines/issues/5614
+python3 -m pip install --upgrade google-cloud-bigquery==1.28.0
 python3 -m pip install -r "$source_root/sdk/python/requirements.txt"
 # Additional dependencies
 #pip3 install coverage==4.5.4 coveralls==1.9.2 six>=1.13.0
@@ -60,5 +62,6 @@ python3 kubeflow_v2_run_executor_test.py
 cd $source_root/tfx/tfx/orchestration/kubeflow/v2/file_based_example_gen
 python3 driver_test.py
 cd $source_root/tfx/tfx/examples/chicago_taxi_pipeline
-python3 taxi_pipeline_kubeflow_gcp_test.py
 python3 taxi_pipeline_kubeflow_local_test.py
+cd $source_root/tfx/tfx/examples/penguin
+python3 penguin_pipeline_kubeflow_gcp_test.py

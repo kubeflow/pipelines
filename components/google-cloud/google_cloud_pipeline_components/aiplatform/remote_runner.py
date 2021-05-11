@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC. All Rights Reserved.
+# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -199,6 +199,9 @@ def main():
             else:
                 kwargs[key_value] = arg
                 key_value = None
+
+    # Update user agent header for metrics reporting
+    aiplatform.constants.USER_AGENT_PRODUCT = "google-cloud-pipeline-components"
 
     print(runner(args.cls_name, args.method_name, executor_input, kwargs))
 

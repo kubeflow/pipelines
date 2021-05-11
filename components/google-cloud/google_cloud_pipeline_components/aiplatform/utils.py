@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC. All Rights Reserved.
+# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -345,7 +345,7 @@ def generate_docstring(
     if parsed_docstring.long_description:
         doc += f"{parsed_docstring.long_description}\n"
     if args_dict:
-        doc += "Args:\n"
+        doc += "\nArgs:\n"
         for key, val in args_dict.items():
             formated_description = val.replace("\n", "\n        ")
             doc = doc + f"    {key}:\n        {formated_description}\n"
@@ -362,7 +362,7 @@ def generate_docstring(
         raises_dict = {
             p.type_name: p.description for p in parsed_docstring.raises
         }
-        for key, val in args_dict.items():
+        for key, val in raises_dict.items():
             formated_description = val.replace("\n", "\n        ")
             doc = doc + f"    {key}:\n        {formated_description}\n"
     return doc

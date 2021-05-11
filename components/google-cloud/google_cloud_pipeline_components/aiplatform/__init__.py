@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC. All Rights Reserved.
+# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,6 +15,18 @@
 
 from google.cloud import aiplatform as aiplatform_sdk
 from google_cloud_pipeline_components.aiplatform import utils
+
+__all__ = [
+    'ImageDatasetCreateOp', 'TabularDatasetCreateOp', 'TextDatasetCreateOp',
+    'VideoDatasetCreateOp', 'ImageDatasetExportDataOp',
+    'TabularDatasetExportDataOp', 'TextDatasetExportDataOp',
+    'VideoDatasetExportDataOp', 'ImageDatasetImportDataOp',
+    'TextDatasetImportDataOp', 'VideoDatasetImportDataOp',
+    'CustomContainerTrainingJobRunOp', 'CustomPythonPackageTrainingJobRunOp',
+    'AutoMLImageTrainingJobRunOp', 'AutoMLTextTrainingJobRunOp',
+    'AutoMLTabularTrainingJobRunOp', 'AutoMLVideoTrainingJobRunOp',
+    'ModelDeployOp', 'ModelBatchPredictOp', 'ModelUploadOp', 'EndpointCreateOp'
+]
 
 ImageDatasetCreateOp = utils.convert_method_to_component(
     aiplatform_sdk.ImageDataset, aiplatform_sdk.ImageDataset.create

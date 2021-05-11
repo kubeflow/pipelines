@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC. All Rights Reserved.
+# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -287,13 +287,11 @@ class ComponetsCompileTest(unittest.TestCase):
             )
 
             endpoint_create_op = EndpointCreateOp(
-                project=self._project,
-                display_name=self._display_name
+                project=self._project, display_name=self._display_name
             )
 
             model_deploy_op = ModelDeployOp(
-                project=self._project,
-                model=model_upload_op.outputs["model"]
+                project=self._project, model=model_upload_op.outputs["model"]
             )
 
             batch_predict_op = ModelBatchPredictOp(
