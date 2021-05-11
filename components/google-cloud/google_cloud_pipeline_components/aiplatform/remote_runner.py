@@ -25,7 +25,7 @@ from google_cloud_pipeline_components.aiplatform import utils
 
 INIT_KEY = 'init'
 METHOD_KEY = 'method'
-AIPLATFORM_API_VERSION = 'v1beta1'
+AIPLATFORM_API_VERSION = 'v1'
 
 RESOURCE_PREFIX = {
     "bigquery": "bq://",
@@ -77,12 +77,14 @@ def write_to_artifact(executor_input, text):
             # Add URI Prefix
             # "aiplatform://API_VERSION/": For AI Platform resource names, current version is defined in AIPLATFORM_API_VERSION.
             if aiplatform.utils.RESOURCE_NAME_PATTERN.match(text):
-                uri_with_prefix = f"{RESOURCE_PREFIX['aiplatform']}/{AIPLATFORM_API_VERSION}/{text}"
+                uri_with_prefix = f"{RESOURCE_PREFIX['aiplatform']}{AIPLATFORM_API_VERSION}/{text}"
 
             # "gcs://": For Google Cloud Storage resources.
-            elif text.startswith('/gcs/'):
+            elif text.startswith(
+                    RESOURCE_PREFIX['google_cloud_storage_gcs_fuse']):
                 uri_with_prefix = text.replace(
-                    '/gcs/', RESOURCE_PREFIX.get("google_cloud_storage")
+                    RESOURCE_PREFIX['google_cloud_storage_gcs_fuse'],
+                    RESOURCE_PREFIX.get("google_cloud_storage")
                 )
 
             # "bq://": For BigQuery resources.
@@ -109,15 +111,14 @@ def resolve_input_args(value, type_to_resolve):
     """If this is an input from Pipelines, read it directly from gcs."""
     if inspect.isclass(type_to_resolve) and issubclass(
             type_to_resolve, aiplatform.base.AiPlatformResourceNoun):
-
-        # Remove AIPlatform prefix from resource name
-        if value.startswith(RESOURCE_PREFIX.get("aiplatform")):
-            prefix_str = f"{RESOURCE_PREFIX['aiplatform']}/{AIPLATFORM_API_VERSION}/"
-            value = value[len(prefix_str):]
+        # Remove '/gcs/' prefix before attempting to remove `aiplatform` prefix
         if value.startswith(RESOURCE_PREFIX['google_cloud_storage_gcs_fuse']):
-            # not a resource noun, remove the /gcs/ prefix
             value = value[len(RESOURCE_PREFIX['google_cloud_storage_gcs_fuse']):
                          ]
+        # Remove `aiplatform` prefix from resource name
+        if value.startswith(RESOURCE_PREFIX.get("aiplatform")):
+            prefix_str = f"{RESOURCE_PREFIX['aiplatform']}{AIPLATFORM_API_VERSION}/"
+            value = value[len(prefix_str):]
 
     # No action needed for Google Cloud Storage prefix.
     # No action needed for BigQuery resource names.
@@ -127,14 +128,15 @@ def resolve_input_args(value, type_to_resolve):
 def resolve_init_args(key, value):
     """Resolves Metadata/InputPath parameters to resource names."""
     if key.endswith('_name'):
-        # Remove AIPlatform prefix from resource name
-        if value.startswith(RESOURCE_PREFIX.get("aiplatform")):
-            prefix_str = f"{RESOURCE_PREFIX['aiplatform']}/{AIPLATFORM_API_VERSION}/"
-            value = value[len(prefix_str):]
+        # Remove '/gcs/' prefix before attempting to remove `aiplatform` prefix
         if value.startswith(RESOURCE_PREFIX['google_cloud_storage_gcs_fuse']):
             # not a resource noun, remove the /gcs/ prefix
             value = value[len(RESOURCE_PREFIX['google_cloud_storage_gcs_fuse']):
                          ]
+        # Remove `aiplatform` prefix from resource name
+        if value.startswith(RESOURCE_PREFIX.get("aiplatform")):
+            prefix_str = f"{RESOURCE_PREFIX['aiplatform']}{AIPLATFORM_API_VERSION}/"
+            value = value[len(prefix_str):]
 
     # No action needed for Google Cloud Storage prefix.
     # No action needed for BigQuery resource names.
@@ -199,7 +201,6 @@ def prepare_parameters(
             else:
                 value = cast(value, param_type)
             kwargs[key] = value
-            print(key, value)
 
 
 def runner(cls_name, method_name, executor_input, kwargs):
@@ -215,6 +216,9 @@ def runner(cls_name, method_name, executor_input, kwargs):
     method = getattr(obj, method_name)
     prepare_parameters(serialized_args[METHOD_KEY], method, is_init=False)
 
+    print(
+        f"method:{method} is being called with parameters {serialized_args[METHOD_KEY]}"
+    )
     output = method(**serialized_args[METHOD_KEY])
 
     if output:

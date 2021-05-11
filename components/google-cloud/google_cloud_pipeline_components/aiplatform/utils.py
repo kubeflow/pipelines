@@ -532,7 +532,7 @@ def convert_method_to_component(
                           kfp.dsl._pipeline_param.PipelineParam) or serializer:
                 if is_mb_sdk_resource_noun_type(param_type):
                     metadata_type = map_resource_to_metadata_type(param_type)[1]
-                    component_param_type, component_type = metadata_type, 'inputPath'
+                    component_param_type, component_type = metadata_type, 'inputUri'
                 else:
                     component_param_type, component_type = 'String', 'inputValue'
 
