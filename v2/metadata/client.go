@@ -35,7 +35,7 @@ const (
 	pipelineContextTypeName    = "kfp.Pipeline"
 	pipelineRunContextTypeName = "kfp.PipelineRun"
 	containerExecutionTypeName = "kfp.ContainerExecution"
-	metadataClientSideMaxRetries = 3
+	mlmdClientSideMaxRetries = 3
 )
 
 var (
@@ -61,7 +61,7 @@ type Client struct {
 // NewClient creates a Client given the MLMD server address and port.
 func NewClient(serverAddress, serverPort string) (*Client, error) {
 	opts := []grpc_retry.CallOption{
-		grpc_retry.WithMax(metadataClientSideMaxRetries),
+		grpc_retry.WithMax(mlmdClientSideMaxRetries),
 	}
 	conn, err := grpc.Dial(fmt.Sprintf("%s:%s", serverAddress, serverPort),
 		grpc.WithInsecure(),
