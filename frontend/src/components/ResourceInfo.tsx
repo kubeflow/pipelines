@@ -24,6 +24,7 @@ export const css = stylesheet({
   field: {
     flexBasis: '300px',
     marginBottom: '32px',
+    padding: '4px',
   },
   resourceInfo: {
     display: 'flex',
@@ -91,9 +92,11 @@ export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
             // TODO: __ALL_META__ is something of a hack, is redundant, and can be ignored
             .filter(k => k[0] !== '__ALL_META__')
             .map(k => (
-              <div className={css.field} key={k[0]}>
-                <dt className={css.term}>{k[0]}</dt>
-                <dd className={css.value}>
+              <div className={css.field} key={k[0]} data-testid='resource-info-property'>
+                <dt className={css.term} data-testid='resource-info-property-key'>
+                  {k[0]}
+                </dt>
+                <dd className={css.value} data-testid='resource-info-property-value'>
                   {propertyMap && prettyPrintValue(getMetadataValue(propertyMap.get(k[0])))}
                 </dd>
               </div>
@@ -102,9 +105,11 @@ export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
         <h2 className={commonCss.header2}>Custom Properties</h2>
         <dl className={css.resourceInfo}>
           {customPropertyMap.getEntryList().map(k => (
-            <div className={css.field} key={k[0]}>
-              <dt className={css.term}>{k[0]}</dt>
-              <dd className={css.value}>
+            <div className={css.field} key={k[0]} data-testid='resource-info-property'>
+              <dt className={css.term} data-testid='resource-info-property-key'>
+                {k[0]}
+              </dt>
+              <dd className={css.value} data-testid='resource-info-property-value'>
                 {customPropertyMap &&
                   prettyPrintValue(getMetadataValue(customPropertyMap.get(k[0])))}
               </dd>
@@ -129,7 +134,11 @@ function prettyPrintValue(
     return value;
   }
   // value is Struct
-  return value.toString();
+  const jsObject = value.toJavaScript();
+  // When Struct is converted to js object, it may contain a top level "struct"
+  // or "list" key depending on its type, but the key is meaningless and we can
+  // omit it in visualization.
+  return <pre>{JSON.stringify(jsObject?.struct || jsObject?.list || jsObject, null, 2)}</pre>;
 }
 
 function prettyPrintJsonValue(value: string): JSX.Element | string {
