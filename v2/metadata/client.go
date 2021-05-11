@@ -35,7 +35,7 @@ const (
 	pipelineContextTypeName    = "kfp.Pipeline"
 	pipelineRunContextTypeName = "kfp.PipelineRun"
 	containerExecutionTypeName = "kfp.ContainerExecution"
-	mlmdClientSideMaxRetries = 3
+	mlmdClientSideMaxRetries = 5
 )
 
 var (
