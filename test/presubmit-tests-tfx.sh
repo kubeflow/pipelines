@@ -62,5 +62,6 @@ python3 kubeflow_v2_run_executor_test.py
 cd $source_root/tfx/tfx/orchestration/kubeflow/v2/file_based_example_gen
 python3 driver_test.py
 cd $source_root/tfx/tfx/examples/chicago_taxi_pipeline
-python3 taxi_pipeline_kubeflow_gcp_test.py
 python3 taxi_pipeline_kubeflow_local_test.py
+cd $source_root/tfx/tfx/examples/penguin
+python3 penguin_pipeline_kubeflow_gcp_test.py
