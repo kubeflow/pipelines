@@ -239,13 +239,17 @@ def main():
 
     key_value = None
     for arg in unknown_args:
+
         print(arg)
+        # Remove whitespace from arg.
+
+        arg = arg.strip()
         if "=" in arg:
             key, value = arg[2:].split("=")
-            kwargs[key] = value.strip()
+            kwargs[key] = value
         else:
             if not key_value:
-                key_value = arg[2:].strip()
+                key_value = arg[2:]
             else:
                 kwargs[key_value] = arg
                 key_value = None
