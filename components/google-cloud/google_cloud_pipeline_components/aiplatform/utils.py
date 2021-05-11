@@ -16,12 +16,14 @@
 import collections
 import inspect
 import json
-from typing import Any, Callable, Dict, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+import tempfile
 import docstring_parser
 
 from google.cloud import aiplatform
 import kfp
 from kfp import components
+from kfp.components.structures import ComponentSpec, ContainerImplementation, ContainerSpec, InputPathPlaceholder, InputSpec, InputValuePlaceholder, OutputPathPlaceholder, OutputSpec
 
 # prefix for keyword arguments to separate constructor and method args
 INIT_KEY = 'init'
@@ -456,26 +458,26 @@ def convert_method_to_component(
 
     # determines outputs for this component
     output_type = resolve_annotation(method_signature.return_annotation)
-    outputs = ''
-    output_args = ''
+    output_specs = []
+    output_args = []
     if output_type:
         output_metadata_name, output_metadata_type = map_resource_to_metadata_type(
             output_type
         )
-        outputs = '\n'.join([
-            'outputs:',
-            f'- {{name: {output_metadata_name}, type: {output_metadata_type}}}'
-        ])
-        output_args = '\n'.join([
-            '    - --executor_input',
-            '    - "{{$}}"',
-            '    - --resource_name_output_artifact_path',
-            f'    - {{outputPath: {output_metadata_name}}}',
-        ])
+        output_specs.append(OutputSpec(
+            name=output_metadata_name,
+            type=output_metadata_type,
+        ))
 
-    def make_args(args_to_serialize: Dict[str, Dict[str, Any]]) -> str:
-        """Takes the args dictionary and return serialized Component string for
-        args.
+        output_args = [
+            '--executor_input',
+            '{{$}}',
+            '--resource_name_output_artifact_path',
+            OutputPathPlaceholder(output_name=output_metadata_name),
+        ]
+
+    def make_args(args_to_serialize: Dict[str, Dict[str, Any]]) -> List[str]:
+        """Takes the args dictionary and returns command-line args.
 
         Args:
             args_to_serialize: Dictionary of format
@@ -486,11 +488,12 @@ def convert_method_to_component(
         additional_args = []
         for key, args in args_to_serialize.items():
             for arg_key, value in args.items():
-                additional_args.append(f"    - --{key}.{arg_key}={value}")
-        return '\n'.join(additional_args)
+                additional_args.append(f'--{key}.{arg_key}')
+                additional_args.append(value)
+        return additional_args
 
     def component_yaml_generator(**kwargs):
-        inputs = ["inputs:"]
+        input_specs = []
         input_args = []
         input_kwargs = {}
 
@@ -532,21 +535,26 @@ def convert_method_to_component(
                           kfp.dsl._pipeline_param.PipelineParam) or serializer:
                 if is_mb_sdk_resource_noun_type(param_type):
                     metadata_type = map_resource_to_metadata_type(param_type)[1]
-                    component_param_type, component_type = metadata_type, 'inputPath'
+                    component_param_type = metadata_type
                 else:
-                    component_param_type, component_type = 'String', 'inputValue'
+                    component_param_type = 'String'
 
-                inputs.append(
-                    f"- {{name: {key}, type: {component_param_type}}}"
+                input_specs.append(
+                    InputSpec(
+                        name=key,
+                        type=component_param_type,
+                    )
                 )
-                input_args.append(
-                    '\n'.join([
-                        f'    - --{prefix_key}.{component_param_name}',
-                        f'    - {{{component_type}: {key}}}'
-                    ])
-                )
+                input_args.append(f'--{prefix_key}.{component_param_name}')
+                if is_mb_sdk_resource_noun_type(param_type):
+                    input_args.append(InputPathPlaceholder(input_name=key))
+                else:
+                    input_args.append(InputValuePlaceholder(input_name=key))
+
                 input_kwargs[key] = value
             else:
+                # Serialized arguments must always be strings
+                value = str(value)
                 serialized_args[prefix_key][component_param_name] = value
 
         # validate parameters
@@ -554,23 +562,28 @@ def convert_method_to_component(
             init_signature.bind(**init_kwargs)
         method_signature.bind(**method_kwargs)
 
-        inputs = "\n".join(inputs) if len(inputs) > 1 else ''
-        input_args = "\n".join(input_args) if input_args else ''
-        component_text = "\n".join([
-            f'name: {cls_name}-{method_name}', f'{inputs}', outputs,
-            'implementation:', '  container:',
-            f'    image: {DEFAULT_CONTAINER_IMAGE}', '    command:',
-            '    - python3', '    - -m',
-            '    - google_cloud_pipeline_components.aiplatform.remote_runner',
-            f'    - --cls_name={cls_name}',
-            f'    - --method_name={method_name}',
-            f'{make_args(serialized_args)}', '    args:', output_args,
-            f'{input_args}'
-        ])
+        component_spec = ComponentSpec(
+            name=f'{cls_name}-{method_name}',
+            inputs=input_specs,
+            outputs=output_specs,
+            implementation=ContainerImplementation(container=ContainerSpec(
+                image=DEFAULT_CONTAINER_IMAGE,
+                command=[
+                    'python3',
+                    '-m',
+                    'google_cloud_pipeline_components.aiplatform.remote_runner',
+                    '--cls_name',
+                    cls_name,
+                    '--method_name',
+                    method_name,
+                ],
+                args=make_args(serialized_args) + output_args + input_args,
+            ))
+        )
+        component_path = tempfile.mktemp()
+        component_spec.save(component_path)
 
-        print(component_text)
-
-        return components.load_component_from_text(component_text)(
+        return components.load_component_from_file(component_path)(
             **input_kwargs
         )
 
