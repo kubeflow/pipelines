@@ -203,18 +203,18 @@ def prepare_parameters(
                 value = cast(value, param_type)
 
             try:
-                # Attemp at converting string to list or dict:
+                # Attempt at converting String to list:
                 # Some parameters accept union[str, sequence[str]]
                 # For these serialization with json is not possible as
-                # component yaml conversion swaps double quote and single
-                # quotes in resulting in `JSON.Loads` loading such a list as
-                # a string. Using ast.literal_eval to attempt to convert the
-                # str back to python literals.
+                # component yaml conversion swaps double and single
+                # quotes resulting in `JSON.Loads` loading such a list as
+                # a String. Using ast.literal_eval to attempt to convert the
+                # str back to a python List.
                 value = ast.literal_eval(value)
                 print(f"Conversion for value succeeded for value: {value}")
             except:
-                # The input was actually a string and not a List,
-                #  no additional are required.
+                # The input was actually a String and not a List,
+                # no additional transformations are required.
                 pass
 
             kwargs[key] = value
