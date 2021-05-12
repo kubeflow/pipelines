@@ -13,8 +13,8 @@
 # limitations under the License.
 """Module for remote execution of AI Platform pipeline component."""
 
-import ast
 import argparse
+import ast
 from distutils import util as distutil
 import inspect
 import json
@@ -211,7 +211,8 @@ def prepare_parameters(
                 # a string. Using ast.literal_eval to attempt to convert the
                 # str back to python literals.
                 value = ast.literal_eval(value)
-            except ValueError:
+                print(f"Conversion for value succeeded for value: {value}")
+            except:
                 # The input was actually a string and not a List,
                 #  no additional are required.
                 pass
