@@ -14,6 +14,7 @@
 """Module for remote execution of AI Platform pipeline component."""
 
 import argparse
+import ast
 from distutils import util as distutil
 import inspect
 import json
@@ -200,6 +201,22 @@ def prepare_parameters(
                 value = deserializer(value)
             else:
                 value = cast(value, param_type)
+
+            try:
+                # Attempt at converting String to list:
+                # Some parameters accept union[str, sequence[str]]
+                # For these serialization with json is not possible as
+                # component yaml conversion swaps double and single
+                # quotes resulting in `JSON.Loads` loading such a list as
+                # a String. Using ast.literal_eval to attempt to convert the
+                # str back to a python List.
+                value = ast.literal_eval(value)
+                print(f"Conversion for value succeeded for value: {value}")
+            except:
+                # The input was actually a String and not a List,
+                # no additional transformations are required.
+                pass
+
             kwargs[key] = value
 
 
