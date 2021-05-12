@@ -205,7 +205,7 @@ def prepare_parameters(
             try:
                 # Attemp at converting string to list or dict:
                 # Some parameters accept union[str, sequence[str]]
-                # For these serialization with json is not possible as 
+                # For these serialization with json is not possible as
                 # component yaml conversion swaps double quote and single
                 # quotes in resulting in `JSON.Loads` loading such a list as
                 # a string. Using ast.literal_eval to attempt to convert the
