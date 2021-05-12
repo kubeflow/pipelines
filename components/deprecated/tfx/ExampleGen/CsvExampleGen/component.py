@@ -5,8 +5,6 @@ def CsvExampleGen(
     input_base: str,
     input_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.Input'}},
     output_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.Output'}},
-    output_data_format: int,
-    custom_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.CustomConfig'}} = None,
     range_config: {'JsonObject': {'data_type': 'proto:tfx.configs.RangeConfig'}} = None,
 ):
     from tfx.components.example_gen.csv_example_gen.component import CsvExampleGen as component_class

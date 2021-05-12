@@ -8,11 +8,6 @@ inputs:
 - name: output_config
   type:
     JsonObject: {data_type: 'proto:tfx.components.example_gen.Output'}
-- {name: output_data_format, type: Integer}
-- name: custom_config
-  type:
-    JsonObject: {data_type: 'proto:tfx.components.example_gen.CustomConfig'}
-  optional: true
 - name: range_config
   type:
     JsonObject: {data_type: 'proto:tfx.configs.RangeConfig'}
@@ -36,8 +31,6 @@ implementation:
           input_base,
           input_config,
           output_config,
-          output_data_format,
-          custom_config = None,
           range_config = None,
           beam_pipeline_args = None,
       ):
@@ -118,8 +111,6 @@ implementation:
       _parser.add_argument("--input-base", dest="input_base", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--input-config", dest="input_config", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--output-config", dest="output_config", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--output-data-format", dest="output_data_format", type=int, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--custom-config", dest="custom_config", type=str, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--range-config", dest="range_config", type=str, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--beam-pipeline-args", dest="beam_pipeline_args", type=json.loads, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
@@ -150,13 +141,6 @@ implementation:
     - {inputValue: input_config}
     - --output-config
     - {inputValue: output_config}
-    - --output-data-format
-    - {inputValue: output_data_format}
-    - if:
-        cond: {isPresent: custom_config}
-        then:
-        - --custom-config
-        - {inputValue: custom_config}
     - if:
         cond: {isPresent: range_config}
         then:

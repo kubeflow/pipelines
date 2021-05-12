@@ -4,7 +4,6 @@ def StatisticsGen(
     examples_uri: 'ExamplesUri',
     output_statistics_uri: 'ExampleStatisticsUri',
     schema_uri: 'SchemaUri' = None,
-    stats_options_json: str = None,
     exclude_splits: str = None,
     beam_pipeline_args: list = None,
 ) -> NamedTuple('Outputs', [

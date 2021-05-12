@@ -4,7 +4,6 @@ def StatisticsGen(
     examples_path: InputPath('Examples'),
     statistics_path: OutputPath('ExampleStatistics'),
     schema_path: InputPath('Schema') = None,
-    stats_options_json: str = None,
     exclude_splits: str = None,
 ):
     from tfx.components.statistics_gen.component import StatisticsGen as component_class

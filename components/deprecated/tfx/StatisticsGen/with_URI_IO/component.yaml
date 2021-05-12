@@ -3,7 +3,6 @@ inputs:
 - {name: examples_uri, type: ExamplesUri}
 - {name: output_statistics_uri, type: ExampleStatisticsUri}
 - {name: schema_uri, type: SchemaUri, optional: true}
-- {name: stats_options_json, type: String, optional: true}
 - {name: exclude_splits, type: String, optional: true}
 - {name: beam_pipeline_args, type: JsonArray, optional: true}
 outputs:
@@ -23,7 +22,6 @@ implementation:
           examples_uri,
           output_statistics_uri,
           schema_uri = None,
-          stats_options_json = None,
           exclude_splits = None,
           beam_pipeline_args = None,
       ):
@@ -103,7 +101,6 @@ implementation:
       _parser.add_argument("--examples-uri", dest="examples_uri", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--output-statistics-uri", dest="output_statistics_uri", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--schema-uri", dest="schema_uri", type=str, required=False, default=argparse.SUPPRESS)
-      _parser.add_argument("--stats-options-json", dest="stats_options_json", type=str, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--exclude-splits", dest="exclude_splits", type=str, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--beam-pipeline-args", dest="beam_pipeline_args", type=json.loads, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
@@ -135,11 +132,6 @@ implementation:
         then:
         - --schema-uri
         - {inputValue: schema_uri}
-    - if:
-        cond: {isPresent: stats_options_json}
-        then:
-        - --stats-options-json
-        - {inputValue: stats_options_json}
     - if:
         cond: {isPresent: exclude_splits}
         then:

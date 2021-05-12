@@ -6,11 +6,6 @@ inputs:
 - name: output_config
   type:
     JsonObject: {data_type: 'proto:tfx.components.example_gen.Output'}
-- {name: output_data_format, type: Integer}
-- name: custom_config
-  type:
-    JsonObject: {data_type: 'proto:tfx.components.example_gen.CustomConfig'}
-  optional: true
 outputs:
 - {name: examples, type: Examples}
 implementation:
@@ -33,8 +28,6 @@ implementation:
           examples_path,
           input_config,
           output_config,
-          output_data_format,
-          custom_config = None,
       ):
           from tfx.extensions.google_cloud_big_query.example_gen.component import BigQueryExampleGen as component_class
 
@@ -108,8 +101,6 @@ implementation:
       _parser = argparse.ArgumentParser(prog='BigQueryExampleGen', description='')
       _parser.add_argument("--input-config", dest="input_config", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--output-config", dest="output_config", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--output-data-format", dest="output_data_format", type=int, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--custom-config", dest="custom_config", type=str, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--examples", dest="examples_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
       _parsed_args = vars(_parser.parse_args())
 
@@ -119,12 +110,5 @@ implementation:
     - {inputValue: input_config}
     - --output-config
     - {inputValue: output_config}
-    - --output-data-format
-    - {inputValue: output_data_format}
-    - if:
-        cond: {isPresent: custom_config}
-        then:
-        - --custom-config
-        - {inputValue: custom_config}
     - --examples
     - {outputPath: examples}

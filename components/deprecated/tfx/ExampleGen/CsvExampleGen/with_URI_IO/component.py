@@ -5,8 +5,6 @@ def CsvExampleGen(
     input_base: str,
     input_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.Input'}},
     output_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.Output'}},
-    output_data_format: int,
-    custom_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.CustomConfig'}} = None,
     range_config: {'JsonObject': {'data_type': 'proto:tfx.configs.RangeConfig'}} = None,
     beam_pipeline_args: list = None,
 ) -> NamedTuple('Outputs', [

@@ -4,8 +4,6 @@ def BigQueryExampleGen(
     examples_path: OutputPath('Examples'),
     input_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.Input'}},
     output_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.Output'}},
-    output_data_format: int,
-    custom_config: {'JsonObject': {'data_type': 'proto:tfx.components.example_gen.CustomConfig'}} = None,
 ):
     from tfx.extensions.google_cloud_big_query.example_gen.component import BigQueryExampleGen as component_class
 

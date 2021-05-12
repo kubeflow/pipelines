@@ -2,7 +2,6 @@ name: StatisticsGen
 inputs:
 - {name: examples, type: Examples}
 - {name: schema, type: Schema, optional: true}
-- {name: stats_options_json, type: String, optional: true}
 - {name: exclude_splits, type: String, optional: true}
 outputs:
 - {name: statistics, type: ExampleStatistics}
@@ -26,7 +25,6 @@ implementation:
           examples_path,
           statistics_path,
           schema_path = None,
-          stats_options_json = None,
           exclude_splits = None,
       ):
           from tfx.components.statistics_gen.component import StatisticsGen as component_class
@@ -101,7 +99,6 @@ implementation:
       _parser = argparse.ArgumentParser(prog='StatisticsGen', description='')
       _parser.add_argument("--examples", dest="examples_path", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--schema", dest="schema_path", type=str, required=False, default=argparse.SUPPRESS)
-      _parser.add_argument("--stats-options-json", dest="stats_options_json", type=str, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--exclude-splits", dest="exclude_splits", type=str, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--statistics", dest="statistics_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
       _parsed_args = vars(_parser.parse_args())
@@ -115,11 +112,6 @@ implementation:
         then:
         - --schema
         - {inputPath: schema}
-    - if:
-        cond: {isPresent: stats_options_json}
-        then:
-        - --stats-options-json
-        - {inputValue: stats_options_json}
     - if:
         cond: {isPresent: exclude_splits}
         then:
