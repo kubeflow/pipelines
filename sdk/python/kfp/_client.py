@@ -559,7 +559,16 @@ class Client(object):
     )
 
   # TODO: provide default namespace, similar to kubectl default namespaces.
-  def run_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None, version_id=None):
+  def run_pipeline(
+      self,
+      experiment_id: str,
+      job_name: str,
+      pipeline_package_path: Optional[str] = None,
+      params: Optional[dict] = None,
+      pipeline_id: Optional[str] = None,
+      version_id: Optional[str] = None,
+      pipeline_root: Optional[str] = None,
+  ):
     """Run a specified pipeline.
 
     Args:
@@ -571,10 +580,20 @@ class Client(object):
       version_id: The id of a pipeline version.
         If both pipeline_id and version_id are specified, version_id will take precendence.
         If only pipeline_id is specified, the default version of this pipeline is used to create the run.
+      pipeline_root: The root path of the pipeline outputs. This argument should
+        be used only for pipeline compiled with
+        dsl.PipelineExecutionMode.V2_COMPATIBLE or
+        dsl.PipelineExecutionMode.V2_ENGINGE mode.
 
     Returns:
       A run object. Most important field is id.
     """
+    if params is None:
+      params = {}
+
+    if pipeline_root is not None:
+      params[dsl.ROOT_PARAMETER_NAME] = pipeline_root
+
     job_config = self._create_job_config(
       experiment_id=experiment_id,
       params=params,
@@ -711,7 +730,9 @@ class Client(object):
       pipeline_conf: Optional[dsl.PipelineConf] = None,
       namespace: Optional[str] = None,
       mode: dsl.PipelineExecutionMode = dsl.PipelineExecutionMode.V1_LEGACY,
-      launcher_image: Optional[str] = None):
+      launcher_image: Optional[str] = None,
+      pipeline_root: Optional[str] = None,
+  ):
     """Runs pipeline on KFP-enabled Kubernetes cluster.
 
     This command compiles the pipeline function, creates or gets an experiment and submits the pipeline for execution.
@@ -731,7 +752,15 @@ class Client(object):
       launcher_image: The launcher image to use if the mode is specified as
         PipelineExecutionMode.V2_COMPATIBLE. Should only be needed for tests
         or custom deployments right now.
+      pipeline_root: The root path of the pipeline outputs. This argument should
+        be used only for pipeline compiled with
+        dsl.PipelineExecutionMode.V2_COMPATIBLE or
+        dsl.PipelineExecutionMode.V2_ENGINGE mode.
     """
+    if pipeline_root is not None and mode == dsl.PipelineExecutionMode.V1_LEGACY:
+      raise ValueError('`pipeline_root` should not be used with '
+                       'dsl.PipelineExecutionMode.V1_LEGACY mode.')
+
     #TODO: Check arguments against the pipeline function
     pipeline_name = pipeline_func.__name__
     run_name = run_name or pipeline_name + ' ' + datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
@@ -747,7 +776,9 @@ class Client(object):
         arguments=arguments,
         run_name=run_name,
         experiment_name=experiment_name,
-        namespace=namespace)
+        namespace=namespace,
+        pipeline_root=pipeline_root,
+      )
 
   def create_run_from_pipeline_package(
       self,
@@ -755,7 +786,9 @@ class Client(object):
       arguments: Mapping[str, str],
       run_name: Optional[str] = None,
       experiment_name: Optional[str] = None,
-      namespace: Optional[str] = None):
+      namespace: Optional[str] = None,
+      pipeline_root: Optional[str] = None,
+  ):
     """Runs pipeline on KFP-enabled Kubernetes cluster.
 
     This command takes a local pipeline package, creates or gets an experiment
@@ -769,6 +802,10 @@ class Client(object):
       namespace: Kubernetes namespace where the pipeline runs are created.
         For single user deployment, leave it as None;
         For multi user, input a namespace where the user is authorized
+      pipeline_root: The root path of the pipeline outputs. This argument should
+        be used only for pipeline compiled with
+        dsl.PipelineExecutionMode.V2_COMPATIBLE or
+        dsl.PipelineExecutionMode.V2_ENGINGE mode.
     """
 
     class RunPipelineResult:
@@ -796,7 +833,12 @@ class Client(object):
                             datetime.datetime.now().strftime(
                                 '%Y-%m-%d %H-%M-%S'))
     experiment = self.create_experiment(name=experiment_name, namespace=namespace)
-    run_info = self.run_pipeline(experiment.id, run_name, pipeline_file, arguments)
+    run_info = self.run_pipeline(
+        experiment_id=experiment.id,
+        job_name=run_name,
+        pipeline_package_path=pipeline_file,
+        params=arguments,
+        pipeline_root=pipeline_root)
     return RunPipelineResult(self, run_info)
 
   def list_runs(self, page_token='', page_size=10, sort_by='', experiment_id=None, namespace=None):
