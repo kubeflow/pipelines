@@ -199,18 +199,23 @@ def prepare_parameters(
             deserializer = utils.get_deserializer(param_type)
             if deserializer:
                 value = deserializer(value)
-
-                try:
-                    # Component yaml conversion swaps double quote and single
-                    # quote in dicts JSON.Loads loads such a dict as a string.
-                    # using ast.literal_eval to attempt to convert back to
-                    #  python literals.
-                    value = ast.literal_eval(value)
-                except:
-                    pass
-
             else:
                 value = cast(value, param_type)
+
+            try:
+                # Attemp at converting string to list or dict:
+                # Some parameters accept union[str, sequence[str]]
+                # For these serialization with json is not possible as 
+                # component yaml conversion swaps double quote and single
+                # quotes in resulting in `JSON.Loads` loading such a list as
+                # a string. Using ast.literal_eval to attempt to convert the
+                # str back to python literals.
+                value = ast.literal_eval(value)
+            except ValueError:
+                # The input was actually a string and not a List,
+                #  no additional are required.
+                pass
+
             kwargs[key] = value
 
 

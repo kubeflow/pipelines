@@ -116,7 +116,7 @@ def is_serializable_to_json(annotation: Any) -> bool:
     Returns:
         True if serializable to json.
     """
-    serializable_types = (Union, dict, list, collections.abc.Sequence)
+    serializable_types = (dict, list, collections.abc.Sequence)
     return getattr(annotation, '__origin__', None) in serializable_types
 
 
