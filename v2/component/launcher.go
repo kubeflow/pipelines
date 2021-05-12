@@ -235,7 +235,7 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 	// testable units.
 	pipeline, err := l.metadataClient.GetPipeline(ctx, l.options.PipelineName, l.options.PipelineRunID)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to get pipeline with PipelineName %q PipelineRunID %q: %w", l.options.PipelineName, l.options.PipelineRunID, err)
 	}
 
 	ecfg := &metadata.ExecutionConfig{
@@ -271,7 +271,7 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 
 	execution, err := l.metadataClient.CreateExecution(ctx, pipeline, l.options.TaskName, l.options.PipelineTaskID, l.options.ContainerImage, ecfg)
 	if err != nil {
-		return err
+		fmt.Errorf("unable to create execution: %w", err)
 	}
 
 	executor := exec.Command(cmd, args...)
@@ -419,8 +419,11 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 			return msg(fmt.Errorf("unknown type. Expected STRING, INT or DOUBLE"))
 		}
 	}
+	if err := l.metadataClient.PublishExecution(ctx, execution, outputParameters, outputArtifacts); err != nil {
+		return fmt.Errorf("unable to publish execution: %w", err)
+	}
+	return nil
 
-	return l.metadataClient.PublishExecution(ctx, execution, outputParameters, outputArtifacts)
 }
 
 func (l *Launcher) generateOutputURI(name string) string {
