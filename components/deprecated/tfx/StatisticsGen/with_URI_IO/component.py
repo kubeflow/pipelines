@@ -1,5 +1,3 @@
-# flake8: noqa
-
 from typing import NamedTuple
 
 def StatisticsGen(
@@ -7,17 +5,17 @@ def StatisticsGen(
     output_statistics_uri: 'ExampleStatisticsUri',
     schema_uri: 'SchemaUri' = None,
     stats_options_json: str = None,
+    exclude_splits: str = None,
     beam_pipeline_args: list = None,
 ) -> NamedTuple('Outputs', [
     ('statistics_uri', 'ExampleStatisticsUri'),
 ]):
-    from tfx.components import StatisticsGen as component_class
+    from tfx.components.statistics_gen.component import StatisticsGen as component_class
 
     #Generated code
-    import json
     import os
     import tempfile
-    import tensorflow
+    from tensorflow.io import gfile
     from google.protobuf import json_format, message
     from tfx.types import channel_utils, artifact_utils
     from tfx.components.base import base_executor
@@ -45,7 +43,7 @@ def StatisticsGen(
             artifact.uri = artifact_path.rstrip('/') + '/'  # Some TFX components require that the artifact URIs end with a slash
             if channel_parameter.type.PROPERTIES and 'split_names' in channel_parameter.type.PROPERTIES:
                 # Recovering splits
-                subdirs = tensorflow.io.gfile.listdir(artifact_path)
+                subdirs = gfile.listdir(artifact_path)
                 # Workaround for https://github.com/tensorflow/tensorflow/issues/39167
                 subdirs = [subdir.rstrip('/') for subdir in subdirs]
                 artifact.split_names = artifact_utils.encode_split_names(sorted(subdirs))
@@ -68,11 +66,6 @@ def StatisticsGen(
 
     print('component instance: ' + str(component_class_instance))
 
-    # Workaround for a TFX+Beam bug to make DataflowRunner work.
-    # Remove after the next release that has https://github.com/tensorflow/tfx/commit/ddb01c02426d59e8bd541e3fd3cbaaf68779b2df
-    import tfx
-    tfx.version.__version__ += 'dev'
-
     executor_context = base_executor.BaseExecutor.Context(
         beam_pipeline_args=beam_pipeline_args,
         tmp_dir=tempfile.gettempdir(),
@@ -86,12 +79,3 @@ def StatisticsGen(
     )
 
     return (output_statistics_uri, )
-
-
-if __name__ == '__main__':
-    import kfp
-    kfp.components.create_component_from_func(
-        StatisticsGen,
-        base_image='tensorflow/tfx:0.21.4',
-        output_component_file='component.yaml'
-    )

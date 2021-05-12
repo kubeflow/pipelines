@@ -1,5 +1,3 @@
-# flake8: noqa
-
 from typing import NamedTuple
 
 def Transform(
@@ -7,21 +5,25 @@ def Transform(
     schema_uri: 'SchemaUri',
     output_transform_graph_uri: 'TransformGraphUri',
     output_transformed_examples_uri: 'ExamplesUri',
+    output_updated_analyzer_cache_uri: 'TransformCacheUri',
+    analyzer_cache_uri: 'TransformCacheUri' = None,
     module_file: str = None,
     preprocessing_fn: str = None,
-    custom_config: dict = None,
+    force_tf_compat_v1: int = None,
+    custom_config: str = None,
+    splits_config: {'JsonObject': {'data_type': 'proto:tfx.components.transform.SplitsConfig'}} = None,
     beam_pipeline_args: list = None,
 ) -> NamedTuple('Outputs', [
     ('transform_graph_uri', 'TransformGraphUri'),
     ('transformed_examples_uri', 'ExamplesUri'),
+    ('updated_analyzer_cache_uri', 'TransformCacheUri'),
 ]):
-    from tfx.components import Transform as component_class
+    from tfx.components.transform.component import Transform as component_class
 
     #Generated code
-    import json
     import os
     import tempfile
-    import tensorflow
+    from tensorflow.io import gfile
     from google.protobuf import json_format, message
     from tfx.types import channel_utils, artifact_utils
     from tfx.components.base import base_executor
@@ -49,7 +51,7 @@ def Transform(
             artifact.uri = artifact_path.rstrip('/') + '/'  # Some TFX components require that the artifact URIs end with a slash
             if channel_parameter.type.PROPERTIES and 'split_names' in channel_parameter.type.PROPERTIES:
                 # Recovering splits
-                subdirs = tensorflow.io.gfile.listdir(artifact_path)
+                subdirs = gfile.listdir(artifact_path)
                 # Workaround for https://github.com/tensorflow/tensorflow/issues/39167
                 subdirs = [subdir.rstrip('/') for subdir in subdirs]
                 artifact.split_names = artifact_utils.encode_split_names(sorted(subdirs))
@@ -72,11 +74,6 @@ def Transform(
 
     print('component instance: ' + str(component_class_instance))
 
-    # Workaround for a TFX+Beam bug to make DataflowRunner work.
-    # Remove after the next release that has https://github.com/tensorflow/tfx/commit/ddb01c02426d59e8bd541e3fd3cbaaf68779b2df
-    import tfx
-    tfx.version.__version__ += 'dev'
-
     executor_context = base_executor.BaseExecutor.Context(
         beam_pipeline_args=beam_pipeline_args,
         tmp_dir=tempfile.gettempdir(),
@@ -89,13 +86,4 @@ def Transform(
         exec_properties=exec_properties,
     )
 
-    return (output_transform_graph_uri, output_transformed_examples_uri, )
-
-
-if __name__ == '__main__':
-    import kfp
-    kfp.components.create_component_from_func(
-        Transform,
-        base_image='tensorflow/tfx:0.21.4',
-        output_component_file='component.yaml'
-    )
+    return (output_transform_graph_uri, output_transformed_examples_uri, output_updated_analyzer_cache_uri, )

@@ -2,31 +2,35 @@ name: SchemaGen
 inputs:
 - {name: statistics_uri, type: ExampleStatisticsUri}
 - {name: output_schema_uri, type: SchemaUri}
-- {name: infer_feature_shape, type: Boolean, optional: true}
+- {name: infer_feature_shape, type: Integer, optional: true}
+- {name: exclude_splits, type: String, optional: true}
 - {name: beam_pipeline_args, type: JsonArray, optional: true}
 outputs:
 - {name: schema_uri, type: SchemaUri}
 implementation:
   container:
-    image: tensorflow/tfx:0.21.4
+    image: tensorflow/tfx:0.29.0
     command:
-    - python3
-    - -u
-    - -c
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
     - |
       def SchemaGen(
           statistics_uri,
           output_schema_uri,
           infer_feature_shape = None,
+          exclude_splits = None,
           beam_pipeline_args = None,
       ):
-          from tfx.components import SchemaGen as component_class
+          from tfx.components.schema_gen.component import SchemaGen as component_class
 
           #Generated code
-          import json
           import os
           import tempfile
-          import tensorflow
+          from tensorflow.io import gfile
           from google.protobuf import json_format, message
           from tfx.types import channel_utils, artifact_utils
           from tfx.components.base import base_executor
@@ -54,7 +58,7 @@ implementation:
                   artifact.uri = artifact_path.rstrip('/') + '/'  # Some TFX components require that the artifact URIs end with a slash
                   if channel_parameter.type.PROPERTIES and 'split_names' in channel_parameter.type.PROPERTIES:
                       # Recovering splits
-                      subdirs = tensorflow.io.gfile.listdir(artifact_path)
+                      subdirs = gfile.listdir(artifact_path)
                       # Workaround for https://github.com/tensorflow/tensorflow/issues/39167
                       subdirs = [subdir.rstrip('/') for subdir in subdirs]
                       artifact.split_names = artifact_utils.encode_split_names(sorted(subdirs))
@@ -77,11 +81,6 @@ implementation:
 
           print('component instance: ' + str(component_class_instance))
 
-          # Workaround for a TFX+Beam bug to make DataflowRunner work.
-          # Remove after the next release that has https://github.com/tensorflow/tfx/commit/ddb01c02426d59e8bd541e3fd3cbaaf68779b2df
-          import tfx
-          tfx.version.__version__ += 'dev'
-
           executor_context = base_executor.BaseExecutor.Context(
               beam_pipeline_args=beam_pipeline_args,
               tmp_dir=tempfile.gettempdir(),
@@ -96,16 +95,13 @@ implementation:
 
           return (output_schema_uri, )
 
-      def _deserialize_bool(s) -> bool:
-          from distutils.util import strtobool
-          return strtobool(s) == 1
-
       import json
       import argparse
       _parser = argparse.ArgumentParser(prog='SchemaGen', description='')
       _parser.add_argument("--statistics-uri", dest="statistics_uri", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--output-schema-uri", dest="output_schema_uri", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--infer-feature-shape", dest="infer_feature_shape", type=_deserialize_bool, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--infer-feature-shape", dest="infer_feature_shape", type=int, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--exclude-splits", dest="exclude_splits", type=str, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--beam-pipeline-args", dest="beam_pipeline_args", type=json.loads, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
       _parsed_args = vars(_parser.parse_args())
@@ -136,6 +132,11 @@ implementation:
         then:
         - --infer-feature-shape
         - {inputValue: infer_feature_shape}
+    - if:
+        cond: {isPresent: exclude_splits}
+        then:
+        - --exclude-splits
+        - {inputValue: exclude_splits}
     - if:
         cond: {isPresent: beam_pipeline_args}
         then:
