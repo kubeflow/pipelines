@@ -13,58 +13,46 @@
 # limitations under the License.
 
 from kfp.components._structures import InputValuePlaceholder
-from kfp import components
-from kfp import dsl
+from kfp.v2 import dsl
+from kfp.v2.dsl import component
+from kfp.v2.google import experimental
 from kfp.v2 import compiler
 
 
-@components.create_component_from_func
-def print_op(text: str):
-  print(text)
+@component
+def training_op(input1: str):
+  print('dummy training master: {}'.format(input1))
 
 
-@dsl.pipeline(name='pipeline-with-custom-job-spec', pipeline_root='dummy_root')
+@dsl.pipeline(name='pipeline-on-custom-job', pipeline_root='dummy_root')
 def my_pipeline():
 
-  # Normal container execution.
-  print_op('container execution')
+  training_task1 = training_op('hello-world')
+  experimental.run_as_aiplatform_custom_job(
+      training_task1, replica_count=10, display_name='custom-job-simple')
 
-  # Full custom job spec execution.
-  print_op('custom job execution - full custom job').set_custom_job_spec({
-      'workerPoolSpecs': [{
-          'containerSpec': {
-              'command': [
-                  'sh',
-                  '-c',
-                  'set -e -x\necho "$0"\n',
-                  InputValuePlaceholder('text'),
-              ],
-              'imageUri': 'alpine:latest',
+  training_task2 = training_op('advanced setting - raw workerPoolSpec')
+  experimental.run_as_aiplatform_custom_job(
+      training_task2,
+      display_name='custom-job-advanced',
+      worker_pool_specs=[
+          {
+              'containerSpec': {
+                  'imageUri':
+                      'alpine',
+                  'command': [
+                      'sh', '-c', 'set -e -x\necho \"worker1:\" \"$0\"\n',
+                      InputValuePlaceholder('input1')
+                  ]
+              },
+              'machineSpec': {
+                  'machineType': 'n1-standard-4'
+              },
+              'replicaCount': '1',
           },
-          'replicaCount': '1',
-          'machineSpec': {
-              'machineType': 'n1-standard-4'
-          }
-      }]
-  })
-
-  # Custom job spec with 'containerSpec' omitted - jobSpec will be auto-filled
-  # using the container spec.
-  print_op('custom job execution - partial custom job').set_custom_job_spec({
-      'workerPoolSpecs': [{
-          'replicaCount': '1',
-          'machineSpec': {
-              'machineType': 'n1-standard-8'
-          }
-      }]
-  })
-
-  # Custom job spec with 'workerPoolSpec' omitted - jobSpec will be auto-filled
-  # using the container spec.
-  print_op('custom job execution - empty custom job').set_custom_job_spec({})
+      ])
 
 
 if __name__ == '__main__':
   compiler.Compiler().compile(
-      pipeline_func=my_pipeline,
-      package_path=__file__.replace('.py', '.json'))
+      pipeline_func=my_pipeline, package_path=__file__.replace('.py', '.json'))
