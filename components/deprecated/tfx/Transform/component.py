@@ -55,17 +55,18 @@ def Transform(
     component_class_instance = component_class(**component_class_args)
 
     input_dict = channel_utils.unwrap_channel_dict(component_class_instance.inputs.get_all())
-    output_dict = channel_utils.unwrap_channel_dict(component_class_instance.outputs.get_all())
+    output_dict = {}
     exec_properties = component_class_instance.exec_properties
 
     # Generating paths for output artifacts
-    for name, artifacts in output_dict.items():
-        base_artifact_path = arguments.get('output_' + name + '_uri') or arguments.get(name + '_path')
-        if base_artifact_path:
-            # Are there still cases where output channel has multiple artifacts?
-            for idx, artifact in enumerate(artifacts):
-                subdir = str(idx + 1) if idx > 0 else ''
-                artifact.uri = os.path.join(base_artifact_path, subdir)  # Ends with '/'
+    for name, channel in component_class_instance.outputs.items():
+        artifact_path = arguments.get('output_' + name + '_uri') or arguments.get(name + '_path')
+        if artifact_path:
+            artifact = channel.type()
+            artifact.uri = artifact_path.rstrip('/') + '/'  # Some TFX components require that the artifact URIs end with a slash
+            artifact_list = [artifact]
+            channel._artifacts = artifact_list
+            output_dict[name] = artifact_list
 
     print('component instance: ' + str(component_class_instance))
 
