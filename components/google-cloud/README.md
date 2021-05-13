@@ -1,40 +1,40 @@
 # Google Cloud Pipeline Components
 
-Google Cloud Pipeline Components provides an sdk as well as a set of components for users
-to interact with Google Cloud services such as AI Platform. You can use any of
-the predefined components in this repo to construct your pipeline directly using
-KFP DSL.
+Google Cloud Pipeline Components provides an SDK and a set of components that lets
+you interact with Google Cloud services such as AI Platform (Unified). You can use 
+the predefined components in this repository to build your pipeline using the
+Kubeflow Pipelines SDK.
 
-Additionally we are providing an SDK that allows users to dynamically generate
-the components using python. In Preview release only a limited set of components
-are available as a predefined component. For a full list of supported components
-via the python SDK please refer to [usage guide #4](#usage-guide).
+## Installation
 
-### Installation
-
-#### Requirements
+### Requirements
 
 -   Python >= 3.6
--   [A Google Cloud project](https://cloud.google.com/ai-platform/docs/getting-started-keras#set_up_your_project)
+-   [A Google Cloud project with the AI Platform (Unified) API enabled.](https://cloud.google.com/ai-platform-unified/docs/start/cloud-environment)
 -   An
     [authenticated GCP account](https://cloud.google.com/ai-platform/docs/getting-started-keras#authenticate_your_gcp_account)
--   [Google AI platform](https://cloud.google.com/ai-platform/) APIs enabled for
-    your GCP account.
 
-#### Install latest release
+
+### Install latest release
+
+Use the following command to install Google Cloud Pipeline Components from PyPI.
 
 ```shell
 pip install -U google-cloud-pipeline-components
 ```
 
-#### Install from source
+### Install from source
+
+Use the following commands to install Google Cloud Pipeline Components from GitHub.
 
 ```shell
 git clone https://github.com/kubeflow/pipelines.git
 pip install pipelines/components/google-cloud/.
 ```
 
-#### Build the package from source and install
+### Build the package from source and install
+
+Use the following commands build Google Cloud Pipeline Components from the source code and install the package.
 
 ```shell
 source_root=$(pwd)
@@ -47,104 +47,109 @@ WHEEL_FILE=$(find "$source_root/pipelines/components/google-cloud/dist/" -name "
 pip3 install --upgrade $WHEEL_FILE
 ```
 
-### High level overview
+## Getting started with Google Cloud Pipeline Components
 
-Google Cloud Pipeline Components provides the an API for constructing your pipeline. To
-start, let's walk through a simple workflow using this API.
+Google Cloud Pipeline Components provides an SDK that makes it easier to use
+Google Cloud services in your pipeline. To get started, consider the following example.
 
-1.  Let's begin with a Keras model training code such as the following, saved as
-    `mnist_example.py`.
+```python
+from google_cloud_pipeline_components as gcc
+from kfp.v2 import dsl
 
-    ```python
-    from google_cloud_pipeline_components as gcc
-    from kfp.v2 import dsl
-
-    @dsl.pipeline
-    def my_pipeline(dataset_resource_name: str = 'user_resouce_name_uri')
+@dsl.pipeline
+def my_pipeline(
+    dataset_resource_name: str = 'user_resouce_name_uri',
     ucaip_dataset_resource_name: str):
 
-    # create/get metadata node;
+    # Import the dataset at the URI specified in the
+    # dataset_resource_name pipeline parameter.
     importer = dsl.importer(artifact_uri=dataset_resource_name,
                             artifact_class=io_types.Dataset, reimport=False)
-    # training pipeline
+    
+    # Use AutoML to train a regression model using tabular data
     training_step = gcc.aiplatform.AutoMLTabularTrainingJobRunner(
         display_name='train-housing-automl_1',
         optimization_prediction_type='regression',
         dataset = importer.output.outputs['dataset_metadata']
     )
 
+    # Deploy the trained model for predictions
     model_deploy_step = gcc.aiplatform.ModelDeployer(
         model=training_step.outputs['model_metadata'])
 
-    #endpoint
-    model_deploy_step.outputs['endpoint_metadata']
-    ```
+```
 
+In this example, the pipeline does the following.
 
-    ### Supported Components 
-    Following is the list of currently supproted components. 
+1.  Imports a dataset, such as a CSV, from the URI specified in a
+    pipeline parameter.
+1.  Uses the dataset to train a regression model using tabular data.
+1.  Deploys the model to AI Platform (Unified) for predictions.
 
-    ```python
-    AutoMLImageTrainingJobRunOp(...)
-        """Runs an AutoML Image training job and returns a model."""
+## Components 
+Following is the list of currently supported components. 
 
-    AutoMLTabularTrainingJobRunOp(...)
-        """Runs an AutoML Tabular training job and returns a model."""
+```python
+AutoMLImageTrainingJobRunOp(...)
+    """Runs an AutoML Image training job and returns a model."""
 
-    AutoMLTextTrainingJobRunOp(...)
-        """Runs an AutoML Text training job and returns a model."""
+AutoMLTabularTrainingJobRunOp(...)
+    """Runs an AutoML Tabular training job and returns a model."""
 
-    AutoMLVideoTrainingJobRunOp(...)
-        """Runs an AutoML Image training job and returns a model."""
+AutoMLTextTrainingJobRunOp(...)
+    """Runs an AutoML Text training job and returns a model."""
 
-    CustomContainerTrainingJobRunOp(...)
-        """Runs a custom container training job."""
+AutoMLVideoTrainingJobRunOp(...)
+    """Runs an AutoML Image training job and returns a model."""
 
-    CustomPythonPackageTrainingJobRunOp(...)
-        """Runs the custom training job."""
+CustomContainerTrainingJobRunOp(...)
+    """Runs a custom container training job."""
 
-    EndpointCreateOp(...)
-        """Creates a new endpoint."""
+CustomPythonPackageTrainingJobRunOp(...)
+    """Runs the custom training job."""
 
-    ImageDatasetCreateOp(...)
-        """Creates a new image dataset and optionally imports data into dataset when"""
+EndpointCreateOp(...)
+    """Creates a new endpoint."""
 
-    ImageDatasetExportDataOp(...)
-        """Exports data to output dir to GCS."""
+ImageDatasetCreateOp(...)
+    """Creates a new image dataset and optionally imports data into dataset when"""
 
-    ImageDatasetImportDataOp(...)
-        """Upload data to existing managed dataset."""
+ImageDatasetExportDataOp(...)
+    """Exports data to output dir to GCS."""
 
-    ModelBatchPredictOp(...)
-        """Creates a batch prediction job using this Model and outputs prediction"""
+ImageDatasetImportDataOp(...)
+    """Upload data to existing managed dataset."""
 
-    ModelDeployOp(...)
-        """Deploys model to endpoint. Endpoint will be created if unspecified."""
+ModelBatchPredictOp(...)
+    """Creates a batch prediction job using this Model and outputs prediction"""
 
-    ModelUploadOp(...)
-        """Uploads a model and returns a Model representing the uploaded Model resource."""
+ModelDeployOp(...)
+    """Deploys model to endpoint. Endpoint will be created if unspecified."""
 
-    TabularDatasetCreateOp(...)
-        """Creates a new tabular dataset."""
+ModelUploadOp(...)
+    """Uploads a model and returns a Model representing the uploaded Model resource."""
 
-    TabularDatasetExportDataOp(...)
-        """Exports data to output dir to GCS."""
+TabularDatasetCreateOp(...)
+    """Creates a new tabular dataset."""
 
-    TextDatasetCreateOp(...)
-        """Creates a new text dataset and optionally imports data into dataset when"""
+TabularDatasetExportDataOp(...)
+    """Exports data to output dir to GCS."""
 
-    TextDatasetExportDataOp(...)
-        """Exports Text data to output dir to GCS."""
+TextDatasetCreateOp(...)
+    """Creates a new text dataset and optionally imports data into dataset when"""
 
-    TextDatasetImportDataOp(...)
-        """Upload data to existing managed Text dataset."""
+TextDatasetExportDataOp(...)
+    """Exports Text data to output dir to GCS."""
 
-    VideoDatasetCreateOp(...)
-        """Creates a new video dataset and optionally imports data into dataset when"""
+TextDatasetImportDataOp(...)
+    """Upload data to existing managed Text dataset."""
 
-    VideoDatasetExportDataOp(...)
-        """Exports Video data to output dir to GCS."""
+VideoDatasetCreateOp(...)
+    """Creates a new video dataset and optionally imports data into dataset when"""
 
-    VideoDatasetImportDataOp(...)
-        """Upload data to existing managed Video dataset."""
-    ```
+VideoDatasetExportDataOp(...)
+    """Exports Video data to output dir to GCS."""
+
+VideoDatasetImportDataOp(...)
+    """Upload data to existing managed Video dataset."""
+```
