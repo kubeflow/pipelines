@@ -1,5 +1,67 @@
 # Changelog
 
+## [1.6.0-rc.0](https://github.com/kubeflow/pipelines/compare/1.5.0-rc.3...1.6.0-rc.0) (2021-05-13)
+
+
+### Features
+
+* **components/google-cloud:** Add API documentation ([\#5603](https://github.com/kubeflow/pipelines/issues/5603)) ([e693efa](https://github.com/kubeflow/pipelines/commit/e693efa1344cae15b713d641003ad2f0e3b2c6b6))
+* **components/google-cloud:** Add user_agent header for metrics reporting ([\#5600](https://github.com/kubeflow/pipelines/issues/5600)) ([8872ea2](https://github.com/kubeflow/pipelines/commit/8872ea2a2a8234d352f82140756f08d601facae5))
+* **components/google-cloud:** Add version to package root ([\#5550](https://github.com/kubeflow/pipelines/issues/5550)) ([e82d9a7](https://github.com/kubeflow/pipelines/commit/e82d9a7f70f8b266d4070210276e422cc0d81191))
+* **components/google-cloud:** Support input type union[str,list[str]] ([\#5637](https://github.com/kubeflow/pipelines/issues/5637)) ([695e95e](https://github.com/kubeflow/pipelines/commit/695e95e6d410413ac2323a6701d18b247110823c))
+* **components/google-cloud:** Use Kaniko for image build ([\#5536](https://github.com/kubeflow/pipelines/issues/5536)) ([289d0f5](https://github.com/kubeflow/pipelines/commit/289d0f57be5533a15b93c520049e7b35578ab8e0))
+* **frontend:** ResourceInfo supports MLMD struct value ([\#5618](https://github.com/kubeflow/pipelines/issues/5618)) ([0fd1e6a](https://github.com/kubeflow/pipelines/commit/0fd1e6a52fe767d9798dcc927c07a7885ab9bb32))
+* **sdk:** Introduce new environment variables for kfp oauth2 clients ([\#5043](https://github.com/kubeflow/pipelines/issues/5043)) ([075b83a](https://github.com/kubeflow/pipelines/commit/075b83af9ca9e37f45907ed3514e2ce8dd637321))
+* **sdk.v1:** Add pipeline_root as an argument to client's public run methods. ([\#5632](https://github.com/kubeflow/pipelines/issues/5632)) ([f09131f](https://github.com/kubeflow/pipelines/commit/f09131f1f7225abfcba0a2941b605d18b1e5b6c0))
+* **sdk.v2:** Experimental custom job support. ([\#5604](https://github.com/kubeflow/pipelines/issues/5604)) ([f20d20c](https://github.com/kubeflow/pipelines/commit/f20d20c41d434a34e63de6b02b83846c286e3db5))
+* customizable tensorboard image and env + sample pipeline with minio. Fixes [\#5471](https://github.com/kubeflow/pipelines/issues/5471), fixes [\#4714](https://github.com/kubeflow/pipelines/issues/4714), fixes [\#5449](https://github.com/kubeflow/pipelines/issues/5449), fixes [\#699](https://github.com/kubeflow/pipelines/issues/699), fixes [\#4290](https://github.com/kubeflow/pipelines/issues/4290) ([\#5515](https://github.com/kubeflow/pipelines/issues/5515)) ([cadcac0](https://github.com/kubeflow/pipelines/commit/cadcac08bd6e2712ce62d7eb59ff0b3f2ee1bbe2))
+* **google_cloud_components sdk:** Enable support for all components ([\#5442](https://github.com/kubeflow/pipelines/issues/5442)) ([d8b2b24](https://github.com/kubeflow/pipelines/commit/d8b2b24ed2f0aa657a672489d50aafb3fb8a382b))
+* **sdk.v2:** fix loop implementation and add subvar support ([\#5461](https://github.com/kubeflow/pipelines/issues/5461)) ([85cb991](https://github.com/kubeflow/pipelines/commit/85cb99173dead8bd2ca09c8e040b137f59d00ad7))
+* **sdk.v2:** Raise error on artifacts vs. parameters mismatch in v2. ([\#5557](https://github.com/kubeflow/pipelines/issues/5557)) ([d5a1853](https://github.com/kubeflow/pipelines/commit/d5a1853857c67695c13be6e352a55f293d1b2224))
+* **sdk.v2:** remove pipeline_root from compiler interface ([\#5492](https://github.com/kubeflow/pipelines/issues/5492)) ([5f97a45](https://github.com/kubeflow/pipelines/commit/5f97a4502d990bf2dc64c68ab58b4250d1be21f9))
+* **sdk.v2:** Support setting custom job spec in v2. ([\#5454](https://github.com/kubeflow/pipelines/issues/5454)) ([f32915e](https://github.com/kubeflow/pipelines/commit/f32915e88f501dd9256eb259288a00e0e6f9c9e0))
+* **sdk.v2:** support using placeholder class in custom job spec. ([\#5495](https://github.com/kubeflow/pipelines/issues/5495)) ([3324459](https://github.com/kubeflow/pipelines/commit/3324459f6755bd0c2b4cdcbf9a091eba53ad7497))
+* update MLMD to 0.30.0 ([\#5592](https://github.com/kubeflow/pipelines/issues/5592)) ([3193908](https://github.com/kubeflow/pipelines/commit/31939086d66d633732f75300ce69eb60e9fb0269))
+* **sdk.v2:** Support explicit importer ([\#5502](https://github.com/kubeflow/pipelines/issues/5502)) ([5dafda1](https://github.com/kubeflow/pipelines/commit/5dafda12707e54cc817ea148e494bb602498c832))
+* **sdk.v2:** surface metrics output artifacts to pipeline outputs ([\#5445](https://github.com/kubeflow/pipelines/issues/5445)) ([a804211](https://github.com/kubeflow/pipelines/commit/a80421191db917322ff312626409526b0a76aa68))
+* **v2:** Support v2 components in KFP v2-compatible mode. ([\#5458](https://github.com/kubeflow/pipelines/issues/5458)) ([5651bd1](https://github.com/kubeflow/pipelines/commit/5651bd1efdab363ba7f593d8fd2c8b480f119e6d))
+
+
+### Bug Fixes
+
+* **components:** Update types for GCS components so it's compatible with v2. ([\#5532](https://github.com/kubeflow/pipelines/issues/5532)) ([961b17f](https://github.com/kubeflow/pipelines/commit/961b17fa6844e1d79e5d3686bb557d830d7b5a95))
+* **sdk:** Fix a bug with creating dirname for parameter files in v2 lightweight components ([\#5574](https://github.com/kubeflow/pipelines/issues/5574)) ([e4c6e12](https://github.com/kubeflow/pipelines/commit/e4c6e125640ea55d6dfad0526c8e44e1aa7f4aae))
+* **sdk:** Fix bug where empty string was not preserved as pipeline param default value. ([\#5549](https://github.com/kubeflow/pipelines/issues/5549)) ([2909f25](https://github.com/kubeflow/pipelines/commit/2909f259c46257c0db7614cdc7e1cd7329ca6f6b))
+* **sdk:** Minor API fixes to Metrics classes. ([\#5494](https://github.com/kubeflow/pipelines/issues/5494)) ([55c14cc](https://github.com/kubeflow/pipelines/commit/55c14ccb2daa76b56f3455572cb0dd37f105cd87))
+* **sdk:** Update syntax for lightweight components v2. ([\#5568](https://github.com/kubeflow/pipelines/issues/5568)) ([b46f1b8](https://github.com/kubeflow/pipelines/commit/b46f1b86f18a7539985ed15c0bb727281eb4d353))
+* **sdk.v2:** Fix loop subvar support and remove redundant loop iterator component. ([\#5516](https://github.com/kubeflow/pipelines/issues/5516)) ([74950d6](https://github.com/kubeflow/pipelines/commit/74950d620f0b707e9054bf46296b7615dac0e720))
+* **v2:** Escape strings in RuntimeInfo. ([\#5601](https://github.com/kubeflow/pipelines/issues/5601)) ([c5daa75](https://github.com/kubeflow/pipelines/commit/c5daa7532d18687b180badfca8d750c801805712))
+* **viewer:** viewer crd controller panics using tensorboard image without tag. Part of [\#5471](https://github.com/kubeflow/pipelines/issues/5471) ([\#5522](https://github.com/kubeflow/pipelines/issues/5522)) ([d106a65](https://github.com/kubeflow/pipelines/commit/d106a6533bf4e1cbda4364560bc7526cb67d4eb2))
+* pass in class directly ([\#5488](https://github.com/kubeflow/pipelines/issues/5488)) ([5d067f6](https://github.com/kubeflow/pipelines/commit/5d067f65895cbc8544efda792bbc895a74c2f587))
+
+
+### Other Pull Requests
+
+* feat(components/google-cloud):Add support for URI prefix ([\#5625](https://github.com/kubeflow/pipelines/issues/5625)) ([a89dc41](https://github.com/kubeflow/pipelines/commit/a89dc41dff175d6ca9d30f7a55a0f1dca3de58a4))
+* Add configurable connection max lifetime for MySQL ([\#5583](https://github.com/kubeflow/pipelines/issues/5583)) ([d25b001](https://github.com/kubeflow/pipelines/commit/d25b0015324f519ab7414969f1799773c5187dd0))
+* update xgboost sample pipeline ([\#5594](https://github.com/kubeflow/pipelines/issues/5594)) ([00f3b3d](https://github.com/kubeflow/pipelines/commit/00f3b3d6bfccce8cc897028a6b113741ab0b1d19))
+* Add OWNERS for v2 folder ([\#5571](https://github.com/kubeflow/pipelines/issues/5571)) ([9160618](https://github.com/kubeflow/pipelines/commit/9160618e1a4e87da7424815287a18f382310d9b1))
+* fix(v2):added double value ([\#5591](https://github.com/kubeflow/pipelines/issues/5591)) ([0a506f2](https://github.com/kubeflow/pipelines/commit/0a506f23e5a200de67fe29910534774b0c1618cd))
+* [SDK] Add pod labels for telemetry purpose ([\#5582](https://github.com/kubeflow/pipelines/issues/5582)) ([6717434](https://github.com/kubeflow/pipelines/commit/6717434978f9c9d01d4c38914dc3e858a6a6c2fd))
+* Assigned copyright to the project authors ([\#5587](https://github.com/kubeflow/pipelines/issues/5587)) ([cc83e10](https://github.com/kubeflow/pipelines/commit/cc83e1089b573256e781ed2e4ac90f604129e769))
+* Add zijianjoy to frontend/OWNERS ([\#5570](https://github.com/kubeflow/pipelines/issues/5570)) ([bb967e9](https://github.com/kubeflow/pipelines/commit/bb967e9e1ea8acb9cc198bc1c627bae1afb78078))
+* chore(sdk.v2):add v2 compact metrics label ([\#5566](https://github.com/kubeflow/pipelines/issues/5566)) ([0dba005](https://github.com/kubeflow/pipelines/commit/0dba00518c159d55dd10311310a1f878a9a0da85))
+* feat(cache) : allow user to reset the node selector and affinity for cached steps. Fixes [\#4777](https://github.com/kubeflow/pipelines/issues/4777) ([\#5456](https://github.com/kubeflow/pipelines/issues/5456)) ([837429c](https://github.com/kubeflow/pipelines/commit/837429c072675b3f3aa23900e1d73cd0ca9a382d))
+* Update Data passing in python components - Files.py ([acc2c2a](https://github.com/kubeflow/pipelines/commit/acc2c2aaafa6c3a6b0cc90eef5d61cfd43440aef))
+* DOCS url 404 ([\#5455](https://github.com/kubeflow/pipelines/issues/5455)) ([16e46ac](https://github.com/kubeflow/pipelines/commit/16e46ac1a5aaf7586fe44c6429856833ae79fc41))
+* [google-cloud-components] - change name to google-cloud-pipeline-components ([\#5514](https://github.com/kubeflow/pipelines/issues/5514)) ([e6d3536](https://github.com/kubeflow/pipelines/commit/e6d35367aacfef5942c8099c12ed5f7756bf9666))
+* [google-cloud-components]   - update metadata for output ([\#5499](https://github.com/kubeflow/pipelines/issues/5499)) ([cb4d644](https://github.com/kubeflow/pipelines/commit/cb4d644cf6415de61f3995ff3e29ce43ead243e8))
+* [google-cloud-components] add encryption key support ([\#5498](https://github.com/kubeflow/pipelines/issues/5498)) ([eb00b7b](https://github.com/kubeflow/pipelines/commit/eb00b7b561e4e882e634daa072a06915bfd16f55))
+* [google-cloud-components sdk] casting on remote runner ([\#5497](https://github.com/kubeflow/pipelines/issues/5497)) ([2c5e779](https://github.com/kubeflow/pipelines/commit/2c5e779c95d9f49769f229cd0ad5bda1bbc5c4a2))
+* [google-cloud-component-sdk] fix: Ignore none ([\#5490](https://github.com/kubeflow/pipelines/issues/5490)) ([78b98c7](https://github.com/kubeflow/pipelines/commit/78b98c7645bbf85ac76cc729a744d513b6600d5a))
+* Use artifacts for resource name ([\#5469](https://github.com/kubeflow/pipelines/issues/5469)) ([3b8296f](https://github.com/kubeflow/pipelines/commit/3b8296f49be4129896fc696ee308271fc837f003))
+* Fixes the Confusion Matrix storage format ([\#5463](https://github.com/kubeflow/pipelines/issues/5463)) ([2c68229](https://github.com/kubeflow/pipelines/commit/2c682299202ad019bb2b2bb2ac8903c72ab245cf))
+
 ## [1.5.0](https://github.com/kubeflow/pipelines/compare/1.5.0-rc.3...1.5.0) (2021-04-20)
 
 
