@@ -70,7 +70,7 @@ def Transform(
     print('component instance: ' + str(component_class_instance))
 
     executor_context = base_executor.BaseExecutor.Context(
-        beam_pipeline_args=beam_pipeline_args,
+        beam_pipeline_args=arguments.get('beam_pipeline_args'),
         tmp_dir=tempfile.gettempdir(),
         unique_id='tfx_component',
     )
