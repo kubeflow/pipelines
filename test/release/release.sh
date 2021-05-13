@@ -26,8 +26,13 @@ if [[ -z "$BRANCH" || -z "$TAG" ]]; then
 fi
 
 # Checking out the repo's release branch
-clone_dir=$(mktemp -d)
-git clone "git@github.com:${REPO}.git" "$clone_dir"
+clone_dir="$(mktemp -d)"
+# Use GitHub CLI if found, otherwise use git clone.
+if which gh; then
+  gh repo clone github.com/${REPO} "${clone_dir}"
+else
+  git clone "git@github.com:${REPO}.git" "${clone_dir}"
+fi
 cd "$clone_dir"
 git checkout "$BRANCH"
 
