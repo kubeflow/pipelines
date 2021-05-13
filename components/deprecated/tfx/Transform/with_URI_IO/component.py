@@ -54,7 +54,8 @@ def Transform(
                 subdirs = gfile.listdir(artifact_path)
                 # Workaround for https://github.com/tensorflow/tensorflow/issues/39167
                 subdirs = [subdir.rstrip('/') for subdir in subdirs]
-                artifact.split_names = artifact_utils.encode_split_names(sorted(subdirs))
+                split_names = [subdir.replace('Split-', '') for subdir in subdirs]
+                artifact.split_names = artifact_utils.encode_split_names(sorted(split_names))
             component_class_args[name] = channel_utils.as_channel([artifact])
 
     component_class_instance = component_class(**component_class_args)
