@@ -20,9 +20,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
+	"time"
 
 	"github.com/golang/glog"
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -35,7 +36,7 @@ const (
 	pipelineContextTypeName    = "kfp.Pipeline"
 	pipelineRunContextTypeName = "kfp.PipelineRun"
 	containerExecutionTypeName = "kfp.ContainerExecution"
-	mlmdClientSideMaxRetries = 5
+	mlmdClientSideMaxRetries   = 3
 )
 
 var (
@@ -62,6 +63,7 @@ type Client struct {
 func NewClient(serverAddress, serverPort string) (*Client, error) {
 	opts := []grpc_retry.CallOption{
 		grpc_retry.WithMax(mlmdClientSideMaxRetries),
+		grpc_retry.WithBackoff(grpc_retry.BackoffExponentialWithJitter(300*time.Millisecond, 0.20)),
 	}
 	conn, err := grpc.Dial(fmt.Sprintf("%s:%s", serverAddress, serverPort),
 		grpc.WithInsecure(),
