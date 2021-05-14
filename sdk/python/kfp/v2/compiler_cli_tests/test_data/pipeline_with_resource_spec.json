@@ -94,7 +94,7 @@
     "root": {
       "dag": {
         "tasks": {
-          "task-ingestion": {
+          "ingestion": {
             "componentRef": {
               "name": "comp-ingestion"
             },
@@ -106,22 +106,22 @@
               }
             },
             "taskInfo": {
-              "name": "task-ingestion"
+              "name": "ingestion"
             }
           },
-          "task-trainer": {
+          "trainer": {
             "componentRef": {
               "name": "comp-trainer"
             },
             "dependentTasks": [
-              "task-ingestion"
+              "ingestion"
             ],
             "inputs": {
               "artifacts": {
                 "examples": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "examples",
-                    "producerTask": "task-ingestion"
+                    "producerTask": "ingestion"
                   }
                 }
               },
@@ -135,7 +135,7 @@
               }
             },
             "taskInfo": {
-              "name": "task-trainer"
+              "name": "trainer"
             }
           }
         }
@@ -155,7 +155,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.5.0"
+    "sdkVersion": "kfp-1.6.0-rc.0"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root",

@@ -127,7 +127,7 @@
     "root": {
       "dag": {
         "tasks": {
-          "task-preprocess": {
+          "preprocess": {
             "componentRef": {
               "name": "comp-preprocess"
             },
@@ -139,28 +139,28 @@
               }
             },
             "taskInfo": {
-              "name": "task-preprocess"
+              "name": "preprocess"
             }
           },
-          "task-train": {
+          "train": {
             "componentRef": {
               "name": "comp-train"
             },
             "dependentTasks": [
-              "task-preprocess"
+              "preprocess"
             ],
             "inputs": {
               "artifacts": {
                 "dataset_one": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "output_dataset_one",
-                    "producerTask": "task-preprocess"
+                    "producerTask": "preprocess"
                   }
                 },
                 "dataset_two": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "output_dataset_two",
-                    "producerTask": "task-preprocess"
+                    "producerTask": "preprocess"
                   }
                 }
               },
@@ -168,7 +168,7 @@
                 "message": {
                   "taskOutputParameter": {
                     "outputParameterKey": "output_parameter",
-                    "producerTask": "task-preprocess"
+                    "producerTask": "preprocess"
                   }
                 },
                 "num_steps": {
@@ -181,7 +181,7 @@
               }
             },
             "taskInfo": {
-              "name": "task-train"
+              "name": "train"
             }
           }
         }
@@ -195,7 +195,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.5.0"
+    "sdkVersion": "kfp-1.6.0-rc.0"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"

@@ -200,18 +200,18 @@
       "dag": {
         "outputs": {
           "artifacts": {
-            "task-output-named-tuple-metrics": {
+            "output-named-tuple-metrics": {
               "artifactSelectors": [
                 {
                   "outputArtifactKey": "metrics",
-                  "producerSubtask": "task-output-named-tuple"
+                  "producerSubtask": "output-named-tuple"
                 }
               ]
             }
           }
         },
         "tasks": {
-          "task-add-numbers": {
+          "add-numbers": {
             "componentRef": {
               "name": "comp-add-numbers"
             },
@@ -226,10 +226,10 @@
               }
             },
             "taskInfo": {
-              "name": "task-add-numbers"
+              "name": "add-numbers"
             }
           },
-          "task-concat-message": {
+          "concat-message": {
             "componentRef": {
               "name": "comp-concat-message"
             },
@@ -244,56 +244,56 @@
               }
             },
             "taskInfo": {
-              "name": "task-concat-message"
+              "name": "concat-message"
             }
           },
-          "task-output-artifact": {
+          "output-artifact": {
             "componentRef": {
               "name": "comp-output-artifact"
             },
             "dependentTasks": [
-              "task-add-numbers",
-              "task-concat-message"
+              "add-numbers",
+              "concat-message"
             ],
             "inputs": {
               "parameters": {
                 "message": {
                   "taskOutputParameter": {
                     "outputParameterKey": "Output",
-                    "producerTask": "task-concat-message"
+                    "producerTask": "concat-message"
                   }
                 },
                 "number": {
                   "taskOutputParameter": {
                     "outputParameterKey": "Output",
-                    "producerTask": "task-add-numbers"
+                    "producerTask": "add-numbers"
                   }
                 }
               }
             },
             "taskInfo": {
-              "name": "task-output-artifact"
+              "name": "output-artifact"
             }
           },
-          "task-output-named-tuple": {
+          "output-named-tuple": {
             "componentRef": {
               "name": "comp-output-named-tuple"
             },
             "dependentTasks": [
-              "task-output-artifact"
+              "output-artifact"
             ],
             "inputs": {
               "artifacts": {
                 "artifact": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "Output",
-                    "producerTask": "task-output-artifact"
+                    "producerTask": "output-artifact"
                   }
                 }
               }
             },
             "taskInfo": {
-              "name": "task-output-named-tuple"
+              "name": "output-named-tuple"
             }
           }
         }
@@ -316,7 +316,7 @@
       },
       "outputDefinitions": {
         "artifacts": {
-          "task-output-named-tuple-metrics": {
+          "output-named-tuple-metrics": {
             "artifactType": {
               "schemaTitle": "system.Metrics"
             }
@@ -325,7 +325,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.5.0"
+    "sdkVersion": "kfp-1.6.0-rc.0"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"

@@ -446,7 +446,7 @@
     "root": {
       "dag": {
         "tasks": {
-          "task-chicago-taxi-trips-dataset": {
+          "chicago-taxi-trips-dataset": {
             "componentRef": {
               "name": "comp-chicago-taxi-trips-dataset"
             },
@@ -483,50 +483,50 @@
               }
             },
             "taskInfo": {
-              "name": "task-chicago-taxi-trips-dataset"
+              "name": "chicago-taxi-trips-dataset"
             }
           },
-          "task-convert-csv-to-apache-parquet": {
+          "convert-csv-to-apache-parquet": {
             "componentRef": {
               "name": "comp-convert-csv-to-apache-parquet"
             },
             "dependentTasks": [
-              "task-chicago-taxi-trips-dataset"
+              "chicago-taxi-trips-dataset"
             ],
             "inputs": {
               "artifacts": {
                 "data": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "Table",
-                    "producerTask": "task-chicago-taxi-trips-dataset"
+                    "producerTask": "chicago-taxi-trips-dataset"
                   }
                 }
               }
             },
             "taskInfo": {
-              "name": "task-convert-csv-to-apache-parquet"
+              "name": "convert-csv-to-apache-parquet"
             }
           },
-          "task-xgboost-predict": {
+          "xgboost-predict": {
             "componentRef": {
               "name": "comp-xgboost-predict"
             },
             "dependentTasks": [
-              "task-chicago-taxi-trips-dataset",
-              "task-xgboost-train"
+              "chicago-taxi-trips-dataset",
+              "xgboost-train"
             ],
             "inputs": {
               "artifacts": {
                 "data": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "Table",
-                    "producerTask": "task-chicago-taxi-trips-dataset"
+                    "producerTask": "chicago-taxi-trips-dataset"
                   }
                 },
                 "model": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "model",
-                    "producerTask": "task-xgboost-train"
+                    "producerTask": "xgboost-train"
                   }
                 }
               },
@@ -541,29 +541,29 @@
               }
             },
             "taskInfo": {
-              "name": "task-xgboost-predict"
+              "name": "xgboost-predict"
             }
           },
-          "task-xgboost-predict-2": {
+          "xgboost-predict-2": {
             "componentRef": {
               "name": "comp-xgboost-predict-2"
             },
             "dependentTasks": [
-              "task-convert-csv-to-apache-parquet",
-              "task-xgboost-train-2"
+              "convert-csv-to-apache-parquet",
+              "xgboost-train-2"
             ],
             "inputs": {
               "artifacts": {
                 "data": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "output_data",
-                    "producerTask": "task-convert-csv-to-apache-parquet"
+                    "producerTask": "convert-csv-to-apache-parquet"
                   }
                 },
                 "model": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "model",
-                    "producerTask": "task-xgboost-train-2"
+                    "producerTask": "xgboost-train-2"
                   }
                 }
               },
@@ -578,29 +578,29 @@
               }
             },
             "taskInfo": {
-              "name": "task-xgboost-predict-2"
+              "name": "xgboost-predict-2"
             }
           },
-          "task-xgboost-predict-3": {
+          "xgboost-predict-3": {
             "componentRef": {
               "name": "comp-xgboost-predict-3"
             },
             "dependentTasks": [
-              "task-convert-csv-to-apache-parquet",
-              "task-xgboost-train"
+              "convert-csv-to-apache-parquet",
+              "xgboost-train"
             ],
             "inputs": {
               "artifacts": {
                 "data": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "output_data",
-                    "producerTask": "task-convert-csv-to-apache-parquet"
+                    "producerTask": "convert-csv-to-apache-parquet"
                   }
                 },
                 "model": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "model",
-                    "producerTask": "task-xgboost-train"
+                    "producerTask": "xgboost-train"
                   }
                 }
               },
@@ -615,29 +615,29 @@
               }
             },
             "taskInfo": {
-              "name": "task-xgboost-predict-3"
+              "name": "xgboost-predict-3"
             }
           },
-          "task-xgboost-predict-4": {
+          "xgboost-predict-4": {
             "componentRef": {
               "name": "comp-xgboost-predict-4"
             },
             "dependentTasks": [
-              "task-chicago-taxi-trips-dataset",
-              "task-xgboost-train-2"
+              "chicago-taxi-trips-dataset",
+              "xgboost-train-2"
             ],
             "inputs": {
               "artifacts": {
                 "data": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "Table",
-                    "producerTask": "task-chicago-taxi-trips-dataset"
+                    "producerTask": "chicago-taxi-trips-dataset"
                   }
                 },
                 "model": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "model",
-                    "producerTask": "task-xgboost-train-2"
+                    "producerTask": "xgboost-train-2"
                   }
                 }
               },
@@ -652,22 +652,22 @@
               }
             },
             "taskInfo": {
-              "name": "task-xgboost-predict-4"
+              "name": "xgboost-predict-4"
             }
           },
-          "task-xgboost-train": {
+          "xgboost-train": {
             "componentRef": {
               "name": "comp-xgboost-train"
             },
             "dependentTasks": [
-              "task-chicago-taxi-trips-dataset"
+              "chicago-taxi-trips-dataset"
             ],
             "inputs": {
               "artifacts": {
                 "training_data": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "Table",
-                    "producerTask": "task-chicago-taxi-trips-dataset"
+                    "producerTask": "chicago-taxi-trips-dataset"
                   }
                 }
               },
@@ -696,22 +696,22 @@
               }
             },
             "taskInfo": {
-              "name": "task-xgboost-train"
+              "name": "xgboost-train"
             }
           },
-          "task-xgboost-train-2": {
+          "xgboost-train-2": {
             "componentRef": {
               "name": "comp-xgboost-train-2"
             },
             "dependentTasks": [
-              "task-convert-csv-to-apache-parquet"
+              "convert-csv-to-apache-parquet"
             ],
             "inputs": {
               "artifacts": {
                 "training_data": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "output_data",
-                    "producerTask": "task-convert-csv-to-apache-parquet"
+                    "producerTask": "convert-csv-to-apache-parquet"
                   }
                 }
               },
@@ -740,14 +740,14 @@
               }
             },
             "taskInfo": {
-              "name": "task-xgboost-train-2"
+              "name": "xgboost-train-2"
             }
           }
         }
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.5.0"
+    "sdkVersion": "kfp-1.6.0-rc.0"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"

@@ -31,7 +31,7 @@
     "root": {
       "dag": {
         "tasks": {
-          "task-component-with-concat-placeholder": {
+          "component-with-concat-placeholder": {
             "componentRef": {
               "name": "comp-component-with-concat-placeholder"
             },
@@ -47,14 +47,14 @@
               }
             },
             "taskInfo": {
-              "name": "task-component-with-concat-placeholder"
+              "name": "component-with-concat-placeholder"
             }
           }
         }
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.5.0"
+    "sdkVersion": "kfp-1.6.0-rc.0"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"
