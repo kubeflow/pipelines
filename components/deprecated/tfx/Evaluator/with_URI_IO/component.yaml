@@ -1,9 +1,9 @@
 name: Evaluator
 inputs:
 - {name: examples_uri, type: ExamplesUri}
-- {name: model_uri, type: ModelUri}
 - {name: output_evaluation_uri, type: ModelEvaluationUri}
 - {name: output_blessing_uri, type: ModelBlessingUri}
+- {name: model_uri, type: ModelUri, optional: true}
 - {name: baseline_model_uri, type: ModelUri, optional: true}
 - {name: schema_uri, type: SchemaUri, optional: true}
 - name: eval_config
@@ -15,37 +15,45 @@ inputs:
     JsonObject: {data_type: 'proto:tfx.components.evaluator.FeatureSlicingSpec'}
   optional: true
 - {name: fairness_indicator_thresholds, type: JsonArray, optional: true}
+- {name: example_splits, type: String, optional: true}
+- {name: module_file, type: String, optional: true}
+- {name: module_path, type: String, optional: true}
 - {name: beam_pipeline_args, type: JsonArray, optional: true}
 outputs:
 - {name: evaluation_uri, type: ModelEvaluationUri}
 - {name: blessing_uri, type: ModelBlessingUri}
 implementation:
   container:
-    image: tensorflow/tfx:0.21.4
+    image: tensorflow/tfx:0.29.0
     command:
-    - python3
-    - -u
-    - -c
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
     - |
       def Evaluator(
           examples_uri,
-          model_uri,
           output_evaluation_uri,
           output_blessing_uri,
+          model_uri = None,
           baseline_model_uri = None,
           schema_uri = None,
           eval_config = None,
           feature_slicing_spec = None,
           fairness_indicator_thresholds = None,
+          example_splits = None,
+          module_file = None,
+          module_path = None,
           beam_pipeline_args = None,
       ):
-          from tfx.components import Evaluator as component_class
+          from tfx.components.evaluator.component import Evaluator as component_class
 
           #Generated code
-          import json
           import os
           import tempfile
-          import tensorflow
+          from tensorflow.io import gfile
           from google.protobuf import json_format, message
           from tfx.types import channel_utils, artifact_utils
           from tfx.components.base import base_executor
@@ -73,36 +81,33 @@ implementation:
                   artifact.uri = artifact_path.rstrip('/') + '/'  # Some TFX components require that the artifact URIs end with a slash
                   if channel_parameter.type.PROPERTIES and 'split_names' in channel_parameter.type.PROPERTIES:
                       # Recovering splits
-                      subdirs = tensorflow.io.gfile.listdir(artifact_path)
+                      subdirs = gfile.listdir(artifact_path)
                       # Workaround for https://github.com/tensorflow/tensorflow/issues/39167
                       subdirs = [subdir.rstrip('/') for subdir in subdirs]
-                      artifact.split_names = artifact_utils.encode_split_names(sorted(subdirs))
+                      split_names = [subdir.replace('Split-', '') for subdir in subdirs]
+                      artifact.split_names = artifact_utils.encode_split_names(sorted(split_names))
                   component_class_args[name] = channel_utils.as_channel([artifact])
 
           component_class_instance = component_class(**component_class_args)
 
           input_dict = channel_utils.unwrap_channel_dict(component_class_instance.inputs.get_all())
-          output_dict = channel_utils.unwrap_channel_dict(component_class_instance.outputs.get_all())
+          output_dict = {}
           exec_properties = component_class_instance.exec_properties
 
           # Generating paths for output artifacts
-          for name, artifacts in output_dict.items():
-              base_artifact_path = arguments.get('output_' + name + '_uri') or arguments.get(name + '_path')
-              if base_artifact_path:
-                  # Are there still cases where output channel has multiple artifacts?
-                  for idx, artifact in enumerate(artifacts):
-                      subdir = str(idx + 1) if idx > 0 else ''
-                      artifact.uri = os.path.join(base_artifact_path, subdir)  # Ends with '/'
+          for name, channel in component_class_instance.outputs.items():
+              artifact_path = arguments.get('output_' + name + '_uri') or arguments.get(name + '_path')
+              if artifact_path:
+                  artifact = channel.type()
+                  artifact.uri = artifact_path.rstrip('/') + '/'  # Some TFX components require that the artifact URIs end with a slash
+                  artifact_list = [artifact]
+                  channel._artifacts = artifact_list
+                  output_dict[name] = artifact_list
 
           print('component instance: ' + str(component_class_instance))
 
-          # Workaround for a TFX+Beam bug to make DataflowRunner work.
-          # Remove after the next release that has https://github.com/tensorflow/tfx/commit/ddb01c02426d59e8bd541e3fd3cbaaf68779b2df
-          import tfx
-          tfx.version.__version__ += 'dev'
-
           executor_context = base_executor.BaseExecutor.Context(
-              beam_pipeline_args=beam_pipeline_args,
+              beam_pipeline_args=arguments.get('beam_pipeline_args'),
               tmp_dir=tempfile.gettempdir(),
               unique_id='tfx_component',
           )
@@ -119,14 +124,17 @@ implementation:
       import argparse
       _parser = argparse.ArgumentParser(prog='Evaluator', description='')
       _parser.add_argument("--examples-uri", dest="examples_uri", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--model-uri", dest="model_uri", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--output-evaluation-uri", dest="output_evaluation_uri", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--output-blessing-uri", dest="output_blessing_uri", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--model-uri", dest="model_uri", type=str, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--baseline-model-uri", dest="baseline_model_uri", type=str, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--schema-uri", dest="schema_uri", type=str, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--eval-config", dest="eval_config", type=str, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--feature-slicing-spec", dest="feature_slicing_spec", type=str, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--fairness-indicator-thresholds", dest="fairness_indicator_thresholds", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--example-splits", dest="example_splits", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--module-file", dest="module_file", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--module-path", dest="module_path", type=str, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--beam-pipeline-args", dest="beam_pipeline_args", type=json.loads, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=2)
       _parsed_args = vars(_parser.parse_args())
@@ -151,12 +159,15 @@ implementation:
     args:
     - --examples-uri
     - {inputValue: examples_uri}
-    - --model-uri
-    - {inputValue: model_uri}
     - --output-evaluation-uri
     - {inputValue: output_evaluation_uri}
     - --output-blessing-uri
     - {inputValue: output_blessing_uri}
+    - if:
+        cond: {isPresent: model_uri}
+        then:
+        - --model-uri
+        - {inputValue: model_uri}
     - if:
         cond: {isPresent: baseline_model_uri}
         then:
@@ -182,6 +193,21 @@ implementation:
         then:
         - --fairness-indicator-thresholds
         - {inputValue: fairness_indicator_thresholds}
+    - if:
+        cond: {isPresent: example_splits}
+        then:
+        - --example-splits
+        - {inputValue: example_splits}
+    - if:
+        cond: {isPresent: module_file}
+        then:
+        - --module-file
+        - {inputValue: module_file}
+    - if:
+        cond: {isPresent: module_path}
+        then:
+        - --module-path
+        - {inputValue: module_path}
     - if:
         cond: {isPresent: beam_pipeline_args}
         then:
