@@ -522,7 +522,6 @@ message ValueOrRuntimeParameter {
   oneof value {
     // Constant value which is determined in compile time.
     Value constant_value = 1;
-    // Name of the runtime parameter.
     // The runtime parameter refers to the parent component input parameter.
     string runtime_parameter = 2;
   }
