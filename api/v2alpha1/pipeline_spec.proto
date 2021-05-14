@@ -54,7 +54,7 @@ message PipelineSpec {
   // The version of the sdk, which compiles the spec.
   string sdk_version = 4;
 
-  // The version of the schema. The acceptable values is `2.0.0`
+  // The version of the schema.
   string schema_version = 5;
 
   // The definition of the runtime parameter.
