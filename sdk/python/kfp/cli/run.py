@@ -76,7 +76,8 @@ def submit(ctx, experiment_name, run_name, package_file, pipeline_id, pipeline_n
         click.echo('You must provide one of [package_file, pipeline_id, version].', err=True)
         sys.exit(1)
 
-    arg_dict = dict(arg.split('=') for arg in args)
+    arg_dict = dict(arg.split('=', maxsplit=1) for arg in args)
+
     experiment = client.create_experiment(experiment_name)
     run = client.run_pipeline(experiment.id, run_name, package_file, arg_dict, pipeline_id,
                               version_id=version)
