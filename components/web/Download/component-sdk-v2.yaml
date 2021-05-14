@@ -4,7 +4,7 @@ inputs:
 - {name: Url, type: String}
 - {name: curl options, type: String, default: '--location', description: 'Additional options given to the curl bprogram. See https://curl.haxx.se/docs/manpage.html'}
 outputs:
-- {name: Data, type: Artifact}
+- {name: Data}
 metadata:
   annotations:
     author: Alexey Volkov <alexey.volkov@ark-kun.com>
