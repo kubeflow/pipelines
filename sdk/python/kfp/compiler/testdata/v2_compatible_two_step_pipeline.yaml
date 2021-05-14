@@ -128,7 +128,7 @@ spec:
         pipelines.kubeflow.org/v2_component: "true"
     initContainers:
     - command: [/bin/mount_launcher.sh]
-      image: gcr.io/ml-pipeline/kfp-launcher
+      image: gcr.io/ml-pipeline/kfp-launcher:1.6.0-rc.0
       name: kfp-launcher
       mirrorVolumeMounts: true
     volumes:
@@ -221,7 +221,7 @@ spec:
         pipelines.kubeflow.org/v2_component: "true"
     initContainers:
     - command: [/bin/mount_launcher.sh]
-      image: gcr.io/ml-pipeline/kfp-launcher
+      image: gcr.io/ml-pipeline/kfp-launcher:1.6.0-rc.0
       name: kfp-launcher
       mirrorVolumeMounts: true
     volumes:
