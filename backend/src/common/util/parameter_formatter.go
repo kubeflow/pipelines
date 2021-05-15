@@ -84,7 +84,7 @@ func (p *ParameterFormatter) FormatWorkflowParameters(
 
 // Format substitutes special strings in the provided string.
 func (p *ParameterFormatter) Format(s string) string {
-	re := regexp.MustCompile(`\[\[(.*?)\]\]|\{\{$\.(.*?)\}\}`)
+	re := regexp.MustCompile(`\[\[(.*?)\]\]|\{\{\$\.(.*?)\}\}`)
 	matches := re.FindAllString(s, -1)
 	if matches == nil {
 		return s
