@@ -127,14 +127,14 @@ func (p *ParameterFormatter) createSubstitutes(match string) string {
 			return match
 		}
 		return formatter.FormatString(time.Unix(p.scheduledEpoch, 0).UTC())
-	} else if p.scheduledEpoch != disabledField && strings.HasPrefix(match, currentTimePrefix2) {
+	} else if p.nowEpoch != disabledField && strings.HasPrefix(match, currentTimePrefix2) {
 		format := strings.Replace(match, currentTimePrefix2, "", 1)
 		format = strings.Replace(format, suffix2, "", 1)
 		formatter, err := strftime.New(format, strftime.WithUnixSeconds('s'))
 		if err != nil {
 			return match
 		}
-		return formatter.FormatString(time.Unix(p.scheduledEpoch, 0).UTC())
+		return formatter.FormatString(time.Unix(p.nowEpoch, 0).UTC())
 	} else {
 		return match
 	}
