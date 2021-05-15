@@ -55,6 +55,6 @@ func TestParameterFormatter_Format(t *testing.T) {
 	assert.Equal(t, "", formatter.Format(""))
 
 	// Test modern time formatters
-	assert.Equal(t, "FOO 1970-01-01 00:25:00 FOO", formatter.Format("FOO {{$.scheduledTime.strftime('%Y-%m-%d %H:%M:%S')}} FOO"))
-	assert.Equal(t, "FOO 1970-01-01 00:26:00 FOO", formatter.Format("FOO {{$.currentTime.strftime('%Y-%m-%d %H:%M:%S')}} FOO"))
+	assert.Equal(t, "FOO 1970-01-01 00:00:25 FOO", formatter.Format("FOO {{$.scheduledTime.strftime('%Y-%m-%d %H:%M:%S')}} FOO"))
+	assert.Equal(t, "FOO 1970-01-01 00:00:26 FOO", formatter.Format("FOO {{$.currentTime.strftime('%Y-%m-%d %H:%M:%S')}} FOO"))
 }
