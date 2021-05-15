@@ -19,6 +19,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
 	"github.com/lestrrat-go/strftime"
 )
 
@@ -32,9 +33,9 @@ const (
 	defaultTimeFormat       = "20060102150405"
 	suffix                  = "]]"
 
-	scheduledTimePrefix2    = "{{$.scheduledTime.strftime('"
-	currentTimePrefix2      = "{{$.currentTime.strftime('"
-	suffix2                 = "')}}"
+	scheduledTimePrefix2 = "{{$.scheduledTime.strftime('"
+	currentTimePrefix2   = "{{$.currentTime.strftime('"
+	suffix2              = "')}}"
 )
 
 const (
