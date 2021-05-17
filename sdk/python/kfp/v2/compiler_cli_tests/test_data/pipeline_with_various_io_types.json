@@ -144,49 +144,49 @@
     "root": {
       "dag": {
         "tasks": {
-          "task-downstream": {
+          "downstream": {
             "componentRef": {
               "name": "comp-downstream"
             },
             "dependentTasks": [
-              "task-upstream"
+              "upstream"
             ],
             "inputs": {
               "artifacts": {
                 "input_b": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "output_2",
-                    "producerTask": "task-upstream"
+                    "producerTask": "upstream"
                   }
                 },
                 "input_c": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "output_3",
-                    "producerTask": "task-upstream"
+                    "producerTask": "upstream"
                   }
                 },
                 "input_d": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "output_4",
-                    "producerTask": "task-upstream"
+                    "producerTask": "upstream"
                   }
                 },
                 "input_e": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "output_5",
-                    "producerTask": "task-upstream"
+                    "producerTask": "upstream"
                   }
                 },
                 "input_f": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "output_6",
-                    "producerTask": "task-upstream"
+                    "producerTask": "upstream"
                   }
                 },
                 "input_g": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "output_7",
-                    "producerTask": "task-upstream"
+                    "producerTask": "upstream"
                   }
                 }
               },
@@ -194,16 +194,16 @@
                 "input_a": {
                   "taskOutputParameter": {
                     "outputParameterKey": "output_1",
-                    "producerTask": "task-upstream"
+                    "producerTask": "upstream"
                   }
                 }
               }
             },
             "taskInfo": {
-              "name": "task-downstream"
+              "name": "downstream"
             }
           },
-          "task-upstream": {
+          "upstream": {
             "componentRef": {
               "name": "comp-upstream"
             },
@@ -228,7 +228,7 @@
               }
             },
             "taskInfo": {
-              "name": "task-upstream"
+              "name": "upstream"
             }
           }
         }
@@ -248,7 +248,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.5.0"
+    "sdkVersion": "kfp-1.6.0-rc.0"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root",

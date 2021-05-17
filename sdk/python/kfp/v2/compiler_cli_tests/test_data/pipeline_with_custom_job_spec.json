@@ -115,7 +115,7 @@
     "root": {
       "dag": {
         "tasks": {
-          "task-training-op": {
+          "training-op": {
             "componentRef": {
               "name": "comp-training-op"
             },
@@ -131,10 +131,10 @@
               }
             },
             "taskInfo": {
-              "name": "task-training-op"
+              "name": "training-op"
             }
           },
-          "task-training-op-2": {
+          "training-op-2": {
             "componentRef": {
               "name": "comp-training-op-2"
             },
@@ -150,14 +150,14 @@
               }
             },
             "taskInfo": {
-              "name": "task-training-op-2"
+              "name": "training-op-2"
             }
           }
         }
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.5.0"
+    "sdkVersion": "kfp-1.6.0-rc.0"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"

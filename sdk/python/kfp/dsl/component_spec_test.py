@@ -216,7 +216,7 @@ class ComponentSpecTest(parameterized.TestCase):
                   'artifacts': {
                       'pipelineparam--op-1-output1': {
                           'taskOutputArtifact': {
-                              'producerTask': 'task-op-1',
+                              'producerTask': 'op-1',
                               'outputArtifactKey': 'output1'
                           }
                       },
@@ -227,7 +227,7 @@ class ComponentSpecTest(parameterized.TestCase):
                   'parameters': {
                       'pipelineparam--op-2-output2': {
                           'taskOutputParameter': {
-                              'producerTask': 'task-op-2',
+                              'producerTask': 'op-2',
                               'outputParameterKey': 'output2'
                           }
                       },
@@ -248,7 +248,7 @@ class ComponentSpecTest(parameterized.TestCase):
                   'artifacts': {
                       'pipelineparam--op-1-output1': {
                           'taskOutputArtifact': {
-                              'producerTask': 'task-op-1',
+                              'producerTask': 'op-1',
                               'outputArtifactKey': 'output1'
                           }
                       },
@@ -260,7 +260,7 @@ class ComponentSpecTest(parameterized.TestCase):
                   'parameters': {
                       'pipelineparam--op-2-output2': {
                           'taskOutputParameter': {
-                              'producerTask': 'task-op-2',
+                              'producerTask': 'op-2',
                               'outputParameterKey': 'output2'
                           }
                       },
@@ -279,7 +279,7 @@ class ComponentSpecTest(parameterized.TestCase):
   def test_build_task_inputs_spec(self, is_parent_component_root,
                                   expected_result):
     pipeline_params = self.TEST_PIPELINE_PARAMS
-    tasks_in_current_dag = ['task-op-1', 'task-op-2']
+    tasks_in_current_dag = ['op-1', 'op-2']
     expected_spec = pipeline_spec_pb2.PipelineTaskSpec()
     json_format.ParseDict(expected_result, expected_spec)
 
@@ -305,7 +305,7 @@ class ComponentSpecTest(parameterized.TestCase):
                   'artifacts': {
                       'pipelineparam--op-1-output1': {
                           'taskOutputArtifact': {
-                              'producerTask': 'task-op-1',
+                              'producerTask': 'op-1',
                               'outputArtifactKey': 'output1'
                           }
                       },
@@ -316,7 +316,7 @@ class ComponentSpecTest(parameterized.TestCase):
                   'parameters': {
                       'pipelineparam--op-2-output2': {
                           'taskOutputParameter': {
-                              'producerTask': 'task-op-2',
+                              'producerTask': 'op-2',
                               'outputParameterKey': 'output2'
                           }
                       },
@@ -340,7 +340,7 @@ class ComponentSpecTest(parameterized.TestCase):
               },
             }
           },
-          'tasks_in_current_dag': ['task-op-1', 'task-op-2'],
+          'tasks_in_current_dag': ['op-1', 'op-2'],
           'input_parameters_in_current_dag': ['param1'],
           'input_artifacts_in_current_dag': ['artifact1'],
           'expected_result': {
@@ -348,7 +348,7 @@ class ComponentSpecTest(parameterized.TestCase):
                   'artifacts': {
                       'pipelineparam--op-1-output1': {
                           'taskOutputArtifact': {
-                              'producerTask': 'task-op-1',
+                              'producerTask': 'op-1',
                               'outputArtifactKey': 'output1'
                           }
                       },
@@ -359,7 +359,7 @@ class ComponentSpecTest(parameterized.TestCase):
                   'parameters': {
                       'pipelineparam--op-2-output2': {
                           'taskOutputParameter': {
-                              'producerTask': 'task-op-2',
+                              'producerTask': 'op-2',
                               'outputParameterKey': 'output2'
                           }
                       },
@@ -376,7 +376,7 @@ class ComponentSpecTest(parameterized.TestCase):
                   'artifacts': {
                       'pipelineparam--op-1-output1': {
                           'taskOutputArtifact': {
-                              'producerTask': 'task-op-1',
+                              'producerTask': 'op-1',
                               'outputArtifactKey': 'output1'
                           }
                       },
@@ -387,7 +387,7 @@ class ComponentSpecTest(parameterized.TestCase):
                   'parameters': {
                       'pipelineparam--op-2-output2': {
                           'taskOutputParameter': {
-                              'producerTask': 'task-op-2',
+                              'producerTask': 'op-2',
                               'outputParameterKey': 'output2'
                           }
                       },
@@ -419,7 +419,7 @@ class ComponentSpecTest(parameterized.TestCase):
                 },
               }
           },
-          'tasks_in_current_dag': ['task-op-3'],
+          'tasks_in_current_dag': ['op-3'],
           'input_parameters_in_current_dag': ['pipelineparam--op-2-output2', 'pipelineparam--param1'],
           'input_artifacts_in_current_dag': ['pipelineparam--op-1-output1', 'pipelineparam--artifact1'],
           'expected_result': {
@@ -531,11 +531,11 @@ class ComponentSpecTest(parameterized.TestCase):
     task_spec = pipeline_spec_pb2.PipelineTaskSpec()
     task_spec.component_ref.name = 'comp-component1'
     task_spec.inputs.artifacts[
-        'input1'].task_output_artifact.producer_task = 'task-op-1'
+        'input1'].task_output_artifact.producer_task = 'op-1'
     task_spec.inputs.artifacts[
         'input1'].task_output_artifact.output_artifact_key = 'output1'
     task_spec.inputs.parameters[
-        'input2'].task_output_parameter.producer_task = 'task-op-2'
+        'input2'].task_output_parameter.producer_task = 'op-2'
     task_spec.inputs.parameters[
         'input2'].task_output_parameter.output_parameter_key = 'output2'
     task_spec.inputs.parameters[
@@ -548,7 +548,7 @@ class ComponentSpecTest(parameterized.TestCase):
             'artifacts': {
                 'input1': {
                     'taskOutputArtifact': {
-                        'producerTask': 'task-op-1',
+                        'producerTask': 'op-1',
                         'outputArtifactKey': 'output1'
                     }
                 }
@@ -556,7 +556,7 @@ class ComponentSpecTest(parameterized.TestCase):
             'parameters': {
                 'input2': {
                     'taskOutputParameter': {
-                        'producerTask': 'task-op-2',
+                        'producerTask': 'op-2',
                         'outputParameterKey': 'output2'
                     }
                 }
@@ -577,7 +577,7 @@ class ComponentSpecTest(parameterized.TestCase):
             'parameters': {
                 'input2': {
                     'taskOutputParameter': {
-                        'producerTask': 'task-op-2',
+                        'producerTask': 'op-2',
                         'outputParameterKey': 'output2'
                     }
                 }
