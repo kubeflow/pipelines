@@ -342,14 +342,27 @@ class CompilerTest(unittest.TestCase):
     def producer_op2(output: dsl.Output[dsl.Artifact]):
       pass
 
+    consumer_op1 = components.load_component_from_text("""
+      name: consumer compoent
+      inputs:
+      - {name: input, type: MyDataset}
+      implementation:
+        container:
+          image: dummy
+          args:
+          - {inputPath: input}
+      """)
+
     @dsl.component
-    def consumer_op(input: dsl.Input[dsl.Dataset]):
+    def consumer_op2(input: dsl.Input[dsl.Dataset]):
       pass
 
     @dsl.pipeline(name='test-pipeline')
     def my_pipeline():
-      consumer_op(producer_op1().output)
-      consumer_op(producer_op2().output)
+      consumer_op1(producer_op1().output)
+      consumer_op1(producer_op2().output)
+      consumer_op2(producer_op1().output)
+      consumer_op2(producer_op2().output)
 
     try:
       tmpdir = tempfile.mkdtemp()
