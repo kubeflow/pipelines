@@ -73,7 +73,7 @@ class ImporterNodeTest(parameterized.TestCase):
           'input_uri': 'gs://artifact',
           'expected_result': {
               'taskInfo': {
-                  'name': 'task-importer-1'
+                  'name': 'importer-1'
               },
               'inputs': {
                   'parameters': {
@@ -97,7 +97,7 @@ class ImporterNodeTest(parameterized.TestCase):
           'input_uri': _pipeline_param.PipelineParam(name='uri_to_import'),
           'expected_result': {
               'taskInfo': {
-                  'name': 'task-importer-2'
+                  'name': 'importer-2'
               },
               'inputs': {
                   'parameters': {
