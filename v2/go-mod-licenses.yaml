@@ -65,7 +65,7 @@ module:
     excludePaths:
     - html/testdata
   - name: github.com/gogo/protobuf
-    version: v1.3.1
+    version: v1.3.2
     license:
       path: LICENSE
       spdxId: BSD-3-Clause / BSD-2-Clause
