@@ -19,6 +19,8 @@ Feature stage:
 from typing import Dict, Union
 import warnings
 
+from kfp.dsl import type_utils
+
 
 class BaseType:
   """BaseType is a base type for all scalar and artifact types."""
@@ -128,15 +130,24 @@ def verify_type_compatibility(given_type: TypeSpecType,
                   input
                 expected_type (str/dict): The declared type of the input
   """
+  # Missing types are treated as being compatible with missing types.
   if given_type is None or expected_type is None:
-    return True  # Missing types are treated as being compatible with any types
+    return True
+
+  # Generic artifacts resulted from missing type or explicit "Artifact" type can
+  # be passed to inputs expecting any artifact types.
+  # However, generic artifacts resulted from arbitrary unknown types do not have
+  # such "compatible" feature.
+  if not type_utils.is_parameter_type(str(expected_type)) and (
+      given_type is None or str(given_type).lower() == "artifact"):
+    return True
 
   types_are_compatible = check_types(given_type, expected_type)
 
   if not types_are_compatible:
-    error_text = error_message_prefix + ('Argument type "{}" is incompatible '
-                                         'with the input type "{}"').format(
-        str(given_type), str(expected_type))
+    error_text = error_message_prefix + (
+        'Argument type "{}" is incompatible with the input type "{}"').format(
+            str(given_type), str(expected_type))
     import kfp
     if kfp.TYPE_CHECK:
       raise InconsistentTypeException(error_text)
