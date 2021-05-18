@@ -112,6 +112,9 @@ class Client(object):
     proxy: HTTP or HTTPS proxy server
     ssl_ca_cert: Cert for proxy
     kube_context: String name of context within kubeconfig to use, defaults to the current-context set within kubeconfig.
+    credentials: A TokenCredentialsBase object which provides the logic to
+        populate the requests with credentials to authenticate against the API
+        server.
   """
 
   # in-cluster DNS name of the pipeline service
@@ -126,7 +129,7 @@ class Client(object):
   LOCAL_KFP_CONTEXT = os.path.expanduser('~/.config/kfp/context.json')
 
   # TODO: Wrap the configurations for different authentication methods.
-  def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None, existing_token=None, cookies=None, proxy=None, ssl_ca_cert=None, kube_context=None):
+  def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None, existing_token=None, cookies=None, proxy=None, ssl_ca_cert=None, kube_context=None, credentials=None):
     """Create a new instance of kfp client.
     """
     host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
@@ -135,7 +138,7 @@ class Client(object):
     other_client_id = other_client_id or os.environ.get(KF_PIPELINES_APP_OAUTH2_CLIENT_ID_ENV)
     other_client_secret = other_client_secret or os.environ.get(KF_PIPELINES_APP_OAUTH2_CLIENT_SECRET_ENV)
 
-    config = self._load_config(host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy, ssl_ca_cert, kube_context)
+    config = self._load_config(host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy, ssl_ca_cert, kube_context, credentials)
     # Save the loaded API client configuration, as a reference if update is
     # needed.
     self._load_context_setting_or_default()
@@ -160,7 +163,7 @@ class Client(object):
       except FileNotFoundError:
         logging.info('Failed to automatically set namespace.', exc_info=True)
 
-  def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy, ssl_ca_cert, kube_context):
+  def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy, ssl_ca_cert, kube_context, credentials):
     config = kfp_server_api.configuration.Configuration()
 
     if proxy:
@@ -215,6 +218,9 @@ class Client(object):
     elif self._is_inverse_proxy_host(host):
       token = get_gcp_access_token()
       self._is_refresh_token = False
+    elif credentials:
+      token = credentials.get_token()
+      config.refresh_api_key_hook = credentials.refresh_api_key_hook
 
     if token:
       config.api_key['authorization'] = token
