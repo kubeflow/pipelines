@@ -165,10 +165,14 @@ func (o *LauncherOptions) validate() error {
 }
 
 const outputMetadataFilepath = "/tmp/kfp_outputs/output_metadata.json"
+const defaultPipelineRoot = "minio://mlpipeline/v2/artifacts"
 
 // NewLauncher creates a new launcher object using the JSON-encoded runtimeInfo
 // and specified options.
 func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error) {
+	if len(options.PipelineRoot) == 0 {
+		options.PipelineRoot = defaultPipelineRoot
+	}
 	if err := options.validate(); err != nil {
 		return nil, err
 	}

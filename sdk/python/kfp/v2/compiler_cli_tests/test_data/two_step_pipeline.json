@@ -66,28 +66,28 @@
     "root": {
       "dag": {
         "tasks": {
-          "task-read-from-gcs": {
+          "read-from-gcs": {
             "componentRef": {
               "name": "comp-read-from-gcs"
             },
             "dependentTasks": [
-              "task-write-to-gcs"
+              "write-to-gcs"
             ],
             "inputs": {
               "artifacts": {
                 "input_gcs_path": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "output_gcs_path",
-                    "producerTask": "task-write-to-gcs"
+                    "producerTask": "write-to-gcs"
                   }
                 }
               }
             },
             "taskInfo": {
-              "name": "task-read-from-gcs"
+              "name": "read-from-gcs"
             }
           },
-          "task-write-to-gcs": {
+          "write-to-gcs": {
             "componentRef": {
               "name": "comp-write-to-gcs"
             },
@@ -99,7 +99,7 @@
               }
             },
             "taskInfo": {
-              "name": "task-write-to-gcs"
+              "name": "write-to-gcs"
             }
           }
         }
@@ -113,7 +113,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.5.0"
+    "sdkVersion": "kfp-1.6.0-rc.0"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root",

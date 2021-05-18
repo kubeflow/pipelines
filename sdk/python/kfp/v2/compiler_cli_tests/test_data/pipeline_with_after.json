@@ -75,7 +75,7 @@
     "root": {
       "dag": {
         "tasks": {
-          "task-print-text": {
+          "print-text": {
             "componentRef": {
               "name": "comp-print-text"
             },
@@ -91,15 +91,15 @@
               }
             },
             "taskInfo": {
-              "name": "task-print-text"
+              "name": "print-text"
             }
           },
-          "task-print-text-2": {
+          "print-text-2": {
             "componentRef": {
               "name": "comp-print-text-2"
             },
             "dependentTasks": [
-              "task-print-text"
+              "print-text"
             ],
             "inputs": {
               "parameters": {
@@ -113,16 +113,16 @@
               }
             },
             "taskInfo": {
-              "name": "task-print-text-2"
+              "name": "print-text-2"
             }
           },
-          "task-print-text-3": {
+          "print-text-3": {
             "componentRef": {
               "name": "comp-print-text-3"
             },
             "dependentTasks": [
-              "task-print-text",
-              "task-print-text-2"
+              "print-text",
+              "print-text-2"
             ],
             "inputs": {
               "parameters": {
@@ -136,14 +136,14 @@
               }
             },
             "taskInfo": {
-              "name": "task-print-text-3"
+              "name": "print-text-3"
             }
           }
         }
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.5.0"
+    "sdkVersion": "kfp-1.6.0-rc.0"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"

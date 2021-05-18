@@ -111,7 +111,7 @@
     "root": {
       "dag": {
         "tasks": {
-          "task-add": {
+          "add": {
             "componentRef": {
               "name": "comp-add"
             },
@@ -130,22 +130,22 @@
               }
             },
             "taskInfo": {
-              "name": "task-add"
+              "name": "add"
             }
           },
-          "task-add-2": {
+          "add-2": {
             "componentRef": {
               "name": "comp-add-2"
             },
             "dependentTasks": [
-              "task-add"
+              "add"
             ],
             "inputs": {
               "parameters": {
                 "op1": {
                   "taskOutputParameter": {
                     "outputParameterKey": "sum",
-                    "producerTask": "task-add"
+                    "producerTask": "add"
                   }
                 },
                 "op2": {
@@ -154,22 +154,22 @@
               }
             },
             "taskInfo": {
-              "name": "task-add-2"
+              "name": "add-2"
             }
           },
-          "task-add-3": {
+          "add-3": {
             "componentRef": {
               "name": "comp-add-3"
             },
             "dependentTasks": [
-              "task-add-2"
+              "add-2"
             ],
             "inputs": {
               "parameters": {
                 "op1": {
                   "taskOutputParameter": {
                     "outputParameterKey": "sum",
-                    "producerTask": "task-add-2"
+                    "producerTask": "add-2"
                   }
                 },
                 "op2": {
@@ -182,7 +182,7 @@
               }
             },
             "taskInfo": {
-              "name": "task-add-3"
+              "name": "add-3"
             }
           }
         }
@@ -199,7 +199,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.5.0"
+    "sdkVersion": "kfp-1.6.0-rc.0"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root",
