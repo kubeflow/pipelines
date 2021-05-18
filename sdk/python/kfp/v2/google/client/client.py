@@ -53,7 +53,7 @@ _VALID_NAME_PATTERN = re.compile('^[a-z][-a-z0-9]{0,127}$')
 
 # Cloud Console UI link of a pipeline run.
 UI_PIPELINE_JOB_LINK_FORMAT = (
-    'https://console.cloud.google.com/vertex-ai/platform/locations/{region}/pipelines/'
+    'https://console.cloud.google.com/vertex-ai/locations/{region}/pipelines/'
     'runs/{job_id}?project={project_id}')
 
 # Display UI link HTML snippet
