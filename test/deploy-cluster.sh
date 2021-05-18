@@ -81,7 +81,10 @@ else
     SCOPE_ARG="--scopes=storage-rw,cloud-platform"
   fi
   # Use regular release channel to keep up with newly created clusters in Google Cloud Marketplace.
-  gcloud container clusters create ${TEST_CLUSTER} --release-channel regular ${SCOPE_ARG} ${NODE_POOL_CONFIG_ARG} ${WI_ARG}
+  # Uncomment the line below when we start to supporter non-docker container
+  # gcloud container clusters create ${TEST_CLUSTER} --release-channel regular ${SCOPE_ARG} ${NODE_POOL_CONFIG_ARG} ${WI_ARG}
+  # Temporarily pin k8s version to 1.18 since k8s version 1.19 or above does not support docker
+  gcloud container clusters create ${TEST_CLUSTER} --cluster-version 1.18 ${SCOPE_ARG} ${NODE_POOL_CONFIG_ARG} ${WI_ARG}
 fi
 
 gcloud container clusters get-credentials ${TEST_CLUSTER}
