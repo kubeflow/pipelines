@@ -21,11 +21,14 @@ from kfp.dsl import io_types
 from kfp.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2 as pb
 
-_PARAMETER_TYPES = ['String', 'str', 'Integer', 'int', 'Float', 'Double']
+_PARAMETER_TYPES = [
+    'String', 'str', 'Integer', 'int', 'Float', 'Double', 'bool', 'Boolean',
+    'Dict', 'List'
+]
 _KNOWN_ARTIFACT_TYPES = ['Model', 'Dataset', 'Schema', 'Metrics']
 _UNKNOWN_ARTIFACT_TYPES = [{
     'JsonObject': {
-        'data_type': 'proto:tfx.components.trainer.Trai'
+        'data_type': 'proto:tfx.components.trainer.TrainArgs'
     }
 }, None, 'Arbtrary Model', 'dummy']
 
@@ -43,59 +46,82 @@ class TypeUtilsTest(parameterized.TestCase):
       self.assertFalse(type_utils.is_parameter_type(type_name))
 
   @parameterized.parameters(
-    {
-        'artifact_class_or_type_name': 'Model',
-        'expected_result': pb.ArtifactTypeSchema(schema_title='system.Model')
-    },
-    {
-        'artifact_class_or_type_name': io_types.Model,
-        'expected_result': pb.ArtifactTypeSchema(schema_title='system.Model')
-    },
-    {
-        'artifact_class_or_type_name': 'Dataset',
-        'expected_result': pb.ArtifactTypeSchema(schema_title='system.Dataset')
-    },
-    {
-        'artifact_class_or_type_name': io_types.Dataset,
-        'expected_result': pb.ArtifactTypeSchema(schema_title='system.Dataset')
-    },
-    {
-        'artifact_class_or_type_name': 'Metrics',
-        'expected_result': pb.ArtifactTypeSchema(schema_title='system.Metrics')
-    },
-    {
-        'artifact_class_or_type_name': io_types.Metrics,
-        'expected_result': pb.ArtifactTypeSchema(schema_title='system.Metrics')
-    },
-    {
-        'artifact_class_or_type_name': 'ClassificationMetrics',
-        'expected_result': pb.ArtifactTypeSchema(schema_title='system.ClassificationMetrics')
-    },
-    {
-        'artifact_class_or_type_name': io_types.ClassificationMetrics,
-        'expected_result': pb.ArtifactTypeSchema(schema_title='system.ClassificationMetrics')
-    },
-    {
-        'artifact_class_or_type_name': 'SlicedClassificationMetrics',
-        'expected_result': pb.ArtifactTypeSchema(schema_title='system.SlicedClassificationMetrics')
-    },
-    {
-        'artifact_class_or_type_name': io_types.SlicedClassificationMetrics,
-        'expected_result': pb.ArtifactTypeSchema(schema_title='system.SlicedClassificationMetrics')
-    },
-    {
-        'artifact_class_or_type_name': 'arbitrary name',
-        'expected_result': pb.ArtifactTypeSchema(schema_title='system.Artifact')
-    },
-    {
-        'artifact_class_or_type_name': _ArbitraryClass,
-        'expected_result': pb.ArtifactTypeSchema(schema_title='system.Artifact')
-    },
+      {
+          'artifact_class_or_type_name': 'Model',
+          'expected_result': pb.ArtifactTypeSchema(schema_title='system.Model')
+      },
+      {
+          'artifact_class_or_type_name': io_types.Model,
+          'expected_result': pb.ArtifactTypeSchema(schema_title='system.Model')
+      },
+      {
+          'artifact_class_or_type_name':
+              'Dataset',
+          'expected_result':
+              pb.ArtifactTypeSchema(schema_title='system.Dataset')
+      },
+      {
+          'artifact_class_or_type_name':
+              io_types.Dataset,
+          'expected_result':
+              pb.ArtifactTypeSchema(schema_title='system.Dataset')
+      },
+      {
+          'artifact_class_or_type_name':
+              'Metrics',
+          'expected_result':
+              pb.ArtifactTypeSchema(schema_title='system.Metrics')
+      },
+      {
+          'artifact_class_or_type_name':
+              io_types.Metrics,
+          'expected_result':
+              pb.ArtifactTypeSchema(schema_title='system.Metrics')
+      },
+      {
+          'artifact_class_or_type_name':
+              'ClassificationMetrics',
+          'expected_result':
+              pb.ArtifactTypeSchema(schema_title='system.ClassificationMetrics')
+      },
+      {
+          'artifact_class_or_type_name':
+              io_types.ClassificationMetrics,
+          'expected_result':
+              pb.ArtifactTypeSchema(schema_title='system.ClassificationMetrics')
+      },
+      {
+          'artifact_class_or_type_name':
+              'SlicedClassificationMetrics',
+          'expected_result':
+              pb.ArtifactTypeSchema(
+                  schema_title='system.SlicedClassificationMetrics')
+      },
+      {
+          'artifact_class_or_type_name':
+              io_types.SlicedClassificationMetrics,
+          'expected_result':
+              pb.ArtifactTypeSchema(
+                  schema_title='system.SlicedClassificationMetrics')
+      },
+      {
+          'artifact_class_or_type_name':
+              'arbitrary name',
+          'expected_result':
+              pb.ArtifactTypeSchema(schema_title='system.Artifact')
+      },
+      {
+          'artifact_class_or_type_name':
+              _ArbitraryClass,
+          'expected_result':
+              pb.ArtifactTypeSchema(schema_title='system.Artifact')
+      },
   )
-  def test_get_artifact_type_schema(self, artifact_class_or_type_name, expected_result):
-    self.assertEqual(expected_result,
-                    type_utils.get_artifact_type_schema(
-                        artifact_class_or_type_name))
+  def test_get_artifact_type_schema(self, artifact_class_or_type_name,
+                                    expected_result):
+    self.assertEqual(
+        expected_result,
+        type_utils.get_artifact_type_schema(artifact_class_or_type_name))
 
   def test_get_parameter_type(self):
     # Test get parameter type by name.
@@ -110,6 +136,14 @@ class TypeUtilsTest(parameterized.TestCase):
                      type_utils.get_parameter_type('String'))
     self.assertEqual(pb.PrimitiveType.STRING,
                      type_utils.get_parameter_type('Str'))
+    self.assertEqual(pb.PrimitiveType.STRING,
+                     type_utils.get_parameter_type('Dict'))
+    self.assertEqual(pb.PrimitiveType.STRING,
+                     type_utils.get_parameter_type('List'))
+    self.assertEqual(pb.PrimitiveType.STRING,
+                     type_utils.get_parameter_type('Dict[str, str]'))
+    self.assertEqual(pb.PrimitiveType.STRING,
+                     type_utils.get_parameter_type('List[float]'))
 
     # Test get parameter by Python type.
     self.assertEqual(pb.PrimitiveType.INT, type_utils.get_parameter_type(int))
@@ -117,12 +151,15 @@ class TypeUtilsTest(parameterized.TestCase):
                      type_utils.get_parameter_type(float))
     self.assertEqual(pb.PrimitiveType.STRING,
                      type_utils.get_parameter_type(str))
+    self.assertEqual(pb.PrimitiveType.STRING,
+                     type_utils.get_parameter_type(bool))
+    self.assertEqual(pb.PrimitiveType.STRING,
+                     type_utils.get_parameter_type(dict))
+    self.assertEqual(pb.PrimitiveType.STRING,
+                     type_utils.get_parameter_type(list))
 
     with self.assertRaises(AttributeError):
       type_utils.get_parameter_type_schema(None)
-
-    with self.assertRaisesRegex(TypeError, 'Got illegal parameter type.'):
-      type_utils.get_parameter_type(bool)
 
   def test_get_input_artifact_type_schema(self):
     input_specs = [
@@ -143,12 +180,14 @@ class TypeUtilsTest(parameterized.TestCase):
     # input found, and a matching artifact type schema returned.
     self.assertEqual(
         'system.Model',
-        type_utils.get_input_artifact_type_schema('input2', input_specs).schema_title)
+        type_utils.get_input_artifact_type_schema('input2',
+                                                  input_specs).schema_title)
 
     # input found, and the default artifact type schema returned.
     self.assertEqual(
         'system.Artifact',
-        type_utils.get_input_artifact_type_schema('input3', input_specs).schema_title)
+        type_utils.get_input_artifact_type_schema('input3',
+                                                  input_specs).schema_title)
 
   def test_get_parameter_type_field_name(self):
     self.assertEqual('string_value',
