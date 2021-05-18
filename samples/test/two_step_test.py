@@ -142,7 +142,7 @@ if __name__ == '__main__':
             pipeline_func=two_step_pipeline,
             mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY
         ),
-        # Verify default pipeline_root with minio
+        # Verify default pipeline_root with MinIO
         TestCase(pipeline_func=two_step_pipeline,
                  verify_func=verify_with_default_pipeline_root,
                  mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
@@ -151,7 +151,7 @@ if __name__ == '__main__':
                  ),
         # Verify overriding pipeline root to MinIO
         TestCase(pipeline_func=two_step_pipeline,
-                 verify_func=verify_with_specific_pipeline_root(),
+                 verify_func=verify_with_specific_pipeline_root,
                  mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
                  arguments={
                      kfp.dsl.ROOT_PARAMETER_NAME: 'minio://mlpipeline/override/artifacts' },
