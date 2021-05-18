@@ -95,17 +95,12 @@ def train(
   with open(dataset_two.path, 'r') as input_file:
     dataset_two_contents = input_file.read()
 
-  line = ('dataset_one_contents: {} || '
-          'dataset_two_contents: {} || '
-          'message: {} || '
-          'input_bool: {}, type {} || '
-          'input_dict: {}, type {} || '
-          'input_list: {}, type {} \n').format(dataset_one_contents,
-                                               dataset_two_contents,
-                                               message, input_bool,
-                                               type(input_bool), input_dict,
-                                               type(input_dict), input_list,
-                                               type(input_list))
+  line = (f'dataset_one_contents: {dataset_one_contents} || '
+          f'dataset_two_contents: {dataset_two_contents} || '
+          f'message: {message} || '
+          f'input_bool: {input_bool}, type {type(input_bool)} || '
+          f'input_dict: {input_dict}, type {type(input_dict)} || '
+          f'input_list: {input_list}, type {type(input_list)} \n')
 
   with open(model.path, 'w') as output_file:
     for i in range(num_steps):
