@@ -187,6 +187,8 @@ def serialize_value(value, type_name: str) -> str:
         str(type_name),
     ))
 
+
+# TODO: extract this out to a util module, likely outside either component or dsl.
 def _get_short_type_name(type_name: str) -> str:
     """Extracts the short form type name.
 
