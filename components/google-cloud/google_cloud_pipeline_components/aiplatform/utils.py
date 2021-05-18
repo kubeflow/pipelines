@@ -30,8 +30,7 @@ INIT_KEY = 'init'
 METHOD_KEY = 'method'
 
 # Container image that is used for component containers
-# TODO tie the container version to sdk release version instead of latest
-DEFAULT_CONTAINER_IMAGE = 'gcr.io/sashaproject-1/aiplatform_component:latest'
+DEFAULT_CONTAINER_IMAGE = 'gcr.io/ml-pipeline/google-cloud-pipeline-components:0.1.0'
 
 # map of MB SDK type to Metadata type
 RESOURCE_TO_METADATA_TYPE = {
