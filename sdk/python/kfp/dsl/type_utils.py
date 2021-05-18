@@ -44,6 +44,8 @@ _PARAMETER_TYPES_MAPPING = {
     'boolean': pipeline_spec_pb2.PrimitiveType.STRING,
     'dict': pipeline_spec_pb2.PrimitiveType.STRING,
     'list': pipeline_spec_pb2.PrimitiveType.STRING,
+    'jsonobject': pipeline_spec_pb2.PrimitiveType.STRING,
+    'jsonarray': pipeline_spec_pb2.PrimitiveType.STRING,
 }
 
 # Mapping primitive types to their IR message field names.
@@ -55,7 +57,7 @@ _PARAMETER_TYPES_VALUE_REFERENCE_MAPPING = {
 }
 
 
-def is_parameter_type(type_name: Optional[str]) -> bool:
+def is_parameter_type(type_name: Optional[Union[str, dict]]) -> bool:
   """Check if a ComponentSpec I/O type is considered as a parameter type.
 
   Args:
@@ -66,9 +68,12 @@ def is_parameter_type(type_name: Optional[str]) -> bool:
   """
   if isinstance(type_name, str):
     type_name = _data_passing._get_short_type_name(type_name)
-    return type_name.lower() in _PARAMETER_TYPES_MAPPING
+  elif isinstance(type_name, dict):
+    type_name = list(type_name.keys())[0]
   else:
     return False
+
+  return type_name.lower() in _PARAMETER_TYPES_MAPPING
 
 
 def get_artifact_type_schema(
@@ -88,7 +93,8 @@ def get_artifact_type_schema(
 
 
 def get_parameter_type(
-    param_type: Optional[Union[Type, str]]) -> pipeline_spec_pb2.PrimitiveType:
+    param_type: Optional[Union[Type, str, dict]]
+) -> pipeline_spec_pb2.PrimitiveType:
   """Get the IR I/O parameter type for the given ComponentSpec I/O type.
 
   Args:
@@ -103,6 +109,8 @@ def get_parameter_type(
   """
   if type(param_type) == type:
     type_name = param_type.__name__
+  elif isinstance(param_type, dict):
+    type_name = list(param_type.keys())[0]
   else:
     type_name = _data_passing._get_short_type_name(str(param_type))
   return _PARAMETER_TYPES_MAPPING.get(type_name.lower())

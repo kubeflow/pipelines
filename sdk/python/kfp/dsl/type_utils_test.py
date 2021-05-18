@@ -16,21 +16,34 @@ from absl.testing import parameterized
 
 import sys
 import unittest
+from typing import Any, Dict, List
+
 from kfp.components import structures
 from kfp.dsl import io_types
 from kfp.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2 as pb
 
 _PARAMETER_TYPES = [
-    'String', 'str', 'Integer', 'int', 'Float', 'Double', 'bool', 'Boolean',
-    'Dict', 'List'
+    'String',
+    'str',
+    'Integer',
+    'int',
+    'Float',
+    'Double',
+    'bool',
+    'Boolean',
+    'Dict',
+    'List',
+    'JsonObject',
+    'JsonArray',
+    {
+        'JsonObject': {
+            'data_type': 'proto:tfx.components.trainer.TrainArgs'
+        }
+    },
 ]
 _KNOWN_ARTIFACT_TYPES = ['Model', 'Dataset', 'Schema', 'Metrics']
-_UNKNOWN_ARTIFACT_TYPES = [{
-    'JsonObject': {
-        'data_type': 'proto:tfx.components.trainer.TrainArgs'
-    }
-}, None, 'Arbtrary Model', 'dummy']
+_UNKNOWN_ARTIFACT_TYPES = [None, 'Arbtrary Model', 'dummy']
 
 
 class _ArbitraryClass:
@@ -123,41 +136,91 @@ class TypeUtilsTest(parameterized.TestCase):
         expected_result,
         type_utils.get_artifact_type_schema(artifact_class_or_type_name))
 
-  def test_get_parameter_type(self):
-    # Test get parameter type by name.
-    self.assertEqual(pb.PrimitiveType.INT, type_utils.get_parameter_type('Int'))
-    self.assertEqual(pb.PrimitiveType.INT,
-                     type_utils.get_parameter_type('Integer'))
-    self.assertEqual(pb.PrimitiveType.DOUBLE,
-                     type_utils.get_parameter_type('Double'))
-    self.assertEqual(pb.PrimitiveType.DOUBLE,
-                     type_utils.get_parameter_type('Float'))
-    self.assertEqual(pb.PrimitiveType.STRING,
-                     type_utils.get_parameter_type('String'))
-    self.assertEqual(pb.PrimitiveType.STRING,
-                     type_utils.get_parameter_type('Str'))
-    self.assertEqual(pb.PrimitiveType.STRING,
-                     type_utils.get_parameter_type('Dict'))
-    self.assertEqual(pb.PrimitiveType.STRING,
-                     type_utils.get_parameter_type('List'))
-    self.assertEqual(pb.PrimitiveType.STRING,
-                     type_utils.get_parameter_type('Dict[str, str]'))
-    self.assertEqual(pb.PrimitiveType.STRING,
-                     type_utils.get_parameter_type('List[float]'))
+  @parameterized.parameters(
+      {
+          'given_type': 'Int',
+          'expected_type': pb.PrimitiveType.INT,
+      },
+      {
+          'given_type': 'Integer',
+          'expected_type': pb.PrimitiveType.INT,
+      },
+      {
+          'given_type': int,
+          'expected_type': pb.PrimitiveType.INT,
+      },
+      {
+          'given_type': 'Double',
+          'expected_type': pb.PrimitiveType.DOUBLE,
+      },
+      {
+          'given_type': 'Float',
+          'expected_type': pb.PrimitiveType.DOUBLE,
+      },
+      {
+          'given_type': float,
+          'expected_type': pb.PrimitiveType.DOUBLE,
+      },
+      {
+          'given_type': 'String',
+          'expected_type': pb.PrimitiveType.STRING,
+      },
+      {
+          'given_type': 'Text',
+          'expected_type': pb.PrimitiveType.STRING,
+      },
+      {
+          'given_type': str,
+          'expected_type': pb.PrimitiveType.STRING,
+      },
+      {
+          'given_type': 'Boolean',
+          'expected_type': pb.PrimitiveType.STRING,
+      },
+      {
+          'given_type': bool,
+          'expected_type': pb.PrimitiveType.STRING,
+      },
+      {
+          'given_type': 'Dict',
+          'expected_type': pb.PrimitiveType.STRING,
+      },
+      {
+          'given_type': dict,
+          'expected_type': pb.PrimitiveType.STRING,
+      },
+      {
+          'given_type': 'List',
+          'expected_type': pb.PrimitiveType.STRING,
+      },
+      {
+          'given_type': list,
+          'expected_type': pb.PrimitiveType.STRING,
+      },
+      {
+          'given_type': Dict[str, int],
+          'expected_type': pb.PrimitiveType.STRING,
+      },
+      {
+          'given_type': List[Any],
+          'expected_type': pb.PrimitiveType.STRING,
+      },
+      {
+          'given_type': {
+              'JsonObject': {
+                  'data_type': 'proto:tfx.components.trainer.TrainArgs'
+              }
+          },
+          'expected_type': pb.PrimitiveType.STRING,
+      },
+  )
+  def test_get_parameter_type(self, given_type, expected_type):
+    self.assertEqual(expected_type, type_utils.get_parameter_type(given_type))
 
     # Test get parameter by Python type.
     self.assertEqual(pb.PrimitiveType.INT, type_utils.get_parameter_type(int))
-    self.assertEqual(pb.PrimitiveType.DOUBLE,
-                     type_utils.get_parameter_type(float))
-    self.assertEqual(pb.PrimitiveType.STRING,
-                     type_utils.get_parameter_type(str))
-    self.assertEqual(pb.PrimitiveType.STRING,
-                     type_utils.get_parameter_type(bool))
-    self.assertEqual(pb.PrimitiveType.STRING,
-                     type_utils.get_parameter_type(dict))
-    self.assertEqual(pb.PrimitiveType.STRING,
-                     type_utils.get_parameter_type(list))
 
+  def test_get_parameter_type_invalid(self):
     with self.assertRaises(AttributeError):
       type_utils.get_parameter_type_schema(None)
 

@@ -159,9 +159,9 @@ class Executor():
     import re
     match = re.match('(typing\.)?(?P<type>\w+)(?:\[.+\])?', type_name)
     if match:
-        return match.group('type')
+      return match.group('type')
     else:
-        return type_name
+      return type_name
 
   # TODO: merge with type_utils.is_parameter_type
   @classmethod
@@ -169,7 +169,7 @@ class Executor():
     if type(annotation) == type:
       return annotation in [str, int, float, bool, dict, list]
 
-    # annotation could be, for instance `typing.Dict[str, str]`, etc.
+    # Annotation could be, for instance `typing.Dict[str, str]`, etc.
     return cls._get_short_type_name(str(annotation)) in ['Dict', 'List']
 
   @classmethod
