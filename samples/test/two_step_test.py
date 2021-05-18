@@ -91,10 +91,10 @@ def verify_tasks(t: unittest.TestCase, tasks: dict):
     )
 
 
-def verify_artifacts(t: unittest.TestCase, tasks: dict):
+def verify_artifacts(t: unittest.TestCase, tasks: dict, artifact_uri_prefix):
     for task in tasks.values():
         for artifact in task.outputs.artifacts:
-            t.assertTrue(artifact.uri.startswith('minio://mlpipeline/v2/artifacts'))
+            t.assertTrue(artifact.uri.startswith(artifact_uri_prefix))
 
 
 def verify(
@@ -116,7 +116,19 @@ def verify_with_default_pipeline_root(
     t.assertEqual(run.status, 'Succeeded')
     tasks = get_tasks(mlmd_connection_config, argo_workflow_name)
     verify_tasks(t, tasks)
-    verify_artifacts(t, tasks)
+    verify_artifacts(t, tasks, 'minio://mlpipeline/v2/artifacts')
+
+
+def verify_with_specific_pipeline_root(
+        run: kfp_server_api.ApiRun, mlmd_connection_config, argo_workflow_name: str,
+        **kwargs
+):
+    t = unittest.TestCase()
+    t.maxDiff = None  # we always want to see full diff
+    t.assertEqual(run.status, 'Succeeded')
+    tasks = get_tasks(mlmd_connection_config, argo_workflow_name)
+    verify_tasks(t, tasks)
+    verify_artifacts(t, tasks, 'minio://mlpipeline/v2/artifacts/override')
 
 
 if __name__ == '__main__':
@@ -137,6 +149,13 @@ if __name__ == '__main__':
                  arguments={
                      kfp.dsl.ROOT_PARAMETER_NAME: ''},
                  ),
+        # Verify overriding pipeline root to MinIO
+        TestCase(pipeline_func=two_step_pipeline,
+                 verify_func=verify_with_default_pipeline_root,
+                 mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
+                 arguments={
+                     kfp.dsl.ROOT_PARAMETER_NAME: 'minio://mlpipeline/v2/artifacts/override' },
+                 )
     ])
 
 # %%
