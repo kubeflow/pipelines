@@ -73,8 +73,8 @@ class Compiler(object):
       raise ValueError('V2_ENGINE execution mode is not supported yet.')
 
     if mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
-      warnings.warn('V2_COMPATIBLE execution mode is still under development.'
-                    ' Pipelines may not work as expected.')
+      warnings.warn('V2_COMPATIBLE execution mode is at Beta quality.'
+                    ' Some pipeline features may not work as expected.')
     self._mode = mode
     self._launcher_image = launcher_image
     self._pipeline_name_param: Optional[dsl.PipelineParam] = None
