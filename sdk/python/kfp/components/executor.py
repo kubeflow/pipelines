@@ -13,7 +13,7 @@
 # limitations under the License.
 import json
 import inspect
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 from kfp.components._python_op import InputPath, OutputPath
 from kfp.dsl.io_types import Artifact, Input, Output, create_runtime_artifact, is_artifact_annotation, is_input_artifact, is_output_artifact
 
@@ -53,7 +53,7 @@ class Executor():
     import os
     artifact = create_runtime_artifact(runtime_artifact)
     os.makedirs(os.path.dirname(artifact.path), exist_ok=True)
-    return  artifact
+    return artifact
 
   def _get_input_artifact(self, name: str):
     return self._input_artifacts.get(name)
@@ -61,14 +61,21 @@ class Executor():
   def _get_output_artifact(self, name: str):
     return self._output_artifacts.get(name)
 
-  def _get_input_parameter_value(self, parameter_name: str):
+  def _get_input_parameter_value(self, parameter_name: str, parameter_type: Any):
     parameter = self._input.get('inputs', {}).get('parameters',
                                                   {}).get(parameter_name, None)
     if parameter is None:
       return None
 
     if parameter.get('stringValue'):
-      return parameter['stringValue']
+      if parameter_type == str:
+        return parameter['stringValue']
+      elif parameter_type == bool:
+        # Use `.lower()` so it can also handle 'True' and 'False' (resulted from
+        # `str(True)` and `str(False)`, respectively.
+        return json.loads(parameter['stringValue'].lower())
+      else:
+        return json.loads(parameter['stringValue'])
     elif parameter.get('intValue'):
       return int(parameter['intValue'])
     elif parameter.get('doubleValue'):
@@ -106,18 +113,18 @@ class Executor():
               artifact_name))
     return input_artifact.path
 
-  def _write_output_parameter_value(self, name: str, value: Union[str, int,
-                                                                  float]):
+  def _write_output_parameter_value(self, name: str,
+                                    value: Union[str, int, float, bool, dict,
+                                                 list, Dict, List]):
     if type(value) == str:
-      output = {"stringValue": value}
+      output = {'stringValue': value}
     elif type(value) == int:
-      output = {"intValue": value}
+      output = {'intValue': value}
     elif type(value) == float:
-      output = {"doubleValue": value}
+      output = {'doubleValue': value}
     else:
-      raise RuntimeError(
-          'Expected value of type str, int or float, got {} instead for value {}'
-          .format(type(value), value))
+      # For bool, list, dict, List, Dict, json serialize the value.
+      output = {'stringValue': json.dumps(value)}
 
     if not self._executor_output.get('parameters'):
       self._executor_output['parameters'] = {}
@@ -129,9 +136,41 @@ class Executor():
     with open(path, 'w') as f:
       f.write(str(value))
 
+  # TODO: extract to a util
+  @classmethod
+  def _get_short_type_name(cls, type_name: str) -> str:
+    """Extracts the short form type name.
+
+    This method is used for looking up serializer for a given type.
+
+    For example:
+      typing.List -> List
+      typing.List[int] -> List
+      typing.Dict[str, str] -> Dict
+      List -> List
+      str -> str
+
+    Args:
+      type_name: The original type name.
+
+    Returns:
+      The short form type name or the original name if pattern doesn't match.
+    """
+    import re
+    match = re.match('(typing\.)?(?P<type>\w+)(?:\[.+\])?', type_name)
+    if match:
+      return match.group('type')
+    else:
+      return type_name
+
+  # TODO: merge with type_utils.is_parameter_type
   @classmethod
   def _is_parameter(cls, annotation: Any) -> bool:
-    return annotation in [str, int, float]
+    if type(annotation) == type:
+      return annotation in [str, int, float, bool, dict, list]
+
+    # Annotation could be, for instance `typing.Dict[str, str]`, etc.
+    return cls._get_short_type_name(str(annotation)) in ['Dict', 'List']
 
   @classmethod
   def _is_artifact(cls, annotation: Any) -> bool:
@@ -167,9 +206,9 @@ class Executor():
 
     for name, artifact in self._output_artifacts.items():
       runtime_artifact = {
-          "name": artifact.name,
-          "uri": artifact.uri,
-          "metadata": artifact.metadata,
+          'name': artifact.name,
+          'uri': artifact.uri,
+          'metadata': artifact.metadata,
       }
       artifacts_list = {'artifacts': [runtime_artifact]}
 
@@ -202,8 +241,8 @@ class Executor():
             .format(self._return_annotation))
 
     import os
-    os.makedirs(os.path.dirname(self._input['outputs']['outputFile']),
-                exist_ok=True)
+    os.makedirs(
+        os.path.dirname(self._input['outputs']['outputFile']), exist_ok=True)
     with open(self._input['outputs']['outputFile'], 'w') as f:
       f.write(json.dumps(self._executor_output))
 
@@ -224,8 +263,8 @@ class Executor():
       if k == 'return':
         continue
 
-      if v in [str, float, int]:
-        func_kwargs[k] = self._get_input_parameter_value(k)
+      if self._is_parameter(v):
+        func_kwargs[k] = self._get_input_parameter_value(k, v)
 
       if is_artifact_annotation(v):
         if is_input_artifact(v):
@@ -234,7 +273,7 @@ class Executor():
           func_kwargs[k] = self._get_output_artifact(k)
 
       elif isinstance(v, OutputPath):
-        if v.type in [str, float, int]:
+        if self._is_parameter(v.type):
           func_kwargs[k] = self._get_output_parameter_path(k)
         else:
           func_kwargs[k] = self._get_output_artifact_path(k)

@@ -15,10 +15,10 @@
 import inspect
 from typing import Dict, List, Optional, Type, Union
 from kfp.components import structures
+from kfp.components import _data_passing
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.dsl import artifact_utils
 from kfp.dsl import io_types
-
 
 # ComponentSpec I/O types to DSL ontology artifact classes mapping.
 _ARTIFACT_CLASSES_MAPPING = {
@@ -40,6 +40,12 @@ _PARAMETER_TYPES_MAPPING = {
     'string': pipeline_spec_pb2.PrimitiveType.STRING,
     'str': pipeline_spec_pb2.PrimitiveType.STRING,
     'text': pipeline_spec_pb2.PrimitiveType.STRING,
+    'bool': pipeline_spec_pb2.PrimitiveType.STRING,
+    'boolean': pipeline_spec_pb2.PrimitiveType.STRING,
+    'dict': pipeline_spec_pb2.PrimitiveType.STRING,
+    'list': pipeline_spec_pb2.PrimitiveType.STRING,
+    'jsonobject': pipeline_spec_pb2.PrimitiveType.STRING,
+    'jsonarray': pipeline_spec_pb2.PrimitiveType.STRING,
 }
 
 # Mapping primitive types to their IR message field names.
@@ -51,7 +57,7 @@ _PARAMETER_TYPES_VALUE_REFERENCE_MAPPING = {
 }
 
 
-def is_parameter_type(type_name: Optional[str]) -> bool:
+def is_parameter_type(type_name: Optional[Union[str, dict]]) -> bool:
   """Check if a ComponentSpec I/O type is considered as a parameter type.
 
   Args:
@@ -61,9 +67,13 @@ def is_parameter_type(type_name: Optional[str]) -> bool:
     True if the type name maps to a parameter type else False.
   """
   if isinstance(type_name, str):
-    return type_name.lower() in _PARAMETER_TYPES_MAPPING
+    type_name = _data_passing._get_short_type_name(type_name)
+  elif isinstance(type_name, dict):
+    type_name = list(type_name.keys())[0]
   else:
     return False
+
+  return type_name.lower() in _PARAMETER_TYPES_MAPPING
 
 
 def get_artifact_type_schema(
@@ -83,7 +93,8 @@ def get_artifact_type_schema(
 
 
 def get_parameter_type(
-    param_type: Optional[Union[Type, str]]) -> pipeline_spec_pb2.PrimitiveType:
+    param_type: Optional[Union[Type, str, dict]]
+) -> pipeline_spec_pb2.PrimitiveType:
   """Get the IR I/O parameter type for the given ComponentSpec I/O type.
 
   Args:
@@ -97,11 +108,12 @@ def get_parameter_type(
     AttributeError: if type_name is not a string type.
   """
   if type(param_type) == type:
-    if param_type not in (str, float, int):
-      raise TypeError('Got illegal parameter type. Currently only support: '
-                      'str, int and float. Got %s' % param_type)
-    param_type = param_type.__name__
-  return _PARAMETER_TYPES_MAPPING.get(param_type.lower())
+    type_name = param_type.__name__
+  elif isinstance(param_type, dict):
+    type_name = list(param_type.keys())[0]
+  else:
+    type_name = _data_passing._get_short_type_name(str(param_type))
+  return _PARAMETER_TYPES_MAPPING.get(type_name.lower())
 
 
 def get_parameter_type_field_name(type_name: Optional[str]) -> str:
