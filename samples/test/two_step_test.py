@@ -32,7 +32,7 @@ def get_tasks(mlmd_connection_config, argo_workflow_name: str):
     return tasks
 
 
-def verify_tasks(t: TestCase, tasks: dict):
+def verify_tasks(t: unittest.TestCase, tasks: dict):
     task_names = [*tasks.keys()]
     t.assertEqual(task_names, ['train-op', 'preprocess'], 'task names')
 
@@ -91,7 +91,7 @@ def verify_tasks(t: TestCase, tasks: dict):
     )
 
 
-def verify_artifacts(t: TestCase, tasks: dict):
+def verify_artifacts(t: unittest.TestCase, tasks: dict):
     for task in tasks.values():
         for artifact in task.outputs.artifacts:
             t.assertTrue(artifact.uri.startswith('minio://mlpipeline/v2/artifacts'))
