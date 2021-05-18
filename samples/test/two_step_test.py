@@ -106,6 +106,9 @@ if __name__ == '__main__':
             pipeline_func=two_step_pipeline,
             verify_func=verify,
             mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
+            arguments={
+                kfp.dsl.ROOT_PARAMETER_NAME: ''},
+        )
         ),
         TestCase(
             pipeline_func=two_step_pipeline,
