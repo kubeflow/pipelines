@@ -21,6 +21,7 @@ import unittest
 from kfp.v2 import components
 from kfp.v2 import compiler
 from kfp.v2 import dsl
+from kfp.dsl import types
 
 
 class CompilerTest(unittest.TestCase):
@@ -322,6 +323,87 @@ class CompilerTest(unittest.TestCase):
         ' type, such as \"str\", \"int\", and \"float\".'):
       compiler.Compiler().compile(
           pipeline_func=my_pipeline, package_path='output.json')
+
+  def test_passing_generic_artifact_to_input_expecting_concrete_artifact(
+      self):
+
+    producer_op1 = components.load_component_from_text("""
+      name: producer compoent
+      outputs:
+      - {name: output, type: Artifact}
+      implementation:
+        container:
+          image: dummy
+          args:
+          - {outputPath: output}
+      """)
+
+    @dsl.component
+    def producer_op2(output: dsl.Output[dsl.Artifact]):
+      pass
+
+    consumer_op1 = components.load_component_from_text("""
+      name: consumer compoent
+      inputs:
+      - {name: input, type: MyDataset}
+      implementation:
+        container:
+          image: dummy
+          args:
+          - {inputPath: input}
+      """)
+
+    @dsl.component
+    def consumer_op2(input: dsl.Input[dsl.Dataset]):
+      pass
+
+    @dsl.pipeline(name='test-pipeline')
+    def my_pipeline():
+      consumer_op1(producer_op1().output)
+      consumer_op1(producer_op2().output)
+      consumer_op2(producer_op1().output)
+      consumer_op2(producer_op2().output)
+
+    try:
+      tmpdir = tempfile.mkdtemp()
+      target_json_file = os.path.join(tmpdir, 'result.json')
+      compiler.Compiler().compile(
+          pipeline_func=my_pipeline, package_path=target_json_file)
+
+      self.assertTrue(os.path.exists(target_json_file))
+    finally:
+      shutil.rmtree(tmpdir)
+
+  def test_passing_arbitrary_artifact_to_input_expecting_concrete_artifact(
+      self):
+
+    producer_op1 = components.load_component_from_text("""
+      name: producer compoent
+      outputs:
+      - {name: output, type: SomeArbitraryType}
+      implementation:
+        container:
+          image: dummy
+          args:
+          - {outputPath: output}
+      """)
+
+    @dsl.component
+    def consumer_op(input: dsl.Input[dsl.Dataset]):
+      pass
+
+    @dsl.pipeline(name='test-pipeline')
+    def my_pipeline():
+      consumer_op(producer_op1().output)
+      consumer_op(producer_op2().output)
+
+    with self.assertRaisesRegex(
+        types.InconsistentTypeException,
+        'Incompatible argument passed to the input "input" of component '
+        '"Consumer op": Argument type "SomeArbitraryType" is incompatible with '
+        'the input type "Dataset"'):
+      compiler.Compiler().compile(
+          pipeline_func=my_pipeline, package_path='result.json')
 
 
 if __name__ == '__main__':
