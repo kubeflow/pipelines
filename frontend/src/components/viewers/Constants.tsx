@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Kubeflow Authors
+ * Copyright 2021 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,4 @@
  * limitations under the License.
  */
 
-const MAX_MARKDOWN_STR_LENGTH = 50 * 1000 * 8; // 50KB
-
-export const getMaxMarkdownStrLength = () => MAX_MARKDOWN_STR_LENGTH;
+export const MAX_MARKDOWN_STR_LENGTH = 50 * 1000 * 8; // 50KB

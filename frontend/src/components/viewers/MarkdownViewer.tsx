@@ -18,7 +18,8 @@ import * as React from 'react';
 import Viewer, { ViewerConfig } from './Viewer';
 import { cssRaw } from 'typestyle';
 import Markdown from 'markdown-to-jsx';
-import { getMaxMarkdownStrLength } from './Constants';
+import { MAX_MARKDOWN_STR_LENGTH } from './Constants';
+import Banner from '../Banner';
 
 cssRaw(`
 .markdown-viewer h1,
@@ -58,13 +59,23 @@ export interface MarkdownViewerConfig extends ViewerConfig {
   markdownContent: string;
 }
 
-interface MarkdownViewerProps {
+export interface MarkdownViewerProps {
   configs: MarkdownViewerConfig[];
   maxDimension?: number;
+  maxMarkdownStrLength?: number;
 }
 
 class MarkdownViewer extends Viewer<MarkdownViewerProps, any> {
   private _config = this.props.configs[0];
+
+  constructor(props: MarkdownViewerProps) {
+    super(props);
+    this.state = {
+      maxMarkdownStrLength: props.maxMarkdownStrLength
+        ? props.maxMarkdownStrLength
+        : MAX_MARKDOWN_STR_LENGTH,
+    };
+  }
 
   public getDisplayName(): string {
     return 'Markdown';
@@ -74,13 +85,13 @@ class MarkdownViewer extends Viewer<MarkdownViewerProps, any> {
     if (!this._config) {
       return null;
     }
-    if (this._config.markdownContent.length > getMaxMarkdownStrLength()) {
+    if (this._config.markdownContent.length > this.state.maxMarkdownStrLength) {
       return (
         <div className='markdown-viewer'>
-          <div data-testid='markdown-large-size-warning'>
-            This markdown is too large to render completely.
-          </div>
-          <Markdown>{this._config.markdownContent.substr(0, getMaxMarkdownStrLength())}</Markdown>
+          <Banner message='This markdown is too large to render completely.' mode={'warning'} />
+          <Markdown>
+            {this._config.markdownContent.substr(0, this.state.maxMarkdownStrLength)}
+          </Markdown>
         </div>
       );
     }
