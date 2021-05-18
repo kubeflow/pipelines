@@ -44,6 +44,10 @@ def verify(
     preprocess: KfpTask = tasks.get('preprocess')
     train: KfpTask = tasks.get('train-op')
 
+    for task in tasks.values():
+        for artifact in task.outputs.artifacts:
+            t.assertTrue(artifact.uri.startswith('minio://mlpipeline/v2/artifacts'))
+
     pprint('======= preprocess task =======')
     pprint(preprocess.get_dict())
     pprint('======= train task =======')
