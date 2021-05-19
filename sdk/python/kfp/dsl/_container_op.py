@@ -1379,7 +1379,8 @@ class ContainerOp(BaseOp):
     """Adds a cpu request to which can be a parameter
 
     Args:
-        cpu (str): kubernetes cpu request, https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/#specify-a-cpu-request-and-a-cpu-limit
+        cpu (str): kubernetes cpu request,
+        https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/#specify-a-cpu-request-and-a-cpu-limit
     """
 
     self.cpu_request = cpu
