@@ -628,7 +628,8 @@ class Client(object):
       start_time: The RFC3339 time string of the time when to start the job.
       end_time: The RFC3339 time string of the time when to end the job.
       interval_second: Integer indicating the seconds between two recurring runs in for a periodic schedule.
-      cron_expression: A cron expression representing a set of times, using 5 space-separated fields, e.g. "0 0 9 ? * 2-6".
+      cron_expression: A cron expression representing a set of times, using 6 space-separated fields, e.g. "0 0 9 ? * 2-6".
+        See `here <https://pkg.go.dev/github.com/robfig/cron#hdr-CRON_Expression_Format>`_ for details of the cron expression format.
       max_concurrency: Integer indicating how many jobs can be run in parallel.
       no_catchup: Whether the recurring run should catch up if behind schedule.
         For example, if the recurring run is paused for a while and re-enabled
