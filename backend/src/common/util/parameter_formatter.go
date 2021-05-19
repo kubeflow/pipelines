@@ -20,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang/glog"
 	"github.com/lestrrat-go/strftime"
 )
 
@@ -124,6 +125,7 @@ func (p *ParameterFormatter) createSubstitutes(match string) string {
 		format = strings.Replace(format, suffix2, "", 1)
 		formatter, err := strftime.New(format, strftime.WithUnixSeconds('s'))
 		if err != nil {
+			glog.Errorf("Could not create the strftime formatter from '%v'. Error: %v", format, err)
 			return match
 		}
 		return formatter.FormatString(time.Unix(p.scheduledEpoch, 0).UTC())
@@ -132,6 +134,7 @@ func (p *ParameterFormatter) createSubstitutes(match string) string {
 		format = strings.Replace(format, suffix2, "", 1)
 		formatter, err := strftime.New(format, strftime.WithUnixSeconds('s'))
 		if err != nil {
+			glog.Errorf("Could not create the strftime formatter from '%v'. Error: %v", format, err)
 			return match
 		}
 		return formatter.FormatString(time.Unix(p.nowEpoch, 0).UTC())
