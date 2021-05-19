@@ -111,7 +111,7 @@ def write_to_artifact(executor_input, text):
 def resolve_input_args(value, type_to_resolve):
     """If this is an input from Pipelines, read it directly from gcs."""
     if inspect.isclass(type_to_resolve) and issubclass(
-            type_to_resolve, aiplatform.base.AiPlatformResourceNoun):
+            type_to_resolve, aiplatform.base.VertexAiResourceNoun):
         # Remove '/gcs/' prefix before attempting to remove `aiplatform` prefix
         if value.startswith(RESOURCE_PREFIX['google_cloud_storage_gcs_fuse']):
             value = value[len(RESOURCE_PREFIX['google_cloud_storage_gcs_fuse']):
