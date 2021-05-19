@@ -187,7 +187,7 @@ def map_resource_to_metadata_type(
     # handles the case of exported_dataset
     # TODO generalize to all serializable outputs
     if is_serializable_to_json(mb_sdk_type):
-        return "exported_dataset", "JsonArray"
+        return "exported_dataset", "Dataset"
 
     # handles the case of imported datasets
     if mb_sdk_type == '_Dataset':

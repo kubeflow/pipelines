@@ -91,6 +91,8 @@ def write_to_artifact(executor_input, text):
             # "bq://": For BigQuery resources.
             elif text.startswith(RESOURCE_PREFIX.get('bigquery')):
                 uri_with_prefix = text
+            else:
+                uri_with_prefix = text
 
             runtime_artifact = {
                 "name": artifact.get('name'),
