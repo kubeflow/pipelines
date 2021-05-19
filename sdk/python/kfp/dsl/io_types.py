@@ -432,6 +432,9 @@ def is_artifact_annotation(typ) -> bool:
   if not hasattr(typ, '__args__') or len(typ.__args__) != 2:
     return False
 
+  if typ.__args__[1] not in [InputAnnotation, OutputAnnotation]:
+    return False
+
   return True
 
 def is_input_artifact(typ) -> bool:

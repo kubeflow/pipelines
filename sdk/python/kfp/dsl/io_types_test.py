@@ -16,6 +16,7 @@
 import unittest
 import json
 import os
+from typing import List, Optional, Union
 
 from kfp.dsl import io_types
 from kfp.dsl.io_types import Input, InputAnnotation, Output, Model, OutputAnnotation
@@ -31,34 +32,40 @@ class IOTypesTest(unittest.TestCase):
     metrics.log_confusion_matrix_row('dog', [2, 6, 0])
     metrics.log_confusion_matrix_cell('cat', 'dog', 3)
     metrics.log_confusion_matrix_cell('horses', 'horses', 3)
-    metrics.metadata["test"] = 1.0
-    with open(os.path.join(os.path.dirname(__file__),
-        'test_data', 'expected_io_types_classification_metrics.json')) as json_file:
+    metrics.metadata['test'] = 1.0
+    with open(
+        os.path.join(
+            os.path.dirname(__file__), 'test_data',
+            'expected_io_types_classification_metrics.json')) as json_file:
       expected_json = json.load(json_file)
       self.assertEqual(expected_json, metrics.metadata)
 
   def test_complex_metrics_bulk_loading(self):
     metrics = io_types.ClassificationMetrics()
-    metrics.log_roc_curve(fpr=[85.1, 85.1, 85.1],
-                          tpr=[52.6, 52.6, 52.6],
-                          threshold=[53.6, 53.6, 53.6])
+    metrics.log_roc_curve(
+        fpr=[85.1, 85.1, 85.1],
+        tpr=[52.6, 52.6, 52.6],
+        threshold=[53.6, 53.6, 53.6])
     metrics.log_confusion_matrix(['dog', 'cat', 'horses'],
                                  [[2, 6, 0], [3, 5, 6], [5, 7, 8]])
-    with open(os.path.join(os.path.dirname(__file__),
-        'test_data', 'expected_io_types_bulk_load_classification_metrics.json')) as json_file:
+    with open(
+        os.path.join(
+            os.path.dirname(__file__), 'test_data',
+            'expected_io_types_bulk_load_classification_metrics.json')
+    ) as json_file:
       expected_json = json.load(json_file)
       self.assertEqual(expected_json, metrics.metadata)
-
-
-class InputOutputArtifacts(unittest.TestCase):
 
   def test_is_artifact_annotation(self):
     self.assertTrue(io_types.is_artifact_annotation(Input[Model]))
     self.assertTrue(io_types.is_artifact_annotation(Output[Model]))
+    self.assertTrue(io_types.is_artifact_annotation(Output['MyArtifact']))
 
     self.assertFalse(io_types.is_artifact_annotation(Model))
     self.assertFalse(io_types.is_artifact_annotation(int))
     self.assertFalse(io_types.is_artifact_annotation('Dataset'))
+    self.assertFalse(io_types.is_artifact_annotation(List[str]))
+    self.assertFalse(io_types.is_artifact_annotation(Optional[str]))
 
   def test_is_input_artifact(self):
     self.assertTrue(io_types.is_input_artifact(Input[Model]))
@@ -83,14 +90,14 @@ class InputOutputArtifacts(unittest.TestCase):
     self.assertEqual(io_types.get_io_artifact_class(str), None)
 
   def test_get_io_artifact_annotation(self):
-    self.assertEqual(io_types.get_io_artifact_annotation(Output[Model]),
-                     OutputAnnotation)
-    self.assertEqual(io_types.get_io_artifact_annotation(Input[Model]),
-                     InputAnnotation)
-    self.assertEqual(io_types.get_io_artifact_annotation(Input),
-                     InputAnnotation)
-    self.assertEqual(io_types.get_io_artifact_annotation(Output),
-                     OutputAnnotation)
+    self.assertEqual(
+        io_types.get_io_artifact_annotation(Output[Model]), OutputAnnotation)
+    self.assertEqual(
+        io_types.get_io_artifact_annotation(Input[Model]), InputAnnotation)
+    self.assertEqual(
+        io_types.get_io_artifact_annotation(Input), InputAnnotation)
+    self.assertEqual(
+        io_types.get_io_artifact_annotation(Output), OutputAnnotation)
 
     self.assertEqual(io_types.get_io_artifact_annotation(Model), None)
     self.assertEqual(io_types.get_io_artifact_annotation(str), None)
