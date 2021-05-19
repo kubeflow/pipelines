@@ -108,7 +108,6 @@ class ComponetsCompileTest(unittest.TestCase):
 
         compiler.Compiler().compile(
             pipeline_func=pipeline,
-            pipeline_root=self._pipeline_root,
             output_path="pipeline.json"
         )
 
@@ -159,7 +158,6 @@ class ComponetsCompileTest(unittest.TestCase):
 
         compiler.Compiler().compile(
             pipeline_func=pipeline,
-            pipeline_root=self._pipeline_root,
             output_path="pipeline.json"
         )
 
@@ -215,7 +213,6 @@ class ComponetsCompileTest(unittest.TestCase):
 
         compiler.Compiler().compile(
             pipeline_func=pipeline,
-            pipeline_root=self._pipeline_root,
             output_path="pipeline.json"
         )
 
@@ -270,7 +267,6 @@ class ComponetsCompileTest(unittest.TestCase):
 
         compiler.Compiler().compile(
             pipeline_func=pipeline,
-            pipeline_root=self._pipeline_root,
             output_path="pipeline.json"
         )
 
@@ -304,6 +300,5 @@ class ComponetsCompileTest(unittest.TestCase):
 
         compiler.Compiler().compile(
             pipeline_func=pipeline,
-            pipeline_root=self._pipeline_root,
             output_path="pipeline.json"
         )
