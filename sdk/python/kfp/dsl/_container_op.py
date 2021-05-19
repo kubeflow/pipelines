@@ -1110,7 +1110,7 @@ class ContainerOp(BaseOp):
 
     self.attrs_with_pipelineparams = BaseOp.attrs_with_pipelineparams + [
         '_container', 'artifact_arguments', '_parameter_arguments',
-        'cpu_request', 'memory_request'
+        '_cpu_request', '_memory_request'
     ]  #Copying the BaseOp class variable!
 
     input_artifact_paths = {}
@@ -1242,8 +1242,16 @@ class ContainerOp(BaseOp):
     self.pvolumes = {}
     self.add_pvolumes(pvolumes)
     
-    self.cpu_request = None
-    self.memory_request = None
+    self._cpu_request = None
+    self._memory_request = None
+
+  @property
+  def cpu_request(self):
+    return self._cpu_request
+
+  @property
+  def memory_request(self):
+    return self._memory_request
 
   @property
   def is_v2(self):
@@ -1376,23 +1384,24 @@ class ContainerOp(BaseOp):
     return self
 
   def add_cpu_request(self, cpu: str) -> 'ContainerOp':
-    """Adds a cpu request to which can be a parameter
+    """Adds a cpu request at runtime
 
     Args:
         cpu (str): kubernetes cpu request,
         https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/#specify-a-cpu-request-and-a-cpu-limit
     """
 
-    self.cpu_request = cpu
+    self._cpu_request = cpu
     return self
 
   def add_memory_request(self, memory: str) -> 'ContainerOp':
-    """Adds a memory request to which can be a parameter
+    """Adds a memory request at runtime
 
     Args:
-        memory (str): kubernetes memory request, https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-memory
+        memory (str): kubernetes memory request, 
+        https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-memory
     """
-    self.memory_request = memory
+    self._memory_request = memory
     return self
 
 
