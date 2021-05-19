@@ -108,7 +108,7 @@ class ComponetsCompileTest(unittest.TestCase):
 
         compiler.Compiler().compile(
             pipeline_func=pipeline,
-            output_path="pipeline.json"
+            package_path="pipeline.json"
         )
 
     def test_tabular_data_pipeline_component_ops_compile(self):
@@ -158,7 +158,7 @@ class ComponetsCompileTest(unittest.TestCase):
 
         compiler.Compiler().compile(
             pipeline_func=pipeline,
-            output_path="pipeline.json"
+            package_path="pipeline.json"
         )
 
     def test_text_data_pipeline_component_ops_compile(self):
@@ -213,7 +213,7 @@ class ComponetsCompileTest(unittest.TestCase):
 
         compiler.Compiler().compile(
             pipeline_func=pipeline,
-            output_path="pipeline.json"
+            package_path="pipeline.json"
         )
 
     def test_video_data_pipeline_component_ops_compile(self):
@@ -267,7 +267,7 @@ class ComponetsCompileTest(unittest.TestCase):
 
         compiler.Compiler().compile(
             pipeline_func=pipeline,
-            output_path="pipeline.json"
+            package_path="pipeline.json"
         )
 
     def test_model_pipeline_component_ops_compile(self):
@@ -300,5 +300,5 @@ class ComponetsCompileTest(unittest.TestCase):
 
         compiler.Compiler().compile(
             pipeline_func=pipeline,
-            output_path="pipeline.json"
+            package_path="pipeline.json"
         )
