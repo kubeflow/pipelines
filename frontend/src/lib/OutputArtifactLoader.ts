@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,7 +39,6 @@ import { PlotType, ViewerConfig } from '../components/viewers/Viewer';
 import { Apis } from '../lib/Apis';
 import { errorToMessage, logger } from './Utils';
 import WorkflowParser, { StoragePath } from './WorkflowParser';
-
 export interface PlotMetadata {
   format?: 'csv';
   header?: string[];
@@ -49,6 +48,8 @@ export interface PlotMetadata {
   source: string;
   storage?: 'gcs' | 'inline';
   target_col?: string;
+  pod_template_spec?: any; // only available for tensorboard
+  image?: string; // only available for tensorboard
   type: PlotType;
 }
 
@@ -213,6 +214,8 @@ export class OutputArtifactLoader {
       type: PlotType.TENSORBOARD,
       url: metadata.source,
       namespace,
+      podTemplateSpec: metadata.pod_template_spec,
+      image: metadata.image,
     };
   }
 

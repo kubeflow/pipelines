@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import copy
 import inspect
 import re
 import warnings
-from typing import Any, Dict, List, TypeVar, Union, Callable, Optional, Sequence
+from typing import Any, Dict, Iterable, List, TypeVar, Union, Callable, Optional, Sequence
 
 from kubernetes.client import V1Toleration, V1Affinity
 from kubernetes.client.models import (V1Container, V1EnvVar, V1EnvFromSource,
@@ -26,12 +27,16 @@ from kubernetes.client.models import (V1Container, V1EnvVar, V1EnvFromSource,
 
 from kfp.components import _structures
 from kfp.dsl import _pipeline_param
+from kfp.dsl import dsl_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 # generics
 T = TypeVar('T')
 # type alias: either a string or a list of string
 StringOrStringList = Union[str, List[str]]
+ContainerOpArgument = Union[str, int, float, bool,
+                            _pipeline_param.PipelineParam]
+ArgumentOrArguments = Union[ContainerOpArgument, List]
 
 ALLOWED_RETRY_POLICIES = (
     'Always',
@@ -58,6 +63,8 @@ _K = 10**3  # Kilo
 _KI = 1 << 10  # Kilo: power-of-two approximate
 
 _GKE_ACCELERATOR_LABEL = 'cloud.google.com/gke-accelerator'
+
+_DEFAULT_CUSTOM_JOB_MACHINE_TYPE = 'n1-standard-4'
 
 
 # util functions
@@ -1086,7 +1093,7 @@ class ContainerOp(BaseOp):
       name: str,
       image: str,
       command: Optional[StringOrStringList] = None,
-      arguments: Optional[StringOrStringList] = None,
+      arguments: Optional[ArgumentOrArguments] = None,
       init_containers: Optional[List[UserContainer]] = None,
       sidecars: Optional[List[Sidecar]] = None,
       container_kwargs: Optional[Dict] = None,
@@ -1101,19 +1108,6 @@ class ContainerOp(BaseOp):
                      sidecars=sidecars,
                      is_exit_handler=is_exit_handler)
 
-    if (not ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING) and (
-        '--component_launcher_class_path' not in (arguments or [])):
-      # The warning is suppressed for pipelines created using the TFX SDK.
-      warnings.warn(
-          'Please create reusable components instead of constructing ContainerOp instances directly.'
-          ' Reusable components are shareable, portable and have compatibility and support guarantees.'
-          ' Please see the documentation: https://www.kubeflow.org/docs/pipelines/sdk/component-development/#writing-your-component-definition-file'
-          ' The components can be created manually (or, in case of python, using kfp.components.create_component_from_func or func_to_container_op)'
-          ' and then loaded using kfp.components.load_component_from_file, load_component_from_uri or load_component_from_text: '
-          'https://kubeflow-pipelines.readthedocs.io/en/stable/source/kfp.components.html#kfp.components.load_component_from_file',
-          category=FutureWarning,
-      )
-
     self.attrs_with_pipelineparams = BaseOp.attrs_with_pipelineparams + [
         '_container', 'artifact_arguments', '_parameter_arguments'
     ]  #Copying the BaseOp class variable!
@@ -1122,6 +1116,8 @@ class ContainerOp(BaseOp):
     artifact_arguments = {}
     file_outputs = dict(file_outputs or {})  # Making a copy
     output_artifact_paths = dict(output_artifact_paths or {})  # Making a copy
+
+    self._is_v2 = False
 
     def resolve_artifact_argument(artarg):
       from ..components._components import _generate_input_file_name
@@ -1146,6 +1142,19 @@ class ContainerOp(BaseOp):
     # convert to list if not a list
     command = as_string_list(command)
     arguments = as_string_list(arguments)
+
+    if (not ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING) and (
+        '--component_launcher_class_path' not in (arguments or [])):
+      # The warning is suppressed for pipelines created using the TFX SDK.
+      warnings.warn(
+          'Please create reusable components instead of constructing ContainerOp instances directly.'
+          ' Reusable components are shareable, portable and have compatibility and support guarantees.'
+          ' Please see the documentation: https://www.kubeflow.org/docs/pipelines/sdk/component-development/#writing-your-component-definition-file'
+          ' The components can be created manually (or, in case of python, using kfp.components.create_component_from_func or func_to_container_op)'
+          ' and then loaded using kfp.components.load_component_from_file, load_component_from_uri or load_component_from_text: '
+          'https://kubeflow-pipelines.readthedocs.io/en/stable/source/kfp.components.html#kfp.components.load_component_from_file',
+          category=FutureWarning,
+      )
 
     # `container` prop in `io.argoproj.workflow.v1alpha1.Template`
     container_kwargs = container_kwargs or {}
@@ -1231,6 +1240,14 @@ class ContainerOp(BaseOp):
 
     self.pvolumes = {}
     self.add_pvolumes(pvolumes)
+
+  @property
+  def is_v2(self):
+    return self._is_v2
+
+  @is_v2.setter
+  def is_v2(self, is_v2: bool):
+    self._is_v2 = is_v2
 
   # v2 container spec
   @property

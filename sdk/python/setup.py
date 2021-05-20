@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,8 +24,13 @@ NAME = 'kfp'
 REQUIRES = [
     'absl-py>=0.9,<=0.11',
     'PyYAML>=5.3,<6',
-    'google-cloud-storage>=1.13.0,<2',
+    # `Blob.from_string` was introduced in google-cloud-storage 1.20.0
+    # https://github.com/googleapis/python-storage/blob/master/CHANGELOG.md#1200
+    'google-cloud-storage>=1.20.0,<2',
     'kubernetes>=8.0.0,<13',
+    # google-api-python-client v2 doesn't work for private dicovery by default:
+    # https://github.com/googleapis/google-api-python-client/issues/1225#issuecomment-791058235
+    'google-api-python-client>=1.7.8,<2',
     'google-auth>=1.6.1,<2',
     'requests-toolbelt>=0.8.0,<1',
     'cloudpickle>=1.3.0,<2',
@@ -41,12 +46,13 @@ REQUIRES = [
     'Deprecated>=1.2.7,<2',
     'strip-hints>=0.1.8,<1',
     'docstring-parser>=0.7.3,<1',
-    'kfp-pipeline-spec>=0.1.5,<0.2.0',
+    'kfp-pipeline-spec>=0.1.7,<0.2.0',
     'fire>=0.3.1,<1',
     'protobuf>=3.13.0,<4'
 ]
 
 TESTS_REQUIRE = [
+    'frozendict',
     'mock',
 ]
 
@@ -89,6 +95,8 @@ setup(
         'kfp.v2.compiler',
         'kfp.v2.components',
         'kfp.v2.dsl',
+        'kfp.v2.google.client',
+        'kfp.v2.google.experimental',
     ],
     classifiers=[
         'Intended Audience :: Developers',

@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2021 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,6 +21,11 @@ set -ex
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 MANIFESTS_DIR="${DIR}/.."
+
+# Verify required tools are installed and show their versions.
+kubectl version --client=true
+kustomize version
+kpt version
 
 # These kustomization.yaml folders expect using kubectl kustomize (kustomize v2).
 kustomization_yamls=(
@@ -45,3 +50,7 @@ for path in "${kustomization_yamls_v3[@]}"
 do
   kustomize build --load_restrictor none "${MANIFESTS_DIR}/${path}" >/dev/null
 done
+
+# verify these manifests work with kpt
+# to prevent issues like https://github.com/kubeflow/pipelines/issues/5368
+kpt cfg tree "${MANIFESTS_DIR}" >/dev/null

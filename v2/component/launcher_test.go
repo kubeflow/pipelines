@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2021 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -84,6 +84,37 @@ func Test_parseCloudBucket(t *testing.T) {
 				scheme:     "gs://",
 				bucketName: "my-bucket",
 				prefix:     "my-path/123/",
+			},
+			wantErr: false,
+		},
+		{
+			name: "Parses Minio - Bucket with query string",
+			path: "minio://my-bucket",
+			want: &bucketConfig{
+				scheme:     "minio://",
+				bucketName: "my-bucket",
+				prefix:     "",
+				queryString: "",
+			},
+			wantErr: false,
+		},{
+			name: "Parses Minio - Bucket with prefix",
+			path: "minio://my-bucket/my-path",
+			want: &bucketConfig{
+				scheme:     "minio://",
+				bucketName: "my-bucket",
+				prefix:     "my-path/",
+				queryString: "",
+			},
+			wantErr: false,
+		},{
+			name: "Parses Minio - Bucket with multiple path components in prefix",
+			path: "minio://my-bucket/my-path/123",
+			want: &bucketConfig{
+				scheme:     "minio://",
+				bucketName: "my-bucket",
+				prefix:     "my-path/123/",
+				queryString: "",
 			},
 			wantErr: false,
 		},

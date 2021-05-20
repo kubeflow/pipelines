@@ -6,16 +6,15 @@ def validate_csv_using_greatexpectations(
     expectation_suite_path: InputPath(),
     data_doc_path: OutputPath(),
 ):
-    """Validate a CSV dataset against a Great Expectations suite and create
-    Data Doc (a validation report). This component fails if validation is not
-    successful.
+    """Validate a CSV dataset against a Great Expectations suite and create Data Doc (a validation report).
+    This component fails if validation is not successful.
 
     Annotations:
         authors: Yaroslav Beshta <ybeshta@provectus.com>, Anton Kiselev <akiselev@provectus.com>
 
     Args:
         csv_path: Path to the CSV file with the dataset.
-        expectation_suite_path: Path to Great Expectations expectation suite (in JSON format)
+        expectation_suite_path: Path to Great Expectations expectation suite (in JSON format).
     """
     import json
     import os
@@ -42,7 +41,7 @@ def validate_csv_using_greatexpectations(
 
 
 if __name__ == '__main__':
-    calculate_regression_metrics_from_csv_op = create_component_from_func(
+    validate_csv_using_greatexpectations_op = create_component_from_func(
         validate_csv_using_greatexpectations,
         output_component_file='component.yaml',
         base_image='python:3.8',

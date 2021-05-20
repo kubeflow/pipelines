@@ -58,6 +58,11 @@ spec:
             configMapKeyRef:
               name: pipeline-install-config
               key: dbPort
+        - name: DBCONFIG_CONMAXLIFETIMESEC
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: ConMaxLifeTimeSec
         - name: OBJECTSTORECONFIG_ACCESSKEY
           valueFrom:
             secretKeyRef:
@@ -102,6 +107,6 @@ spec:
           timeoutSeconds: 2
         resources:
           requests:
-            cpu: '2'
-            memory: 4Gi
+            cpu: 250m
+            memory: 500Mi
       serviceAccountName: ml-pipeline

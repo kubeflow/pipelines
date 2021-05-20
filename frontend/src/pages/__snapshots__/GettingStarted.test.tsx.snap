@@ -30,7 +30,7 @@ exports[`GettingStarted page initially renders documentation 1`] = `
             rel="noopener"
             target="_blank"
           >
-            Open TF 2.1 Notebook
+            Open a Cloud AI Platform Notebook on Google Cloud
           </a>
           )
         </li>

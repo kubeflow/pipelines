@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -50,7 +50,7 @@ func (w *Workflow) OverrideParameters(desiredParams map[string]string) {
 		var desiredValue *string = nil
 		if param, ok := desiredParams[currentParam.Name]; ok {
 			desiredValue = &param
-		} else {
+		} else if currentParam.Value != nil {
 			desired := currentParam.Value.String()
 			desiredValue = &desired
 		}

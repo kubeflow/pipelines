@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,9 +14,8 @@
 
 import warnings
 from kubernetes import client as k8s_client
-
+from typing import Callable, Dict, Optional, Text
 from ..dsl._container_op import BaseOp, ContainerOp
-
 
 def add_pod_env(op: BaseOp) -> BaseOp:
   """Adds environment info if the Pod has the label `add-pod-env = true`.
@@ -52,5 +51,20 @@ def add_kfp_pod_env(op: BaseOp) -> BaseOp:
           name='WORKFLOW_ID',
           value_from=k8s_client.
           V1EnvVarSource(field_ref=k8s_client.V1ObjectFieldSelector(
-              field_path="metadata.labels['workflows.argoproj.io/workflow']"))))
+              field_path="metadata.labels['workflows.argoproj.io/workflow']")))
+  )
   return op
+
+
+def add_pod_labels(labels: Optional[Dict] = None) -> Callable:
+    """Adds provided pod labels to each pod."""
+
+    def _add_pod_labels(task):
+        for k, v in labels.items():
+            # Only append but not update.
+            # This is needed to bypass TFX pipelines/components.
+            if k not in task.pod_labels:
+                task.add_pod_label(k, v)
+        return task
+
+    return _add_pod_labels

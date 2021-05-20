@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,16 +37,6 @@ def dump_yaml(data):
         class OrderedDumper(Dumper):
             pass
         def _dict_representer(dumper, data):
-            # Special-case executorInput and outputMetadata to make the output
-            # YAML prettier.
-            if data == {'executorInput': None}:
-                return dumper.represent_scalar(
-                    value='{executorInput}',
-                    tag=yaml.resolver.BaseResolver.DEFAULT_SCALAR_TAG)
-            if data == {'outputMetadata': None}:
-                return dumper.represent_scalar(
-                    value='{outputMetadata}',
-                    tag=yaml.resolver.BaseResolver.DEFAULT_SCALAR_TAG)
             return dumper.represent_mapping(
                 yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
                 data.items())

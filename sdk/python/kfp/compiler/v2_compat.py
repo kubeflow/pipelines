@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ from kfp.v2 import compiler
 
 from kubernetes import client as k8s_client
 
-_DEFAULT_LAUNCHER_IMAGE = "gcr.io/ml-pipeline/kfp-launcher"
+_DEFAULT_LAUNCHER_IMAGE = "gcr.io/ml-pipeline/kfp-launcher:1.6.2"
 
 
 def update_op(op: dsl.ContainerOp,
@@ -39,6 +39,7 @@ def update_op(op: dsl.ContainerOp,
       pipeline_root: The root output directory for pipeline artifacts.
       launcher_image: An optional launcher image. Useful for tests.
     """
+  op.is_v2 = True
   # Inject the launcher binary and overwrite the entrypoint.
   image_name = launcher_image or _DEFAULT_LAUNCHER_IMAGE
   launcher_container = dsl.UserContainer(name="kfp-launcher",
@@ -96,24 +97,29 @@ def update_op(op: dsl.ContainerOp,
   for parameter, spec in sorted(
       component_spec.input_definitions.parameters.items()):
     parameter_info = {
-        "parameterType":
+        "type":
             pipeline_spec_pb2.PrimitiveType.PrimitiveTypeEnum.Name(spec.type),
-        "parameterValue":
-            op._parameter_arguments[parameter],
+        "value":
+            "BEGIN-KFP-PARAM[{}]END-KFP-PARAM".format(
+                op._parameter_arguments[parameter])
     }
     runtime_info["inputParameters"][parameter] = parameter_info
 
   for artifact_name, spec in sorted(
       component_spec.input_definitions.artifacts.items()):
-    artifact_info = {"fileInputPath": op.input_artifact_paths[artifact_name]}
+    artifact_info = {
+        "metadataPath": op.input_artifact_paths[artifact_name],
+        "schemaTitle": spec.artifact_type.schema_title,
+        "instanceSchema": spec.artifact_type.instance_schema,
+    }
     runtime_info["inputArtifacts"][artifact_name] = artifact_info
 
   for parameter, spec in sorted(
       component_spec.output_definitions.parameters.items()):
     parameter_info = {
-        "parameterType":
+        "type":
             pipeline_spec_pb2.PrimitiveType.PrimitiveTypeEnum.Name(spec.type),
-        "fileOutputPath":
+        "path":
             op.file_outputs[parameter],
     }
     runtime_info["outputParameters"][parameter] = parameter_info
@@ -123,9 +129,10 @@ def update_op(op: dsl.ContainerOp,
     # TODO: Assert instance_schema.
     artifact_info = {
         # Type used to register output artifacts.
-        "artifactSchema": spec.artifact_type.instance_schema,
+        "schemaTitle": spec.artifact_type.schema_title,
+        "instanceSchema": spec.artifact_type.instance_schema,
         # File used to write out the registered artifact ID.
-        "fileOutputPath": op.file_outputs[artifact_name],
+        "metadataPath": op.file_outputs[artifact_name],
     }
     runtime_info["outputArtifacts"][artifact_name] = artifact_info
 
@@ -134,3 +141,4 @@ def update_op(op: dsl.ContainerOp,
                           value=json.dumps(runtime_info)))
 
   op.pod_annotations['pipelines.kubeflow.org/v2_component'] = "true"
+  op.pod_labels['pipelines.kubeflow.org/v2_component']= "true"

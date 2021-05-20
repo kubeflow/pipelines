@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Google LLC
+ * Copyright 2018-2019 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -128,6 +128,10 @@ function buildDag(
     alreadyVisited.set(rootTemplateId, parentFullPath || '/' + rootTemplateId);
     const template = root.template;
 
+    if (!template || !template.dag) {
+      throw new Error("Graph template or DAG object doesn't exist.");
+    }
+
     (template.dag.tasks || []).forEach(task => {
       const nodeId = parentFullPath + '/' + task.name;
 
@@ -213,6 +217,10 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
 
   if (!workflow.spec || !workflow.spec.templates) {
     throw new Error('Could not generate graph. Provided Pipeline had no components.');
+  }
+
+  if (!workflow.spec.entrypoint) {
+    throw new Error('Could not generate graph. Provided Pipeline had no entrypoint.');
   }
 
   const workflowTemplates = workflow.spec.templates;

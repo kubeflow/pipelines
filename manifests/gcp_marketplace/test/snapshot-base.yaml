@@ -222,6 +222,7 @@ data:
   mysql_host: "mysql"
   mysql_port: "3306"
   cache_image: "gcr.io/google-containers/busybox"
+  cache_node_restrictions: "false"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -256,6 +257,11 @@ spec:
               configMapKeyRef:
                 name: cache-configmap
                 key: cache_image
+          - name: CACHE_NODE_RESTRICTIONS
+            valueFrom:
+              configMapKeyRef:
+                name: cache-configmap
+                key: cache_node_restrictions
           - name: DBCONFIG_DRIVER
             valueFrom:
               configMapKeyRef:
@@ -723,7 +729,7 @@ spec:
           resources:
             requests:
               cpu: 100m
-              memory: 500m
+              memory: 500Mi
       securityContext:
         runAsNonRoot: true
       nodeSelector:
@@ -1255,7 +1261,7 @@ spec:
           resources:
             requests:
               cpu: 120m
-              memory: 500m
+              memory: 500Mi
       serviceAccountName: ml-pipeline-persistenceagent
 ---
 apiVersion: apps/v1
@@ -1427,7 +1433,7 @@ spec:
           resources:
             requests:
               cpu: 30m
-              memory: 500m
+              memory: 500Mi
       serviceAccountName: ml-pipeline-visualizationserver
 ---
 apiVersion: apps/v1
@@ -1511,7 +1517,7 @@ spec:
           resources:
             requests:
               cpu: 250m
-              memory: 500m
+              memory: 500Mi
       serviceAccountName: ml-pipeline
 ---
 apiVersion: v1
@@ -1899,7 +1905,7 @@ spec:
           resources:
             requests:
               cpu: 100m
-              memory: 800m
+              memory: 800Mi
       volumes:
         - name: mysql-persistent-storage
           persistentVolumeClaim:

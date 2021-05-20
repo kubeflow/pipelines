@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,18 +18,19 @@ from kfp.v2 import compiler
 
 
 @components.create_component_from_func
-def print_op(s: str) -> str:
-  print(s)
-  return s
+def print_op(name: str) -> str:
+  print(name)
+  return name
 
 
-@dsl.pipeline(name='pipeline-with-pipelineparam-containing-format')
+@dsl.pipeline(name='pipeline-with-pipelineparam-containing-format',
+              pipeline_root='dummy_root')
 def my_pipeline(name: str = 'KFP'):
-  print_op('Hello {}'.format(name))
+  print_task = print_op('Hello {}'.format(name))
+  print_op('{}, again.'.format(print_task.output))
 
 
 if __name__ == '__main__':
   compiler.Compiler().compile(
       pipeline_func=my_pipeline,
-      pipeline_root='dummy_root',
-      output_path=__file__.replace('.py', '.json'))
+      package_path=__file__.replace('.py', '.json'))

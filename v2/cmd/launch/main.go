@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2021 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ var (
 	pipelineName      = flag.String("pipeline_name", "", "The current pipeline name.")
 	pipelineRunID     = flag.String("pipeline_run_id", "", "The current pipeline run ID.")
 	pipelineTaskID    = flag.String("pipeline_task_id", "", "The current pipeline task ID.")
-	pipelineRoot      = flag.String("pipeline_root", "", "The root output directory in which to store output artifacts.")
+	pipelineRoot      = flag.String("pipeline_root", "minio://mlpipeline/v2/artifacts", "The root output directory in which to store output artifacts.")
 )
 
 func main() {
@@ -49,10 +49,10 @@ func main() {
 	}
 	launcher, err := component.NewLauncher(*runtimeInfoJSON, opts)
 	if err != nil {
-		glog.Fatalf("Failed to create component launcher: %v", err)
+		glog.Exitf("Failed to create component launcher: %v", err)
 	}
 
 	if err := launcher.RunComponent(ctx, flag.Args()[0], flag.Args()[1:]...); err != nil {
-		glog.Fatalf("Failed to successfuly execute component: %v", err)
+		glog.Exitf("Failed to execute component: %v", err)
 	}
 }

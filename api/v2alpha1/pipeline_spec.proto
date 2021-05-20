@@ -47,16 +47,6 @@ message PipelineSpec {
   // The metadata of the pipeline.
   PipelineInfo pipeline_info = 1;
 
-  // A list of pipeline tasks, which form a DAG.
-  // Deprecated, use [PipelineSpec.root][] instead.
-  repeated PipelineTaskSpec tasks = 2 [deprecated = true];
-
-  // The deployment config of the pipeline.
-  // The deployment config can be extended to provide platform specific configs.
-  // The supported config is [PipelineDeploymentConifg]().
-  // Deprecated in favor of deployment_spec.
-  google.protobuf.Any deployment_config = 3 [deprecated = true];
-
   // The deployment config of the pipeline.
   // The deployment config can be extended to provide platform specific configs.
   google.protobuf.Struct deployment_spec = 7;
@@ -76,11 +66,6 @@ message PipelineSpec {
     // be raised.
     Value default_value = 2;
   }
-  // The runtime parameters of the pipeline. Keyed by parameter name.
-  // Deprecated, instead of defining the runtime_parameters, user can define
-  // [ComponentSpec.input_definitions][] field of the [PipelineSpec.root][] to
-  // define the pipeline parameters.
-  map<string, RuntimeParameter> runtime_parameters = 6 [deprecated = true];
 
   // The map of name to definition of all components used in this pipeline.
   map<string, ComponentSpec> components = 8;
@@ -172,6 +157,7 @@ message DagOutputsSpec {
       // selected parameters must have the same type as the DAG parameter type.
       ParameterSelectorsSpec value_from_oneof = 2;
     }
+    reserved 3;
   }
 
   // The name to the output parameter.
@@ -221,17 +207,6 @@ message ComponentOutputsSpec {
 message TaskInputsSpec {
   // The specification of a task input artifact.
   message InputArtifactSpec {
-    // The name of the upstream task which produces the output that matches with
-    // the `output_artifact_key`.
-    // Deprecated, use
-    // [TaskInputSpec.InputArtifactSpec.TaskOutputArtifactSpec][] instead.
-    string producer_task = 1 [deprecated = true];
-
-    // The key of [TaskOutputsSpec.artifacts][] map of the producer task.
-    // Deprecated, use
-    // [TaskInputSpec.InputArtifactSpec.TaskOutputArtifactSpec][] instead.
-    string output_artifact_key = 2 [deprecated = true];
-
     message TaskOutputArtifactSpec {
       // The name of the upstream task which produces the output that matches
       // with the `output_artifact_key`.
@@ -375,30 +350,6 @@ message PipelineTaskSpec {
   // Specification for task inputs which contains parameters and artifacts.
   TaskInputsSpec inputs = 2;
 
-  // Specification for task outputs.
-  // Deprecated, the output definition is moved to [ComponentSpec.outputs][].
-  TaskOutputsSpec outputs = 3 [deprecated = true];
-
-  // Label for the executor of the task.
-  // The specification will be specified in the deployment config.
-  // For example:
-  // ```
-  // tasks:
-  // - task_info:
-  //     name: trainer
-  //   executor_label: trainer
-  // deployment_config:
-  //   @type: cloud.ml.pipelines.v1alpha3.proto.PipelineDeploymentConfig
-  //   executors:
-  //     trainer:
-  //       container:
-  //         image: gcr.io/tfx:latest
-  //         args: []
-  // ```
-  // Deprecated, the executor_label is moved to
-  // [ComponentSpec.executor_label][].
-  string executor_label = 4 [deprecated = true];
-
   // A list of names of upstream tasks that do not provide input
   // artifacts for this task, but nonetheless whose completion this task depends
   // on.
@@ -415,7 +366,7 @@ message PipelineTaskSpec {
   ComponentRef component_ref = 7;
 
   // Trigger policy defines how the task gets triggered. If a task is not
-  // triggered, it will run into NOT_TRIGGERED state.
+  // triggered, it will run into SKIPPED state.
   message TriggerPolicy {
     // An expression which will be evaluated into a boolean value. True to
     // trigger the task to run. The expression follows the language of
@@ -571,7 +522,7 @@ message ValueOrRuntimeParameter {
   oneof value {
     // Constant value which is determined in compile time.
     Value constant_value = 1;
-    // Name of the runtime parameter.
+    // The runtime parameter refers to the parent component input parameter.
     string runtime_parameter = 2;
   }
 }
@@ -669,15 +620,13 @@ message PipelineDeploymentConfig {
     // The query to fetch artifacts.
     message ArtifactQuerySpec {
       // The filter of the artifact query. The supported syntax are:
-      // - `contexts.name='<context name>'`
+      // - `in_context("<context name>")`
       // - `artifact_type='<artifact type name>'`
       // - `uri='<uri>'`
       // - `state=<state>`
-      // - `properties['key']='value'`
-      // - `custom_properties['key']='value'`
       // - `name='value'`
       // - `and` to combine two conditions and returns when both are true.
-      // If no `contexts.name` filter is set, the query will be scoped to the
+      // If no `in_context` filter is set, the query will be scoped to the
       // the current pipeline context.
       string filter = 1;
       // The maximum number of the artifacts to be returned from the
@@ -687,12 +636,14 @@ message PipelineDeploymentConfig {
 
     // A list of resolver output definitions. The
     // key of the map must be exactly the same as
-    // the keys in the [TaskOutputsSpec.artifacts][] map.
+    // the keys in the [PipelineTaskOutputsSpec.artifacts][] map.
     // At least one output must be defined.
     map<string, ArtifactQuerySpec> output_artifact_queries = 1;
   }
 
   message AIPlatformCustomJobSpec {
+    option deprecated = true;
+
     // API Specification for invoking a Google Cloud AI Platform CustomJob.
     // The fields must match the field names and structures of CustomJob
     // defined in

@@ -1,0 +1,25 @@
+name: Download data (KFP SDK v2)
+description: Downloads data from the specified URL. (Updated for KFP SDK v2.)
+inputs:
+- {name: Url, type: String}
+- {name: curl options, type: String, default: '--location', description: 'Additional options given to the curl bprogram. See https://curl.haxx.se/docs/manpage.html'}
+outputs:
+- {name: Data}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+implementation:
+  container:
+    image: byrnedo/alpine-curl@sha256:548379d0a4a0c08b9e55d9d87a592b7d35d9ab3037f4936f5ccd09d0b625a342
+    command:
+    - sh
+    - -exc
+    - |
+      url="$0"
+      output_path="$1"
+      curl_options="$2"
+      mkdir -p "$(dirname "$output_path")"
+      curl --get "$url" --output "$output_path" $curl_options
+    - inputValue: Url
+    - outputPath: Data
+    - inputValue: curl options

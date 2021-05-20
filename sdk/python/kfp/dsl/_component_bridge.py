@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,20 +15,175 @@
 import collections
 import copy
 import inspect
+import pathlib
 from typing import Any, Mapping, Optional
 
 from kfp.components import _structures
 from kfp.components import _components
 from kfp.components import _naming
 from kfp import dsl
-from kfp.dsl import _pipeline_param
-from kfp.dsl import types
-from kfp.dsl import component_spec as dsl_component_spec
 from kfp.dsl import _container_op
+from kfp.dsl import _for_loop
+from kfp.dsl import _pipeline_param
+from kfp.dsl import component_spec as dsl_component_spec
 from kfp.dsl import dsl_utils
-from kfp.dsl import importer_node
+from kfp.dsl import types
 from kfp.dsl import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
+
+
+# Placeholder to represent the output directory hosting all the generated URIs.
+# Its actual value will be specified during pipeline compilation.
+# The format of OUTPUT_DIR_PLACEHOLDER is serialized dsl.PipelineParam, to
+# ensure being extracted as a pipeline parameter during compilation.
+# Note that we cannot direclty import dsl module here due to circular
+# dependencies.
+OUTPUT_DIR_PLACEHOLDER = '{{pipelineparam:op=;name=pipeline-output-directory}}'
+# Placeholder to represent to UID of the current pipeline at runtime.
+# Will be replaced by engine-specific placeholder during compilation.
+RUN_ID_PLACEHOLDER = '{{kfp.run_uid}}'
+# Format of the Argo parameter used to pass the producer's Pod ID to
+# the consumer.
+PRODUCER_POD_NAME_PARAMETER = '{}-producer-pod-id-'
+# Format of the input output port name placeholder.
+INPUT_OUTPUT_NAME_PATTERN = '{{{{kfp.input-output-name.{}}}}}'
+# Fixed name for per-task output metadata json file.
+OUTPUT_METADATA_JSON = '/tmp/outputs/executor_output.json'
+# Executor input placeholder.
+_EXECUTOR_INPUT_PLACEHOLDER = '{{$}}'
+
+
+def _generate_output_uri(port_name: str) -> str:
+  """Generates a unique URI for an output.
+
+  Args:
+    port_name: The name of the output associated with this URI.
+
+  Returns:
+    The URI assigned to this output, which is unique within the pipeline.
+  """
+  return str(pathlib.PurePosixPath(
+    OUTPUT_DIR_PLACEHOLDER,
+    RUN_ID_PLACEHOLDER, '{{pod.name}}', port_name))
+
+
+def _generate_input_uri(port_name: str) -> str:
+  """Generates the URI for an input.
+
+  Args:
+    port_name: The name of the input associated with this URI.
+
+  Returns:
+    The URI assigned to this input, will be consistent with the URI where
+    the actual content is written after compilation.
+  """
+  return str(pathlib.PurePosixPath(
+    OUTPUT_DIR_PLACEHOLDER,
+    RUN_ID_PLACEHOLDER,
+    '{{{{inputs.parameters.{input}}}}}'.format(
+      input=PRODUCER_POD_NAME_PARAMETER.format(port_name)),
+    port_name
+  ))
+
+
+def _generate_output_metadata_path() -> str:
+  """Generates the URI to write the output metadata JSON file."""
+
+  return OUTPUT_METADATA_JSON
+
+
+def _generate_input_metadata_path(port_name: str) -> str:
+  """Generates the placeholder for input artifact metadata file."""
+
+  # Return a placeholder for path to input artifact metadata, which will be
+  # rewritten during pipeline compilation.
+  return str(pathlib.PurePosixPath(
+    OUTPUT_DIR_PLACEHOLDER,
+    RUN_ID_PLACEHOLDER,
+    '{{{{inputs.parameters.{input}}}}}'.format(
+      input=PRODUCER_POD_NAME_PARAMETER.format(port_name)),
+    OUTPUT_METADATA_JSON
+  ))
+
+
+def _generate_input_output_name(port_name: str) -> str:
+  """Generates the placeholder for input artifact's output name."""
+
+  # Return a placeholder for the output port name of the input artifact, which
+  # will be rewritten during pipeline compilation.
+  return INPUT_OUTPUT_NAME_PATTERN.format(port_name)
+
+
+def _generate_executor_input() -> str:
+  """Generates the placeholder for serialized executor input."""
+  return _EXECUTOR_INPUT_PLACEHOLDER
+
+class ExtraPlaceholderResolver:
+  def __init__(self):
+    self.input_uris = {}
+    self.input_metadata_paths = {}
+    self.output_uris = {}
+
+  def resolve_placeholder(
+    self,
+    arg,
+    component_spec: _structures.ComponentSpec,
+    arguments: dict,
+  ) -> str:
+    inputs_dict = {input_spec.name: input_spec for input_spec in component_spec.inputs or []}
+
+    if isinstance(arg, _structures.InputUriPlaceholder):
+      input_name = arg.input_name
+      if input_name in arguments:
+        input_uri = _generate_input_uri(input_name)
+        self.input_uris[input_name] = input_uri
+        return input_uri
+      else:
+        input_spec = inputs_dict[input_name]
+        if input_spec.optional:
+          return None
+        else:
+          raise ValueError('No value provided for input {}'.format(input_name))
+
+    elif isinstance(arg, _structures.OutputUriPlaceholder):
+      output_name = arg.output_name
+      output_uri = _generate_output_uri(output_name)
+      self.output_uris[output_name] = output_uri
+      return output_uri
+
+    elif isinstance(arg, _structures.InputMetadataPlaceholder):
+      input_name = arg.input_name
+      if input_name in arguments:
+        input_metadata_path = _generate_input_metadata_path(input_name)
+        self.input_metadata_paths[input_name] = input_metadata_path
+        return input_metadata_path
+      else:
+        input_spec = inputs_dict[input_name]
+        if input_spec.optional:
+          return None
+        else:
+          raise ValueError(
+            'No value provided for input {}'.format(input_name))
+
+    elif isinstance(arg, _structures.InputOutputPortNamePlaceholder):
+      input_name = arg.input_name
+      if input_name in arguments:
+        return _generate_input_output_name(input_name)
+      else:
+        input_spec = inputs_dict[input_name]
+        if input_spec.optional:
+          return None
+        else:
+          raise ValueError(
+            'No value provided for input {}'.format(input_name))
+
+    elif isinstance(arg, _structures.OutputMetadataPlaceholder):
+      # TODO: Consider making the output metadata per-artifact.
+      return _generate_output_metadata_path()
+    elif isinstance(arg, _structures.ExecutorInputPlaceholder):
+      return _generate_executor_input()
+
+    return None
 
 
 def _create_container_op_from_component_and_arguments(
@@ -52,9 +207,9 @@ def _create_container_op_from_component_and_arguments(
   for input_name, argument_value in arguments.items():
     if isinstance(argument_value, _pipeline_param.PipelineParam):
       input_type = component_spec._inputs_dict[input_name].type
-      reference_type = argument_value.param_type
+      argument_type = argument_value.param_type
       types.verify_type_compatibility(
-          reference_type, input_type,
+          argument_type, input_type,
           'Incompatible argument passed to the input "{}" of component "{}": '
           .format(input_name, component_spec.name))
 
@@ -63,10 +218,11 @@ def _create_container_op_from_component_and_arguments(
       raise TypeError(
           'ContainerOp object was passed to component as an input argument. '
           'Pass a single output instead.')
-
+  placeholder_resolver = ExtraPlaceholderResolver()
   resolved_cmd = _components._resolve_command_line_and_paths(
       component_spec=component_spec,
       arguments=arguments,
+      placeholder_resolver=placeholder_resolver.resolve_placeholder,
   )
 
   container_spec = component_spec.implementation.container
@@ -76,9 +232,9 @@ def _create_container_op_from_component_and_arguments(
 
   output_paths_and_uris = collections.OrderedDict(resolved_cmd.output_paths or
                                                   {})
-  output_paths_and_uris.update(resolved_cmd.output_uris)
+  output_paths_and_uris.update(placeholder_resolver.output_uris)
   input_paths_and_uris = collections.OrderedDict(resolved_cmd.input_paths or {})
-  input_paths_and_uris.update(resolved_cmd.input_uris)
+  input_paths_and_uris.update(placeholder_resolver.input_uris)
 
   artifact_argument_paths = [
       dsl.InputArgumentPath(
@@ -212,15 +368,6 @@ def _attach_v2_specs(
         raise TypeError('Input "{}" with type "{}" cannot be paired with '
                         'InputPathPlaceholder.'.format(
                             input_key, inputs_dict[input_key].type))
-      elif is_compiling_for_v2 and input_key in importer_specs:
-        raise TypeError(
-            'Input "{}" with type "{}" is not connected to any upstream output. '
-            'However it is used with InputPathPlaceholder. '
-            'If you want to import an existing artifact using a system-connected'
-            ' importer node, use InputUriPlaceholder instead. '
-            'Or if you just want to pass a string parameter, use string type and'
-            ' InputValuePlaceholder instead.'.format(
-                input_key, inputs_dict[input_key].type))
       else:
         return "{{{{$.inputs.artifacts['{}'].path}}}}".format(input_key)
 
@@ -254,27 +401,64 @@ def _attach_v2_specs(
       else:
         return _output_artifact_path_placeholder(output_key)
 
+    placeholder_resolver = ExtraPlaceholderResolver()
+    def _resolve_ir_placeholders_v2(
+        arg,
+        component_spec: _structures.ComponentSpec,
+        arguments: dict,
+    ) -> str:
+      inputs_dict = {input_spec.name: input_spec for input_spec in component_spec.inputs or []}
+      if isinstance(arg, _structures.InputValuePlaceholder):
+        input_name = arg.input_name
+        input_value = arguments.get(input_name, None)
+        if input_value is not None:
+          return _input_parameter_placeholder(input_name)
+        else:
+          input_spec = inputs_dict[input_name]
+          if input_spec.optional:
+            return None
+          else:
+            raise ValueError('No value provided for input {}'.format(input_name))
+
+      elif isinstance(arg, _structures.InputUriPlaceholder):
+        input_name = arg.input_name
+        if input_name in arguments:
+          input_uri = _input_artifact_uri_placeholder(input_name)
+          return input_uri
+        else:
+          input_spec = inputs_dict[input_name]
+          if input_spec.optional:
+            return None
+          else:
+            raise ValueError('No value provided for input {}'.format(input_name))
+
+      elif isinstance(arg, _structures.OutputUriPlaceholder):
+        output_name = arg.output_name
+        output_uri = _output_artifact_uri_placeholder(output_name)
+        return output_uri
+
+      return placeholder_resolver.resolve_placeholder(
+        arg=arg,
+        component_spec=component_spec,
+        arguments=arguments,
+      )
+
     resolved_cmd = _components._resolve_command_line_and_paths(
         component_spec=component_spec,
         arguments=arguments,
-        input_value_generator=_input_parameter_placeholder,
-        input_uri_generator=_input_artifact_uri_placeholder,
-        output_uri_generator=_output_artifact_uri_placeholder,
         input_path_generator=_input_artifact_path_placeholder,
         output_path_generator=_resolve_output_path_placeholder,
+        placeholder_resolver=_resolve_ir_placeholders_v2,
     )
     return resolved_cmd
 
   pipeline_task_spec = pipeline_spec_pb2.PipelineTaskSpec()
 
-  # Keep track of auto-injected importer spec.
-  importer_specs = {}
-
   # Check types of the reference arguments and serialize PipelineParams
   original_arguments = arguments
   arguments = arguments.copy()
 
-  # Preserver input params for ContainerOp.inputs
+  # Preserve input params for ContainerOp.inputs
   input_params = list(
       set([
           param for param in arguments.values()
@@ -282,13 +466,23 @@ def _attach_v2_specs(
       ]))
 
   for input_name, argument_value in arguments.items():
+    input_type = component_spec._inputs_dict[input_name].type
+    argument_type = None
+
     if isinstance(argument_value, _pipeline_param.PipelineParam):
-      input_type = component_spec._inputs_dict[input_name].type
-      reference_type = argument_value.param_type
+      argument_type = argument_value.param_type
+
       types.verify_type_compatibility(
-          reference_type, input_type,
+          argument_type, input_type,
           'Incompatible argument passed to the input "{}" of component "{}": '
           .format(input_name, component_spec.name))
+
+      # Loop arguments defaults to 'String' type if type is unknown.
+      # This has to be done after the type compatiblity check.
+      if argument_type is None and isinstance(
+          argument_value, (_for_loop.LoopArguments,
+                           _for_loop.LoopArgumentVariable)):
+        argument_type = 'String'
 
       arguments[input_name] = str(argument_value)
 
@@ -311,18 +505,8 @@ def _attach_v2_specs(
           pipeline_task_spec.inputs.artifacts[
               input_name].task_output_artifact.output_artifact_key = (
                   argument_value.name)
-        elif is_compiling_for_v2:
-          # argument_value.op_name could be none, in which case an importer node
-          # will be inserted later.
-          # Importer node is only applicable for v2 engine.
-          pipeline_task_spec.inputs.artifacts[
-              input_name].task_output_artifact.producer_task = ''
-          type_schema = type_utils.get_input_artifact_type_schema(
-              input_name, component_spec.inputs)
-          importer_specs[input_name] = importer_node.build_importer_spec(
-              input_type_schema=type_schema,
-              pipeline_param_name=argument_value.name)
     elif isinstance(argument_value, str):
+      argument_type = 'String'
       pipeline_params = _pipeline_param.extract_pipelineparams_from_any(
           argument_value)
       if pipeline_params and is_compiling_for_v2:
@@ -331,7 +515,8 @@ def _attach_v2_specs(
         for param in pipeline_params:
           # Form the name for the compiler injected input, and make sure it
           # doesn't collide with any existing input names.
-          additional_input_name = '{}--{}'.format(input_name, param.full_name)
+          additional_input_name = (
+              dsl_component_spec.additional_input_name_for_pipelineparam(param))
           for existing_input_name, _ in arguments.items():
             if existing_input_name == additional_input_name:
               raise ValueError('Name collision between existing input name '
@@ -343,34 +528,29 @@ def _attach_v2_specs(
           argument_value = argument_value.replace(param.pattern,
                                                   additional_input_placeholder)
 
+          # The output references are subject to change -- the producer task may
+          # not be whitin the same DAG.
           if param.op_name:
             pipeline_task_spec.inputs.parameters[
-                additional_input_name].producer_task = (
+                additional_input_name].task_output_parameter.producer_task = (
                     dsl_utils.sanitize_task_name(param.op_name))
             pipeline_task_spec.inputs.parameters[
-                additional_input_name].output_parameter_key = param.name
+                additional_input_name].task_output_parameter.output_parameter_key = param.name
           else:
             pipeline_task_spec.inputs.parameters[
-                additional_input_name].component_input_parameter = param.name
+                additional_input_name].component_input_parameter = param.full_name
 
       input_type = component_spec._inputs_dict[input_name].type
       if type_utils.is_parameter_type(input_type):
         pipeline_task_spec.inputs.parameters[
             input_name].runtime_value.constant_value.string_value = (
                 argument_value)
-      elif is_compiling_for_v2:
-        # An importer node with constant value artifact_uri will be inserted.
-        # Importer node is only applicable for v2 engine.
-        pipeline_task_spec.inputs.artifacts[
-            input_name].task_output_artifact.producer_task = ''
-        type_schema = type_utils.get_input_artifact_type_schema(
-            input_name, component_spec.inputs)
-        importer_specs[input_name] = importer_node.build_importer_spec(
-            input_type_schema=type_schema, constant_value=argument_value)
     elif isinstance(argument_value, int):
+      argument_type = 'Integer'
       pipeline_task_spec.inputs.parameters[
           input_name].runtime_value.constant_value.int_value = argument_value
     elif isinstance(argument_value, float):
+      argument_type = 'Float'
       pipeline_task_spec.inputs.parameters[
           input_name].runtime_value.constant_value.double_value = argument_value
     elif isinstance(argument_value, _container_op.ContainerOp):
@@ -383,18 +563,37 @@ def _attach_v2_specs(
             'Input argument supports only the following types: PipelineParam'
             ', str, int, float. Got: "{}".'.format(argument_value))
 
+    argument_is_parameter_type = type_utils.is_parameter_type(argument_type)
+    input_is_parameter_type = type_utils.is_parameter_type(input_type)
+    if is_compiling_for_v2 and (argument_is_parameter_type !=
+                                input_is_parameter_type):
+      if isinstance(argument_value, dsl.PipelineParam):
+        param_or_value_msg = 'PipelineParam "{}"'.format(
+            argument_value.full_name)
+      else:
+        param_or_value_msg = 'value "{}"'.format(argument_value)
+
+      raise TypeError(
+          'Passing '
+          '{param_or_value} with type "{arg_type}" (as "{arg_category}") to '
+          'component input '
+          '"{input_name}" with type "{input_type}" (as "{input_category}") is '
+          'incompatible. Please fix the type of the component input.'.format(
+              param_or_value=param_or_value_msg,
+              arg_type=argument_type,
+              arg_category='Parameter'
+              if argument_is_parameter_type else 'Artifact',
+              input_name=input_name,
+              input_type=input_type,
+              input_category='Paramter'
+              if input_is_parameter_type else 'Artifact',
+          ))
+
   if not component_spec.name:
     component_spec.name = _components._default_component_name
 
   # task.name is unique at this point.
   pipeline_task_spec.task_info.name = (dsl_utils.sanitize_task_name(task.name))
-  pipeline_task_spec.component_ref.name = (
-      dsl_utils.sanitize_component_name(component_spec.name))
-
-  task.task_spec = pipeline_task_spec
-  task.importer_specs = importer_specs
-  task.component_spec = dsl_component_spec.build_component_spec_from_structure(
-      component_spec)
 
   resolved_cmd = _resolve_commands_and_args_v2(
       component_spec=component_spec, arguments=original_arguments)
@@ -404,6 +603,16 @@ def _attach_v2_specs(
           image=component_spec.implementation.container.image,
           command=resolved_cmd.command,
           args=resolved_cmd.args))
+
+  # TODO(chensun): dedupe IR component_spec and contaienr_spec
+  pipeline_task_spec.component_ref.name = (
+      dsl_utils.sanitize_component_name(task.name))
+  executor_label = dsl_utils.sanitize_executor_label(task.name)
+
+  task.component_spec = dsl_component_spec.build_component_spec_from_structure(
+      component_spec, executor_label, arguments.keys())
+
+  task.task_spec = pipeline_task_spec
 
   # Override command and arguments if compiling to v2.
   if is_compiling_for_v2:

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ import * as React from 'react';
 import { ArchivedExperiments } from './ArchivedExperiments';
 import TestUtils from '../TestUtils';
 import { PageProps } from './Page';
-import { ExperimentStorageState } from '../apis/experiment';
+import { ApiExperimentStorageState } from '../apis/experiment';
 import { ShallowWrapper, shallow } from 'enzyme';
 import { ButtonKeys } from '../lib/Buttons';
 
@@ -71,7 +71,7 @@ describe('ArchivedExperiemnts', () => {
   it('shows a list of archived experiments', () => {
     tree = shallow(<ArchivedExperiments {...generateProps()} />);
     expect(tree.find('ExperimentList').prop('storageState')).toBe(
-      ExperimentStorageState.ARCHIVED.toString(),
+      ApiExperimentStorageState.ARCHIVED.toString(),
     );
   });
 });

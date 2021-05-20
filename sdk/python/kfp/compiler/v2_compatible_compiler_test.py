@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -74,6 +74,12 @@ class TestV2CompatibleModeCompiler(unittest.TestCase):
       del workflow['metadata']
       for template in workflow['spec']['templates']:
         template.pop('metadata', None)
+
+        if 'initContainers' not in template:
+          continue
+        # Strip off the launcher image label before comparison
+        for initContainer in template['initContainers']:
+          initContainer['image'] = initContainer['image'].split(':')[0]
 
     self.maxDiff = None
     self.assertDictEqual(golden, compiled)

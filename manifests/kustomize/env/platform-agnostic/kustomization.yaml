@@ -5,8 +5,8 @@ bases:
   - ../../base/installs/generic
   - ../../base/metadata/base
   - ../../third-party/argo/installs/namespace
-  - ../../third-party/minio
-  - ../../third-party/mysql
+  - ../../third-party/minio/base
+  - ../../third-party/mysql/base
 
 # Identifier for application manager to apply ownerReference.
 # The ownerReference ensures the resources get garbage collected

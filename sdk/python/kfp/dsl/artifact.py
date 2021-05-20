@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -183,6 +183,11 @@ class Artifact(object):
     }
 
     return serialization_utils.yaml_dump(result_map)
+
+  @classmethod
+  def get_ir_type(cls) -> pipeline_spec_pb2.ArtifactTypeSchema:
+    return pipeline_spec_pb2.ArtifactTypeSchema(
+        instance_schema=cls.get_artifact_type())
 
   @classmethod
   def get_from_runtime_artifact(
