@@ -135,7 +135,7 @@ class RemoteRunnerTests(unittest.TestCase):
         self.assertEqual(result, expected_result)
 
     def test_resolve_input_args_resource_noun_not_changed(self):
-        type_to_resolve = aiplatform.base.AiPlatformResourceNoun
+        type_to_resolve = aiplatform.base.VertexAiResourceNoun
         value = 'test_resource_name'
         expected_result = 'test_resource_name'
 
