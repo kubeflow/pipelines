@@ -91,6 +91,8 @@ def write_to_artifact(executor_input, text):
             # "bq://": For BigQuery resources.
             elif text.startswith(RESOURCE_PREFIX.get('bigquery')):
                 uri_with_prefix = text
+            else:
+                uri_with_prefix = text
 
             runtime_artifact = {
                 "name": artifact.get('name'),
@@ -111,7 +113,7 @@ def write_to_artifact(executor_input, text):
 def resolve_input_args(value, type_to_resolve):
     """If this is an input from Pipelines, read it directly from gcs."""
     if inspect.isclass(type_to_resolve) and issubclass(
-            type_to_resolve, aiplatform.base.AiPlatformResourceNoun):
+            type_to_resolve, aiplatform.base.VertexAiResourceNoun):
         # Remove '/gcs/' prefix before attempting to remove `aiplatform` prefix
         if value.startswith(RESOURCE_PREFIX['google_cloud_storage_gcs_fuse']):
             value = value[len(RESOURCE_PREFIX['google_cloud_storage_gcs_fuse']):

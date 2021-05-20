@@ -44,7 +44,7 @@ RESOURCE_TO_METADATA_TYPE = {
 
 def get_forward_reference(
     annotation: Any
-) -> Optional[aiplatform.base.AiPlatformResourceNoun]:
+) -> Optional[aiplatform.base.VertexAiResourceNoun]:
     """Resolves forward references to AiPlatform Class."""
 
     def get_aiplatform_class_by_name(_annotation):
@@ -84,7 +84,7 @@ def resolve_annotation(annotation: Any) -> Any:
 
     # if this is an Ai Platform resource noun
     if inspect.isclass(annotation):
-        if issubclass(annotation, aiplatform.base.AiPlatformResourceNoun):
+        if issubclass(annotation, aiplatform.base.VertexAiResourceNoun):
             return annotation
 
     # handle forward references
@@ -129,7 +129,7 @@ def is_mb_sdk_resource_noun_type(mb_sdk_type: Any) -> bool:
         True if this is a resource noun
     """
     if inspect.isclass(mb_sdk_type):
-        return issubclass(mb_sdk_type, aiplatform.base.AiPlatformResourceNoun)
+        return issubclass(mb_sdk_type, aiplatform.base.VertexAiResourceNoun)
     return False
 
 
@@ -163,7 +163,7 @@ def get_deserializer(annotation: Any) -> Optional[Callable[..., str]]:
 
 
 def map_resource_to_metadata_type(
-    mb_sdk_type: aiplatform.base.AiPlatformResourceNoun
+    mb_sdk_type: aiplatform.base.VertexAiResourceNoun
 ) -> Tuple[str, str]:
     """Maps an MB SDK type to Metadata type.
 
@@ -187,7 +187,7 @@ def map_resource_to_metadata_type(
     # handles the case of exported_dataset
     # TODO generalize to all serializable outputs
     if is_serializable_to_json(mb_sdk_type):
-        return "exported_dataset", "JsonArray"
+        return "exported_dataset", "Dataset"
 
     # handles the case of imported datasets
     if mb_sdk_type == '_Dataset':
@@ -197,7 +197,7 @@ def map_resource_to_metadata_type(
 def should_be_metadata_type(mb_sdk_type: Any) -> bool:
     """Determines if type passed in should be a metadata type."""
     if inspect.isclass(mb_sdk_type):
-        return issubclass(mb_sdk_type, aiplatform.base.AiPlatformResourceNoun)
+        return issubclass(mb_sdk_type, aiplatform.base.VertexAiResourceNoun)
     return False
 
 
@@ -215,7 +215,7 @@ PARAMS_TO_REMOVE = {"self", "credentials", "sync"}
 def filter_signature(
     signature: inspect.Signature,
     is_init_signature: bool = False,
-    self_type: Optional[aiplatform.base.AiPlatformResourceNoun] = None,
+    self_type: Optional[aiplatform.base.VertexAiResourceNoun] = None,
     component_param_name_to_mb_sdk_param_name: Dict[str, str] = None
 ) -> inspect.Signature:
     """Removes unused params from signature.
@@ -223,7 +223,7 @@ def filter_signature(
     Args:
         signature (inspect.Signature): Model Builder SDK Method Signature.
         is_init_signature (bool): is this constructor signature
-        self_type (aiplatform.base.AiPlatformResourceNoun): This is used to
+        self_type (aiplatform.base.VertexAiResourceNoun): This is used to
             replace *_name str fields with resource name type.
         component_param_name_to_mb_sdk_param_name dict[str, str]: Mapping to
             keep track of param names changed to make them component
@@ -371,7 +371,7 @@ def generate_docstring(
 
 
 def convert_method_to_component(
-    cls: aiplatform.base.AiPlatformResourceNoun, method: Callable
+    cls: aiplatform.base.VertexAiResourceNoun, method: Callable
 ) -> Callable:
     """Converts a MB SDK Method to a Component wrapper.
 
