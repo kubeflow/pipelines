@@ -17,7 +17,7 @@ import kfp
 import kfp.dsl as dsl
 
 
-def get_run_info(run_id: str) -> str:
+def get_run_info(run_id: str):
     '''Example of getting run info for current pipeline run'''
     import kfp
     print(f'Current run ID is {run_id}.')
@@ -28,7 +28,6 @@ def get_run_info(run_id: str) -> str:
     client = kfp.Client(host='http://ml-pipeline:8888')
     run_info = client.get_run(run_id=run_id)
     # Hide verbose info
-    run_info.run.pipeline_spec.workflow_manifest = None
     print(run_info.run)
 
 
