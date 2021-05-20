@@ -150,7 +150,7 @@ class UtilsTests(unittest.TestCase):
             mb_sdk_type
         )
         self.assertEqual(parameter_name, 'exported_dataset')
-        self.assertEqual(parameter_type, 'JsonArray')
+        self.assertEqual(parameter_type, 'Dataset')
 
     def test_map_resource_to_metadata_type_with__Dataset_type(self):
         mb_sdk_type = '_Dataset'
