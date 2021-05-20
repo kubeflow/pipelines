@@ -23,7 +23,7 @@ from kubernetes.client.models import (V1Container, V1EnvVar, V1EnvFromSource,
                                       V1SecurityContext, V1Probe,
                                       V1ResourceRequirements, V1VolumeDevice,
                                       V1VolumeMount, V1ContainerPort,
-                                      V1Lifecycle, V1Volume)
+                                      V1Lifecycle, V1Volume, V1EmptyDirVolumeSource)
 
 from kfp.components import _structures
 from kfp.dsl import _pipeline_param
@@ -1237,7 +1237,9 @@ class ContainerOp(BaseOp):
       self.output = list(unique_outputs)[0]
     else:
       self.output = _MultipleOutputsError()
-
+    
+    self.add_volume(V1Volume(name='argo', empty_dir=V1EmptyDirVolumeSource()))
+    self._container.add_volume_mount(V1VolumeMount(name='outputs', mount_path='/outputs'))
     self.pvolumes = {}
     self.add_pvolumes(pvolumes)
 
