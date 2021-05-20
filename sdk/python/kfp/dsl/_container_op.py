@@ -1238,7 +1238,7 @@ class ContainerOp(BaseOp):
     else:
       self.output = _MultipleOutputsError()
     
-    self.add_volume(V1Volume(name='argo', empty_dir=V1EmptyDirVolumeSource()))
+    self.add_volume(V1Volume(name='outputs', empty_dir=V1EmptyDirVolumeSource()))
     self._container.add_volume_mount(V1VolumeMount(name='outputs', mount_path='/outputs'))
     self.pvolumes = {}
     self.add_pvolumes(pvolumes)
