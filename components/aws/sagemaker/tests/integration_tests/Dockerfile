@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     jq
 
 # Install eksctl
-RUN curl --location "https://github.com/weaveworks/eksctl/releases/download/0.19.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp \
+RUN curl --location "https://github.com/weaveworks/eksctl/releases/download/0.43.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp \
  && mv /tmp/eksctl /usr/local/bin
 
 # Install aws-iam-authenticator
@@ -34,6 +34,7 @@ ENV PATH "/opt/conda/envs/kfp_test_env/bin":$PATH
 # Environment variables to be used by tests
 ENV REGION="us-west-2"
 ENV SAGEMAKER_EXECUTION_ROLE_ARN="arn:aws:iam::1234567890:role/sagemaker-role"
+ENV ROBOMAKER_EXECUTION_ROLE_ARN="arn:aws:iam::1234567890:role/robomaker-role"
 ENV S3_DATA_BUCKET="kfp-test-data"
 ENV MINIO_LOCAL_PORT=9000
 ENV KFP_NAMESPACE="kubeflow"
@@ -41,4 +42,6 @@ ENV KFP_NAMESPACE="kubeflow"
 RUN mkdir pipelines
 COPY ./ ./pipelines/
 
-ENTRYPOINT [ "/bin/bash", "./pipelines/components/aws/sagemaker/tests/integration_tests/scripts/run_integration_tests" ]
+WORKDIR /pipelines/components/aws/sagemaker/tests/integration_tests/scripts/
+
+ENTRYPOINT [ "/bin/bash", "./run_integration_tests" ]

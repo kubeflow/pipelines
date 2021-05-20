@@ -37,7 +37,6 @@ implementation:
       --model_name, {inputValue: model_name},
       --deployment_name, {inputValue: deployment_name},
       --model_filepath, {inputValue: model_filepath},
-      --train_data_filepath, {inputValue: train_data_filepath}
+      --train_data_filepath, {inputValue: train_data_filepath},
+      --output_model_uid_path, {outputPath: model_uid}
     ]
-    fileOutputs:
-      model_uid: /tmp/model_uid

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ from tfx.proto import trainer_pb2
 # or a module file baked in the docker image used by the pipeline.
 _taxi_module_file_param = data_types.RuntimeParameter(
     name='module-file',
-    default='/tfx-src/tfx/examples/chicago_taxi_pipeline/taxi_utils.py',
+    default='/tfx/src/tfx/examples/chicago_taxi_pipeline/taxi_utils.py',
     ptype=Text,
 )
 
@@ -178,7 +178,7 @@ if __name__ == '__main__':
   config = kubeflow_dag_runner.KubeflowDagRunnerConfig(
       kubeflow_metadata_config=kubeflow_dag_runner.
       get_default_kubeflow_metadata_config(),
-      tfx_image='gcr.io/tfx-oss-public/tfx:0.22.0',
+      tfx_image='gcr.io/tfx-oss-public/tfx:0.27.0',
   )
   kfp_runner = kubeflow_dag_runner.KubeflowDagRunner(
       output_filename=__file__ + '.yaml', config=config

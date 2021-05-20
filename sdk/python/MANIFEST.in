@@ -1,0 +1,2 @@
+include kfp/dsl/type_schemas/*.yaml
+include kfp/v2/google/client/discovery/aiplatform_public_google_rest_v1beta1.json

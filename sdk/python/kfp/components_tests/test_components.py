@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -719,7 +719,6 @@ implementation:
             component(input_1="value 1", input_2=task1)
         with self.assertRaises(TypeError):
             component(input_1="value 1", input_2=open)
-
     def test_check_type_validation_of_task_spec_outputs(self):
         producer_component_text = '''\
 outputs:

@@ -1,0 +1,2 @@
+kubernetes==10.0.1
+kubeflow-katib==0.10.1

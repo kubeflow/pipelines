@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -51,7 +51,7 @@ def automl_create_dataset_for_tables(
         region=gcp_region,
         dataset_id=dataset_id,
     )
-    return (dataset.name, dataset.create_time, dataset_id, dataset_url)
+    return (dataset.name, str(dataset.create_time), dataset_id, dataset_url)
 
 
 if __name__ == '__main__':

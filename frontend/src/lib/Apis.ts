@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -98,8 +98,10 @@ export class Apis {
   /**
    * Get pod logs
    */
-  public static getPodLogs(podName: string, podNamespace: string): Promise<string> {
-    let query = `k8s/pod/logs?podname=${encodeURIComponent(podName)}`;
+  public static getPodLogs(runId: string, podName: string, podNamespace: string): Promise<string> {
+    let query = `k8s/pod/logs?podname=${encodeURIComponent(podName)}&runid=${encodeURIComponent(
+      runId,
+    )}`;
     if (podNamespace) {
       query += `&podnamespace=${encodeURIComponent(podNamespace)}`;
     }
@@ -208,16 +210,34 @@ export class Apis {
    * Reads file from storage using server.
    */
   public static readFile(path: StoragePath, namespace?: string, peek?: number): Promise<string> {
-    return this._fetch(this.buildReadFileUrl(path, namespace, peek));
+    return this._fetch(this.buildReadFileUrl({ path, namespace, peek, isDownload: false }));
   }
 
   /**
    * Builds an url for the readFile API to retrieve a workflow artifact.
-   * @param props object describing the artifact (e.g. source, bucket, and key)
+   * @param path object describing the artifact (e.g. source, bucket, and key)
+   * @param isDownload whether we download the artifact as is (e.g. skip extracting from *.tar.gz)
    */
-  public static buildReadFileUrl(path: StoragePath, namespace?: string, peek?: number) {
-    const { source, ...rest } = path;
-    return `artifacts/get${buildQuery({ source: `${source}`, namespace, peek, ...rest })}`;
+  public static buildReadFileUrl({
+    path,
+    namespace,
+    peek,
+    isDownload,
+  }: {
+    path: StoragePath;
+    namespace?: string;
+    peek?: number;
+    isDownload?: boolean;
+  }) {
+    const { source, bucket, key } = path;
+    if (isDownload) {
+      return `artifacts/${source}/${bucket}/${key}${buildQuery({
+        namespace,
+        peek,
+      })}`;
+    } else {
+      return `artifacts/get${buildQuery({ source, namespace, peek, bucket, key })}`;
+    }
   }
 
   /**
@@ -237,26 +257,33 @@ export class Apis {
   public static getTensorboardApp(
     logdir: string,
     namespace: string,
-  ): Promise<{ podAddress: string; tfVersion: string }> {
-    return this._fetchAndParse<{ podAddress: string; tfVersion: string }>(
-      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}&namespace=${encodeURIComponent(
-        namespace,
-      )}`,
+  ): Promise<{ podAddress: string; tfVersion: string; image: string }> {
+    return this._fetchAndParse<{ podAddress: string; tfVersion: string; image: string }>(
+      `apps/tensorboard${buildQuery({ logdir, namespace })}`,
     );
   }
 
   /**
-   * Starts a deployment and service for Tensorboard given the logdir
+   * Starts a deployment and service for Tensorboard given the logdir.
    */
-  public static startTensorboardApp(
-    logdir: string,
-    tfversion: string,
-    namespace: string,
-  ): Promise<string> {
+  public static startTensorboardApp({
+    logdir,
+    namespace,
+    image,
+    podTemplateSpec,
+  }: {
+    logdir: string;
+    namespace: string;
+    image?: string;
+    podTemplateSpec?: any;
+  }): Promise<string> {
     return this._fetch(
-      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}&tfversion=${encodeURIComponent(
-        tfversion,
-      )}&namespace=${encodeURIComponent(namespace)}`,
+      `apps/tensorboard${buildQuery({
+        logdir,
+        namespace,
+        image,
+        podtemplatespec: podTemplateSpec && JSON.stringify(podTemplateSpec),
+      })}`,
       undefined,
       undefined,
       { headers: { 'content-type': 'application/json' }, method: 'POST' },

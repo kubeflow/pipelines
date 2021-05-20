@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -166,7 +166,7 @@ func formulateRetryWorkflow(wf *util.Workflow) (*util.Workflow, []string, error)
 			// Do not allow retry of workflows with pods in Running/Pending phase
 			return nil, nil, util.NewInternalServerError(
 				errors.New("workflow cannot be retried"),
-				"Workflow cannot be retried with node %s in %s phase", node, node.Phase)
+				"Workflow cannot be retried with node %s in %s phase", node.ID, node.Phase)
 		}
 		if node.Type == wfv1.NodeTypePod {
 			podsToDelete = append(podsToDelete, node.ID)
@@ -208,22 +208,22 @@ func OverrideParameterWithSystemDefault(workflow util.Workflow, apiRun *api.Run)
 		patchedSlice := make([]wfv1.Parameter, 0)
 		for _, currentParam := range workflow.Spec.Arguments.Parameters {
 			if currentParam.Value != nil {
-				desiredValue, err := PatchPipelineDefaultParameter(*currentParam.Value)
+				desiredValue, err := PatchPipelineDefaultParameter(currentParam.Value.String())
 				if err != nil {
 					return fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
 				}
 				patchedSlice = append(patchedSlice, wfv1.Parameter{
 					Name:  currentParam.Name,
-					Value: util.StringPointer(desiredValue),
+					Value: wfv1.AnyStringPtr(desiredValue),
 				})
 			} else if currentParam.Default != nil {
-				desiredValue, err := PatchPipelineDefaultParameter(*currentParam.Default)
+				desiredValue, err := PatchPipelineDefaultParameter(currentParam.Default.String())
 				if err != nil {
 					return fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
 				}
 				patchedSlice = append(patchedSlice, wfv1.Parameter{
 					Name:  currentParam.Name,
-					Value: util.StringPointer(desiredValue),
+					Value: wfv1.AnyStringPtr(desiredValue),
 				})
 			}
 		}
@@ -244,8 +244,8 @@ func OverrideParameterWithSystemDefault(workflow util.Workflow, apiRun *api.Run)
 // Convert PipelineId in PipelineSpec to the pipeline's default pipeline version.
 // This is for legacy usage of pipeline id to create run. The standard way to
 // create run is by specifying the pipeline version.
-func ConvertPipelineIdToDefaultPipelineVersion(pipelineSpec *api.PipelineSpec, resourceReferences *[]*api.ResourceReference, r *ResourceManager) error {
-	if pipelineSpec.GetPipelineId() == "" {
+func convertPipelineIdToDefaultPipelineVersion(pipelineSpec *api.PipelineSpec, resourceReferences *[]*api.ResourceReference, r *ResourceManager) error {
+	if pipelineSpec == nil || pipelineSpec.GetPipelineId() == "" {
 		return nil
 	}
 	// If there is already a pipeline version in resource references, don't convert pipeline id.

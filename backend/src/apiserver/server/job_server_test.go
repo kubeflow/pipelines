@@ -7,7 +7,9 @@ import (
 
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	kfpauth "github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -16,6 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
 var (
@@ -117,6 +120,73 @@ func TestValidateApiJob_ValidateNoExperimentResourceReferenceSucceeds(t *testing
 	assert.Nil(t, err)
 }
 
+func TestValidateApiJob_WithInvalidPipelineVersionReference(t *testing.T) {
+	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	defer clients.Close()
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	apiJob := &api.Job{
+		Name:           "job1",
+		Enabled:        true,
+		MaxConcurrency: 1,
+		Trigger: &api.Trigger{
+			Trigger: &api.Trigger_CronSchedule{CronSchedule: &api.CronSchedule{
+				StartTime: &timestamp.Timestamp{Seconds: 1},
+				Cron:      "1 * * * *",
+			}}},
+		ResourceReferences: referencesOfExperimentAndInvalidPipelineVersion,
+	}
+	err := server.validateCreateJobRequest(&api.CreateJobRequest{Job: apiJob})
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Get pipelineVersionId failed.")
+}
+
+func TestValidateApiJob_NoValidPipelineSpecOrPipelineVersion(t *testing.T) {
+	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	defer clients.Close()
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	apiJob := &api.Job{
+		Name:           "job1",
+		Enabled:        true,
+		MaxConcurrency: 1,
+		Trigger: &api.Trigger{
+			Trigger: &api.Trigger_CronSchedule{CronSchedule: &api.CronSchedule{
+				StartTime: &timestamp.Timestamp{Seconds: 1},
+				Cron:      "1 * * * *",
+			}}},
+		ResourceReferences: validReference,
+	}
+	err := server.validateCreateJobRequest(&api.CreateJobRequest{Job: apiJob})
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Please specify a pipeline by providing a (workflow manifest) or (pipeline id or/and pipeline version).")
+}
+
+func TestValidateApiJob_WorkflowManifestAndPipelineVersion(t *testing.T) {
+	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	defer clients.Close()
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	apiJob := &api.Job{
+		Name:           "job1",
+		Enabled:        true,
+		MaxConcurrency: 1,
+		Trigger: &api.Trigger{
+			Trigger: &api.Trigger_CronSchedule{CronSchedule: &api.CronSchedule{
+				StartTime: &timestamp.Timestamp{Seconds: 1},
+				Cron:      "1 * * * *",
+			}}},
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters:       []*api.Parameter{{Name: "param2", Value: "world"}},
+		},
+		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
+	}
+	err := server.validateCreateJobRequest(&api.CreateJobRequest{Job: apiJob})
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest.")
+}
+
 func TestValidateApiJob_ValidatePipelineSpecFailed(t *testing.T) {
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
@@ -140,27 +210,8 @@ func TestValidateApiJob_ValidatePipelineSpecFailed(t *testing.T) {
 	}
 	err := server.validateCreateJobRequest(&api.CreateJobRequest{Job: apiJob})
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Pipeline not_exist_pipeline not found")
-}
-
-func TestValidateApiJob_NoValidPipelineSpecOrPipelineVersion(t *testing.T) {
-	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
-	defer clients.Close()
-	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
-	apiJob := &api.Job{
-		Name:           "job1",
-		Enabled:        true,
-		MaxConcurrency: 1,
-		Trigger: &api.Trigger{
-			Trigger: &api.Trigger_CronSchedule{CronSchedule: &api.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 1},
-				Cron:      "1 * * * *",
-			}}},
-		ResourceReferences: validReference,
-	}
-	err := server.validateCreateJobRequest(&api.CreateJobRequest{Job: apiJob})
-	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Neither pipeline spec nor pipeline version is valid")
 }
 
 func TestValidateApiJob_InvalidCron(t *testing.T) {
@@ -253,37 +304,65 @@ func TestCreateJob_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	userIdentity := "user@google.com"
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + userIdentity})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
-	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
+	clients, manager, _ := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
+
 	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	_, err := server.CreateJob(ctx, &api.CreateJobRequest{Job: commonApiJob})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Unauthorized access")
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: "ns1",
+		Verb:      common.RbacResourceVerbCreate,
+		Group:     common.RbacPipelinesGroup,
+		Version:   common.RbacPipelinesVersion,
+		Resource:  common.RbacResourceTypeJobs,
+		Name:      commonApiJob.Name,
+	}
+	assert.EqualError(
+		t,
+		err,
+		wrapFailedAuthzRequestError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(userIdentity, resourceAttributes))).Error(),
+	)
 }
 
 func TestGetJob_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	userIdentity := "user@google.com"
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + userIdentity})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
+
 	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	job, err := server.CreateJob(ctx, &api.CreateJobRequest{Job: commonApiJob})
 	assert.Nil(t, err)
 
-	clients.KfamClientFake = client.NewFakeKFAMClientUnauthorized()
+	clients.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
 	manager = resource.NewResourceManager(clients)
 	server = NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 
 	_, err = server.GetJob(ctx, &api.GetJobRequest{Id: job.Id})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Unauthorized access")
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: "ns1",
+		Verb:      common.RbacResourceVerbGet,
+		Group:     common.RbacPipelinesGroup,
+		Version:   common.RbacPipelinesVersion,
+		Resource:  common.RbacResourceTypeJobs,
+		Name:      job.Name,
+	}
+	assert.EqualError(
+		t,
+		err,
+		wrapFailedAuthzRequestError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(userIdentity, resourceAttributes))).Error(),
+	)
 }
 
 func TestGetJob_Multiuser(t *testing.T) {
@@ -308,11 +387,13 @@ func TestListJobs_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	userIdentity := "user@google.com"
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + userIdentity})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
-	clients, manager, experiment := initWithExperiment_KFAM_Unauthorized(t)
+	clients, manager, experiment := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
+
 	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	_, err := server.ListJobs(ctx, &api.ListJobsRequest{
 		ResourceReferenceKey: &api.ResourceKey{
@@ -321,7 +402,21 @@ func TestListJobs_Unauthorized(t *testing.T) {
 		},
 	})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Unauthorized access")
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: "ns1",
+		Verb:      common.RbacResourceVerbList,
+		Group:     common.RbacPipelinesGroup,
+		Version:   common.RbacPipelinesVersion,
+		Resource:  common.RbacResourceTypeJobs,
+	}
+	assert.EqualError(
+		t,
+		err,
+		util.Wrap(
+			wrapFailedAuthzApiResourcesError(getPermissionDeniedError(userIdentity, resourceAttributes)),
+			"Failed to authorize with namespace in experiment resource reference.",
+		).Error(),
+	)
 
 	_, err = server.ListJobs(ctx, &api.ListJobsRequest{
 		ResourceReferenceKey: &api.ResourceKey{
@@ -330,7 +425,14 @@ func TestListJobs_Unauthorized(t *testing.T) {
 		},
 	})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Unauthorized access")
+	assert.EqualError(
+		t,
+		err,
+		util.Wrap(
+			wrapFailedAuthzApiResourcesError(getPermissionDeniedError(userIdentity, resourceAttributes)),
+			"Failed to authorize with namespace resource reference.",
+		).Error(),
+	)
 }
 
 func TestListJobs_Multiuser(t *testing.T) {
@@ -426,7 +528,8 @@ func TestListJobs_Multiuser(t *testing.T) {
 		} else {
 			if err != nil {
 				t.Errorf("TestListJobs_Multiuser(%v) expect no error but got %v", tc.name, err)
-			} else if !cmp.Equal(tc.expectedJobs, response.Jobs) {
+			} else if !cmp.Equal(tc.expectedJobs, response.Jobs, cmpopts.IgnoreFields(api.Job{}, "Trigger", "UpdatedAt", "CreatedAt"),
+				cmpopts.IgnoreFields(api.Run{}, "CreatedAt")) {
 				t.Errorf("TestListJobs_Multiuser(%v) expect (%+v) but got (%+v)", tc.name, tc.expectedJobs, response.Jobs)
 			}
 		}
@@ -437,7 +540,8 @@ func TestEnableJob_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	userIdentity := "user@google.com"
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + userIdentity})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	clients, manager, _ := initWithExperiment(t)
@@ -446,13 +550,25 @@ func TestEnableJob_Unauthorized(t *testing.T) {
 	job, err := server.CreateJob(ctx, &api.CreateJobRequest{Job: commonApiJob})
 	assert.Nil(t, err)
 
-	clients.KfamClientFake = client.NewFakeKFAMClientUnauthorized()
+	clients.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
 	manager = resource.NewResourceManager(clients)
 	server = NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 
 	_, err = server.EnableJob(ctx, &api.EnableJobRequest{Id: job.Id})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Unauthorized access")
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: "ns1",
+		Verb:      common.RbacResourceVerbEnable,
+		Group:     common.RbacPipelinesGroup,
+		Version:   common.RbacPipelinesVersion,
+		Resource:  common.RbacResourceTypeJobs,
+		Name:      commonApiJob.Name,
+	}
+	assert.EqualError(
+		t,
+		err,
+		wrapFailedAuthzRequestError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(userIdentity, resourceAttributes))).Error(),
+	)
 }
 
 func TestEnableJob_Multiuser(t *testing.T) {
@@ -477,7 +593,8 @@ func TestDisableJob_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	userIdentity := "user@google.com"
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + userIdentity})
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	clients, manager, _ := initWithExperiment(t)
@@ -486,13 +603,25 @@ func TestDisableJob_Unauthorized(t *testing.T) {
 	job, err := server.CreateJob(ctx, &api.CreateJobRequest{Job: commonApiJob})
 	assert.Nil(t, err)
 
-	clients.KfamClientFake = client.NewFakeKFAMClientUnauthorized()
+	clients.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
 	manager = resource.NewResourceManager(clients)
 	server = NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 
 	_, err = server.DisableJob(ctx, &api.DisableJobRequest{Id: job.Id})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Unauthorized access")
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: "ns1",
+		Verb:      common.RbacResourceVerbDisable,
+		Group:     common.RbacPipelinesGroup,
+		Version:   common.RbacPipelinesVersion,
+		Resource:  common.RbacResourceTypeJobs,
+		Name:      job.Name,
+	}
+	assert.EqualError(
+		t,
+		err,
+		wrapFailedAuthzRequestError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(userIdentity, resourceAttributes))).Error(),
+	)
 }
 
 func TestDisableJob_Multiuser(t *testing.T) {
@@ -511,4 +640,48 @@ func TestDisableJob_Multiuser(t *testing.T) {
 
 	_, err = server.DisableJob(ctx, &api.DisableJobRequest{Id: job.Id})
 	assert.Nil(t, err)
+}
+
+func TestListJobs_Unauthenticated(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	md := metadata.New(map[string]string{"no-identity-header": "user"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	clients, manager, experiment := initWithExperiment(t)
+	defer clients.Close()
+
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	_, err := server.ListJobs(ctx, &api.ListJobsRequest{
+		ResourceReferenceKey: &api.ResourceKey{
+			Type: api.ResourceType_EXPERIMENT,
+			Id:   experiment.UUID,
+		},
+	})
+	assert.NotNil(t, err)
+	assert.EqualError(
+		t,
+		err,
+		util.Wrap(
+			wrapFailedAuthzApiResourcesError(kfpauth.IdentityHeaderMissingError),
+			"Failed to authorize with namespace in experiment resource reference.",
+		).Error(),
+	)
+
+	_, err = server.ListJobs(ctx, &api.ListJobsRequest{
+		ResourceReferenceKey: &api.ResourceKey{
+			Type: api.ResourceType_NAMESPACE,
+			Id:   "ns1",
+		},
+	})
+	assert.NotNil(t, err)
+	assert.EqualError(
+		t,
+		err,
+		util.Wrap(
+			wrapFailedAuthzApiResourcesError(kfpauth.IdentityHeaderMissingError),
+			"Failed to authorize with namespace resource reference.",
+		).Error(),
+	)
 }

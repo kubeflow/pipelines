@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
 // Metric variables. Please prefix the metric names with experiment_server_.
@@ -75,9 +76,14 @@ func (s *ExperimentServer) CreateExperiment(ctx context.Context, request *api.Cr
 		return nil, util.Wrap(err, "Validate experiment request failed.")
 	}
 
-	err = CanAccessNamespaceInResourceReferences(s.resourceManager, ctx, request.Experiment.ResourceReferences)
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: common.GetNamespaceFromAPIResourceReferences(request.Experiment.ResourceReferences),
+		Verb:      common.RbacResourceVerbCreate,
+		Name:      request.Experiment.Name,
+	}
+	err = s.canAccessExperiment(ctx, "", resourceAttributes)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 
 	newExperiment, err := s.resourceManager.CreateExperiment(request.Experiment)
@@ -97,11 +103,9 @@ func (s *ExperimentServer) GetExperiment(ctx context.Context, request *api.GetEx
 		getExperimentRequests.Inc()
 	}
 
-	if !common.IsMultiUserSharedReadMode() {
-		err := s.canAccessExperiment(ctx, request.Id)
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to authorize the request.")
-		}
+	err := s.canAccessExperiment(ctx, request.Id, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 
 	experiment, err := s.resourceManager.GetExperiment(request.Id)
@@ -137,7 +141,11 @@ func (s *ExperimentServer) ListExperiment(ctx context.Context, request *api.List
 		if len(namespace) == 0 {
 			return nil, util.NewInvalidInputError("Invalid resource references for experiment. Namespace is empty.")
 		}
-		err = isAuthorized(s.resourceManager, ctx, namespace)
+		resourceAttributes := &authorizationv1.ResourceAttributes{
+			Namespace: namespace,
+			Verb:      common.RbacResourceVerbList,
+		}
+		err = s.canAccessExperiment(ctx, "", resourceAttributes)
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to authorize with API resource references")
 		}
@@ -167,9 +175,9 @@ func (s *ExperimentServer) DeleteExperiment(ctx context.Context, request *api.De
 		deleteExperimentRequests.Inc()
 	}
 
-	err := s.canAccessExperiment(ctx, request.Id)
+	err := s.canAccessExperiment(ctx, request.Id, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbDelete})
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request.")
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 
 	err = s.resourceManager.DeleteExperiment(request.Id)
@@ -207,20 +215,36 @@ func ValidateCreateExperimentRequest(request *api.CreateExperimentRequest) error
 }
 
 // TODO(chensun): consider refactoring the code to get rid of double-query of experiment.
-func (s *ExperimentServer) canAccessExperiment(ctx context.Context, experimentID string) error {
+func (s *ExperimentServer) canAccessExperiment(ctx context.Context, experimentID string, resourceAttributes *authorizationv1.ResourceAttributes) error {
 	if !common.IsMultiUserMode() {
 		// Skip authorization if not multi-user mode.
 		return nil
 	}
-	namespace, err := s.resourceManager.GetNamespaceFromExperimentID(experimentID)
-	if err != nil {
-		return util.Wrap(err, "Failed to authorize with the experiment ID.")
-	}
-	if len(namespace) == 0 {
-		return util.NewInternalServerError(errors.New("Empty namespace"), "The experiment doesn't have a valid namespace.")
+
+	if len(experimentID) > 0 {
+		experiment, err := s.resourceManager.GetExperiment(experimentID)
+		if err != nil {
+			return util.Wrap(err, "Failed to authorize with the experiment ID.")
+		}
+		if len(resourceAttributes.Namespace) == 0 {
+			if len(experiment.Namespace) == 0 {
+				return util.NewInternalServerError(
+					errors.New("Empty namespace"),
+					"The experiment doesn't have a valid namespace.",
+				)
+			}
+			resourceAttributes.Namespace = experiment.Namespace
+		}
+		if len(resourceAttributes.Name) == 0 {
+			resourceAttributes.Name = experiment.Name
+		}
 	}
 
-	err = isAuthorized(s.resourceManager, ctx, namespace)
+	resourceAttributes.Group = common.RbacPipelinesGroup
+	resourceAttributes.Version = common.RbacPipelinesVersion
+	resourceAttributes.Resource = common.RbacResourceTypeExperiments
+
+	err := isAuthorized(s.resourceManager, ctx, resourceAttributes)
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize with API resource references")
 	}
@@ -232,9 +256,9 @@ func (s *ExperimentServer) ArchiveExperiment(ctx context.Context, request *api.A
 		archiveExperimentRequests.Inc()
 	}
 
-	err := s.canAccessExperiment(ctx, request.Id)
+	err := s.canAccessExperiment(ctx, request.Id, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbArchive})
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the requests.")
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 	err = s.resourceManager.ArchiveExperiment(request.Id)
 	if err != nil {
@@ -248,9 +272,9 @@ func (s *ExperimentServer) UnarchiveExperiment(ctx context.Context, request *api
 		unarchiveExperimentRequests.Inc()
 	}
 
-	err := s.canAccessExperiment(ctx, request.Id)
+	err := s.canAccessExperiment(ctx, request.Id, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbUnarchive})
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the requests.")
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 	err = s.resourceManager.UnarchiveExperiment(request.Id)
 	if err != nil {

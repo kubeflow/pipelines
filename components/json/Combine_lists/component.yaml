@@ -1,0 +1,104 @@
+name: Combine lists
+description: Combines multiple JSON arrays into one.
+inputs:
+- {name: list_1, type: JsonArray, optional: true}
+- {name: list_2, type: JsonArray, optional: true}
+- {name: list_3, type: JsonArray, optional: true}
+- {name: list_4, type: JsonArray, optional: true}
+- {name: list_5, type: JsonArray, optional: true}
+outputs:
+- {name: Output, type: JsonArray}
+implementation:
+  container:
+    image: python:3.8
+    command:
+    - python3
+    - -u
+    - -c
+    - |
+      def combine_lists(
+          list_1 = None,
+          list_2 = None,
+          list_3 = None,
+          list_4 = None,
+          list_5 = None,
+      ):
+          """Combines multiple JSON arrays into one.
+
+          Annotations:
+              author: Alexey Volkov <alexey.volkov@ark-kun.com>
+          """
+          result = []
+          for list in [list_1, list_2, list_3, list_4, list_5]:
+              if list is not None:
+                  result.extend(list)
+          return result
+
+      import json
+      def _serialize_json(obj) -> str:
+          if isinstance(obj, str):
+              return obj
+          import json
+          def default_serializer(obj):
+              if hasattr(obj, 'to_struct'):
+                  return obj.to_struct()
+              else:
+                  raise TypeError("Object of type '%s' is not JSON serializable and does not have .to_struct() method." % obj.__class__.__name__)
+          return json.dumps(obj, default=default_serializer, sort_keys=True)
+
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Combine lists', description='Combines multiple JSON arrays into one.')
+      _parser.add_argument("--list-1", dest="list_1", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--list-2", dest="list_2", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--list-3", dest="list_3", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--list-4", dest="list_4", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--list-5", dest="list_5", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+      _parsed_args = vars(_parser.parse_args())
+      _output_files = _parsed_args.pop("_output_paths", [])
+
+      _outputs = combine_lists(**_parsed_args)
+
+      _outputs = [_outputs]
+
+      _output_serializers = [
+          _serialize_json,
+
+      ]
+
+      import os
+      for idx, output_file in enumerate(_output_files):
+          try:
+              os.makedirs(os.path.dirname(output_file))
+          except OSError:
+              pass
+          with open(output_file, 'w') as f:
+              f.write(_output_serializers[idx](_outputs[idx]))
+    args:
+    - if:
+        cond: {isPresent: list_1}
+        then:
+        - --list-1
+        - {inputValue: list_1}
+    - if:
+        cond: {isPresent: list_2}
+        then:
+        - --list-2
+        - {inputValue: list_2}
+    - if:
+        cond: {isPresent: list_3}
+        then:
+        - --list-3
+        - {inputValue: list_3}
+    - if:
+        cond: {isPresent: list_4}
+        then:
+        - --list-4
+        - {inputValue: list_4}
+    - if:
+        cond: {isPresent: list_5}
+        then:
+        - --list-5
+        - {inputValue: list_5}
+    - '----output-paths'
+    - {outputPath: Output}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Google LLC
+ * Copyright 2018-2019 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ import { statusToIcon } from '../pages/Status';
 import { Constants } from './Constants';
 import { KeyValue } from './StaticGraphParser';
 import { hasFinished, NodePhase, statusToBgColor, parseNodePhase } from './StatusUtils';
-import { parseTaskDisplayName } from './ParserUtils';
+import { parseTaskDisplayNameByNodeId } from './ParserUtils';
 import { isS3Endpoint } from './AwsHelper';
 
 export enum StorageService {
@@ -90,17 +90,7 @@ export default class WorkflowParser {
 
     // Create dagre graph nodes from workflow nodes.
     (Object as any).values(workflowNodes).forEach((node: NodeStatus) => {
-      let nodeLabel = node.displayName || node.id;
-      if (node.name === `${workflowName}.onExit`) {
-        nodeLabel = `onExit - ${node.templateName}`;
-      }
-
-      if (workflow.spec && workflow.spec.templates) {
-        const tmpl = workflow.spec.templates.find(
-          t => !!t && !!t.name && t.name === node.templateName,
-        );
-        nodeLabel = parseTaskDisplayName(tmpl?.metadata) || nodeLabel;
-      }
+      const nodeLabel = parseTaskDisplayNameByNodeId(node.id, workflow);
 
       g.setNode(node.id, {
         height: Constants.NODE_HEIGHT,
@@ -170,6 +160,14 @@ export default class WorkflowParser {
     return g;
   }
 
+  static trimPrefix(str: string, prefix: string): string {
+    if (str.startsWith(prefix)) {
+      return str.slice(prefix.length);
+    } else {
+      return str;
+    }
+  }
+
   public static getParameters(workflow?: Workflow): Parameter[] {
     if (workflow && workflow.spec && workflow.spec.arguments) {
       return workflow.spec.arguments.parameters || [];
@@ -197,12 +195,16 @@ export default class WorkflowParser {
       return { inputParams, outputParams };
     }
 
-    const { inputs, outputs } = workflow.status.nodes[nodeId];
+    const { inputs, outputs, templateName } = workflow.status.nodes[nodeId];
+    const namePrefixToStrip = templateName + '-';
     if (!!inputs && !!inputs.parameters) {
       inputParams = inputs.parameters.map(p => [p.name, p.value || '']);
     }
     if (!!outputs && !!outputs.parameters) {
-      outputParams = outputs.parameters.map(p => [p.name, p.value || '']);
+      outputParams = outputs.parameters.map(p => [
+        WorkflowParser.trimPrefix(p.name, namePrefixToStrip),
+        p.value || '',
+      ]);
     }
     return { inputParams, outputParams };
   }
@@ -227,12 +229,16 @@ export default class WorkflowParser {
       return { inputArtifacts, outputArtifacts };
     }
 
-    const { inputs, outputs } = workflow.status.nodes[nodeId];
+    const { inputs, outputs, templateName } = workflow.status.nodes[nodeId];
+    const namePrefixToStrip = templateName + '-';
     if (!!inputs && !!inputs.artifacts) {
       inputArtifacts = inputs.artifacts.map(({ name, s3 }) => [name, s3]);
     }
     if (!!outputs && !!outputs.artifacts) {
-      outputArtifacts = outputs.artifacts.map(({ name, s3 }) => [name, s3]);
+      outputArtifacts = outputs.artifacts.map(({ name, s3 }) => [
+        WorkflowParser.trimPrefix(name, namePrefixToStrip),
+        s3,
+      ]);
     }
     return { inputArtifacts, outputArtifacts };
   }

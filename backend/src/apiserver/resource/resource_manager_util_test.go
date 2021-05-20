@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -263,7 +263,8 @@ spec:
   arguments: {}
   entrypoint: rand-fail-dag
   templates:
-  - dag:
+  - arguments: {}
+    dag:
       tasks:
       - arguments: {}
         name: A
@@ -277,10 +278,10 @@ spec:
     metadata: {}
     name: rand-fail-dag
     outputs: {}
-  - container:
+  - arguments: {}
+    container:
       args:
-      - import random; import sys; exit_code = random.choice([0, 0, 1]); print('exiting
-        with code {}'.format(exit_code)); sys.exit(exit_code)
+      - import random; import sys; exit_code = random.choice([0, 0, 1]); print('exiting with code {}'.format(exit_code)); sys.exit(exit_code)
       command:
       - python
       - -c
@@ -374,7 +375,7 @@ func TestConvertPipelineIdToDefaultPipelineVersion(t *testing.T) {
 			},
 		},
 	}
-	err = ConvertPipelineIdToDefaultPipelineVersion(apiRun.PipelineSpec, &apiRun.ResourceReferences, manager)
+	err = convertPipelineIdToDefaultPipelineVersion(apiRun.PipelineSpec, &apiRun.ResourceReferences, manager)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedApiRun, apiRun)
 }
@@ -439,7 +440,7 @@ func TestConvertPipelineIdToDefaultPipelineVersion_NoOp(t *testing.T) {
 			},
 		},
 	}
-	err = ConvertPipelineIdToDefaultPipelineVersion(apiRun.PipelineSpec, &apiRun.ResourceReferences, manager)
+	err = convertPipelineIdToDefaultPipelineVersion(apiRun.PipelineSpec, &apiRun.ResourceReferences, manager)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedApiRun, apiRun)
 }

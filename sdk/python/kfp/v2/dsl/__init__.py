@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,14 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.dsl._pipeline_param import PipelineParam, match_serialized_pipelineparam
-from kfp.v2.dsl._pipeline import Pipeline
-from kfp.dsl._container_op import ContainerOp, InputArgumentPath, UserContainer, Sidecar
-from kfp.dsl._resource_op import ResourceOp
-from kfp.dsl._volume_op import (
-    VolumeOp, VOLUME_MODE_RWO, VOLUME_MODE_RWM, VOLUME_MODE_ROM
+from kfp.v2.dsl.component_decorator import component
+from kfp.dsl.io_types import (
+    Input,
+    Output,
+    Artifact,
+    Dataset,
+    Model,
+    Metrics,
+    ClassificationMetrics,
 )
-from kfp.dsl._pipeline_volume import PipelineVolume
-from kfp.dsl._volume_snapshot_op import VolumeSnapshotOp
-from kfp.dsl._ops_group import OpsGroup, ExitHandler, Condition, ParallelFor
-from kfp.dsl._component import python_component, graph_component, component
+from kfp.components import (
+    InputPath,
+    OutputPath,
+)
+from kfp.dsl import (
+    graph_component,
+    pipeline,
+    Condition,
+    ContainerOp,
+    ExitHandler,
+    ParallelFor,
+)

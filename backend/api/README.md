@@ -1,4 +1,30 @@
-# Auto-generation of API reference documentation
+# Kubeflow Pipelines API
+
+## Before You Start
+Tools needed:
+* Docker
+* Make
+
+## Auto-generation of Go client and swagger definitions
+
+```bash
+make
+```
+
+Code will be generated in:
+* `./go_client`
+* `./go_http_client`
+* `./swagger`
+
+## Auto-generation of Python client
+
+```bash
+./build_kfp_server_api_python_package.sh
+```
+
+Code will be generated in `./python_http_client`.
+
+## Auto-generation of API reference documentation
 
 This directory contains API definitions. They are used to generate [the API reference on kubeflow.org](https://www.kubeflow.org/docs/pipelines/reference/api/kubeflow-pipeline-api-spec/).
 

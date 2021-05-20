@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,13 +26,14 @@ import {
   ApiResourceType,
   ApiRunMetric,
   RunMetricFormat,
-  RunStorageState,
+  ApiRunStorageState,
 } from '../apis/run';
 import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
 import { MetricMetadata } from '../lib/RunUtils';
 import { NodePhase } from '../lib/StatusUtils';
 import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
 import { range } from 'lodash';
+import { BrowserRouter } from 'react-router-dom';
 
 class RunListTest extends RunList {
   public _loadRuns(request: ListRequest): Promise<string> {
@@ -117,7 +118,7 @@ describe('RunList', () => {
   afterEach(async () => {
     // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
     // depends on mocks/spies
-    if (tree) {
+    if (tree && tree.exists()) {
       await tree.unmount();
     }
     jest.resetAllMocks();
@@ -130,14 +131,14 @@ describe('RunList', () => {
   describe('in archived state', () => {
     it('renders the empty experience', () => {
       const props = generateProps();
-      props.storageState = RunStorageState.ARCHIVED;
+      props.storageState = ApiRunStorageState.ARCHIVED;
       expect(shallow(<RunList {...props} />)).toMatchSnapshot();
     });
 
     it('loads runs whose storage state is not ARCHIVED when storage state equals AVAILABLE', async () => {
       mockNRuns(1, {});
       const props = generateProps();
-      props.storageState = RunStorageState.AVAILABLE;
+      props.storageState = ApiRunStorageState.AVAILABLE;
       tree = shallow(<RunList {...props} />);
       await (tree.instance() as RunListTest)._loadRuns({});
       expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(
@@ -152,7 +153,7 @@ describe('RunList', () => {
               {
                 key: 'storage_state',
                 op: PredicateOp.NOTEQUALS,
-                string_value: RunStorageState.ARCHIVED.toString(),
+                string_value: ApiRunStorageState.ARCHIVED.toString(),
               },
             ],
           } as ApiFilter),
@@ -163,7 +164,7 @@ describe('RunList', () => {
     it('loads runs whose storage state is ARCHIVED when storage state equals ARCHIVED', async () => {
       mockNRuns(1, {});
       const props = generateProps();
-      props.storageState = RunStorageState.ARCHIVED;
+      props.storageState = ApiRunStorageState.ARCHIVED;
       tree = shallow(<RunList {...props} />);
       await (tree.instance() as RunListTest)._loadRuns({});
       expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(
@@ -178,7 +179,7 @@ describe('RunList', () => {
               {
                 key: 'storage_state',
                 op: PredicateOp.EQUALS,
-                string_value: RunStorageState.ARCHIVED.toString(),
+                string_value: ApiRunStorageState.ARCHIVED.toString(),
               },
             ],
           } as ApiFilter),
@@ -189,7 +190,7 @@ describe('RunList', () => {
     it('augments request filter with storage state predicates', async () => {
       mockNRuns(1, {});
       const props = generateProps();
-      props.storageState = RunStorageState.ARCHIVED;
+      props.storageState = ApiRunStorageState.ARCHIVED;
       tree = shallow(<RunList {...props} />);
       await (tree.instance() as RunListTest)._loadRuns({
         filter: encodeURIComponent(
@@ -215,7 +216,7 @@ describe('RunList', () => {
               {
                 key: 'storage_state',
                 op: PredicateOp.EQUALS,
-                string_value: RunStorageState.ARCHIVED.toString(),
+                string_value: ApiRunStorageState.ARCHIVED.toString(),
               },
             ],
           } as ApiFilter),
@@ -425,7 +426,11 @@ describe('RunList', () => {
       run: {
         resource_references: [
           {
-            key: { id: 'test-recurring-run-id', type: ApiResourceType.JOB },
+            key: {
+              id: 'test-recurring-run-id',
+              type: ApiResourceType.JOB,
+            },
+            name: 'recurring run name',
           },
         ],
       },
@@ -434,7 +439,75 @@ describe('RunList', () => {
     tree = shallow(<RunList {...props} />);
     await (tree.instance() as RunListTest)._loadRuns({});
     expect(props.onError).not.toHaveBeenCalled();
-    expect(tree).toMatchSnapshot();
+    expect(tree).toMatchInlineSnapshot(`
+      <div>
+        <CustomTable
+          columns={
+            Array [
+              Object {
+                "customRenderer": [Function],
+                "flex": 1.5,
+                "label": "Run name",
+                "sortKey": "name",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 0.5,
+                "label": "Status",
+              },
+              Object {
+                "flex": 0.5,
+                "label": "Duration",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 1,
+                "label": "Experiment",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 1,
+                "label": "Pipeline Version",
+              },
+              Object {
+                "customRenderer": [Function],
+                "flex": 0.5,
+                "label": "Recurring Run",
+              },
+              Object {
+                "flex": 1,
+                "label": "Start time",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No available runs found."
+          filterLabel="Filter runs"
+          initialSortColumn="created_at"
+          reload={[Function]}
+          rows={
+            Array [
+              Object {
+                "error": undefined,
+                "id": "testrun1",
+                "otherFields": Array [
+                  "run with id: testrun1",
+                  "-",
+                  "-",
+                  undefined,
+                  undefined,
+                  Object {
+                    "displayName": "recurring run name",
+                    "id": "test-recurring-run-id",
+                  },
+                  "-",
+                ],
+              },
+            ]
+          }
+        />
+      </div>
+    `);
   });
 
   it('shows experiment name', async () => {

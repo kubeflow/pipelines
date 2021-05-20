@@ -1,12 +1,11 @@
 FROM google/cloud-sdk:alpine
 
 RUN apk add --update \
- python \
- curl \
- which \
- jq \
- bash \
- openssl
+    curl \
+    which \
+    jq \
+    bash \
+    openssl
 
 RUN gcloud components install kubectl
 

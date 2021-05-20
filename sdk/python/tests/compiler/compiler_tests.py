@@ -1,4 +1,4 @@
-# Copyright 2018-2019 Google LLC
+# Copyright 2018-2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import List
 
 import kfp
 import kfp.compiler as compiler
@@ -26,11 +27,12 @@ import tempfile
 import unittest
 import yaml
 
+from kfp.compiler import Compiler
 from kfp.dsl._component import component
-from kfp.dsl import ContainerOp, pipeline
+from kfp.dsl import ContainerOp, pipeline, PipelineParam
 from kfp.dsl.types import Integer, InconsistentTypeException
 from kubernetes.client import V1Toleration, V1Affinity, V1NodeSelector, V1NodeSelectorRequirement, V1NodeSelectorTerm, \
-  V1NodeAffinity
+  V1NodeAffinity, V1PodDNSConfig, V1PodDNSConfigOption
 
 
 def some_op():
@@ -70,7 +72,8 @@ class TestCompiler(unittest.TestCase):
             name="resource"
           )
         ),
-        attribute_outputs={"out": json}
+        attribute_outputs={"out": json},
+        set_owner_reference=True
       )
       golden_output = {
         'container': {
@@ -145,7 +148,8 @@ class TestCompiler(unittest.TestCase):
             "kind: '{{inputs.parameters.kind}}'\n"
             "metadata:\n"
             "  name: resource\n"
-          )
+          ),
+          'setOwnerReference': True
         }
       }
 
@@ -209,8 +213,16 @@ class TestCompiler(unittest.TestCase):
       with open(os.path.join(test_data_dir, 'basic_no_decorator.yaml'), 'r') as f:
         golden = yaml.safe_load(f)
 
+      name_to_template = {template['name']: template for template in compiled_workflow['spec']['templates']}
+      for k, v in name_to_template.items():
+        if k in ['exiting', 'get-frequent', 'save']:
+          self.assertEqual(v['metadata']['labels']['pipelines.kubeflow.org/pipeline-sdk-type'], 'kfp')
+          self.assertTrue(v['metadata']['labels']['pipelines.kubeflow.org/kfp_sdk_version'] is not None)
+
       for workflow in golden, compiled_workflow:
         del workflow['metadata']
+        for template in workflow['spec']['templates']:
+          template.pop('metadata', None)
 
       self.assertEqual(golden, compiled_workflow)
     finally:
@@ -370,6 +382,36 @@ class TestCompiler(unittest.TestCase):
   def test_py_volume(self):
     """Test a pipeline with a volume and volume mount."""
     self._test_py_compile_yaml('volume')
+
+  def test_py_retry_policy(self):
+      """Test retry policy is set."""
+
+      policy = 'Always'
+      backoff_duration = '2m'
+      backoff_factor = 1.5
+      backoff_max_duration = '3m'
+
+      def my_pipeline():
+        some_op().set_retry(2, policy, backoff_duration, backoff_factor,
+                            backoff_max_duration)
+
+      workflow = kfp.compiler.Compiler()._compile(my_pipeline)
+      name_to_template = {template['name']: template for template in workflow['spec']['templates']}
+      main_dag_tasks = name_to_template[workflow['spec']['entrypoint']]['dag']['tasks']
+      template = name_to_template[main_dag_tasks[0]['template']]
+
+      self.assertEqual(template['retryStrategy']['retryPolicy'], policy)
+      self.assertEqual(template['retryStrategy']['backoff']['duration'], backoff_duration)
+      self.assertEqual(template['retryStrategy']['backoff']['factor'], backoff_factor)
+      self.assertEqual(template['retryStrategy']['backoff']['maxDuration'], backoff_max_duration)
+
+
+  def test_py_retry_policy_invalid(self):
+      def my_pipeline():
+          some_op().set_retry(2, 'Invalid')
+
+      with self.assertRaises(ValueError):
+          kfp.compiler.Compiler()._compile(my_pipeline)
 
   def test_py_retry(self):
     """Test retry functionality."""
@@ -712,7 +754,7 @@ implementation:
       container = template.get('container', None)
       if container:
         self.assertEqual(template['retryStrategy']['limit'], 5)
-  
+
   def test_image_pull_policy(self):
     def some_op():
       return dsl.ContainerOp(
@@ -734,7 +776,7 @@ implementation:
       if container:
         self.assertEqual(template['container']['imagePullPolicy'], "Always")
 
-  
+
   def test_image_pull_policy_step_spec(self):
     def some_op():
       return dsl.ContainerOp(
@@ -799,6 +841,22 @@ implementation:
 
     workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
     self.assertEqual(workflow_dict['spec']['nodeSelector'], {"cloud.google.com/gke-accelerator":"nvidia-tesla-p4"})
+
+  def test_set_dns_config(self):
+    """Test a pipeline with node selector."""
+    @dsl.pipeline()
+    def some_pipeline():
+      some_op()
+      dsl.get_pipeline_conf().set_dns_config(V1PodDNSConfig(
+        nameservers=["1.2.3.4"],
+        options=[V1PodDNSConfigOption(name="ndots", value="2")]
+      ))
+
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    self.assertEqual(
+      workflow_dict['spec']['dnsConfig'],
+      {"nameservers": ["1.2.3.4"], "options": [{"name": "ndots", "value": "2"}]}
+    )
 
   def test_container_op_output_error_when_no_or_multiple_outputs(self):
 
@@ -899,6 +957,9 @@ implementation:
 
   def test_withparam_lightweight_out(self):
     self._test_py_compile_yaml('loop_over_lightweight_output')
+
+  def test_parallelfor_pipeline_param_in_items_resolving(self):
+    self._test_py_compile_yaml('parallelfor_pipeline_param_in_items_resolving')
 
   def test_parallelfor_item_argument_resolving(self):
     self._test_py_compile_yaml('parallelfor_item_argument_resolving')
@@ -1017,6 +1078,13 @@ implementation:
     for template in workflow_dict['spec']['templates']:
       self.assertNotEqual(template['name'], '')
 
+  def test_empty_string_pipeline_parameter_defaults(self):
+    def some_pipeline(param1: str = ''):
+      pass
+
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    self.assertEqual(workflow_dict['spec']['arguments']['parameters'][0].get('value'), '')
+
   def test_preserving_parameter_arguments_map(self):
     component_2_in_1_out_op = kfp.components.load_component_from_text('''
 inputs:
@@ -1043,3 +1111,55 @@ implementation:
       parameter_arguments_json = template['metadata']['annotations']['pipelines.kubeflow.org/arguments.parameters']
       parameter_arguments = json.loads(parameter_arguments_json)
       self.assertEqual(set(parameter_arguments.keys()), {'Input 1'})
+
+  def test__resolve_task_pipeline_param(self):
+    p = PipelineParam(name='param2')
+    resolved = Compiler._resolve_task_pipeline_param(p, group_type=None)
+    self.assertEqual(resolved, "{{workflow.parameters.param2}}")
+
+    p = PipelineParam(name='param1', op_name='op1')
+    resolved = Compiler._resolve_task_pipeline_param(p, group_type=None)
+    self.assertEqual(resolved, "{{tasks.op1.outputs.parameters.op1-param1}}")
+
+    p = PipelineParam(name='param1', op_name='op1')
+    resolved = Compiler._resolve_task_pipeline_param(p, group_type="subgraph")
+    self.assertEqual(resolved, "{{inputs.parameters.op1-param1}}")
+
+  def test_uri_artifact_passing(self):
+    self._test_py_compile_yaml('uri_artifacts')
+
+  def test_keyword_only_argument_for_pipeline_func(self):
+    def some_pipeline(casual_argument: str, *, keyword_only_argument: str):
+      pass
+    kfp.compiler.Compiler()._create_workflow(some_pipeline)
+
+  def test_keyword_only_argument_for_pipeline_func_identity(self):
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+    sys.path.append(test_data_dir)
+
+    # `@pipeline` is needed to make name the same for both functions
+
+    @pipeline(name="pipeline_func")
+    def pipeline_func_arg(foo_arg: str, bar_arg: str):
+      dsl.ContainerOp(
+        name='foo',
+        image='foo',
+        command=['bar'],
+        arguments=[foo_arg, ' and ', bar_arg]
+      )
+
+    @pipeline(name="pipeline_func")
+    def pipeline_func_kwarg(foo_arg: str, *, bar_arg: str):
+      return pipeline_func_arg(foo_arg, bar_arg)
+
+    pipeline_yaml_arg   = kfp.compiler.Compiler()._create_workflow(pipeline_func_arg)
+    pipeline_yaml_kwarg = kfp.compiler.Compiler()._create_workflow(pipeline_func_kwarg)
+
+    # the yamls may differ in metadata
+    def remove_metadata(yaml) -> None:
+      del yaml['metadata']
+    remove_metadata(pipeline_yaml_arg)
+    remove_metadata(pipeline_yaml_kwarg)
+
+    # compare
+    self.assertEqual(pipeline_yaml_arg, pipeline_yaml_kwarg)

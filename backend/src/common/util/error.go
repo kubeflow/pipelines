@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -194,6 +194,22 @@ func NewBadRequestError(err error, externalFormat string, a ...interface{}) *Use
 		codes.Aborted)
 }
 
+func NewUnauthenticatedError(err error, externalFormat string, a ...interface{}) *UserError {
+	externalMessage := fmt.Sprintf(externalFormat, a...)
+	return newUserError(
+		errors.Wrapf(err, fmt.Sprintf("Unauthenticated: %v", externalMessage)),
+		externalMessage,
+		codes.Unauthenticated)
+}
+
+func NewPermissionDeniedError(err error, externalFormat string, a ...interface{}) *UserError {
+	externalMessage := fmt.Sprintf(externalFormat, a...)
+	return newUserError(
+		errors.Wrapf(err, fmt.Sprintf("PermissionDenied: %v", externalMessage)),
+		externalMessage,
+		codes.PermissionDenied)
+}
+
 func (e *UserError) ExternalMessage() string {
 	return e.externalMessage
 }
@@ -204,6 +220,10 @@ func (e *UserError) ExternalStatusCode() codes.Code {
 
 func (e *UserError) Error() string {
 	return e.internalError.Error()
+}
+
+func (e *UserError) Cause() error {
+	return e.internalError
 }
 
 func (e *UserError) String() string {

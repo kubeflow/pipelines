@@ -49,6 +49,11 @@ exports[`RunDetails closes side panel when close button is clicked 1`] = `
             onError={[Function]}
             selectedNodeId=""
           />
+          <ReduceGraphSwitch
+            checked={false}
+            disabled={true}
+            onChange={[Function]}
+          />
           <SidePanel
             isBusy={false}
             isOpen={false}
@@ -375,6 +380,7 @@ exports[`RunDetails keeps side pane open and on same tab when run status changes
       }
     >
       <pure(CheckCircleIcon)
+        data-testid="node-status-sign"
         style={
           Object {
             "color": "#34a853",
@@ -422,6 +428,7 @@ exports[`RunDetails keeps side pane open and on same tab when run status changes
       }
     >
       <pure(ErrorIcon)
+        data-testid="node-status-sign"
         style={
           Object {
             "color": "#d50000",
@@ -551,6 +558,11 @@ exports[`RunDetails logs tab does not load logs if clicked node status is skippe
             onError={[Function]}
             selectedNodeId="node1"
           />
+          <ReduceGraphSwitch
+            checked={false}
+            disabled={true}
+            onChange={[Function]}
+          />
           <SidePanel
             isBusy={false}
             isOpen={true}
@@ -562,12 +574,13 @@ exports[`RunDetails logs tab does not load logs if clicked node status is skippe
             >
               <MD2Tabs
                 onSwitch={[Function]}
-                selectedTab={4}
+                selectedTab={5}
                 tabs={
                   Array [
                     "Input/Output",
                     "Visualizations",
                     "ML Metadata",
+                    "Details",
                     "Volumes",
                     "Logs",
                     "Pod",
@@ -653,6 +666,11 @@ exports[`RunDetails logs tab keeps side pane open and on same tab when logs chan
             onError={[Function]}
             selectedNodeId="node1"
           />
+          <ReduceGraphSwitch
+            checked={false}
+            disabled={true}
+            onChange={[Function]}
+          />
           <SidePanel
             isBusy={false}
             isOpen={true}
@@ -664,12 +682,13 @@ exports[`RunDetails logs tab keeps side pane open and on same tab when logs chan
             >
               <MD2Tabs
                 onSwitch={[Function]}
-                selectedTab={4}
+                selectedTab={5}
                 tabs={
                   Array [
                     "Input/Output",
                     "Visualizations",
                     "ML Metadata",
+                    "Details",
                     "Volumes",
                     "Logs",
                     "Pod",
@@ -771,6 +790,11 @@ exports[`RunDetails logs tab loads and shows logs in side pane 1`] = `
             onError={[Function]}
             selectedNodeId="node1"
           />
+          <ReduceGraphSwitch
+            checked={false}
+            disabled={true}
+            onChange={[Function]}
+          />
           <SidePanel
             isBusy={false}
             isOpen={true}
@@ -782,12 +806,13 @@ exports[`RunDetails logs tab loads and shows logs in side pane 1`] = `
             >
               <MD2Tabs
                 onSwitch={[Function]}
-                selectedTab={4}
+                selectedTab={5}
                 tabs={
                   Array [
                     "Input/Output",
                     "Visualizations",
                     "ML Metadata",
+                    "Details",
                     "Volumes",
                     "Logs",
                     "Pod",
@@ -889,6 +914,11 @@ exports[`RunDetails logs tab switches to logs tab in side pane 1`] = `
             onError={[Function]}
             selectedNodeId="node1"
           />
+          <ReduceGraphSwitch
+            checked={false}
+            disabled={true}
+            onChange={[Function]}
+          />
           <SidePanel
             isBusy={true}
             isOpen={true}
@@ -900,12 +930,13 @@ exports[`RunDetails logs tab switches to logs tab in side pane 1`] = `
             >
               <MD2Tabs
                 onSwitch={[Function]}
-                selectedTab={4}
+                selectedTab={5}
                 tabs={
                   Array [
                     "Input/Output",
                     "Visualizations",
                     "ML Metadata",
+                    "Details",
                     "Volumes",
                     "Logs",
                     "Pod",
@@ -1007,6 +1038,11 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
             onError={[Function]}
             selectedNodeId="node1"
           />
+          <ReduceGraphSwitch
+            checked={false}
+            disabled={true}
+            onChange={[Function]}
+          />
           <SidePanel
             isBusy={false}
             isOpen={true}
@@ -1024,6 +1060,7 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
                     "Input/Output",
                     "Visualizations",
                     "ML Metadata",
+                    "Details",
                     "Volumes",
                     "Logs",
                     "Pod",
@@ -1163,6 +1200,7 @@ exports[`RunDetails shows failure run status in page title 1`] = `
       }
     >
       <pure(ErrorIcon)
+        data-testid="node-status-sign"
         style={
           Object {
             "color": "#d50000",
@@ -1212,6 +1250,14 @@ exports[`RunDetails shows run config fields - handles no description 1`] = `
         <DetailsTable
           fields={
             Array [
+              Array [
+                "Run ID",
+                "test-run-id",
+              ],
+              Array [
+                "Workflow name",
+                "-",
+              ],
               Array [
                 "Status",
                 "Skipped",
@@ -1274,6 +1320,14 @@ exports[`RunDetails shows run config fields - handles no metadata 1`] = `
           fields={
             Array [
               Array [
+                "Run ID",
+                "test-run-id",
+              ],
+              Array [
+                "Workflow name",
+                "-",
+              ],
+              Array [
                 "Status",
                 "Skipped",
               ],
@@ -1334,6 +1388,14 @@ exports[`RunDetails shows run config fields 1`] = `
         <DetailsTable
           fields={
             Array [
+              Array [
+                "Run ID",
+                "test-run-id",
+              ],
+              Array [
+                "Workflow name",
+                "-",
+              ],
               Array [
                 "Status",
                 "Skipped",
@@ -1410,6 +1472,7 @@ exports[`RunDetails shows success run status in page title 1`] = `
       }
     >
       <pure(CheckCircleIcon)
+        data-testid="node-status-sign"
         style={
           Object {
             "color": "#34a853",
@@ -1515,6 +1578,11 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
             onError={[Function]}
             selectedNodeId="node1"
           />
+          <ReduceGraphSwitch
+            checked={false}
+            disabled={true}
+            onChange={[Function]}
+          />
           <SidePanel
             isBusy={false}
             isOpen={true}
@@ -1532,6 +1600,7 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
                     "Input/Output",
                     "Visualizations",
                     "ML Metadata",
+                    "Details",
                     "Volumes",
                     "Logs",
                     "Pod",
@@ -1672,6 +1741,11 @@ exports[`RunDetails switches to manifest tab in side pane 1`] = `
             onError={[Function]}
             selectedNodeId="node1"
           />
+          <ReduceGraphSwitch
+            checked={false}
+            disabled={true}
+            onChange={[Function]}
+          />
           <SidePanel
             isBusy={false}
             isOpen={true}
@@ -1683,12 +1757,13 @@ exports[`RunDetails switches to manifest tab in side pane 1`] = `
             >
               <MD2Tabs
                 onSwitch={[Function]}
-                selectedTab={7}
+                selectedTab={8}
                 tabs={
                   Array [
                     "Input/Output",
                     "Visualizations",
                     "ML Metadata",
+                    "Details",
                     "Volumes",
                     "Logs",
                     "Pod",
@@ -1823,6 +1898,11 @@ exports[`RunDetails switches to volumes tab in side pane 1`] = `
             onError={[Function]}
             selectedNodeId="node1"
           />
+          <ReduceGraphSwitch
+            checked={false}
+            disabled={true}
+            onChange={[Function]}
+          />
           <SidePanel
             isBusy={false}
             isOpen={true}
@@ -1834,12 +1914,13 @@ exports[`RunDetails switches to volumes tab in side pane 1`] = `
             >
               <MD2Tabs
                 onSwitch={[Function]}
-                selectedTab={3}
+                selectedTab={4}
                 tabs={
                   Array [
                     "Input/Output",
                     "Visualizations",
                     "ML Metadata",
+                    "Details",
                     "Volumes",
                     "Logs",
                     "Pod",

@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2020 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,6 +29,16 @@ import (
 type FakePodClient struct {
 	watchIsCalled bool
 	patchIsCalled bool
+}
+
+func (FakePodClient) GetEphemeralContainers(string, v1.GetOptions) (*corev1.EphemeralContainers, error) {
+	glog.Error("This fake method is not yet implemented.")
+	return nil, nil
+}
+
+func (FakePodClient) UpdateEphemeralContainers(string, *corev1.EphemeralContainers) (*corev1.EphemeralContainers, error) {
+	glog.Error("This fake method is not yet implemented.")
+	return nil, nil
 }
 
 func (FakePodClient) Create(*corev1.Pod) (*corev1.Pod, error) {

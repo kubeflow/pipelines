@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,7 +59,6 @@ const css = stylesheet({
     overflow: 'hidden',
     padding: 10,
     textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
   },
   line: {
     position: 'absolute',

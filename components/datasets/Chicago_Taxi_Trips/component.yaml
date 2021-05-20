@@ -17,7 +17,8 @@ outputs:
 - {name: Table, description: 'Result type depends on format. CSV and TSV have header.'}
 implementation:
   container:
-    image: curlimages/curl
+    # image: curlimages/curl  # Sets a non-root user which cannot write to mounted volumes. See https://github.com/curl/curl-docker/issues/22
+    image: byrnedo/alpine-curl@sha256:548379d0a4a0c08b9e55d9d87a592b7d35d9ab3037f4936f5ccd09d0b625a342
     command:
     - sh
     - -c

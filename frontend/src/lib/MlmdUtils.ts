@@ -1,3 +1,19 @@
+/**
+ * Copyright 2021 The Kubeflow Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import {
   Api,
   Context,
@@ -6,13 +22,23 @@ import {
   getResourcePropertyViaFallBack,
   ExecutionProperties,
   getResourceProperty,
+  Artifact,
 } from '@kubeflow/frontend';
 import {
   GetContextByTypeAndNameRequest,
   GetExecutionsByContextRequest,
 } from '@kubeflow/frontend/src/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
+import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
+import { Workflow } from 'third_party/argo-ui/argo_template';
+import { logger } from './Utils';
 
 async function getContext({ type, name }: { type: string; name: string }): Promise<Context> {
+  if (type === '') {
+    throw new Error('Failed to getContext: type is empty.');
+  }
+  if (name === '') {
+    throw new Error('Failed to getContext: name is empty.');
+  }
   const request = new GetContextByTypeAndNameRequest();
   request.setTypeName(type);
   request.setContextName(name);
@@ -32,7 +58,7 @@ async function getContext({ type, name }: { type: string; name: string }): Promi
 /**
  * @throws error when network error, or not found
  */
-export async function getTfxRunContext(argoWorkflowName: string): Promise<Context> {
+async function getTfxRunContext(argoWorkflowName: string): Promise<Context> {
   // argoPodName has the general form "pipelineName-workflowId-executionId".
   // All components of a pipeline within a single run will have the same
   // "pipelineName-workflowId" prefix.
@@ -49,8 +75,25 @@ export async function getTfxRunContext(argoWorkflowName: string): Promise<Contex
 /**
  * @throws error when network error, or not found
  */
-export async function getKfpRunContext(argoWorkflowName: string): Promise<Context> {
+async function getKfpRunContext(argoWorkflowName: string): Promise<Context> {
   return await getContext({ name: argoWorkflowName, type: 'KfpRun' });
+}
+
+async function getKfpV2RunContext(argoWorkflowName: string): Promise<Context> {
+  return await getContext({ name: argoWorkflowName, type: 'kfp.PipelineRun' });
+}
+
+export async function getRunContext(workflow: Workflow): Promise<Context> {
+  const workflowName = workflow?.metadata?.name || '';
+  if (workflow?.metadata?.annotations?.['pipelines.kubeflow.org/v2_pipeline'] === 'true') {
+    return await getKfpV2RunContext(workflowName);
+  }
+  try {
+    return await getTfxRunContext(workflowName);
+  } catch (err) {
+    logger.warn(`Cannot find tfx run context (this is expected for non tfx runs)`, err);
+    return await getKfpRunContext(workflowName);
+  }
 }
 
 /**
@@ -84,27 +127,45 @@ export const ExecutionHelpers = {
   getWorkspace(execution: Execution): string | number | undefined {
     return (
       getResourcePropertyViaFallBack(execution, EXECUTION_PROPERTY_REPOS, ['RUN_ID']) ||
-      getResourceProperty(execution, ExecutionCustomProperties.WORKSPACE, true) ||
-      getResourceProperty(execution, ExecutionProperties.PIPELINE_NAME) ||
+      getStringProperty(execution, ExecutionCustomProperties.WORKSPACE, true) ||
+      getStringProperty(execution, ExecutionProperties.PIPELINE_NAME) ||
       undefined
     );
   },
   getName(execution: Execution): string | number | undefined {
     return (
-      getResourceProperty(execution, ExecutionProperties.NAME) ||
-      getResourceProperty(execution, ExecutionProperties.COMPONENT_ID) ||
-      getResourceProperty(execution, ExecutionCustomProperties.TASK_ID, true) ||
+      // TODO(Bobgy): move task_name to a const when ExecutionCustomProperties are moved back to this repo.
+      getStringProperty(execution, 'task_name', true) ||
+      getStringProperty(execution, ExecutionProperties.NAME) ||
+      getStringProperty(execution, ExecutionProperties.COMPONENT_ID) ||
+      getStringProperty(execution, ExecutionCustomProperties.TASK_ID, true) ||
       undefined
     );
   },
   getState(execution: Execution): string | number | undefined {
-    return getResourceProperty(execution, ExecutionProperties.STATE) || undefined;
+    return getStringProperty(execution, ExecutionProperties.STATE) || undefined;
   },
   getKfpPod(execution: Execution): string | number | undefined {
     return (
-      getResourceProperty(execution, KfpExecutionProperties.KFP_POD_NAME) ||
-      getResourceProperty(execution, KfpExecutionProperties.KFP_POD_NAME, true) ||
+      getStringProperty(execution, KfpExecutionProperties.KFP_POD_NAME) ||
+      getStringProperty(execution, KfpExecutionProperties.KFP_POD_NAME, true) ||
       undefined
     );
   },
 };
+
+function getStringProperty(
+  resource: Artifact | Execution,
+  propertyName: string,
+  fromCustomProperties = false,
+): string | undefined {
+  const value = getResourceProperty(resource, propertyName, fromCustomProperties);
+  return getStringValue(value);
+}
+
+function getStringValue(value?: string | number | Struct | null): string | undefined {
+  if (typeof value != 'string') {
+    return undefined;
+  }
+  return value;
+}
