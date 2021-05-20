@@ -38,7 +38,7 @@ setup(
     " using KFP or Managed Pipelines.",
     url="https://github.com/kubeflow/pipelines/tree/master/components/google-cloud",
     author="The Google Cloud Pipeline Components authors",
-    author_email="TBD",
+    author_email="google-cloud-pipeline-components@google.com",
     license="Apache License 2.0",
     extras_require={"tests": dependencies.make_required_test_packages()},
     include_package_data=True,
