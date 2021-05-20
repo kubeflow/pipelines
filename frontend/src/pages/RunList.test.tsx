@@ -402,9 +402,9 @@ describe('RunList', () => {
     mockNRuns(1, {
       run: {
         metrics: [
-          { name: 'z_metric', number_value: 2},
-          { name: 'y_metric', number_value: 1},
-        ]
+          { name: 'z_metric', number_value: 2 },
+          { name: 'y_metric', number_value: 1 },
+        ],
       },
     });
     const props = generateProps();
