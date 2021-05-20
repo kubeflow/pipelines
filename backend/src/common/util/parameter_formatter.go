@@ -19,6 +19,9 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/golang/glog"
+	"github.com/lestrrat-go/strftime"
 )
 
 const (
@@ -30,6 +33,10 @@ const (
 	currentTimePrefix       = "[[CurrentTime."
 	defaultTimeFormat       = "20060102150405"
 	suffix                  = "]]"
+
+	scheduledTimePrefix2 = "{{$.scheduledTime.strftime('"
+	currentTimePrefix2   = "{{$.currentTime.strftime('"
+	suffix2              = "')}}"
 )
 
 const (
@@ -79,7 +86,7 @@ func (p *ParameterFormatter) FormatWorkflowParameters(
 
 // Format substitutes special strings in the provided string.
 func (p *ParameterFormatter) Format(s string) string {
-	re := regexp.MustCompile(`\[\[(.*?)\]\]`)
+	re := regexp.MustCompile(`\[\[(.*?)\]\]|\{\{\$\.(.*?)\}\}`)
 	matches := re.FindAllString(s, -1)
 	if matches == nil {
 		return s
@@ -113,6 +120,24 @@ func (p *ParameterFormatter) createSubstitutes(match string) string {
 		match = strings.Replace(match, currentTimePrefix, "", 1)
 		match = strings.Replace(match, suffix, "", 1)
 		return time.Unix(p.nowEpoch, 0).UTC().Format(match)
+	} else if p.scheduledEpoch != disabledField && strings.HasPrefix(match, scheduledTimePrefix2) {
+		format := strings.Replace(match, scheduledTimePrefix2, "", 1)
+		format = strings.Replace(format, suffix2, "", 1)
+		formatter, err := strftime.New(format, strftime.WithUnixSeconds('s'))
+		if err != nil {
+			glog.Errorf("Could not create the strftime formatter from '%v'. Error: %v", format, err)
+			return match
+		}
+		return formatter.FormatString(time.Unix(p.scheduledEpoch, 0).UTC())
+	} else if p.nowEpoch != disabledField && strings.HasPrefix(match, currentTimePrefix2) {
+		format := strings.Replace(match, currentTimePrefix2, "", 1)
+		format = strings.Replace(format, suffix2, "", 1)
+		formatter, err := strftime.New(format, strftime.WithUnixSeconds('s'))
+		if err != nil {
+			glog.Errorf("Could not create the strftime formatter from '%v'. Error: %v", format, err)
+			return match
+		}
+		return formatter.FormatString(time.Unix(p.nowEpoch, 0).UTC())
 	} else {
 		return match
 	}
