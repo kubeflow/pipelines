@@ -1,6 +1,6 @@
 # Release 0.1.1
 
-*   Fix issue with latest version of KFP not accepting piepline_root in kfp.compile.
+*   Fix issue with latest version of KFP not accepting pipeline_root in kfp.compile.
 *   Fix Compatibility with latest AI Platform name change to replace resource name class with Vertex AI 
 
 # Release 0.1.0
