@@ -75,6 +75,12 @@ class TestV2CompatibleModeCompiler(unittest.TestCase):
       for template in workflow['spec']['templates']:
         template.pop('metadata', None)
 
+        if 'initContainers' not in template:
+          continue
+        # Strip off the launcher image label before comparison
+        for initContainer in template['initContainers']:
+          initContainer['image'] = initContainer['image'].split(':')[0]
+
     self.maxDiff = None
     self.assertDictEqual(golden, compiled)
 
