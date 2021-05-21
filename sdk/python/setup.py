@@ -77,7 +77,8 @@ setup(
     name=NAME,
     version=find_version('kfp', '__init__.py'),
     description='KubeFlow Pipelines SDK',
-    author='google',
+    author='Google',
+    url='https://kubeflow-pipelines.readthedocs.io/en/stable/',
     install_requires=REQUIRES,
     tests_require=TESTS_REQUIRE,
     packages=[
@@ -107,6 +108,8 @@ setup(
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
         'Topic :: Scientific/Engineering',
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
         'Topic :: Software Development',
