@@ -17,6 +17,7 @@ def make_required_install_packages():
   return [
       "kfp>=1.4.0,<2.0.0",
       "google-cloud-aiplatform>=1.0.0",
+      "google-cloud-aiplatform @ git+https://git@github.com/googleapis/python-aiplatform@refs/pull/421/merge#egg=google-cloud-aiplatform"
   ]
 
 
