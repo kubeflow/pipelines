@@ -354,6 +354,11 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
             parameter_type,
             (InputArtifact, InputPath, InputTextFile, InputBinaryFile,
              OutputArtifact, OutputPath, OutputTextFile, OutputBinaryFile)):
+            if isinstance(parameter_type, (InputPath, OutputPath)) and io_name.endswith('_path'):
+                io_name = io_name[0:-len('_path')]
+            if io_name.endswith('_file'):
+                io_name = io_name[0:-len('_file')]
+
             passing_style = type(parameter_type)
             parameter_type = parameter_type.type
             if parameter.default is not inspect.Parameter.empty and not (passing_style == InputPath and parameter.default is None):
@@ -363,10 +368,6 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
             # But from the outside perspective, there are no files or paths - the actual data objects (or references to them) are passed in.
             # It looks very strange when argument passing code looks like this: `component(number_file_path=42)`. This looks like an error since 42 is not a path. It's not even a string.
             # It's much more natural to strip the names of file inputs and outputs of "_file" or "_path" suffixes. Then the argument passing code will look natural: "component(number=42)".
-            if isinstance(parameter_type, (InputPath, OutputPath)) and io_name.endswith('_path'):
-                io_name = io_name[0:-len('_path')]
-            if io_name.endswith('_file'):
-                io_name = io_name[0:-len('_file')]
 
         type_struct = annotation_to_type_struct(parameter_type)
 
