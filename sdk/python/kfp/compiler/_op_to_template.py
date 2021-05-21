@@ -295,7 +295,7 @@ def _op_to_template(op: BaseOp):
         if processed_op.cpu_request: 
             podSpecPatch['containers'][0]['resources']['limits']['cpu'] = processed_op.cpu_request
         if processed_op.memory_request:
-            podSpecPatch['containers'][0]['resources']['limits']['memory'] = processed_op.cpu_request
+            podSpecPatch['containers'][0]['resources']['limits']['memory'] = processed_op.memory_request
         template['podSpecPatch'] = json.dumps(podSpecPatch)
 
     if isinstance(op, dsl.ContainerOp) and op._metadata and not op.is_v2:

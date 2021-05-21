@@ -1383,24 +1383,27 @@ class ContainerOp(BaseOp):
     super(ContainerOp, self).add_node_selector_constraint(label_name, value)
     return self
 
-  def add_cpu_request(self, cpu: str) -> 'ContainerOp':
-    """Adds a cpu request at runtime
+  def add_cpu_request(self, cpu: Union[str,  _pipeline_param.PipelineParam]) -> 'ContainerOp':
+    """Adds a cpu request at runtime.
 
     Args:
-        cpu (str): kubernetes cpu request,
+        cpu (Union[str, PipelineParam]): kubernetes cpu request,
         https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/#specify-a-cpu-request-and-a-cpu-limit
     """
 
+    self._validate_cpu_string(cpu)
     self._cpu_request = cpu
     return self
 
-  def add_memory_request(self, memory: str) -> 'ContainerOp':
-    """Adds a memory request at runtime
+  def add_memory_request(self, memory: Union[str,  _pipeline_param.PipelineParam]) -> 'ContainerOp':
+    """Adds a memory request at runtime.
 
     Args:
-        memory (str): kubernetes memory request, 
+        memory (Union[str, PipelineParam]): kubernetes memory request, 
         https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-memory
     """
+
+    self._validate_size_string(memory)
     self._memory_request = memory
     return self
 
