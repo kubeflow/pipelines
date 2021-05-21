@@ -14,9 +14,9 @@
 """Utilities for handling Python type annotation."""
 
 import re
-from typing import _GenericAlias, TypeVar, Union
+from typing import TypeVar, Union
 
-T = TypeVar('T', str, type, _GenericAlias)
+T = TypeVar('T')
 
 
 def extract_type_with_optional(annotation: T) -> T:
