@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2021 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ import kfp.dsl as dsl
 
 
 def get_run_info(run_id: str):
-    '''Example of getting run info for current pipeline run'''
+    """Example of getting run info for current pipeline run"""
     import kfp
     print(f'Current run ID is {run_id}.')
     # KFP API server is usually available as ml-pipeline service in the same
@@ -38,12 +38,12 @@ get_run_info_component = kfp.components.create_component_from_func(
 
 
 @dsl.pipeline(
-    name="use-run-id",
+    name='use-run-id',
     description=
-    "A pipeline that demonstrates how to use run information, including run ID etc."
+    'A pipeline that demonstrates how to use run information, including run ID etc.'
 )
 def pipeline_use_run_id(run_id: str = kfp.dsl.RUN_ID_PLACEHOLDER):
-    '''kfp.dsl.RUN_ID_PLACEHOLDER inside a pipeline parameter will be populated with KFP Run ID at runtime.'''
+    """kfp.dsl.RUN_ID_PLACEHOLDER inside a pipeline parameter will be populated with KFP Run ID at runtime."""
     run_info_op = get_run_info_component(run_id=run_id)
 
 
