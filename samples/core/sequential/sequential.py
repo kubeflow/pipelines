@@ -39,7 +39,7 @@ def echo_op(text):
     )
 
 @dsl.pipeline(
-    name='Sequential pipeline',
+    name='sequential-pipeline',
     description='A pipeline with two sequential steps.'
 )
 def sequential_pipeline(url='gs://ml-pipeline/sample-data/shakespeare/shakespeare1.txt'):

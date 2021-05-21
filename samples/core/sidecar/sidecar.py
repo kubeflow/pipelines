@@ -18,7 +18,7 @@ import kfp.dsl as dsl
 
 
 @dsl.pipeline(
-    name="pipeline_with_sidecar",
+    name="pipeline-with-sidecar",
     description=
     "A pipeline that demonstrates how to add a sidecar to an operation."
 )

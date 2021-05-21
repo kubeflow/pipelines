@@ -17,7 +17,7 @@ import kfp.dsl as dsl
 
 
 @dsl.pipeline(
-    name="VolumeSnapshotOp Sequential",
+    name="volume-snapshotop-sequential",
     description="The fourth example of the design doc."
 )
 def volume_snapshotop_sequential(url):

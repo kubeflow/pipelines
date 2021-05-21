@@ -30,7 +30,7 @@ def add_annotation(op):
   return op
 
 @dsl.pipeline(
-    name='Pipeline transformer',
+    name='pipeline-transformer',
     description='The pipeline shows how to apply functions to all ops in the pipeline by pipeline transformers'
 )
 def transform_pipeline():

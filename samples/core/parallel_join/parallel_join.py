@@ -39,7 +39,7 @@ def echo2_op(text1, text2):
 
 
 @dsl.pipeline(
-  name='Parallel pipeline',
+  name='parallel-pipeline',
   description='Download two messages in parallel and prints the concatenated result.'
 )
 def download_and_join(

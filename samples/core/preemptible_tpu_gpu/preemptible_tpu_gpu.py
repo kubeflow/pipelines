@@ -34,7 +34,7 @@ class FlipCoinOp(dsl.ContainerOp):
 
 
 @dsl.pipeline(
-    name='pipeline flip coin', description='shows how to use dsl.Condition.')
+    name='pipeline-flip-coin', description='shows how to use dsl.Condition.')
 def flipcoin():
   flip = FlipCoinOp().apply(gcp.use_preemptible_nodepool()).set_gpu_limit(
       1, 'nvidia').set_retry(5)

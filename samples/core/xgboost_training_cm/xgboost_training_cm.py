@@ -201,7 +201,7 @@ def dataproc_predict_op(
 # =======================================================================
 
 @dsl.pipeline(
-    name='XGBoost Trainer',
+    name='xgboost-trainer',
     description='A trainer that does end-to-end distributed training for XGBoost models.'
 )
 def xgb_train_pipeline(
