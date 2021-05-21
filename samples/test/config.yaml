@@ -42,6 +42,8 @@
   path: samples.core.resource_spec.resource_spec_test
 - name: xgboost_sample
   path: samples.core.XGBoost.xgboost_sample_test
+- name: use_run_id
+  path: samples.core.use_run_info.use_run_id_test
 
 - name: fail
   path: samples.test.fail_test
