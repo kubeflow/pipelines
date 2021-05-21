@@ -1407,6 +1407,40 @@ class ContainerOp(BaseOp):
     self._memory_request = memory
     return self
 
+  def _validate_size_string(self, size_string):
+    """Validate a given string is valid for memory/ephemeral-storage request or limit."""
+
+    if isinstance(size_string, _pipeline_param.PipelineParam):
+      if size_string.value:
+        size_string = size_string.value
+      else:
+        return
+
+    if re.match(r'^[0-9]+(E|Ei|P|Pi|T|Ti|G|Gi|M|Mi|K|Ki){0,1}$',
+                size_string) is None:
+      raise ValueError(
+          'Invalid memory string. Should be an integer, or integer followed '
+          'by one of "E|Ei|P|Pi|T|Ti|G|Gi|M|Mi|K|Ki"')
+
+  def _validate_cpu_string(self, cpu_string):
+    'Validate a given string is valid for cpu request or limit.'
+
+    if isinstance(cpu_string, _pipeline_param.PipelineParam):
+      if cpu_string.value:
+        cpu_string = cpu_string.value
+      else:
+        return
+
+    if re.match(r'^[0-9]+m$', cpu_string) is not None:
+      return
+
+    try:
+      float(cpu_string)
+    except ValueError:
+      raise ValueError(
+          'Invalid cpu string. Should be float or integer, or integer followed '
+          'by "m".')
+
 
 # proxy old ContainerOp properties to ContainerOp.container
 # with PendingDeprecationWarning.
