@@ -18,7 +18,6 @@ import * as React from 'react';
 import Viewer, { ViewerConfig } from './Viewer';
 import { cssRaw } from 'typestyle';
 import Markdown from 'markdown-to-jsx';
-import { MAX_MARKDOWN_STR_LENGTH } from './Constants';
 import Banner from '../Banner';
 
 cssRaw(`
@@ -55,6 +54,8 @@ position: relative;
 }
 `);
 
+const MAX_MARKDOWN_STR_LENGTH = 50 * 1000 * 8; // 50KB
+
 export interface MarkdownViewerConfig extends ViewerConfig {
   markdownContent: string;
 }
@@ -68,15 +69,6 @@ export interface MarkdownViewerProps {
 class MarkdownViewer extends Viewer<MarkdownViewerProps, any> {
   private _config = this.props.configs[0];
 
-  constructor(props: MarkdownViewerProps) {
-    super(props);
-    this.state = {
-      maxMarkdownStrLength: props.maxMarkdownStrLength
-        ? props.maxMarkdownStrLength
-        : MAX_MARKDOWN_STR_LENGTH,
-    };
-  }
-
   public getDisplayName(): string {
     return 'Markdown';
   }
@@ -85,22 +77,43 @@ class MarkdownViewer extends Viewer<MarkdownViewerProps, any> {
     if (!this._config) {
       return null;
     }
-    if (this._config.markdownContent.length > this.state.maxMarkdownStrLength) {
-      return (
-        <div className='markdown-viewer'>
-          <Banner message='This markdown is too large to render completely.' mode={'warning'} />
-          <Markdown>
-            {this._config.markdownContent.substr(0, this.state.maxMarkdownStrLength)}
-          </Markdown>
-        </div>
-      );
-    }
     return (
       <div className='markdown-viewer'>
-        <Markdown>{this._config.markdownContent}</Markdown>
+        <MarkdownAdvanced
+          maxMarkdownStrLength={
+            this.props.maxMarkdownStrLength ? this.props.maxMarkdownStrLength : undefined
+          }
+          content={this._config.markdownContent}
+        />
       </div>
     );
   }
 }
 
 export default MarkdownViewer;
+
+interface MarkdownAdvancedProps {
+  maxMarkdownStrLength?: number;
+  content: string;
+}
+
+const MarkdownAdvanced = ({
+  maxMarkdownStrLength = MAX_MARKDOWN_STR_LENGTH,
+  content,
+}: MarkdownAdvancedProps) => {
+  // truncatedContent will be memoized, each call with the same content + maxMarkdownStrLength arguments will return the same truncatedContent without calculation.
+  // Reference: https://reactjs.org/docs/hooks-reference.html#usememo
+  const truncatedContent = React.useMemo(() => content.substr(0, maxMarkdownStrLength), [
+    maxMarkdownStrLength,
+    content,
+  ]);
+
+  return (
+    <>
+      {content.length > maxMarkdownStrLength && (
+        <Banner message='This markdown is too large to render completely.' mode={'warning'} />
+      )}
+      <Markdown>{truncatedContent}</Markdown>
+    </>
+  );
+};
