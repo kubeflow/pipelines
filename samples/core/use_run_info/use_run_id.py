@@ -18,7 +18,7 @@ import kfp.dsl as dsl
 
 
 def get_run_info(run_id: str):
-    """Example of getting run info for current pipeline run"""
+    """Example of getting run info for current pipeline run."""
     import kfp
     print(f'Current run ID is {run_id}.')
     # KFP API server is usually available as ml-pipeline service in the same
