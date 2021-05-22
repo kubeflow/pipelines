@@ -77,7 +77,7 @@ setup(
     name=NAME,
     version=find_version('kfp', '__init__.py'),
     description='KubeFlow Pipelines SDK',
-    author='Google',
+    author='The Kubeflow Authors',
     url='https://kubeflow-pipelines.readthedocs.io/en/stable/',
     install_requires=REQUIRES,
     tests_require=TESTS_REQUIRE,
