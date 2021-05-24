@@ -35,7 +35,7 @@ def echo_msg(msg: str):
 
 
 @dsl.pipeline(
-    name='Exit Handler',
+    name='exit-handler',
     description=
     'Downloads a message and prints it. The exit handler will run after the pipeline finishes (successfully or not).'
 )

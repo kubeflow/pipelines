@@ -29,7 +29,7 @@ def echo_op():
 
 
 @dsl.pipeline(
-    name='dnsConfig setting',
+    name='dns-config-setting',
     description='Passes dnsConfig setting to workflow.'
 )
 def dns_config_pipeline():

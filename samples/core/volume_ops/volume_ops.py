@@ -17,7 +17,7 @@ import kfp.dsl as dsl
 
 
 @dsl.pipeline(
-    name="VolumeOp Basic",
+    name="volumeop-basic",
     description="A Basic Example on VolumeOp Usage."
 )
 def volumeop_basic(size):

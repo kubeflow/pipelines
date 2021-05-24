@@ -29,7 +29,7 @@ def random_failure_op(exit_codes):
 
 
 @dsl.pipeline(
-    name='Retry random failures',
+    name='retry-random-failures',
     description='The pipeline includes two steps which fail randomly. It shows how to use ContainerOp(...).set_retry(...).'
 )
 def retry_sample_pipeline():

@@ -58,7 +58,7 @@ def flip_component(flip_result):
 
 
 @dsl.pipeline(
-    name='Recursive loop pipeline',
+    name='recursive-loop-pipeline',
     description='Shows how to create recursive loops.'
 )
 def flipcoin():

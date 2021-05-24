@@ -58,7 +58,7 @@ gcs_list_buckets_op = kfp.components.create_component_from_func(
 
 
 @dsl.pipeline(
-    name='Secret pipeline',
+    name='secret-pipeline',
     description='A pipeline to demonstrate mounting and use of secretes.'
 )
 def secret_op_pipeline(
