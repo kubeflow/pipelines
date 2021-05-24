@@ -75,10 +75,12 @@ import { Page, PageProps } from './Page';
 import { statusToIcon } from './Status';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import ReduceGraphSwitch from '../components/ReduceGraphSwitch';
+import { MetricsTab } from 'src/components/tabs/MetricsTab';
 
 enum SidePaneTab {
   INPUT_OUTPUT,
   VISUALIZATIONS,
+  METRICS,
   ML_METADATA,
   TASK_DETAILS,
   VOLUMES,
@@ -332,6 +334,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                 tabs={[
                                   'Input/Output',
                                   'Visualizations',
+                                  'Metrics',
                                   'ML Metadata',
                                   'Details',
                                   'Volumes',
@@ -374,6 +377,10 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                       onError={this.handleError}
                                     />
                                   )}
+                                {sidepanelSelectedTab === SidePaneTab.METRICS &&
+                                  this.state.selectedNodeDetails &&
+                                  this.state.workflow &&
+                                  selectedExecution && <MetricsTab execution={selectedExecution} />}
 
                                 {sidepanelSelectedTab === SidePaneTab.INPUT_OUTPUT && (
                                   <div className={padding(20)}>

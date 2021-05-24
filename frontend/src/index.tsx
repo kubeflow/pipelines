@@ -29,6 +29,8 @@ import { theme, fonts } from './Css';
 import { HashRouter } from 'react-router-dom';
 import { KFP_FLAGS, Deployments } from './lib/Flags';
 import { GkeMetadataProvider } from './lib/GkeMetadata';
+import { QueryClient, QueryClientProvider } from 'react-query';
+import { ReactQueryDevtools } from 'react-query/devtools';
 
 // TODO: license headers
 
@@ -46,14 +48,19 @@ cssRule('html, body, #root', {
   width: '100%',
 });
 
+const queryClient = new QueryClient();
+
 const app = (
-  <MuiThemeProvider theme={theme}>
-    <GkeMetadataProvider>
-      <HashRouter>
-        <Router />
-      </HashRouter>
-    </GkeMetadataProvider>
-  </MuiThemeProvider>
+  <QueryClientProvider client={queryClient}>
+    <MuiThemeProvider theme={theme}>
+      <GkeMetadataProvider>
+        <HashRouter>
+          <Router />
+        </HashRouter>
+      </GkeMetadataProvider>
+    </MuiThemeProvider>
+    <ReactQueryDevtools initialIsOpen={false} />
+  </QueryClientProvider>
 );
 ReactDOM.render(
   KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW ? (

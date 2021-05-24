@@ -462,7 +462,7 @@ async function getOutputArtifactsInExecution(execution: Execution): Promise<Arti
   return artifactsRes.getArtifactsList();
 }
 
-async function getArtifactTypes(): Promise<ArtifactType[]> {
+export async function getArtifactTypes(): Promise<ArtifactType[]> {
   const request = new GetArtifactTypesRequest();
   let res: GetArtifactTypesResponse;
   try {
@@ -474,7 +474,7 @@ async function getArtifactTypes(): Promise<ArtifactType[]> {
   return res.getArtifactTypesList();
 }
 
-function filterArtifactsByType(
+export function filterArtifactsByType(
   artifactTypeName: string,
   artifactTypes: ArtifactType[],
   artifacts: Artifact[],

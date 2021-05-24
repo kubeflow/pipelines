@@ -16,18 +16,21 @@
 
 import {
   Api,
+  Artifact,
   Context,
+  Event,
   Execution,
   ExecutionCustomProperties,
-  getResourcePropertyViaFallBack,
   ExecutionProperties,
-  getResourceProperty,
-  Artifact,
-} from '@kubeflow/frontend';
-import {
+  GetArtifactsByIDRequest,
+  GetArtifactsByIDResponse,
   GetContextByTypeAndNameRequest,
+  GetEventsByExecutionIDsRequest,
+  GetEventsByExecutionIDsResponse,
   GetExecutionsByContextRequest,
-} from '@kubeflow/frontend/src/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
+  getResourceProperty,
+  getResourcePropertyViaFallBack,
+} from '@kubeflow/frontend';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import { Workflow } from 'third_party/argo-ui/argo_template';
 import { logger } from './Utils';
@@ -168,4 +171,41 @@ function getStringValue(value?: string | number | Struct | null): string | undef
     return undefined;
   }
   return value;
+}
+
+/**
+ * @throws error when network error or invalid data
+ */
+export async function getOutputArtifactsInExecution(execution: Execution): Promise<Artifact[]> {
+  const executionId = execution.getId();
+  if (!executionId) {
+    throw new Error('Execution must have an ID');
+  }
+
+  const request = new GetEventsByExecutionIDsRequest();
+  request.addExecutionIds(executionId);
+  let res: GetEventsByExecutionIDsResponse;
+  try {
+    res = await Api.getInstance().metadataStoreService.getEventsByExecutionIDs(request);
+  } catch (err) {
+    err.message = 'Failed to getExecutionsByExecutionIDs: ' + err.message;
+    throw err;
+  }
+
+  const outputArtifactIds = res
+    .getEventsList()
+    .filter(event => event.getType() === Event.Type.OUTPUT && event.getArtifactId())
+    .map(event => event.getArtifactId());
+
+  const artifactsRequest = new GetArtifactsByIDRequest();
+  artifactsRequest.setArtifactIdsList(outputArtifactIds);
+  let artifactsRes: GetArtifactsByIDResponse;
+  try {
+    artifactsRes = await Api.getInstance().metadataStoreService.getArtifactsByID(artifactsRequest);
+  } catch (artifactsErr) {
+    artifactsErr.message = 'Failed to getArtifactsByID: ' + artifactsErr.message;
+    throw artifactsErr;
+  }
+
+  return artifactsRes.getArtifactsList();
 }
