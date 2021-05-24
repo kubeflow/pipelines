@@ -243,7 +243,12 @@ message TaskInputsSpec {
 
     // Represents an upstream task's final status. The field can only be set if
     // the schema version is `2.0.0`. The resolved input parameter will be a
-    // json payload in string type.
+    // json payload in string type, e.g.
+    //  - {"state": "SUCCEEDED", "error": {"code": "OK", "message": ""}}
+    //  - {"state": "FAILED", "error": {"code": "INVALID_ARGUMENT", "message":
+    //  "Invalid argument in xxx."}}
+    // Specifically, for code = 13 (internal error), the actual error message of
+    // the task will be replaced with a general string.
     message TaskFinalStatus {
       // The name of the upsteram task where the final status is coming from.
       string producer_task = 1;
