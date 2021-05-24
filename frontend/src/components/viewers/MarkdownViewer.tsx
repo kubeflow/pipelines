@@ -63,7 +63,7 @@ export interface MarkdownViewerConfig extends ViewerConfig {
 export interface MarkdownViewerProps {
   configs: MarkdownViewerConfig[];
   maxDimension?: number;
-  maxMarkdownStrLength?: number;
+  maxLength?: number;
 }
 
 class MarkdownViewer extends Viewer<MarkdownViewerProps, any> {
@@ -80,9 +80,7 @@ class MarkdownViewer extends Viewer<MarkdownViewerProps, any> {
     return (
       <div className='markdown-viewer'>
         <MarkdownAdvanced
-          maxMarkdownStrLength={
-            this.props.maxMarkdownStrLength ? this.props.maxMarkdownStrLength : undefined
-          }
+          maxMarkdownStrLength={this.props.maxLength}
           content={this._config.markdownContent}
         />
       </div>

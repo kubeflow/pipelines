@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
+import { render } from '@testing-library/react';
 import { mount } from 'enzyme';
-import MarkdownViewer, { MarkdownViewerConfig, MarkdownViewerProps } from './MarkdownViewer';
+import * as React from 'react';
+import MarkdownViewer, { MarkdownViewerConfig } from './MarkdownViewer';
 import { PlotType } from './Viewer';
-import * as Constants from './Constants';
-import { render, screen, within } from '@testing-library/react';
 
 describe('MarkdownViewer', () => {
   it('does not break on empty data', () => {
@@ -62,7 +61,12 @@ describe('MarkdownViewer', () => {
       type: PlotType.MARKDOWN,
     };
 
-    const { getByText } = render(<MarkdownViewer configs={[config]} maxMarkdownStrLength={10} />);
+    const maximumMarkdownSize = 10;
+    const { getByText, queryByText } = render(
+      <MarkdownViewer configs={[config]} maxLength={maximumMarkdownSize} />,
+    );
     getByText('This markdown is too large to render completely.');
+    getByText('X'.repeat(maximumMarkdownSize));
+    expect(queryByText('X'.repeat(11))).toBeNull();
   });
 });
