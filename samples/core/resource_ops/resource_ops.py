@@ -50,7 +50,7 @@ _CONTAINER_MANIFEST = """
 
 
 @dsl.pipeline(
-    name="ResourceOp Basic",
+    name="resourceop-basic",
     description="A Basic Example on ResourceOp Usage."
 )
 def resourceop_basic():

@@ -24,7 +24,7 @@ def echo_op():
     )
 
 @dsl.pipeline(
-    name='My first pipeline',
+    name='my-first-pipeline',
     description='A hello world pipeline.'
 )
 def hello_world_pipeline():

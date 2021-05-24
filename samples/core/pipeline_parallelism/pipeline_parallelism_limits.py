@@ -28,7 +28,7 @@ def print_op(msg):
 
 
 @dsl.pipeline(
-    name='Pipeline service account',
+    name='pipeline-service-account',
     description='The pipeline shows how to set the max number of parallel pods in a pipeline.'
 )
 def pipeline_parallelism():
