@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
 from typing import List, Optional
 import unittest
 
@@ -61,8 +62,11 @@ class TestPythonComponent(unittest.TestCase):
 
     golden_meta = ComponentSpec(name='ComponentA', inputs=[], outputs=None)
     golden_meta.inputs.append(InputSpec(name='a', type='Float'))
-    golden_meta.inputs.append(InputSpec(name='b', type='typing.List[int]'))
-    golden_meta.inputs.append(InputSpec(name='c', type='String', default=None, optional=True))
+    golden_meta.inputs.append(
+        InputSpec(name='b', type='typing.List[int]' if sys.version_info >=
+                  (3,7) else 'List'))
+    golden_meta.inputs.append(
+        InputSpec(name='c', type='String', default=None, optional=True))
 
     self.assertEqual(containerOp._metadata, golden_meta)
 
