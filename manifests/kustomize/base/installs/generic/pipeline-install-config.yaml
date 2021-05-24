@@ -4,7 +4,7 @@ metadata:
   name: pipeline-install-config
 data:
   appName: pipeline
-  appVersion: 1.6.0-rc.0
+  appVersion: 1.6.0
   dbHost: mysql
   dbPort: "3306"
   mlmdDb: metadb
