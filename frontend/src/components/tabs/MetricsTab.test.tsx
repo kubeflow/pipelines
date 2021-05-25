@@ -19,8 +19,11 @@ import { render, waitFor } from '@testing-library/react';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import React from 'react';
 import * as mlmdUtils from 'src/lib/MlmdUtils';
+import { testBestPractices } from 'src/TestUtils';
 import { WrapQueryClient } from 'src/TestWrapper';
 import { MetricsTab } from './MetricsTab';
+
+testBestPractices();
 
 describe('MetricsTab', () => {
   const execution = new Execution();
@@ -28,10 +31,6 @@ describe('MetricsTab', () => {
   beforeEach(() => {
     const executionGetIdSpy = jest.spyOn(execution, 'getId');
     executionGetIdSpy.mockReturnValue(123);
-  });
-
-  afterEach(() => {
-    jest.resetAllMocks();
   });
 
   it('shows ROC curve', async () => {
@@ -80,7 +79,7 @@ describe('MetricsTab', () => {
     getByText('Metrics is loading.');
     // We should upgrade react-scripts for capability to use libraries normally:
     // https://github.com/testing-library/dom-testing-library/issues/477
-    await waitFor(() => getByText('ROC Curve'));
+    await waitFor(() => getByText('ROC Curve: metrics'));
   });
 
   it('has no metrics', async () => {

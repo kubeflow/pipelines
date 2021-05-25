@@ -17,6 +17,7 @@
 import { Artifact, ArtifactType, Execution } from '@kubeflow/frontend';
 import HelpIcon from '@material-ui/icons/Help';
 import * as React from 'react';
+import { useState } from 'react';
 import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
 import IconWithTooltip from 'src/atoms/IconWithTooltip';
@@ -49,6 +50,7 @@ type MetricsTabProps = {
 interface MetricsSwitcherProps {
   artifacts: Artifact[];
   artifactTypes: ArtifactType[];
+  refresh?: () => void;
 }
 
 /**
@@ -58,6 +60,10 @@ interface MetricsSwitcherProps {
  * Note that these metrics are only available on KFP v2 mode.
  */
 export function MetricsTab({ execution }: MetricsTabProps) {
+  const [refreshCount, setRefreshCount] = useState(0);
+  function refresh() {
+    setRefreshCount(refreshCount + 1);
+  }
   // Retrieving a list of artifacts associated with this execution,
   // so we can find the artifact for system metrics from there.
   const {
@@ -80,7 +86,6 @@ export function MetricsTab({ execution }: MetricsTabProps) {
 
   // This react element produces banner message if query to MLMD is pending or has error.
   // Once query is completed, it shows actual content of metrics visualization in MetricsSwitcher.
-
   return (
     <div className={commonCss.page}>
       <div className={padding(20)}>
@@ -101,6 +106,7 @@ export function MetricsTab({ execution }: MetricsTabProps) {
             message='Error in retrieving metrics information.'
             mode='error'
             additionalInfo={errorArtifacts.message}
+            refresh={refresh}
           />
         )}
         {!errorArtifacts && errorArtifactTypes && (
@@ -108,10 +114,15 @@ export function MetricsTab({ execution }: MetricsTabProps) {
             message='Error in retrieving artifact types information.'
             mode='error'
             additionalInfo={errorArtifactTypes.message}
+            refresh={refresh}
           />
         )}
         {isSuccessArtifacts && isSuccessArtifactTypes && artifacts && artifactTypes && (
-          <MetricsSwitcher artifacts={artifacts} artifactTypes={artifactTypes}></MetricsSwitcher>
+          <MetricsSwitcher
+            artifacts={artifacts}
+            artifactTypes={artifactTypes}
+            refresh={refresh}
+          ></MetricsSwitcher>
         )}
       </div>
     </div>
@@ -121,7 +132,7 @@ export function MetricsTab({ execution }: MetricsTabProps) {
 /**
  * Visualize system metrics based on artifact input.
  */
-function MetricsSwitcher({ artifacts, artifactTypes }: MetricsSwitcherProps) {
+function MetricsSwitcher({ artifacts, artifactTypes, refresh }: MetricsSwitcherProps) {
   // system.ClassificationMetrics contains confusionMatrix or confidenceMetrics.
   // TODO: Visualize confusionMatrix using system.ClassificationMetrics artifacts.
   // https://github.com/kubeflow/pipelines/issues/5668
@@ -151,7 +162,12 @@ function MetricsSwitcher({ artifacts, artifactTypes }: MetricsSwitcherProps) {
   return (
     <>
       {(!confidenceMetricsArtifacts || confidenceMetricsArtifacts.length === 0) && (
-        <Banner message='There is no metrics artifact available in this step.' mode='info' />
+        <Banner
+          message='There is no metrics artifact available in this step.'
+          mode='info'
+          refresh={refresh}
+          enableRefresh={refresh ? true : false}
+        />
       )}
       {classificationMetricsArtifacts &&
         classificationMetricsArtifacts.length > 0 &&
@@ -166,9 +182,9 @@ function MetricsSwitcher({ artifacts, artifactTypes }: MetricsSwitcherProps) {
             <React.Fragment key={id}>
               {confidenceMetrics && (
                 <div>
-                  <div className={padding(40, 'lr')}>
+                  <div className={padding(40, 'lrt')}>
                     <h1>
-                      ROC Curve{' '}
+                      {'ROC Curve: ' + customProperties.get('name')?.getStringValue()}{' '}
                       <IconWithTooltip
                         Icon={HelpIcon}
                         iconColor={color.weak}

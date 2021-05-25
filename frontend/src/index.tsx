@@ -30,6 +30,7 @@ import {
   NamespaceContext,
   NamespaceContextProvider,
 } from './lib/KubeflowClient';
+// import { ReactQueryDevtools } from 'react-query/devtools';
 
 // TODO: license headers
 
@@ -47,7 +48,7 @@ cssRule('html, body, #root', {
   width: '100%',
 });
 
-const queryClient = new QueryClient();
+export const queryClient = new QueryClient();
 
 const app = (
   <QueryClientProvider client={queryClient}>
@@ -58,6 +59,7 @@ const app = (
         </HashRouter>
       </GkeMetadataProvider>
     </MuiThemeProvider>
+    {/* <ReactQueryDevtools initialIsOpen={false} /> */}
   </QueryClientProvider>
 );
 ReactDOM.render(
