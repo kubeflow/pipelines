@@ -18,6 +18,7 @@ import * as React from 'react';
 import Viewer, { ViewerConfig } from './Viewer';
 import { cssRaw } from 'typestyle';
 import Markdown from 'markdown-to-jsx';
+import Banner from '../Banner';
 
 cssRaw(`
 .markdown-viewer h1,
@@ -53,13 +54,16 @@ position: relative;
 }
 `);
 
+const MAX_MARKDOWN_STR_LENGTH = 50 * 1000 * 8; // 50KB
+
 export interface MarkdownViewerConfig extends ViewerConfig {
   markdownContent: string;
 }
 
-interface MarkdownViewerProps {
+export interface MarkdownViewerProps {
   configs: MarkdownViewerConfig[];
   maxDimension?: number;
+  maxLength?: number;
 }
 
 class MarkdownViewer extends Viewer<MarkdownViewerProps, any> {
@@ -75,10 +79,39 @@ class MarkdownViewer extends Viewer<MarkdownViewerProps, any> {
     }
     return (
       <div className='markdown-viewer'>
-        <Markdown>{this._config.markdownContent}</Markdown>
+        <MarkdownAdvanced
+          maxMarkdownStrLength={this.props.maxLength}
+          content={this._config.markdownContent}
+        />
       </div>
     );
   }
 }
 
 export default MarkdownViewer;
+
+interface MarkdownAdvancedProps {
+  maxMarkdownStrLength?: number;
+  content: string;
+}
+
+const MarkdownAdvanced = ({
+  maxMarkdownStrLength = MAX_MARKDOWN_STR_LENGTH,
+  content,
+}: MarkdownAdvancedProps) => {
+  // truncatedContent will be memoized, each call with the same content + maxMarkdownStrLength arguments will return the same truncatedContent without calculation.
+  // Reference: https://reactjs.org/docs/hooks-reference.html#usememo
+  const truncatedContent = React.useMemo(() => content.substr(0, maxMarkdownStrLength), [
+    maxMarkdownStrLength,
+    content,
+  ]);
+
+  return (
+    <>
+      {content.length > maxMarkdownStrLength && (
+        <Banner message='This markdown is too large to render completely.' mode={'warning'} />
+      )}
+      <Markdown>{truncatedContent}</Markdown>
+    </>
+  );
+};
