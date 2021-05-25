@@ -21,12 +21,10 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestGetParameters(t *testing.T) {
-	wf := unmarshalWf(validWorkflow)
-	wf.TypeMeta = v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"}
+	wf := unmarshalWf(template)
 	wf.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "dup", Value: v1alpha1.AnyStringPtr("value1")}}
 	templateBytes, _ := yaml.Marshal(wf)
 	paramString, err := GetParameters([]byte(templateBytes))
@@ -36,7 +34,6 @@ func TestGetParameters(t *testing.T) {
 
 func TestFailValidation(t *testing.T) {
 	wf := unmarshalWf(emptyName)
-	wf.TypeMeta = v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"}
 	wf.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "dup", Value: v1alpha1.AnyStringPtr("value1")}}
 	templateBytes, _ := yaml.Marshal(wf)
 	_, err := GetParameters([]byte(templateBytes))
@@ -67,7 +64,7 @@ func unmarshalWf(yamlStr string) *wfv1.Workflow {
 	return &wf
 }
 
-var validWorkflow = `
+var template = `
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
