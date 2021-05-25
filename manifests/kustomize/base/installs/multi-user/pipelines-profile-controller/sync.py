@@ -59,10 +59,6 @@ class Controller(BaseHTTPRequestHandler):
         super().__init__(*args, **kwargs)
 
     def sync(self, parent, children):
-        # HACK: Currently using serving.kubeflow.org/inferenceservice to identify
-        # kubeflow user namespaces.
-        # TODO: let Kubeflow profile controller add a pipeline specific label to
-        # user namespaces and use that label instead.
         pipeline_enabled = parent.get("metadata", {}).get(
             "labels", {}).get("pipelines.kubeflow.org/enabled")
 
