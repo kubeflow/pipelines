@@ -12,13 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
+from typing import List, Optional
+import unittest
+
 import kfp
 import kfp.dsl as dsl
 from kfp.dsl import component, graph_component
 from kfp.dsl.types import Integer, GCSPath, InconsistentTypeException
 from kfp.dsl import ContainerOp, Pipeline, PipelineParam
 from kfp.components.structures import ComponentSpec, InputSpec, OutputSpec
-import unittest
+
 
 class TestPythonComponent(unittest.TestCase):
 
@@ -40,6 +44,29 @@ class TestPythonComponent(unittest.TestCase):
     golden_meta.inputs.append(InputSpec(name='b', type={'Integer': {'openapi_schema_validator': {"type": "integer"}}}, default="12", optional=True))
     golden_meta.inputs.append(InputSpec(name='c', type={'ArtifactB': {'path_type':'file', 'file_type': 'tsv'}}, default='gs://hello/world', optional=True))
     golden_meta.outputs.append(OutputSpec(name='model', type={'Integer': {'openapi_schema_validator': {"type": "integer"}}}))
+
+    self.assertEqual(containerOp._metadata, golden_meta)
+
+  def test_component_metadata_standard_type_annotation(self):
+    """Test component decorator metadata."""
+
+    class MockContainerOp:
+      def _set_metadata(self, component_meta):
+        self._metadata = component_meta
+
+    @component
+    def componentA(a: float, b: List[int], c: Optional[str] = None) -> None:
+      return MockContainerOp()
+
+    containerOp = componentA('str_value', '[1,2,3]')
+
+    golden_meta = ComponentSpec(name='ComponentA', inputs=[], outputs=None)
+    golden_meta.inputs.append(InputSpec(name='a', type='Float'))
+    golden_meta.inputs.append(
+        InputSpec(name='b', type='typing.List[int]' if sys.version_info >=
+                  (3,7) else 'List'))
+    golden_meta.inputs.append(
+        InputSpec(name='c', type='String', default=None, optional=True))
 
     self.assertEqual(containerOp._metadata, golden_meta)
 

@@ -15,7 +15,7 @@
 import inspect
 from typing import Dict, List, Optional, Type, Union
 from kfp.components import structures
-from kfp.components import _data_passing
+from kfp.components import type_annotation_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.dsl import artifact_utils
 from kfp.dsl import io_types
@@ -67,7 +67,7 @@ def is_parameter_type(type_name: Optional[Union[str, dict]]) -> bool:
     True if the type name maps to a parameter type else False.
   """
   if isinstance(type_name, str):
-    type_name = _data_passing._get_short_type_name(type_name)
+    type_name = type_annotation_utils.get_short_type_name(type_name)
   elif isinstance(type_name, dict):
     type_name = list(type_name.keys())[0]
   else:
@@ -112,7 +112,7 @@ def get_parameter_type(
   elif isinstance(param_type, dict):
     type_name = list(param_type.keys())[0]
   else:
-    type_name = _data_passing._get_short_type_name(str(param_type))
+    type_name = type_annotation_utils.get_short_type_name(str(param_type))
   return _PARAMETER_TYPES_MAPPING.get(type_name.lower())
 
 
