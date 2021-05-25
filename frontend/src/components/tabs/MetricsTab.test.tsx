@@ -18,15 +18,12 @@ import { Artifact, ArtifactType, Execution, Value } from '@kubeflow/frontend';
 import { render, waitFor } from '@testing-library/react';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import React from 'react';
-import { QueryClient, QueryClientProvider } from 'react-query';
-import { BrowserRouter } from 'react-router-dom';
+import * as mlmdUtils from 'src/lib/MlmdUtils';
+import { WrapQueryClient } from 'src/TestWrapper';
 import { MetricsTab } from './MetricsTab';
 
 describe('MetricsTab', () => {
-  const mlmdUtils = require('src/lib/MlmdUtils');
-  const OutputArtifactLoader = require('src/lib/OutputArtifactLoader');
   const execution = new Execution();
-  const queryClient = new QueryClient();
 
   beforeEach(() => {
     const executionGetIdSpy = jest.spyOn(execution, 'getId');
@@ -71,17 +68,13 @@ describe('MetricsTab', () => {
     jest
       .spyOn(mlmdUtils, 'getOutputArtifactsInExecution')
       .mockReturnValue(Promise.resolve([artifact]));
-    jest
-      .spyOn(OutputArtifactLoader, 'getArtifactTypes')
-      .mockReturnValue(Promise.resolve([artifactType]));
-    jest.spyOn(OutputArtifactLoader, 'filterArtifactsByType').mockReturnValue([artifact]);
+    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([artifactType]));
+    jest.spyOn(mlmdUtils, 'filterArtifactsByType').mockReturnValue([artifact]);
 
     const { getByText } = render(
-      <BrowserRouter>
-        <QueryClientProvider client={queryClient}>
-          <MetricsTab execution={execution}></MetricsTab>
-        </QueryClientProvider>
-      </BrowserRouter>,
+      <WrapQueryClient>
+        <MetricsTab execution={execution}></MetricsTab>
+      </WrapQueryClient>,
     );
 
     getByText('Metrics is loading.');
@@ -92,15 +85,13 @@ describe('MetricsTab', () => {
 
   it('has no metrics', async () => {
     jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockReturnValue(Promise.resolve([]));
-    jest.spyOn(OutputArtifactLoader, 'getArtifactTypes').mockReturnValue(Promise.resolve([]));
-    jest.spyOn(OutputArtifactLoader, 'filterArtifactsByType').mockReturnValue([]);
+    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([]));
+    jest.spyOn(mlmdUtils, 'filterArtifactsByType').mockReturnValue([]);
 
     const { getByText } = render(
-      <BrowserRouter>
-        <QueryClientProvider client={queryClient}>
-          <MetricsTab execution={execution}></MetricsTab>
-        </QueryClientProvider>
-      </BrowserRouter>,
+      <WrapQueryClient>
+        <MetricsTab execution={execution}></MetricsTab>
+      </WrapQueryClient>,
     );
 
     await waitFor(() => getByText('There is no metrics artifact available in this step.'));

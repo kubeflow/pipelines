@@ -17,6 +17,7 @@
 import {
   Api,
   Artifact,
+  ArtifactType,
   Context,
   Event,
   Execution,
@@ -24,6 +25,8 @@ import {
   ExecutionProperties,
   GetArtifactsByIDRequest,
   GetArtifactsByIDResponse,
+  GetArtifactTypesRequest,
+  GetArtifactTypesResponse,
   GetContextByTypeAndNameRequest,
   GetEventsByExecutionIDsRequest,
   GetEventsByExecutionIDsResponse,
@@ -208,4 +211,27 @@ export async function getOutputArtifactsInExecution(execution: Execution): Promi
   }
 
   return artifactsRes.getArtifactsList();
+}
+
+export async function getArtifactTypes(): Promise<ArtifactType[]> {
+  const request = new GetArtifactTypesRequest();
+  let res: GetArtifactTypesResponse;
+  try {
+    res = await Api.getInstance().metadataStoreService.getArtifactTypes(request);
+  } catch (err) {
+    err.message = 'Failed to getArtifactTypes: ' + err.message;
+    throw err;
+  }
+  return res.getArtifactTypesList();
+}
+
+export function filterArtifactsByType(
+  artifactTypeName: string,
+  artifactTypes: ArtifactType[],
+  artifacts: Artifact[],
+): Artifact[] {
+  const artifactTypeIds = artifactTypes
+    .filter(artifactType => artifactType.getName() === artifactTypeName)
+    .map(artifactType => artifactType.getId());
+  return artifacts.filter(artifact => artifactTypeIds.includes(artifact.getTypeId()));
 }

@@ -21,18 +21,22 @@ import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
 import IconWithTooltip from 'src/atoms/IconWithTooltip';
 import { color, commonCss, padding } from 'src/Css';
-import { ExecutionHelpers, getOutputArtifactsInExecution } from 'src/lib/MlmdUtils';
-import { filterArtifactsByType, getArtifactTypes } from 'src/lib/OutputArtifactLoader';
+import {
+  ExecutionHelpers,
+  filterArtifactsByType,
+  getArtifactTypes,
+  getOutputArtifactsInExecution,
+} from 'src/lib/MlmdUtils';
 import Banner from '../Banner';
 import { RoutePageFactory } from '../Router';
-import ROCCurve, { DisplayPoint, ROCCurveConfig } from '../viewers/ROCCurve';
+import ROCCurve, { ROCCurveConfig } from '../viewers/ROCCurve';
 
 const ROC_CURVE_DEFINITION =
   'The receiver operating characteristic (ROC) curve shows the trade-off between true positive rate and false positive rate. ' +
   'A lower threshold results in a higher true positive rate (and a higher false positive rate), ' +
   'while a higher threshold results in a lower true positive rate (and a lower false positive rate)';
 
-type ConfidenceMetrics = {
+type ConfidenceMetric = {
   confidenceThreshold: string;
   falsePositiveRate: number;
   recall: number;
@@ -54,12 +58,14 @@ interface MetricsSwitcherProps {
  * Note that these metrics are only available on KFP v2 mode.
  */
 export function MetricsTab({ execution }: MetricsTabProps) {
-  // Retriving a list of artifacts associated with this execution,
+  // Retrieving a list of artifacts associated with this execution,
   // so we can find the artifact for system metrics from there.
-  const { isLoading: isLoadingArtifacts, error: errorArtifacts, data: artifacts } = useQuery<
-    Artifact[],
-    Error
-  >(['execution_output_artifact', { id: execution.getId() }], () =>
+  const {
+    isLoading: isLoadingArtifacts,
+    isSuccess: isSuccessArtifacts,
+    error: errorArtifacts,
+    data: artifacts,
+  } = useQuery<Artifact[], Error>(['execution_output_artifact', { id: execution.getId() }], () =>
     getOutputArtifactsInExecution(execution),
   );
 
@@ -67,13 +73,14 @@ export function MetricsTab({ execution }: MetricsTabProps) {
   // so we can identify metrics artifact provided by system.
   const {
     isLoading: isLoadingArtifactTypes,
+    isSuccess: isSuccessArtifactTypes,
     error: errorArtifactTypes,
     data: artifactTypes,
   } = useQuery<ArtifactType[], Error>(['artifact_types'], () => getArtifactTypes());
 
   // This react element produces banner message if query to MLMD is pending or has error.
   // Once query is completed, it shows actual content of metrics visualization in MetricsSwitcher.
-  const isLoading = isLoadingArtifactTypes && isLoadingArtifacts;
+
   return (
     <div className={commonCss.page}>
       <div className={padding(20)}>
@@ -86,22 +93,24 @@ export function MetricsTab({ execution }: MetricsTabProps) {
             "{ExecutionHelpers.getName(execution)}".
           </Link>
         </div>
-        {isLoading && <Banner message='Metrics is loading.' mode='info' />}
+        {isLoadingArtifactTypes && isLoadingArtifacts && (
+          <Banner message='Metrics is loading.' mode='info' />
+        )}
         {errorArtifacts && (
           <Banner
-            message='Error in retriving metrics information.'
+            message='Error in retrieving metrics information.'
             mode='error'
             additionalInfo={errorArtifacts.message}
           />
         )}
-        {errorArtifactTypes && (
+        {!errorArtifacts && errorArtifactTypes && (
           <Banner
-            message='Error in retriving artifact types information.'
+            message='Error in retrieving artifact types information.'
             mode='error'
             additionalInfo={errorArtifactTypes.message}
           />
         )}
-        {!isLoading && !errorArtifacts && !errorArtifactTypes && artifacts && artifactTypes && (
+        {isSuccessArtifacts && isSuccessArtifactTypes && artifacts && artifactTypes && (
           <MetricsSwitcher artifacts={artifacts} artifactTypes={artifactTypes}></MetricsSwitcher>
         )}
       </div>
@@ -177,18 +186,14 @@ function MetricsSwitcher({ artifacts, artifactTypes }: MetricsSwitcherProps) {
   );
 }
 
-function buildRocCurveConfig(confidenceMetricsArray: ConfidenceMetrics[]): ROCCurveConfig[] {
-  let displayPoint: DisplayPoint[] = [];
-  for (let metrics of confidenceMetricsArray) {
-    displayPoint.push({
-      label: metrics.confidenceThreshold,
-      x: metrics.falsePositiveRate,
-      y: metrics.recall,
-    });
-  }
+function buildRocCurveConfig(confidenceMetricsArray: ConfidenceMetric[]): ROCCurveConfig[] {
   return [
     {
-      data: displayPoint,
+      data: confidenceMetricsArray.map(metric => ({
+        label: metric.confidenceThreshold,
+        x: metric.falsePositiveRate,
+        y: metric.recall,
+      })),
     },
   ] as ROCCurveConfig[];
 }
