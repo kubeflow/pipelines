@@ -48,11 +48,12 @@ class TypeAnnotationUtilsTest(parameterized.TestCase):
           'expected_annotation': List[Dict[str, Any]],
       },
   )
-  def test_extract_type_with_optional(self, original_annotation,
-                                      expected_annotation):
+  def test_maybe_strip_optional_from_annotation(self, original_annotation,
+                                                expected_annotation):
     self.assertEqual(
         expected_annotation,
-        type_annotation_utils.extract_type_with_optional(original_annotation))
+        type_annotation_utils.maybe_strip_optional_from_annotation(
+            original_annotation))
 
   @parameterized.parameters(
       {

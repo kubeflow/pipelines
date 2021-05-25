@@ -19,8 +19,8 @@ from typing import TypeVar, Union
 T = TypeVar('T')
 
 
-def extract_type_with_optional(annotation: T) -> T:
-  """Extracts the type from Optional[<type>] if applicable.
+def maybe_strip_optional_from_annotation(annotation: T) -> T:
+  """Strips 'Optional' from 'Optional[<type>]' if applicable.
 
   For example::
     Optional[str] -> str
