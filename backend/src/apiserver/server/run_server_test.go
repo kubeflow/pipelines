@@ -29,14 +29,14 @@ func TestCreateRun(t *testing.T) {
 		Name:               "run1",
 		ResourceReferences: validReference,
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testWorkflowValid.ToStringForStore(),
+			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 		},
 	}
 	runDetail, err := server.CreateRun(nil, &api.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 
-	expectedRuntimeWorkflow := testWorkflowValid.DeepCopy()
+	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
@@ -58,7 +58,7 @@ func TestCreateRun(t *testing.T) {
 			FinishedAt:     &timestamp.Timestamp{},
 			Status:         "Running",
 			PipelineSpec: &api.PipelineSpec{
-				WorkflowManifest: testWorkflowValid.ToStringForStore(),
+				WorkflowManifest: testWorkflow.ToStringForStore(),
 				Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 			},
 			ResourceReferences: []*api.ResourceReference{
@@ -83,7 +83,7 @@ func TestCreateRunPatch(t *testing.T) {
 		Name:               "run1",
 		ResourceReferences: validReference,
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testWorkflowPatchValid.ToStringForStore(),
+			WorkflowManifest: testWorkflowPatch.ToStringForStore(),
 			Parameters: []*api.Parameter{
 				{Name: "param1", Value: "test-default-bucket"},
 				{Name: "param2", Value: "test-project-id"}},
@@ -92,7 +92,7 @@ func TestCreateRunPatch(t *testing.T) {
 	runDetail, err := server.CreateRun(nil, &api.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 
-	expectedRuntimeWorkflow := testWorkflowPatchValid.DeepCopy()
+	expectedRuntimeWorkflow := testWorkflowPatch.DeepCopy()
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: v1alpha1.AnyStringPtr("test-default-bucket")},
 		{Name: "param2", Value: v1alpha1.AnyStringPtr("test-project-id")},
@@ -115,7 +115,7 @@ func TestCreateRunPatch(t *testing.T) {
 			ScheduledAt:    &timestamp.Timestamp{},
 			FinishedAt:     &timestamp.Timestamp{},
 			PipelineSpec: &api.PipelineSpec{
-				WorkflowManifest: testWorkflowPatchValid.ToStringForStore(),
+				WorkflowManifest: testWorkflowPatch.ToStringForStore(),
 				Parameters: []*api.Parameter{
 					{Name: "param1", Value: "test-default-bucket"},
 					{Name: "param2", Value: "test-project-id"}},
@@ -187,14 +187,14 @@ func TestCreateRun_Multiuser(t *testing.T) {
 		Name:               "run1",
 		ResourceReferences: validReference,
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testWorkflowValid.ToStringForStore(),
+			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 		},
 	}
 	runDetail, err := server.CreateRun(ctx, &api.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 
-	expectedRuntimeWorkflow := testWorkflowValid.DeepCopy()
+	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
@@ -216,7 +216,7 @@ func TestCreateRun_Multiuser(t *testing.T) {
 			ScheduledAt:    &timestamp.Timestamp{},
 			FinishedAt:     &timestamp.Timestamp{},
 			PipelineSpec: &api.PipelineSpec{
-				WorkflowManifest: testWorkflowValid.ToStringForStore(),
+				WorkflowManifest: testWorkflow.ToStringForStore(),
 				Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 			},
 			ResourceReferences: []*api.ResourceReference{
@@ -241,7 +241,7 @@ func TestListRun(t *testing.T) {
 		Name:               "run1",
 		ResourceReferences: validReference,
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testWorkflowValid.ToStringForStore(),
+			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 		},
 	}
@@ -258,7 +258,7 @@ func TestListRun(t *testing.T) {
 		FinishedAt:     &timestamp.Timestamp{},
 		Status:         "Running",
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testWorkflowValid.ToStringForStore(),
+			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 		},
 		ResourceReferences: []*api.ResourceReference{
@@ -322,7 +322,7 @@ func TestListRuns_Multiuser(t *testing.T) {
 		Name:               "run1",
 		ResourceReferences: validReference,
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testWorkflowValid.ToStringForStore(),
+			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 		},
 	}
@@ -339,7 +339,7 @@ func TestListRuns_Multiuser(t *testing.T) {
 		FinishedAt:     &timestamp.Timestamp{},
 		Status:         "Running",
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testWorkflowValid.ToStringForStore(),
+			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 		},
 		ResourceReferences: []*api.ResourceReference{
@@ -705,7 +705,7 @@ func TestCanAccessRun_Unauthorized(t *testing.T) {
 	apiRun := &api.Run{
 		Name: "run1",
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testWorkflowValid.ToStringForStore(),
+			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters: []*api.Parameter{
 				{Name: "param1", Value: "world"},
 			},
@@ -754,7 +754,7 @@ func TestCanAccessRun_Authorized(t *testing.T) {
 	apiRun := &api.Run{
 		Name: "run1",
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testWorkflowValid.ToStringForStore(),
+			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters: []*api.Parameter{
 				{Name: "param1", Value: "world"},
 			},
@@ -786,7 +786,7 @@ func TestCanAccessRun_Unauthenticated(t *testing.T) {
 	apiRun := &api.Run{
 		Name: "run1",
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testWorkflowValid.ToStringForStore(),
+			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters: []*api.Parameter{
 				{Name: "param1", Value: "world"},
 			},
