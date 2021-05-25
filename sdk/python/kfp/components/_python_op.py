@@ -44,6 +44,7 @@ import warnings
 
 import docstring_parser
 
+from kfp.components import type_annotation_utils
 from kfp.dsl import io_types
 
 T = TypeVar('T')
@@ -325,20 +326,22 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
             return type_struct
         return type_name
 
+
     input_names = set()
     output_names = set()
     for parameter in parameters:
-        parameter_type = parameter.annotation
+        parameter_type = type_annotation_utils.maybe_strip_optional_from_annotation(
+            parameter.annotation)
         passing_style = None
         io_name = parameter.name
 
-        if io_types.is_artifact_annotation(parameter.annotation):
+        if io_types.is_artifact_annotation(parameter_type):
             # passing_style is either io_types.InputAnnotation or
             # io_types.OutputAnnotation.
-            passing_style = io_types.get_io_artifact_annotation(parameter.annotation)
+            passing_style = io_types.get_io_artifact_annotation(parameter_type)
 
             # parameter_type is io_types.Artifact or one of its subclasses.
-            parameter_type = io_types.get_io_artifact_class(parameter.annotation)
+            parameter_type = io_types.get_io_artifact_class(parameter_type)
             if not issubclass(parameter_type, io_types.Artifact):
                 raise ValueError(
                     'Input[T] and Output[T] are only supported when T is a '
@@ -348,22 +351,24 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
             if parameter.default is not inspect.Parameter.empty:
                 raise ValueError('Default values for Input/Output artifacts are not supported.')
         elif isinstance(
-            parameter.annotation,
+            parameter_type,
             (InputArtifact, InputPath, InputTextFile, InputBinaryFile,
              OutputArtifact, OutputPath, OutputTextFile, OutputBinaryFile)):
-            passing_style = type(parameter.annotation)
-            parameter_type = parameter.annotation.type
-            if parameter.default is not inspect.Parameter.empty and not (passing_style == InputPath and parameter.default is None):
-                raise ValueError('Path inputs only support default values of None. Default values for outputs are not supported.')
+
             # Removing the "_path" and "_file" suffixes from the input/output names as the argument passed to the component needs to be the data itself, not local file path.
             # Problem: When accepting file inputs (outputs), the function inside the component receives file paths (or file streams), so it's natural to call the function parameter "something_file_path" (e.g. model_file_path or number_file_path).
             # But from the outside perspective, there are no files or paths - the actual data objects (or references to them) are passed in.
             # It looks very strange when argument passing code looks like this: `component(number_file_path=42)`. This looks like an error since 42 is not a path. It's not even a string.
             # It's much more natural to strip the names of file inputs and outputs of "_file" or "_path" suffixes. Then the argument passing code will look natural: "component(number=42)".
-            if isinstance(parameter.annotation, (InputPath, OutputPath)) and io_name.endswith('_path'):
+            if isinstance(parameter_type, (InputPath, OutputPath)) and io_name.endswith('_path'):
                 io_name = io_name[0:-len('_path')]
             if io_name.endswith('_file'):
                 io_name = io_name[0:-len('_file')]
+
+            passing_style = type(parameter_type)
+            parameter_type = parameter_type.type
+            if parameter.default is not inspect.Parameter.empty and not (passing_style == InputPath and parameter.default is None):
+                raise ValueError('Path inputs only support default values of None. Default values for outputs are not supported.')
 
         type_struct = annotation_to_type_struct(parameter_type)
 
