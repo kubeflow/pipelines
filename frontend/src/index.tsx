@@ -14,23 +14,22 @@
  * limitations under the License.
  */
 
-import {
-  init as initKfClient,
-  NamespaceContextProvider,
-  NamespaceContext,
-} from './lib/KubeflowClient';
-import './CSSReset';
+import MuiThemeProvider from '@material-ui/core/styles/MuiThemeProvider';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import MuiThemeProvider from '@material-ui/core/styles/MuiThemeProvider';
-import Router from './components/Router';
-import { cssRule } from 'typestyle';
-import { theme, fonts } from './Css';
-import { HashRouter } from 'react-router-dom';
-import { KFP_FLAGS, Deployments } from './lib/Flags';
-import { GkeMetadataProvider } from './lib/GkeMetadata';
 import { QueryClient, QueryClientProvider } from 'react-query';
-import { ReactQueryDevtools } from 'react-query/devtools';
+import { HashRouter } from 'react-router-dom';
+import { cssRule } from 'typestyle';
+import Router from './components/Router';
+import { fonts, theme } from './Css';
+import './CSSReset';
+import { Deployments, KFP_FLAGS } from './lib/Flags';
+import { GkeMetadataProvider } from './lib/GkeMetadata';
+import {
+  init as initKfClient,
+  NamespaceContext,
+  NamespaceContextProvider,
+} from './lib/KubeflowClient';
 
 // TODO: license headers
 
@@ -59,7 +58,6 @@ const app = (
         </HashRouter>
       </GkeMetadataProvider>
     </MuiThemeProvider>
-    <ReactQueryDevtools initialIsOpen={false} />
   </QueryClientProvider>
 );
 ReactDOM.render(
