@@ -1,4 +1,4 @@
-# Copyright 2020-2021 The Kubeflow Authors
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,17 +16,53 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import os
 import base64
+from functools import partial
 
-kfp_version = os.environ["KFP_VERSION"]
-disable_istio_sidecar = os.environ.get("DISABLE_ISTIO_SIDECAR") == "true"
-mlpipeline_minio_access_key = base64.b64encode(
-    bytes(os.environ.get("MINIO_ACCESS_KEY"), 'utf-8')).decode('utf-8')
-mlpipeline_minio_secret_key = base64.b64encode(
-    bytes(os.environ.get("MINIO_SECRET_KEY"), 'utf-8')).decode('utf-8')
 
 
 class Controller(BaseHTTPRequestHandler):
+    def __init__(self, *args, visualization_server_image=None,
+        visualization_server_tag=None, frontend_image=None, frontend_tag=None,
+        disable_istio_sidecar=None, mlpipeline_minio_access_key=None,
+        mlpipeline_minio_secret_key=None, **kwargs):
+        """
+        Executes a controller syncronization event using an incoming post
+
+        Note that because HTTPServer instantiates a new Handler instance for
+        each post at time of receipt (rather than invoking the same Handler
+        instance for each post) and because HTTPServer has no interface for
+        passing extra data at Handler instantiation (such as frontend_image),
+        this Controller is typically prepared for usage with functools.partial.
+        An example of this is available at
+        Controller.partial_init_from_environment().
+
+        Args:
+            visualization_server_image (str): repo/imagename for the ml-pipeline-visualizationserver deployment
+            visualization_server_tag (str): tag for the ml-pipeline-visualizationserver deployment
+            frontend_image (str):  repo/imagename for the ml-pipeline-ui-artifact deployment
+            frontend_tag (str): tag for the ml-pipeline-ui-artifact deployment
+            disable_istio_sidecar (str): "true" or "false"
+            mlpipeline_minio_access_key (str): access_key for pipelines minio store
+            mlpipeline_minio_secret_key (str): secret_key for pipelines minio store
+
+        Returns:
+            None
+        """
+        self.visualization_server_image = visualization_server_image
+        self.frontend_image = frontend_image
+        self.visualization_server_tag = visualization_server_tag
+        self.frontend_tag = frontend_tag
+        self.disable_istio_sidecar = disable_istio_sidecar
+        self.mlpipeline_minio_access_key = mlpipeline_minio_access_key
+        self.mlpipeline_minio_secret_key = mlpipeline_minio_secret_key
+
+        super().__init__(*args, **kwargs)
+
     def sync(self, parent, children):
+        # HACK: Currently using serving.kubeflow.org/inferenceservice to identify
+        # kubeflow user namespaces.
+        # TODO: let Kubeflow profile controller add a pipeline specific label to
+        # user namespaces and use that label instead.
         pipeline_enabled = parent.get("metadata", {}).get(
             "labels", {}).get("pipelines.kubeflow.org/enabled")
 
@@ -84,15 +120,13 @@ class Controller(BaseHTTPRequestHandler):
                             "labels": {
                                 "app": "ml-pipeline-visualizationserver"
                             },
-                            "annotations": disable_istio_sidecar and {
+                            "annotations": self.disable_istio_sidecar and {
                                 "sidecar.istio.io/inject": "false"
                             } or {},
                         },
                         "spec": {
                             "containers": [{
-                                "image":
-                                "gcr.io/ml-pipeline/visualization-server:" +
-                                kfp_version,
+                                "image": f"{self.visualization_server_image}:{self.visualization_server_tag}",
                                 "imagePullPolicy":
                                 "IfNotPresent",
                                 "name":
@@ -196,7 +230,7 @@ class Controller(BaseHTTPRequestHandler):
                             "labels": {
                                 "app": "ml-pipeline-ui-artifact"
                             },
-                            "annotations": disable_istio_sidecar and {
+                            "annotations": self.disable_istio_sidecar and {
                                 "sidecar.istio.io/inject": "false"
                             } or {},
                         },
@@ -204,8 +238,7 @@ class Controller(BaseHTTPRequestHandler):
                             "containers": [{
                                 "name":
                                 "ml-pipeline-ui-artifact",
-                                "image":
-                                "gcr.io/ml-pipeline/frontend:" + kfp_version,
+                                "image": f"{self.frontend_image}:{self.frontend_tag}",
                                 "imagePullPolicy":
                                 "IfNotPresent",
                                 "ports": [{
@@ -252,8 +285,8 @@ class Controller(BaseHTTPRequestHandler):
                 }
             },
         ]
-        print('Received request:', parent)
-        print('Desired resources except secrets:', desired_resources)
+        print('Received request:\n', json.dumps(parent, indent=2, sort_keys=True))
+        print('Desired resources except secrets:\n', json.dumps(desired_resources, indent=2, sort_keys=True))
         # Moved after the print argument because this is sensitive data.
         desired_resources.append({
             "apiVersion": "v1",
@@ -263,8 +296,8 @@ class Controller(BaseHTTPRequestHandler):
                 "namespace": namespace,
             },
             "data": {
-                "accesskey": mlpipeline_minio_access_key,
-                "secretkey": mlpipeline_minio_secret_key,
+                "accesskey": self.mlpipeline_minio_access_key,
+                "secretkey": self.mlpipeline_minio_secret_key,
             },
         })
 
@@ -281,5 +314,81 @@ class Controller(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(bytes(json.dumps(desired), 'utf-8'))
 
+    @staticmethod
+    def get_settings_from_environment(visualization_server_image=None, frontend_image=None,
+            visualization_server_tag=None, frontend_tag=None, disable_istio_sidecar=None,
+            mlpipeline_minio_access_key=None, mlpipeline_minio_secret_key=None):
+        """
+        Returns a dict of settings from environment variables relevant to the controller
 
-HTTPServer(("", 8080), Controller).serve_forever()
+        Environment settings can be overridden by passing them here as arguments.
+
+        Settings are pulled from the all-caps version of the setting name.  The
+        following defaults are used if those environment variables are not set
+        to enable backwards compatability with previous versions of this script:
+            visualization_server_image: gcr.io/ml-pipeline/visualization-server
+            visualization_server_tag: value of KFP_VERSION environment variable
+            frontend_image: gcr.io/ml-pipeline/frontend
+            frontend_tag: value of KFP_VERSION environment variable
+            disable_istio_sidecar: Required (no default)
+            mlpipeline_minio_access_key: Required (no default)
+            mlpipeline_minio_secret_key: Required (no default)
+        """
+        settings = {}
+        settings["visualization_server_image"] = \
+            visualization_server_image or \
+            os.environ.get("VISUALIZATION_SERVER_IMAGE", "gcr.io/ml-pipeline/visualization-server")
+
+        settings["frontend_image"] = \
+            frontend_image or \
+            os.environ.get("FRONTEND_IMAGE", "gcr.io/ml-pipeline/frontend")
+
+        # Look for specific tags for each image first, falling back to
+        # previously used KFP_VERSION environment variable for backwards
+        # compatibility
+        settings["visualization_server_tag"] = \
+            visualization_server_image or \
+            os.environ.get("VISUALIZATION_SERVER_TAG") or \
+            os.environ["KFP_VERSION"]
+
+        settings["frontend_tag"] = \
+            visualization_server_image or \
+            os.environ.get("FRONTEND_TAG") or \
+            os.environ["KFP_VERSION"]
+
+        settings["disable_istio_sidecar"] = \
+            disable_istio_sidecar if disable_istio_sidecar is not None \
+            else os.environ.get("DISABLE_ISTIO_SIDECAR") == "true"
+
+        settings["mlpipeline_minio_access_key"] = \
+            mlpipeline_minio_access_key or \
+            base64.b64encode(bytes(os.environ.get("MINIO_ACCESS_KEY"), 'utf-8')).decode('utf-8')
+
+        settings["mlpipeline_minio_secret_key"] = \
+            mlpipeline_minio_access_key or \
+            base64.b64encode(bytes(os.environ.get("MINIO_SECRET_KEY"), 'utf-8')).decode('utf-8')
+
+        return settings
+
+    @classmethod
+    def partial_init_from_environment(cls):
+        """
+        Returns this class partially instantiated with settings inferred from environment variables
+
+        Useful for building a version of this Controller that can be consumed by
+        HTTPServer as a handler, but that includes all settings inferred from
+        environment variables, an a testable way.
+        """
+        settings = cls.get_settings_from_environment()
+        return partial(cls, **settings)
+
+
+def serve_controller_forever(port=8080):
+    controller_partial = Controller.partial_init_from_environment()
+    server = HTTPServer(("", port), Controller)
+    server.serve_forever()
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("CONTROLLER_PORT", "8080"))
+    serve_controller_forever(port)
