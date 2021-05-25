@@ -15,6 +15,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 	"net/http"
@@ -77,8 +78,8 @@ func main() {
 
 	log.Println("Initing client manager....")
 	clientManager := NewClientManager(params, clientParams)
-
-	go server.WatchPods(params.namespaceToWatch, &clientManager)
+	ctx := context.Background()
+	go server.WatchPods(ctx, params.namespaceToWatch, &clientManager)
 
 	certPath := filepath.Join(TLSDir, TLSCertFile)
 	keyPath := filepath.Join(TLSDir, TLSKeyFile)

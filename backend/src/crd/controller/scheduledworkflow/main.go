@@ -19,8 +19,8 @@ import (
 	"strings"
 	"time"
 
-	workflowclientSet "github.com/argoproj/argo/pkg/client/clientset/versioned"
-	workflowinformers "github.com/argoproj/argo/pkg/client/informers/externalversions"
+	workflowclientSet "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned"
+	workflowinformers "github.com/argoproj/argo-workflows/v3/pkg/client/informers/externalversions"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/util"
 	swfclientset "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
