@@ -37,6 +37,7 @@ import {
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import { Workflow } from 'third_party/argo-ui/argo_template';
 import { logger } from './Utils';
+import { isV2Pipeline } from './v2/WorkflowUtils';
 
 async function getContext({ type, name }: { type: string; name: string }): Promise<Context> {
   if (type === '') {
@@ -91,7 +92,7 @@ async function getKfpV2RunContext(argoWorkflowName: string): Promise<Context> {
 
 export async function getRunContext(workflow: Workflow): Promise<Context> {
   const workflowName = workflow?.metadata?.name || '';
-  if (workflow?.metadata?.annotations?.['pipelines.kubeflow.org/v2_pipeline'] === 'true') {
+  if (isV2Pipeline(workflow)) {
     return await getKfpV2RunContext(workflowName);
   }
   try {

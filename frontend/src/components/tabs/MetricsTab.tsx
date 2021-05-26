@@ -178,10 +178,11 @@ function MetricsSwitcher({ artifacts, artifactTypes, refresh }: MetricsSwitcherP
             .get('confidenceMetrics')
             ?.getStructValue()
             ?.toJavaScript();
+
           return (
-            <React.Fragment key={id}>
-              {confidenceMetrics && (
-                <div>
+            <>
+              {confidenceMetrics && (confidenceMetrics as any).list && (
+                <div key={'confidenceMetrics' + id}>
                   <div className={padding(40, 'lrt')}>
                     <h1>
                       {'ROC Curve: ' + customProperties.get('name')?.getStringValue()}{' '}
@@ -195,7 +196,7 @@ function MetricsSwitcher({ artifacts, artifactTypes, refresh }: MetricsSwitcherP
                   <ROCCurve configs={buildRocCurveConfig((confidenceMetrics as any).list)} />
                 </div>
               )}
-            </React.Fragment>
+            </>
           );
         })}
     </>
