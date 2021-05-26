@@ -1,32 +1,5 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`RunList adds metrics column in the same order metrics were defined 1`] = `
-Array [
-  <div
-    className="metricFill"
-    data-testid="metric"
-    style={
-      Object {
-        "width": "calc(NaN%)",
-      }
-    }
-  >
-    2.000
-  </div>,
-  <div
-    className="metricFill"
-    data-testid="metric"
-    style={
-      Object {
-        "width": "calc(NaN%)",
-      }
-    }
-  >
-    1.000
-  </div>,
-]
-`;
-
 exports[`RunList adds metrics columns 1`] = `
 <div>
   <CustomTable
