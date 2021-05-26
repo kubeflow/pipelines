@@ -88,6 +88,7 @@ In this example, the pipeline does the following.
 
 ## Components 
 Following is the list of currently supported components. 
+For API documentation please refer to the project [ReadTheDocs page]https://google-cloud-pipeline-components.readthedocs.io/en/latest/google_cloud_pipeline_components.aiplatform.html#module-google_cloud_pipeline_components.aiplatform)
 
 ```python
 AutoMLImageTrainingJobRunOp(...)
