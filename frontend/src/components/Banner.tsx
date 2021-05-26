@@ -72,7 +72,6 @@ export interface BannerProps {
   mode?: Mode;
   showTroubleshootingGuideLink?: boolean;
   refresh?: () => void;
-  enableRefresh?: boolean;
 }
 
 interface BannerState {
@@ -126,7 +125,6 @@ class Banner extends React.Component<BannerProps, BannerState> {
         // Already set defaults above.
         break;
     }
-    showRefreshButton = showRefreshButton || !!this.props.enableRefresh;
 
     return (
       <div className={classes(commonCss.flex, css.banner, bannerModeCss.mode)}>

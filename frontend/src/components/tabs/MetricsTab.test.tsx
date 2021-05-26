@@ -34,35 +34,34 @@ describe('MetricsTab', () => {
   });
 
   it('shows ROC curve', async () => {
-    const artifact = new Artifact();
+    execution.setLastKnownState(Execution.State.COMPLETE);
     const artifactType = new ArtifactType();
-
-    const confidenceMetrics = {
-      list: [
-        {
-          confidenceThreshold: 2,
-          falsePositiveRate: 0,
-          recall: 0,
-        },
-        {
-          confidenceThreshold: 1,
-          falsePositiveRate: 0,
-          recall: 0.33962264150943394,
-        },
-        {
-          confidenceThreshold: 0.9,
-          falsePositiveRate: 0,
-          recall: 0.6037735849056604,
-        },
-      ],
-    };
+    const artifact = new Artifact();
     artifact.getCustomPropertiesMap().set('name', new Value().setStringValue('metrics'));
-    artifact
-      .getCustomPropertiesMap()
-      .set(
-        'confidenceMetrics',
-        new Value().setStructValue(Struct.fromJavaScript(confidenceMetrics)),
-      );
+    artifact.getCustomPropertiesMap().set(
+      'confidenceMetrics',
+      new Value().setStructValue(
+        Struct.fromJavaScript({
+          list: [
+            {
+              confidenceThreshold: 2,
+              falsePositiveRate: 0,
+              recall: 0,
+            },
+            {
+              confidenceThreshold: 1,
+              falsePositiveRate: 0,
+              recall: 0.33962264150943394,
+            },
+            {
+              confidenceThreshold: 0.9,
+              falsePositiveRate: 0,
+              recall: 0.6037735849056604,
+            },
+          ],
+        }),
+      ),
+    );
 
     jest
       .spyOn(mlmdUtils, 'getOutputArtifactsInExecution')
@@ -82,10 +81,51 @@ describe('MetricsTab', () => {
     await waitFor(() => getByText('ROC Curve: metrics'));
   });
 
+  it('shows error banner when confidenceMetric type is wrong', async () => {
+    execution.setLastKnownState(Execution.State.COMPLETE);
+    const artifactType = new ArtifactType();
+    const artifact = new Artifact();
+    artifact.getCustomPropertiesMap().set('name', new Value().setStringValue('metrics'));
+    artifact.getCustomPropertiesMap().set(
+      'confidenceMetrics',
+      new Value().setStructValue(
+        Struct.fromJavaScript({
+          list: [
+            {
+              invalidType: 2,
+              falsePositiveRate: 0,
+              recall: 0,
+            },
+            {
+              confidenceThreshold: 1,
+              falsePositiveRate: 0,
+              recall: 0.33962264150943394,
+            },
+          ],
+        }),
+      ),
+    );
+
+    jest
+      .spyOn(mlmdUtils, 'getOutputArtifactsInExecution')
+      .mockReturnValue(Promise.resolve([artifact]));
+    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([artifactType]));
+    jest.spyOn(mlmdUtils, 'filterArtifactsByType').mockReturnValue([artifact]);
+
+    const { getByText } = render(
+      <WrapQueryClient>
+        <MetricsTab execution={execution}></MetricsTab>
+      </WrapQueryClient>,
+    );
+
+    await waitFor(() => getByText('Error in confidenceMetrics data format.'));
+  });
+
   it('has no metrics', async () => {
     jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockReturnValue(Promise.resolve([]));
     jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([]));
     jest.spyOn(mlmdUtils, 'filterArtifactsByType').mockReturnValue([]);
+    execution.setLastKnownState(Execution.State.COMPLETE);
 
     const { getByText } = render(
       <WrapQueryClient>
@@ -94,5 +134,47 @@ describe('MetricsTab', () => {
     );
 
     await waitFor(() => getByText('There is no metrics artifact available in this step.'));
+  });
+
+  it('shows info banner when execution is in UNKNOWN', async () => {
+    jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockReturnValue(Promise.resolve([]));
+    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([]));
+    jest.spyOn(mlmdUtils, 'filterArtifactsByType').mockReturnValue([]);
+
+    execution.setLastKnownState(Execution.State.UNKNOWN);
+    const { getByText } = render(
+      <WrapQueryClient>
+        <MetricsTab execution={execution}></MetricsTab>
+      </WrapQueryClient>,
+    );
+    await waitFor(() => getByText('Node has not completed.'));
+  });
+
+  it('shows info banner when execution is in NEW', async () => {
+    jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockReturnValue(Promise.resolve([]));
+    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([]));
+    jest.spyOn(mlmdUtils, 'filterArtifactsByType').mockReturnValue([]);
+
+    execution.setLastKnownState(Execution.State.NEW);
+    const { getByText } = render(
+      <WrapQueryClient>
+        <MetricsTab execution={execution}></MetricsTab>
+      </WrapQueryClient>,
+    );
+    await waitFor(() => getByText('Node has not completed.'));
+  });
+
+  it('shows info banner when execution is in RUNNING', async () => {
+    jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockReturnValue(Promise.resolve([]));
+    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([]));
+    jest.spyOn(mlmdUtils, 'filterArtifactsByType').mockReturnValue([]);
+
+    execution.setLastKnownState(Execution.State.RUNNING);
+    const { getByText } = render(
+      <WrapQueryClient>
+        <MetricsTab execution={execution}></MetricsTab>
+      </WrapQueryClient>,
+    );
+    await waitFor(() => getByText('Node has not completed.'));
   });
 });
