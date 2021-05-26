@@ -33,7 +33,6 @@ import { MetricMetadata } from '../lib/RunUtils';
 import { NodePhase } from '../lib/StatusUtils';
 import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
 import { range } from 'lodash';
-import { BrowserRouter } from 'react-router-dom';
 
 class RunListTest extends RunList {
   public _loadRuns(request: ListRequest): Promise<string> {
@@ -408,114 +407,12 @@ describe('RunList', () => {
       },
     });
     const props = generateProps();
-    tree = shallow(<RunList {...props} />);
-    await (tree.instance() as RunListTest)._loadRuns({});
-    expect(tree).toMatchInlineSnapshot(`
-      <div>
-        <CustomTable
-          columns={
-            Array [
-              Object {
-                "customRenderer": [Function],
-                "flex": 1.5,
-                "label": "Run name",
-                "sortKey": "name",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 0.5,
-                "label": "Status",
-              },
-              Object {
-                "flex": 0.5,
-                "label": "Duration",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 1,
-                "label": "Experiment",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 1,
-                "label": "Pipeline Version",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 0.5,
-                "label": "Recurring Run",
-              },
-              Object {
-                "flex": 1,
-                "label": "Start time",
-                "sortKey": "created_at",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 0.1,
-                "label": "",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 0.5,
-                "label": "z_metric",
-              },
-              Object {
-                "customRenderer": [Function],
-                "flex": 0.5,
-                "label": "y_metric",
-              },
-            ]
-          }
-          emptyMessage="No available runs found."
-          filterLabel="Filter runs"
-          initialSortColumn="created_at"
-          reload={[Function]}
-          rows={
-            Array [
-              Object {
-                "error": undefined,
-                "id": "testrun1",
-                "otherFields": Array [
-                  "run with id: testrun1",
-                  "-",
-                  "-",
-                  undefined,
-                  undefined,
-                  undefined,
-                  "-",
-                  "",
-                  Object {
-                    "metadata": Object {
-                      "count": 1,
-                      "maxValue": 2,
-                      "minValue": 2,
-                      "name": "z_metric",
-                    },
-                    "metric": Object {
-                      "name": "z_metric",
-                      "number_value": 2,
-                    },
-                  },
-                  Object {
-                    "metadata": Object {
-                      "count": 1,
-                      "maxValue": 1,
-                      "minValue": 1,
-                      "name": "y_metric",
-                    },
-                    "metric": Object {
-                      "name": "y_metric",
-                      "number_value": 1,
-                    },
-                  },
-                ],
-              },
-            ]
-          }
-        />
-      </div>
-    `);
+    tree = TestUtils.mountWithRouter(<RunList {...props} />);
+    await TestUtils.flushPromises();
+    tree.update();
+
+    const metricValues = tree.find("[data-testid='metric']");
+    expect(metricValues).toMatchSnapshot();
   });
 
   it('shows pipeline name', async () => {

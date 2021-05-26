@@ -91,7 +91,7 @@ class Metric extends React.PureComponent<MetricProps> {
     }
     return (
       <div className={css.metricContainer}>
-        <div className={css.metricFill} style={{ width }}>
+        <div className={css.metricFill} style={{ width }} data-testid={'metric'}>
           {displayString}
         </div>
       </div>
