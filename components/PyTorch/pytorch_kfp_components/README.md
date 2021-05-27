@@ -15,7 +15,7 @@ pip install -U pytorch-kfp-components
 ```
 
 ### Install from source
-Use the following commands to install Google Cloud Pipeline Components from GitHub.
+Use the following commands to install PyTorch Kubeflow Pipeline Components from GitHub.
 
 ```
 git clone https://github.com/kubeflow/pipelines.git
