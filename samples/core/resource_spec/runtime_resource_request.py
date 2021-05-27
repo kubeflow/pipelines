@@ -34,11 +34,11 @@ def generate_resouce_request() -> NamedTuple('output', [('memory', str), ('cpu',
     name='Runtime resource request pipeline',
     description='An example on how to make resource requests at runtime.'
 )
-def resource_request_pipeline():
+def resource_request_pipeline(n: int = 11234567):
     resouce_task = generate_resouce_request()
-    traning_task = training_op()\
-        .add_memory_request(resouce_task.outputs['memory'])\
-        .add_cpu_request(resouce_task.outputs['cpu'])
+    traning_task = training_op(n)\
+        .set_memory_limit(resouce_task.outputs['memory'])\
+        .set_cpu_limit(resouce_task.outputs['cpu'])
 
         # Disable cache for KFP v1 mode.
     traning_task.execution_options.caching_strategy.max_cache_staleness = "P0D"

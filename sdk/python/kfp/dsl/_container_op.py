@@ -288,27 +288,29 @@ class Container(V1Container):
     self.resources.requests.update({resource_name: value})
     return self
 
-  def set_memory_request(self, memory) -> 'Container':
+  def set_memory_request(self, memory: Union[str,  _pipeline_param.PipelineParam]) -> 'Container':
     """Set memory request (minimum) for this operator.
 
     Args:
-      memory: a string which can be a number or a number followed by one of
+      memory(Union[str, PipelineParam]): a string which can be a number or a number followed by one of
         "E", "P", "T", "G", "M", "K".
     """
 
-    self._validate_size_string(memory)
+    if not isinstance(memory,_pipeline_param.PipelineParam):  
+      self._validate_size_string(memory)
     return self.add_resource_request('memory', memory)
 
-  def set_memory_limit(self, memory) -> 'Container':
+  def set_memory_limit(self, memory: Union[str,  _pipeline_param.PipelineParam]) -> 'Container':
     """Set memory limit (maximum) for this operator.
 
     Args:
-      memory: a string which can be a number or a number followed by one of
+      memory(Union[str, PipelineParam]): a string which can be a number or a number followed by one of
         "E", "P", "T", "G", "M", "K".
     """
-    self._validate_size_string(memory)
-    if self._container_spec:
-      self._container_spec.resources.memory_limit = _get_resource_number(memory)
+    if not isinstance(memory,_pipeline_param.PipelineParam):
+      self._validate_size_string(memory)
+      if self._container_spec:
+        self._container_spec.resources.memory_limit = _get_resource_number(memory)
     return self.add_resource_limit('memory', memory)
 
   def set_ephemeral_storage_request(self, size) -> 'Container':
@@ -331,27 +333,29 @@ class Container(V1Container):
     self._validate_size_string(size)
     return self.add_resource_limit('ephemeral-storage', size)
 
-  def set_cpu_request(self, cpu) -> 'Container':
+  def set_cpu_request(self, cpu: Union[str,  _pipeline_param.PipelineParam]) -> 'Container':
     """Set cpu request (minimum) for this operator.
 
     Args:
-      cpu: A string which can be a number or a number followed by "m", which
+      cpu(Union[str, PipelineParam]): A string which can be a number or a number followed by "m", which
         means 1/1000.
     """
-
-    self._validate_cpu_string(cpu)
+    if not isinstance(cpu,_pipeline_param.PipelineParam):  
+      self._validate_cpu_string(cpu)
     return self.add_resource_request('cpu', cpu)
 
-  def set_cpu_limit(self, cpu) -> 'Container':
+  def set_cpu_limit(self, cpu: Union[str,  _pipeline_param.PipelineParam]) -> 'Container':
     """Set cpu limit (maximum) for this operator.
 
     Args:
-      cpu: A string which can be a number or a number followed by "m", which
+      cpu(Union[str, PipelineParam]): A string which can be a number or a number followed by "m", which
         means 1/1000.
     """
-    self._validate_cpu_string(cpu)
-    if self._container_spec:
-      self._container_spec.resources.cpu_limit = _get_cpu_number(cpu)
+
+    if not isinstance(cpu,_pipeline_param.PipelineParam):  
+      self._validate_cpu_string(cpu)
+      if self._container_spec:
+        self._container_spec.resources.cpu_limit = _get_cpu_number(cpu)
     return self.add_resource_limit('cpu', cpu)
 
   def set_gpu_limit(self, gpu, vendor='nvidia') -> 'Container':
@@ -1109,8 +1113,7 @@ class ContainerOp(BaseOp):
                      is_exit_handler=is_exit_handler)
 
     self.attrs_with_pipelineparams = BaseOp.attrs_with_pipelineparams + [
-        '_container', 'artifact_arguments', '_parameter_arguments',
-        '_cpu_request', '_memory_request'
+        '_container', 'artifact_arguments', '_parameter_arguments'
     ]  #Copying the BaseOp class variable!
 
     input_artifact_paths = {}
@@ -1241,17 +1244,6 @@ class ContainerOp(BaseOp):
 
     self.pvolumes = {}
     self.add_pvolumes(pvolumes)
-    
-    self._cpu_request = None
-    self._memory_request = None
-
-  @property
-  def cpu_request(self):
-    return self._cpu_request
-
-  @property
-  def memory_request(self):
-    return self._memory_request
 
   @property
   def is_v2(self):
@@ -1382,64 +1374,6 @@ class ContainerOp(BaseOp):
 
     super(ContainerOp, self).add_node_selector_constraint(label_name, value)
     return self
-
-  def add_cpu_request(self, cpu: Union[str,  _pipeline_param.PipelineParam]) -> 'ContainerOp':
-    """Adds a cpu request at runtime.
-
-    Args:
-        cpu (Union[str, PipelineParam]): kubernetes cpu request,
-        https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/#specify-a-cpu-request-and-a-cpu-limit
-    """
-
-    self._validate_cpu_string(cpu)
-    self._cpu_request = cpu
-    return self
-
-  def add_memory_request(self, memory: Union[str,  _pipeline_param.PipelineParam]) -> 'ContainerOp':
-    """Adds a memory request at runtime.
-
-    Args:
-        memory (Union[str, PipelineParam]): kubernetes memory request, 
-        https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-memory
-    """
-
-    self._validate_size_string(memory)
-    self._memory_request = memory
-    return self
-
-  def _validate_size_string(self, size_string):
-    """Validate a given string is valid for memory/ephemeral-storage request or limit."""
-
-    if isinstance(size_string, _pipeline_param.PipelineParam):
-      if size_string.value:
-        size_string = size_string.value
-      else:
-        return
-
-    if re.match(r'^[0-9]+(E|Ei|P|Pi|T|Ti|G|Gi|M|Mi|K|Ki){0,1}$',
-                size_string) is None:
-      raise ValueError(
-          'Invalid memory string. Should be an integer, or integer followed '
-          'by one of "E|Ei|P|Pi|T|Ti|G|Gi|M|Mi|K|Ki"')
-
-  def _validate_cpu_string(self, cpu_string):
-    'Validate a given string is valid for cpu request or limit.'
-
-    if isinstance(cpu_string, _pipeline_param.PipelineParam):
-      if cpu_string.value:
-        cpu_string = cpu_string.value
-      else:
-        return
-
-    if re.match(r'^[0-9]+m$', cpu_string) is not None:
-      return
-
-    try:
-      float(cpu_string)
-    except ValueError:
-      raise ValueError(
-          'Invalid cpu string. Should be float or integer, or integer followed '
-          'by "m".')
 
 
 # proxy old ContainerOp properties to ContainerOp.container

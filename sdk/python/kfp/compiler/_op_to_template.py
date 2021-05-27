@@ -290,6 +290,12 @@ def _op_to_template(op: BaseOp):
         template['volumes'].sort(key=lambda x: x['name'])
 
     # resource requests at runtime
+    print("HERE HERE HERE ")
+    print("HERE HERE HERE ")
+    print("HERE HERE HERE ")
+    print(type(op))
+    print(op.container.keys())
+    print(op.container["image"])
     if isinstance(op, dsl.ContainerOp) and (processed_op.cpu_request or processed_op.memory_request):
         podSpecPatch = {'containers':[{'name':'main', 'resources':{'limits':{}}}]}
         if processed_op.cpu_request: 
