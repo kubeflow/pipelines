@@ -38,24 +38,6 @@ const (
 	invalidPipelineVersionId = "not_exist_pipeline_version"
 )
 
-// var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
-// 	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-// 	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow1", Namespace: "ns1"},
-// 	Spec:       v1alpha1.WorkflowSpec{Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}}},
-// })
-
-// var testWorkflow2 = util.NewWorkflow(&v1alpha1.Workflow{
-// 	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-// 	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow2"},
-// 	Spec:       v1alpha1.WorkflowSpec{Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}}},
-// })
-
-// var testWorkflowPatch = util.NewWorkflow(&v1alpha1.Workflow{
-// 	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-// 	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow2"},
-// 	Spec:       v1alpha1.WorkflowSpec{Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}, {Name: "param2"}}}},
-// })
-
 var testWorkflowPatch = util.NewWorkflow(&v1alpha1.Workflow{
 	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
 	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow2"},
