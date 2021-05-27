@@ -192,6 +192,7 @@ func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error
 		if err != nil {
 			return nil, err
 		}
+		// LauncherConfig is optional, so it can be nil when err == nil.
 		if config != nil && config.Data != nil {
 			defaultRootFromConfig := config.Data["defaultPipelineRoot"]
 			if defaultRootFromConfig != "" {
@@ -808,7 +809,7 @@ func getLauncherConfig(clientSet *kubernetes.Clientset, namespace string) (*v1.C
 	config, err := clientSet.CoreV1().ConfigMaps(namespace).Get(context.Background(), "kfp-launcher", metav1.GetOptions{})
 	if err != nil {
 		if k8errors.IsNotFound(err) {
-			// LancherConfig is optional, so ignore not found error.
+			// LauncherConfig is optional, so ignore not found error.
 			return nil, nil
 		}
 		return nil, err
