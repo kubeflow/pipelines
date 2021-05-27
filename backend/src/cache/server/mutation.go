@@ -152,6 +152,12 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 			Name:    "main",
 			Image:   image,
 			Command: []string{`echo`, `"This step output is taken from cache."`},
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceCPU:    resource.MustParse("0.01"),
+					corev1.ResourceMemory: resource.MustParse("16Mi"),
+				},
+			},
 		}
 		dummyContainers := []corev1.Container{
 			dummyContainer,
