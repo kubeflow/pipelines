@@ -19,10 +19,10 @@ import { QueryClient, QueryClientProvider } from 'react-query';
 import { BrowserRouter } from 'react-router-dom';
 
 const queryClient = new QueryClient();
-interface WrapQueryClientProps {
+interface CommonTestWrapperProps {
   children: React.ReactElement;
 }
-export const WrapQueryClient: React.FC<WrapQueryClientProps> = props => {
+export const CommonTestWrapper: React.FC<CommonTestWrapperProps> = props => {
   return (
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>{props.children}</QueryClientProvider>

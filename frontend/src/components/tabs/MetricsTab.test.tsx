@@ -20,23 +20,18 @@ import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import React from 'react';
 import * as mlmdUtils from 'src/lib/MlmdUtils';
 import { testBestPractices } from 'src/TestUtils';
-import { WrapQueryClient } from 'src/TestWrapper';
+import { CommonTestWrapper } from 'src/TestWrapper';
 import { MetricsTab } from './MetricsTab';
 
 testBestPractices();
 
 describe('MetricsTab', () => {
-  const execution = new Execution();
-
-  beforeEach(() => {
-    const executionGetIdSpy = jest.spyOn(execution, 'getId');
-    executionGetIdSpy.mockReturnValue(123);
-  });
-
   it('shows ROC curve', async () => {
+    const execution = buildBasicExecution();
     execution.setLastKnownState(Execution.State.COMPLETE);
-    const artifactType = new ArtifactType();
+    const artifactType = buildBasicArtifactType();
     const artifact = new Artifact();
+    artifact.setTypeId(1);
     artifact.getCustomPropertiesMap().set('name', new Value().setStringValue('metrics'));
     artifact.getCustomPropertiesMap().set(
       'confidenceMetrics',
@@ -63,16 +58,13 @@ describe('MetricsTab', () => {
       ),
     );
 
-    jest
-      .spyOn(mlmdUtils, 'getOutputArtifactsInExecution')
-      .mockReturnValue(Promise.resolve([artifact]));
-    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([artifactType]));
-    jest.spyOn(mlmdUtils, 'filterArtifactsByType').mockReturnValue([artifact]);
+    jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockResolvedValueOnce([artifact]);
+    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValueOnce([artifactType]);
 
     const { getByText } = render(
-      <WrapQueryClient>
+      <CommonTestWrapper>
         <MetricsTab execution={execution}></MetricsTab>
-      </WrapQueryClient>,
+      </CommonTestWrapper>,
     );
 
     getByText('Metrics is loading.');
@@ -82,9 +74,10 @@ describe('MetricsTab', () => {
   });
 
   it('shows error banner when confidenceMetric type is wrong', async () => {
-    execution.setLastKnownState(Execution.State.COMPLETE);
-    const artifactType = new ArtifactType();
+    const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
+    const artifactType = buildBasicArtifactType();
     const artifact = new Artifact();
+    artifact.setTypeId(1);
     artifact.getCustomPropertiesMap().set('name', new Value().setStringValue('metrics'));
     artifact.getCustomPropertiesMap().set(
       'confidenceMetrics',
@@ -106,16 +99,15 @@ describe('MetricsTab', () => {
       ),
     );
 
-    jest
-      .spyOn(mlmdUtils, 'getOutputArtifactsInExecution')
-      .mockReturnValue(Promise.resolve([artifact]));
-    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([artifactType]));
+    jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockResolvedValue([artifact]);
+    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([artifactType]);
     jest.spyOn(mlmdUtils, 'filterArtifactsByType').mockReturnValue([artifact]);
 
+    console.log('shows error banner when confidenceMetric type is wrong');
     const { getByText } = render(
-      <WrapQueryClient>
+      <CommonTestWrapper>
         <MetricsTab execution={execution}></MetricsTab>
-      </WrapQueryClient>,
+      </CommonTestWrapper>,
     );
 
     await waitFor(() => getByText('Error in confidenceMetrics data format.'));
@@ -125,12 +117,12 @@ describe('MetricsTab', () => {
     jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockReturnValue(Promise.resolve([]));
     jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([]));
     jest.spyOn(mlmdUtils, 'filterArtifactsByType').mockReturnValue([]);
-    execution.setLastKnownState(Execution.State.COMPLETE);
+    const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
 
     const { getByText } = render(
-      <WrapQueryClient>
+      <CommonTestWrapper>
         <MetricsTab execution={execution}></MetricsTab>
-      </WrapQueryClient>,
+      </CommonTestWrapper>,
     );
 
     await waitFor(() => getByText('There is no metrics artifact available in this step.'));
@@ -139,13 +131,13 @@ describe('MetricsTab', () => {
   it('shows info banner when execution is in UNKNOWN', async () => {
     jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockReturnValue(Promise.resolve([]));
     jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([]));
-    jest.spyOn(mlmdUtils, 'filterArtifactsByType').mockReturnValue([]);
 
+    const execution = buildBasicExecution();
     execution.setLastKnownState(Execution.State.UNKNOWN);
     const { getByText } = render(
-      <WrapQueryClient>
+      <CommonTestWrapper>
         <MetricsTab execution={execution}></MetricsTab>
-      </WrapQueryClient>,
+      </CommonTestWrapper>,
     );
     await waitFor(() => getByText('Node has not completed.'));
   });
@@ -153,13 +145,12 @@ describe('MetricsTab', () => {
   it('shows info banner when execution is in NEW', async () => {
     jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockReturnValue(Promise.resolve([]));
     jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([]));
-    jest.spyOn(mlmdUtils, 'filterArtifactsByType').mockReturnValue([]);
 
-    execution.setLastKnownState(Execution.State.NEW);
+    const execution = buildBasicExecution().setLastKnownState(Execution.State.NEW);
     const { getByText } = render(
-      <WrapQueryClient>
+      <CommonTestWrapper>
         <MetricsTab execution={execution}></MetricsTab>
-      </WrapQueryClient>,
+      </CommonTestWrapper>,
     );
     await waitFor(() => getByText('Node has not completed.'));
   });
@@ -167,14 +158,25 @@ describe('MetricsTab', () => {
   it('shows info banner when execution is in RUNNING', async () => {
     jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockReturnValue(Promise.resolve([]));
     jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([]));
-    jest.spyOn(mlmdUtils, 'filterArtifactsByType').mockReturnValue([]);
 
-    execution.setLastKnownState(Execution.State.RUNNING);
+    const execution = buildBasicExecution().setLastKnownState(Execution.State.RUNNING);
     const { getByText } = render(
-      <WrapQueryClient>
+      <CommonTestWrapper>
         <MetricsTab execution={execution}></MetricsTab>
-      </WrapQueryClient>,
+      </CommonTestWrapper>,
     );
     await waitFor(() => getByText('Node has not completed.'));
   });
 });
+
+function buildBasicExecution() {
+  const execution = new Execution();
+  execution.setId(123);
+  return execution;
+}
+function buildBasicArtifactType() {
+  const artifactType = new ArtifactType();
+  artifactType.setName('system.ClassificationMetrics');
+  artifactType.setId(1);
+  return artifactType;
+}

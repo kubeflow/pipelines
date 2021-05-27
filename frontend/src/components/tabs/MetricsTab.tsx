@@ -120,7 +120,7 @@ export function MetricsTab({ execution }: MetricsTabProps) {
             </Link>
           </div>
           {!enableFetch && <Banner message='Node has not completed.' mode='info' />}
-          {enableFetch && isLoadingArtifactTypes && isLoadingArtifacts && (
+          {enableFetch && (isLoadingArtifactTypes || isLoadingArtifacts) && (
             <Banner message='Metrics is loading.' mode='info' />
           )}
           {enableFetch && errorArtifacts && (
@@ -184,6 +184,8 @@ function MetricsSwitcher({ artifacts, artifactTypes }: MetricsSwitcherProps) {
         .get('confidenceMetrics')
         ?.getStructValue()
         ?.toJavaScript();
+
+      console.log('javascript ' + JSON.stringify(confidenceMetrics));
       return !!confidenceMetrics;
     });
 
