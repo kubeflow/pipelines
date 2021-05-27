@@ -35,6 +35,7 @@ import (
 	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
 	"google.golang.org/protobuf/encoding/protojson"
 	v1 "k8s.io/api/core/v1"
+	k8errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -55,6 +56,8 @@ type Launcher struct {
 	placeholderReplacements map[string]string
 	metadataClient          *metadata.Client
 	bucketConfig            *bucketConfig
+	k8sClient               *kubernetes.Clientset
+	namespace               string
 }
 
 // LauncherOptions are options used when creating Launcher.
@@ -170,8 +173,32 @@ const defaultPipelineRoot = "minio://mlpipeline/v2/artifacts"
 // NewLauncher creates a new launcher object using the JSON-encoded runtimeInfo
 // and specified options.
 func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error) {
+	restConfig, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to initialize kubernetes client: %w", err)
+	}
+	k8sClient, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to initialize kubernetes client set: %w", err)
+	}
+	namespace := os.Getenv("KFP_NAMESPACE")
+	if namespace == "" {
+		return nil, fmt.Errorf("Env variable 'KFP_NAMESPACE' is empty")
+	}
+
 	if len(options.PipelineRoot) == 0 {
 		options.PipelineRoot = defaultPipelineRoot
+		config, err := getLauncherConfig(k8sClient, namespace)
+		if err != nil {
+			return nil, err
+		}
+		if config != nil && config.Data != nil {
+			defaultRootFromConfig := config.Data["defaultPipelineRoot"]
+			if defaultRootFromConfig != "" {
+				options.PipelineRoot = defaultRootFromConfig
+			}
+		}
+		glog.Infof("PipelineRoot defaults to %q.", options.PipelineRoot)
 	}
 	if err := options.validate(); err != nil {
 		return nil, err
@@ -201,6 +228,8 @@ func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error
 		runtimeInfo:             rt,
 		metadataClient:          metadataClient,
 		bucketConfig:            bc,
+		k8sClient:               k8sClient,
+		namespace:               namespace,
 	}, nil
 }
 
@@ -275,7 +304,7 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 
 	execution, err := l.metadataClient.CreateExecution(ctx, pipeline, l.options.TaskName, l.options.PipelineTaskID, l.options.ContainerImage, ecfg)
 	if err != nil {
-		fmt.Errorf("unable to create execution: %w", err)
+		return fmt.Errorf("unable to create execution: %w", err)
 	}
 
 	executor := exec.Command(cmd, args...)
@@ -733,7 +762,7 @@ func getExecutorOutput() (*pipeline_spec.ExecutorOutput, error) {
 
 func (l *Launcher) openBucket() (*blob.Bucket, error) {
 	if l.bucketConfig.scheme == "minio://" {
-		secret, err := getMinioCredential()
+		secret, err := getMinioCredential(l.k8sClient, l.namespace)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to get minio credential: %w", err)
 		}
@@ -748,7 +777,7 @@ func (l *Launcher) openBucket() (*blob.Bucket, error) {
 		sess, err := session.NewSession(&aws.Config{
 			Credentials:      credentials.NewStaticCredentials(accessKey, secretKey, ""),
 			Region:           aws.String("minio"),
-			Endpoint:         aws.String("minio-service:9000"),
+			Endpoint:         aws.String(getMinioDefaultEndpoint()),
 			DisableSSL:       aws.Bool(true),
 			S3ForcePathStyle: aws.Bool(true),
 		})
@@ -761,19 +790,32 @@ func (l *Launcher) openBucket() (*blob.Bucket, error) {
 	return blob.OpenBucket(context.Background(), l.bucketConfig.bucketURL())
 }
 
-func getMinioCredential() (*v1.Secret, error) {
-	restConfig, err := rest.InClusterConfig()
+func getMinioDefaultEndpoint() string {
+	minioHost := os.Getenv("MINIO_SERVICE_SERVICE_HOST")
+	minioPort := os.Getenv("MINIO_SERVICE_SERVICE_PORT")
+	if minioHost != "" && minioPort != "" {
+		// If there is a minio-service Kubernetes service in the same namespace,
+		// MINIO_SERVICE_SERVICE_HOST and MINIO_SERVICE_SERVICE_PORT env vars should
+		// exist by default, so we use it as default.
+		return minioHost + ":" + minioPort
+	}
+	// If the env vars do not exist, we guess that we are running in KFP multi user mode, so default minio service should be `minio-service.kubeflow:9000`.
+	glog.Info("Cannot detect minio-service in the same namespace, default to minio-service.kubeflow:9000 as MinIO endpoint.")
+	return "minio-service.kubeflow:9000"
+}
+
+func getLauncherConfig(clientSet *kubernetes.Clientset, namespace string) (*v1.ConfigMap, error) {
+	config, err := clientSet.CoreV1().ConfigMaps(namespace).Get(context.Background(), "kfp-launcher", metav1.GetOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("Failed to initialize kubernetes client: %w", err)
+		if k8errors.IsNotFound(err) {
+			// LancherConfig is optional, so ignore not found error.
+			return nil, nil
+		}
+		return nil, err
 	}
-	clientSet, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to initialize kubernetes client set: %w", err)
-	}
-	namespace := os.Getenv("KFP_NAMESPACE")
-	if namespace == "" {
-		return nil, fmt.Errorf("Env variable 'KFP_NAMESPACE' is empty")
-	}
-	secret, err := clientSet.CoreV1().Secrets(namespace).Get(context.Background(), "mlpipeline-minio-artifact", metav1.GetOptions{})
-	return secret, err
+	return config, nil
+}
+
+func getMinioCredential(clientSet *kubernetes.Clientset, namespace string) (*v1.Secret, error) {
+	return clientSet.CoreV1().Secrets(namespace).Get(context.Background(), "mlpipeline-minio-artifact", metav1.GetOptions{})
 }
