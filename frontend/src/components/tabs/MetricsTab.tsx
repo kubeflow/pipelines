@@ -185,7 +185,6 @@ function MetricsSwitcher({ artifacts, artifactTypes }: MetricsSwitcherProps) {
         ?.getStructValue()
         ?.toJavaScript();
 
-      console.log('javascript ' + JSON.stringify(confidenceMetrics));
       return !!confidenceMetrics;
     });
 

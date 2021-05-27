@@ -21,6 +21,7 @@ import { mount, ReactWrapper } from 'enzyme';
 import { format } from 'prettier';
 import { object } from 'prop-types';
 import * as React from 'react';
+import { QueryClient } from 'react-query';
 import { match } from 'react-router';
 // @ts-ignore
 import createRouterContext from 'react-router-test-context';
@@ -162,8 +163,10 @@ export function expectWarnings() {
   };
 }
 
+export const queryClientTest = new QueryClient();
 export function testBestPractices() {
   beforeEach(async () => {
+    queryClientTest.clear();
     jest.resetAllMocks();
     jest.restoreAllMocks();
   });

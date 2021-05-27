@@ -18,8 +18,9 @@ import { Artifact, ArtifactType, Execution, Value } from '@kubeflow/frontend';
 import { render, waitFor } from '@testing-library/react';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import React from 'react';
+import { QueryClient } from 'react-query';
 import * as mlmdUtils from 'src/lib/MlmdUtils';
-import { testBestPractices } from 'src/TestUtils';
+import { queryClientTest, testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { MetricsTab } from './MetricsTab';
 
@@ -101,7 +102,6 @@ describe('MetricsTab', () => {
 
     jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockResolvedValue([artifact]);
     jest.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([artifactType]);
-    jest.spyOn(mlmdUtils, 'filterArtifactsByType').mockReturnValue([artifact]);
 
     console.log('shows error banner when confidenceMetric type is wrong');
     const { getByText } = render(
@@ -116,7 +116,6 @@ describe('MetricsTab', () => {
   it('has no metrics', async () => {
     jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockReturnValue(Promise.resolve([]));
     jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([]));
-    jest.spyOn(mlmdUtils, 'filterArtifactsByType').mockReturnValue([]);
     const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
 
     const { getByText } = render(

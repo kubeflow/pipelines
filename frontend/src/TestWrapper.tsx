@@ -17,15 +17,15 @@
 import React from 'react';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { BrowserRouter } from 'react-router-dom';
+import { queryClientTest } from './TestUtils';
 
-const queryClient = new QueryClient();
 interface CommonTestWrapperProps {
   children: React.ReactElement;
 }
 export const CommonTestWrapper: React.FC<CommonTestWrapperProps> = props => {
   return (
     <BrowserRouter>
-      <QueryClientProvider client={queryClient}>{props.children}</QueryClientProvider>
+      <QueryClientProvider client={queryClientTest}>{props.children}</QueryClientProvider>
     </BrowserRouter>
   );
 };
