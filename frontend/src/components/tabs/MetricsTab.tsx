@@ -22,7 +22,7 @@ import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
 import IconWithTooltip from 'src/atoms/IconWithTooltip';
 import { color, commonCss, padding } from 'src/Css';
-import { ErrorBoundary } from 'src/lib/ErrorBoundary';
+import { ErrorBoundary } from 'src/atoms/ErrorBoundary';
 import {
   ExecutionHelpers,
   filterArtifactsByType,
@@ -52,7 +52,6 @@ type MetricsTabProps = {
 interface MetricsSwitcherProps {
   artifacts: Artifact[];
   artifactTypes: ArtifactType[];
-  refresh?: () => void;
 }
 
 /**
@@ -62,21 +61,16 @@ interface MetricsSwitcherProps {
  * Note that these metrics are only available on KFP v2 mode.
  */
 export function MetricsTab({ execution }: MetricsTabProps) {
-  const [refreshCount, setRefreshCount] = useState(0);
-  function refresh() {
-    setRefreshCount(refreshCount + 1);
-  }
-  const [enableFetch, setEnableFetch] = useState(false);
+  let executionCompleted = false;
   const executionState = execution.getLastKnownState();
   if (
-    !enableFetch &&
     !(
       executionState === Execution.State.NEW ||
       executionState === Execution.State.UNKNOWN ||
       executionState === Execution.State.RUNNING
     )
   ) {
-    setEnableFetch(true);
+    executionCompleted = true;
   }
 
   // Retrieving a list of artifacts associated with this execution,
@@ -89,7 +83,7 @@ export function MetricsTab({ execution }: MetricsTabProps) {
   } = useQuery<Artifact[], Error>(
     ['execution_output_artifact', { id: execution.getId() }],
     () => getOutputArtifactsInExecution(execution),
-    { enabled: enableFetch, staleTime: Infinity },
+    { enabled: executionCompleted, staleTime: Infinity },
   );
 
   // artifactTypes allows us to map from artifactIds to artifactTypeNames,
@@ -100,7 +94,7 @@ export function MetricsTab({ execution }: MetricsTabProps) {
     error: errorArtifactTypes,
     data: artifactTypes,
   } = useQuery<ArtifactType[], Error>(['artifact_types'], () => getArtifactTypes(), {
-    enabled: enableFetch,
+    enabled: executionCompleted,
     staleTime: Infinity,
   });
 
@@ -119,37 +113,27 @@ export function MetricsTab({ execution }: MetricsTabProps) {
               "{ExecutionHelpers.getName(execution)}".
             </Link>
           </div>
-          {!enableFetch && <Banner message='Node has not completed.' mode='info' />}
-          {enableFetch && (isLoadingArtifactTypes || isLoadingArtifacts) && (
+          {!executionCompleted && <Banner message='Task has not completed.' mode='info' />}
+          {(isLoadingArtifactTypes || isLoadingArtifacts) && (
             <Banner message='Metrics is loading.' mode='info' />
           )}
-          {enableFetch && errorArtifacts && (
+          {errorArtifacts && (
             <Banner
               message='Error in retrieving metrics information.'
               mode='error'
               additionalInfo={errorArtifacts.message}
-              refresh={refresh}
             />
           )}
-          {enableFetch && !errorArtifacts && errorArtifactTypes && (
+          {!errorArtifacts && errorArtifactTypes && (
             <Banner
               message='Error in retrieving artifact types information.'
               mode='error'
               additionalInfo={errorArtifactTypes.message}
-              refresh={refresh}
             />
           )}
-          {enableFetch &&
-            isSuccessArtifacts &&
-            isSuccessArtifactTypes &&
-            artifacts &&
-            artifactTypes && (
-              <MetricsSwitcher
-                artifacts={artifacts}
-                artifactTypes={artifactTypes}
-                refresh={refresh}
-              ></MetricsSwitcher>
-            )}
+          {isSuccessArtifacts && isSuccessArtifactTypes && artifacts && artifactTypes && (
+            <MetricsSwitcher artifacts={artifacts} artifactTypes={artifactTypes}></MetricsSwitcher>
+          )}
         </div>
       </div>
     </ErrorBoundary>
@@ -188,11 +172,11 @@ function MetricsSwitcher({ artifacts, artifactTypes }: MetricsSwitcherProps) {
       return !!confidenceMetrics;
     });
 
+  if (!confidenceMetricsArtifacts || confidenceMetricsArtifacts.length === 0) {
+    return <Banner message='There is no metrics artifact available in this step.' mode='info' />;
+  }
   return (
     <>
-      {(!confidenceMetricsArtifacts || confidenceMetricsArtifacts.length === 0) && (
-        <Banner message='There is no metrics artifact available in this step.' mode='info' />
-      )}
       {confidenceMetricsArtifacts &&
         confidenceMetricsArtifacts.length > 0 &&
         confidenceMetricsArtifacts.map(artifact => {
@@ -202,15 +186,17 @@ function MetricsSwitcher({ artifacts, artifactTypes }: MetricsSwitcherProps) {
             ?.toJavaScript();
           const { error } = validateConfidenceMetrics((confidenceMetrics as any).list);
 
+          if (error) {
+            return (
+              <Banner
+                message='Error in confidenceMetrics data format.'
+                mode='error'
+                additionalInfo={error}
+              />
+            );
+          }
           return (
             <>
-              {error && (
-                <Banner
-                  message='Error in confidenceMetrics data format.'
-                  mode='error'
-                  additionalInfo={error}
-                />
-              )}
               {!error && confidenceMetrics && (
                 <div key={'confidenceMetrics' + artifact.id}>
                   <div className={padding(40, 'lrt')}>

@@ -18,9 +18,8 @@ import { Artifact, ArtifactType, Execution, Value } from '@kubeflow/frontend';
 import { render, waitFor } from '@testing-library/react';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import React from 'react';
-import { QueryClient } from 'react-query';
 import * as mlmdUtils from 'src/lib/MlmdUtils';
-import { queryClientTest, testBestPractices } from 'src/TestUtils';
+import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { MetricsTab } from './MetricsTab';
 
@@ -28,11 +27,9 @@ testBestPractices();
 
 describe('MetricsTab', () => {
   it('shows ROC curve', async () => {
-    const execution = buildBasicExecution();
-    execution.setLastKnownState(Execution.State.COMPLETE);
+    const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
     const artifactType = buildBasicArtifactType();
-    const artifact = new Artifact();
-    artifact.setTypeId(1);
+    const artifact = buildBasicArtifact();
     artifact.getCustomPropertiesMap().set('name', new Value().setStringValue('metrics'));
     artifact.getCustomPropertiesMap().set(
       'confidenceMetrics',
@@ -77,8 +74,7 @@ describe('MetricsTab', () => {
   it('shows error banner when confidenceMetric type is wrong', async () => {
     const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
     const artifactType = buildBasicArtifactType();
-    const artifact = new Artifact();
-    artifact.setTypeId(1);
+    const artifact = buildBasicArtifact();
     artifact.getCustomPropertiesMap().set('name', new Value().setStringValue('metrics'));
     artifact.getCustomPropertiesMap().set(
       'confidenceMetrics',
@@ -131,14 +127,13 @@ describe('MetricsTab', () => {
     jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockReturnValue(Promise.resolve([]));
     jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([]));
 
-    const execution = buildBasicExecution();
-    execution.setLastKnownState(Execution.State.UNKNOWN);
+    const execution = buildBasicExecution().setLastKnownState(Execution.State.UNKNOWN);
     const { getByText } = render(
       <CommonTestWrapper>
         <MetricsTab execution={execution}></MetricsTab>
       </CommonTestWrapper>,
     );
-    await waitFor(() => getByText('Node has not completed.'));
+    await waitFor(() => getByText('Task has not completed.'));
   });
 
   it('shows info banner when execution is in NEW', async () => {
@@ -151,7 +146,7 @@ describe('MetricsTab', () => {
         <MetricsTab execution={execution}></MetricsTab>
       </CommonTestWrapper>,
     );
-    await waitFor(() => getByText('Node has not completed.'));
+    await waitFor(() => getByText('Task has not completed.'));
   });
 
   it('shows info banner when execution is in RUNNING', async () => {
@@ -164,7 +159,7 @@ describe('MetricsTab', () => {
         <MetricsTab execution={execution}></MetricsTab>
       </CommonTestWrapper>,
     );
-    await waitFor(() => getByText('Node has not completed.'));
+    await waitFor(() => getByText('Task has not completed.'));
   });
 });
 
@@ -178,4 +173,9 @@ function buildBasicArtifactType() {
   artifactType.setName('system.ClassificationMetrics');
   artifactType.setId(1);
   return artifactType;
+}
+function buildBasicArtifact() {
+  const artifact = new Artifact();
+  artifact.setTypeId(1);
+  return artifact;
 }
