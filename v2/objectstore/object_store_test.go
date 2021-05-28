@@ -22,7 +22,6 @@ import (
 )
 
 func Test_GetMinioDefaultEndpoint(t *testing.T) {
-
 	defer func() {
 		os.Unsetenv("MINIO_SERVICE_SERVICE_HOST")
 		os.Unsetenv("MINIO_SERVICE_SERVICE_PORT")
