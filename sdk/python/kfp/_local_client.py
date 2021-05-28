@@ -344,7 +344,26 @@ class LocalClient:
             "{pipeline_root}:{pipeline_root}".format(pipeline_root=self._pipeline_root),
             op.image,
         ] + cmd
-        return docker_cmd
+        cmd_line = []
+        is_arg = False
+        for sub_cmd in docker_cmd:
+            if is_arg:
+                if " " in sub_cmd:
+                    sub_cmd = f"'{sub_cmd}'"
+                cmd_line.append(sub_cmd)
+                is_arg = False
+            elif sub_cmd.startswith("--"):
+                cmd_line.append(sub_cmd)
+                is_arg = True
+            elif sub_cmd.startswith("program_path"):
+                cmd_line.append(f"'{sub_cmd}'")
+            elif sub_cmd.startswith("def"):
+                sub_cmd = sub_cmd.replace("\"", "'")
+                cmd_line.append(f"\"{sub_cmd}\"")
+            else:
+                cmd_line.append(sub_cmd)
+        cmd_line = " ".join(cmd_line)
+        return cmd_line
 
     def _run_group_dag(
         self,
@@ -395,8 +414,9 @@ class LocalClient:
                     cmd = self._generate_cmd_for_docker_execution(
                         run_name, pipeline, op, stack
                     )
+
                 process = subprocess.Popen(
-                    subprocess.list2cmdline(cmd) if "sh" != cmd[0] else cmd,
+                    cmd,
                     shell="sh" != cmd[0],
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
