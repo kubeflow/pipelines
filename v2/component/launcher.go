@@ -32,6 +32,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/v2/metadata"
+	"github.com/kubeflow/pipelines/v2/objectstore"
 	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
 	"google.golang.org/protobuf/encoding/protojson"
 	v1 "k8s.io/api/core/v1"
@@ -171,11 +172,6 @@ const outputMetadataFilepath = "/tmp/kfp_outputs/output_metadata.json"
 const defaultPipelineRoot = "minio://mlpipeline/v2/artifacts"
 const launcherConfigName = "kfp-launcher"
 const configKeyDefaultPipelineRoot = "defaultPipelineRoot"
-const minioArtifactSecretName = "mlpipeline-minio-artifact"
-
-// The endpoint uses Kubernetes service DNS name with namespace:
-// https://kubernetes.io/docs/concepts/services-networking/service/#dns
-const defaultMinioEndpointInMultiUserMode = "minio-service.kubeflow:9000"
 
 // NewLauncher creates a new launcher object using the JSON-encoded runtimeInfo
 // and specified options.
@@ -771,22 +767,14 @@ func getExecutorOutput() (*pipeline_spec.ExecutorOutput, error) {
 
 func (l *Launcher) openBucket() (*blob.Bucket, error) {
 	if l.bucketConfig.scheme == "minio://" {
-		secret, err := getMinioCredential(l.k8sClient, l.namespace)
+		cred, err := objectstore.GetMinioCredential(l.k8sClient, l.namespace)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to get minio credential: %w", err)
 		}
-		accessKey := string(secret.Data["accesskey"])
-		secretKey := string(secret.Data["secretkey"])
-		if accessKey == "" {
-			return nil, fmt.Errorf("The secret which stores minio credential does not have 'accesskey' entry")
-		}
-		if secretKey == "" {
-			return nil, fmt.Errorf("The secret which stores minio credential does not have 'secretkey' entry")
-		}
 		sess, err := session.NewSession(&aws.Config{
-			Credentials:      credentials.NewStaticCredentials(accessKey, secretKey, ""),
+			Credentials:      credentials.NewStaticCredentials(cred.AccessKey, cred.SecretKey, ""),
 			Region:           aws.String("minio"),
-			Endpoint:         aws.String(getMinioDefaultEndpoint()),
+			Endpoint:         aws.String(objectstore.MinioDefaultEndpoint()),
 			DisableSSL:       aws.Bool(true),
 			S3ForcePathStyle: aws.Bool(true),
 		})
@@ -797,22 +785,6 @@ func (l *Launcher) openBucket() (*blob.Bucket, error) {
 		return s3blob.OpenBucket(context.Background(), sess, l.bucketConfig.bucketName, nil)
 	}
 	return blob.OpenBucket(context.Background(), l.bucketConfig.bucketURL())
-}
-
-func getMinioDefaultEndpoint() string {
-	// Discover minio-service in the same namespace by env var.
-	// https://kubernetes.io/docs/concepts/services-networking/service/#environment-variables
-	minioHost := os.Getenv("MINIO_SERVICE_SERVICE_HOST")
-	minioPort := os.Getenv("MINIO_SERVICE_SERVICE_PORT")
-	if minioHost != "" && minioPort != "" {
-		// If there is a minio-service Kubernetes service in the same namespace,
-		// MINIO_SERVICE_SERVICE_HOST and MINIO_SERVICE_SERVICE_PORT env vars should
-		// exist by default, so we use it as default.
-		return minioHost + ":" + minioPort
-	}
-	// If the env vars do not exist, we guess that we are running in KFP multi user mode, so default minio service should be `minio-service.kubeflow:9000`.
-	glog.Infof("Cannot detect minio-service in the same namespace, default to %s as MinIO endpoint.", defaultMinioEndpointInMultiUserMode)
-	return defaultMinioEndpointInMultiUserMode
 }
 
 func getLauncherConfig(clientSet *kubernetes.Clientset, namespace string) (*v1.ConfigMap, error) {
@@ -826,8 +798,4 @@ func getLauncherConfig(clientSet *kubernetes.Clientset, namespace string) (*v1.C
 		return nil, err
 	}
 	return config, nil
-}
-
-func getMinioCredential(clientSet *kubernetes.Clientset, namespace string) (*v1.Secret, error) {
-	return clientSet.CoreV1().Secrets(namespace).Get(context.Background(), minioArtifactSecretName, metav1.GetOptions{})
 }
