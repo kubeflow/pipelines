@@ -169,6 +169,13 @@ func (o *LauncherOptions) validate() error {
 
 const outputMetadataFilepath = "/tmp/kfp_outputs/output_metadata.json"
 const defaultPipelineRoot = "minio://mlpipeline/v2/artifacts"
+const launcherConfigName = "kfp-launcher"
+const configKeyDefaultPipelineRoot = "defaultPipelineRoot"
+const minioArtifactSecretName = "mlpipeline-minio-artifact"
+
+// The endpoint uses Kubernetes service DNS name with namespace:
+// https://kubernetes.io/docs/concepts/services-networking/service/#dns
+const defaultMinioEndpointInMultiUserMode = "minio-service.kubeflow:9000"
 
 // NewLauncher creates a new launcher object using the JSON-encoded runtimeInfo
 // and specified options.
@@ -192,9 +199,10 @@ func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error
 		if err != nil {
 			return nil, err
 		}
-		// LauncherConfig is optional, so it can be nil when err == nil.
-		if config != nil && config.Data != nil {
-			defaultRootFromConfig := config.Data["defaultPipelineRoot"]
+		// Launcher config is optional, so it can be nil when err == nil.
+		if config != nil {
+			// The key defaultPipelineRoot is also optional in launcher config.
+			defaultRootFromConfig := config.Data[configKeyDefaultPipelineRoot]
 			if defaultRootFromConfig != "" {
 				options.PipelineRoot = defaultRootFromConfig
 			}
@@ -792,6 +800,8 @@ func (l *Launcher) openBucket() (*blob.Bucket, error) {
 }
 
 func getMinioDefaultEndpoint() string {
+	// Discover minio-service in the same namespace by env var.
+	// https://kubernetes.io/docs/concepts/services-networking/service/#environment-variables
 	minioHost := os.Getenv("MINIO_SERVICE_SERVICE_HOST")
 	minioPort := os.Getenv("MINIO_SERVICE_SERVICE_PORT")
 	if minioHost != "" && minioPort != "" {
@@ -801,14 +811,15 @@ func getMinioDefaultEndpoint() string {
 		return minioHost + ":" + minioPort
 	}
 	// If the env vars do not exist, we guess that we are running in KFP multi user mode, so default minio service should be `minio-service.kubeflow:9000`.
-	glog.Info("Cannot detect minio-service in the same namespace, default to minio-service.kubeflow:9000 as MinIO endpoint.")
-	return "minio-service.kubeflow:9000"
+	glog.Infof("Cannot detect minio-service in the same namespace, default to %s as MinIO endpoint.", defaultMinioEndpointInMultiUserMode)
+	return defaultMinioEndpointInMultiUserMode
 }
 
 func getLauncherConfig(clientSet *kubernetes.Clientset, namespace string) (*v1.ConfigMap, error) {
-	config, err := clientSet.CoreV1().ConfigMaps(namespace).Get(context.Background(), "kfp-launcher", metav1.GetOptions{})
+	config, err := clientSet.CoreV1().ConfigMaps(namespace).Get(context.Background(), launcherConfigName, metav1.GetOptions{})
 	if err != nil {
 		if k8errors.IsNotFound(err) {
+			glog.Infof("cannot find launcher configmap: name=%q namespace=%q", launcherConfigName, namespace)
 			// LauncherConfig is optional, so ignore not found error.
 			return nil, nil
 		}
@@ -818,5 +829,5 @@ func getLauncherConfig(clientSet *kubernetes.Clientset, namespace string) (*v1.C
 }
 
 func getMinioCredential(clientSet *kubernetes.Clientset, namespace string) (*v1.Secret, error) {
-	return clientSet.CoreV1().Secrets(namespace).Get(context.Background(), "mlpipeline-minio-artifact", metav1.GetOptions{})
+	return clientSet.CoreV1().Secrets(namespace).Get(context.Background(), minioArtifactSecretName, metav1.GetOptions{})
 }
