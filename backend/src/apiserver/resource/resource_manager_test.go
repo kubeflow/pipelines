@@ -88,17 +88,14 @@ var testWorkflowValid = util.NewWorkflow(&v1alpha1.Workflow{
 				Command: []string{"cowsay"},
 				Args:    []string{"hello world"},
 			},
+			Metadata: v1alpha1.Metadata{
+				Annotations: map[string]string{"sidecar.istio.io/inject": "false"},
+				Labels:      map[string]string{"pipelines.kubeflow.org/cache_enabled": "true"},
+			},
 		}},
 		Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}}},
 	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
 })
-
-func setMetadata(wf *v1alpha1.Workflow) {
-	template := wf.Spec.Templates[0]
-	template.Metadata.Annotations = map[string]string{"sidecar.istio.io/inject": "false"}
-	template.Metadata.Labels = map[string]string{"pipelines.kubeflow.org/cache_enabled": "true"}
-	wf.Spec.Templates[0] = template
-}
 
 // Util function to create an initial state with pipeline uploaded
 func initWithPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Pipeline) {
@@ -383,7 +380,6 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = defaultPipelineRunnerServiceAccount
-	setMetadata(expectedRuntimeWorkflow)
 
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
@@ -440,7 +436,6 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 		{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
-	setMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = defaultPipelineRunnerServiceAccount
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
@@ -491,7 +486,6 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = defaultPipelineRunnerServiceAccount
-	setMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = defaultPipelineRunnerServiceAccount
 
 	expectedRunDetail := &model.RunDetail{
@@ -580,7 +574,6 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "sa1"
-	setMetadata(expectedRuntimeWorkflow)
 
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
@@ -677,7 +670,6 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "sa1"
-	setMetadata(expectedRuntimeWorkflow)
 
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
