@@ -927,9 +927,21 @@ class Compiler(object):
     op_transformers.extend(pipeline_conf.op_transformers)
 
     if self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
+      # Add self._pipeline_name_param and self._pipeline_root_param to ops inputs
+      # if they don't exist already.
       for op in dsl_pipeline.ops.values():
-        op.inputs.append(self._pipeline_name_param)
-        op.inputs.append(self._pipeline_root_param)
+        insert_pipeline_name_param = True
+        insert_pipeline_root_param = True
+        for param in op.inputs:
+          if param.name == self._pipeline_name_param.name:
+            insert_pipeline_name_param = False
+          elif param.name == self._pipeline_root_param.name:
+            insert_pipeline_root_param = False
+
+        if insert_pipeline_name_param:
+          op.inputs.append(self._pipeline_name_param)
+        if insert_pipeline_root_param:
+          op.inputs.append(self._pipeline_root_param)
 
     workflow = self._create_pipeline_workflow(
         args_list_with_defaults,
