@@ -9,7 +9,11 @@ import pytorch_lightning
 
 from pytorch_kfp_components.components.trainer.component import Trainer
 
-IRIS_DIR = "tests/iris"
+dirname, filename = os.path.split(os.path.abspath(__file__))
+print("*"*100,dirname)
+print("+"*100,filename)
+
+IRIS_DIR = os.path.join(dirname,"iris")
 sys.path.insert(0, IRIS_DIR)
 
 MODULE_FILE_ARGS = {"lr": 0.1}
