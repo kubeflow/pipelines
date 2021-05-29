@@ -31,7 +31,7 @@ def get_artifacts_from_mlmd(
         ]
         if len(contexts) == 0:
             raise ValueError(f'Context "{context_name}" was not found.')
-        if len(contexts) == 2:
+        if len(contexts) > 1:
             raise ValueError(f'Found multiple contexts with name "{context_name}": {contexts}.')
         context = contexts[0]
         context_id = context.id
@@ -47,7 +47,7 @@ def get_artifacts_from_mlmd(
             ]
             if len(artifact_types) == 0:
                 raise ValueError(f'Artifact type "{type_name}" was not found.')
-            if len(artifact_types) == 2:
+            if len(artifact_types) > 1:
                 raise ValueError(f'Found multiple artifact types with name "{type_name}": {artifact_types}.')
             artifact_type = artifact_types[0]
             artifacts = [

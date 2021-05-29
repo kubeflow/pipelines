@@ -33,7 +33,7 @@ def get_executions_from_mlmd(
         ]
         if len(contexts) == 0:
             raise ValueError(f'Context "{context_name}" was not found.')
-        if len(contexts) == 2:
+        if len(contexts) > 1:
             raise ValueError(f'Found multiple contexts with name "{context_name}": {contexts}.')
         context = contexts[0]
         context_id = context.id
@@ -49,7 +49,7 @@ def get_executions_from_mlmd(
             ]
             if len(execution_types) == 0:
                 raise ValueError(f'Execution type "{type_name}" was not found.')
-            if len(execution_types) == 2:
+            if len(execution_types) > 1:
                 raise ValueError(f'Found multiple execution types with name "{type_name}": {execution_types}.')
             execution_type = execution_types[0]
             executions = [

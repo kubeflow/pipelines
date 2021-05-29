@@ -30,7 +30,7 @@ def get_contexts_from_mlmd(
         ]
         if len(context_types) == 0:
             raise ValueError(f'Context type "{type_name}" was not found.')
-        if len(context_types) == 2:
+        if len(context_types) > 1:
             raise ValueError(f'Found multiple context types with name "{type_name}": {context_types}.')
         context_type = context_types[0]
         contexts = [
