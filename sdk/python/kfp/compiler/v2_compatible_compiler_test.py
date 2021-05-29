@@ -117,6 +117,24 @@ class TestV2CompatibleModeCompiler(unittest.TestCase):
         kfp_compiler, v2_compatible_two_step_pipeline,
         'v2_compatible_two_step_pipeline_with_custom_launcher.yaml')
 
+  def test_constructing_container_op_directly_should_error(
+      self):
+
+    @dsl.pipeline(name='test-pipeline')
+    def my_pipeline():
+      dsl.ContainerOp(
+          name='comp1',
+          image='gcr.io/dummy',
+          command=['python', 'main.py']
+      )
+
+    with self.assertRaisesRegex(
+        RuntimeError,
+        'Constructing ContainerOp instances directly is deprecated and not '
+        'supported when compiling to v2 \(using v2 compiler or v1 compiler '
+        'with V2_COMPATIBLE or V2_ENGINE mode\).'):
+      compiler.Compiler(mode=dsl.PipelineExecutionMode.V2_COMPATIBLE).compile(
+          pipeline_func=my_pipeline, package_path='result.json')
 
 if __name__ == '__main__':
   unittest.main()

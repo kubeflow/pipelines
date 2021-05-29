@@ -952,8 +952,6 @@ class Compiler(object):
       sanitized_ops[sanitized_name] = op
     pipeline.ops = sanitized_ops
 
-  # The name of this method is used to check if compiling for v2.
-  # See `is_compiling_for_v2` in `kfp/dsl/_component_bridge.py`
   def _create_pipeline_v2(
       self,
       pipeline_func: Callable[..., Any],
@@ -1058,8 +1056,10 @@ class Compiler(object):
       type_check: Whether to enable the type check or not, default: True.
     """
     type_check_old_value = kfp.TYPE_CHECK
+    compiling_for_v2_old_value = kfp.COMPILING_FOR_V2
     try:
       kfp.TYPE_CHECK = type_check
+      kfp.COMPILING_FOR_V2 = True
       pipeline_job = self._create_pipeline_v2(
           pipeline_func=pipeline_func,
           pipeline_name=pipeline_name,
@@ -1067,6 +1067,7 @@ class Compiler(object):
       self._write_pipeline(pipeline_job, package_path)
     finally:
       kfp.TYPE_CHECK = type_check_old_value
+      kfp.COMPILING_FOR_V2 = compiling_for_v2_old_value
 
   def _write_pipeline(self, pipeline_job: pipeline_spec_pb2.PipelineJob,
                       output_path: str) -> None:

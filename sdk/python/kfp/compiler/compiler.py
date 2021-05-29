@@ -1042,6 +1042,12 @@ class Compiler(object):
 
     import kfp
     type_check_old_value = kfp.TYPE_CHECK
+    compiling_for_v2_old_value = kfp.COMPILING_FOR_V2
+    kfp.COMPILING_FOR_V2 = self._mode in [
+        dsl.PipelineExecutionMode.V2_COMPATIBLE,
+        dsl.PipelineExecutionMode.V2_ENGINE,
+    ]
+
     try:
       kfp.TYPE_CHECK = type_check
       self._create_and_write_workflow(
@@ -1050,6 +1056,7 @@ class Compiler(object):
           package_path=package_path)
     finally:
       kfp.TYPE_CHECK = type_check_old_value
+      kfp.COMPILING_FOR_V2 = compiling_for_v2_old_value
 
   @staticmethod
   def _write_workflow(workflow: Dict[Text, Any], package_path: Text = None):
