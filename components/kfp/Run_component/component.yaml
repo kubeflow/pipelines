@@ -40,10 +40,12 @@ implementation:
           print('Loading component done.')
           print('Submitting run...')
           if not endpoint:
-              endpoint = os.environ['ML_PIPELINE_SERVICE_HOST'] + ':' + os.environ['ML_PIPELINE_SERVICE_PORT']
+              endpoint = 'http://' + os.environ['ML_PIPELINE_SERVICE_HOST'] + ':' + os.environ['ML_PIPELINE_SERVICE_PORT']
           create_run_result = kfp.Client(host=endpoint).create_run_from_pipeline_func(op, arguments=arguments)
           run_id = str(create_run_result.run_id)
           print('Submitted run: ' + run_id)
+          run_url = f'{endpoint.rstrip("/")}/#/runs/details/{run_id}'
+          print(run_url)
           print('Waiting for the run to finish...')
           run_object = create_run_result.wait_for_run_completion(wait_timeout_seconds)
           print('Run has finished.')
