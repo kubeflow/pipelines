@@ -16,6 +16,7 @@ import logging
 import re
 import os
 import time
+from typing import Any, Callable
 
 def normalize_name(name,
               valid_first_char_pattern='a-zA-Z',
@@ -120,3 +121,54 @@ def wait_operation_done(get_operation, wait_interval):
             ))
         return operation
 
+
+def with_retries(
+    func: Callable,
+    on_error: Callable[[], Any] = None,
+    errors: Exception = Exception,
+    number_of_retries: int = 5,
+    delay: float = 1,
+):
+    """Retry decorator.
+
+    The decorator catches `errors`, calls `on_error` and retries after waiting `delay` seconds.
+
+    Args:
+        number_of_retries (int): Total number of retries if error is raised.
+        delay (float): Number of seconds to wait between consecutive retries.
+    """
+
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        _tries, _delay = tries, delay
+        while _tries:
+            try:
+                return func(self, *args, **kwargs)
+            except errors as e:
+                _tries -= 1
+                if not _tries:
+                    raise
+
+                logging.warning(
+                    'Caught {}. Retrying in {} seconds...'.format(
+                        e._class__.__name__, _delay
+                    )
+                )
+
+                time.sleep(_delay)
+                if on_error:
+                    on_error()
+
+    return wrapper
+
+
+class ClientWithRetries:
+
+    def __init__(self):
+        self._build_client()
+        for name, member in self.__dict__.items():
+            if callable(member) and not name.startswith("_")
+                self.__dict__[name] = with_retries(func=member, errors=(BrokenPipeError, IOError), on_error=self._build_client)
+
+    def _build_client():
+        raise NotImplementedError()
