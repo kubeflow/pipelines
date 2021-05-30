@@ -194,7 +194,9 @@ def _display_pipeline(pipeline, output_format):
 
     # Pipeline parameter details
     headers = ["Parameter Name", "Default Value"]
-    data = [[param.name, param.value] for param in pipeline.parameters]
+    data = []
+    if pipeline.parameters is not None:
+        data = [[param.name, param.value] for param in pipeline.parameters]
 
     if output_format == OutputFormat.table.name:
         print_output([], ["Pipeline Details"], output_format)
