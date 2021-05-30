@@ -78,7 +78,11 @@ setup(
     version=find_version('kfp', '__init__.py'),
     description='KubeFlow Pipelines SDK',
     author='The Kubeflow Authors',
-    url='https://kubeflow-pipelines.readthedocs.io/en/stable/',
+    url="https://github.com/kubeflow/pipelines",
+    project_urls={
+        "Documentation": "https://kubeflow-pipelines.readthedocs.io/en/stable/",
+        "Bug Tracker": "https://github.com/kubeflow/pipelines/issues",
+    },    
     install_requires=REQUIRES,
     tests_require=TESTS_REQUIRE,
     packages=[
