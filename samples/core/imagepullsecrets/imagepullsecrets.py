@@ -41,7 +41,7 @@ class GetFrequentWordOp(dsl.ContainerOp):
         file_outputs={'word': '/tmp/message.txt'})
 
 @dsl.pipeline(
-  name='Save Most Frequent',
+  name='save-most-frequent',
   description='Get Most Frequent Word and Save to GCS'
 )
 def save_most_frequent_word(message: str):

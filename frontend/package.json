@@ -81,7 +81,7 @@
     "@types/react-router-dom": "^4.3.1",
     "@types/react-test-renderer": "^16.0.2",
     "@types/react-virtualized": "^9.18.7",
-    "browserslist": "4.8.7",
+    "browserslist": "4.16.5",
     "coveralls": "^3.0.2",
     "enzyme": "^3.10.0",
     "enzyme-adapter-react-16": "^1.15.1",

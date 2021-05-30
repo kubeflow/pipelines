@@ -459,11 +459,10 @@ def _attach_v2_specs(
   arguments = arguments.copy()
 
   # Preserve input params for ContainerOp.inputs
-  input_params = list(
-      set([
-          param for param in arguments.values()
-          if isinstance(param, _pipeline_param.PipelineParam)
-      ]))
+  input_params_set = set([
+      param for param in arguments.values()
+      if isinstance(param, _pipeline_param.PipelineParam)
+  ])
 
   for input_name, argument_value in arguments.items():
     input_type = component_spec._inputs_dict[input_name].type
@@ -523,6 +522,9 @@ def _attach_v2_specs(
                                '{} and compiler injected input name {}'.format(
                                    existing_input_name, additional_input_name))
 
+          # Add the additional param to the input params set. Otherwise, it will
+          # not be included when the params set is not empty.
+          input_params_set.add(param)
           additional_input_placeholder = (
               "{{{{$.inputs.parameters['{}']}}}}".format(additional_input_name))
           argument_value = argument_value.replace(param.pattern,
@@ -620,4 +622,4 @@ def _attach_v2_specs(
     task.arguments = resolved_cmd.args
 
     # limit this to v2 compiling only to avoid possible behavior change in v1.
-    task.inputs = input_params
+    task.inputs = list(input_params_set)
