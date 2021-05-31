@@ -686,7 +686,7 @@ class Compiler(object):
       if hasattr(op, 'importer_spec'):
         raise NotImplementedError(
             'dsl.importer is not supported yet when running on KFP.')
-    
+
     return templates
 
   def _create_pipeline_workflow(self,
