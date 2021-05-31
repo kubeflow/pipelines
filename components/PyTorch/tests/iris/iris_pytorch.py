@@ -2,7 +2,7 @@ from argparse import ArgumentParser
 
 import pytorch_lightning as pl
 
-from pytorch_kfp_components.components.trainer.component import Trainer
+from pytorch_pipeline.components.trainer.component import Trainer
 
 # Argument parser for user defined paths
 parser = ArgumentParser()
