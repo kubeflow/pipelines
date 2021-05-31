@@ -124,31 +124,24 @@ class CompilerTest(unittest.TestCase):
         NotImplementedError,
         'dsl.graph_component is not yet supported in KFP v2 compiler.'):
 
-      @dsl.graph_component
-      def echo1_graph_component(text1):
-        dsl.ContainerOp(
-            name='echo1-task1',
-            image='library/bash:4.4.23',
-            command=['sh', '-c'],
-            arguments=['echo "$0"', text1])
+      @dsl.component
+      def flip_coin_op() -> str:
+        import random
+        result = 'heads' if random.randint(0, 1) == 0 else 'tails'
+        return result
 
       @dsl.graph_component
-      def echo2_graph_component(text2):
-        dsl.ContainerOp(
-            name='echo2-task1',
-            image='library/bash:4.4.23',
-            command=['sh', '-c'],
-            arguments=['echo "$0"', text2])
+      def flip_coin_graph_component():
+        flip = flip_coin_op()
+        with dsl.Condition(flip.output == 'heads'):
+          flip_coin_graph_component()
 
       @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
-      def opsgroups_pipeline(text1: str = 'message 1',
-                             text2: str = 'message 2'):
-        step1_graph_component = echo1_graph_component(text1)
-        step2_graph_component = echo2_graph_component(text2)
-        step2_graph_component.after(step1_graph_component)
+      def my_pipeline():
+        flip_coin_graph_component()
 
       compiler.Compiler().compile(
-          pipeline_func=opsgroups_pipeline, package_path='output.json')
+          pipeline_func=my_pipeline, package_path='output.json')
 
   def test_compile_pipeline_with_misused_inputvalue_should_raise_error(self):
 
@@ -405,6 +398,24 @@ class CompilerTest(unittest.TestCase):
       compiler.Compiler().compile(
           pipeline_func=my_pipeline, package_path='result.json')
 
+  def test_constructing_container_op_directly_should_error(
+      self):
+
+    @dsl.pipeline(name='test-pipeline')
+    def my_pipeline():
+      dsl.ContainerOp(
+          name='comp1',
+          image='gcr.io/dummy',
+          command=['python', 'main.py']
+      )
+
+    with self.assertRaisesRegex(
+        RuntimeError,
+        'Constructing ContainerOp instances directly is deprecated and not '
+        'supported when compiling to v2 \(using v2 compiler or v1 compiler '
+        'with V2_COMPATIBLE or V2_ENGINE mode\).'):
+      compiler.Compiler().compile(
+          pipeline_func=my_pipeline, package_path='result.json')
 
 if __name__ == '__main__':
   unittest.main()

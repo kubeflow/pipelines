@@ -25,6 +25,7 @@ from kubernetes.client.models import (V1Container, V1EnvVar, V1EnvFromSource,
                                       V1VolumeMount, V1ContainerPort,
                                       V1Lifecycle, V1Volume)
 
+import kfp
 from kfp.components import _structures
 from kfp.dsl import _pipeline_param
 from kfp.dsl import dsl_utils
@@ -1155,6 +1156,11 @@ class ContainerOp(BaseOp):
           'https://kubeflow-pipelines.readthedocs.io/en/stable/source/kfp.components.html#kfp.components.load_component_from_file',
           category=FutureWarning,
       )
+      if kfp.COMPILING_FOR_V2:
+        raise RuntimeError(
+            'Constructing ContainerOp instances directly is deprecated and not '
+            'supported when compiling to v2 (using v2 compiler or v1 compiler '
+            'with V2_COMPATIBLE or V2_ENGINE mode).')
 
     # `container` prop in `io.argoproj.workflow.v1alpha1.Template`
     container_kwargs = container_kwargs or {}
