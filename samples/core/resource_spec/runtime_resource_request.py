@@ -28,7 +28,7 @@ def generate_resouce_request() -> NamedTuple('output', [('memory', str), ('cpu',
     from collections import namedtuple
     
     resouce_output = namedtuple('output', ['memory', 'cpu'])
-    return resouce_output("500Mi", "200m")
+    return resouce_output('500Mi', '200m')
 
 @dsl.pipeline(
     name='Runtime resource request pipeline',
@@ -38,10 +38,11 @@ def resource_request_pipeline(n: int = 11234567):
     resouce_task = generate_resouce_request()
     traning_task = training_op(n)\
         .set_memory_limit(resouce_task.outputs['memory'])\
-        .set_cpu_limit(resouce_task.outputs['cpu'])
+        .set_cpu_limit(resouce_task.outputs['cpu'])\
+        .set_cpu_request('200m')
 
         # Disable cache for KFP v1 mode.
-    traning_task.execution_options.caching_strategy.max_cache_staleness = "P0D"
+    traning_task.execution_options.caching_strategy.max_cache_staleness = 'P0D'
 
 if __name__ == '__main__':
     kfp.compiler.Compiler().compile(resource_request_pipeline, __file__ + '.yaml')
