@@ -252,7 +252,6 @@ def _op_to_template(op: BaseOp):
             template['metadata']['annotations'] = processed_op.pod_annotations
         if processed_op.pod_labels:
             template['metadata']['labels'] = processed_op.pod_labels
-
     # retries
     if processed_op.num_retries or processed_op.retry_policy:
         template['retryStrategy'] = {}
