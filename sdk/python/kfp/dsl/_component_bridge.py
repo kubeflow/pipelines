@@ -18,6 +18,7 @@ import inspect
 import pathlib
 from typing import Any, Mapping, Optional
 
+import kfp
 from kfp.components import _structures
 from kfp.components import _components
 from kfp.components import _naming
@@ -310,26 +311,21 @@ def _attach_v2_specs(
 ) -> None:
   """Attaches v2 specs to a ContainerOp object.
 
-    Args:
-      task: The ContainerOp object to attach IR specs.
-      component_spec: The component spec object.
-      arguments: The dictionary of component arguments.
-  """
+  Attach v2_specs to the ContainerOp object regardless whether the pipeline is
+  being compiled to v1 (Argo yaml) or v2 (IR json).
+  However, there're different behaviors for the two cases. Namely, resolved
+  commands and arguments, error handling, etc.
+  Regarding the difference in error handling, v2 has a stricter requirement on
+  input type annotation. For instance, an input without any type annotation is
+  viewed as an artifact, and if it's paired with InputValuePlaceholder, an
+  error will be thrown at compile time. However, we cannot raise such an error
+  in v1, as it wouldn't break existing pipelines.
 
-  # Attach v2_specs to the ContainerOp object regardless whether the pipeline is
-  # being compiled to v1 (Argo yaml) or v2 (IR json).
-  # However, there're different behaviors for the two cases. Namely, resolved
-  # commands and arguments, error handling, etc.
-  # Regarding the difference in error handling, v2 has a stricter requirement on
-  # input type annotation. For instance, an input without any type annotation is
-  # viewed as an artifact, and if it's paired with InputValuePlaceholder, an
-  # error will be thrown at compile time. However, we cannot raise such an error
-  # in v1, as it wouldn't break existing pipelines.
-  is_compiling_for_v2 = False
-  for frame in inspect.stack():
-    if '_create_pipeline_v2' in frame:
-      is_compiling_for_v2 = True
-      break
+  Args:
+    task: The ContainerOp object to attach IR specs.
+    component_spec: The component spec object.
+    arguments: The dictionary of component arguments.
+  """
 
   def _resolve_commands_and_args_v2(
       component_spec: _structures.ComponentSpec,
@@ -354,7 +350,7 @@ def _attach_v2_specs(
     }
 
     def _input_artifact_uri_placeholder(input_key: str) -> str:
-      if is_compiling_for_v2 and type_utils.is_parameter_type(
+      if kfp.COMPILING_FOR_V2 and type_utils.is_parameter_type(
           inputs_dict[input_key].type):
         raise TypeError('Input "{}" with type "{}" cannot be paired with '
                         'InputUriPlaceholder.'.format(
@@ -363,7 +359,7 @@ def _attach_v2_specs(
         return "{{{{$.inputs.artifacts['{}'].uri}}}}".format(input_key)
 
     def _input_artifact_path_placeholder(input_key: str) -> str:
-      if is_compiling_for_v2 and type_utils.is_parameter_type(
+      if kfp.COMPILING_FOR_V2 and type_utils.is_parameter_type(
           inputs_dict[input_key].type):
         raise TypeError('Input "{}" with type "{}" cannot be paired with '
                         'InputPathPlaceholder.'.format(
@@ -372,7 +368,7 @@ def _attach_v2_specs(
         return "{{{{$.inputs.artifacts['{}'].path}}}}".format(input_key)
 
     def _input_parameter_placeholder(input_key: str) -> str:
-      if is_compiling_for_v2 and not type_utils.is_parameter_type(
+      if kfp.COMPILING_FOR_V2 and not type_utils.is_parameter_type(
           inputs_dict[input_key].type):
         raise TypeError('Input "{}" with type "{}" cannot be paired with '
                         'InputValuePlaceholder.'.format(
@@ -381,7 +377,7 @@ def _attach_v2_specs(
         return "{{{{$.inputs.parameters['{}']}}}}".format(input_key)
 
     def _output_artifact_uri_placeholder(output_key: str) -> str:
-      if is_compiling_for_v2 and type_utils.is_parameter_type(
+      if kfp.COMPILING_FOR_V2 and type_utils.is_parameter_type(
           outputs_dict[output_key].type):
         raise TypeError('Output "{}" with type "{}" cannot be paired with '
                         'OutputUriPlaceholder.'.format(
@@ -508,7 +504,7 @@ def _attach_v2_specs(
       argument_type = 'String'
       pipeline_params = _pipeline_param.extract_pipelineparams_from_any(
           argument_value)
-      if pipeline_params and is_compiling_for_v2:
+      if pipeline_params and kfp.COMPILING_FOR_V2:
         # argument_value contains PipelineParam placeholders which needs to be
         # replaced. And the input needs to be added to the task spec.
         for param in pipeline_params:
@@ -560,14 +556,14 @@ def _attach_v2_specs(
           'ContainerOp object {} was passed to component as an input argument. '
           'Pass a single output instead.'.format(input_name))
     else:
-      if is_compiling_for_v2:
+      if kfp.COMPILING_FOR_V2:
         raise NotImplementedError(
             'Input argument supports only the following types: PipelineParam'
             ', str, int, float. Got: "{}".'.format(argument_value))
 
     argument_is_parameter_type = type_utils.is_parameter_type(argument_type)
     input_is_parameter_type = type_utils.is_parameter_type(input_type)
-    if is_compiling_for_v2 and (argument_is_parameter_type !=
+    if kfp.COMPILING_FOR_V2 and (argument_is_parameter_type !=
                                 input_is_parameter_type):
       if isinstance(argument_value, dsl.PipelineParam):
         param_or_value_msg = 'PipelineParam "{}"'.format(
@@ -617,7 +613,7 @@ def _attach_v2_specs(
   task.task_spec = pipeline_task_spec
 
   # Override command and arguments if compiling to v2.
-  if is_compiling_for_v2:
+  if kfp.COMPILING_FOR_V2:
     task.command = resolved_cmd.command
     task.arguments = resolved_cmd.args
 
