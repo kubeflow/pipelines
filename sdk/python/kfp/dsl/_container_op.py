@@ -759,7 +759,7 @@ class BaseOp(object):
   # in the compilation process to generate the DAGs and task io parameters.
   attrs_with_pipelineparams = [
       'node_selector', 'volumes', 'pod_annotations', 'pod_labels',
-      'num_retries', 'init_containers', 'sidecars', 'tolerations
+      'num_retries', 'init_containers', 'sidecars', 'tolerations'
   ]
 
   def __init__(self,
