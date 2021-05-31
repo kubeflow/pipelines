@@ -295,7 +295,7 @@ def _op_to_template(op: BaseOp):
         delete = []
         for setting, val in op.container["resources"].items():
             for resource, param in val.items():
-                if re.match("^{{inputs.parameters.*}}$", param):
+                if (resource == "cpu" or resource == "memory") and re.match("^{{inputs.parameters.*}}$", param):
                     delete.append((setting, resource))
                     if not "containers" in podSpecPatch:
                         podSpecPatch = {'containers':[{'name':'main', 'resources':{}}]}

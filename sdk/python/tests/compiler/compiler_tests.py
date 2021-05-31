@@ -410,14 +410,14 @@ class TestCompiler(unittest.TestCase):
       """Test memory request."""
 
       def my_pipeline(memory: str, cpu: str):
-        some_op().add_cpu_request(memory)
+        some_op().set_cpu_request(memory)
 
       workflow = kfp.compiler.Compiler()._create_workflow(my_pipeline)
       name_to_template = {template['name']: template for template in workflow['spec']['templates']}
       main_dag_tasks = name_to_template[workflow['spec']['entrypoint']]['dag']['tasks']
       template = name_to_template[main_dag_tasks[0]['template']]
 
-      self.assertEqual(template['podSpecPatch'], '{"containers": [{"name": "main", "resources": {"limits": {"cpu": "{{inputs.parameters.memory}}"}}}]}')
+      self.assertEqual(template['podSpecPatch'], '{"containers": [{"name": "main", "resources": {"requests": {"cpu": "{{inputs.parameters.memory}}"}}}]}')
       
 
   def test_py_retry_policy_invalid(self):
