@@ -99,7 +99,6 @@ describe('MetricsTab', () => {
     jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockResolvedValue([artifact]);
     jest.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([artifactType]);
 
-    console.log('shows error banner when confidenceMetric type is wrong');
     const { getByText } = render(
       <CommonTestWrapper>
         <MetricsTab execution={execution}></MetricsTab>
@@ -126,7 +125,6 @@ describe('MetricsTab', () => {
     jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockResolvedValue([artifact]);
     jest.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([artifactType]);
 
-    console.log('shows error banner when confidenceMetric type is wrong');
     const { getByText } = render(
       <CommonTestWrapper>
         <MetricsTab execution={execution}></MetricsTab>
@@ -155,12 +153,13 @@ describe('MetricsTab', () => {
     jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([]));
 
     const execution = buildBasicExecution().setLastKnownState(Execution.State.UNKNOWN);
-    const { getByText } = render(
+    const { getByText, queryByText } = render(
       <CommonTestWrapper>
         <MetricsTab execution={execution}></MetricsTab>
       </CommonTestWrapper>,
     );
-    await waitFor(() => getByText('Task has not completed.'));
+    await waitFor(() => getByText('Task is in unknown state.'));
+    await waitFor(() => queryByText('Task has not completed.') === null);
   });
 
   it('shows info banner when execution is in NEW', async () => {

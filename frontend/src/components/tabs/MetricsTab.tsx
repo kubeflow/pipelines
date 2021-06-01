@@ -101,6 +101,7 @@ export function MetricsTab({ execution }: MetricsTabProps) {
     },
   );
 
+  let executionStateUnknown = executionState === Execution.State.UNKNOWN;
   // This react element produces banner message if query to MLMD is pending or has error.
   // Once query is completed, it shows actual content of metrics visualization in MetricsSwitcher.
   return (
@@ -116,7 +117,10 @@ export function MetricsTab({ execution }: MetricsTabProps) {
               "{ExecutionHelpers.getName(execution)}".
             </Link>
           </div>
-          {!executionCompleted && <Banner message='Task has not completed.' mode='info' />}
+          {executionStateUnknown && <Banner message='Task is in unknown state.' mode='info' />}
+          {!executionStateUnknown && !executionCompleted && (
+            <Banner message='Task has not completed.' mode='info' />
+          )}
           {(isLoadingArtifactTypes || isLoadingArtifacts) && (
             <Banner message='Metrics is loading.' mode='info' />
           )}
