@@ -97,10 +97,11 @@ class BaseComponent(with_metaclass(abc.ABCMeta, object)):  # pylint: disable=R09
         actual_type = type(actual_value)
         if actual_type != expected_type:
             raise TypeError(
-                "{key} must be {expected_type} but received as {actual_type}"
+                "{key} must be of type {expected_type} but received as {actual_type}"
                 .format(
                     key=key,
                     expected_type=expected_type,
                     actual_type=actual_type,
                 )
             )
+            
