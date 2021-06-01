@@ -12,6 +12,7 @@ from six import with_metaclass
 
 class BaseComponent(with_metaclass(abc.ABCMeta, object)):  # pylint: disable=R0903
     """Pipeline Base component class."""
+
     def __init__(self):
         pass
 
@@ -33,19 +34,21 @@ class BaseComponent(with_metaclass(abc.ABCMeta, object)):  # pylint: disable=R09
         """
 
         for key, value in input_dict.items():
-            cls._type_check(actual_value=value,
-                            key=key,
-                            spec_dict=spec.INPUT_DICT)
+            cls._type_check(
+                actual_value=value, key=key, spec_dict=spec.INPUT_DICT
+            )
 
         for key, value in output_dict.items():
-            cls._type_check(actual_value=value,
-                            key=key,
-                            spec_dict=spec.OUTPUT_DICT)
+            cls._type_check(
+                actual_value=value, key=key, spec_dict=spec.OUTPUT_DICT
+            )
 
         for key, value in exec_properties.items():
-            cls._type_check(actual_value=value,
-                            key=key,
-                            spec_dict=spec.EXECUTION_PROPERTIES)
+            cls._type_check(
+                actual_value=value,
+                key=key,
+                spec_dict=spec.EXECUTION_PROPERTIES
+            )
 
     @classmethod
     def _optional_check(cls, actual_value: any, key: str, spec_dict: dict):
@@ -65,7 +68,9 @@ class BaseComponent(with_metaclass(abc.ABCMeta, object)):  # pylint: disable=R09
         if not is_optional and not actual_value:
             raise ValueError(
                 "{key} is not optional. Received value: {actual_value}".format(
-                    key=key, actual_value=actual_value))
+                    key=key, actual_value=actual_value
+                )
+            )
 
         return is_optional
 
@@ -79,12 +84,12 @@ class BaseComponent(with_metaclass(abc.ABCMeta, object)):  # pylint: disable=R09
             spec_dict : The dict of specification for validation.
 
         Raises :
-            TypeError : If the key actual value type does not match expected value type.
+            TypeError : If key value type does not match expected value type.
         """
         if not actual_value:
-            is_optional = cls._optional_check(actual_value=actual_value,
-                                              key=key,
-                                              spec_dict=spec_dict)
+            is_optional = cls._optional_check(
+                actual_value=actual_value, key=key, spec_dict=spec_dict
+            )
             if is_optional:
                 return
 
@@ -92,7 +97,10 @@ class BaseComponent(with_metaclass(abc.ABCMeta, object)):  # pylint: disable=R09
         actual_type = type(actual_value)
         if actual_type != expected_type:
             raise TypeError(
-                "{key} must be of type {expected_type} but received as {actual_type}"
-                .format(key=key,
-                        expected_type=expected_type,
-                        actual_type=actual_type))
+                "{key} must be {expected_type} but received as {actual_type}"
+                .format(
+                    key=key,
+                    expected_type=expected_type,
+                    actual_type=actual_type,
+                )
+            )

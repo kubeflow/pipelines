@@ -13,6 +13,7 @@ from pytorch_kfp_components.types import standard_component_specs
 
 class Trainer(BaseComponent):
     """Initializes the Trainer class."""
+
     def __init__(  # pylint: disable=R0913
         self,
         module_file: Optional = None,
@@ -38,15 +39,13 @@ class Trainer(BaseComponent):
         super(Trainer, self).__init__()  # pylint: disable=R1725
         input_dict = {
             standard_component_specs.TRAINER_MODULE_FILE: module_file,
-            standard_component_specs.TRAINER_DATA_MODULE_FILE:
-            data_module_file,
+            standard_component_specs.TRAINER_DATA_MODULE_FILE: data_module_file,
         }
 
         output_dict = {}
 
         exec_properties = {
-            standard_component_specs.TRAINER_DATA_MODULE_ARGS:
-            data_module_args,
+            standard_component_specs.TRAINER_DATA_MODULE_ARGS: data_module_args,
             standard_component_specs.TRAINER_MODULE_ARGS: module_file_args,
             standard_component_specs.PTL_TRAINER_ARGS: trainer_args,
         }
@@ -62,14 +61,18 @@ class Trainer(BaseComponent):
         if module_file and data_module_file:
             # Both module file and data module file are present
 
-            Executor().Do(input_dict=input_dict,
-                          output_dict=output_dict,
-                          exec_properties=exec_properties)
+            Executor().Do(
+                input_dict=input_dict,
+                output_dict=output_dict,
+                exec_properties=exec_properties,
+            )
 
             self.ptl_trainer = output_dict.get(
-                standard_component_specs.PTL_TRAINER_OBJ, "None")
+                standard_component_specs.PTL_TRAINER_OBJ, "None"
+            )
             self.output_dict = output_dict
         else:
             raise NotImplementedError(
                 "Module file and Datamodule file are mandatory. "
-                "Custom training methods are yet to be implemented")
+                "Custom training methods are yet to be implemented"
+            )

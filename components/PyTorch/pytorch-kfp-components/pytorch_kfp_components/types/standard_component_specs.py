@@ -19,6 +19,7 @@ PTL_TRAINER_OBJ = "ptl_trainer"
 
 class Parameters:  # pylint: disable=R0903
     """Parameter class to match the desired type."""
+
     def __init__(self, type=None, optional=False):  # pylint: disable=redefined-builtin
         self.type = type
         self.optional = optional
@@ -29,6 +30,7 @@ class TrainerSpec:  # pylint: disable=R0903
 
     For validating the parameter 'type' .
     """
+
     INPUT_DICT = {
         TRAINER_MODULE_FILE: Parameters(type=str),
         TRAINER_DATA_MODULE_FILE: Parameters(type=str),

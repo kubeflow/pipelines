@@ -4,14 +4,15 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-
 """Training Executor class."""
 
 import os
 from argparse import Namespace
 import pytorch_lightning as pl
 import torch
-from pytorch_kfp_components.components.trainer.generic_executor import GenericExecutor
+from pytorch_kfp_components.components.trainer.generic_executor import (
+    GenericExecutor,
+)
 from pytorch_kfp_components.types import standard_component_specs
 
 
@@ -45,7 +46,7 @@ class Executor(GenericExecutor):
         self._log_startup(
             input_dict=input_dict,
             output_dict=output_dict,
-            exec_properties=exec_properties
+            exec_properties=exec_properties,
         )
 
         (
@@ -57,15 +58,19 @@ class Executor(GenericExecutor):
         ) = self._GetFnArgs(
             input_dict=input_dict,
             output_dict=output_dict,
-            execution_properties=exec_properties
+            execution_properties=exec_properties,
         )
 
-        model_class,data_module_class = self.derive_model_and_data_module_class(
+        (
+            model_class,
+            data_module_class,
+        ) = self.derive_model_and_data_module_class(
             module_file=module_file, data_module_file=data_module_file
         )
         if data_module_class:
-            data_module = data_module_class(**data_module_args
-                if data_module_args else {})
+            data_module = data_module_class(
+                **data_module_args if data_module_args else {}
+            )
             data_module.prepare_data()
             data_module.setup(stage="fit")
             model = model_class(**module_file_args if module_file_args else {})
@@ -97,7 +102,8 @@ class Executor(GenericExecutor):
             print("Saving model to {}".format(model_save_path))
             torch.save(model.state_dict(), model_save_path)
 
-            output_dict[standard_component_specs.TRAINER_MODEL_SAVE_PATH] = model_save_path
+            output_dict[standard_component_specs.TRAINER_MODEL_SAVE_PATH
+                       ] = model_save_path
             output_dict[standard_component_specs.PTL_TRAINER_OBJ] = trainer
 
         else:

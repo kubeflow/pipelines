@@ -15,35 +15,32 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 relative_directory = os.path.relpath(os.path.dirname(os.path.abspath(__file__)))
 # get version string from module
-with open(os.path.join(os.path.dirname(__file__),
-    "pytorch_kfp_components/__init__.py"), "r") as f:
+with open(
+        os.path.join(os.path.dirname(__file__),
+                     "pytorch_kfp_components/__init__.py"),
+        "r",
+) as f:
     version = re.search(r"__version__ = ['\"]([^'\"]*)['\"]", f.read(),
-        re.M).group(1)
+                        re.M).group(1)
 
 setup(
     name="pytorch-kfp-components",
     version=version,
     description="PyTorch Kubeflow Pipeline",
-    url="https://github.com/chauhang/pipelines/tree/master/components",
+    url="https://github.com/kubeflow/pipelines/tree/master/components",
     author="The PyTorch Pipeline Components authors",
     author_email="PyTorch-pipeline-components@fb.com",
-    license="Apache License 2.0",
+    license="BSD",
     long_description=long_description,
     long_description_content_type="text/markdown",
     include_package_data=True,
-    python_requires=">=3.8",
-    install_requires=[
-        "torch",
-	    "kfp",
-        "torchserve",
-	    "pytorch-lightning"
-
-    ],
+    python_requires=">=3.6",
+    install_requires=["torch", "kfp", "torchserve", "pytorch-lightning==1.3.2"],
     keywords=[
-            "Kubeflow",
-            "ML workflow",
-            "PyTorch",
-        ],
+        "Kubeflow",
+        "ML workflow",
+        "PyTorch",
+    ],
     classifiers=[
         "Development Status :: 4 - Beta",
         "Operating System :: Unix",
@@ -51,7 +48,7 @@ setup(
         "Intended Audience :: Developers",
         "Intended Audience :: Education",
         "Intended Audience :: Science/Research",
-        "License :: OSI Approved :: Apache Software License",
+        "License :: OSI Approved :: BSD License",
         "Programming Language :: Python :: 3 :: Only",
         "Topic :: Scientific/Engineering",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
@@ -59,7 +56,9 @@ setup(
         "Topic :: Software Development :: Libraries",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
-    package_dir={"pytorch_kfp_components":
-    os.path.join(relative_directory, "pytorch_kfp_components")},
+    package_dir={
+        "pytorch_kfp_components":
+            os.path.join(relative_directory, "pytorch_kfp_components")
+    },
     packages=find_packages(),
 )
