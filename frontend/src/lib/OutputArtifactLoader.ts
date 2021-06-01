@@ -14,19 +14,7 @@
  * limitations under the License.
  */
 
-import {
-  Api,
-  Artifact,
-  ArtifactType,
-  Event,
-  Execution,
-  GetArtifactsByIDRequest,
-  GetArtifactsByIDResponse,
-  GetArtifactTypesRequest,
-  GetArtifactTypesResponse,
-  GetEventsByExecutionIDsRequest,
-  GetEventsByExecutionIDsResponse,
-} from '@kubeflow/frontend';
+import { Artifact, ArtifactType, Execution } from '@kubeflow/frontend';
 import { csvParseRows } from 'd3-dsv';
 import { ApiVisualization, ApiVisualizationType } from '../apis/visualization';
 import { ConfusionMatrixConfig } from '../components/viewers/ConfusionMatrix';
@@ -37,6 +25,11 @@ import { ROCCurveConfig } from '../components/viewers/ROCCurve';
 import { TensorboardViewerConfig } from '../components/viewers/Tensorboard';
 import { PlotType, ViewerConfig } from '../components/viewers/Viewer';
 import { Apis } from '../lib/Apis';
+import {
+  filterArtifactsByType,
+  getArtifactTypes,
+  getOutputArtifactsInExecution,
+} from './MlmdUtils';
 import { errorToMessage, logger } from './Utils';
 import WorkflowParser, { StoragePath } from './WorkflowParser';
 export interface PlotMetadata {
@@ -423,66 +416,6 @@ export class OutputArtifactLoader {
       type: PlotType.ROC,
     };
   }
-}
-
-/**
- * @throws error when network error or invalid data
- */
-async function getOutputArtifactsInExecution(execution: Execution): Promise<Artifact[]> {
-  const executionId = execution.getId();
-  if (!executionId) {
-    throw new Error('Execution must have an ID');
-  }
-
-  const request = new GetEventsByExecutionIDsRequest();
-  request.addExecutionIds(executionId);
-  let res: GetEventsByExecutionIDsResponse;
-  try {
-    res = await Api.getInstance().metadataStoreService.getEventsByExecutionIDs(request);
-  } catch (err) {
-    err.message = 'Failed to getExecutionsByExecutionIDs: ' + err.message;
-    throw err;
-  }
-
-  const outputArtifactIds = res
-    .getEventsList()
-    .filter(event => event.getType() === Event.Type.OUTPUT && event.getArtifactId())
-    .map(event => event.getArtifactId());
-
-  const artifactsRequest = new GetArtifactsByIDRequest();
-  artifactsRequest.setArtifactIdsList(outputArtifactIds);
-  let artifactsRes: GetArtifactsByIDResponse;
-  try {
-    artifactsRes = await Api.getInstance().metadataStoreService.getArtifactsByID(artifactsRequest);
-  } catch (artifactsErr) {
-    artifactsErr.message = 'Failed to getArtifactsByID: ' + artifactsErr.message;
-    throw artifactsErr;
-  }
-
-  return artifactsRes.getArtifactsList();
-}
-
-async function getArtifactTypes(): Promise<ArtifactType[]> {
-  const request = new GetArtifactTypesRequest();
-  let res: GetArtifactTypesResponse;
-  try {
-    res = await Api.getInstance().metadataStoreService.getArtifactTypes(request);
-  } catch (err) {
-    err.message = 'Failed to getArtifactTypes: ' + err.message;
-    throw err;
-  }
-  return res.getArtifactTypesList();
-}
-
-function filterArtifactsByType(
-  artifactTypeName: string,
-  artifactTypes: ArtifactType[],
-  artifacts: Artifact[],
-): Artifact[] {
-  const artifactTypeIds = artifactTypes
-    .filter(artifactType => artifactType.getName() === artifactTypeName)
-    .map(artifactType => artifactType.getId());
-  return artifacts.filter(artifact => artifactTypeIds.includes(artifact.getTypeId()));
 }
 
 function filterArtifactUrisByType(
