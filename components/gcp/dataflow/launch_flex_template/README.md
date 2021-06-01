@@ -70,11 +70,9 @@ To use the component, the following requirements must be met:
 #### 1. Install the Kubeflow Pipeline SDK:
 
 ```python
-% % capture - -no - stderr
+%% capture --no-stderr
 
-!pip3
-install
-kfp - -upgrade
+!pip3 install kfp - -upgrade
 ```
 
 #### 2. Load the component using KFP SDK
