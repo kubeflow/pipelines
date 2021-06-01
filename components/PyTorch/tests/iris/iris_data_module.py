@@ -1,5 +1,11 @@
-from argparse import ArgumentParser
+#!/usr/bin/env/python3
+# Copyright (c) Facebook, Inc. and its affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
 
+from argparse import ArgumentParser
 import pytorch_lightning as pl
 import torch
 from pytorch_lightning import seed_everything
@@ -8,6 +14,7 @@ from torch.utils.data import DataLoader, random_split, TensorDataset
 
 
 class IrisDataModule(pl.LightningDataModule):
+
     def __init__(self, **kwargs):
         """
         Initialization of inherited lightning data module

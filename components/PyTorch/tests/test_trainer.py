@@ -17,7 +17,7 @@ import pytorch_lightning
 from pytorch_kfp_components.components.trainer.component import Trainer
 
 dirname, filename = os.path.split(os.path.abspath(__file__))
-IRIS_DIR = os.path.join(dirname,"iris")
+IRIS_DIR = os.path.join(dirname, "iris")
 sys.path.insert(0, IRIS_DIR)
 
 MODULE_FILE_ARGS = {"lr": 0.1}
@@ -63,9 +63,7 @@ def test_mandatory_keys_type_check(mandatory_key):
     trainer_dict = deepcopy(trainer_params)
     test_input = ["input_path"]
     trainer_dict[mandatory_key] = test_input
-    expected_exception_msg = (
-        f"{mandatory_key} must be of type <class 'str'> but received as {type(test_input)}"
-    )
+    expected_exception_msg = f"{mandatory_key} must be of type <class 'str'> but received as {type(test_input)}"
     with pytest.raises(TypeError, match=expected_exception_msg):
         invoke_training(trainer_params=trainer_dict)
 
@@ -80,9 +78,7 @@ def test_optional_keys_type_check(optional_key):
     trainer_dict = deepcopy(trainer_params)
     test_input = "test_input"
     trainer_dict[optional_key] = test_input
-    expected_exception_msg = (
-        f"{optional_key} must be of type <class 'dict'> but received as {type(test_input)}"
-    )
+    expected_exception_msg = f"{optional_key} must be of type <class 'dict'> but received as {type(test_input)}"
     with pytest.raises(TypeError, match=expected_exception_msg):
         invoke_training(trainer_params=trainer_dict)
 
@@ -97,7 +93,7 @@ def test_mandatory_params(input_key):
     trainer_dict = deepcopy(trainer_params)
     trainer_dict[input_key] = None
     expected_exception_msg = (
-        f"{input_key} is'nt optional. Received value: {trainer_dict[input_key]}"
+        f"{input_key} is not optional. Received value: {trainer_dict[input_key]}"
     )
     with pytest.raises(ValueError, match=expected_exception_msg):
         invoke_training(trainer_params=trainer_dict)
@@ -127,8 +123,9 @@ def test_training_success():
     assert os.path.exists(DEFAULT_SAVE_PATH)
     os.remove(DEFAULT_SAVE_PATH)
     assert hasattr(trainer, "ptl_trainer")
-    assert isinstance(trainer.ptl_trainer,
-                      pytorch_lightning.trainer.trainer.Trainer)
+    assert isinstance(
+        trainer.ptl_trainer, pytorch_lightning.trainer.trainer.Trainer
+    )
 
 
 def test_training_success_with_custom_model_name():
@@ -183,8 +180,11 @@ def test_trainer_output():
     assert hasattr(trainer, "output_dict")
     assert trainer.output_dict is not None
     assert trainer.output_dict["model_save_path"] == os.path.join(
-        tmp_dir, DEFAULT_MODEL_NAME)
-    assert isinstance(trainer.output_dict["ptl_trainer"],
-                      pytorch_lightning.trainer.trainer.Trainer)
+        tmp_dir, DEFAULT_MODEL_NAME
+    )
+    assert isinstance(
+        trainer.output_dict["ptl_trainer"],
+        pytorch_lightning.trainer.trainer.Trainer,
+    )
     print("*" * 1000)
     print(type(trainer.output_dict["ptl_trainer"]))
