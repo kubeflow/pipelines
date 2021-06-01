@@ -106,7 +106,34 @@ describe('MetricsTab', () => {
       </CommonTestWrapper>,
     );
 
-    await waitFor(() => getByText('Error in confidenceMetrics data format.'));
+    await waitFor(() => getByText("Error in metrics artifact's confidenceMetrics data format."));
+  });
+
+  it('shows error banner when confidenceMetric is not array', async () => {
+    const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
+    const artifactType = buildBasicArtifactType();
+    const artifact = buildBasicArtifact();
+    artifact.getCustomPropertiesMap().set('name', new Value().setStringValue('metrics'));
+    artifact.getCustomPropertiesMap().set(
+      'confidenceMetrics',
+      new Value().setStructValue(
+        Struct.fromJavaScript({
+          variable: 'i am not a list',
+        }),
+      ),
+    );
+
+    jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockResolvedValue([artifact]);
+    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([artifactType]);
+
+    console.log('shows error banner when confidenceMetric type is wrong');
+    const { getByText } = render(
+      <CommonTestWrapper>
+        <MetricsTab execution={execution}></MetricsTab>
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => getByText("Error in metrics artifact's confidenceMetrics data format."));
   });
 
   it('has no metrics', async () => {

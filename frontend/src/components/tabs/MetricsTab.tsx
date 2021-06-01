@@ -17,7 +17,6 @@
 import { Artifact, ArtifactType, Execution } from '@kubeflow/frontend';
 import HelpIcon from '@material-ui/icons/Help';
 import * as React from 'react';
-import { useState } from 'react';
 import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
 import IconWithTooltip from 'src/atoms/IconWithTooltip';
@@ -93,10 +92,14 @@ export function MetricsTab({ execution }: MetricsTabProps) {
     isSuccess: isSuccessArtifactTypes,
     error: errorArtifactTypes,
     data: artifactTypes,
-  } = useQuery<ArtifactType[], Error>(['artifact_types'], () => getArtifactTypes(), {
-    enabled: executionCompleted,
-    staleTime: Infinity,
-  });
+  } = useQuery<ArtifactType[], Error>(
+    ['artifact_types', execution.getId()],
+    () => getArtifactTypes(),
+    {
+      enabled: executionCompleted,
+      staleTime: Infinity,
+    },
+  );
 
   // This react element produces banner message if query to MLMD is pending or has error.
   // Once query is completed, it shows actual content of metrics visualization in MetricsSwitcher.
@@ -187,13 +190,9 @@ function MetricsSwitcher({ artifacts, artifactTypes }: MetricsSwitcherProps) {
           const { error } = validateConfidenceMetrics((confidenceMetrics as any).list);
 
           if (error) {
-            return (
-              <Banner
-                message='Error in confidenceMetrics data format.'
-                mode='error'
-                additionalInfo={error}
-              />
-            );
+            const errorMsg =
+              'Error in ' + artifact.name + " artifact's confidenceMetrics data format.";
+            return <Banner message={errorMsg} mode='error' additionalInfo={error} />;
           }
           return (
             <>
@@ -219,12 +218,15 @@ function MetricsSwitcher({ artifacts, artifactTypes }: MetricsSwitcherProps) {
   );
 }
 
-function validateConfidenceMetrics(inputs: any[]): { error?: string } {
-  for (var input of inputs) {
-    const metric = input as ConfidenceMetric;
-    if (metric.confidenceThreshold == null) return { error: 'confidenceThreshold not found' };
-    if (metric.falsePositiveRate == null) return { error: 'falsePositiveRate not found' };
-    if (metric.recall == null) return { error: 'recall not found' };
+function validateConfidenceMetrics(inputs: any): { error?: string } {
+  if (!Array.isArray(inputs)) return { error: 'ConfidenceMetrics is not an array.' };
+  for (let i = 0; i < inputs.length; i++) {
+    const metric = inputs[i] as ConfidenceMetric;
+    if (metric.confidenceThreshold == null)
+      return { error: 'confidenceThreshold not found for item with index ' + i };
+    if (metric.falsePositiveRate == null)
+      return { error: 'falsePositiveRate not found for item with index ' + i };
+    if (metric.recall == null) return { error: 'recall not found for item with index ' + i };
   }
   return {};
 }
