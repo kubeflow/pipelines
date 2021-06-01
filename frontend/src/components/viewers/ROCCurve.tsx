@@ -66,7 +66,7 @@ const lineColors = [
   '#5ec4ec',
 ];
 
-interface DisplayPoint {
+export interface DisplayPoint {
   label: string;
   x: number;
   y: number;

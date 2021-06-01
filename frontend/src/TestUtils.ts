@@ -17,17 +17,18 @@
 /* eslint-disable */
 // Because this is test utils.
 
+import { mount, ReactWrapper } from 'enzyme';
+import { format } from 'prettier';
+import { object } from 'prop-types';
 import * as React from 'react';
+import { QueryClient } from 'react-query';
+import { match } from 'react-router';
 // @ts-ignore
 import createRouterContext from 'react-router-test-context';
-import { PageProps, Page } from './pages/Page';
-import { ToolbarActionConfig } from './components/Toolbar';
-import { match } from 'react-router';
-import { mount, ReactWrapper } from 'enzyme';
-import { object } from 'prop-types';
-import { format } from 'prettier';
 import snapshotDiff from 'snapshot-diff';
+import { ToolbarActionConfig } from './components/Toolbar';
 import { logger } from './lib/Utils';
+import { Page, PageProps } from './pages/Page';
 
 export default class TestUtils {
   /**
@@ -162,8 +163,10 @@ export function expectWarnings() {
   };
 }
 
+export const queryClientTest = new QueryClient();
 export function testBestPractices() {
   beforeEach(async () => {
+    queryClientTest.clear();
     jest.resetAllMocks();
     jest.restoreAllMocks();
   });
