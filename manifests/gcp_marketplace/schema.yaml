@@ -244,9 +244,8 @@ properties:
       During the deployment process, Kubeflow Pipelines creates two databases,
       "<prefix>_pipeline" and "<prefix>_metadata". If the prefix specified
       matches a previous deployment, this deployment will reuse the existing
-      databases. If this value is not specified, the application instance name
-      is used.
-    default: '{{ .Release.Name | replace "-" "_" | replace "." "_" }}'
+      databases.
+    default: ""
 required:
   - name
   - namespace

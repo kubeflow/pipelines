@@ -23,6 +23,6 @@ managedstorage:
   enabled: false
   cloudsqlInstanceConnectionName: ""
   gcsBucketName: ""
-  databaseNamePrefix: '{{ .Release.Name | replace "-" "_" | replace "." "_" }}'
+  databaseNamePrefix: ""
   dbUsername: 'root'
   dbPassword: ''
