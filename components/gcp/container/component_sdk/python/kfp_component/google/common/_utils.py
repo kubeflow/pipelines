@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import abc
 import logging
 import re
 import os
 import time
-from typing import Any, Callable
+from typing import Any, Callable, Optional, Tuple
 
 def normalize_name(name,
               valid_first_char_pattern='a-zA-Z',
@@ -124,8 +125,8 @@ def wait_operation_done(get_operation, wait_interval):
 
 def with_retries(
     func: Callable,
-    on_error: Callable[[], Any] = None,
-    errors: Exception = Exception,
+    on_error: Optional[Callable[[], Any]] = None,
+    errors: Tuple[Exception, ...] = Exception,
     number_of_retries: int = 5,
     delay: float = 1,
 ):
@@ -140,22 +141,22 @@ def with_retries(
 
     @wraps(func)
     def wrapper(self, *args, **kwargs):
-        _tries, _delay = tries, delay
-        while _tries:
+        remaining_retries = number_of_retries
+        while remaining_retries:
             try:
                 return func(self, *args, **kwargs)
             except errors as e:
-                _tries -= 1
-                if not _tries:
+                remaining_retries -= 1
+                if not remaining_retries:
                     raise
 
                 logging.warning(
                     'Caught {}. Retrying in {} seconds...'.format(
-                        e._class__.__name__, _delay
+                        e._class__.__name__, delay
                     )
                 )
 
-                time.sleep(_delay)
+                time.sleep(delay)
                 if on_error:
                     on_error()
 
@@ -167,8 +168,9 @@ class ClientWithRetries:
     def __init__(self):
         self._build_client()
         for name, member in self.__dict__.items():
-            if callable(member) and not name.startswith("_")
+            if callable(member) and not name.startswith("_"):
                 self.__dict__[name] = with_retries(func=member, errors=(BrokenPipeError, IOError), on_error=self._build_client)
 
+    @abc.abstractmethod
     def _build_client():
         raise NotImplementedError()
