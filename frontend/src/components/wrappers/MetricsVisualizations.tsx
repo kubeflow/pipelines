@@ -133,8 +133,8 @@ function ConfidenceMetricsSection({ artifact }: ConfidenceMetricsSectionProps) {
   return (
     <>
       {
-        <div>
-          <div className={padding(40, 'lrt')}>
+        <div className={padding(40, 'lrt')}>
+          <div className={padding(40, 'b')}>
             <h1>
               {'ROC Curve: ' + name}{' '}
               <IconWithTooltip
@@ -217,8 +217,8 @@ function ConfusionMatrixSection({ artifact }: ConfusionMatrixProps) {
   return (
     <>
       {
-        <div>
-          <div className={padding(40)}>
+        <div className={padding(40, 'lrt')}>
+          <div className={padding(40, 'b')}>
             <h1>
               {'Confusion Matrix: ' + name}{' '}
               <IconWithTooltip
