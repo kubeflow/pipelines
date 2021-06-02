@@ -32,8 +32,10 @@ data:
   ##
   ## In Kubeflow Pipelines multi-user mode, the config creates default
   ## kfp-launcher configmaps in each user's namespace. Users can edit the
-  ## kfp-launcher configmap afterwards and their changes won't be overridden
-  ## again by this config.
+  ## kfp-launcher configmap's defaultPipelineRoot field afterwards to configure
+  ## namespace-specific default pipeline root. The namespace specific changes in
+  ## kfp-launcher configmap won't be overridden by pipeline-install-config.
+  ##
   ## Caveat: when you update the config from a non-empty value, only new
   ## namespaces get the updated config by default. Owners of existing namespaces
   ## must delete the kfp-launcher configmap to get the new default config value.
