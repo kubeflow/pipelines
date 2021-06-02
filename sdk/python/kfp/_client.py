@@ -32,7 +32,7 @@ from kfp.compiler import compiler
 from kfp.compiler._k8s_helper import sanitize_k8s_name
 
 from kfp._auth import get_auth_token, get_gcp_access_token
-from kfp._credentials import ServiceAccountTokenVolumeCredentials
+from kfp import auth
 
 # TTL of the access token associated with the client. This is needed because
 # `gcloud auth print-access-token` generates a token with TTL=1 hour, after
@@ -315,7 +315,7 @@ class Client(object):
     # implement more and more credentials, we can have some heuristic and
     # choose from a number of options.
     # See https://github.com/kubeflow/pipelines/pull/5287#issuecomment-805654121
-    credentials = ServiceAccountTokenVolumeCredentials()
+    credentials = auth.ServiceAccountTokenVolumeCredentials()
 
     try:
         token = credentials.get_token()
