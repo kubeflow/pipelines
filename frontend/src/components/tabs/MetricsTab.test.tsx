@@ -25,7 +25,62 @@ import { MetricsTab } from './MetricsTab';
 
 testBestPractices();
 
-describe('MetricsTab', () => {
+describe('MetricsTab common case', () => {
+  it('has no metrics', async () => {
+    jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockReturnValue(Promise.resolve([]));
+    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([]));
+    const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
+
+    const { getByText } = render(
+      <CommonTestWrapper>
+        <MetricsTab execution={execution}></MetricsTab>
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => getByText('There is no metrics artifact available in this step.'));
+  });
+  it('shows info banner when execution is in UNKNOWN', async () => {
+    jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockReturnValue(Promise.resolve([]));
+    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([]));
+
+    const execution = buildBasicExecution().setLastKnownState(Execution.State.UNKNOWN);
+    const { getByText, queryByText } = render(
+      <CommonTestWrapper>
+        <MetricsTab execution={execution}></MetricsTab>
+      </CommonTestWrapper>,
+    );
+    await waitFor(() => getByText('Task is in unknown state.'));
+    await waitFor(() => queryByText('Task has not completed.') === null);
+  });
+
+  it('shows info banner when execution is in NEW', async () => {
+    jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockReturnValue(Promise.resolve([]));
+    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([]));
+
+    const execution = buildBasicExecution().setLastKnownState(Execution.State.NEW);
+    const { getByText } = render(
+      <CommonTestWrapper>
+        <MetricsTab execution={execution}></MetricsTab>
+      </CommonTestWrapper>,
+    );
+    await waitFor(() => getByText('Task has not completed.'));
+  });
+
+  it('shows info banner when execution is in RUNNING', async () => {
+    jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockReturnValue(Promise.resolve([]));
+    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([]));
+
+    const execution = buildBasicExecution().setLastKnownState(Execution.State.RUNNING);
+    const { getByText } = render(
+      <CommonTestWrapper>
+        <MetricsTab execution={execution}></MetricsTab>
+      </CommonTestWrapper>,
+    );
+    await waitFor(() => getByText('Task has not completed.'));
+  });
+});
+
+describe('MetricsTab with confidenceMetrics', () => {
   it('shows ROC curve', async () => {
     const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
     const artifactType = buildBasicArtifactType();
@@ -133,11 +188,65 @@ describe('MetricsTab', () => {
 
     await waitFor(() => getByText("Error in metrics artifact's confidenceMetrics data format."));
   });
+});
 
-  it('has no metrics', async () => {
-    jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockReturnValue(Promise.resolve([]));
-    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([]));
+describe('MetricsTab with confusionMatrix', () => {
+  it('shows confusion matrix', async () => {
     const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
+    const artifactType = buildBasicArtifactType();
+    const artifact = buildBasicArtifact();
+    artifact.getCustomPropertiesMap().set('name', new Value().setStringValue('metrics'));
+    artifact.getCustomPropertiesMap().set(
+      'confusionMatrix',
+      new Value().setStructValue(
+        Struct.fromJavaScript({
+          struct: {
+            annotationSpecs: [
+              { displayName: 'Setosa' },
+              { displayName: 'Versicolour' },
+              { displayName: 'Virginica' },
+            ],
+            rows: [{ row: [31, 0, 0] }, { row: [1, 8, 12] }, { row: [0, 0, 23] }],
+          },
+        }),
+      ),
+    );
+    jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockResolvedValueOnce([artifact]);
+    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValueOnce([artifactType]);
+    const { getByText } = render(
+      <CommonTestWrapper>
+        <MetricsTab execution={execution}></MetricsTab>
+      </CommonTestWrapper>,
+    );
+    getByText('Metrics is loading.');
+    // We should upgrade react-scripts for capability to use libraries normally:
+    // https://github.com/testing-library/dom-testing-library/issues/477
+    await waitFor(() => getByText('Confusion Matrix: metrics'));
+  });
+
+  it('shows error banner when confusionMatrix type is wrong', async () => {
+    const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
+    const artifactType = buildBasicArtifactType();
+    const artifact = buildBasicArtifact();
+    artifact.getCustomPropertiesMap().set('name', new Value().setStringValue('metrics'));
+    artifact.getCustomPropertiesMap().set(
+      'confusionMatrix',
+      new Value().setStructValue(
+        Struct.fromJavaScript({
+          struct: {
+            annotationSpecs: [
+              { displayName: 'Setosa' },
+              { displayName: 'Versicolour' },
+              { displayName: 'Virginica' },
+            ],
+            rows: [{ row: 'I am not an array' }, { row: [1, 8, 12] }, { row: [0, 0, 23] }],
+          },
+        }),
+      ),
+    );
+
+    jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockResolvedValue([artifact]);
+    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([artifactType]);
 
     const { getByText } = render(
       <CommonTestWrapper>
@@ -145,47 +254,36 @@ describe('MetricsTab', () => {
       </CommonTestWrapper>,
     );
 
-    await waitFor(() => getByText('There is no metrics artifact available in this step.'));
+    await waitFor(() => getByText("Error in metrics artifact's confusionMatrix data format."));
   });
 
-  it('shows info banner when execution is in UNKNOWN', async () => {
-    jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockReturnValue(Promise.resolve([]));
-    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([]));
-
-    const execution = buildBasicExecution().setLastKnownState(Execution.State.UNKNOWN);
-    const { getByText, queryByText } = render(
-      <CommonTestWrapper>
-        <MetricsTab execution={execution}></MetricsTab>
-      </CommonTestWrapper>,
+  it("shows error banner when confusionMatrix annotationSpecs length doesn't match rows", async () => {
+    const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
+    const artifactType = buildBasicArtifactType();
+    const artifact = buildBasicArtifact();
+    artifact.getCustomPropertiesMap().set('name', new Value().setStringValue('metrics'));
+    artifact.getCustomPropertiesMap().set(
+      'confusionMatrix',
+      new Value().setStructValue(
+        Struct.fromJavaScript({
+          struct: {
+            annotationSpecs: [{ displayName: 'Setosa' }, { displayName: 'Versicolour' }],
+            rows: [{ row: [31, 0, 0] }, { row: [1, 8, 12] }, { row: [0, 0, 23] }],
+          },
+        }),
+      ),
     );
-    await waitFor(() => getByText('Task is in unknown state.'));
-    await waitFor(() => queryByText('Task has not completed.') === null);
-  });
 
-  it('shows info banner when execution is in NEW', async () => {
-    jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockReturnValue(Promise.resolve([]));
-    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([]));
+    jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockResolvedValue([artifact]);
+    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([artifactType]);
 
-    const execution = buildBasicExecution().setLastKnownState(Execution.State.NEW);
     const { getByText } = render(
       <CommonTestWrapper>
         <MetricsTab execution={execution}></MetricsTab>
       </CommonTestWrapper>,
     );
-    await waitFor(() => getByText('Task has not completed.'));
-  });
 
-  it('shows info banner when execution is in RUNNING', async () => {
-    jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockReturnValue(Promise.resolve([]));
-    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue(Promise.resolve([]));
-
-    const execution = buildBasicExecution().setLastKnownState(Execution.State.RUNNING);
-    const { getByText } = render(
-      <CommonTestWrapper>
-        <MetricsTab execution={execution}></MetricsTab>
-      </CommonTestWrapper>,
-    );
-    await waitFor(() => getByText('Task has not completed.'));
+    await waitFor(() => getByText("Error in metrics artifact's confusionMatrix data format."));
   });
 });
 
