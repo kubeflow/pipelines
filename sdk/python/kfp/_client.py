@@ -317,22 +317,14 @@ class Client(object):
     from kfp import auth
     credentials = auth.ServiceAccountTokenVolumeCredentials()
 
-    try:
-        token = credentials.get_token()
-    except OSError as e:
-        logging.warning("Failed to read a token from file '%s' (%s)."
-                        " Proceeding without credentials..."
-                        % (credentials.token_path, str(e)))
-        return config
-
-    if not token:
-        logging.warning("The token from file '%s' is empty. Proceeding without"
-                        " credentials...", credentials.token_path)
+    if not credentials.get_token():
+        logging.warning("Failed to retrieve a token using default credentials."
+                        " Proceeding without credentials...")
         return config
 
     config.refresh_api_key_hook = credentials.refresh_api_key_hook
-    config.api_key['authorization'] = token
     config.api_key_prefix['authorization'] = 'Bearer'
+    config.refresh_api_key_hook(config)
     return config
 
   def set_user_namespace(self, namespace):

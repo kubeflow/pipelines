@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+import logging
 
 from kfp import auth
 
@@ -36,9 +37,15 @@ class ServiceAccountTokenVolumeCredentials(auth.TokenCredentialsBase):
     """
 
     def __init__(self, path=None):
-        self.token_path = (path
-                           or os.getenv(auth.KF_PIPELINES_SA_TOKEN_ENV)
-                           or auth.KF_PIPELINES_SA_TOKEN_PATH)
+        self._token_path = (path
+                            or os.getenv(auth.KF_PIPELINES_SA_TOKEN_ENV)
+                            or auth.KF_PIPELINES_SA_TOKEN_PATH)
 
     def get_token(self):
-        return auth.read_token_from_file(self.token_path)
+        token = None
+        try:
+            token = auth.read_token_from_file(self._token_path)
+        except OSError as e:
+            logging.error("Failed to read a token from file '%s' (%s).",
+                          self._token_path, str(e))
+        return token
