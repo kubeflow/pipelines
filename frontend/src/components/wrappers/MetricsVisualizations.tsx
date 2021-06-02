@@ -194,7 +194,9 @@ interface ConfusionMatrixProps {
 
 const CONFUSION_MATRIX_DEFINITION =
   'The number of correct and incorrect predictions are ' +
-  'summarized with count values and broken down by each class.';
+  'summarized with count values and broken down by each class. ' +
+  'The higher value on cell where Predicted label matches True label, ' +
+  'the better prediction performance of this model is.';
 
 function ConfusionMatrixSection({ artifact }: ConfusionMatrixProps) {
   const customProperties = artifact.getCustomPropertiesMap();
