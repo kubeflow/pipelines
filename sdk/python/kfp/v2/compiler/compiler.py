@@ -541,15 +541,15 @@ class Compiler(object):
       op_component_spec = getattr(op, 'component_spec',
                                   pipeline_spec_pb2.ComponentSpec())
 
-      # Get the component spec for all its parent groups.
-      parent_groups_component_specs = [pipeline_spec.root]
+      # Get the tuple of (component_name, task_name) of all its parent groups.
+      parent_components_and_tasks = [('_root', '')]
       # skip the op itself and the root group which cannot be retrived via name.
       for group_name in op_to_parent_groups[op.name][1:-1]:
-        component_name = dsl_utils.sanitize_component_name(group_name)
-        parent_groups_component_specs.append(
-            pipeline_spec.components[component_name])
+        parent_components_and_tasks.append(
+            (dsl_utils.sanitize_component_name(group_name),
+             dsl_utils.sanitize_task_name(group_name)))
       # Reverse the order to make the farthest group in the end.
-      parent_groups_component_specs.reverse()
+      parent_components_and_tasks.reverse()
 
       for output_name, artifact_spec in \
           op_component_spec.output_definitions.artifacts.items():
@@ -563,15 +563,22 @@ class Compiler(object):
           unique_output_name = '{}-{}'.format(op_task_spec.task_info.name,
                                               output_name)
 
-          for group_component_spec in parent_groups_component_specs:
+          sub_task_name = op_task_spec.task_info.name
+          sub_task_output = output_name
+          for component_name, task_name in parent_components_and_tasks:
+            group_component_spec = (
+                pipeline_spec.root if component_name == '_root' else
+                pipeline_spec.components[component_name])
             group_component_spec.output_definitions.artifacts[
                 unique_output_name].CopyFrom(artifact_spec)
             group_component_spec.dag.outputs.artifacts[
                 unique_output_name].artifact_selectors.append(
                     pipeline_spec_pb2.DagOutputsSpec.ArtifactSelectorSpec(
-                        producer_subtask=op_task_spec.task_info.name,
-                        output_artifact_key=output_name,
+                        producer_subtask=sub_task_name,
+                        output_artifact_key=sub_task_output,
                     ))
+            sub_task_name = task_name
+            sub_task_output = unique_output_name
 
   def _group_to_dag_spec(
       self,
