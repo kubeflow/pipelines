@@ -27,7 +27,7 @@ import {
 } from 'src/lib/MlmdUtils';
 import Banner from '../Banner';
 import { RoutePageFactory } from '../Router';
-import { MetricsVisualizations } from '../wrappers/MetricsVisualizations';
+import { MetricsVisualizations } from '../viewers/MetricsVisualizations';
 
 type MetricsTabProps = {
   execution: Execution;

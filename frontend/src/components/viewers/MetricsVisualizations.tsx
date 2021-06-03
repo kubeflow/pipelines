@@ -21,9 +21,9 @@ import IconWithTooltip from 'src/atoms/IconWithTooltip';
 import { color, padding } from 'src/Css';
 import { filterArtifactsByType } from 'src/lib/MlmdUtils';
 import Banner from '../Banner';
-import ConfusionMatrix, { ConfusionMatrixConfig } from '../viewers/ConfusionMatrix';
-import ROCCurve, { ROCCurveConfig } from '../viewers/ROCCurve';
-import { PlotType } from '../viewers/Viewer';
+import ConfusionMatrix, { ConfusionMatrixConfig } from './ConfusionMatrix';
+import ROCCurve, { ROCCurveConfig } from './ROCCurve';
+import { PlotType } from './Viewer';
 
 interface MetricsVisualizationsProps {
   artifacts: Artifact[];
@@ -135,14 +135,14 @@ function ConfidenceMetricsSection({ artifact }: ConfidenceMetricsSectionProps) {
       {
         <div className={padding(40, 'lrt')}>
           <div className={padding(40, 'b')}>
-            <h1>
+            <h3>
               {'ROC Curve: ' + name}{' '}
               <IconWithTooltip
                 Icon={HelpIcon}
                 iconColor={color.weak}
                 tooltip={ROC_CURVE_DEFINITION}
               ></IconWithTooltip>
-            </h1>
+            </h3>
           </div>
           <ROCCurve configs={buildRocCurveConfig((confidenceMetrics as any).list)} />
         </div>
@@ -221,14 +221,14 @@ function ConfusionMatrixSection({ artifact }: ConfusionMatrixProps) {
       {
         <div className={padding(40, 'lrt')}>
           <div className={padding(40, 'b')}>
-            <h1>
+            <h3>
               {'Confusion Matrix: ' + name}{' '}
               <IconWithTooltip
                 Icon={HelpIcon}
                 iconColor={color.weak}
                 tooltip={CONFUSION_MATRIX_DEFINITION}
               ></IconWithTooltip>
-            </h1>
+            </h3>
           </div>
           <ConfusionMatrix configs={buildConfusionMatrixConfig(confusionMatrix.struct as any)} />
         </div>
