@@ -17,6 +17,7 @@
 import { Artifact, ArtifactType } from '@kubeflow/frontend';
 import HelpIcon from '@material-ui/icons/Help';
 import React from 'react';
+import { Array as ArrayRunType, Number, Failure, Record, String, ValidationError } from 'runtypes';
 import IconWithTooltip from 'src/atoms/IconWithTooltip';
 import { color, padding } from 'src/Css';
 import { filterArtifactsByType } from 'src/lib/MlmdUtils';
@@ -151,25 +152,30 @@ function ConfidenceMetricsSection({ artifact }: ConfidenceMetricsSectionProps) {
   );
 }
 
+const ConfidenceMetricRunType = Record({
+  confidenceThreshold: Number,
+  falsePositiveRate: Number,
+  recall: Number,
+});
+const ConfidenceMetricArrayRunType = ArrayRunType(ConfidenceMetricRunType);
 function validateConfidenceMetrics(inputs: any): { error?: string } {
-  if (!Array.isArray(inputs)) return { error: 'ConfidenceMetrics is not an array.' };
-  for (let i = 0; i < inputs.length; i++) {
-    const metric = inputs[i] as ConfidenceMetric;
-    if (metric.confidenceThreshold == null)
-      return { error: 'confidenceThreshold not found for item with index ' + i };
-    if (metric.falsePositiveRate == null)
-      return { error: 'falsePositiveRate not found for item with index ' + i };
-    if (metric.recall == null) return { error: 'recall not found for item with index ' + i };
+  try {
+    ConfidenceMetricArrayRunType.check(inputs);
+  } catch (e) {
+    if (e instanceof ValidationError) {
+      return { error: e.message + '. Data: ' + JSON.stringify(inputs) };
+    }
   }
   return {};
 }
 
 function buildRocCurveConfig(confidenceMetricsArray: ConfidenceMetric[]): ROCCurveConfig[] {
+  const arraytypesCheck = ConfidenceMetricArrayRunType.check(confidenceMetricsArray);
   return [
     {
       type: PlotType.ROC,
-      data: confidenceMetricsArray.map(metric => ({
-        label: metric.confidenceThreshold,
+      data: arraytypesCheck.map(metric => ({
+        label: (metric.confidenceThreshold as unknown) as string,
         x: metric.falsePositiveRate,
         y: metric.recall,
       })),
@@ -237,43 +243,37 @@ function ConfusionMatrixSection({ artifact }: ConfusionMatrixProps) {
   );
 }
 
+const ConfusionMatrixInputRunType = Record({
+  annotationSpecs: ArrayRunType(
+    Record({
+      displayName: String,
+    }),
+  ),
+  rows: ArrayRunType(Record({ row: ArrayRunType(Number) })),
+});
 function validateConfusionMatrix(input: any): { error?: string } {
   if (!input) return { error: 'confusionMatrix does not exist.' };
-  const metric = input as ConfusionMatrixInput;
-
-  if (!Array.isArray(metric.annotationSpecs)) return { error: 'annotationSpecs is not array.' };
-  for (let i = 0; i < metric.annotationSpecs.length; i++) {
-    if (metric.annotationSpecs[i].displayName == null) {
-      return { error: 'displayName not found for item at index ' + i + ' of annotationSpecs' };
+  try {
+    const matrix = ConfusionMatrixInputRunType.check(input);
+    const height = matrix.rows.length;
+    const annotationLen = matrix.annotationSpecs.length;
+    if (annotationLen !== height) {
+      throw new ValidationError({
+        message:
+          'annotationSpecs has different length ' + annotationLen + ' than rows length ' + height,
+      } as Failure);
+    }
+    for (let x of matrix.rows) {
+      if (x.row.length !== height)
+        throw new ValidationError({
+          message: 'row: ' + JSON.stringify(x) + ' has different length of columns from rows.',
+        } as Failure);
+    }
+  } catch (e) {
+    if (e instanceof ValidationError) {
+      return { error: e.message + '. Data: ' + JSON.stringify(input) };
     }
   }
-
-  if (!Array.isArray(metric.rows)) return { error: 'Data field rows is not array.' };
-  const height = metric.rows.length;
-  if (metric.annotationSpecs.length !== height)
-    return {
-      error:
-        'annotationSpecs has different length ' +
-        metric.annotationSpecs.length +
-        ' than rows length ' +
-        height,
-    };
-  for (let i = 0; i < height; i++) {
-    if (!Array.isArray(metric.rows[i].row))
-      return { error: 'row at index ' + i + ' is not array.' };
-    const width = metric.rows[i].row.length;
-    if (width !== height)
-      return {
-        error:
-          'row at index ' + i + ' has ' + width + ' columns, but there are ' + height + ' rows.',
-      };
-    for (let j = 0; j < width; j++) {
-      if (metric.rows[i].row[j] == null) {
-        return { error: 'Data at index ' + i + ' row, ' + j + " column doesn't exist." };
-      }
-    }
-  }
-
   return {};
 }
 

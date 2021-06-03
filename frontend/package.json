@@ -26,6 +26,7 @@
     "react-router-dom": "^4.3.1",
     "react-virtualized": "^9.20.1",
     "react-vis": "^1.11.2",
+    "runtypes": "^6.3.0",
     "typestyle": "^2.0.4"
   },
   "scripts": {
