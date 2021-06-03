@@ -17,6 +17,7 @@ package metadata_test
 import (
 	"context"
 	"fmt"
+	"runtime/debug"
 	"sync"
 	"testing"
 
@@ -25,8 +26,15 @@ import (
 	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/v2/metadata"
 	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
+	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
+)
+
+// This test depends on a MLMD grpc server running at localhost:8080.
+const (
+	testMlmdServerAddress = "localhost"
+	testMlmdServerPort    = "8080"
 )
 
 func Test_schemaToArtifactType(t *testing.T) {
@@ -56,6 +64,51 @@ func Test_schemaToArtifactType(t *testing.T) {
 				t.Errorf("schemaToArtifactType() = %+v, want %+v\nDiff (-want, +got)\n%s", got, tt.want, diff)
 			}
 		})
+	}
+}
+
+func Test_GetPipeline(t *testing.T) {
+	fatalIf := func(err error) {
+		if err != nil {
+			debug.PrintStack()
+			t.Fatal(err)
+		}
+	}
+
+	ctx := context.Background()
+	runUuid, err := uuid.NewRandom()
+	fatalIf(err)
+	runId := runUuid.String()
+	client, err := metadata.NewClient(testMlmdServerAddress, testMlmdServerPort)
+	fatalIf(err)
+	mlmdClient, err := NewTestMlmdClient()
+	fatalIf(err)
+
+	_, err = client.GetPipeline(ctx, "get-pipeline-test", runId)
+	fatalIf(err)
+	runCtxType := "kfp.PipelineRun"
+	pipeline := "get-pipeline-test"
+
+	res, err := mlmdClient.GetContextByTypeAndName(ctx, &pb.GetContextByTypeAndNameRequest{
+		TypeName:    &runCtxType,
+		ContextName: &runId,
+	})
+	fatalIf(err)
+	if res.GetContext() == nil {
+		t.Fatalf("GetContextByTypeAndName(name=%q, type=%q)=nil", runId, runCtxType)
+	}
+	resParents, err := mlmdClient.GetParentContextsByContext(ctx, &pb.GetParentContextsByContextRequest{
+		ContextId: res.GetContext().Id,
+	})
+	fatalIf(err)
+	parents := resParents.GetContexts()
+	if len(parents) != 1 {
+		t.Errorf("Got %v parent contexts, want 1", len(parents))
+	}
+	pipelineCtx := parents[0]
+	if pipelineCtx.GetName() != pipeline {
+		t.Errorf("GetParentContextsByContext(name=%q, type=%q)=Context(name=%q), want Context(name=%q)",
+			runId, runCtxType, pipelineCtx.GetName(), pipeline)
 	}
 }
 
@@ -96,4 +149,14 @@ func Test_GetPipelineConcurrently(t *testing.T) {
 		}()
 	}
 	wg.Wait()
+}
+
+func NewTestMlmdClient() (pb.MetadataStoreServiceClient, error) {
+	conn, err := grpc.Dial(fmt.Sprintf("%s:%s", testMlmdServerAddress, testMlmdServerPort),
+		grpc.WithInsecure(),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("NewMlmdClient() failed: %w", err)
+	}
+	return pb.NewMetadataStoreServiceClient(conn), nil
 }

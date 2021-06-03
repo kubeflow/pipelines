@@ -131,11 +131,32 @@ func (c *Client) GetPipeline(ctx context.Context, pipelineName string, pipelineR
 		return nil, err
 	}
 
+	err = c.putParentContexts(ctx, &pb.PutParentContextsRequest{
+		ParentContexts: []*pb.ParentContext{{
+			ChildId:  pipelineRunContext.Id,
+			ParentId: pipelineContext.Id,
+		}},
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return &Pipeline{
 		pipelineCtx:    pipelineContext,
 		pipelineRunCtx: pipelineRunContext,
 	}, nil
+}
 
+func (c *Client) putParentContexts(ctx context.Context, req *pb.PutParentContextsRequest) error {
+	_, err := c.svc.PutParentContexts(ctx, req)
+	if err != nil {
+		if status.Convert(err).Code() == codes.AlreadyExists {
+			// already exists code is expected when multiple requests are sent in parallel
+		} else {
+			return fmt.Errorf("Failed PutParentContexts(%v): %w", req.String(), err)
+		}
+	}
+	return nil
 }
 
 func (c *Client) getContainerExecutionTypeID(ctx context.Context) (int64, error) {
