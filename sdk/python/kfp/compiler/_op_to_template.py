@@ -291,26 +291,18 @@ def _op_to_template(op: BaseOp):
     # Runtime resource requests
     if isinstance(op, dsl.ContainerOp) and ("resources" in op.container.keys()):
         podSpecPatch = {}
-        delete = []
         for setting, val in op.container["resources"].items():
             for resource, param in val.items():
-                if (resource == "cpu" or resource == "memory") and re.match("^{{inputs.parameters.*}}$", param):
-                    delete.append((setting, resource))
-                    if not "containers" in podSpecPatch:
-                        podSpecPatch = {'containers':[{'name':'main', 'resources':{}}]}
-                    if setting not in podSpecPatch["containers"][0]["resources"]:
-                        podSpecPatch['containers'][0]['resources'][setting] = {resource: param}
-                    else:
-                        podSpecPatch['containers'][0]['resources'][setting][resource] = param
-        if podSpecPatch:
-            for constrain in podSpecPatch['containers'][0]['resources'].keys():
-                for resource in podSpecPatch['containers'][0]['resources'][constrain].keys():
-                    del template["container"]["resources"][constrain][resource]
-                    if not template["container"]["resources"][constrain]:
-                        del template["container"]["resources"][constrain]
-            if not template["container"]["resources"]:
-                del template["container"]["resources"]
-            template['podSpecPatch'] = json.dumps(podSpecPatch)
+                if not "containers" in podSpecPatch:
+                    podSpecPatch = {'containers':[{'name':'main', 'resources':{}}]}
+                if setting not in podSpecPatch["containers"][0]["resources"]:
+                    podSpecPatch['containers'][0]['resources'][setting] = {resource: param}
+                else:
+                    podSpecPatch['containers'][0]['resources'][setting][resource] = param
+                del template["container"]["resources"][setting][resource]
+                if not template["container"]["resources"][setting]:
+                    del template["container"]["resources"][setting]
+        template['podSpecPatch'] = json.dumps(podSpecPatch)
             
     if isinstance(op, dsl.ContainerOp) and op._metadata and not op.is_v2:
         template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/component_spec'] = json.dumps(op._metadata.to_dict(), sort_keys=True)
