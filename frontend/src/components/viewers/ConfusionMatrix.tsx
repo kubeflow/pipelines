@@ -106,7 +106,6 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
     root: {
       flexGrow: 1,
       justifyContent: 'center',
-      margin: 'auto',
       pointerEvents: this._isSmall() ? 'none' : 'initial', // Disable interaction for snapshot view
       position: 'relative',
       width: 'fit-content',
