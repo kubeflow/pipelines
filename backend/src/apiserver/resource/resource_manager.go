@@ -653,7 +653,7 @@ func (r *ResourceManager) GetJob(id string) (*model.Job, error) {
 	return r.jobStore.GetJob(id)
 }
 
-func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
+func (r *ResourceManager) CreateJob(ctx context.Context, apiJob *api.Job) (*model.Job, error) {
 	// Get workflow from either of the two places:
 	// (1) raw pipeline manifest in pipeline_spec
 	// (2) pipeline version in resource_references
@@ -729,7 +729,7 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 		return nil, err
 	}
 
-	newScheduledWorkflow, err := r.getScheduledWorkflowClient(namespace).Create(scheduledWorkflow)
+	newScheduledWorkflow, err := r.getScheduledWorkflowClient(namespace).Create(ctx, scheduledWorkflow)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a scheduled workflow for (%s)", scheduledWorkflow.Name)
 	}
@@ -745,11 +745,11 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 	return r.jobStore.CreateJob(job)
 }
 
-func (r *ResourceManager) EnableJob(jobID string, enabled bool) error {
+func (r *ResourceManager) EnableJob(ctx context.Context, jobID string, enabled bool) error {
 	var job *model.Job
 	var err error
 	if enabled {
-		job, err = r.checkJobExist(jobID)
+		job, err = r.checkJobExist(ctx, jobID)
 	} else {
 		// We can skip custom resource existence verification, because disabling
 		// the job do not need to care about it.
@@ -760,6 +760,7 @@ func (r *ResourceManager) EnableJob(jobID string, enabled bool) error {
 	}
 
 	_, err = r.getScheduledWorkflowClient(job.Namespace).Patch(
+		ctx,
 		job.Name,
 		types.MergePatchType,
 		[]byte(fmt.Sprintf(`{"spec":{"enabled":%s}}`, strconv.FormatBool(enabled))))
@@ -778,13 +779,13 @@ func (r *ResourceManager) EnableJob(jobID string, enabled bool) error {
 	return nil
 }
 
-func (r *ResourceManager) DeleteJob(jobID string) error {
+func (r *ResourceManager) DeleteJob(ctx context.Context, jobID string) error {
 	job, err := r.jobStore.GetJob(jobID)
 	if err != nil {
 		return util.Wrap(err, "Delete job failed")
 	}
 
-	err = r.getScheduledWorkflowClient(job.Namespace).Delete(job.Name, &v1.DeleteOptions{})
+	err = r.getScheduledWorkflowClient(job.Namespace).Delete(ctx, job.Name, &v1.DeleteOptions{})
 	if err != nil {
 		if !util.IsNotFound(err) {
 			// For any error other than NotFound
@@ -949,13 +950,13 @@ func (r *ResourceManager) ReportScheduledWorkflowResource(swf *util.ScheduledWor
 // checkJobExist The Kubernetes API doesn't support CRUD by UID. This method
 // retrieve the job metadata from the database, then retrieve the CR
 // using the job name, and compare the given job id is same as the CR.
-func (r *ResourceManager) checkJobExist(jobID string) (*model.Job, error) {
+func (r *ResourceManager) checkJobExist(ctx context.Context, jobID string) (*model.Job, error) {
 	job, err := r.jobStore.GetJob(jobID)
 	if err != nil {
 		return nil, util.Wrap(err, "Check job exist failed")
 	}
 
-	scheduledWorkflow, err := r.getScheduledWorkflowClient(job.Namespace).Get(job.Name, v1.GetOptions{})
+	scheduledWorkflow, err := r.getScheduledWorkflowClient(job.Namespace).Get(ctx, job.Name, v1.GetOptions{})
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Check job exist failed")
 	}
@@ -1253,14 +1254,16 @@ func (r *ResourceManager) AuthenticateRequest(ctx context.Context) (string, erro
 	return "", utilerrors.NewAggregate(errlist)
 }
 
-func (r *ResourceManager) IsRequestAuthorized(userIdentity string, resourceAttributes *authorizationv1.ResourceAttributes) error {
+func (r *ResourceManager) IsRequestAuthorized(ctx context.Context, userIdentity string, resourceAttributes *authorizationv1.ResourceAttributes) error {
 	result, err := r.subjectAccessReviewClient.Create(
+		ctx,
 		&authorizationv1.SubjectAccessReview{
 			Spec: authorizationv1.SubjectAccessReviewSpec{
 				ResourceAttributes: resourceAttributes,
 				User:               userIdentity,
 			},
 		},
+		v1.CreateOptions{},
 	)
 	if err != nil {
 		return util.NewInternalServerError(

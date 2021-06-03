@@ -11,9 +11,9 @@ require (
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/go-ini/ini v1.51.1 // indirect
-	github.com/go-openapi/errors v0.19.6
-	github.com/go-openapi/runtime v0.19.20
-	github.com/go-openapi/strfmt v0.19.5
+	github.com/go-openapi/errors v0.19.9
+	github.com/go-openapi/runtime v0.19.24
+	github.com/go-openapi/strfmt v0.19.11
 	github.com/go-openapi/swag v0.19.12
 	github.com/go-openapi/validate v0.20.1
 	github.com/go-sql-driver/mysql v1.5.0
@@ -53,7 +53,7 @@ require (
 )
 
 replace (
-	github.com/go-openapi/validate => github.com/go-openapi/validate v0.17.2
+	//github.com/go-openapi/validate => github.com/go-openapi/validate v0.17.2
 	k8s.io/kubernetes => k8s.io/kubernetes v1.11.1
 	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.2.9
 )

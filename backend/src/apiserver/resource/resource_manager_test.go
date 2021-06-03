@@ -121,7 +121,7 @@ func initWithJob(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Job
 			},
 		},
 	}
-	j, err := manager.CreateJob(job)
+	j, err := manager.CreateJob(context.Background(), job)
 	assert.Nil(t, err)
 
 	return store, manager, j
@@ -1096,7 +1096,7 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 
 	// The pipeline specified via pipeline id will be converted to this
 	// pipeline's default version, which will be used to create run.
-	newJob, err := manager.CreateJob(job)
+	newJob, err := manager.CreateJob(context.Background(), job)
 	expectedJob := &model.Job{
 		UUID:           "123e4567-e89b-12d3-a456-426655440000",
 		DisplayName:    "j1",
@@ -1176,7 +1176,7 @@ func TestCreateJob_ThroughPipelineVersion(t *testing.T) {
 			},
 		},
 	}
-	newJob, err := manager.CreateJob(job)
+	newJob, err := manager.CreateJob(context.Background(), job)
 	expectedJob := &model.Job{
 		UUID:           "123e4567-e89b-12d3-a456-426655440000",
 		DisplayName:    "j1",
@@ -1255,7 +1255,7 @@ func TestCreateJob_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 			},
 		},
 	}
-	newJob, err := manager.CreateJob(job)
+	newJob, err := manager.CreateJob(context.Background(), job)
 	expectedJob := &model.Job{
 		UUID:           "123e4567-e89b-12d3-a456-426655440000",
 		DisplayName:    "j1",
@@ -1308,7 +1308,7 @@ func TestCreateJob_EmptyPipelineSpec(t *testing.T) {
 			},
 		},
 	}
-	_, err := manager.CreateJob(job)
+	_, err := manager.CreateJob(context.Background(), job)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to fetch workflow spec")
 }
@@ -1327,7 +1327,7 @@ func TestCreateJob_InvalidWorkflowSpec(t *testing.T) {
 			},
 		},
 	}
-	_, err := manager.CreateJob(job)
+	_, err := manager.CreateJob(context.Background(), job)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to unmarshal workflow spec manifest")
 }
@@ -1346,7 +1346,7 @@ func TestCreateJob_NullWorkflowSpec(t *testing.T) {
 			},
 		},
 	}
-	_, err := manager.CreateJob(job)
+	_, err := manager.CreateJob(context.Background(), job)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to fetch workflow spec manifest.: ResourceNotFoundError: WorkflowSpecManifest pp 1 not found.")
 }
@@ -1364,7 +1364,7 @@ func TestCreateJob_ExtraInputParameterError(t *testing.T) {
 			},
 		},
 	}
-	_, err := manager.CreateJob(job)
+	_, err := manager.CreateJob(context.Background(), job)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Unrecognized input parameter: param2")
 }
@@ -1378,7 +1378,7 @@ func TestCreateJob_FailedToCreateScheduleWorkflow(t *testing.T) {
 		Enabled:      true,
 		PipelineSpec: &api.PipelineSpec{PipelineId: p.UUID},
 	}
-	_, err := manager.CreateJob(job)
+	_, err := manager.CreateJob(context.Background(), job)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Failed to create a scheduled workflow")
 }
@@ -1386,7 +1386,7 @@ func TestCreateJob_FailedToCreateScheduleWorkflow(t *testing.T) {
 func TestEnableJob(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
-	err := manager.EnableJob(job.UUID, false)
+	err := manager.EnableJob(context.Background(), job.UUID, false)
 	job, err = manager.GetJob(job.UUID)
 	expectedJob := &model.Job{
 		UUID:           "123e4567-e89b-12d3-a456-426655440000",
@@ -1420,7 +1420,7 @@ func TestEnableJob_JobNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
-	err := manager.EnableJob("1", false)
+	err := manager.EnableJob(context.Background(), "1", false)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Job 1 not found")
 }
@@ -1429,7 +1429,7 @@ func TestEnableJob_CustomResourceFailure(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
 	manager.swfClient = client.NewFakeSwfClientWithBadWorkflow()
-	err := manager.EnableJob(job.UUID, true)
+	err := manager.EnableJob(context.Background(), job.UUID, true)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Check job exist failed: some error")
 }
@@ -1441,7 +1441,7 @@ func TestEnableJob_CustomResourceNotFound(t *testing.T) {
 	// Explicitly delete it to simulate the situation.
 	manager.getScheduledWorkflowClient(job.Namespace).Delete(context.Background(), job.Name, &v1.DeleteOptions{})
 	// When swf CR is missing, enabling the job needs to fail.
-	err := manager.EnableJob(job.UUID, true)
+	err := manager.EnableJob(context.Background(), job.UUID, true)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Check job exist failed")
 	assert.Contains(t, err.Error(), "not found")
@@ -1455,7 +1455,7 @@ func TestDisableJob_CustomResourceNotFound(t *testing.T) {
 	// The swf CR can be missing when user reinstalled KFP using existing DB data.
 	// Explicitly delete it to simulate the situation.
 	manager.getScheduledWorkflowClient(job.Namespace).Delete(context.Background(), job.Name, &v1.DeleteOptions{})
-	err := manager.EnableJob(job.UUID, false)
+	err := manager.EnableJob(context.Background(), job.UUID, false)
 	require.Nil(t, err, "Disabling the job should succeed even when the custom resource is missing.")
 	job, err = manager.GetJob(job.UUID)
 	require.Nil(t, err)
@@ -1466,7 +1466,7 @@ func TestEnableJob_DbFailure(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
 	store.DB().Close()
-	err := manager.EnableJob(job.UUID, false)
+	err := manager.EnableJob(context.Background(), job.UUID, false)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "database is closed")
 }
@@ -1474,7 +1474,7 @@ func TestEnableJob_DbFailure(t *testing.T) {
 func TestDeleteJob(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
-	err := manager.DeleteJob(job.UUID)
+	err := manager.DeleteJob(context.Background(), job.UUID)
 	assert.Nil(t, err)
 
 	_, err = manager.GetJob(job.UUID)
@@ -1486,7 +1486,7 @@ func TestDeleteJob_JobNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
-	err := manager.DeleteJob("1")
+	err := manager.DeleteJob(context.Background(), "1")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Job 1 not found")
 }
@@ -1496,7 +1496,7 @@ func TestDeleteJob_CustomResourceFailure(t *testing.T) {
 	defer store.Close()
 
 	manager.swfClient = client.NewFakeSwfClientWithBadWorkflow()
-	err := manager.DeleteJob(job.UUID)
+	err := manager.DeleteJob(context.Background(), job.UUID)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Delete job CR failed: some error")
 }
@@ -1509,7 +1509,7 @@ func TestDeleteJob_CustomResourceNotFound(t *testing.T) {
 	manager.getScheduledWorkflowClient(job.Namespace).Delete(context.Background(), job.Name, &v1.DeleteOptions{})
 
 	// Now deleting job should still succeed when the swf CR is already deleted.
-	err := manager.DeleteJob(job.UUID)
+	err := manager.DeleteJob(context.Background(), job.UUID)
 	assert.Nil(t, err)
 
 	// And verify Job has been deleted from DB too.
@@ -1524,7 +1524,7 @@ func TestDeleteJob_DbFailure(t *testing.T) {
 	defer store.Close()
 
 	store.DB().Close()
-	err := manager.DeleteJob(job.UUID)
+	err := manager.DeleteJob(context.Background(), job.UUID)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "database is closed")
 }
@@ -1649,7 +1649,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success
 		PipelineSpec: &api.PipelineSpec{WorkflowManifest: testWorkflow.ToStringForStore()},
 		// no experiment reference
 	}
-	newJob, err := manager.CreateJob(job)
+	newJob, err := manager.CreateJob(context.Background(), job)
 
 	// report workflow
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
@@ -1891,7 +1891,7 @@ func TestReportScheduledWorkflowResource_Error(t *testing.T) {
 		Enabled:      true,
 		PipelineSpec: &api.PipelineSpec{PipelineId: p.UUID},
 	}
-	newJob, err := manager.CreateJob(job)
+	newJob, err := manager.CreateJob(context.Background(), job)
 	assert.Nil(t, err)
 
 	store.Close()
