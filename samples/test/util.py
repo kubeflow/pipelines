@@ -20,6 +20,7 @@ import random
 from dataclasses import dataclass, asdict
 from pprint import pprint
 from typing import Dict, List, Callable, Optional
+from google.protobuf.json_format import MessageToDict
 
 import kfp
 import kfp_server_api
@@ -230,27 +231,15 @@ class KfpArtifact:
         mlmd_artifact_type: metadata_store_pb2.ArtifactType
     ):
         artifact_name = ''
-        if mlmd_artifact.name != '':
+        if mlmd_artifact.name:
             artifact_name = mlmd_artifact.name
         else:
             if 'name' in mlmd_artifact.custom_properties.keys():
                 artifact_name = mlmd_artifact.custom_properties['name'
                                                                ].string_value
-
-        print(mlmd_artifact.custom_properties)
-        metadata = {}
-        for k, v in mlmd_artifact.custom_properties.get('metadata'
-                                                       ).struct_value:
-            raw_value = None
-            if v.string_value:
-                raw_value = v.string_value
-            if v.int_value:
-                raw_value = v.int_value
-            if v.double_value:
-                raw_value = v.double_value
-            if v.struct_value:
-                raw_value = v.struct_value
-            metadata[k] = raw_value
+        metadata = MessageToDict(
+            mlmd_artifact.custom_properties.get('metadata').struct_value
+        )
         return cls(
             name=artifact_name,
             type=mlmd_artifact_type.name,
