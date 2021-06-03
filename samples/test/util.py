@@ -222,15 +222,25 @@ class KfpArtifact:
     name: str
     uri: str
     type: str
-    custom_properties: dict
+    metadata: dict
 
     @classmethod
     def new(
         cls, mlmd_artifact: metadata_store_pb2.Artifact,
         mlmd_artifact_type: metadata_store_pb2.ArtifactType
     ):
-        custom_properties = {}
-        for k, v in mlmd_artifact.custom_properties.items():
+        artifact_name = ''
+        if mlmd_artifact.name != '':
+            artifact_name = mlmd_artifact.name
+        else:
+            if 'name' in mlmd_artifact.custom_properties.keys():
+                artifact_name = mlmd_artifact.custom_properties['name'
+                                                               ].string_value
+
+        print(mlmd_artifact.custom_properties)
+        metadata = {}
+        for k, v in mlmd_artifact.custom_properties.get('metadata'
+                                                       ).struct_value:
             raw_value = None
             if v.string_value:
                 raw_value = v.string_value
@@ -238,18 +248,14 @@ class KfpArtifact:
                 raw_value = v.int_value
             if v.double_value:
                 raw_value = v.double_value
-            custom_properties[k] = raw_value
-        artifact_name = ''
-        if mlmd_artifact.name != '':
-            artifact_name = mlmd_artifact.name
-        else:
-            if 'name' in custom_properties.keys():
-                artifact_name = custom_properties['name']
+            if v.struct_value:
+                raw_value = v.struct_value
+            metadata[k] = raw_value
         return cls(
             name=artifact_name,
             type=mlmd_artifact_type.name,
             uri=mlmd_artifact.uri,
-            custom_properties=custom_properties
+            metadata=metadata
         )
 
 

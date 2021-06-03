@@ -121,7 +121,7 @@ func parseRuntimeInfo(jsonEncoded string) (*runtimeInfo, error) {
 func pipelineSpecValueToMLMDValue(v *pipeline_spec.Value) (*pb.Value, error) {
 	switch t := v.Value.(type) {
 	case *pipeline_spec.Value_StringValue:
-		return &pb.Value{Value: &pb.Value_StringValue{StringValue: v.GetStringValue()}}, nil
+		return stringToMLMDValue(v.GetStringValue()), nil
 	case *pipeline_spec.Value_DoubleValue:
 		return &pb.Value{Value: &pb.Value_DoubleValue{DoubleValue: v.GetDoubleValue()}}, nil
 	case *pipeline_spec.Value_IntValue:
@@ -141,7 +141,7 @@ func structValueToMLMDValue(v *structpb.Value) (*pb.Value, error) {
 
 	switch t := v.Kind.(type) {
 	case *structpb.Value_StringValue:
-		return &pb.Value{Value: &pb.Value_StringValue{StringValue: v.GetStringValue()}}, nil
+		return stringToMLMDValue(v.GetStringValue()), nil
 	case *structpb.Value_NumberValue:
 		return &pb.Value{Value: &pb.Value_DoubleValue{DoubleValue: v.GetNumberValue()}}, nil
 	case *structpb.Value_BoolValue:
@@ -192,15 +192,10 @@ func toMLMDArtifact(runtimeArtifact *pipeline_spec.RuntimeArtifact) (*pb.Artifac
 		artifact.CustomProperties[k] = value
 	}
 
-	if runtimeArtifact.Metadata != nil {
-		for k, v := range runtimeArtifact.Metadata.Fields {
-			value, err := structValueToMLMDValue(v)
-			if err != nil {
-				return nil, errorF(err)
-			}
-			artifact.CustomProperties[k] = value
-		}
-	}
+	artifact.CustomProperties["name"] = stringToMLMDValue(runtimeArtifact.Name)
+	artifact.CustomProperties["metadata"] = &pb.Value{Value: &pb.Value_StructValue{
+		StructValue: runtimeArtifact.Metadata,
+	}}
 
 	return artifact, nil
 }
@@ -354,9 +349,8 @@ func (r *runtimeInfo) generateExecutorInput(genOutputURI generateOutputURI, outp
 		}
 		if strings.HasPrefix(uri, "s3://") {
 			s3Region := os.Getenv("AWS_REGION")
-			rta.Metadata.Fields["s3_region"] = &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: s3Region}}
+			rta.Metadata.Fields["s3_region"] = stringToStructValue(s3Region)
 		}
-		rta.Metadata.Fields["name"] = &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: name}}
 
 		if err := setRuntimeArtifactType(rta, oa.InstanceSchema, oa.SchemaTitle); err != nil {
 			return nil, fmt.Errorf("failed to generate output RuntimeArtifact: %w", err)
@@ -370,4 +364,12 @@ func (r *runtimeInfo) generateExecutorInput(genOutputURI generateOutputURI, outp
 		Inputs:  inputs,
 		Outputs: outputs,
 	}, nil
+}
+
+func stringToStructValue(v string) *structpb.Value {
+	return &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: v}}
+}
+
+func stringToMLMDValue(v string) *pb.Value {
+	return &pb.Value{Value: &pb.Value_StringValue{StringValue: v}}
 }
