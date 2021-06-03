@@ -74,50 +74,6 @@ class CompilerTest(unittest.TestCase):
     finally:
       shutil.rmtree(tmpdir)
 
-  def test_compile_pipeline_with_dsl_exithandler_should_raise_error(self):
-
-    gcs_download_op = components.load_component_from_text("""
-      name: GCS - Download
-      inputs:
-      - {name: url, type: String}
-      outputs:
-      - {name: result, type: String}
-      implementation:
-        container:
-          image: gcr.io/my-project/my-image:tag
-          args:
-          - {inputValue: url}
-          - {outputPath: result}
-      """)
-
-    echo_op = components.load_component_from_text("""
-      name: echo
-      inputs:
-      - {name: msg, type: String}
-      implementation:
-        container:
-          image: gcr.io/my-project/my-image:tag
-          args:
-          - {inputValue: msg}
-      """)
-
-    @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
-    def download_and_print(
-        url: str = 'gs://ml-pipeline/shakespeare/shakespeare1.txt'):
-      """A sample pipeline showing exit handler."""
-
-      exit_task = echo_op('exit!')
-
-      with dsl.ExitHandler(exit_task):
-        download_task = gcs_download_op(url)
-        echo_task = echo_op(download_task.outputs['result'])
-
-    with self.assertRaisesRegex(
-        NotImplementedError,
-        'dsl.ExitHandler is not yet supported in KFP v2 compiler.'):
-      compiler.Compiler().compile(
-          pipeline_func=download_and_print, package_path='output.json')
-
   def test_compile_pipeline_with_dsl_graph_component_should_raise_error(self):
 
     with self.assertRaisesRegex(

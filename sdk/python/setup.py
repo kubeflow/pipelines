@@ -46,7 +46,7 @@ REQUIRES = [
     'Deprecated>=1.2.7,<2',
     'strip-hints>=0.1.8,<1',
     'docstring-parser>=0.7.3,<1',
-    'kfp-pipeline-spec>=0.1.7,<0.2.0',
+    'kfp-pipeline-spec>=0.1.8,<0.2.0',
     'fire>=0.3.1,<1',
     'protobuf>=3.13.0,<4'
 ]

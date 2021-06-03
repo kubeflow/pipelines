@@ -647,10 +647,6 @@ class Compiler(object):
         raise NotImplementedError(
             'dsl.graph_component is not yet supported in KFP v2 compiler.')
 
-      if isinstance(subgroup, dsl.OpsGroup) and subgroup.type == 'exit_handler':
-        raise NotImplementedError(
-            'dsl.ExitHandler is not yet supported in KFP v2 compiler.')
-
       if isinstance(subgroup, dsl.ContainerOp):
         if hasattr(subgroup, 'importer_spec'):
           importer_task_name = subgroup.task_spec.task_info.name
@@ -909,7 +905,59 @@ class Compiler(object):
           op_name_to_parent_groups,
       )
 
+    # Exit Handler
+    if pipeline.groups[0].groups:
+      first_group = pipeline.groups[0].groups[0]
+      if first_group.type == 'exit_handler':
+        exit_handler_op = first_group.exit_op
+
+        # Add exit op task spec
+        task_name = exit_handler_op.task_spec.task_info.name
+        exit_handler_op.task_spec.dependent_tasks.extend(
+            pipeline_spec.root.dag.tasks.keys())
+        exit_handler_op.task_spec.trigger_policy.strategy = (
+            pipeline_spec_pb2.PipelineTaskSpec.TriggerPolicy.TriggerStrategy
+            .ALL_UPSTREAM_TASKS_COMPLETED)
+        pipeline_spec.root.dag.tasks[task_name].CopyFrom(
+            exit_handler_op.task_spec)
+
+        # Add exit op component spec if it does not exist.
+        component_name = exit_handler_op.task_spec.component_ref.name
+        if component_name not in pipeline_spec.components:
+          pipeline_spec.components[component_name].CopyFrom(
+              exit_handler_op.component_spec)
+
+        # Add exit op executor spec if it does not exist.
+        executor_label = exit_handler_op.component_spec.executor_label
+        if executor_label not in deployment_config.executors:
+          deployment_config.executors[executor_label].container.CopyFrom(
+              exit_handler_op.container_spec)
+          pipeline_spec.deployment_spec.update(
+              json_format.MessageToDict(deployment_config))
+
     return pipeline_spec
+
+  def _validate_exit_handler(self, pipeline):
+    """Makes sure there is only one global exit handler.
+
+    This is temporary to be compatible with KFP v1.
+    """
+
+    def _validate_exit_handler_helper(group, exiting_op_names, handler_exists):
+      if group.type == 'exit_handler':
+        if handler_exists or len(exiting_op_names) > 1:
+          raise ValueError(
+              'Only one global exit_handler is allowed and all ops need to be included.'
+          )
+        handler_exists = True
+
+      if group.ops:
+        exiting_op_names.extend([x.name for x in group.ops])
+
+      for g in group.groups:
+        _validate_exit_handler_helper(g, exiting_op_names, handler_exists)
+
+    return _validate_exit_handler_helper(pipeline.groups[0], [], False)
 
   # TODO: Sanitizing beforehand, so that we don't need to sanitize here.
   def _sanitize_and_inject_artifact(self, pipeline: dsl.Pipeline) -> None:
@@ -1006,6 +1054,7 @@ class Compiler(object):
     with dsl.Pipeline(pipeline_name) as dsl_pipeline:
       pipeline_func(*args_list)
 
+    self._validate_exit_handler(dsl_pipeline)
     self._sanitize_and_inject_artifact(dsl_pipeline)
 
     # Fill in the default values.
