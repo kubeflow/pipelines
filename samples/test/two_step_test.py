@@ -24,8 +24,6 @@ import kfp_server_api
 from .two_step import two_step_pipeline
 from .util import run_pipeline_func, TestCase, KfpMlmdClient
 
-# ARGO_WORKFLOW = 'two-step-pipeline-mjnl7'
-
 
 def get_tasks(mlmd_connection_config, argo_workflow_name: str):
     # Verify MLMD state
@@ -138,9 +136,6 @@ def verify_with_specific_pipeline_root(
 
 
 if __name__ == '__main__':
-    # verify(
-    #     run=None, mlmd_connection_config=None, argo_workflow_name=ARGO_WORKFLOW
-    # ),
     run_pipeline_func([
         TestCase(
             pipeline_func=two_step_pipeline,
