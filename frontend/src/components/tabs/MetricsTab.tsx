@@ -15,43 +15,23 @@
  */
 
 import { Artifact, ArtifactType, Execution } from '@kubeflow/frontend';
-import HelpIcon from '@material-ui/icons/Help';
 import * as React from 'react';
 import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
-import IconWithTooltip from 'src/atoms/IconWithTooltip';
-import { color, commonCss, padding } from 'src/Css';
 import { ErrorBoundary } from 'src/atoms/ErrorBoundary';
+import { commonCss, padding } from 'src/Css';
 import {
   ExecutionHelpers,
-  filterArtifactsByType,
   getArtifactTypes,
   getOutputArtifactsInExecution,
 } from 'src/lib/MlmdUtils';
 import Banner from '../Banner';
 import { RoutePageFactory } from '../Router';
-import ROCCurve, { ROCCurveConfig } from '../viewers/ROCCurve';
-import { PlotType } from '../viewers/Viewer';
-
-const ROC_CURVE_DEFINITION =
-  'The receiver operating characteristic (ROC) curve shows the trade-off between true positive rate and false positive rate. ' +
-  'A lower threshold results in a higher true positive rate (and a higher false positive rate), ' +
-  'while a higher threshold results in a lower true positive rate (and a lower false positive rate)';
-
-type ConfidenceMetric = {
-  confidenceThreshold: string;
-  falsePositiveRate: number;
-  recall: number;
-};
+import { MetricsVisualizations } from '../viewers/MetricsVisualizations';
 
 type MetricsTabProps = {
   execution: Execution;
 };
-
-interface MetricsSwitcherProps {
-  artifacts: Artifact[];
-  artifactTypes: ArtifactType[];
-}
 
 /**
  * Metrics tab renders metrics for the artifact of given execution.
@@ -139,111 +119,13 @@ export function MetricsTab({ execution }: MetricsTabProps) {
             />
           )}
           {isSuccessArtifacts && isSuccessArtifactTypes && artifacts && artifactTypes && (
-            <MetricsSwitcher artifacts={artifacts} artifactTypes={artifactTypes}></MetricsSwitcher>
+            <MetricsVisualizations
+              artifacts={artifacts}
+              artifactTypes={artifactTypes}
+            ></MetricsVisualizations>
           )}
         </div>
       </div>
     </ErrorBoundary>
   );
-}
-
-/**
- * Visualize system metrics based on artifact input.
- */
-function MetricsSwitcher({ artifacts, artifactTypes }: MetricsSwitcherProps) {
-  // system.ClassificationMetrics contains confusionMatrix or confidenceMetrics.
-  // TODO: Visualize confusionMatrix using system.ClassificationMetrics artifacts.
-  // https://github.com/kubeflow/pipelines/issues/5668
-  let classificationMetricsArtifacts = filterArtifactsByType(
-    'system.ClassificationMetrics',
-    artifactTypes,
-    artifacts,
-  );
-
-  const confidenceMetricsArtifacts = classificationMetricsArtifacts
-    .map(artifact => ({
-      id: artifact.getId(),
-      name: artifact
-        .getCustomPropertiesMap()
-        .get('name')
-        ?.getStringValue(),
-      customProperties: artifact.getCustomPropertiesMap(),
-    }))
-    .filter(x => !!x.name)
-    .filter(x => {
-      const confidenceMetrics = x.customProperties
-        .get('confidenceMetrics')
-        ?.getStructValue()
-        ?.toJavaScript();
-
-      return !!confidenceMetrics;
-    });
-
-  if (!confidenceMetricsArtifacts || confidenceMetricsArtifacts.length === 0) {
-    return <Banner message='There is no metrics artifact available in this step.' mode='info' />;
-  }
-  return (
-    <>
-      {confidenceMetricsArtifacts &&
-        confidenceMetricsArtifacts.length > 0 &&
-        confidenceMetricsArtifacts.map(artifact => {
-          const confidenceMetrics = artifact.customProperties
-            .get('confidenceMetrics')
-            ?.getStructValue()
-            ?.toJavaScript();
-          const { error } = validateConfidenceMetrics((confidenceMetrics as any).list);
-
-          if (error) {
-            const errorMsg =
-              'Error in ' + artifact.name + " artifact's confidenceMetrics data format.";
-            return <Banner message={errorMsg} mode='error' additionalInfo={error} />;
-          }
-          return (
-            <>
-              {!error && confidenceMetrics && (
-                <div key={'confidenceMetrics' + artifact.id}>
-                  <div className={padding(40, 'lrt')}>
-                    <h1>
-                      {'ROC Curve: ' + artifact.customProperties.get('name')?.getStringValue()}{' '}
-                      <IconWithTooltip
-                        Icon={HelpIcon}
-                        iconColor={color.weak}
-                        tooltip={ROC_CURVE_DEFINITION}
-                      ></IconWithTooltip>
-                    </h1>
-                  </div>
-                  <ROCCurve configs={buildRocCurveConfig((confidenceMetrics as any).list)} />
-                </div>
-              )}
-            </>
-          );
-        })}
-    </>
-  );
-}
-
-function validateConfidenceMetrics(inputs: any): { error?: string } {
-  if (!Array.isArray(inputs)) return { error: 'ConfidenceMetrics is not an array.' };
-  for (let i = 0; i < inputs.length; i++) {
-    const metric = inputs[i] as ConfidenceMetric;
-    if (metric.confidenceThreshold == null)
-      return { error: 'confidenceThreshold not found for item with index ' + i };
-    if (metric.falsePositiveRate == null)
-      return { error: 'falsePositiveRate not found for item with index ' + i };
-    if (metric.recall == null) return { error: 'recall not found for item with index ' + i };
-  }
-  return {};
-}
-
-function buildRocCurveConfig(confidenceMetricsArray: ConfidenceMetric[]): ROCCurveConfig[] {
-  return [
-    {
-      type: PlotType.ROC,
-      data: confidenceMetricsArray.map(metric => ({
-        label: metric.confidenceThreshold,
-        x: metric.falsePositiveRate,
-        y: metric.recall,
-      })),
-    },
-  ];
 }
