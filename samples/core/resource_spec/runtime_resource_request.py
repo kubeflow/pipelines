@@ -41,7 +41,7 @@ def resource_request_pipeline(n: int = 11234567):
         .set_cpu_limit(resouce_task.outputs['cpu'])\
         .set_cpu_request('200m')
 
-        # Disable cache for KFP v1 mode.
+    # Disable cache for KFP v1 mode.
     traning_task.execution_options.caching_strategy.max_cache_staleness = 'P0D'
 
 if __name__ == '__main__':
