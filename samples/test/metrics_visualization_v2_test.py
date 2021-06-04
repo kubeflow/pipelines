@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import unittest
-import unittest.mock
+import unittest.mock as mock
 from pprint import pprint
 import kfp
 import kfp_server_api
