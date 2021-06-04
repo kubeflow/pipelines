@@ -117,8 +117,8 @@ func init() {
 	flag.IntVar(&clientBurst, "clientBurst", 10, "Maximum burst for throttle from this client.")
 	var err error
 	location, err = util.GetLocation()
-	log.Infof("Location: %s", location.String())
 	if err != nil {
 		log.Fatalf("Error running controller: %s", err.Error())
 	}
+	log.Infof("Location: %s", location.String())
 }
