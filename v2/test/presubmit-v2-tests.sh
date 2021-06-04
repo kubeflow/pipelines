@@ -16,7 +16,6 @@
 
 # Fail the entire script when any command fails.
 set -ex
-NAMESPACE=${NAMESPACE:-kubeflow}
 # The current directory is /home/prow/go/src/github.com/kubeflow/pipelines
 # 1. install go in /home/prow/go1.13.3
 cd /home/prow
@@ -31,7 +30,5 @@ cd /home/prow/go/src/github.com/kubeflow/pipelines/v2
 ${GO_CMD} mod download
 ${GO_CMD} mod tidy
 git diff --exit-code -- go.mod go.sum || (echo "go modules are not tidy, run 'go mod tidy'." && exit 1)
-# Note, for tests that use metadata grpc api, port-forward it locally in a separate terminal by:
-kubectl port-forward svc/metadata-grpc-service 8080:8080 -n $NAMESPACE
 # 3. run test in project directory
 ${GO_CMD} test -v -cover ./...
