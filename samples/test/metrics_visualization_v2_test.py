@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import unittest
-from unittest.mock import ANY
+import unittest.mock
 from pprint import pprint
 import kfp
 import kfp_server_api
@@ -135,11 +135,11 @@ def verify(
                                 'displayName': 'Virginica'
                             }],
                             'rows': [{ # these numbers can be random during execution
-                                'row': [ANY, ANY, ANY]
+                                'row': [mock.ANY, mock.ANY, mock.ANY]
                             }, {
-                                'row': [ANY, ANY, ANY]
+                                'row': [mock.ANY, mock.ANY, mock.ANY]
                             }, {
-                                'row': [ANY, ANY, ANY]
+                                'row': [mock.ANY, mock.ANY, mock.ANY]
                             }]
                         }
                     },
