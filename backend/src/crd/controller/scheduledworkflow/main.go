@@ -43,7 +43,6 @@ var (
 )
 
 func main() {
-	initEnv()
 	flag.Parse()
 
 	// set up signals so we handle the first shutdown signal gracefully
@@ -107,6 +106,8 @@ func initEnv() {
 }
 
 func init() {
+	initEnv()
+
 	flag.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&namespace, "namespace", "", "The namespace name used for Kubernetes informers to obtain the listers.")
@@ -116,6 +117,7 @@ func init() {
 	flag.IntVar(&clientBurst, "clientBurst", 10, "Maximum burst for throttle from this client.")
 	var err error
 	location, err = util.GetLocation()
+	log.Info("Location: %s", location.String())
 	if err != nil {
 		log.Fatalf("Error running controller: %s", err.Error())
 	}
