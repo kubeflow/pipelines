@@ -927,9 +927,21 @@ class Compiler(object):
     op_transformers.extend(pipeline_conf.op_transformers)
 
     if self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
+      # Add self._pipeline_name_param and self._pipeline_root_param to ops inputs
+      # if they don't exist already.
       for op in dsl_pipeline.ops.values():
-        op.inputs.append(self._pipeline_name_param)
-        op.inputs.append(self._pipeline_root_param)
+        insert_pipeline_name_param = True
+        insert_pipeline_root_param = True
+        for param in op.inputs:
+          if param.name == self._pipeline_name_param.name:
+            insert_pipeline_name_param = False
+          elif param.name == self._pipeline_root_param.name:
+            insert_pipeline_root_param = False
+
+        if insert_pipeline_name_param:
+          op.inputs.append(self._pipeline_name_param)
+        if insert_pipeline_root_param:
+          op.inputs.append(self._pipeline_root_param)
 
     workflow = self._create_pipeline_workflow(
         args_list_with_defaults,
@@ -1030,6 +1042,12 @@ class Compiler(object):
 
     import kfp
     type_check_old_value = kfp.TYPE_CHECK
+    compiling_for_v2_old_value = kfp.COMPILING_FOR_V2
+    kfp.COMPILING_FOR_V2 = self._mode in [
+        dsl.PipelineExecutionMode.V2_COMPATIBLE,
+        dsl.PipelineExecutionMode.V2_ENGINE,
+    ]
+
     try:
       kfp.TYPE_CHECK = type_check
       self._create_and_write_workflow(
@@ -1038,6 +1056,7 @@ class Compiler(object):
           package_path=package_path)
     finally:
       kfp.TYPE_CHECK = type_check_old_value
+      kfp.COMPILING_FOR_V2 = compiling_for_v2_old_value
 
   @staticmethod
   def _write_workflow(workflow: Dict[Text, Any], package_path: Text = None):
