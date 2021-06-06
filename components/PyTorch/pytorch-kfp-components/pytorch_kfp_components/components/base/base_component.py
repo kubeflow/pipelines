@@ -13,9 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Pipeline Base component class."""
+
 import abc
-from pytorch_kfp_components.types import standard_component_specs
 from six import with_metaclass
+from pytorch_kfp_components.types import standard_component_specs
 
 
 class BaseComponent(with_metaclass(abc.ABCMeta, object)):  # pylint: disable=R0903
