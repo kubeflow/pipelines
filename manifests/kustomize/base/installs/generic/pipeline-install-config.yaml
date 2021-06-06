@@ -3,6 +3,14 @@ kind: ConfigMap
 metadata:
   name: pipeline-install-config
 data:
+  warning: |
+    1. Do not use kubectl to edit this configmap, because some values are used
+    during kustomize build. Instead, change the configmap and apply the entire
+    kustomize manifests again.
+    2. After updating the configmap, some deployments may need to be restarted
+    until the changes take effect. A quick way to restart all deployments in a
+    namespace: `kubectl rollout restart deployment -n <your-namespace>`.
+
   appName: pipeline
   appVersion: 1.6.0
   dbHost: mysql
@@ -11,6 +19,36 @@ data:
   cacheDb: cachedb
   pipelineDb: mlpipeline
   bucketName: mlpipeline
+
+  ## defaultPipelineRoot: Optional. Default pipeline root in v2 compatible mode.
+  ## https://www.kubeflow.org/docs/components/pipelines/sdk/v2/v2-compatibility/
+  ##
+  ## If the field is not set, kfp-launcher configmaps won't be created and 
+  ## v2 compatible mode defaults to minio://mlpipeline/v2/artifacts as pipeline
+  ## root.
+  ##
+  ## When not in Kubeflow Pipelines multi-user mode, the config works as you
+  ## would normally expect.
+  ##
+  ## In Kubeflow Pipelines multi-user mode, the config creates default
+  ## kfp-launcher configmaps in each user's namespace. Users can edit the
+  ## kfp-launcher configmap's defaultPipelineRoot field afterwards to configure
+  ## namespace-specific default pipeline root. The namespace specific changes in
+  ## kfp-launcher configmap won't be overridden by pipeline-install-config.
+  ##
+  ## Caveat: when you update the config from a non-empty value, only new
+  ## namespaces get the updated config by default. Owners of existing namespaces
+  ## must delete the kfp-launcher configmap to get the new default config value.
+  ##
+  ## Examples:
+  ## defaultPipelineRoot: minio://mlpipeline/v2/artifacts
+  ## defaultPipelineRoot: gs://your-bucket/path/to/artifacts
+  ## defaultPipelineRoot: s3://your-bucket/path/to/artifacts
+  ##
+  ## V2 Compatible Mode Feature stage:
+  ## [Beta](https://github.com/kubeflow/pipelines/blob/master/docs/release/feature-stages.md#beta)
+  defaultPipelineRoot: ""
+
   ## autoUpdatePipelineDefaultVersion: States if the pipeline version
   ## should be updated by defult for a versioned pipeline or not when a new
   ## version is uploaded. This sets the deployment wide definition.
@@ -20,7 +58,7 @@ data:
   ## cluster will be used. Valid values are UTC, Local or values according to
   ## the IANA Time Zone database, such as "America/New_York" and "Asia/Shanghai".
   ## Feature stage:
-  ## [Alpha](https://github.com/kubeflow/pipelines/blob/07328e5094ac2981d3059314cc848fbb71437a76/docs/release/feature-stages.md#alpha)
+  ## [Alpha](https://github.com/kubeflow/pipelines/blob/master/docs/release/feature-stages.md#alpha)
   cronScheduleTimezone: "UTC"
   ## cacheImage is the image that the mutating webhook will use to patch
   ## cached steps with. Will be used to echo a message announcing that 

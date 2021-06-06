@@ -16,21 +16,28 @@
 
 import {
   Api,
+  Artifact,
+  ArtifactType,
   Context,
+  Event,
   Execution,
   ExecutionCustomProperties,
-  getResourcePropertyViaFallBack,
   ExecutionProperties,
-  getResourceProperty,
-  Artifact,
-} from '@kubeflow/frontend';
-import {
+  GetArtifactsByIDRequest,
+  GetArtifactsByIDResponse,
+  GetArtifactTypesRequest,
+  GetArtifactTypesResponse,
   GetContextByTypeAndNameRequest,
+  GetEventsByExecutionIDsRequest,
+  GetEventsByExecutionIDsResponse,
   GetExecutionsByContextRequest,
-} from '@kubeflow/frontend/src/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
+  getResourceProperty,
+  getResourcePropertyViaFallBack,
+} from '@kubeflow/frontend';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import { Workflow } from 'third_party/argo-ui/argo_template';
 import { logger } from './Utils';
+import { isV2Pipeline } from './v2/WorkflowUtils';
 
 async function getContext({ type, name }: { type: string; name: string }): Promise<Context> {
   if (type === '') {
@@ -85,7 +92,7 @@ async function getKfpV2RunContext(argoWorkflowName: string): Promise<Context> {
 
 export async function getRunContext(workflow: Workflow): Promise<Context> {
   const workflowName = workflow?.metadata?.name || '';
-  if (workflow?.metadata?.annotations?.['pipelines.kubeflow.org/v2_pipeline'] === 'true') {
+  if (isV2Pipeline(workflow)) {
     return await getKfpV2RunContext(workflowName);
   }
   try {
@@ -168,4 +175,64 @@ function getStringValue(value?: string | number | Struct | null): string | undef
     return undefined;
   }
   return value;
+}
+
+/**
+ * @throws error when network error or invalid data
+ */
+export async function getOutputArtifactsInExecution(execution: Execution): Promise<Artifact[]> {
+  const executionId = execution.getId();
+  if (!executionId) {
+    throw new Error('Execution must have an ID');
+  }
+
+  const request = new GetEventsByExecutionIDsRequest();
+  request.addExecutionIds(executionId);
+  let res: GetEventsByExecutionIDsResponse;
+  try {
+    res = await Api.getInstance().metadataStoreService.getEventsByExecutionIDs(request);
+  } catch (err) {
+    err.message = 'Failed to getExecutionsByExecutionIDs: ' + err.message;
+    throw err;
+  }
+
+  const outputArtifactIds = res
+    .getEventsList()
+    .filter(event => event.getType() === Event.Type.OUTPUT && event.getArtifactId())
+    .map(event => event.getArtifactId());
+
+  const artifactsRequest = new GetArtifactsByIDRequest();
+  artifactsRequest.setArtifactIdsList(outputArtifactIds);
+  let artifactsRes: GetArtifactsByIDResponse;
+  try {
+    artifactsRes = await Api.getInstance().metadataStoreService.getArtifactsByID(artifactsRequest);
+  } catch (artifactsErr) {
+    artifactsErr.message = 'Failed to getArtifactsByID: ' + artifactsErr.message;
+    throw artifactsErr;
+  }
+
+  return artifactsRes.getArtifactsList();
+}
+
+export async function getArtifactTypes(): Promise<ArtifactType[]> {
+  const request = new GetArtifactTypesRequest();
+  let res: GetArtifactTypesResponse;
+  try {
+    res = await Api.getInstance().metadataStoreService.getArtifactTypes(request);
+  } catch (err) {
+    err.message = 'Failed to getArtifactTypes: ' + err.message;
+    throw err;
+  }
+  return res.getArtifactTypesList();
+}
+
+export function filterArtifactsByType(
+  artifactTypeName: string,
+  artifactTypes: ArtifactType[],
+  artifacts: Artifact[],
+): Artifact[] {
+  const artifactTypeIds = artifactTypes
+    .filter(artifactType => artifactType.getName() === artifactTypeName)
+    .map(artifactType => artifactType.getId());
+  return artifacts.filter(artifact => artifactTypeIds.includes(artifact.getTypeId()));
 }

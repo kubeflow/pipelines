@@ -133,7 +133,7 @@ def run_as_aiplatform_custom_job(
       worker_pool_spec['diskSpec']['bootDiskSizeGb'] = boot_disk_size_gb
 
     job_spec['workerPoolSpecs'] = [worker_pool_spec]
-    if replica_count > 1:
+    if replica_count is not None and replica_count > 1:
       additional_worker_pool_spec = copy.deepcopy(worker_pool_spec)
       additional_worker_pool_spec['replicaCount'] = str(replica_count-1)
       job_spec['workerPoolSpecs'].append(additional_worker_pool_spec)

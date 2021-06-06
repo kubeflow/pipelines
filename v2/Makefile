@@ -48,5 +48,5 @@ start-mlmd:
 	docker run -p 8080:8080 \
 		--env MLMD_CONFIG=connection_config{sqlite{filename_uri:\"file:///mlmd.db\"}} \
 		--entrypoint /bin/bash \
-		gcr.io/tfx-oss-public/ml_metadata_store_server:0.30.0 \
+		gcr.io/tfx-oss-public/ml_metadata_store_server:1.0.0 \
 		-exc 'echo "$${MLMD_CONFIG}" > config && /bin/metadata_store_server -metadata_store_server_config_file config'

@@ -48,7 +48,7 @@ kustomization_yamls_v3=(
 )
 for path in "${kustomization_yamls_v3[@]}"
 do
-  kustomize build --load_restrictor none "${MANIFESTS_DIR}/${path}" >/dev/null
+  kustomize build "${MANIFESTS_DIR}/${path}" >/dev/null
 done
 
 # verify these manifests work with kpt
