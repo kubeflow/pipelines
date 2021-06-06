@@ -112,4 +112,3 @@ class BaseComponent(with_metaclass(abc.ABCMeta, object)):  # pylint: disable=R09
                     actual_type=actual_type,
                 )
             )
-            

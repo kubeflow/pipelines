@@ -1,5 +1,5 @@
 #!/usr/bin/env/python3
-# 
+#
 # Copyright (c) Facebook, Inc. and its affiliates.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -111,8 +111,7 @@ class Executor(GenericExecutor):
             print("Saving model to {}".format(model_save_path))
             torch.save(model.state_dict(), model_save_path)
 
-            output_dict[standard_component_specs.TRAINER_MODEL_SAVE_PATH
-                       ] = model_save_path
+            output_dict[standard_component_specs.TRAINER_MODEL_SAVE_PATH] = model_save_path
             output_dict[standard_component_specs.PTL_TRAINER_OBJ] = trainer
 
         else:

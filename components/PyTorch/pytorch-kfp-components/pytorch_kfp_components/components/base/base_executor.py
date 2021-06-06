@@ -35,10 +35,9 @@ class BaseExecutor(with_metaclass(abc.ABCMeta, object)):  # pylint: disable=R090
         """Log inputs, outputs, and executor properties in a standard
         format."""
         class_name = self.__class__.__name__
-        logging.debug("Starting %s execution.",class_name)
-        logging.debug("Inputs for %s are: %s .",class_name, input_dict)
-        logging.debug("Outputs for %s are: %s.",class_name, output_dict)
+        logging.debug("Starting %s execution.", class_name)
+        logging.debug("Inputs for %s are: %s .", class_name, input_dict)
+        logging.debug("Outputs for %s are: %s.", class_name, output_dict)
         logging.debug(
             "Execution Properties for %s are: %s",
-                class_name, exec_properties)
-
+            class_name, exec_properties)

@@ -21,40 +21,48 @@ import types
 
 from setuptools import setup, find_packages
 
+
 def make_required_install_packages():
-  return [
+    return [
       "kfp>=1.6.1",
       "torch>=1.7.1",
       "torchserve>=0.3.0",
       "torch-model-archiver",
       "pytorch-lightning==1.3.2",
-  ]
+    ]
+
 
 def make_required_test_packages():
-  return make_required_install_packages() + [
+    return make_required_install_packages() + [
       "mock>=4.0.0",
       "flake8>=3.0.0",
       "pylint",
       "pytest>=6.0.0",
-  ]
+      "wget",
+      "pandas",
+      "minio"
+    ]
+
 
 def make_dependency_links():
-  return []
+    return []
 
-def detect_version(relative_directory):
+
+def detect_version(base_path):
     loader = importlib.machinery.SourceFileLoader(
         fullname="version",
-        path=os.path.join(relative_directory, "pytorch_kfp_components/__init__.py"),
+        path=os.path.join(base_path,
+                          "pytorch_kfp_components/__init__.py"),
     )
     version = types.ModuleType(loader.name)
     loader.exec_module(version)
     return version
 
 
+if __name__ == "__main__":
+    relative_directory = os.path.relpath(
+        os.path.dirname(os.path.abspath(__file__)))
 
-if __name__ == '__main__':
-    relative_directory = os.path.relpath(os.path.dirname(os.path.abspath(__file__)))
-    
     version = detect_version(relative_directory)
 
     setup(
