@@ -18,7 +18,8 @@ def make_required_install_packages():
   return [
       "kfp>=1.6.1",
       "torch>=1.7.1",
-      "torchserve>=0.3.0"
+      "torchserve>=0.3.0",
+      "torch-model-archiver",
       "pytorch-lightning==1.3.2",
   ]
 
