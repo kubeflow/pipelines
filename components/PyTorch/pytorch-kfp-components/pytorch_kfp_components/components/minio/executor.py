@@ -132,7 +132,7 @@ class Executor(BaseExecutor):
         bucket_name = input_dict.get(
             standard_component_specs.MINIO_BUCKET_NAME)
         folder_name = input_dict.get(
-            standard_component_specs.MINIO_BUCKET_NAME)
+            standard_component_specs.MINIO_DESTINATION)
         endpoint = exec_properties.get(standard_component_specs.MINIO_ENDPOINT)
         return source, bucket_name, folder_name, endpoint
 
