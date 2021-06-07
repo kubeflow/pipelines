@@ -57,8 +57,10 @@ MINIO_BUCKET_NAME = "bucket_name"
 MINIO_DESTINATION = "destination"
 MINIO_ENDPOINT = "endpoint"
 
+
 class Parameters:  # pylint: disable=R0903
     """Parameter class to match the desired type."""
+
     def __init__(self, type=None, optional=False):  # pylint: disable=redefined-builtin
         self.type = type
         self.optional = optional
@@ -142,6 +144,9 @@ class VisualizationSpec:
 
 
 class MinIoSpec:
+    """Minio Specification class.
+    For validating the parameter 'type' .
+    """
     INPUT_DICT = {
         MINIO_SOURCE: Parameters(type=str),
         MINIO_BUCKET_NAME: Parameters(type=str),
