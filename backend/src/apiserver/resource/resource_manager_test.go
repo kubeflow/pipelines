@@ -228,12 +228,7 @@ func createPipeline(name string) *model.Pipeline {
 		}}
 }
 
-func createRunExpectedWorkflow(params []v1alpha1.Parameter, labels map[string]string, annotations map[string]string, serviceAccount string) *v1alpha1.Workflow {
-	wf := testWorkflow.DeepCopy()
-	wf.Spec.Arguments.Parameters = params
-	wf.Labels = labels
-	wf.Annotations = annotations
-	wf.Spec.ServiceAccountName = serviceAccount
+func withCreateRunMetadata(wf *v1alpha1.Workflow) *v1alpha1.Workflow {
 	template := wf.Spec.Templates[0]
 	template.Metadata.Annotations = map[string]string{"sidecar.istio.io/inject": "false"}
 	template.Metadata.Labels = map[string]string{"pipelines.kubeflow.org/cache_enabled": "true"}
@@ -383,12 +378,12 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	runDetail, err := manager.CreateRun(context.Background(), apiRun)
 	assert.Nil(t, err)
 
-	expectedRuntimeWorkflow := createRunExpectedWorkflow(
-		[]v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}},
-		map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"},
-		map[string]string{util.AnnotationKeyRunName: "run1"},
-		defaultPipelineRunnerServiceAccount,
-	)
+	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	expectedRuntimeWorkflow = withCreateRunMetadata(expectedRuntimeWorkflow)
+	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
+	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
+	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
+	expectedRuntimeWorkflow.Spec.ServiceAccountName = defaultPipelineRunnerServiceAccount
 
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
@@ -440,11 +435,12 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRun(t)
 	expectedExperimentUUID := runDetail.ExperimentUUID
-	expectedRuntimeWorkflow := createRunExpectedWorkflow(
-		[]v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}},
-		map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"},
-		map[string]string{util.AnnotationKeyRunName: "run1"},
-		defaultPipelineRunnerServiceAccount)
+	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	expectedRuntimeWorkflow = withCreateRunMetadata(expectedRuntimeWorkflow)
+	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
+	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
+	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
+	expectedRuntimeWorkflow.Spec.ServiceAccountName = defaultPipelineRunnerServiceAccount
 
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
@@ -489,11 +485,12 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 	viper.Set(DefaultBucketNameEnvVar, "test-default-bucket")
 	store, manager, runDetail := initWithPatchedRun(t)
 	expectedExperimentUUID := runDetail.ExperimentUUID
-	expectedRuntimeWorkflow := createRunExpectedWorkflow(
-		[]v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("test-default-bucket")}},
-		map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"},
-		map[string]string{util.AnnotationKeyRunName: "run1"},
-		defaultPipelineRunnerServiceAccount)
+	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	expectedRuntimeWorkflow = withCreateRunMetadata(expectedRuntimeWorkflow)
+	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
+	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
+	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("test-default-bucket")}}
+	expectedRuntimeWorkflow.Spec.ServiceAccountName = defaultPipelineRunnerServiceAccount
 
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
@@ -575,11 +572,12 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 	runDetail, err := manager.CreateRun(context.Background(), apiRun)
 	assert.Nil(t, err)
 
-	expectedRuntimeWorkflow := createRunExpectedWorkflow(
-		[]v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}},
-		map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"},
-		map[string]string{util.AnnotationKeyRunName: "run1"},
-		"sa1")
+	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	expectedRuntimeWorkflow = withCreateRunMetadata(expectedRuntimeWorkflow)
+	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
+	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
+	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
+	expectedRuntimeWorkflow.Spec.ServiceAccountName = "sa1"
 
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
@@ -670,11 +668,12 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 	runDetail, err := manager.CreateRun(context.Background(), apiRun)
 	assert.Nil(t, err)
 
-	expectedRuntimeWorkflow := createRunExpectedWorkflow(
-		[]v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}},
-		map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"},
-		map[string]string{util.AnnotationKeyRunName: "run1"},
-		"sa1")
+	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	expectedRuntimeWorkflow = withCreateRunMetadata(expectedRuntimeWorkflow)
+	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
+	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
+	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
+	expectedRuntimeWorkflow.Spec.ServiceAccountName = "sa1"
 
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
