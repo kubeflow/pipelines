@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Training Executor class."""
 
 import os
@@ -28,8 +27,8 @@ from pytorch_kfp_components.types import standard_component_specs
 class Executor(GenericExecutor):
     """The Training Executor class."""
 
-    def __init__(self):
-        super(Executor, self).__init__()
+    def __init__(self):  # pylint:disable=useless-super-delegation
+        super().__init__()
 
     def Do(self, input_dict: dict, output_dict: dict, exec_properties: dict):
         """This function of the Executor invokes the PyTorch Lightning training
@@ -108,10 +107,12 @@ class Executor(GenericExecutor):
                 model_name = "model_state_dict.pth"
 
             model_save_path = os.path.join(model_save_path, model_name)
-            print("Saving model to {}".format(model_save_path))
-            torch.save(model.state_dict(), model_save_path)
+            if trainer.global_rank == 0:
+                print("Saving model to {}".format(model_save_path))
+                torch.save(model.state_dict(), model_save_path)
 
-            output_dict[standard_component_specs.TRAINER_MODEL_SAVE_PATH] = model_save_path
+            output_dict[standard_component_specs.TRAINER_MODEL_SAVE_PATH
+                       ] = model_save_path
             output_dict[standard_component_specs.PTL_TRAINER_OBJ] = trainer
 
         else:
