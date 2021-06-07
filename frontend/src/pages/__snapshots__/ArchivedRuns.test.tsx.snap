@@ -1,0 +1,55 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ArchivedRuns renders archived runs 1`] = `
+<div
+  className="page"
+>
+  <RunList
+    history={
+      Object {
+        "push": [MockFunction],
+      }
+    }
+    location={Object {}}
+    match={Object {}}
+    onError={[Function]}
+    onSelectionChange={[Function]}
+    selectedIds={Array []}
+    storageState="STORAGESTATE_ARCHIVED"
+    toolbarProps={
+      Object {
+        "actions": Object {
+          "deleteRun": Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select at least one run to delete",
+            "id": "deleteBtn",
+            "title": "Delete",
+            "tooltip": "Delete",
+          },
+          "refresh": Object {
+            "action": [Function],
+            "id": "refreshBtn",
+            "title": "Refresh",
+            "tooltip": "Refresh the list",
+          },
+          "restore": Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select at least one resource to restore",
+            "id": "restoreBtn",
+            "title": "Restore",
+            "tooltip": "Restore",
+          },
+        },
+        "breadcrumbs": Array [],
+        "pageTitle": "Runs",
+      }
+    }
+    updateBanner={[MockFunction]}
+    updateDialog={[MockFunction]}
+    updateSnackbar={[MockFunction]}
+    updateToolbar={[MockFunction]}
+  />
+</div>
+`;

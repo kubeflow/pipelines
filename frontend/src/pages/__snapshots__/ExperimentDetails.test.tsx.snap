@@ -141,7 +141,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
       pageTitle="Runs"
       topLevelToolbar={false}
     />
-    <RunList
+    <RunListsRouter
       experimentIdMask="some-mock-experiment-id"
       hideExperimentColumn={true}
       history={
@@ -159,6 +159,8 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
       }
       onError={[Function]}
       onSelectionChange={[Function]}
+      onTabSwitch={[Function]}
+      refreshCount={1}
       selectedIds={Array []}
       storageState="STORAGESTATE_AVAILABLE"
       toolbarProps={
@@ -180,62 +182,10 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
           "pageTitle": "some-mock-experiment-id",
         }
       }
-      updateBanner={
-        [MockFunction] {
-          "calls": Array [
-            Array [
-              Object {},
-            ],
-          ],
-        }
-      }
+      updateBanner={[MockFunction]}
       updateDialog={[MockFunction]}
       updateSnackbar={[MockFunction]}
-      updateToolbar={
-        [MockFunction] {
-          "calls": Array [
-            Array [
-              Object {
-                "actions": Object {
-                  "refresh": Object {
-                    "action": [Function],
-                    "id": "refreshBtn",
-                    "title": "Refresh",
-                    "tooltip": "Refresh the list",
-                  },
-                },
-                "breadcrumbs": Array [
-                  Object {
-                    "displayName": "Experiments",
-                    "href": "/experiments",
-                  },
-                ],
-                "pageTitle": "some-mock-experiment-id",
-              },
-            ],
-            Array [
-              Object {
-                "actions": Object {
-                  "refresh": Object {
-                    "action": [Function],
-                    "id": "refreshBtn",
-                    "title": "Refresh",
-                    "tooltip": "Refresh the list",
-                  },
-                },
-                "breadcrumbs": Array [
-                  Object {
-                    "displayName": "Experiments",
-                    "href": "/experiments",
-                  },
-                ],
-                "pageTitle": "some mock experiment name",
-                "pageTitleTooltip": "some mock experiment name",
-              },
-            ],
-          ],
-        }
-      }
+      updateToolbar={[MockFunction]}
     />
     <WithStyles(Dialog)
       classes={
@@ -281,62 +231,10 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
               "pageTitle": "some-mock-experiment-id",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {
-                      "refresh": Object {
-                        "action": [Function],
-                        "id": "refreshBtn",
-                        "title": "Refresh",
-                        "tooltip": "Refresh the list",
-                      },
-                    },
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "some-mock-experiment-id",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {
-                      "refresh": Object {
-                        "action": [Function],
-                        "id": "refreshBtn",
-                        "title": "Refresh",
-                        "tooltip": "Refresh the list",
-                      },
-                    },
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "some mock experiment name",
-                    "pageTitleTooltip": "some mock experiment name",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -507,7 +405,7 @@ exports[`ExperimentDetails removes all description text after second newline and
       pageTitle="Runs"
       topLevelToolbar={false}
     />
-    <RunList
+    <RunListsRouter
       experimentIdMask="some-mock-experiment-id"
       hideExperimentColumn={true}
       history={
@@ -525,6 +423,8 @@ exports[`ExperimentDetails removes all description text after second newline and
       }
       onError={[Function]}
       onSelectionChange={[Function]}
+      onTabSwitch={[Function]}
+      refreshCount={1}
       selectedIds={Array []}
       storageState="STORAGESTATE_AVAILABLE"
       toolbarProps={
@@ -546,62 +446,10 @@ exports[`ExperimentDetails removes all description text after second newline and
           "pageTitle": "some-mock-experiment-id",
         }
       }
-      updateBanner={
-        [MockFunction] {
-          "calls": Array [
-            Array [
-              Object {},
-            ],
-          ],
-        }
-      }
+      updateBanner={[MockFunction]}
       updateDialog={[MockFunction]}
       updateSnackbar={[MockFunction]}
-      updateToolbar={
-        [MockFunction] {
-          "calls": Array [
-            Array [
-              Object {
-                "actions": Object {
-                  "refresh": Object {
-                    "action": [Function],
-                    "id": "refreshBtn",
-                    "title": "Refresh",
-                    "tooltip": "Refresh the list",
-                  },
-                },
-                "breadcrumbs": Array [
-                  Object {
-                    "displayName": "Experiments",
-                    "href": "/experiments",
-                  },
-                ],
-                "pageTitle": "some-mock-experiment-id",
-              },
-            ],
-            Array [
-              Object {
-                "actions": Object {
-                  "refresh": Object {
-                    "action": [Function],
-                    "id": "refreshBtn",
-                    "title": "Refresh",
-                    "tooltip": "Refresh the list",
-                  },
-                },
-                "breadcrumbs": Array [
-                  Object {
-                    "displayName": "Experiments",
-                    "href": "/experiments",
-                  },
-                ],
-                "pageTitle": "some mock experiment name",
-                "pageTitleTooltip": "some mock experiment name",
-              },
-            ],
-          ],
-        }
-      }
+      updateToolbar={[MockFunction]}
     />
     <WithStyles(Dialog)
       classes={
@@ -647,62 +495,10 @@ exports[`ExperimentDetails removes all description text after second newline and
               "pageTitle": "some-mock-experiment-id",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {
-                      "refresh": Object {
-                        "action": [Function],
-                        "id": "refreshBtn",
-                        "title": "Refresh",
-                        "tooltip": "Refresh the list",
-                      },
-                    },
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "some-mock-experiment-id",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {
-                      "refresh": Object {
-                        "action": [Function],
-                        "id": "refreshBtn",
-                        "title": "Refresh",
-                        "tooltip": "Refresh the list",
-                      },
-                    },
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "some mock experiment name",
-                    "pageTitleTooltip": "some mock experiment name",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -860,7 +656,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
       pageTitle="Runs"
       topLevelToolbar={false}
     />
-    <RunList
+    <RunListsRouter
       experimentIdMask="some-mock-experiment-id"
       hideExperimentColumn={true}
       history={
@@ -878,6 +674,8 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
       }
       onError={[Function]}
       onSelectionChange={[Function]}
+      onTabSwitch={[Function]}
+      refreshCount={1}
       selectedIds={Array []}
       storageState="STORAGESTATE_AVAILABLE"
       toolbarProps={
@@ -899,62 +697,10 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
           "pageTitle": "some-mock-experiment-id",
         }
       }
-      updateBanner={
-        [MockFunction] {
-          "calls": Array [
-            Array [
-              Object {},
-            ],
-          ],
-        }
-      }
+      updateBanner={[MockFunction]}
       updateDialog={[MockFunction]}
       updateSnackbar={[MockFunction]}
-      updateToolbar={
-        [MockFunction] {
-          "calls": Array [
-            Array [
-              Object {
-                "actions": Object {
-                  "refresh": Object {
-                    "action": [Function],
-                    "id": "refreshBtn",
-                    "title": "Refresh",
-                    "tooltip": "Refresh the list",
-                  },
-                },
-                "breadcrumbs": Array [
-                  Object {
-                    "displayName": "Experiments",
-                    "href": "/experiments",
-                  },
-                ],
-                "pageTitle": "some-mock-experiment-id",
-              },
-            ],
-            Array [
-              Object {
-                "actions": Object {
-                  "refresh": Object {
-                    "action": [Function],
-                    "id": "refreshBtn",
-                    "title": "Refresh",
-                    "tooltip": "Refresh the list",
-                  },
-                },
-                "breadcrumbs": Array [
-                  Object {
-                    "displayName": "Experiments",
-                    "href": "/experiments",
-                  },
-                ],
-                "pageTitle": "some mock experiment name",
-                "pageTitleTooltip": "some mock experiment name",
-              },
-            ],
-          ],
-        }
-      }
+      updateToolbar={[MockFunction]}
     />
     <WithStyles(Dialog)
       classes={
@@ -1000,62 +746,10 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
               "pageTitle": "some-mock-experiment-id",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {
-                      "refresh": Object {
-                        "action": [Function],
-                        "id": "refreshBtn",
-                        "title": "Refresh",
-                        "tooltip": "Refresh the list",
-                      },
-                    },
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "some-mock-experiment-id",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {
-                      "refresh": Object {
-                        "action": [Function],
-                        "id": "refreshBtn",
-                        "title": "Refresh",
-                        "tooltip": "Refresh the list",
-                      },
-                    },
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "some mock experiment name",
-                    "pageTitleTooltip": "some mock experiment name",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>
@@ -1211,7 +905,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
       pageTitle="Runs"
       topLevelToolbar={false}
     />
-    <RunList
+    <RunListsRouter
       experimentIdMask="some-mock-experiment-id"
       hideExperimentColumn={true}
       history={
@@ -1229,6 +923,8 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
       }
       onError={[Function]}
       onSelectionChange={[Function]}
+      onTabSwitch={[Function]}
+      refreshCount={1}
       selectedIds={Array []}
       storageState="STORAGESTATE_AVAILABLE"
       toolbarProps={
@@ -1250,62 +946,10 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
           "pageTitle": "some-mock-experiment-id",
         }
       }
-      updateBanner={
-        [MockFunction] {
-          "calls": Array [
-            Array [
-              Object {},
-            ],
-          ],
-        }
-      }
+      updateBanner={[MockFunction]}
       updateDialog={[MockFunction]}
       updateSnackbar={[MockFunction]}
-      updateToolbar={
-        [MockFunction] {
-          "calls": Array [
-            Array [
-              Object {
-                "actions": Object {
-                  "refresh": Object {
-                    "action": [Function],
-                    "id": "refreshBtn",
-                    "title": "Refresh",
-                    "tooltip": "Refresh the list",
-                  },
-                },
-                "breadcrumbs": Array [
-                  Object {
-                    "displayName": "Experiments",
-                    "href": "/experiments",
-                  },
-                ],
-                "pageTitle": "some-mock-experiment-id",
-              },
-            ],
-            Array [
-              Object {
-                "actions": Object {
-                  "refresh": Object {
-                    "action": [Function],
-                    "id": "refreshBtn",
-                    "title": "Refresh",
-                    "tooltip": "Refresh the list",
-                  },
-                },
-                "breadcrumbs": Array [
-                  Object {
-                    "displayName": "Experiments",
-                    "href": "/experiments",
-                  },
-                ],
-                "pageTitle": "some mock experiment name",
-                "pageTitleTooltip": "some mock experiment name",
-              },
-            ],
-          ],
-        }
-      }
+      updateToolbar={[MockFunction]}
     />
     <WithStyles(Dialog)
       classes={
@@ -1351,62 +995,10 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
               "pageTitle": "some-mock-experiment-id",
             }
           }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
+          updateBanner={[MockFunction]}
           updateDialog={[MockFunction]}
           updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Object {
-                      "refresh": Object {
-                        "action": [Function],
-                        "id": "refreshBtn",
-                        "title": "Refresh",
-                        "tooltip": "Refresh the list",
-                      },
-                    },
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "some-mock-experiment-id",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Object {
-                      "refresh": Object {
-                        "action": [Function],
-                        "id": "refreshBtn",
-                        "title": "Refresh",
-                        "tooltip": "Refresh the list",
-                      },
-                    },
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "some mock experiment name",
-                    "pageTitleTooltip": "some mock experiment name",
-                  },
-                ],
-              ],
-            }
-          }
+          updateToolbar={[MockFunction]}
         />
       </WithStyles(DialogContent)>
       <WithStyles(DialogActions)>

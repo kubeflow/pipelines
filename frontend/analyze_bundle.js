@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,16 @@
  * limitations under the License.
  */
 
-process.env.NODE_ENV = "production"
-var BundleAnalyzerPlugin = require("webpack-bundle-analyzer")
-  .BundleAnalyzerPlugin
+process.env.NODE_ENV = 'production';
+var BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 
-const webpackConfigProd = require("react-scripts-ts/config/webpack.config.prod")
+const webpackConfigProd = require('react-scripts/config/webpack.config.prod');
 
 webpackConfigProd.plugins.push(
   new BundleAnalyzerPlugin({
-    analyzerMode: "static",
-    reportFilename: "report.html",
-  })
-)
+    analyzerMode: 'static',
+    reportFilename: 'report.html',
+  }),
+);
 
-require("react-scripts-ts/scripts/build")
+require('react-scripts/scripts/build');

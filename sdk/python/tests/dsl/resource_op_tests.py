@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -69,3 +69,24 @@ class TestResourceOp(unittest.TestCase):
             self.assertEqual(res.dependent_names, [])
 
         kfp.compiler.Compiler()._compile(my_pipeline)
+
+    def test_delete(self):
+        """Test delete method."""
+        param = PipelineParam("param")
+        k8s_resource = {"apiVersion": "version",
+                        "kind": "CustomResource",
+                        "metadata": {"name": "my-resource"}}
+        res = ResourceOp(name="resource",
+                         k8s_resource=k8s_resource,
+                         success_condition=param,
+                         attribute_outputs={"test": "attr"})
+
+        delete_res = res.delete()
+
+        expected_name = str(res.outputs['name'])
+
+        self.assertEqual(delete_res.command,
+                         ['kubectl', 'delete', 'CustomResource', expected_name,
+                          '--ignore-not-found', '--output', 'name',
+                          '--wait=false'])
+        self.assertEqual(delete_res.outputs, {})

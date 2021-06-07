@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ describe('HTMLViewer', () => {
   it('uses srcdoc to insert HTML into the iframe', () => {
     const tree = mount(<HTMLViewer configs={[config]} />);
     expect((tree.instance() as any)._iframeRef.current.srcdoc).toEqual(html);
-    expect((tree.instance() as any)._iframeRef.current.src).toEqual('javascript:void(0);');
+    expect((tree.instance() as any)._iframeRef.current.src).toEqual('about:blank');
   });
 
   it('cannot be accessed from main frame of the other way around (no allow-same-origin)', () => {

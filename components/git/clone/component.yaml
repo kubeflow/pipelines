@@ -1,5 +1,8 @@
 name: Git clone
 description: Creates a shallow clone of the specified repo branch
+metadata:
+  annotations:
+    volatile_component: "true"
 inputs:
 - {name: Repo URI, type: URI}
 - {name: Branch, type: String, default: master}

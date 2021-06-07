@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -470,6 +470,7 @@ describe('PipelineList', () => {
       .simulate('click');
     deletePipelineSpy.mockImplementation(id => {
       if (id.indexOf(3) === -1 && id.indexOf(2) === -1) {
+        // eslint-disable-next-line no-throw-literal
         throw {
           text: () => Promise.resolve('woops, failed!'),
         };

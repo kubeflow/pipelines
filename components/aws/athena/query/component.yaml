@@ -20,6 +20,7 @@ inputs:
   - {name: database,      description: 'The name of the database.'}
   - {name: query,         description: 'The SQL query statements to be executed in Athena.'}
   - {name: output_path,   description: 'The path to the Amazon S3 location where logs for this cluster are stored.'}
+  - {name: workgroup,     description: 'Optional argument to provide Athena workgroup'}
 outputs:
   - {name: output_path,   description: 'The path to the S3 bucket containing the query output in CSV format.'}
 implementation:
@@ -30,7 +31,8 @@ implementation:
       --region, {inputValue: region},
       --database, {inputValue: database},
       --query, {inputValue: query},
-      --output, {inputValue: output_path}
+      --output, {inputValue: output_path},
+      --workgroup, {inputValue: workgroup}
     ]
     fileOutputs:
       output_path: /output.txt

@@ -49,14 +49,14 @@ exports[`UploadPipelineDialog renders alternate UI for uploading via URL 1`] = `
       URL must be publicly accessible.
     </div>
     <DocumentationCompilePipeline />
-    <Component
+    <Input
       label="URL"
       onChange={[Function]}
       required={true}
       value=""
       variant="outlined"
     />
-    <Component
+    <Input
       id="uploadFileName"
       label="Pipeline name"
       onChange={[Function]}
@@ -163,7 +163,7 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
         You can also drag and drop the file here.
       </div>
       <DocumentationCompilePipeline />
-      <Component
+      <Input
         InputProps={
           Object {
             "endAdornment": <WithStyles(InputAdornment)
@@ -193,7 +193,7 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
         variant="outlined"
       />
     </n>
-    <Component
+    <Input
       id="uploadFileName"
       label="Pipeline name"
       onChange={[Function]}
@@ -295,7 +295,7 @@ exports[`UploadPipelineDialog renders closed 1`] = `
         You can also drag and drop the file here.
       </div>
       <DocumentationCompilePipeline />
-      <Component
+      <Input
         InputProps={
           Object {
             "endAdornment": <WithStyles(InputAdornment)
@@ -325,7 +325,7 @@ exports[`UploadPipelineDialog renders closed 1`] = `
         variant="outlined"
       />
     </n>
-    <Component
+    <Input
       id="uploadFileName"
       label="Pipeline name"
       onChange={[Function]}
@@ -427,7 +427,7 @@ exports[`UploadPipelineDialog renders open 1`] = `
         You can also drag and drop the file here.
       </div>
       <DocumentationCompilePipeline />
-      <Component
+      <Input
         InputProps={
           Object {
             "endAdornment": <WithStyles(InputAdornment)
@@ -457,7 +457,7 @@ exports[`UploadPipelineDialog renders open 1`] = `
         variant="outlined"
       />
     </n>
-    <Component
+    <Input
       id="uploadFileName"
       label="Pipeline name"
       onChange={[Function]}
@@ -559,7 +559,7 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
         You can also drag and drop the file here.
       </div>
       <DocumentationCompilePipeline />
-      <Component
+      <Input
         InputProps={
           Object {
             "endAdornment": <WithStyles(InputAdornment)
@@ -589,7 +589,7 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
         variant="outlined"
       />
     </n>
-    <Component
+    <Input
       id="uploadFileName"
       label="Pipeline name"
       onChange={[Function]}

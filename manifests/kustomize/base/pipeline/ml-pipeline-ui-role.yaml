@@ -11,8 +11,12 @@ rules:
   - pods
   - pods/log
   verbs:
-  - create
   - get
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
   - list
 - apiGroups:
   - ""

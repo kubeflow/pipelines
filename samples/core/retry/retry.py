@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,12 +24,12 @@ def random_failure_op(exit_codes):
         name='random_failure',
         image='python:alpine3.6',
         command=['python', '-c'],
-        arguments=['import random; import sys; exit_code = random.choice(sys.argv[1].split(",")); print(exit_code); sys.exit(exit_code)', exit_codes]
+        arguments=['import random; import sys; exit_code = int(random.choice(sys.argv[1].split(","))); print(exit_code); sys.exit(exit_code)', exit_codes]
     )
 
 
 @dsl.pipeline(
-    name='Retry random failures',
+    name='retry-random-failures',
     description='The pipeline includes two steps which fail randomly. It shows how to use ContainerOp(...).set_retry(...).'
 )
 def retry_sample_pipeline():

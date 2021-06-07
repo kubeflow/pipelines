@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +14,22 @@
  * limitations under the License.
  */
 
+import { mount, ReactWrapper, shallow, ShallowWrapper } from 'enzyme';
 import * as React from 'react';
-
-import SideNav, { css } from './SideNav';
-import TestUtils from '../TestUtils';
+import { MemoryRouter, RouterProps } from 'react-router';
+import { GkeMetadataProvider } from 'src/lib/GkeMetadata';
 import { Apis } from '../lib/Apis';
 import { LocalStorage } from '../lib/LocalStorage';
-import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
+import TestUtils, { diffHTML } from '../TestUtils';
 import { RoutePage } from './Router';
-import { RouterProps } from 'react-router';
-import snapshotDiff from 'snapshot-diff';
+import EnhancedSideNav, { css, SideNav } from './SideNav';
 
 const wideWidth = 1000;
 const narrowWidth = 200;
 const isCollapsed = (tree: ShallowWrapper<any>) =>
   tree.find('WithStyles(IconButton)').hasClass(css.collapsedChevron);
 const routerProps: RouterProps = { history: {} as any };
+const defaultProps = { ...routerProps, gkeMetadata: {} };
 
 describe('SideNav', () => {
   let tree: ReactWrapper | ShallowWrapper;
@@ -72,69 +72,555 @@ describe('SideNav', () => {
   it('renders expanded state', () => {
     localStorageHasKeySpy.mockImplementationOnce(() => false);
     (window as any).innerWidth = wideWidth;
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders collapsed state', () => {
     localStorageHasKeySpy.mockImplementationOnce(() => false);
     (window as any).innerWidth = narrowWidth;
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders Pipelines as active page', () => {
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders Pipelines as active when on PipelineDetails page', () => {
-    tree = shallow(<SideNav page={RoutePage.PIPELINE_DETAILS} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.PIPELINE_DETAILS} {...defaultProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders experiments as active page', () => {
-    tree = shallow(<SideNav page={RoutePage.EXPERIMENTS} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.EXPERIMENTS} {...defaultProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders experiments as active when on ExperimentDetails page', () => {
-    tree = shallow(<SideNav page={RoutePage.EXPERIMENT_DETAILS} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.EXPERIMENT_DETAILS} {...defaultProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders experiments as active page when on NewExperiment page', () => {
-    tree = shallow(<SideNav page={RoutePage.NEW_EXPERIMENT} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.NEW_EXPERIMENT} {...defaultProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders experiments as active page when on Compare page', () => {
-    tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders experiments as active page when on AllRuns page', () => {
-    tree = shallow(<SideNav page={RoutePage.RUNS} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.RUNS} {...defaultProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders experiments as active page when on RunDetails page', () => {
-    tree = shallow(<SideNav page={RoutePage.RUN_DETAILS} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.RUN_DETAILS} {...defaultProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders experiments as active page when on RecurringRunDetails page', () => {
-    tree = shallow(<SideNav page={RoutePage.RECURRING_RUN} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.RECURRING_RUN_DETAILS} {...defaultProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders experiments as active page when on NewRun page', () => {
-    tree = shallow(<SideNav page={RoutePage.NEW_RUN} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.NEW_RUN} {...defaultProps} />);
     expect(tree).toMatchSnapshot();
   });
 
+  it('renders recurring runs as active page', () => {
+    tree = shallow(<SideNav page={RoutePage.RECURRING_RUNS} {...defaultProps} />);
+    expect(tree).toMatchInlineSnapshot(`
+      <div
+        className="root flexColumn noShrink"
+        id="sideNav"
+      >
+        <div
+          style={
+            Object {
+              "flexGrow": 1,
+            }
+          }
+        >
+          <div
+            className="indicator indicatorHidden"
+          />
+          <WithStyles(Tooltip)
+            disableFocusListener={true}
+            disableHoverListener={true}
+            disableTouchListener={true}
+            enterDelay={300}
+            placement="right-start"
+            title="Pipeline List"
+          >
+            <Link
+              className="unstyled"
+              id="pipelinesBtn"
+              replace={false}
+              to="/pipelines"
+            >
+              <WithStyles(Button)
+                className="button"
+              >
+                <PipelinesIcon
+                  color="#9aa0a6"
+                />
+                <span
+                  className="label"
+                >
+                  Pipelines
+                </span>
+              </WithStyles(Button)>
+            </Link>
+          </WithStyles(Tooltip)>
+          <div
+            className="indicator indicatorHidden"
+          />
+          <WithStyles(Tooltip)
+            disableFocusListener={true}
+            disableHoverListener={true}
+            disableTouchListener={true}
+            enterDelay={300}
+            placement="right-start"
+            title="Experiment List"
+          >
+            <Link
+              className="unstyled"
+              id="experimentsBtn"
+              replace={false}
+              to="/experiments"
+            >
+              <WithStyles(Button)
+                className="button"
+              >
+                <ExperimentsIcon
+                  color="#9aa0a6"
+                />
+                <span
+                  className="label"
+                >
+                  Experiments
+                </span>
+              </WithStyles(Button)>
+            </Link>
+          </WithStyles(Tooltip)>
+          <div
+            className="indicator indicatorHidden"
+          />
+          <WithStyles(Tooltip)
+            disableFocusListener={true}
+            disableHoverListener={true}
+            disableTouchListener={true}
+            enterDelay={300}
+            placement="right-start"
+            title="Runs List"
+          >
+            <Link
+              className="unstyled"
+              id="runsBtn"
+              replace={false}
+              to="/runs"
+            >
+              <WithStyles(Button)
+                className="button"
+              >
+                <pure(DirectionsRunIcon) />
+                <span
+                  className="label"
+                >
+                  Runs
+                </span>
+              </WithStyles(Button)>
+            </Link>
+          </WithStyles(Tooltip)>
+          <div
+            className="indicator"
+          />
+          <WithStyles(Tooltip)
+            disableFocusListener={true}
+            disableHoverListener={true}
+            disableTouchListener={true}
+            enterDelay={300}
+            placement="right-start"
+            title="Recurring Runs List"
+          >
+            <Link
+              className="unstyled"
+              id="recurringRunsBtn"
+              replace={false}
+              to="/recurringruns"
+            >
+              <WithStyles(Button)
+                className="button active"
+              >
+                <pure(AlarmIcon) />
+                <span
+                  className="label"
+                >
+                  Recurring Runs
+                </span>
+              </WithStyles(Button)>
+            </Link>
+          </WithStyles(Tooltip)>
+          <div
+            className="indicator indicatorHidden"
+          />
+          <WithStyles(Tooltip)
+            disableFocusListener={true}
+            disableHoverListener={true}
+            disableTouchListener={true}
+            enterDelay={300}
+            placement="right-start"
+            title="Artifacts List"
+          >
+            <Link
+              className="unstyled"
+              id="artifactsBtn"
+              replace={false}
+              to="/artifacts"
+            >
+              <WithStyles(Button)
+                className="button"
+              >
+                <pure(BubbleChartIcon) />
+                <span
+                  className="label"
+                >
+                  Artifacts
+                </span>
+              </WithStyles(Button)>
+            </Link>
+          </WithStyles(Tooltip)>
+          <div
+            className="indicator indicatorHidden"
+          />
+          <WithStyles(Tooltip)
+            disableFocusListener={true}
+            disableHoverListener={true}
+            disableTouchListener={true}
+            enterDelay={300}
+            placement="right-start"
+            title="Executions List"
+          >
+            <Link
+              className="unstyled"
+              id="executionsBtn"
+              replace={false}
+              to="/executions"
+            >
+              <WithStyles(Button)
+                className="button"
+              >
+                <pure(PlayArrowIcon) />
+                <span
+                  className="label"
+                >
+                  Executions
+                </span>
+              </WithStyles(Button)>
+            </Link>
+          </WithStyles(Tooltip)>
+          <hr
+            className="separator"
+          />
+          <ExternalUri
+            collapsed={false}
+            icon={[Function]}
+            title="Documentation"
+            to="https://www.kubeflow.org/docs/pipelines/"
+          />
+          <ExternalUri
+            collapsed={false}
+            icon={[Function]}
+            title="Github Repo"
+            to="https://github.com/kubeflow/pipelines"
+          />
+          <hr
+            className="separator"
+          />
+          <WithStyles(IconButton)
+            className="chevron"
+            onClick={[Function]}
+          >
+            <pure(ChevronLeftIcon) />
+          </WithStyles(IconButton)>
+        </div>
+        <div
+          className="infoVisible"
+        >
+          <WithStyles(Tooltip)
+            enterDelay={300}
+            placement="top-start"
+            title="Report an Issue"
+          >
+            <div
+              className="envMetadata"
+            >
+              <a
+                className="link unstyled"
+                href="https://github.com/kubeflow/pipelines/issues/new/choose"
+                rel="noopener"
+                target="_blank"
+              >
+                Report an Issue
+              </a>
+            </div>
+          </WithStyles(Tooltip)>
+        </div>
+      </div>
+    `);
+  });
+
+  it('renders jobs as active page when on JobDetails page', () => {
+    tree = shallow(<SideNav page={RoutePage.RECURRING_RUN_DETAILS} {...defaultProps} />);
+    expect(tree).toMatchInlineSnapshot(`
+      <div
+        className="root flexColumn noShrink"
+        id="sideNav"
+      >
+        <div
+          style={
+            Object {
+              "flexGrow": 1,
+            }
+          }
+        >
+          <div
+            className="indicator indicatorHidden"
+          />
+          <WithStyles(Tooltip)
+            disableFocusListener={true}
+            disableHoverListener={true}
+            disableTouchListener={true}
+            enterDelay={300}
+            placement="right-start"
+            title="Pipeline List"
+          >
+            <Link
+              className="unstyled"
+              id="pipelinesBtn"
+              replace={false}
+              to="/pipelines"
+            >
+              <WithStyles(Button)
+                className="button"
+              >
+                <PipelinesIcon
+                  color="#9aa0a6"
+                />
+                <span
+                  className="label"
+                >
+                  Pipelines
+                </span>
+              </WithStyles(Button)>
+            </Link>
+          </WithStyles(Tooltip)>
+          <div
+            className="indicator indicatorHidden"
+          />
+          <WithStyles(Tooltip)
+            disableFocusListener={true}
+            disableHoverListener={true}
+            disableTouchListener={true}
+            enterDelay={300}
+            placement="right-start"
+            title="Experiment List"
+          >
+            <Link
+              className="unstyled"
+              id="experimentsBtn"
+              replace={false}
+              to="/experiments"
+            >
+              <WithStyles(Button)
+                className="button"
+              >
+                <ExperimentsIcon
+                  color="#9aa0a6"
+                />
+                <span
+                  className="label"
+                >
+                  Experiments
+                </span>
+              </WithStyles(Button)>
+            </Link>
+          </WithStyles(Tooltip)>
+          <div
+            className="indicator indicatorHidden"
+          />
+          <WithStyles(Tooltip)
+            disableFocusListener={true}
+            disableHoverListener={true}
+            disableTouchListener={true}
+            enterDelay={300}
+            placement="right-start"
+            title="Runs List"
+          >
+            <Link
+              className="unstyled"
+              id="runsBtn"
+              replace={false}
+              to="/runs"
+            >
+              <WithStyles(Button)
+                className="button"
+              >
+                <pure(DirectionsRunIcon) />
+                <span
+                  className="label"
+                >
+                  Runs
+                </span>
+              </WithStyles(Button)>
+            </Link>
+          </WithStyles(Tooltip)>
+          <div
+            className="indicator"
+          />
+          <WithStyles(Tooltip)
+            disableFocusListener={true}
+            disableHoverListener={true}
+            disableTouchListener={true}
+            enterDelay={300}
+            placement="right-start"
+            title="Recurring Runs List"
+          >
+            <Link
+              className="unstyled"
+              id="recurringRunsBtn"
+              replace={false}
+              to="/recurringruns"
+            >
+              <WithStyles(Button)
+                className="button active"
+              >
+                <pure(AlarmIcon) />
+                <span
+                  className="label"
+                >
+                  Recurring Runs
+                </span>
+              </WithStyles(Button)>
+            </Link>
+          </WithStyles(Tooltip)>
+          <div
+            className="indicator indicatorHidden"
+          />
+          <WithStyles(Tooltip)
+            disableFocusListener={true}
+            disableHoverListener={true}
+            disableTouchListener={true}
+            enterDelay={300}
+            placement="right-start"
+            title="Artifacts List"
+          >
+            <Link
+              className="unstyled"
+              id="artifactsBtn"
+              replace={false}
+              to="/artifacts"
+            >
+              <WithStyles(Button)
+                className="button"
+              >
+                <pure(BubbleChartIcon) />
+                <span
+                  className="label"
+                >
+                  Artifacts
+                </span>
+              </WithStyles(Button)>
+            </Link>
+          </WithStyles(Tooltip)>
+          <div
+            className="indicator indicatorHidden"
+          />
+          <WithStyles(Tooltip)
+            disableFocusListener={true}
+            disableHoverListener={true}
+            disableTouchListener={true}
+            enterDelay={300}
+            placement="right-start"
+            title="Executions List"
+          >
+            <Link
+              className="unstyled"
+              id="executionsBtn"
+              replace={false}
+              to="/executions"
+            >
+              <WithStyles(Button)
+                className="button"
+              >
+                <pure(PlayArrowIcon) />
+                <span
+                  className="label"
+                >
+                  Executions
+                </span>
+              </WithStyles(Button)>
+            </Link>
+          </WithStyles(Tooltip)>
+          <hr
+            className="separator"
+          />
+          <ExternalUri
+            collapsed={false}
+            icon={[Function]}
+            title="Documentation"
+            to="https://www.kubeflow.org/docs/pipelines/"
+          />
+          <ExternalUri
+            collapsed={false}
+            icon={[Function]}
+            title="Github Repo"
+            to="https://github.com/kubeflow/pipelines"
+          />
+          <hr
+            className="separator"
+          />
+          <WithStyles(IconButton)
+            className="chevron"
+            onClick={[Function]}
+          >
+            <pure(ChevronLeftIcon) />
+          </WithStyles(IconButton)>
+        </div>
+        <div
+          className="infoVisible"
+        >
+          <WithStyles(Tooltip)
+            enterDelay={300}
+            placement="top-start"
+            title="Report an Issue"
+          >
+            <div
+              className="envMetadata"
+            >
+              <a
+                className="link unstyled"
+                href="https://github.com/kubeflow/pipelines/issues/new/choose"
+                rel="noopener"
+                target="_blank"
+              >
+                Report an Issue
+              </a>
+            </div>
+          </WithStyles(Tooltip)>
+        </div>
+      </div>
+    `);
+  });
+
   it('show jupyterhub link if accessible', () => {
-    tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
     tree.setState({ jupyterHubAvailable: true });
     expect(tree).toMatchSnapshot();
   });
@@ -144,7 +630,7 @@ describe('SideNav', () => {
     localStorageHasKeySpy.mockImplementationOnce(() => true);
 
     (window as any).innerWidth = wideWidth;
-    tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
     expect(isCollapsed(tree)).toBe(true);
   });
 
@@ -152,7 +638,7 @@ describe('SideNav', () => {
     localStorageIsCollapsedSpy.mockImplementationOnce(() => false);
     localStorageHasKeySpy.mockImplementationOnce(() => true);
 
-    tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
     expect(isCollapsed(tree)).toBe(false);
   });
 
@@ -161,7 +647,7 @@ describe('SideNav', () => {
     localStorageHasKeySpy.mockImplementationOnce(() => false);
 
     (window as any).innerWidth = narrowWidth;
-    tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
     expect(isCollapsed(tree)).toBe(true);
   });
 
@@ -170,7 +656,7 @@ describe('SideNav', () => {
     localStorageHasKeySpy.mockImplementationOnce(() => false);
 
     (window as any).innerWidth = wideWidth;
-    tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
     expect(isCollapsed(tree)).toBe(false);
   });
 
@@ -179,7 +665,7 @@ describe('SideNav', () => {
     localStorageHasKeySpy.mockImplementationOnce(() => false);
 
     (window as any).innerWidth = wideWidth;
-    tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
     expect(isCollapsed(tree)).toBe(false);
 
     (window as any).innerWidth = narrowWidth;
@@ -193,7 +679,7 @@ describe('SideNav', () => {
     localStorageHasKeySpy.mockImplementationOnce(() => false);
 
     (window as any).innerWidth = narrowWidth;
-    tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
     expect(isCollapsed(tree)).toBe(true);
 
     (window as any).innerWidth = wideWidth;
@@ -208,7 +694,7 @@ describe('SideNav', () => {
     const spy = jest.spyOn(LocalStorage, 'saveNavbarCollapsed');
 
     (window as any).innerWidth = narrowWidth;
-    tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
     expect(isCollapsed(tree)).toBe(true);
 
     tree.find('WithStyles(IconButton)').simulate('click');
@@ -220,7 +706,7 @@ describe('SideNav', () => {
     localStorageHasKeySpy.mockImplementationOnce(() => true);
 
     (window as any).innerWidth = wideWidth;
-    tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.COMPARE} {...defaultProps} />);
     expect(isCollapsed(tree)).toBe(false);
 
     (window as any).innerWidth = narrowWidth;
@@ -232,17 +718,20 @@ describe('SideNav', () => {
   it('populates the display build information using the response from the healthz endpoint', async () => {
     const buildInfo = {
       apiServerCommitHash: '0a7b9e38f2b9bcdef4bbf3234d971e1635b50cd5',
+      apiServerTagName: '1.0.0',
       apiServerReady: true,
       buildDate: 'Tue Oct 23 14:23:53 UTC 2018',
       frontendCommitHash: '302e93ce99099173f387c7e0635476fe1b69ea98',
+      frontendTagName: '1.0.0-rc1',
     };
     buildInfoSpy.mockImplementationOnce(() => buildInfo);
 
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
     await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
 
     expect(tree.state('displayBuildInfo')).toEqual({
+      tagName: buildInfo.apiServerTagName,
       commitHash: buildInfo.apiServerCommitHash.substring(0, 7),
       commitUrl:
         'https://www.github.com/kubeflow/pipelines/commit/' + buildInfo.apiServerCommitHash,
@@ -250,7 +739,7 @@ describe('SideNav', () => {
     });
   });
 
-  it('populates the cluster information using the response from the system endpoints', async () => {
+  it('populates the cluster information from context', async () => {
     const clusterName = 'some-cluster-name';
     const projectId = 'some-project-id';
 
@@ -258,28 +747,71 @@ describe('SideNav', () => {
     projectIdSpy.mockImplementationOnce(() => Promise.resolve(projectId));
     buildInfoSpy.mockImplementationOnce(() => Promise.reject('Error when fetching build info'));
 
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
-    const baseTree = tree.debug();
+    tree = mount(
+      <GkeMetadataProvider>
+        <MemoryRouter>
+          <EnhancedSideNav page={RoutePage.PIPELINES} {...routerProps} />
+        </MemoryRouter>
+      </GkeMetadataProvider>,
+    );
+    const base = tree.html();
     await TestUtils.flushPromises();
-    tree.update();
-    expect(snapshotDiff(baseTree, tree.debug())).toMatchSnapshot();
+    expect(
+      diffHTML({
+        base,
+        baseAnnotation: 'base',
+        update: tree.html(),
+        updateAnnotation: 'after GKE metadata loaded',
+      }),
+    ).toMatchInlineSnapshot(`
+      Snapshot Diff:
+      - base
+      + after GKE metadata loaded
+
+      @@ --- --- @@
+                  <path fill="none" d="M0 0h24v24H0z"></path></svg></span
+              ><span class="MuiTouchRipple-root-53"></span>
+            </button>
+          </div>
+          <div class="infoVisible">
+      +     <div
+      +       class="envMetadata"
+      +       title="Cluster name: some-cluster-name, Project ID: some-project-id"
+      +     >
+      +       <span>Cluster name: </span
+      +       ><a
+      +         href="https://console.cloud.google.com/kubernetes/list?project=some-project-id&amp;filter=name:some-cluster-name"
+      +         class="link unstyled"
+      +         rel="noopener"
+      +         target="_blank"
+      +         >some-cluster-name</a
+      +       >
+      +     </div>
+            <div class="envMetadata" title="Report an Issue">
+              <a
+                href="https://github.com/kubeflow/pipelines/issues/new/choose"
+                class="link unstyled"
+                rel="noopener"
+    `);
   });
 
-  it('displays the frontend commit hash if the api server hash is not returned', async () => {
+  it('displays the frontend tag name if the api server hash is not returned', async () => {
     const buildInfo = {
       apiServerReady: true,
-      // No apiServerCommitHash
+      // No apiServerCommitHash or apiServerTagName
       buildDate: 'Tue Oct 23 14:23:53 UTC 2018',
       frontendCommitHash: '302e93ce99099173f387c7e0635476fe1b69ea98',
+      frontendTagName: '1.0.0',
     };
     buildInfoSpy.mockImplementationOnce(() => buildInfo);
 
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
     await TestUtils.flushPromises();
 
     expect(tree.state('displayBuildInfo')).toEqual(
       expect.objectContaining({
         commitHash: buildInfo.frontendCommitHash.substring(0, 7),
+        tagName: buildInfo.frontendTagName,
       }),
     );
   });
@@ -293,7 +825,7 @@ describe('SideNav', () => {
     };
     buildInfoSpy.mockImplementationOnce(() => buildInfo);
 
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
     await TestUtils.flushPromises();
 
     expect(tree.state('displayBuildInfo')).toEqual(
@@ -304,7 +836,7 @@ describe('SideNav', () => {
     );
   });
 
-  it("displays 'unknown' if the frontend and api server commit hashes are not returned", async () => {
+  it("displays 'unknown' if the frontend and api server tag names/commit hashes are not returned", async () => {
     const buildInfo = {
       apiServerReady: true,
       // No apiServerCommitHash
@@ -313,12 +845,13 @@ describe('SideNav', () => {
     };
     buildInfoSpy.mockImplementationOnce(() => buildInfo);
 
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
     await TestUtils.flushPromises();
 
     expect(tree.state('displayBuildInfo')).toEqual(
       expect.objectContaining({
         commitHash: 'unknown',
+        tagName: 'unknown',
       }),
     );
   });
@@ -332,7 +865,7 @@ describe('SideNav', () => {
     };
     buildInfoSpy.mockImplementationOnce(() => buildInfo);
 
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
     await TestUtils.flushPromises();
 
     expect(tree.state('displayBuildInfo')).toEqual(
@@ -351,7 +884,7 @@ describe('SideNav', () => {
     };
     buildInfoSpy.mockImplementationOnce(() => buildInfo);
 
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
     await TestUtils.flushPromises();
 
     expect(tree.state('displayBuildInfo')).toEqual(
@@ -364,7 +897,7 @@ describe('SideNav', () => {
   it('logs an error if the call getBuildInfo fails', async () => {
     TestUtils.makeErrorResponseOnce(buildInfoSpy, 'Uh oh!');
 
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...defaultProps} />);
     await TestUtils.flushPromises();
 
     expect(tree.state('displayBuildInfo')).toBeUndefined();

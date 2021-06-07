@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -618,8 +618,14 @@ describe('PipelineDetails', () => {
     info.command = ['test command', 'test command 2'];
     info.condition = 'test condition';
     info.image = 'test image';
-    info.inputs = [['key1', 'val1'], ['key2', 'val2']];
-    info.outputs = [['key3', 'val3'], ['key4', 'val4']];
+    info.inputs = [
+      ['key1', 'val1'],
+      ['key2', 'val2'],
+    ];
+    info.outputs = [
+      ['key3', 'val3'],
+      ['key4', 'val4'],
+    ];
     info.nodeType = 'container';
     g.setNode('node1', { info, label: 'node1' });
     createGraphSpy.mockImplementation(() => g);

@@ -1,0 +1,72 @@
+{
+  "name": "kubeflow-pipelines",
+  "private": true,
+  "description": "kubeflow pipelines package that only helps with release tooling",
+  "scripts": {
+    "changelog": "standard-version -t ''"
+  },
+  "standard-version": {
+    "header": "# Changelog\n",
+    "types": [
+      {
+        "type": "feat",
+        "section": "Features"
+      },
+      {
+        "type": "fix",
+        "section": "Bug Fixes"
+      },
+      {
+        "type": "perf",
+        "section": "Performance"
+      },
+      {
+        "type": "",
+        "section": "Other Pull Requests"
+      },
+      {
+        "type": "chore",
+        "hidden": true
+      },
+      {
+        "type": "docs",
+        "hidden": true
+      },
+      {
+        "type": "style",
+        "hidden": true
+      },
+      {
+        "type": "refactor",
+        "hidden": true
+      },
+      {
+        "type": "test",
+        "hidden": true
+      }
+    ],
+    "issuePrefixes": [
+      "never-match-an-issue"
+    ],
+    "skip": {
+      "bump": true,
+      "tag": true,
+      "commit": true
+    },
+    "packageFiles": [
+      {
+        "filename": "./VERSION",
+        "type": "plain-text"
+      }
+    ]
+  },
+  "author": "google",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kubeflow/pipelines.git"
+  },
+  "devDependencies": {
+    "standard-version": "^8.0.0"
+  }
+}

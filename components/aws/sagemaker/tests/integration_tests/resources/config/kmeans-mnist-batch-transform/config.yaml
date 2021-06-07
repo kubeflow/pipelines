@@ -1,0 +1,24 @@
+PipelineDefinition: resources/definition/transform_job_pipeline.py
+TestName: kmeans-batch-transform-test
+Timeout: 1200
+ExpectedOutputFile: valid_data.csv.out
+Arguments:
+  region: ((REGION))
+  model_name: kmeans-mnist-model
+  job_name: kmeans-mnist-model
+  image: ((KMEANS_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/kmeans:1
+  model_artifact_url: s3://((DATA_BUCKET))/mnist_kmeans_example/model/kmeans-mnist-model/model.tar.gz
+  instance_type: ml.m4.xlarge
+  instance_count: 1
+  network_isolation: "True"
+  role: ((SAGEMAKER_ROLE_ARN))
+  data_input: s3://((DATA_BUCKET))/mnist_kmeans_example/input
+  data_type: S3Prefix
+  content_type: text/csv
+  compression_type: None
+  output_location: s3://((DATA_BUCKET))/mnist_kmeans_example/output
+  max_concurrent: 4
+  max_payload: 6
+  batch_strategy: MultiRecord
+  split_type: Line
+  

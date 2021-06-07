@@ -1,0 +1,26 @@
+ProcessingJobName: ''
+ProcessingInputs: []
+ProcessingOutputConfig:
+  Outputs: []
+  KmsKeyId: ''
+RoleArn: ''
+ProcessingResources:
+  ClusterConfig:
+    InstanceType: ''
+    InstanceCount: 1
+    VolumeSizeInGB: 1
+    VolumeKmsKeyId: ''
+NetworkConfig:
+  EnableInterContainerTrafficEncryption: False
+  EnableNetworkIsolation: False
+  VpcConfig:
+    SecurityGroupIds: []
+    Subnets: []
+StoppingCondition:
+  MaxRuntimeInSeconds: 86400
+AppSpecification:
+  ImageUri: ''
+  ContainerEntrypoint: []
+  ContainerArguments: []
+Environment: {}
+Tags: []

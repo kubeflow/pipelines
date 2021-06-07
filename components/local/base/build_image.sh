@@ -1,5 +1,5 @@
 #!/bin/bash -e
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,9 +17,6 @@
 mkdir -p ./build
 rsync -arvp "../confusion_matrix/src"/ ./build/
 rsync -arvp "../roc/src"/ ./build/
-
-cp ../../license.sh ./build
-cp ../../third_party_licenses.csv ./build
 
 docker build -t ml-pipeline-local-base .
 rm -rf ./build

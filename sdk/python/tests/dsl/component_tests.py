@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,13 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
+from typing import List, Optional
+import unittest
+
 import kfp
 import kfp.dsl as dsl
 from kfp.dsl import component, graph_component
 from kfp.dsl.types import Integer, GCSPath, InconsistentTypeException
 from kfp.dsl import ContainerOp, Pipeline, PipelineParam
 from kfp.components.structures import ComponentSpec, InputSpec, OutputSpec
-import unittest
+
 
 class TestPythonComponent(unittest.TestCase):
 
@@ -42,6 +46,57 @@ class TestPythonComponent(unittest.TestCase):
     golden_meta.outputs.append(OutputSpec(name='model', type={'Integer': {'openapi_schema_validator': {"type": "integer"}}}))
 
     self.assertEqual(containerOp._metadata, golden_meta)
+
+  def test_component_metadata_standard_type_annotation(self):
+    """Test component decorator metadata."""
+
+    class MockContainerOp:
+      def _set_metadata(self, component_meta):
+        self._metadata = component_meta
+
+    @component
+    def componentA(a: float, b: List[int], c: Optional[str] = None) -> None:
+      return MockContainerOp()
+
+    containerOp = componentA('str_value', '[1,2,3]')
+
+    golden_meta = ComponentSpec(name='ComponentA', inputs=[], outputs=None)
+    golden_meta.inputs.append(InputSpec(name='a', type='Float'))
+    golden_meta.inputs.append(
+        InputSpec(name='b', type='typing.List[int]' if sys.version_info >=
+                  (3,7) else 'List'))
+    golden_meta.inputs.append(
+        InputSpec(name='c', type='String', default=None, optional=True))
+
+    self.assertEqual(containerOp._metadata, golden_meta)
+
+  def test_python_component_decorator(self):
+    # Deprecated
+    from kfp.dsl import python_component
+    from kfp.components import create_component_from_func
+
+    expected_name = 'Sum component name'
+    expected_description = 'Sum component description'
+    expected_image = 'org/image'
+
+    @python_component(
+        name=expected_name,
+        description=expected_description,
+        base_image=expected_image
+    )
+    def add_two_numbers_decorated(
+        a: float,
+        b: float,
+    ) -> float:
+        '''Returns sum of two arguments'''
+        return a + b
+
+    op = create_component_from_func(add_two_numbers_decorated)
+
+    component_spec = op.component_spec
+    self.assertEqual(component_spec.name, expected_name)
+    self.assertEqual(component_spec.description.strip(), expected_description.strip())
+    self.assertEqual(component_spec.implementation.container.image, expected_image)
 
   def test_type_check_with_same_representation(self):
     """Test type check at the decorator."""

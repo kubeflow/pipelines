@@ -1,0 +1,142 @@
+name: Calculate regression metrics from csv
+description: |-
+  Calculates regression metrics.
+
+      Annotations:
+          author: Alexey Volkov <alexey.volkov@ark-kun.com>
+inputs:
+- {name: true_values}
+- {name: predicted_values}
+outputs:
+- {name: number_of_items, type: Integer}
+- {name: max_absolute_error, type: Float}
+- {name: mean_absolute_error, type: Float}
+- {name: mean_squared_error, type: Float}
+- {name: root_mean_squared_error, type: Float}
+- {name: metrics, type: JsonObject}
+implementation:
+  container:
+    image: python:3.7
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'numpy==1.19.0' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet
+      --no-warn-script-location 'numpy==1.19.0' --user) && "$0" "$@"
+    - python3
+    - -u
+    - -c
+    - |
+      def calculate_regression_metrics_from_csv(
+          true_values_path,
+          predicted_values_path,
+      ):
+          '''Calculates regression metrics.
+
+          Annotations:
+              author: Alexey Volkov <alexey.volkov@ark-kun.com>
+          '''
+          import math
+          import numpy
+
+          true_values = numpy.loadtxt(true_values_path, dtype=numpy.float64)
+          predicted_values = numpy.loadtxt(predicted_values_path, dtype=numpy.float64)
+
+          if len(predicted_values.shape) != 1:
+              raise NotImplemented('Only single prediction values are supported.')
+          if len(true_values.shape) != 1:
+              raise NotImplemented('Only single true values are supported.')
+
+          if predicted_values.shape != true_values.shape:
+              raise ValueError('Input shapes are different: {} != {}'.format(predicted_values.shape, true_values.shape))
+
+          number_of_items = true_values.size
+          errors = (true_values - predicted_values)
+          abs_errors = numpy.abs(errors)
+          squared_errors = errors ** 2
+          max_absolute_error = numpy.max(abs_errors)
+          mean_absolute_error = numpy.average(abs_errors)
+          mean_squared_error = numpy.average(squared_errors)
+          root_mean_squared_error = math.sqrt(mean_squared_error)
+          metrics = dict(
+              number_of_items=number_of_items,
+              max_absolute_error=max_absolute_error,
+              mean_absolute_error=mean_absolute_error,
+              mean_squared_error=mean_squared_error,
+              root_mean_squared_error=root_mean_squared_error,
+          )
+
+          return (
+              number_of_items,
+              max_absolute_error,
+              mean_absolute_error,
+              mean_squared_error,
+              root_mean_squared_error,
+              metrics,
+          )
+
+      def _serialize_json(obj) -> str:
+          if isinstance(obj, str):
+              return obj
+          import json
+          def default_serializer(obj):
+              if hasattr(obj, 'to_struct'):
+                  return obj.to_struct()
+              else:
+                  raise TypeError("Object of type '%s' is not JSON serializable and does not have .to_struct() method." % obj.__class__.__name__)
+          return json.dumps(obj, default=default_serializer, sort_keys=True)
+
+      def _serialize_float(float_value: float) -> str:
+          if isinstance(float_value, str):
+              return float_value
+          if not isinstance(float_value, (float, int)):
+              raise TypeError('Value "{}" has type "{}" instead of float.'.format(str(float_value), str(type(float_value))))
+          return str(float_value)
+
+      def _serialize_int(int_value: int) -> str:
+          if isinstance(int_value, str):
+              return int_value
+          if not isinstance(int_value, int):
+              raise TypeError('Value "{}" has type "{}" instead of int.'.format(str(int_value), str(type(int_value))))
+          return str(int_value)
+
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Calculate regression metrics from csv', description='Calculates regression metrics.\n\n    Annotations:\n        author: Alexey Volkov <alexey.volkov@ark-kun.com>')
+      _parser.add_argument("--true-values", dest="true_values_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--predicted-values", dest="predicted_values_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=6)
+      _parsed_args = vars(_parser.parse_args())
+      _output_files = _parsed_args.pop("_output_paths", [])
+
+      _outputs = calculate_regression_metrics_from_csv(**_parsed_args)
+
+      _output_serializers = [
+          _serialize_int,
+          _serialize_float,
+          _serialize_float,
+          _serialize_float,
+          _serialize_float,
+          _serialize_json,
+
+      ]
+
+      import os
+      for idx, output_file in enumerate(_output_files):
+          try:
+              os.makedirs(os.path.dirname(output_file))
+          except OSError:
+              pass
+          with open(output_file, 'w') as f:
+              f.write(_output_serializers[idx](_outputs[idx]))
+    args:
+    - --true-values
+    - {inputPath: true_values}
+    - --predicted-values
+    - {inputPath: predicted_values}
+    - '----output-paths'
+    - {outputPath: number_of_items}
+    - {outputPath: max_absolute_error}
+    - {outputPath: mean_absolute_error}
+    - {outputPath: mean_squared_error}
+    - {outputPath: root_mean_squared_error}
+    - {outputPath: metrics}

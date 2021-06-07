@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,29 +14,31 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-import ArchiveIcon from '@material-ui/icons/Archive';
-import ArtifactsIcon from '@material-ui/icons/BubbleChart';
 import Button from '@material-ui/core/Button';
-import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
-import ExecutionsIcon from '@material-ui/icons/PlayArrow';
-import ExperimentsIcon from '../icons/experiments';
 import IconButton from '@material-ui/core/IconButton';
+import Tooltip from '@material-ui/core/Tooltip';
+import ArtifactsIcon from '@material-ui/icons/BubbleChart';
+import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
 import JupyterhubIcon from '@material-ui/icons/Code';
-import OpenInNewIcon from '@material-ui/icons/OpenInNew';
 import DescriptionIcon from '@material-ui/icons/Description';
+import OpenInNewIcon from '@material-ui/icons/OpenInNew';
+import ExecutionsIcon from '@material-ui/icons/PlayArrow';
+import DirectionsRun from '@material-ui/icons/DirectionsRun';
+import * as React from 'react';
+import { RouterProps } from 'react-router';
+import { Link } from 'react-router-dom';
+import { classes, stylesheet } from 'typestyle';
+import { ExternalLinks, RoutePage, RoutePrefix } from '../components/Router';
+import { commonCss, fontsize } from '../Css';
+import ExperimentsIcon from '../icons/experiments';
 import GitHubIcon from '../icons/GitHub-Mark-120px-plus.png';
 import PipelinesIcon from '../icons/pipelines';
-import Tooltip from '@material-ui/core/Tooltip';
 import { Apis } from '../lib/Apis';
-import { Link } from 'react-router-dom';
+import { Deployments, KFP_FLAGS } from '../lib/Flags';
 import { LocalStorage, LocalStorageKey } from '../lib/LocalStorage';
-import { RoutePage, RoutePrefix, ExternalLinks } from '../components/Router';
-import { RouterProps } from 'react-router';
-import { classes, stylesheet } from 'typestyle';
-import { fontsize, commonCss } from '../Css';
 import { logger } from '../lib/Utils';
-import { KFP_FLAGS, Deployments } from '../lib/Flags';
+import { GkeMetadataContext, GkeMetadata } from 'src/lib/GkeMetadata';
+import { Alarm } from '@material-ui/icons';
 
 export const sideNavColors = {
   bg: '#f8fafb',
@@ -135,11 +137,15 @@ export const css = stylesheet({
     opacity: 0,
     transition: 'opacity 0s',
     transitionDelay: '0s',
+    // guarantees info doesn't affect layout when hidden
+    overflow: 'hidden',
+    height: 0,
   },
   infoVisible: {
     opacity: 'initial',
     transition: 'opacity 0.2s',
     transitionDelay: '0.3s',
+    overflow: 'hidden',
   },
   label: {
     fontSize: fontsize.base,
@@ -175,26 +181,25 @@ interface DisplayBuildInfo {
   commitHash: string;
   commitUrl: string;
   date: string;
+  tagName: string;
 }
 
 interface SideNavProps extends RouterProps {
   page: string;
 }
 
-interface GkeMetadata {
-  clusterName: string;
-  projectId: string;
+interface SideNavInternalProps extends SideNavProps {
+  gkeMetadata: GkeMetadata;
 }
 
 interface SideNavState {
   displayBuildInfo?: DisplayBuildInfo;
-  gkeMetadata?: GkeMetadata;
   collapsed: boolean;
   jupyterHubAvailable: boolean;
   manualCollapseState: boolean;
 }
 
-export default class SideNav extends React.Component<SideNavProps, SideNavState> {
+export class SideNav extends React.Component<SideNavInternalProps, SideNavState> {
   private _isMounted = true;
   private readonly _AUTO_COLLAPSE_WIDTH = 800;
   private readonly _HUB_ADDRESS = '/hub/';
@@ -219,45 +224,42 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
     async function fetchBuildInfo() {
       const buildInfo = await Apis.getBuildInfo();
       const commitHash = buildInfo.apiServerCommitHash || buildInfo.frontendCommitHash || '';
+      const tagName = buildInfo.apiServerTagName || buildInfo.frontendTagName || '';
       return {
+        tagName: tagName || 'unknown',
         commitHash: commitHash ? commitHash.substring(0, 7) : 'unknown',
         commitUrl:
-          'https://www.github.com/kubeflow/pipelines' + (commitHash ? `/commit/${commitHash}` : ''),
-        date: buildInfo.buildDate ? new Date(buildInfo.buildDate).toLocaleDateString() : 'unknown',
+          'https://www.github.com/kubeflow/pipelines' +
+          (commitHash && commitHash !== 'unknown' ? `/commit/${commitHash}` : ''),
+        date: buildInfo.buildDate
+          ? new Date(buildInfo.buildDate).toLocaleDateString('en-US')
+          : 'unknown',
       };
     }
-    async function fetchGkeMetadata() {
-      const [clusterName, projectId] = await Promise.all([
-        Apis.getClusterName(),
-        Apis.getProjectId(),
-      ]);
-      return { clusterName, projectId };
-    }
-    const [displayBuildInfo, gkeMetadata] = await Promise.all([
-      fetchBuildInfo().catch(err => {
-        logger.error('Failed to retrieve build info', err);
-        return undefined;
-      }),
-      fetchGkeMetadata().catch(err => {
-        logger.error('Failed to retrieve GKE metadata', err);
-        return undefined;
-      }),
-    ]);
+    const displayBuildInfo = await fetchBuildInfo().catch(err => {
+      logger.error('Failed to retrieve build info', err);
+      return undefined;
+    });
 
-    this.setStateSafe({ displayBuildInfo, gkeMetadata });
+    this.setStateSafe({ displayBuildInfo });
   }
 
   public componentWillUnmount(): void {
     this._isMounted = false;
   }
 
-  public render(): JSX.Element {
+  public render(): JSX.Element | null {
     const page = this.props.page;
-    const { collapsed, displayBuildInfo, gkeMetadata } = this.state;
+    const { collapsed, displayBuildInfo } = this.state;
+    const { gkeMetadata } = this.props;
     const iconColor = {
       active: sideNavColors.fgActive,
       inactive: sideNavColors.fgDefault,
     };
+
+    if (KFP_FLAGS.HIDE_SIDENAV) {
+      return null;
+    }
 
     return (
       <div
@@ -294,7 +296,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
                       collapsed && css.collapsedButton,
                     )}
                   >
-                    <DescriptionIcon />
+                    <DescriptionIcon style={{ width: 20, height: 20 }} />
                     <span className={classes(collapsed && css.collapsedLabel, css.label)}>
                       Getting Started
                     </span>
@@ -372,6 +374,66 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
           <div
             className={classes(
               css.indicator,
+              !this._highlightRunsButton(page) && css.indicatorHidden,
+            )}
+          />
+          <Tooltip
+            title={'Runs List'}
+            enterDelay={300}
+            placement={'right-start'}
+            disableFocusListener={!collapsed}
+            disableHoverListener={!collapsed}
+            disableTouchListener={!collapsed}
+          >
+            <Link id='runsBtn' to={RoutePage.RUNS} className={commonCss.unstyled}>
+              <Button
+                className={classes(
+                  css.button,
+                  this._highlightRunsButton(page) && css.active,
+                  collapsed && css.collapsedButton,
+                )}
+              >
+                <DirectionsRun />
+                <span className={classes(collapsed && css.collapsedLabel, css.label)}>Runs</span>
+              </Button>
+            </Link>
+          </Tooltip>
+          <div
+            className={classes(
+              css.indicator,
+              !this._highlightRecurringRunsButton(page) && css.indicatorHidden,
+            )}
+          />
+          <Tooltip
+            title={'Recurring Runs List'}
+            enterDelay={300}
+            placement={'right-start'}
+            disableFocusListener={!collapsed}
+            disableHoverListener={!collapsed}
+            disableTouchListener={!collapsed}
+          >
+            <Link
+              id='recurringRunsBtn'
+              to={RoutePage.RECURRING_RUNS}
+              className={commonCss.unstyled}
+            >
+              <Button
+                className={classes(
+                  css.button,
+                  this._highlightRecurringRunsButton(page) && css.active,
+                  collapsed && css.collapsedButton,
+                )}
+              >
+                <Alarm />
+                <span className={classes(collapsed && css.collapsedLabel, css.label)}>
+                  Recurring Runs
+                </span>
+              </Button>
+            </Link>
+          </Tooltip>
+          <div
+            className={classes(
+              css.indicator,
               !this._highlightArtifactsButton(page) && css.indicatorHidden,
             )}
           />
@@ -441,6 +503,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
                 href={this._HUB_ADDRESS}
                 className={commonCss.unstyled}
                 target='_blank'
+                rel='noopener'
               >
                 <Button className={classes(css.button, collapsed && css.collapsedButton)}>
                   <JupyterhubIcon style={{ height: 20, width: 20 }} />
@@ -453,31 +516,6 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
             </Tooltip>
           )}
           <hr className={classes(css.separator, collapsed && css.collapsedSeparator)} />
-          <div
-            className={classes(css.indicator, page !== RoutePage.ARCHIVE && css.indicatorHidden)}
-          />
-          <Tooltip
-            title={'Archive'}
-            enterDelay={300}
-            placement={'right-start'}
-            disableFocusListener={!collapsed}
-            disableHoverListener={!collapsed}
-            disableTouchListener={!collapsed}
-          >
-            <Link id='archiveBtn' to={RoutePage.ARCHIVE} className={commonCss.unstyled}>
-              <Button
-                className={classes(
-                  css.button,
-                  page === RoutePage.ARCHIVE && css.active,
-                  collapsed && css.collapsedButton,
-                )}
-              >
-                <ArchiveIcon style={{ height: 20, width: 20 }} />
-                <span className={classes(collapsed && css.collapsedLabel, css.label)}>Archive</span>
-              </Button>
-            </Link>
-          </Tooltip>
-          <hr className={classes(css.separator, collapsed && css.collapsedSeparator)} />
           <ExternalUri
             title={'Documentation'}
             to={ExternalLinks.DOCUMENTATION}
@@ -489,18 +527,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
             to={ExternalLinks.GITHUB}
             collapsed={collapsed}
             icon={className => (
-              <img src={GitHubIcon} className={classes(className, css.iconImage)} />
-            )}
-          />
-          <ExternalUri
-            title={'AI Hub Samples'}
-            to={ExternalLinks.AI_HUB}
-            collapsed={collapsed}
-            icon={className => (
-              <img
-                src='https://www.gstatic.com/aihub/aihub_favicon.png'
-                className={classes(className, css.iconImage)}
-              />
+              <img src={GitHubIcon} className={classes(className, css.iconImage)} alt='Github' />
             )}
           />
           <hr className={classes(css.separator, collapsed && css.collapsedSeparator)} />
@@ -512,7 +539,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
           </IconButton>
         </div>
         <div className={collapsed ? css.infoHidden : css.infoVisible}>
-          {gkeMetadata && (
+          {gkeMetadata.clusterName && gkeMetadata.projectId && (
             <Tooltip
               title={`Cluster name: ${gkeMetadata.clusterName}, Project ID: ${gkeMetadata.projectId}`}
               enterDelay={300}
@@ -523,6 +550,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
                 <a
                   href={`https://console.cloud.google.com/kubernetes/list?project=${gkeMetadata.projectId}&filter=name:${gkeMetadata.clusterName}`}
                   className={classes(css.link, commonCss.unstyled)}
+                  rel='noopener'
                   target='_blank'
                 >
                   {gkeMetadata.clusterName}
@@ -532,34 +560,54 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
           )}
           {displayBuildInfo && (
             <Tooltip
-              title={'Build date: ' + displayBuildInfo.date}
+              title={`Build date: ${displayBuildInfo.date}, Commit hash: ${displayBuildInfo.commitHash}`}
               enterDelay={300}
               placement={'top-start'}
             >
               <div className={css.envMetadata}>
-                <span>Build commit: </span>
+                <span>Version: </span>
                 <a
                   href={displayBuildInfo.commitUrl}
                   className={classes(css.link, commonCss.unstyled)}
+                  rel='noopener'
                   target='_blank'
                 >
-                  {displayBuildInfo.commitHash}
+                  {displayBuildInfo.tagName}
                 </a>
               </div>
             </Tooltip>
           )}
+          <Tooltip title='Report an Issue' enterDelay={300} placement={'top-start'}>
+            <div className={css.envMetadata}>
+              <a
+                href={ExternalLinks.GITHUB_ISSUE}
+                className={classes(css.link, commonCss.unstyled)}
+                rel='noopener'
+                target='_blank'
+              >
+                Report an Issue
+              </a>
+            </div>
+          </Tooltip>
         </div>
       </div>
     );
   }
 
   private _highlightExperimentsButton(page: string): boolean {
+    return page.startsWith(RoutePage.EXPERIMENTS) || page === RoutePage.ARCHIVED_EXPERIMENTS;
+  }
+
+  private _highlightRunsButton(page: string): boolean {
     return (
-      page.startsWith(RoutePage.EXPERIMENTS) ||
       page.startsWith(RoutePage.RUNS) ||
-      page.startsWith(RoutePrefix.RECURRING_RUN) ||
-      page.startsWith(RoutePage.COMPARE)
+      page.startsWith(RoutePage.COMPARE) ||
+      page === RoutePage.ARCHIVED_RUNS
     );
+  }
+
+  private _highlightRecurringRunsButton(page: string): boolean {
+    return page.startsWith(RoutePage.RECURRING_RUNS) || page.startsWith(RoutePrefix.RECURRING_RUN);
   }
 
   private _highlightArtifactsButton(page: string): boolean {
@@ -626,3 +674,9 @@ const ExternalUri: React.FC<ExternalUriProps> = ({ title, to, collapsed, icon })
     </a>
   </Tooltip>
 );
+
+const EnhancedSideNav: React.FC<SideNavProps> = props => {
+  const gkeMetadata = React.useContext(GkeMetadataContext);
+  return <SideNav {...props} gkeMetadata={gkeMetadata} />;
+};
+export default EnhancedSideNav;

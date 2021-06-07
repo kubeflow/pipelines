@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -58,4 +58,9 @@ func (c *FakeMinioClient) DeleteObject(bucketName, objectName string) error {
 
 func (c *FakeMinioClient) GetObjectCount() int {
 	return len(c.minioClient)
+}
+
+func (c *FakeMinioClient) ExistObject(objectName string) bool {
+	_, ok := c.minioClient[objectName]
+	return ok
 }

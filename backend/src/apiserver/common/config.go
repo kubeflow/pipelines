@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,8 +23,20 @@ import (
 )
 
 const (
-	MultiUserMode     string = "MULTIUSER"
+	MultiUserMode                       string = "MULTIUSER"
+	MultiUserModeSharedReadAccess       string = "MULTIUSER_SHARED_READ"
+	PodNamespace                        string = "POD_NAMESPACE"
+	CacheEnabled                        string = "CacheEnabled"
+	DefaultPipelineRunnerServiceAccount string = "DefaultPipelineRunnerServiceAccount"
+	KubeflowUserIDHeader                string = "KUBEFLOW_USERID_HEADER"
+	KubeflowUserIDPrefix                string = "KUBEFLOW_USERID_PREFIX"
+	UpdatePipelineVersionByDefault      string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
+	TokenReviewAudience                 string = "TOKEN_REVIEW_AUDIENCE"
 )
+
+func IsPipelineVersionUpdatedByDefault() bool {
+	return GetBoolConfigWithDefault(UpdatePipelineVersionByDefault, true)
+}
 
 func GetStringConfig(configName string) string {
 	if !viper.IsSet(configName) {
@@ -59,6 +71,20 @@ func GetBoolConfigWithDefault(configName string, value bool) bool {
 	return value
 }
 
+func GetFloat64ConfigWithDefault(configName string, value float64) float64 {
+	if !viper.IsSet(configName) {
+		return value
+	}
+	return viper.GetFloat64(configName)
+}
+
+func GetIntConfigWithDefault(configName string, value int) int {
+	if !viper.IsSet(configName) {
+		return value
+	}
+	return viper.GetInt(configName)
+}
+
 func GetDurationConfig(configName string) time.Duration {
 	if !viper.IsSet(configName) {
 		glog.Fatalf("Please specify flag %s", configName)
@@ -68,4 +94,36 @@ func GetDurationConfig(configName string) time.Duration {
 
 func IsMultiUserMode() bool {
 	return GetBoolConfigWithDefault(MultiUserMode, false)
+}
+
+func IsMultiUserSharedReadMode() bool {
+	return GetBoolConfigWithDefault(MultiUserModeSharedReadAccess, false)
+}
+
+func GetPodNamespace() string {
+	return GetStringConfig(PodNamespace)
+}
+
+func GetBoolFromStringWithDefault(value string, defaultValue bool) bool {
+	boolVal, err := strconv.ParseBool(value)
+	if err != nil {
+		return defaultValue
+	}
+	return boolVal
+}
+
+func IsCacheEnabled() string {
+	return GetStringConfigWithDefault(CacheEnabled, "true")
+}
+
+func GetKubeflowUserIDHeader() string {
+	return GetStringConfigWithDefault(KubeflowUserIDHeader, GoogleIAPUserIdentityHeader)
+}
+
+func GetKubeflowUserIDPrefix() string {
+	return GetStringConfigWithDefault(KubeflowUserIDPrefix, GoogleIAPUserIdentityPrefix)
+}
+
+func GetTokenReviewAudience() string {
+	return GetStringConfigWithDefault(TokenReviewAudience, DefaultTokenReviewAudience)
 }

@@ -1,0 +1,689 @@
+/* Copyright 2019 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+==============================================================================*/
+syntax = "proto2";
+
+package ml_metadata;
+
+// A value in properties.
+message Value {
+  // TODO(martinz): the types here may evolve over time.
+  oneof value {
+    int64 int_value = 1;
+    double double_value = 2;
+    string string_value = 3;
+  }
+}
+
+message Artifact {
+  // Output only. The globally unique server generated id of the artifact.
+  optional int64 id = 1;
+  // The client provided name of the artifact. This field is optional. If set,
+  // it must be unique among all the artifacts of the same artifact type within
+  // a database instance and cannot be changed once set.
+  optional string name = 7;
+  // The id of an ArtifactType. This needs to be specified when an artifact is
+  // created, and it cannot be changed.
+  optional int64 type_id = 2;
+  // Output only. The name of an ArtifactType.
+  optional string type = 8;
+  // The uniform resource identifier of the physical artifact.
+  // May be empty if there is no physical artifact.
+  optional string uri = 3;
+  // Properties of the artifact.
+  // Properties must be specified in the ArtifactType.
+  map<string, Value> properties = 4;
+  // User provided custom properties which are not defined by its type.
+  map<string, Value> custom_properties = 5;
+
+  enum State {
+    UNKNOWN = 0;
+    // A state indicating that the artifact may exist.
+    PENDING = 1;
+    // A state indicating that the artifact should exist, unless something
+    // external to the system deletes it.
+    LIVE = 2;
+    // A state indicating that the artifact should be deleted.
+    MARKED_FOR_DELETION = 3;
+    // A state indicating that the artifact has been deleted.
+    DELETED = 4;
+  }
+
+  // The state of the artifact known to the system.
+  optional State state = 6;
+  // Output only. Create time of the artifact in millisecond since epoch.
+  optional int64 create_time_since_epoch = 9;
+  // Output only. Last update time of the artifact since epoch in millisecond
+  // since epoch.
+  optional int64 last_update_time_since_epoch = 10;
+}
+
+// TODO(martinz): consider moving this inside some message, to avoid having
+// literals directly in apo package.
+enum PropertyType {
+  UNKNOWN = 0;
+  INT = 1;
+  DOUBLE = 2;
+  STRING = 3;
+}
+
+message ArtifactType {
+  // The id of the type. 1-1 relationship between type names and IDs.
+  optional int64 id = 1;
+  // The name of the type. It must be unique among ArtifactTypes within a
+  // database instance.
+  optional string name = 2;
+  // The schema of the type.
+  // Properties are always optional in the artifact.
+  // Properties of an artifact type can be expanded but not contracted (i.e.,
+  // you can add columns but not remove them).
+  map<string, PropertyType> properties = 3;
+}
+
+// An event represents a relationship between an artifact and an execution.
+// There are different kinds of events, relating to both input and output, as
+// well as how they are used by the mlmd powered system.
+// For example, the DECLARED_INPUT and DECLARED_OUTPUT events are part of the
+// signature of an execution. For example, consider:
+//
+//   my_result = my_execution({"data":[3,7],"schema":8})
+//
+// Where 3, 7, and 8 are artifact_ids, Assuming execution_id of my_execution is
+// 12 and artifact_id of my_result is 15, the events are:
+//   {
+//       artifact_id:3,
+//       execution_id: 12,
+//       type:DECLARED_INPUT,
+//       path:{step:[{"key":"data"},{"index":0}]}
+//   }
+//   {
+//       artifact_id:7,
+//       execution_id: 12,
+//       type:DECLARED_INPUT,
+//       path:{step:[{"key":"data"},{"index":1}]}
+//   }
+//   {
+//       artifact_id:8,
+//       execution_id: 12,
+//       type:DECLARED_INPUT,
+//       path:{step:[{"key":"schema"}]}
+//   }
+//   {
+//       artifact_id:15,
+//       execution_id: 12,
+//       type:DECLARED_OUTPUT,
+//       path:{step:[{"key":"my_result"}]}
+//   }
+// Other event types include INPUT/OUTPUT and INTERNAL_INPUT/_OUTPUT.
+// * The INPUT/OUTPUT is an event that actually reads/writes an artifact by an
+//   execution. The input/output artifacts may not declared in the signature,
+//   For example, the trainer may output multiple caches of the parameters
+//   (as an OUTPUT), then finally write the SavedModel as a DECLARED_OUTPUT.
+// * The INTERNAL_INPUT/_OUTPUT are event types which are only meaningful to
+//   an orchestration system to keep track of the details for later debugging.
+//   For example, a fork happened conditioning on an artifact, then an execution
+//   is triggered, such fork implementating may need to log the read and write
+//   of artifacts and may not be worth displaying to the users.
+//
+// For instance, in the above example,
+//
+//   my_result = my_execution({"data":[3,7],"schema":8})
+//
+// there is another execution (id: 15), which represents a `garbage_collection`
+// step in an orchestration system
+//
+//   gc_result = garbage_collection(my_result)
+//
+// that cleans `my_result` if needed. The details should be invisible to the
+// end users and lineage tracking. The orchestrator can emit following events:
+//
+//   {
+//       artifact_id: 15,
+//       execution_id: 15,
+//       type:INTERNAL_INPUT,
+//   }
+//   {
+//       artifact_id:16,  // New artifact containing the GC job result.
+//       execution_id: 15,
+//       type:INTERNAL_OUTPUT,
+//       path:{step:[{"key":"gc_result"}]}
+//   }
+message Event {
+  // A simple path (e.g. {step{key:"foo"}}) can name an artifact in the context
+  // of an execution.
+  message Path {
+    message Step {
+      oneof value {
+        int64 index = 1;
+        string key = 2;
+      }
+    }
+    // A simple path (e.g. {step{key:"foo"}}) can name an artifact in the
+    // context of an execution.
+    repeated Step steps = 1;
+  }
+  // Events distinguish between an artifact that is written by the execution
+  // (possibly as a cache), versus artifacts that are part of the declared
+  // output of the Execution. For more information on what DECLARED_ means,
+  // see the comment on the message.
+  enum Type {
+    UNKNOWN = 0;
+    DECLARED_OUTPUT = 1;  // A declared output of the execution.
+    DECLARED_INPUT = 2;   // A declared input of the execution.
+    INPUT = 3;            // An input of the execution.
+    OUTPUT = 4;           // An output of the execution.
+    INTERNAL_INPUT = 5;   // An internal input of the execution.
+    INTERNAL_OUTPUT = 6;  // An internal output of the execution.
+  }
+  // The artifact id is required for an event, and should refer to an
+  // existing artifact.
+  optional int64 artifact_id = 1;
+  // The execution_id is required for an event, and should refer to an
+  // existing execution.
+  optional int64 execution_id = 2;
+  // The path in an artifact struct, or the name of an artifact.
+  optional Path path = 3;
+  // The type of an event.
+  optional Type type = 4;
+  // Time the event occurred
+  // Epoch is Jan 1, 1970, UTC
+  optional int64 milliseconds_since_epoch = 5;
+}
+
+message Execution {
+  // Output only. The globally unique server generated id of the execution.
+  optional int64 id = 1;
+  // The client provided name of the execution. This field is optional. If set,
+  // it must be unique among all the executions of the same artifact type within
+  // a database instance and cannot be changed once set.
+  optional string name = 6;
+  // The id of an ExecutionType. This needs to be specified when an execution is
+  // created, and it cannot be changed.
+  // The id of an ExecutionType.
+  optional int64 type_id = 2;
+  // Output only. The name of an ExecutionType.
+  optional string type = 7;
+  // The state of the Execution. The state transitions are
+  //   NEW -> RUNNING -> COMPLETE | CACHED | FAILED | CANCELED
+  // CACHED means the execution is skipped due to cached results.
+  // CANCELED means the execution is skipped due to precondition not met. It is
+  // different from CACHED in that a CANCELED execution will not have any event
+  // associated with it. It is different from FAILED in that there is no
+  // unexpected error happened and it is regarded as a normal state.
+  enum State {
+    UNKNOWN = 0;
+    NEW = 1;
+    RUNNING = 2;
+    COMPLETE = 3;
+    FAILED = 4;
+    CACHED = 5;
+    CANCELED = 6;
+  }
+  // The last known state of an execution in the system.
+  optional State last_known_state = 3;
+  // Properties of the Execution.
+  // Properties must be specified in the ExecutionType.
+  map<string, Value> properties = 4;
+  // User provided custom properties which are not defined by its type.
+  map<string, Value> custom_properties = 5;
+  // Output only. Create time of the execution in millisecond since epoch.
+  optional int64 create_time_since_epoch = 8;
+  // Output only. Last update time of the execution in millisecond since epoch.
+  optional int64 last_update_time_since_epoch = 9;
+}
+
+message ExecutionType {
+  // The id of the type. 1-1 relationship between type names and IDs.
+  optional int64 id = 1;
+  // The name of the type. It must be unique among ExecutionTypes within a
+  // database instance.
+  optional string name = 2;
+  // The schema of the type.
+  // Properties are always optional in the execution.
+  map<string, PropertyType> properties = 3;
+  // The ArtifactStructType of the input.
+  // For example: {
+  //     "dict":{
+  //        "properties":{
+  //          "schema":{
+  //            "union_type":{
+  //              "none":{},
+  //              "simple":{...schema type...}
+  //             },
+  //          },
+  //          "data":{
+  //            "simple":{...data_type...}
+  //          }
+  //       }
+  //     }
+  // }
+  // That would be an optional schema field with a required data field.
+  optional ArtifactStructType input_type = 4;
+  // The ArtifactStructType of the output.
+  // For example {"simple":{...stats gen output type...}}
+  optional ArtifactStructType output_type = 5;
+}
+
+message ContextType {
+  // The id of the type. 1-1 relationship between type names and IDs.
+  optional int64 id = 1;
+  // The name of the type, e.g., Pipeline, Task, Session, User, etc. It must be
+  // unique among ContextTypes within a database instance.
+  optional string name = 2;
+  // The schema of the type, e.g., name: string, owner: string
+  // Properties are always optional in the context.
+  // Properties of an context type can be expanded but not contracted (i.e.,
+  // you can add columns but not remove them).
+  map<string, PropertyType> properties = 3;
+}
+
+message Context {
+  // Output Only. The globally unique server generated id of the context.
+  optional int64 id = 1;
+  // The client provided name of the context. It must be unique within a
+  // database instance.
+  optional string name = 3;
+  // The id of a ContextType. This needs to be specified when a context is
+  // created, and it cannot be changed.
+  optional int64 type_id = 2;
+  // Output only. The name of a ContextType.
+  optional string type = 6;
+  // Values of the properties, which must be specified in the ContextType.
+  map<string, Value> properties = 4;
+  // User provided custom properties which are not defined by its type.
+  map<string, Value> custom_properties = 5;
+  // Output only. Create time of the context in millisecond since epoch.
+  optional int64 create_time_since_epoch = 7;
+  // Output only. Last update time of the context in millisecond since epoch.
+  optional int64 last_update_time_since_epoch = 8;
+}
+
+// the Attribution edges between Context and Artifact instances.
+message Attribution {
+  optional int64 artifact_id = 1;
+  optional int64 context_id = 2;
+}
+
+// the Association edges between Context and Execution instances.
+message Association {
+  optional int64 execution_id = 1;
+  optional int64 context_id = 2;
+}
+
+// the Parental Context edges between Context and Context instances.
+message ParentContext {
+  optional int64 child_id = 1;
+  optional int64 parent_id = 2;
+}
+
+// The type of an ArtifactStruct.
+// An artifact struct type represents an infinite set of artifact structs.
+// It can specify the input or output type of an ExecutionType.
+// See the more specific types referenced in the message for more details.
+message ArtifactStructType {
+  oneof kind {
+    ArtifactType simple = 1;  // Matches exactly this type.
+    UnionArtifactStructType union_type = 2;
+    IntersectionArtifactStructType intersection = 3;
+    ListArtifactStructType list = 4;
+    NoneArtifactStructType none = 5;
+    AnyArtifactStructType any = 6;
+    TupleArtifactStructType tuple = 7;
+    DictArtifactStructType dict = 8;
+  }
+}
+
+// Represents a union of types.
+message UnionArtifactStructType {
+  // An artifact struct matches this type if it matches any of the candidates.
+  // If candidates is empty, this is a bottom type (matches no artifacts).
+  repeated ArtifactStructType candidates = 1;
+}
+
+// A member of this type must satisfy all constraints.
+// This primarily useful not as an end-user type, but something calculated
+// as an intermediate type in the system.
+//
+// For example, suppose you have a method:
+// def infer_my_input_type(a): # try to infer the input type of this method.
+//   use_in_method_x(a) # with input type x_input
+//   use_in_method_y(a) # with input type y_input
+//
+// Given this information, you know that infer_my_input_type has
+// type {"intersection":{"constraints":[x_input, y_input]}}.
+//
+// IntersectionArtifactStructType intersection_type = {"constraints":[
+//     {"dict":{"properties":{"schema":{"any":{}}},
+//              "extra_properties":{"any":{}}}},
+//     {"dict":{"properties":{"data":{"any":{}}},
+//              "extra_properties":{"any":{}}}}]}
+// Since the first constraint requires the dictionary to have a schema
+// property, and the second constraint requires it to have a data property, this
+// is equivalent to:
+// ArtifactStructType other_type =
+//      {"dict":{"properties":{"schema":{"any":{}},"data":{"any":{}}}},
+//       "extra_properties":{"any":{}}}
+//
+message IntersectionArtifactStructType {
+  repeated ArtifactStructType constraints = 1;
+}
+
+// Represents an ArtifactStruct list type with homogeneous elements.
+message ListArtifactStructType {
+  // Every entry in the list must be of this type.
+  // Note: if this type is Any, then the list can have arbitrary elements.
+  optional ArtifactStructType element = 1;
+}
+
+// The only member of this type is a None artifact.
+// Note: ArtifactStruct{} is a None artifact.
+// This can represent an execution that has no outputs (or inputs),
+// or can be part of a UnionArtifactStructType to represent an optional
+// input.
+// For example, StatsGen has an "optional" schema input.
+// A practical example of this is:
+// stats_gen_type = {
+//     "dict":{
+//        "properties":{
+//          "schema":{
+//            "union_type":{
+//              "none":{},
+//              "simple":{...schema type...}
+//             },
+//          },
+//          "data":{
+//            "simple":{...data_type...}
+//          }
+//       }
+//     }
+// };
+message NoneArtifactStructType {}
+
+// Every ArtifactStruct is a member of this type.
+message AnyArtifactStructType {}
+
+// An ordered list of heterogeneous artifact structs.
+// The length of the list is fixed.
+// Each position in the list can have a different type.
+message TupleArtifactStructType {
+  repeated ArtifactStructType elements = 1;
+}
+
+// A artifact struct type that represents a record or struct-like dictionary.
+// ArtifactStruct would be map (i.e. ArtifactStructMap)
+message DictArtifactStructType {
+  // Underlying properties for the type.
+  map<string, ArtifactStructType> properties = 1;
+
+  // If true, then if properties["foo"] can be None, then that key is not
+  // required.
+  optional bool none_type_not_required = 2;
+
+  // Extra keys are allowed that are not specified in properties. These
+  // keys must have the type specified below.
+  // If this is not specified, then extra properties are not allowed.
+  optional ArtifactStructType extra_properties_type = 3;
+}
+
+// Configuration for a "fake" database.
+// This database is an in-memory SQLite database that lives only as
+// long as the associated object lives.
+message FakeDatabaseConfig {}
+
+message MySQLDatabaseConfig {
+  // The hostname or IP address of the MYSQL server:
+  // * If unspecified, a connection to the local host is assumed.
+  //   The client connects using a Unix socket specified by `socket`.
+  // * Otherwise, TCP/IP is used.
+  // Currently a replicated MYSQL backend is not supported.
+  optional string host = 1;
+  // The TCP Port number that the MYSQL server accepts connections on.
+  // If unspecified, the default MYSQL port (3306) is used.
+  optional uint32 port = 2;
+  // The database to connect to. Must be specified.
+  // After connecting to the MYSQL server, this database is created if not
+  // already present.
+  // All queries after Connect() are assumed to be for this database.
+  optional string database = 3;
+  // The MYSQL login id. If empty, the current user is assumed.
+  optional string user = 4;
+  // The password to use for `user`. If empty, only MYSQL user ids that don't
+  // have a password set are allowed to connect.
+  optional string password = 5;
+  // The Unix socket to use to connect to the server. If unspecified, a
+  // `host` must be provided.
+  optional string socket = 6;
+
+  // The options to establish encrypted connections to MySQL using SSL.
+  message SSLOptions {
+    // The path name of the client private key file.
+    optional string key = 1;
+    // The path name of the client public key certificate file.
+    optional string cert = 2;
+    // The path name of the CA certificate file.
+    optional string ca = 3;
+    // The path name of the directory that contains trusted SSL CA certificates.
+    optional string capath = 4;
+    // The list of permissible ciphers for SSL encryption.
+    optional string cipher = 5;
+    // If set, enable verification of the server certificate against the host
+    // name used when connecting to the server.
+    optional bool verify_server_cert = 6;
+  }
+  // If the field is set, the ssl options are set in mysql_options before
+  // establishing a connection. It is ignored if the mysql server does not
+  // enable SSL.
+  optional SSLOptions ssl_options = 7;
+}
+
+// A config contains the parameters when using with SqliteMetadatSource.
+message SqliteMetadataSourceConfig {
+  // A uri specifying Sqlite3 database filename, for example:
+  //
+  //   file:some_sqlite3_file_in_local_dir.db
+  //   file:///home/username/some_sqlite3_file.db
+  //
+  // see https://www.sqlite.org/c3ref/open.html for model details
+  //
+  // If not given, a in-memory sqlite3 database is used, and destroyed when
+  // disconnecting the metadata source.
+  optional string filename_uri = 1;
+
+  // Connection parameters for SQLite3 based metadata source.
+  enum ConnectionMode {
+    UNKNOWN = 0;
+    // Connect a metadata source in read-only mode. Connection fail if the
+    // sqlite3 database at the `filename` does not exist. Any queries modifying
+    // the database fail.
+    READONLY = 1;
+    // Connect a metadata source in read/write mode. Connection fail if the
+    // sqlite3 database at the `filename` does not exist.
+    READWRITE = 2;
+    // Similar to READWRITE. In addition, it creates the database if it does not
+    // exist.
+    READWRITE_OPENCREATE = 3;
+  }
+
+  // A flag specifying the connection mode. If not given, default connection
+  // mode is set to READWRITE_OPENCREATE.
+  optional ConnectionMode connection_mode = 2;
+}
+
+
+message MigrationOptions {
+  // If not set, by default the upgrade migration is disabled. MLMD only
+  // compares db_v with the lib_v, and raise error if the two do not align.
+  // If the field is set to true, MLMD performs upgrade migration. It upgrades
+  // the database schema version (db_v) to align with the library schema
+  // version (lib_v) when connecting to the database.
+  // Schema migration should not be run concurrently with multiple clients to
+  // prevent data races.
+  optional bool enable_upgrade_migration = 3;
+
+  // Downgrade the given database to the specified schema version.
+  // For v0.13.2 release, the schema_version is 0.
+  // For 0.14.0 and 0.15.0 release, the schema_version is 4.
+  // More details are described in g3doc/get_start.md#upgrade-mlmd-library
+  // Set this field only when a database is accidentally upgraded by a newer
+  // version library. Each library version only knows how to downgrade to
+  // previous schema versions. As downgrade migrations inevitably introduce
+  // data loss, please consider taking a backup of the database before
+  // downgrading schema.
+  // After downgrade migration, the database connection is canceled. The user
+  // needs to downgrade the library to use the database.
+  optional int64 downgrade_to_schema_version = 2 [default = -1];
+
+  reserved 1;
+}
+
+message RetryOptions {
+  // The max number of retries when transaction returns Aborted error.
+  optional int64 max_num_retries = 1;
+}
+
+message ConnectionConfig {
+  // Configuration for a new connection.
+  oneof config {
+    FakeDatabaseConfig fake_database = 1;
+    MySQLDatabaseConfig mysql = 2;
+    SqliteMetadataSourceConfig sqlite = 3;
+  }
+
+  // Options for overwriting the default retry setting when MLMD transactions
+  // returning Aborted error.
+  // The setting is currently available for python client library only.
+  // TODO(b/154862807) set the setting in transaction executor.
+  optional RetryOptions retry_options = 4;
+}
+
+// A list of supported GRPC arguments defined in:
+// https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
+message GrpcChannelArguments {
+  // Maximum message length in bytes per response that the channel can receive.
+  optional int64 max_receive_message_length = 1;
+}
+
+// Configuration for the gRPC metadata store client.
+message MetadataStoreClientConfig {
+  // The hostname or IP address of the gRPC server. Must be specified.
+  optional string host = 1;
+  // The TCP Port number that the gRPC server accepts connections on.
+  // Must be specified.
+  optional uint32 port = 2;
+
+  message SSLConfig {
+    // The PEM-encoded private key as a byte string, or Empty if no private key
+    // should be used.
+    optional string client_key = 1;
+    // The PEM-encoded certificate chain as a byte string to use or or Empty if
+    // no certificate chain should be used.
+    optional string server_cert = 2;
+    // The PEM-encoded root certificates as a byte string, or Empty to retrieve
+    // them from a default location chosen by gRPC runtime.
+    optional string custom_ca = 3;
+  }
+
+  // Configuration for a secure gRPC channel.
+  // If not given, insecure connection is used.
+  optional SSLConfig ssl_config = 3;
+
+  // GRPC channel creation arguments.
+  optional GrpcChannelArguments channel_arguments = 4;
+
+  // Time duration that a client is willing to wait for a reply from the server.
+  // If unset, the timeout is considered infinite. When the field is specified,
+  // Grpc APIs would return DeadlineExceededError when server does not respond
+  // within `client_timeout_sec`. Floating point valued, in seconds.
+  optional double client_timeout_sec = 5;
+
+}
+
+// Configuration for the gRPC metadata store server.
+message MetadataStoreServerConfig {
+  // Configuration to connect the metadata source backend.
+  optional ConnectionConfig connection_config = 1;
+
+  // Configuration for upgrade and downgrade migrations the metadata source.
+  optional MigrationOptions migration_options = 3;
+
+  message SSLConfig {
+    // Private server key for SSL
+    optional string server_key = 1;
+    // Public server certificate
+    optional string server_cert = 2;
+    // Custom certificate authority
+    optional string custom_ca = 3;
+    // Valid client certificate required?
+    optional bool client_verify = 4;
+  }
+
+  // Configuration for a secure gRPC channel.
+  // If not given, insecure connection is used.
+  optional SSLConfig ssl_config = 2;
+}
+
+// ListOperationOptions represents the set of options and predicates to be
+// used for List operations on Artifacts, Executions and Contexts.
+message ListOperationOptions {
+  // Max number of resources to return in the result. A value of zero or less
+  // results in a InvalidArgumentError.
+  // The API implementation also enforces an upper-bound of 100, and picks the
+  // minimum between this value and the one specified here.
+  optional int32 max_result_size = 1 [default = 20];
+
+  message OrderByField {
+    // Supported fields for Ordering.
+    enum Field {
+      FIELD_UNSPECIFIED = 0;
+      CREATE_TIME = 1;
+      LAST_UPDATE_TIME = 2;
+      ID = 3;
+    }
+
+    // Field to order.
+    optional Field field = 1 [default = ID];
+
+    // Direction of ordering.
+    optional bool is_asc = 2 [default = true];
+  }
+
+  // Ordering field.
+  optional OrderByField order_by_field = 2;
+
+  // Identifies the next page of results.
+  optional string next_page_token = 3;
+
+}
+
+// Encapsulates information to identify the next page of resources in
+// ListOperation.
+message ListOperationNextPageToken {
+  // Id offset within the resultset to start next page.
+  // Id offset is returned as Id is the unique field used to break ties for
+  // fields that might have duplicate entries, e.g. there could be two
+  // resources with same last_update_time. In such cases to  break the tie in
+  // ordering, id offset is used. Also if during the calls, the node is updated,
+  // and its last_update_time has been changed, running the pagination query
+  // again, the updated node will moved to earlier pages.
+  optional int64 id_offset = 1;
+
+  // Offset value of the order by field. If ID is used this value is same as
+  // id_offset.
+  optional int64 field_offset = 2;
+
+  // Options set in the first call to ListOperation. This ensures that if
+  // next_page_token is set by the caller then ListPipelineJobs API will always
+  // use options set in the first call.
+  optional ListOperationOptions set_options = 3;
+}

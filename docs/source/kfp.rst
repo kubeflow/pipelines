@@ -7,12 +7,11 @@ kfp package
 .. toctree::
     :maxdepth: 2
 
+    kfp.client
     kfp.compiler
     kfp.components
     kfp.containers
     kfp.dsl
-    kfp.client
-    kfp.notebook
     kfp.extensions
 
 .. automodule:: kfp

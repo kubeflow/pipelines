@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -80,6 +80,13 @@ func (s *ScheduledWorkflow) MaxConcurrencyOr0() int64 {
 	return 0
 }
 
+func (s *ScheduledWorkflow) NoCatchupOrFalse() bool {
+	if s.Spec.NoCatchup != nil {
+		return *s.Spec.NoCatchup
+	}
+	return false
+}
+
 func (s *ScheduledWorkflow) IntervalSecondOr0() int64 {
 	if s.Spec.PeriodicSchedule != nil {
 		return s.Spec.PeriodicSchedule.IntervalSecond
@@ -108,7 +115,7 @@ func (s *ScheduledWorkflow) ParametersAsString() (string, error) {
 	for _, param := range params {
 		workflowParam := workflowapi.Parameter{
 			Name:  param.Name,
-			Value: &param.Value,
+			Value: workflowapi.AnyStringPtr(param.Value),
 		}
 		workflowParams = append(workflowParams, workflowParam)
 	}

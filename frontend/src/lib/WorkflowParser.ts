@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Google LLC
+ * Copyright 2018-2019 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,9 @@ import { color } from '../Css';
 import { statusToIcon } from '../pages/Status';
 import { Constants } from './Constants';
 import { KeyValue } from './StaticGraphParser';
-import { hasFinished, NodePhase, statusToBgColor } from './StatusUtils';
+import { hasFinished, NodePhase, statusToBgColor, parseNodePhase } from './StatusUtils';
+import { parseTaskDisplayNameByNodeId } from './ParserUtils';
+import { isS3Endpoint } from './AwsHelper';
 
 export enum StorageService {
   GCS = 'gcs',
@@ -35,6 +37,7 @@ export enum StorageService {
   HTTPS = 'https',
   MINIO = 'minio',
   S3 = 's3',
+  VOLUME = 'volume',
 }
 
 export interface StoragePath {
@@ -87,26 +90,11 @@ export default class WorkflowParser {
 
     // Create dagre graph nodes from workflow nodes.
     (Object as any).values(workflowNodes).forEach((node: NodeStatus) => {
-      let nodeLabel = node.displayName || node.id;
-      if (node.name === `${workflowName}.onExit`) {
-        nodeLabel = `onExit - ${node.templateName}`;
-      }
-
-      if (workflow.spec && workflow.spec.templates) {
-        const tmpl = workflow.spec.templates.find(
-          t => !!t && !!t.name && t.name === node.templateName,
-        );
-        if (tmpl && tmpl.metadata && tmpl.metadata.annotations) {
-          const displayName = tmpl.metadata.annotations['pipelines.kubeflow.org/task_display_name'];
-          if (displayName) {
-            nodeLabel = displayName;
-          }
-        }
-      }
+      const nodeLabel = parseTaskDisplayNameByNodeId(node.id, workflow);
 
       g.setNode(node.id, {
         height: Constants.NODE_HEIGHT,
-        icon: statusToIcon(node.phase as NodePhase, node.startedAt, node.finishedAt, node.message),
+        icon: statusToIcon(parseNodePhase(node), node.startedAt, node.finishedAt, node.message),
         label: nodeLabel,
         statusColoring: statusToBgColor(node.phase as NodePhase, node.message),
         width: Constants.NODE_WIDTH,
@@ -172,6 +160,14 @@ export default class WorkflowParser {
     return g;
   }
 
+  static trimPrefix(str: string, prefix: string): string {
+    if (str.startsWith(prefix)) {
+      return str.slice(prefix.length);
+    } else {
+      return str;
+    }
+  }
+
   public static getParameters(workflow?: Workflow): Parameter[] {
     if (workflow && workflow.spec && workflow.spec.arguments) {
       return workflow.spec.arguments.parameters || [];
@@ -199,12 +195,16 @@ export default class WorkflowParser {
       return { inputParams, outputParams };
     }
 
-    const { inputs, outputs } = workflow.status.nodes[nodeId];
+    const { inputs, outputs, templateName } = workflow.status.nodes[nodeId];
+    const namePrefixToStrip = templateName + '-';
     if (!!inputs && !!inputs.parameters) {
       inputParams = inputs.parameters.map(p => [p.name, p.value || '']);
     }
     if (!!outputs && !!outputs.parameters) {
-      outputParams = outputs.parameters.map(p => [p.name, p.value || '']);
+      outputParams = outputs.parameters.map(p => [
+        WorkflowParser.trimPrefix(p.name, namePrefixToStrip),
+        p.value || '',
+      ]);
     }
     return { inputParams, outputParams };
   }
@@ -229,12 +229,16 @@ export default class WorkflowParser {
       return { inputArtifacts, outputArtifacts };
     }
 
-    const { inputs, outputs } = workflow.status.nodes[nodeId];
+    const { inputs, outputs, templateName } = workflow.status.nodes[nodeId];
+    const namePrefixToStrip = templateName + '-';
     if (!!inputs && !!inputs.artifacts) {
       inputArtifacts = inputs.artifacts.map(({ name, s3 }) => [name, s3]);
     }
     if (!!outputs && !!outputs.artifacts) {
-      outputArtifacts = outputs.artifacts.map(({ name, s3 }) => [name, s3]);
+      outputArtifacts = outputs.artifacts.map(({ name, s3 }) => [
+        WorkflowParser.trimPrefix(name, namePrefixToStrip),
+        s3,
+      ]);
     }
     return { inputArtifacts, outputArtifacts };
   }
@@ -296,11 +300,10 @@ export default class WorkflowParser {
           outputPaths.push({
             bucket: a.s3!.bucket,
             key: a.s3!.key,
-            source: StorageService.MINIO,
+            source: isS3Endpoint(a.s3!.endpoint) ? StorageService.S3 : StorageService.MINIO,
           }),
         );
     }
-
     return outputPaths;
   }
 
@@ -365,6 +368,13 @@ export default class WorkflowParser {
         key: pathParts.slice(1).join('/'),
         source: StorageService.HTTPS,
       };
+    } else if (strPath.startsWith('volume://')) {
+      const pathParts = strPath.substr('volume://'.length).split('/');
+      return {
+        bucket: pathParts[0],
+        key: pathParts.slice(1).join('/'),
+        source: StorageService.VOLUME,
+      };
     } else {
       throw new Error('Unsupported storage path: ' + strPath);
     }
@@ -404,7 +414,10 @@ export default class WorkflowParser {
   // meaningful from a user's perspective.
   public static isVirtual(node: NodeStatus): boolean {
     return (
-      (node.type === 'StepGroup' || node.type === 'DAG' || node.type === 'TaskGroup') &&
+      (node.type === 'StepGroup' ||
+        node.type === 'DAG' ||
+        node.type === 'TaskGroup' ||
+        node.type === 'Retry') &&
       !!node.boundaryID
     );
   }

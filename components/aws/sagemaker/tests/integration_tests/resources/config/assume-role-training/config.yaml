@@ -1,0 +1,33 @@
+PipelineDefinition: resources/definition/training_pipeline.py
+TestName: assume-role-training
+Timeout: 3600
+ExpectedTrainingImage: ((KMEANS_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/kmeans:1
+Arguments:
+  region: ((REGION))
+  image: ((KMEANS_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/kmeans:1
+  assume_role: ((ASSUME_ROLE_ARN))
+  training_input_mode: File
+  hyperparameters:
+    k: "10"
+    feature_dim: "784"
+  channels:
+    - ChannelName: train
+      DataSource:
+        S3DataSource:
+          S3Uri: s3://((DATA_BUCKET))/mnist_kmeans_example/data
+          S3DataType: S3Prefix
+          S3DataDistributionType: FullyReplicated
+      CompressionType: None
+      RecordWrapperType: None
+      InputMode: File
+  instance_type: ml.m5.xlarge
+  instance_count: 1
+  volume_size: 50
+  max_run_time: 3600
+  model_artifact_path: s3://((DATA_BUCKET))/mnist_kmeans_example/output
+  network_isolation: "True"
+  traffic_encryption: "False"
+  spot_instance: "False"
+  max_wait_time: 3600
+  checkpoint_config: "{}"
+  role: ((SAGEMAKER_ROLE_ARN))

@@ -28,6 +28,7 @@ import (
 // - Providing tarball file url
 type PipelineApiTest struct {
 	suite.Suite
+	namespace            string
 	pipelineClient       *api_server.PipelineClient
 	pipelineUploadClient *api_server.PipelineUploadClient
 }
@@ -39,11 +40,15 @@ func (s *PipelineApiTest) SetupTest() {
 		return
 	}
 
-	err := test.WaitForReady(*namespace, *initializeTimeout)
-	if err != nil {
-		glog.Exitf("Failed to initialize test. Error: %s", err.Error())
+	if !*isDevMode {
+		err := test.WaitForReady(*namespace, *initializeTimeout)
+		if err != nil {
+			glog.Exitf("Failed to initialize test. Error: %s", err.Error())
+		}
 	}
+	s.namespace = *namespace
 	clientConfig := test.GetClientConfig(*namespace)
+	var err error
 	s.pipelineUploadClient, err = api_server.NewPipelineUploadClient(clientConfig, false)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
@@ -52,6 +57,8 @@ func (s *PipelineApiTest) SetupTest() {
 	if err != nil {
 		glog.Exitf("Failed to get pipeline client. Error: %s", err.Error())
 	}
+
+	s.cleanUp()
 }
 
 func (s *PipelineApiTest) TestPipelineAPI() {
@@ -93,7 +100,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, "arguments.pipeline.zip", argumentUrlPipeline.Name)
 
 	/* ---------- Verify list pipeline works ---------- */
-	pipelines, totalSize, _, err := s.pipelineClient.List(params.NewListPipelinesParams())
+	pipelines, totalSize, _, err := s.pipelineClient.List(&params.ListPipelinesParams{})
 	assert.Nil(t, err)
 	assert.Equal(t, 4, len(pipelines))
 	assert.Equal(t, 4, totalSize)
@@ -179,9 +186,6 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	var expectedWorkflow v1alpha1.Workflow
 	err = yaml.Unmarshal(expected, &expectedWorkflow)
 	assert.Equal(t, expectedWorkflow, *template)
-
-	/* ---------- Clean up ---------- */
-	test.DeleteAllPipelines(s.pipelineClient, t)
 }
 
 func verifyPipeline(t *testing.T, pipeline *model.APIPipeline) {
@@ -195,9 +199,6 @@ func verifyPipeline(t *testing.T, pipeline *model.APIPipeline) {
 			{Name: "param1", Value: "hello"}, // Default value in the pipeline template
 			{Name: "param2"},                 // No default value in the pipeline
 		},
-		// TODO(jingzhang36): after version API launch, remove the following field.
-		// This is because after the version API launch, we won't have defautl
-		// version produced automatically when creating pipeline.
 		DefaultVersion: &model.APIPipelineVersion{
 			CreatedAt: pipeline.CreatedAt,
 			ID:        pipeline.ID,
@@ -214,4 +215,16 @@ func verifyPipeline(t *testing.T, pipeline *model.APIPipeline) {
 
 func TestPipelineAPI(t *testing.T) {
 	suite.Run(t, new(PipelineApiTest))
+}
+
+func (s *PipelineApiTest) TearDownSuite() {
+	if *runIntegrationTests {
+		if !*isDevMode {
+			s.cleanUp()
+		}
+	}
+}
+
+func (s *PipelineApiTest) cleanUp() {
+	test.DeleteAllPipelines(s.pipelineClient, s.T())
 }

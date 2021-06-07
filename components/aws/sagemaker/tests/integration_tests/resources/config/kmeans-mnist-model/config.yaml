@@ -1,0 +1,11 @@
+PipelineDefinition: resources/definition/create_model_pipeline.py
+TestName: kmeans-create-model-test
+Timeout: 300
+Arguments:
+  region: ((REGION))
+  model_name: kmeans-mnist-model
+  image: ((KMEANS_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/kmeans:1
+  model_artifact_url: s3://((DATA_BUCKET))/mnist_kmeans_example/model/kmeans-mnist-model/model.tar.gz
+  network_isolation: "True"
+  role: ((SAGEMAKER_ROLE_ARN))
+  

@@ -1,0 +1,104 @@
+name: Build list
+description: Creates a JSON array from multiple items.
+inputs:
+- {name: item_1, type: JsonObject, optional: true}
+- {name: item_2, type: JsonObject, optional: true}
+- {name: item_3, type: JsonObject, optional: true}
+- {name: item_4, type: JsonObject, optional: true}
+- {name: item_5, type: JsonObject, optional: true}
+outputs:
+- {name: Output, type: JsonArray}
+implementation:
+  container:
+    image: python:3.8
+    command:
+    - python3
+    - -u
+    - -c
+    - |
+      def build_list(
+          item_1 = None,
+          item_2 = None,
+          item_3 = None,
+          item_4 = None,
+          item_5 = None,
+      ):
+          """Creates a JSON array from multiple items.
+
+          Annotations:
+              author: Alexey Volkov <alexey.volkov@ark-kun.com>
+          """
+          result = []
+          for item in [item_1, item_2, item_3, item_4, item_5]:
+              if item is not None:
+                  result.append(item)
+          return result
+
+      import json
+      def _serialize_json(obj) -> str:
+          if isinstance(obj, str):
+              return obj
+          import json
+          def default_serializer(obj):
+              if hasattr(obj, 'to_struct'):
+                  return obj.to_struct()
+              else:
+                  raise TypeError("Object of type '%s' is not JSON serializable and does not have .to_struct() method." % obj.__class__.__name__)
+          return json.dumps(obj, default=default_serializer, sort_keys=True)
+
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Build list', description='Creates a JSON array from multiple items.')
+      _parser.add_argument("--item-1", dest="item_1", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--item-2", dest="item_2", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--item-3", dest="item_3", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--item-4", dest="item_4", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--item-5", dest="item_5", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+      _parsed_args = vars(_parser.parse_args())
+      _output_files = _parsed_args.pop("_output_paths", [])
+
+      _outputs = build_list(**_parsed_args)
+
+      _outputs = [_outputs]
+
+      _output_serializers = [
+          _serialize_json,
+
+      ]
+
+      import os
+      for idx, output_file in enumerate(_output_files):
+          try:
+              os.makedirs(os.path.dirname(output_file))
+          except OSError:
+              pass
+          with open(output_file, 'w') as f:
+              f.write(_output_serializers[idx](_outputs[idx]))
+    args:
+    - if:
+        cond: {isPresent: item_1}
+        then:
+        - --item-1
+        - {inputValue: item_1}
+    - if:
+        cond: {isPresent: item_2}
+        then:
+        - --item-2
+        - {inputValue: item_2}
+    - if:
+        cond: {isPresent: item_3}
+        then:
+        - --item-3
+        - {inputValue: item_3}
+    - if:
+        cond: {isPresent: item_4}
+        then:
+        - --item-4
+        - {inputValue: item_4}
+    - if:
+        cond: {isPresent: item_5}
+        then:
+        - --item-5
+        - {inputValue: item_5}
+    - '----output-paths'
+    - {outputPath: Output}

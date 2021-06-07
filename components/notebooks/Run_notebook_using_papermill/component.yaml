@@ -1,0 +1,50 @@
+name: Run notebook using papermill
+description: |
+  Run Jupyter notebook using papermill.
+  The notebook will receive the parameter values passed to it as well as the INPUT_DATA_PATH and OUTPUT_DATA_PATH variables that will be set to the input data path (if provided) and directory for the optional output data.
+inputs:
+- {name: Notebook, type: JupyterNotebook, description: 'Notebook to execute.'}
+- {name: Parameters, type: JsonObject, default: '{}', description: 'Map with notebook paramater values.'}
+- {name: Packages to install, type: JsonArray, default: '', description: 'Python packages to install'}
+- {name: Input data, optional: true, description: 'Optional data that can be passed to notebook. In notebook, the INPUT_DATA_PATH variable will point to the data (if passed).'}
+outputs:
+- {name: Notebook, type: JupyterNotebook, description: 'Executed notebook.'}
+- {name: Output data, description: 'Directory with any output data. In notebook, the OUTPUT_DATA_PATH variable will point to this directory, so that the notebook can write output data there.'}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+implementation:
+  container:
+    image: python:3.7
+    command:
+    - sh
+    - -exc
+    - |
+      input_notebook_path="$0"
+      output_notebook_path="$1"
+      arguments="$2"
+      packages_to_install="$3"
+      input_data_path="$4"
+      output_data_path="$5"
+      mkdir -p "$(dirname "$output_notebook_path")"
+      mkdir -p "$output_data_path"
+
+      # Converting packages_to_install from JSON to command-line arguments
+      packages_to_install=$(echo "$packages_to_install" | sed -E -e 's/^\[//' -e 's/]$//' -e 's/",/" /g' -e "s/\"/'/g")
+      # Installing packages
+      sh -c "python3 -m pip install --upgrade --quiet jupyter papermill==2.2.0 ${packages_to_install}"
+      # Running the notebook using papermill
+      papermill --parameters_yaml "$arguments" --parameters INPUT_DATA_PATH "$input_data_path" --parameters OUTPUT_DATA_PATH "$output_data_path" "$input_notebook_path" "$output_notebook_path"
+      
+    - {inputPath: Notebook}
+    - {outputPath: Notebook}
+    - {inputValue: Parameters}
+    - if:
+        cond: {isPresent: Packages to install}
+        then: [{inputValue: Packages to install}]
+        else: "{}"
+    - if:
+        cond: {isPresent: Input data}
+        then: [{inputPath: Input data}]
+        else: ""
+    - {outputPath: Output data}

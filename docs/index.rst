@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Kubeflow Pipelines SDK API reference
-================================================
+Kubeflow Pipelines SDK API
+==========================
 
 Main documentation: https://www.kubeflow.org/docs/pipelines/
 
@@ -12,10 +12,10 @@ Source code: https://github.com/kubeflow/pipelines/
 
 .. toctree::
    :maxdepth: 3
-   :caption: Contents:
+   :caption: Contents
 
+   self
    source/kfp
-
 
 .. * :ref:`modindex`
 .. * :ref:`kfp-ref`

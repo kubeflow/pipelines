@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ from kfp import dsl
 def gcs_download_op(url):
     return dsl.ContainerOp(
         name='GCS - Download',
-        image='google/cloud-sdk:272.0.0',
+        image='google/cloud-sdk:279.0.0',
         command=['sh', '-c'],
         arguments=['gsutil cat $0 | tee $1', url, '/tmp/results.txt'],
         file_outputs={
@@ -39,12 +39,12 @@ def echo2_op(text1, text2):
 
 
 @dsl.pipeline(
-  name='Parallel pipeline',
+  name='parallel-pipeline',
   description='Download two messages in parallel and prints the concatenated result.'
 )
 def download_and_join(
-    url1='gs://ml-pipeline-playground/shakespeare1.txt',
-    url2='gs://ml-pipeline-playground/shakespeare2.txt'
+    url1='gs://ml-pipeline/sample-data/shakespeare/shakespeare1.txt',
+    url2='gs://ml-pipeline/sample-data/shakespeare/shakespeare2.txt'
 ):
     """A three-step pipeline with first two running in parallel."""
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -266,7 +266,10 @@ describe('CompareUtils', () => {
         } as ApiRun,
       ];
       expect(CompareUtils.multiRunMetricsCompareProps(runs)).toEqual({
-        rows: [['0.330', ''], ['', '0.660']],
+        rows: [
+          ['0.330', ''],
+          ['', '0.660'],
+        ],
         xLabels: ['run1', 'run2'],
         yLabels: ['some-metric', 'another-metric'],
       });
@@ -396,7 +399,10 @@ describe('CompareUtils', () => {
         name: 'run1',
       } as ApiRun;
       expect(CompareUtils.singleRunToMetricsCompareProps(run)).toEqual({
-        rows: [['0.230', ''], ['', '0.540']],
+        rows: [
+          ['0.230', ''],
+          ['', '0.540'],
+        ],
         xLabels: ['some-metric-name', 'another-metric-name'],
         yLabels: ['someNodeId', 'anotherNodeId'],
       });
@@ -414,6 +420,54 @@ describe('CompareUtils', () => {
         rows: [['0.230'], ['0.540']],
         xLabels: ['some-metric-name'],
         yLabels: ['someNodeId', 'anotherNodeId'],
+      });
+    });
+
+    it('displays the correct row name when task_display_name annotation is present on the template', () => {
+      const run = {
+        metrics: [
+          { name: 'some-metric-name', node_id: 'node-1', number_value: 0.12 },
+          { name: 'some-metric-name', node_id: 'node-2', number_value: 0.34 },
+        ],
+      } as ApiRun;
+      const workflow = {
+        spec: {
+          templates: [
+            {
+              name: 'template-1',
+              metadata: {
+                annotations: {
+                  'pipelines.kubeflow.org/task_display_name': 'Some display annotation',
+                },
+              },
+            },
+            {
+              name: 'template-2',
+              metadata: {
+                annotations: {},
+              },
+            },
+          ],
+        },
+        status: {
+          nodes: {
+            'node-1': {
+              id: 'node-1',
+              displayName: 'node-1-display',
+              templateName: 'template-1',
+            },
+            'node-2': {
+              id: 'node-2',
+              displayName: 'node-2-display',
+              templateName: 'template-2',
+            },
+          },
+        },
+      } as any;
+      expect(CompareUtils.singleRunToMetricsCompareProps(run, workflow)).toEqual({
+        rows: [['0.120'], ['0.340']],
+        xLabels: ['some-metric-name'],
+        yLabels: ['Some display annotation', 'node-2-display'],
       });
     });
   });

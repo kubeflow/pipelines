@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,10 +15,10 @@
  */
 
 import * as React from 'react';
-import AllRunsList from './AllRunsList';
+import { AllRunsList } from './AllRunsList';
 import { PageProps } from './Page';
 import { RoutePage } from '../components/Router';
-import { RunStorageState } from '../apis/run';
+import { ApiRunStorageState } from '../apis/run';
 import { shallow, ShallowWrapper } from 'enzyme';
 import { ButtonKeys } from '../lib/Buttons';
 
@@ -39,8 +39,10 @@ describe('AllRunsList', () => {
   };
   let tree: ShallowWrapper;
 
-  function shallowMountComponent(): void {
-    tree = shallow(<AllRunsList {...props} />);
+  function shallowMountComponent(
+    propsPatch: Partial<PageProps & { namespace?: string }> = {},
+  ): void {
+    tree = shallow(<AllRunsList {...props} {...propsPatch} />);
     // Necessary since the component calls updateToolbar with the toolbar props,
     // then expects to get them back in props
     tree.setProps({ toolbarProps: _toolbarProps });
@@ -58,6 +60,11 @@ describe('AllRunsList', () => {
   it('renders all runs', () => {
     shallowMountComponent();
     expect(tree).toMatchSnapshot();
+  });
+
+  it('lists all runs in namespace', () => {
+    shallowMountComponent({ namespace: 'test-ns' });
+    expect(tree.find('RunList').prop('namespaceMask')).toEqual('test-ns');
   });
 
   it('removes error banner on unmount', () => {
@@ -121,6 +128,6 @@ describe('AllRunsList', () => {
 
   it('shows a list of available runs', () => {
     shallowMountComponent();
-    expect(tree.find('RunList').prop('storageState')).toBe(RunStorageState.AVAILABLE.toString());
+    expect(tree.find('RunList').prop('storageState')).toBe(ApiRunStorageState.AVAILABLE.toString());
   });
 });

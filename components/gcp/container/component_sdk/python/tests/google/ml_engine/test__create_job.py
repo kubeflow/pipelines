@@ -67,6 +67,27 @@ class TestCreateJob(unittest.TestCase):
                 'jobId': 'mock_job_ctx1'
             }
         )
+
+    def test_create_job_with_job_id_succeed(self, mock_mlengine_client,
+        mock_kfp_context, mock_dump_json, mock_display):
+        mock_kfp_context().__enter__().context_id.return_value = 'ctx1'
+        job = {}
+        returned_job = {
+            'jobId': 'mock_job',
+            'state': 'SUCCEEDED'
+        }
+        mock_mlengine_client().get_job.return_value = (
+            returned_job)
+
+        result = create_job('mock_project', job, job_id='mock_job')
+
+        self.assertEqual(returned_job, result)
+        mock_mlengine_client().create_job.assert_called_with(
+            project_id = 'mock_project',
+            job = {
+                'jobId': 'mock_job'
+            }
+        )
         
     def test_execute_retry_job_success(self, mock_mlengine_client,
         mock_kfp_context, mock_dump_json, mock_display):

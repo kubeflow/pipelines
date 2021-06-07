@@ -1,4 +1,4 @@
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
@@ -12,9 +12,11 @@ spec:
     metadata:
       labels:
         app: ml-pipeline-viewer-crd
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
     spec:
       containers:
-      - image: gcr.io/ml-pipeline/viewer-crd-controller:0.1.27
+      - image: gcr.io/ml-pipeline/viewer-crd-controller:dummy
         imagePullPolicy: Always
         name: ml-pipeline-viewer-crd
         env:

@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2019 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 package client
 
 import (
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
@@ -23,6 +24,9 @@ type FakeKuberneteCoreClient struct {
 }
 
 func (c *FakeKuberneteCoreClient) PodClient(namespace string) v1.PodInterface {
+	if len(namespace) == 0 {
+		panic(util.NewResourceNotFoundError("Namespace", namespace))
+	}
 	return c.podClientFake
 }
 

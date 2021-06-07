@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,17 @@ const fetchSpy = (response: string) => {
   const spy = jest.fn(() =>
     Promise.resolve({
       ok: true,
+      text: () => response,
+    }),
+  );
+  window.fetch = spy;
+  return spy;
+};
+
+const failedFetchSpy = (response: string) => {
+  const spy = jest.fn(() =>
+    Promise.resolve({
+      ok: false,
       text: () => response,
     }),
   );
@@ -49,19 +60,22 @@ describe('Apis', () => {
 
   it('getPodLogs', async () => {
     const spy = fetchSpy('http://some/address');
-    expect(await Apis.getPodLogs('some-pod-name')).toEqual('http://some/address');
-    expect(spy).toHaveBeenCalledWith('k8s/pod/logs?podname=some-pod-name', {
-      credentials: 'same-origin',
-    });
+    expect(await Apis.getPodLogs('a-run-id', 'some-pod-name', 'ns')).toEqual('http://some/address');
+    expect(spy).toHaveBeenCalledWith(
+      'k8s/pod/logs?podname=some-pod-name&runid=a-run-id&podnamespace=ns',
+      {
+        credentials: 'same-origin',
+      },
+    );
   });
 
   it('getPodLogs in a specific namespace', async () => {
     const spy = fetchSpy('http://some/address');
-    expect(await Apis.getPodLogs('some-pod-name', 'some-namespace-name')).toEqual(
+    expect(await Apis.getPodLogs('a-run-id', 'some-pod-name', 'some-namespace-name')).toEqual(
       'http://some/address',
     );
     expect(spy).toHaveBeenCalledWith(
-      'k8s/pod/logs?podname=some-pod-name&podnamespace=some-namespace-name',
+      'k8s/pod/logs?podname=some-pod-name&runid=a-run-id&podnamespace=some-namespace-name',
       {
         credentials: 'same-origin',
       },
@@ -76,10 +90,10 @@ describe('Apis', () => {
         text: () => 'bad response',
       }),
     );
-    expect(Apis.getPodLogs('some-pod-name')).rejects.toThrowError('bad response');
-    expect(Apis.getPodLogs('some-pod-name', 'some-namespace-name')).rejects.toThrowError(
-      'bad response',
-    );
+    expect(Apis.getPodLogs('a-run-id', 'some-pod-name', 'ns')).rejects.toThrowError('bad response');
+    expect(
+      Apis.getPodLogs('a-run-id', 'some-pod-name', 'some-namespace-name'),
+    ).rejects.toThrowError('bad response');
   });
 
   it('getBuildInfo returns build information', async () => {
@@ -124,36 +138,144 @@ describe('Apis', () => {
     });
   });
 
+  it('buildReadFileUrl', () => {
+    expect(
+      Apis.buildReadFileUrl({
+        path: {
+          bucket: 'testbucket',
+          key: 'testkey',
+          source: StorageService.GCS,
+        },
+        namespace: 'testnamespace',
+        peek: 255,
+      }),
+    ).toEqual(
+      'artifacts/get?source=gcs&namespace=testnamespace&peek=255&bucket=testbucket&key=testkey',
+    );
+  });
+
+  it('buildArtifactUrl', () => {
+    expect(
+      Apis.buildArtifactUrl({
+        bucket: 'testbucket',
+        key: 'testkey',
+        source: StorageService.GCS,
+      }),
+    ).toEqual('gcs://testbucket/testkey');
+  });
+
   it('getTensorboardApp', async () => {
     const spy = fetchSpy(
-      JSON.stringify({ podAddress: 'http://some/address', tfVersion: '1.14.0' }),
+      JSON.stringify({
+        podAddress: 'http://some/address',
+        tfVersion: '1.14.0',
+        image: 'tensorflow/tensorflow:1.14.0',
+      }),
     );
-    const tensorboardInstance = await Apis.getTensorboardApp('gs://log/dir');
-    expect(tensorboardInstance).toEqual({ podAddress: 'http://some/address', tfVersion: '1.14.0' });
+    const tensorboardInstance = await Apis.getTensorboardApp('gs://log/dir', 'test-ns');
+    expect(tensorboardInstance).toEqual({
+      podAddress: 'http://some/address',
+      tfVersion: '1.14.0',
+      image: 'tensorflow/tensorflow:1.14.0',
+    });
     expect(spy).toHaveBeenCalledWith(
-      'apps/tensorboard?logdir=' + encodeURIComponent('gs://log/dir'),
+      `apps/tensorboard?logdir=${encodeURIComponent('gs://log/dir')}&namespace=test-ns`,
       { credentials: 'same-origin' },
     );
   });
 
-  it('startTensorboardApp', async () => {
-    const spy = fetchSpy('http://some/address');
-    await Apis.startTensorboardApp('gs://log/dir', '1.14.0');
-    expect(spy).toHaveBeenCalledWith(
-      'apps/tensorboard?logdir=' + encodeURIComponent('gs://log/dir') + '&tfversion=1.14.0',
-      {
-        credentials: 'same-origin',
-        headers: { 'content-type': 'application/json' },
-        method: 'POST',
-      },
-    );
+  describe('startTensorboardApp', () => {
+    const defaultArgs = {
+      logdir: 'gs://log/dir',
+      image: 'tensorflow/tensorflow:1.14.0',
+      namespace: 'test-ns',
+    };
+    it('starts tensorboard app', async () => {
+      const spy = fetchSpy('http://some/address');
+      await Apis.startTensorboardApp(defaultArgs);
+      expect(spy).toHaveBeenCalledWith(
+        'apps/tensorboard?logdir=' +
+          encodeURIComponent(defaultArgs.logdir) +
+          '&namespace=' +
+          defaultArgs.namespace +
+          '&image=' +
+          encodeURIComponent(defaultArgs.image),
+        {
+          credentials: 'same-origin',
+          headers: { 'content-type': 'application/json' },
+          method: 'POST',
+        },
+      );
+    });
+    it('encodes podTemplateSpec as JSON in arg', async () => {
+      const spy = fetchSpy('http://some/address');
+      const args = {
+        ...defaultArgs,
+        podTemplateSpec: {
+          spec: {
+            containers: [
+              {
+                env: [
+                  {
+                    name: 'AWS_ACCESS_KEY_ID',
+                    valueFrom: {
+                      secretKeyRef: {
+                        name: 'mlpipeline-minio-artifact',
+                        key: 'accesskey',
+                      },
+                    },
+                  },
+                  {
+                    name: 'AWS_SECRET_ACCESS_KEY',
+                    valueFrom: {
+                      secretKeyRef: {
+                        name: 'mlpipeline-minio-artifact',
+                        key: 'secretkey',
+                      },
+                    },
+                  },
+                  {
+                    name: 'AWS_REGION',
+                    value: 'minio',
+                  },
+                  {
+                    name: 'S3_ENDPOINT',
+                    value: 'http://minio-service:9000',
+                  },
+                  {
+                    name: 'S3_USE_HTTPS',
+                    value: '0',
+                  },
+                  {
+                    name: 'S3_VERIFY_SSL',
+                    value: '0',
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      };
+      await Apis.startTensorboardApp(args);
+      expect(spy).toHaveBeenCalledWith(
+        'apps/tensorboard?logdir=' +
+          encodeURIComponent(args.logdir) +
+          '&namespace=' +
+          args.namespace +
+          '&image=' +
+          encodeURIComponent(args.image) +
+          '&podtemplatespec=' +
+          encodeURIComponent(JSON.stringify(args.podTemplateSpec)),
+        expect.anything(),
+      );
+    });
   });
 
   it('deleteTensorboardApp', async () => {
     const spy = fetchSpy('http://some/address');
-    await Apis.deleteTensorboardApp('gs://log/dir');
+    await Apis.deleteTensorboardApp('gs://log/dir', 'test-ns');
     expect(spy).toHaveBeenCalledWith(
-      'apps/tensorboard?logdir=' + encodeURIComponent('gs://log/dir'),
+      'apps/tensorboard?logdir=' + encodeURIComponent('gs://log/dir') + '&namespace=test-ns',
       {
         credentials: 'same-origin',
         method: 'DELETE',
@@ -181,5 +303,19 @@ describe('Apis', () => {
         method: 'POST',
       },
     );
+  });
+
+  it('checks if Tensorboard pod is ready', async () => {
+    const spy = fetchSpy('');
+    const ready = await Apis.isTensorboardPodReady('apis/v1beta1/_proxy/pod_address');
+    expect(ready).toBe(true);
+    expect(spy).toHaveBeenCalledWith('apis/v1beta1/_proxy/pod_address', { method: 'HEAD' });
+  });
+
+  it('checks if Tensorboard pod is not ready', async () => {
+    const spy = failedFetchSpy('');
+    const ready = await Apis.isTensorboardPodReady('apis/v1beta1/_proxy/pod_address');
+    expect(ready).toBe(false);
+    expect(spy).toHaveBeenCalledWith('apis/v1beta1/_proxy/pod_address', { method: 'HEAD' });
   });
 });

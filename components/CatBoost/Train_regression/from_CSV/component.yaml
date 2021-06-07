@@ -1,0 +1,207 @@
+name: Catboost train regression
+description: |-
+  Train a CatBoost classifier model.
+
+      Args:
+          training_data_path: Path for the training data in CSV format.
+          model_path: Output path for the trained model in binary CatBoostModel format.
+          starting_model_path: Path for the existing trained model to start from.
+          label_column: Column containing the label data.
+
+          loss_function: The metric to use in training and also selector of the machine learning
+              problem to solve. Default = 'RMSE'. Possible values:
+              'RMSE', 'MAE', 'Quantile:alpha=value', 'LogLinQuantile:alpha=value', 'Poisson', 'MAPE', 'Lq:q=value'
+          num_iterations: Number of trees to add to the ensemble.
+          learning_rate: Step size shrinkage used in update to prevents overfitting.
+              Default value is selected automatically for binary classification with other parameters set to default.
+              In all other cases default is 0.03.
+          depth: Depth of a tree. All trees are the same depth. Default = 6
+          random_seed: Random number seed. Default = 0
+
+          cat_features: A list of Categorical features (indices or names).
+          additional_training_options: A dictionary with additional options to pass to CatBoostRegressor
+
+      Outputs:
+          model: Trained model in binary CatBoostModel format.
+
+      Annotations:
+          author: Alexey Volkov <alexey.volkov@ark-kun.com>
+inputs:
+- {name: training_data, type: CSV}
+- {name: starting_model, type: CatBoostModel, optional: true}
+- {name: label_column, type: Integer, default: '0', optional: true}
+- {name: loss_function, type: String, default: RMSE, optional: true}
+- {name: num_iterations, type: Integer, default: '500', optional: true}
+- {name: learning_rate, type: Float, optional: true}
+- {name: depth, type: Integer, default: '6', optional: true}
+- {name: random_seed, type: Integer, default: '0', optional: true}
+- {name: cat_features, type: JsonArray, optional: true}
+- {name: additional_training_options, type: JsonObject, default: '{}', optional: true}
+outputs:
+- {name: model, type: CatBoostModel}
+implementation:
+  container:
+    image: python:3.7
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'catboost==0.23' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet
+      --no-warn-script-location 'catboost==0.23' --user) && "$0" "$@"
+    - python3
+    - -u
+    - -c
+    - |
+      def _make_parent_dirs_and_return_path(file_path: str):
+          import os
+          os.makedirs(os.path.dirname(file_path), exist_ok=True)
+          return file_path
+
+      def catboost_train_regression(
+          training_data_path,
+          model_path,
+          starting_model_path = None,
+          label_column = 0,
+
+          loss_function = 'RMSE',
+          num_iterations = 500,
+          learning_rate = None,
+          depth = 6,
+          random_seed = 0,
+
+          cat_features = None,
+
+          additional_training_options = {},
+      ):
+          '''Train a CatBoost classifier model.
+
+          Args:
+              training_data_path: Path for the training data in CSV format.
+              model_path: Output path for the trained model in binary CatBoostModel format.
+              starting_model_path: Path for the existing trained model to start from.
+              label_column: Column containing the label data.
+
+              loss_function: The metric to use in training and also selector of the machine learning
+                  problem to solve. Default = 'RMSE'. Possible values:
+                  'RMSE', 'MAE', 'Quantile:alpha=value', 'LogLinQuantile:alpha=value', 'Poisson', 'MAPE', 'Lq:q=value'
+              num_iterations: Number of trees to add to the ensemble.
+              learning_rate: Step size shrinkage used in update to prevents overfitting.
+                  Default value is selected automatically for binary classification with other parameters set to default.
+                  In all other cases default is 0.03.
+              depth: Depth of a tree. All trees are the same depth. Default = 6
+              random_seed: Random number seed. Default = 0
+
+              cat_features: A list of Categorical features (indices or names).
+              additional_training_options: A dictionary with additional options to pass to CatBoostRegressor
+
+          Outputs:
+              model: Trained model in binary CatBoostModel format.
+
+          Annotations:
+              author: Alexey Volkov <alexey.volkov@ark-kun.com>
+          '''
+          import tempfile
+          from pathlib import Path
+
+          from catboost import CatBoostRegressor, Pool
+
+          column_descriptions = {label_column: 'Label'}
+          column_description_path = tempfile.NamedTemporaryFile(delete=False).name
+          with open(column_description_path, 'w') as column_description_file:
+              for idx, kind in column_descriptions.items():
+                  column_description_file.write('{}\t{}\n'.format(idx, kind))
+
+          train_data = Pool(
+              training_data_path,
+              column_description=column_description_path,
+              has_header=True,
+              delimiter=',',
+          )
+
+          model = CatBoostRegressor(
+              iterations=num_iterations,
+              depth=depth,
+              learning_rate=learning_rate,
+              loss_function=loss_function,
+              random_seed=random_seed,
+              verbose=True,
+              **additional_training_options,
+          )
+
+          model.fit(
+              train_data,
+              cat_features=cat_features,
+              init_model=starting_model_path,
+              #verbose=False,
+              #plot=True,
+          )
+          Path(model_path).parent.mkdir(parents=True, exist_ok=True)
+          model.save_model(model_path)
+
+      import json
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Catboost train regression', description="Train a CatBoost classifier model.\n\n    Args:\n        training_data_path: Path for the training data in CSV format.\n        model_path: Output path for the trained model in binary CatBoostModel format.\n        starting_model_path: Path for the existing trained model to start from.\n        label_column: Column containing the label data.\n\n        loss_function: The metric to use in training and also selector of the machine learning\n            problem to solve. Default = 'RMSE'. Possible values:\n            'RMSE', 'MAE', 'Quantile:alpha=value', 'LogLinQuantile:alpha=value', 'Poisson', 'MAPE', 'Lq:q=value'\n        num_iterations: Number of trees to add to the ensemble.\n        learning_rate: Step size shrinkage used in update to prevents overfitting.\n            Default value is selected automatically for binary classification with other parameters set to default.\n            In all other cases default is 0.03.\n        depth: Depth of a tree. All trees are the same depth. Default = 6\n        random_seed: Random number seed. Default = 0\n\n        cat_features: A list of Categorical features (indices or names).\n        additional_training_options: A dictionary with additional options to pass to CatBoostRegressor\n\n    Outputs:\n        model: Trained model in binary CatBoostModel format.\n\n    Annotations:\n        author: Alexey Volkov <alexey.volkov@ark-kun.com>")
+      _parser.add_argument("--training-data", dest="training_data_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--starting-model", dest="starting_model_path", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--label-column", dest="label_column", type=int, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--loss-function", dest="loss_function", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--num-iterations", dest="num_iterations", type=int, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--learning-rate", dest="learning_rate", type=float, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--depth", dest="depth", type=int, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--random-seed", dest="random_seed", type=int, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--cat-features", dest="cat_features", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--additional-training-options", dest="additional_training_options", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--model", dest="model_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parsed_args = vars(_parser.parse_args())
+
+      _outputs = catboost_train_regression(**_parsed_args)
+    args:
+    - --training-data
+    - {inputPath: training_data}
+    - if:
+        cond: {isPresent: starting_model}
+        then:
+        - --starting-model
+        - {inputPath: starting_model}
+    - if:
+        cond: {isPresent: label_column}
+        then:
+        - --label-column
+        - {inputValue: label_column}
+    - if:
+        cond: {isPresent: loss_function}
+        then:
+        - --loss-function
+        - {inputValue: loss_function}
+    - if:
+        cond: {isPresent: num_iterations}
+        then:
+        - --num-iterations
+        - {inputValue: num_iterations}
+    - if:
+        cond: {isPresent: learning_rate}
+        then:
+        - --learning-rate
+        - {inputValue: learning_rate}
+    - if:
+        cond: {isPresent: depth}
+        then:
+        - --depth
+        - {inputValue: depth}
+    - if:
+        cond: {isPresent: random_seed}
+        then:
+        - --random-seed
+        - {inputValue: random_seed}
+    - if:
+        cond: {isPresent: cat_features}
+        then:
+        - --cat-features
+        - {inputValue: cat_features}
+    - if:
+        cond: {isPresent: additional_training_options}
+        then:
+        - --additional-training-options
+        - {inputValue: additional_training_options}
+    - --model
+    - {outputPath: model}

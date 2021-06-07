@@ -1,4 +1,11 @@
 apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mysql
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+---
+apiVersion: v1
 kind: Service
 metadata:
   name: mysql
@@ -16,7 +23,7 @@ spec:
     app.kubernetes.io/name: {{ .Release.Name }}
 ---
 {{ if .Values.managedstorage.enabled }}
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cloudsqlproxy
@@ -35,6 +42,7 @@ spec:
         app: cloudsqlproxy
         app.kubernetes.io/name: {{ .Release.Name }}
     spec:
+      serviceAccountName: mysql
       containers:
         - image: {{ .Values.images.cloudsqlproxy}}
           name: cloudsqlproxy
@@ -43,7 +51,8 @@ spec:
                     "-dir=/cloudsql",
             # Replace with your own CloudSQL instance ID
                     "-instances={{ .Values.managedstorage.cloudsqlInstanceConnectionName }}=tcp:0.0.0.0:3306",
-                    "-credential_file=/credentials/application_default_credentials.json",
+            # System workload uses GCE default service account or Workload Identity's service account
+            #       "-credential_file=/credentials/application_default_credentials.json",
                     "term_timeout=10s"]
           # set term_timeout if require graceful handling of shutdown
           # NOTE: proxy will stop accepting new connections; only wait on existing connections
@@ -59,14 +68,9 @@ spec:
           volumeMounts:
             - mountPath: /cloudsql
               name: cloudsql
-            - mountPath: /credentials
-              name: gcp-sa-token
       volumes:
         - name: cloudsql
           emptyDir:
-        - name: gcp-sa-token
-          secret:
-            secretName: {{ .Values.gcpSecretName }}
 ---
 apiVersion: v1
 kind: Secret
@@ -93,7 +97,7 @@ spec:
     requests:
       storage: 20Gi
 ---
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mysql
@@ -112,18 +116,29 @@ spec:
         app: mysql
         app.kubernetes.io/name: {{ .Release.Name }}
     spec:
+      serviceAccountName: mysql
       containers:
-        - env:
+        - name: mysql
+          image: {{ .Values.images.mysql }}
+          args:
+          # https://dev.mysql.com/doc/refman/5.7/en/server-options.html#option_mysqld_ignore-db-dir
+          # Ext4, Btrfs etc. volumes root directories have a lost+found directory that should not be treated as a database.
+          - --ignore-db-dir=lost+found
+          - --datadir
+          - /var/lib/mysql
+          env:
             - name: MYSQL_ALLOW_EMPTY_PASSWORD
               value: "true"
-          image: {{ .Values.images.mysql }}
-          name: mysql
           ports:
             - containerPort: 3306
               name: mysql
           volumeMounts:
             - mountPath: /var/lib/mysql
               name: mysql-persistent-storage
+          resources:
+            requests:
+              cpu: 100m
+              memory: 800Mi
       volumes:
         - name: mysql-persistent-storage
           persistentVolumeClaim:

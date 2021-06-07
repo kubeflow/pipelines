@@ -1,0 +1,75 @@
+name: Xgboost train regression and calculate metrics on csv
+inputs:
+- {name: training_data, type: CSV}
+- {name: testing_data, type: CSV}
+- {name: label_column, type: Integer, default: '0', optional: true}
+- {name: objective, type: String, default: 'reg:squarederror', optional: true}
+- {name: num_iterations, type: Integer, default: '200', optional: true}
+outputs:
+- {name: model, type: XGBoostModel}
+- {name: mean_absolute_error, type: Float}
+- {name: mean_squared_error, type: Float}
+- {name: root_mean_squared_error, type: Float}
+- {name: metrics, type: JsonObject}
+implementation:
+  graph:
+    tasks:
+      Xgboost train:
+        componentRef: {digest: 09b80053da29f8f51575b42e5d2e8ad4b7bdcc92a02c3744e189b1f597006b38,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/567c04c51ff00a1ee525b3458425b17adbe3df61/components/XGBoost/Train/component.yaml'}
+        arguments:
+          training_data:
+            graphInput: {inputName: training_data}
+          label_column:
+            graphInput: {inputName: label_column}
+          num_iterations:
+            graphInput: {inputName: num_iterations}
+          objective:
+            graphInput: {inputName: objective}
+      Xgboost predict:
+        componentRef: {digest: ecdfaf32cff15b6abc3d0dd80365ce00577f1a19a058fbe201f515431cea1357,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/567c04c51ff00a1ee525b3458425b17adbe3df61/components/XGBoost/Predict/component.yaml'}
+        arguments:
+          data:
+            graphInput: {inputName: testing_data}
+          model:
+            taskOutput: {outputName: model, taskId: Xgboost train, type: XGBoostModel}
+          label_column:
+            graphInput: {inputName: label_column}
+      Pandas Transform DataFrame in CSV format:
+        componentRef: {digest: 58dc88349157bf128021708c316ce4eb60bc1de0a5a7dd3af45fabac3276d510,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/6162d55998b176b50267d351241100bb0ee715bc/components/pandas/Transform_DataFrame/in_CSV_format/component.yaml'}
+        arguments:
+          table:
+            graphInput: {inputName: testing_data}
+          transform_code: df = df[["tips"]]
+      Remove header:
+        componentRef: {digest: ba35ffea863855b956c3c50aefa0420ba3823949a6c059e6e3971cde960dc5a3,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/02c9638287468c849632cf9f7885b51de4c66f86/components/tables/Remove_header/component.yaml'}
+        arguments:
+          table:
+            taskOutput: {outputName: transformed_table, taskId: Pandas Transform DataFrame
+                in CSV format, type: CSV}
+      Calculate regression metrics from csv:
+        componentRef: {digest: e3ecbfeb18032820edfee4255e2fb6d15d15ed224e166519d5e528e12053a995,
+          url: 'https://raw.githubusercontent.com/kubeflow/pipelines/7da1ac9464b4b3e7d95919faa2f1107a9635b7e4/components/ml_metrics/Calculate_regression_metrics/from_CSV/component.yaml'}
+        arguments:
+          true_values:
+            taskOutput: {outputName: table, taskId: Remove header}
+          predicted_values:
+            taskOutput: {outputName: predictions, taskId: Xgboost predict, type: Text}
+    outputValues:
+      model:
+        taskOutput: {outputName: model, taskId: Xgboost train, type: XGBoostModel}
+      mean_absolute_error:
+        taskOutput: {outputName: mean_absolute_error, taskId: Calculate regression
+            metrics from csv, type: Float}
+      mean_squared_error:
+        taskOutput: {outputName: mean_squared_error, taskId: Calculate regression
+            metrics from csv, type: Float}
+      root_mean_squared_error:
+        taskOutput: {outputName: root_mean_squared_error, taskId: Calculate regression
+            metrics from csv, type: Float}
+      metrics:
+        taskOutput: {outputName: metrics, taskId: Calculate regression metrics from
+            csv, type: JsonObject}

@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2019 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -72,4 +72,34 @@ func (p *PipelineVersion) APIToModelFieldMap() map[string]string {
 // GetModelName returns table name used as sort field prefix
 func (p *PipelineVersion) GetModelName() string {
 	return "pipeline_versions"
+}
+
+func (p *PipelineVersion) GetField(name string) (string, bool) {
+	if field, ok := p.APIToModelFieldMap()[name]; ok {
+		return field, true
+	}
+	return "", false
+}
+
+func (p *PipelineVersion) GetFieldValue(name string) interface{} {
+	switch name {
+	case "UUID":
+		return p.UUID
+	case "Name":
+		return p.Name
+	case "CreatedAtInSec":
+		return p.CreatedAtInSec
+	case "Status":
+		return p.Status
+	default:
+		return nil
+	}
+}
+
+func (p *PipelineVersion) GetSortByFieldPrefix(name string) string {
+	return "pipeline_versions."
+}
+
+func (p *PipelineVersion) GetKeyFieldPrefix() string {
+	return "pipeline_versions."
 }

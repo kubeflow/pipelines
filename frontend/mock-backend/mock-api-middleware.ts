@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,12 +17,12 @@ import * as express from 'express';
 import * as fs from 'fs';
 import RunUtils from '../src/lib/RunUtils';
 import helloWorldRuntime from './integration-test-runtime';
-import proxyMiddleware from '../server/proxy-middleware';
+import proxyMiddleware from './proxy-middleware';
 import { ApiFilter, PredicateOp } from '../src/apis/filter';
 import { ApiListExperimentsResponse, ApiExperiment } from '../src/apis/experiment';
 import { ApiListJobsResponse, ApiJob } from '../src/apis/job';
 import { ApiListPipelinesResponse, ApiPipeline } from '../src/apis/pipeline';
-import { ApiListRunsResponse, ApiResourceType, ApiRun, RunStorageState } from '../src/apis/run';
+import { ApiListRunsResponse, ApiResourceType, ApiRun, ApiRunStorageState } from '../src/apis/run';
 import { ExperimentSortKeys, PipelineSortKeys, RunSortKeys } from '../src/lib/Apis';
 import { Response } from 'express-serve-static-core';
 import { data as fixedData, namedPipelines } from './fixed-data';
@@ -336,7 +336,9 @@ export default (app: express.Application) => {
     const runDetail = fixedData.runs.find(r => r.run!.id === req.params.rid);
     if (runDetail) {
       runDetail.run!.storage_state =
-        req.params.method === 'archive' ? RunStorageState.ARCHIVED : RunStorageState.AVAILABLE;
+        req.params.method === 'archive'
+          ? ApiRunStorageState.ARCHIVED
+          : ApiRunStorageState.AVAILABLE;
       res.json({});
     } else {
       res.status(500).send('Cannot find a run with id ' + req.params.rid);
@@ -589,8 +591,12 @@ export default (app: express.Application) => {
 
   app.get('/k8s/pod/logs', (req, res) => {
     const podName = decodeURIComponent(req.query.podname);
+    if (podName === 'json-12abc') {
+      res.status(404).send('pod not found');
+      return;
+    }
     if (podName === 'coinflip-recursive-q7dqb-3721646052') {
-      res.status(404).send('Failed to retrieve log');
+      res.status(500).send('Failed to retrieve log');
       return;
     }
     const shortLog = fs.readFileSync('./mock-backend/shortlog.txt', 'utf-8');
@@ -603,6 +609,20 @@ export default (app: express.Application) => {
 
   app.get('/visualizations/allowed', (req, res) => {
     res.send(true);
+  });
+
+  // Uncomment this instead to test 404 endpoints.
+  // app.get('/system/cluster-name', (_, res) => {
+  //   res.status(404).send('404 Not Found');
+  // });
+  // app.get('/system/project-id', (_, res) => {
+  //   res.status(404).send('404 Not Found');
+  // });
+  app.get('/system/cluster-name', (_, res) => {
+    res.send('mock-cluster-name');
+  });
+  app.get('/system/project-id', (_, res) => {
+    res.send('mock-project-id');
   });
 
   app.all(v1beta1Prefix + '*', (req, res) => {

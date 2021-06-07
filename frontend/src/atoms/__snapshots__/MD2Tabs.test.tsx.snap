@@ -16,7 +16,7 @@ exports[`Input gracefully handles an out of bound selectedTab value 1`] = `
     <div
       className="indicator"
     />
-    <Component
+    <Separator
       units={20}
     >
       <span
@@ -28,7 +28,7 @@ exports[`Input gracefully handles an out of bound selectedTab value 1`] = `
           }
         }
       />
-    </Component>
+    </Separator>
     <WithStyles(Button)
       className="button active"
       key="0"
@@ -326,7 +326,7 @@ exports[`Input renders with the right styles by default 1`] = `
   <div
     className="indicator"
   />
-  <Component
+  <Separator
     units={20}
   />
   <WithStyles(Button)

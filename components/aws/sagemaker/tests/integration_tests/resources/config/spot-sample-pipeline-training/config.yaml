@@ -1,0 +1,25 @@
+PipelineDefinition: ../../../../../samples/contrib/aws-samples/simple_train_pipeline/training-pipeline.py
+TestName: sample-pipeline-training
+Timeout: 3600
+ExpectedTrainingImage: ((KMEANS_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/kmeans:1
+Arguments:
+  region: ((REGION))
+  image: ((KMEANS_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/kmeans:1
+  hyperparameters:
+    k: "10"
+    feature_dim: "784"
+  channels:
+    - ChannelName: train
+      DataSource:
+        S3DataSource:
+          S3Uri: s3://((DATA_BUCKET))/mnist_kmeans_example/train_data
+          S3DataType: S3Prefix
+          S3DataDistributionType: FullyReplicated
+      CompressionType: None
+      RecordWrapperType: None
+      InputMode: File
+  spot_instance: "True"
+  checkpoint_config:
+    S3Uri: s3://((DATA_BUCKET))/mnist_kmeans_example/train-checkpoints
+  model_artifact_path: s3://((DATA_BUCKET))/mnist_kmeans_example/output
+  role: ((SAGEMAKER_ROLE_ARN))

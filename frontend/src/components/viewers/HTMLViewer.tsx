@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,9 +65,11 @@ class HTMLViewer extends Viewer<HTMLViewerProps, any> {
     }
 
     return (
+      // TODO: fix this
+      // eslint-disable-next-line jsx-a11y/iframe-has-title
       <iframe
         ref={this._iframeRef}
-        src='javascript:void(0);'
+        src='about:blank'
         className={this._css.iframe}
         sandbox='allow-scripts'
       />

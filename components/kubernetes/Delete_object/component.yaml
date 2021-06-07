@@ -1,0 +1,32 @@
+name: Delete Kubernetes object
+inputs:
+- {name: Name, type: String}
+- {name: Kind, type: String}
+outputs:
+- {name: Name, type: String}
+- {name: Kind, type: String}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+implementation:
+  container:
+    image: bitnami/kubectl:1.17.17
+    command:
+    - bash
+    - -exc
+    - |
+      object_name=$0
+      object_type=$1
+      output_name_path=$2
+      output_kind_path=$3
+      mkdir -p "$(dirname "$output_name_path")"
+      mkdir -p "$(dirname "$output_kind_path")"
+
+      typed_object_name=$(kubectl delete "$object_type" "$object_name" --output=name)
+      echo "${typed_object_name##*/}" >"$output_name_path"
+      echo "${typed_object_name%/*}" >"$output_kind_path"
+
+    - {inputValue: Name}
+    - {inputValue: Kind}
+    - {outputPath: Name}
+    - {outputPath: Kind}

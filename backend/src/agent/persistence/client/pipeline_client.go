@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -85,8 +85,10 @@ func (p *PipelineClient) ReportWorkflow(workflow *util.Workflow) error {
 
 	if err != nil {
 		statusCode, _ := status.FromError(err)
-		if statusCode.Code() == codes.InvalidArgument {
-			// Do not retry if there is something wrong with the workflow
+		if statusCode.Code() == codes.InvalidArgument || statusCode.Code() == codes.NotFound {
+			// Do not retry if either:
+			// * there is something wrong with the workflow
+			// * the workflow has been deleted by someone else
 			return util.NewCustomError(err, util.CUSTOM_CODE_PERMANENT,
 				"Error while reporting workflow resource (code: %v, message: %v): %v, %+v",
 				statusCode.Code(),

@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2019 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -48,10 +48,11 @@ func (s *DefaultExperimentStore) initializeDefaultExperimentTable() error {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to get default experiment.")
 	}
-	defer rows.Close()
+	next := rows.Next()
+	rows.Close()
 
 	// If the table is not initialized, then set the default value.
-	if !rows.Next() {
+	if !next {
 		sql, args, queryErr := sq.
 			Insert("default_experiments").
 			SetMap(defaultExperimentDBValue).

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ from kfp import dsl
 def gcs_download_op(url):
     return dsl.ContainerOp(
         name='GCS - Download',
-        image='google/cloud-sdk:272.0.0',
+        image='google/cloud-sdk:279.0.0',
         command=['sh', '-c'],
         arguments=['gsutil cat $0 | tee $1', url, '/tmp/results.txt'],
         file_outputs={
@@ -39,10 +39,10 @@ def echo_op(text):
     )
 
 @dsl.pipeline(
-    name='Sequential pipeline',
+    name='sequential-pipeline',
     description='A pipeline with two sequential steps.'
 )
-def sequential_pipeline(url='gs://ml-pipeline-playground/shakespeare1.txt'):
+def sequential_pipeline(url='gs://ml-pipeline/sample-data/shakespeare/shakespeare1.txt'):
     """A pipeline with two sequential steps."""
 
     download_task = gcs_download_op(url)

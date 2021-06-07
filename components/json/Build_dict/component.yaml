@@ -1,0 +1,149 @@
+name: Build dict
+description: Creates a JSON object from multiple key and value pairs.
+inputs:
+- {name: key_1, type: String, optional: true}
+- {name: value_1, type: JsonObject, optional: true}
+- {name: key_2, type: String, optional: true}
+- {name: value_2, type: JsonObject, optional: true}
+- {name: key_3, type: String, optional: true}
+- {name: value_3, type: JsonObject, optional: true}
+- {name: key_4, type: String, optional: true}
+- {name: value_4, type: JsonObject, optional: true}
+- {name: key_5, type: String, optional: true}
+- {name: value_5, type: JsonObject, optional: true}
+outputs:
+- {name: Output, type: JsonObject}
+implementation:
+  container:
+    image: python:3.8
+    command:
+    - python3
+    - -u
+    - -c
+    - |
+      def build_dict(
+          key_1 = None,
+          value_1 = None,
+          key_2 = None,
+          value_2 = None,
+          key_3 = None,
+          value_3 = None,
+          key_4 = None,
+          value_4 = None,
+          key_5 = None,
+          value_5 = None,
+      ):
+          """Creates a JSON object from multiple key and value pairs.
+
+          Annotations:
+              author: Alexey Volkov <alexey.volkov@ark-kun.com>
+          """
+          result = dict([
+              (key_1, value_1),
+              (key_2, value_2),
+              (key_3, value_3),
+              (key_4, value_4),
+              (key_5, value_5),
+          ])
+          if None in result:
+              del result[None]
+          return result
+
+      import json
+      def _serialize_json(obj) -> str:
+          if isinstance(obj, str):
+              return obj
+          import json
+          def default_serializer(obj):
+              if hasattr(obj, 'to_struct'):
+                  return obj.to_struct()
+              else:
+                  raise TypeError("Object of type '%s' is not JSON serializable and does not have .to_struct() method." % obj.__class__.__name__)
+          return json.dumps(obj, default=default_serializer, sort_keys=True)
+
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Build dict', description='Creates a JSON object from multiple key and value pairs.')
+      _parser.add_argument("--key-1", dest="key_1", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--value-1", dest="value_1", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--key-2", dest="key_2", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--value-2", dest="value_2", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--key-3", dest="key_3", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--value-3", dest="value_3", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--key-4", dest="key_4", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--value-4", dest="value_4", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--key-5", dest="key_5", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--value-5", dest="value_5", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+      _parsed_args = vars(_parser.parse_args())
+      _output_files = _parsed_args.pop("_output_paths", [])
+
+      _outputs = build_dict(**_parsed_args)
+
+      _outputs = [_outputs]
+
+      _output_serializers = [
+          _serialize_json,
+
+      ]
+
+      import os
+      for idx, output_file in enumerate(_output_files):
+          try:
+              os.makedirs(os.path.dirname(output_file))
+          except OSError:
+              pass
+          with open(output_file, 'w') as f:
+              f.write(_output_serializers[idx](_outputs[idx]))
+    args:
+    - if:
+        cond: {isPresent: key_1}
+        then:
+        - --key-1
+        - {inputValue: key_1}
+    - if:
+        cond: {isPresent: value_1}
+        then:
+        - --value-1
+        - {inputValue: value_1}
+    - if:
+        cond: {isPresent: key_2}
+        then:
+        - --key-2
+        - {inputValue: key_2}
+    - if:
+        cond: {isPresent: value_2}
+        then:
+        - --value-2
+        - {inputValue: value_2}
+    - if:
+        cond: {isPresent: key_3}
+        then:
+        - --key-3
+        - {inputValue: key_3}
+    - if:
+        cond: {isPresent: value_3}
+        then:
+        - --value-3
+        - {inputValue: value_3}
+    - if:
+        cond: {isPresent: key_4}
+        then:
+        - --key-4
+        - {inputValue: key_4}
+    - if:
+        cond: {isPresent: value_4}
+        then:
+        - --value-4
+        - {inputValue: value_4}
+    - if:
+        cond: {isPresent: key_5}
+        then:
+        - --key-5
+        - {inputValue: key_5}
+    - if:
+        cond: {isPresent: value_5}
+        then:
+        - --value-5
+        - {inputValue: value_5}
+    - '----output-paths'
+    - {outputPath: Output}

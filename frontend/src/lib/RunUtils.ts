@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-import { orderBy } from 'lodash';
-import { ApiParameter, ApiPipelineVersion } from 'src/apis/pipeline';
-import { Workflow } from 'third_party/argo-ui/argo_template';
+import { ApiParameter, ApiPipelineVersion } from '../apis/pipeline';
+import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { ApiJob } from '../apis/job';
 import {
   ApiPipelineRuntime,
@@ -28,6 +27,7 @@ import {
 } from '../apis/run';
 import { logger } from './Utils';
 import WorkflowParser from './WorkflowParser';
+import { ApiExperiment } from 'src/apis/experiment';
 
 export interface MetricMetadata {
   count: number;
@@ -117,7 +117,7 @@ function getAllExperimentReferences(run?: ApiRun | ApiJob): ApiResourceReference
   );
 }
 
-function getNamespaceReferenceName(run?: ApiRun | ApiJob): string | undefined {
+function getNamespaceReferenceName(run?: ApiExperiment): string | undefined {
   // There should be only one namespace reference.
   const namespaceRef =
     run &&
@@ -165,8 +165,7 @@ function runsToMetricMetadataMap(runs: ApiRun[]): Map<string, MetricMetadata> {
 }
 
 function extractMetricMetadata(runs: ApiRun[]): MetricMetadata[] {
-  const metrics = Array.from(runsToMetricMetadataMap(runs).values());
-  return orderBy(metrics, ['count', 'name'], ['desc', 'asc']);
+  return Array.from(runsToMetricMetadataMap(runs).values());
 }
 
 function getRecurringRunId(run?: ApiRun): string {
@@ -177,6 +176,19 @@ function getRecurringRunId(run?: ApiRun): string {
   for (const ref of run.resource_references || []) {
     if (ref.key && ref.key.type === ApiResourceType.JOB) {
       return ref.key.id || '';
+    }
+  }
+  return '';
+}
+
+function getRecurringRunName(run?: ApiRun): string {
+  if (!run) {
+    return '';
+  }
+
+  for (const ref of run.resource_references || []) {
+    if (ref.key && ref.key.type === ApiResourceType.JOB) {
+      return ref.name || '';
     }
   }
   return '';
@@ -197,6 +209,7 @@ export default {
   getPipelineName,
   getPipelineVersionId,
   getRecurringRunId,
+  getRecurringRunName,
   getWorkflowManifest,
   runsToMetricMetadataMap,
 };

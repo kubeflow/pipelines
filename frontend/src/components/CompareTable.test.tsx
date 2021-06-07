@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,7 +37,11 @@ describe('CompareTable', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  const rows = [['1', '2', '3'], ['4', '5', '6'], ['cell7', 'cell8', 'cell9']];
+  const rows = [
+    ['1', '2', '3'],
+    ['4', '5', '6'],
+    ['cell7', 'cell8', 'cell9'],
+  ];
   const xLabels = ['col1', 'col2', 'col3'];
   const yLabels = ['row1', 'row2', 'row3'];
 

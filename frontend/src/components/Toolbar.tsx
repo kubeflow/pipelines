@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-import ArrowBackIcon from '@material-ui/icons/ArrowBack';
-import BusyButton from '../atoms/BusyButton';
-import ChevronRightIcon from '@material-ui/icons/ChevronRight';
 import IconButton from '@material-ui/core/IconButton';
 import Tooltip from '@material-ui/core/Tooltip';
+import ArrowBackIcon from '@material-ui/icons/ArrowBack';
+import ChevronRightIcon from '@material-ui/icons/ChevronRight';
 import { History } from 'history';
+import * as React from 'react';
+import { CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { classes, stylesheet } from 'typestyle';
-import { spacing, fonts, fontsize, color, dimension, commonCss } from '../Css';
-import { CSSProperties } from 'react';
+import BusyButton from '../atoms/BusyButton';
+import { color, commonCss, dimension, fonts, fontsize, spacing } from '../Css';
 
 export interface ToolbarActionMap {
   [key: string]: ToolbarActionConfig;
@@ -92,8 +92,8 @@ const css = stylesheet({
   },
   pageName: {
     color: color.strong,
-    fontSize: fontsize.title,
-    lineHeight: `${backIconHeight}px`,
+    fontSize: fontsize.pageTitle,
+    lineHeight: '28px',
   },
   root: {
     alignItems: 'center',

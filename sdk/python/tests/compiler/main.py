@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,4 +31,3 @@ if __name__ == '__main__':
   runner = unittest.TextTestRunner()
   if not runner.run(suite).wasSuccessful():
     sys.exit(1)
-

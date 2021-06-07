@@ -11,6 +11,8 @@ For Ground Truth jobs using AWS SageMaker.
 Argument        | Description                 | Optional   | Data type  | Accepted values | Default    |
 :---            | :----------                 | :----------| :----------| :----------     | :----------|
 region | The region where the cluster launches | No | String | | |
+endpoint_url | The endpoint URL for the private link VPC endpoint | Yes | String | | |
+assume_role | The ARN of an IAM role to assume when connecting to SageMaker | Yes | String | | |
 role | The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf | No | String | | |
 job_name | The name of the Ground Truth job. Must be unique within the same AWS account and AWS region | Yes | String | | LabelingJob-[datetime]-[random id]|
 label_attribute_name | The attribute name to use for the label in the output manifest file | Yes | String | | job_name |
@@ -39,7 +41,6 @@ time_limit | The maximum run time in seconds per training job | No | Int | [30, 
 task_availibility | The length of time that a task remains available for labeling by human workers | Yes | Int | Public workforce: [1, 43200], other: [1, 864000] | |
 max_concurrent_tasks | The maximum number of data objects that can be labeled by human workers at the same time | Yes | Int | [1, 1000] | |
 workforce_task_price | The price that you pay for each task performed by a public worker in USD; Specify to the tenth fractions of a cent; Format as "0.000" | Yes | Float | 0.000 |
-endpoint_url | The endpoint URL for the private link VPC endpoint. | Yes | String | | |
 tags | Key-value pairs to categorize AWS resources | Yes | Dict | | {} |
 
 ## Outputs

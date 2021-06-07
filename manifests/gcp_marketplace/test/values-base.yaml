@@ -1,0 +1,9 @@
+gcpDefaultConfigName: "gcp-default-config"
+
+managedstorage:
+  enabled: false
+  cloudsqlInstanceConnectionName: null
+  gcsBucketName: null
+  databaseNamePrefix: '{{ .Release.Name | replace "-" "_" | replace "." "_" }}'
+  dbUsername: 'root'
+  dbPassword: ''

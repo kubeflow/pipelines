@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,17 +13,19 @@
 # limitations under the License.
 
 __all__ = [
-    'type_to_type_name',
-    'type_name_to_type',
-    'type_to_deserializer',
-    'type_name_to_deserializer',
-    'type_name_to_serializer',
+    'get_canonical_type_struct_for_type',
+    'get_canonical_type_for_type_struct',
+    'get_deserializer_code_for_type',
+    'get_deserializer_code_for_type_struct',
+    'get_serializer_func_for_type_struct',
 ]
 
 
 import inspect
 from typing import Any, Callable, NamedTuple, Sequence
 import warnings
+
+from kfp.components import type_annotation_utils
 
 
 Converter = NamedTuple('Converter', [
@@ -83,7 +85,7 @@ def _serialize_json(obj) -> str:
             return obj.to_struct()
         else:
             raise TypeError("Object of type '%s' is not JSON serializable and does not have .to_struct() method." % obj.__class__.__name__)
-    return json.dumps(obj, default=default_serializer)
+    return json.dumps(obj, default=default_serializer, sort_keys=True)
 
 
 def _serialize_base64_pickle(obj) -> str:
@@ -108,7 +110,7 @@ _converters = [
     Converter([str], ['String', 'str'], _serialize_str, 'str', None),
     Converter([int], ['Integer', 'int'], _serialize_int, 'int', None),
     Converter([float], ['Float', 'float'], _serialize_float, 'float', None),
-    Converter([bool], ['Boolean', 'bool'], _serialize_bool, _bool_deserializer_code, _bool_deserializer_definitions),
+    Converter([bool], ['Boolean', 'Bool', 'bool'], _serialize_bool, _bool_deserializer_code, _bool_deserializer_definitions),
     Converter([list], ['JsonArray', 'List', 'list'], _serialize_json, 'json.loads', 'import json'), # ! JSON map keys are always strings. Python converts all keys to strings without warnings
     Converter([dict], ['JsonObject', 'Dictionary', 'Dict', 'dict'], _serialize_json, 'json.loads', 'import json'), # ! JSON map keys are always strings. Python converts all keys to strings without warnings
     Converter([], ['Json'], _serialize_json, 'json.loads', 'import json'),
@@ -123,6 +125,41 @@ type_name_to_deserializer = {type_name: (converter.deserializer_code, converter.
 type_name_to_serializer = {type_name: converter.serializer for converter in _converters for type_name in converter.type_names}
 
 
+def get_canonical_type_struct_for_type(typ) -> str:
+    try:
+        return type_to_type_name.get(typ, None)
+    except:
+        return None
+
+
+def get_canonical_type_for_type_struct(type_struct) -> str:
+    try:
+        return type_name_to_type.get(type_struct, None)
+    except:
+        return None
+
+
+def get_deserializer_code_for_type(typ) -> str:
+    try:
+        return type_name_to_deserializer.get(get_canonical_type_struct_for_type[typ], None)
+    except:
+        return None
+
+
+def get_deserializer_code_for_type_struct(type_struct) -> str:
+    try:
+        return type_name_to_deserializer.get(type_struct, None)
+    except:
+        return None
+
+
+def get_serializer_func_for_type_struct(type_struct) -> str:
+    try:
+        return type_name_to_serializer.get(type_struct, None)
+    except:
+        return None
+
+
 def serialize_value(value, type_name: str) -> str:
     '''serialize_value converts the passed value to string based on the serializer associated with the passed type_name'''
     if isinstance(value, str):
@@ -132,7 +169,7 @@ def serialize_value(value, type_name: str) -> str:
         type_name = type_to_type_name.get(type(value), type(value).__name__)
         warnings.warn('Missing type name was inferred as "{}" based on the value "{}".'.format(type_name, str(value)))
 
-    serializer = type_name_to_serializer.get(type_name, None)
+    serializer = type_name_to_serializer.get(type_annotation_utils.get_short_type_name(type_name))
     if serializer:
         try:
             serialized_value = serializer(value)
@@ -147,10 +184,6 @@ def serialize_value(value, type_name: str) -> str:
                 str(e),
             ))
 
-    serialized_value = str(value)
-    warnings.warn('There are no registered serializers from type "{}" to type "{}", so the value will be serializers as string "{}".'.format(
-        str(type(value).__name__),
+    raise TypeError('There are no registered serializers for type "{}".'.format(
         str(type_name),
-        serialized_value),
-    )
-    return serialized_value
+    ))

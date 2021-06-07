@@ -1,0 +1,9 @@
+junit-xml
+minio
+papermill
+fire
+yamale
+kubernetes
+
+google-cloud-bigquery==1.17.0
+google-cloud-storage==1.17.0

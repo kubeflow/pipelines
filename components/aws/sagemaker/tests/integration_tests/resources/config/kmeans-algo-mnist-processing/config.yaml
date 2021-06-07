@@ -1,0 +1,46 @@
+PipelineDefinition: resources/definition/processing_pipeline.py
+TestName: kmeans-algo-mnist-processing
+Timeout: 1800
+Arguments:
+  region: ((REGION))
+  job_name: process-mnist-for-kmeans
+  image: 763104351884.dkr.ecr.((REGION)).amazonaws.com/pytorch-training:1.5.0-cpu-py36-ubuntu16.04
+  container_entrypoint:
+    - python
+    - /opt/ml/processing/code/kmeans_preprocessing.py
+  input_config:
+    - InputName: mnist_tar
+      S3Input:
+        S3Uri: s3://sagemaker-sample-data-((REGION))/algorithms/kmeans/mnist/mnist.pkl.gz
+        LocalPath: /opt/ml/processing/input
+        S3DataType: S3Prefix
+        S3InputMode: File
+        S3CompressionType: None
+    - InputName: source_code
+      S3Input:
+        S3Uri: s3://((DATA_BUCKET))/mnist_kmeans_example/processing_code/kmeans_preprocessing.py
+        LocalPath: /opt/ml/processing/code
+        S3DataType: S3Prefix
+        S3InputMode: File
+        S3CompressionType: None
+  output_config:
+    - OutputName: train_data
+      S3Output:
+        S3Uri: s3://((DATA_BUCKET))/mnist_kmeans_example/output/
+        LocalPath: /opt/ml/processing/output_train/
+        S3UploadMode: EndOfJob
+    - OutputName: test_data
+      S3Output:
+        S3Uri: s3://((DATA_BUCKET))/mnist_kmeans_example/output/
+        LocalPath: /opt/ml/processing/output_test/
+        S3UploadMode: EndOfJob
+    - OutputName: valid_data
+      S3Output:
+        S3Uri: s3://((DATA_BUCKET))/mnist_kmeans_example/output/
+        LocalPath: /opt/ml/processing/output_valid/
+        S3UploadMode: EndOfJob
+  instance_type: ml.m5.xlarge
+  instance_count: 1
+  volume_size: 50
+  max_run_time: 1800
+  role: ((SAGEMAKER_ROLE_ARN))

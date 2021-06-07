@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,17 +23,19 @@ import DialogContent from '@material-ui/core/DialogContent';
 import Paper from '@material-ui/core/Paper';
 import PopOutIcon from '@material-ui/icons/Launch';
 import RecurringRunsManager from './RecurringRunsManager';
-import RunList from '../pages/RunList';
+import RunListsRouter, { RunListsGroupTab } from './RunListsRouter';
 import Toolbar, { ToolbarProps } from '../components/Toolbar';
 import Tooltip from '@material-ui/core/Tooltip';
-import { ApiExperiment } from '../apis/experiment';
+import { ApiExperiment, ApiExperimentStorageState } from '../apis/experiment';
 import { Apis } from '../lib/Apis';
-import { Page } from './Page';
+import { Page, PageProps } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
-import { RunStorageState } from '../apis/run';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding } from '../Css';
 import { logger } from '../lib/Utils';
+import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
+import { Redirect } from 'react-router-dom';
+import { ApiRunStorageState } from 'src/apis/run';
 
 const css = stylesheet({
   card: {
@@ -102,37 +104,40 @@ interface ExperimentDetailsState {
   experiment: ApiExperiment | null;
   recurringRunsManagerOpen: boolean;
   selectedIds: string[];
-  selectedTab: number;
+  runStorageState: ApiRunStorageState;
   runListToolbarProps: ToolbarProps;
+  runlistRefreshCount: number;
 }
 
-class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
-  private _runlistRef = React.createRef<RunList>();
-
+export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   constructor(props: any) {
     super(props);
 
-    const buttons = new Buttons(this.props, this.refresh.bind(this));
     this.state = {
       activeRecurringRunsCount: 0,
       experiment: null,
       recurringRunsManagerOpen: false,
       runListToolbarProps: {
-        actions: buttons
-          .newRun(() => this.props.match.params[RouteParams.experimentId])
-          .newRecurringRun(this.props.match.params[RouteParams.experimentId])
-          .compareRuns(() => this.state.selectedIds)
-          .cloneRun(() => this.state.selectedIds, false)
-          .archive(() => this.state.selectedIds, false, ids => this._selectionChanged(ids))
-          .getToolbarActionMap(),
+        actions: this._getRunInitialToolBarButtons().getToolbarActionMap(),
         breadcrumbs: [],
         pageTitle: 'Runs',
         topLevelToolbar: false,
       },
       // TODO: remove
       selectedIds: [],
-      selectedTab: 0,
+      runStorageState: ApiRunStorageState.AVAILABLE,
+      runlistRefreshCount: 0,
     };
+  }
+
+  private _getRunInitialToolBarButtons(): Buttons {
+    const buttons = new Buttons(this.props, this.refresh.bind(this));
+    buttons
+      .newRun(() => this.props.match.params[RouteParams.experimentId])
+      .newRecurringRun(this.props.match.params[RouteParams.experimentId])
+      .compareRuns(() => this.state.selectedIds)
+      .cloneRun(() => this.state.selectedIds, false);
+    return buttons;
   }
 
   public getInitialToolbarState(): ToolbarProps {
@@ -220,14 +225,15 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
               </Paper>
             </div>
             <Toolbar {...this.state.runListToolbarProps} />
-            <RunList
+            <RunListsRouter
+              storageState={this.state.runStorageState}
               onError={this.showPageError.bind(this)}
               hideExperimentColumn={true}
               experimentIdMask={experiment.id}
-              ref={this._runlistRef}
+              refreshCount={this.state.runlistRefreshCount}
               selectedIds={this.state.selectedIds}
-              storageState={RunStorageState.AVAILABLE}
-              onSelectionChange={this._selectionChanged.bind(this)}
+              onSelectionChange={this._selectionChanged}
+              onTabSwitch={this._onRunTabSwitch}
               {...this.props}
             />
 
@@ -260,17 +266,14 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
 
   public async refresh(): Promise<void> {
     await this.load();
-    if (this._runlistRef.current) {
-      await this._runlistRef.current.refresh();
-    }
     return;
   }
 
   public async componentDidMount(): Promise<void> {
-    return this.load();
+    return this.load(true);
   }
 
-  public async load(): Promise<void> {
+  public async load(isFirstTimeLoad: boolean = false): Promise<void> {
     this.clearBanner();
 
     const experimentId = this.props.match.params[RouteParams.experimentId];
@@ -279,8 +282,32 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       const experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
       const pageTitle = experiment.name || this.props.match.params[RouteParams.experimentId];
 
+      // Update the Archive/Restore button based on the storage state of this experiment.
+      const buttons = new Buttons(
+        this.props,
+        this.refresh.bind(this),
+        this.getInitialToolbarState().actions,
+      );
+      const idGetter = () => (experiment.id ? [experiment.id] : []);
+      experiment.storage_state === ApiExperimentStorageState.ARCHIVED
+        ? buttons.restore('experiment', idGetter, true, () => this.refresh())
+        : buttons.archive('experiment', idGetter, true, () => this.refresh());
+      // If experiment is archived, shows archived runs list by default.
+      // If experiment is active, shows active runs list by default.
+      let runStorageState = this.state.runStorageState;
+      // Determine the default Active/Archive run list tab based on experiment status.
+      // After component is mounted, it is up to user to decide the run storage state they
+      // want to view.
+      if (isFirstTimeLoad) {
+        runStorageState =
+          experiment.storage_state === ApiExperimentStorageState.ARCHIVED
+            ? ApiRunStorageState.ARCHIVED
+            : ApiRunStorageState.AVAILABLE;
+      }
+
+      const actions = buttons.getToolbarActionMap();
       this.props.updateToolbar({
-        actions: this.props.toolbarProps.actions,
+        actions,
         breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
         pageTitle,
         pageTitleTooltip: pageTitle,
@@ -308,19 +335,73 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
         logger.error(`Error fetching recurring runs for experiment: ${experimentId}`, err);
       }
 
-      this.setStateSafe({ activeRecurringRunsCount, experiment });
+      let runlistRefreshCount = this.state.runlistRefreshCount + 1;
+      this.setStateSafe({
+        activeRecurringRunsCount,
+        experiment,
+        runStorageState,
+        runlistRefreshCount,
+      });
+      this._selectionChanged([]);
     } catch (err) {
       await this.showPageError(`Error: failed to retrieve experiment: ${experimentId}.`, err);
       logger.error(`Error loading experiment: ${experimentId}`, err);
     }
   }
 
-  private _selectionChanged(selectedIds: string[]): void {
-    const toolbarActions = this.state.runListToolbarProps.actions;
+  /**
+   * Users can choose to show runs list in different run storage states.
+   *
+   * @param tab selected by user for run storage state
+   */
+  _onRunTabSwitch = (tab: RunListsGroupTab) => {
+    let runStorageState = ApiRunStorageState.AVAILABLE;
+    if (tab === RunListsGroupTab.ARCHIVE) {
+      runStorageState = ApiRunStorageState.ARCHIVED;
+    }
+    let runlistRefreshCount = this.state.runlistRefreshCount + 1;
+    this.setStateSafe(
+      {
+        runStorageState,
+        runlistRefreshCount,
+      },
+      () => {
+        this._selectionChanged([]);
+      },
+    );
+
+    return;
+  };
+
+  _selectionChanged = (selectedIds: string[]) => {
+    const toolbarButtons = this._getRunInitialToolBarButtons();
+    // If user selects to show Active runs list, shows `Archive` button for selected runs.
+    // If user selects to show Archive runs list, shows `Restore` button for selected runs.
+    if (this.state.runStorageState === ApiRunStorageState.AVAILABLE) {
+      toolbarButtons.archive(
+        'run',
+        () => this.state.selectedIds,
+        false,
+        ids => this._selectionChanged(ids),
+      );
+    } else {
+      toolbarButtons.restore(
+        'run',
+        () => this.state.selectedIds,
+        false,
+        ids => this._selectionChanged(ids),
+      );
+    }
+    const toolbarActions = toolbarButtons.getToolbarActionMap();
     toolbarActions[ButtonKeys.COMPARE].disabled =
       selectedIds.length <= 1 || selectedIds.length > 10;
     toolbarActions[ButtonKeys.CLONE_RUN].disabled = selectedIds.length !== 1;
-    toolbarActions[ButtonKeys.ARCHIVE].disabled = !selectedIds.length;
+    if (toolbarActions[ButtonKeys.ARCHIVE]) {
+      toolbarActions[ButtonKeys.ARCHIVE].disabled = !selectedIds.length;
+    }
+    if (toolbarActions[ButtonKeys.RESTORE]) {
+      toolbarActions[ButtonKeys.RESTORE].disabled = !selectedIds.length;
+    }
     this.setState({
       runListToolbarProps: {
         actions: toolbarActions,
@@ -330,7 +411,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       },
       selectedIds,
     });
-  }
+  };
 
   private _recurringRunsManagerClosed(): void {
     this.setState({ recurringRunsManagerOpen: false });
@@ -339,4 +420,15 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   }
 }
 
-export default ExperimentDetails;
+const EnhancedExperimentDetails: React.FC<PageProps> = props => {
+  // When namespace changes, this experiment no longer belongs to new namespace.
+  // So we redirect to experiment list page instead.
+  const namespaceChanged = useNamespaceChangeEvent();
+  if (namespaceChanged) {
+    return <Redirect to={RoutePage.EXPERIMENTS} />;
+  }
+
+  return <ExperimentDetails {...props} />;
+};
+
+export default EnhancedExperimentDetails;

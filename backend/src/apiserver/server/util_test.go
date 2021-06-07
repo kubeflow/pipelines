@@ -1,19 +1,15 @@
 package server
 
 import (
-	"context"
 	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/grpc/metadata"
 )
 
 func TestGetPipelineName_QueryStringNotEmpty(t *testing.T) {
@@ -129,19 +125,6 @@ func TestReadPipelineFile_YAML(t *testing.T) {
 
 	expectedFileBytes, _ := ioutil.ReadFile("test/arguments-parameters.yaml")
 	assert.Equal(t, expectedFileBytes, fileBytes)
-}
-
-func TestParameterPatch(t *testing.T) {
-  file, _ := os.Open("test/arguments-parameters.yaml")
-	fileBytes, err := ReadPipelineFile("arguments-parameters.yaml", file, MaxFileLength)
-	patchMap := map[string]string{
-  				"hello": "new-hello",
-  			}
-	fileBytes, err = PatchPipelineDefaultParameter(fileBytes, patchMap)
-	assert.Nil(t, err)
-
-	expectedFileBytes, _ := ioutil.ReadFile("test/patched-arguments-parameters.yaml")
-  assert.Equal(t, expectedFileBytes, fileBytes)
 }
 
 func TestReadPipelineFile_Zip(t *testing.T) {
@@ -285,109 +268,122 @@ func TestValidateExperimentResourceReference_ExperimentNotExist(t *testing.T) {
 	assert.Contains(t, err.Error(), "Failed to get experiment")
 }
 
-func TestValidatePipelineSpec_PipelineID(t *testing.T) {
-	clients, manager, pipeline := initWithPipeline(t)
+func TestValidatePipelineSpecAndResourceReferences_WorkflowManifestAndPipelineVersion(t *testing.T) {
+	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
-	spec := &api.PipelineSpec{PipelineId: pipeline.UUID}
-	assert.Nil(t, ValidatePipelineSpec(manager, spec))
-}
-
-func TestValidatePipelineSpec_WorkflowSpec(t *testing.T) {
-	clients, manager, _ := initWithPipeline(t)
-	defer clients.Close()
-	spec := &api.PipelineSpec{WorkflowManifest: testWorkflow.ToStringForStore()}
-	assert.Nil(t, ValidatePipelineSpec(manager, spec))
-}
-
-func TestValidatePipelineSpec_EmptySpec(t *testing.T) {
-	clients, manager, _ := initWithPipeline(t)
-	defer clients.Close()
-	spec := &api.PipelineSpec{}
-	err := ValidatePipelineSpec(manager, spec)
+	spec := &api.PipelineSpec{
+		WorkflowManifest: testWorkflow.ToStringForStore()}
+	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReferencesOfExperimentAndPipelineVersion)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Please specify a pipeline by providing a pipeline ID or workflow manifest")
+	assert.Contains(t, err.Error(), "Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest.")
 }
 
-func TestValidatePipelineSpec_MoreThanOneSpec(t *testing.T) {
-	clients, manager, pipeline := initWithPipeline(t)
+func TestValidatePipelineSpecAndResourceReferences_WorkflowManifestAndPipelineID(t *testing.T) {
+	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
-	spec := &api.PipelineSpec{PipelineId: pipeline.UUID, WorkflowManifest: testWorkflow.ToStringForStore()}
-	err := ValidatePipelineSpec(manager, spec)
+	spec := &api.PipelineSpec{
+		PipelineId:       resource.DefaultFakeUUID,
+		WorkflowManifest: testWorkflow.ToStringForStore()}
+	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReference)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Please either specify a pipeline ID or a workflow manifest, not both.")
+	assert.Contains(t, err.Error(), "Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest.")
 }
 
-func TestValidatePipelineSpec_PipelineIDNotFound(t *testing.T) {
-	clients, manager, _ := initWithPipeline(t)
-	defer clients.Close()
-	spec := &api.PipelineSpec{PipelineId: "not-found"}
-	err := ValidatePipelineSpec(manager, spec)
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Get pipeline failed")
-}
-
-func TestValidatePipelineSpec_InvalidWorkflowManifest(t *testing.T) {
-	clients, manager, _ := initWithPipeline(t)
+func TestValidatePipelineSpecAndResourceReferences_InvalidWorkflowManifest(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 	spec := &api.PipelineSpec{WorkflowManifest: "I am an invalid manifest"}
-	err := ValidatePipelineSpec(manager, spec)
+	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReference)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Invalid argo workflow format")
+	assert.Contains(t, err.Error(), "Invalid argo workflow format.")
 }
 
-func TestValidatePipelineSpec_ParameterTooLong(t *testing.T) {
-	clients, manager, pipeline := initWithPipeline(t)
+func TestValidatePipelineSpecAndResourceReferences_NilPipelineSpecAndEmptyPipelineVersion(t *testing.T) {
+	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
+	err := ValidatePipelineSpecAndResourceReferences(manager, nil, validReference)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Please specify a pipeline by providing a (workflow manifest) or (pipeline id or/and pipeline version).")
+}
 
+func TestValidatePipelineSpecAndResourceReferences_EmptyPipelineSpecAndEmptyPipelineVersion(t *testing.T) {
+	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	defer clients.Close()
+	spec := &api.PipelineSpec{}
+	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReference)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Please specify a pipeline by providing a (workflow manifest) or (pipeline id or/and pipeline version).")
+}
+
+func TestValidatePipelineSpecAndResourceReferences_InvalidPipelineId(t *testing.T) {
+	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	defer clients.Close()
+	spec := &api.PipelineSpec{PipelineId: "not-found"}
+	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReference)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Get pipelineId failed.")
+}
+
+func TestValidatePipelineSpecAndResourceReferences_InvalidPipelineVersionId(t *testing.T) {
+	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	defer clients.Close()
+	err := ValidatePipelineSpecAndResourceReferences(manager, nil, referencesOfInvalidPipelineVersion)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Get pipelineVersionId failed.")
+}
+
+func TestValidatePipelineSpecAndResourceReferences_PipelineIdNotParentOfPipelineVersionId(t *testing.T) {
+	clients, manager, _ := initWithExperimentsAndTwoPipelineVersions(t)
+	manager = resource.NewResourceManager(clients)
+	defer clients.Close()
+	spec := &api.PipelineSpec{
+		PipelineId: resource.NonDefaultFakeUUID}
+	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReferencesOfExperimentAndPipelineVersion)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "pipeline ID should be parent of pipeline version.")
+}
+
+func TestValidatePipelineSpecAndResourceReferences_ParameterTooLongWithPipelineId(t *testing.T) {
+	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	defer clients.Close()
 	var params []*api.Parameter
 	// Create a long enough parameter string so it exceed the length limit of parameter.
 	for i := 0; i < 10000; i++ {
 		params = append(params, &api.Parameter{Name: "param2", Value: "world"})
 	}
-	spec := &api.PipelineSpec{PipelineId: pipeline.UUID, Parameters: params}
-	err := ValidatePipelineSpec(manager, spec)
+	spec := &api.PipelineSpec{PipelineId: resource.DefaultFakeUUID, Parameters: params}
+	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReference)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "The input parameter length exceed maximum size")
 }
 
-func TestGetUserIdentity(t *testing.T) {
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
-	ctx := metadata.NewIncomingContext(context.Background(), md)
-	userIdentity, err := getUserIdentity(ctx)
-	assert.Nil(t, err)
-	assert.Equal(t, "user@google.com", userIdentity)
-}
-
-func TestCanAccessNamespaceInResourceReferencesUnauthorized(t *testing.T) {
-	clients, manager, _ := initWithExperiment_KFAM_Unauthorized(t)
+func TestValidatePipelineSpecAndResourceReferences_ParameterTooLongWithWorkflowManifest(t *testing.T) {
+	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
-	viper.Set(common.MultiUserMode, "true")
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
-	ctx := metadata.NewIncomingContext(context.Background(), md)
-	references := []*api.ResourceReference{
-		{
-			Key: &api.ResourceKey{
-				Type: api.ResourceType_NAMESPACE, Id: "ns"},
-			Relationship: api.Relationship_OWNER,
-		},
+	var params []*api.Parameter
+	// Create a long enough parameter string so it exceed the length limit of parameter.
+	for i := 0; i < 10000; i++ {
+		params = append(params, &api.Parameter{Name: "param2", Value: "world"})
 	}
-	err := CanAccessNamespaceInResourceReferences(manager, ctx, references)
+	spec := &api.PipelineSpec{WorkflowManifest: testWorkflow.ToStringForStore(), Parameters: params}
+	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReference)
 	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "The input parameter length exceed maximum size")
 }
 
-func TestCanAccessNamespaceInResourceReferences_Authorized(t *testing.T) {
+func TestValidatePipelineSpecAndResourceReferences_ValidPipelineIdAndPipelineVersionId(t *testing.T) {
+	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	defer clients.Close()
+	spec := &api.PipelineSpec{
+		PipelineId: resource.DefaultFakeUUID}
+	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReferencesOfExperimentAndPipelineVersion)
+	assert.Nil(t, err)
+}
+
+func TestValidatePipelineSpecAndResourceReferences_ValidWorkflowManifest(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	viper.Set(common.MultiUserMode, "true")
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: "accounts.google.com:user@google.com"})
-	ctx := metadata.NewIncomingContext(context.Background(), md)
-	references := []*api.ResourceReference{
-		{
-			Key: &api.ResourceKey{
-				Type: api.ResourceType_NAMESPACE, Id: "ns"},
-			Relationship: api.Relationship_OWNER,
-		},
-	}
-	err := CanAccessNamespaceInResourceReferences(manager, ctx, references)
+	spec := &api.PipelineSpec{WorkflowManifest: testWorkflow.ToStringForStore()}
+	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReference)
 	assert.Nil(t, err)
 }

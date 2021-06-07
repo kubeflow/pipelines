@@ -50,17 +50,6 @@ exports[`AllRunsList renders all runs 1`] = `
             "title": "Compare runs",
             "tooltip": "Compare up to 10 selected runs",
           },
-          "newExperiment": Object {
-            "action": [Function],
-            "icon": [Function],
-            "id": "newExperimentBtn",
-            "outlined": true,
-            "style": Object {
-              "minWidth": 185,
-            },
-            "title": "Create experiment",
-            "tooltip": "Create a new experiment",
-          },
           "newRun": Object {
             "action": [Function],
             "icon": [Function],
@@ -81,18 +70,10 @@ exports[`AllRunsList renders all runs 1`] = `
           },
         },
         "breadcrumbs": Array [],
-        "pageTitle": "Experiments",
+        "pageTitle": "Runs",
       }
     }
-    updateBanner={
-      [MockFunction] {
-        "calls": Array [
-          Array [
-            Object {},
-          ],
-        ],
-      }
-    }
+    updateBanner={[MockFunction]}
     updateDialog={[MockFunction]}
     updateSnackbar={[MockFunction]}
     updateToolbar={[MockFunction]}

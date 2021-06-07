@@ -1,5 +1,5 @@
 # Lint as: python3
-# Copyright 2019 Google LLC. All Rights Reserved.
+# Copyright 2019 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License,Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ class Commands(enum.Enum):
   GET_SERVICE_ACCOUNTS = 9
   GET_STORAGE_BUCKETS = 10
   GET_GCLOUD_VERSION = 11
+  GET_AUTH_LIST = 12
 
 
 _command_string = {
@@ -46,6 +47,7 @@ _command_string = {
     Commands.GET_SERVICE_ACCOUNTS: 'iam service-accounts list',
     Commands.GET_STORAGE_BUCKETS: 'ls',
     Commands.GET_GCLOUD_VERSION: 'version',
+    Commands.GET_AUTH_LIST: 'auth list',
 }
 
 

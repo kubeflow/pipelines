@@ -49,7 +49,6 @@ The component accepts the following as input:
 Name | Description | Type
 :--- | :---------- | :---
 job_id | The ID of the created batch job. | String
-output_path | The output path of the batch prediction job | GCSPath
 
 
 ## Cautions & requirements
@@ -77,8 +76,7 @@ Follow these steps to use the component in a pipeline:
 ```python
 %%capture --no-stderr
 
-KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar.gz'
-!pip3 install $KFP_PACKAGE --upgrade
+!pip3 install kfp --upgrade
 ```
 
 2. Load the component using KFP SDK
@@ -88,7 +86,7 @@ KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar
 import kfp.components as comp
 
 mlengine_batch_predict_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/0ad0b368802eca8ca73b40fe08adb6d97af6a62f/components/gcp/ml_engine/batch_predict/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/1.6.0/components/gcp/ml_engine/batch_predict/component.yaml')
 help(mlengine_batch_predict_op)
 ```
 

@@ -6,7 +6,9 @@ metadata:
   name: ml-pipeline-ui
 spec:
   ports:
-  - port: 80
+  - name: http
+    protocol: TCP
+    port: 80
     targetPort: 3000
   selector:
     app: ml-pipeline-ui

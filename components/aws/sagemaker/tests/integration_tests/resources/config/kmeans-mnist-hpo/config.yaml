@@ -1,0 +1,56 @@
+PipelineDefinition: resources/definition/hpo_pipeline.py
+TestName: kmeans-mnist-hpo-training
+Timeout: 3600
+ExpectedTrainingImage: ((KMEANS_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/kmeans:1
+Arguments:
+  region: ((REGION))
+  algorithm_name: K-Means
+  training_input_mode: File
+  static_parameters:
+    k: "10"
+    feature_dim: "784"
+  integer_parameters:
+    - Name: "mini_batch_size"
+      MinValue: "450"
+      MaxValue: "550"
+    - Name: "extra_center_factor"
+      MinValue: "10"
+      MaxValue: "20"
+  channels:
+    - ChannelName: train
+      DataSource:
+        S3DataSource:
+          S3Uri: s3://((DATA_BUCKET))/mnist_kmeans_example/train_data
+          S3DataType: S3Prefix
+          S3DataDistributionType: FullyReplicated
+      CompressionType: None
+      RecordWrapperType: None
+      InputMode: File
+    - ChannelName: test
+      DataSource:
+        S3DataSource:
+          S3Uri: s3://((DATA_BUCKET))/mnist_kmeans_example/test_data
+          S3DataType: S3Prefix
+          S3DataDistributionType: FullyReplicated
+      CompressionType: None
+      RecordWrapperType: None
+      InputMode: File
+  categorical_parameters:
+    - Name: init_method
+      Values: 
+        - random
+        - kmeans++
+  early_stopping_type: "Off"
+  max_parallel_jobs: 1
+  max_num_jobs: 1
+  metric_name: test:msd
+  metric_type: Minimize
+  hpo_strategy: Bayesian
+  instance_type: ml.m5.xlarge
+  instance_count: 1
+  volume_size: 50
+  max_run_time: 3600
+  output_location: s3://((DATA_BUCKET))/mnist_kmeans_example/output
+  network_isolation: "True"
+  max_wait_time: 3600
+  role: ((SAGEMAKER_ROLE_ARN))

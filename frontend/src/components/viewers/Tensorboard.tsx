@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ import BusyButton from '../../atoms/BusyButton';
 import Button from '@material-ui/core/Button';
 import Viewer, { ViewerConfig } from './Viewer';
 import { Apis } from '../../lib/Apis';
-import { commonCss, padding } from '../../Css';
+import { commonCss, padding, color } from '../../Css';
 import InputLabel from '@material-ui/core/InputLabel';
 import Input from '@material-ui/core/Input';
 import MenuItem from '@material-ui/core/MenuItem';
@@ -47,27 +47,44 @@ export const css = stylesheet({
   shortButton: {
     width: 50,
   },
+  warningText: {
+    color: color.warningText,
+  },
+  errorText: {
+    color: color.errorText,
+  },
 });
 
 export interface TensorboardViewerConfig extends ViewerConfig {
   url: string;
+  namespace: string;
+  podTemplateSpec?: any; // JSON object of pod template spec
+  image?: string;
 }
 
 interface TensorboardViewerProps {
   configs: TensorboardViewerConfig[];
+  // Interval in ms. If not specified, default to 5000.
+  intervalOfCheckingTensorboardPodStatus?: number;
 }
 
 interface TensorboardViewerState {
   busy: boolean;
   deleteDialogOpen: boolean;
   podAddress: string;
-  tensorflowVersion: string;
+  tfImage: string;
+  // When podAddress is not null, we need to further tell whether the TensorBoard pod is accessible or not
+  tensorboardReady: boolean;
+  errorMessage?: string;
 }
 
-// TODO(jingzhang36): we'll later parse Tensorboard version from mlpipeline-ui-metadata.json file.
-const DEFAULT_TENSORBOARD_VERSION = '2.0.0';
+// TODO: bump default version when https://github.com/kubeflow/pipelines/issues/5521
+// is resolved.
+const DEFAULT_TF_IMAGE = 'tensorflow/tensorflow:2.2.2';
 
 class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewerState> {
+  timerID: NodeJS.Timeout;
+
   constructor(props: any) {
     super(props);
 
@@ -75,7 +92,9 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
       busy: false,
       deleteDialogOpen: false,
       podAddress: '',
-      tensorflowVersion: DEFAULT_TENSORBOARD_VERSION,
+      tfImage: this._image() || DEFAULT_TF_IMAGE,
+      tensorboardReady: false,
+      errorMessage: undefined,
     };
   }
 
@@ -89,35 +108,36 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
 
   public componentDidMount(): void {
     this._checkTensorboardApp();
+    this.timerID = setInterval(
+      () => this._checkTensorboardPodStatus(),
+      this.props.intervalOfCheckingTensorboardPodStatus || 5000,
+    );
   }
 
-  public handleVersionSelect = (e: React.ChangeEvent<{ name?: string; value: unknown }>): void => {
+  public componentWillUnmount(): void {
+    clearInterval(this.timerID);
+  }
+
+  public handleImageSelect = (e: React.ChangeEvent<{ name?: string; value: unknown }>): void => {
     if (typeof e.target.value !== 'string') {
       throw new Error('Invalid event value type, expected string');
     }
-    this.setState({ tensorflowVersion: e.target.value });
+    this.setState({ tfImage: e.target.value });
   };
 
   public render(): JSX.Element {
-    // Strip the protocol from the URL. This is a workaround for cloud shell
-    // incorrectly decoding the address and replacing the protocol's // with /.
-    // Pod address (after stripping protocol) is of the format
-    // <viewer_service_dns>.kubeflow.svc.cluster.local:6006/tensorboard/<viewer_name>/
-    // We use this pod address without encoding since encoded pod address failed to open the
-    // tensorboard instance on this pod.
-    // TODO: figure out why the encoded pod address failed to open the tensorboard.
-    const podAddress = this.state.podAddress.replace(/(^\w+:|^)\/\//, '');
-
     return (
       <div>
+        {this.state.errorMessage && <div className={css.errorText}>{this.state.errorMessage}</div>}
         {this.state.podAddress && (
           <div>
             <div
               className={padding(20, 'b')}
-            >{`Tensorboard ${this.state.tensorflowVersion} is running for this output.`}</div>
+            >{`Tensorboard ${this.state.tfImage} is running for this output.`}</div>
             <a
-              href={'apis/v1beta1/_proxy/' + podAddress}
+              href={makeProxyUrl(this.state.podAddress)}
               target='_blank'
+              rel='noopener noreferrer'
               className={commonCss.unstyled}
             >
               <Button
@@ -127,6 +147,13 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
               >
                 Open Tensorboard
               </Button>
+              {this.state.tensorboardReady ? (
+                ``
+              ) : (
+                <div className={css.warningText}>
+                  Tensorboard is starting, and you may need to wait for a few minutes.
+                </div>
+              )}
             </a>
 
             <div>
@@ -138,16 +165,14 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                 onClick={this._handleDeleteOpen}
                 color={'default'}
               >
-                Delete Tensorboard
+                Stop Tensorboard
               </Button>
               <Dialog
                 open={this.state.deleteDialogOpen}
                 onClose={this._handleDeleteClose}
                 aria-labelledby='dialog-title'
               >
-                <DialogTitle id='dialog-title'>
-                  {`Stop Tensorboard ${this.state.tensorflowVersion}?`}
-                </DialogTitle>
+                <DialogTitle id='dialog-title'>{`Stop Tensorboard?`}</DialogTitle>
                 <DialogContent>
                   <DialogContentText>
                     You can stop the current running tensorboard. The tensorboard viewer will also
@@ -181,35 +206,35 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
           <div>
             <div className={padding(30, 'b')}>
               <FormControl className={css.formControl}>
-                <InputLabel htmlFor='grouped-select'>TF Version</InputLabel>
+                <InputLabel htmlFor='viewer-tb-image-select'>TF Image</InputLabel>
                 <Select
                   className={css.select}
-                  value={this.state.tensorflowVersion}
-                  input={<Input id='grouped-select' />}
-                  onChange={this.handleVersionSelect}
+                  value={this.state.tfImage}
+                  input={<Input id='viewer-tb-image-select' />}
+                  onChange={this.handleImageSelect}
                 >
+                  {this._image() && <MenuItem value={this._image()}>{this._image()}</MenuItem>}
                   <ListSubheader>Tensoflow 1.x</ListSubheader>
-                  <MenuItem value={'1.4.0'}>TensorFlow 1.4.0</MenuItem>
-                  <MenuItem value={'1.5.0'}>TensorFlow 1.5.0</MenuItem>
-                  <MenuItem value={'1.6.0'}>TensorFlow 1.6.0</MenuItem>
-                  <MenuItem value={'1.7.0'}>TensorFlow 1.7.0</MenuItem>
-                  <MenuItem value={'1.8.0'}>TensorFlow 1.8.0</MenuItem>
-                  <MenuItem value={'1.9.0'}>TensorFlow 1.9.0</MenuItem>
-                  <MenuItem value={'1.10.0'}>TensorFlow 1.10.0</MenuItem>
-                  <MenuItem value={'1.11.0'}>TensorFlow 1.11.0</MenuItem>
-                  <MenuItem value={'1.12.0'}>TensorFlow 1.12.0</MenuItem>
-                  <MenuItem value={'1.13.2'}>TensorFlow 1.13.2</MenuItem>
-                  <MenuItem value={'1.14.0'}>TensorFlow 1.14.0</MenuItem>
-                  <MenuItem value={'1.15.0'}>TensorFlow 1.15.0</MenuItem>
+                  <MenuItem value={'tensorflow/tensorflow:1.7.1'}>TensorFlow 1.7.1</MenuItem>
+                  <MenuItem value={'tensorflow/tensorflow:1.8.0'}>TensorFlow 1.8.0</MenuItem>
+                  <MenuItem value={'tensorflow/tensorflow:1.9.0'}>TensorFlow 1.9.0</MenuItem>
+                  <MenuItem value={'tensorflow/tensorflow:1.10.1'}>TensorFlow 1.10.1</MenuItem>
+                  <MenuItem value={'tensorflow/tensorflow:1.11.0'}>TensorFlow 1.11.0</MenuItem>
+                  <MenuItem value={'tensorflow/tensorflow:1.12.3'}>TensorFlow 1.12.3</MenuItem>
+                  <MenuItem value={'tensorflow/tensorflow:1.13.2'}>TensorFlow 1.13.2</MenuItem>
+                  <MenuItem value={'tensorflow/tensorflow:1.14.0'}>TensorFlow 1.14.0</MenuItem>
+                  <MenuItem value={'tensorflow/tensorflow:1.15.5'}>TensorFlow 1.15.5</MenuItem>
                   <ListSubheader>TensorFlow 2.x</ListSubheader>
-                  <MenuItem value={'2.0.0'}>TensorFlow 2.0.0</MenuItem>
+                  <MenuItem value={'tensorflow/tensorflow:2.0.4'}>TensorFlow 2.0.4</MenuItem>
+                  <MenuItem value={'tensorflow/tensorflow:2.1.2'}>TensorFlow 2.1.2</MenuItem>
+                  <MenuItem value={'tensorflow/tensorflow:2.2.2'}>TensorFlow 2.2.2</MenuItem>
                 </Select>
               </FormControl>
             </div>
             <div>
               <BusyButton
                 className={commonCss.buttonAction}
-                disabled={!this.state.tensorflowVersion}
+                disabled={!this.state.tfImage}
                 onClick={this._startTensorboard}
                 busy={this.state.busy}
                 title={`Start ${this.props.configs.length > 1 ? 'Combined ' : ''}Tensorboard`}
@@ -229,48 +254,102 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     this.setState({ deleteDialogOpen: false });
   };
 
+  private _getNamespace(): string {
+    // TODO: We should probably check if all configs have the same namespace.
+    return this.props.configs[0]?.namespace || '';
+  }
+
   private _buildUrl(): string {
     const urls = this.props.configs.map(c => c.url).sort();
     return urls.length === 1 ? urls[0] : urls.map((c, i) => `Series${i + 1}:` + c).join(',');
   }
 
+  private _podTemplateSpec(): any | undefined {
+    const podTemplateSpec = this.props.configs[0]?.podTemplateSpec;
+    // TODO: how to handle multiple config with different pod template specs?
+    return podTemplateSpec || undefined;
+  }
+
+  private _image(): string | undefined {
+    return this.props.configs[0]?.image || undefined;
+  }
+
+  private async _checkTensorboardPodStatus(): Promise<void> {
+    // If pod address is not null and tensorboard pod doesn't seem to be read, pull status again
+    if (this.state.podAddress && !this.state.tensorboardReady) {
+      // Remove protocol prefix bofore ":" from pod address if any.
+      Apis.isTensorboardPodReady(makeProxyUrl(this.state.podAddress)).then(ready => {
+        this.setState(({ tensorboardReady }) => ({ tensorboardReady: tensorboardReady || ready }));
+      });
+    }
+  }
+
   private async _checkTensorboardApp(): Promise<void> {
     this.setState({ busy: true }, async () => {
-      const { podAddress, tfVersion } = await Apis.getTensorboardApp(this._buildUrl());
-      if (podAddress) {
-        this.setState({ busy: false, podAddress, tensorflowVersion: tfVersion });
-      } else {
-        // No existing pod
-        this.setState({ busy: false });
+      try {
+        // TODO: parse tfImage here
+        const { podAddress, image } = await Apis.getTensorboardApp(
+          this._buildUrl(),
+          this._getNamespace(),
+        );
+        if (podAddress) {
+          this.setState({ busy: false, podAddress, tfImage: image });
+        } else {
+          // No existing pod
+          this.setState({ busy: false });
+        }
+      } catch (err) {
+        this.setState({ busy: false, errorMessage: err?.message || 'Unknown error' });
       }
     });
   }
 
   private _startTensorboard = async () => {
-    this.setState({ busy: true }, async () => {
-      await Apis.startTensorboardApp(
-        encodeURIComponent(this._buildUrl()),
-        encodeURIComponent(this.state.tensorflowVersion),
-      );
-      this.setState({ busy: false }, () => {
-        this._checkTensorboardApp();
-      });
+    this.setState({ busy: true, errorMessage: undefined }, async () => {
+      try {
+        await Apis.startTensorboardApp({
+          logdir: this._buildUrl(),
+          namespace: this._getNamespace(),
+          image: this.state.tfImage,
+          podTemplateSpec: this._podTemplateSpec(),
+        });
+        this.setState({ busy: false, tensorboardReady: false }, () => {
+          this._checkTensorboardApp();
+        });
+      } catch (err) {
+        this.setState({ busy: false, errorMessage: err?.message || 'Unknown error' });
+      }
     });
   };
 
   private _deleteTensorboard = async () => {
     // delete the already opened Tensorboard, clear the podAddress recorded in frontend,
     // and return to the select & start tensorboard page
-    this.setState({ busy: true }, async () => {
-      await Apis.deleteTensorboardApp(encodeURIComponent(this._buildUrl()));
-      this.setState({
-        busy: false,
-        deleteDialogOpen: false,
-        podAddress: '',
-        tensorflowVersion: DEFAULT_TENSORBOARD_VERSION,
-      });
+    this.setState({ busy: true, errorMessage: undefined }, async () => {
+      try {
+        await Apis.deleteTensorboardApp(this._buildUrl(), this._getNamespace());
+        this.setState({
+          busy: false,
+          deleteDialogOpen: false,
+          podAddress: '',
+          tensorboardReady: false,
+        });
+      } catch (err) {
+        this.setState({ busy: false, errorMessage: err?.message || 'Unknown error' });
+      }
     });
   };
+}
+
+function makeProxyUrl(podAddress: string) {
+  // Strip the protocol from the URL. This is a workaround for cloud shell
+  // incorrectly decoding the address and replacing the protocol's // with /.
+  // Pod address (after stripping protocol) is of the format
+  // <viewer_service_dns>.kubeflow.svc.cluster.local:6006/tensorboard/<viewer_name>/
+  // We use this pod address without encoding since encoded pod address failed to open the
+  // tensorboard instance on this pod.
+  // TODO: figure out why the encoded pod address failed to open the tensorboard.
+  return 'apis/v1beta1/_proxy/' + podAddress.replace(/(^\w+:|^)\/\//, '');
 }
 
 export default TensorboardViewer;

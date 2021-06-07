@@ -1,0 +1,32 @@
+TrainingJobName: ''
+HyperParameters: {}
+AlgorithmSpecification:
+  TrainingImage: ''
+  AlgorithmName: ''
+  TrainingInputMode: ''
+  MetricDefinitions: []
+RoleArn: ''
+InputDataConfig: []
+OutputDataConfig:
+  KmsKeyId: ''
+  S3OutputPath: ''
+ResourceConfig:
+  InstanceType: ''
+  InstanceCount: 1
+  VolumeSizeInGB: 1
+  VolumeKmsKeyId: ''
+VpcConfig:
+  SecurityGroupIds: []
+  Subnets: []
+StoppingCondition:
+  MaxRuntimeInSeconds: 86400
+  MaxWaitTimeInSeconds: 86400
+DebugHookConfig: {}
+DebugRuleConfigurations: []
+CheckpointConfig:
+  S3Uri: ''
+  LocalPath: ''
+Tags: []
+EnableNetworkIsolation: True
+EnableInterContainerTrafficEncryption: False
+EnableManagedSpotTraining: False

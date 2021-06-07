@@ -1,0 +1,8 @@
+steps:
+  - id: "frontend"
+    name: "gcr.io/cloud-builders/docker"
+    args:
+      ["build", "-t", "$_GCR_BASE/frontend", "-f", "frontend/Dockerfile", '--build-arg', 'COMMIT_HASH=abcdefg', '--build-arg', 'TAG_NAME=1.0-dev', "."]
+images:
+  - "$_GCR_BASE/frontend"
+timeout: 1800s # 30min

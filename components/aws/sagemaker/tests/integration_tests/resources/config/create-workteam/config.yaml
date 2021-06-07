@@ -1,0 +1,10 @@
+PipelineDefinition: resources/definition/workteam_pipeline.py
+TestName: create-workteam
+Timeout: 3600
+Arguments:
+  region: ((REGION))
+  team_name: 'test-workteam'
+  description: 'Team for GroundTruth Integ Test'
+  user_pool: 'user-pool'
+  user_groups: 'user-group'
+  client_id: 'client-id'

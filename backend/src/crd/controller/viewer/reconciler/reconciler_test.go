@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ import (
 
 var viewer *Reconciler
 
-const tensorflowImage = "tensorflow/tensorflow:dummy"
+const tensorflowImage = "potentially_custom_tensorflow:dummy"
 
 func TestMain(m *testing.M) {
 	viewerV1beta1.AddToScheme(scheme.Scheme)
@@ -48,7 +48,7 @@ func TestMain(m *testing.M) {
 func getDeployments(t *testing.T, c client.Client) []*appsv1.Deployment {
 	dplList := &appsv1.DeploymentList{}
 
-	if err := c.List(context.Background(), &client.ListOptions{}, dplList); err != nil {
+	if err := c.List(context.Background(), dplList, &client.ListOptions{}); err != nil {
 		t.Fatalf("Failed to list deployments from Fake client: %v", err)
 	}
 
@@ -63,7 +63,7 @@ func getDeployments(t *testing.T, c client.Client) []*appsv1.Deployment {
 func getServices(t *testing.T, c client.Client) []*corev1.Service {
 	svcList := &corev1.ServiceList{}
 
-	if err := c.List(context.Background(), &client.ListOptions{}, svcList); err != nil {
+	if err := c.List(context.Background(), svcList, &client.ListOptions{}); err != nil {
 		t.Fatalf("Failed to list services with fake client: %v", err)
 	}
 
@@ -78,7 +78,7 @@ func getServices(t *testing.T, c client.Client) []*corev1.Service {
 func getViewers(t *testing.T, c client.Client) []*viewerV1beta1.Viewer {
 	list := &viewerV1beta1.ViewerList{}
 
-	if err := c.List(context.Background(), &client.ListOptions{}, list); err != nil {
+	if err := c.List(context.Background(), list, &client.ListOptions{}); err != nil {
 		t.Fatalf("Failed to list viewers with fake client: %v", err)
 	}
 
@@ -150,8 +150,9 @@ func TestReconcile_EachViewerCreatesADeployment(t *testing.T) {
 
 	wantDpls := []*appsv1.Deployment{{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "viewer-123-deployment",
-			Namespace: "kubeflow",
+			Name:            "viewer-123-deployment",
+			Namespace:       "kubeflow",
+			ResourceVersion: "1",
 			OwnerReferences: []metav1.OwnerReference{{
 				APIVersion:         "kubeflow.org/v1beta1",
 				Name:               "viewer-123",
@@ -192,6 +193,48 @@ func TestReconcile_EachViewerCreatesADeployment(t *testing.T) {
 		t.Errorf("Created viewer CRD %+v\nWant deployment: %+v\nGot deployment: %+v\nDiff: %s",
 			viewer, gotDpls, wantDpls, cmp.Diff(wantDpls, gotDpls))
 
+	}
+}
+
+func TestReconcile_ImageWithoutTagCountAsTFv2(t *testing.T) {
+	customImageWithoutTag := "potentially_custom_tensorflow_without_tag"
+	viewer := &viewerV1beta1.Viewer{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "viewer-123",
+			Namespace: "kubeflow",
+		},
+		Spec: viewerV1beta1.ViewerSpec{
+			Type: viewerV1beta1.ViewerTypeTensorboard,
+			TensorboardSpec: viewerV1beta1.TensorboardSpec{
+				LogDir:          "gs://tensorboard/logdir",
+				TensorflowImage: customImageWithoutTag,
+			},
+		},
+	}
+
+	cli := fake.NewFakeClient(viewer)
+	reconciler, _ := New(cli, scheme.Scheme, &Options{MaxNumViewers: 10})
+
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{Name: "viewer-123", Namespace: "kubeflow"},
+	}
+	_, err := reconciler.Reconcile(req)
+
+	if err != nil {
+		t.Fatalf("Reconcile(%+v) = %v; Want nil error", req, err)
+	}
+
+	gotDpls := getDeployments(t, cli)
+	actualArgs := gotDpls[0].Spec.Template.Spec.Containers[0].Args
+	hasBindAllArg := false
+	for _, arg := range actualArgs {
+		if arg == "--bind_all" {
+			hasBindAllArg = true
+		}
+	}
+	if !hasBindAllArg {
+		t.Errorf("Created viewer CRD %+v\nWant --bind_all arg\nGot args: %+v",
+			viewer, actualArgs)
 	}
 }
 
@@ -249,8 +292,9 @@ func TestReconcile_ViewerUsesSpecifiedVolumeMountsForDeployment(t *testing.T) {
 
 	wantDpls := []*appsv1.Deployment{{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "viewer-123-deployment",
-			Namespace: "kubeflow",
+			Name:            "viewer-123-deployment",
+			Namespace:       "kubeflow",
+			ResourceVersion: "1",
 			OwnerReferences: []metav1.OwnerReference{{
 				APIVersion:         "kubeflow.org/v1beta1",
 				Name:               "viewer-123",
@@ -337,8 +381,9 @@ func TestReconcile_EachViewerCreatesAService(t *testing.T) {
 
 	want := []*v1.Service{{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "viewer-123-service",
-			Namespace: "kubeflow",
+			Name:            "viewer-123-service",
+			Namespace:       "kubeflow",
+			ResourceVersion: "1",
 			Annotations: map[string]string{
 				"getambassador.io/config": "\n---\n" +
 					"apiVersion: ambassador/v0\n" +
@@ -359,6 +404,7 @@ func TestReconcile_EachViewerCreatesAService(t *testing.T) {
 			}},
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{corev1.ServicePort{
+				Name:       "http",
 				Protocol:   corev1.ProtocolTCP,
 				Port:       int32(80),
 				TargetPort: intstr.IntOrString{IntVal: viewerTargetPort},

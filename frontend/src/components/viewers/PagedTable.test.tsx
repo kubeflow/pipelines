@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,10 @@ describe('PagedTable', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  const data = [['col1', 'col2', 'col3'], ['col4', 'col5', 'col6']];
+  const data = [
+    ['col1', 'col2', 'col3'],
+    ['col4', 'col5', 'col6'],
+  ];
   const labels = ['field1', 'field2', 'field3'];
 
   it('renders simple data', () => {

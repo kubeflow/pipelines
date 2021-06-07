@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +15,8 @@
  */
 
 import createMuiTheme from '@material-ui/core/styles/createMuiTheme';
-import { NestedCSSProperties } from 'typestyle/lib/types';
 import { style, stylesheet } from 'typestyle';
+import { NestedCSSProperties } from 'typestyle/lib/types';
 
 export const color = {
   activeBg: '#eaf1fd',
@@ -43,6 +43,8 @@ export const color = {
   themeDarker: '#0b59dc',
   warningBg: '#f9f9e1',
   warningText: '#ee8100',
+  infoBg: '#f3f4ff',
+  infoText: '#1a73e8',
   weak: '#9aa0a6',
 };
 
@@ -72,6 +74,7 @@ export const fontsize = {
   medium: 16,
   large: 18,
   title: 18,
+  pageTitle: 24,
 };
 // tslint:enable:object-literal-sort-keys
 
@@ -301,6 +304,11 @@ export const commonCss = stylesheet({
     color: 'inherit',
     outline: 'none',
     textDecoration: 'none',
+  },
+  transitiveReductionSwitch: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
   },
 });
 

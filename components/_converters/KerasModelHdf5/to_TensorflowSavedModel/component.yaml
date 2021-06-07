@@ -1,0 +1,55 @@
+name: Keras convert hdf5 model to tf saved model
+description: Converts Keras HDF5 model to Tensorflow SavedModel format.
+inputs:
+- {name: model, type: KerasModelHdf5, description: Keras model in HDF5 format.}
+outputs:
+- {name: converted_model, type: TensorflowSavedModel, description: Keras model in Tensorflow SavedModel format.}
+implementation:
+  container:
+    image: tensorflow/tensorflow:2.3.0
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'h5py==2.10.0' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet
+      --no-warn-script-location 'h5py==2.10.0' --user) && "$0" "$@"
+    - python3
+    - -u
+    - -c
+    - |
+      def _make_parent_dirs_and_return_path(file_path: str):
+          import os
+          os.makedirs(os.path.dirname(file_path), exist_ok=True)
+          return file_path
+
+      def keras_convert_hdf5_model_to_tf_saved_model(
+          model_path,
+          converted_model_path,
+      ):
+          '''Converts Keras HDF5 model to Tensorflow SavedModel format.
+
+          Args:
+              model_path: Keras model in HDF5 format.
+              converted_model_path: Keras model in Tensorflow SavedModel format.
+
+          Annotations:
+              author: Alexey Volkov <alexey.volkov@ark-kun.com>
+          '''
+          from pathlib import Path
+          from tensorflow import keras
+
+          model = keras.models.load_model(filepath=model_path)
+          keras.models.save_model(model=model, filepath=converted_model_path, save_format='tf')
+
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Keras convert hdf5 model to tf saved model', description='Converts Keras HDF5 model to Tensorflow SavedModel format.')
+      _parser.add_argument("--model", dest="model_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--converted-model", dest="converted_model_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parsed_args = vars(_parser.parse_args())
+
+      _outputs = keras_convert_hdf5_model_to_tf_saved_model(**_parsed_args)
+    args:
+    - --model
+    - {inputPath: model}
+    - --converted-model
+    - {outputPath: converted_model}

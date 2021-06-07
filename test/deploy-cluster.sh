@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,8 +18,10 @@ set -ex
 
 # Env inputs:
 # * COMMIT_SHA - decides TEST_CLUSTER's name
+# * TEST_CLUSTER_PREFIX - decides default TEST_CLUSTER naming
 # * TEST_CLUSTER - [optional] specify to reuse existing TEST_CLUSTER
-TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
+DEFAULT_TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
+TEST_CLUSTER_PREFIX=${TEST_CLUSTER_PREFIX:-${DEFAULT_TEST_CLUSTER_PREFIX}}
 TEST_CLUSTER_DEFAULT=$(echo $TEST_CLUSTER_PREFIX | cut -d _ -f 1)-${COMMIT_SHA:0:7}-${RANDOM}
 TEST_CLUSTER=${TEST_CLUSTER:-${TEST_CLUSTER_DEFAULT}}
 ENABLE_WORKLOAD_IDENTITY=${ENABLE_WORKLOAD_IDENTITY:-false}
@@ -40,7 +42,8 @@ function clean_up {
   for POD_NAME in "${ALL_PODS[@]}"; do
     pod_info_file="$POD_INFO_DIR/$POD_NAME.txt"
     echo "Pod name: $POD_NAME" >> "$pod_info_file"
-    echo "Detailed logs: https://console.cloud.google.com/logs/viewer?project=$PROJECT&advancedFilter=resource.type%3D%22k8s_container%22%0Aresource.labels.project_id%3D%22$PROJECT%22%0Aresource.labels.location%3D%22us-east1-b%22%0Aresource.labels.cluster_name%3D%22${TEST_CLUSTER}%22%0Aresource.labels.namespace_name%3D%22$NAMESPACE%22%0Aresource.labels.pod_name%3D%22$POD_NAME%22" \
+    echo "Detailed logs:" >> "$pod_info_file"
+    echo "https://console.cloud.google.com/logs/viewer?project=$PROJECT&advancedFilter=resource.type%3D%22k8s_container%22%0Aresource.labels.project_id%3D%22$PROJECT%22%0Aresource.labels.location%3D%22us-east1-b%22%0Aresource.labels.cluster_name%3D%22${TEST_CLUSTER}%22%0Aresource.labels.namespace_name%3D%22$NAMESPACE%22%0Aresource.labels.pod_name%3D%22$POD_NAME%22" \
       >> "$pod_info_file"
     echo "--------" >> "$pod_info_file"
     kubectl describe pod $POD_NAME -n $NAMESPACE >> "$pod_info_file"
@@ -66,12 +69,10 @@ else
   SHOULD_CLEANUP_CLUSTER=true
   # Machine type and cluster size is the same as kubeflow deployment to
   # easily compare performance. We can reduce usage later.
-  NODE_POOL_CONFIG_ARG="--num-nodes=2 --machine-type=n1-standard-8 \
+  NODE_POOL_CONFIG_ARG="--num-nodes=2 --machine-type=e2-standard-8 \
     --enable-autoscaling --max-nodes=8 --min-nodes=2"
-  # Use new kubernetes master to improve workload identity stability.
-  KUBERNETES_VERSION_ARG="--cluster-version=1.14.8-gke.33"
   if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
-    WI_ARG="--identity-namespace=$PROJECT.svc.id.goog"
+    WI_ARG="--workload-pool=$PROJECT.svc.id.goog"
     SCOPE_ARG=
   else
     WI_ARG=
@@ -79,7 +80,11 @@ else
     # reference: https://cloud.google.com/compute/docs/access/service-accounts#accesscopesiam
     SCOPE_ARG="--scopes=storage-rw,cloud-platform"
   fi
-  gcloud beta container clusters create ${TEST_CLUSTER} ${SCOPE_ARG} ${NODE_POOL_CONFIG_ARG} ${WI_ARG} ${KUBERNETES_VERSION_ARG}
+  # Use regular release channel to keep up with newly created clusters in Google Cloud Marketplace.
+  # Uncomment the line below when we start to supporter non-docker container
+  # gcloud container clusters create ${TEST_CLUSTER} --release-channel regular ${SCOPE_ARG} ${NODE_POOL_CONFIG_ARG} ${WI_ARG}
+  # Temporarily pin k8s version to 1.18 since k8s version 1.19 or above does not support docker
+  gcloud container clusters create ${TEST_CLUSTER} --cluster-version 1.18 ${SCOPE_ARG} ${NODE_POOL_CONFIG_ARG} ${WI_ARG}
 fi
 
 gcloud container clusters get-credentials ${TEST_CLUSTER}

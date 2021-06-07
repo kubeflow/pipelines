@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,16 +25,7 @@ ACCOUNT=$(gcloud info --format='value(config.account)')
 kubectl create clusterrolebinding PROW_BINDING --clusterrole=cluster-admin --user=$ACCOUNT --dry-run -o yaml | kubectl apply -f -
 kubectl create clusterrolebinding DEFAULT_BINDING --clusterrole=cluster-admin --serviceaccount=default:default --dry-run -o yaml | kubectl apply -f -
 
-ARGO_VERSION=v2.3.0
-
-# if argo is not installed
-if ! which argo; then
-  echo "install argo"
-  mkdir -p ~/bin/
-  export PATH=~/bin/:$PATH
-  curl -sSL -o ~/bin/argo https://github.com/argoproj/argo/releases/download/$ARGO_VERSION/argo-linux-amd64
-  chmod +x ~/bin/argo
-fi
+"${DIR}/install-argo-cli.sh"
 
 # No need to install here, it comes with kfp lite deployment
 # kubectl create ns argo --dry-run -o yaml | kubectl apply -f -
@@ -54,11 +45,12 @@ if [ "$ENABLE_WORKLOAD_IDENTITY" = true ]; then
   source "$DIR/../manifests/kustomize/wi-utils.sh"
   create_gsa_if_not_present $ARGO_GSA
 
-  gcloud projects add-iam-policy-binding $PROJECT \
+  source "${DIR}/scripts/retry.sh"
+  retry gcloud projects add-iam-policy-binding $PROJECT \
     --member="serviceAccount:$ARGO_GSA@$PROJECT.iam.gserviceaccount.com" \
     --role="roles/editor" \
     > /dev/null # hide verbose output
-  bind_gsa_and_ksa $ARGO_GSA $ARGO_KSA $PROJECT $NAMESPACE
+  retry bind_gsa_and_ksa $ARGO_GSA $ARGO_KSA $PROJECT $NAMESPACE
 
   verify_workload_identity_binding $ARGO_KSA $NAMESPACE
 fi

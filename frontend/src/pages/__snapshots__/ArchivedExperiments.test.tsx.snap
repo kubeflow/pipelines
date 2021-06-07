@@ -1,0 +1,37 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ArchivedExperiemnts renders archived experiments 1`] = `
+<div
+  className="page"
+>
+  <ExperimentList
+    history={
+      Object {
+        "push": [MockFunction],
+      }
+    }
+    location={Object {}}
+    match={Object {}}
+    onError={[Function]}
+    storageState="STORAGESTATE_ARCHIVED"
+    toolbarProps={
+      Object {
+        "actions": Object {
+          "refresh": Object {
+            "action": [Function],
+            "id": "refreshBtn",
+            "title": "Refresh",
+            "tooltip": "Refresh the list",
+          },
+        },
+        "breadcrumbs": Array [],
+        "pageTitle": "Experiments",
+      }
+    }
+    updateBanner={[MockFunction]}
+    updateDialog={[MockFunction]}
+    updateSnackbar={[MockFunction]}
+    updateToolbar={[MockFunction]}
+  />
+</div>
+`;

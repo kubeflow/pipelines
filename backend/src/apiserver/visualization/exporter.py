@@ -3,7 +3,7 @@ exporter.py provides utility functions for generating NotebookNode objects and
 converting those objects to HTML.
 """
 
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -149,5 +149,5 @@ class Exporter:
         # Output generator
         self.ep.preprocess(nb, {"metadata": {"path": Path.cwd()}}, self.km)
         # Export all html and outputs
-        body, _ = html_exporter.from_notebook_node(nb)
+        body, _ = html_exporter.from_notebook_node(nb, resources={})
         return body

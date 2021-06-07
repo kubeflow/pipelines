@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -55,6 +55,10 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 		return util.NewCustomError(err, util.CUSTOM_CODE_TRANSIENT,
 			"Workflow (%s): transient failure: %v", key, err)
 
+	}
+	if _, ok := wf.ObjectMeta.Labels[util.LabelKeyWorkflowRunId]; !ok {
+		log.Infof("Skip syncing Workflow (%v): workflow does not have a Run ID label.", name)
+		return nil
 	}
 	if wf.PersistedFinalState() && time.Now().Unix()-wf.FinishedAt() < s.ttlSecondsAfterWorkflowFinish {
 		// Skip persisting the workflow if the workflow is finished

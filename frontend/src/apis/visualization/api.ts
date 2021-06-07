@@ -165,7 +165,7 @@ export enum ApiVisualizationType {
  */
 export interface ProtobufAny {
   /**
-   * A URL/resource name that uniquely identifies the type of the serialized protocol buffer message. The last segment of the URL's path must represent the fully qualified name of the type (as in `path/google.protobuf.Duration`). The name should be in a canonical form (e.g., leading \".\" is not accepted).  In practice, teams usually precompile into the binary all types that they expect it to use in the context of Any. However, for URLs which use the scheme `http`, `https`, or no scheme, one can optionally set up a type server that maps type URLs to message definitions as follows:  * If no scheme is provided, `https` is assumed. * An HTTP GET on the URL must yield a [google.protobuf.Type][]   value in binary format, or produce an error. * Applications are allowed to cache lookup results based on the   URL, or have them precompiled into a binary to avoid any   lookup. Therefore, binary compatibility needs to be preserved   on changes to types. (Use versioned type names to manage   breaking changes.)  Note: this functionality is not currently available in the official protobuf release, and it is not used for type URLs beginning with type.googleapis.com.  Schemes other than `http`, `https` (or the empty scheme) might be used with implementation specific semantics.
+   * A URL/resource name that uniquely identifies the type of the serialized protocol buffer message. This string must contain at least one \"/\" character. The last segment of the URL's path must represent the fully qualified name of the type (as in `path/google.protobuf.Duration`). The name should be in a canonical form (e.g., leading \".\" is not accepted).  In practice, teams usually precompile into the binary all types that they expect it to use in the context of Any. However, for URLs which use the scheme `http`, `https`, or no scheme, one can optionally set up a type server that maps type URLs to message definitions as follows:  * If no scheme is provided, `https` is assumed. * An HTTP GET on the URL must yield a [google.protobuf.Type][]   value in binary format, or produce an error. * Applications are allowed to cache lookup results based on the   URL, or have them precompiled into a binary to avoid any   lookup. Therefore, binary compatibility needs to be preserved   on changes to types. (Use versioned type names to manage   breaking changes.)  Note: this functionality is not currently available in the official protobuf release, and it is not used for type URLs beginning with type.googleapis.com.  Schemes other than `http`, `https` (or the empty scheme) might be used with implementation specific semantics.
    * @type {string}
    * @memberof ProtobufAny
    */
@@ -186,11 +186,19 @@ export const VisualizationServiceApiFetchParamCreator = function(configuration?:
   return {
     /**
      *
+     * @param {string} namespace
      * @param {ApiVisualization} body
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    createVisualization(body: ApiVisualization, options: any = {}): FetchArgs {
+    createVisualization(namespace: string, body: ApiVisualization, options: any = {}): FetchArgs {
+      // verify required parameter 'namespace' is not null or undefined
+      if (namespace === null || namespace === undefined) {
+        throw new RequiredError(
+          'namespace',
+          'Required parameter namespace was null or undefined when calling createVisualization.',
+        );
+      }
       // verify required parameter 'body' is not null or undefined
       if (body === null || body === undefined) {
         throw new RequiredError(
@@ -198,7 +206,10 @@ export const VisualizationServiceApiFetchParamCreator = function(configuration?:
           'Required parameter body was null or undefined when calling createVisualization.',
         );
       }
-      const localVarPath = `/apis/v1beta1/visualizations`;
+      const localVarPath = `/apis/v1beta1/visualizations/{namespace}`.replace(
+        `{${'namespace'}}`,
+        encodeURIComponent(String(namespace)),
+      );
       const localVarUrlObj = url.parse(localVarPath, true);
       const localVarRequestOptions = Object.assign({ method: 'POST' }, options);
       const localVarHeaderParameter = {} as any;
@@ -245,17 +256,19 @@ export const VisualizationServiceApiFp = function(configuration?: Configuration)
   return {
     /**
      *
+     * @param {string} namespace
      * @param {ApiVisualization} body
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     createVisualization(
+      namespace: string,
       body: ApiVisualization,
       options?: any,
     ): (fetch?: FetchAPI, basePath?: string) => Promise<ApiVisualization> {
       const localVarFetchArgs = VisualizationServiceApiFetchParamCreator(
         configuration,
-      ).createVisualization(body, options);
+      ).createVisualization(namespace, body, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
         return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
           if (response.status >= 200 && response.status < 300) {
@@ -281,15 +294,17 @@ export const VisualizationServiceApiFactory = function(
   return {
     /**
      *
+     * @param {string} namespace
      * @param {ApiVisualization} body
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    createVisualization(body: ApiVisualization, options?: any) {
-      return VisualizationServiceApiFp(configuration).createVisualization(body, options)(
-        fetch,
-        basePath,
-      );
+    createVisualization(namespace: string, body: ApiVisualization, options?: any) {
+      return VisualizationServiceApiFp(configuration).createVisualization(
+        namespace,
+        body,
+        options,
+      )(fetch, basePath);
     },
   };
 };
@@ -303,15 +318,17 @@ export const VisualizationServiceApiFactory = function(
 export class VisualizationServiceApi extends BaseAPI {
   /**
    *
+   * @param {string} namespace
    * @param {ApiVisualization} body
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof VisualizationServiceApi
    */
-  public createVisualization(body: ApiVisualization, options?: any) {
-    return VisualizationServiceApiFp(this.configuration).createVisualization(body, options)(
-      this.fetch,
-      this.basePath,
-    );
+  public createVisualization(namespace: string, body: ApiVisualization, options?: any) {
+    return VisualizationServiceApiFp(this.configuration).createVisualization(
+      namespace,
+      body,
+      options,
+    )(this.fetch, this.basePath);
   }
 }

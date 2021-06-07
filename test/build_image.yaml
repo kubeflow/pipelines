@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ spec:
     parameters:
     - name: image-build-context-gcs-uri
     - name: image-builder-image
-      value: gcr.io/ml-pipeline-test/image-builder:v20191122-0.1.25-582-g7908980c
+      value: gcr.io/ml-pipeline-test/image-builder:v20200208-0.1.25-771-g4c571961
     - name: api-image
     - name: frontend-image
     - name: scheduledworkflow-image

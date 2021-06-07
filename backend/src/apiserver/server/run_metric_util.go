@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,7 +24,12 @@ import (
 )
 
 const (
-	metricNamePattern = "^[a-z]([-a-z0-9]{0,62}[a-z0-9])?$"
+	// This regex expresses the following constraints:
+	// * Allows lowercase/uppercase letters
+	// * Allows "_", "-" and numbers in the middle
+	// * Additionally, numbers are also allowed at the end
+	// * At most 64 characters
+	metricNamePattern = "^[a-zA-Z]([-_a-zA-Z0-9]{0,62}[a-zA-Z0-9])?$"
 )
 
 // ValidateRunMetric validates RunMetric fields from request.

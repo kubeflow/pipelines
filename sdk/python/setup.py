@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,26 +19,43 @@ from setuptools import setup
 NAME = 'kfp'
 #VERSION = .... Change the version in kfp/__init__.py
 
+# NOTICE, after any updates to the following, ./requirements.in should be updated
+# accordingly.
 REQUIRES = [
-    'urllib3>=1.15,<1.25',  #Fixing the version conflict with the "requests" package
-    'six >= 1.10',
-    'certifi',
-    'python-dateutil',
-    'PyYAML',
-    'google-cloud-storage>=1.13.0',
-    'kubernetes>=8.0.0, <=10.0.0',
-    'PyJWT>=1.6.4',
-    'cryptography>=2.4.2',
-    'google-auth>=1.6.1',
-    'requests_toolbelt>=0.8.0',
-    'cloudpickle==1.1.1',
-    'kfp-server-api >= 0.1.18, <= 0.1.40',  #Update the upper version whenever a new version of the kfp-server-api package is released. Update the lower version when there is a breaking change in kfp-server-api.
-    'argo-models == 2.2.1a',  #2.2.1a is equivalent to argo 2.2.1
-    'jsonschema >= 3.0.1',
-    'tabulate == 0.8.3',
-    'click == 7.0',
-    'Deprecated',
+    'absl-py>=0.9,<=0.11',
+    'PyYAML>=5.3,<6',
+    # `Blob.from_string` was introduced in google-cloud-storage 1.20.0
+    # https://github.com/googleapis/python-storage/blob/master/CHANGELOG.md#1200
+    'google-cloud-storage>=1.20.0,<2',
+    'kubernetes>=8.0.0,<13',
+    # google-api-python-client v2 doesn't work for private dicovery by default:
+    # https://github.com/googleapis/google-api-python-client/issues/1225#issuecomment-791058235
+    'google-api-python-client>=1.7.8,<2',
+    'google-auth>=1.6.1,<2',
+    'requests-toolbelt>=0.8.0,<1',
+    'cloudpickle>=1.3.0,<2',
+    # Update the upper version whenever a new major version of the
+    # kfp-server-api package is released.
+    # Update the lower version when kfp sdk depends on new apis/fields in
+    # kfp-server-api.
+    # Note, please also update ./requirements.in
+    'kfp-server-api>=1.1.2,<2.0.0',
+    'jsonschema>=3.0.1,<4',
+    'tabulate>=0.8.6,<1',
+    'click>=7.1.1,<8',
+    'Deprecated>=1.2.7,<2',
+    'strip-hints>=0.1.8,<1',
+    'docstring-parser>=0.7.3,<1',
+    'kfp-pipeline-spec>=0.1.8,<0.2.0',
+    'fire>=0.3.1,<1',
+    'protobuf>=3.13.0,<4'
 ]
+
+TESTS_REQUIRE = [
+    'frozendict',
+    'mock',
+]
+
 
 def find_version(*file_path_parts):
     here = os.path.abspath(os.path.dirname(__file__))
@@ -53,14 +70,21 @@ def find_version(*file_path_parts):
     if version_match:
         return version_match.group(1)
 
-    raise RuntimeError("Unable to find version string.")
+    raise RuntimeError('Unable to find version string.')
+
 
 setup(
     name=NAME,
-    version=find_version("kfp", "__init__.py"),
+    version=find_version('kfp', '__init__.py'),
     description='KubeFlow Pipelines SDK',
-    author='google',
+    author='The Kubeflow Authors',
+    url="https://github.com/kubeflow/pipelines",
+    project_urls={
+        "Documentation": "https://kubeflow-pipelines.readthedocs.io/en/stable/",
+        "Bug Tracker": "https://github.com/kubeflow/pipelines/issues",
+    },    
     install_requires=REQUIRES,
+    tests_require=TESTS_REQUIRE,
     packages=[
         'kfp',
         'kfp.cli',
@@ -68,11 +92,16 @@ setup(
         'kfp.compiler',
         'kfp.components',
         'kfp.components.structures',
-        'kfp.components.structures.kubernetes',
         'kfp.containers',
         'kfp.dsl',
         'kfp.dsl.extensions',
         'kfp.notebook',
+        'kfp.v2',
+        'kfp.v2.compiler',
+        'kfp.v2.components',
+        'kfp.v2.dsl',
+        'kfp.v2.google.client',
+        'kfp.v2.google.experimental',
     ],
     classifiers=[
         'Intended Audience :: Developers',
@@ -80,19 +109,23 @@ setup(
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
         'Topic :: Scientific/Engineering',
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
         'Topic :: Software Development',
         'Topic :: Software Development :: Libraries',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
-    python_requires='>=3.5.3',
+    python_requires='>=3.6.1',
     include_package_data=True,
     entry_points={
         'console_scripts': [
-            'dsl-compile = kfp.compiler.main:main', 'kfp=kfp.__main__:main'
+            'dsl-compile = kfp.compiler.main:main',
+            'dsl-compile-v2 = kfp.v2.compiler.main:main',
+            'kfp=kfp.__main__:main'
         ]
-    })
+    }
+)

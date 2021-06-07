@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Google LLC
+ * Copyright 2018-2019 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@ import { Template, Workflow } from '../../third_party/argo-ui/argo_template';
 import { color } from '../Css';
 import { Constants } from './Constants';
 import { logger } from './Utils';
+import { parseTaskDisplayName } from './ParserUtils';
+import { graphlib } from 'dagre';
 
 export type nodeType = 'container' | 'resource' | 'dag' | 'unknown';
 
@@ -61,9 +63,9 @@ export function _populateInfoFromTemplate(
 
   if (template.container) {
     info.nodeType = 'container';
-    (info.args = template.container.args || []),
-      (info.command = template.container.command || []),
-      (info.image = template.container.image || '');
+    info.args = template.container.args || [];
+    info.command = template.container.command || [];
+    info.image = template.container.image || '';
     info.volumeMounts = (template.container.volumeMounts || []).map(v => [v.mountPath, v.name]);
   } else {
     info.nodeType = 'resource';
@@ -126,6 +128,10 @@ function buildDag(
     alreadyVisited.set(rootTemplateId, parentFullPath || '/' + rootTemplateId);
     const template = root.template;
 
+    if (!template || !template.dag) {
+      throw new Error("Graph template or DAG object doesn't exist.");
+    }
+
     (template.dag.tasks || []).forEach(task => {
       const nodeId = parentFullPath + '/' + task.name;
 
@@ -177,13 +183,7 @@ function buildDag(
         if (child.nodeType === 'dag') {
           buildDag(graph, task.template, templates, alreadyVisited, nodeId);
         } else if (child.nodeType === 'container' || child.nodeType === 'resource') {
-          const metadata = child.template.metadata;
-          if (metadata && metadata.annotations) {
-            const displayName = metadata.annotations['pipelines.kubeflow.org/task_display_name'];
-            if (displayName) {
-              nodeLabel = displayName;
-            }
-          }
+          nodeLabel = parseTaskDisplayName(child.template.metadata) || nodeLabel;
           _populateInfoFromTemplate(info, child.template);
         } else {
           throw new Error(
@@ -217,6 +217,10 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
 
   if (!workflow.spec || !workflow.spec.templates) {
     throw new Error('Could not generate graph. Provided Pipeline had no components.');
+  }
+
+  if (!workflow.spec.entrypoint) {
+    throw new Error('Could not generate graph. Provided Pipeline had no entrypoint.');
   }
 
   const workflowTemplates = workflow.spec.templates;
@@ -267,4 +271,61 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
   }
 
   return graph;
+}
+
+/**
+ * Perform a transitive reduction over the input graph.
+ *
+ * From [1]: Transitive reduction of a directed graph D is another directed
+ * graph with the same vertices and as few edges as possible, such that for all
+ * pairs of vertices v, w a (directed) path from v to w in D exists if and only
+ * if such a path exists in the reduction
+ *
+ * The current implementation has a time complexity bound `O(n*m)`, where `n`
+ * are the nodes and `m` are the edges of the input graph.
+ *
+ * [1]: https://en.wikipedia.org/wiki/Transitive_reduction
+ *
+ * @param graph The dagre graph object
+ */
+export function transitiveReduction(graph: dagre.graphlib.Graph): dagre.graphlib.Graph | undefined {
+  // safeguard against too big graphs
+  if (!graph || graph.edgeCount() > 1000 || graph.nodeCount() > 1000) {
+    return undefined;
+  }
+
+  const result = graphlib.json.read(graphlib.json.write(graph));
+  let visited: string[] = [];
+  const dfs_with_removal = (current: string, parent: string) => {
+    result.successors(current)?.forEach((node: any) => {
+      if (visited.includes(node)) return;
+      visited.push(node);
+      if (result.successors(parent)?.includes(node)) {
+        result.removeEdge(parent, node);
+      }
+      dfs_with_removal(node, parent);
+    });
+  };
+
+  result.nodes().forEach(node => {
+    visited = []; // clean this up before each new DFS
+    // start a DFS from each successor of `node`
+    result.successors(node)?.forEach((successor: any) => dfs_with_removal(successor, node));
+  });
+  return result;
+}
+
+export function compareGraphEdges(graph1: dagre.graphlib.Graph, graph2: dagre.graphlib.Graph) {
+  return (
+    graph1
+      .edges()
+      .map(e => `${e.name}${e.v}${e.w}`)
+      .sort()
+      .toString() ===
+    graph2
+      .edges()
+      .map(e => `${e.name}${e.v}${e.w}`)
+      .sort()
+      .toString()
+  );
 }

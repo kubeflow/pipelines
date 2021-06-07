@@ -94,6 +94,7 @@ exports[`PipelineDetails closes side panel when close button is clicked 1`] = `
               className="summaryKey"
             >
               <a
+                rel="noopener noreferrer"
                 target="_blank"
               >
                 Version source
@@ -112,7 +113,7 @@ exports[`PipelineDetails closes side panel when close button is clicked 1`] = `
             >
               Description
             </div>
-            <Component
+            <Description
               description="test pipeline description"
             />
           </WithStyles(Paper)>
@@ -137,6 +138,11 @@ exports[`PipelineDetails closes side panel when close button is clicked 1`] = `
             onClick={[Function]}
             onError={[Function]}
             selectedNodeId=""
+          />
+          <ReduceGraphSwitch
+            checked={false}
+            disabled={true}
+            onChange={[Function]}
           />
           <SidePanel
             isOpen={false}
@@ -229,6 +235,11 @@ exports[`PipelineDetails collapses summary card when summary shown state is fals
             onClick={[Function]}
             onError={[Function]}
             selectedNodeId=""
+          />
+          <ReduceGraphSwitch
+            checked={false}
+            disabled={true}
+            onChange={[Function]}
           />
           <SidePanel
             isOpen={false}
@@ -368,6 +379,7 @@ exports[`PipelineDetails opens side panel on clicked node, shows message when no
               className="summaryKey"
             >
               <a
+                rel="noopener noreferrer"
                 target="_blank"
               >
                 Version source
@@ -386,7 +398,7 @@ exports[`PipelineDetails opens side panel on clicked node, shows message when no
             >
               Description
             </div>
-            <Component
+            <Description
               description="test pipeline description"
             />
           </WithStyles(Paper)>
@@ -411,6 +423,11 @@ exports[`PipelineDetails opens side panel on clicked node, shows message when no
             onClick={[Function]}
             onError={[Function]}
             selectedNodeId="some-node-id"
+          />
+          <ReduceGraphSwitch
+            checked={false}
+            disabled={true}
+            onChange={[Function]}
           />
           <SidePanel
             isOpen={true}
@@ -544,6 +561,7 @@ exports[`PipelineDetails shows clicked node info in the side panel if it is in t
               className="summaryKey"
             >
               <a
+                rel="noopener noreferrer"
                 target="_blank"
               >
                 Version source
@@ -562,7 +580,7 @@ exports[`PipelineDetails shows clicked node info in the side panel if it is in t
             >
               Description
             </div>
-            <Component
+            <Description
               description="test pipeline description"
             />
           </WithStyles(Paper)>
@@ -639,6 +657,11 @@ exports[`PipelineDetails shows clicked node info in the side panel if it is in t
             onClick={[Function]}
             onError={[Function]}
             selectedNodeId="node1"
+          />
+          <ReduceGraphSwitch
+            checked={false}
+            disabled={true}
+            onChange={[Function]}
           />
           <SidePanel
             isOpen={true}
@@ -814,6 +837,7 @@ exports[`PipelineDetails shows correct versions in version selector 1`] = `
               className="summaryKey"
             >
               <a
+                rel="noopener noreferrer"
                 target="_blank"
               >
                 Version source
@@ -832,7 +856,7 @@ exports[`PipelineDetails shows correct versions in version selector 1`] = `
             >
               Description
             </div>
-            <Component
+            <Description
               description="test pipeline description"
             />
           </WithStyles(Paper)>
@@ -857,6 +881,11 @@ exports[`PipelineDetails shows correct versions in version selector 1`] = `
             onClick={[Function]}
             onError={[Function]}
             selectedNodeId=""
+          />
+          <ReduceGraphSwitch
+            checked={false}
+            disabled={true}
+            onChange={[Function]}
           />
           <SidePanel
             isOpen={false}
@@ -990,6 +1019,7 @@ exports[`PipelineDetails shows empty pipeline details with empty graph 1`] = `
               className="summaryKey"
             >
               <a
+                rel="noopener noreferrer"
                 target="_blank"
               >
                 Version source
@@ -1008,7 +1038,7 @@ exports[`PipelineDetails shows empty pipeline details with empty graph 1`] = `
             >
               Description
             </div>
-            <Component
+            <Description
               description="test pipeline description"
             />
           </WithStyles(Paper)>
@@ -1033,6 +1063,11 @@ exports[`PipelineDetails shows empty pipeline details with empty graph 1`] = `
             onClick={[Function]}
             onError={[Function]}
             selectedNodeId=""
+          />
+          <ReduceGraphSwitch
+            checked={false}
+            disabled={true}
+            onChange={[Function]}
           />
           <SidePanel
             isOpen={false}
@@ -1145,7 +1180,7 @@ exports[`PipelineDetails shows pipeline source code when config tab is clicked 1
           enableSnippets={false}
           focus={false}
           fontSize={12}
-          height="100%"
+          height="640px"
           highlightActiveLine={true}
           maxLines={null}
           minLines={null}
@@ -1173,7 +1208,7 @@ exports[`PipelineDetails shows pipeline source code when config tab is clicked 1
           tabSize={4}
           theme="github"
           value="test template"
-          width="100%"
+          width="640px"
           wrapEnabled={false}
         />
       </div>

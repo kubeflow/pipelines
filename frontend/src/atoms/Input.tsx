@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ interface InputProps extends OutlinedTextFieldProps {
   width?: number;
 }
 
-export default (props: InputProps) => {
+const Input = (props: InputProps) => {
   const { height, maxWidth, variant, width, ...rest } = props;
   return (
     <TextField
@@ -42,3 +42,5 @@ export default (props: InputProps) => {
     </TextField>
   );
 };
+
+export default Input;

@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 package org.kubeflow.pipelines.components.v1alpha1;
+import "google/protobuf/struct.proto";
 
 // Describes the component input specification
 message InputSpec {
@@ -209,18 +210,7 @@ message RetryStrategySpec {
     int32 maxRetries = 1;
 }
 
-import "k8s.io/api/core/v1/generated.proto"; // https://github.com/kubernetes/api/blob/master/core/v1/generated.proto
-import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
-
-// When running on Kubernetes, KubernetesExecutionOptionsSpec describes changes to the configuration of a Kubernetes Pod that will execute the task.
-message KubernetesExecutionOptionsSpec {
-    k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
-    k8s.io.api.core.v1.Container mainContainer = 2;
-    k8s.io.api.core.v1.PodSpec podSpec = 3;
-}
-
 // Optional configuration that specifies how the task should be executed. Can be used to set some platform-specific options.
 message ExecutionOptionsSpec {
     RetryStrategySpec retryStrategy = 1;
-    KubernetesExecutionOptionsSpec kubernetesOptions = 2;
 }

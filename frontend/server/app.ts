@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2019 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,32 +11,35 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import * as path from 'path';
-import * as express from 'express';
+import path from 'path';
+import express from 'express';
 import { Application, static as StaticHandler } from 'express';
-import * as proxy from 'http-proxy-middleware';
+import proxy from 'http-proxy-middleware';
 
 import { UIConfigs } from './configs';
 import { getAddress } from './utils';
 import { getBuildMetadata, getHealthzEndpoint, getHealthzHandler } from './handlers/healthz';
-import { getArtifactsHandler } from './handlers/artifacts';
 import {
-  getCreateTensorboardHandler,
-  getTensorboardHandler,
-  deleteTensorboardHandler,
-} from './handlers/tensorboard';
+  getArtifactsHandler,
+  getArtifactsProxyHandler,
+  getArtifactServiceGetter,
+} from './handlers/artifacts';
+import { getTensorboardHandlers } from './handlers/tensorboard';
+import { getAuthorizeFn } from './helpers/auth';
 import { getPodLogsHandler } from './handlers/pod-logs';
-import { clusterNameHandler, projectIdHandler } from './handlers/gke-metadata';
+import { podInfoHandler, podEventsHandler } from './handlers/pod-info';
+import { getClusterNameHandler, getProjectIdHandler } from './handlers/gke-metadata';
 import { getAllowCustomVisualizationsHandler } from './handlers/vis';
 import { getIndexHTMLHandler } from './handlers/index-html';
 
 import proxyMiddleware from './proxy-middleware';
 import { Server } from 'http';
+import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from './consts';
 
 function getRegisterHandler(app: Application, basePath: string) {
   return (
-    func: (name: string, handler: express.Handler) => express.Application,
-    route: string,
+    func: (name: string | string[], handler: express.Handler) => express.Application,
+    route: string | string[],
     handler: express.Handler,
   ) => {
     func.call(app, route, handler);
@@ -113,23 +116,83 @@ function createUIServer(options: UIConfigs) {
   );
 
   /** Artifact */
-  registerHandler(app.get, '/artifacts/get', getArtifactsHandler(options.artifacts));
-
-  /** Tensorboard viewer */
-  registerHandler(app.get, '/apps/tensorboard', getTensorboardHandler);
-  registerHandler(app.delete, '/apps/tensorboard', deleteTensorboardHandler);
   registerHandler(
-    app.post,
-    '/apps/tensorboard',
-    getCreateTensorboardHandler(options.viewer.tensorboard.podTemplateSpec),
+    app.get,
+    '/artifacts/*',
+    getArtifactsProxyHandler({
+      enabled: options.artifacts.proxy.enabled,
+      namespacedServiceGetter: getArtifactServiceGetter(options.artifacts.proxy),
+    }),
+  );
+  // /artifacts/get endpoint tries to extract the artifact to return pure text content
+  registerHandler(
+    app.get,
+    '/artifacts/get',
+    getArtifactsHandler({
+      artifactsConfigs: options.artifacts,
+      useParameter: false,
+      tryExtract: true,
+    }),
+  );
+  // /artifacts/ endpoint downloads the artifact as is, it does not try to unzip or untar.
+  registerHandler(
+    app.get,
+    // The last * represents object key. Key could contain special characters like '/',
+    // so we cannot use `:key` as the placeholder.
+    // It is important to include the original object's key at the end of the url, because
+    // browser automatically determines file extension by the url. A wrong extension may affect
+    // whether the file can be opened by the correct application by default.
+    '/artifacts/:source/:bucket/*',
+    getArtifactsHandler({
+      artifactsConfigs: options.artifacts,
+      useParameter: true,
+      tryExtract: false,
+    }),
   );
 
-  /** Pod logs */
-  registerHandler(app.get, '/k8s/pod/logs', getPodLogsHandler(options.argo, options.artifacts));
+  /** Authorize function */
+  const authorizeFn = getAuthorizeFn(options.auth, { apiServerAddress });
+
+  /** Tensorboard viewer */
+  const {
+    get: tensorboardGetHandler,
+    create: tensorboardCreateHandler,
+    delete: tensorboardDeleteHandler,
+  } = getTensorboardHandlers(options.viewer.tensorboard, authorizeFn);
+  registerHandler(app.get, '/apps/tensorboard', tensorboardGetHandler);
+  registerHandler(app.delete, '/apps/tensorboard', tensorboardDeleteHandler);
+  registerHandler(app.post, '/apps/tensorboard', tensorboardCreateHandler);
+
+  /** Pod logs - conditionally stream through API server, otherwise directly from k8s and archive */
+  if (options.artifacts.streamLogsFromServerApi) {
+    app.all(
+      '/k8s/pod/logs',
+      proxy({
+        changeOrigin: true,
+        onProxyReq: proxyReq => {
+          console.log('Proxied log request: ', proxyReq.path);
+        },
+        headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
+        pathRewrite: (pathStr: string, req: any) => {
+          /** Argo nodeId is just POD name */
+          const nodeId = req.query.podname;
+          const runId = req.query.runid;
+          return `/${apiVersionPrefix}/runs/${runId}/nodes/${nodeId}/log`;
+        },
+        target: apiServerAddress,
+      }),
+    );
+  } else {
+    registerHandler(app.get, '/k8s/pod/logs', getPodLogsHandler(options.argo, options.artifacts));
+  }
+
+  /** Pod info */
+  registerHandler(app.get, '/k8s/pod', podInfoHandler);
+  registerHandler(app.get, '/k8s/pod/events', podEventsHandler);
 
   /** Cluster metadata (GKE only) */
-  registerHandler(app.get, '/system/cluster-name', clusterNameHandler);
-  registerHandler(app.get, '/system/project-id', projectIdHandler);
+  registerHandler(app.get, '/system/cluster-name', getClusterNameHandler(options.gkeMetadata));
+  registerHandler(app.get, '/system/project-id', getProjectIdHandler(options.gkeMetadata));
 
   /** Visualization */
   registerHandler(
@@ -146,8 +209,22 @@ function createUIServer(options: UIConfigs) {
       onProxyReq: proxyReq => {
         console.log('Metadata proxied request: ', (proxyReq as any).path);
       },
+      headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
       target: envoyServiceAddress,
     }),
+  );
+
+  registerHandler(
+    app.use,
+    [
+      // Original API endpoint is /runs/{run_id}:reportMetrics, but ':reportMetrics' means a url parameter, so we don't use : here.
+      `/${apiVersionPrefix}/runs/*reportMetrics`,
+      `/${apiVersionPrefix}/workflows`,
+      `/${apiVersionPrefix}/scheduledworkflows`,
+    ],
+    (req, res) => {
+      res.status(403).send(`${req.originalUrl} endpoint is not meant for external usage.`);
+    },
   );
 
   // Order matters here, since both handlers can match any proxied request with a referer,
@@ -161,8 +238,9 @@ function createUIServer(options: UIConfigs) {
     proxy({
       changeOrigin: true,
       onProxyReq: proxyReq => {
-        console.log('Proxied request: ', (proxyReq as any).path);
+        console.log('Proxied request: ', proxyReq.path);
       },
+      headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
       target: apiServerAddress,
     }),
   );
@@ -171,8 +249,9 @@ function createUIServer(options: UIConfigs) {
     proxy({
       changeOrigin: true,
       onProxyReq: proxyReq => {
-        console.log('Proxied request: ', (proxyReq as any).path);
+        console.log('Proxied request: ', proxyReq.path);
       },
+      headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
       pathRewrite: pathStr =>
         pathStr.startsWith(basePath) ? pathStr.substr(basePath.length, pathStr.length) : pathStr,
       target: apiServerAddress,
@@ -191,9 +270,6 @@ function createUIServer(options: UIConfigs) {
   /** Static resource (i.e. react app) */
   app.use(basePath, StaticHandler(options.server.staticDir));
   app.use(StaticHandler(options.server.staticDir));
-
-  /** Fallback to index.html */
-  app.get('*', indexHtmlHandler);
 
   return app;
 }

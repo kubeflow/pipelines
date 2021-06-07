@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -103,6 +103,10 @@ describe('deploy helloworld sample run', () => {
 
     // Skip over "choose experiment" button
     browser.keys('Tab');
+    // Skip over service account help button
+    browser.keys('Tab');
+    // Skip over "service account" textbox
+    browser.keys('Tab');
     // Skip over "Run Type" radio button
     browser.keys('Tab');
 
@@ -195,10 +199,10 @@ describe('deploy helloworld sample run', () => {
     }, waitTimeout);
   });
 
-  it('navigates back to the experiment list', () => {
-    $('button=Experiments').click();
+  it('navigates to the runs page', () => {
+    $('#runsBtn').click();
     browser.waitUntil(() => {
-      return new URL(browser.getUrl()).hash.startsWith('#/experiments');
+      return new URL(browser.getUrl()).hash.startsWith('#/runs');
     }, waitTimeout);
   });
 
@@ -223,6 +227,10 @@ describe('deploy helloworld sample run', () => {
     browser.keys(runWithoutExperimentDescription);
 
     // Skip over "choose experiment" button
+    browser.keys('Tab');
+    // Skip over service account help button
+    browser.keys('Tab');
+    // Skip over "service account" textbox
     browser.keys('Tab');
     // Skip over "Run Type" radio button
     browser.keys('Tab');

@@ -11,7 +11,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/url"
-	"strconv"
 	"strings"
 
 	"github.com/golang/glog"
@@ -20,7 +19,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
-	"google.golang.org/grpc/metadata"
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
 // These are valid conditions of a ScheduledWorkflow.
@@ -182,18 +181,6 @@ func ReadPipelineFile(fileName string, fileReader io.Reader, maxFileLength int) 
 	return processedFile, nil
 }
 
-// Mutate default values of specified pipeline file.
-// Args:
-//  file: pipeline file in bytes.
-//  toPatch: mapping from the old value to its new value.
-func PatchPipelineDefaultParameter(file []byte, toPatch map[string]string) ([]byte, error) {
-  pipelineRawString := string(file)
-  for key, value := range toPatch {
-    pipelineRawString = strings.Replace(pipelineRawString, key, value, -1)
-  }
-  return []byte(pipelineRawString), nil
-}
-
 func printParameters(params []*api.Parameter) string {
 	var s strings.Builder
 	for _, p := range params {
@@ -227,128 +214,120 @@ func ValidateExperimentResourceReference(resourceManager *resource.ResourceManag
 	return nil
 }
 
-func ValidatePipelineSpec(resourceManager *resource.ResourceManager, spec *api.PipelineSpec) error {
-	if spec == nil || (spec.GetPipelineId() == "" && spec.GetWorkflowManifest() == "") {
-		return util.NewInvalidInputError("Please specify a pipeline by providing a pipeline ID or workflow manifest.")
-	}
-	if spec.GetPipelineId() != "" && spec.GetWorkflowManifest() != "" {
-		return util.NewInvalidInputError("Please either specify a pipeline ID or a workflow manifest, not both.")
-	}
-	if spec.GetPipelineId() != "" {
-		// Verify pipeline exist
-		if _, err := resourceManager.GetPipeline(spec.GetPipelineId()); err != nil {
-			return util.Wrap(err, "Get pipeline failed.")
+func ValidatePipelineSpecAndResourceReferences(resourceManager *resource.ResourceManager, spec *api.PipelineSpec, resourceReferences []*api.ResourceReference) error {
+	pipelineId := spec.GetPipelineId()
+	workflowManifest := spec.GetWorkflowManifest()
+	pipelineVersionId := getPipelineVersionIdFromResourceReferences(resourceManager, resourceReferences)
+
+	if workflowManifest != "" {
+		if pipelineId != "" || pipelineVersionId != "" {
+			return util.NewInvalidInputError("Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest.")
+		}
+		if err := validateWorkflowManifest(spec.GetWorkflowManifest()); err != nil {
+			return err
+		}
+	} else {
+		if pipelineId == "" && pipelineVersionId == "" {
+			return util.NewInvalidInputError("Please specify a pipeline by providing a (workflow manifest) or (pipeline id or/and pipeline version).")
+		}
+		if err := validatePipelineId(resourceManager, pipelineId); err != nil {
+			return err
+		}
+		if pipelineVersionId != "" {
+			// verify pipelineVersionId exists
+			pipelineVersion, err := resourceManager.GetPipelineVersion(pipelineVersionId)
+			if err != nil {
+				return util.Wrap(err, "Get pipelineVersionId failed.")
+			}
+			// verify pipelineId should be parent of pipelineVersionId
+			if pipelineId != "" && pipelineVersion.PipelineId != pipelineId {
+				return util.NewInvalidInputError("pipeline ID should be parent of pipeline version.")
+			}
 		}
 	}
-	if spec.GetWorkflowManifest() != "" {
-		// Verify valid workflow template
-		var workflow util.Workflow
-		if err := json.Unmarshal([]byte(spec.GetWorkflowManifest()), &workflow); err != nil {
-			return util.NewInvalidInputErrorWithDetails(err,
-				"Invalid argo workflow format. Workflow: "+spec.GetWorkflowManifest())
+	return validateParameters(spec.GetParameters())
+}
+func validateParameters(parameters []*api.Parameter) error {
+	if parameters != nil {
+		paramsBytes, err := json.Marshal(parameters)
+		if err != nil {
+			return util.NewInternalServerError(err,
+				"Failed to Marshall the pipeline parameters into bytes. Parameters: %s",
+				printParameters(parameters))
 		}
-	}
-	paramsBytes, err := json.Marshal(spec.Parameters)
-	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to Marshall the pipeline parameters into bytes. Parameters: %s",
-			printParameters(spec.Parameters))
-	}
-	if len(paramsBytes) > util.MaxParameterBytes {
-		return util.NewInvalidInputError("The input parameter length exceed maximum size of %v.", util.MaxParameterBytes)
+		if len(paramsBytes) > util.MaxParameterBytes {
+			return util.NewInvalidInputError("The input parameter length exceed maximum size of %v.", util.MaxParameterBytes)
+		}
 	}
 	return nil
 }
 
-// Verify that
-// (1) a pipeline version is specified in references as a creator.
-// (2) the above pipeline version does exists in pipeline version store and is
-// in ready status.
-func CheckPipelineVersionReference(resourceManager *resource.ResourceManager, references []*api.ResourceReference) (*string, error) {
-	if references == nil {
-		return nil, util.NewInvalidInputError("Please specify a pipeline version in Run's resource references")
+func validatePipelineId(resourceManager *resource.ResourceManager, pipelineId string) error {
+	if pipelineId != "" {
+		// Verify pipeline exist
+		if _, err := resourceManager.GetPipeline(pipelineId); err != nil {
+			return util.Wrap(err, "Get pipelineId failed.")
+		}
 	}
+	return nil
+}
 
+func validateWorkflowManifest(workflowManifest string) error {
+	if workflowManifest != "" {
+		// Verify valid workflow template
+		var workflow util.Workflow
+		if err := json.Unmarshal([]byte(workflowManifest), &workflow); err != nil {
+			return util.NewInvalidInputErrorWithDetails(err,
+				"Invalid argo workflow format. Workflow: "+workflowManifest)
+		}
+	}
+	return nil
+}
+
+func getPipelineVersionIdFromResourceReferences(resourceManager *resource.ResourceManager, resourceReferences []*api.ResourceReference) string {
 	var pipelineVersionId = ""
-	for _, reference := range references {
-		if reference.Key.Type == api.ResourceType_PIPELINE_VERSION && reference.Relationship == api.Relationship_CREATOR {
-			pipelineVersionId = reference.Key.Id
+	for _, resourceReference := range resourceReferences {
+		if resourceReference.Key.Type == api.ResourceType_PIPELINE_VERSION && resourceReference.Relationship == api.Relationship_CREATOR {
+			pipelineVersionId = resourceReference.Key.Id
 		}
 	}
-	if len(pipelineVersionId) == 0 {
-		return nil, util.NewInvalidInputError("Please specify a pipeline version in Run's resource references")
-	}
-
-	// Verify pipeline version exists
-	if _, err := resourceManager.GetPipelineVersion(pipelineVersionId); err != nil {
-		return nil, util.Wrap(err, "Please specify a  valid pipeline version in Run's resource references.")
-	}
-
-	return &pipelineVersionId, nil
+	return pipelineVersionId
 }
 
-func getUserIdentity(ctx context.Context) (string, error) {
-	if ctx == nil {
-		return "", util.NewBadRequestError(errors.New("Request error: context is nil"), "Request error: context is nil.")
-	}
-	md, _ := metadata.FromIncomingContext(ctx)
-	// If the request header contains the user identity, requests are authorized
-	// based on the namespace field in the request.
-	if userIdentityHeader, ok := md[common.GoogleIAPUserIdentityHeader]; ok {
-		if len(userIdentityHeader) != 1 {
-			return "", util.NewBadRequestError(errors.New("Request header error: unexpected number of user identity header. Expect 1 got "+strconv.Itoa(len(userIdentityHeader))),
-				"Request header error: unexpected number of user identity header. Expect 1 got "+strconv.Itoa(len(userIdentityHeader)))
-		}
-		userIdentityHeaderFields := strings.Split(userIdentityHeader[0], ":")
-		if len(userIdentityHeaderFields) != 2 {
-			return "", util.NewBadRequestError(errors.New("Request header error: user identity value is incorrectly formatted"),
-				"Request header error: user identity value is incorrectly formatted")
-		}
-		return userIdentityHeaderFields[1], nil
-	}
-	return "", util.NewBadRequestError(errors.New("Request header error: there is no user identity header."), "Request header error: there is no user identity header.")
-}
-
-func CanAccessNamespaceInResourceReferences(resourceManager *resource.ResourceManager, ctx context.Context, resourceRefs []*api.ResourceReference) error {
+// isAuthorized verifies whether the user identity, which is contained in the context object,
+// can perform some action (verb) on a resource (resourceType/resourceName) living in the
+// target namespace. If the returned error is nil, the authorization passes. Otherwise,
+// authorization fails with a non-nil error.
+func isAuthorized(resourceManager *resource.ResourceManager, ctx context.Context, resourceAttributes *authorizationv1.ResourceAttributes) error {
 	if common.IsMultiUserMode() == false {
 		// Skip authz if not multi-user mode.
 		return nil
 	}
-
-	namespace := common.GetNamespaceFromAPIResourceReferences(resourceRefs)
-	if len(namespace) == 0 {
-		return util.NewBadRequestError(errors.New("Namespace required in Kubeflow deployment for authorization."), "Namespace required in Kubeflow deployment for authorization.")
+	if common.IsMultiUserSharedReadMode() &&
+		(resourceAttributes.Verb == common.RbacResourceVerbGet ||
+			resourceAttributes.Verb == common.RbacResourceVerbList) {
+		glog.Infof("Multi-user shared read mode is enabled. Request allowed: %+v", resourceAttributes)
+		return nil
 	}
-	err := isAuthorized(resourceManager, ctx, namespace)
-	if err != nil {
-		return util.Wrap(err, "Failed to authorize with API resource references")
-	}
-	return nil
-}
 
-// isAuthorized verified whether the user identity, which is contains in the context object,
-// can access the target namespace. If the returned error is nil, the authorization passes.
-// Otherwise, Authorization fails with a non-nil error.
-func isAuthorized(resourceManager *resource.ResourceManager, ctx context.Context, namespace string) error {
-	userIdentity, err := getUserIdentity(ctx)
+	glog.Info("Getting user identity...")
+	userIdentity, err := resourceManager.AuthenticateRequest(ctx)
 	if err != nil {
-		return util.Wrap(err, "Bad request.")
+		return err
 	}
 
 	if len(userIdentity) == 0 {
-		return util.NewBadRequestError(errors.New("Request header error: user identity is empty."), "Request header error: user identity is empty.")
+		return util.NewUnauthenticatedError(errors.New("Request header error: user identity is empty."), "Request header error: user identity is empty.")
 	}
 
-	isAuthorized, err := resourceManager.IsRequestAuthorized(userIdentity, namespace)
+	glog.Infof("User: %s, ResourceAttributes: %+v", userIdentity, resourceAttributes)
+	glog.Info("Authorizing request...")
+	err = resourceManager.IsRequestAuthorized(userIdentity, resourceAttributes)
 	if err != nil {
-		return util.Wrap(err, "Authorization failure.")
+		glog.Info(err.Error())
+		return err
 	}
 
-	if isAuthorized == false {
-		glog.Infof("Unauthorized access for %s to namespace %s", userIdentity, namespace)
-		return util.NewBadRequestError(errors.New("Unauthorized access for "+userIdentity+" to namespace "+namespace), "Unauthorized access for "+userIdentity+" to namespace "+namespace)
-	}
-
-	glog.Infof("Authorized user %s in namespace %s", userIdentity, namespace)
+	glog.Infof("Authorized user '%s': %+v", userIdentity, resourceAttributes)
 	return nil
 }

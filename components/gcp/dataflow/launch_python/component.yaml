@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,8 +23,11 @@ inputs:
     description: 'The gcs or local path to the python file to run.'
     type: String
   - name: project_id
-    description: 'The ID of the parent project.'
-    type: GCPProjectID
+    description: 'The ID of the GCP project to run the Dataflow job.'
+    type: String
+  - name: region
+    description: 'The GCP region to run the Dataflow job.'
+    type: String
   - name: staging_dir
     description: >-
       Optional. The GCS directory for keeping staging files.
@@ -53,18 +56,18 @@ outputs:
     type: UI metadata
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:85945e10920757efab999217c836403c024b09e3
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:1.6.0
     args: [
       --ui_metadata_path, {outputPath: MLPipeline UI metadata},
       kfp_component.google.dataflow, launch_python,
       --python_file_path, {inputValue: python_file_path},
       --project_id, {inputValue: project_id},
+      --region, {inputValue: region},
       --staging_dir, {inputValue: staging_dir},
       --requirements_file_path, {inputValue: requirements_file_path},
       --args, {inputValue: args},
       --wait_interval, {inputValue: wait_interval},
+      --job_id_output_path, {outputPath: job_id},
     ]
     env:
       KFP_POD_NAME: "{{pod.name}}"
-    fileOutputs:
-      job_id: /tmp/kfp/output/dataflow/job_id.txt

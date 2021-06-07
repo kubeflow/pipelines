@@ -1,0 +1,74 @@
+name: Convert CatBoostModel to AppleCoreMLModel
+description: |-
+  Convert CatBoost model to Apple CoreML format.
+
+      Args:
+          model_path: Path of a trained model in binary CatBoost model format.
+          converted_model_path: Output path for the converted model.
+
+      Outputs:
+          converted_model: Model in Apple CoreML format.
+
+      Annotations:
+          author: Alexey Volkov <alexey.volkov@ark-kun.com>
+inputs:
+- {name: model, type: CatBoostModel}
+outputs:
+- {name: converted_model, type: AppleCoreMLModel}
+implementation:
+  container:
+    image: python:3.7
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'catboost==0.22' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet
+      --no-warn-script-location 'catboost==0.22' --user) && "$0" "$@"
+    - python3
+    - -u
+    - -c
+    - |
+      def _make_parent_dirs_and_return_path(file_path: str):
+          import os
+          os.makedirs(os.path.dirname(file_path), exist_ok=True)
+          return file_path
+
+      def convert_CatBoostModel_to_AppleCoreMLModel(
+          model_path,
+          converted_model_path,
+      ):
+          '''Convert CatBoost model to Apple CoreML format.
+
+          Args:
+              model_path: Path of a trained model in binary CatBoost model format.
+              converted_model_path: Output path for the converted model.
+
+          Outputs:
+              converted_model: Model in Apple CoreML format.
+
+          Annotations:
+              author: Alexey Volkov <alexey.volkov@ark-kun.com>
+          '''
+          from catboost import CatBoost
+
+          model = CatBoost()
+          model.load_model(model_path)
+          model.save_model(
+              converted_model_path,
+              format="coreml",
+              # export_parameters={'prediction_type': 'probability'},
+              # export_parameters={'prediction_type': 'raw'},
+          )
+
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Convert CatBoostModel to AppleCoreMLModel', description='Convert CatBoost model to Apple CoreML format.\n\n    Args:\n        model_path: Path of a trained model in binary CatBoost model format.\n        converted_model_path: Output path for the converted model.\n\n    Outputs:\n        converted_model: Model in Apple CoreML format.\n\n    Annotations:\n        author: Alexey Volkov <alexey.volkov@ark-kun.com>')
+      _parser.add_argument("--model", dest="model_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--converted-model", dest="converted_model_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parsed_args = vars(_parser.parse_args())
+
+      _outputs = convert_CatBoostModel_to_AppleCoreMLModel(**_parsed_args)
+    args:
+    - --model
+    - {inputPath: model}
+    - --converted-model
+    - {outputPath: converted_model}

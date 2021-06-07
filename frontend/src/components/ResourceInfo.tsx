@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Google LLC
+ * Copyright 2019 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import { Artifact, Execution, getMetadataValue } from '@kubeflow/frontend';
+import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import * as React from 'react';
 import { stylesheet } from 'typestyle';
 import { color, commonCss } from '../Css';
@@ -23,6 +24,7 @@ export const css = stylesheet({
   field: {
     flexBasis: '300px',
     marginBottom: '32px',
+    padding: '4px',
   },
   resourceInfo: {
     display: 'flex',
@@ -90,10 +92,12 @@ export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
             // TODO: __ALL_META__ is something of a hack, is redundant, and can be ignored
             .filter(k => k[0] !== '__ALL_META__')
             .map(k => (
-              <div className={css.field} key={k[0]}>
-                <dt className={css.term}>{k[0]}</dt>
-                <dd className={css.value}>
-                  {propertyMap && prettyPrintJsonValue(getMetadataValue(propertyMap.get(k[0])))}
+              <div className={css.field} key={k[0]} data-testid='resource-info-property'>
+                <dt className={css.term} data-testid='resource-info-property-key'>
+                  {k[0]}
+                </dt>
+                <dd className={css.value} data-testid='resource-info-property-value'>
+                  {propertyMap && prettyPrintValue(getMetadataValue(propertyMap.get(k[0])))}
                 </dd>
               </div>
             ))}
@@ -101,11 +105,13 @@ export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
         <h2 className={commonCss.header2}>Custom Properties</h2>
         <dl className={css.resourceInfo}>
           {customPropertyMap.getEntryList().map(k => (
-            <div className={css.field} key={k[0]}>
-              <dt className={css.term}>{k[0]}</dt>
-              <dd className={css.value}>
+            <div className={css.field} key={k[0]} data-testid='resource-info-property'>
+              <dt className={css.term} data-testid='resource-info-property-key'>
+                {k[0]}
+              </dt>
+              <dd className={css.value} data-testid='resource-info-property-value'>
                 {customPropertyMap &&
-                  prettyPrintJsonValue(getMetadataValue(customPropertyMap.get(k[0])))}
+                  prettyPrintValue(getMetadataValue(customPropertyMap.get(k[0])))}
               </dd>
             </div>
           ))}
@@ -115,11 +121,27 @@ export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
   }
 }
 
-function prettyPrintJsonValue(value: string | number): JSX.Element | number | string {
+function prettyPrintValue(
+  value: string | number | Struct | undefined,
+): JSX.Element | number | string {
+  if (value == null) {
+    return '';
+  }
+  if (typeof value === 'string') {
+    return prettyPrintJsonValue(value);
+  }
   if (typeof value === 'number') {
     return value;
   }
+  // value is Struct
+  const jsObject = value.toJavaScript();
+  // When Struct is converted to js object, it may contain a top level "struct"
+  // or "list" key depending on its type, but the key is meaningless and we can
+  // omit it in visualization.
+  return <pre>{JSON.stringify(jsObject?.struct || jsObject?.list || jsObject, null, 2)}</pre>;
+}
 
+function prettyPrintJsonValue(value: string): JSX.Element | string {
   try {
     const jsonValue = JSON.parse(value);
     return <pre>{JSON.stringify(jsonValue, null, 2)}</pre>;

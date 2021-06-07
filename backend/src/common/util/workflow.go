@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@
 package util
 
 import (
+	"strings"
+
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
 	swfregister "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
@@ -22,7 +24,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/json"
-	"strings"
 )
 
 // Workflow is a type to help manipulate Workflow objects.
@@ -49,21 +50,36 @@ func (w *Workflow) OverrideParameters(desiredParams map[string]string) {
 		var desiredValue *string = nil
 		if param, ok := desiredParams[currentParam.Name]; ok {
 			desiredValue = &param
-		} else {
-			desiredValue = currentParam.Value
+		} else if currentParam.Value != nil {
+			desired := currentParam.Value.String()
+			desiredValue = &desired
 		}
+
 		desiredSlice = append(desiredSlice, workflowapi.Parameter{
 			Name:  currentParam.Name,
-			Value: desiredValue,
+			Value: ToAnyStringPointer(desiredValue),
 		})
 	}
 	w.Spec.Arguments.Parameters = desiredSlice
 }
 
+func (w *Workflow) GetWorkflowParametersAsMap() map[string]string {
+	resultAsArray := w.Spec.Arguments.Parameters
+	resultAsMap := make(map[string]string)
+	for _, param := range resultAsArray {
+		if param.Value == nil {
+			resultAsMap[param.Name] = ""
+		} else {
+			resultAsMap[param.Name] = param.Value.String()
+		}
+	}
+	return resultAsMap
+}
+
 func (w *Workflow) VerifyParameters(desiredParams map[string]string) error {
 	templateParamsMap := make(map[string]*string)
 	for _, param := range w.Spec.Arguments.Parameters {
-		templateParamsMap[param.Name] = param.Value
+		templateParamsMap[param.Name] = ToStringPointer(param.Value)
 	}
 	for k := range desiredParams {
 		_, ok := templateParamsMap[k]
@@ -191,11 +207,26 @@ func (w *Workflow) SetAnnotationsToAllTemplates(key string, value string) {
 	if len(w.Spec.Templates) == 0 {
 		return
 	}
-	for index, _ := range w.Spec.Templates {
+	for index := range w.Spec.Templates {
 		if w.Spec.Templates[index].Metadata.Annotations == nil {
 			w.Spec.Templates[index].Metadata.Annotations = make(map[string]string)
 		}
 		w.Spec.Templates[index].Metadata.Annotations[key] = value
+	}
+}
+
+// SetLabels sets labels on all templates in a Workflow
+func (w *Workflow) SetLabelsToAllTemplates(key string, value string) {
+	if len(w.Spec.Templates) == 0 {
+		return
+	}
+	for index := range w.Spec.Templates {
+		if w.Spec.Templates[index].Metadata.Labels == nil {
+			w.Spec.Templates[index].Metadata.Labels = make(map[string]string)
+		}
+		if w.Spec.Templates[index].Metadata.Labels[key] != value {
+			w.Spec.Templates[index].Metadata.Labels[key] = value
+		}
 	}
 }
 
@@ -267,7 +298,8 @@ func (w *Workflow) FindObjectStoreArtifactKeyOrEmpty(nodeID string, artifactName
 
 // IsInFinalState whether the workflow is in a final state.
 func (w *Workflow) IsInFinalState() bool {
-	if w.Status.Phase == workflowapi.NodeSucceeded || w.Status.Phase == workflowapi.NodeFailed {
+	// Workflows in the statuses other than pending or running are considered final.
+	if w.Status.Phase == workflowapi.NodeSucceeded || w.Status.Phase == workflowapi.NodeFailed || w.Status.Phase == workflowapi.NodeError || w.Status.Phase == workflowapi.NodeSkipped {
 		return true
 	}
 	return false

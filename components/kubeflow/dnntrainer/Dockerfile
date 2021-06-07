@@ -15,22 +15,12 @@
 ARG TF_TAG
 FROM tensorflow/tensorflow:$TF_TAG
 
-RUN apt-get update -y
-
-RUN apt-get install --no-install-recommends -y -q ca-certificates python-dev python-setuptools \
-                                                  wget unzip git
-
-RUN apt-get install --no-install-recommends -y -q build-essential && \
-    pip install pyyaml==3.12 six==1.11.0 \
-        tensorflow-transform==0.6.0 \
-        tensorflow-model-analysis==0.6.0 \
-        pathlib2 && \
-    apt-get --purge autoremove -y build-essential
+COPY requirements.txt .
+RUN python3 -m pip install -r \
+    requirements.txt --quiet --no-cache-dir \
+    && rm -f requirements.txt
 
 ADD build /ml
-
-RUN mkdir /usr/licenses && \
-    /ml/license.sh /ml/third_party_licenses.csv /usr/licenses
 
 WORKDIR /ml
 

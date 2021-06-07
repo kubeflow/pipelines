@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,17 +17,18 @@
 import * as React from 'react';
 import Buttons, { ButtonKeys } from '../lib/Buttons';
 import RunList from './RunList';
-import { Page } from './Page';
-import { RunStorageState } from '../apis/run';
+import { Page, PageProps } from './Page';
+import { ApiRunStorageState } from '../apis/run';
 import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 interface AllRunsListState {
   selectedIds: string[];
 }
 
-class AllRunsList extends Page<{}, AllRunsListState> {
+export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> {
   private _runlistRef = React.createRef<RunList>();
 
   constructor(props: any) {
@@ -43,16 +44,18 @@ class AllRunsList extends Page<{}, AllRunsListState> {
     return {
       actions: buttons
         .newRun()
-        .newExperiment()
         .compareRuns(() => this.state.selectedIds)
         .cloneRun(() => this.state.selectedIds, false)
-        .archive(() => this.state.selectedIds, false, selectedIds =>
-          this._selectionChanged(selectedIds),
+        .archive(
+          'run',
+          () => this.state.selectedIds,
+          false,
+          selectedIds => this._selectionChanged(selectedIds),
         )
         .refresh(this.refresh.bind(this))
         .getToolbarActionMap(),
       breadcrumbs: [],
-      pageTitle: 'Experiments',
+      pageTitle: 'Runs',
     };
   }
 
@@ -64,8 +67,9 @@ class AllRunsList extends Page<{}, AllRunsListState> {
           selectedIds={this.state.selectedIds}
           onSelectionChange={this._selectionChanged.bind(this)}
           ref={this._runlistRef}
-          storageState={RunStorageState.AVAILABLE}
+          storageState={ApiRunStorageState.AVAILABLE}
           hideMetricMetadata={true}
+          namespaceMask={this.props.namespace}
           {...this.props}
         />
       </div>
@@ -94,4 +98,9 @@ class AllRunsList extends Page<{}, AllRunsListState> {
   }
 }
 
-export default AllRunsList;
+const EnhancedAllRunsList = (props: PageProps) => {
+  const namespace = React.useContext(NamespaceContext);
+  return <AllRunsList key={namespace} {...props} namespace={namespace} />;
+};
+
+export default EnhancedAllRunsList;

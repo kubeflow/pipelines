@@ -1,0 +1,7 @@
+PipelineDefinition: ../../../../../samples/contrib/aws-samples/sagemaker_debugger_demo/debugger-training-pipeline.py
+TestName: xgboost-mnist-trainingjob-debugger
+Timeout: 3600
+ExpectedTrainingImage: 683313688378.dkr.ecr.us-east-1.amazonaws.com/sagemaker-xgboost:0.90-2-cpu-py3
+Arguments:
+  bucket_name: ((DATA_BUCKET))
+  role_arn: ((SAGEMAKER_ROLE_ARN))

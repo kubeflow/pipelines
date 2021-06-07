@@ -46,10 +46,10 @@ implementation:
     command: [./evaluate.py]
     args: [
       --images_list, {inputValue: Evaluation images list},
-      --image_path_prefix {inputValue: Image path prefix}
+      --image_path_prefix, {inputValue: Image path prefix},
       --grpc_endpoint, {outputValue: Server endpoint},
       --input_name, {inputValue: Model input name},
       --output_name, {inputValue: Model output name},
       --size, {inputValue: Model input size},
-      --replicas, {inputValue: Replicas}
+      --replicas, {inputValue: Replicas},
     ]

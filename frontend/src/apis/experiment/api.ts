@@ -111,6 +111,29 @@ export interface ApiExperiment {
    * @memberof ApiExperiment
    */
   created_at?: Date;
+  /**
+   * Optional input field. Specify which resource this run belongs to. For Experiment, the only valid resource reference is a single Namespace.
+   * @type {Array<ApiResourceReference>}
+   * @memberof ApiExperiment
+   */
+  resource_references?: Array<ApiResourceReference>;
+  /**
+   * Output. Specifies whether this experiment is in archived or available state.
+   * @type {ApiExperimentStorageState}
+   * @memberof ApiExperiment
+   */
+  storage_state?: ApiExperimentStorageState;
+}
+
+/**
+ *
+ * @export
+ * @enum {string}
+ */
+export enum ApiExperimentStorageState {
+  UNSPECIFIED = <any>'STORAGESTATE_UNSPECIFIED',
+  AVAILABLE = <any>'STORAGESTATE_AVAILABLE',
+  ARCHIVED = <any>'STORAGESTATE_ARCHIVED',
 }
 
 /**
@@ -137,6 +160,77 @@ export interface ApiListExperimentsResponse {
    * @memberof ApiListExperimentsResponse
    */
   next_page_token?: string;
+}
+
+/**
+ *
+ * @export
+ * @enum {string}
+ */
+export enum ApiRelationship {
+  UNKNOWNRELATIONSHIP = <any>'UNKNOWN_RELATIONSHIP',
+  OWNER = <any>'OWNER',
+  CREATOR = <any>'CREATOR',
+}
+
+/**
+ *
+ * @export
+ * @interface ApiResourceKey
+ */
+export interface ApiResourceKey {
+  /**
+   * The type of the resource that referred to.
+   * @type {ApiResourceType}
+   * @memberof ApiResourceKey
+   */
+  type?: ApiResourceType;
+  /**
+   * The ID of the resource that referred to.
+   * @type {string}
+   * @memberof ApiResourceKey
+   */
+  id?: string;
+}
+
+/**
+ *
+ * @export
+ * @interface ApiResourceReference
+ */
+export interface ApiResourceReference {
+  /**
+   *
+   * @type {ApiResourceKey}
+   * @memberof ApiResourceReference
+   */
+  key?: ApiResourceKey;
+  /**
+   * The name of the resource that referred to.
+   * @type {string}
+   * @memberof ApiResourceReference
+   */
+  name?: string;
+  /**
+   * Required field. The relationship from referred resource to the object.
+   * @type {ApiRelationship}
+   * @memberof ApiResourceReference
+   */
+  relationship?: ApiRelationship;
+}
+
+/**
+ *
+ * @export
+ * @enum {string}
+ */
+export enum ApiResourceType {
+  UNKNOWNRESOURCETYPE = <any>'UNKNOWN_RESOURCE_TYPE',
+  EXPERIMENT = <any>'EXPERIMENT',
+  JOB = <any>'JOB',
+  PIPELINE = <any>'PIPELINE',
+  PIPELINEVERSION = <any>'PIPELINE_VERSION',
+  NAMESPACE = <any>'NAMESPACE',
 }
 
 /**
@@ -172,7 +266,7 @@ export interface ApiStatus {
  */
 export interface ProtobufAny {
   /**
-   * A URL/resource name that uniquely identifies the type of the serialized protocol buffer message. The last segment of the URL's path must represent the fully qualified name of the type (as in `path/google.protobuf.Duration`). The name should be in a canonical form (e.g., leading \".\" is not accepted).  In practice, teams usually precompile into the binary all types that they expect it to use in the context of Any. However, for URLs which use the scheme `http`, `https`, or no scheme, one can optionally set up a type server that maps type URLs to message definitions as follows:  * If no scheme is provided, `https` is assumed. * An HTTP GET on the URL must yield a [google.protobuf.Type][]   value in binary format, or produce an error. * Applications are allowed to cache lookup results based on the   URL, or have them precompiled into a binary to avoid any   lookup. Therefore, binary compatibility needs to be preserved   on changes to types. (Use versioned type names to manage   breaking changes.)  Note: this functionality is not currently available in the official protobuf release, and it is not used for type URLs beginning with type.googleapis.com.  Schemes other than `http`, `https` (or the empty scheme) might be used with implementation specific semantics.
+   * A URL/resource name that uniquely identifies the type of the serialized protocol buffer message. This string must contain at least one \"/\" character. The last segment of the URL's path must represent the fully qualified name of the type (as in `path/google.protobuf.Duration`). The name should be in a canonical form (e.g., leading \".\" is not accepted).  In practice, teams usually precompile into the binary all types that they expect it to use in the context of Any. However, for URLs which use the scheme `http`, `https`, or no scheme, one can optionally set up a type server that maps type URLs to message definitions as follows:  * If no scheme is provided, `https` is assumed. * An HTTP GET on the URL must yield a [google.protobuf.Type][]   value in binary format, or produce an error. * Applications are allowed to cache lookup results based on the   URL, or have them precompiled into a binary to avoid any   lookup. Therefore, binary compatibility needs to be preserved   on changes to types. (Use versioned type names to manage   breaking changes.)  Note: this functionality is not currently available in the official protobuf release, and it is not used for type URLs beginning with type.googleapis.com.  Schemes other than `http`, `https` (or the empty scheme) might be used with implementation specific semantics.
    * @type {string}
    * @memberof ProtobufAny
    */
@@ -193,7 +287,55 @@ export const ExperimentServiceApiFetchParamCreator = function(configuration?: Co
   return {
     /**
      *
-     * @summary Create a new experiment.
+     * @summary Archives an experiment and the experiment's runs and jobs.
+     * @param {string} id The ID of the experiment to be archived.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    archiveExperiment(id: string, options: any = {}): FetchArgs {
+      // verify required parameter 'id' is not null or undefined
+      if (id === null || id === undefined) {
+        throw new RequiredError(
+          'id',
+          'Required parameter id was null or undefined when calling archiveExperiment.',
+        );
+      }
+      const localVarPath = `/apis/v1beta1/experiments/{id}:archive`.replace(
+        `{${'id'}}`,
+        encodeURIComponent(String(id)),
+      );
+      const localVarUrlObj = url.parse(localVarPath, true);
+      const localVarRequestOptions = Object.assign({ method: 'POST' }, options);
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      // authentication Bearer required
+      if (configuration && configuration.apiKey) {
+        const localVarApiKeyValue =
+          typeof configuration.apiKey === 'function'
+            ? configuration.apiKey('authorization')
+            : configuration.apiKey;
+        localVarHeaderParameter['authorization'] = localVarApiKeyValue;
+      }
+
+      localVarUrlObj.query = Object.assign(
+        {},
+        localVarUrlObj.query,
+        localVarQueryParameter,
+        options.query,
+      );
+      // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
+      delete localVarUrlObj.search;
+      localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
+
+      return {
+        url: url.format(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @summary Creates a new experiment.
      * @param {ApiExperiment} body The experiment to be created.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -244,7 +386,7 @@ export const ExperimentServiceApiFetchParamCreator = function(configuration?: Co
     },
     /**
      *
-     * @summary Delete an experiment.
+     * @summary Deletes an experiment without deleting the experiment's runs and jobs. To avoid unexpected behaviors, delete an experiment's runs and jobs before deleting the experiment.
      * @param {string} id The ID of the experiment to be deleted.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -292,7 +434,7 @@ export const ExperimentServiceApiFetchParamCreator = function(configuration?: Co
     },
     /**
      *
-     * @summary Find a specific experiment by ID.
+     * @summary Finds a specific experiment by ID.
      * @param {string} id The ID of the experiment to be retrieved.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -340,11 +482,13 @@ export const ExperimentServiceApiFetchParamCreator = function(configuration?: Co
     },
     /**
      *
-     * @summary Find all experiments.
-     * @param {string} [page_token]
-     * @param {number} [page_size]
-     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
+     * @summary Finds all experiments. Supports pagination, and sorting on certain fields.
+     * @param {string} [page_token] A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListExperiment call or can be omitted when fetching the first page.
+     * @param {number} [page_size] The number of experiments to be listed per page. If there are more experiments than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
+     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; Ascending by default.
      * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
+     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
+     * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -353,6 +497,14 @@ export const ExperimentServiceApiFetchParamCreator = function(configuration?: Co
       page_size?: number,
       sort_by?: string,
       filter?: string,
+      resource_reference_key_type?:
+        | 'UNKNOWN_RESOURCE_TYPE'
+        | 'EXPERIMENT'
+        | 'JOB'
+        | 'PIPELINE'
+        | 'PIPELINE_VERSION'
+        | 'NAMESPACE',
+      resource_reference_key_id?: string,
       options: any = {},
     ): FetchArgs {
       const localVarPath = `/apis/v1beta1/experiments`;
@@ -386,6 +538,62 @@ export const ExperimentServiceApiFetchParamCreator = function(configuration?: Co
         localVarQueryParameter['filter'] = filter;
       }
 
+      if (resource_reference_key_type !== undefined) {
+        localVarQueryParameter['resource_reference_key.type'] = resource_reference_key_type;
+      }
+
+      if (resource_reference_key_id !== undefined) {
+        localVarQueryParameter['resource_reference_key.id'] = resource_reference_key_id;
+      }
+
+      localVarUrlObj.query = Object.assign(
+        {},
+        localVarUrlObj.query,
+        localVarQueryParameter,
+        options.query,
+      );
+      // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
+      delete localVarUrlObj.search;
+      localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
+
+      return {
+        url: url.format(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @summary Restores an archived experiment. The experiment's archived runs and jobs will stay archived.
+     * @param {string} id The ID of the experiment to be restored.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    unarchiveExperiment(id: string, options: any = {}): FetchArgs {
+      // verify required parameter 'id' is not null or undefined
+      if (id === null || id === undefined) {
+        throw new RequiredError(
+          'id',
+          'Required parameter id was null or undefined when calling unarchiveExperiment.',
+        );
+      }
+      const localVarPath = `/apis/v1beta1/experiments/{id}:unarchive`.replace(
+        `{${'id'}}`,
+        encodeURIComponent(String(id)),
+      );
+      const localVarUrlObj = url.parse(localVarPath, true);
+      const localVarRequestOptions = Object.assign({ method: 'POST' }, options);
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      // authentication Bearer required
+      if (configuration && configuration.apiKey) {
+        const localVarApiKeyValue =
+          typeof configuration.apiKey === 'function'
+            ? configuration.apiKey('authorization')
+            : configuration.apiKey;
+        localVarHeaderParameter['authorization'] = localVarApiKeyValue;
+      }
+
       localVarUrlObj.query = Object.assign(
         {},
         localVarUrlObj.query,
@@ -412,7 +620,31 @@ export const ExperimentServiceApiFp = function(configuration?: Configuration) {
   return {
     /**
      *
-     * @summary Create a new experiment.
+     * @summary Archives an experiment and the experiment's runs and jobs.
+     * @param {string} id The ID of the experiment to be archived.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    archiveExperiment(
+      id: string,
+      options?: any,
+    ): (fetch?: FetchAPI, basePath?: string) => Promise<any> {
+      const localVarFetchArgs = ExperimentServiceApiFetchParamCreator(
+        configuration,
+      ).archiveExperiment(id, options);
+      return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
+          if (response.status >= 200 && response.status < 300) {
+            return response.json();
+          } else {
+            throw response;
+          }
+        });
+      };
+    },
+    /**
+     *
+     * @summary Creates a new experiment.
      * @param {ApiExperiment} body The experiment to be created.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -436,7 +668,7 @@ export const ExperimentServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
-     * @summary Delete an experiment.
+     * @summary Deletes an experiment without deleting the experiment's runs and jobs. To avoid unexpected behaviors, delete an experiment's runs and jobs before deleting the experiment.
      * @param {string} id The ID of the experiment to be deleted.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -460,7 +692,7 @@ export const ExperimentServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
-     * @summary Find a specific experiment by ID.
+     * @summary Finds a specific experiment by ID.
      * @param {string} id The ID of the experiment to be retrieved.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -485,11 +717,13 @@ export const ExperimentServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
-     * @summary Find all experiments.
-     * @param {string} [page_token]
-     * @param {number} [page_size]
-     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
+     * @summary Finds all experiments. Supports pagination, and sorting on certain fields.
+     * @param {string} [page_token] A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListExperiment call or can be omitted when fetching the first page.
+     * @param {number} [page_size] The number of experiments to be listed per page. If there are more experiments than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
+     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; Ascending by default.
      * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
+     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
+     * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -498,6 +732,14 @@ export const ExperimentServiceApiFp = function(configuration?: Configuration) {
       page_size?: number,
       sort_by?: string,
       filter?: string,
+      resource_reference_key_type?:
+        | 'UNKNOWN_RESOURCE_TYPE'
+        | 'EXPERIMENT'
+        | 'JOB'
+        | 'PIPELINE'
+        | 'PIPELINE_VERSION'
+        | 'NAMESPACE',
+      resource_reference_key_id?: string,
       options?: any,
     ): (fetch?: FetchAPI, basePath?: string) => Promise<ApiListExperimentsResponse> {
       const localVarFetchArgs = ExperimentServiceApiFetchParamCreator(configuration).listExperiment(
@@ -505,8 +747,34 @@ export const ExperimentServiceApiFp = function(configuration?: Configuration) {
         page_size,
         sort_by,
         filter,
+        resource_reference_key_type,
+        resource_reference_key_id,
         options,
       );
+      return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
+          if (response.status >= 200 && response.status < 300) {
+            return response.json();
+          } else {
+            throw response;
+          }
+        });
+      };
+    },
+    /**
+     *
+     * @summary Restores an archived experiment. The experiment's archived runs and jobs will stay archived.
+     * @param {string} id The ID of the experiment to be restored.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    unarchiveExperiment(
+      id: string,
+      options?: any,
+    ): (fetch?: FetchAPI, basePath?: string) => Promise<any> {
+      const localVarFetchArgs = ExperimentServiceApiFetchParamCreator(
+        configuration,
+      ).unarchiveExperiment(id, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
         return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
           if (response.status >= 200 && response.status < 300) {
@@ -532,7 +800,17 @@ export const ExperimentServiceApiFactory = function(
   return {
     /**
      *
-     * @summary Create a new experiment.
+     * @summary Archives an experiment and the experiment's runs and jobs.
+     * @param {string} id The ID of the experiment to be archived.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    archiveExperiment(id: string, options?: any) {
+      return ExperimentServiceApiFp(configuration).archiveExperiment(id, options)(fetch, basePath);
+    },
+    /**
+     *
+     * @summary Creates a new experiment.
      * @param {ApiExperiment} body The experiment to be created.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -542,7 +820,7 @@ export const ExperimentServiceApiFactory = function(
     },
     /**
      *
-     * @summary Delete an experiment.
+     * @summary Deletes an experiment without deleting the experiment's runs and jobs. To avoid unexpected behaviors, delete an experiment's runs and jobs before deleting the experiment.
      * @param {string} id The ID of the experiment to be deleted.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -552,7 +830,7 @@ export const ExperimentServiceApiFactory = function(
     },
     /**
      *
-     * @summary Find a specific experiment by ID.
+     * @summary Finds a specific experiment by ID.
      * @param {string} id The ID of the experiment to be retrieved.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -562,11 +840,13 @@ export const ExperimentServiceApiFactory = function(
     },
     /**
      *
-     * @summary Find all experiments.
-     * @param {string} [page_token]
-     * @param {number} [page_size]
-     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
+     * @summary Finds all experiments. Supports pagination, and sorting on certain fields.
+     * @param {string} [page_token] A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListExperiment call or can be omitted when fetching the first page.
+     * @param {number} [page_size] The number of experiments to be listed per page. If there are more experiments than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
+     * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; Ascending by default.
      * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
+     * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
+     * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -575,6 +855,14 @@ export const ExperimentServiceApiFactory = function(
       page_size?: number,
       sort_by?: string,
       filter?: string,
+      resource_reference_key_type?:
+        | 'UNKNOWN_RESOURCE_TYPE'
+        | 'EXPERIMENT'
+        | 'JOB'
+        | 'PIPELINE'
+        | 'PIPELINE_VERSION'
+        | 'NAMESPACE',
+      resource_reference_key_id?: string,
       options?: any,
     ) {
       return ExperimentServiceApiFp(configuration).listExperiment(
@@ -582,8 +870,23 @@ export const ExperimentServiceApiFactory = function(
         page_size,
         sort_by,
         filter,
+        resource_reference_key_type,
+        resource_reference_key_id,
         options,
       )(fetch, basePath);
+    },
+    /**
+     *
+     * @summary Restores an archived experiment. The experiment's archived runs and jobs will stay archived.
+     * @param {string} id The ID of the experiment to be restored.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    unarchiveExperiment(id: string, options?: any) {
+      return ExperimentServiceApiFp(configuration).unarchiveExperiment(id, options)(
+        fetch,
+        basePath,
+      );
     },
   };
 };
@@ -597,7 +900,22 @@ export const ExperimentServiceApiFactory = function(
 export class ExperimentServiceApi extends BaseAPI {
   /**
    *
-   * @summary Create a new experiment.
+   * @summary Archives an experiment and the experiment's runs and jobs.
+   * @param {string} id The ID of the experiment to be archived.
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof ExperimentServiceApi
+   */
+  public archiveExperiment(id: string, options?: any) {
+    return ExperimentServiceApiFp(this.configuration).archiveExperiment(id, options)(
+      this.fetch,
+      this.basePath,
+    );
+  }
+
+  /**
+   *
+   * @summary Creates a new experiment.
    * @param {ApiExperiment} body The experiment to be created.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
@@ -612,7 +930,7 @@ export class ExperimentServiceApi extends BaseAPI {
 
   /**
    *
-   * @summary Delete an experiment.
+   * @summary Deletes an experiment without deleting the experiment's runs and jobs. To avoid unexpected behaviors, delete an experiment's runs and jobs before deleting the experiment.
    * @param {string} id The ID of the experiment to be deleted.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
@@ -627,7 +945,7 @@ export class ExperimentServiceApi extends BaseAPI {
 
   /**
    *
-   * @summary Find a specific experiment by ID.
+   * @summary Finds a specific experiment by ID.
    * @param {string} id The ID of the experiment to be retrieved.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
@@ -642,11 +960,13 @@ export class ExperimentServiceApi extends BaseAPI {
 
   /**
    *
-   * @summary Find all experiments.
-   * @param {string} [page_token]
-   * @param {number} [page_size]
-   * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
+   * @summary Finds all experiments. Supports pagination, and sorting on certain fields.
+   * @param {string} [page_token] A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListExperiment call or can be omitted when fetching the first page.
+   * @param {number} [page_size] The number of experiments to be listed per page. If there are more experiments than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
+   * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; Ascending by default.
    * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
+   * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
+   * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof ExperimentServiceApi
@@ -656,6 +976,14 @@ export class ExperimentServiceApi extends BaseAPI {
     page_size?: number,
     sort_by?: string,
     filter?: string,
+    resource_reference_key_type?:
+      | 'UNKNOWN_RESOURCE_TYPE'
+      | 'EXPERIMENT'
+      | 'JOB'
+      | 'PIPELINE'
+      | 'PIPELINE_VERSION'
+      | 'NAMESPACE',
+    resource_reference_key_id?: string,
     options?: any,
   ) {
     return ExperimentServiceApiFp(this.configuration).listExperiment(
@@ -663,7 +991,24 @@ export class ExperimentServiceApi extends BaseAPI {
       page_size,
       sort_by,
       filter,
+      resource_reference_key_type,
+      resource_reference_key_id,
       options,
     )(this.fetch, this.basePath);
+  }
+
+  /**
+   *
+   * @summary Restores an archived experiment. The experiment's archived runs and jobs will stay archived.
+   * @param {string} id The ID of the experiment to be restored.
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof ExperimentServiceApi
+   */
+  public unarchiveExperiment(id: string, options?: any) {
+    return ExperimentServiceApiFp(this.configuration).unarchiveExperiment(id, options)(
+      this.fetch,
+      this.basePath,
+    );
   }
 }

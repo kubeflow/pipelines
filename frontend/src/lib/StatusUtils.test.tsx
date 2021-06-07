@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,9 @@ import {
   statusBgColors,
   statusToBgColor,
   checkIfTerminated,
+  parseNodePhase,
 } from './StatusUtils';
+import { NodeStatus, S3Artifact, Artifact } from 'third_party/argo-ui/argo_template';
 
 describe('StatusUtils', () => {
   describe('hasFinished', () => {
@@ -28,8 +30,10 @@ describe('StatusUtils', () => {
       NodePhase.ERROR,
       NodePhase.FAILED,
       NodePhase.SUCCEEDED,
+      NodePhase.CACHED,
       NodePhase.SKIPPED,
       NodePhase.TERMINATED,
+      NodePhase.OMITTED,
     ].forEach(status => {
       it(`returns \'true\' if status is: ${status}`, () => {
         expect(hasFinished(status)).toBe(true);
@@ -72,6 +76,10 @@ describe('StatusUtils', () => {
       expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', undefined);
     });
 
+    it("returns color 'not started' if status is 'Omitted'", () => {
+      expect(statusToBgColor(NodePhase.OMITTED)).toEqual(statusBgColors.notStarted);
+    });
+
     it("returns color 'not started' if status is 'Pending'", () => {
       expect(statusToBgColor(NodePhase.PENDING)).toEqual(statusBgColors.notStarted);
     });
@@ -94,8 +102,10 @@ describe('StatusUtils', () => {
       });
     });
 
-    it("returns color 'succeeded' if status is 'Succeeded'", () => {
-      expect(statusToBgColor(NodePhase.SUCCEEDED)).toEqual(statusBgColors.succeeded);
+    [NodePhase.SUCCEEDED, NodePhase.CACHED].forEach(status => {
+      it(`returns color 'succeeded' if status is '${status}'`, () => {
+        expect(statusToBgColor(status)).toEqual(statusBgColors.succeeded);
+      });
     });
   });
 
@@ -111,6 +121,7 @@ describe('StatusUtils', () => {
       NodePhase.PENDING,
       NodePhase.RUNNING,
       NodePhase.TERMINATING,
+      NodePhase.OMITTED,
       NodePhase.UNKNOWN,
     ].forEach(status => {
       it(`returns the original status, even if message is 'terminated', if status is: ${status}`, () => {
@@ -128,6 +139,85 @@ describe('StatusUtils', () => {
 
     it("returns 'failed' if status is 'failed' and arbitrary error message is provided", () => {
       expect(checkIfTerminated(NodePhase.FAILED, 'some random error')).toEqual(NodePhase.FAILED);
+    });
+  });
+
+  describe('parseNodePhase', () => {
+    const DEFAULT_NODE_STATUS = ({
+      phase: 'Succeeded',
+      id: 'file-passing-pipelines-55slt-2894085459',
+      outputs: {
+        artifacts: [
+          ({
+            s3: {
+              key:
+                'artifacts/file-passing-pipelines-55slt/file-passing-pipelines-55slt-2894085459/sum-numbers-output.tgz',
+            },
+          } as unknown) as Artifact,
+        ],
+      },
+    } as unknown) as NodeStatus;
+
+    it('returns node original phase if not successful', () => {
+      expect(
+        parseNodePhase({
+          ...DEFAULT_NODE_STATUS,
+          phase: 'Failed',
+        }),
+      ).toEqual('Failed');
+    });
+
+    it('returns succeeded phase for a normal node', () => {
+      expect(
+        parseNodePhase({
+          ...DEFAULT_NODE_STATUS,
+          phase: 'Succeeded',
+        }),
+      ).toEqual('Succeeded');
+    });
+
+    it('returns cached phase for a cached node', () => {
+      expect(
+        parseNodePhase({
+          ...DEFAULT_NODE_STATUS,
+          id: 'file-passing-pipelines-55slt-2894085459',
+          type: 'Pod',
+          phase: 'Succeeded', // Cached nodes have phase == 'Succeeded'
+          outputs: {
+            artifacts: [
+              {
+                s3: {
+                  // HACK: A cached node's artifacts will refer to a path that doesn't match its own id.
+                  key:
+                    'artifacts/file-passing-pipelines-mjpph/file-passing-pipelines-mjpph-1802581193/sum-numbers-output.tgz',
+                },
+              } as Artifact,
+            ],
+          },
+        }),
+      ).toEqual('Cached');
+    });
+
+    it('returns succeeded phase for a retry node', () => {
+      expect(
+        parseNodePhase({
+          ...DEFAULT_NODE_STATUS,
+          id: 'file-passing-pipelines-55slt-2894085459',
+          type: 'Retry',
+          phase: 'Succeeded', // Cached nodes have phase == 'Succeeded'
+          outputs: {
+            artifacts: [
+              {
+                s3: {
+                  // HACK: A cached node's artifacts will refer to a path that doesn't match its own id.
+                  key:
+                    'artifacts/file-passing-pipelines-mjpph/file-passing-pipelines-mjpph-1802581193/sum-numbers-output.tgz',
+                },
+              } as Artifact,
+            ],
+          },
+        }),
+      ).toEqual('Succeeded');
     });
   });
 });

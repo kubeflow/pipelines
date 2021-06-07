@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ml-pipeline-install-config-snapshot
+  labels:
+    app.kubernetes.io/name: '{{ .Release.Name }}'
+  annotations:
+    pipelines.kubeflow.org/comment: |-
+      This is a snapshot of install parameters. There's no effect modifying this.
+data:
+  appName: '{{ .Release.Name }}'
+  namespace: '{{ .Release.Namespace }}'
+  managedStorageEnabled: '{{ .Values.managedstorage.enabled }}'
+  #{{ if .Values.managedstorage.enabled }}
+  managedStorageCloudSqlInstanceConnectionName: '{{ .Values.managedstorage.cloudsqlInstanceConnectionName }}'
+  managedStorageGcsBucketName: '{{ .Values.managedstorage.gcsBucketName }}'
+  managedStorageDatabasePrefix: '{{ tpl .Values.managedstorage.databaseNamePrefix . }}'
+  managedstorageDbUserName: '{{ .Values.managedstorage.dbUsername }}'
+  #{{ end }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ml-pipeline-install-secret-snapshot
+  labels:
+    app.kubernetes.io/name: '{{ .Release.Name }}'
+  annotations:
+    pipelines.kubeflow.org/comment: |-
+      This is a snapshot of install secrets. There's no effect modifying this.
+type: Opaque
+#{{ if .Values.managedstorage.enabled }}
+data:
+  managedStorageDbPassword: '{{ .Values.managedstorage.dbPassword | b64enc }}'
+#{{ end }}

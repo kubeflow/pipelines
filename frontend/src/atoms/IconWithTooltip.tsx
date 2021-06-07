@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Google LLC
+ * Copyright 2019 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ interface IconWithTooltipProps {
   width?: number;
 }
 
-export default (props: IconWithTooltipProps) => {
+const IconWithTooltip = (props: IconWithTooltipProps) => {
   const { height, Icon, iconColor, tooltip, width } = props;
 
   return (
@@ -41,3 +41,5 @@ export default (props: IconWithTooltipProps) => {
     </Tooltip>
   );
 };
+
+export default IconWithTooltip;

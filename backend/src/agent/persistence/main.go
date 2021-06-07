@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -42,6 +42,9 @@ var (
 	mlPipelineServiceGRPCPort     string
 	namespace                     string
 	ttlSecondsAfterWorkflowFinish int64
+	numWorker                     int
+	clientQPS                     float64
+	clientBurst                   int
 )
 
 const (
@@ -55,6 +58,9 @@ const (
 	mlPipelineAPIServerGRPCPortFlagName   = "mlPipelineServiceGRPCPort"
 	namespaceFlagName                     = "namespace"
 	ttlSecondsAfterWorkflowFinishFlagName = "ttlSecondsAfterWorkflowFinish"
+	numWorkerName                         = "numWorker"
+	clientQPSFlagName                     = "clientQPS"
+	clientBurstFlagName                   = "clientBurst"
 )
 
 func main() {
@@ -67,6 +73,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error building kubeconfig: %s", err.Error())
 	}
+	cfg.QPS = float32(clientQPS)
+	cfg.Burst = clientBurst
 
 	swfClient, err := swfclientset.NewForConfig(cfg)
 	if err != nil {
@@ -108,7 +116,7 @@ func main() {
 	go swfInformerFactory.Start(stopCh)
 	go workflowInformerFactory.Start(stopCh)
 
-	if err = controller.Run(2, stopCh); err != nil {
+	if err = controller.Run(numWorker, stopCh); err != nil {
 		log.Fatalf("Error running controller: %s", err.Error())
 	}
 }
@@ -125,4 +133,9 @@ func init() {
 		"/apis/v1beta1", "The base path for the ML pipeline API server.")
 	flag.StringVar(&namespace, namespaceFlagName, "", "The namespace name used for Kubernetes informers to obtain the listers.")
 	flag.Int64Var(&ttlSecondsAfterWorkflowFinish, ttlSecondsAfterWorkflowFinishFlagName, 604800 /* 7 days */, "The TTL for Argo workflow to persist after workflow finish.")
+	flag.IntVar(&numWorker, numWorkerName, 2, "Number of worker for sync job.")
+	// Use default value of client QPS (5) & burst (10) defined in
+	// k8s.io/client-go/rest/config.go#RESTClientFor
+	flag.Float64Var(&clientQPS, clientQPSFlagName, 5, "The maximum QPS to the master from this client.")
+	flag.IntVar(&clientBurst, clientBurstFlagName, 10, "Maximum burst for throttle from this client.")
 }

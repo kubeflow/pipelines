@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Google LLC
+ * Copyright 2018-2019 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,14 @@
  * limitations under the License.
  */
 
-import { createGraph, SelectedNodeInfo, _populateInfoFromTemplate } from './StaticGraphParser';
+import {
+  createGraph,
+  SelectedNodeInfo,
+  _populateInfoFromTemplate,
+  transitiveReduction,
+  compareGraphEdges,
+} from './StaticGraphParser';
+import { graphlib } from 'dagre';
 
 describe('StaticGraphParser', () => {
   function newWorkflow(): any {
@@ -141,6 +148,28 @@ describe('StaticGraphParser', () => {
       };
       const g = createGraph(workflow);
       expect(g.node('/task-1').label).toEqual('TaskDisplayName');
+    });
+
+    it("uses task's annotation component_name as node label when present", () => {
+      const workflow = newWorkflow();
+      workflow.spec.templates[1].metadata = {
+        annotations: {
+          'pipelines.kubeflow.org/component_spec': '{"name":"Component Display Name"}',
+        },
+      };
+      const g = createGraph(workflow);
+      expect(g.node('/task-1').label).toEqual('Component Display Name');
+    });
+
+    it("uses task's default node label when component_name is malformed", () => {
+      const workflow = newWorkflow();
+      workflow.spec.templates[1].metadata = {
+        annotations: {
+          'pipelines.kubeflow.org/component_spec': '"name":"Component Display Name"}',
+        },
+      };
+      const g = createGraph(workflow);
+      expect(g.node('/task-1').label).not.toEqual('Component Display Name');
     });
 
     it('adds an unconnected node for the onExit template, if onExit is specified', () => {
@@ -593,13 +622,19 @@ describe('StaticGraphParser', () => {
         container: {},
         dag: [],
         inputs: {
-          parameters: [{ name: 'param1', value: 'val1' }, { name: 'param2', value: 'val2' }],
+          parameters: [
+            { name: 'param1', value: 'val1' },
+            { name: 'param2', value: 'val2' },
+          ],
         },
         name: 'template-1',
       } as any;
       const nodeInfo = _populateInfoFromTemplate(new SelectedNodeInfo(), template);
       expect(nodeInfo.nodeType).toEqual('container');
-      expect(nodeInfo.inputs).toEqual([['param1', 'val1'], ['param2', 'val2']]);
+      expect(nodeInfo.inputs).toEqual([
+        ['param1', 'val1'],
+        ['param2', 'val2'],
+      ]);
     });
 
     it('returns nodeInfo of a container with empty strings for inputs with no specified value', () => {
@@ -613,7 +648,10 @@ describe('StaticGraphParser', () => {
       } as any;
       const nodeInfo = _populateInfoFromTemplate(new SelectedNodeInfo(), template);
       expect(nodeInfo.nodeType).toEqual('container');
-      expect(nodeInfo.inputs).toEqual([['param1', ''], ['param2', '']]);
+      expect(nodeInfo.inputs).toEqual([
+        ['param1', ''],
+        ['param2', ''],
+      ]);
     });
 
     it('returns nodeInfo containing container outputs as list of name/value tuples, pulling from valueFrom if necessary', () => {
@@ -651,7 +689,10 @@ describe('StaticGraphParser', () => {
       } as any;
       const nodeInfo = _populateInfoFromTemplate(new SelectedNodeInfo(), template);
       expect(nodeInfo.nodeType).toEqual('container');
-      expect(nodeInfo.outputs).toEqual([['param1', ''], ['param2', '']]);
+      expect(nodeInfo.outputs).toEqual([
+        ['param1', ''],
+        ['param2', ''],
+      ]);
     });
 
     it('returns nodeInfo of a resource with empty values if template does not have inputs and/or outputs', () => {
@@ -672,14 +713,20 @@ describe('StaticGraphParser', () => {
       const template = {
         dag: [],
         inputs: {
-          parameters: [{ name: 'param1', value: 'val1' }, { name: 'param2', value: 'val2' }],
+          parameters: [
+            { name: 'param1', value: 'val1' },
+            { name: 'param2', value: 'val2' },
+          ],
         },
         name: 'template-1',
         resource: {},
       } as any;
       const nodeInfo = _populateInfoFromTemplate(new SelectedNodeInfo(), template);
       expect(nodeInfo.nodeType).toEqual('resource');
-      expect(nodeInfo.inputs).toEqual([['param1', 'val1'], ['param2', 'val2']]);
+      expect(nodeInfo.inputs).toEqual([
+        ['param1', 'val1'],
+        ['param2', 'val2'],
+      ]);
     });
 
     it('returns nodeInfo of a resource with empty strings for inputs with no specified value', () => {
@@ -693,7 +740,10 @@ describe('StaticGraphParser', () => {
       } as any;
       const nodeInfo = _populateInfoFromTemplate(new SelectedNodeInfo(), template);
       expect(nodeInfo.nodeType).toEqual('resource');
-      expect(nodeInfo.inputs).toEqual([['param1', ''], ['param2', '']]);
+      expect(nodeInfo.inputs).toEqual([
+        ['param1', ''],
+        ['param2', ''],
+      ]);
     });
 
     it('returns nodeInfo containing resource outputs as list of name/value tuples, pulling from valueFrom if necessary', () => {
@@ -731,7 +781,62 @@ describe('StaticGraphParser', () => {
       } as any;
       const nodeInfo = _populateInfoFromTemplate(new SelectedNodeInfo(), template);
       expect(nodeInfo.nodeType).toEqual('resource');
-      expect(nodeInfo.outputs).toEqual([['param1', ''], ['param2', '']]);
+      expect(nodeInfo.outputs).toEqual([
+        ['param1', ''],
+        ['param2', ''],
+      ]);
+    });
+  });
+
+  function newRedundantWorkflow(): any {
+    return {
+      spec: {
+        entrypoint: 'redundant-pipeline',
+        templates: [
+          {
+            dag: {
+              tasks: [
+                { name: 'task-1', template: 'container-1' },
+                {
+                  dependencies: ['task-1'],
+                  name: 'task-2',
+                  template: 'container-2',
+                },
+                {
+                  dependencies: ['task-1', 'task-2'],
+                  name: 'task-3',
+                  template: 'container-3',
+                },
+              ],
+            },
+            name: 'redundant-pipeline',
+          },
+          { container: {}, name: 'container-1' },
+          { container: {}, name: 'container-2' },
+          { container: {}, name: 'container-3' },
+        ],
+      },
+    };
+  }
+
+  describe('transitiveReduction', () => {
+    it('reduces redundant workflow', () => {
+      const g = createGraph(newRedundantWorkflow());
+      const reduced = transitiveReduction(g);
+      expect(g.nodeCount()).toEqual(3);
+      expect(g.edgeCount()).toEqual(3);
+      expect(reduced).toBeDefined();
+      expect(reduced.nodeCount()).toEqual(3);
+      expect(reduced.edgeCount()).toEqual(2);
+    });
+  });
+
+  describe('compareGraphEdges', () => {
+    it('compares graphs edges', () => {
+      const g = createGraph(newRedundantWorkflow());
+      const reduced = transitiveReduction(graphlib.json.read(graphlib.json.write(g)));
+      expect(reduced).toBeDefined();
+      expect(compareGraphEdges(g, reduced)).toBeFalsy();
     });
   });
 });

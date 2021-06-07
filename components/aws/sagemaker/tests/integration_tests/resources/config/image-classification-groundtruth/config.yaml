@@ -1,0 +1,22 @@
+PipelineDefinition: resources/definition/groundtruth_pipeline.py
+TestName: image-classification-groundtruth
+Timeout: 300
+StatusToCheck: 'running'
+Arguments:
+  region: ((REGION))
+  role: ((SAGEMAKER_ROLE_ARN))
+  ground_truth_train_job_name: 'image-labeling'
+  ground_truth_label_attribute_name: 'category'
+  ground_truth_train_manifest_location: 's3://((DATA_BUCKET))/mini-image-classification/ground-truth-demo/train.manifest'
+  ground_truth_output_location: 's3://((DATA_BUCKET))/mini-image-classification/ground-truth-demo/output'
+  ground_truth_task_type: 'image classification'
+  ground_truth_worker_type: 'private'
+  ground_truth_label_category_config: 's3://((DATA_BUCKET))/mini-image-classification/ground-truth-demo/class_labels.json'
+  ground_truth_ui_template: 's3://((DATA_BUCKET))/mini-image-classification/ground-truth-demo/instructions.template'
+  ground_truth_title: 'Mini image classification'
+  ground_truth_description: 'Test for Ground Truth KFP component'
+  ground_truth_num_workers_per_object: '1'
+  ground_truth_time_limit: '30'
+  ground_truth_task_availibility: '3600'
+  ground_truth_max_concurrent_tasks: '20'
+  workteam_arn: 'workteam-arn'

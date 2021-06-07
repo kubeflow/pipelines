@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -55,6 +55,12 @@ type ScheduledWorkflowSpec struct {
 	// MaxConcurrency cannot be larger than 10.
 	// +optional
 	MaxConcurrency *int64 `json:"maxConcurrency,omitempty"`
+
+	// If NoCatchup is true, controller only schedules the latest period when
+	// cannot catch up.
+	// NoCatchup defaults to false if not specified.
+	// +optional
+	NoCatchup *bool `json:"noCatchup,omitempty"`
 
 	// Max number of completed workflows to keep track of.
 	// If MaxHistory is not specified, MaxHistory is 10.

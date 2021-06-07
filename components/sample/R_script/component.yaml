@@ -1,0 +1,39 @@
+name: Filter text
+inputs:
+- {name: Text}
+- {name: Pattern, default: '.*'}
+outputs:
+- {name: Filtered text}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+implementation:
+  container:
+    image: r-base:4.0.2
+    command:
+    - Rscript
+    - -e
+    - |
+      args <- commandArgs(trailingOnly = TRUE)
+      textPath <- args[1]
+      pattern <- args[2]
+      filteredTextPath <- args[3]
+
+      dir.create(dirname(filteredTextPath), showWarnings = FALSE, recursive = TRUE)
+
+      inputFile = file(textPath, "r")
+      outputFile = file(filteredTextPath, "w")
+      while ( TRUE ) {
+          lines = readLines(inputFile, n = 1)
+          if ( length(lines) == 0 ) {
+              break
+          }
+          if ( grepl(pattern = pattern, lines) ) {
+              writeLines(lines, outputFile)
+          }
+      }
+      close(outputFile)
+      close(inputFile)
+    - {inputPath: Text}
+    - {inputValue: Pattern}
+    - {outputPath: Filtered text}

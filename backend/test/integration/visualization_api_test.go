@@ -14,7 +14,7 @@ import (
 
 type VisualizationApiTest struct {
 	suite.Suite
-	namespace        string
+	namespace           string
 	visualizationClient *api_server.VisualizationClient
 }
 
@@ -25,12 +25,15 @@ func (s *VisualizationApiTest) SetupTest() {
 		return
 	}
 
-	err := test.WaitForReady(*namespace, *initializeTimeout)
-	if err != nil {
-		glog.Exitf("Failed to initialize test. Error: %v", err)
+	if !*isDevMode {
+		err := test.WaitForReady(*namespace, *initializeTimeout)
+		if err != nil {
+			glog.Exitf("Failed to initialize test. Error: %v", err)
+		}
 	}
 	s.namespace = *namespace
 	clientConfig := test.GetClientConfig(*namespace)
+	var err error
 	s.visualizationClient, err = api_server.NewVisualizationClient(clientConfig, false)
 	if err != nil {
 		glog.Exitf("Failed to get experiment client. Error: %v", err)
@@ -43,7 +46,7 @@ func (s *VisualizationApiTest) TestVisualizationAPI() {
 	/* ---------- Generate custom visualization --------- */
 	visualization := &visualization_model.APIVisualization{
 		Arguments: `{"code": ["print(2)"]}`,
-		Type: visualization_model.APIVisualizationTypeCUSTOM,
+		Type:      visualization_model.APIVisualizationTypeCUSTOM,
 	}
 	customVisualization, err := s.visualizationClient.Create(&params.CreateVisualizationParams{
 		Body: visualization,

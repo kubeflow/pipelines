@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -242,6 +242,34 @@ func (f *fakeListable) APIToModelFieldMap() map[string]string {
 }
 
 func (f *fakeListable) GetModelName() string {
+	return ""
+}
+
+func (f *fakeListable) GetField(name string) (string, bool) {
+	if field, ok := fakeAPIToModelMap[name]; ok {
+		return field, true
+	} else {
+		return "", false
+	}
+}
+
+func (f *fakeListable) GetFieldValue(name string) interface{} {
+	switch name {
+	case "CreatedTimestamp":
+		return f.CreatedTimestamp
+	case "FakeName":
+		return f.FakeName
+	case "PrimaryKey":
+		return f.PrimaryKey
+	}
+	return nil
+}
+
+func (f *fakeListable) GetSortByFieldPrefix(name string) string {
+	return ""
+}
+
+func (f *fakeListable) GetKeyFieldPrefix() string {
 	return ""
 }
 

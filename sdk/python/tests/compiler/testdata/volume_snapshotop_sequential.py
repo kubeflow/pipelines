@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ def volume_snapshotop_sequential(url):
 
     step1 = dsl.ContainerOp(
         name="step1_ingest",
-        image="google/cloud-sdk:272.0.0",
+        image="google/cloud-sdk:279.0.0",
         command=["sh", "-c"],
         arguments=["mkdir /data/step1 && "
                    "gsutil cat %s | gzip -c >/data/step1/file1.gz" % url],

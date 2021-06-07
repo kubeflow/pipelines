@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ import (
 	jobparams "github.com/kubeflow/pipelines/backend/api/go_http_client/job_client/job_service"
 	pipelineparams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service"
 	runparams "github.com/kubeflow/pipelines/backend/api/go_http_client/run_client/run_service"
+	"github.com/kubeflow/pipelines/backend/api/go_http_client/run_model"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -95,4 +96,15 @@ func DeleteAllJobs(client *api_server.JobClient, t *testing.T) {
 	for _, j := range jobs {
 		assert.Nil(t, client.Delete(&jobparams.DeleteJobParams{ID: j.ID}))
 	}
+}
+
+func GetExperimentIDFromAPIResourceReferences(resourceRefs []*run_model.APIResourceReference) string {
+	experimentID := ""
+	for _, resourceRef := range resourceRefs {
+		if resourceRef.Key.Type == run_model.APIResourceTypeEXPERIMENT {
+			experimentID = resourceRef.Key.ID
+			break
+		}
+	}
+	return experimentID
 }

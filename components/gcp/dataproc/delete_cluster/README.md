@@ -56,8 +56,7 @@ Follow these steps to use the component in a pipeline:
     ```python
     %%capture --no-stderr
 
-    KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar.gz'
-    !pip3 install $KFP_PACKAGE --upgrade
+    !pip3 install kfp --upgrade
     ```
 
 2. Load the component using the Kubeflow pipeline's SDK:
@@ -66,7 +65,7 @@ Follow these steps to use the component in a pipeline:
     ```python
     import kfp.components as comp
 
-    dataproc_delete_cluster_op = comp.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/0ad0b368802eca8ca73b40fe08adb6d97af6a62f/components/gcp/dataproc/delete_cluster/component.yaml')
+    dataproc_delete_cluster_op = comp.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/1.6.0/components/gcp/dataproc/delete_cluster/component.yaml')
     help(dataproc_delete_cluster_op)
     ```
 

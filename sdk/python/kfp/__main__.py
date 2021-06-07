@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,10 +17,6 @@ from .cli.cli import main
 # TODO(hongyes): add more commands:
 # kfp compile (migrate from dsl-compile)
 # kfp experiment (manage experiments)
-
-# TODO: kfp pipeline delete
-# Calling client._pipelines_api.delete_pipeline(id=pipeline_id) throws
-# exception: module 'kfp_server_api.models' has no attribute 'ERRORUNKNOWN'
 
 if __name__ == '__main__':
     main()

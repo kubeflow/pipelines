@@ -1,0 +1,30 @@
+name: Queue Azure Pipeline
+description: |
+  A Kubeflow pipeline component to queue an Azure Pipeline.
+
+inputs:
+    - {name: organization, type: String, description: 'Azure DevOps organization'}
+    - {name: project, type: String, description: 'Azure DevOps project'}
+    - {name: id, type: Integer, description: 'Azure Pipeline definition id'}
+    - {name: pat_env, type: String, default: '', description: 'Name of environment variable containing Azure DevOps PAT'}
+    - {name: pat_path_env, type: String, default: '', description: 'Name of environment variable containing path to Azure DevOps PAT'}
+    - {name: source_branch, type: String, default: '', description: 'Source branch for the pipeline'}
+    - {name: source_version, type: String, default: '', description: 'Source version for the pipeline'}
+    - {name: parameters, type: String, default: '', description: 'Parameters for the pipeline'}
+outputs:
+    - {name: output_url_path, type: String, description: 'Url of the queued pipeline'}
+implementation:
+    container:
+        image: ''
+        command: ['python', '/scripts/queue_pipeline.py']
+        args: [
+            --organization, {inputValue: organization},
+            --project, {inputValue: project},
+            --id, {inputValue: id},
+            --pat_env, {inputValue: pat_env},
+            --pat_path_env, {inputValue: pat_path_env},
+            --source_branch, {inputValue: source_branch},
+            --source_version, {inputValue: source_version},
+            --parameters, {inputValue: parameters},
+            --output_url_path, {outputPath: output_url_path} 
+        ]

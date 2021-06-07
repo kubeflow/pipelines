@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,9 +16,6 @@ test_name: xgboost_training_cm
 arguments:
   output:
   project: ml-pipeline-test
-  train_data: gs://ml-pipeline-dataset/sample-test/sfpd/train_20.csv
-  eval_data: gs://ml-pipeline-dataset/sample-test/sfpd/eval_5.csv
-  schema: gs://ml-pipeline-dataset/sample-test/sfpd/schema.json
   rounds: 5
-  workers: 2
-test_timeout: 1800 # xgboost needs extra time.
+  diagnostic_mode: False
+test_timeout: 3600 # xgboost needs extra time, 60 * 60 secs

@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2019 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44,6 +44,15 @@ async function getIAMInstanceProfile(): Promise<string | undefined> {
     );
     return;
   }
+}
+
+/**
+ * Check if the provided string is an S3 endpoint (can be any region).
+ *
+ * @param endpoint minio endpoint to check.
+ */
+export function isS3Endpoint(endpoint: string = ''): boolean {
+  return !!endpoint.match(/s3.{0,}\.amazonaws\.com\.?.{0,}/i);
 }
 
 /**

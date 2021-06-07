@@ -1,9 +1,6 @@
 <ComponentSpec>:
     name: string
     description: string
-    source: #SourceSpec
-        url: string
-    schemaVersion: string
     inputs: #InputSpec[]
         <InputSpec[]>:
             name: string
@@ -68,7 +65,5 @@
                             executionOptions: #ExecutionOptionsSpec
                                 retryStrategy: #RetryStrategySpec
                                     maxRetries: integer
-                                kubernetesOptions: #KubernetesExecutionOptionsSpec
-                                    metadata: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-                                    mainContainer: io.k8s.api.core.v1.Container
-                                    podSpec: io.k8s.api.core.v1.PodSpec
+                                cachingStrategy: #CachingStrategySpec
+                                    maxCacheStaleness: string

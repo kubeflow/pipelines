@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Google LLC
+ * Copyright 2019 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,12 +15,14 @@
  */
 
 import { logger } from '../lib/Utils';
+import { NodeStatus } from '../../third_party/argo-ui/argo_template';
 
 export const statusBgColors = {
   error: '#fce8e6',
   notStarted: '#f7f7f7',
   running: '#e8f0fe',
   succeeded: '#e6f4ea',
+  cached: '#e6f4ea',
   terminatedOrSkipped: '#f1f3f4',
   warning: '#fef7f0',
 };
@@ -32,18 +34,22 @@ export enum NodePhase {
   RUNNING = 'Running',
   SKIPPED = 'Skipped',
   SUCCEEDED = 'Succeeded',
+  CACHED = 'Cached',
   TERMINATING = 'Terminating',
   TERMINATED = 'Terminated',
   UNKNOWN = 'Unknown',
+  OMITTED = 'Omitted',
 }
 
 export function hasFinished(status?: NodePhase): boolean {
   switch (status) {
     case NodePhase.SUCCEEDED: // Fall through
+    case NodePhase.CACHED: // Fall through
     case NodePhase.FAILED: // Fall through
     case NodePhase.ERROR: // Fall through
     case NodePhase.SKIPPED: // Fall through
     case NodePhase.TERMINATED:
+    case NodePhase.OMITTED:
       return true;
     case NodePhase.PENDING: // Fall through
     case NodePhase.RUNNING: // Fall through
@@ -70,6 +76,8 @@ export function statusToBgColor(status?: NodePhase, nodeMessage?: string): strin
       return statusBgColors.running;
     case NodePhase.SUCCEEDED:
       return statusBgColors.succeeded;
+    case NodePhase.CACHED:
+      return statusBgColors.cached;
     case NodePhase.SKIPPED:
     // fall through
     case NodePhase.TERMINATED:
@@ -89,4 +97,22 @@ export function checkIfTerminated(status?: NodePhase, nodeMessage?: string): Nod
     status = NodePhase.TERMINATED;
   }
   return status;
+}
+
+export function parseNodePhase(node: NodeStatus): NodePhase {
+  if (node.phase !== 'Succeeded') {
+    return node.phase as NodePhase; // HACK: NodePhase is a string enum that has the same items as node.phase.
+  }
+  return wasNodeCached(node) ? NodePhase.CACHED : NodePhase.SUCCEEDED;
+}
+
+function wasNodeCached(node: NodeStatus): boolean {
+  const artifacts = node.outputs?.artifacts;
+  // HACK: There is a way to detect the skipped pods based on the WorkflowStatus alone.
+  // All output artifacts have the pod name (same as node ID) in the URI. But for skipped
+  // pods, the pod name does not match the URIs.
+  // (And now there are always some output artifacts since we've enabled log archiving).
+  return !artifacts || !node.id || node.type !== 'Pod'
+    ? false
+    : artifacts.some(artifact => artifact.s3 && !artifact.s3.key.includes(node.id));
 }

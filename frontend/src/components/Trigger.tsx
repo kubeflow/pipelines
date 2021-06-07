@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,28 +14,43 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
 import Button from '@material-ui/core/Button';
 import Checkbox from '@material-ui/core/Checkbox';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
-import Input from '../atoms/Input';
 import MenuItem from '@material-ui/core/MenuItem';
-import Separator from '../atoms/Separator';
-import { commonCss } from '../Css';
-import { dateToPickerFormat } from '../lib/TriggerUtils';
-import {
-  PeriodicInterval,
-  TriggerType,
-  triggers,
-  buildCron,
-  pickersToDate,
-  buildTrigger,
-} from '../lib/TriggerUtils';
-import { ApiTrigger } from '../apis/job';
+import * as React from 'react';
 import { stylesheet } from 'typestyle';
+import { ApiTrigger } from '../apis/job';
+import { HelpButton } from '../atoms/HelpButton';
+import Input from '../atoms/Input';
+import Separator from '../atoms/Separator';
+import { color, commonCss } from '../Css';
+import {
+  buildCron,
+  buildTrigger,
+  dateToPickerFormat,
+  PeriodicInterval,
+  pickersToDate,
+  triggers,
+  TriggerType,
+  parseTrigger,
+  ParsedTrigger,
+} from '../lib/TriggerUtils';
+import { logger } from 'src/lib/Utils';
+
+type TriggerInitialProps = {
+  maxConcurrentRuns?: string;
+  catchup?: boolean;
+  trigger?: ApiTrigger;
+};
 
 interface TriggerProps {
-  onChange?: (trigger?: ApiTrigger, maxConcurrentRuns?: string) => void;
+  initialProps?: TriggerInitialProps;
+  onChange?: (config: {
+    trigger?: ApiTrigger;
+    maxConcurrentRuns?: string;
+    catchup: boolean;
+  }) => void;
 }
 
 interface TriggerState {
@@ -52,45 +67,67 @@ interface TriggerState {
   startDate: string;
   startTime: string;
   type: TriggerType;
+  catchup: boolean;
+  startTimeMessage: string;
+  endTimeMessage: string;
 }
 
 const css = stylesheet({
   noMargin: {
     margin: 0,
   },
+  alert: {
+    color: color.alert,
+  },
 });
 
 export default class Trigger extends React.Component<TriggerProps, TriggerState> {
-  constructor(props: any) {
-    super(props);
+  public state: TriggerState = (() => {
+    const { maxConcurrentRuns, catchup, trigger } =
+      this.props.initialProps || ({} as TriggerInitialProps);
+    let parsedTrigger: Partial<ParsedTrigger> = {};
+    try {
+      if (trigger) {
+        parsedTrigger = parseTrigger(trigger);
+      }
+    } catch (err) {
+      logger.warn('Failed to parse original trigger: ', trigger);
+      logger.warn(err);
+    }
+    const startDateTime = parsedTrigger.startDateTime ?? new Date();
+    const endDateTime =
+      parsedTrigger.endDateTime ??
+      new Date(
+        startDateTime.getFullYear(),
+        startDateTime.getMonth(),
+        startDateTime.getDate() + 7,
+        startDateTime.getHours(),
+        startDateTime.getMinutes(),
+      );
+    const [startDate, startTime] = dateToPickerFormat(startDateTime);
+    const [endDate, endTime] = dateToPickerFormat(endDateTime);
 
-    const now = new Date();
-    const inAWeek = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate() + 7,
-      now.getHours(),
-      now.getMinutes(),
-    );
-    const [startDate, startTime] = dateToPickerFormat(now);
-    const [endDate, endTime] = dateToPickerFormat(inAWeek);
-
-    this.state = {
-      cron: '',
-      editCron: false,
+    return {
+      catchup: catchup ?? true,
+      maxConcurrentRuns: maxConcurrentRuns || '10',
+      hasEndDate: !!parsedTrigger?.endDateTime,
       endDate,
       endTime,
-      hasEndDate: false,
-      hasStartDate: false,
-      intervalCategory: PeriodicInterval.MINUTE,
-      intervalValue: 1,
-      maxConcurrentRuns: '10',
-      selectedDays: new Array(7).fill(true),
+      hasStartDate: !!parsedTrigger?.startDateTime,
       startDate,
       startTime,
-      type: TriggerType.INTERVALED,
+      selectedDays: new Array(7).fill(true),
+      type: parsedTrigger.type ?? TriggerType.INTERVALED,
+      // cron state
+      editCron: parsedTrigger.type === TriggerType.CRON,
+      cron: parsedTrigger.cron || '',
+      // interval state
+      intervalCategory: parsedTrigger.intervalCategory ?? PeriodicInterval.MINUTE,
+      intervalValue: parsedTrigger.intervalValue ?? 1,
+      startTimeMessage: '',
+      endTimeMessage: '',
     };
-  }
+  })();
 
   public componentDidMount(): void {
     // TODO: This is called here because NewRun only updates its Trigger in state when onChange is
@@ -114,6 +151,9 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
       startDate,
       startTime,
       type,
+      catchup,
+      startTimeMessage,
+      endTimeMessage,
     } = this.state;
 
     return (
@@ -175,6 +215,13 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
               style={{ visibility: hasStartDate ? 'visible' : 'hidden' }}
             />
           </div>
+          <div
+            data-testid='startTimeMessage'
+            className={css.alert}
+            style={{ visibility: hasStartDate ? 'visible' : 'hidden' }}
+          >
+            {startTimeMessage}
+          </div>
 
           <div className={commonCss.flex}>
             <FormControlLabel
@@ -209,6 +256,44 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
               variant='outlined'
             />
           </div>
+          <div
+            data-testid='endTimeMessage'
+            className={css.alert}
+            style={{ visibility: hasEndDate ? 'visible' : 'hidden' }}
+          >
+            {endTimeMessage}
+          </div>
+          <span className={commonCss.flex}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={catchup}
+                  color='primary'
+                  onClick={this.handleChange('catchup')}
+                />
+              }
+              label='Catchup'
+            />
+            <HelpButton
+              helpText={
+                <div>
+                  <p>
+                    Whether the recurring run should catch up if behind schedule. Defaults to true.
+                  </p>
+                  <p>
+                    For example, if the recurring run is paused for a while and re-enabled
+                    afterwards. If catchup=true, the scheduler will catch up on (backfill) each
+                    missed interval. Otherwise, it only schedules the latest interval if more than
+                    one interval is ready to be scheduled.
+                  </p>
+                  <p>
+                    Usually, if your pipeline handles backfill internally, you should turn catchup
+                    off to avoid duplicate backfill.
+                  </p>
+                </div>
+              }
+            />
+          </span>
 
           <span className={commonCss.flex}>
             Run every
@@ -237,7 +322,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
               width={95}
               variant='outlined'
             >
-              {Object.keys(PeriodicInterval).map((interval: PeriodicInterval, i) => (
+              {Object.keys(PeriodicInterval).map((interval, i) => (
                 <MenuItem key={i} value={PeriodicInterval[interval]}>
                   {PeriodicInterval[interval] + (type === TriggerType.INTERVALED ? 's' : '')}
                 </MenuItem>
@@ -288,7 +373,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
                 label={
                   <span>
                     Allow editing cron expression. ( format is specified{' '}
-                    <a href='https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format'>
+                    <a href='https://pkg.go.dev/github.com/robfig/cron#hdr-CRON_Expression_Format'>
                       here
                     </a>
                     )
@@ -322,11 +407,11 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
       {
         [name]: value,
       } as any,
-      this._updateTrigger.bind(this),
+      this._updateTrigger,
     );
   };
 
-  private _updateTrigger(): void {
+  private _updateTrigger = () => {
     const {
       hasStartDate,
       hasEndDate,
@@ -340,10 +425,42 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
       type,
       cron,
       selectedDays,
+      catchup,
     } = this.state;
 
-    const startDateTime = pickersToDate(hasStartDate, startDate, startTime);
-    const endDateTime = pickersToDate(hasEndDate, endDate, endTime);
+    var startDateTime: Date | undefined = undefined;
+    var endDateTime: Date | undefined = undefined;
+    var startTimeMessage = '';
+    var endTimeMessage = '';
+
+    try {
+      if (hasStartDate) {
+        startDateTime = pickersToDate(hasStartDate, startDate, startTime);
+      }
+    } catch (e) {
+      if (e.message === 'Invalid picker format') {
+        startTimeMessage = "Invalid start date or time, start time won't be set";
+      } else {
+        throw e;
+      }
+    }
+
+    try {
+      if (hasEndDate) {
+        endDateTime = pickersToDate(hasEndDate, endDate, endTime);
+      }
+    } catch (e) {
+      if (e.message === 'Invalid picker format') {
+        endTimeMessage = "Invalid end date or time, end time won't be set";
+      } else {
+        throw e;
+      }
+    }
+
+    this.setState({
+      startTimeMessage: startTimeMessage,
+      endTimeMessage: endTimeMessage,
+    });
 
     // TODO: Why build the cron string unless the TriggerType is not CRON?
     // Unless cron editing is enabled, calculate the new cron string, set it in state,
@@ -363,11 +480,15 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
         );
 
         if (this.props.onChange) {
-          this.props.onChange(trigger, trigger ? this.state.maxConcurrentRuns : undefined);
+          this.props.onChange({
+            catchup,
+            maxConcurrentRuns: trigger ? this.state.maxConcurrentRuns : undefined,
+            trigger,
+          });
         }
       },
     );
-  }
+  };
 
   private _isAllDaysChecked(): boolean {
     return this.state.selectedDays.every(d => !!d);
@@ -397,7 +518,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
         cron,
         selectedDays: newDays,
       },
-      this._updateTrigger.bind(this),
+      this._updateTrigger,
     );
   }
 }

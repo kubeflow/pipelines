@@ -1,0 +1,3 @@
+# install kfp sdk from local path
+-e ../../sdk/python
+ml_metadata==1.0.0
