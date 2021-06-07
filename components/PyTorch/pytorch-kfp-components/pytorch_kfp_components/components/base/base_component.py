@@ -33,7 +33,7 @@ class BaseComponent(with_metaclass(abc.ABCMeta, object)):  # pylint: disable=R09
         output_dict: dict,
         exec_properties: dict,
     ):
-        """Vaildates the specifications 'type'.
+        """validate the specifications 'type'.
 
         Args:
             spec: The standard component specifications
