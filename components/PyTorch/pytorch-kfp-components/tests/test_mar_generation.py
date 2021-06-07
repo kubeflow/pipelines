@@ -14,30 +14,39 @@
 """Unit Tests for mar generation."""
 import os
 import re
-import subprocess
 import tempfile
 import pytest
 from pytorch_kfp_components.components.mar.component import MarGeneration
 
-IRIS_DIR = "tests/iris"
+dirname, filename = os.path.split(os.path.abspath(__file__))
+IRIS_DIR = os.path.join(dirname, "iris")
 EXPORT_PATH = tempfile.mkdtemp()
 print(f"Export path: {EXPORT_PATH}")
-MAR_CONFIG = {
-    "MODEL_NAME":
-    "iris_classification",
-    "MODEL_FILE":
-    f"{IRIS_DIR}/iris_classification.py",
-    "HANDLER":
-    f"{IRIS_DIR}/iris_handler.py",
-    "SERIALIZED_FILE":
-    f"{EXPORT_PATH}/iris.pt",
-    "VERSION":
-    "1",
-    "EXPORT_PATH":
-    EXPORT_PATH,
-    "CONFIG_PROPERTIES":
-    "https://kubeflow-dataset.s3.us-east-2.amazonaws.com/config.properties",
-}
+#pylint: disable=redefined-outer-name
+#pylint: disable=invalid-name
+
+@pytest.fixture(scope="class")
+def mar_config():
+    """Fixture - to use mar_config dict across unit tests
+    """
+    mar_config = {
+        "MODEL_NAME":
+            "iris_classification",
+        "MODEL_FILE":
+            f"{IRIS_DIR}/iris_classification.py",
+        "HANDLER":
+            f"{IRIS_DIR}/iris_handler.py",
+        "SERIALIZED_FILE":
+            f"{EXPORT_PATH}/iris.pt",
+        "VERSION":
+            "1",
+        "EXPORT_PATH":
+            EXPORT_PATH,
+        "CONFIG_PROPERTIES":
+            "https://kubeflow-dataset.s3.us-east-2.amazonaws.com/config.properties", #pylint: disable=line-too-long
+    }
+    return mar_config
+
 
 MANDATORY_ARGS = [
     "MODEL_NAME",
@@ -87,7 +96,7 @@ def test_invalid_mar_config_parameter_type():
         MarGeneration(mar_config=mar_config, mar_save_path=tmp_dir)
 
 
-def test_invalid_mar_save_parameter_type():
+def test_invalid_mar_save_parameter_type(mar_config):
     """Test mar generation failure with invalid save path.
 
     Raises:
@@ -99,7 +108,7 @@ def test_invalid_mar_save_parameter_type():
         f"type <class 'str'> but received as {type(mar_save_parameter)}"
     )
     with pytest.raises(TypeError, match=exception_msg):
-        MarGeneration(mar_config=MAR_CONFIG, mar_save_path=mar_save_parameter)
+        MarGeneration(mar_config=mar_config, mar_save_path=mar_save_parameter)
 
 
 def test_invalid_mar_config_parameter_value():
@@ -112,13 +121,14 @@ def test_invalid_mar_config_parameter_value():
     tmp_dir = tempfile.mkdtemp()
 
     exception_msg = re.escape(
-        "mar_config is not optional. Received value: {}".format(mar_config))
+        "mar_config is not optional. Received value: {}".format(mar_config)
+    )
     with pytest.raises(ValueError, match=exception_msg):
         MarGeneration(mar_config=mar_config, mar_save_path=tmp_dir)
 
 
 @pytest.mark.parametrize("mandatory_key", MANDATORY_ARGS)
-def test_mar_generation_mandatory_params_missing(mandatory_key):
+def test_mar_generation_mandatory_params_missing(mar_config, mandatory_key):
     """Testing Mar Generation with missing mandatory keys.
 
     Args:
@@ -126,9 +136,7 @@ def test_mar_generation_mandatory_params_missing(mandatory_key):
     Raises:
         Exception : when mandatory keys are missing.
     """
-    tmp_value = MAR_CONFIG[mandatory_key]
-    MAR_CONFIG[mandatory_key] = ""
-    MAR_CONFIG.pop(mandatory_key)
+    mar_config.pop(mandatory_key)
 
     tmp_dir = tempfile.mkdtemp()
     excpetion_msg = re.escape(
@@ -136,43 +144,41 @@ def test_mar_generation_mandatory_params_missing(mandatory_key):
         f"missing in the config file ['{mandatory_key}']"
     )
     with pytest.raises(Exception, match=excpetion_msg):
-        MarGeneration(mar_config=MAR_CONFIG, mar_save_path=tmp_dir)
-
-    MAR_CONFIG[mandatory_key] = tmp_value
+        MarGeneration(mar_config=mar_config, mar_save_path=tmp_dir)
 
 
-def test_mar_generation_success():
-    """Test for successful mar generation."""
-    cmd = [
-        "python",
-        "iris_pytorch.py",
-        "--checkpoint_dir",
-        EXPORT_PATH,
+@pytest.mark.parametrize(
+    "key", [
+        "MODEL_NAME", "SERIALIZED_FILE", "MODEL_FILE", "HANDLER",
+        "REQUIREMENTS_FILE", "EXTRA_FILES"
     ]
+)
+def test_mar_invalid_path(mar_config, key):
+    mar_config[key] = "dummy"
+    with pytest.raises(ValueError, match="No such file or directory"):
+        MarGeneration(mar_config=mar_config)
 
-    cwd = os.getcwd()
-    os.chdir(IRIS_DIR)
-    subprocess.run(cmd)  #pylint: disable=W1510
-    os.chdir(cwd)
-    generate_mar_file(config=MAR_CONFIG, save_path=EXPORT_PATH)
-    print("export path need to watch >>>>>>>>>>>>>",EXPORT_PATH)
+
+def test_mar_generation_success(mar_config):
+    """Test for successful mar generation."""
+    with open(os.path.join(EXPORT_PATH, "iris.pt"), "w") as fp:
+        fp.write("dummy")
+    generate_mar_file(config=mar_config, save_path=EXPORT_PATH)
 
 
 @pytest.mark.parametrize("handler", DEFAULT_HANDLERS)
-def test_mar_generation_default_handlers(handler):
+def test_mar_generation_default_handlers(mar_config, handler):
     """Testing mar generation using default handlers.
 
     Args:
         handler: default handler files
     """
-    tmp_value = MAR_CONFIG["HANDLER"]
-    MAR_CONFIG["HANDLER"] = handler
-    generate_mar_file(config=MAR_CONFIG, save_path=EXPORT_PATH)
-    MAR_CONFIG["HANDLER"] = tmp_value
+    mar_config["HANDLER"] = handler
+    generate_mar_file(config=mar_config, save_path=EXPORT_PATH)
 
 
 @pytest.mark.parametrize("optional_arg", OPTIONAL_ARGS)
-def test_mar_generation_optional_arguments(optional_arg):
+def test_mar_generation_optional_arguments(mar_config, optional_arg):
     """Tests mar generation with optional arguments.
 
     Args:
@@ -180,17 +186,20 @@ def test_mar_generation_optional_arguments(optional_arg):
     """
     new_file, filename = tempfile.mkstemp()  #pylint: disable=W0612
 
-    MAR_CONFIG[optional_arg] = os.path.join(os.getcwd(), filename)
+    mar_config[optional_arg] = os.path.join(os.getcwd(), filename)
 
-    generate_mar_file(config=MAR_CONFIG, save_path=EXPORT_PATH)
+    generate_mar_file(config=mar_config, save_path=EXPORT_PATH)
 
-    MAR_CONFIG.pop(optional_arg)
+    mar_config.pop(optional_arg)
 
-def test_config_prop_invalid_url():
+
+def test_config_prop_invalid_url(mar_config):
     """Test mar generation with invalid config.properties url."""
     config_prop_url = "dummy"
-    MAR_CONFIG["CONFIG_PROPERTIES"] = "dummy"
-    exception_msg = ("Unable to download config properties file using url - {}"
-                     .format(config_prop_url))
+    mar_config["CONFIG_PROPERTIES"] = "dummy"
+    exception_msg = (
+        "Unable to download config properties file using url - {}".
+        format(config_prop_url)
+    )
     with pytest.raises(ValueError, match=exception_msg):
-        generate_mar_file(config=MAR_CONFIG, save_path=EXPORT_PATH)
+        generate_mar_file(config=mar_config, save_path=EXPORT_PATH)

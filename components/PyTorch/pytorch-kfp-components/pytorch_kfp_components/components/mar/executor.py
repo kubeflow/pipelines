@@ -1,5 +1,5 @@
 #!/usr/bin/env/python3
-# 
+#
 # Copyright (c) Facebook, Inc. and its affiliates.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ from pytorch_kfp_components.types import standard_component_specs
 
 class Executor(BaseExecutor):
     """Mar Generation Executor Class."""
+
     def __init__(self):  #pylint: disable=W0235
         """Initializing the executor."""
         super(Executor, self).__init__()  #pylint: disable=R1725
@@ -43,9 +44,11 @@ class Executor(BaseExecutor):
         """
 
         mar_config = input_dict.get(
-            standard_component_specs.MAR_GENERATION_CONFIG)
+            standard_component_specs.MAR_GENERATION_CONFIG
+        )
         mar_save_path = exec_properties.get(
-            standard_component_specs.MAR_GENERATION_SAVE_PATH)
+            standard_component_specs.MAR_GENERATION_SAVE_PATH
+        )
         return mar_config, mar_save_path
 
     def _validate_mar_config(self, mar_config):  #pylint: disable=R0201
@@ -80,7 +83,8 @@ class Executor(BaseExecutor):
         if missing_list:
             raise ValueError(
                 "Following Mandatory keys are missing in the config file {}".
-                format(missing_list))
+                format(missing_list)
+            )
 
     def download_config_properties(self, url):  #pylint: disable=R0201
         """Downloads the config.properties.
@@ -91,16 +95,17 @@ class Executor(BaseExecutor):
         if not os.path.exists(url):
             try:
                 url = wget.download(url, tempfile.mkdtemp())
-            except ValueError as e:
+            except ValueError as exc:
                 raise ValueError(
                     "Unable to download config "
                     "properties file using url - {}".format(url)
-                ) from e
+                ) from exc
 
         return url
 
-    def _generate_mar_file(self, mar_config: dict, mar_save_path: str,
-                           output_dict: dict):
+    def _generate_mar_file(
+        self, mar_config: dict, mar_save_path: str, output_dict: dict
+    ):
         """Generates the model mar file.
 
         Args:
@@ -118,47 +123,53 @@ class Executor(BaseExecutor):
             # uri = self._download_dependent_file(key, uri)
             mar_config[key] = uri
 
-        archiver_cmd = ("torch-model-archiver --force "
-                        "--model-name {MODEL_NAME} "
-                        "--serialized-file {SERIALIZED_FILE} "
-                        "--model-file {MODEL_FILE} "
-                        "--handler {HANDLER} "
-                        "-v {VERSION}".format(
-                            MODEL_NAME=mar_config["MODEL_NAME"],
-                            SERIALIZED_FILE=mar_config["SERIALIZED_FILE"],
-                            MODEL_FILE=mar_config["MODEL_FILE"],
-                            HANDLER=mar_config["HANDLER"],
-                            VERSION=mar_config["VERSION"],
-                        ))
+        archiver_cmd = (
+            "torch-model-archiver --force "
+            "--model-name {MODEL_NAME} "
+            "--serialized-file {SERIALIZED_FILE} "
+            "--model-file {MODEL_FILE} "
+            "--handler {HANDLER} "
+            "-v {VERSION}".format(
+                MODEL_NAME=mar_config["MODEL_NAME"],
+                SERIALIZED_FILE=mar_config["SERIALIZED_FILE"],
+                MODEL_FILE=mar_config["MODEL_FILE"],
+                HANDLER=mar_config["HANDLER"],
+                VERSION=mar_config["VERSION"],
+            )
+        )
 
         if "EXPORT_PATH" in mar_config:
             export_path = mar_config["EXPORT_PATH"]
-            output_dict[standard_component_specs.
-                        MAR_GENERATION_SAVE_PATH] = export_path
+            output_dict[standard_component_specs.MAR_GENERATION_SAVE_PATH
+                       ] = export_path
             if not os.path.exists(export_path):
                 Path(export_path).mkdir(parents=True, exist_ok=True)
 
             archiver_cmd += " --export-path {EXPORT_PATH}".format(
-                EXPORT_PATH=export_path)
+                EXPORT_PATH=export_path
+            )
 
         if "EXTRA_FILES" in mar_config:
             archiver_cmd += " --extra-files {EXTRA_FILES}".format(
-                EXTRA_FILES=mar_config["EXTRA_FILES"])
+                EXTRA_FILES=mar_config["EXTRA_FILES"]
+            )
 
         if "REQUIREMENTS_FILE" in mar_config:
             archiver_cmd += " -r {REQUIREMENTS_FILE}".format(
-                REQUIREMENTS_FILE=mar_config["REQUIREMENTS_FILE"])
+                REQUIREMENTS_FILE=mar_config["REQUIREMENTS_FILE"]
+            )
 
         print("Running Archiver cmd: ", archiver_cmd)
 
-        return_code = subprocess.Popen(archiver_cmd, shell=True).wait()
-        if return_code != 0:
-            error_msg = (
-                "Error running command {archiver_cmd} {return_code}".format(
-                    archiver_cmd=archiver_cmd, return_code=return_code))
-            print(error_msg)
-            raise Exception("Unable to create mar file: {error_msg}".format(
-                error_msg=error_msg))
+        proc = subprocess.Popen(
+            archiver_cmd,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        _, err = proc.communicate()
+        if err:
+            raise ValueError(err)
 
         # If user has provided the export path
         # By default, torch-model-archiver
@@ -170,17 +181,19 @@ class Executor(BaseExecutor):
 
         if "EXPORT_PATH" not in mar_config:
             mar_file_local_path = os.path.join(
-                os.getcwd(), "{}.mar".format(mar_config["MODEL_NAME"]))
+                os.getcwd(), "{}.mar".format(mar_config["MODEL_NAME"])
+            )
             if not Path(mar_save_path).exists():
                 Path(mar_save_path).mkdir(parents=True, exist_ok=True)
             shutil.move(mar_file_local_path, mar_save_path)
-            output_dict[standard_component_specs.
-                        MAR_GENERATION_SAVE_PATH] = mar_save_path
+            output_dict[standard_component_specs.MAR_GENERATION_SAVE_PATH
+                       ] = mar_save_path
 
         elif mar_config["EXPORT_PATH"] != mar_save_path:
             raise Exception(
                 "The export path [{}] needs to be same as mar save path [{}] ".
-                format(mar_config["EXPORT_PATH"], mar_save_path))
+                format(mar_config["EXPORT_PATH"], mar_save_path)
+            )
 
         print("Saving model file ")
         ## TODO: While separating the mar generation component from trainer # pylint: disable=W0511
@@ -190,8 +203,9 @@ class Executor(BaseExecutor):
         )
         shutil.copy(mar_config["MODEL_FILE"], mar_config["EXPORT_PATH"])
 
-    def _save_config_properties(self, mar_config: dict, mar_save_path: str,
-                                output_dict: dict):
+    def _save_config_properties(
+        self, mar_config: dict, mar_save_path: str, output_dict: dict
+    ):
         """Saves the config.properties file where the mar file is generated.
 
         Args :
@@ -202,7 +216,8 @@ class Executor(BaseExecutor):
         print("Downloading config properties")
         if "CONFIG_PROPERTIES" in mar_config:
             config_properties_local_path = self.download_config_properties(
-                mar_config["CONFIG_PROPERTIES"])
+                mar_config["CONFIG_PROPERTIES"]
+            )
         else:
             config_properties_local_path = mar_config["CONFIG_PROPERTIES"]
 
@@ -210,8 +225,8 @@ class Executor(BaseExecutor):
         if os.path.exists(config_prop_path):
             os.remove(config_prop_path)
         shutil.move(config_properties_local_path, mar_save_path)
-        output_dict[standard_component_specs.
-                    CONFIG_PROPERTIES_SAVE_PATH] = mar_save_path
+        output_dict[standard_component_specs.CONFIG_PROPERTIES_SAVE_PATH
+                   ] = mar_save_path
 
     def Do(self, input_dict: dict, output_dict: dict, exec_properties: dict):
         """Executes the mar generation process.
@@ -227,7 +242,8 @@ class Executor(BaseExecutor):
             exec_properties=exec_properties,
         )
         mar_config, mar_save_path = self.get_fn_args(
-            input_dict=input_dict, exec_properties=exec_properties)
+            input_dict=input_dict, exec_properties=exec_properties
+        )
         self._validate_mar_config(mar_config=mar_config)
 
         self._generate_mar_file(
