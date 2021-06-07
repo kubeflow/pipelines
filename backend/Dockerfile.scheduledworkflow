@@ -15,6 +15,7 @@ WORKDIR /bin
 COPY --from=builder /bin/controller /bin/controller
 COPY --from=builder /go/src/github.com/kubeflow/pipelines/third_party/license.txt /bin/license.txt
 RUN chmod +x /bin/controller
+RUN apk --no-cache add tzdata
 
 ENV NAMESPACE ""
 
