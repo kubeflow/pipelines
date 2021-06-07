@@ -56,7 +56,7 @@ def detect_version(base_path):
     )
     version = types.ModuleType(loader.name)
     loader.exec_module(version)
-    return version
+    return version.__version__
 
 
 if __name__ == "__main__":
