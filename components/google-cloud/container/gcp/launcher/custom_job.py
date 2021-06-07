@@ -1,3 +1,17 @@
+# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 def create_custom_job(
   type,
   gcp_project,
@@ -8,6 +22,7 @@ def create_custom_job(
   import logging
   import subprocess
   import time
+  import json
   from google.cloud import aiplatform
   from google.protobuf import json_format
   from google.protobuf.struct_pb2 import Value
@@ -33,27 +48,8 @@ def create_custom_job(
   job_client = aiplatform.gapic.JobServiceClient(client_options=client_options)
 
   parent = f"projects/{gcp_project}/locations/{gcp_region}"
-  job_spec = {
-      "display_name": 'yang-customjob-fpc-test-1',
-      'job_spec': {
-          "worker_pool_specs": [
-              {
-                  "replica_count": 1,
-                  "machine_spec": {
-                      "machine_type": "n1-standard-4",
-                  },
-                  "container_spec": {
-                      "image_uri": "busybox",
-                      "command": [
-                          "sleep",
-                          "60"
-                      ],
-                  },
-              }
-          ]
-      },
-      'labels': {'vertex-pipeline-job-id': '123'},
-  }
+  job_spec = json.loads(payload)
+
   create_custom_job_response = job_client.create_custom_job(parent=parent, custom_job=job_spec)
   custom_job_name = create_custom_job_response.name
 
