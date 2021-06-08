@@ -15,7 +15,7 @@
 package templates
 
 import (
-	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	k8sv1 "k8s.io/api/core/v1"
 )
 

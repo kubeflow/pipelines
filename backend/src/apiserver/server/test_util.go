@@ -15,9 +15,10 @@
 package server
 
 import (
+	"context"
 	"testing"
 
-	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -243,7 +244,7 @@ func initWithOneTimeRun(t *testing.T) (*resource.FakeClientManager, *resource.Re
 			},
 		},
 	}
-	runDetail, err := manager.CreateRun(apiRun)
+	runDetail, err := manager.CreateRun(context.Background(), apiRun)
 	assert.Nil(t, err)
 	return clientManager, manager, runDetail
 }

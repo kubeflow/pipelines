@@ -281,8 +281,7 @@ spec:
   arguments: {}
   entrypoint: rand-fail-dag
   templates:
-  - arguments: {}
-    dag:
+  - dag:
       tasks:
       - arguments: {}
         name: A
@@ -301,10 +300,10 @@ spec:
     metadata: {}
     name: rand-fail-dag
     outputs: {}
-  - arguments: {}
-    container:
+  - container:
       args:
-      - import random; import sys; exit_code = random.choice([0, 0, 1]); print('exiting with code {}'.format(exit_code)); sys.exit(exit_code)
+      - import random; import sys; exit_code = random.choice([0, 0, 1]); print('exiting
+        with code {}'.format(exit_code)); sys.exit(exit_code)
       command:
       - python
       - -c

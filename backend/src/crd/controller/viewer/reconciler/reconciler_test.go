@@ -142,7 +142,7 @@ func TestReconcile_EachViewerCreatesADeployment(t *testing.T) {
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "viewer-123", Namespace: "kubeflow"},
 	}
-	_, err := reconciler.Reconcile(req)
+	_, err := reconciler.Reconcile(context.Background(), req)
 
 	if err != nil {
 		t.Fatalf("Reconcile(%+v) = %v; Want nil error", req, err)
@@ -218,7 +218,7 @@ func TestReconcile_ImageWithoutTagCountAsTFv2(t *testing.T) {
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "viewer-123", Namespace: "kubeflow"},
 	}
-	_, err := reconciler.Reconcile(req)
+	_, err := reconciler.Reconcile(context.Background(), req)
 
 	if err != nil {
 		t.Fatalf("Reconcile(%+v) = %v; Want nil error", req, err)
@@ -284,7 +284,7 @@ func TestReconcile_ViewerUsesSpecifiedVolumeMountsForDeployment(t *testing.T) {
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "viewer-123", Namespace: "kubeflow"},
 	}
-	_, err := reconciler.Reconcile(req)
+	_, err := reconciler.Reconcile(context.Background(), req)
 
 	if err != nil {
 		t.Fatalf("Reconcile(%+v) = %v; Want nil error", req, err)
@@ -373,7 +373,7 @@ func TestReconcile_EachViewerCreatesAService(t *testing.T) {
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "viewer-123", Namespace: "kubeflow"},
 	}
-	_, err := reconciler.Reconcile(req)
+	_, err := reconciler.Reconcile(context.Background(), req)
 
 	if err != nil {
 		t.Fatalf("Reconcile(%+v) = %v; Want nil error", req, err)
@@ -447,7 +447,7 @@ func TestReconcile_UnknownViewerTypesAreIgnored(t *testing.T) {
 		NamespacedName: types.NamespacedName{Name: "viewer-123", Namespace: "kubeflow"},
 	}
 
-	got, err := reconciler.Reconcile(req)
+	got, err := reconciler.Reconcile(context.Background(), req)
 
 	// Want no error and no requeuing.
 	want := reconcile.Result{Requeue: false}
@@ -476,7 +476,7 @@ func TestReconcile_UnknownViewerDoesNothing(t *testing.T) {
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "viewer-123", Namespace: "kubeflow"},
 	}
-	got, err := reconciler.Reconcile(req)
+	got, err := reconciler.Reconcile(context.Background(), req)
 
 	want := reconcile.Result{}
 	if err != nil || !cmp.Equal(got, want) {
@@ -527,7 +527,7 @@ func TestReconcile_MaxNumViewersIsEnforced(t *testing.T) {
 		n, v := makeViewer(i)
 		cli.Create(ctx, v)
 		req := reconcile.Request{NamespacedName: *n}
-		_, err := reconciler.Reconcile(req)
+		_, err := reconciler.Reconcile(context.Background(), req)
 
 		if err != nil {
 			t.Errorf("Reconcile(%+v) = %v; Want nil error", req, err)
@@ -582,7 +582,7 @@ func TestReconcile_MaxNumViewersIsEnforced(t *testing.T) {
 	cli.Create(ctx, v)
 
 	req := reconcile.Request{NamespacedName: *n}
-	_, err := reconciler.Reconcile(req)
+	_, err := reconciler.Reconcile(context.Background(), req)
 
 	if err != nil {
 		t.Errorf("Reconcile(%+v) = %v; Want nil error", req, err)

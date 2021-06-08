@@ -18,8 +18,8 @@ import (
 	"testing"
 	"time"
 
-	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-	workflowcommon "github.com/argoproj/argo/workflow/common"
+	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	workflowcommon "github.com/argoproj/argo-workflows/v3/workflow/common"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
@@ -42,7 +42,7 @@ func TestToWorkflowStatuses(t *testing.T) {
 			},
 		},
 		Status: workflowapi.WorkflowStatus{
-			Phase:      workflowapi.NodeRunning,
+			Phase:      workflowapi.WorkflowRunning,
 			Message:    "WORKFLOW_MESSAGE",
 			StartedAt:  metav1.NewTime(time.Unix(51, 0).UTC()),
 			FinishedAt: metav1.NewTime(time.Unix(52, 0).UTC()),
@@ -56,7 +56,7 @@ func TestToWorkflowStatuses(t *testing.T) {
 		Namespace:   "NAMESPACE",
 		SelfLink:    "SELF_LINK",
 		UID:         "UID",
-		Phase:       workflowapi.NodeRunning,
+		Phase:       workflowapi.WorkflowRunning,
 		Message:     "WORKFLOW_MESSAGE",
 		CreatedAt:   metav1.NewTime(time.Unix(50, 0).UTC()),
 		StartedAt:   metav1.NewTime(time.Unix(51, 0).UTC()),

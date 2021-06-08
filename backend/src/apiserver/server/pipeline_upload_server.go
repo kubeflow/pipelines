@@ -15,6 +15,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -229,7 +230,7 @@ func (s *PipelineUploadServer) canUploadVersionedPipeline(r *http.Request, names
 		Version:   common.RbacPipelinesVersion,
 		Resource:  common.RbacResourceTypePipelines,
 	}
-	err := s.resourceManager.IsRequestAuthorized(userIdentityHeader, resourceAttributes)
+	err := s.resourceManager.IsRequestAuthorized(context.TODO(), userIdentityHeader, resourceAttributes)
 	if err != nil {
 		return util.Wrap(err, "Authorization Failure.")
 	}
