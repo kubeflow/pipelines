@@ -68,7 +68,7 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 			},
 		}},
 		Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}}},
-	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
+	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
 })
 
 var testWorkflow2 = util.NewWorkflow(&v1alpha1.Workflow{
@@ -85,7 +85,7 @@ var testWorkflow2 = util.NewWorkflow(&v1alpha1.Workflow{
 			},
 		}},
 		Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}}},
-	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
+	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
 })
 
 var validReference = []*api.ResourceReference{

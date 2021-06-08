@@ -72,13 +72,6 @@ func (m *FakeBadObjectStore) GetFromYamlFile(o interface{}, filePath string) err
 var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
 	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow1", Namespace: "ns1"},
-	Spec:       v1alpha1.WorkflowSpec{Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}}},
-	Status:     v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
-})
-
-var testWorkflowValid = util.NewWorkflow(&v1alpha1.Workflow{
-	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow1", Namespace: "ns1"},
 	Spec: v1alpha1.WorkflowSpec{
 		Entrypoint: "testy",
 		Templates: []v1alpha1.Template{v1alpha1.Template{
@@ -90,7 +83,7 @@ var testWorkflowValid = util.NewWorkflow(&v1alpha1.Workflow{
 			},
 		}},
 		Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}}},
-	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
+	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
 })
 
 // Util function to create an initial state with pipeline uploaded
@@ -228,7 +221,7 @@ func createPipeline(name string) *model.Pipeline {
 		}}
 }
 
-func addCreateRunMetadata(wf *v1alpha1.Workflow) {
+func addRuntimeMetadata(wf *v1alpha1.Workflow) {
 	template := wf.Spec.Templates[0]
 	template.Metadata.Annotations = map[string]string{"sidecar.istio.io/inject": "false"}
 	template.Metadata.Labels = map[string]string{"pipelines.kubeflow.org/cache_enabled": "true"}
@@ -378,7 +371,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
-	addRunMetadata(expectedRuntimeWorkflow)
+	addRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
@@ -435,7 +428,7 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRun(t)
 	expectedExperimentUUID := runDetail.ExperimentUUID
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
-	addCreateRunMetadata(expectedRuntimeWorkflow)
+	addRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
@@ -485,7 +478,7 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 	store, manager, runDetail := initWithPatchedRun(t)
 	expectedExperimentUUID := runDetail.ExperimentUUID
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
-	addCreateRunMetadata(expectedRuntimeWorkflow)
+	addRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("test-default-bucket")}}
@@ -572,7 +565,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
-	addCreateRunMetadata(expectedRuntimeWorkflow)
+	addRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
@@ -668,7 +661,7 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
-	addCreateRunMetadata(expectedRuntimeWorkflow)
+	addRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}

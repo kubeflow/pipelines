@@ -55,8 +55,8 @@ func TestGetParameters_ParametersTooLong(t *testing.T) {
 	assert.Equal(t, codes.InvalidArgument, err.(*UserError).ExternalStatusCode())
 }
 
-func unmarshalWf(yamlStr string) *wfv1.Workflow {
-	var wf wfv1.Workflow
+func unmarshalWf(yamlStr string) *v1alpha1.Workflow {
+	var wf v1alpha1.Workflow
 	err := yaml.Unmarshal([]byte(yamlStr), &wf)
 	if err != nil {
 		panic(err)
