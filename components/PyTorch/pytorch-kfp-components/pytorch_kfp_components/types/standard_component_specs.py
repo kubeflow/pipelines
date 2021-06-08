@@ -42,7 +42,6 @@ MINIO_BUCKET_NAME = "bucket_name"
 MINIO_DESTINATION = "destination"
 MINIO_ENDPOINT = "endpoint"
 
-
 class Parameters:  # pylint: disable=R0903
     """Parameter class to match the desired type."""
 
