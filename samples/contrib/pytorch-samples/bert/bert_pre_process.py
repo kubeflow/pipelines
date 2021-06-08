@@ -1,3 +1,17 @@
+# !/usr/bin/env/python3
+# Copyright (c) Facebook, Inc. and its affiliates.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+"""Bert Pre preprocess script."""
 import os
 import subprocess
 from argparse import ArgumentParser
@@ -6,7 +20,9 @@ from pathlib import Path
 import pyarrow.csv as pv
 import pyarrow.parquet as pq
 from torchtext.utils import download_from_url, extract_archive
-from pytorch_kfp_components.components.visualization.component import Visualization
+from pytorch_kfp_components.components.visualization.component import (
+    Visualization,
+)
 
 if __name__ == "__main__":
 
@@ -43,10 +59,12 @@ if __name__ == "__main__":
 
     ag_news_csv = pv.read_csv("ag_news_csv/train.csv")
 
-    pq.write_table(ag_news_csv, os.path.join(output_path, "ag_news_data.parquet"))
+    pq.write_table(
+        ag_news_csv, os.path.join(output_path, "ag_news_data.parquet")
+    )
 
     entry_point = ["ls", "-R", output_path]
-    run_code = subprocess.run(entry_point, stdout=subprocess.PIPE)
+    run_code = subprocess.run(entry_point, stdout=subprocess.PIPE)  #pylint: disable=subprocess-run-check
     print(run_code.stdout)
 
     visualization_arguments = {

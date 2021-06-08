@@ -1,9 +1,21 @@
-import pytorch_lightning as pl
+# !/usr/bin/env/python3
+# Copyright (c) Facebook, Inc. and its affiliates.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+"""AG news Classification script."""
 import os
-from pytorch_kfp_components.components.trainer.component import Trainer
-from pytorch_kfp_components.components.mar.component import MarGeneration
 from argparse import ArgumentParser
 from pathlib import Path
+import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import (
     EarlyStopping,
@@ -11,7 +23,8 @@ from pytorch_lightning.callbacks import (
     ModelCheckpoint,
 )
 from pytorch_kfp_components.components.visualization.component import Visualization
-
+from pytorch_kfp_components.components.trainer.component import Trainer
+from pytorch_kfp_components.components.mar.component import MarGeneration
 # Argument parser for user defined paths
 parser = ArgumentParser()
 
@@ -72,12 +85,13 @@ parser = pl.Trainer.add_argparse_args(parent_parser=parser)
 
 args = vars(parser.parse_args())
 
-
 # Enabling Tensorboard Logger, ModelCheckpoint, Earlystopping
 
 lr_logger = LearningRateMonitor()
 tboard = TensorBoardLogger(args["tensorboard_root"])
-early_stopping = EarlyStopping(monitor="val_loss", mode="min", patience=5, verbose=True)
+early_stopping = EarlyStopping(
+    monitor="val_loss", mode="min", patience=5, verbose=True
+)
 checkpoint_callback = ModelCheckpoint(
     dirpath=args["checkpoint_dir"],
     filename="cifar10_{epoch:02d}",
@@ -100,12 +114,14 @@ trainer_args = {
     "callbacks": [lr_logger, early_stopping, checkpoint_callback],
 }
 
-
 if "profiler" in args and args["profiler"] != "":
     trainer_args["profiler"] = args["profiler"]
 
 # Setting the datamodule specific arguments
-data_module_args = {"train_glob": args["dataset_path"], "num_samples": args["num_samples"]}
+data_module_args = {
+    "train_glob": args["dataset_path"],
+    "num_samples": args["num_samples"]
+}
 
 # Creating parent directories
 Path(args["tensorboard_root"]).mkdir(parents=True, exist_ok=True)
@@ -128,18 +144,26 @@ if trainer.ptl_trainer.global_rank == 0:
     bert_dir, _ = os.path.split(os.path.abspath(__file__))
 
     mar_config = {
-        "MODEL_NAME": "bert_test",
-        "MODEL_FILE": os.path.join(bert_dir, "bert_train.py"),
-        "HANDLER": os.path.join(bert_dir, "bert_handler.py"),
-        "SERIALIZED_FILE": os.path.join(args["checkpoint_dir"], args["model_name"]),
-        "VERSION": "1",
-        "EXPORT_PATH": args["checkpoint_dir"],
-        "CONFIG_PROPERTIES": "https://kubeflow-dataset.s3.us-east-2.amazonaws.com/bert/config.properties",
-        "EXTRA_FILES": "{},{},{}".format(
-            os.path.join(bert_dir, "bert-base-uncased-vocab.txt"),
-            os.path.join(bert_dir, "index_to_name.json"),
-            os.path.join(bert_dir, "wrapper.py")
-        )
+        "MODEL_NAME":
+            "bert_test",
+        "MODEL_FILE":
+            os.path.join(bert_dir, "bert_train.py"),
+        "HANDLER":
+            os.path.join(bert_dir, "bert_handler.py"),
+        "SERIALIZED_FILE":
+            os.path.join(args["checkpoint_dir"], args["model_name"]),
+        "VERSION":
+            "1",
+        "EXPORT_PATH":
+            args["checkpoint_dir"],
+        "CONFIG_PROPERTIES":
+            "https://kubeflow-dataset.s3.us-east-2.amazonaws.com/bert/config.properties",
+        "EXTRA_FILES":
+            "{},{},{}".format(
+                os.path.join(bert_dir, "bert-base-uncased-vocab.txt"),
+                os.path.join(bert_dir, "index_to_name.json"),
+                os.path.join(bert_dir, "wrapper.py")
+            )
     }
 
     MarGeneration(mar_config=mar_config, mar_save_path=args["checkpoint_dir"])
