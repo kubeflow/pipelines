@@ -625,7 +625,7 @@ message PipelineDeploymentConfig {
       // - `uri="<uri>"`
       // - `state=<state>`
       // - `name="value"`
-      // - `and` to combine two conditions and returns when both are true.
+      // - `AND` to combine two conditions and returns when both are true.
       // If no `in_context` filter is set, the query will be scoped to the
       // the current pipeline context.
       string filter = 1;
