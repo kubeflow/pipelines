@@ -64,9 +64,9 @@ export function MetricsVisualizations({ artifacts, artifactTypes }: MetricsVisua
           </React.Fragment>
         );
       })}
-      {verifiedMetricsArtifacts.map(artifact => 
-        <ScalarMetricsSection artifact={artifact} key={artifact.getId()} />    
-      })}
+      {verifiedMetricsArtifacts.map(artifact => (
+        <ScalarMetricsSection artifact={artifact} key={artifact.getId()} />
+      ))}
     </>
   );
 }
@@ -122,8 +122,12 @@ function getVerifiedMetricsArtifacts(
   // system.Metrics contains scalar metrics.
   let metricsArtifacts = filterArtifactsByType('system.Metrics', artifactTypes, artifacts);
 
-  return metricsArtifacts
-    .filter(x => x.getCustomPropertiesMap().get('name')?.getStringValue())
+  return metricsArtifacts.filter(x =>
+    x
+      .getCustomPropertiesMap()
+      .get('name')
+      ?.getStringValue(),
+  );
 }
 
 const ROC_CURVE_DEFINITION =
@@ -336,19 +340,19 @@ function ScalarMetricsSection({ artifact }: ScalarMetricsSectionProps) {
     return <></>;
   }
   return (
-        <div className={padding(40, 'lrt')}>
-          <div className={padding(40, 'b')}>
-            <h3>{'Scalar Metrics: ' + name}</h3>
-          </div>
-          <PagedTable
-            configs={[
-              {
-                data: data.map(d => [d.key, d.value]),
-                labels: ['name', 'value'],
-                type: PlotType.TABLE,
-              },
-            ]}
-          />
-        </div>
+    <div className={padding(40, 'lrt')}>
+      <div className={padding(40, 'b')}>
+        <h3>{'Scalar Metrics: ' + name}</h3>
+      </div>
+      <PagedTable
+        configs={[
+          {
+            data: data.map(d => [d.key, d.value]),
+            labels: ['name', 'value'],
+            type: PlotType.TABLE,
+          },
+        ]}
+      />
+    </div>
   );
 }
