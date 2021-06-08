@@ -23,10 +23,11 @@ Copy the example folder inside `pipelines/samples/contrib/pytorch-samples/`
 Ex: `pipelines/samples/contrib/pytorch-samples/iris`
 
 ### Build and push the docker image
-
-`docker build -t image_name:tag -f Dockerfile.cpu .`
-`docker tag image_name:tag username/image_name:tag`
-`docker push username/image_name`
+```
+docker build -t image_name:tag -f Dockerfile.cpu .
+docker tag image_name:tag username/image_name:tag
+docker push username/image_name
+```
 
 ### Update component.yaml files
 
