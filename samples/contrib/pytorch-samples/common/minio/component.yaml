@@ -12,7 +12,7 @@ outputs:
 
 implementation:
   container:
-    image: shrinathsuresh/pytorch_kfp_examples:v03
+    image: public.ecr.aws/y1x1p2u5/pytorch_kfp_components:latest
     command: ["python3", "common/minio/upload_to_minio.py"]
     args:
       - --bucket_name

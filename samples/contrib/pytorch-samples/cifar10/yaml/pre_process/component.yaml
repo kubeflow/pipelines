@@ -10,7 +10,7 @@ implementation:
   container:
     # For GPU use
     # image: public.ecr.aws/y1x1p2u5/pytorch_kfp_components:v1.1-gpu
-    image: shrinathsuresh/pytorch_kfp_examples:v03
+    image: public.ecr.aws/y1x1p2u5/pytorch_kfp_components:latest
     command: ["python3", "cifar10/cifar10_pre_process.py"]
     args:
     - --output_data
