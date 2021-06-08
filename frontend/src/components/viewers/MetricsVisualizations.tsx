@@ -80,7 +80,7 @@ function getVerifiedClassificationMetricsArtifacts(
   }
   // Reference: https://github.com/kubeflow/pipelines/blob/master/sdk/python/kfp/dsl/io_types.py#L124
   // system.ClassificationMetrics contains confusionMatrix or confidenceMetrics.
-  let classificationMetricsArtifacts = filterArtifactsByType(
+  const classificationMetricsArtifacts = filterArtifactsByType(
     'system.ClassificationMetrics',
     artifactTypes,
     artifacts,
@@ -120,7 +120,7 @@ function getVerifiedMetricsArtifacts(
   }
   // Reference: https://github.com/kubeflow/pipelines/blob/master/sdk/python/kfp/dsl/io_types.py#L104
   // system.Metrics contains scalar metrics.
-  let metricsArtifacts = filterArtifactsByType('system.Metrics', artifactTypes, artifacts);
+  const metricsArtifacts = filterArtifactsByType('system.Metrics', artifactTypes, artifacts);
 
   return metricsArtifacts.filter(x =>
     x
@@ -154,7 +154,7 @@ function ConfidenceMetricsSection({ artifact }: ConfidenceMetricsSectionProps) {
     ?.getStructValue()
     ?.toJavaScript();
   if (confidenceMetrics === undefined) {
-    return <></>;
+    return null;
   }
 
   const { error } = validateConfidenceMetrics((confidenceMetrics as any).list);
@@ -164,23 +164,19 @@ function ConfidenceMetricsSection({ artifact }: ConfidenceMetricsSectionProps) {
     return <Banner message={errorMsg} mode='error' additionalInfo={error} />;
   }
   return (
-    <>
-      {
-        <div className={padding(40, 'lrt')}>
-          <div className={padding(40, 'b')}>
-            <h3>
-              {'ROC Curve: ' + name}{' '}
-              <IconWithTooltip
-                Icon={HelpIcon}
-                iconColor={color.weak}
-                tooltip={ROC_CURVE_DEFINITION}
-              ></IconWithTooltip>
-            </h3>
-          </div>
-          <ROCCurve configs={buildRocCurveConfig((confidenceMetrics as any).list)} />
-        </div>
-      }
-    </>
+    <div className={padding(40, 'lrt')}>
+      <div className={padding(40, 'b')}>
+        <h3>
+          {'ROC Curve: ' + name}{' '}
+          <IconWithTooltip
+            Icon={HelpIcon}
+            iconColor={color.weak}
+            tooltip={ROC_CURVE_DEFINITION}
+          ></IconWithTooltip>
+        </h3>
+      </div>
+      <ROCCurve configs={buildRocCurveConfig((confidenceMetrics as any).list)} />
+    </div>
   );
 }
 
@@ -245,7 +241,7 @@ function ConfusionMatrixSection({ artifact }: ConfusionMatrixProps) {
     ?.getStructValue()
     ?.toJavaScript();
   if (confusionMatrix === undefined) {
-    return <></>;
+    return null;
   }
 
   const { error } = validateConfusionMatrix(confusionMatrix.struct as any);
@@ -255,23 +251,19 @@ function ConfusionMatrixSection({ artifact }: ConfusionMatrixProps) {
     return <Banner message={errorMsg} mode='error' additionalInfo={error} />;
   }
   return (
-    <>
-      {
-        <div className={padding(40)}>
-          <div className={padding(40, 'b')}>
-            <h3>
-              {'Confusion Matrix: ' + name}{' '}
-              <IconWithTooltip
-                Icon={HelpIcon}
-                iconColor={color.weak}
-                tooltip={CONFUSION_MATRIX_DEFINITION}
-              ></IconWithTooltip>
-            </h3>
-          </div>
-          <ConfusionMatrix configs={buildConfusionMatrixConfig(confusionMatrix.struct as any)} />
-        </div>
-      }
-    </>
+    <div className={padding(40)}>
+      <div className={padding(40, 'b')}>
+        <h3>
+          {'Confusion Matrix: ' + name}{' '}
+          <IconWithTooltip
+            Icon={HelpIcon}
+            iconColor={color.weak}
+            tooltip={CONFUSION_MATRIX_DEFINITION}
+          ></IconWithTooltip>
+        </h3>
+      </div>
+      <ConfusionMatrix configs={buildConfusionMatrixConfig(confusionMatrix.struct as any)} />
+    </div>
   );
 }
 
@@ -337,7 +329,7 @@ function ScalarMetricsSection({ artifact }: ScalarMetricsSectionProps) {
     .filter(metric => metric.key !== 'name');
 
   if (data.length === 0) {
-    return <></>;
+    return null;
   }
   return (
     <div className={padding(40, 'lrt')}>
