@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Artifact, ArtifactType } from '@kubeflow/frontend';
+import { Artifact, ArtifactType, getMetadataValue } from '@kubeflow/frontend';
 import HelpIcon from '@material-ui/icons/Help';
 import React from 'react';
 import { Array as ArrayRunType, Number, Failure, Record, String, ValidationError } from 'runtypes';
@@ -23,6 +23,7 @@ import { color, padding } from 'src/Css';
 import { filterArtifactsByType } from 'src/lib/MlmdUtils';
 import Banner from '../Banner';
 import ConfusionMatrix, { ConfusionMatrixConfig } from './ConfusionMatrix';
+import PagedTable from './PagedTable';
 import ROCCurve, { ROCCurveConfig } from './ROCCurve';
 import { PlotType } from './Viewer';
 
@@ -36,28 +37,26 @@ interface MetricsVisualizationsProps {
  * and multiple visualizations associated with one artifact.
  */
 export function MetricsVisualizations({ artifacts, artifactTypes }: MetricsVisualizationsProps) {
-  // system.ClassificationMetrics contains confusionMatrix or confidenceMetrics.
-  // TODO: Visualize confusionMatrix using system.ClassificationMetrics artifacts.
-  // https://github.com/kubeflow/pipelines/issues/5668
-  let classificationMetricsArtifacts = filterArtifactsByType(
-    'system.ClassificationMetrics',
-    artifactTypes,
-    artifacts,
-  );
-
-  // There can be multiple system.ClassificationMetrics artifacts per execution.
-  // Get confidenceMetrics and confusionMatrix from artifact.
+  // There can be multiple system.ClassificationMetrics or system.Metrics artifacts per execution.
+  // Get scalar metrics, confidenceMetrics and confusionMatrix from artifact.
   // If there is no available metrics, show banner to notify users.
   // Otherwise, Visualize all available metrics per artifact.
-  const metricsAvailableArtifacts = getMetricsAvailableArtifacts(classificationMetricsArtifacts);
+  const verifiedClassificationMetricsArtifacts = getVerifiedClassificationMetricsArtifacts(
+    artifacts,
+    artifactTypes,
+  );
+  const verifiedMetricsArtifacts = getVerifiedMetricsArtifacts(artifacts, artifactTypes);
 
-  if (metricsAvailableArtifacts.length === 0) {
+  if (
+    verifiedClassificationMetricsArtifacts.length === 0 &&
+    verifiedMetricsArtifacts.length === 0
+  ) {
     return <Banner message='There is no metrics artifact available in this step.' mode='info' />;
   }
 
   return (
     <>
-      {metricsAvailableArtifacts.map(artifact => {
+      {verifiedClassificationMetricsArtifacts.map(artifact => {
         return (
           <React.Fragment key={artifact.getId()}>
             <ConfidenceMetricsSection artifact={artifact} />
@@ -65,15 +64,33 @@ export function MetricsVisualizations({ artifacts, artifactTypes }: MetricsVisua
           </React.Fragment>
         );
       })}
+      {verifiedMetricsArtifacts.map(artifact => {
+        return (
+          <React.Fragment key={artifact.getId()}>
+            <ScalarMetricsSection artifact={artifact} />
+          </React.Fragment>
+        );
+      })}
     </>
   );
 }
 
-function getMetricsAvailableArtifacts(artifacts: Artifact[]): Artifact[] {
-  if (!artifacts) {
+function getVerifiedClassificationMetricsArtifacts(
+  artifacts: Artifact[],
+  artifactTypes: ArtifactType[],
+): Artifact[] {
+  if (!artifacts || !artifactTypes) {
     return [];
   }
-  return artifacts
+  // Reference: https://github.com/kubeflow/pipelines/blob/master/sdk/python/kfp/dsl/io_types.py#L124
+  // system.ClassificationMetrics contains confusionMatrix or confidenceMetrics.
+  let classificationMetricsArtifacts = filterArtifactsByType(
+    'system.ClassificationMetrics',
+    artifactTypes,
+    artifacts,
+  );
+
+  return classificationMetricsArtifacts
     .map(artifact => ({
       name: artifact
         .getCustomPropertiesMap()
@@ -95,6 +112,29 @@ function getMetricsAvailableArtifacts(artifacts: Artifact[]): Artifact[] {
         ?.toJavaScript();
       return !!confidenceMetrics || !!confusionMatrix;
     })
+    .map(x => x.artifact);
+}
+
+function getVerifiedMetricsArtifacts(
+  artifacts: Artifact[],
+  artifactTypes: ArtifactType[],
+): Artifact[] {
+  if (!artifacts || !artifactTypes) {
+    return [];
+  }
+  // Reference: https://github.com/kubeflow/pipelines/blob/master/sdk/python/kfp/dsl/io_types.py#L104
+  // system.Metrics contains scalar metrics.
+  let metricsArtifacts = filterArtifactsByType('system.Metrics', artifactTypes, artifacts);
+
+  return metricsArtifacts
+    .map(artifact => ({
+      name: artifact
+        .getCustomPropertiesMap()
+        .get('name')
+        ?.getStringValue(),
+      artifact: artifact,
+    }))
+    .filter(x => !!x.name)
     .map(x => x.artifact);
 }
 
@@ -225,7 +265,7 @@ function ConfusionMatrixSection({ artifact }: ConfusionMatrixProps) {
   return (
     <>
       {
-        <div className={padding(40, 'lrt')}>
+        <div className={padding(40)}>
           <div className={padding(40, 'b')}>
             <h3>
               {'Confusion Matrix: ' + name}{' '}
@@ -288,4 +328,43 @@ function buildConfusionMatrixConfig(
       data: confusionMatrix.rows.map(x => x.row),
     },
   ];
+}
+
+interface ScalarMetricsSectionProps {
+  artifact: Artifact;
+}
+function ScalarMetricsSection({ artifact }: ScalarMetricsSectionProps) {
+  const customProperties = artifact.getCustomPropertiesMap();
+  const name = customProperties.get('name')?.getStringValue();
+  const data = customProperties
+    .getEntryList()
+    .map(x => ({
+      key: x[0],
+      value: JSON.stringify(getMetadataValue(customProperties.get(x[0]))),
+    }))
+    .filter(metric => metric.key !== 'name');
+
+  if (data.length === 0) {
+    return <></>;
+  }
+  return (
+    <>
+      {
+        <div className={padding(40, 'lrt')}>
+          <div className={padding(40, 'b')}>
+            <h3>{'Scalar Metrics: ' + name}</h3>
+          </div>
+          <PagedTable
+            configs={[
+              {
+                data: data.map(d => [d.key, d.value]),
+                labels: ['name', 'value'],
+                type: PlotType.TABLE,
+              },
+            ]}
+          />
+        </div>
+      }
+    </>
+  );
 }
