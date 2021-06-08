@@ -336,8 +336,6 @@ function ScalarMetricsSection({ artifact }: ScalarMetricsSectionProps) {
     return <></>;
   }
   return (
-    <>
-      {
         <div className={padding(40, 'lrt')}>
           <div className={padding(40, 'b')}>
             <h3>{'Scalar Metrics: ' + name}</h3>
@@ -352,7 +350,5 @@ function ScalarMetricsSection({ artifact }: ScalarMetricsSectionProps) {
             ]}
           />
         </div>
-      }
-    </>
   );
 }
