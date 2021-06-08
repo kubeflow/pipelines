@@ -14,4 +14,4 @@
 # limitations under the License.
 """PyTorch Kubeflow Pipeline Root."""
 
-__version__ = "0.1.1dev"
+__version__ = "0.3.8dev"
