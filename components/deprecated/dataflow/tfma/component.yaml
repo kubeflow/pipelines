@@ -28,7 +28,6 @@ implementation:
       --project,  {inputValue: GCP project},
       --slice-columns, {inputValue: Slice columns},
       --output,   {inputValue: Analysis results dir},
+      --output-dir-uri-output-path, {outputPath: Analysis results dir},
+      --ui-metadata-output-path, {outputPath: MLPipeline UI metadata},
     ]
-    fileOutputs:
-      Analysis results dir: /output.txt
-      MLPipeline UI metadata: /mlpipeline-ui-metadata.json
