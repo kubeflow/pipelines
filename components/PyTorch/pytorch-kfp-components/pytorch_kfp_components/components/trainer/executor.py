@@ -75,6 +75,11 @@ class Executor(GenericExecutor):
         ) = self.derive_model_and_data_module_class(
             module_file=module_file, data_module_file=data_module_file
         )
+        if not data_module_class :
+            raise NotImplementedError(
+                "Data module class is mandatory. "
+                "User defined training module is yet to be supported."
+            )
         if data_module_class:
             data_module = data_module_class(
                 **data_module_args if data_module_args else {}
@@ -115,8 +120,3 @@ class Executor(GenericExecutor):
                        ] = model_save_path
             output_dict[standard_component_specs.PTL_TRAINER_OBJ] = trainer
 
-        else:
-            raise NotImplementedError(
-                "Data module class is mandatory. "
-                "User defined training module is yet to be supported."
-            )
