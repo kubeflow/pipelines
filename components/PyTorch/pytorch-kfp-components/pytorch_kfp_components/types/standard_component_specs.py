@@ -37,6 +37,20 @@ MAR_CONFIG_CONFIG_PROPERTIES = "config_properties"
 MAR_CONFIG_REQUIREMENTS_FILE = "requirements_file"
 MAR_CONFIG_EXTRA_FILES = "extra_files"
 
+VIZ_MLPIPELINE_UI_METADATA = "mlpipeline_ui_metadata"
+VIZ_MLPIPELINE_METRICS = "mlpipeline_metrics"
+VIZ_CONFUSION_MATRIX_DICT = "confusion_matrix_dict"
+VIZ_TEST_ACCURACY = "test_accuracy"
+
+VIZ_MARKDOWN = "markdown"
+VIZ_MARKDOWN_DICT_SOURCE = "source"
+VIZ_MARKDOWN_DICT_STORAGE = "storage"
+
+VIZ_CONFUSION_MATRIX_ACTUALS = "actuals"
+VIZ_CONFUSION_MATRIX_PREDS = "preds"
+VIZ_CONFUSION_MATRIX_CLASSES = "classes"
+VIZ_CONFUSION_MATRIX_URL = "url"
+
 MINIO_SOURCE = "source"
 MINIO_BUCKET_NAME = "bucket_name"
 MINIO_DESTINATION = "destination"
@@ -97,9 +111,39 @@ class MarGenerationSpec:  # pylint: disable=R0903
     }
 
 
+class VisualizationSpec:
+    """Visualization Specification class.
+    For validating the parameter 'type'
+    """
+    INPUT_DICT = {
+        VIZ_CONFUSION_MATRIX_DICT: Parameters(type=dict, optional=True),
+        VIZ_TEST_ACCURACY: Parameters(type=float, optional=True),
+        VIZ_MARKDOWN: Parameters(type=dict, optional=True),
+    }
+
+    OUTPUT_DICT = {}
+
+    EXECUTION_PROPERTIES = {
+        VIZ_MLPIPELINE_UI_METADATA: Parameters(type=str, optional=True),
+        VIZ_MLPIPELINE_METRICS: Parameters(type=str, optional=True),
+    }
+
+    MARKDOWN_DICT = {
+        VIZ_MARKDOWN_DICT_STORAGE: Parameters(type=str, optional=False),
+        VIZ_MARKDOWN_DICT_SOURCE: Parameters(type=dict, optional=False),
+    }
+
+    CONFUSION_MATRIX_DICT = {
+        VIZ_CONFUSION_MATRIX_ACTUALS: Parameters(type=list, optional=False),
+        VIZ_CONFUSION_MATRIX_PREDS: Parameters(type=list, optional=False),
+        VIZ_CONFUSION_MATRIX_CLASSES: Parameters(type=list, optional=False),
+        VIZ_CONFUSION_MATRIX_URL: Parameters(type=str, optional=False),
+    }
+
+
 class MinIoSpec:
-    """Minio Specification class.
-    For validating the parameter 'type' .
+    """MinIO Specification class.
+    For validating the parameter 'type'
     """
     INPUT_DICT = {
         MINIO_SOURCE: Parameters(type=str),
