@@ -123,15 +123,7 @@ function getVerifiedMetricsArtifacts(
   let metricsArtifacts = filterArtifactsByType('system.Metrics', artifactTypes, artifacts);
 
   return metricsArtifacts
-    .map(artifact => ({
-      name: artifact
-        .getCustomPropertiesMap()
-        .get('name')
-        ?.getStringValue(),
-      artifact: artifact,
-    }))
-    .filter(x => !!x.name)
-    .map(x => x.artifact);
+    .filter(x => x.getCustomPropertiesMap().get('name')?.getStringValue())
 }
 
 const ROC_CURVE_DEFINITION =
