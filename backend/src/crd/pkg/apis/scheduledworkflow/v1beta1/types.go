@@ -15,7 +15,7 @@
 package v1beta1
 
 import (
-	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/pkg/apis/core"
@@ -226,7 +226,7 @@ type WorkflowStatus struct {
 	UID types.UID `json:"uid,omitempty"`
 
 	// Phase is a high level summary of the status of the workflow.
-	Phase v1alpha1.NodePhase `json:"phase,omitempty"`
+	Phase v1alpha1.WorkflowPhase `json:"phase,omitempty"`
 
 	// A human readable message indicating details about why the workflow is in
 	// this condition.

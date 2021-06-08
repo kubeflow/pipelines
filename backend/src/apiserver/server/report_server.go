@@ -18,7 +18,7 @@ import (
 	"context"
 	"encoding/json"
 
-	workflow "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	workflow "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -36,7 +36,7 @@ func (s *ReportServer) ReportWorkflow(ctx context.Context,
 	if err != nil {
 		return nil, util.Wrap(err, "Report workflow failed.")
 	}
-	err = s.resourceManager.ReportWorkflowResource(workflow)
+	err = s.resourceManager.ReportWorkflowResource(ctx, workflow)
 	if err != nil {
 		return nil, util.Wrap(err, "Report workflow failed.")
 	}

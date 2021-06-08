@@ -21,8 +21,8 @@ import (
 	"io"
 	"strconv"
 
-	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
+	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	workflowclient "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
@@ -162,7 +162,7 @@ func (r *ResourceManager) DeleteExperiment(experimentID string) error {
 	return r.experimentStore.DeleteExperiment(experimentID)
 }
 
-func (r *ResourceManager) ArchiveExperiment(experimentId string) error {
+func (r *ResourceManager) ArchiveExperiment(ctx context.Context, experimentId string) error {
 	// To archive an experiment
 	// (1) update our persistent agent to disable CRDs of jobs in experiment
 	// (2) update database to
@@ -183,6 +183,7 @@ func (r *ResourceManager) ArchiveExperiment(experimentId string) error {
 		}
 		for _, job := range jobs {
 			_, err = r.getScheduledWorkflowClient(job.Namespace).Patch(
+				ctx,
 				job.Name,
 				types.MergePatchType,
 				[]byte(fmt.Sprintf(`{"spec":{"enabled":%s}}`, strconv.FormatBool(false))))
@@ -324,7 +325,7 @@ func (r *ResourceManager) GetPipelineTemplate(pipelineId string) ([]byte, error)
 	return template, nil
 }
 
-func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
+func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*model.RunDetail, error) {
 	// Get workflow from either of the two places:
 	// (1) raw pipeline manifest in pipeline_spec
 	// (2) pipeline version in resource_references
@@ -416,7 +417,7 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	}
 
 	// Create argo workflow CR resource
-	newWorkflow, err := r.getWorkflowClient(namespace).Create(workflow.Get())
+	newWorkflow, err := r.getWorkflowClient(namespace).Create(ctx, workflow.Get(), v1.CreateOptions{})
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", workflow.Name)
 	}
@@ -449,7 +450,7 @@ func (r *ResourceManager) UnarchiveRun(runId string) error {
 	return r.runStore.UnarchiveRun(runId)
 }
 
-func (r *ResourceManager) DeleteRun(runID string) error {
+func (r *ResourceManager) DeleteRun(ctx context.Context, runID string) error {
 	runDetail, err := r.checkRunExist(runID)
 	if err != nil {
 		return util.Wrap(err, "Delete run failed")
@@ -458,7 +459,7 @@ func (r *ResourceManager) DeleteRun(runID string) error {
 	if err != nil {
 		return util.Wrap(err, "Delete run failed")
 	}
-	err = r.getWorkflowClient(namespace).Delete(runDetail.Name, &v1.DeleteOptions{})
+	err = r.getWorkflowClient(namespace).Delete(ctx, runDetail.Name, v1.DeleteOptions{})
 	if err != nil {
 		// API won't need to delete the workflow CR
 		// once persistent agent sync the state to DB and set TTL for it.
@@ -477,7 +478,7 @@ func (r *ResourceManager) ListJobs(filterContext *common.FilterContext,
 }
 
 // TerminateWorkflow terminates a workflow by setting its activeDeadlineSeconds to 0
-func TerminateWorkflow(wfClient workflowclient.WorkflowInterface, name string) error {
+func TerminateWorkflow(ctx context.Context, wfClient workflowclient.WorkflowInterface, name string) error {
 	patchObj := map[string]interface{}{
 		"spec": map[string]interface{}{
 			"activeDeadlineSeconds": 0,
@@ -490,7 +491,7 @@ func TerminateWorkflow(wfClient workflowclient.WorkflowInterface, name string) e
 	}
 
 	var operation = func() error {
-		_, err = wfClient.Patch(name, types.MergePatchType, patch)
+		_, err = wfClient.Patch(ctx, name, types.MergePatchType, patch, v1.PatchOptions{})
 		return err
 	}
 	var backoffPolicy = backoff.WithMaxRetries(backoff.NewConstantBackOff(100), 10)
@@ -498,7 +499,7 @@ func TerminateWorkflow(wfClient workflowclient.WorkflowInterface, name string) e
 	return err
 }
 
-func (r *ResourceManager) TerminateRun(runId string) error {
+func (r *ResourceManager) TerminateRun(ctx context.Context, runId string) error {
 	runDetail, err := r.checkRunExist(runId)
 	if err != nil {
 		return util.Wrap(err, "Terminate run failed")
@@ -514,14 +515,14 @@ func (r *ResourceManager) TerminateRun(runId string) error {
 		return util.Wrap(err, "Terminate run failed")
 	}
 
-	err = TerminateWorkflow(r.getWorkflowClient(namespace), runDetail.Run.Name)
+	err = TerminateWorkflow(ctx, r.getWorkflowClient(namespace), runDetail.Run.Name)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to terminate the run")
 	}
 	return nil
 }
 
-func (r *ResourceManager) RetryRun(runId string) error {
+func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	runDetail, err := r.checkRunExist(runId)
 	if err != nil {
 		return util.Wrap(err, "Retry run failed")
@@ -544,16 +545,16 @@ func (r *ResourceManager) RetryRun(runId string) error {
 		return util.Wrap(err, "Retry run failed.")
 	}
 
-	if err = deletePods(r.k8sCoreClient, podsToDelete, namespace); err != nil {
+	if err = deletePods(ctx, r.k8sCoreClient, podsToDelete, namespace); err != nil {
 		return util.NewInternalServerError(err, "Retry run failed. Failed to clean up the failed pods from previous run.")
 	}
 
 	// First try to update workflow
-	updateError := r.updateWorkflow(newWorkflow, namespace)
+	updateError := r.updateWorkflow(ctx, newWorkflow, namespace)
 	if updateError != nil {
 		// Remove resource version
 		newWorkflow.ResourceVersion = ""
-		newCreatedWorkflow, createError := r.getWorkflowClient(namespace).Create(newWorkflow.Workflow)
+		newCreatedWorkflow, createError := r.getWorkflowClient(namespace).Create(ctx, newWorkflow.Workflow, v1.CreateOptions{})
 		if createError != nil {
 			return util.NewInternalServerError(createError,
 				"Retry run failed. Failed to create or update the run. Update Error: %s, Create Error: %s",
@@ -568,13 +569,13 @@ func (r *ResourceManager) RetryRun(runId string) error {
 	return nil
 }
 
-func (r *ResourceManager) ReadLog(runId string, nodeId string, follow bool, dst io.Writer) error {
+func (r *ResourceManager) ReadLog(ctx context.Context, runId string, nodeId string, follow bool, dst io.Writer) error {
 	run, err := r.checkRunExist(runId)
 	if err != nil {
 		return util.NewBadRequestError(errors.New("log cannot be read"), "Run does not exist")
 	}
 
-	err = r.readRunLogFromPod(run, nodeId, follow, dst)
+	err = r.readRunLogFromPod(ctx, run, nodeId, follow, dst)
 	if err != nil && r.logArchive != nil {
 		err = r.readRunLogFromArchive(run, nodeId, dst)
 	}
@@ -582,7 +583,7 @@ func (r *ResourceManager) ReadLog(runId string, nodeId string, follow bool, dst 
 	return err
 }
 
-func (r *ResourceManager) readRunLogFromPod(run *model.RunDetail, nodeId string, follow bool, dst io.Writer) error {
+func (r *ResourceManager) readRunLogFromPod(ctx context.Context, run *model.RunDetail, nodeId string, follow bool, dst io.Writer) error {
 	logOptions := corev1.PodLogOptions{
 		Container:  "main",
 		Timestamps: false,
@@ -590,7 +591,7 @@ func (r *ResourceManager) readRunLogFromPod(run *model.RunDetail, nodeId string,
 	}
 
 	req := r.k8sCoreClient.PodClient(run.Namespace).GetLogs(nodeId, &logOptions)
-	podLogs, err := req.Stream()
+	podLogs, err := req.Stream(ctx)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
 			glog.Errorf("Failed to access Pod log: %v", err)
@@ -636,15 +637,15 @@ func (r *ResourceManager) readRunLogFromArchive(run *model.RunDetail, nodeId str
 	return nil
 }
 
-func (r *ResourceManager) updateWorkflow(newWorkflow *util.Workflow, namespace string) error {
+func (r *ResourceManager) updateWorkflow(ctx context.Context, newWorkflow *util.Workflow, namespace string) error {
 	// If fail to get the workflow, return error.
-	latestWorkflow, err := r.getWorkflowClient(namespace).Get(newWorkflow.Name, v1.GetOptions{})
+	latestWorkflow, err := r.getWorkflowClient(namespace).Get(ctx, newWorkflow.Name, v1.GetOptions{})
 	if err != nil {
 		return err
 	}
 	// Update the workflow's resource version to latest.
 	newWorkflow.ResourceVersion = latestWorkflow.ResourceVersion
-	_, err = r.getWorkflowClient(namespace).Update(newWorkflow.Workflow)
+	_, err = r.getWorkflowClient(namespace).Update(ctx, newWorkflow.Workflow, v1.UpdateOptions{})
 	return err
 }
 
@@ -652,7 +653,7 @@ func (r *ResourceManager) GetJob(id string) (*model.Job, error) {
 	return r.jobStore.GetJob(id)
 }
 
-func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
+func (r *ResourceManager) CreateJob(ctx context.Context, apiJob *api.Job) (*model.Job, error) {
 	// Get workflow from either of the two places:
 	// (1) raw pipeline manifest in pipeline_spec
 	// (2) pipeline version in resource_references
@@ -728,7 +729,7 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 		return nil, err
 	}
 
-	newScheduledWorkflow, err := r.getScheduledWorkflowClient(namespace).Create(scheduledWorkflow)
+	newScheduledWorkflow, err := r.getScheduledWorkflowClient(namespace).Create(ctx, scheduledWorkflow)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a scheduled workflow for (%s)", scheduledWorkflow.Name)
 	}
@@ -744,11 +745,11 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 	return r.jobStore.CreateJob(job)
 }
 
-func (r *ResourceManager) EnableJob(jobID string, enabled bool) error {
+func (r *ResourceManager) EnableJob(ctx context.Context, jobID string, enabled bool) error {
 	var job *model.Job
 	var err error
 	if enabled {
-		job, err = r.checkJobExist(jobID)
+		job, err = r.checkJobExist(ctx, jobID)
 	} else {
 		// We can skip custom resource existence verification, because disabling
 		// the job do not need to care about it.
@@ -759,6 +760,7 @@ func (r *ResourceManager) EnableJob(jobID string, enabled bool) error {
 	}
 
 	_, err = r.getScheduledWorkflowClient(job.Namespace).Patch(
+		ctx,
 		job.Name,
 		types.MergePatchType,
 		[]byte(fmt.Sprintf(`{"spec":{"enabled":%s}}`, strconv.FormatBool(enabled))))
@@ -777,13 +779,13 @@ func (r *ResourceManager) EnableJob(jobID string, enabled bool) error {
 	return nil
 }
 
-func (r *ResourceManager) DeleteJob(jobID string) error {
+func (r *ResourceManager) DeleteJob(ctx context.Context, jobID string) error {
 	job, err := r.jobStore.GetJob(jobID)
 	if err != nil {
 		return util.Wrap(err, "Delete job failed")
 	}
 
-	err = r.getScheduledWorkflowClient(job.Namespace).Delete(job.Name, &v1.DeleteOptions{})
+	err = r.getScheduledWorkflowClient(job.Namespace).Delete(ctx, job.Name, &v1.DeleteOptions{})
 	if err != nil {
 		if !util.IsNotFound(err) {
 			// For any error other than NotFound
@@ -803,7 +805,7 @@ func (r *ResourceManager) DeleteJob(jobID string) error {
 	return nil
 }
 
-func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error {
+func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, workflow *util.Workflow) error {
 	if _, ok := workflow.ObjectMeta.Labels[util.LabelKeyWorkflowRunId]; !ok {
 		// Skip reporting if the workflow doesn't have the run id label
 		return util.NewInvalidInputError("Workflow[%s] missing the Run ID label", workflow.Name)
@@ -816,7 +818,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 
 	if workflow.PersistedFinalState() {
 		// If workflow's final state has being persisted, the workflow should be garbage collected.
-		err := r.getWorkflowClient(workflow.Namespace).Delete(workflow.Name, &v1.DeleteOptions{})
+		err := r.getWorkflowClient(workflow.Namespace).Delete(ctx, workflow.Name, v1.DeleteOptions{})
 		if err != nil {
 			// A fix for kubeflow/pipelines#4484, persistence agent might have an outdated item in its workqueue, so it will
 			// report workflows that no longer exist. It's important to return a not found error, so that persistence
@@ -900,7 +902,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 	}
 
 	if workflow.IsInFinalState() {
-		err := AddWorkflowLabel(r.getWorkflowClient(workflow.Namespace), workflow.Name, util.LabelKeyWorkflowPersistedFinalState, "true")
+		err := AddWorkflowLabel(ctx, r.getWorkflowClient(workflow.Namespace), workflow.Name, util.LabelKeyWorkflowPersistedFinalState, "true")
 		if err != nil {
 			message := fmt.Sprintf("Failed to add PersistedFinalState label to workflow %s", workflow.GetName())
 			// A fix for kubeflow/pipelines#4484, persistence agent might have an outdated item in its workqueue, so it will
@@ -918,7 +920,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 }
 
 // AddWorkflowLabel add label for a workflow
-func AddWorkflowLabel(wfClient workflowclient.WorkflowInterface, name string, labelKey string, labelValue string) error {
+func AddWorkflowLabel(ctx context.Context, wfClient workflowclient.WorkflowInterface, name string, labelKey string, labelValue string) error {
 	patchObj := map[string]interface{}{
 		"metadata": map[string]interface{}{
 			"labels": map[string]interface{}{
@@ -933,7 +935,7 @@ func AddWorkflowLabel(wfClient workflowclient.WorkflowInterface, name string, la
 	}
 
 	var operation = func() error {
-		_, err = wfClient.Patch(name, types.MergePatchType, patch)
+		_, err = wfClient.Patch(ctx, name, types.MergePatchType, patch, v1.PatchOptions{})
 		return err
 	}
 	var backoffPolicy = backoff.WithMaxRetries(backoff.NewConstantBackOff(100), 10)
@@ -948,13 +950,13 @@ func (r *ResourceManager) ReportScheduledWorkflowResource(swf *util.ScheduledWor
 // checkJobExist The Kubernetes API doesn't support CRUD by UID. This method
 // retrieve the job metadata from the database, then retrieve the CR
 // using the job name, and compare the given job id is same as the CR.
-func (r *ResourceManager) checkJobExist(jobID string) (*model.Job, error) {
+func (r *ResourceManager) checkJobExist(ctx context.Context, jobID string) (*model.Job, error) {
 	job, err := r.jobStore.GetJob(jobID)
 	if err != nil {
 		return nil, util.Wrap(err, "Check job exist failed")
 	}
 
-	scheduledWorkflow, err := r.getScheduledWorkflowClient(job.Namespace).Get(job.Name, v1.GetOptions{})
+	scheduledWorkflow, err := r.getScheduledWorkflowClient(job.Namespace).Get(ctx, job.Name, v1.GetOptions{})
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Check job exist failed")
 	}
@@ -1252,14 +1254,16 @@ func (r *ResourceManager) AuthenticateRequest(ctx context.Context) (string, erro
 	return "", utilerrors.NewAggregate(errlist)
 }
 
-func (r *ResourceManager) IsRequestAuthorized(userIdentity string, resourceAttributes *authorizationv1.ResourceAttributes) error {
+func (r *ResourceManager) IsRequestAuthorized(ctx context.Context, userIdentity string, resourceAttributes *authorizationv1.ResourceAttributes) error {
 	result, err := r.subjectAccessReviewClient.Create(
+		ctx,
 		&authorizationv1.SubjectAccessReview{
 			Spec: authorizationv1.SubjectAccessReviewSpec{
 				ResourceAttributes: resourceAttributes,
 				User:               userIdentity,
 			},
 		},
+		v1.CreateOptions{},
 	)
 	if err != nil {
 		return util.NewInternalServerError(

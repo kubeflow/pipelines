@@ -15,12 +15,13 @@
 package resource
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -71,7 +72,7 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
 	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow1", Namespace: "ns1"},
 	Spec:       v1alpha1.WorkflowSpec{Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}}},
-	Status:     v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
+	Status:     v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
 })
 
 // Util function to create an initial state with pipeline uploaded
@@ -120,7 +121,7 @@ func initWithJob(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Job
 			},
 		},
 	}
-	j, err := manager.CreateJob(job)
+	j, err := manager.CreateJob(context.Background(), job)
 	assert.Nil(t, err)
 
 	return store, manager, j
@@ -143,7 +144,7 @@ func initWithOneTimeRun(t *testing.T) (*FakeClientManager, *ResourceManager, *mo
 			},
 		},
 	}
-	runDetail, err := manager.CreateRun(apiRun)
+	runDetail, err := manager.CreateRun(context.Background(), apiRun)
 	assert.Nil(t, err)
 	return store, manager, runDetail
 }
@@ -165,7 +166,7 @@ func initWithPatchedRun(t *testing.T) (*FakeClientManager, *ResourceManager, *mo
 			},
 		},
 	}
-	runDetail, err := manager.CreateRun(apiRun)
+	runDetail, err := manager.CreateRun(context.Background(), apiRun)
 	assert.Nil(t, err)
 	return store, manager, runDetail
 }
@@ -187,13 +188,14 @@ func initWithOneTimeFailedRun(t *testing.T) (*FakeClientManager, *ResourceManage
 			},
 		},
 	}
-	runDetail, err := manager.CreateRun(apiRun)
+	ctx := context.Background()
+	runDetail, err := manager.CreateRun(ctx, apiRun)
 	assert.Nil(t, err)
 	updatedWorkflow := util.NewWorkflow(testWorkflow.DeepCopy())
 	updatedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
-	updatedWorkflow.Status.Phase = v1alpha1.NodeFailed
+	updatedWorkflow.Status.Phase = v1alpha1.WorkflowFailed
 	updatedWorkflow.Status.Nodes = map[string]v1alpha1.NodeStatus{"node1": {Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed}}
-	err = manager.ReportWorkflowResource(updatedWorkflow)
+	err = manager.ReportWorkflowResource(ctx, updatedWorkflow)
 	assert.Nil(t, err)
 	return store, manager, runDetail
 }
@@ -347,7 +349,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 			},
 		},
 	}
-	runDetail, err := manager.CreateRun(apiRun)
+	runDetail, err := manager.CreateRun(context.Background(), apiRun)
 	assert.Nil(t, err)
 
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
@@ -539,7 +541,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 		},
 		ServiceAccount: "sa1",
 	}
-	runDetail, err := manager.CreateRun(apiRun)
+	runDetail, err := manager.CreateRun(context.Background(), apiRun)
 	assert.Nil(t, err)
 
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
@@ -635,7 +637,7 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 		},
 		ServiceAccount: "sa1",
 	}
-	runDetail, err := manager.CreateRun(apiRun)
+	runDetail, err := manager.CreateRun(context.Background(), apiRun)
 	assert.Nil(t, err)
 
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
@@ -711,7 +713,7 @@ func TestCreateRun_NoExperiment(t *testing.T) {
 		// No experiment
 		ResourceReferences: []*api.ResourceReference{},
 	}
-	runDetail, err := manager.CreateRun(apiRun)
+	runDetail, err := manager.CreateRun(context.Background(), apiRun)
 	assert.Nil(t, err)
 	expectedRunDetail := []*model.ResourceReference{{
 		ResourceUUID: "123e4567-e89b-12d3-a456-426655440000",
@@ -740,7 +742,7 @@ func TestCreateRun_EmptyPipelineSpec(t *testing.T) {
 			},
 		},
 	}
-	_, err := manager.CreateRun(apiRun)
+	_, err := manager.CreateRun(context.Background(), apiRun)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to fetch workflow spec")
 }
@@ -758,7 +760,7 @@ func TestCreateRun_InvalidWorkflowSpec(t *testing.T) {
 			},
 		},
 	}
-	_, err := manager.CreateRun(apiRun)
+	_, err := manager.CreateRun(context.Background(), apiRun)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to unmarshal workflow spec manifest")
 }
@@ -776,7 +778,7 @@ func TestCreateRun_NullWorkflowSpec(t *testing.T) {
 			},
 		},
 	}
-	_, err := manager.CreateRun(apiRun)
+	_, err := manager.CreateRun(context.Background(), apiRun)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to fetch workflow spec manifest.: ResourceNotFoundError: WorkflowSpecManifest run1 not found.")
 }
@@ -794,7 +796,7 @@ func TestCreateRun_OverrideParametersError(t *testing.T) {
 			},
 		},
 	}
-	_, err := manager.CreateRun(apiRun)
+	_, err := manager.CreateRun(context.Background(), apiRun)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Unrecognized input parameter")
 }
@@ -813,7 +815,7 @@ func TestCreateRun_CreateWorkflowError(t *testing.T) {
 			},
 		},
 	}
-	_, err := manager.CreateRun(apiRun)
+	_, err := manager.CreateRun(context.Background(), apiRun)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to create a workflow")
 }
@@ -832,7 +834,7 @@ func TestCreateRun_StoreRunMetadataError(t *testing.T) {
 			},
 		},
 	}
-	_, err := manager.CreateRun(apiRun)
+	_, err := manager.CreateRun(context.Background(), apiRun)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "database is closed")
 }
@@ -840,7 +842,7 @@ func TestCreateRun_StoreRunMetadataError(t *testing.T) {
 func TestDeleteRun(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRun(t)
 	defer store.Close()
-	err := manager.DeleteRun(runDetail.UUID)
+	err := manager.DeleteRun(context.Background(), runDetail.UUID)
 	assert.Nil(t, err)
 
 	_, err = manager.GetRun(runDetail.UUID)
@@ -852,7 +854,7 @@ func TestDeleteRun_RunNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
-	err := manager.DeleteRun("1")
+	err := manager.DeleteRun(context.Background(), "1")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "not found")
 }
@@ -862,7 +864,7 @@ func TestDeleteRun_CrdFailure(t *testing.T) {
 	defer store.Close()
 
 	manager.argoClient = client.NewFakeArgoClientWithBadWorkflow()
-	err := manager.DeleteRun(runDetail.UUID)
+	err := manager.DeleteRun(context.Background(), runDetail.UUID)
 	//assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	//assert.Contains(t, err.Error(), "some error")
 	// TODO(IronPan) This should return error if swf CRD doesn't cascade delete runs.
@@ -874,7 +876,7 @@ func TestDeleteRun_DbFailure(t *testing.T) {
 	defer store.Close()
 
 	store.DB().Close()
-	err := manager.DeleteRun(runDetail.UUID)
+	err := manager.DeleteRun(context.Background(), runDetail.UUID)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "database is closed")
 }
@@ -946,7 +948,7 @@ func TestTerminateRun(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRun(t)
 	defer store.Close()
 
-	err := manager.TerminateRun(runDetail.UUID)
+	err := manager.TerminateRun(context.Background(), runDetail.UUID)
 	assert.Nil(t, err)
 
 	actualRunDetail, err := manager.GetRun(runDetail.UUID)
@@ -962,7 +964,7 @@ func TestTerminateRun_RunNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
-	err := manager.TerminateRun("1")
+	err := manager.TerminateRun(context.Background(), "1")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "not found")
 }
@@ -972,7 +974,7 @@ func TestTerminateRun_DbFailure(t *testing.T) {
 	defer store.Close()
 
 	store.DB().Close()
-	err := manager.TerminateRun(runDetail.UUID)
+	err := manager.TerminateRun(context.Background(), runDetail.UUID)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "database is closed")
 }
@@ -985,7 +987,7 @@ func TestRetryRun(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Contains(t, actualRunDetail.WorkflowRuntimeManifest, "Failed")
 
-	err = manager.RetryRun(runDetail.UUID)
+	err = manager.RetryRun(context.Background(), runDetail.UUID)
 	assert.Nil(t, err)
 
 	actualRunDetail, err = manager.GetRun(runDetail.UUID)
@@ -997,7 +999,7 @@ func TestRetryRun_RunNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
-	err := manager.RetryRun("1")
+	err := manager.RetryRun(context.Background(), "1")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "not found")
 }
@@ -1007,7 +1009,7 @@ func TestRetryRun_FailedDeletePods(t *testing.T) {
 	defer store.Close()
 
 	manager.k8sCoreClient = client.NewFakeKubernetesCoreClientWithBadPodClient()
-	err := manager.RetryRun(runDetail.UUID)
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "failed to delete pod")
 }
@@ -1017,7 +1019,7 @@ func TestRetryRun_UpdateAndCreateFailed(t *testing.T) {
 	defer store.Close()
 
 	manager.argoClient = client.NewFakeArgoClientWithBadWorkflow()
-	err := manager.RetryRun(runDetail.UUID)
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to create or update the run")
 }
@@ -1094,7 +1096,7 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 
 	// The pipeline specified via pipeline id will be converted to this
 	// pipeline's default version, which will be used to create run.
-	newJob, err := manager.CreateJob(job)
+	newJob, err := manager.CreateJob(context.Background(), job)
 	expectedJob := &model.Job{
 		UUID:           "123e4567-e89b-12d3-a456-426655440000",
 		DisplayName:    "j1",
@@ -1174,7 +1176,7 @@ func TestCreateJob_ThroughPipelineVersion(t *testing.T) {
 			},
 		},
 	}
-	newJob, err := manager.CreateJob(job)
+	newJob, err := manager.CreateJob(context.Background(), job)
 	expectedJob := &model.Job{
 		UUID:           "123e4567-e89b-12d3-a456-426655440000",
 		DisplayName:    "j1",
@@ -1253,7 +1255,7 @@ func TestCreateJob_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 			},
 		},
 	}
-	newJob, err := manager.CreateJob(job)
+	newJob, err := manager.CreateJob(context.Background(), job)
 	expectedJob := &model.Job{
 		UUID:           "123e4567-e89b-12d3-a456-426655440000",
 		DisplayName:    "j1",
@@ -1306,7 +1308,7 @@ func TestCreateJob_EmptyPipelineSpec(t *testing.T) {
 			},
 		},
 	}
-	_, err := manager.CreateJob(job)
+	_, err := manager.CreateJob(context.Background(), job)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to fetch workflow spec")
 }
@@ -1325,7 +1327,7 @@ func TestCreateJob_InvalidWorkflowSpec(t *testing.T) {
 			},
 		},
 	}
-	_, err := manager.CreateJob(job)
+	_, err := manager.CreateJob(context.Background(), job)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to unmarshal workflow spec manifest")
 }
@@ -1344,7 +1346,7 @@ func TestCreateJob_NullWorkflowSpec(t *testing.T) {
 			},
 		},
 	}
-	_, err := manager.CreateJob(job)
+	_, err := manager.CreateJob(context.Background(), job)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to fetch workflow spec manifest.: ResourceNotFoundError: WorkflowSpecManifest pp 1 not found.")
 }
@@ -1362,7 +1364,7 @@ func TestCreateJob_ExtraInputParameterError(t *testing.T) {
 			},
 		},
 	}
-	_, err := manager.CreateJob(job)
+	_, err := manager.CreateJob(context.Background(), job)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Unrecognized input parameter: param2")
 }
@@ -1376,7 +1378,7 @@ func TestCreateJob_FailedToCreateScheduleWorkflow(t *testing.T) {
 		Enabled:      true,
 		PipelineSpec: &api.PipelineSpec{PipelineId: p.UUID},
 	}
-	_, err := manager.CreateJob(job)
+	_, err := manager.CreateJob(context.Background(), job)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Failed to create a scheduled workflow")
 }
@@ -1384,7 +1386,7 @@ func TestCreateJob_FailedToCreateScheduleWorkflow(t *testing.T) {
 func TestEnableJob(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
-	err := manager.EnableJob(job.UUID, false)
+	err := manager.EnableJob(context.Background(), job.UUID, false)
 	job, err = manager.GetJob(job.UUID)
 	expectedJob := &model.Job{
 		UUID:           "123e4567-e89b-12d3-a456-426655440000",
@@ -1418,7 +1420,7 @@ func TestEnableJob_JobNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
-	err := manager.EnableJob("1", false)
+	err := manager.EnableJob(context.Background(), "1", false)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Job 1 not found")
 }
@@ -1427,7 +1429,7 @@ func TestEnableJob_CustomResourceFailure(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
 	manager.swfClient = client.NewFakeSwfClientWithBadWorkflow()
-	err := manager.EnableJob(job.UUID, true)
+	err := manager.EnableJob(context.Background(), job.UUID, true)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Check job exist failed: some error")
 }
@@ -1437,9 +1439,9 @@ func TestEnableJob_CustomResourceNotFound(t *testing.T) {
 	defer store.Close()
 	// The swf CR can be missing when user reinstalled KFP using existing DB data.
 	// Explicitly delete it to simulate the situation.
-	manager.getScheduledWorkflowClient(job.Namespace).Delete(job.Name, &v1.DeleteOptions{})
+	manager.getScheduledWorkflowClient(job.Namespace).Delete(context.Background(), job.Name, &v1.DeleteOptions{})
 	// When swf CR is missing, enabling the job needs to fail.
-	err := manager.EnableJob(job.UUID, true)
+	err := manager.EnableJob(context.Background(), job.UUID, true)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Check job exist failed")
 	assert.Contains(t, err.Error(), "not found")
@@ -1452,8 +1454,8 @@ func TestDisableJob_CustomResourceNotFound(t *testing.T) {
 
 	// The swf CR can be missing when user reinstalled KFP using existing DB data.
 	// Explicitly delete it to simulate the situation.
-	manager.getScheduledWorkflowClient(job.Namespace).Delete(job.Name, &v1.DeleteOptions{})
-	err := manager.EnableJob(job.UUID, false)
+	manager.getScheduledWorkflowClient(job.Namespace).Delete(context.Background(), job.Name, &v1.DeleteOptions{})
+	err := manager.EnableJob(context.Background(), job.UUID, false)
 	require.Nil(t, err, "Disabling the job should succeed even when the custom resource is missing.")
 	job, err = manager.GetJob(job.UUID)
 	require.Nil(t, err)
@@ -1464,7 +1466,7 @@ func TestEnableJob_DbFailure(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
 	store.DB().Close()
-	err := manager.EnableJob(job.UUID, false)
+	err := manager.EnableJob(context.Background(), job.UUID, false)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "database is closed")
 }
@@ -1472,7 +1474,7 @@ func TestEnableJob_DbFailure(t *testing.T) {
 func TestDeleteJob(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
-	err := manager.DeleteJob(job.UUID)
+	err := manager.DeleteJob(context.Background(), job.UUID)
 	assert.Nil(t, err)
 
 	_, err = manager.GetJob(job.UUID)
@@ -1484,7 +1486,7 @@ func TestDeleteJob_JobNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
-	err := manager.DeleteJob("1")
+	err := manager.DeleteJob(context.Background(), "1")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Job 1 not found")
 }
@@ -1494,7 +1496,7 @@ func TestDeleteJob_CustomResourceFailure(t *testing.T) {
 	defer store.Close()
 
 	manager.swfClient = client.NewFakeSwfClientWithBadWorkflow()
-	err := manager.DeleteJob(job.UUID)
+	err := manager.DeleteJob(context.Background(), job.UUID)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Delete job CR failed: some error")
 }
@@ -1504,10 +1506,10 @@ func TestDeleteJob_CustomResourceNotFound(t *testing.T) {
 	defer store.Close()
 	// The swf CR can be missing when user reinstalled KFP using existing DB data.
 	// Explicitly delete it to simulate the situation.
-	manager.getScheduledWorkflowClient(job.Namespace).Delete(job.Name, &v1.DeleteOptions{})
+	manager.getScheduledWorkflowClient(job.Namespace).Delete(context.Background(), job.Name, &v1.DeleteOptions{})
 
 	// Now deleting job should still succeed when the swf CR is already deleted.
-	err := manager.DeleteJob(job.UUID)
+	err := manager.DeleteJob(context.Background(), job.UUID)
 	assert.Nil(t, err)
 
 	// And verify Job has been deleted from DB too.
@@ -1522,7 +1524,7 @@ func TestDeleteJob_DbFailure(t *testing.T) {
 	defer store.Close()
 
 	store.DB().Close()
-	err := manager.DeleteJob(job.UUID)
+	err := manager.DeleteJob(context.Background(), job.UUID)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "database is closed")
 }
@@ -1538,9 +1540,9 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 			Namespace: "ns1",
 		},
-		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
 	})
-	err := manager.ReportWorkflowResource(workflow)
+	err := manager.ReportWorkflowResource(context.Background(), workflow)
 	assert.Nil(t, err)
 	runDetail, err := manager.GetRun(run.UUID)
 	assert.Nil(t, err)
@@ -1592,7 +1594,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
 		},
 	})
-	err := manager.ReportWorkflowResource(workflow)
+	err := manager.ReportWorkflowResource(context.Background(), workflow)
 	assert.Nil(t, err)
 
 	runDetail, err := manager.GetRun("WORKFLOW_1")
@@ -1647,7 +1649,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success
 		PipelineSpec: &api.PipelineSpec{WorkflowManifest: testWorkflow.ToStringForStore()},
 		// no experiment reference
 	}
-	newJob, err := manager.CreateJob(job)
+	newJob, err := manager.CreateJob(context.Background(), job)
 
 	// report workflow
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
@@ -1666,7 +1668,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success
 		},
 	})
 
-	err = manager.ReportWorkflowResource(workflow)
+	err = manager.ReportWorkflowResource(context.Background(), workflow)
 	assert.Nil(t, err)
 
 	runDetail, err := manager.GetRun("WORKFLOW_1")
@@ -1719,7 +1721,7 @@ func TestReportWorkflowResource_WorkflowMissingRunID(t *testing.T) {
 			Name: run.Name,
 		},
 	})
-	err := manager.ReportWorkflowResource(workflow)
+	err := manager.ReportWorkflowResource(context.Background(), workflow)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Workflow[workflow-name] missing the Run ID label")
 }
@@ -1736,12 +1738,12 @@ func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
 			UID:       types.UID(run.UUID),
 			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 		},
-		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeFailed},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
-	err := manager.ReportWorkflowResource(workflow)
+	err := manager.ReportWorkflowResource(context.Background(), workflow)
 	assert.Nil(t, err)
 
-	wf, err := store.ArgoClientFake.Workflow(namespace).Get(run.Run.Name, v1.GetOptions{})
+	wf, err := store.ArgoClientFake.Workflow(namespace).Get(context.Background(), run.Run.Name, v1.GetOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, wf.Labels[util.LabelKeyWorkflowPersistedFinalState], "true")
 }
@@ -1756,9 +1758,9 @@ func TestReportWorkflowResource_WorkflowCompleted_WorkflowNotFound(t *testing.T)
 			UID:       types.UID(run.UUID),
 			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 		},
-		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeFailed},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
-	err := manager.ReportWorkflowResource(workflow)
+	err := manager.ReportWorkflowResource(context.Background(), workflow)
 	require.NotNil(t, err)
 	assert.Equalf(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(), "Expected not found error, but got %s", err.Error())
 	assert.Contains(t, err.Error(), "Failed to add PersistedFinalState label")
@@ -1775,9 +1777,9 @@ func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted(t *testing
 			UID:       types.UID(run.UUID),
 			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID, util.LabelKeyWorkflowPersistedFinalState: "true"},
 		},
-		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeFailed},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
-	err := manager.ReportWorkflowResource(workflow)
+	err := manager.ReportWorkflowResource(context.Background(), workflow)
 	assert.Nil(t, err)
 }
 
@@ -1791,9 +1793,9 @@ func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_WorkflowNo
 			UID:       types.UID(run.UUID),
 			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID, util.LabelKeyWorkflowPersistedFinalState: "true"},
 		},
-		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeFailed},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
-	err := manager.ReportWorkflowResource(workflow)
+	err := manager.ReportWorkflowResource(context.Background(), workflow)
 	require.NotNil(t, err)
 	assert.Equalf(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(), "Expected not found error, but got %s", err.Error())
 	assert.Contains(t, err.Error(), "Failed to delete the completed workflow")
@@ -1811,9 +1813,9 @@ func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_DeleteFail
 			UID:       types.UID(run.UUID),
 			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID, util.LabelKeyWorkflowPersistedFinalState: "true"},
 		},
-		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeFailed},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
-	err := manager.ReportWorkflowResource(workflow)
+	err := manager.ReportWorkflowResource(context.Background(), workflow)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "failed to delete workflow")
 }
@@ -1889,7 +1891,7 @@ func TestReportScheduledWorkflowResource_Error(t *testing.T) {
 		Enabled:      true,
 		PipelineSpec: &api.PipelineSpec{PipelineId: p.UUID},
 	}
-	newJob, err := manager.CreateJob(job)
+	newJob, err := manager.CreateJob(context.Background(), job)
 	assert.Nil(t, err)
 
 	store.Close()
@@ -1986,7 +1988,7 @@ func TestReadArtifact_Succeed(t *testing.T) {
 			},
 		},
 	})
-	err := manager.ReportWorkflowResource(workflow)
+	err := manager.ReportWorkflowResource(context.Background(), workflow)
 	assert.Nil(t, err)
 
 	artifactContent, err := manager.ReadArtifact("run-1", "node-1", "artifact-1")
@@ -2012,7 +2014,7 @@ func TestReadArtifact_WorkflowNoStatus_NotFound(t *testing.T) {
 				UID:        types.UID(job.UUID),
 			}},
 		}})
-	err := manager.ReportWorkflowResource(workflow)
+	err := manager.ReportWorkflowResource(context.Background(), workflow)
 	assert.Nil(t, err)
 
 	_, err = manager.ReadArtifact("run-1", "node-1", "artifact-1")
