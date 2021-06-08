@@ -14,7 +14,13 @@
 
 import kfp
 import kfp.dsl as dsl
+from kfp.components import create_component_from_func
 
+def write_to_volume():
+    with open("/mnt/file.txt", "w") as file:
+        file.write("Hello world")
+
+write_to_volume_op = create_component_from_func(write_to_volume)
 
 @dsl.pipeline(
     name="volumeop-basic",
@@ -28,13 +34,7 @@ def volumeop_basic(size):
         size=size
     )
 
-    cop = dsl.ContainerOp(
-        name="cop",
-        image="library/bash:4.4.23",
-        command=["sh", "-c"],
-        arguments=["echo foo > /mnt/file1"],
-        pvolumes={"/mnt": vop.volume}
-    )
+    write_to_volume_op.add_pvolume({"/mnt'": vop.volume})
 
 if __name__ == '__main__':
     kfp.compiler.Compiler().compile(volumeop_basic, __file__ + '.yaml')
