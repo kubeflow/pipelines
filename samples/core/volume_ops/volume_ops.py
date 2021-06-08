@@ -14,13 +14,13 @@
 
 import kfp
 import kfp.dsl as dsl
-from kfp.components import create_component_from_func
+from kfp import components
 
+@components.create_component_from_func
 def write_to_volume():
     with open("/mnt/file.txt", "w") as file:
         file.write("Hello world")
 
-write_to_volume_op = create_component_from_func(write_to_volume)
 
 @dsl.pipeline(
     name="volumeop-basic",
@@ -33,8 +33,9 @@ def volumeop_basic(size):
         modes=dsl.VOLUME_MODE_RWO,
         size=size
     )
+    
+    write_to_volume().add_pvolumes({"/mnt'": vop.volume})
 
-    write_to_volume_op.add_pvolume({"/mnt'": vop.volume})
 
 if __name__ == '__main__':
     kfp.compiler.Compiler().compile(volumeop_basic, __file__ + '.yaml')
