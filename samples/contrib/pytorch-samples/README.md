@@ -10,9 +10,9 @@ This folder contains different PyTorch Kubeflow pipeline examples using the PyTo
 
 Use the following notebook files for running the existing Cifar 10 and Bert examples
 
-Cifar 10 - [Pipeline-Cifar10.ipynb](samples/contrib/pytorch-samples/Pipeline-Cifar10.ipynb)
+Cifar 10 - [Pipeline-Cifar10.ipynb](Pipeline-Cifar10.ipynb)
 
-Bert - [Pipeline-Bert.ipynb](samples/contrib/pytorch-samples/Pipeline-Bert.ipynb)
+Bert - [Pipeline-Bert.ipynb](Pipeline-Bert.ipynb)
 
 Following steps has to be performed for adding new examples:
 
@@ -36,7 +36,7 @@ Update the image tag inside component yaml files.
 
 For example, following component.yaml files needs to be updated for cifar10
 
-[pre_process](samples/contrib/pytorch-samples/cifar10/yaml/pre_process/component.yaml), [train](samples/contrib/pytorch-samples/cifar10/yaml/train/component.yaml), [minio](samples/contrib/pytorch-samples/common/minio/component.yaml)
+[pre_process](cifar10/yaml/pre_process/component.yaml), [train](cifar10/yaml/train/component.yaml), [minio](common/minio/component.yaml)
 
 ### Run the notebook
 
