@@ -306,7 +306,7 @@ describe('MetricsTab with Scalar Metrics', () => {
     );
     jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockResolvedValueOnce([artifact]);
     jest.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValueOnce([buildMetricsArtifactType()]);
-    const { getByText, queryByText } = render(
+    const { getByText } = render(
       <CommonTestWrapper>
         <MetricsTab execution={execution}></MetricsTab>
       </CommonTestWrapper>,
