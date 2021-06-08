@@ -1,9 +1,21 @@
-import pytorch_lightning as pl
+# !/usr/bin/env/python3
+# Copyright (c) Facebook, Inc. and its affiliates.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+"""Cifar10 training script."""
 import os
-from pytorch_kfp_components.components.trainer.component import Trainer
-from pytorch_kfp_components.components.mar.component import MarGeneration
 from pathlib import Path
 from argparse import ArgumentParser
+import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import (
     EarlyStopping,
@@ -11,6 +23,8 @@ from pytorch_lightning.callbacks import (
     ModelCheckpoint,
 )
 from pytorch_kfp_components.components.visualization.component import Visualization
+from pytorch_kfp_components.components.trainer.component import Trainer
+from pytorch_kfp_components.components.mar.component import MarGeneration
 
 # Argument parser for user defined paths
 parser = ArgumentParser()
@@ -79,7 +93,9 @@ args = vars(parser.parse_args())
 
 lr_logger = LearningRateMonitor()
 tboard = TensorBoardLogger(args["tensorboard_root"])
-early_stopping = EarlyStopping(monitor="val_loss", mode="min", patience=5, verbose=True)
+early_stopping = EarlyStopping(
+    monitor="val_loss", mode="min", patience=5, verbose=True
+)
 checkpoint_callback = ModelCheckpoint(
     dirpath=args["checkpoint_dir"],
     filename="cifar10_{epoch:02d}",
@@ -129,13 +145,20 @@ if trainer.ptl_trainer.global_rank == 0:
     cifar_dir, _ = os.path.split(os.path.abspath(__file__))
 
     mar_config = {
-        "MODEL_NAME": "cifar10_test",
-        "MODEL_FILE": os.path.join(cifar_dir, "cifar10_train.py"),
-        "HANDLER": "image_classifier",
-        "SERIALIZED_FILE": os.path.join(args["checkpoint_dir"], args["model_name"]),
-        "VERSION": "1",
-        "EXPORT_PATH": args["checkpoint_dir"],
-        "CONFIG_PROPERTIES": "https://kubeflow-dataset.s3.us-east-2.amazonaws.com/config.properties",
+        "MODEL_NAME":
+            "cifar10_test",
+        "MODEL_FILE":
+            os.path.join(cifar_dir, "cifar10_train.py"),
+        "HANDLER":
+            "image_classifier",
+        "SERIALIZED_FILE":
+            os.path.join(args["checkpoint_dir"], args["model_name"]),
+        "VERSION":
+            "1",
+        "EXPORT_PATH":
+            args["checkpoint_dir"],
+        "CONFIG_PROPERTIES":
+            "https://kubeflow-dataset.s3.us-east-2.amazonaws.com/config.properties",
     }
 
     MarGeneration(mar_config=mar_config, mar_save_path=args["checkpoint_dir"])

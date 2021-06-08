@@ -1,17 +1,38 @@
+# !/usr/bin/env/python3
+# Copyright (c) Facebook, Inc. and its affiliates.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# pylint: disable=arguments-differ
+# pylint: disable=unused-argument
+# pylint: disable=abstract-method
+"""News dataset script."""
 import torch
 from torch.utils.data import Dataset
 
 
 class NewsDataset(Dataset):
+    """Ag News Dataset
+    Args:
+        Dataset
+    """
+
     def __init__(self, reviews, targets, tokenizer, max_length):
-        """
-        Performs initialization of tokenizer
+        """Performs initialization of tokenizer.
 
-        :param reviews: AG news text
-        :param targets: labels
-        :param tokenizer: bert tokenizer
-        :param max_length: maximum length of the news text
-
+        Args:
+             reviews: AG news text
+             targets: labels
+             tokenizer: bert tokenizer
+             max_length: maximum length of the news text
         """
         self.reviews = reviews
         self.targets = targets
@@ -20,18 +41,20 @@ class NewsDataset(Dataset):
 
     def __len__(self):
         """
-        :return: returns the number of datapoints in the dataframe
+        Returns:
+             returns the number of datapoints in the dataframe
 
         """
         return len(self.reviews)
 
     def __getitem__(self, item):
-        """
-        Returns the review text and the targets of the specified item
+        """Returns the review text and the targets of the specified item.
 
-        :param item: Index of sample review
+        Args:
+             item: Index of sample review
 
-        :return: Returns the dictionary of review text, input ids, attention mask, targets
+        Returns:
+             Returns the dictionary of review text, input ids, attention mask, targets
         """
         review = str(self.reviews[item])
         target = self.targets[item]
@@ -50,6 +73,6 @@ class NewsDataset(Dataset):
         return {
             "review_text": review,
             "input_ids": encoding["input_ids"].flatten(),
-            "attention_mask": encoding["attention_mask"].flatten(),
-            "targets": torch.tensor(target, dtype=torch.long),
+            "attention_mask": encoding["attention_mask"].flatten(),  # pylint: disable=not-callable
+            "targets": torch.tensor(target, dtype=torch.long),  # pylint: disable=no-member,not-callable
         }
