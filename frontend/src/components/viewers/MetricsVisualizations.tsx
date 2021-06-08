@@ -326,9 +326,9 @@ function ScalarMetricsSection({ artifact }: ScalarMetricsSectionProps) {
   const name = customProperties.get('name')?.getStringValue();
   const data = customProperties
     .getEntryList()
-    .map(x => ({
-      key: x[0],
-      value: JSON.stringify(getMetadataValue(customProperties.get(x[0]))),
+    .map(([key]) => ({
+      key,
+      value: JSON.stringify(getMetadataValue(customProperties.get(key))),
     }))
     .filter(metric => metric.key !== 'name');
 
