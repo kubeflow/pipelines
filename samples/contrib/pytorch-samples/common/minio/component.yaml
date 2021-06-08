@@ -1,0 +1,27 @@
+name: Minio Upload
+description: |
+  Minio Upload
+inputs:
+  - {name: bucket_name}
+  - {name: folder_name}
+  - {name: input_path}
+  - {name: filename}
+
+outputs:
+  - {name: MLPipeline UI Metadata}
+
+implementation:
+  container:
+    image: shrinathsuresh/pytorch_kfp_examples:v01
+    command: ["python3", "common/minio/upload_to_minio.py"]
+    args:
+      - --bucket_name
+      - {inputValue: bucket_name}
+      - --folder_name
+      - {inputValue: folder_name}
+      - --input_path
+      - {inputPath: input_path}
+      - --filename
+      - {inputValue: filename}
+      - --mlpipeline_ui_metadata
+      - {outputPath: MLPipeline UI Metadata}

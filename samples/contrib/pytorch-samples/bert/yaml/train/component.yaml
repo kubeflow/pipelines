@@ -1,0 +1,43 @@
+name: Training
+description: |
+  Pytorch training
+inputs:
+  - {name: input_data}
+  - {name: profiler}
+  - {name: confusion_matrix_url}
+  - {name: num_samples, default: 1000}
+  - {name: gpus, type: Integer, default: 0}
+  - {name: accelerator, type: String, default: 'None'}
+
+outputs:
+  - {name: tensorboard_root}
+  - {name: checkpoint_dir}
+  - {name: MLPipeline UI Metadata}
+  - {name: MLPipeline Metrics}
+implementation:
+  container:
+    # For GPU use
+    # image: public.ecr.aws/y1x1p2u5/pytorch_kfp_components:v1.1-gpu
+    image: shrinathsuresh/pytorch_kfp_examples:v01
+    command: ["python3", "bert/agnews_classification_pytorch.py"]
+    args:
+      - --dataset_path
+      - {inputPath: input_data}
+      - --tensorboard_root
+      - {outputPath: tensorboard_root}
+      - --checkpoint_dir
+      - {outputPath: checkpoint_dir}
+      - --profiler
+      - {inputValue: profiler}
+      - --mlpipeline_ui_metadata
+      - {outputPath: MLPipeline UI Metadata}
+      - --mlpipeline_metrics
+      - {outputPath: MLPipeline Metrics}
+      - --confusion_matrix_url
+      - { inputValue: confusion_matrix_url}
+      - --num_samples
+      - { inputValue: num_samples}
+      - --gpus
+      - { inputValue: gpus}
+      - --accelerator
+      - { inputValue: accelerator}

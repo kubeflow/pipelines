@@ -1,0 +1,21 @@
+name: PreProcessData
+description: |
+  Prepare data for PyTorch training.
+
+outputs:
+  - {name: output_data, description: 'The path to the input datasets'}
+  - {name: MLPipeline UI Metadata}
+ 
+implementation:
+  container:
+    # For GPU use
+    # image: public.ecr.aws/y1x1p2u5/pytorch_kfp_components:v1.1-gpu
+    image: shrinathsuresh/pytorch_kfp_examples:v01
+    command: ["python3", "bert/bert_pre_process.py"]
+    args:
+    - --output_path
+    - {outputPath: output_data}
+    - --mlpipeline_ui_metadata
+    - { outputPath: MLPipeline UI Metadata }
+ 
+   
