@@ -64,12 +64,8 @@ export function MetricsVisualizations({ artifacts, artifactTypes }: MetricsVisua
           </React.Fragment>
         );
       })}
-      {verifiedMetricsArtifacts.map(artifact => {
-        return (
-          <React.Fragment key={artifact.getId()}>
-            <ScalarMetricsSection artifact={artifact} />
-          </React.Fragment>
-        );
+      {verifiedMetricsArtifacts.map(artifact => 
+        <ScalarMetricsSection artifact={artifact} key={artifact.getId()} />    
       })}
     </>
   );
