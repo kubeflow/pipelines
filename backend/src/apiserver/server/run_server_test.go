@@ -37,14 +37,13 @@ func TestCreateRun(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	resource.AddRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "pipeline-runner"
 	template := expectedRuntimeWorkflow.Spec.Templates[0]
-	template.Metadata.Annotations = map[string]string{"sidecar.istio.io/inject": "false"}
-	template.Metadata.Labels = map[string]string{"pipelines.kubeflow.org/cache_enabled": "true"}
 	expectedRuntimeWorkflow.Spec.Templates[0] = template
 
 	expectedRunDetail := api.RunDetail{
@@ -93,6 +92,7 @@ func TestCreateRunPatch(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedRuntimeWorkflow := testWorkflowPatch.DeepCopy()
+	resource.AddRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: v1alpha1.AnyStringPtr("test-default-bucket")},
 		{Name: "param2", Value: v1alpha1.AnyStringPtr("test-project-id")},
@@ -101,8 +101,6 @@ func TestCreateRunPatch(t *testing.T) {
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "pipeline-runner"
 	template := expectedRuntimeWorkflow.Spec.Templates[0]
-	template.Metadata.Annotations = map[string]string{"sidecar.istio.io/inject": "false"}
-	template.Metadata.Labels = map[string]string{"pipelines.kubeflow.org/cache_enabled": "true"}
 	expectedRuntimeWorkflow.Spec.Templates[0] = template
 
 	expectedRunDetail := api.RunDetail{
@@ -195,14 +193,13 @@ func TestCreateRun_Multiuser(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	resource.AddRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "default-editor" // In multi-user mode, we use default service account.
 	template := expectedRuntimeWorkflow.Spec.Templates[0]
-	template.Metadata.Annotations = map[string]string{"sidecar.istio.io/inject": "false"}
-	template.Metadata.Labels = map[string]string{"pipelines.kubeflow.org/cache_enabled": "true"}
 	expectedRuntimeWorkflow.Spec.Templates[0] = template
 
 	expectedRunDetail := api.RunDetail{
