@@ -18,6 +18,9 @@ package component
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -244,6 +247,14 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 	executorInput, err := l.runtimeInfo.generateExecutorInput(l.generateOutputURI, outputMetadataFilepath)
 	if err != nil {
 		return fmt.Errorf("failure while generating ExecutorInput: %w", err)
+	}
+	cacheKey, err := l.generateCacheKey(executorInput.GetInputs(), executorInput.GetOutputs(), cmd, args)
+	if err != nil {
+		return fmt.Errorf("failure while generating CacheKey: %w", err)
+	}
+	fingerPrint, err:= l.generateFingerPrint(*cacheKey)
+	if err != nil {
+		return fmt.Errorf("failure while generating FingerPrint: %w", err)
 	}
 
 	if err := l.prepareInputs(ctx, executorInput); err != nil {
@@ -481,6 +492,88 @@ func localPathForURI(uri string) (string, error) {
 	}
 	return "", fmt.Errorf("found URI with unsupported storage scheme: %s", uri)
 }
+
+func (l *Launcher) generateCacheKey(
+	inputs *pipeline_spec.ExecutorInput_Inputs,
+	outputs *pipeline_spec.ExecutorInput_Outputs,
+	cmd string,
+	args []string) (*cacheKey, error) {
+
+	cacheKey := cacheKey{
+		inputArtifactNames:   make(map[string]artifactNameList),
+		inputParameters:      make(map[string]pipeline_spec.Value),
+		outputArtifactsSpec:  make(map[string]pipeline_spec.RuntimeArtifact),
+		outputParametersSpec: make(map[string]string),
+	}
+
+	for inputArtifactName, inputArtifactList := range inputs.GetArtifacts() {
+		artifactNameList := artifactNameList{artifactNames: make([]string, 0)}
+		for _, artifact := range inputArtifactList.Artifacts {
+			artifactNameList.artifactNames = append(artifactNameList.artifactNames, artifact.GetName())
+		}
+		cacheKey.inputArtifactNames[inputArtifactName] = artifactNameList
+	}
+
+	for inputParameterName, inputParameterValue := range inputs.GetParameters() {
+		cacheKey.inputParameters[inputParameterName] = pipeline_spec.Value{
+			Value: inputParameterValue.Value,
+		}
+	}
+
+	for outputArtifactName, outputArtifactList := range outputs.GetArtifacts() {
+		if len(outputArtifactList.Artifacts) == 0 {
+			continue
+		}
+		// TODO: Support multiple artifacts someday, probably through the v2 engine.
+		outputArtifact := outputArtifactList.Artifacts[0]
+		outputArtifactWithUriWiped := pipeline_spec.RuntimeArtifact{
+			Name:     outputArtifact.GetName(),
+			Type:     outputArtifact.GetType(),
+			Metadata: outputArtifact.GetMetadata(),
+		}
+		cacheKey.outputArtifactsSpec[outputArtifactName] = outputArtifactWithUriWiped
+	}
+
+	for outputParameterName, _ := range outputs.GetParameters() {
+		outputParameter, ok := l.runtimeInfo.OutputParameters[outputParameterName]
+		if !ok {
+			return nil, fmt.Errorf("unknown parameter %q found in ExecutorInput_Outputs", outputParameterName)
+		}
+
+		cacheKey.outputParametersSpec[outputParameterName] = outputParameter.Type
+	}
+
+	// fetcha all env variables
+	env := make([]envVar, 0)
+	for _, element := range os.Environ() {
+		variable := strings.Split(element, "=")
+		env = append(env, envVar{variable[0], variable[1]})
+		fmt.Println(variable[0], "=>", variable[1])
+	}
+	cacheKey.containerSpec = containerSpec{
+		image:    l.options.ContainerImage,
+		commands: cmd,
+		args:     args,
+		env:      env,
+	}
+
+	return &cacheKey, nil
+
+}
+
+func (l *Launcher) generateFingerPrint(cacheKey cacheKey) (string, error) {
+	b, err := json.Marshal(cacheKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal cache key: %w",err)
+	}
+	hash := sha256.New()
+	hash.Write(b)
+	md := hash.Sum(nil)
+	executionHashKey := hex.EncodeToString(md)
+	return executionHashKey, nil
+
+}
+
 
 func (l *Launcher) prepareInputs(ctx context.Context, executorInput *pipeline_spec.ExecutorInput) error {
 	executorInputJSON, err := protojson.Marshal(executorInput)
