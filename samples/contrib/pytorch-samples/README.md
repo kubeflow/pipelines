@@ -46,3 +46,32 @@ Open the example notebook and run the cells to deploy the example in KFP.
 Once the deployment is done, run the prediction and explanations.
 
 
+## Steps to run the examples in local environment
+
+Use the following notebook files for running the existing Cifar 10 and Bert examples
+
+`python cifar10/pipeline.py`
+
+or
+
+`python bert/pipeline.py`
+
+The output of the above script will generate a yaml file which can be uploaded to KFP for invoking a run.
+
+
+For testing any code changes or adding new examples, use the following build script 
+
+The following actions are done in the build script
+
+1. Bundling the code changes into a docker image
+2. Pushing the docker image to dockerhub
+3. Changing image tag in component.yaml
+4. Run `pipeline.py` file to generate yaml file which can be used to invoke the pipeline.
+
+Run the following command
+
+`./build.sh <example-directory> <dockerhub-user-name>`
+
+For example:
+
+`./build.sh cifar10 johnsmith` 
