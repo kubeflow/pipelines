@@ -1,0 +1,58 @@
+#!/usr/bin/env/python3
+# Copyright (c) Facebook, Inc. and its affiliates.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+name: Create Tensorboard visualization
+description: |
+  Pre-creates Tensorboard visualization for a given Log dir URI.
+  This way the Tensorboard can be viewed before the training completes.
+  The output Log dir URI should be passed to a trainer component that will write Tensorboard logs to that directory.
+inputs:
+- {name: Log dir URI, description: 'Tensorboard log path'}
+- {name: Image, default: '', description: 'Tensorboard docker image'}
+- {name: Pod Template Spec, default: 'null', description: 'Pod template specification'}
+outputs:
+- {name: Log dir URI, description: 'Tensorboard log output'}
+- {name: MLPipeline UI Metadata, description: 'MLPipeline UI Metadata output'}
+implementation:
+  container:
+    image: public.ecr.aws/y1x1p2u5/alpine:latest
+    command:
+    - sh
+    - -ex
+    - -c
+    - |
+      log_dir="$0"
+      output_log_dir_path="$1"
+      output_metadata_path="$2"
+      pod_template_spec="$3"
+      image="$4"
+
+      mkdir -p "$(dirname "$output_log_dir_path")"
+      mkdir -p "$(dirname "$output_metadata_path")"
+      echo "$log_dir" > "$output_log_dir_path"
+
+      echo '
+          {
+            "outputs" : [{
+              "type": "tensorboard",
+              "source": "'"$log_dir"'",
+              "image": "'"$image"'",
+              "pod_template_spec": '"$pod_template_spec"'
+            }]
+          }
+      ' >"$output_metadata_path"
+    - {inputValue: Log dir URI}
+    - {outputPath: Log dir URI}
+    - {outputPath: MLPipeline UI Metadata}
+    - {inputValue: Pod Template Spec}
+    - {inputValue: Image}
