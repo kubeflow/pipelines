@@ -15,11 +15,12 @@
 package client
 
 import (
+	"context"
 	"time"
 
-	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-	workflowclientset "github.com/argoproj/argo/pkg/client/clientset/versioned"
-	"github.com/argoproj/argo/pkg/client/informers/externalversions/workflow/v1alpha1"
+	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	workflowclientset "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned"
+	"github.com/argoproj/argo-workflows/v3/pkg/client/informers/externalversions/workflow/v1alpha1"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
@@ -133,9 +134,9 @@ func retrieveIndex(workflow *workflowapi.Workflow) int64 {
 }
 
 // Create creates a workflow given a namespace and its specification.
-func (p *WorkflowClient) Create(namespace string, workflow *commonutil.Workflow) (
+func (p *WorkflowClient) Create(ctx context.Context, namespace string, workflow *commonutil.Workflow) (
 	*commonutil.Workflow, error) {
-	result, err := p.clientSet.ArgoprojV1alpha1().Workflows(namespace).Create(workflow.Get())
+	result, err := p.clientSet.ArgoprojV1alpha1().Workflows(namespace).Create(ctx, workflow.Get(), metav1.CreateOptions{})
 	if err != nil {
 		return nil, wraperror.Wrapf(err, "Error creating workflow in namespace (%v): %v: %+v", namespace,
 			err, workflow.Get())

@@ -15,7 +15,7 @@
 package util
 
 import (
-	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"k8s.io/apimachinery/pkg/util/json"

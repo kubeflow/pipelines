@@ -17,8 +17,8 @@ package templates
 import (
 	"fmt"
 
-	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/jsonpb"
 	pb "github.com/kubeflow/pipelines/api/v2alpha1/go"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler/util"
