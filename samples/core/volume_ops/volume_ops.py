@@ -26,7 +26,7 @@ def write_to_volume():
     name="volumeop-basic",
     description="A Basic Example on VolumeOp Usage."
 )
-def volumeop_basic(size):
+def volumeop_basic(size: str="1Gi"):
     vop = dsl.VolumeOp(
         name="create-pvc",
         resource_name="my-pvc",
