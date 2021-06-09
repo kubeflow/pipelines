@@ -935,7 +935,7 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
         onChange={[Function]}
         required={true}
         select={true}
-        value="Minute"
+        value="Hour"
         variant="outlined"
         width={95}
       >
@@ -1177,7 +1177,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
         onChange={[Function]}
         required={true}
         select={true}
-        value="Minute"
+        value="Hour"
         variant="outlined"
         width={95}
       >
@@ -1244,7 +1244,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
       disabled={true}
       label="cron expression"
       onChange={[Function]}
-      value="0 * * * * ?"
+      value="0 0 * * * ?"
       variant="outlined"
       width={300}
     />
