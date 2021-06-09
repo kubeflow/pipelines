@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Artifact, ArtifactType } from '@kubeflow/frontend';
+import { Artifact, ArtifactType, getMetadataValue } from '@kubeflow/frontend';
 import HelpIcon from '@material-ui/icons/Help';
 import React from 'react';
 import { Array as ArrayRunType, Number, Failure, Record, String, ValidationError } from 'runtypes';
@@ -23,6 +23,7 @@ import { color, padding } from 'src/Css';
 import { filterArtifactsByType } from 'src/lib/MlmdUtils';
 import Banner from '../Banner';
 import ConfusionMatrix, { ConfusionMatrixConfig } from './ConfusionMatrix';
+import PagedTable from './PagedTable';
 import ROCCurve, { ROCCurveConfig } from './ROCCurve';
 import { PlotType } from './Viewer';
 
@@ -36,28 +37,26 @@ interface MetricsVisualizationsProps {
  * and multiple visualizations associated with one artifact.
  */
 export function MetricsVisualizations({ artifacts, artifactTypes }: MetricsVisualizationsProps) {
-  // system.ClassificationMetrics contains confusionMatrix or confidenceMetrics.
-  // TODO: Visualize confusionMatrix using system.ClassificationMetrics artifacts.
-  // https://github.com/kubeflow/pipelines/issues/5668
-  let classificationMetricsArtifacts = filterArtifactsByType(
-    'system.ClassificationMetrics',
-    artifactTypes,
-    artifacts,
-  );
-
-  // There can be multiple system.ClassificationMetrics artifacts per execution.
-  // Get confidenceMetrics and confusionMatrix from artifact.
+  // There can be multiple system.ClassificationMetrics or system.Metrics artifacts per execution.
+  // Get scalar metrics, confidenceMetrics and confusionMatrix from artifact.
   // If there is no available metrics, show banner to notify users.
   // Otherwise, Visualize all available metrics per artifact.
-  const metricsAvailableArtifacts = getMetricsAvailableArtifacts(classificationMetricsArtifacts);
+  const verifiedClassificationMetricsArtifacts = getVerifiedClassificationMetricsArtifacts(
+    artifacts,
+    artifactTypes,
+  );
+  const verifiedMetricsArtifacts = getVerifiedMetricsArtifacts(artifacts, artifactTypes);
 
-  if (metricsAvailableArtifacts.length === 0) {
+  if (
+    verifiedClassificationMetricsArtifacts.length === 0 &&
+    verifiedMetricsArtifacts.length === 0
+  ) {
     return <Banner message='There is no metrics artifact available in this step.' mode='info' />;
   }
 
   return (
     <>
-      {metricsAvailableArtifacts.map(artifact => {
+      {verifiedClassificationMetricsArtifacts.map(artifact => {
         return (
           <React.Fragment key={artifact.getId()}>
             <ConfidenceMetricsSection artifact={artifact} />
@@ -65,15 +64,29 @@ export function MetricsVisualizations({ artifacts, artifactTypes }: MetricsVisua
           </React.Fragment>
         );
       })}
+      {verifiedMetricsArtifacts.map(artifact => (
+        <ScalarMetricsSection artifact={artifact} key={artifact.getId()} />
+      ))}
     </>
   );
 }
 
-function getMetricsAvailableArtifacts(artifacts: Artifact[]): Artifact[] {
-  if (!artifacts) {
+function getVerifiedClassificationMetricsArtifacts(
+  artifacts: Artifact[],
+  artifactTypes: ArtifactType[],
+): Artifact[] {
+  if (!artifacts || !artifactTypes) {
     return [];
   }
-  return artifacts
+  // Reference: https://github.com/kubeflow/pipelines/blob/master/sdk/python/kfp/dsl/io_types.py#L124
+  // system.ClassificationMetrics contains confusionMatrix or confidenceMetrics.
+  const classificationMetricsArtifacts = filterArtifactsByType(
+    'system.ClassificationMetrics',
+    artifactTypes,
+    artifacts,
+  );
+
+  return classificationMetricsArtifacts
     .map(artifact => ({
       name: artifact
         .getCustomPropertiesMap()
@@ -96,6 +109,25 @@ function getMetricsAvailableArtifacts(artifacts: Artifact[]): Artifact[] {
       return !!confidenceMetrics || !!confusionMatrix;
     })
     .map(x => x.artifact);
+}
+
+function getVerifiedMetricsArtifacts(
+  artifacts: Artifact[],
+  artifactTypes: ArtifactType[],
+): Artifact[] {
+  if (!artifacts || !artifactTypes) {
+    return [];
+  }
+  // Reference: https://github.com/kubeflow/pipelines/blob/master/sdk/python/kfp/dsl/io_types.py#L104
+  // system.Metrics contains scalar metrics.
+  const metricsArtifacts = filterArtifactsByType('system.Metrics', artifactTypes, artifacts);
+
+  return metricsArtifacts.filter(x =>
+    x
+      .getCustomPropertiesMap()
+      .get('name')
+      ?.getStringValue(),
+  );
 }
 
 const ROC_CURVE_DEFINITION =
@@ -122,7 +154,7 @@ function ConfidenceMetricsSection({ artifact }: ConfidenceMetricsSectionProps) {
     ?.getStructValue()
     ?.toJavaScript();
   if (confidenceMetrics === undefined) {
-    return <></>;
+    return null;
   }
 
   const { error } = validateConfidenceMetrics((confidenceMetrics as any).list);
@@ -132,23 +164,19 @@ function ConfidenceMetricsSection({ artifact }: ConfidenceMetricsSectionProps) {
     return <Banner message={errorMsg} mode='error' additionalInfo={error} />;
   }
   return (
-    <>
-      {
-        <div className={padding(40, 'lrt')}>
-          <div className={padding(40, 'b')}>
-            <h3>
-              {'ROC Curve: ' + name}{' '}
-              <IconWithTooltip
-                Icon={HelpIcon}
-                iconColor={color.weak}
-                tooltip={ROC_CURVE_DEFINITION}
-              ></IconWithTooltip>
-            </h3>
-          </div>
-          <ROCCurve configs={buildRocCurveConfig((confidenceMetrics as any).list)} />
-        </div>
-      }
-    </>
+    <div className={padding(40, 'lrt')}>
+      <div className={padding(40, 'b')}>
+        <h3>
+          {'ROC Curve: ' + name}{' '}
+          <IconWithTooltip
+            Icon={HelpIcon}
+            iconColor={color.weak}
+            tooltip={ROC_CURVE_DEFINITION}
+          ></IconWithTooltip>
+        </h3>
+      </div>
+      <ROCCurve configs={buildRocCurveConfig((confidenceMetrics as any).list)} />
+    </div>
   );
 }
 
@@ -213,7 +241,7 @@ function ConfusionMatrixSection({ artifact }: ConfusionMatrixProps) {
     ?.getStructValue()
     ?.toJavaScript();
   if (confusionMatrix === undefined) {
-    return <></>;
+    return null;
   }
 
   const { error } = validateConfusionMatrix(confusionMatrix.struct as any);
@@ -223,23 +251,19 @@ function ConfusionMatrixSection({ artifact }: ConfusionMatrixProps) {
     return <Banner message={errorMsg} mode='error' additionalInfo={error} />;
   }
   return (
-    <>
-      {
-        <div className={padding(40, 'lrt')}>
-          <div className={padding(40, 'b')}>
-            <h3>
-              {'Confusion Matrix: ' + name}{' '}
-              <IconWithTooltip
-                Icon={HelpIcon}
-                iconColor={color.weak}
-                tooltip={CONFUSION_MATRIX_DEFINITION}
-              ></IconWithTooltip>
-            </h3>
-          </div>
-          <ConfusionMatrix configs={buildConfusionMatrixConfig(confusionMatrix.struct as any)} />
-        </div>
-      }
-    </>
+    <div className={padding(40)}>
+      <div className={padding(40, 'b')}>
+        <h3>
+          {'Confusion Matrix: ' + name}{' '}
+          <IconWithTooltip
+            Icon={HelpIcon}
+            iconColor={color.weak}
+            tooltip={CONFUSION_MATRIX_DEFINITION}
+          ></IconWithTooltip>
+        </h3>
+      </div>
+      <ConfusionMatrix configs={buildConfusionMatrixConfig(confusionMatrix.struct as any)} />
+    </div>
   );
 }
 
@@ -288,4 +312,39 @@ function buildConfusionMatrixConfig(
       data: confusionMatrix.rows.map(x => x.row),
     },
   ];
+}
+
+interface ScalarMetricsSectionProps {
+  artifact: Artifact;
+}
+function ScalarMetricsSection({ artifact }: ScalarMetricsSectionProps) {
+  const customProperties = artifact.getCustomPropertiesMap();
+  const name = customProperties.get('name')?.getStringValue();
+  const data = customProperties
+    .getEntryList()
+    .map(([key]) => ({
+      key,
+      value: JSON.stringify(getMetadataValue(customProperties.get(key))),
+    }))
+    .filter(metric => metric.key !== 'name');
+
+  if (data.length === 0) {
+    return null;
+  }
+  return (
+    <div className={padding(40, 'lrt')}>
+      <div className={padding(40, 'b')}>
+        <h3>{'Scalar Metrics: ' + name}</h3>
+      </div>
+      <PagedTable
+        configs={[
+          {
+            data: data.map(d => [d.key, d.value]),
+            labels: ['name', 'value'],
+            type: PlotType.TABLE,
+          },
+        ]}
+      />
+    </div>
+  );
 }

@@ -83,8 +83,8 @@ describe('MetricsTab common case', () => {
 describe('MetricsTab with confidenceMetrics', () => {
   it('shows ROC curve', async () => {
     const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
-    const artifactType = buildBasicArtifactType();
-    const artifact = buildBasicArtifact();
+    const artifactType = buildClassificationMetricsArtifactType();
+    const artifact = buildClassificationMetricsArtifact();
     artifact.getCustomPropertiesMap().set('name', new Value().setStringValue('metrics'));
     artifact.getCustomPropertiesMap().set(
       'confidenceMetrics',
@@ -128,8 +128,8 @@ describe('MetricsTab with confidenceMetrics', () => {
 
   it('shows error banner when confidenceMetric type is wrong', async () => {
     const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
-    const artifactType = buildBasicArtifactType();
-    const artifact = buildBasicArtifact();
+    const artifactType = buildClassificationMetricsArtifactType();
+    const artifact = buildClassificationMetricsArtifact();
     artifact.getCustomPropertiesMap().set('name', new Value().setStringValue('metrics'));
     artifact.getCustomPropertiesMap().set(
       'confidenceMetrics',
@@ -165,8 +165,8 @@ describe('MetricsTab with confidenceMetrics', () => {
 
   it('shows error banner when confidenceMetric is not array', async () => {
     const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
-    const artifactType = buildBasicArtifactType();
-    const artifact = buildBasicArtifact();
+    const artifactType = buildClassificationMetricsArtifactType();
+    const artifact = buildClassificationMetricsArtifact();
     artifact.getCustomPropertiesMap().set('name', new Value().setStringValue('metrics'));
     artifact.getCustomPropertiesMap().set(
       'confidenceMetrics',
@@ -193,8 +193,8 @@ describe('MetricsTab with confidenceMetrics', () => {
 describe('MetricsTab with confusionMatrix', () => {
   it('shows confusion matrix', async () => {
     const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
-    const artifactType = buildBasicArtifactType();
-    const artifact = buildBasicArtifact();
+    const artifactType = buildClassificationMetricsArtifactType();
+    const artifact = buildClassificationMetricsArtifact();
     artifact.getCustomPropertiesMap().set('name', new Value().setStringValue('metrics'));
     artifact.getCustomPropertiesMap().set(
       'confusionMatrix',
@@ -226,8 +226,8 @@ describe('MetricsTab with confusionMatrix', () => {
 
   it('shows error banner when confusionMatrix type is wrong', async () => {
     const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
-    const artifactType = buildBasicArtifactType();
-    const artifact = buildBasicArtifact();
+    const artifactType = buildClassificationMetricsArtifactType();
+    const artifact = buildClassificationMetricsArtifact();
     artifact.getCustomPropertiesMap().set('name', new Value().setStringValue('metrics'));
     artifact.getCustomPropertiesMap().set(
       'confusionMatrix',
@@ -259,8 +259,8 @@ describe('MetricsTab with confusionMatrix', () => {
 
   it("shows error banner when confusionMatrix annotationSpecs length doesn't match rows", async () => {
     const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
-    const artifactType = buildBasicArtifactType();
-    const artifact = buildBasicArtifact();
+    const artifactType = buildClassificationMetricsArtifactType();
+    const artifact = buildClassificationMetricsArtifact();
     artifact.getCustomPropertiesMap().set('name', new Value().setStringValue('metrics'));
     artifact.getCustomPropertiesMap().set(
       'confusionMatrix',
@@ -287,19 +287,65 @@ describe('MetricsTab with confusionMatrix', () => {
   });
 });
 
+describe('MetricsTab with Scalar Metrics', () => {
+  it('shows Scalar Metrics', async () => {
+    const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
+    const artifact = buildMetricsArtifact();
+    artifact.getCustomPropertiesMap().set('name', new Value().setStringValue('metrics'));
+    artifact.getCustomPropertiesMap().set('double', new Value().setDoubleValue(123.456));
+    artifact.getCustomPropertiesMap().set('int', new Value().setIntValue(123));
+    artifact.getCustomPropertiesMap().set(
+      'struct',
+      new Value().setStructValue(
+        Struct.fromJavaScript({
+          struct: {
+            field: 'a string value',
+          },
+        }),
+      ),
+    );
+    jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockResolvedValueOnce([artifact]);
+    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValueOnce([buildMetricsArtifactType()]);
+    const { getByText } = render(
+      <CommonTestWrapper>
+        <MetricsTab execution={execution}></MetricsTab>
+      </CommonTestWrapper>,
+    );
+    getByText('Metrics is loading.');
+    // We should upgrade react-scripts for capability to use libraries normally:
+    // https://github.com/testing-library/dom-testing-library/issues/477
+    await waitFor(() => getByText('Scalar Metrics: metrics'));
+    await waitFor(() => getByText('double'));
+    await waitFor(() => getByText('int'));
+    await waitFor(() => getByText('struct'));
+  });
+});
+
 function buildBasicExecution() {
   const execution = new Execution();
   execution.setId(123);
   return execution;
 }
-function buildBasicArtifactType() {
+function buildClassificationMetricsArtifactType() {
   const artifactType = new ArtifactType();
   artifactType.setName('system.ClassificationMetrics');
   artifactType.setId(1);
   return artifactType;
 }
-function buildBasicArtifact() {
+function buildClassificationMetricsArtifact() {
   const artifact = new Artifact();
   artifact.setTypeId(1);
+  return artifact;
+}
+
+function buildMetricsArtifactType() {
+  const artifactType = new ArtifactType();
+  artifactType.setName('system.Metrics');
+  artifactType.setId(2);
+  return artifactType;
+}
+function buildMetricsArtifact() {
+  const artifact = new Artifact();
+  artifact.setTypeId(2);
   return artifact;
 }
