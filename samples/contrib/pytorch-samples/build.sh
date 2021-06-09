@@ -3,7 +3,7 @@
 if (( $# != 2 ))
 then
     echo "Usage: ./build.sh <path-to-example> <dockerhub-username>"
-    echo "Ex: ./build.sh pytorch_pipeline/examples/cifar10 shrinathsuresh"
+    echo "Ex: ./build.sh pytorch_pipeline/examples/cifar10 foobar"
     exit 1
 fi
 
