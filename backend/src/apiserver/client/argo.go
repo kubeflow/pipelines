@@ -17,8 +17,8 @@ package client
 import (
 	"time"
 
-	argoclient "github.com/argoproj/argo/pkg/client/clientset/versioned"
-	argoprojv1alpha1 "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
+	argoclient "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned"
+	argoprojv1alpha1 "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/common/util"

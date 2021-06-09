@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"io/ioutil"
 	"sort"
 	"testing"
@@ -447,7 +448,7 @@ func (s *JobApiTestSuite) TestJobApis_SwfNotFound() {
 	// Delete all ScheduledWorkflow custom resources to simulate the situation
 	// that after reinstalling KFP with managed storage, only KFP DB is kept,
 	// but all KFP custom resources are gone.
-	err = s.swfClient.ScheduledWorkflow(s.namespace).DeleteCollection(&v1.DeleteOptions{}, v1.ListOptions{})
+	err = s.swfClient.ScheduledWorkflow(s.namespace).DeleteCollection(context.Background(), &v1.DeleteOptions{}, v1.ListOptions{})
 	require.Nil(t, err)
 
 	err = s.jobClient.Delete(&jobparams.DeleteJobParams{ID: job.ID})

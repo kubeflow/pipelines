@@ -16,6 +16,7 @@
 package fake
 
 import (
+	"context"
 	v1beta1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -36,7 +37,7 @@ var scheduledworkflowsResource = schema.GroupVersionResource{Group: "scheduledwo
 var scheduledworkflowsKind = schema.GroupVersionKind{Group: "scheduledworkflow.kubeflow.org", Version: "v1beta1", Kind: "ScheduledWorkflow"}
 
 // Get takes name of the scheduledWorkflow, and returns the corresponding scheduledWorkflow object, and an error if there is any.
-func (c *FakeScheduledWorkflows) Get(name string, options v1.GetOptions) (result *v1beta1.ScheduledWorkflow, err error) {
+func (c *FakeScheduledWorkflows) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.ScheduledWorkflow, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(scheduledworkflowsResource, c.ns, name), &v1beta1.ScheduledWorkflow{})
 
@@ -47,7 +48,7 @@ func (c *FakeScheduledWorkflows) Get(name string, options v1.GetOptions) (result
 }
 
 // List takes label and field selectors, and returns the list of ScheduledWorkflows that match those selectors.
-func (c *FakeScheduledWorkflows) List(opts v1.ListOptions) (result *v1beta1.ScheduledWorkflowList, err error) {
+func (c *FakeScheduledWorkflows) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.ScheduledWorkflowList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(scheduledworkflowsResource, scheduledworkflowsKind, c.ns, opts), &v1beta1.ScheduledWorkflowList{})
 
@@ -69,14 +70,14 @@ func (c *FakeScheduledWorkflows) List(opts v1.ListOptions) (result *v1beta1.Sche
 }
 
 // Watch returns a watch.Interface that watches the requested scheduledWorkflows.
-func (c *FakeScheduledWorkflows) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeScheduledWorkflows) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(scheduledworkflowsResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a scheduledWorkflow and creates it.  Returns the server's representation of the scheduledWorkflow, and an error, if there is any.
-func (c *FakeScheduledWorkflows) Create(scheduledWorkflow *v1beta1.ScheduledWorkflow) (result *v1beta1.ScheduledWorkflow, err error) {
+func (c *FakeScheduledWorkflows) Create(ctx context.Context, scheduledWorkflow *v1beta1.ScheduledWorkflow) (result *v1beta1.ScheduledWorkflow, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(scheduledworkflowsResource, c.ns, scheduledWorkflow), &v1beta1.ScheduledWorkflow{})
 
@@ -87,7 +88,7 @@ func (c *FakeScheduledWorkflows) Create(scheduledWorkflow *v1beta1.ScheduledWork
 }
 
 // Update takes the representation of a scheduledWorkflow and updates it. Returns the server's representation of the scheduledWorkflow, and an error, if there is any.
-func (c *FakeScheduledWorkflows) Update(scheduledWorkflow *v1beta1.ScheduledWorkflow) (result *v1beta1.ScheduledWorkflow, err error) {
+func (c *FakeScheduledWorkflows) Update(ctx context.Context, scheduledWorkflow *v1beta1.ScheduledWorkflow) (result *v1beta1.ScheduledWorkflow, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(scheduledworkflowsResource, c.ns, scheduledWorkflow), &v1beta1.ScheduledWorkflow{})
 
@@ -98,7 +99,7 @@ func (c *FakeScheduledWorkflows) Update(scheduledWorkflow *v1beta1.ScheduledWork
 }
 
 // Delete takes name of the scheduledWorkflow and deletes it. Returns an error if one occurs.
-func (c *FakeScheduledWorkflows) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeScheduledWorkflows) Delete(ctx context.Context, name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(scheduledworkflowsResource, c.ns, name), &v1beta1.ScheduledWorkflow{})
 
@@ -106,7 +107,7 @@ func (c *FakeScheduledWorkflows) Delete(name string, options *v1.DeleteOptions) 
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeScheduledWorkflows) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *FakeScheduledWorkflows) DeleteCollection(ctx context.Context, options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(scheduledworkflowsResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1beta1.ScheduledWorkflowList{})
@@ -114,7 +115,7 @@ func (c *FakeScheduledWorkflows) DeleteCollection(options *v1.DeleteOptions, lis
 }
 
 // Patch applies the patch and returns the patched scheduledWorkflow.
-func (c *FakeScheduledWorkflows) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.ScheduledWorkflow, err error) {
+func (c *FakeScheduledWorkflows) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.ScheduledWorkflow, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(scheduledworkflowsResource, c.ns, name, pt, data, subresources...), &v1beta1.ScheduledWorkflow{})
 
