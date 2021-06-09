@@ -1,4 +1,3 @@
-FROM ubuntu:18.04
 #!/usr/bin/env/python3
 # Copyright (c) Facebook, Inc. and its affiliates.
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,6 +12,7 @@ FROM ubuntu:18.04
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+FROM ubuntu:18.04
 # Install some basic utilities
 RUN apt-get update && apt-get install -y \
     curl \
