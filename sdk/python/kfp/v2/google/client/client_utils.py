@@ -51,7 +51,7 @@ def _load_json_from_gs_uri(uri: str) -> Dict[str, Any]:
   """
   storage_client = storage.Client()
   blob = storage.Blob.from_string(uri, storage_client)
-  return json.loads(blob.download_as_string())
+  return json.loads(blob.download_as_bytes())
 
 
 def _load_json_from_local_file(file_path: str) -> Dict[str, Any]:
