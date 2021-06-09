@@ -47,14 +47,14 @@ def wait_for_job_done(df_client, project_id, job_id, location=None, wait_interva
                 ))
             time.sleep(wait_interval)
 
-def wait_and_dump_job(df_client, project_id, location, job, 
+def wait_and_dump_job(df_client, project_id, location, job,
     wait_interval,
     job_id_output_path,
     job_object_output_path,
 ):
     display_job_link(project_id, job)
     job_id = job.get('id')
-    job = wait_for_job_done(df_client, project_id, job_id, 
+    job = wait_for_job_done(df_client, project_id, job_id,
         location, wait_interval)
     gcp_common.dump_file(job_object_output_path, json.dumps(job))
     gcp_common.dump_file(job_id_output_path, job.get('id'))
@@ -97,7 +97,7 @@ def read_job_id_and_location(storage_client, staging_location):
     if staging_location:
         job_blob = _get_job_blob(storage_client, staging_location)
         if job_blob.exists():
-            job_data = job_blob.download_as_string().decode().split(',')
+            job_data = job_blob.download_as_bytes().decode().split(',')
             # Returns (job_id, location)
             logging.info('Found existing job {}.'.format(job_data))
             return (job_data[0], job_data[1])
