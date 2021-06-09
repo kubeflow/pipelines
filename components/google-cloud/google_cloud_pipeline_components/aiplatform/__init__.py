@@ -43,11 +43,11 @@ __all__ = [
     'AutoMLForecastingTrainingJobRunOp',
 ]
 
-ImageDatasetCreateOp = utils.convert_method_to_component(
+TimeSeriesDatasetCreateOp = utils.convert_method_to_component(
     aiplatform_sdk.TimeSeriesDataset, aiplatform_sdk.TimeSeriesDataset.create
 )
 
-TimeSeriesDatasetCreateOp = utils.convert_method_to_component(
+ImageDatasetCreateOp = utils.convert_method_to_component(
     aiplatform_sdk.ImageDataset, aiplatform_sdk.ImageDataset.create
 )
 
