@@ -55,7 +55,7 @@ WORKDIR /home/user/
 
 COPY . .
 
-RUN pip install --no-cache -r /home/user/requirements.txt
+RUN pip install --no-cache-dir -r /home/user/requirements.txt
 
 RUN pip install --no-cache-dir pytorch-kfp-components
 
