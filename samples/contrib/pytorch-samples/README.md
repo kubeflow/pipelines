@@ -5,10 +5,13 @@ This folder contains different PyTorch Kubeflow pipeline examples using the PyTo
 1. Cifar10 example for Computer Vision
 2. BERT example for NLP
 
-
 Please navigate to the following link for running the examples with Google Vertex AI pipeline
 
 https://github.com/amygdala/code-snippets/tree/master/ml/vertex_pipelines/pytorch/cifar
+
+Use the following link for installing KFP python sdk
+
+https://github.com/kubeflow/pipelines/tree/master/sdk/python
 
 ## Prerequisites
 
