@@ -19,7 +19,7 @@ from kfp import dsl
 import kfp.components as comp
 
 
-@comp.func_to_container_op
+@comp.create_component_from_func
 def print_op(msg):
     """Print a message."""
     print(msg)
