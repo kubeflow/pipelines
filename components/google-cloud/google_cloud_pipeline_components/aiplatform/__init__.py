@@ -123,6 +123,10 @@ ModelUploadOp = utils.convert_method_to_component(
     aiplatform_sdk.Model, aiplatform_sdk.Model.upload
 )
 
+ModelExportOp = utils.convert_method_to_component(
+    aiplatform_sdk.Model, aiplatform_sdk.Model.export_model
+)
+
 EndpointCreateOp = utils.convert_method_to_component(
     aiplatform_sdk.Endpoint, aiplatform_sdk.Endpoint.create
 )
