@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -44,6 +44,7 @@ import warnings
 
 import docstring_parser
 
+from kfp.components import type_annotation_utils
 from kfp.dsl import io_types
 
 T = TypeVar('T')
@@ -325,35 +326,54 @@ def _extract_component_interface(func: Callable) -> ComponentSpec:
             return type_struct
         return type_name
 
+
     input_names = set()
     output_names = set()
     for parameter in parameters:
-        parameter_annotation = parameter.annotation
+        parameter_type = type_annotation_utils.maybe_strip_optional_from_annotation(
+            parameter.annotation)
         passing_style = None
         io_name = parameter.name
-        if isinstance(
-            parameter_annotation,
-            (io_types.InputArtifact, InputArtifact, InputPath, InputTextFile, InputBinaryFile,
-             io_types.OutputArtifact, OutputArtifact, OutputPath, OutputTextFile, OutputBinaryFile)):
-            passing_style = type(parameter_annotation)
-            parameter_annotation = parameter_annotation.type
-            if parameter.default is not inspect.Parameter.empty and not (passing_style == InputPath and parameter.default is None):
-                raise ValueError('Path inputs only support default values of None. Default values for outputs are not supported.')
+
+        if io_types.is_artifact_annotation(parameter_type):
+            # passing_style is either io_types.InputAnnotation or
+            # io_types.OutputAnnotation.
+            passing_style = io_types.get_io_artifact_annotation(parameter_type)
+
+            # parameter_type is io_types.Artifact or one of its subclasses.
+            parameter_type = io_types.get_io_artifact_class(parameter_type)
+            if not issubclass(parameter_type, io_types.Artifact):
+                raise ValueError(
+                    'Input[T] and Output[T] are only supported when T is a '
+                    'subclass of Artifact. Found `{} with type {}`'.format(
+                        io_name, parameter_type))
+
+            if parameter.default is not inspect.Parameter.empty:
+                raise ValueError('Default values for Input/Output artifacts are not supported.')
+        elif isinstance(
+            parameter_type,
+            (InputArtifact, InputPath, InputTextFile, InputBinaryFile,
+             OutputArtifact, OutputPath, OutputTextFile, OutputBinaryFile)):
+
             # Removing the "_path" and "_file" suffixes from the input/output names as the argument passed to the component needs to be the data itself, not local file path.
             # Problem: When accepting file inputs (outputs), the function inside the component receives file paths (or file streams), so it's natural to call the function parameter "something_file_path" (e.g. model_file_path or number_file_path).
             # But from the outside perspective, there are no files or paths - the actual data objects (or references to them) are passed in.
             # It looks very strange when argument passing code looks like this: `component(number_file_path=42)`. This looks like an error since 42 is not a path. It's not even a string.
             # It's much more natural to strip the names of file inputs and outputs of "_file" or "_path" suffixes. Then the argument passing code will look natural: "component(number=42)".
-            if isinstance(parameter.annotation, (InputPath, OutputPath)) and io_name.endswith('_path'):
+            if isinstance(parameter_type, (InputPath, OutputPath)) and io_name.endswith('_path'):
                 io_name = io_name[0:-len('_path')]
             if io_name.endswith('_file'):
                 io_name = io_name[0:-len('_file')]
-        type_struct = annotation_to_type_struct(parameter_annotation)
-        #TODO: Humanize the input/output names
 
-        if isinstance(
-            parameter.annotation,
-            (io_types.OutputArtifact, OutputArtifact, OutputPath, OutputTextFile, OutputBinaryFile)):
+            passing_style = type(parameter_type)
+            parameter_type = parameter_type.type
+            if parameter.default is not inspect.Parameter.empty and not (passing_style == InputPath and parameter.default is None):
+                raise ValueError('Path inputs only support default values of None. Default values for outputs are not supported.')
+
+        type_struct = annotation_to_type_struct(parameter_type)
+
+        if passing_style in [io_types.OutputAnnotation, OutputArtifact,
+                             OutputPath, OutputTextFile, OutputBinaryFile]:
             io_name = _make_name_unique_by_adding_index(io_name, output_names, '_')
             output_names.add(io_name)
             output_spec = OutputSpec(
@@ -529,9 +549,9 @@ if __name__ == '__main__':
     for input in component_inputs + outputs_passed_using_func_parameters:
         flag = "--{}-output-path".format(input.name.replace("_", "-"))
 
-        if input._passing_style in [InputPath, io_types.InputArtifact]:
+        if input._passing_style in [InputPath, io_types.InputAnnotation]:
             arguments_for_input = [flag, InputPathPlaceholder(input.name)]
-        elif input._passing_style in [OutputPath, io_types.OutputArtifact]:
+        elif input._passing_style in [OutputPath, io_types.OutputAnnotation]:
             arguments_for_input = [flag, OutputPathPlaceholder(input.name)]
         else:
             arguments_for_input = [flag, InputValuePlaceholder(input.name)]

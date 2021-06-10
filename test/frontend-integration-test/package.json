@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "Visual regression end to end test package for ML Pipelines",
   "dependencies": {
-    "lodash": ">=4.17.19",
+    "lodash": ">=4.17.21",
     "mocha": "^5.2.0",
     "wait-port": "^0.2.2",
     "wdio-junit-reporter": "^0.4.4",

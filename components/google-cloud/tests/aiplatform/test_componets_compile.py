@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC. All Rights Reserved.
+# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -108,8 +108,7 @@ class ComponetsCompileTest(unittest.TestCase):
 
         compiler.Compiler().compile(
             pipeline_func=pipeline,
-            pipeline_root=self._pipeline_root,
-            output_path="pipeline.json"
+            package_path="pipeline.json"
         )
 
     def test_tabular_data_pipeline_component_ops_compile(self):
@@ -159,8 +158,7 @@ class ComponetsCompileTest(unittest.TestCase):
 
         compiler.Compiler().compile(
             pipeline_func=pipeline,
-            pipeline_root=self._pipeline_root,
-            output_path="pipeline.json"
+            package_path="pipeline.json"
         )
 
     def test_text_data_pipeline_component_ops_compile(self):
@@ -215,8 +213,7 @@ class ComponetsCompileTest(unittest.TestCase):
 
         compiler.Compiler().compile(
             pipeline_func=pipeline,
-            pipeline_root=self._pipeline_root,
-            output_path="pipeline.json"
+            package_path="pipeline.json"
         )
 
     def test_video_data_pipeline_component_ops_compile(self):
@@ -270,8 +267,7 @@ class ComponetsCompileTest(unittest.TestCase):
 
         compiler.Compiler().compile(
             pipeline_func=pipeline,
-            pipeline_root=self._pipeline_root,
-            output_path="pipeline.json"
+            package_path="pipeline.json"
         )
 
     def test_model_pipeline_component_ops_compile(self):
@@ -287,13 +283,11 @@ class ComponetsCompileTest(unittest.TestCase):
             )
 
             endpoint_create_op = EndpointCreateOp(
-                project=self._project,
-                display_name=self._display_name
+                project=self._project, display_name=self._display_name
             )
 
             model_deploy_op = ModelDeployOp(
-                project=self._project,
-                model=model_upload_op.outputs["model"]
+                project=self._project, model=model_upload_op.outputs["model"]
             )
 
             batch_predict_op = ModelBatchPredictOp(
@@ -306,6 +300,5 @@ class ComponetsCompileTest(unittest.TestCase):
 
         compiler.Compiler().compile(
             pipeline_func=pipeline,
-            pipeline_root=self._pipeline_root,
-            output_path="pipeline.json"
+            package_path="pipeline.json"
         )

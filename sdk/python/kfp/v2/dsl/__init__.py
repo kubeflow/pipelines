@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,8 +14,8 @@
 
 from kfp.v2.dsl.component_decorator import component
 from kfp.dsl.io_types import (
-    InputArtifact,
-    OutputArtifact,
+    Input,
+    Output,
     Artifact,
     Dataset,
     Model,

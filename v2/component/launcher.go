@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2021 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -32,9 +32,11 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/v2/metadata"
+	"github.com/kubeflow/pipelines/v2/objectstore"
 	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
 	"google.golang.org/protobuf/encoding/protojson"
 	v1 "k8s.io/api/core/v1"
+	k8errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -55,6 +57,8 @@ type Launcher struct {
 	placeholderReplacements map[string]string
 	metadataClient          *metadata.Client
 	bucketConfig            *bucketConfig
+	k8sClient               *kubernetes.Clientset
+	namespace               string
 }
 
 // LauncherOptions are options used when creating Launcher.
@@ -165,10 +169,42 @@ func (o *LauncherOptions) validate() error {
 }
 
 const outputMetadataFilepath = "/tmp/kfp_outputs/output_metadata.json"
+const defaultPipelineRoot = "minio://mlpipeline/v2/artifacts"
+const launcherConfigName = "kfp-launcher"
+const configKeyDefaultPipelineRoot = "defaultPipelineRoot"
 
 // NewLauncher creates a new launcher object using the JSON-encoded runtimeInfo
 // and specified options.
 func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error) {
+	restConfig, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to initialize kubernetes client: %w", err)
+	}
+	k8sClient, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to initialize kubernetes client set: %w", err)
+	}
+	namespace := os.Getenv("KFP_NAMESPACE")
+	if namespace == "" {
+		return nil, fmt.Errorf("Env variable 'KFP_NAMESPACE' is empty")
+	}
+
+	if len(options.PipelineRoot) == 0 {
+		options.PipelineRoot = defaultPipelineRoot
+		config, err := getLauncherConfig(k8sClient, namespace)
+		if err != nil {
+			return nil, err
+		}
+		// Launcher config is optional, so it can be nil when err == nil.
+		if config != nil {
+			// The key defaultPipelineRoot is also optional in launcher config.
+			defaultRootFromConfig := config.Data[configKeyDefaultPipelineRoot]
+			if defaultRootFromConfig != "" {
+				options.PipelineRoot = defaultRootFromConfig
+			}
+		}
+		glog.Infof("PipelineRoot defaults to %q.", options.PipelineRoot)
+	}
 	if err := options.validate(); err != nil {
 		return nil, err
 	}
@@ -197,6 +233,8 @@ func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error
 		runtimeInfo:             rt,
 		metadataClient:          metadataClient,
 		bucketConfig:            bc,
+		k8sClient:               k8sClient,
+		namespace:               namespace,
 	}, nil
 }
 
@@ -235,7 +273,7 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 	// testable units.
 	pipeline, err := l.metadataClient.GetPipeline(ctx, l.options.PipelineName, l.options.PipelineRunID)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to get pipeline with PipelineName %q PipelineRunID %q: %w", l.options.PipelineName, l.options.PipelineRunID, err)
 	}
 
 	ecfg := &metadata.ExecutionConfig{
@@ -271,7 +309,7 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 
 	execution, err := l.metadataClient.CreateExecution(ctx, pipeline, l.options.TaskName, l.options.PipelineTaskID, l.options.ContainerImage, ecfg)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to create execution: %w", err)
 	}
 
 	executor := exec.Command(cmd, args...)
@@ -339,7 +377,12 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 
 		blobKey, err := l.bucketConfig.keyFromURI(outputArtifact.Uri)
 		if err := uploadBlob(ctx, bucket, localDir, blobKey); err != nil {
-			return fmt.Errorf("failed to upload output artifact %q to remote storage URI %q: %w", name, outputArtifact.Uri, err)
+			//  We allow components to not produce output files
+			if errors.Is(err, os.ErrNotExist) {
+				glog.Warningf("local filepath %q does not exist", localDir)
+			} else {
+				return fmt.Errorf("failed to upload output artifact %q to remote storage URI %q: %w", name, outputArtifact.Uri, err)
+			}
 		}
 
 		// Write out the metadata.
@@ -388,30 +431,37 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 	}
 
 	for n, op := range l.runtimeInfo.OutputParameters {
+		msg := func(err error) error {
+			return fmt.Errorf("Failed to read output parameter name=%q type=%q path=%q: %w", n, op.Type, op.Path, err)
+		}
 		b, err := ioutil.ReadFile(op.Path)
 		if err != nil {
-			return err
+			return msg(err)
 		}
 		switch op.Type {
 		case "STRING":
 			outputParameters.StringParameters[n] = string(b)
 		case "INT":
-			i, err := strconv.ParseInt(string(b), 10, 0)
+			i, err := strconv.ParseInt(strings.TrimSpace(string(b)), 10, 0)
 			if err != nil {
-				return err
+				return msg(err)
 			}
 			outputParameters.IntParameters[n] = i
 		case "DOUBLE":
-			f, err := strconv.ParseFloat(string(b), 0)
+			f, err := strconv.ParseFloat(strings.TrimSpace(string(b)), 0)
 			if err != nil {
-				return err
+				return msg(err)
 			}
 			outputParameters.DoubleParameters[n] = f
+		default:
+			return msg(fmt.Errorf("unknown type. Expected STRING, INT or DOUBLE"))
 		}
-
 	}
+	if err := l.metadataClient.PublishExecution(ctx, execution, outputParameters, outputArtifacts); err != nil {
+		return fmt.Errorf("unable to publish execution: %w", err)
+	}
+	return nil
 
-	return l.metadataClient.PublishExecution(ctx, execution, outputParameters, outputArtifacts)
 }
 
 func (l *Launcher) generateOutputURI(name string) string {
@@ -525,8 +575,8 @@ func (l *Launcher) prepareOutputs(ctx context.Context, executorInput *pipeline_s
 			return fmt.Errorf("failed to generate local storage path for output artifact %q with URI %q: %w", name, outputArtifact.Uri, err)
 		}
 
-		if err := os.MkdirAll(filepath.Base(localPath), 0644); err != nil {
-			return fmt.Errorf("unable to create directory %q for output artifact %q: %w", localPath, name, err)
+		if err := os.MkdirAll(filepath.Dir(localPath), 0644); err != nil {
+			return fmt.Errorf("unable to create directory %q for output artifact %q: %w", filepath.Dir(localPath), name, err)
 		}
 
 		key = fmt.Sprintf(`{{$.outputs.artifacts['%s'].path}}`, name)
@@ -623,6 +673,7 @@ func downloadFile(ctx context.Context, bucket *blob.Bucket, blobFilePath, localF
 }
 
 func uploadBlob(ctx context.Context, bucket *blob.Bucket, localPath, blobPath string) error {
+
 	fileInfo, err := os.Stat(localPath)
 	if err != nil {
 		return fmt.Errorf("unable to stat local filepath %q: %w", localPath, err)
@@ -716,22 +767,14 @@ func getExecutorOutput() (*pipeline_spec.ExecutorOutput, error) {
 
 func (l *Launcher) openBucket() (*blob.Bucket, error) {
 	if l.bucketConfig.scheme == "minio://" {
-		secret, err := getMinioCredential()
+		cred, err := objectstore.GetMinioCredential(l.k8sClient, l.namespace)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to get minio credential: %w", err)
 		}
-		accessKey := string(secret.Data["accesskey"])
-		secretKey := string(secret.Data["secretkey"])
-		if accessKey == "" {
-			return nil, fmt.Errorf("The secret which stores minio credential does not have 'accesskey' entry")
-		}
-		if secretKey == "" {
-			return nil, fmt.Errorf("The secret which stores minio credential does not have 'secretkey' entry")
-		}
 		sess, err := session.NewSession(&aws.Config{
-			Credentials:      credentials.NewStaticCredentials(accessKey, secretKey, ""),
+			Credentials:      credentials.NewStaticCredentials(cred.AccessKey, cred.SecretKey, ""),
 			Region:           aws.String("minio"),
-			Endpoint:         aws.String("minio-service:9000"),
+			Endpoint:         aws.String(objectstore.MinioDefaultEndpoint()),
 			DisableSSL:       aws.Bool(true),
 			S3ForcePathStyle: aws.Bool(true),
 		})
@@ -744,19 +787,15 @@ func (l *Launcher) openBucket() (*blob.Bucket, error) {
 	return blob.OpenBucket(context.Background(), l.bucketConfig.bucketURL())
 }
 
-func getMinioCredential() (*v1.Secret, error) {
-	restConfig, err := rest.InClusterConfig()
+func getLauncherConfig(clientSet *kubernetes.Clientset, namespace string) (*v1.ConfigMap, error) {
+	config, err := clientSet.CoreV1().ConfigMaps(namespace).Get(context.Background(), launcherConfigName, metav1.GetOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("Failed to initialize kubernetes client: %w", err)
+		if k8errors.IsNotFound(err) {
+			glog.Infof("cannot find launcher configmap: name=%q namespace=%q", launcherConfigName, namespace)
+			// LauncherConfig is optional, so ignore not found error.
+			return nil, nil
+		}
+		return nil, err
 	}
-	clientSet, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to initialize kubernetes client set: %w", err)
-	}
-	namespace := os.Getenv("KFP_NAMESPACE")
-	if namespace == "" {
-		return nil, fmt.Errorf("Env variable 'KFP_NAMESPACE' is empty")
-	}
-	secret, err := clientSet.CoreV1().Secrets(namespace).Get(context.Background(), "mlpipeline-minio-artifact", metav1.GetOptions{})
-	return secret, err
+	return config, nil
 }

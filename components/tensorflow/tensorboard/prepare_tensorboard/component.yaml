@@ -5,6 +5,8 @@ description: |
   The output Log dir URI should be passed to a trainer component that will write Tensorboard logs to that directory.
 inputs:
 - {name: Log dir URI}
+- {name: Image, default: ''}
+- {name: Pod Template Spec, default: 'null'}
 outputs:
 - {name: Log dir URI}
 - {name: MLPipeline UI Metadata}
@@ -19,17 +21,25 @@ implementation:
       log_dir="$0"
       output_log_dir_path="$1"
       output_metadata_path="$2"
+      pod_template_spec="$3"
+      image="$4"
+
       mkdir -p "$(dirname "$output_log_dir_path")"
       mkdir -p "$(dirname "$output_metadata_path")"
       echo "$log_dir" > "$output_log_dir_path"
+
       echo '
           {
             "outputs" : [{
               "type": "tensorboard",
-              "source": "'"$log_dir"'"
+              "source": "'"$log_dir"'",
+              "image": "'"$image"'",
+              "pod_template_spec": '"$pod_template_spec"'
             }]
           }
       ' >"$output_metadata_path"
     - {inputValue: Log dir URI}
     - {outputPath: Log dir URI}
     - {outputPath: MLPipeline UI Metadata}
+    - {inputValue: Pod Template Spec}
+    - {inputValue: Image}

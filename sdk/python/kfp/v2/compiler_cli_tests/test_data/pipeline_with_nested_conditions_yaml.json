@@ -4,12 +4,12 @@
       "comp-condition-1": {
         "dag": {
           "tasks": {
-            "task-condition-2": {
+            "condition-2": {
               "componentRef": {
                 "name": "comp-condition-2"
               },
               "dependentTasks": [
-                "task-generate-random-number"
+                "generate-random-number"
               ],
               "inputs": {
                 "parameters": {
@@ -19,24 +19,24 @@
                   "pipelineparam--generate-random-number-output": {
                     "taskOutputParameter": {
                       "outputParameterKey": "output",
-                      "producerTask": "task-generate-random-number"
+                      "producerTask": "generate-random-number"
                     }
                   }
                 }
               },
               "taskInfo": {
-                "name": "task-condition-2"
+                "name": "condition-2"
               },
               "triggerPolicy": {
                 "condition": "inputs.parameters['pipelineparam--generate-random-number-output'].int_value > 5"
               }
             },
-            "task-condition-3": {
+            "condition-3": {
               "componentRef": {
                 "name": "comp-condition-3"
               },
               "dependentTasks": [
-                "task-generate-random-number"
+                "generate-random-number"
               ],
               "inputs": {
                 "parameters": {
@@ -46,24 +46,24 @@
                   "pipelineparam--generate-random-number-output": {
                     "taskOutputParameter": {
                       "outputParameterKey": "output",
-                      "producerTask": "task-generate-random-number"
+                      "producerTask": "generate-random-number"
                     }
                   }
                 }
               },
               "taskInfo": {
-                "name": "task-condition-3"
+                "name": "condition-3"
               },
               "triggerPolicy": {
                 "condition": "inputs.parameters['pipelineparam--generate-random-number-output'].int_value <= 5"
               }
             },
-            "task-generate-random-number": {
+            "generate-random-number": {
               "componentRef": {
                 "name": "comp-generate-random-number"
               },
               "taskInfo": {
-                "name": "task-generate-random-number"
+                "name": "generate-random-number"
               }
             }
           }
@@ -79,7 +79,7 @@
       "comp-condition-2": {
         "dag": {
           "tasks": {
-            "task-print": {
+            "print": {
               "componentRef": {
                 "name": "comp-print"
               },
@@ -98,7 +98,7 @@
                 }
               },
               "taskInfo": {
-                "name": "task-print"
+                "name": "print"
               }
             }
           }
@@ -117,7 +117,7 @@
       "comp-condition-3": {
         "dag": {
           "tasks": {
-            "task-print-2": {
+            "print-2": {
               "componentRef": {
                 "name": "comp-print-2"
               },
@@ -136,7 +136,7 @@
                 }
               },
               "taskInfo": {
-                "name": "task-print-2"
+                "name": "print-2"
               }
             }
           }
@@ -155,12 +155,12 @@
       "comp-condition-4": {
         "dag": {
           "tasks": {
-            "task-condition-5": {
+            "condition-5": {
               "componentRef": {
                 "name": "comp-condition-5"
               },
               "dependentTasks": [
-                "task-generate-random-number-2"
+                "generate-random-number-2"
               ],
               "inputs": {
                 "parameters": {
@@ -170,24 +170,24 @@
                   "pipelineparam--generate-random-number-2-output": {
                     "taskOutputParameter": {
                       "outputParameterKey": "output",
-                      "producerTask": "task-generate-random-number-2"
+                      "producerTask": "generate-random-number-2"
                     }
                   }
                 }
               },
               "taskInfo": {
-                "name": "task-condition-5"
+                "name": "condition-5"
               },
               "triggerPolicy": {
                 "condition": "inputs.parameters['pipelineparam--generate-random-number-2-output'].int_value > 15"
               }
             },
-            "task-condition-6": {
+            "condition-6": {
               "componentRef": {
                 "name": "comp-condition-6"
               },
               "dependentTasks": [
-                "task-generate-random-number-2"
+                "generate-random-number-2"
               ],
               "inputs": {
                 "parameters": {
@@ -197,24 +197,24 @@
                   "pipelineparam--generate-random-number-2-output": {
                     "taskOutputParameter": {
                       "outputParameterKey": "output",
-                      "producerTask": "task-generate-random-number-2"
+                      "producerTask": "generate-random-number-2"
                     }
                   }
                 }
               },
               "taskInfo": {
-                "name": "task-condition-6"
+                "name": "condition-6"
               },
               "triggerPolicy": {
                 "condition": "inputs.parameters['pipelineparam--generate-random-number-2-output'].int_value <= 15"
               }
             },
-            "task-generate-random-number-2": {
+            "generate-random-number-2": {
               "componentRef": {
                 "name": "comp-generate-random-number-2"
               },
               "taskInfo": {
-                "name": "task-generate-random-number-2"
+                "name": "generate-random-number-2"
               }
             }
           }
@@ -230,7 +230,7 @@
       "comp-condition-5": {
         "dag": {
           "tasks": {
-            "task-print-3": {
+            "print-3": {
               "componentRef": {
                 "name": "comp-print-3"
               },
@@ -249,7 +249,7 @@
                 }
               },
               "taskInfo": {
-                "name": "task-print-3"
+                "name": "print-3"
               }
             }
           }
@@ -268,7 +268,7 @@
       "comp-condition-6": {
         "dag": {
           "tasks": {
-            "task-print-4": {
+            "print-4": {
               "componentRef": {
                 "name": "comp-print-4"
               },
@@ -287,7 +287,7 @@
                 }
               },
               "taskInfo": {
-                "name": "task-print-4"
+                "name": "print-4"
               }
             }
           }
@@ -463,67 +463,67 @@
     "root": {
       "dag": {
         "tasks": {
-          "task-condition-1": {
+          "condition-1": {
             "componentRef": {
               "name": "comp-condition-1"
             },
             "dependentTasks": [
-              "task-flip-coin"
+              "flip-coin"
             ],
             "inputs": {
               "parameters": {
                 "pipelineparam--flip-coin-output": {
                   "taskOutputParameter": {
                     "outputParameterKey": "output",
-                    "producerTask": "task-flip-coin"
+                    "producerTask": "flip-coin"
                   }
                 }
               }
             },
             "taskInfo": {
-              "name": "task-condition-1"
+              "name": "condition-1"
             },
             "triggerPolicy": {
               "condition": "inputs.parameters['pipelineparam--flip-coin-output'].string_value == 'heads'"
             }
           },
-          "task-condition-4": {
+          "condition-4": {
             "componentRef": {
               "name": "comp-condition-4"
             },
             "dependentTasks": [
-              "task-flip-coin"
+              "flip-coin"
             ],
             "inputs": {
               "parameters": {
                 "pipelineparam--flip-coin-output": {
                   "taskOutputParameter": {
                     "outputParameterKey": "output",
-                    "producerTask": "task-flip-coin"
+                    "producerTask": "flip-coin"
                   }
                 }
               }
             },
             "taskInfo": {
-              "name": "task-condition-4"
+              "name": "condition-4"
             },
             "triggerPolicy": {
               "condition": "inputs.parameters['pipelineparam--flip-coin-output'].string_value == 'tails'"
             }
           },
-          "task-flip-coin": {
+          "flip-coin": {
             "componentRef": {
               "name": "comp-flip-coin"
             },
             "taskInfo": {
-              "name": "task-flip-coin"
+              "name": "flip-coin"
             }
           }
         }
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.5.0"
+    "sdkVersion": "kfp-1.6.0-rc.0"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"

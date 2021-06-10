@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -271,9 +271,8 @@ def update_task_inputs_spec(
       param = _pipeline_param.PipelineParam(
           name=task_spec.inputs.parameters[input_name].task_output_parameter
           .output_parameter_key,
-          op_name=dsl_utils.remove_task_name_prefix(
-              task_spec.inputs.parameters[input_name].task_output_parameter
-              .producer_task))
+          op_name=task_spec.inputs.parameters[input_name].task_output_parameter
+          .producer_task)
 
       component_input_parameter = (
           additional_input_name_for_pipelineparam(param.full_name))
@@ -351,9 +350,8 @@ def update_task_inputs_spec(
       param = _pipeline_param.PipelineParam(
           name=task_spec.inputs.artifacts[input_name].task_output_artifact
           .output_artifact_key,
-          op_name=dsl_utils.remove_task_name_prefix(
-              task_spec.inputs.artifacts[input_name].task_output_artifact
-              .producer_task))
+          op_name=task_spec.inputs.artifacts[input_name].task_output_artifact
+          .producer_task)
       component_input_artifact = (
           additional_input_name_for_pipelineparam(param))
       assert component_input_artifact in parent_component_inputs.artifacts, \

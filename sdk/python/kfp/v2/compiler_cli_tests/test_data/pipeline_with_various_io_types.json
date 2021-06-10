@@ -46,24 +46,18 @@
       "comp-upstream": {
         "executorLabel": "exec-upstream",
         "inputDefinitions": {
-          "artifacts": {
-            "input_3": {
-              "artifactType": {
-                "schemaTitle": "system.Artifact"
-              }
-            },
-            "input_4": {
-              "artifactType": {
-                "schemaTitle": "system.Artifact"
-              }
-            }
-          },
           "parameters": {
             "input_1": {
               "type": "STRING"
             },
             "input_2": {
               "type": "DOUBLE"
+            },
+            "input_3": {
+              "type": "STRING"
+            },
+            "input_4": {
+              "type": "STRING"
             }
           }
         },
@@ -129,8 +123,8 @@
             "args": [
               "{{$.inputs.parameters['input_1']}}",
               "{{$.inputs.parameters['input_2']}}",
-              "{{$.inputs.artifacts['input_3'].uri}}",
-              "{{$.inputs.artifacts['input_4'].uri}}",
+              "{{$.inputs.parameters['input_3']}}",
+              "{{$.inputs.parameters['input_4']}}",
               "{{$.outputs.parameters['output_1'].output_file}}",
               "{{$.outputs.artifacts['output_2'].uri}}",
               "{{$.outputs.artifacts['output_3'].path}}",
@@ -150,49 +144,49 @@
     "root": {
       "dag": {
         "tasks": {
-          "task-downstream": {
+          "downstream": {
             "componentRef": {
               "name": "comp-downstream"
             },
             "dependentTasks": [
-              "task-upstream"
+              "upstream"
             ],
             "inputs": {
               "artifacts": {
                 "input_b": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "output_2",
-                    "producerTask": "task-upstream"
+                    "producerTask": "upstream"
                   }
                 },
                 "input_c": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "output_3",
-                    "producerTask": "task-upstream"
+                    "producerTask": "upstream"
                   }
                 },
                 "input_d": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "output_4",
-                    "producerTask": "task-upstream"
+                    "producerTask": "upstream"
                   }
                 },
                 "input_e": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "output_5",
-                    "producerTask": "task-upstream"
+                    "producerTask": "upstream"
                   }
                 },
                 "input_f": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "output_6",
-                    "producerTask": "task-upstream"
+                    "producerTask": "upstream"
                   }
                 },
                 "input_g": {
                   "taskOutputArtifact": {
                     "outputArtifactKey": "output_7",
-                    "producerTask": "task-upstream"
+                    "producerTask": "upstream"
                   }
                 }
               },
@@ -200,16 +194,16 @@
                 "input_a": {
                   "taskOutputParameter": {
                     "outputParameterKey": "output_1",
-                    "producerTask": "task-upstream"
+                    "producerTask": "upstream"
                   }
                 }
               }
             },
             "taskInfo": {
-              "name": "task-downstream"
+              "name": "downstream"
             }
           },
-          "task-upstream": {
+          "upstream": {
             "componentRef": {
               "name": "comp-upstream"
             },
@@ -224,37 +218,37 @@
                       "doubleValue": 3.1415926
                     }
                   }
+                },
+                "input_3": {
+                  "componentInputParameter": "input3"
+                },
+                "input_4": {
+                  "componentInputParameter": "input4"
                 }
               }
             },
             "taskInfo": {
-              "name": "task-upstream"
+              "name": "upstream"
             }
           }
         }
       },
       "inputDefinitions": {
-        "artifacts": {
-          "input3": {
-            "artifactType": {
-              "schemaTitle": "system.Artifact"
-            }
-          },
-          "input4": {
-            "artifactType": {
-              "schemaTitle": "system.Artifact"
-            }
-          }
-        },
         "parameters": {
           "input1": {
+            "type": "STRING"
+          },
+          "input3": {
+            "type": "STRING"
+          },
+          "input4": {
             "type": "STRING"
           }
         }
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.5.0"
+    "sdkVersion": "kfp-1.6.0-rc.0"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root",

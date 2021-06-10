@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC. All Rights Reserved.
+# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,12 +16,14 @@
 import collections
 import inspect
 import json
-from typing import Any, Callable, Dict, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+import tempfile
 import docstring_parser
 
 from google.cloud import aiplatform
 import kfp
 from kfp import components
+from kfp.components.structures import ComponentSpec, ContainerImplementation, ContainerSpec, InputPathPlaceholder, InputSpec, InputValuePlaceholder, OutputPathPlaceholder, OutputSpec, OutputUriPlaceholder, InputUriPlaceholder
 
 # prefix for keyword arguments to separate constructor and method args
 INIT_KEY = 'init'
@@ -42,7 +44,7 @@ RESOURCE_TO_METADATA_TYPE = {
 
 def get_forward_reference(
     annotation: Any
-) -> Optional[aiplatform.base.AiPlatformResourceNoun]:
+) -> Optional[aiplatform.base.VertexAiResourceNoun]:
     """Resolves forward references to AiPlatform Class."""
 
     def get_aiplatform_class_by_name(_annotation):
@@ -82,7 +84,7 @@ def resolve_annotation(annotation: Any) -> Any:
 
     # if this is an Ai Platform resource noun
     if inspect.isclass(annotation):
-        if issubclass(annotation, aiplatform.base.AiPlatformResourceNoun):
+        if issubclass(annotation, aiplatform.base.VertexAiResourceNoun):
             return annotation
 
     # handle forward references
@@ -127,7 +129,7 @@ def is_mb_sdk_resource_noun_type(mb_sdk_type: Any) -> bool:
         True if this is a resource noun
     """
     if inspect.isclass(mb_sdk_type):
-        return issubclass(mb_sdk_type, aiplatform.base.AiPlatformResourceNoun)
+        return issubclass(mb_sdk_type, aiplatform.base.VertexAiResourceNoun)
     return False
 
 
@@ -161,7 +163,7 @@ def get_deserializer(annotation: Any) -> Optional[Callable[..., str]]:
 
 
 def map_resource_to_metadata_type(
-    mb_sdk_type: aiplatform.base.AiPlatformResourceNoun
+    mb_sdk_type: aiplatform.base.VertexAiResourceNoun
 ) -> Tuple[str, str]:
     """Maps an MB SDK type to Metadata type.
 
@@ -185,7 +187,7 @@ def map_resource_to_metadata_type(
     # handles the case of exported_dataset
     # TODO generalize to all serializable outputs
     if is_serializable_to_json(mb_sdk_type):
-        return "exported_dataset", "JsonArray"
+        return "exported_dataset", "Dataset"
 
     # handles the case of imported datasets
     if mb_sdk_type == '_Dataset':
@@ -195,7 +197,7 @@ def map_resource_to_metadata_type(
 def should_be_metadata_type(mb_sdk_type: Any) -> bool:
     """Determines if type passed in should be a metadata type."""
     if inspect.isclass(mb_sdk_type):
-        return issubclass(mb_sdk_type, aiplatform.base.AiPlatformResourceNoun)
+        return issubclass(mb_sdk_type, aiplatform.base.VertexAiResourceNoun)
     return False
 
 
@@ -213,7 +215,7 @@ PARAMS_TO_REMOVE = {"self", "credentials", "sync"}
 def filter_signature(
     signature: inspect.Signature,
     is_init_signature: bool = False,
-    self_type: Optional[aiplatform.base.AiPlatformResourceNoun] = None,
+    self_type: Optional[aiplatform.base.VertexAiResourceNoun] = None,
     component_param_name_to_mb_sdk_param_name: Dict[str, str] = None
 ) -> inspect.Signature:
     """Removes unused params from signature.
@@ -221,7 +223,7 @@ def filter_signature(
     Args:
         signature (inspect.Signature): Model Builder SDK Method Signature.
         is_init_signature (bool): is this constructor signature
-        self_type (aiplatform.base.AiPlatformResourceNoun): This is used to
+        self_type (aiplatform.base.VertexAiResourceNoun): This is used to
             replace *_name str fields with resource name type.
         component_param_name_to_mb_sdk_param_name dict[str, str]: Mapping to
             keep track of param names changed to make them component
@@ -345,7 +347,7 @@ def generate_docstring(
     if parsed_docstring.long_description:
         doc += f"{parsed_docstring.long_description}\n"
     if args_dict:
-        doc += "Args:\n"
+        doc += "\nArgs:\n"
         for key, val in args_dict.items():
             formated_description = val.replace("\n", "\n        ")
             doc = doc + f"    {key}:\n        {formated_description}\n"
@@ -362,14 +364,14 @@ def generate_docstring(
         raises_dict = {
             p.type_name: p.description for p in parsed_docstring.raises
         }
-        for key, val in args_dict.items():
+        for key, val in raises_dict.items():
             formated_description = val.replace("\n", "\n        ")
             doc = doc + f"    {key}:\n        {formated_description}\n"
     return doc
 
 
 def convert_method_to_component(
-    cls: aiplatform.base.AiPlatformResourceNoun, method: Callable
+    cls: aiplatform.base.VertexAiResourceNoun, method: Callable
 ) -> Callable:
     """Converts a MB SDK Method to a Component wrapper.
 
@@ -456,26 +458,28 @@ def convert_method_to_component(
 
     # determines outputs for this component
     output_type = resolve_annotation(method_signature.return_annotation)
-    outputs = ''
-    output_args = ''
+    output_specs = []
+    output_args = []
     if output_type:
         output_metadata_name, output_metadata_type = map_resource_to_metadata_type(
             output_type
         )
-        outputs = '\n'.join([
-            'outputs:',
-            f'- {{name: {output_metadata_name}, type: {output_metadata_type}}}'
-        ])
-        output_args = '\n'.join([
-            '    - --executor_input',
-            '    - "{{$}}"',
-            '    - --resource_name_output_artifact_path',
-            f'    - {{outputPath: {output_metadata_name}}}',
-        ])
+        output_specs.append(
+            OutputSpec(
+                name=output_metadata_name,
+                type=output_metadata_type,
+            )
+        )
 
-    def make_args(args_to_serialize: Dict[str, Dict[str, Any]]) -> str:
-        """Takes the args dictionary and return serialized Component string for
-        args.
+        output_args = [
+            '--executor_input',
+            '{{$}}',
+            '--resource_name_output_artifact_uri',
+            OutputUriPlaceholder(output_name=output_metadata_name),
+        ]
+
+    def make_args(args_to_serialize: Dict[str, Dict[str, Any]]) -> List[str]:
+        """Takes the args dictionary and returns command-line args.
 
         Args:
             args_to_serialize: Dictionary of format
@@ -486,11 +490,12 @@ def convert_method_to_component(
         additional_args = []
         for key, args in args_to_serialize.items():
             for arg_key, value in args.items():
-                additional_args.append(f"    - --{key}.{arg_key}={value}")
-        return '\n'.join(additional_args)
+                additional_args.append(f'--{key}.{arg_key}')
+                additional_args.append(value)
+        return additional_args
 
     def component_yaml_generator(**kwargs):
-        inputs = ["inputs:"]
+        input_specs = []
         input_args = []
         input_kwargs = {}
 
@@ -532,21 +537,26 @@ def convert_method_to_component(
                           kfp.dsl._pipeline_param.PipelineParam) or serializer:
                 if is_mb_sdk_resource_noun_type(param_type):
                     metadata_type = map_resource_to_metadata_type(param_type)[1]
-                    component_param_type, component_type = metadata_type, 'inputPath'
+                    component_param_type = metadata_type
                 else:
-                    component_param_type, component_type = 'String', 'inputValue'
+                    component_param_type = 'String'
 
-                inputs.append(
-                    f"- {{name: {key}, type: {component_param_type}}}"
+                input_specs.append(
+                    InputSpec(
+                        name=key,
+                        type=component_param_type,
+                    )
                 )
-                input_args.append(
-                    '\n'.join([
-                        f'    - --{prefix_key}.{component_param_name}',
-                        f'    - {{{component_type}: {key}}}'
-                    ])
-                )
+                input_args.append(f'--{prefix_key}.{component_param_name}')
+                if is_mb_sdk_resource_noun_type(param_type):
+                    input_args.append(InputUriPlaceholder(input_name=key))
+                else:
+                    input_args.append(InputValuePlaceholder(input_name=key))
+
                 input_kwargs[key] = value
             else:
+                # Serialized arguments must always be strings
+                value = str(value)
                 serialized_args[prefix_key][component_param_name] = value
 
         # validate parameters
@@ -554,23 +564,30 @@ def convert_method_to_component(
             init_signature.bind(**init_kwargs)
         method_signature.bind(**method_kwargs)
 
-        inputs = "\n".join(inputs) if len(inputs) > 1 else ''
-        input_args = "\n".join(input_args) if input_args else ''
-        component_text = "\n".join([
-            f'name: {cls_name}-{method_name}', f'{inputs}', outputs,
-            'implementation:', '  container:',
-            f'    image: {DEFAULT_CONTAINER_IMAGE}', '    command:',
-            '    - python3', '    - -m',
-            '    - google_cloud_pipeline_components.aiplatform.remote_runner',
-            f'    - --cls_name={cls_name}',
-            f'    - --method_name={method_name}',
-            f'{make_args(serialized_args)}', '    args:', output_args,
-            f'{input_args}'
-        ])
+        component_spec = ComponentSpec(
+            name=f'{cls_name}-{method_name}',
+            inputs=input_specs,
+            outputs=output_specs,
+            implementation=ContainerImplementation(
+                container=ContainerSpec(
+                    image=DEFAULT_CONTAINER_IMAGE,
+                    command=[
+                        'python3',
+                        '-m',
+                        'google_cloud_pipeline_components.aiplatform.remote_runner',
+                        '--cls_name',
+                        cls_name,
+                        '--method_name',
+                        method_name,
+                    ],
+                    args=make_args(serialized_args) + output_args + input_args,
+                )
+            )
+        )
+        component_path = tempfile.mktemp()
+        component_spec.save(component_path)
 
-        print(component_text)
-
-        return components.load_component_from_text(component_text)(
+        return components.load_component_from_file(component_path)(
             **input_kwargs
         )
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Google LLC
+ * Copyright 2018-2019 The Kubeflow Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,9 +20,12 @@ import InfoIcon from '@material-ui/icons/InfoOutlined';
 import { flatten } from 'lodash';
 import * as React from 'react';
 import { Link, Redirect } from 'react-router-dom';
+import { ExternalLink } from 'src/atoms/ExternalLink';
+import { MetricsTab } from 'src/components/tabs/MetricsTab';
 import { GkeMetadata, GkeMetadataContext } from 'src/lib/GkeMetadata';
 import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { ExecutionHelpers, getExecutionsFromContext, getRunContext } from 'src/lib/MlmdUtils';
+import { isV2Pipeline } from 'src/lib/v2/WorkflowUtils';
 import { classes, stylesheet } from 'typestyle';
 import {
   NodePhase as ArgoNodePhase,
@@ -40,12 +43,13 @@ import CompareTable from '../components/CompareTable';
 import DetailsTable from '../components/DetailsTable';
 import Graph from '../components/Graph';
 import LogViewer from '../components/LogViewer';
+import MinioArtifactPreview from '../components/MinioArtifactPreview';
 import PlotCard from '../components/PlotCard';
 import { PodEvents, PodInfo } from '../components/PodYaml';
+import ReduceGraphSwitch from '../components/ReduceGraphSwitch';
 import { RoutePage, RoutePageFactory, RouteParams } from '../components/Router';
 import SidePanel from '../components/SidePanel';
 import { ToolbarProps } from '../components/Toolbar';
-import MinioArtifactPreview from '../components/MinioArtifactPreview';
 import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
 import { PlotType, ViewerConfig } from '../components/viewers/Viewer';
 import { componentMap } from '../components/viewers/ViewerContainer';
@@ -58,23 +62,21 @@ import Buttons, { ButtonKeys } from '../lib/Buttons';
 import CompareUtils from '../lib/CompareUtils';
 import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
 import RunUtils from '../lib/RunUtils';
-import { KeyValue, transitiveReduction, compareGraphEdges } from '../lib/StaticGraphParser';
+import { compareGraphEdges, KeyValue, transitiveReduction } from '../lib/StaticGraphParser';
 import { hasFinished, NodePhase } from '../lib/StatusUtils';
 import {
+  decodeCompressedNodes,
   errorToMessage,
   formatDateString,
+  getRunDurationFromNode,
   getRunDurationFromWorkflow,
   logger,
   serviceErrorToString,
-  decodeCompressedNodes,
-  getRunDurationFromNode,
 } from '../lib/Utils';
 import WorkflowParser from '../lib/WorkflowParser';
 import { ExecutionDetailsContent } from './ExecutionDetails';
 import { Page, PageProps } from './Page';
 import { statusToIcon } from './Status';
-import { ExternalLink } from 'src/atoms/ExternalLink';
-import ReduceGraphSwitch from '../components/ReduceGraphSwitch';
 
 enum SidePaneTab {
   INPUT_OUTPUT,
@@ -87,6 +89,17 @@ enum SidePaneTab {
   EVENTS,
   MANIFEST,
 }
+
+const tabsNames = [
+  'Input/Output',
+  'Visualizations',
+  'ML Metadata',
+  'Details',
+  'Volumes',
+  'Logs',
+  'Pod',
+  'Events',
+];
 
 interface SelectedNodeDetails {
   id: string;
@@ -266,7 +279,6 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     const selectedExecution = mlmdExecutions?.find(
       execution => ExecutionHelpers.getKfpPod(execution) === selectedNodeId,
     );
-    // const selectedExecution = mlmdExecutions && mlmdExecutions.find(execution => execution.getPropertiesMap())
     const hasMetrics = runMetadata && runMetadata.metrics && runMetadata.metrics.length > 0;
     const visualizationCreatorConfig: VisualizationCreatorConfig = {
       allowCustomVisualizations,
@@ -331,14 +343,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                             <div className={commonCss.page}>
                               <MD2Tabs
                                 tabs={[
-                                  'Input/Output',
-                                  'Visualizations',
-                                  'ML Metadata',
-                                  'Details',
-                                  'Volumes',
-                                  'Logs',
-                                  'Pod',
-                                  'Events',
+                                  ...tabsNames,
                                   // NOTE: it's only possible to conditionally add a tab at the end
                                   ...(WorkflowParser.getNodeManifest(workflow, selectedNodeId)
                                     .length > 0
@@ -355,7 +360,8 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                               >
                                 {sidepanelSelectedTab === SidePaneTab.VISUALIZATIONS &&
                                   this.state.selectedNodeDetails &&
-                                  this.state.workflow && (
+                                  this.state.workflow &&
+                                  !isV2Pipeline(workflow) && (
                                     <VisualizationsTabContent
                                       execution={selectedExecution}
                                       nodeId={selectedNodeId}
@@ -375,6 +381,11 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                       onError={this.handleError}
                                     />
                                   )}
+                                {sidepanelSelectedTab === SidePaneTab.VISUALIZATIONS &&
+                                  this.state.selectedNodeDetails &&
+                                  this.state.workflow &&
+                                  isV2Pipeline(workflow) &&
+                                  selectedExecution && <MetricsTab execution={selectedExecution} />}
 
                                 {sidepanelSelectedTab === SidePaneTab.INPUT_OUTPUT && (
                                   <div className={padding(20)}>

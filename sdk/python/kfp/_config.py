@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,3 +13,6 @@
 # limitations under the License.
 #TODO: wrap the DSL level configuration into one Config
 TYPE_CHECK = True
+# COMPILING_FOR_V2 is True when using kfp.v2.compiler or use (v1) kfp.compiler
+# with V2_COMPATIBLE or V2_ENGINE mode
+COMPILING_FOR_V2 = False

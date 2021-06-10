@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2021 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -36,12 +36,12 @@ func Test_parseRuntimeInfo(t *testing.T) {
 		wantErr     bool
 	}{
 		{
-			name: "Parses InputParameters Correctly",
+			name: "Parse input ints",
 			jsonEncoded: `{
 				"inputParameters": {
 					"my_param": {
 						"type": "INT",
-						"value": "123"
+						"value": "BEGIN-KFP-PARAM[123]END-KFP-PARAM"
 					}
 				}
 			}`,
@@ -50,6 +50,46 @@ func Test_parseRuntimeInfo(t *testing.T) {
 					"my_param": {
 						Type:  "INT",
 						Value: "123",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Parse input strings with quotes",
+			jsonEncoded: `{
+				"inputParameters": {
+					"my_param": {
+						"type": "STRING",
+						"value": "BEGIN-KFP-PARAM[some random "value" 'with' "quotes"]END-KFP-PARAM"
+					}
+				}
+			}`,
+			want: &runtimeInfo{
+				InputParameters: map[string]*inputParameter{
+					"my_param": {
+						Type:  "STRING",
+						Value: "some random \"value\" 'with' \"quotes\"",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Parse serialized dictionaries",
+			jsonEncoded: `{
+				"inputParameters": {
+					"my_param": {
+						"type": "STRING",
+						"value": "BEGIN-KFP-PARAM[{"A": "a-value", "B": 123}]END-KFP-PARAM"
+					}
+				}
+			}`,
+			want: &runtimeInfo{
+				InputParameters: map[string]*inputParameter{
+					"my_param": {
+						Type:  "STRING",
+						Value: "{\"A\": \"a-value\", \"B\": 123}",
 					},
 				},
 			},
@@ -234,7 +274,9 @@ func TestExecutorInputGeneration(t *testing.T) {
 										Kind: &pipeline_spec.ArtifactTypeSchema_InstanceSchema{InstanceSchema: "title: kfp.Model\ntype: object\nproperties:\n  framework:\n    type: string\n  framework_version:\n    type: string\n"},
 									},
 									Uri: "gs://my-bucket/some-prefix/pipeline/task/model",
-								}}},
+									Metadata: &structpb.Struct{
+										Fields: map[string]*structpb.Value{"name": {Kind: &structpb.Value_StringValue{StringValue: "model"}}},
+									}}}},
 						"metrics": {
 							Artifacts: []*pipeline_spec.RuntimeArtifact{
 								{
@@ -243,7 +285,9 @@ func TestExecutorInputGeneration(t *testing.T) {
 										Kind: &pipeline_spec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "kfp.Metrics"},
 									},
 									Uri: "gs://my-bucket/some-prefix/pipeline/task/metrics",
-								}}},
+									Metadata: &structpb.Struct{
+										Fields: map[string]*structpb.Value{"name": {Kind: &structpb.Value_StringValue{StringValue: "metrics"}}},
+									}}}},
 					},
 					OutputFile: outputMetadataFilepath,
 				},

@@ -1,6 +1,6 @@
 #!/bin/bash -ex
 #
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,6 +25,6 @@ target_archive_file=${1:-kfp.tar.gz}
 
 pushd "$(dirname "$0")"
 dist_dir=$(mktemp -d)
-python setup.py sdist --format=gztar --dist-dir "$dist_dir"
+python3 setup.py sdist --format=gztar --dist-dir "$dist_dir"
 cp "$dist_dir"/*.tar.gz "$target_archive_file"
 popd

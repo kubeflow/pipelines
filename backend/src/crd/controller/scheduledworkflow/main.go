@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,8 +19,8 @@ import (
 	"strings"
 	"time"
 
-	workflowclientSet "github.com/argoproj/argo/pkg/client/clientset/versioned"
-	workflowinformers "github.com/argoproj/argo/pkg/client/informers/externalversions"
+	workflowclientSet "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned"
+	workflowinformers "github.com/argoproj/argo-workflows/v3/pkg/client/informers/externalversions"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/util"
 	swfclientset "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
@@ -43,7 +43,6 @@ var (
 )
 
 func main() {
-	initEnv()
 	flag.Parse()
 
 	// set up signals so we handle the first shutdown signal gracefully
@@ -107,6 +106,8 @@ func initEnv() {
 }
 
 func init() {
+	initEnv()
+
 	flag.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&namespace, "namespace", "", "The namespace name used for Kubernetes informers to obtain the listers.")
@@ -119,4 +120,5 @@ func init() {
 	if err != nil {
 		log.Fatalf("Error running controller: %s", err.Error())
 	}
+	log.Infof("Location: %s", location.String())
 }

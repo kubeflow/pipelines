@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ except ImportError:
   from shutil import which as find_executable
 
 NAME = "kfp-pipeline-spec"
-VERSION = "0.1.7"
+VERSION = "0.1.8"
 
 PROTO_DIR = os.path.realpath(
     os.path.join(os.path.dirname(__file__), os.pardir))

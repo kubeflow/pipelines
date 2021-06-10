@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -71,7 +71,7 @@ func New(cli client.Client, scheme *runtime.Scheme, opts *Options) (*Reconciler,
 // Reconcile runs the main logic for reconciling the state of a viewer with a
 // corresponding deployment and service allowing users to access the view under
 // a specific path.
-func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
 	glog.Infof("Reconcile request: %+v", req)
 
 	view := &viewerV1beta1.Viewer{}

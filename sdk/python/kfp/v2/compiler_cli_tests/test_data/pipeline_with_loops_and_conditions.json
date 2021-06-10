@@ -14,27 +14,27 @@
       "comp-condition-1": {
         "dag": {
           "tasks": {
-            "task-args-generator-op": {
+            "args-generator-op": {
               "componentRef": {
                 "name": "comp-args-generator-op"
               },
               "taskInfo": {
-                "name": "task-args-generator-op"
+                "name": "args-generator-op"
               }
             },
-            "task-for-loop-2": {
+            "for-loop-2": {
               "componentRef": {
                 "name": "comp-for-loop-2"
               },
               "dependentTasks": [
-                "task-args-generator-op"
+                "args-generator-op"
               ],
               "inputs": {
                 "parameters": {
                   "pipelineparam--args-generator-op-Output": {
                     "taskOutputParameter": {
                       "outputParameterKey": "Output",
-                      "producerTask": "task-args-generator-op"
+                      "producerTask": "args-generator-op"
                     }
                   },
                   "pipelineparam--flip-coin-op-Output": {
@@ -52,7 +52,7 @@
                 }
               },
               "taskInfo": {
-                "name": "task-for-loop-2"
+                "name": "for-loop-2"
               }
             }
           }
@@ -71,7 +71,7 @@
       "comp-condition-3": {
         "dag": {
           "tasks": {
-            "task-print-op-2": {
+            "print-op-2": {
               "componentRef": {
                 "name": "comp-print-op-2"
               },
@@ -83,7 +83,7 @@
                 }
               },
               "taskInfo": {
-                "name": "task-print-op-2"
+                "name": "print-op-2"
               }
             }
           }
@@ -102,7 +102,7 @@
       "comp-condition-4": {
         "dag": {
           "tasks": {
-            "task-print-op-3": {
+            "print-op-3": {
               "componentRef": {
                 "name": "comp-print-op-3"
               },
@@ -114,7 +114,7 @@
                 }
               },
               "taskInfo": {
-                "name": "task-print-op-3"
+                "name": "print-op-3"
               }
             }
           }
@@ -133,7 +133,7 @@
       "comp-condition-5": {
         "dag": {
           "tasks": {
-            "task-for-loop-7": {
+            "for-loop-7": {
               "componentRef": {
                 "name": "comp-for-loop-7"
               },
@@ -151,7 +151,7 @@
                 }
               },
               "taskInfo": {
-                "name": "task-for-loop-7"
+                "name": "for-loop-7"
               }
             }
           }
@@ -170,7 +170,7 @@
       "comp-condition-9": {
         "dag": {
           "tasks": {
-            "task-print-op-5": {
+            "print-op-5": {
               "componentRef": {
                 "name": "comp-print-op-5"
               },
@@ -182,10 +182,10 @@
                 }
               },
               "taskInfo": {
-                "name": "task-print-op-5"
+                "name": "print-op-5"
               }
             },
-            "task-print-op-6": {
+            "print-op-6": {
               "componentRef": {
                 "name": "comp-print-op-6"
               },
@@ -197,7 +197,7 @@
                 }
               },
               "taskInfo": {
-                "name": "task-print-op-6"
+                "name": "print-op-6"
               }
             }
           }
@@ -226,7 +226,7 @@
       "comp-for-loop-2": {
         "dag": {
           "tasks": {
-            "task-condition-3": {
+            "condition-3": {
               "componentRef": {
                 "name": "comp-condition-3"
               },
@@ -242,13 +242,13 @@
                 }
               },
               "taskInfo": {
-                "name": "task-condition-3"
+                "name": "condition-3"
               },
               "triggerPolicy": {
                 "condition": "inputs.parameters['pipelineparam--flip-coin-op-Output'].string_value == 'heads'"
               }
             },
-            "task-condition-4": {
+            "condition-4": {
               "componentRef": {
                 "name": "comp-condition-4"
               },
@@ -264,13 +264,13 @@
                 }
               },
               "taskInfo": {
-                "name": "task-condition-4"
+                "name": "condition-4"
               },
               "triggerPolicy": {
                 "condition": "inputs.parameters['pipelineparam--flip-coin-op-Output'].string_value == 'tails'"
               }
             },
-            "task-condition-5": {
+            "condition-5": {
               "componentRef": {
                 "name": "comp-condition-5"
               },
@@ -286,13 +286,13 @@
                 }
               },
               "taskInfo": {
-                "name": "task-condition-5"
+                "name": "condition-5"
               },
               "triggerPolicy": {
                 "condition": "inputs.parameters['pipelineparam--args-generator-op-Output-loop-item-subvar-A_a'].string_value == '1'"
               }
             },
-            "task-print-op": {
+            "print-op": {
               "componentRef": {
                 "name": "comp-print-op"
               },
@@ -304,7 +304,7 @@
                 }
               },
               "taskInfo": {
-                "name": "task-print-op"
+                "name": "print-op"
               }
             }
           }
@@ -329,7 +329,7 @@
       "comp-for-loop-7": {
         "dag": {
           "tasks": {
-            "task-print-op-4": {
+            "print-op-4": {
               "componentRef": {
                 "name": "comp-print-op-4"
               },
@@ -341,7 +341,7 @@
                 }
               },
               "taskInfo": {
-                "name": "task-print-op-4"
+                "name": "print-op-4"
               }
             }
           }
@@ -360,7 +360,7 @@
       "comp-for-loop-8": {
         "dag": {
           "tasks": {
-            "task-condition-9": {
+            "condition-9": {
               "componentRef": {
                 "name": "comp-condition-9"
               },
@@ -377,7 +377,7 @@
                 }
               },
               "taskInfo": {
-                "name": "task-condition-9"
+                "name": "condition-9"
               },
               "triggerPolicy": {
                 "condition": "inputs.parameters['pipelineparam--text_parameter-loop-item-subvar-p_a'].int_value > 0"
@@ -587,19 +587,19 @@
     "root": {
       "dag": {
         "tasks": {
-          "task-condition-1": {
+          "condition-1": {
             "componentRef": {
               "name": "comp-condition-1"
             },
             "dependentTasks": [
-              "task-flip-coin-op"
+              "flip-coin-op"
             ],
             "inputs": {
               "parameters": {
                 "pipelineparam--flip-coin-op-Output": {
                   "taskOutputParameter": {
                     "outputParameterKey": "Output",
-                    "producerTask": "task-flip-coin-op"
+                    "producerTask": "flip-coin-op"
                   }
                 },
                 "pipelineparam--text_parameter": {
@@ -608,21 +608,21 @@
               }
             },
             "taskInfo": {
-              "name": "task-condition-1"
+              "name": "condition-1"
             },
             "triggerPolicy": {
               "condition": "inputs.parameters['pipelineparam--flip-coin-op-Output'].string_value != 'no-such-result'"
             }
           },
-          "task-flip-coin-op": {
+          "flip-coin-op": {
             "componentRef": {
               "name": "comp-flip-coin-op"
             },
             "taskInfo": {
-              "name": "task-flip-coin-op"
+              "name": "flip-coin-op"
             }
           },
-          "task-for-loop-8": {
+          "for-loop-8": {
             "componentRef": {
               "name": "comp-for-loop-8"
             },
@@ -640,7 +640,7 @@
               }
             },
             "taskInfo": {
-              "name": "task-for-loop-8"
+              "name": "for-loop-8"
             }
           }
         }
@@ -654,7 +654,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.5.0"
+    "sdkVersion": "kfp-1.6.0-rc.0"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root",

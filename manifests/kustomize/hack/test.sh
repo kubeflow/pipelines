@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2021 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@ kustomization_yamls_v3=(
 )
 for path in "${kustomization_yamls_v3[@]}"
 do
-  kustomize build --load_restrictor none "${MANIFESTS_DIR}/${path}" >/dev/null
+  kustomize build "${MANIFESTS_DIR}/${path}" >/dev/null
 done
 
 # verify these manifests work with kpt

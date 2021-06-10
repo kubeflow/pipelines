@@ -22,6 +22,12 @@ spec:
             configMapKeyRef:
               name: pipeline-install-config
               key: appVersion
+        - name: KFP_DEFAULT_PIPELINE_ROOT
+          valueFrom:
+            configMapKeyRef:
+              optional: true
+              name: pipeline-install-config
+              key: defaultPipelineRoot
         - name: MINIO_ACCESS_KEY
           valueFrom:
             secretKeyRef:

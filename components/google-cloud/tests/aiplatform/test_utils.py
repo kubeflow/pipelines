@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC. All Rights Reserved.
+# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -150,7 +150,7 @@ class UtilsTests(unittest.TestCase):
             mb_sdk_type
         )
         self.assertEqual(parameter_name, 'exported_dataset')
-        self.assertEqual(parameter_type, 'JsonArray')
+        self.assertEqual(parameter_type, 'Dataset')
 
     def test_map_resource_to_metadata_type_with__Dataset_type(self):
         mb_sdk_type = '_Dataset'
@@ -241,7 +241,7 @@ class UtilsTests(unittest.TestCase):
         )
         expected_results = "".join(
             "Test short description.\n"
-            "Long descirption\nArgs:\n"
+            "Long descirption\n\nArgs:\n"
             "    input:\n"
             "        input_name\n"
             "    input_param:\n"
