@@ -289,11 +289,11 @@ def _op_to_template(op: BaseOp):
         template['volumes'].sort(key=lambda x: x['name'])
 
     # Runtime resource requests
-    if isinstance(op, dsl.ContainerOp) and ("resources" in op.container.keys()):
+    if isinstance(op, dsl.ContainerOp) and ('resources' in op.container.keys()):
         podSpecPatch = {}
         for setting, val in op.container['resources'].items():
             for resource, param in val.items():
-                if (resource == 'cpu' or resource == 'memory') and re.match('^{{inputs.parameters.*}}$', param):
+                if (resource in ['cpu', 'memory']) and re.match('^{{inputs.parameters.*}}$', param):
                     if not 'containers' in podSpecPatch:
                         podSpecPatch = {'containers':[{'name':'main', 'resources':{}}]}
                     if setting not in podSpecPatch['containers'][0]['resources']:

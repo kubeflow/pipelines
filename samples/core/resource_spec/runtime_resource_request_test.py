@@ -27,20 +27,22 @@ run_pipeline_func([
         pipeline_func=resource_request_pipeline,
         mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
     ),
-    TestCase(
-        pipeline_func=resource_request_pipeline,
-        mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
-    ),
+    # TODO: blocked by https://github.com/kubeflow/pipelines/issues/5835
+    # TestCase(
+    #     pipeline_func=resource_request_pipeline,
+    #     mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
+    # ),
     TestCase(
         pipeline_func=resource_request_pipeline,
         mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
         arguments={'n': 21234567},
         verify_func=EXPECTED_OOM,
     ),
-    TestCase(
-        pipeline_func=resource_request_pipeline,
-        mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
-        arguments={'n': 21234567},
-        verify_func=EXPECTED_OOM,
-    ),
+    # TODO: blocked by https://github.com/kubeflow/pipelines/issues/5835
+    # TestCase(
+    #     pipeline_func=resource_request_pipeline,
+    #     mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
+    #     arguments={'n': 21234567},
+    #     verify_func=EXPECTED_OOM,
+    # ),
 ])
