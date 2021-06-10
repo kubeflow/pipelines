@@ -26,7 +26,7 @@ MODULE = 'kfp_component.google.dataflow._launch_template'
 @mock.patch(MODULE + '.DataflowClient')
 class LaunchTemplateTest(unittest.TestCase):
 
-    def test_launch_template_succeed(self, mock_client, mock_context, mock_display, 
+    def test_launch_template_succeed(self, mock_client, mock_context, mock_display,
         mock_storage):
         mock_context().__enter__().context_id.return_value = 'context-1'
         mock_storage.Client().bucket().blob().exists.return_value = False
@@ -54,11 +54,11 @@ class LaunchTemplateTest(unittest.TestCase):
             'job-1,'
         )
 
-    def test_launch_template_retry_succeed(self, 
+    def test_launch_template_retry_succeed(self,
         mock_client, mock_context, mock_display, mock_storage):
         mock_context().__enter__().context_id.return_value = 'ctx-1'
         mock_storage.Client().bucket().blob().exists.return_value = True
-        mock_storage.Client().bucket().blob().download_as_string.return_value = b'job-1,'
+        mock_storage.Client().bucket().blob().download_as_bytes.return_value = b'job-1,'
         pending_job = {
             'currentState': 'JOB_STATE_PENDING'
         }
@@ -79,8 +79,8 @@ class LaunchTemplateTest(unittest.TestCase):
 
         self.assertEqual(expected_job, result)
         mock_client().launch_template.assert_not_called()
-    
-    def test_launch_template_fail(self, mock_client, mock_context, mock_display, 
+
+    def test_launch_template_fail(self, mock_client, mock_context, mock_display,
         mock_storage):
         mock_context().__enter__().context_id.return_value = 'context-1'
         mock_storage.Client().bucket().blob().exists.return_value = False
@@ -93,7 +93,7 @@ class LaunchTemplateTest(unittest.TestCase):
         }
         mock_client().get_job.return_value = failed_job
 
-        self.assertRaises(RuntimeError, 
+        self.assertRaises(RuntimeError,
             lambda: launch_template('project-1', 'gs://foo/bar', {
                 "parameters": {
                     "foo": "bar"
@@ -103,4 +103,3 @@ class LaunchTemplateTest(unittest.TestCase):
                 }
             }))
 
-    

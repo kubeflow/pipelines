@@ -44,7 +44,7 @@ def create_study_in_gcp_ai_platform_optimizer(
         client = storage.Client(project_id)
         bucket = client.get_bucket(_OPTIMIZER_API_DOCUMENT_BUCKET)
         blob = bucket.get_blob(_OPTIMIZER_API_DOCUMENT_FILE)
-        discovery_document = blob.download_as_string()
+        discovery_document = blob.download_as_bytes()
         return discovery.build_from_document(service=discovery_document)
 
     ml_api = create_caip_optimizer_client(gcp_project_id)
