@@ -76,6 +76,12 @@ Run the following command to disable sidecar injection
 
 ### Creating custom notebook server
 
+For installing packages via Jupyter Notebook , root permissions are needed.
+
+Custom jupyter docker image can be created using the docker file mentioned below
+
+https://github.com/kubeflow/kubeflow/blob/master/components/example-notebook-servers/jupyter/Dockerfile
+
 In the kubeflow dashboard, create a new jupyter notebook server using following custom image
 
     a. Open kubeflow dashboard

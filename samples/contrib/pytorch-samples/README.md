@@ -5,6 +5,14 @@ This folder contains different PyTorch Kubeflow pipeline examples using the PyTo
 1. Cifar10 example for Computer Vision
 2. BERT example for NLP
 
+Please navigate to the following link for running the examples with Google Vertex AI pipeline
+
+https://github.com/amygdala/code-snippets/tree/master/ml/vertex_pipelines/pytorch/cifar
+
+Use the following link for installing KFP python sdk
+
+https://github.com/kubeflow/pipelines/tree/master/sdk/python
+
 ## Prerequisites
 
 Check the following prerequisites before running the examples
@@ -76,6 +84,34 @@ For example, following component.yaml files needs to be updated for cifar10
 Open the example notebook and run the cells to deploy the example in KFP.
 
 Once the deployment is done, run the prediction and explanations.
+
+
+### Captum Insights Visualization
+
+Run the following command to port forward kubeflow dashboard
+
+```
+kubectl port-forward svc/istio-ingressgateway -n istio-system 8080:80
+```
+
+To view the captum insights UI in the local environment, run the following port forwarding command
+
+```
+kubectl port-forward pod/root-0 -n kubeflow-user-example-com <port>:6080
+```
+
+For example:
+
+```
+kubectl port-forward pod/root-0 -n kubeflow-user-example-com 8999:6080
+```
+
+The captum insights UI can be accessed via
+
+```
+http://localhost:8999
+```
+
 
 
 ## Steps to run the examples in local environment
