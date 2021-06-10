@@ -25,10 +25,10 @@ const PARAMS_DEFAULT = {
 };
 const PERIODIC_DEFAULT = {
   end_time: undefined,
-  interval_second: '60',
+  interval_second: (60 * 60).toString(),
   start_time: undefined,
 };
-const CRON_DEFAULT = { cron: '0 * * * * ?', end_time: undefined, start_time: undefined };
+const CRON_DEFAULT = { cron: '0 0 * * * ?', end_time: undefined, start_time: undefined };
 
 beforeAll(() => {
   process.env.TZ = 'UTC';
@@ -98,7 +98,7 @@ describe('Trigger', () => {
   });
 
   describe('interval trigger', () => {
-    it('builds an every-minute trigger by default', () => {
+    it('builds an every-hour trigger by default', () => {
       const spy = jest.fn();
       const tree = shallow(<Trigger onChange={spy} />);
       (tree.instance() as Trigger).handleChange('type')({
@@ -438,7 +438,7 @@ describe('Trigger', () => {
   });
 
   describe('cron', () => {
-    it('builds a 1-minute cron trigger by default', () => {
+    it('builds a 1-hour cron trigger by default', () => {
       const spy = jest.fn();
       const tree = shallow(<Trigger onChange={spy} />);
       (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
@@ -450,7 +450,7 @@ describe('Trigger', () => {
       });
     });
 
-    it('builds a 1-minute cron trigger with specified start date', () => {
+    it('builds a 1-hour cron trigger with specified start date', () => {
       const spy = jest.fn();
       const tree = shallow(<Trigger onChange={spy} />);
       (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.CRON } });
@@ -461,7 +461,11 @@ describe('Trigger', () => {
       expect(spy).toHaveBeenLastCalledWith({
         ...PARAMS_DEFAULT,
         trigger: {
-          cron_schedule: { ...CRON_DEFAULT, start_time: new Date('2018-03-23T07:53:00.000Z') },
+          cron_schedule: {
+            ...CRON_DEFAULT,
+            start_time: new Date('2018-03-23T07:53:00.000Z'),
+            cron: '0 53 * * * ?',
+          },
         },
       });
     });
