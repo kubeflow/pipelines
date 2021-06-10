@@ -289,27 +289,29 @@ class Container(V1Container):
     self.resources.requests.update({resource_name: value})
     return self
 
-  def set_memory_request(self, memory) -> 'Container':
+  def set_memory_request(self, memory: Union[str,  _pipeline_param.PipelineParam]) -> 'Container':
     """Set memory request (minimum) for this operator.
 
     Args:
-      memory: a string which can be a number or a number followed by one of
+      memory(Union[str, PipelineParam]): a string which can be a number or a number followed by one of
         "E", "P", "T", "G", "M", "K".
     """
 
-    self._validate_size_string(memory)
+    if not isinstance(memory,_pipeline_param.PipelineParam):  
+      self._validate_size_string(memory)
     return self.add_resource_request('memory', memory)
 
-  def set_memory_limit(self, memory) -> 'Container':
+  def set_memory_limit(self, memory: Union[str,  _pipeline_param.PipelineParam]) -> 'Container':
     """Set memory limit (maximum) for this operator.
 
     Args:
-      memory: a string which can be a number or a number followed by one of
+      memory(Union[str, PipelineParam]): a string which can be a number or a number followed by one of
         "E", "P", "T", "G", "M", "K".
     """
-    self._validate_size_string(memory)
-    if self._container_spec:
-      self._container_spec.resources.memory_limit = _get_resource_number(memory)
+    if not isinstance(memory,_pipeline_param.PipelineParam):
+      self._validate_size_string(memory)
+      if self._container_spec:
+        self._container_spec.resources.memory_limit = _get_resource_number(memory)
     return self.add_resource_limit('memory', memory)
 
   def set_ephemeral_storage_request(self, size) -> 'Container':
@@ -332,27 +334,29 @@ class Container(V1Container):
     self._validate_size_string(size)
     return self.add_resource_limit('ephemeral-storage', size)
 
-  def set_cpu_request(self, cpu) -> 'Container':
+  def set_cpu_request(self, cpu: Union[str,  _pipeline_param.PipelineParam]) -> 'Container':
     """Set cpu request (minimum) for this operator.
 
     Args:
-      cpu: A string which can be a number or a number followed by "m", which
+      cpu(Union[str, PipelineParam]): A string which can be a number or a number followed by "m", which
         means 1/1000.
     """
-
-    self._validate_cpu_string(cpu)
+    if not isinstance(cpu,_pipeline_param.PipelineParam):  
+      self._validate_cpu_string(cpu)
     return self.add_resource_request('cpu', cpu)
 
-  def set_cpu_limit(self, cpu) -> 'Container':
+  def set_cpu_limit(self, cpu: Union[str,  _pipeline_param.PipelineParam]) -> 'Container':
     """Set cpu limit (maximum) for this operator.
 
     Args:
-      cpu: A string which can be a number or a number followed by "m", which
+      cpu(Union[str, PipelineParam]): A string which can be a number or a number followed by "m", which
         means 1/1000.
     """
-    self._validate_cpu_string(cpu)
-    if self._container_spec:
-      self._container_spec.resources.cpu_limit = _get_cpu_number(cpu)
+
+    if not isinstance(cpu,_pipeline_param.PipelineParam):  
+      self._validate_cpu_string(cpu)
+      if self._container_spec:
+        self._container_spec.resources.cpu_limit = _get_cpu_number(cpu)
     return self.add_resource_limit('cpu', cpu)
 
   def set_gpu_limit(self, gpu, vendor='nvidia') -> 'Container':
