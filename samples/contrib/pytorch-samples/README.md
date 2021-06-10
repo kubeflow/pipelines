@@ -5,6 +5,11 @@ This folder contains different PyTorch Kubeflow pipeline examples using the PyTo
 1. Cifar10 example for Computer Vision
 2. BERT example for NLP
 
+## Prerequisites
+
+Check the following prerequisites before running the examples
+
+[Prequisites](prerequisites.md)
 
 ## Steps to Run the examples in Cluster Environment
 
@@ -25,9 +30,36 @@ Ex: `pipelines/samples/contrib/pytorch-samples/iris`
 ### Build and push the docker image
 ```
 docker build -t image_name:tag -f Dockerfile-cpu .
+```
+
+to run the example in gpu, run the following commands for building docker image
+
+```
+docker build -t image_name:tag -f Dockerfile-gpu .
+```
+
+push the docker image
+
+```
 docker tag image_name:tag username/image_name:tag
 docker push username/image_name
 ```
+
+Note for gpu testing:
+
+Following changes needs to be done in the examples notebook
+
+1. Make sure to set `node selectors`, `gpus`, `accelerator` variables under the train task
+
+push the docker image.
+
+2. Use `isvc_gpu_yaml` for GPU inference.
+
+### Tensorboard Image Update
+
+A custom tensorboard image is used for viewing pytorch profiler statistics
+
+Update tensorboard image name in the notebook (variable_name: `TENSORBOARD_IMAGE`) for using any other custom tensorboard image.
 
 ### Update component.yaml files
 
