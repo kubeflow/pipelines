@@ -42,7 +42,7 @@ def verify(
     # download artifact content
     storage_client = storage.Client()
     blob = storage.Blob.from_string(mlpipeline_ui_metadata.uri, storage_client)
-    data = blob.download_as_text(storage_client).join()
+    data = blob.download_as_text(storage_client)
     print('=== artifact content begin ===')
     print(data)
     print('=== artifact content end ===')

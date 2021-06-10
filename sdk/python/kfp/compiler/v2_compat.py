@@ -126,18 +126,13 @@ def update_op(op: dsl.ContainerOp,
 
   for artifact_name, spec in sorted(
       component_spec.output_definitions.artifacts.items()):
-    metadata_path = op.file_outputs.get(artifact_name)
-    if not metadata_path:
-        metadata_path = op.output_artifact_paths.get(artifact_name)
-        if not metadata_path:
-            raise Exception(f"Compiler internal error: cannot find output artifact path for artifact '{artifact_name}' in op '{op.name}'")
     # TODO: Assert instance_schema.
     artifact_info = {
         # Type used to register output artifacts.
         "schemaTitle": spec.artifact_type.schema_title,
         "instanceSchema": spec.artifact_type.instance_schema,
         # File used to write out the registered artifact ID.
-        "metadataPath": metadata_path,
+        "metadataPath": op.file_outputs[artifact_name],
     }
     runtime_info["outputArtifacts"][artifact_name] = artifact_info
 
