@@ -19,6 +19,10 @@ from ...test.util import run_pipeline_func, TestCase
 run_pipeline_func([
     TestCase(
         pipeline_func=my_pipeline,
+        mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
+    ),
+    TestCase(
+        pipeline_func=my_pipeline,
         mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
     ),
 ])
