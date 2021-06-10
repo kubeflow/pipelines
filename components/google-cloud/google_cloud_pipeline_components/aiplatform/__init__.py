@@ -45,31 +45,38 @@ VideoDatasetCreateOp = utils.convert_method_to_component(
 )
 
 ImageDatasetExportDataOp = utils.convert_method_to_component(
-    aiplatform_sdk.ImageDataset, aiplatform_sdk.ImageDataset.export_data,
+    aiplatform_sdk.ImageDataset,
+    aiplatform_sdk.ImageDataset.export_data,
 )
 
 TabularDatasetExportDataOp = utils.convert_method_to_component(
-    aiplatform_sdk.TabularDataset, aiplatform_sdk.TabularDataset.export_data,
+    aiplatform_sdk.TabularDataset,
+    aiplatform_sdk.TabularDataset.export_data,
 )
 
 TextDatasetExportDataOp = utils.convert_method_to_component(
-    aiplatform_sdk.TextDataset, aiplatform_sdk.TextDataset.export_data,
+    aiplatform_sdk.TextDataset,
+    aiplatform_sdk.TextDataset.export_data,
 )
 
 VideoDatasetExportDataOp = utils.convert_method_to_component(
-    aiplatform_sdk.VideoDataset, aiplatform_sdk.VideoDataset.export_data,
+    aiplatform_sdk.VideoDataset,
+    aiplatform_sdk.VideoDataset.export_data,
 )
 
 ImageDatasetImportDataOp = utils.convert_method_to_component(
-    aiplatform_sdk.ImageDataset, aiplatform_sdk.ImageDataset.import_data,
+    aiplatform_sdk.ImageDataset,
+    aiplatform_sdk.ImageDataset.import_data,
 )
 
 TextDatasetImportDataOp = utils.convert_method_to_component(
-    aiplatform_sdk.TextDataset, aiplatform_sdk.TextDataset.import_data,
+    aiplatform_sdk.TextDataset,
+    aiplatform_sdk.TextDataset.import_data,
 )
 
 VideoDatasetImportDataOp = utils.convert_method_to_component(
-    aiplatform_sdk.VideoDataset, aiplatform_sdk.VideoDataset.import_data,
+    aiplatform_sdk.VideoDataset,
+    aiplatform_sdk.VideoDataset.import_data,
 )
 
 CustomContainerTrainingJobRunOp = utils.convert_method_to_component(
@@ -83,11 +90,13 @@ CustomPythonPackageTrainingJobRunOp = utils.convert_method_to_component(
 )
 
 AutoMLImageTrainingJobRunOp = utils.convert_method_to_component(
-    aiplatform_sdk.AutoMLImageTrainingJob, aiplatform_sdk.AutoMLImageTrainingJob.run,
+    aiplatform_sdk.AutoMLImageTrainingJob,
+    aiplatform_sdk.AutoMLImageTrainingJob.run,
 )
 
 AutoMLTextTrainingJobRunOp = utils.convert_method_to_component(
-    aiplatform_sdk.AutoMLTextTrainingJob, aiplatform_sdk.AutoMLTextTrainingJob.run,
+    aiplatform_sdk.AutoMLTextTrainingJob,
+    aiplatform_sdk.AutoMLTextTrainingJob.run,
 )
 
 AutoMLTabularTrainingJobRunOp = utils.convert_method_to_component(
@@ -96,15 +105,18 @@ AutoMLTabularTrainingJobRunOp = utils.convert_method_to_component(
 )
 
 AutoMLVideoTrainingJobRunOp = utils.convert_method_to_component(
-    aiplatform_sdk.AutoMLVideoTrainingJob, aiplatform_sdk.AutoMLVideoTrainingJob.run,
+    aiplatform_sdk.AutoMLVideoTrainingJob,
+    aiplatform_sdk.AutoMLVideoTrainingJob.run,
 )
 
 ModelDeployOp = utils.convert_method_to_component(
-    aiplatform_sdk.Model, aiplatform_sdk.Model.deploy,
+    aiplatform_sdk.Model,
+    aiplatform_sdk.Model.deploy,
 )
 
 ModelBatchPredictOp = utils.convert_method_to_component(
-    aiplatform_sdk.Model, aiplatform_sdk.Model.batch_predict,
+    aiplatform_sdk.Model,
+    aiplatform_sdk.Model.batch_predict,
 )
 
 ModelUploadOp = utils.convert_method_to_component(
