@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2020 Google LLC
+# Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -42,6 +42,7 @@ sed -i.bak -e 's|\([ (]\)#\([0-9]\+\)|\1[\\#\2](https://github.com/kubeflow/pipe
 "$REPO_ROOT/components/release-in-place.sh" $TAG_NAME
 "$REPO_ROOT/manifests/gcp_marketplace/hack/release.sh" $TAG_NAME
 "$REPO_ROOT/manifests/kustomize/hack/release.sh" $TAG_NAME
-"$REPO_ROOT/sdk/hack/release.sh" $TAG_NAME
+# De-couple SDK release for now.
+# "$REPO_ROOT/sdk/hack/release.sh" $TAG_NAME
 "$REPO_ROOT/backend/api/hack/generator.sh"
 "$REPO_ROOT/backend/api/build_kfp_server_api_python_package.sh"

@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,27 +14,28 @@
 
 import kfp
 import kfp.dsl as dsl
+from kfp import components
+
+@components.create_component_from_func
+def write_to_volume():
+    with open("/mnt/file.txt", "w") as file:
+        file.write("Hello world")
 
 
 @dsl.pipeline(
-    name="VolumeOp Basic",
+    name="volumeop-basic",
     description="A Basic Example on VolumeOp Usage."
 )
-def volumeop_basic(size):
+def volumeop_basic(size: str="1Gi"):
     vop = dsl.VolumeOp(
         name="create-pvc",
         resource_name="my-pvc",
         modes=dsl.VOLUME_MODE_RWO,
         size=size
     )
+    
+    write_to_volume().add_pvolumes({"/mnt'": vop.volume})
 
-    cop = dsl.ContainerOp(
-        name="cop",
-        image="library/bash:4.4.23",
-        command=["sh", "-c"],
-        arguments=["echo foo > /mnt/file1"],
-        pvolumes={"/mnt": vop.volume}
-    )
 
 if __name__ == '__main__':
     kfp.compiler.Compiler().compile(volumeop_basic, __file__ + '.yaml')

@@ -22,7 +22,7 @@ spec:
         # * .cloudbuild.yaml and .release.cloudbuild.yaml
         # * manifests/kustomize/base/metadata/base/metadata-grpc-deployment.yaml
         # * test/tag_for_hosted.sh
-        image: gcr.io/tfx-oss-public/ml_metadata_store_server:0.25.1
+        image: gcr.io/tfx-oss-public/ml_metadata_store_server:1.0.0
         env:
         - name: DBCONFIG_USER
           valueFrom:

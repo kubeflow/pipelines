@@ -1,0 +1,68 @@
+#!/usr/bin/env/python3
+# Copyright (c) Facebook, Inc. and its affiliates.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+name: Inference
+description: Makes Inference request.
+inputs:
+- {name: Host Name, description: 'Host name of inference service'}
+- {name: Cookie, description: 'Authentication token'}
+- {name: Url, description: 'Prediction endpoing url'}
+- {name: Model, description: 'Model name'}
+- {name: Inference Type, description: 'Predict or Explain'}
+- {name: Input Request, description: 'Input request json'}
+outputs:
+- {name: MLPipeline UI Metadata, description: 'MLPipeline UI Metadata output'}
+implementation:
+  container:
+    image: public.ecr.aws/y1x1p2u5/alpine:latest
+    command:
+    - sh
+    - -ex
+    - -c
+    - |
+      host_name="$0"
+      input_request="$1"
+      output_metadata_path="$2"
+      cookie="$3"
+      url="$4"
+      model="$5"
+      inference_type="$6"
+
+      mkdir -p "$(dirname "$output_metadata_path")"
+      curl $input_request > /tmp/input.json
+      curl -v -H "Host: ${host_name}" -H "Cookie: ${cookie}" "${url}/v1/models/${model}:${inference_type}" -d @./tmp/input.json > /tmp/output.json
+
+      input=$(echo $input_request | sed -e "s/^/\"## Request: \\\n/" | sed -e "s/$/\"/")
+      output=$(cat /tmp/output.json | jq '.| tostring' | sed -e "s/^.\{1\}/&## Response: \\\n\`\`\`json\\\n/" -e "s/.$/\\\n\`\`\`\"/")
+
+      echo '{
+            "outputs" : [
+              {
+                "storage": "inline",
+                "source": '"$input"',
+                "type": "markdown"
+              },
+              {
+                "storage": "inline",
+                "source": '"$output"',
+                "type": "markdown"
+              }
+           ]
+          }'  > "$output_metadata_path"
+    - {inputValue: Host Name}
+    - {inputValue: Input Request}
+    - {outputPath: MLPipeline UI Metadata}
+    - {inputValue: Cookie}
+    - {inputValue: Url}
+    - {inputValue: Model}
+    - {inputValue: Inference Type}

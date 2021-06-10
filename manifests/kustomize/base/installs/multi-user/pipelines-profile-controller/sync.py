@@ -1,4 +1,4 @@
-# Copyright 2020-2021 Google LLC
+# Copyright 2020-2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,6 +18,8 @@ import os
 import base64
 
 kfp_version = os.environ["KFP_VERSION"]
+# KFP_DEFAULT_PIPELINE_ROOT is optional
+kfp_default_pipeline_root = os.environ.get("KFP_DEFAULT_PIPELINE_ROOT")
 disable_istio_sidecar = os.environ.get("DISABLE_ISTIO_SIDECAR") == "true"
 mlpipeline_minio_access_key = base64.b64encode(
     bytes(os.environ.get("MINIO_ACCESS_KEY"), 'utf-8')).decode('utf-8')
@@ -27,17 +29,35 @@ mlpipeline_minio_secret_key = base64.b64encode(
 
 class Controller(BaseHTTPRequestHandler):
     def sync(self, parent, children):
+        # parent is a namespace
+        namespace = parent.get("metadata", {}).get("name")
         pipeline_enabled = parent.get("metadata", {}).get(
             "labels", {}).get("pipelines.kubeflow.org/enabled")
 
         if pipeline_enabled != "true":
             return {"status": {}, "children": []}
 
+        desired_configmap_count = 1
+        desired_resources = []
+        if kfp_default_pipeline_root:
+            desired_configmap_count = 2
+            desired_resources += [{
+                "apiVersion": "v1",
+                "kind": "ConfigMap",
+                "metadata": {
+                    "name": "kfp-launcher",
+                    "namespace": namespace,
+                },
+                "data": {
+                    "defaultPipelineRoot": kfp_default_pipeline_root,
+                },
+            }]
+
         # Compute status based on observed state.
         desired_status = {
             "kubeflow-pipelines-ready": \
                 len(children["Secret.v1"]) == 1 and \
-                len(children["ConfigMap.v1"]) == 1 and \
+                len(children["ConfigMap.v1"]) == desired_configmap_count and \
                 len(children["Deployment.apps/v1"]) == 2 and \
                 len(children["Service.v1"]) == 2 and \
                 len(children["DestinationRule.networking.istio.io/v1alpha3"]) == 1 and \
@@ -46,9 +66,7 @@ class Controller(BaseHTTPRequestHandler):
         }
 
         # Generate the desired child object(s).
-        # parent is a namespace
-        namespace = parent.get("metadata", {}).get("name")
-        desired_resources = [
+        desired_resources += [
             {
                 "apiVersion": "v1",
                 "kind": "ConfigMap",

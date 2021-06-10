@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -53,7 +53,7 @@ class LaunchPythonTest(unittest.TestCase):
         mock_client, mock_context, mock_stage_file, mock_display, mock_storage):
         mock_context().__enter__().context_id.return_value = 'ctx-1'
         mock_storage.Client().bucket().blob().exists.return_value = True
-        mock_storage.Client().bucket().blob().download_as_string.return_value = b'job-1,us-central1'
+        mock_storage.Client().bucket().blob().download_as_bytes.return_value = b'job-1,us-central1'
         expected_job = {
             'id': 'job-1',
             'currentState': 'JOB_STATE_DONE'

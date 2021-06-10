@@ -1,4 +1,4 @@
-# Copyright 2020-2021 Google LLC
+# Copyright 2020-2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -86,7 +86,7 @@ implementation:
 )
 
 
-@kfp.dsl.pipeline(name='dir_pipeline')
+@kfp.dsl.pipeline(name='dir-pipeline')
 def dir_pipeline():
     produce_dir_python_task = produce_dir_with_files_python_op(num_files=15)
     list_dir_files_python_op(input_dir=produce_dir_python_task.output)

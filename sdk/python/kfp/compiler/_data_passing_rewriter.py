@@ -706,8 +706,9 @@ def add_pod_name_passing(
     for template in dag_templates:
         _refactor_dag_template_uri_inputs(template, refactored_inputs)
 
-    # 4. For all the container command/args, replace {{kfp.pipeline_root}}
-    # placeholders with the actual output directory specified.
+    # 4. For all the container command/args/envs, replace {{kfp.pipeline_root}}
+    # placeholders with the actual output directory specified,
+    # and {{kfp.run_uid}} with the Argo-specific placeholder {{workflow.uid}}.
     # Also, the file names need to be reconciled in the consumer to keep
     # consistent with producer.
     for template in container_templates:
@@ -723,6 +724,12 @@ def add_pod_name_passing(
             new_cmds = [_replace_output_dir_and_run_id(cmd, output_directory)
                         for cmd in cmds]
             template['container']['command'] = new_cmds
+
+        envs = template['container'].get('env') or []
+        for env in envs:
+          if 'value' in env:
+            env['value'] = _replace_output_dir_and_run_id(env['value'],
+                                                          output_directory)
 
     clean_up_empty_workflow_structures(workflow)
 

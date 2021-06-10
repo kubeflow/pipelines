@@ -260,7 +260,7 @@ func (s *ExperimentServer) ArchiveExperiment(ctx context.Context, request *api.A
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
-	err = s.resourceManager.ArchiveExperiment(request.Id)
+	err = s.resourceManager.ArchiveExperiment(ctx, request.Id)
 	if err != nil {
 		return nil, err
 	}

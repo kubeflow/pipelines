@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2021 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,8 +20,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/golang/glog"
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -34,6 +36,7 @@ const (
 	pipelineContextTypeName    = "kfp.Pipeline"
 	pipelineRunContextTypeName = "kfp.PipelineRun"
 	containerExecutionTypeName = "kfp.ContainerExecution"
+	mlmdClientSideMaxRetries   = 3
 )
 
 var (
@@ -58,7 +61,16 @@ type Client struct {
 
 // NewClient creates a Client given the MLMD server address and port.
 func NewClient(serverAddress, serverPort string) (*Client, error) {
-	conn, err := grpc.Dial(fmt.Sprintf("%s:%s", serverAddress, serverPort), grpc.WithInsecure())
+	opts := []grpc_retry.CallOption{
+		grpc_retry.WithMax(mlmdClientSideMaxRetries),
+		grpc_retry.WithBackoff(grpc_retry.BackoffExponentialWithJitter(300*time.Millisecond, 0.20)),
+		grpc_retry.WithCodes(codes.Aborted),
+	}
+	conn, err := grpc.Dial(fmt.Sprintf("%s:%s", serverAddress, serverPort),
+		grpc.WithInsecure(),
+		grpc.WithStreamInterceptor(grpc_retry.StreamClientInterceptor(opts...)),
+		grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(opts...)),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("metadata.NewClient() failed: %w", err)
 	}
@@ -119,11 +131,32 @@ func (c *Client) GetPipeline(ctx context.Context, pipelineName string, pipelineR
 		return nil, err
 	}
 
+	err = c.putParentContexts(ctx, &pb.PutParentContextsRequest{
+		ParentContexts: []*pb.ParentContext{{
+			ChildId:  pipelineRunContext.Id,
+			ParentId: pipelineContext.Id,
+		}},
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return &Pipeline{
 		pipelineCtx:    pipelineContext,
 		pipelineRunCtx: pipelineRunContext,
 	}, nil
+}
 
+func (c *Client) putParentContexts(ctx context.Context, req *pb.PutParentContextsRequest) error {
+	_, err := c.svc.PutParentContexts(ctx, req)
+	if err != nil {
+		if status.Convert(err).Code() == codes.AlreadyExists {
+			// already exists code is expected when multiple requests are sent in parallel
+		} else {
+			return fmt.Errorf("Failed PutParentContexts(%v): %w", req.String(), err)
+		}
+	}
+	return nil
 }
 
 func (c *Client) getContainerExecutionTypeID(ctx context.Context) (int64, error) {

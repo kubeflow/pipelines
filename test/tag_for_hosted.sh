@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2020 Google LLC
+# Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -100,8 +100,8 @@ docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA:$MM_VER
 # * .cloudbuild.yaml and .release.cloudbuild.yaml
 # * manifests/kustomize/base/metadata/base/metadata-grpc-deployment.yaml
 # * test/tag_for_hosted.sh
-docker tag gcr.io/tfx-oss-public/ml_metadata_store_server:0.25.1 gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/metadataserver:$SEM_VER
-docker tag gcr.io/tfx-oss-public/ml_metadata_store_server:0.25.1 gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/metadataserver:$MM_VER
+docker tag gcr.io/tfx-oss-public/ml_metadata_store_server:1.0.0 gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/metadataserver:$SEM_VER
+docker tag gcr.io/tfx-oss-public/ml_metadata_store_server:1.0.0 gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/metadataserver:$MM_VER
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/metadataserver:$SEM_VER
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/metadataserver:$MM_VER
 

@@ -1,108 +1,77 @@
 from kfp.components import InputPath, OutputPath
 
-
 def ExampleValidator(
     statistics_path: InputPath('ExampleStatistics'),
     schema_path: InputPath('Schema'),
-
     anomalies_path: OutputPath('ExampleAnomalies'),
+    exclude_splits: str = None,
 ):
-    """
-    A TFX component to validate input examples.
-
-    The ExampleValidator component uses [Tensorflow Data
-    Validation](https://www.tensorflow.org/tfx/data_validation/get_started) to
-    validate the statistics of some splits on input examples against a schema.
-
-    The ExampleValidator component identifies anomalies in training and serving
-    data. The component can be configured to detect different classes of anomalies
-    in the data. It can:
-        - perform validity checks by comparing data statistics against a schema that
-        codifies expectations of the user.
-        - detect data drift by looking at a series of data.
-        - detect changes in dataset-wide data (i.e., num_examples) across spans or
-        versions.
-
-    Schema Based Example Validation
-    The ExampleValidator component identifies any anomalies in the example data by
-    comparing data statistics computed by the StatisticsGen component against a
-    schema. The schema codifies properties which the input data is expected to
-    satisfy, and is provided and maintained by the user.
-
-    Please see https://www.tensorflow.org/tfx/data_validation/get_started for more details.
-
-    Args:
-        statistics: A Channel of 'ExampleStatistics` type. This should contain at
-            least 'eval' split. Other splits are ignored currently.
-        schema: A Channel of "Schema' type. _required_
-    Returns:
-        anomalies: Output channel of 'ExampleAnomalies' type.
-
-    Either `stats` or `statistics` must be present in the arguments.
-    """
     from tfx.components.example_validator.component import ExampleValidator as component_class
 
     #Generated code
-    import json
     import os
-    import tensorflow
+    import tempfile
+    from tensorflow.io import gfile
     from google.protobuf import json_format, message
-    from tfx.types import Artifact, channel_utils, artifact_utils
+    from tfx.types import channel_utils, artifact_utils
+    from tfx.components.base import base_executor
 
     arguments = locals().copy()
 
     component_class_args = {}
 
     for name, execution_parameter in component_class.SPEC_CLASS.PARAMETERS.items():
-        argument_value_obj = argument_value = arguments.get(name, None)
+        argument_value = arguments.get(name, None)
         if argument_value is None:
             continue
         parameter_type = execution_parameter.type
-        if isinstance(parameter_type, type) and issubclass(parameter_type, message.Message): # Maybe FIX: execution_parameter.type can also be a tuple
+        if isinstance(parameter_type, type) and issubclass(parameter_type, message.Message):
             argument_value_obj = parameter_type()
             json_format.Parse(argument_value, argument_value_obj)
+        else:
+            argument_value_obj = argument_value
         component_class_args[name] = argument_value_obj
 
     for name, channel_parameter in component_class.SPEC_CLASS.INPUTS.items():
-        artifact_path = arguments[name + '_path']
+        artifact_path = arguments.get(name + '_uri') or arguments.get(name + '_path')
         if artifact_path:
             artifact = channel_parameter.type()
-            artifact.uri = artifact_path + '/' # ?
+            artifact.uri = artifact_path.rstrip('/') + '/'  # Some TFX components require that the artifact URIs end with a slash
             if channel_parameter.type.PROPERTIES and 'split_names' in channel_parameter.type.PROPERTIES:
                 # Recovering splits
-                subdirs = tensorflow.io.gfile.listdir(artifact_path)
-                artifact.split_names = artifact_utils.encode_split_names(sorted(subdirs))
+                subdirs = gfile.listdir(artifact_path)
+                # Workaround for https://github.com/tensorflow/tensorflow/issues/39167
+                subdirs = [subdir.rstrip('/') for subdir in subdirs]
+                split_names = [subdir.replace('Split-', '') for subdir in subdirs]
+                artifact.split_names = artifact_utils.encode_split_names(sorted(split_names))
             component_class_args[name] = channel_utils.as_channel([artifact])
 
     component_class_instance = component_class(**component_class_args)
 
-    input_dict = {name: channel.get() for name, channel in component_class_instance.inputs.get_all().items()}
-    output_dict = {name: channel.get() for name, channel in component_class_instance.outputs.get_all().items()}
+    input_dict = channel_utils.unwrap_channel_dict(component_class_instance.inputs.get_all())
+    output_dict = {}
     exec_properties = component_class_instance.exec_properties
 
     # Generating paths for output artifacts
-    for name, artifacts in output_dict.items():
-        base_artifact_path = arguments[name + '_path']
-        # Are there still cases where output channel has multiple artifacts?
-        for idx, artifact in enumerate(artifacts):
-            subdir = str(idx + 1) if idx > 0 else ''
-            artifact.uri = os.path.join(base_artifact_path, subdir)  # Ends with '/'
+    for name, channel in component_class_instance.outputs.items():
+        artifact_path = arguments.get('output_' + name + '_uri') or arguments.get(name + '_path')
+        if artifact_path:
+            artifact = channel.type()
+            artifact.uri = artifact_path.rstrip('/') + '/'  # Some TFX components require that the artifact URIs end with a slash
+            artifact_list = [artifact]
+            channel._artifacts = artifact_list
+            output_dict[name] = artifact_list
 
     print('component instance: ' + str(component_class_instance))
 
-    #executor = component_class.EXECUTOR_SPEC.executor_class() # Same
-    executor = component_class_instance.executor_spec.executor_class()
+    executor_context = base_executor.BaseExecutor.Context(
+        beam_pipeline_args=arguments.get('beam_pipeline_args'),
+        tmp_dir=tempfile.gettempdir(),
+        unique_id='tfx_component',
+    )
+    executor = component_class_instance.executor_spec.executor_class(executor_context)
     executor.Do(
         input_dict=input_dict,
         output_dict=output_dict,
         exec_properties=exec_properties,
-    )
-
-
-if __name__ == '__main__':
-    import kfp
-    kfp.components.func_to_container_op(
-        ExampleValidator,
-        base_image='tensorflow/tfx:0.21.4',
-        output_component_file='component.yaml'
     )

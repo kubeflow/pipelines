@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -180,7 +180,7 @@ steps:
 # * manifests/kustomize/base/metadata/base/metadata-grpc-deployment.yaml
 # * test/tag_for_hosted.sh
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['pull', 'gcr.io/tfx-oss-public/ml_metadata_store_server:0.25.1']
+  args: ['pull', 'gcr.io/tfx-oss-public/ml_metadata_store_server:1.0.0']
   id:   'pullMetadataServer'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/ml-pipeline/minio:RELEASE.2019-08-14T20-37-41Z-license-compliance']

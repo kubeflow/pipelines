@@ -4,12 +4,12 @@
       "comp-condition-1": {
         "dag": {
           "tasks": {
-            "task-condition-2": {
+            "condition-2": {
               "componentRef": {
                 "name": "comp-condition-2"
               },
               "dependentTasks": [
-                "task-flip-coin-3"
+                "flip-coin-3"
               ],
               "inputs": {
                 "parameters": {
@@ -19,7 +19,7 @@
                   "pipelineparam--flip-coin-3-Output": {
                     "taskOutputParameter": {
                       "outputParameterKey": "Output",
-                      "producerTask": "task-flip-coin-3"
+                      "producerTask": "flip-coin-3"
                     }
                   },
                   "pipelineparam--flip-coin-Output": {
@@ -28,39 +28,39 @@
                 }
               },
               "taskInfo": {
-                "name": "task-condition-2"
+                "name": "condition-2"
               },
               "triggerPolicy": {
                 "condition": "inputs.parameters['pipelineparam--flip-coin-2-Output'].string_value == inputs.parameters['pipelineparam--flip-coin-3-Output'].string_value"
               }
             },
-            "task-flip-coin-3": {
+            "flip-coin-3": {
               "componentRef": {
                 "name": "comp-flip-coin-3"
               },
               "taskInfo": {
-                "name": "task-flip-coin-3"
+                "name": "flip-coin-3"
               }
             },
-            "task-print-msg-3": {
+            "print-msg-3": {
               "componentRef": {
                 "name": "comp-print-msg-3"
               },
               "dependentTasks": [
-                "task-flip-coin-3"
+                "flip-coin-3"
               ],
               "inputs": {
                 "parameters": {
                   "msg": {
                     "taskOutputParameter": {
                       "outputParameterKey": "Output",
-                      "producerTask": "task-flip-coin-3"
+                      "producerTask": "flip-coin-3"
                     }
                   }
                 }
               },
               "taskInfo": {
-                "name": "task-print-msg-3"
+                "name": "print-msg-3"
               }
             }
           }
@@ -79,33 +79,33 @@
       "comp-condition-2": {
         "dag": {
           "tasks": {
-            "task-flip-coin-4": {
+            "flip-coin-4": {
               "componentRef": {
                 "name": "comp-flip-coin-4"
               },
               "taskInfo": {
-                "name": "task-flip-coin-4"
+                "name": "flip-coin-4"
               }
             },
-            "task-print-msg-4": {
+            "print-msg-4": {
               "componentRef": {
                 "name": "comp-print-msg-4"
               },
               "dependentTasks": [
-                "task-flip-coin-4"
+                "flip-coin-4"
               ],
               "inputs": {
                 "parameters": {
                   "msg": {
                     "taskOutputParameter": {
                       "outputParameterKey": "Output",
-                      "producerTask": "task-flip-coin-4"
+                      "producerTask": "flip-coin-4"
                     }
                   }
                 }
               },
               "taskInfo": {
-                "name": "task-print-msg-4"
+                "name": "print-msg-4"
               }
             }
           }
@@ -335,100 +335,100 @@
     "root": {
       "dag": {
         "tasks": {
-          "task-condition-1": {
+          "condition-1": {
             "componentRef": {
               "name": "comp-condition-1"
             },
             "dependentTasks": [
-              "task-flip-coin",
-              "task-flip-coin-2"
+              "flip-coin",
+              "flip-coin-2"
             ],
             "inputs": {
               "parameters": {
                 "pipelineparam--flip-coin-2-Output": {
                   "taskOutputParameter": {
                     "outputParameterKey": "Output",
-                    "producerTask": "task-flip-coin-2"
+                    "producerTask": "flip-coin-2"
                   }
                 },
                 "pipelineparam--flip-coin-Output": {
                   "taskOutputParameter": {
                     "outputParameterKey": "Output",
-                    "producerTask": "task-flip-coin"
+                    "producerTask": "flip-coin"
                   }
                 }
               }
             },
             "taskInfo": {
-              "name": "task-condition-1"
+              "name": "condition-1"
             },
             "triggerPolicy": {
               "condition": "inputs.parameters['pipelineparam--flip-coin-Output'].string_value != 'no-such-result'"
             }
           },
-          "task-flip-coin": {
+          "flip-coin": {
             "componentRef": {
               "name": "comp-flip-coin"
             },
             "taskInfo": {
-              "name": "task-flip-coin"
+              "name": "flip-coin"
             }
           },
-          "task-flip-coin-2": {
+          "flip-coin-2": {
             "componentRef": {
               "name": "comp-flip-coin-2"
             },
             "taskInfo": {
-              "name": "task-flip-coin-2"
+              "name": "flip-coin-2"
             }
           },
-          "task-print-msg": {
+          "print-msg": {
             "componentRef": {
               "name": "comp-print-msg"
             },
             "dependentTasks": [
-              "task-flip-coin"
+              "flip-coin"
             ],
             "inputs": {
               "parameters": {
                 "msg": {
                   "taskOutputParameter": {
                     "outputParameterKey": "Output",
-                    "producerTask": "task-flip-coin"
+                    "producerTask": "flip-coin"
                   }
                 }
               }
             },
             "taskInfo": {
-              "name": "task-print-msg"
+              "name": "print-msg"
             }
           },
-          "task-print-msg-2": {
+          "print-msg-2": {
             "componentRef": {
               "name": "comp-print-msg-2"
             },
             "dependentTasks": [
-              "task-flip-coin-2"
+              "flip-coin-2"
             ],
             "inputs": {
               "parameters": {
                 "msg": {
                   "taskOutputParameter": {
                     "outputParameterKey": "Output",
-                    "producerTask": "task-flip-coin-2"
+                    "producerTask": "flip-coin-2"
                   }
                 }
               }
             },
             "taskInfo": {
-              "name": "task-print-msg-2"
+              "name": "print-msg-2"
             }
           }
         }
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.5.0"
+    "sdkVersion": "kfp-1.6.0-rc.0"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"

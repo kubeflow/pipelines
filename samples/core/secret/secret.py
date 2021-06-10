@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -58,7 +58,7 @@ gcs_list_buckets_op = kfp.components.create_component_from_func(
 
 
 @dsl.pipeline(
-    name='Secret pipeline',
+    name='secret-pipeline',
     description='A pipeline to demonstrate mounting and use of secretes.'
 )
 def secret_op_pipeline(

@@ -14,7 +14,7 @@
       "comp-for-loop-1": {
         "dag": {
           "tasks": {
-            "task-print-op": {
+            "print-op": {
               "componentRef": {
                 "name": "comp-print-op"
               },
@@ -26,10 +26,10 @@
                 }
               },
               "taskInfo": {
-                "name": "task-print-op"
+                "name": "print-op"
               }
             },
-            "task-print-op-2": {
+            "print-op-2": {
               "componentRef": {
                 "name": "comp-print-op-2"
               },
@@ -42,10 +42,10 @@
                 }
               },
               "taskInfo": {
-                "name": "task-print-op-2"
+                "name": "print-op-2"
               }
             },
-            "task-print-op-3": {
+            "print-op-3": {
               "componentRef": {
                 "name": "comp-print-op-3"
               },
@@ -58,7 +58,7 @@
                 }
               },
               "taskInfo": {
-                "name": "task-print-op-3"
+                "name": "print-op-3"
               }
             }
           }
@@ -175,27 +175,27 @@
     "root": {
       "dag": {
         "tasks": {
-          "task-args-generator-op": {
+          "args-generator-op": {
             "componentRef": {
               "name": "comp-args-generator-op"
             },
             "taskInfo": {
-              "name": "task-args-generator-op"
+              "name": "args-generator-op"
             }
           },
-          "task-for-loop-1": {
+          "for-loop-1": {
             "componentRef": {
               "name": "comp-for-loop-1"
             },
             "dependentTasks": [
-              "task-args-generator-op"
+              "args-generator-op"
             ],
             "inputs": {
               "parameters": {
                 "pipelineparam--args-generator-op-Output": {
                   "taskOutputParameter": {
                     "outputParameterKey": "Output",
-                    "producerTask": "task-args-generator-op"
+                    "producerTask": "args-generator-op"
                   }
                 }
               }
@@ -207,14 +207,14 @@
               }
             },
             "taskInfo": {
-              "name": "task-for-loop-1"
+              "name": "for-loop-1"
             }
           }
         }
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.5.0"
+    "sdkVersion": "kfp-1.6.0-rc.0"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"

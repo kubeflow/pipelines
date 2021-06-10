@@ -18,26 +18,10 @@ from .legacy_exit_handler import download_and_print
 from .util import run_pipeline_func, TestCase
 
 
-def verify(run, run_id: str, **kwargs):
-    assert run.status == 'Succeeded'
-    # TODO(Bobgy): verify exit handler pod ran
-
-
 run_pipeline_func([
+    # This sample is expected to not work on v2 compatible mode.
     TestCase(
         pipeline_func=download_and_print,
-        verify_func=verify,
         mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY
-    ),
-    # TODO(v2-compatible): fails with the following
-    #   File "/Users/gongyuan/kfp/pipelines/sdk/python/kfp/compiler/compiler.py", line 678, in _create_dag_templates
-    #     launcher_image=self._launcher_image)
-    #   File "/Users/gongyuan/kfp/pipelines/sdk/python/kfp/compiler/v2_compat.py", line 86, in update_op
-    #     op.arguments = list(op.container_spec.command) + list(op.container_spec.args)
-    # AttributeError: 'NoneType' object has no attribute 'command'
-    # TestCase(
-    #     pipeline_func=download_and_print,
-    #     verify_func=verify,
-    #     mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE
-    # ),
+    )
 ])

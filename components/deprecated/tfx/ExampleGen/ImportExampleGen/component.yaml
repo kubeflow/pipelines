@@ -1,41 +1,28 @@
 name: ImportExampleGen
-description: |-
-  TFX ImportExampleGen component.
-
-      The ImportExampleGen component takes TFRecord files with TF Example data
-      format, and generates train and eval examples for downsteam components.
-      This component provides consistent and configurable partition, and it also
-      shuffle the dataset for ML best practice.
-
-      Args:
-          input: A Channel of 'ExternalPath' type, which includes one artifact
-              whose uri is an external directory with TFRecord files inside
-              (required).
-          input_config: An example_gen_pb2.Input instance, providing input
-              configuration. If unset, the files under input_base will be treated as a
-              single split.
-          output_config: An example_gen_pb2.Output instance, providing output
-              configuration. If unset, default splits will be 'train' and 'eval' with
-              size 2:1.
-      Returns:
-          examples: Optional channel of 'ExamplesPath' for output train and
-              eval examples.
-
-      Raises:
-          RuntimeError: Only one of query and input_config should be set.
 inputs:
-- {name: input_base, type: ExternalPath}
-- {name: input_config, type: 'JsonObject: example_gen_pb2.Input', optional: true}
-- {name: output_config, type: 'JsonObject: example_gen_pb2.Output', optional: true}
+- {name: input_base, type: String}
+- name: input_config
+  type:
+    JsonObject: {data_type: 'proto:tfx.components.example_gen.Input'}
+- name: output_config
+  type:
+    JsonObject: {data_type: 'proto:tfx.components.example_gen.Output'}
+- name: range_config
+  type:
+    JsonObject: {data_type: 'proto:tfx.configs.RangeConfig'}
+  optional: true
 outputs:
 - {name: examples, type: Examples}
 implementation:
   container:
-    image: tensorflow/tfx:0.21.4
+    image: tensorflow/tfx:0.29.0
     command:
-    - python3
-    - -u
-    - -c
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
     - |
       def _make_parent_dirs_and_return_path(file_path: str):
           import os
@@ -43,91 +30,76 @@ implementation:
           return file_path
 
       def ImportExampleGen(
-          input_base_path ,
-          #input_path: InputPath('ExternalPath'),
-
-          examples_path ,
-
-          input_config  = None,
-          output_config  = None,
+          examples_path,
+          input_base,
+          input_config,
+          output_config,
+          range_config = None,
       ):
-          """
-          TFX ImportExampleGen component.
-
-          The ImportExampleGen component takes TFRecord files with TF Example data
-          format, and generates train and eval examples for downsteam components.
-          This component provides consistent and configurable partition, and it also
-          shuffle the dataset for ML best practice.
-
-          Args:
-              input: A Channel of 'ExternalPath' type, which includes one artifact
-                  whose uri is an external directory with TFRecord files inside
-                  (required).
-              input_config: An example_gen_pb2.Input instance, providing input
-                  configuration. If unset, the files under input_base will be treated as a
-                  single split.
-              output_config: An example_gen_pb2.Output instance, providing output
-                  configuration. If unset, default splits will be 'train' and 'eval' with
-                  size 2:1.
-          Returns:
-              examples: Optional channel of 'ExamplesPath' for output train and
-                  eval examples.
-
-          Raises:
-              RuntimeError: Only one of query and input_config should be set.
-          """
           from tfx.components.example_gen.import_example_gen.component import ImportExampleGen as component_class
 
           #Generated code
-          import json
           import os
-          import tensorflow
+          import tempfile
+          from tensorflow.io import gfile
           from google.protobuf import json_format, message
-          from tfx.types import Artifact, channel_utils, artifact_utils
+          from tfx.types import channel_utils, artifact_utils
+          from tfx.components.base import base_executor
 
           arguments = locals().copy()
 
           component_class_args = {}
 
           for name, execution_parameter in component_class.SPEC_CLASS.PARAMETERS.items():
-              argument_value_obj = argument_value = arguments.get(name, None)
+              argument_value = arguments.get(name, None)
               if argument_value is None:
                   continue
               parameter_type = execution_parameter.type
-              if isinstance(parameter_type, type) and issubclass(parameter_type, message.Message): # Maybe FIX: execution_parameter.type can also be a tuple
+              if isinstance(parameter_type, type) and issubclass(parameter_type, message.Message):
                   argument_value_obj = parameter_type()
                   json_format.Parse(argument_value, argument_value_obj)
+              else:
+                  argument_value_obj = argument_value
               component_class_args[name] = argument_value_obj
 
           for name, channel_parameter in component_class.SPEC_CLASS.INPUTS.items():
-              artifact_path = arguments[name + '_path']
+              artifact_path = arguments.get(name + '_uri') or arguments.get(name + '_path')
               if artifact_path:
                   artifact = channel_parameter.type()
-                  artifact.uri = artifact_path + '/' # ?
+                  artifact.uri = artifact_path.rstrip('/') + '/'  # Some TFX components require that the artifact URIs end with a slash
                   if channel_parameter.type.PROPERTIES and 'split_names' in channel_parameter.type.PROPERTIES:
                       # Recovering splits
-                      subdirs = tensorflow.io.gfile.listdir(artifact_path)
-                      artifact.split_names = artifact_utils.encode_split_names(sorted(subdirs))
+                      subdirs = gfile.listdir(artifact_path)
+                      # Workaround for https://github.com/tensorflow/tensorflow/issues/39167
+                      subdirs = [subdir.rstrip('/') for subdir in subdirs]
+                      split_names = [subdir.replace('Split-', '') for subdir in subdirs]
+                      artifact.split_names = artifact_utils.encode_split_names(sorted(split_names))
                   component_class_args[name] = channel_utils.as_channel([artifact])
 
           component_class_instance = component_class(**component_class_args)
 
-          input_dict = {name: channel.get() for name, channel in component_class_instance.inputs.get_all().items()}
-          output_dict = {name: channel.get() for name, channel in component_class_instance.outputs.get_all().items()}
+          input_dict = channel_utils.unwrap_channel_dict(component_class_instance.inputs.get_all())
+          output_dict = {}
           exec_properties = component_class_instance.exec_properties
 
           # Generating paths for output artifacts
-          for name, artifacts in output_dict.items():
-              base_artifact_path = arguments[name + '_path']
-              # Are there still cases where output channel has multiple artifacts?
-              for idx, artifact in enumerate(artifacts):
-                  subdir = str(idx + 1) if idx > 0 else ''
-                  artifact.uri = os.path.join(base_artifact_path, subdir)  # Ends with '/'
+          for name, channel in component_class_instance.outputs.items():
+              artifact_path = arguments.get('output_' + name + '_uri') or arguments.get(name + '_path')
+              if artifact_path:
+                  artifact = channel.type()
+                  artifact.uri = artifact_path.rstrip('/') + '/'  # Some TFX components require that the artifact URIs end with a slash
+                  artifact_list = [artifact]
+                  channel._artifacts = artifact_list
+                  output_dict[name] = artifact_list
 
           print('component instance: ' + str(component_class_instance))
 
-          #executor = component_class.EXECUTOR_SPEC.executor_class() # Same
-          executor = component_class_instance.executor_spec.executor_class()
+          executor_context = base_executor.BaseExecutor.Context(
+              beam_pipeline_args=arguments.get('beam_pipeline_args'),
+              tmp_dir=tempfile.gettempdir(),
+              unique_id='tfx_component',
+          )
+          executor = component_class_instance.executor_spec.executor_class(executor_context)
           executor.Do(
               input_dict=input_dict,
               output_dict=output_dict,
@@ -135,40 +107,26 @@ implementation:
           )
 
       import argparse
-      _parser = argparse.ArgumentParser(prog='ImportExampleGen', description="TFX ImportExampleGen component.\n\n    The ImportExampleGen component takes TFRecord files with TF Example data\n    format, and generates train and eval examples for downsteam components.\n    This component provides consistent and configurable partition, and it also\n    shuffle the dataset for ML best practice.\n\n    Args:\n        input: A Channel of 'ExternalPath' type, which includes one artifact\n            whose uri is an external directory with TFRecord files inside\n            (required).\n        input_config: An example_gen_pb2.Input instance, providing input\n            configuration. If unset, the files under input_base will be treated as a\n            single split.\n        output_config: An example_gen_pb2.Output instance, providing output\n            configuration. If unset, default splits will be 'train' and 'eval' with\n            size 2:1.\n    Returns:\n        examples: Optional channel of 'ExamplesPath' for output train and\n            eval examples.\n\n    Raises:\n        RuntimeError: Only one of query and input_config should be set.")
-      _parser.add_argument("--input-base", dest="input_base_path", type=str, required=True, default=argparse.SUPPRESS)
-      _parser.add_argument("--input-config", dest="input_config", type=str, required=False, default=argparse.SUPPRESS)
-      _parser.add_argument("--output-config", dest="output_config", type=str, required=False, default=argparse.SUPPRESS)
+      _parser = argparse.ArgumentParser(prog='ImportExampleGen', description='')
+      _parser.add_argument("--input-base", dest="input_base", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--input-config", dest="input_config", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--output-config", dest="output_config", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--range-config", dest="range_config", type=str, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--examples", dest="examples_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
       _parsed_args = vars(_parser.parse_args())
-      _output_files = _parsed_args.pop("_output_paths", [])
 
       _outputs = ImportExampleGen(**_parsed_args)
-
-      _output_serializers = [
-
-      ]
-
-      import os
-      for idx, output_file in enumerate(_output_files):
-          try:
-              os.makedirs(os.path.dirname(output_file))
-          except OSError:
-              pass
-          with open(output_file, 'w') as f:
-              f.write(_output_serializers[idx](_outputs[idx]))
     args:
     - --input-base
-    - {inputPath: input_base}
+    - {inputValue: input_base}
+    - --input-config
+    - {inputValue: input_config}
+    - --output-config
+    - {inputValue: output_config}
     - if:
-        cond: {isPresent: input_config}
+        cond: {isPresent: range_config}
         then:
-        - --input-config
-        - {inputValue: input_config}
-    - if:
-        cond: {isPresent: output_config}
-        then:
-        - --output-config
-        - {inputValue: output_config}
+        - --range-config
+        - {inputValue: range_config}
     - --examples
     - {outputPath: examples}

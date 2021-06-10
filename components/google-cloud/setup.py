@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC. All Rights Reserved.
+# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ setup(
     " using KFP or Managed Pipelines.",
     url="https://github.com/kubeflow/pipelines/tree/master/components/google-cloud",
     author="The Google Cloud Pipeline Components authors",
-    author_email="TBD",
+    author_email="google-cloud-pipeline-components@google.com",
     license="Apache License 2.0",
     extras_require={"tests": dependencies.make_required_test_packages()},
     include_package_data=True,

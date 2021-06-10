@@ -3,7 +3,8 @@
     "DriverName": "mysql",
     "DataSourceName": "",
     "DBName": "mlpipeline",
-    "GroupConcatMaxLen": "4194304"
+    "GroupConcatMaxLen": "4194304",
+    "ConMaxLifeTimeSec": "120"
   },
   "ObjectStoreConfig": {
     "AccessKey": "minio",

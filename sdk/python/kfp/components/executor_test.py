@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import json
 
 from kfp.components import executor, InputPath, OutputPath
 from kfp.dsl import io_types
-from kfp.dsl.io_types import Artifact, Dataset, InputArtifact, Metrics, Model, OutputArtifact
+from kfp.dsl.io_types import Artifact, Dataset, Input, Metrics, Model, Output
 
 _EXECUTOR_INPUT = """\
 {
@@ -75,7 +75,7 @@ _EXECUTOR_INPUT = """\
     },
     "parameters": {
       "output_parameter": {
-        "outputFile": "gs://some-bucket/output_parameter"
+        "outputFile": "gs://some-bucket/some_task/nested/output_parameter"
       }
     },
     "outputFile": "%s/output_metadata.json"
@@ -112,28 +112,26 @@ class ExecutorTest(unittest.TestCase):
 
   def test_input_artifact(self):
 
-    def test_func(input_artifact_one: InputArtifact(Dataset)):
+    def test_func(input_artifact_one: Input[Dataset]):
       self.assertEqual(input_artifact_one.uri,
                        'gs://some-bucket/input_artifact_one')
       self.assertEqual(
           input_artifact_one.path,
           os.path.join(self._test_dir, 'some-bucket/input_artifact_one'))
-      self.assertEqual(input_artifact_one.get().name, 'input_artifact_one')
+      self.assertEqual(input_artifact_one.name, 'input_artifact_one')
 
     self._get_executor(test_func).execute()
 
   def test_output_artifact(self):
 
-    def test_func(output_artifact_one: OutputArtifact(Model)):
-      # Test that output artifacts always have filename 'data' added.
+    def test_func(output_artifact_one: Output[Model]):
       self.assertEqual(output_artifact_one.uri,
-                       'gs://some-bucket/output_artifact_one/data')
+                       'gs://some-bucket/output_artifact_one')
 
       self.assertEqual(
           output_artifact_one.path,
-          os.path.join(self._test_dir, 'some-bucket/output_artifact_one',
-                       'data'))
-      self.assertEqual(output_artifact_one.get().name, 'output_artifact_one')
+          os.path.join(self._test_dir, 'some-bucket/output_artifact_one'))
+      self.assertEqual(output_artifact_one.name, 'output_artifact_one')
 
     self._get_executor(test_func).execute()
 
@@ -142,7 +140,12 @@ class ExecutorTest(unittest.TestCase):
     def test_func(output_parameter_path: OutputPath(str)):
       # Test that output parameters just use the passed in filename.
       self.assertEqual(output_parameter_path,
-                       'gs://some-bucket/output_parameter')
+                       'gs://some-bucket/some_task/nested/output_parameter')
+
+      # Test writing to the path succeeds. This fails if parent directories
+      # don't exist.
+      with open(output_parameter_path, 'w') as f:
+        f.write('Hello, World!')
 
     self._get_executor(test_func).execute()
 
@@ -158,22 +161,21 @@ class ExecutorTest(unittest.TestCase):
   def test_output_path_artifact(self):
 
     def test_func(output_artifact_one_path: OutputPath('Model')):
-      # Test that output path also get 'data' appended.
       self.assertEqual(
           output_artifact_one_path,
-          os.path.join(self._test_dir, 'some-bucket/output_artifact_one/data'))
+          os.path.join(self._test_dir, 'some-bucket/output_artifact_one'))
 
     self._get_executor(test_func).execute()
 
   def test_output_metadata(self):
 
-    def test_func(output_artifact_two: OutputArtifact(Metrics)):
-      output_artifact_two.get().metadata['key_1'] = 'value_1'
-      output_artifact_two.get().metadata['key_2'] = 2
+    def test_func(output_artifact_two: Output[Metrics]):
+      output_artifact_two.metadata['key_1'] = 'value_1'
+      output_artifact_two.metadata['key_2'] = 2
       output_artifact_two.uri = 'new-uri'
 
       # log_metric works here since the schema is specified as Metrics.
-      output_artifact_two.get().log_metric('metric', 0.9)
+      output_artifact_two.log_metric('metric', 0.9)
 
     self._get_executor(test_func).execute()
     with open(os.path.join(self._test_dir, 'output_metadata.json'), 'r') as f:
@@ -184,7 +186,7 @@ class ExecutorTest(unittest.TestCase):
                 'output_artifact_one': {
                     'artifacts': [{
                         'name': 'output_artifact_one',
-                        'uri': 'gs://some-bucket/output_artifact_one/data',
+                        'uri': 'gs://some-bucket/output_artifact_one',
                         'metadata': {}
                     }]
                 },
@@ -361,14 +363,13 @@ class ExecutorTest(unittest.TestCase):
                     'artifacts': [{
                         'metadata': {},
                         'name': 'output',
-                        'uri': 'gs://some-bucket/output/data'
+                        'uri': 'gs://some-bucket/output'
                     }]
                 }
             }
         })
 
-    with open(os.path.join(self._test_dir, 'some-bucket/output/data'),
-              'r') as f:
+    with open(os.path.join(self._test_dir, 'some-bucket/output'), 'r') as f:
       artifact_payload = f.read()
     self.assertEqual(artifact_payload, "Hello, World")
 
@@ -432,7 +433,7 @@ class ExecutorTest(unittest.TestCase):
                       'artifacts': [{
                           'metadata': {},
                           'name': 'output_dataset',
-                          'uri': 'gs://some-bucket/output_dataset/data'
+                          'uri': 'gs://some-bucket/output_dataset'
                       }]
                   }
               },
@@ -446,7 +447,7 @@ class ExecutorTest(unittest.TestCase):
               },
           })
 
-      with open(os.path.join(self._test_dir, 'some-bucket/output_dataset/data'),
+      with open(os.path.join(self._test_dir, 'some-bucket/output_dataset'),
                 'r') as f:
         artifact_payload = f.read()
       self.assertEqual(artifact_payload, "Dataset contents")

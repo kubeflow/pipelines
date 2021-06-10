@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import copy
 import inspect
 import re
 import warnings
@@ -24,8 +25,10 @@ from kubernetes.client.models import (V1Container, V1EnvVar, V1EnvFromSource,
                                       V1VolumeMount, V1ContainerPort,
                                       V1Lifecycle, V1Volume)
 
+import kfp
 from kfp.components import _structures
 from kfp.dsl import _pipeline_param
+from kfp.dsl import dsl_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 # generics
@@ -1153,6 +1156,11 @@ class ContainerOp(BaseOp):
           'https://kubeflow-pipelines.readthedocs.io/en/stable/source/kfp.components.html#kfp.components.load_component_from_file',
           category=FutureWarning,
       )
+      if kfp.COMPILING_FOR_V2:
+        raise RuntimeError(
+            'Constructing ContainerOp instances directly is deprecated and not '
+            'supported when compiling to v2 (using v2 compiler or v1 compiler '
+            'with V2_COMPATIBLE or V2_ENGINE mode).')
 
     # `container` prop in `io.argoproj.workflow.v1alpha1.Template`
     container_kwargs = container_kwargs or {}
@@ -1367,45 +1375,6 @@ class ContainerOp(BaseOp):
       self.container_spec.resources.accelerator.CopyFrom(accelerator_config)
 
     super(ContainerOp, self).add_node_selector_constraint(label_name, value)
-    return self
-
-  def set_custom_job_spec(self,
-                          custom_job_spec: Dict[str, Any]) -> 'ContainerOp':
-    """Sets custom job spec.
-
-    When compiling for v2, this function can be used to set custom job spec used
-    for AI Platform (Unified) service.
-
-    Args:
-      custom_job_spec: JSON struct of the CustomJob spec, representing the job
-        that will be submitted to AI Platform (Unified) service. See
-        https://cloud.google.com/ai-platform-unified/docs/reference/rest/v1beta1/CustomJobSpec
-        for detailed reference.
-
-    Returns:
-      self return to allow chained call with other set method.
-    """
-    self.custom_job_spec = custom_job_spec
-    if 'jobSpec' not in self.custom_job_spec or \
-       'workerPoolSpecs' not in self.custom_job_spec['jobSpec']:
-      worker_pool_spec = {
-          'machineSpec': {
-              'machineType': _DEFAULT_CUSTOM_JOB_MACHINE_TYPE
-          },
-          'replicaCount': '1',
-          'containerSpec': {
-              'imageUri': self._container.image,
-          }
-      }
-      if self._container.command:
-        worker_pool_spec['containerSpec']['command'] = self._container.command
-      if self._container.args:
-        worker_pool_spec['containerSpec']['args'] = self._container.args
-
-      if 'jobSpec' not in self.custom_job_spec:
-        self.custom_job_spec['jobSpec'] = {}
-      self.custom_job_spec['jobSpec']['workerPoolSpecs'] = [worker_pool_spec]
-
     return self
 
 

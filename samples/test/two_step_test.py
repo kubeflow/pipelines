@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,11 +15,7 @@
 
 # %%
 
-import sys
-import logging
 import unittest
-from dataclasses import dataclass, asdict
-from typing import Tuple
 from pprint import pprint
 
 import kfp
@@ -28,23 +24,15 @@ import kfp_server_api
 from .two_step import two_step_pipeline
 from .util import run_pipeline_func, TestCase, KfpMlmdClient
 
-from ml_metadata import metadata_store
-from ml_metadata.proto import metadata_store_pb2
 
-
-def verify(
-    run: kfp_server_api.ApiRun, mlmd_connection_config, argo_workflow_name: str,
-    **kwargs
-):
-    t = unittest.TestCase()
-    t.maxDiff = None  # we always want to see full diff
-
-    t.assertEqual(run.status, 'Succeeded')
-
+def get_tasks(mlmd_connection_config, argo_workflow_name: str):
     # Verify MLMD state
     client = KfpMlmdClient(mlmd_connection_config=mlmd_connection_config)
-
     tasks = client.get_tasks(argo_workflow_name=argo_workflow_name)
+    return tasks
+
+
+def verify_tasks(t: unittest.TestCase, tasks: dict):
     task_names = [*tasks.keys()]
     t.assertEqual(task_names, ['train-op', 'preprocess'], 'task names')
 
@@ -69,7 +57,8 @@ def verify(
             },
             'outputs': {
                 'artifacts': [{
-                    'name': '',
+                    'metadata': {},
+                    'name': 'output_dataset_one',
                     'type': 'system.Dataset'
                 }],
                 'parameters': {
@@ -84,7 +73,8 @@ def verify(
             'name': 'train-op',
             'inputs': {
                 'artifacts': [{
-                    'name': '',
+                    'metadata': {},
+                    'name': 'output_dataset_one',
                     'type': 'system.Dataset',
                 }],
                 'parameters': {
@@ -93,7 +83,8 @@ def verify(
             },
             'outputs': {
                 'artifacts': [{
-                    'name': '',
+                    'metadata': {},
+                    'name': 'model',
                     'type': 'system.Model',
                 }],
                 'parameters': {}
@@ -101,6 +92,47 @@ def verify(
             'type': 'kfp.ContainerExecution'
         }
     )
+
+
+def verify_artifacts(t: unittest.TestCase, tasks: dict, artifact_uri_prefix):
+    for task in tasks.values():
+        for artifact in task.outputs.artifacts:
+            t.assertTrue(artifact.uri.startswith(artifact_uri_prefix))
+
+
+def verify(
+    run: kfp_server_api.ApiRun, mlmd_connection_config, argo_workflow_name: str,
+    **kwargs
+):
+    t = unittest.TestCase()
+    t.maxDiff = None  # we always want to see full diff
+    t.assertEqual(run.status, 'Succeeded')
+    tasks = get_tasks(mlmd_connection_config, argo_workflow_name)
+    verify_tasks(t, tasks)
+
+
+def verify_with_default_pipeline_root(
+    run: kfp_server_api.ApiRun, mlmd_connection_config, argo_workflow_name: str,
+    **kwargs
+):
+    t = unittest.TestCase()
+    t.maxDiff = None  # we always want to see full diff
+    t.assertEqual(run.status, 'Succeeded')
+    tasks = get_tasks(mlmd_connection_config, argo_workflow_name)
+    verify_tasks(t, tasks)
+    verify_artifacts(t, tasks, 'minio://mlpipeline/v2/artifacts')
+
+
+def verify_with_specific_pipeline_root(
+    run: kfp_server_api.ApiRun, mlmd_connection_config, argo_workflow_name: str,
+    **kwargs
+):
+    t = unittest.TestCase()
+    t.maxDiff = None  # we always want to see full diff
+    t.assertEqual(run.status, 'Succeeded')
+    tasks = get_tasks(mlmd_connection_config, argo_workflow_name)
+    verify_tasks(t, tasks)
+    verify_artifacts(t, tasks, 'minio://mlpipeline/override/artifacts')
 
 
 if __name__ == '__main__':
@@ -114,12 +146,23 @@ if __name__ == '__main__':
             pipeline_func=two_step_pipeline,
             mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY
         ),
-        TestCase(pipeline_func=two_step_pipeline,
-                 verify_func=verify,
-                 mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
-                 arguments={
-                     kfp.dsl.ROOT_PARAMETER_NAME: 'minio://mlpipeline/v2/artifacts'},
-                 )
+        # Verify default pipeline_root with MinIO
+        TestCase(
+            pipeline_func=two_step_pipeline,
+            verify_func=verify_with_default_pipeline_root,
+            mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
+            arguments={kfp.dsl.ROOT_PARAMETER_NAME: ''},
+        ),
+        # Verify overriding pipeline root to MinIO
+        TestCase(
+            pipeline_func=two_step_pipeline,
+            verify_func=verify_with_specific_pipeline_root,
+            mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
+            arguments={
+                kfp.dsl.ROOT_PARAMETER_NAME:
+                    'minio://mlpipeline/override/artifacts'
+            },
+        )
     ])
 
 # %%

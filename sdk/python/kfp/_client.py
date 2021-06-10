@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -112,6 +112,9 @@ class Client(object):
     proxy: HTTP or HTTPS proxy server
     ssl_ca_cert: Cert for proxy
     kube_context: String name of context within kubeconfig to use, defaults to the current-context set within kubeconfig.
+    credentials: A TokenCredentialsBase object which provides the logic to
+        populate the requests with credentials to authenticate against the API
+        server.
   """
 
   # in-cluster DNS name of the pipeline service
@@ -126,7 +129,7 @@ class Client(object):
   LOCAL_KFP_CONTEXT = os.path.expanduser('~/.config/kfp/context.json')
 
   # TODO: Wrap the configurations for different authentication methods.
-  def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None, existing_token=None, cookies=None, proxy=None, ssl_ca_cert=None, kube_context=None):
+  def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None, existing_token=None, cookies=None, proxy=None, ssl_ca_cert=None, kube_context=None, credentials=None):
     """Create a new instance of kfp client.
     """
     host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
@@ -135,7 +138,7 @@ class Client(object):
     other_client_id = other_client_id or os.environ.get(KF_PIPELINES_APP_OAUTH2_CLIENT_ID_ENV)
     other_client_secret = other_client_secret or os.environ.get(KF_PIPELINES_APP_OAUTH2_CLIENT_SECRET_ENV)
 
-    config = self._load_config(host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy, ssl_ca_cert, kube_context)
+    config = self._load_config(host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy, ssl_ca_cert, kube_context, credentials)
     # Save the loaded API client configuration, as a reference if update is
     # needed.
     self._load_context_setting_or_default()
@@ -160,7 +163,7 @@ class Client(object):
       except FileNotFoundError:
         logging.info('Failed to automatically set namespace.', exc_info=True)
 
-  def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy, ssl_ca_cert, kube_context):
+  def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy, ssl_ca_cert, kube_context, credentials):
     config = kfp_server_api.configuration.Configuration()
 
     if proxy:
@@ -215,6 +218,9 @@ class Client(object):
     elif self._is_inverse_proxy_host(host):
       token = get_gcp_access_token()
       self._is_refresh_token = False
+    elif credentials:
+      token = credentials.get_token()
+      config.refresh_api_key_hook = credentials.refresh_api_key_hook
 
     if token:
       config.api_key['authorization'] = token
@@ -559,7 +565,16 @@ class Client(object):
     )
 
   # TODO: provide default namespace, similar to kubectl default namespaces.
-  def run_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None, version_id=None):
+  def run_pipeline(
+      self,
+      experiment_id: str,
+      job_name: str,
+      pipeline_package_path: Optional[str] = None,
+      params: Optional[dict] = None,
+      pipeline_id: Optional[str] = None,
+      version_id: Optional[str] = None,
+      pipeline_root: Optional[str] = None,
+  ):
     """Run a specified pipeline.
 
     Args:
@@ -571,10 +586,20 @@ class Client(object):
       version_id: The id of a pipeline version.
         If both pipeline_id and version_id are specified, version_id will take precendence.
         If only pipeline_id is specified, the default version of this pipeline is used to create the run.
+      pipeline_root: The root path of the pipeline outputs. This argument should
+        be used only for pipeline compiled with
+        dsl.PipelineExecutionMode.V2_COMPATIBLE or
+        dsl.PipelineExecutionMode.V2_ENGINGE mode.
 
     Returns:
       A run object. Most important field is id.
     """
+    if params is None:
+      params = {}
+
+    if pipeline_root is not None:
+      params[dsl.ROOT_PARAMETER_NAME] = pipeline_root
+
     job_config = self._create_job_config(
       experiment_id=experiment_id,
       params=params,
@@ -603,7 +628,8 @@ class Client(object):
       start_time: The RFC3339 time string of the time when to start the job.
       end_time: The RFC3339 time string of the time when to end the job.
       interval_second: Integer indicating the seconds between two recurring runs in for a periodic schedule.
-      cron_expression: A cron expression representing a set of times, using 5 space-separated fields, e.g. "0 0 9 ? * 2-6".
+      cron_expression: A cron expression representing a set of times, using 6 space-separated fields, e.g. "0 0 9 ? * 2-6".
+        See `here <https://pkg.go.dev/github.com/robfig/cron#hdr-CRON_Expression_Format>`_ for details of the cron expression format.
       max_concurrency: Integer indicating how many jobs can be run in parallel.
       no_catchup: Whether the recurring run should catch up if behind schedule.
         For example, if the recurring run is paused for a while and re-enabled
@@ -711,7 +737,9 @@ class Client(object):
       pipeline_conf: Optional[dsl.PipelineConf] = None,
       namespace: Optional[str] = None,
       mode: dsl.PipelineExecutionMode = dsl.PipelineExecutionMode.V1_LEGACY,
-      launcher_image: Optional[str] = None):
+      launcher_image: Optional[str] = None,
+      pipeline_root: Optional[str] = None,
+  ):
     """Runs pipeline on KFP-enabled Kubernetes cluster.
 
     This command compiles the pipeline function, creates or gets an experiment and submits the pipeline for execution.
@@ -731,7 +759,15 @@ class Client(object):
       launcher_image: The launcher image to use if the mode is specified as
         PipelineExecutionMode.V2_COMPATIBLE. Should only be needed for tests
         or custom deployments right now.
+      pipeline_root: The root path of the pipeline outputs. This argument should
+        be used only for pipeline compiled with
+        dsl.PipelineExecutionMode.V2_COMPATIBLE or
+        dsl.PipelineExecutionMode.V2_ENGINGE mode.
     """
+    if pipeline_root is not None and mode == dsl.PipelineExecutionMode.V1_LEGACY:
+      raise ValueError('`pipeline_root` should not be used with '
+                       'dsl.PipelineExecutionMode.V1_LEGACY mode.')
+
     #TODO: Check arguments against the pipeline function
     pipeline_name = pipeline_func.__name__
     run_name = run_name or pipeline_name + ' ' + datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
@@ -747,7 +783,9 @@ class Client(object):
         arguments=arguments,
         run_name=run_name,
         experiment_name=experiment_name,
-        namespace=namespace)
+        namespace=namespace,
+        pipeline_root=pipeline_root,
+      )
 
   def create_run_from_pipeline_package(
       self,
@@ -755,7 +793,9 @@ class Client(object):
       arguments: Mapping[str, str],
       run_name: Optional[str] = None,
       experiment_name: Optional[str] = None,
-      namespace: Optional[str] = None):
+      namespace: Optional[str] = None,
+      pipeline_root: Optional[str] = None,
+  ):
     """Runs pipeline on KFP-enabled Kubernetes cluster.
 
     This command takes a local pipeline package, creates or gets an experiment
@@ -769,6 +809,10 @@ class Client(object):
       namespace: Kubernetes namespace where the pipeline runs are created.
         For single user deployment, leave it as None;
         For multi user, input a namespace where the user is authorized
+      pipeline_root: The root path of the pipeline outputs. This argument should
+        be used only for pipeline compiled with
+        dsl.PipelineExecutionMode.V2_COMPATIBLE or
+        dsl.PipelineExecutionMode.V2_ENGINGE mode.
     """
 
     class RunPipelineResult:
@@ -796,7 +840,12 @@ class Client(object):
                             datetime.datetime.now().strftime(
                                 '%Y-%m-%d %H-%M-%S'))
     experiment = self.create_experiment(name=experiment_name, namespace=namespace)
-    run_info = self.run_pipeline(experiment.id, run_name, pipeline_file, arguments)
+    run_info = self.run_pipeline(
+        experiment_id=experiment.id,
+        job_name=run_name,
+        pipeline_package_path=pipeline_file,
+        params=arguments,
+        pipeline_root=pipeline_root)
     return RunPipelineResult(self, run_info)
 
   def list_runs(self, page_token='', page_size=10, sort_by='', experiment_id=None, namespace=None):

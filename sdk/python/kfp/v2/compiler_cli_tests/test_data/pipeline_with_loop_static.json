@@ -4,7 +4,7 @@
       "comp-for-loop-2": {
         "dag": {
           "tasks": {
-            "task-print-op": {
+            "print-op": {
               "componentRef": {
                 "name": "comp-print-op"
               },
@@ -16,10 +16,10 @@
                 }
               },
               "taskInfo": {
-                "name": "task-print-op"
+                "name": "print-op"
               }
             },
-            "task-print-op-2": {
+            "print-op-2": {
               "componentRef": {
                 "name": "comp-print-op-2"
               },
@@ -32,10 +32,10 @@
                 }
               },
               "taskInfo": {
-                "name": "task-print-op-2"
+                "name": "print-op-2"
               }
             },
-            "task-print-op-3": {
+            "print-op-3": {
               "componentRef": {
                 "name": "comp-print-op-3"
               },
@@ -48,7 +48,7 @@
                 }
               },
               "taskInfo": {
-                "name": "task-print-op-3"
+                "name": "print-op-3"
               }
             }
           }
@@ -147,7 +147,7 @@
     "root": {
       "dag": {
         "tasks": {
-          "task-for-loop-2": {
+          "for-loop-2": {
             "componentRef": {
               "name": "comp-for-loop-2"
             },
@@ -158,14 +158,14 @@
               }
             },
             "taskInfo": {
-              "name": "task-for-loop-2"
+              "name": "for-loop-2"
             }
           }
         }
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.5.0"
+    "sdkVersion": "kfp-1.6.0-rc.0"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"

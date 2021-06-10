@@ -38,7 +38,7 @@
     "root": {
       "dag": {
         "tasks": {
-          "task-component-with-optional-inputs": {
+          "component-with-optional-inputs": {
             "componentRef": {
               "name": "comp-component-with-optional-inputs"
             },
@@ -53,7 +53,7 @@
               }
             },
             "taskInfo": {
-              "name": "task-component-with-optional-inputs"
+              "name": "component-with-optional-inputs"
             }
           }
         }
@@ -73,7 +73,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.5.0"
+    "sdkVersion": "kfp-1.6.0-rc.0"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"

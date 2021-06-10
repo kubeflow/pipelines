@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -702,7 +702,7 @@ func TestCanAccessRun_Unauthorized(t *testing.T) {
 			},
 		},
 	}
-	runDetail, _ := manager.CreateRun(apiRun)
+	runDetail, _ := manager.CreateRun(context.Background(), apiRun)
 
 	err := runServer.canAccessRun(ctx, runDetail.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
 	assert.NotNil(t, err)
@@ -747,7 +747,7 @@ func TestCanAccessRun_Authorized(t *testing.T) {
 			},
 		},
 	}
-	runDetail, _ := manager.CreateRun(apiRun)
+	runDetail, _ := manager.CreateRun(context.Background(), apiRun)
 
 	err := runServer.canAccessRun(ctx, runDetail.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
 	assert.Nil(t, err)
@@ -783,7 +783,7 @@ func TestCanAccessRun_Unauthenticated(t *testing.T) {
 			},
 		},
 	}
-	runDetail, _ := manager.CreateRun(apiRun)
+	runDetail, _ := manager.CreateRun(context.Background(), apiRun)
 
 	err := runServer.canAccessRun(ctx, runDetail.UUID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
 	assert.NotNil(t, err)

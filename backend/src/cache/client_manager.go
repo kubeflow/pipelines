@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2020 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import (
 	"log"
 	"time"
 
+	"encoding/json"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
@@ -103,6 +104,10 @@ func initDBClient(params WhSvrDBParameters, initConnectionTimeout time.Duration)
 }
 
 func initMysql(params WhSvrDBParameters, initConnectionTimeout time.Duration) string {
+
+	var mysqlExtraParams = map[string]string{}
+	data := []byte(params.dbExtraParams)
+	json.Unmarshal(data, &mysqlExtraParams)
 	mysqlConfig := client.CreateMySQLConfig(
 		params.dbUser,
 		params.dbPwd,
@@ -110,7 +115,7 @@ func initMysql(params WhSvrDBParameters, initConnectionTimeout time.Duration) st
 		params.dbPort,
 		"",
 		params.dbGroupConcatMaxLen,
-		map[string]string{},
+		mysqlExtraParams,
 	)
 
 	var db *sql.DB
