@@ -8,7 +8,7 @@ This folder contains different PyTorch Kubeflow pipeline examples using the PyTo
 
 Please navigate to the following link for running the examples with Google Vertex AI pipeline
 
-https://colab.research.google.com/drive/1TppEL3uDGG2Ldk6OF4DFnR7ZvaVdo-uS#scrollTo=BF1j6f9HApxa 
+https://github.com/amygdala/code-snippets/tree/master/ml/vertex_pipelines/pytorch/cifar
 
 ## Prerequisites
 
