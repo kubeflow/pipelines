@@ -33,7 +33,6 @@ prepare_tensorboard = components.load_component_from_file(
 def train(minio_endpoint: str, log_bucket: str, log_dir: str):
     # Reference: https://www.tensorflow.org/tensorboard/get_started
     import tensorflow as tf
-    import datetime
 
     mnist = tf.keras.datasets.mnist
 
