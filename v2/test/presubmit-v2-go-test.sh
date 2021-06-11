@@ -40,6 +40,7 @@ if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
   gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
 fi
 gcloud container clusters get-credentials $TEST_CLUSTER --region $REGION --project $PROJECT
-kubectl port-forward svc/metadata-grpc-service 8080:8080 -n $NAMESPACE &
-${GO_CMD} test -v -cover ./... &
-pkill -f "port-forward"
+set +e
+kubectl port-forward svc/metadata-grpc-service 8080:8080 -n $NAMESPACE & PORT_FORWARD_PID=$!
+${GO_CMD} test -v -cover ./...
+kill "$PORT_FORWARD_PID"
