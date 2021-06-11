@@ -40,6 +40,5 @@ if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
   gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
 fi
 gcloud container clusters get-credentials $TEST_CLUSTER --region $REGION --project $PROJECT
-kubectl port-forward svc/metadata-grpc-service 8080:8080 -n $NAMESPACE
-# 3. run test in project directory
+kubectl port-forward svc/metadata-grpc-service 8080:8080 -n $NAMESPACE &
 ${GO_CMD} test -v -cover ./...
