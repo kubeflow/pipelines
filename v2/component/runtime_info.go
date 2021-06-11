@@ -192,10 +192,15 @@ func toMLMDArtifact(runtimeArtifact *pipeline_spec.RuntimeArtifact) (*pb.Artifac
 		artifact.CustomProperties[k] = value
 	}
 
-	artifact.CustomProperties["name"] = stringToMLMDValue(runtimeArtifact.Name)
-	artifact.CustomProperties["metadata"] = &pb.Value{Value: &pb.Value_StructValue{
-		StructValue: runtimeArtifact.Metadata,
-	}}
+	if runtimeArtifact.Metadata != nil {
+		for k, v := range runtimeArtifact.Metadata.Fields {
+			value, err := structValueToMLMDValue(v)
+			if err != nil {
+				return nil, errorF(err)
+			}
+			artifact.CustomProperties[k] = value
+		}
+	}
 
 	return artifact, nil
 }
