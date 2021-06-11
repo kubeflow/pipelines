@@ -39,6 +39,7 @@ def create_custom_job(
   import logging
   import os
   import time
+  from os import path
   from google.cloud import aiplatform
   from google.protobuf import json_format
   from google.cloud.aiplatform.compat.types import job_state as gca_job_state
@@ -64,7 +65,7 @@ def create_custom_job(
   job_client = aiplatform.gapic.JobServiceClient(client_options=client_options)
 
   # Check if the Custom job already exists
-  if os.stat(gcp_resources).st_size != 0:
+  if path.exists(gcp_resources) and os.stat(gcp_resources).st_size != 0:
     with open(gcp_resources) as f:
       custom_job_name = f.read()
       logging.info('CustomJob name already exists: %s. Continue polling the status', custom_job_name)
