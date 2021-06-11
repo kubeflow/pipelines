@@ -379,8 +379,10 @@ def pytorch_cifar10(
     )
 
 def test_bert_compile() :
+    """Testing bert yaml compilation"""
     compiler.Compiler().compile(pytorch_bert, 'pytorch.tar.gz', type_check=True)
 
 def test_cifar10_compile():
+    """Testing cifar10 yaml compilation"""
     compiler.Compiler().compile(pytorch_cifar10, 'pytorch.tar.gz', type_check=True)
 
