@@ -114,7 +114,7 @@ def _run_test(callback):
         output_directory: Optional[str] = None,  # example
         host: Optional[str] = None,
         external_host: Optional[str] = None,
-        launcher_image: Optional['URI'] = None,
+        launcher_image: Optional[str] = None,
         experiment: str = 'v2_sample_test_samples',
         metadata_service_host: Optional[str] = None,
         metadata_service_port: int = 8080,
@@ -311,12 +311,18 @@ class KfpTask:
                     mlmd_event=e,
                 )
 
+<<<<<<< HEAD
             input_artifacts = [
                 kfp_artifact(aid, e) for (aid, e) in input_artifacts_info
             ]
+=======
+            input_artifacts = [kfp_artifact(aid) for aid in input_artifact_ids]
+            input_artifacts.sort(key=lambda a: a.name)
+>>>>>>> upstream/master
             output_artifacts = [
                 kfp_artifact(aid, e) for (aid, e) in output_artifacts_info
             ]
+            output_artifacts.sort(key=lambda a: a.name)
 
         return cls(
             name=execution.custom_properties.get('task_name').string_value,
