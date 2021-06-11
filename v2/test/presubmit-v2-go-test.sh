@@ -34,6 +34,7 @@ cd /home/prow/go/src/github.com/kubeflow/pipelines/v2
 ${GO_CMD} mod download
 ${GO_CMD} mod tidy
 git diff --exit-code -- go.mod go.sum || (echo "go modules are not tidy, run 'go mod tidy'." && exit 1)
+
 # Note, for tests that use metadata grpc api, port-forward it locally in a separate terminal by:
 if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
   gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
