@@ -114,7 +114,7 @@ def _run_test(callback):
         output_directory: Optional[str] = None,  # example
         host: Optional[str] = None,
         external_host: Optional[str] = None,
-        launcher_image: Optional['URI'] = None,
+        launcher_image: Optional[str] = None,
         experiment: str = 'v2_sample_test_samples',
         metadata_service_host: Optional[str] = None,
         metadata_service_port: int = 8080,
@@ -237,9 +237,12 @@ class KfpArtifact:
             if 'name' in mlmd_artifact.custom_properties.keys():
                 artifact_name = mlmd_artifact.custom_properties['name'
                                                                ].string_value
-        metadata = MessageToDict(
-            mlmd_artifact.custom_properties.get('metadata').struct_value
-        )
+        metadata_value = mlmd_artifact.custom_properties.get('metadata')
+        metadata={}
+        if metadata_value:
+            metadata = MessageToDict(
+                metadata_value.struct_value
+            )
         return cls(
             name=artifact_name,
             type=mlmd_artifact_type.name,
@@ -314,9 +317,11 @@ class KfpTask:
                 )
 
             input_artifacts = [kfp_artifact(aid) for aid in input_artifact_ids]
+            input_artifacts.sort(key=lambda a: a.name)
             output_artifacts = [
                 kfp_artifact(aid) for aid in output_artifact_ids
             ]
+            output_artifacts.sort(key=lambda a: a.name)
 
         return cls(
             name=execution.custom_properties.get('task_name').string_value,

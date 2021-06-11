@@ -254,10 +254,11 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, taskNa
 	}
 
 	for _, id := range config.InputArtifactIDs {
+		thisId := id // declare a new variable, so we can take address of this
 		aePair := &pb.PutExecutionRequest_ArtifactAndEvent{
 			Event: &pb.Event{
 				Type:       pb.Event_INPUT.Enum(),
-				ArtifactId: &id,
+				ArtifactId: &thisId,
 			},
 		}
 		req.ArtifactEventPairs = append(req.ArtifactEventPairs, aePair)
