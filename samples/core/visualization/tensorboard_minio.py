@@ -30,10 +30,9 @@ prepare_tensorboard = components.load_component_from_file(
 # )
 
 
-def train(minio_endpoint: 'URI', log_bucket: str, log_dir: 'Path'):
+def train(minio_endpoint: str, log_bucket: str, log_dir: str):
     # Reference: https://www.tensorflow.org/tensorboard/get_started
     import tensorflow as tf
-    import datetime
 
     mnist = tf.keras.datasets.mnist
 
@@ -115,12 +114,12 @@ train_op = create_component_from_func(
 
 @dsl.pipeline(name='pipeline-tensorboard-minio')
 def my_pipeline(
-    minio_endpoint='minio-service:9000',
-    log_bucket='mlpipeline',
-    log_dir=f'tensorboard/logs/{dsl.RUN_ID_PLACEHOLDER}',
+    minio_endpoint: str = 'minio-service:9000',
+    log_bucket: str = 'mlpipeline',
+    log_dir: str = f'tensorboard/logs/{dsl.RUN_ID_PLACEHOLDER}',
     # Pin to tensorflow 2.3, because in 2.4+ tensorboard cannot load in KFP:
     # refer to https://github.com/kubeflow/pipelines/issues/5521.
-    tf_image='gcr.io/deeplearning-platform-release/tf2-cpu.2-3:latest'
+    tf_image: str = 'gcr.io/deeplearning-platform-release/tf2-cpu.2-3:latest'
 ):
     # tensorboard uses s3 protocol to access minio
     prepare_tb_task = prepare_tensorboard(
@@ -180,5 +179,6 @@ def my_pipeline(
         )
     )
     # optional, let training task use the same tensorflow image as specified tensorboard
-    train_task.container.image = tf_image
+    # this does not work in v2 compatible mode
+    # train_task.container.image = tf_image
     train_task.after(prepare_tb_task)
