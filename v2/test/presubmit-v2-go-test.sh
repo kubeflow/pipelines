@@ -41,4 +41,5 @@ if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
 fi
 gcloud container clusters get-credentials $TEST_CLUSTER --region $REGION --project $PROJECT
 kubectl port-forward svc/metadata-grpc-service 8080:8080 -n $NAMESPACE &
-${GO_CMD} test -v -cover ./...
+${GO_CMD} test -v -cover ./... &
+pkill -f "port-forward"
