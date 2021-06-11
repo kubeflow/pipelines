@@ -184,7 +184,6 @@ def verify(
     }, digit_classification.get_dict())
 
 
-# verify(None, None, 'metrics-visualization-pipeline-gz9pz')
 run_pipeline_func([
     TestCase(
         pipeline_func=metrics_visualization_pipeline,
