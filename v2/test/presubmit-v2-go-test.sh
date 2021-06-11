@@ -38,6 +38,12 @@ git diff --exit-code -- go.mod go.sum || (echo "go modules are not tidy, run 'go
 if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
   gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
 fi
+
+echo "gcloud config list"
+gcloud config list
+
+echo "gcloud auth list"
+gcloud auth list
 gcloud container clusters get-credentials $TEST_CLUSTER --region $REGION --project $PROJECT
 kubectl port-forward svc/metadata-grpc-service 8080:8080 -n $NAMESPACE
 # 3. run test in project directory
