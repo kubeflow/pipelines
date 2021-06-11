@@ -22,7 +22,7 @@ NAMESPACE=${NAMESPACE:-kubeflow}
 cd /home/prow
 mkdir go1.13.3
 cd go1.13.3
-wget --quiet https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz
+curl -LO https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz
 tar -xf go1.13.3.linux-amd64.tar.gz
 GO_CMD=/home/prow/go1.13.3/go/bin/go
 cd /home/prow/go/src/github.com/kubeflow/pipelines/v2
