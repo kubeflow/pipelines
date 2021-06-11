@@ -1207,16 +1207,18 @@ class ContainerOp(BaseOp):
           'Use the file_outputs parameter instead. file_outputs now supports '
           'outputting big data.', DeprecationWarning)
 
-    # Special handling for the mlpipeline-ui-metadata and mlpipeline-metrics
-    # outputs that should always be saved as artifacts
-    # TODO: Remove when outputs are always saved as artifacts
-    for output_name, path in dict(file_outputs).items():
-      normalized_output_name = re.sub('[^a-zA-Z0-9]', '-', output_name.lower())
-      if normalized_output_name in [
-          'mlpipeline-ui-metadata', 'mlpipeline-metrics'
-      ]:
-        output_artifact_paths[normalized_output_name] = path
-        del file_outputs[output_name]
+    # Skip the special handling that is unnecessary in v2.
+    if not kfp.COMPILING_FOR_V2:
+      # Special handling for the mlpipeline-ui-metadata and mlpipeline-metrics
+      # outputs that should always be saved as artifacts
+      # TODO: Remove when outputs are always saved as artifacts
+      for output_name, path in dict(file_outputs).items():
+        normalized_output_name = re.sub('[^a-zA-Z0-9]', '-', output_name.lower())
+        if normalized_output_name in [
+            'mlpipeline-ui-metadata', 'mlpipeline-metrics'
+        ]:
+          output_artifact_paths[normalized_output_name] = path
+          del file_outputs[output_name]
 
     # attributes specific to `ContainerOp`
     self.input_artifact_paths = input_artifact_paths
