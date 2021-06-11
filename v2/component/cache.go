@@ -17,15 +17,5 @@ type artifactNameList struct {
 
 type containerSpec struct {
 	image   string
-	commands string
-	args []string
-	// TO DO , remove cpuLimit and memoryLimit once SDK adds such info into env variables
-	cpuLimit float64
-	memoryLimit float64
-	env      []envVar
-}
-
-type envVar struct {
-	name string
-	value string
+	cmdArgs []string
 }

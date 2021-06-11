@@ -243,16 +243,19 @@ func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error
 
 // RunComponent runs the current KFP component using the specified command and
 // arguments.
-func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string) error {
+func (l *Launcher) RunComponent(ctx context.Context, cmdArgs []string) error {
+	cmd := cmdArgs[0]
+	args := make([]string, len(cmdArgs) - 1)
+	_ = copy(args, cmdArgs[1:])
 	executorInput, err := l.runtimeInfo.generateExecutorInput(l.generateOutputURI, outputMetadataFilepath)
 	if err != nil {
 		return fmt.Errorf("failure while generating ExecutorInput: %w", err)
 	}
-	cacheKey, err := l.generateCacheKey(executorInput.GetInputs(), executorInput.GetOutputs(), cmd, args)
+	cacheKey, err := l.generateCacheKey(executorInput.GetInputs(), executorInput.GetOutputs(), cmdArgs)
 	if err != nil {
 		return fmt.Errorf("failure while generating CacheKey: %w", err)
 	}
-	fingerPrint, err:= l.generateFingerPrint(*cacheKey)
+	_, err = l.generateFingerPrint(*cacheKey)
 	if err != nil {
 		return fmt.Errorf("failure while generating FingerPrint: %w", err)
 	}
@@ -278,7 +281,6 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 		}
 		args[i] = arg
 	}
-
 	// Record Execution in MLMD.
 	// TODO(neuromage): Refactor launcher.go and split these functions up into
 	// testable units.
@@ -496,8 +498,7 @@ func localPathForURI(uri string) (string, error) {
 func (l *Launcher) generateCacheKey(
 	inputs *pipeline_spec.ExecutorInput_Inputs,
 	outputs *pipeline_spec.ExecutorInput_Outputs,
-	cmd string,
-	args []string) (*cacheKey, error) {
+	cmdAgrs []string) (*cacheKey, error) {
 
 	cacheKey := cacheKey{
 		inputArtifactNames:   make(map[string]artifactNameList),
@@ -543,18 +544,9 @@ func (l *Launcher) generateCacheKey(
 		cacheKey.outputParametersSpec[outputParameterName] = outputParameter.Type
 	}
 
-	// fetcha all env variables
-	env := make([]envVar, 0)
-	for _, element := range os.Environ() {
-		variable := strings.Split(element, "=")
-		env = append(env, envVar{variable[0], variable[1]})
-		fmt.Println(variable[0], "=>", variable[1])
-	}
 	cacheKey.containerSpec = containerSpec{
 		image:    l.options.ContainerImage,
-		commands: cmd,
-		args:     args,
-		env:      env,
+		cmdArgs : cmdAgrs,
 	}
 
 	return &cacheKey, nil
