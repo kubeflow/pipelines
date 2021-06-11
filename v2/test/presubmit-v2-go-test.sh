@@ -42,5 +42,8 @@ fi
 gcloud container clusters get-credentials $TEST_CLUSTER --region $REGION --project $PROJECT
 set +e
 kubectl port-forward svc/metadata-grpc-service 8080:8080 -n $NAMESPACE & PORT_FORWARD_PID=$!
+# wait for kubectl port forward
+sleep 10
 ${GO_CMD} test -v -cover ./...
+# kill kubectl port forward before exit
 kill "$PORT_FORWARD_PID"
