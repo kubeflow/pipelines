@@ -40,11 +40,13 @@ if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
   gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
 fi
 gcloud container clusters get-credentials "$TEST_CLUSTER" --region "$REGION" --project "$PROJECT"
-set +e
+
+function cleanup() {
+  echo "killing kubectl port forward before exit"
+  kill "$PORT_FORWARD_PID"
+}
+trap cleanup EXIT
 kubectl port-forward svc/metadata-grpc-service 8080:8080 -n "$NAMESPACE" & PORT_FORWARD_PID=$!
 # wait for kubectl port forward
 sleep 10
 ${GO_CMD} test -v -cover ./...
-# kill kubectl port forward before exit
-echo "killing kubectl port forward before exit"
-kill "$PORT_FORWARD_PID"
