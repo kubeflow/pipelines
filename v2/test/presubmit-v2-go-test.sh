@@ -39,11 +39,12 @@ git diff --exit-code -- go.mod go.sum || (echo "go modules are not tidy, run 'go
 if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
   gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
 fi
-gcloud container clusters get-credentials $TEST_CLUSTER --region $REGION --project $PROJECT
+gcloud container clusters get-credentials "$TEST_CLUSTER" --region "$REGION" --project "$PROJECT"
 set +e
-kubectl port-forward svc/metadata-grpc-service 8080:8080 -n $NAMESPACE & PORT_FORWARD_PID=$!
+kubectl port-forward svc/metadata-grpc-service 8080:8080 -n "$NAMESPACE" & PORT_FORWARD_PID=$!
 # wait for kubectl port forward
 sleep 10
 ${GO_CMD} test -v -cover ./...
 # kill kubectl port forward before exit
+echo "killing kubectl port forward before exit"
 kill "$PORT_FORWARD_PID"
