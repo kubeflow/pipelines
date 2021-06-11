@@ -35,7 +35,7 @@ ${GO_CMD} mod download
 ${GO_CMD} mod tidy
 git diff --exit-code -- go.mod go.sum || (echo "go modules are not tidy, run 'go mod tidy'." && exit 1)
 # Note, for tests that use metadata grpc api, port-forward it locally in a separate terminal by:
-gcloud container clusters get-credentials $TEST_CLUSTER--region $REGION --project $PROJECT
+gcloud container clusters get-credentials $TEST_CLUSTER --region $REGION --project $PROJECT
 kubectl port-forward svc/metadata-grpc-service 8080:8080 -n $NAMESPACE
 # 3. run test in project directory
 ${GO_CMD} test -v -cover ./...
