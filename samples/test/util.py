@@ -311,14 +311,10 @@ class KfpTask:
                     mlmd_event=e,
                 )
 
-<<<<<<< HEAD
             input_artifacts = [
                 kfp_artifact(aid, e) for (aid, e) in input_artifacts_info
             ]
-=======
-            input_artifacts = [kfp_artifact(aid) for aid in input_artifact_ids]
             input_artifacts.sort(key=lambda a: a.name)
->>>>>>> upstream/master
             output_artifacts = [
                 kfp_artifact(aid, e) for (aid, e) in output_artifacts_info
             ]
