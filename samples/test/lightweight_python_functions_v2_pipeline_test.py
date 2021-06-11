@@ -73,11 +73,11 @@ def verify(
             'inputs': {
                 'artifacts': [{
                     'metadata': {},
-                    'name': 'output_dataset_one',
+                    'name': 'dataset_one',
                     'type': 'system.Dataset'
                 }, {
                     'metadata': {},
-                    'name': 'output_dataset_two',
+                    'name': 'dataset_two',
                     'type': 'system.Dataset'
                 }],
                 'parameters': {
