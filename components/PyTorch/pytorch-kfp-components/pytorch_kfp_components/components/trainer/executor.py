@@ -89,8 +89,8 @@ class Executor(GenericExecutor):
             if not isinstance(trainer_args, dict):
                 raise TypeError("trainer_args must be a dict")
 
-            trainer_args.update(module_file_args)
-            parser = Namespace(**trainer_args)
+            module_file_args.update(trainer_args)
+            parser = Namespace(**module_file_args)
             trainer = pl.Trainer.from_argparse_args(parser)
 
             trainer.fit(model, data_module)
