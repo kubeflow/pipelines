@@ -92,7 +92,9 @@ def verify(
             'outputs': {
                 'artifacts': [{
                     'metadata': {
-                        'accuracy': 0.9
+                        'accuracy': {
+                            'doubleValue': 0.9
+                        }
                     },
                     'name': 'model',
                     'type': 'system.Model'
