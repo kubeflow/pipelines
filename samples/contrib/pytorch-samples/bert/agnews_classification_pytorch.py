@@ -163,7 +163,9 @@ if trainer.ptl_trainer.global_rank == 0:
                 os.path.join(bert_dir, "bert-base-uncased-vocab.txt"),
                 os.path.join(bert_dir, "index_to_name.json"),
                 os.path.join(bert_dir, "wrapper.py")
-            )
+            ),
+        "REQUIREMENTS_FILE":
+            os.path.join(bert_dir, "requirements.txt")
     }
 
     MarGeneration(mar_config=mar_config, mar_save_path=args["checkpoint_dir"])
