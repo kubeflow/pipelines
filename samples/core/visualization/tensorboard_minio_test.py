@@ -19,7 +19,7 @@ import kfp_server_api
 from google.cloud import storage
 
 from .tensorboard_minio import my_pipeline
-from ...test.util import run_pipeline_func, TestCase, KfpMlmdClient, KfpTask
+from ...test.util import run_pipeline_func, TestCase, KfpMlmdClient
 
 
 def verify(
@@ -34,7 +34,7 @@ def verify(
     tasks = client.get_tasks(argo_workflow_name=argo_workflow_name)
     # uncomment to debug
     # pprint(tasks)
-    vis: KfpTask = tasks.get('create-tensorboard-visualization')
+    vis = tasks['create-tensorboard-visualization']
     pprint(vis)
     mlpipeline_ui_metadata = vis.outputs.artifacts[0]
     t.assertEqual(mlpipeline_ui_metadata.name, 'mlpipeline-ui-metadata')

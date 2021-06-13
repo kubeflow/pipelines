@@ -28,8 +28,8 @@ def verify(run, argo_workflow_name: str, mlmd_connection_config, **kwargs):
 
     tasks = client.get_tasks(argo_workflow_name=argo_workflow_name)
     t.assertEqual(
-        tasks.get('add-3').outputs.parameters.get('sum'),
-        17, 'add result should be 17')
+        17, tasks['add-3'].outputs.parameters['sum'], 'add result should be 17'
+    )
 
 
 run_pipeline_func([

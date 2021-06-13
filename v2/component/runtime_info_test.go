@@ -273,7 +273,7 @@ func TestExecutorInputGeneration(t *testing.T) {
 									Type: &pipeline_spec.ArtifactTypeSchema{
 										Kind: &pipeline_spec.ArtifactTypeSchema_InstanceSchema{InstanceSchema: "title: kfp.Model\ntype: object\nproperties:\n  framework:\n    type: string\n  framework_version:\n    type: string\n"},
 									},
-									Uri: "gs://my-bucket/some-prefix/pipeline/task/model",
+									Uri:      "gs://my-bucket/some-prefix/pipeline/task/model",
 									Metadata: &structpb.Struct{}}}},
 						"metrics": {
 							Artifacts: []*pipeline_spec.RuntimeArtifact{
@@ -282,7 +282,7 @@ func TestExecutorInputGeneration(t *testing.T) {
 									Type: &pipeline_spec.ArtifactTypeSchema{
 										Kind: &pipeline_spec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "kfp.Metrics"},
 									},
-									Uri: "gs://my-bucket/some-prefix/pipeline/task/metrics",
+									Uri:      "gs://my-bucket/some-prefix/pipeline/task/metrics",
 									Metadata: &structpb.Struct{}}}},
 					},
 					OutputFile: outputMetadataFilepath,
