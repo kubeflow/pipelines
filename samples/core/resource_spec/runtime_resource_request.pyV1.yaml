@@ -1,0 +1,193 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: runtime-resource-request-pipeline-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.6.3, pipelines.kubeflow.org/pipeline_compilation_time: '2021-06-05T08:42:15.620332',
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "An example on how to make
+      resource requests at runtime.", "inputs": [{"default": "11234567", "name": "n",
+      "optional": true, "type": "Integer"}], "name": "Runtime resource request pipeline"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.6.3}
+spec:
+  entrypoint: runtime-resource-request-pipeline
+  templates:
+  - name: generate-resouce-request
+    container:
+      args: ['----output-paths', /tmp/outputs/memory/data, /tmp/outputs/cpu/data]
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def generate_resouce_request():
+            '''Returns the memory and cpu request'''
+            from collections import namedtuple
+
+            resouce_output = namedtuple('output', ['memory', 'cpu'])
+            return resouce_output('500Mi', '200m')
+
+        def _serialize_str(str_value: str) -> str:
+            if not isinstance(str_value, str):
+                raise TypeError('Value "{}" has type "{}" instead of str.'.format(str(str_value), str(type(str_value))))
+            return str_value
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Generate resouce request', description='Returns the memory and cpu request')
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=2)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = generate_resouce_request(**_parsed_args)
+
+        _output_serializers = [
+            _serialize_str,
+            _serialize_str,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      image: python:3.7
+    outputs:
+      parameters:
+      - name: generate-resouce-request-cpu
+        valueFrom: {path: /tmp/outputs/cpu/data}
+      - name: generate-resouce-request-memory
+        valueFrom: {path: /tmp/outputs/memory/data}
+      artifacts:
+      - {name: generate-resouce-request-cpu, path: /tmp/outputs/cpu/data}
+      - {name: generate-resouce-request-memory, path: /tmp/outputs/memory/data}
+    metadata:
+      labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.6.3, pipelines.kubeflow.org/pipeline-sdk-type: kfp}
+      annotations: {pipelines.kubeflow.org/component_spec: '{"description": "Returns
+          the memory and cpu request", "implementation": {"container": {"args": ["----output-paths",
+          {"outputPath": "memory"}, {"outputPath": "cpu"}], "command": ["sh", "-ec",
+          "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
+          -u \"$program_path\" \"$@\"\n", "def generate_resouce_request():\n    ''''''Returns
+          the memory and cpu request''''''\n    from collections import namedtuple\n\n    resouce_output
+          = namedtuple(''output'', [''memory'', ''cpu''])\n    return resouce_output(''500Mi'',
+          ''200m'')\n\ndef _serialize_str(str_value: str) -> str:\n    if not isinstance(str_value,
+          str):\n        raise TypeError(''Value \"{}\" has type \"{}\" instead of
+          str.''.format(str(str_value), str(type(str_value))))\n    return str_value\n\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Generate resouce request'',
+          description=''Returns the memory and cpu request'')\n_parser.add_argument(\"----output-paths\",
+          dest=\"_output_paths\", type=str, nargs=2)\n_parsed_args = vars(_parser.parse_args())\n_output_files
+          = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = generate_resouce_request(**_parsed_args)\n\n_output_serializers
+          = [\n    _serialize_str,\n    _serialize_str,\n\n]\n\nimport os\nfor idx,
+          output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except
+          OSError:\n        pass\n    with open(output_file, ''w'') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"],
+          "image": "python:3.7"}}, "name": "Generate resouce request", "outputs":
+          [{"name": "memory", "type": "String"}, {"name": "cpu", "type": "String"}]}',
+        pipelines.kubeflow.org/component_ref: '{}'}
+  - name: runtime-resource-request-pipeline
+    inputs:
+      parameters:
+      - name: "n"
+    dag:
+      tasks:
+      - {name: generate-resouce-request, template: generate-resouce-request}
+      - name: training-op
+        template: training-op
+        dependencies: [generate-resouce-request]
+        arguments:
+          parameters:
+          - {name: generate-resouce-request-cpu, value: '{{tasks.generate-resouce-request.outputs.parameters.generate-resouce-request-cpu}}'}
+          - {name: generate-resouce-request-memory, value: '{{tasks.generate-resouce-request.outputs.parameters.generate-resouce-request-memory}}'}
+          - name: "n"
+            value: '{{inputs.parameters.n}}'
+  - name: training-op
+    container:
+      args: [--n, '{{inputs.parameters.n}}', '----output-paths', /tmp/outputs/Output/data]
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def training_op(n):
+            # quickly allocate a lot of memory to verify memory is enough
+            a = [i for i in range(n)]
+            return len(a)
+
+        def _serialize_int(int_value: int) -> str:
+            if isinstance(int_value, str):
+                return int_value
+            if not isinstance(int_value, int):
+                raise TypeError('Value "{}" has type "{}" instead of int.'.format(str(int_value), str(type(int_value))))
+            return str(int_value)
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Training op', description='')
+        _parser.add_argument("--n", dest="n", type=int, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = training_op(**_parsed_args)
+
+        _outputs = [_outputs]
+
+        _output_serializers = [
+            _serialize_int,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      image: python:3.7
+      resources:
+        requests: {cpu: 200m}
+    inputs:
+      parameters:
+      - {name: generate-resouce-request-cpu}
+      - {name: generate-resouce-request-memory}
+      - name: "n"
+    outputs:
+      artifacts:
+      - {name: training-op-Output, path: /tmp/outputs/Output/data}
+    metadata:
+      labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.6.3, pipelines.kubeflow.org/pipeline-sdk-type: kfp}
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--n", {"inputValue": "n"}, "----output-paths", {"outputPath":
+          "Output"}], "command": ["sh", "-ec", "program_path=$(mktemp)\nprintf \"%s\"
+          \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n", "def
+          training_op(n):\n    # quickly allocate a lot of memory to verify memory
+          is enough\n    a = [i for i in range(n)]\n    return len(a)\n\ndef _serialize_int(int_value:
+          int) -> str:\n    if isinstance(int_value, str):\n        return int_value\n    if
+          not isinstance(int_value, int):\n        raise TypeError(''Value \"{}\"
+          has type \"{}\" instead of int.''.format(str(int_value), str(type(int_value))))\n    return
+          str(int_value)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog=''Training
+          op'', description='''')\n_parser.add_argument(\"--n\", dest=\"n\", type=int,
+          required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"----output-paths\",
+          dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files
+          = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = training_op(**_parsed_args)\n\n_outputs
+          = [_outputs]\n\n_output_serializers = [\n    _serialize_int,\n\n]\n\nimport
+          os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except
+          OSError:\n        pass\n    with open(output_file, ''w'') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "n", "type": "Integer"}], "name":
+          "Training op", "outputs": [{"name": "Output", "type": "Integer"}]}', pipelines.kubeflow.org/component_ref: '{}',
+        pipelines.kubeflow.org/arguments.parameters: '{"n": "{{inputs.parameters.n}}"}',
+        pipelines.kubeflow.org/max_cache_staleness: P0D}
+    podSpecPatch: '{"containers": [{"name": "main", "resources": {"limits": {"memory":
+      "{{inputs.parameters.generate-resouce-request-memory}}", "cpu": "{{inputs.parameters.generate-resouce-request-cpu}}"}}}]}'
+  arguments:
+    parameters:
+    - name: "n"
+      value: '11234567'
+  serviceAccountName: pipeline-runner
