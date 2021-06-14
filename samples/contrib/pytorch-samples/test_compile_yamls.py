@@ -12,22 +12,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+#pylint: disable=not-callable,unused-variable
+"""Test for component compilation."""
 import unittest
 import json
 from kfp import components
-from kfp.components import load_component_from_file, load_component_from_url
+from kfp.components import load_component_from_file
 from kfp import dsl
 from kfp import compiler
 
-bert_components = {
+BERT_COMPONENTS = {
     "component_bert_prep":
         components.
         load_component_from_file("bert/yaml/pre_process/component.yaml"),
     "component_bert_train":
         components.load_component_from_file("bert/yaml/train/component.yaml"),
 }
-cifar_components = {
+CIFAR_COMPONENTS = {
     "component_cifar10_prep":
         components.
         load_component_from_file("./cifar10/yaml/pre_process/component.yaml"),
@@ -35,64 +36,60 @@ cifar_components = {
         components.
         load_component_from_file("./cifar10/yaml/train/component.yaml"),
 }
-component_tb = load_component_from_file("common/tensorboard/component.yaml")
-component_deploy = load_component_from_file("common/deploy/component.yaml")
-prepare_tensorboard_op = load_component_from_file(
-    "./common/tensorboard/component.yaml"
-)
-component_minio = components.load_component_from_file(
+COMPONENT_TB = load_component_from_file("common/tensorboard/component.yaml")
+COMPONENT_DEPLOY = load_component_from_file("common/deploy/component.yaml")
+COMPONENT_MNIO = components.load_component_from_file(
     "./common/minio/component.yaml"
 )
-pred_op = load_component_from_file("./common/prediction/component.yaml")
+PRED_OP = load_component_from_file("./common/prediction/component.yaml")
 
 
-class ComponentCompileTest(unittest.TestCase):
+class ComponentCompileTest(unittest.TestCase):  #pylint: disable=too-many-instance-attributes
+    """Test cases for compilation of yamls."""
 
     def setUp(self):
+        """Set up."""
         super(ComponentCompileTest, self).setUp()
-        self.INPUT_REQUEST = "https://kubeflow-dataset.s3.us-east-2.amazonaws.com/" \
+        self.input_request = "https://kubeflow-dataset.s3.us-east-2.amazonaws.com/" \
                              "cifar10_input/input.json"
-        self.DEPLOY_NAME_BERT = "bertserve"
-        self.NAMESPACE = "kubeflow-user-example-com"
-        self.EXPERIMENT = "Default"
-        self.MINIO_ENDPOINT = "http://minio-service.kubeflow:9000"
-        self.LOG_BUCKET = "mlpipeline"
-        self.TENSORBOARD_IMAGE = "public.ecr.aws/y1x1p2u5/tboard:latest"
-        self.DEPLOY_NAME_CIFAR = "torchserve"
-        self.MODEL_NAME = "cifar10"
-        self.ISVC_NAME = (
-            self.DEPLOY_NAME_CIFAR + "." + self.NAMESPACE + "." + "example.com"
+        self.deploy_name_bert = "bertserve"
+        self.namespace = "kubeflow-user-example-com"
+        self.experiment = "Default"
+        self.minio_endpoint = "http://minio-service.kubeflow:9000"
+        self.log_bucket = "mlpipeline"
+        self.tensorboard_image = "public.ecr.aws/y1x1p2u5/tboard:latest"
+        self.deploy_name_cifar = "torchserve"
+        self.model_name = "cifar10"
+        self.isvc_name = (
+            self.deploy_name_cifar + "." + self.namespace + "." + "example.com"
         )
-        self.COOKIE = ""
-        self.INGRESS_GATEWAY = (
+        self.cookie = ""
+        self.ingress_gateway = (
             "http://istio-ingressgateway.istio-system.svc.cluster.local"
         )
 
     def test_cifar10_compile(self):
+        """Test Cifar10 yamls compile."""
 
         @dsl.pipeline(
             name="Training Cifar10 pipeline",
             description="Cifar 10 dataset pipeline",
-        )
+        )  #pylint: disable=too-many-arguments,too-many-locals
         def pytorch_cifar10(
-            minio_endpoint=self.MINIO_ENDPOINT,
-            log_bucket=self.LOG_BUCKET,
-            log_dir=f"tensorboard/logs/{dsl.RUN_ID_PLACEHOLDER}",
-            mar_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/model-store",
-            config_prop_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/config",
-            model_uri=f"s3://mlpipeline/mar/{dsl.RUN_ID_PLACEHOLDER}",
-            tf_image=self.TENSORBOARD_IMAGE,
-            deploy=self.DEPLOY_NAME_CIFAR,
-            isvc_name=self.ISVC_NAME,
-            model=self.MODEL_NAME,
-            namespace=self.NAMESPACE,
-            confusion_matrix_log_dir=f"confusion_matrix"
-            f"/{dsl.RUN_ID_PLACEHOLDER}/",
-            checkpoint_dir=f"checkpoint_dir/cifar10",
-            input_req=self.INPUT_REQUEST,
-            cookie=self.COOKIE,
-            ingress_gateway=self.INGRESS_GATEWAY,
+                minio_endpoint=self.minio_endpoint,
+                log_bucket=self.log_bucket,
+                log_dir=f"tensorboard/logs/{dsl.RUN_ID_PLACEHOLDER}",
+                mar_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/model-store",
+                config_prop_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/config",
+                model_uri=f"s3://mlpipeline/mar/{dsl.RUN_ID_PLACEHOLDER}",
+                tf_image=self.tensorboard_image,
+                deploy=self.deploy_name_cifar,
+                namespace=self.namespace,
+                confusion_matrix_log_dir=f"confusion_matrix"
+                f"/{dsl.RUN_ID_PLACEHOLDER}/",
+                checkpoint_dir=f"checkpoint_dir/cifar10",
         ):
+            """Cifar10 pipelines."""
             pod_template_spec = json.dumps({
                 "spec": {
                     "containers": [{
@@ -136,17 +133,17 @@ class ComponentCompileTest(unittest.TestCase):
                 }
             })
 
-            prepare_tb_task = prepare_tensorboard_op(
+            prepare_tb_task = COMPONENT_TB(
                 log_dir_uri=f"s3://{log_bucket}/{log_dir}",
                 image=tf_image,
                 pod_template_spec=pod_template_spec,
             ).set_display_name("Visualization")
-            component_cifar10_prep = cifar_components["component_cifar10_prep"]
+            component_cifar10_prep = CIFAR_COMPONENTS["component_cifar10_prep"]
             prep_task = (
                 component_cifar10_prep().after(prepare_tb_task).
                 set_display_name("Preprocess & Transform")
             )
-            component_cifar10_train = cifar_components["component_cifar10_train"
+            component_cifar10_train = CIFAR_COMPONENTS["component_cifar10_train"
                                                       ]
             train_task = (
                 component_cifar10_train(
@@ -161,7 +158,7 @@ class ComponentCompileTest(unittest.TestCase):
             )
 
             minio_tb_upload = (
-                component_minio(
+                COMPONENT_MNIO(
                     bucket_name="mlpipeline",
                     folder_name=log_dir,
                     input_path=train_task.outputs["tensorboard_root"],
@@ -171,7 +168,7 @@ class ComponentCompileTest(unittest.TestCase):
             )
 
             minio_checkpoint_dir_upload = (
-                component_minio(
+                COMPONENT_MNIO(
                     bucket_name="mlpipeline",
                     folder_name=checkpoint_dir,
                     input_path=train_task.outputs["checkpoint_dir"],
@@ -180,7 +177,7 @@ class ComponentCompileTest(unittest.TestCase):
             )
 
             minio_mar_upload = (
-                component_minio(
+                COMPONENT_MNIO(
                     bucket_name="mlpipeline",
                     folder_name=mar_path,
                     input_path=train_task.outputs["checkpoint_dir"],
@@ -189,7 +186,7 @@ class ComponentCompileTest(unittest.TestCase):
             )
 
             minio_config_upload = (
-                component_minio(
+                COMPONENT_MNIO(
                     bucket_name="mlpipeline",
                     folder_name=config_prop_path,
                     input_path=train_task.outputs["checkpoint_dir"],
@@ -237,27 +234,27 @@ class ComponentCompileTest(unittest.TestCase):
         """.format(deploy, namespace, model_uri, gpu_count, accelerator)
             # Update inferenceservice_yaml for GPU inference
             deploy_task = (
-                component_deploy(
+                COMPONENT_DEPLOY(
                     action="apply", inferenceservice_yaml=isvc_yaml
                 ).after(minio_mar_upload).set_display_name("Deployer")
             )
             pred_task = (
-                pred_op(
-                    host_name=self.ISVC_NAME,
-                    input_request=self.INPUT_REQUEST,
-                    cookie=self.COOKIE,
-                    url=self.INGRESS_GATEWAY,
-                    model=self.MODEL_NAME,
+                PRED_OP(
+                    host_name=self.isvc_name,
+                    input_request=self.input_request,
+                    cookie=self.cookie,
+                    url=self.ingress_gateway,
+                    model=self.model_name,
                     inference_type="predict",
                 ).after(deploy_task).set_display_name("Prediction")
             )
             explain_task = (
-                pred_op(
-                    host_name=self.ISVC_NAME,
-                    input_request=self.INPUT_REQUEST,
-                    cookie=self.COOKIE,
-                    url=self.INGRESS_GATEWAY,
-                    model=self.MODEL_NAME,
+                PRED_OP(
+                    host_name=self.isvc_name,
+                    input_request=self.input_request,
+                    cookie=self.cookie,
+                    url=self.ingress_gateway,
+                    model=self.model_name,
                     inference_type="explain",
                 ).after(pred_task).set_display_name("Explanation")
             )
@@ -267,24 +264,26 @@ class ComponentCompileTest(unittest.TestCase):
         )
 
     def test_bert_compile(self):
+        """Test bert yamls compilation."""
 
         @dsl.pipeline(
             name="Training pipeline", description="Sample training job test"
-        )
+        )  #pylint: disable=too-many-arguments,too-many-locals
         def pytorch_bert(
-            minio_endpoint=self.MINIO_ENDPOINT,
-            log_bucket=self.LOG_BUCKET,
-            log_dir=f"tensorboard/logs/{dsl.RUN_ID_PLACEHOLDER}",
-            mar_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/model-store",
-            config_prop_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/config",
-            model_uri=f"s3://mlpipeline/mar/{dsl.RUN_ID_PLACEHOLDER}",
-            tf_image=self.TENSORBOARD_IMAGE,
-            deploy=self.DEPLOY_NAME_BERT,
-            namespace=self.NAMESPACE,
-            confusion_matrix_log_dir=f"confusion_matrix/{dsl.RUN_ID_PLACEHOLDER}/",
-            num_samples=1000,
+                minio_endpoint=self.minio_endpoint,
+                log_bucket=self.log_bucket,
+                log_dir=f"tensorboard/logs/{dsl.RUN_ID_PLACEHOLDER}",
+                mar_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/model-store",
+                config_prop_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/config",
+                model_uri=f"s3://mlpipeline/mar/{dsl.RUN_ID_PLACEHOLDER}",
+                tf_image=self.tensorboard_image,
+                deploy=self.deploy_name_bert,
+                namespace=self.namespace,
+                confusion_matrix_log_dir=f"confusion_matrix/{dsl.RUN_ID_PLACEHOLDER}/",
+                num_samples=1000,
         ):
-            prepare_tb_task = component_tb(
+            """Bert Pipeline."""
+            prepare_tb_task = COMPONENT_TB(
                 log_dir_uri=f"s3://{log_bucket}/{log_dir}",
                 image=tf_image,
                 pod_template_spec=json.dumps({
@@ -330,12 +329,12 @@ class ComponentCompileTest(unittest.TestCase):
                     }
                 }),
             ).set_display_name("Visualization")
-            component_bert_prep = bert_components["component_bert_prep"]
+            component_bert_prep = BERT_COMPONENTS["component_bert_prep"]
             prep_task = (
                 component_bert_prep().after(prepare_tb_task).
                 set_display_name("Preprocess & Transform")
             )
-            component_bert_train = bert_components["component_bert_train"]
+            component_bert_train = BERT_COMPONENTS["component_bert_train"]
             train_task = (
                 component_bert_train(
                     input_data=prep_task.outputs["output_data"],
@@ -350,7 +349,7 @@ class ComponentCompileTest(unittest.TestCase):
             )
 
             minio_tb_upload = (
-                component_minio(
+                COMPONENT_MNIO(
                     bucket_name="mlpipeline",
                     folder_name=log_dir,
                     input_path=train_task.outputs["tensorboard_root"],
@@ -359,7 +358,7 @@ class ComponentCompileTest(unittest.TestCase):
                        ).set_display_name("Tensorboard Events Pusher")
             )
             minio_mar_upload = (
-                component_minio(
+                COMPONENT_MNIO(
                     bucket_name="mlpipeline",
                     folder_name=mar_path,
                     input_path=train_task.outputs["checkpoint_dir"],
@@ -367,7 +366,7 @@ class ComponentCompileTest(unittest.TestCase):
                 ).after(train_task).set_display_name("Mar Pusher")
             )
             minio_config_upload = (
-                component_minio(
+                COMPONENT_MNIO(
                     bucket_name="mlpipeline",
                     folder_name=config_prop_path,
                     input_path=train_task.outputs["checkpoint_dir"],
@@ -415,7 +414,7 @@ class ComponentCompileTest(unittest.TestCase):
         """.format(deploy, namespace, model_uri, gpu_count, accelerator)
             # Update inferenceservice_yaml for GPU inference
             deploy_task = (
-                component_deploy(
+                COMPONENT_DEPLOY(
                     action="apply", inferenceservice_yaml=isvc_yaml
                 ).after(minio_mar_upload).set_display_name("Deployer")
             )
