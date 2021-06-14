@@ -37,11 +37,15 @@ func TestCreateRun(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	resource.AddRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "pipeline-runner"
+	template := expectedRuntimeWorkflow.Spec.Templates[0]
+	expectedRuntimeWorkflow.Spec.Templates[0] = template
+
 	expectedRunDetail := api.RunDetail{
 		Run: &api.Run{
 			Id:             "123e4567-e89b-12d3-a456-426655440000",
@@ -51,6 +55,7 @@ func TestCreateRun(t *testing.T) {
 			CreatedAt:      &timestamp.Timestamp{Seconds: 2},
 			ScheduledAt:    &timestamp.Timestamp{},
 			FinishedAt:     &timestamp.Timestamp{},
+			Status:         "Running",
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: testWorkflow.ToStringForStore(),
 				Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
@@ -87,6 +92,7 @@ func TestCreateRunPatch(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedRuntimeWorkflow := testWorkflowPatch.DeepCopy()
+	resource.AddRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: v1alpha1.AnyStringPtr("test-default-bucket")},
 		{Name: "param2", Value: v1alpha1.AnyStringPtr("test-project-id")},
@@ -94,6 +100,9 @@ func TestCreateRunPatch(t *testing.T) {
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "pipeline-runner"
+	template := expectedRuntimeWorkflow.Spec.Templates[0]
+	expectedRuntimeWorkflow.Spec.Templates[0] = template
+
 	expectedRunDetail := api.RunDetail{
 		Run: &api.Run{
 			Id:             "123e4567-e89b-12d3-a456-426655440000",
@@ -184,15 +193,20 @@ func TestCreateRun_Multiuser(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	resource.AddRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "default-editor" // In multi-user mode, we use default service account.
+	template := expectedRuntimeWorkflow.Spec.Templates[0]
+	expectedRuntimeWorkflow.Spec.Templates[0] = template
+
 	expectedRunDetail := api.RunDetail{
 		Run: &api.Run{
 			Id:             "123e4567-e89b-12d3-a456-426655440000",
 			Name:           "run1",
+			Status:         "Running",
 			ServiceAccount: "default-editor",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE,
 			CreatedAt:      &timestamp.Timestamp{Seconds: 2},
@@ -239,6 +253,7 @@ func TestListRun(t *testing.T) {
 		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
 		ScheduledAt:    &timestamp.Timestamp{},
 		FinishedAt:     &timestamp.Timestamp{},
+		Status:         "Running",
 		PipelineSpec: &api.PipelineSpec{
 			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
@@ -319,6 +334,7 @@ func TestListRuns_Multiuser(t *testing.T) {
 		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
 		ScheduledAt:    &timestamp.Timestamp{},
 		FinishedAt:     &timestamp.Timestamp{},
+		Status:         "Running",
 		PipelineSpec: &api.PipelineSpec{
 			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
