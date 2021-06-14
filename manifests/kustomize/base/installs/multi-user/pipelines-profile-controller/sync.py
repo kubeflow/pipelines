@@ -27,7 +27,7 @@ def main():
 def get_settings_from_env(controller_port=None,
                           visualization_server_image=None, frontend_image=None,
                           visualization_server_tag=None, frontend_tag=None, disable_istio_sidecar=None,
-                          minio_access_key=None, minio_secret_key=None):
+                          minio_access_key=None, minio_secret_key=None, kfp_default_pipeline_root=None):
     """
     Returns a dict of settings from environment variables relevant to the controller
 
@@ -82,29 +82,55 @@ def get_settings_from_env(controller_port=None,
         minio_secret_key or \
         base64.b64encode(bytes(os.environ.get("MINIO_SECRET_KEY"), 'utf-8')).decode('utf-8')
 
+    # KFP_DEFAULT_PIPELINE_ROOT is optional
+    settings["kfp_default_pipeline_root"] = \
+        kfp_default_pipeline_root or \
+        os.environ.get("KFP_DEFAULT_PIPELINE_ROOT")
+
     return settings
 
 
 def server_factory(visualization_server_image,
                    visualization_server_tag, frontend_image, frontend_tag,
                    disable_istio_sidecar, minio_access_key,
-                   minio_secret_key, url="", controller_port=8080):
+                   minio_secret_key, kfp_default_pipeline_root=None, 
+                   url="", controller_port=8080):
     """
     Returns an HTTPServer populated with Handler with customized settings
     """
     class Controller(BaseHTTPRequestHandler):
         def sync(self, parent, children):
+            # parent is a namespace
+            namespace = parent.get("metadata", {}).get("name")
+
             pipeline_enabled = parent.get("metadata", {}).get(
                 "labels", {}).get("pipelines.kubeflow.org/enabled")
 
             if pipeline_enabled != "true":
                 return {"status": {}, "children": []}
 
+            desired_configmap_count = 1
+            desired_resources = []
+            if kfp_default_pipeline_root:
+                desired_configmap_count = 2
+                desired_resources += [{
+                    "apiVersion": "v1",
+                    "kind": "ConfigMap",
+                    "metadata": {
+                        "name": "kfp-launcher",
+                        "namespace": namespace,
+                    },
+                    "data": {
+                        "defaultPipelineRoot": kfp_default_pipeline_root,
+                    },
+                }]
+
+
             # Compute status based on observed state.
             desired_status = {
                 "kubeflow-pipelines-ready":
                     len(children["Secret.v1"]) == 1 and
-                    len(children["ConfigMap.v1"]) == 1 and
+                    len(children["ConfigMap.v1"]) == desired_configmap_count and
                     len(children["Deployment.apps/v1"]) == 2 and
                     len(children["Service.v1"]) == 2 and
                     len(children["DestinationRule.networking.istio.io/v1alpha3"]) == 1 and
@@ -113,9 +139,7 @@ def server_factory(visualization_server_image,
             }
 
             # Generate the desired child object(s).
-            # parent is a namespace
-            namespace = parent.get("metadata", {}).get("name")
-            desired_resources = [
+            desired_resources += [
                 {
                     "apiVersion": "v1",
                     "kind": "ConfigMap",
