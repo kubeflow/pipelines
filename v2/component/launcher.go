@@ -18,9 +18,6 @@ package component
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -34,6 +31,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/v2/cache_utils"
 	"github.com/kubeflow/pipelines/v2/metadata"
 	"github.com/kubeflow/pipelines/v2/objectstore"
 	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
@@ -245,7 +243,7 @@ func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error
 // arguments.
 func (l *Launcher) RunComponent(ctx context.Context, cmdArgs []string) error {
 	cmd := cmdArgs[0]
-	args := make([]string, len(cmdArgs) - 1)
+	args := make([]string, len(cmdArgs)-1)
 	_ = copy(args, cmdArgs[1:])
 	executorInput, err := l.runtimeInfo.generateExecutorInput(l.generateOutputURI, outputMetadataFilepath)
 	if err != nil {
@@ -255,7 +253,7 @@ func (l *Launcher) RunComponent(ctx context.Context, cmdArgs []string) error {
 	if err != nil {
 		return fmt.Errorf("failure while generating CacheKey: %w", err)
 	}
-	_, err = l.generateFingerPrint(*cacheKey)
+	_, err = cache_utils.GenerateFingerPrint(*cacheKey)
 	if err != nil {
 		return fmt.Errorf("failure while generating FingerPrint: %w", err)
 	}
@@ -498,25 +496,25 @@ func localPathForURI(uri string) (string, error) {
 func (l *Launcher) generateCacheKey(
 	inputs *pipeline_spec.ExecutorInput_Inputs,
 	outputs *pipeline_spec.ExecutorInput_Outputs,
-	cmdAgrs []string) (*cacheKey, error) {
+	cmdAgrs []string) (*cache_utils.CacheKey, error) {
 
-	cacheKey := cacheKey{
-		inputArtifactNames:   make(map[string]artifactNameList),
-		inputParameters:      make(map[string]pipeline_spec.Value),
-		outputArtifactsSpec:  make(map[string]pipeline_spec.RuntimeArtifact),
-		outputParametersSpec: make(map[string]string),
+	cacheKey := cache_utils.CacheKey{
+		InputArtifactNames:   make(map[string]cache_utils.ArtifactNameList),
+		InputParameters:      make(map[string]pipeline_spec.Value),
+		OutputArtifactsSpec:  make(map[string]pipeline_spec.RuntimeArtifact),
+		OutputParametersSpec: make(map[string]string),
 	}
 
 	for inputArtifactName, inputArtifactList := range inputs.GetArtifacts() {
-		artifactNameList := artifactNameList{artifactNames: make([]string, 0)}
+		artifactNameList := cache_utils.ArtifactNameList{ArtifactNames: make([]string, 0)}
 		for _, artifact := range inputArtifactList.Artifacts {
-			artifactNameList.artifactNames = append(artifactNameList.artifactNames, artifact.GetName())
+			artifactNameList.ArtifactNames = append(artifactNameList.ArtifactNames, artifact.GetName())
 		}
-		cacheKey.inputArtifactNames[inputArtifactName] = artifactNameList
+		cacheKey.InputArtifactNames[inputArtifactName] = artifactNameList
 	}
 
 	for inputParameterName, inputParameterValue := range inputs.GetParameters() {
-		cacheKey.inputParameters[inputParameterName] = pipeline_spec.Value{
+		cacheKey.InputParameters[inputParameterName] = pipeline_spec.Value{
 			Value: inputParameterValue.Value,
 		}
 	}
@@ -532,7 +530,7 @@ func (l *Launcher) generateCacheKey(
 			Type:     outputArtifact.GetType(),
 			Metadata: outputArtifact.GetMetadata(),
 		}
-		cacheKey.outputArtifactsSpec[outputArtifactName] = outputArtifactWithUriWiped
+		cacheKey.OutputArtifactsSpec[outputArtifactName] = outputArtifactWithUriWiped
 	}
 
 	for outputParameterName, _ := range outputs.GetParameters() {
@@ -541,31 +539,17 @@ func (l *Launcher) generateCacheKey(
 			return nil, fmt.Errorf("unknown parameter %q found in ExecutorInput_Outputs", outputParameterName)
 		}
 
-		cacheKey.outputParametersSpec[outputParameterName] = outputParameter.Type
+		cacheKey.OutputParametersSpec[outputParameterName] = outputParameter.Type
 	}
 
-	cacheKey.containerSpec = containerSpec{
-		image:    l.options.ContainerImage,
-		cmdArgs : cmdAgrs,
+	cacheKey.ContainerSpec = cache_utils.ContainerSpec{
+		Image:   l.options.ContainerImage,
+		CmdArgs: cmdAgrs,
 	}
 
 	return &cacheKey, nil
 
 }
-
-func (l *Launcher) generateFingerPrint(cacheKey cacheKey) (string, error) {
-	b, err := json.Marshal(cacheKey)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal cache key: %w",err)
-	}
-	hash := sha256.New()
-	hash.Write(b)
-	md := hash.Sum(nil)
-	executionHashKey := hex.EncodeToString(md)
-	return executionHashKey, nil
-
-}
-
 
 func (l *Launcher) prepareInputs(ctx context.Context, executorInput *pipeline_spec.ExecutorInput) error {
 	executorInputJSON, err := protojson.Marshal(executorInput)
