@@ -1,0 +1,53 @@
+name: Launch Dataflow Flex Template
+description: |
+  Launchs a dataflow job from a flex template.
+metadata:
+  labels:
+    add-pod-env: 'true'
+inputs:
+  - name: project_id
+    description: 'Required. The ID of the Cloud Platform project that the job belongs to.'
+    type: GCPProjectID
+  - name: location
+    description: 'The regional endpoint to which to direct the request.'
+    default: ''
+    type: GCPRegion
+  - name: launch_parameters
+    description: >-
+      Parameters to provide to the template being launched. Schema defined in
+      https://cloud.google.com/dataflow/docs/reference/rest/v1b3/projects.locations.flexTemplates/launch#LaunchFlexTemplateParameter.
+      `jobName` will be replaced by generated name.'
+    type: Dict
+    default: '{}'
+  - name: staging_dir
+    description: >-
+      Optional. The GCS directory for keeping staging files.
+      A random subdirectory will be created under the directory to keep job info
+      for resuming the job in case of failure.
+    default: ''
+    type: GCSPath
+  - name: wait_interval
+    description: 'Optional wait interval between calls to get job status. Defaults to 30.'
+    default: '30'
+    type: Integer
+outputs:
+  - name: job_id
+    description: 'The id of the created dataflow job.'
+    type: String
+  - name: MLPipeline UI metadata
+    type: UI metadata
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:1.5.0-rc.0
+    args: [
+      --ui_metadata_path, {outputPath: MLPipeline UI metadata},
+      kfp_component.google.dataflow, launch_flex_template,
+      --project_id, {inputValue: project_id},
+      --location, {inputValue: location},
+      --launch_parameters, {inputValue: launch_parameters},
+      --staging_dir, {inputValue: staging_dir},
+      --wait_interval, {inputValue: wait_interval},
+      --job_id_output_path, {outputPath: job_id},
+    ]
+    env:
+      KFP_POD_NAME: "{{pod.name}}"

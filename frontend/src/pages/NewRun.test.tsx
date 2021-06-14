@@ -1772,7 +1772,7 @@ describe('NewRun', () => {
         trigger: {
           periodic_schedule: {
             end_time: undefined,
-            interval_second: '60',
+            interval_second: '3600',
             start_time: undefined,
           },
         },

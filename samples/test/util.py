@@ -114,7 +114,7 @@ def _run_test(callback):
         output_directory: Optional[str] = None,  # example
         host: Optional[str] = None,
         external_host: Optional[str] = None,
-        launcher_image: Optional['URI'] = None,
+        launcher_image: Optional[str] = None,
         experiment: str = 'v2_sample_test_samples',
         metadata_service_host: Optional[str] = None,
         metadata_service_port: int = 8080,
@@ -227,19 +227,17 @@ class KfpArtifact:
 
     @classmethod
     def new(
-        cls, mlmd_artifact: metadata_store_pb2.Artifact,
-        mlmd_artifact_type: metadata_store_pb2.ArtifactType
+        cls,
+        mlmd_artifact: metadata_store_pb2.Artifact,
+        mlmd_artifact_type: metadata_store_pb2.ArtifactType,
+        mlmd_event: metadata_store_pb2.Event,
     ):
-        artifact_name = ''
-        if mlmd_artifact.name:
-            artifact_name = mlmd_artifact.name
-        else:
-            if 'name' in mlmd_artifact.custom_properties.keys():
-                artifact_name = mlmd_artifact.custom_properties['name'
-                                                               ].string_value
-        metadata = MessageToDict(
-            mlmd_artifact.custom_properties.get('metadata').struct_value
-        )
+        # event path is conceptually input/output name in a task
+        # ref: https://github.com/google/ml-metadata/blob/78ea886c18979d79f3c224092245873474bfafa2/ml_metadata/proto/metadata_store.proto#L169-L180
+        artifact_name = mlmd_event.path.steps[0].key
+        # The original field is custom_properties, but MessageToDict converts it
+        # to customProperties.
+        metadata = MessageToDict(mlmd_artifact).get('customProperties', {})
         return cls(
             name=artifact_name,
             type=mlmd_artifact_type.name,
@@ -293,30 +291,34 @@ class KfpTask:
         input_artifacts = []
         output_artifacts = []
         if events:
-            input_artifact_ids = [
-                e.artifact_id
-                for e in events
-                if e.type == metadata_store_pb2.Event.INPUT
-            ]
-            output_artifact_ids = [
-                e.artifact_id
+            input_artifacts_info = [(e.artifact_id, e)
+                                    for e in events
+                                    if e.type == metadata_store_pb2.Event.INPUT]
+            output_artifacts_info = [
+                (e.artifact_id, e)
                 for e in events
                 if e.type == metadata_store_pb2.Event.OUTPUT
             ]
 
-            def kfp_artifact(aid):
+            def kfp_artifact(
+                aid: int, e: metadata_store_pb2.Event
+            ) -> KfpArtifact:
                 mlmd_artifact = artifacts_by_id[aid]
                 mlmd_type = artifact_types_by_id[mlmd_artifact.type_id]
                 return KfpArtifact.new(
                     mlmd_artifact=mlmd_artifact,
-                    mlmd_artifact_type=artifact_types_by_id[
-                        mlmd_artifact.type_id]
+                    mlmd_artifact_type=mlmd_type,
+                    mlmd_event=e,
                 )
 
-            input_artifacts = [kfp_artifact(aid) for aid in input_artifact_ids]
-            output_artifacts = [
-                kfp_artifact(aid) for aid in output_artifact_ids
+            input_artifacts = [
+                kfp_artifact(aid, e) for (aid, e) in input_artifacts_info
             ]
+            input_artifacts.sort(key=lambda a: a.name)
+            output_artifacts = [
+                kfp_artifact(aid, e) for (aid, e) in output_artifacts_info
+            ]
+            output_artifacts.sort(key=lambda a: a.name)
 
         return cls(
             name=execution.custom_properties.get('task_name').string_value,
@@ -350,6 +352,10 @@ class KfpMlmdClient:
             type_name='kfp.PipelineRun',
             context_name=argo_workflow_name,
         )
+        if not run_context:
+            raise Exception(
+                f'Cannot find kfp.PipelineRun context "{argo_workflow_name}"'
+            )
         logging.info(
             f'run_context: name={run_context.name} id={run_context.id}'
         )

@@ -16,13 +16,16 @@
 
 # Fail the entire script when any command fails.
 set -ex
-NAMESPACE=${NAMESPACE:-kubeflow}
+NAMESPACE="${NAMESPACE:-kubeflow}"
+TEST_CLUSTER="${TEST_CLUSTER:-kfp-standalone-1}"
+REGION="${REGION:-us-central1}"
+PROJECT="${PROJECT:-kfp-ci}"
 # The current directory is /home/prow/go/src/github.com/kubeflow/pipelines
 # 1. install go in /home/prow/go1.13.3
 cd /home/prow
 mkdir go1.13.3
 cd go1.13.3
-wget --quiet https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz
+curl -LO https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz
 tar -xf go1.13.3.linux-amd64.tar.gz
 GO_CMD=/home/prow/go1.13.3/go/bin/go
 cd /home/prow/go/src/github.com/kubeflow/pipelines/v2
@@ -31,7 +34,19 @@ cd /home/prow/go/src/github.com/kubeflow/pipelines/v2
 ${GO_CMD} mod download
 ${GO_CMD} mod tidy
 git diff --exit-code -- go.mod go.sum || (echo "go modules are not tidy, run 'go mod tidy'." && exit 1)
+
 # Note, for tests that use metadata grpc api, port-forward it locally in a separate terminal by:
-kubectl port-forward svc/metadata-grpc-service 8080:8080 -n $NAMESPACE
-# 3. run test in project directory
+if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
+  gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+fi
+gcloud container clusters get-credentials "$TEST_CLUSTER" --region "$REGION" --project "$PROJECT"
+
+function cleanup() {
+  echo "killing kubectl port forward before exit"
+  kill "$PORT_FORWARD_PID"
+}
+trap cleanup EXIT
+kubectl port-forward svc/metadata-grpc-service 8080:8080 -n "$NAMESPACE" & PORT_FORWARD_PID=$!
+# wait for kubectl port forward
+sleep 10
 ${GO_CMD} test -v -cover ./...
