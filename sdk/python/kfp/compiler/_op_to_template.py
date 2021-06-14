@@ -288,6 +288,24 @@ def _op_to_template(op: BaseOp):
         template['volumes'] = [convert_k8s_obj_to_json(volume) for volume in processed_op.volumes]
         template['volumes'].sort(key=lambda x: x['name'])
 
+    # Runtime resource requests
+    if isinstance(op, dsl.ContainerOp) and ('resources' in op.container.keys()):
+        podSpecPatch = {}
+        for setting, val in op.container['resources'].items():
+            for resource, param in val.items():
+                if (resource in ['cpu', 'memory']) and re.match('^{{inputs.parameters.*}}$', param):
+                    if not 'containers' in podSpecPatch:
+                        podSpecPatch = {'containers':[{'name':'main', 'resources':{}}]}
+                    if setting not in podSpecPatch['containers'][0]['resources']:
+                        podSpecPatch['containers'][0]['resources'][setting] = {resource: param}
+                    else:
+                        podSpecPatch['containers'][0]['resources'][setting][resource] = param
+                    del template['container']['resources'][setting][resource]
+                    if not template['container']['resources'][setting]:
+                        del template['container']['resources'][setting]
+        if podSpecPatch:
+            template['podSpecPatch'] = json.dumps(podSpecPatch)
+            
     if isinstance(op, dsl.ContainerOp) and op._metadata and not op.is_v2:
         template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/component_spec'] = json.dumps(op._metadata.to_dict(), sort_keys=True)
 

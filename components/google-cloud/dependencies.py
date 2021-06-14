@@ -13,21 +13,21 @@
 # limitations under the License.
 """Setup configuration of  Google Cloud Pipeline Components client side libraries."""
 
+
 def make_required_install_packages():
-  return [
-      "kfp>=1.4.0,<2.0.0",
-      "google-cloud-aiplatform>=1.0.1",
-  ]
+    return [
+        "kfp>=1.4.0,<2.0.0",
+        "google-cloud-aiplatform>=1.0.1",
+    ]
 
 
 def make_required_test_packages():
-  return make_required_install_packages() + [
-      "mock>=4.0.0",
-      "flake8>=3.0.0",
-      "pytest>=6.0.0",
-  ]
+    return make_required_install_packages() + [
+        "mock>=4.0.0",
+        "flake8>=3.0.0",
+        "pytest>=6.0.0",
+    ]
 
 
 def make_dependency_links():
-  # TODO: change to google-cloud-aiplatform
-  return []
+    return []

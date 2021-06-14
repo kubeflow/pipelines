@@ -282,15 +282,16 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 			StringParameters: make(map[string]string),
 			DoubleParameters: make(map[string]float64),
 		},
+		InputArtifactIDs: make(map[string][]int64),
 	}
 
-	for _, artifactList := range executorInput.Inputs.Artifacts {
+	for name, artifactList := range executorInput.Inputs.Artifacts {
 		for _, artifact := range artifactList.Artifacts {
 			id, err := strconv.ParseInt(artifact.Name, 10, 64)
 			if err != nil {
 				return fmt.Errorf("unable to parse input artifact id from %q: %w", id, err)
 			}
-			ecfg.InputArtifactIDs = append(ecfg.InputArtifactIDs, id)
+			ecfg.InputArtifactIDs[name] = append(ecfg.InputArtifactIDs[name], id)
 		}
 	}
 
@@ -403,7 +404,11 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 		if err != nil {
 			return metadataErr(err)
 		}
-		outputArtifacts = append(outputArtifacts, &metadata.OutputArtifact{Artifact: mlmdArtifact, Schema: outputArtifact.Type.GetInstanceSchema()})
+		outputArtifacts = append(outputArtifacts, &metadata.OutputArtifact{
+			Name:     name,
+			Artifact: mlmdArtifact,
+			Schema:   outputArtifact.Type.GetInstanceSchema(),
+		})
 
 		rtoa, ok := l.runtimeInfo.OutputArtifacts[name]
 		if !ok {
