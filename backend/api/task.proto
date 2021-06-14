@@ -17,10 +17,10 @@ syntax = "proto3";
 option go_package = "github.com/kubeflow/pipelines/backend/api/go_client";
 package api;
 
-import "backend/api/error.proto";
 import "google/protobuf/empty.proto";
 import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
+import "backend/api/resource_reference.proto";
 import "protoc-gen-swagger/options/annotations.proto";
 
 message Task {
@@ -57,8 +57,54 @@ service TaskService {
       body: "task"
     };
   }
+
+  // Finds all tasks. Supports pagination, and sorting on certain fields.
+  rpc ListTasks(ListTasksRequest) returns (ListTasksResponse) {
+    option (google.api.http) = {
+      get: "/apis/v1beta1/tasks"
+    };
+  }
 }
 
 message CreateTaskRequest {
   Task task = 1;
+}
+
+message ListTasksRequest {
+  // A page token to request the next page of results. The token is acquried
+  // from the nextPageToken field of the response from the previous
+  // ListExperiment call or can be omitted when fetching the first page.
+  string page_token = 1;
+
+  // The number of experiments to be listed per page. If there are more
+  // experiments than this number, the response message will contain a
+  // nextPageToken field you can use to fetch the next page.
+  int32 page_size = 2;
+
+  // Can be format of "field_name", "field_name asc" or "field_name desc"
+  // Ascending by default.
+  string sort_by = 3;
+
+  // What resource reference to filter on.
+  // E.g. If listing tasks for an pipeline run, the query string would be
+  // resource_reference_key.type="PIPELINE"&resource_reference_key.id=123
+  ResourceKey resource_reference_key = 4;
+
+  // A url-encoded, JSON-serialized Filter protocol buffer (see
+  // [filter.proto](https://github.com/kubeflow/pipelines/
+  // blob/master/backend/api/filter.proto)).
+  string filter = 5;
+
+
+}
+
+message ListTasksResponse {
+  // A list of tasks returned.
+      repeated Task tasks = 1;
+
+  // The token to list the next page of experiments.
+      string next_page_token = 2;
+
+  // The total number of experiments for the given query.
+      int32 total_size = 3;
 }

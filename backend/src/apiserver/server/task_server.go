@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
@@ -55,3 +56,27 @@ func (s *TaskServer) validateCreateTaskRequest(request *api.CreateTaskRequest) e
 	return nil
 }
 
+func (s *TaskServer) ListTasks(ctx context.Context, request *api.ListTasksRequest) (
+	*api.ListTasksResponse, error) {
+
+	opts, err := validatedListOptions(&model.Task{}, request.PageToken, int(request.PageSize), request.SortBy, request.Filter)
+
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to create list options")
+	}
+
+	filterContext, err := ValidateFilter(request.ResourceReferenceKey)
+	if err != nil {
+		return nil, util.Wrap(err, "Validating filter failed.")
+	}
+
+	tasks, total_size, nextPageToken, err := s.resourceManager.ListTasks(filterContext, opts)
+	if err != nil {
+		return nil, util.Wrap(err, "List tasks failed.")
+	}
+	return &api.ListTasksResponse{
+			Tasks:         ToApiTasks(tasks),
+			TotalSize:     int32(total_size),
+			NextPageToken: nextPageToken},
+		nil
+}

@@ -218,6 +218,13 @@ func ToApiTask(task *model.Task) *api.Task {
 	}
 }
 
+func ToApiTasks(tasks []*model.Task) []*api.Task {
+	apiTasks := make([]*api.Task, 0)
+	for _, task := range tasks {
+		apiTasks = append(apiTasks, ToApiTask(task))
+	}
+	return apiTasks
+}
 func ToApiJob(job *model.Job) *api.Job {
 	params, err := toApiParameters(job.Parameters)
 	if err != nil {

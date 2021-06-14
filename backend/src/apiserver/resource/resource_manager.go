@@ -492,6 +492,11 @@ func (r *ResourceManager) CreateTask(ctx context.Context, apiTask *api.Task) (*m
 	return r.taskStore.CreateTask(&task)
 }
 
+func (r *ResourceManager) ListTasks(filterContext *common.FilterContext,
+	opts *list.Options) (tasks []*model.Task, total_size int, nextPageToken string, err error) {
+	return r.taskStore.ListTasks(filterContext, opts)
+}
+
 
 func (r *ResourceManager) ListJobs(filterContext *common.FilterContext,
 	opts *list.Options) (jobs []*model.Job, total_size int, nextPageToken string, err error) {
