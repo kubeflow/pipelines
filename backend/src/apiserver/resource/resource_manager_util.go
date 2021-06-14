@@ -15,14 +15,15 @@
 package resource
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"regexp"
 	"strings"
 	"time"
 
-	wfv1 "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-	"github.com/argoproj/argo/workflow/common"
+	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v3/workflow/common"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	servercommon "github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -121,7 +122,7 @@ func toParametersMap(apiParams []*api.Parameter) map[string]string {
 
 func formulateRetryWorkflow(wf *util.Workflow) (*util.Workflow, []string, error) {
 	switch wf.Status.Phase {
-	case wfv1.NodeFailed, wfv1.NodeError:
+	case wfv1.WorkflowFailed, wfv1.WorkflowError:
 		break
 	default:
 		return nil, nil, util.NewBadRequestError(errors.New("workflow cannot be retried"), "Workflow must be Failed/Error to retry")
@@ -133,7 +134,7 @@ func formulateRetryWorkflow(wf *util.Workflow) (*util.Workflow, []string, error)
 	// Delete/reset fields which indicate workflow is finished being persisted to the database
 	delete(newWF.Labels, util.LabelKeyWorkflowPersistedFinalState)
 	newWF.ObjectMeta.Labels[common.LabelKeyPhase] = string(wfv1.NodeRunning)
-	newWF.Status.Phase = wfv1.NodeRunning
+	newWF.Status.Phase = wfv1.WorkflowRunning
 	newWF.Status.Message = ""
 	newWF.Status.FinishedAt = metav1.Time{}
 	if newWF.Spec.ActiveDeadlineSeconds != nil && *newWF.Spec.ActiveDeadlineSeconds == 0 {
@@ -175,9 +176,9 @@ func formulateRetryWorkflow(wf *util.Workflow) (*util.Workflow, []string, error)
 	return util.NewWorkflow(newWF), podsToDelete, nil
 }
 
-func deletePods(k8sCoreClient client.KubernetesCoreInterface, podsToDelete []string, namespace string) error {
+func deletePods(ctx context.Context, k8sCoreClient client.KubernetesCoreInterface, podsToDelete []string, namespace string) error {
 	for _, podId := range podsToDelete {
-		err := k8sCoreClient.PodClient(namespace).Delete(podId, &metav1.DeleteOptions{})
+		err := k8sCoreClient.PodClient(namespace).Delete(ctx, podId, metav1.DeleteOptions{})
 		if err != nil && !apierr.IsNotFound(err) {
 			return util.NewInternalServerError(err, "Failed to delete pods.")
 		}

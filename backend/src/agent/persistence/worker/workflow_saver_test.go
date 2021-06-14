@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
@@ -170,8 +170,8 @@ func TestWorkflow_Save_FinalStatueNotSkippedDueToExceedTTL(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "MY_NAMESPACE",
 			Name:      "MY_NAME",
-			Labels:    map[string]string{
-				util.LabelKeyWorkflowRunId: "MY_UUID",
+			Labels: map[string]string{
+				util.LabelKeyWorkflowRunId:               "MY_UUID",
 				util.LabelKeyWorkflowPersistedFinalState: "true",
 			},
 		},

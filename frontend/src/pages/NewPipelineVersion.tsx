@@ -41,6 +41,7 @@ import { Description } from '../components/Description';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Radio from '@material-ui/core/Radio';
 import { ExternalLink } from '../atoms/ExternalLink';
+import { DocumentationCompilePipeline } from 'src/components/UploadPipelineDialog';
 
 interface NewPipelineVersionState {
   validationError: string;
@@ -664,13 +665,3 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
 }
 
 export default NewPipelineVersion;
-
-const DocumentationCompilePipeline: React.FC = () => (
-  <div className={padding(10, 'b')}>
-    For expected file format, refer to{' '}
-    <ExternalLink href='https://www.kubeflow.org/docs/pipelines/sdk/build-component/#compile-the-pipeline'>
-      Compile Pipeline Documentation
-    </ExternalLink>
-    .
-  </div>
-);

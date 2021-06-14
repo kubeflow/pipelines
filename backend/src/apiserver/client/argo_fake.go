@@ -15,7 +15,7 @@
 package client
 
 import (
-	argoprojv1alpha1 "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
+	argoprojv1alpha1 "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 )

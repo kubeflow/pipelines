@@ -17,7 +17,7 @@ package util
 import (
 	"testing"
 
-	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/ghodss/yaml"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
@@ -138,7 +138,7 @@ func TestCondition(t *testing.T) {
 	// Base case
 	workflow := NewWorkflow(&workflowapi.Workflow{
 		Status: workflowapi.WorkflowStatus{
-			Phase: workflowapi.NodeRunning,
+			Phase: workflowapi.WorkflowRunning,
 		},
 	})
 	assert.Equal(t, "Running", workflow.Condition())
