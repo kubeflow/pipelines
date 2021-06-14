@@ -124,5 +124,12 @@ class CompilerCliTests(unittest.TestCase):
   def test_pipeline_with_custom_job_spec(self):
     self._test_compile_py_to_json('pipeline_with_custom_job_spec')
 
+  def test_pipeline_with_metrics_outputs(self):
+    self._test_compile_py_to_json('pipeline_with_metrics_outputs')
+
+  def test_pipeline_with_exit_handler(self):
+    self._test_compile_py_to_json('pipeline_with_exit_handler')
+
+
 if __name__ == '__main__':
   unittest.main()

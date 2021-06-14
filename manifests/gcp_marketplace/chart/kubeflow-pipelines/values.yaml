@@ -17,13 +17,12 @@ images:
   cacheserver: gcr.io/ml-pipeline/google/pipelines/cacheserver:dummy
   cachedeployer: gcr.io/ml-pipeline/google/pipelines/cachedeployer:dummy
 
-serviceAccountCredential: ""
 gcpDefaultConfigName: "gcp-default-config"
 
 managedstorage:
   enabled: false
-  cloudsqlInstanceConnectionName: null
-  gcsBucketName: null
-  databaseNamePrefix: '{{ .Release.Name | replace "-" "_" | replace "." "_" }}'
+  cloudsqlInstanceConnectionName: ""
+  gcsBucketName: ""
+  databaseNamePrefix: ""
   dbUsername: 'root'
   dbPassword: ''

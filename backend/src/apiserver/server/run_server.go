@@ -132,7 +132,7 @@ func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest
 		}
 	}
 
-	run, err := s.resourceManager.CreateRun(request.Run)
+	run, err := s.resourceManager.CreateRun(ctx, request.Run)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a new run.")
 	}
@@ -264,7 +264,7 @@ func (s *RunServer) DeleteRun(ctx context.Context, request *api.DeleteRunRequest
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
-	err = s.resourceManager.DeleteRun(request.Id)
+	err = s.resourceManager.DeleteRun(ctx, request.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -332,7 +332,7 @@ func (s *RunServer) TerminateRun(ctx context.Context, request *api.TerminateRunR
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
-	err = s.resourceManager.TerminateRun(request.RunId)
+	err = s.resourceManager.TerminateRun(ctx, request.RunId)
 	if err != nil {
 		return nil, err
 	}
@@ -348,7 +348,7 @@ func (s *RunServer) RetryRun(ctx context.Context, request *api.RetryRunRequest) 
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
-	err = s.resourceManager.RetryRun(request.RunId)
+	err = s.resourceManager.RetryRun(ctx, request.RunId)
 	if err != nil {
 		return nil, err
 	}

@@ -15,6 +15,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -50,18 +51,19 @@ func updateDeployment(deploymentsClient v1.DeploymentInterface, image string, co
 		var err error
 		// Retrieve the latest version of Deployment before attempting update
 		// RetryOnConflict uses exponential backoff to avoid exhausting the apiserver
-		result, err := deploymentsClient.Get(mlMetadataDeployment, metav1.GetOptions{})
+		ctx := context.Background()
+		result, err := deploymentsClient.Get(ctx, mlMetadataDeployment, metav1.GetOptions{})
 		if err != nil {
 			return fmt.Errorf("failed to get latest version of the deployment: %v", err)
 		}
 
 		result.Spec.Template.Spec.Containers[0].Image = image
 		result.Spec.Template.Spec.Containers[0].Args = containerArgs
-		if _, err := deploymentsClient.Update(result); err != nil {
+		if _, err := deploymentsClient.Update(ctx, result, metav1.UpdateOptions{}); err != nil {
 			return err
 		}
 
-		result, err = deploymentsClient.Get(mlMetadataDeployment, metav1.GetOptions{})
+		result, err = deploymentsClient.Get(ctx, mlMetadataDeployment, metav1.GetOptions{})
 		if err != nil {
 			return fmt.Errorf("failed to get latest version of deployment after update: %v", err)
 		}
@@ -114,7 +116,7 @@ func main() {
 
 	deploymentsClient := clientset.AppsV1().Deployments(*deploymentNamespace)
 
-	originalDeployment, err := deploymentsClient.Get(mlMetadataDeployment, metav1.GetOptions{})
+	originalDeployment, err := deploymentsClient.Get(context.Background(), mlMetadataDeployment, metav1.GetOptions{})
 	if err != nil {
 		log.Fatalf("Failed to get old Deployment: %v", err)
 	}

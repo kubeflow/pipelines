@@ -13,3 +13,6 @@
 # limitations under the License.
 #TODO: wrap the DSL level configuration into one Config
 TYPE_CHECK = True
+# COMPILING_FOR_V2 is True when using kfp.v2.compiler or use (v1) kfp.compiler
+# with V2_COMPATIBLE or V2_ENGINE mode
+COMPILING_FOR_V2 = False

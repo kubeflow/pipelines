@@ -30,7 +30,7 @@ var (
 	pipelineName      = flag.String("pipeline_name", "", "The current pipeline name.")
 	pipelineRunID     = flag.String("pipeline_run_id", "", "The current pipeline run ID.")
 	pipelineTaskID    = flag.String("pipeline_task_id", "", "The current pipeline task ID.")
-	pipelineRoot      = flag.String("pipeline_root", "minio://mlpipeline/v2/artifacts", "The root output directory in which to store output artifacts.")
+	pipelineRoot      = flag.String("pipeline_root", "", "The root output directory in which to store output artifacts.")
 )
 
 func main() {

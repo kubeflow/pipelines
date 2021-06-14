@@ -37,5 +37,12 @@ vars:
     apiVersion: v1
   fieldref:
     fieldpath: data.bucketName
+- name: kfp-default-pipeline-root
+  objref:
+    kind: ConfigMap
+    name: pipeline-install-config
+    apiVersion: v1
+  fieldref:
+    fieldpath: data.defaultPipelineRoot
 configurations:
 - params.yaml

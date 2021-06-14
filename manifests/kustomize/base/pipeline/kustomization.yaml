@@ -34,6 +34,7 @@ resources:
   - pipeline-runner-sa.yaml
   - container-builder-sa.yaml
   - viewer-sa.yaml
+  - kfp-launcher-configmap.yaml
 images:
   - name: gcr.io/ml-pipeline/api-server
     newTag: 1.6.0

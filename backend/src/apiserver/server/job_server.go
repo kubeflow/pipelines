@@ -113,7 +113,7 @@ func (s *JobServer) CreateJob(ctx context.Context, request *api.CreateJobRequest
 		}
 	}
 
-	newJob, err := s.resourceManager.CreateJob(request.Job)
+	newJob, err := s.resourceManager.CreateJob(ctx, request.Job)
 	if err != nil {
 		return nil, err
 	}
@@ -214,7 +214,7 @@ func (s *JobServer) EnableJob(ctx context.Context, request *api.EnableJobRequest
 		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 
-	return s.enableJob(request.Id, true)
+	return s.enableJob(ctx, request.Id, true)
 }
 
 func (s *JobServer) DisableJob(ctx context.Context, request *api.DisableJobRequest) (*empty.Empty, error) {
@@ -227,7 +227,7 @@ func (s *JobServer) DisableJob(ctx context.Context, request *api.DisableJobReque
 		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 
-	return s.enableJob(request.Id, false)
+	return s.enableJob(ctx, request.Id, false)
 }
 
 func (s *JobServer) DeleteJob(ctx context.Context, request *api.DeleteJobRequest) (*empty.Empty, error) {
@@ -240,7 +240,7 @@ func (s *JobServer) DeleteJob(ctx context.Context, request *api.DeleteJobRequest
 		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 
-	err = s.resourceManager.DeleteJob(request.Id)
+	err = s.resourceManager.DeleteJob(ctx, request.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -276,12 +276,12 @@ func (s *JobServer) validateCreateJobRequest(request *api.CreateJobRequest) erro
 	return nil
 }
 
-func (s *JobServer) enableJob(id string, enabled bool) (*empty.Empty, error) {
+func (s *JobServer) enableJob(ctx context.Context, id string, enabled bool) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
 		enableJobRequests.Inc()
 	}
 
-	err := s.resourceManager.EnableJob(id, enabled)
+	err := s.resourceManager.EnableJob(ctx, id, enabled)
 	if err != nil {
 		return nil, err
 	}

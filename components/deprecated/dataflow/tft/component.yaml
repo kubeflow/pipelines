@@ -22,6 +22,5 @@ implementation:
       --mode,    {inputValue: Run mode},
       --preprocessing-module, {inputValue: Preprocessing module},
       --output,  {inputValue: Transformed data dir},
+      ---output-dir-uri-output-path, {outputPath: Transformed data dir},
     ]
-    fileOutputs:
-      Transformed data dir: /output.txt

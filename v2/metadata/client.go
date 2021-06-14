@@ -91,7 +91,7 @@ type Parameters struct {
 // ExecutionConfig represents the input parameters and artifacts to an Execution.
 type ExecutionConfig struct {
 	InputParameters  *Parameters
-	InputArtifactIDs []int64
+	InputArtifactIDs map[string][]int64
 }
 
 // InputArtifact is a wrapper around an MLMD artifact used as component inputs.
@@ -102,6 +102,7 @@ type InputArtifact struct {
 // OutputArtifact represents a schema and an MLMD artifact for output artifacts
 // produced by a component.
 type OutputArtifact struct {
+	Name     string
 	Artifact *pb.Artifact
 	Schema   string
 }
@@ -131,11 +132,32 @@ func (c *Client) GetPipeline(ctx context.Context, pipelineName string, pipelineR
 		return nil, err
 	}
 
+	err = c.putParentContexts(ctx, &pb.PutParentContextsRequest{
+		ParentContexts: []*pb.ParentContext{{
+			ChildId:  pipelineRunContext.Id,
+			ParentId: pipelineContext.Id,
+		}},
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return &Pipeline{
 		pipelineCtx:    pipelineContext,
 		pipelineRunCtx: pipelineRunContext,
 	}, nil
+}
 
+func (c *Client) putParentContexts(ctx context.Context, req *pb.PutParentContextsRequest) error {
+	_, err := c.svc.PutParentContexts(ctx, req)
+	if err != nil {
+		if status.Convert(err).Code() == codes.AlreadyExists {
+			// already exists code is expected when multiple requests are sent in parallel
+		} else {
+			return fmt.Errorf("Failed PutParentContexts(%v): %w", req.String(), err)
+		}
+	}
+	return nil
 }
 
 func (c *Client) getContainerExecutionTypeID(ctx context.Context) (int64, error) {
@@ -160,6 +182,26 @@ func intValue(i int64) *pb.Value {
 
 func doubleValue(f float64) *pb.Value {
 	return &pb.Value{Value: &pb.Value_DoubleValue{DoubleValue: f}}
+}
+
+// Event path is conceptually artifact name for the execution.
+// We cannot store the name as a property of artifact "a", because for example:
+// 1. In first task "preprocess", there's an output artifact "processed_data".
+// 2. In second task "train", there's an input artifact "dataset" passed from "preprocess"
+// task's "processed_data" output.
+//
+// Now the same artifact is called "processed_data" in "preprocess" task, but "dataset" in
+// "train" task, because artifact name is related to the context it's used.
+// Therefore, we should store artifact name as a property of the artifact's events
+// (connects artifact and execution) instead of the artifact's property.
+func eventPath(artifactName string) *pb.Event_Path {
+	return &pb.Event_Path{
+		Steps: []*pb.Event_Path_Step{{
+			Value: &pb.Event_Path_Step_Key{
+				Key: artifactName,
+			},
+		}},
+	}
 }
 
 // PublishExecution publishes the specified execution with the given output
@@ -189,6 +231,7 @@ func (c *Client) PublishExecution(ctx context.Context, execution *Execution, out
 			Event: &pb.Event{
 				Type:       pb.Event_OUTPUT.Enum(),
 				ArtifactId: oa.Artifact.Id,
+				Path:       eventPath(oa.Name),
 			},
 		}
 		req.ArtifactEventPairs = append(req.ArtifactEventPairs, aePair)
@@ -232,14 +275,18 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, taskNa
 		Contexts:  []*pb.Context{pipeline.pipelineCtx, pipeline.pipelineRunCtx},
 	}
 
-	for _, id := range config.InputArtifactIDs {
-		aePair := &pb.PutExecutionRequest_ArtifactAndEvent{
-			Event: &pb.Event{
-				Type:       pb.Event_INPUT.Enum(),
-				ArtifactId: &id,
-			},
+	for name, ids := range config.InputArtifactIDs {
+		for _, id := range ids {
+			thisId := id // thisId will be referenced below, so we need a local immutable var
+			aePair := &pb.PutExecutionRequest_ArtifactAndEvent{
+				Event: &pb.Event{
+					ArtifactId: &thisId,
+					Path:       eventPath(name),
+					Type:       pb.Event_INPUT.Enum(),
+				},
+			}
+			req.ArtifactEventPairs = append(req.ArtifactEventPairs, aePair)
 		}
-		req.ArtifactEventPairs = append(req.ArtifactEventPairs, aePair)
 	}
 
 	res, err := c.svc.PutExecution(ctx, req)

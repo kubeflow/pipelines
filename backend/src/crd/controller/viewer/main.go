@@ -17,13 +17,13 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 
 	"github.com/golang/glog"
 
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/viewer/reconciler"
-	"github.com/kubeflow/pipelines/backend/src/crd/pkg/signals"
 
 	viewerV1beta1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/viewer/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -83,18 +83,18 @@ func main() {
 	}
 
 	_, err = builder.ControllerManagedBy(mgr).
-		ForType(&viewerV1beta1.Viewer{}).
+		For(&viewerV1beta1.Viewer{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
-		WithConfig(cfg).
 		Build(reconciler)
 
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	glog.Info("Starting controller for the Viewer CRD")
-	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		log.Fatalf("Failed to start controller: %v", err)
 	}
 }

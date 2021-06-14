@@ -2,6 +2,8 @@
 varReference:
 - path: data/config
   kind: ConfigMap
+- path: data/defaultPipelineRoot
+  kind: ConfigMap
 - path: metadata/name
   kind: Application
 - path: spec/descriptor/version

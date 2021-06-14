@@ -15,13 +15,15 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
-	"net/http"
 )
 
 // These are valid conditions of a ScheduledWorkflow.
@@ -61,7 +63,7 @@ func (s *RunLogServer) ReadRunLog(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	w.Header().Set("Cache-Control", "no-cache, private")
 
-	err := s.resourceManager.ReadLog(runId, nodeId, follow, w)
+	err := s.resourceManager.ReadLog(context.Background(), runId, nodeId, follow, w)
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusInternalServerError, err)
 	}

@@ -27,7 +27,6 @@ implementation:
       --project,    {inputValue: GCP project},
       --batchsize,  {inputValue: Batch size},
       --output,     {inputValue: Predictions dir},
+      --prediction-results-uri-pattern-output-path, {outputPath: Predictions dir},
+      --ui-metadata-output-path, {outputPath: MLPipeline UI metadata},
     ]
-    fileOutputs:
-      Predictions dir: /output.txt
-      MLPipeline UI metadata: /mlpipeline-ui-metadata.json

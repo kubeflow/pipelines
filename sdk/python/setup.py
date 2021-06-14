@@ -46,7 +46,7 @@ REQUIRES = [
     'Deprecated>=1.2.7,<2',
     'strip-hints>=0.1.8,<1',
     'docstring-parser>=0.7.3,<1',
-    'kfp-pipeline-spec>=0.1.7,<0.2.0',
+    'kfp-pipeline-spec>=0.1.8,<0.2.0',
     'fire>=0.3.1,<1',
     'protobuf>=3.13.0,<4'
 ]
@@ -77,7 +77,12 @@ setup(
     name=NAME,
     version=find_version('kfp', '__init__.py'),
     description='KubeFlow Pipelines SDK',
-    author='google',
+    author='The Kubeflow Authors',
+    url="https://github.com/kubeflow/pipelines",
+    project_urls={
+        "Documentation": "https://kubeflow-pipelines.readthedocs.io/en/stable/",
+        "Bug Tracker": "https://github.com/kubeflow/pipelines/issues",
+    },    
     install_requires=REQUIRES,
     tests_require=TESTS_REQUIRE,
     packages=[
@@ -104,16 +109,17 @@ setup(
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
         'Topic :: Scientific/Engineering',
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
         'Topic :: Software Development',
         'Topic :: Software Development :: Libraries',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
-    python_requires='>=3.5.3',
+    python_requires='>=3.6.1',
     include_package_data=True,
     entry_points={
         'console_scripts': [
