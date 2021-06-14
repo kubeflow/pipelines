@@ -88,6 +88,7 @@ type ResourceManager struct {
 	pipelineStore             storage.PipelineStoreInterface
 	jobStore                  storage.JobStoreInterface
 	runStore                  storage.RunStoreInterface
+	taskStore                  storage.TaskStoreInterface
 	resourceReferenceStore    storage.ResourceReferenceStoreInterface
 	dBStatusStore             storage.DBStatusStoreInterface
 	defaultExperimentStore    storage.DefaultExperimentStoreInterface
@@ -471,6 +472,26 @@ func (r *ResourceManager) DeleteRun(ctx context.Context, runID string) error {
 	}
 	return nil
 }
+
+func (r *ResourceManager) CreateTask(ctx context.Context, apiTask *api.Task) (*model.Task, error) {
+	uuid, err := r.uuid.NewRandom()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to generate task ID.")
+	}
+	id := uuid.String()
+	task := model.Task{
+		UUID: id,
+		Namespace:        apiTask.Namespace,
+		PipelineName:     apiTask.PipelineName,
+		RunUUID:          apiTask.RunId,
+		MLMDExecutionID:  apiTask.MlmdExecutionID,
+		CreatedTimestamp: apiTask.CreatedAt.AsTime().Unix(),
+		EndedTimestamp:   apiTask.EndedAt.AsTime().Unix(),
+		Fingerprint:      apiTask.FingerPrint,
+	}
+	return r.taskStore.CreateTask(&task)
+}
+
 
 func (r *ResourceManager) ListJobs(filterContext *common.FilterContext,
 	opts *list.Options) (jobs []*model.Job, total_size int, nextPageToken string, err error) {

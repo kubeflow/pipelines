@@ -205,6 +205,19 @@ func ToApiRunDetail(run *model.RunDetail) *api.RunDetail {
 	}
 }
 
+func ToApiTask(task *model.Task) *api.Task {
+	return &api.Task{
+		Id:                   task.UUID,
+		Namespace:            task.Namespace,
+		PipelineName:         task.PipelineName,
+		RunId:                task.RunUUID,
+		MlmdExecutionID:      task.MLMDExecutionID,
+		CreatedAt:            &timestamp.Timestamp{Seconds: task.CreatedTimestamp},
+		EndedAt:              &timestamp.Timestamp{Seconds: task.EndedTimestamp},
+		FingerPrint:          task.Fingerprint,
+	}
+}
+
 func ToApiJob(job *model.Job) *api.Job {
 	params, err := toApiParameters(job.Parameters)
 	if err != nil {
