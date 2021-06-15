@@ -4,10 +4,11 @@
 
 ### KFP v2 compatible
 
-Design: [bit.ly/kfp-v2-compatible](https://bit.ly/kfp-v2-compatible)
+Quick links:
 
-[Tracker Project](https://github.com/kubeflow/pipelines/projects/13)
-[Documentation](https://www.kubeflow.org/docs/components/pipelines/sdk/v2/v2-compatibility/)
+* Design: [bit.ly/kfp-v2-compatible](https://bit.ly/kfp-v2-compatible)
+* [Tracker Project](https://github.com/kubeflow/pipelines/projects/13)
+* [Documentation](https://www.kubeflow.org/docs/components/pipelines/sdk/v2/v2-compatibility/)
 
 #### Goals - v2 compatible
 
