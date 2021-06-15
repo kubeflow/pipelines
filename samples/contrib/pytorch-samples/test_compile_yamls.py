@@ -16,6 +16,7 @@
 """Test for component compilation."""
 import unittest
 import json
+import pytest
 from kfp import components
 from kfp.components import load_component_from_file
 from kfp import dsl
@@ -50,8 +51,7 @@ class ComponentCompileTest(unittest.TestCase):  #pylint: disable=too-many-instan
     def setUp(self):
         """Set up."""
         super(ComponentCompileTest, self).setUp()
-        self.input_request = "https://kubeflow-dataset.s3.us-east-2.amazonaws.com/" \
-                             "cifar10_input/input.json"
+        self.input_request = "./compile_test.json"
         self.deploy_name_bert = "bertserve"
         self.namespace = "kubeflow-user-example-com"
         self.experiment = "Default"
@@ -422,3 +422,357 @@ class ComponentCompileTest(unittest.TestCase):  #pylint: disable=too-many-instan
         compiler.Compiler().compile(
             pytorch_bert, "pytorch.tar.gz", type_check=True
         )
+
+    def test_cifar10_compile_fail(self):
+        """Test Cifar10 yamls compile."""
+
+        @dsl.pipeline(
+            name="Training Cifar10 pipeline",
+            description="Cifar 10 dataset pipeline",
+        )  #pylint: disable=too-many-arguments,too-many-locals
+        def pytorch_cifar10(
+                minio_endpoint=self.minio_endpoint,
+                log_bucket=self.log_bucket,
+                log_dir=f"tensorboard/logs/{dsl.RUN_ID_PLACEHOLDER}",
+                mar_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/model-store",
+                config_prop_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/config",
+                model_uri=f"s3://mlpipeline/mar/{dsl.RUN_ID_PLACEHOLDER}",
+                tf_image=self.tensorboard_image,
+                deploy=self.deploy_name_cifar,
+                namespace=self.namespace,
+                confusion_matrix_log_dir=f"confusion_matrix"
+                f"/{dsl.RUN_ID_PLACEHOLDER}/",
+                checkpoint_dir=f"checkpoint_dir/cifar10",
+        ):
+            """Cifar10 pipelines."""
+            pod_template_spec = json.dumps({
+                "spec": {
+                    "containers": [{
+                        "env": [
+                            {
+                                "name": "AWS_ACCESS_KEY_ID",
+                                "valueFrom": {
+                                    "secretKeyRef": {
+                                        "name": "mlpipeline-minio-artifact",
+                                        "key": "accesskey",
+                                    }
+                                },
+                            },
+                            {
+                                "name": "AWS_SECRET_ACCESS_KEY",
+                                "valueFrom": {
+                                    "secretKeyRef": {
+                                        "name": "mlpipeline-minio-artifact",
+                                        "key": "secretkey",
+                                    }
+                                },
+                            },
+                            {
+                                "name": "AWS_REGION",
+                                "value": "minio"
+                            },
+                            {
+                                "name": "S3_ENDPOINT",
+                                "value": f"{minio_endpoint}",
+                            },
+                            {
+                                "name": "S3_USE_HTTPS",
+                                "value": "0"
+                            },
+                            {
+                                "name": "S3_VERIFY_SSL",
+                                "value": "0"
+                            },
+                        ]
+                    }]
+                }
+            })
+
+            prepare_tb_task = COMPONENT_TB(
+                log_dir_uri=f"s3://{log_bucket}/{log_dir}",
+                image=tf_image,
+                pod_template_spec=pod_template_spec,
+            ).set_display_name("Visualization")
+            component_cifar10_prep = ""
+            prep_task = (
+                component_cifar10_prep().after(prepare_tb_task).
+                set_display_name("Preprocess & Transform")
+            )
+            component_cifar10_train = ""
+            train_task = (
+                component_cifar10_train(
+                    input_data=prep_task.outputs["output_data"],
+                    profiler="pytorch",
+                    confusion_matrix_url=
+                    f"minio://{log_bucket}/{confusion_matrix_log_dir}",
+                    # For GPU set gpu count and accelerator type
+                    gpus=0,
+                    accelerator="None",
+                ).after(prep_task).set_display_name("Training")
+            )
+
+            minio_tb_upload = (
+                COMPONENT_MNIO(
+                    bucket_name="mlpipeline",
+                    folder_name=log_dir,
+                    input_path=train_task.outputs["tensorboard_root"],
+                    filename="",
+                ).after(train_task
+                       ).set_display_name("Tensorboard Events Pusher")
+            )
+
+            minio_checkpoint_dir_upload = (
+                COMPONENT_MNIO(
+                    bucket_name="mlpipeline",
+                    folder_name=checkpoint_dir,
+                    input_path=train_task.outputs["checkpoint_dir"],
+                    filename="",
+                ).after(train_task).set_display_name("checkpoint_dir Pusher")
+            )
+
+            minio_mar_upload = (
+                COMPONENT_MNIO(
+                    bucket_name="mlpipeline",
+                    folder_name=mar_path,
+                    input_path=train_task.outputs["checkpoint_dir"],
+                    filename="cifar10_test.mar",
+                ).after(train_task).set_display_name("Mar Pusher")
+            )
+
+            minio_config_upload = (
+                COMPONENT_MNIO(
+                    bucket_name="mlpipeline",
+                    folder_name=config_prop_path,
+                    input_path=train_task.outputs["checkpoint_dir"],
+                    filename="config.properties",
+                ).after(train_task).set_display_name("Conifg Pusher")
+            )
+
+            model_uri = str(model_uri)
+            isvc_yaml = """
+            apiVersion: "serving.kubeflow.org/v1beta1"
+            kind: "InferenceService"
+            metadata:
+              name: {}
+              namespace: {}
+            spec:
+              predictor:
+                serviceAccountName: sa
+                pytorch:
+                  storageUri: {}
+                  resources:
+                    limits:
+                      memory: 4Gi
+            """.format(deploy, namespace, model_uri)
+
+            # For GPU inference use below yaml with gpu count and accelerator
+            gpu_count = "1"
+            accelerator = "nvidia-tesla-p4"
+            isvc_gpu_yaml = """
+            apiVersion: "serving.kubeflow.org/v1beta1"
+            kind: "InferenceService"
+            metadata:
+              name: {}
+              namespace: {}
+            spec:
+              predictor:
+                serviceAccountName: sa
+                pytorch:
+                  storageUri: {}
+                  resources:
+                    limits:
+                      memory: 4Gi   
+                      nvidia.com/gpu: {}
+                  nodeSelector:
+                    cloud.google.com/gke-accelerator: {}
+        """.format(deploy, namespace, model_uri, gpu_count, accelerator)
+            # Update inferenceservice_yaml for GPU inference
+            deploy_task = (
+                COMPONENT_DEPLOY(
+                    action="apply", inferenceservice_yaml=isvc_yaml
+                ).after(minio_mar_upload).set_display_name("Deployer")
+            )
+            pred_task = (
+                PRED_OP(
+                    host_name=self.isvc_name,
+                    input_request=self.input_request,
+                    cookie=self.cookie,
+                    url=self.ingress_gateway,
+                    model=self.model_name,
+                    inference_type="predict",
+                ).after(deploy_task).set_display_name("Prediction")
+            )
+            explain_task = (
+                PRED_OP(
+                    host_name=self.isvc_name,
+                    input_request=self.input_request,
+                    cookie=self.cookie,
+                    url=self.ingress_gateway,
+                    model=self.model_name,
+                    inference_type="explain",
+                ).after(pred_task).set_display_name("Explanation")
+            )
+        with pytest.raises(TypeError):
+            compiler.Compiler().compile(
+                pytorch_cifar10, "pytorch.tar.gz", type_check=True
+            )
+    def test_bert_compile_fail(self):
+        """Test bert yamls compilation."""
+
+        @dsl.pipeline(
+            name="Training pipeline", description="Sample training job test"
+        )  #pylint: disable=too-many-arguments,too-many-locals
+        def pytorch_bert(
+                minio_endpoint=self.minio_endpoint,
+                log_bucket=self.log_bucket,
+                log_dir=f"tensorboard/logs/{dsl.RUN_ID_PLACEHOLDER}",
+                mar_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/model-store",
+                config_prop_path=f"mar/{dsl.RUN_ID_PLACEHOLDER}/config",
+                model_uri=f"s3://mlpipeline/mar/{dsl.RUN_ID_PLACEHOLDER}",
+                tf_image=self.tensorboard_image,
+                deploy=self.deploy_name_bert,
+                namespace=self.namespace,
+                confusion_matrix_log_dir=f"confusion_matrix/{dsl.RUN_ID_PLACEHOLDER}/",
+                num_samples=1000,
+        ):
+            """Bert Pipeline."""
+            prepare_tb_task = COMPONENT_TB(
+                log_dir_uri=f"s3://{log_bucket}/{log_dir}",
+                image=tf_image,
+                pod_template_spec=json.dumps({
+                    "spec": {
+                        "containers": [{
+                            "env": [
+                                {
+                                    "name": "AWS_ACCESS_KEY_ID",
+                                    "valueFrom": {
+                                        "secretKeyRef": {
+                                            "name": "mlpipeline-minio-artifact",
+                                            "key": "accesskey",
+                                        }
+                                    },
+                                },
+                                {
+                                    "name": "AWS_SECRET_ACCESS_KEY",
+                                    "valueFrom": {
+                                        "secretKeyRef": {
+                                            "name": "mlpipeline-minio-artifact",
+                                            "key": "secretkey",
+                                        }
+                                    },
+                                },
+                                {
+                                    "name": "AWS_REGION",
+                                    "value": "minio",
+                                },
+                                {
+                                    "name": "S3_ENDPOINT",
+                                    "value": f"{minio_endpoint}",
+                                },
+                                {
+                                    "name": "S3_USE_HTTPS",
+                                    "value": "0"
+                                },
+                                {
+                                    "name": "S3_VERIFY_SSL",
+                                    "value": "0"
+                                },
+                            ]
+                        }]
+                    }
+                }),
+            ).set_display_name("Visualization")
+            component_bert_prep = ""
+            prep_task = (
+                component_bert_prep().after(prepare_tb_task).
+                set_display_name("Preprocess & Transform")
+            )
+            component_bert_train = ""
+            train_task = (
+                component_bert_train(
+                    input_data=prep_task.outputs["output_data"],
+                    profiler="pytorch",
+                    confusion_matrix_url=
+                    f"minio://{log_bucket}/{confusion_matrix_log_dir}",
+                    num_samples=num_samples,
+                    # For GPU set gpu count and accelerator type
+                    gpus=0,
+                    accelerator="None",
+                ).after(prep_task).set_display_name("Training")
+            )
+
+            minio_tb_upload = (
+                COMPONENT_MNIO(
+                    bucket_name="mlpipeline",
+                    folder_name=log_dir,
+                    input_path=train_task.outputs["tensorboard_root"],
+                    filename="",
+                ).after(train_task
+                       ).set_display_name("Tensorboard Events Pusher")
+            )
+            minio_mar_upload = (
+                COMPONENT_MNIO(
+                    bucket_name="mlpipeline",
+                    folder_name=mar_path,
+                    input_path=train_task.outputs["checkpoint_dir"],
+                    filename="bert_test.mar",
+                ).after(train_task).set_display_name("Mar Pusher")
+            )
+            minio_config_upload = (
+                COMPONENT_MNIO(
+                    bucket_name="mlpipeline",
+                    folder_name=config_prop_path,
+                    input_path=train_task.outputs["checkpoint_dir"],
+                    filename="config.properties",
+                ).after(train_task).set_display_name("Conifg Pusher")
+            )
+
+            model_uri = str(model_uri)
+            isvc_yaml = """
+            apiVersion: "serving.kubeflow.org/v1beta1"
+            kind: "InferenceService"
+            metadata:
+              name: {}
+              namespace: {}
+            spec:
+              predictor:
+                serviceAccountName: sa
+                pytorch:
+                  storageUri: {}
+                  resources:
+                    limits:
+                      memory: 4Gi   
+            """.format(deploy, namespace, model_uri)
+
+            # For GPU inference use below yaml with gpu count and accelerator
+            gpu_count = "1"
+            accelerator = "nvidia-tesla-p4"
+            isvc_gpu_yaml = """
+            apiVersion: "serving.kubeflow.org/v1beta1"
+            kind: "InferenceService"
+            metadata:
+              name: {}
+              namespace: {}
+            spec:
+              predictor:
+                serviceAccountName: sa
+                pytorch:
+                  storageUri: {}
+                  resources:
+                    limits:
+                      memory: 4Gi   
+                      nvidia.com/gpu: {}
+                  nodeSelector:
+                    cloud.google.com/gke-accelerator: {}
+        """.format(deploy, namespace, model_uri, gpu_count, accelerator)
+            # Update inferenceservice_yaml for GPU inference
+            deploy_task = (
+                COMPONENT_DEPLOY(
+                    action="apply", inferenceservice_yaml=isvc_yaml
+                ).after(minio_mar_upload).set_display_name("Deployer")
+            )
+
+        with pytest.raises(TypeError):
+            compiler.Compiler().compile(
+                pytorch_bert, "pytorch.tar.gz", type_check=True
+            )
