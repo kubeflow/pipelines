@@ -299,6 +299,16 @@ def server_factory(visualization_server_image,
                                     "ports": [{
                                         "containerPort": 3000
                                     }],
+                                    "env": [
+                                        { 
+                                            "name": "MINIO_ACCESS_KEY",
+                                            "value": mlpipeline_minio_access_key
+                                        },
+                                        {
+                                            "name": "MINIO_SECRET_KEY",
+                                            "value": mlpipeline_minio_secret_key
+                                        }
+                                    ],
                                     "resources": {
                                         "requests": {
                                             "cpu": "10m",
