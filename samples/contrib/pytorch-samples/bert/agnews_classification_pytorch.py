@@ -138,6 +138,11 @@ trainer = Trainer(
     trainer_args=trainer_args,
 )
 
+print("Generated tensorboard files")
+for root, dirs, files in os.walk(args["tensorboard_root"]):  # pylint: disable=unused-variable
+    for file in files:
+        print(file)
+
 model = trainer.ptl_trainer.get_model()
 
 if trainer.ptl_trainer.global_rank == 0:
@@ -221,3 +226,4 @@ if trainer.ptl_trainer.global_rank == 0:
         mlpipeline_metrics=args["mlpipeline_metrics"],
         markdown=markdown_dict,
     )
+
