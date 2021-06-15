@@ -47,7 +47,7 @@ RUN curl -sLo ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-late
  && conda install pip \
  && conda clean -ya
 
-RUN conda install pytorch cpuonly -c pytorch \
+RUN conda install pytorch -c pytorch \
   && conda clean -ya
 
 WORKDIR /home/user/
