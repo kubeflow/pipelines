@@ -62,7 +62,7 @@ describe('DetailsTable', () => {
     expect(container).toMatchInlineSnapshot(`
       <div>
         <div
-          class="header"
+          class="header2"
         >
           some title
         </div>
