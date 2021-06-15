@@ -26,6 +26,8 @@ from pytorch_kfp_components.components.visualization.component import Visualizat
 from pytorch_kfp_components.components.trainer.component import Trainer
 from pytorch_kfp_components.components.mar.component import MarGeneration
 # Argument parser for user defined paths
+import pytorch_lightning
+print("Using Pytorch Lighting: {}".format(pytorch_lightning.__version__))
 parser = ArgumentParser()
 
 parser.add_argument(
