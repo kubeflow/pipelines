@@ -21,6 +21,7 @@ import { flatten } from 'lodash';
 import * as React from 'react';
 import { Link, Redirect } from 'react-router-dom';
 import { ExternalLink } from 'src/atoms/ExternalLink';
+import InputOutputTab from 'src/components/tabs/InputOutputTab';
 import { MetricsTab } from 'src/components/tabs/MetricsTab';
 import { GkeMetadata, GkeMetadataContext } from 'src/lib/GkeMetadata';
 import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
@@ -387,41 +388,47 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                   isV2Pipeline(workflow) &&
                                   selectedExecution && <MetricsTab execution={selectedExecution} />}
 
-                                {sidepanelSelectedTab === SidePaneTab.INPUT_OUTPUT && (
-                                  <div className={padding(20)}>
-                                    <DetailsTable
-                                      key={`input-parameters-${selectedNodeId}`}
-                                      title='Input parameters'
-                                      fields={inputParams}
-                                    />
+                                {sidepanelSelectedTab === SidePaneTab.INPUT_OUTPUT &&
+                                  !isV2Pipeline(workflow) && (
+                                    <div className={padding(20)}>
+                                      <DetailsTable
+                                        key={`input-parameters-${selectedNodeId}`}
+                                        title='Input parameters'
+                                        fields={inputParams}
+                                      />
 
-                                    <DetailsTable
-                                      key={`input-artifacts-${selectedNodeId}`}
-                                      title='Input artifacts'
-                                      fields={inputArtifacts}
-                                      valueComponent={MinioArtifactPreview}
-                                      valueComponentProps={{
-                                        namespace: this.state.workflow?.metadata?.namespace,
-                                      }}
-                                    />
+                                      <DetailsTable
+                                        key={`input-artifacts-${selectedNodeId}`}
+                                        title='Input artifacts'
+                                        fields={inputArtifacts}
+                                        valueComponent={MinioArtifactPreview}
+                                        valueComponentProps={{
+                                          namespace: this.state.workflow?.metadata?.namespace,
+                                        }}
+                                      />
 
-                                    <DetailsTable
-                                      key={`output-parameters-${selectedNodeId}`}
-                                      title='Output parameters'
-                                      fields={outputParams}
-                                    />
+                                      <DetailsTable
+                                        key={`output-parameters-${selectedNodeId}`}
+                                        title='Output parameters'
+                                        fields={outputParams}
+                                      />
 
-                                    <DetailsTable
-                                      key={`output-artifacts-${selectedNodeId}`}
-                                      title='Output artifacts'
-                                      fields={outputArtifacts}
-                                      valueComponent={MinioArtifactPreview}
-                                      valueComponentProps={{
-                                        namespace: this.state.workflow?.metadata?.namespace,
-                                      }}
-                                    />
-                                  </div>
-                                )}
+                                      <DetailsTable
+                                        key={`output-artifacts-${selectedNodeId}`}
+                                        title='Output artifacts'
+                                        fields={outputArtifacts}
+                                        valueComponent={MinioArtifactPreview}
+                                        valueComponentProps={{
+                                          namespace: this.state.workflow?.metadata?.namespace,
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+                                {sidepanelSelectedTab === SidePaneTab.INPUT_OUTPUT &&
+                                  isV2Pipeline(workflow) &&
+                                  selectedExecution && (
+                                    <InputOutputTab execution={selectedExecution} />
+                                  )}
 
                                 {sidepanelSelectedTab === SidePaneTab.TASK_DETAILS && (
                                   <div className={padding(20)}>

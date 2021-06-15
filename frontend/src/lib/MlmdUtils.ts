@@ -177,10 +177,10 @@ function getStringValue(value?: string | number | Struct | null): string | undef
   return value;
 }
 
-/**
- * @throws error when network error or invalid data
- */
-export async function getOutputArtifactsInExecution(execution: Execution): Promise<Artifact[]> {
+async function getArtifactsInExecution(
+  execution: Execution,
+  event_filter: Event.Type | undefined,
+): Promise<Artifact[]> {
   const executionId = execution.getId();
   if (!executionId) {
     throw new Error('Execution must have an ID');
@@ -196,13 +196,13 @@ export async function getOutputArtifactsInExecution(execution: Execution): Promi
     throw err;
   }
 
-  const outputArtifactIds = res
+  const inputArtifactIds = res
     .getEventsList()
-    .filter(event => event.getType() === Event.Type.OUTPUT && event.getArtifactId())
+    .filter(event => (!event_filter || event.getType() === event_filter) && event.getArtifactId())
     .map(event => event.getArtifactId());
 
   const artifactsRequest = new GetArtifactsByIDRequest();
-  artifactsRequest.setArtifactIdsList(outputArtifactIds);
+  artifactsRequest.setArtifactIdsList(inputArtifactIds);
   let artifactsRes: GetArtifactsByIDResponse;
   try {
     artifactsRes = await Api.getInstance().metadataStoreService.getArtifactsByID(artifactsRequest);
@@ -212,6 +212,20 @@ export async function getOutputArtifactsInExecution(execution: Execution): Promi
   }
 
   return artifactsRes.getArtifactsList();
+}
+
+/**
+ * @throws error when network error or invalid data
+ */
+export async function getOutputArtifactsInExecution(execution: Execution): Promise<Artifact[]> {
+  return getArtifactsInExecution(execution, Event.Type.OUTPUT);
+}
+
+/**
+ * @throws error when network error or invalid data
+ */
+export async function getInputArtifactsInExecution(execution: Execution): Promise<Artifact[]> {
+  return getArtifactsInExecution(execution, Event.Type.INPUT);
 }
 
 export async function getArtifactTypes(): Promise<ArtifactType[]> {
