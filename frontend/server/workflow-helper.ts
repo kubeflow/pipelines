@@ -129,16 +129,23 @@ export function createPodLogsMinioRequestConfig(
   bucket: string,
   prefix: string,
 ) {
-  // TODO: support pod log artifacts for diff namespace.
-  // different bucket/prefix for diff namespace?
   return async (podName: string, _namespace?: string): Promise<MinioRequestConfig> => {
     // create a new client each time to ensure session token has not expired
     const client = await createMinioClient(minioOptions);
     const workflowName = workflowNameFromPodName(podName);
+
+    let effectivePrefix = prefix
+      .replace(/{{pod.name}}/g, podName)
+      .replace(/{{workflow.name}}/g, workflowName);
+
+    if (_namespace != undefined) {
+      effectivePrefix = effectivePrefix.replace(/{{workflow.namespace}}/g, _namespace);
+    }
+
     return {
       bucket,
       client,
-      key: path.join(prefix, workflowName, podName, 'main.log'),
+      key: path.join(effectivePrefix, workflowName, podName, 'main.log'),
     };
   };
 }
