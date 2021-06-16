@@ -26,6 +26,8 @@ from pytorch_kfp_components.components.visualization.component import Visualizat
 from pytorch_kfp_components.components.trainer.component import Trainer
 from pytorch_kfp_components.components.mar.component import MarGeneration
 # Argument parser for user defined paths
+import pytorch_lightning
+print("Using Pytorch Lighting: {}".format(pytorch_lightning.__version__))
 parser = ArgumentParser()
 
 parser.add_argument(
@@ -136,6 +138,11 @@ trainer = Trainer(
     trainer_args=trainer_args,
 )
 
+print("Generated tensorboard files")
+for root, dirs, files in os.walk(args["tensorboard_root"]):  # pylint: disable=unused-variable
+    for file in files:
+        print(file)
+
 model = trainer.ptl_trainer.get_model()
 
 if trainer.ptl_trainer.global_rank == 0:
@@ -219,3 +226,4 @@ if trainer.ptl_trainer.global_rank == 0:
         mlpipeline_metrics=args["mlpipeline_metrics"],
         markdown=markdown_dict,
     )
+
