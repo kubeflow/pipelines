@@ -33,8 +33,8 @@ def volumeop_basic(size: str="1Gi"):
         modes=dsl.VOLUME_MODE_RWO,
         size=size
     )
-    
-    write_to_volume().add_pvolumes({"/mnt'": vop.volume})
+
+    write_to_volume().add_pvolumes({"/mnt": vop.volume})
 
 
 if __name__ == '__main__':
