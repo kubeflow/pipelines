@@ -27,27 +27,29 @@ func (s *TaskServer) CreateTask(ctx context.Context, request *api.CreateTaskRequ
 }
 
 func (s *TaskServer) validateCreateTaskRequest(request *api.CreateTaskRequest) error {
+	if request == nil {
+		return util.NewInvalidInputError("CreatTaskRequst is nil")
+	}
 	task := *request.Task
 
-	empty := func(s string) bool { return len(s) == 0 }
 	err := func(s string) error { return util.NewInvalidInputError("Invalid task: must specify %s", s) }
 
-	if empty(task.GetId()) {
+	if task.GetId() != "" {
 		return util.NewInvalidInputError("Invalid task: Id should not be set")
 	}
-	if empty(task.GetNamespace()) {
+	if task.GetNamespace() == "" {
 		return err("Namespace")
 	}
-	if empty(task.GetPipelineName()) {
+	if task.GetPipelineName() == "" {
 		return err("PipelineName")
 	}
-	if empty(task.GetRunId()) {
+	if task.GetRunId() == "" {
 		return err("RunId")
 	}
-	if empty(task.GetMlmdExecutionID()) {
+	if task.GetMlmdExecutionID() == "" {
 		return err("MlmdExecutionID")
 	}
-	if empty(task.GetFingerPrint()) {
+	if task.GetFingerPrint() == "" {
 		return err("FingerPrint")
 	}
 	if task.GetCreatedAt() == nil {

@@ -20,7 +20,7 @@ var (
 		"MLMDExecutionID",
 		"CreatedTimestamp",
 		"StorageState",
-		"EndedTimestamp",
+		"FinishedTimestamp",
 		"Fingerprint",
 	}
 )
@@ -56,7 +56,7 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 			"RunUUID":          newTask.RunUUID,
 			"MLMDExecutionID":  newTask.MLMDExecutionID,
 			"CreatedTimestamp": newTask.CreatedTimestamp,
-			"EndedTimestamp":   newTask.EndedTimestamp,
+			"FinishedTimestamp":   newTask.FinishedTimestamp,
 			"Fingerprint":      newTask.Fingerprint,
 		}).
 		ToSql()
@@ -82,14 +82,14 @@ func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
 			return tasks, err
 		}
 		task := &model.Task{
-			UUID:             uuid,
-			Namespace:        namespace,
-			PipelineName:     pipelineName,
-			RunUUID:          runUUID,
-			MLMDExecutionID:  mlmdExecutionID,
-			CreatedTimestamp: createdTimestamp,
-			EndedTimestamp:   endedTimestamp,
-			Fingerprint:      fingerprint,
+			UUID:              uuid,
+			Namespace:         namespace,
+			PipelineName:      pipelineName,
+			RunUUID:           runUUID,
+			MLMDExecutionID:   mlmdExecutionID,
+			CreatedTimestamp:  createdTimestamp,
+			FinishedTimestamp: endedTimestamp,
+			Fingerprint:       fingerprint,
 		}
 		tasks = append(tasks, task)
 	}

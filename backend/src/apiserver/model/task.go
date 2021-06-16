@@ -1,14 +1,14 @@
 package model
 
 type Task struct {
-	UUID             string `gorm:"column:UUID; not null; primary_key"`
-	Namespace        string `gorm:"column:Namespace; not null;"`
-	PipelineName     string `gorm:"column:PipelineName; not null;"`
-	RunUUID          string `gorm:"column:RunUUID; not null;"`
-	MLMDExecutionID  string `gorm:"column:MLMDExecutionID; not null;"`
-	CreatedTimestamp int64  `gorm:"column:CreatedTimestamp; not null"`
-	EndedTimestamp   int64  `gorm:"column:EndedTimestamp"`
-	Fingerprint      string `gorm:"column:Fingerprint; not null;"`
+	UUID              string `gorm:"column:UUID; not null; primary_key"`
+	Namespace         string `gorm:"column:Namespace; not null;"`
+	PipelineName      string `gorm:"column:PipelineName; not null;"`
+	RunUUID           string `gorm:"column:RunUUID; not null;"`
+	MLMDExecutionID   string `gorm:"column:MLMDExecutionID; not null;"`
+	CreatedTimestamp  int64  `gorm:"column:CreatedTimestamp; not null"`
+	FinishedTimestamp int64  `gorm:"column:FinishedTimestamp"`
+	Fingerprint       string `gorm:"column:Fingerprint; not null;"`
 }
 
 func (t Task) PrimaryKeyColumnName() string {
@@ -42,7 +42,7 @@ var taskAPIToModelFieldMap = map[string]string{
 	"runId":           "RunUUID ",
 	"mlmdExecutionID": "MLMDExecutionID",
 	"created_at":      "CreatedTimestamp",
-	"ended_at":        "EndedTimestamp",
+	"ended_at":        "FinishedTimestamp",
 	"fingerPrint":     "Fingerprint",
 }
 
@@ -67,8 +67,8 @@ func (t Task) GetFieldValue(name string) interface{} {
 		return t.MLMDExecutionID
 	case "CreatedTimestamp":
 		return t.CreatedTimestamp
-	case "EndedTimestamp":
-		return t.EndedTimestamp
+	case "FinishedTimestamp":
+		return t.FinishedTimestamp
 	case "Fingerprint":
 		return t.Fingerprint
 	default:

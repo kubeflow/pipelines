@@ -480,14 +480,14 @@ func (r *ResourceManager) CreateTask(ctx context.Context, apiTask *api.Task) (*m
 	}
 	id := uuid.String()
 	task := model.Task{
-		UUID: id,
-		Namespace:        apiTask.Namespace,
-		PipelineName:     apiTask.PipelineName,
-		RunUUID:          apiTask.RunId,
-		MLMDExecutionID:  apiTask.MlmdExecutionID,
-		CreatedTimestamp: apiTask.CreatedAt.AsTime().Unix(),
-		EndedTimestamp:   apiTask.EndedAt.AsTime().Unix(),
-		Fingerprint:      apiTask.FingerPrint,
+		UUID:              id,
+		Namespace:         apiTask.Namespace,
+		PipelineName:      apiTask.PipelineName,
+		RunUUID:           apiTask.RunId,
+		MLMDExecutionID:   apiTask.MlmdExecutionID,
+		CreatedTimestamp:  apiTask.CreatedAt.AsTime().Unix(),
+		FinishedTimestamp: apiTask.EndedAt.AsTime().Unix(),
+		Fingerprint:       apiTask.FingerPrint,
 	}
 	return r.taskStore.CreateTask(&task)
 }

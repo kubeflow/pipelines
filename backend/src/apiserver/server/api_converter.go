@@ -213,7 +213,7 @@ func ToApiTask(task *model.Task) *api.Task {
 		RunId:                task.RunUUID,
 		MlmdExecutionID:      task.MLMDExecutionID,
 		CreatedAt:            &timestamp.Timestamp{Seconds: task.CreatedTimestamp},
-		EndedAt:              &timestamp.Timestamp{Seconds: task.EndedTimestamp},
+		EndedAt:              &timestamp.Timestamp{Seconds: task.FinishedTimestamp},
 		FingerPrint:          task.Fingerprint,
 	}
 }
