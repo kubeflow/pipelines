@@ -15,7 +15,6 @@
 import os
 from argparse import ArgumentParser
 from pathlib import Path
-import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import (
     EarlyStopping,
@@ -25,87 +24,83 @@ from pytorch_lightning.callbacks import (
 from pytorch_kfp_components.components.visualization.component import Visualization
 from pytorch_kfp_components.components.trainer.component import Trainer
 from pytorch_kfp_components.components.mar.component import MarGeneration
+from pytorch_kfp_components.components.utils.argument_parsing import parse_input_args
 # Argument parser for user defined paths
 parser = ArgumentParser()
 
 parser.add_argument(
-    "--tensorboard_root",
-    type=str,
-    default="output/tensorboard",
-    help="Tensorboard Root path (default: output/tensorboard)",
-)
-
-parser.add_argument(
-    "--checkpoint_dir",
-    type=str,
-    default="output/train/models",
-    help="Path to save model checkpoints (default: output/train/models)",
-)
-
-parser.add_argument(
-    "--dataset_path",
-    type=str,
-    default="output/processing",
-    help="Cifar10 Dataset path (default: output/processing)",
-)
-
-parser.add_argument(
-    "--model_name",
-    type=str,
-    default="bert.pth",
-    help="Name of the model to be saved as (default: bert.pth)",
-)
-
-parser.add_argument(
-    "--num_samples",
-    type=int,
-    default=1000,
-    help="Number of samples to use for training",
-)
-
-parser.add_argument(
     "--mlpipeline_ui_metadata",
     type=str,
+    default="mlpipeline-ui-metadata.json",
     help="Path to write mlpipeline-ui-metadata.json",
 )
 
 parser.add_argument(
     "--mlpipeline_metrics",
     type=str,
+    default="mlpipeline-metrics",
     help="Path to write mlpipeline-metrics.json",
 )
 
 parser.add_argument(
-    "--confusion_matrix_url",
+    "--script_args",
     type=str,
-    help="Minio url to generate confusion matrix",
+    help="Arguments for bert agnews classification script",
 )
 
-parser = pl.Trainer.add_argparse_args(parent_parser=parser)
+parser.add_argument(
+    "--ptl_args",
+    type=str,
+    help="Arguments specific to PTL trainer",
+)
+
 
 args = vars(parser.parse_args())
+
+script_args = args["script_args"]
+ptl_args = args["ptl_args"]
+
+# script_args = "dataset_path=/tmp/output/processing, " \
+#               "checkpoint_dir=/tmp/output/train/models, " \
+#               "model_name=bert.pth, " \
+#               "num_samples=100, " \
+#               "confusion_matrix_url=minio://bucket_name/folder_name"
+
+
+script_dict: dict = parse_input_args(input_str=script_args)
+
+
+# ptl_args = "max_epochs=1, " \
+#            "tensorboard_root=/tmp/output/tensorboard, " \
+#            "gpus=0, " \
+#            "accelerator=None"
+#            # "profiler=pytorch, " \
+
+
+ptl_dict: dict = parse_input_args(input_str=ptl_args)
+
+# parser = pl.Trainer.add_argparse_args(parent_parser=parser)
+
 
 # Enabling Tensorboard Logger, ModelCheckpoint, Earlystopping
 
 lr_logger = LearningRateMonitor()
-tboard = TensorBoardLogger(args["tensorboard_root"])
+tboard = TensorBoardLogger(ptl_dict["tensorboard_root"])
 early_stopping = EarlyStopping(
     monitor="val_loss", mode="min", patience=5, verbose=True
 )
 checkpoint_callback = ModelCheckpoint(
-    dirpath=args["checkpoint_dir"],
-    filename="cifar10_{epoch:02d}",
+    dirpath=script_dict["checkpoint_dir"],
+    filename="bert_{epoch:02d}",
     save_top_k=1,
     verbose=True,
     monitor="val_loss",
     mode="min",
 )
 
-if not args["max_epochs"]:
-    args["max_epochs"] = 1
 
-if args["accelerator"] and args["accelerator"] == "None":
-    args["accelerator"] = None
+if ptl_dict["accelerator"] and ptl_dict["accelerator"] == "None":
+    ptl_dict["accelerator"] = None
 
 # Setting the trainer specific arguments
 trainer_args = {
@@ -114,24 +109,29 @@ trainer_args = {
     "callbacks": [lr_logger, early_stopping, checkpoint_callback],
 }
 
-if "profiler" in args and args["profiler"] != "":
-    trainer_args["profiler"] = args["profiler"]
+if not ptl_dict["max_epochs"]:
+    trainer_args["max_epochs"] = 1
+else:
+    trainer_args["max_epochs"] = ptl_dict["max_epochs"]
+
+if "profiler" in ptl_dict and ptl_dict["profiler"] != "":
+    trainer_args["profiler"] = ptl_dict["profiler"]
 
 # Setting the datamodule specific arguments
 data_module_args = {
-    "train_glob": args["dataset_path"],
-    "num_samples": args["num_samples"]
+    "train_glob": script_dict["dataset_path"],
+    "num_samples": script_dict["num_samples"]
 }
 
 # Creating parent directories
-Path(args["tensorboard_root"]).mkdir(parents=True, exist_ok=True)
-Path(args["checkpoint_dir"]).mkdir(parents=True, exist_ok=True)
+Path(ptl_dict["tensorboard_root"]).mkdir(parents=True, exist_ok=True)
+Path(script_dict["checkpoint_dir"]).mkdir(parents=True, exist_ok=True)
 
 # Initiating the training process
 trainer = Trainer(
     module_file="bert_train.py",
     data_module_file="bert_datamodule.py",
-    module_file_args=args,
+    module_file_args=script_dict,
     data_module_args=data_module_args,
     trainer_args=trainer_args,
 )
@@ -151,11 +151,11 @@ if trainer.ptl_trainer.global_rank == 0:
         "HANDLER":
             os.path.join(bert_dir, "bert_handler.py"),
         "SERIALIZED_FILE":
-            os.path.join(args["checkpoint_dir"], args["model_name"]),
+            os.path.join(script_dict["checkpoint_dir"], script_dict["model_name"]),
         "VERSION":
             "1",
         "EXPORT_PATH":
-            args["checkpoint_dir"],
+            script_dict["checkpoint_dir"],
         "CONFIG_PROPERTIES":
             "https://kubeflow-dataset.s3.us-east-2.amazonaws.com/bert/config.properties",
         "EXTRA_FILES":
@@ -166,7 +166,7 @@ if trainer.ptl_trainer.global_rank == 0:
             )
     }
 
-    MarGeneration(mar_config=mar_config, mar_save_path=args["checkpoint_dir"])
+    MarGeneration(mar_config=mar_config, mar_save_path=script_dict["checkpoint_dir"])
 
     classes = [
         "World",
@@ -187,7 +187,7 @@ if trainer.ptl_trainer.global_rank == 0:
         "actuals": model.target,
         "preds": model.preds,
         "classes": class_list,
-        "url": args["confusion_matrix_url"],
+        "url": script_dict["confusion_matrix_url"],
     }
 
     test_accuracy = round(float(model.test_acc.compute()), 2)
@@ -196,11 +196,11 @@ if trainer.ptl_trainer.global_rank == 0:
 
     visualization_arguments = {
         "input": {
-            "tensorboard_root": args["tensorboard_root"],
-            "checkpoint_dir": args["checkpoint_dir"],
-            "dataset_path": args["dataset_path"],
-            "model_name": args["model_name"],
-            "confusion_matrix_url": args["confusion_matrix_url"],
+            "tensorboard_root": ptl_dict["tensorboard_root"],
+            "checkpoint_dir": script_dict["checkpoint_dir"],
+            "dataset_path": script_dict["dataset_path"],
+            "model_name": script_dict["model_name"],
+            "confusion_matrix_url": script_dict["confusion_matrix_url"],
         },
         "output": {
             "mlpipeline_ui_metadata": args["mlpipeline_ui_metadata"],
@@ -214,7 +214,7 @@ if trainer.ptl_trainer.global_rank == 0:
 
     visualization = Visualization(
         test_accuracy=test_accuracy,
-        # confusion_matrix_dict=confusion_matrix_dict,
+        confusion_matrix_dict=confusion_matrix_dict,
         mlpipeline_ui_metadata=args["mlpipeline_ui_metadata"],
         mlpipeline_metrics=args["mlpipeline_metrics"],
         markdown=markdown_dict,
