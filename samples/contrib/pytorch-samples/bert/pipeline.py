@@ -130,7 +130,7 @@ def pytorch_bert( # pylint: disable=too-many-arguments
         prep_op().after(prepare_tb_task
                        ).set_display_name("Preprocess & Transform")
     )
-    confusion_matrix_url = f"minio://{log_bucket}/{confusion_matrix_log_dir}",
+    confusion_matrix_url = f"minio://{log_bucket}/{confusion_matrix_log_dir}"
     script_args = f"model_name=bert.pth,num_samples={num_samples},confusion_matrix_url={confusion_matrix_url}"
     ptl_args = f"max_epochs={max_epochs}"
     train_task = (
