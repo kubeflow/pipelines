@@ -136,8 +136,8 @@ def pytorch_bert( # pylint: disable=too-many-arguments
     train_task = (
         train_op(
             input_data=prep_task.outputs["output_data"],
-            script_args=script_args,
-            ptl_args=ptl_args
+            bert_script_args=script_args,
+            ptl_arguments=ptl_args
         ).after(prep_task).set_display_name("Training")
     )
     # For GPU uncomment below line and set GPU limit and node selector
