@@ -85,8 +85,8 @@ export function InputOutputTab({ execution }: IOTabProps) {
   );
 
   // Restructs artifacts and parameters for visualization.
-  const inputParams: ParamList = extractInputFromExecution(execution);
-  const outputParams: ParamList = extractOutputFromExecution(execution);
+  const inputParams = extractInputFromExecution(execution);
+  const outputParams = extractOutputFromExecution(execution);
   let inputArtifacts: ParamList = [];
   if (isInputArtifactSuccess && inputArtifactData) {
     inputArtifacts = getArtifactParamList(inputArtifactData);
@@ -208,7 +208,7 @@ interface ArtifactPreviewProps extends ValueComponentProps<string> {
   title?: string;
 }
 
-const ArtifactPreview: React.FC<ArtifactPreviewProps> = (props: ArtifactPreviewProps) => {
+function ArtifactPreview(props: ArtifactPreviewProps) {
   const { fields, title } = props;
   return (
     <>
@@ -231,4 +231,4 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = (props: ArtifactPreviewP
       </div>
     </>
   );
-};
+}

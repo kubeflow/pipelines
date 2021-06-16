@@ -15,7 +15,7 @@
  */
 
 import { Execution, Value } from '@kubeflow/frontend';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
@@ -32,20 +32,20 @@ describe('ExecutionTitle', () => {
   });
 
   it('Shows execution name', () => {
-    const { getByText } = render(
+    render(
       <CommonTestWrapper>
         <ExecutionTitle execution={execution}></ExecutionTitle>
       </CommonTestWrapper>,
     );
-    getByText(executionName, { selector: 'a', exact: false });
+    screen.getByText(executionName, { selector: 'a', exact: false });
   });
 
   it('Shows execution description', () => {
-    const { getByText } = render(
+    render(
       <CommonTestWrapper>
         <ExecutionTitle execution={execution}></ExecutionTitle>
       </CommonTestWrapper>,
     );
-    getByText('This step corresponds to execution');
+    screen.getByText('This step corresponds to execution');
   });
 });

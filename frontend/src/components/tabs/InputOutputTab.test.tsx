@@ -15,7 +15,7 @@
  */
 
 import { Artifact, Execution, Value } from '@kubeflow/frontend';
-import { render, waitFor } from '@testing-library/react';
+import { render, waitFor, screen } from '@testing-library/react';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import React from 'react';
 import * as mlmdUtils from 'src/lib/MlmdUtils';
@@ -30,24 +30,24 @@ const artifactUri = 'gs://test';
 testBestPractices();
 describe('InoutOutputTab', () => {
   it('shows execution title', () => {
-    const { getByText } = render(
+    render(
       <CommonTestWrapper>
         <InputOutputTab execution={buildBasicExecution()}></InputOutputTab>
       </CommonTestWrapper>,
     );
-    getByText(executionName, { selector: 'a', exact: false });
+    screen.getByText(executionName, { selector: 'a', exact: false });
   });
 
   it('shows Input/Output artifacts and parameters title', () => {
-    const { getAllByText, getByText } = render(
+    render(
       <CommonTestWrapper>
         <InputOutputTab execution={buildBasicExecution()}></InputOutputTab>
       </CommonTestWrapper>,
     );
-    getByText('Input');
-    getByText('Output');
-    expect(getAllByText('Parameters').length).toEqual(2);
-    expect(getAllByText('Artifacts').length).toEqual(2);
+    screen.getByText('Input');
+    screen.getByText('Output');
+    expect(screen.getAllByText('Parameters').length).toEqual(2);
+    expect(screen.getAllByText('Artifacts').length).toEqual(2);
   });
 
   it('shows Input parameters with various types', async () => {
@@ -75,21 +75,21 @@ describe('InoutOutputTab', () => {
         'input:arraykey',
         new Value().setStructValue(Struct.fromJavaScript({ list: ['a', 'b', 'c'] })),
       );
-    const { queryByText, getByText } = render(
+    render(
       <CommonTestWrapper>
         <InputOutputTab execution={execution}></InputOutputTab>
       </CommonTestWrapper>,
     );
 
-    getByText('stringkey');
-    getByText('string input');
-    getByText('intkey');
-    getByText('42');
-    getByText('doublekey');
-    getByText('1.99');
-    getByText('structkey');
-    getByText('arraykey');
-    expect(queryByText('thisKeyIsNotInput')).toBeNull();
+    screen.getByText('stringkey');
+    screen.getByText('string input');
+    screen.getByText('intkey');
+    screen.getByText('42');
+    screen.getByText('doublekey');
+    screen.getByText('1.99');
+    screen.getByText('structkey');
+    screen.getByText('arraykey');
+    expect(screen.queryByText('thisKeyIsNotInput')).toBeNull();
   });
 
   it('shows Output parameters with various types', async () => {
@@ -117,49 +117,49 @@ describe('InoutOutputTab', () => {
         'output:arraykey',
         new Value().setStructValue(Struct.fromJavaScript({ list: ['a', 'b', 'c'] })),
       );
-    const { queryByText, getByText } = render(
+    render(
       <CommonTestWrapper>
         <InputOutputTab execution={execution}></InputOutputTab>
       </CommonTestWrapper>,
     );
 
-    getByText('stringkey');
-    getByText('string output');
-    getByText('intkey');
-    getByText('42');
-    getByText('doublekey');
-    getByText('1.99');
-    getByText('structkey');
-    getByText('arraykey');
-    expect(queryByText('thisKeyIsNotOutput')).toBeNull();
+    screen.getByText('stringkey');
+    screen.getByText('string output');
+    screen.getByText('intkey');
+    screen.getByText('42');
+    screen.getByText('doublekey');
+    screen.getByText('1.99');
+    screen.getByText('structkey');
+    screen.getByText('arraykey');
+    expect(screen.queryByText('thisKeyIsNotOutput')).toBeNull();
   });
 
   it('shows Input artifacts', async () => {
     const artifact = buildArtifact();
     jest.spyOn(mlmdUtils, 'getInputArtifactsInExecution').mockResolvedValueOnce([artifact]);
     jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockResolvedValueOnce([]);
-    const { getByText } = render(
+    render(
       <CommonTestWrapper>
         <InputOutputTab execution={buildBasicExecution()}></InputOutputTab>
       </CommonTestWrapper>,
     );
 
-    await waitFor(() => getByText(artifactName));
-    await waitFor(() => getByText(artifactUri));
+    await waitFor(() => screen.getByText(artifactName));
+    await waitFor(() => screen.getByText(artifactUri));
   });
 
   it('shows Output artifacts', async () => {
     const artifact = buildArtifact();
     jest.spyOn(mlmdUtils, 'getInputArtifactsInExecution').mockResolvedValueOnce([]);
     jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockResolvedValueOnce([artifact]);
-    const { getByText } = render(
+    render(
       <CommonTestWrapper>
         <InputOutputTab execution={buildBasicExecution()}></InputOutputTab>
       </CommonTestWrapper>,
     );
 
-    await waitFor(() => getByText(artifactName));
-    await waitFor(() => getByText(artifactUri));
+    await waitFor(() => screen.getByText(artifactName));
+    await waitFor(() => screen.getByText(artifactUri));
   });
 });
 
