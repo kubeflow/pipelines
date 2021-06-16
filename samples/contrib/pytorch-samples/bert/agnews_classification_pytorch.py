@@ -81,22 +81,11 @@ ptl_args = args["ptl_args"]
 TENSOBOARD_ROOT = args["tensorboard_root"]
 CHECKPOINT_DIR = args["checkpoint_dir"]
 DATASET_PATH = args["dataset_path"]
-# script_args = "dataset_path=/tmp/output/processing, " \
-#               "model_name=bert.pth, " \
-#               "num_samples=100, " \
-#               "confusion_matrix_url=minio://bucket_name/folder_name"
 
 script_dict: dict = parse_input_args(input_str=script_args)
 script_dict["checkpoint_dir"] = CHECKPOINT_DIR
 
-# ptl_args = "max_epochs=1, " \
-#            "gpus=0, " \
-#            "accelerator=None"
-#            # "profiler=pytorch, " \
-
 ptl_dict: dict = parse_input_args(input_str=ptl_args)
-
-# parser = pl.Trainer.add_argparse_args(parent_parser=parser)
 
 # Enabling Tensorboard Logger, ModelCheckpoint, Earlystopping
 
