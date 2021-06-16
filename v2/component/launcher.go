@@ -31,7 +31,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	"github.com/kubeflow/pipelines/v2/cache_utils"
+	"github.com/kubeflow/pipelines/v2/cacheutils"
 	"github.com/kubeflow/pipelines/v2/metadata"
 	"github.com/kubeflow/pipelines/v2/objectstore"
 	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
@@ -249,11 +249,16 @@ func (l *Launcher) RunComponent(ctx context.Context, cmdArgs []string) error {
 	if err != nil {
 		return fmt.Errorf("failure while generating ExecutorInput: %w", err)
 	}
-	cacheKey, err := l.generateCacheKey(executorInput.GetInputs(), executorInput.GetOutputs(), cmdArgs)
+	outputParametersTypeMap:= make(map[string]string)
+	for outputParameterName, outputParameter := range l.runtimeInfo.OutputParameters {
+		outputParametersTypeMap[outputParameterName] = outputParameter.Type
+
+	}
+	cacheKey, err := cacheutils.GenerateCacheKey(executorInput.GetInputs(), executorInput.GetOutputs(), outputParametersTypeMap, cmdArgs, l.options.ContainerImage)
 	if err != nil {
 		return fmt.Errorf("failure while generating CacheKey: %w", err)
 	}
-	_, err = cache_utils.GenerateFingerPrint(*cacheKey)
+	_, err = cacheutils.GenerateFingerPrint(*cacheKey)
 	if err != nil {
 		return fmt.Errorf("failure while generating FingerPrint: %w", err)
 	}
@@ -493,63 +498,7 @@ func localPathForURI(uri string) (string, error) {
 	return "", fmt.Errorf("found URI with unsupported storage scheme: %s", uri)
 }
 
-func (l *Launcher) generateCacheKey(
-	inputs *pipeline_spec.ExecutorInput_Inputs,
-	outputs *pipeline_spec.ExecutorInput_Outputs,
-	cmdAgrs []string) (*cache_utils.CacheKey, error) {
 
-	cacheKey := cache_utils.CacheKey{
-		InputArtifactNames:   make(map[string]cache_utils.ArtifactNameList),
-		InputParameters:      make(map[string]pipeline_spec.Value),
-		OutputArtifactsSpec:  make(map[string]pipeline_spec.RuntimeArtifact),
-		OutputParametersSpec: make(map[string]string),
-	}
-
-	for inputArtifactName, inputArtifactList := range inputs.GetArtifacts() {
-		artifactNameList := cache_utils.ArtifactNameList{ArtifactNames: make([]string, 0)}
-		for _, artifact := range inputArtifactList.Artifacts {
-			artifactNameList.ArtifactNames = append(artifactNameList.ArtifactNames, artifact.GetName())
-		}
-		cacheKey.InputArtifactNames[inputArtifactName] = artifactNameList
-	}
-
-	for inputParameterName, inputParameterValue := range inputs.GetParameters() {
-		cacheKey.InputParameters[inputParameterName] = pipeline_spec.Value{
-			Value: inputParameterValue.Value,
-		}
-	}
-
-	for outputArtifactName, outputArtifactList := range outputs.GetArtifacts() {
-		if len(outputArtifactList.Artifacts) == 0 {
-			continue
-		}
-		// TODO: Support multiple artifacts someday, probably through the v2 engine.
-		outputArtifact := outputArtifactList.Artifacts[0]
-		outputArtifactWithUriWiped := pipeline_spec.RuntimeArtifact{
-			Name:     outputArtifact.GetName(),
-			Type:     outputArtifact.GetType(),
-			Metadata: outputArtifact.GetMetadata(),
-		}
-		cacheKey.OutputArtifactsSpec[outputArtifactName] = outputArtifactWithUriWiped
-	}
-
-	for outputParameterName, _ := range outputs.GetParameters() {
-		outputParameter, ok := l.runtimeInfo.OutputParameters[outputParameterName]
-		if !ok {
-			return nil, fmt.Errorf("unknown parameter %q found in ExecutorInput_Outputs", outputParameterName)
-		}
-
-		cacheKey.OutputParametersSpec[outputParameterName] = outputParameter.Type
-	}
-
-	cacheKey.ContainerSpec = cache_utils.ContainerSpec{
-		Image:   l.options.ContainerImage,
-		CmdArgs: cmdAgrs,
-	}
-
-	return &cacheKey, nil
-
-}
 
 func (l *Launcher) prepareInputs(ctx context.Context, executorInput *pipeline_spec.ExecutorInput) error {
 	executorInputJSON, err := protojson.Marshal(executorInput)
