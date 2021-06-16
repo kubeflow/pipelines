@@ -32,28 +32,28 @@ func (s *TaskServer) validateCreateTaskRequest(request *api.CreateTaskRequest) e
 	}
 	task := *request.Task
 
-	err := func(s string) error { return util.NewInvalidInputError("Invalid task: must specify %s", s) }
+	errMustSpecify := func(s string) error { return util.NewInvalidInputError("Invalid task: must specify %s", s) }
 
 	if task.GetId() != "" {
 		return util.NewInvalidInputError("Invalid task: Id should not be set")
 	}
 	if task.GetNamespace() == "" {
-		return err("Namespace")
+		return errMustSpecify("Namespace")
 	}
 	if task.GetPipelineName() == "" {
-		return err("PipelineName")
+		return errMustSpecify("PipelineName")
 	}
 	if task.GetRunId() == "" {
-		return err("RunId")
+		return errMustSpecify("RunId")
 	}
 	if task.GetMlmdExecutionID() == "" {
-		return err("MlmdExecutionID")
+		return errMustSpecify("MlmdExecutionID")
 	}
 	if task.GetFingerPrint() == "" {
-		return err("FingerPrint")
+		return errMustSpecify("FingerPrint")
 	}
 	if task.GetCreatedAt() == nil {
-		return err("CreatedAt")
+		return errMustSpecify("CreatedAt")
 	}
 	return nil
 }
