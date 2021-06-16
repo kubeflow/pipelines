@@ -28,8 +28,9 @@ Quick links:
   Improvements/changes below make KFP artifacts easier to integrate with other systems:
   * In components, support consuming input artifacts by URI. This is useful for components that launch external jobs using artifact URIs, but do not need to access the data directly by themselves.
   * A new intermediate artifact repository feature is designed -- pipeline root. It is configurable at:
+    * Cluster default
+    * Namespace defaults
     * Authoring pipelines
-    * Namespace default
     * Submitting a pipeline
   * Pipeline root supports MinIO, S3, GCS natively using Go CDK.
   * Artifacts are no longer compressed by default.
@@ -60,7 +61,7 @@ Design: [bit.ly/kfp-v2](https://bit.ly/kfp-v2)
   * build first class support for metadata -- recording, presentation and orchestration.
   * making it easy to keep track of all the data produced by machine learning pipelines and how it was computed.
 * KFP native (and argo agnostic) spec and status: define a clear interface for KFP, so that other systems can understand KFP pipeline spec and status in KFP semantics.
-* Gaining more control over KFP runtime behavior: give the KFP system more control over the exact runtime behavior. This wasn’t a goal initially coming from use cases. However, the more we innovate on Data Management and KFP native spec/status, the clearer that other workflow systems become limitations to how we may implement new KFP features on our own. Therefore, re-architecturing KFP to let us get more control of runtime behavior is ideal for achieving KFP’s long term goals.
+* Gaining more control over KFP runtime behavior, so that it sets up a solid foundation for us to add new features to KFP: give the KFP system more control over the exact runtime behavior. This wasn’t a goal initially coming from use cases. However, the more we innovate on Data Management and KFP native spec/status, the clearer that other workflow systems become limitations to how we may implement new KFP features on our own. Therefore, re-architecturing KFP to let us get more control of runtime behavior is ideal for achieving KFP’s long term goals.
 * Be backward compatible with KFP v1: for existing features, we want to keep them as backward compatible as possible to ease upgrade.
 
 #### Timeline - v2
@@ -75,11 +76,15 @@ Design: [bit.ly/kfp-v2](https://bit.ly/kfp-v2)
 
 * Use [the pipeline spec](https://github.com/kubeflow/pipelines/blob/master/api/v2alpha1/pipeline_spec.proto) as pipeline description data structure. The new spec is argo workflow agnostic and can be a shared common format for different underlying engines.
 
+* Design and implement a pipeline run status API (also argo agnostic).
+
 * KFP v2 DAG UI
   * KFP semantics.
   * Convenient features: panning, zooming, etc.
 
-* Reusable subgraph component with return value.
+* Control flow features
+  * Reusable subgraph component.
+  * Subgraph component supports return value and aggregating from parallel for.
 
 * Caching improvement: skipped tasks will not execute at all (in both v1 and v2 compatible, skipped tasks will still run a Pod which does not do anything).
 
