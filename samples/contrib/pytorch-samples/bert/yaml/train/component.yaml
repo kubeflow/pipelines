@@ -33,9 +33,9 @@ implementation:
     args:
       - --dataset_path
       - {inputPath: input_data}
-      - --bert_script_args
+      - --script_args
       - { inputValue: bert_script_args }
-      - --ptl_arguments
+      - --ptl_args
       - { inputValue: ptl_arguments }
       - --tensorboard_root
       - {outputPath: tensorboard_root}
