@@ -150,7 +150,7 @@ if trainer.ptl_trainer.global_rank == 0:
         "MODEL_FILE":
             os.path.join(cifar_dir, "cifar10_train.py"),
         "HANDLER":
-            "image_classifier",
+            os.path.join(cifar_dir, "cifar10_handler.py"),
         "SERIALIZED_FILE":
             os.path.join(args["checkpoint_dir"], args["model_name"]),
         "VERSION":
@@ -158,7 +158,13 @@ if trainer.ptl_trainer.global_rank == 0:
         "EXPORT_PATH":
             args["checkpoint_dir"],
         "CONFIG_PROPERTIES":
-            "https://kubeflow-dataset.s3.us-east-2.amazonaws.com/config.properties",
+            "https://kubeflow-dataset.s3.us-east-2.amazonaws.com/cifar10_new/config.properties",
+        "EXTRA_FILES":
+            "{}".format(os.path.join(cifar_dir, "class_mapping.json")),
+        "REQUIREMENTS_FILE":
+            os.path.join(cifar_dir, "requirements.txt")
+                
+            
     }
 
     MarGeneration(mar_config=mar_config, mar_save_path=args["checkpoint_dir"])
