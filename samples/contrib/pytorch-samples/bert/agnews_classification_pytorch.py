@@ -29,6 +29,13 @@ from pytorch_kfp_components.components.utils.argument_parsing import parse_input
 parser = ArgumentParser()
 
 parser.add_argument(
+    "--dataset_path",
+    type=str,
+    default="output/processing",
+    help="Path to input dataset",
+)
+
+parser.add_argument(
     "--mlpipeline_ui_metadata",
     type=str,
     default="mlpipeline-ui-metadata.json",
@@ -73,6 +80,7 @@ ptl_args = args["ptl_args"]
 
 TENSOBOARD_ROOT = args["tensorboard_root"]
 CHECKPOINT_DIR = args["checkpoint_dir"]
+DATASET_PATH = args["dataset_path"]
 # script_args = "dataset_path=/tmp/output/processing, " \
 #               "model_name=bert.pth, " \
 #               "num_samples=100, " \
@@ -126,7 +134,7 @@ if "profiler" in ptl_dict and ptl_dict["profiler"] != "":
 
 # Setting the datamodule specific arguments
 data_module_args = {
-    "train_glob": script_dict["dataset_path"],
+    "train_glob": DATASET_PATH,
     "num_samples": script_dict["num_samples"]
 }
 
@@ -205,7 +213,7 @@ if trainer.ptl_trainer.global_rank == 0:
         "input": {
             "tensorboard_root": TENSOBOARD_ROOT,
             "checkpoint_dir": CHECKPOINT_DIR,
-            "dataset_path": script_dict["dataset_path"],
+            "dataset_path": DATASET_PATH,
             "model_name": script_dict["model_name"],
             "confusion_matrix_url": script_dict["confusion_matrix_url"],
         },
