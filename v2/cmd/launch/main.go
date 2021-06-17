@@ -60,5 +60,7 @@ func main() {
 func init() {
 	// Change default logging level to facilitate debugging
 	flag.Set("logtostderr", "true")
-	flag.Set("stderrthreshold", "INFO")
+	flag.Set("stderrthreshold", "WARNING")
+	// Uncomment the following to enable INFO level logging.
+	// flag.Set("stderrthreshold", "INFO")
 }
