@@ -489,7 +489,7 @@ func (r *ResourceManager) CreateTask(ctx context.Context, apiTask *api.Task) (*m
 		MLMDExecutionID:   apiTask.MlmdExecutionID,
 		CreatedTimestamp:  apiTask.CreatedAt.AsTime().Unix(),
 		FinishedTimestamp: apiTask.FinishedAt.AsTime().Unix(),
-		Fingerprint:       apiTask.FingerPrint,
+		Fingerprint:       apiTask.Fingerprint,
 	}
 	return r.taskStore.CreateTask(&task)
 }

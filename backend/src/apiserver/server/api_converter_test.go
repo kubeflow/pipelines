@@ -246,7 +246,7 @@ func TestToApiTask(t *testing.T) {
 		MlmdExecutionID: "1",
 		CreatedAt:       &timestamp.Timestamp{Seconds: 1},
 		FinishedAt:      &timestamp.Timestamp{Seconds: 2},
-		FingerPrint:     "123",
+		Fingerprint:     "123",
 	}
 
 	assert.Equal(t, expectedApiTask, apiTask)
@@ -284,7 +284,7 @@ func TestToApiTasks(t *testing.T) {
 			MlmdExecutionID: "1",
 			CreatedAt:       &timestamp.Timestamp{Seconds: 1},
 			FinishedAt:      &timestamp.Timestamp{Seconds: 2},
-			FingerPrint:     "123",
+			Fingerprint:     "123",
 		},
 		{
 			Id:              "123e4567-e89b-12d3-a456-426655440002",
@@ -294,7 +294,7 @@ func TestToApiTasks(t *testing.T) {
 			MlmdExecutionID: "2",
 			CreatedAt:       &timestamp.Timestamp{Seconds: 3},
 			FinishedAt:      &timestamp.Timestamp{Seconds: 4},
-			FingerPrint:     "124",
+			Fingerprint:     "124",
 		},
 	}
 	assert.Equal(t, expectedApiTasks, apiTasks)

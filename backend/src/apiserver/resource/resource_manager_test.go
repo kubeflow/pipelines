@@ -2747,7 +2747,7 @@ func TestCreateTask(t *testing.T) {
 		MlmdExecutionID: "1",
 		CreatedAt:       &timestamp.Timestamp{Seconds: 1462875553},
 		FinishedAt:      &timestamp.Timestamp{Seconds: 1462875663},
-		FingerPrint:     "123",
+		Fingerprint:     "123",
 	}
 
 	expectedTask := &model.Task{

@@ -49,7 +49,7 @@ func (s *TaskServer) validateCreateTaskRequest(request *api.CreateTaskRequest) e
 	if task.GetMlmdExecutionID() == "" {
 		return errMustSpecify("MlmdExecutionID")
 	}
-	if task.GetFingerPrint() == "" {
+	if task.GetFingerprint() == "" {
 		return errMustSpecify("FingerPrint")
 	}
 	if task.GetCreatedAt() == nil {
