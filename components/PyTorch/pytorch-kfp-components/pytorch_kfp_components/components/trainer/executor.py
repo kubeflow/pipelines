@@ -30,7 +30,7 @@ class Executor(GenericExecutor):
     def __init__(self):  # pylint:disable=useless-super-delegation
         super().__init__()
 
-    def Do(self, input_dict: dict, output_dict: dict, exec_properties: dict):
+    def Do(self, input_dict: dict, output_dict: dict, exec_properties: dict):  #pylint: disable=too-many-locals
         """This function of the Executor invokes the PyTorch Lightning training
         loop.
 
@@ -63,7 +63,7 @@ class Executor(GenericExecutor):
             trainer_args,
             module_file_args,
             data_module_args,
-        ) = self._GetFnArgs(
+        ) = self._get_fn_args(
             input_dict=input_dict,
             output_dict=output_dict,
             execution_properties=exec_properties,
@@ -75,6 +75,11 @@ class Executor(GenericExecutor):
         ) = self.derive_model_and_data_module_class(
             module_file=module_file, data_module_file=data_module_file
         )
+        if not data_module_class :
+            raise NotImplementedError(
+                "Data module class is mandatory. "
+                "User defined training module is yet to be supported."
+            )
         if data_module_class:
             data_module = data_module_class(
                 **data_module_args if data_module_args else {}
@@ -93,8 +98,8 @@ class Executor(GenericExecutor):
             parser = Namespace(**module_file_args)
             trainer = pl.Trainer.from_argparse_args(parser)
 
-            trainer.fit(model, data_module)
-            trainer.test()
+            trainer.fit(model, data_module)  #pylint: disable=no-member
+            trainer.test()  #pylint: disable=no-member
 
             if "checkpoint_dir" in module_file_args:
                 model_save_path = module_file_args["checkpoint_dir"]
@@ -114,9 +119,3 @@ class Executor(GenericExecutor):
             output_dict[standard_component_specs.TRAINER_MODEL_SAVE_PATH
                        ] = model_save_path
             output_dict[standard_component_specs.PTL_TRAINER_OBJ] = trainer
-
-        else:
-            raise NotImplementedError(
-                "Data module class is mandatory. "
-                "User defined training module is yet to be supported."
-            )
