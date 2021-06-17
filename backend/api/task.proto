@@ -98,11 +98,11 @@ message ListTasksRequest {
 
 message ListTasksResponse {
   // A list of tasks returned.
-      repeated Task tasks = 1;
+  repeated Task tasks = 1;
 
   // The token to list the next page of experiments.
-      string next_page_token = 2;
+  string next_page_token = 2;
 
   // The total number of experiments for the given query.
-      int32 total_size = 3;
+  int32 total_size = 3;
 }

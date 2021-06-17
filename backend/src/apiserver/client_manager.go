@@ -68,6 +68,7 @@ type ClientManager struct {
 	pipelineStore             storage.PipelineStoreInterface
 	jobStore                  storage.JobStoreInterface
 	runStore                  storage.RunStoreInterface
+	taskStore                 storage.TaskStoreInterface
 	resourceReferenceStore    storage.ResourceReferenceStoreInterface
 	dBStatusStore             storage.DBStatusStoreInterface
 	defaultExperimentStore    storage.DefaultExperimentStoreInterface
@@ -81,6 +82,10 @@ type ClientManager struct {
 	time                      util.TimeInterface
 	uuid                      util.UUIDGeneratorInterface
 	authenticators            []auth.Authenticator
+}
+
+func (c *ClientManager) TaskStore() storage.TaskStoreInterface {
+	return c.taskStore
 }
 
 func (c *ClientManager) ExperimentStore() storage.ExperimentStoreInterface {
