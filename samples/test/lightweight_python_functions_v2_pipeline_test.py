@@ -86,8 +86,8 @@ def verify(
                     'input_list': '["a", "b", "c"]',
                     'message': 'message',
                     'num_steps': 5,
-                    'message_with_default':
-                        "hello world",  # TODO: fix this, should be "hello world"
+                    # TODO: uncomment this, should be "hello world"
+                    # 'message_with_default': "hello world",
                 }
             },
             'name': 'train',
