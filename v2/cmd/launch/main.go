@@ -16,6 +16,7 @@ package main
 import (
 	"context"
 	"flag"
+
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/v2/component"
 )
@@ -54,4 +55,10 @@ func main() {
 	if err := launcher.RunComponent(ctx, flag.Args()); err != nil {
 		glog.Exitf("Failed to execute component: %v", err)
 	}
+}
+
+func init() {
+	// Change default logging level to facilitate debugging
+	flag.Set("logtostderr", "true")
+	flag.Set("stderrthreshold", "INFO")
 }
