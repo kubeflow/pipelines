@@ -44,7 +44,7 @@ message Task {
   google.protobuf.Timestamp finished_at = 7;
 
   // Required input field.
-  string fingerPrint = 8;
+  string fingerprint = 8;
 }
 
 service TaskService {

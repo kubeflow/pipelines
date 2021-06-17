@@ -38,6 +38,15 @@ type TaskStore struct {
 	uuid util.UUIDGeneratorInterface
 }
 
+// NewTaskStore creates a new TaskStore.
+func NewTaskStore(db *DB, time util.TimeInterface, uuid util.UUIDGeneratorInterface) *TaskStore {
+	return &TaskStore{
+		db:                     db,
+		time:                   time,
+		uuid: uuid,
+	}
+}
+
 func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 	// Set up UUID for task.
 	newTask := *task
