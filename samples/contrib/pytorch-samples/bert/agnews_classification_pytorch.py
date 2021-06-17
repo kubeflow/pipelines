@@ -164,13 +164,15 @@ if trainer.ptl_trainer.global_rank == 0:
         "EXPORT_PATH":
             args["checkpoint_dir"],
         "CONFIG_PROPERTIES":
-            "https://kubeflow-dataset.s3.us-east-2.amazonaws.com/bert/config.properties",
+            os.path.join(bert_dir, "config.properties"),
         "EXTRA_FILES":
             "{},{},{}".format(
                 os.path.join(bert_dir, "bert-base-uncased-vocab.txt"),
                 os.path.join(bert_dir, "index_to_name.json"),
                 os.path.join(bert_dir, "wrapper.py")
-            )
+            ),
+        "REQUIREMENTS_FILE":
+            os.path.join(bert_dir, "requirements.txt")
     }
 
     MarGeneration(mar_config=mar_config, mar_save_path=args["checkpoint_dir"])
