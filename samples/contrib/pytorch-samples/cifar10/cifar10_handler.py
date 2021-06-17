@@ -136,52 +136,52 @@ class CIFAR10Classification(ImageClassifier, ABC):
                                               **kwargs
                                              )
         return tensor_attributions
+    
+
+    def output_bytes(self,fig):
+        fout = BytesIO()
+        fig.savefig(fout)   
+        return fout.getvalue()
+
+
 
     def get_insights(self, tensor_data, _, target=0):
-        # TODO: this will work with Image Classification, but needs work for segmentation
         default_cmap = LinearSegmentedColormap.from_list('custom blue', 
                                                  [(0, '#ffffff'),
                                                   (0.25, '#0000ff'),
                                                   (1, '#0000ff')], N=256)
-        attr_ig, _= self.attribute_image_features(self.ig, tensor_data, baselines=tensor_data * 0, return_convergence_delta=True, n_steps=15)
-        # # attributions_occ= self.attribute_image_features(self.occlusion,tensor_data,strides=(3, 8, 8),
-        #                                sliding_window_shapes=(3,15, 15),
-        #                                baselines=tensor_data * 0)
 
-        # attributions_lgc = self.attribute_image_features(self.layer_gradcam,tensor_data)
-        # upsamp_attr_lgc = LayerAttribution.interpolate(attributions_lgc, tensor_data.shape[2:])
+        attributions_ig, _= self.attribute_image_features(self.ig, tensor_data, baselines=tensor_data * 0, return_convergence_delta=True, n_steps=15)
         
+        attributions_occ= self.attribute_image_features(self.occlusion,tensor_data,strides=(3, 8, 8),
+                                       sliding_window_shapes=(3,15, 15),
+                                       baselines=tensor_data * 0)
 
-        return_bytes = []
-        for attr in attr_ig:
-            matplot_viz, _ = viz.visualize_image_attr_multiple(np.transpose(attr.squeeze().cpu().detach().numpy(), (1, 2,0)),np.transpose(tensor_data.squeeze().cpu().detach().numpy(), (1,2,0)), use_pyplot=False,methods=['original_image','heat_map'],
-                             cmap=default_cmap,
-                             show_colorbar=True,
-                             signs=['all','positive'],
-                             titles=['Original','Integrated Gradients'])
-        # for attr in attributions_occ:
-        #     matplot_viz, _ = viz.visualize_image_attr_multiple(np.transpose(attr.squeeze().cpu().detach().numpy(), (1,2,0)),
-        #                               np.transpose(tensor_data.squeeze().cpu().detach().numpy(), (1,2,0)),
-        #                               ["original_image", "heat_map", "heat_map", "masked_image"],
-        #                               ["all", "positive", "negative", "positive"],
-        #                               show_colorbar=True,
-        #                               titles=["Original", "Positive Attribution", "Negative Attribution", "Masked"],
-        #                               fig_size=(18, 6)
-        #                              )
-        # for attr in upsamp_attr_lgc:
-        #     matplot_viz, _ = viz.visualize_image_attr_multiple(upsamp_attr_lgc[0].cpu().permute(1,2,0).detach().numpy(),
-        #                               self.image.unsqueeze(0).permute(1,2,0).numpy(),
-        #                               ["original_image","blended_heat_map","masked_image"],
-        #                               ["all","positive","positive"],
-        #                               show_colorbar=True,
-        #                               titles=["Original", "Positive Attribution", "Masked"],
-        #                               fig_size=(18, 6))
-            fout = BytesIO()
-            matplot_viz.savefig(fout)
-            return_bytes.append(fout.getvalue())
+
         
+        matplot_viz_ig, _ = viz.visualize_image_attr_multiple(np.transpose(attributions_ig.squeeze().cpu().detach().numpy(), (1, 2,0)),
+            np.transpose(tensor_data.squeeze().cpu().detach().numpy(), (1,2,0)), 
+            use_pyplot=False,methods=['original_image','heat_map'],
+            cmap=default_cmap,
+            show_colorbar=True,
+            signs=['all','positive'],
+            titles=['Original','Integrated Gradients'])
+
+        
+        matplot_viz_occ, _ = viz.visualize_image_attr_multiple(np.transpose(attributions_occ.squeeze().cpu().detach().numpy(), (1,2,0)),
+                                  np.transpose(tensor_data.squeeze().cpu().detach().numpy(), (1,2,0)),
+                                  ["original_image", "heat_map", "heat_map", "masked_image"],
+                                  ["all", "positive", "negative", "positive"],
+                                  show_colorbar=True,
+                                  titles=["Original", "Positive Attribution", "Negative Attribution", "Masked"],
+                                  fig_size=(18, 6),
+                                  use_pyplot=False
+                                 )
+        occ_bytes = self.output_bytes(matplot_viz_occ)
+        ig_bytes = self.output_bytes(matplot_viz_ig)
+    
         output = [
             {'b64': b64encode(row).decode('utf8') } if isinstance(row, (bytes, bytearray)) else row 
-            for row in return_bytes 
+            for row in [occ_bytes,ig_bytes] 
         ]
         return output
