@@ -31,6 +31,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/v2/cacheutils"
 	"github.com/kubeflow/pipelines/v2/metadata"
 	"github.com/kubeflow/pipelines/v2/objectstore"
 	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
@@ -240,10 +241,26 @@ func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error
 
 // RunComponent runs the current KFP component using the specified command and
 // arguments.
-func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string) error {
+func (l *Launcher) RunComponent(ctx context.Context, cmdArgs []string) error {
+	cmd := cmdArgs[0]
+	args := make([]string, len(cmdArgs)-1)
+	_ = copy(args, cmdArgs[1:])
 	executorInput, err := l.runtimeInfo.generateExecutorInput(l.generateOutputURI, outputMetadataFilepath)
 	if err != nil {
 		return fmt.Errorf("failure while generating ExecutorInput: %w", err)
+	}
+	outputParametersTypeMap:= make(map[string]string)
+	for outputParameterName, outputParameter := range l.runtimeInfo.OutputParameters {
+		outputParametersTypeMap[outputParameterName] = outputParameter.Type
+
+	}
+	cacheKey, err := cacheutils.GenerateCacheKey(executorInput.GetInputs(), executorInput.GetOutputs(), outputParametersTypeMap, cmdArgs, l.options.ContainerImage)
+	if err != nil {
+		return fmt.Errorf("failure while generating CacheKey: %w", err)
+	}
+	_, err = cacheutils.GenerateFingerPrint(*cacheKey)
+	if err != nil {
+		return fmt.Errorf("failure while generating FingerPrint: %w", err)
 	}
 
 	if err := l.prepareInputs(ctx, executorInput); err != nil {
@@ -267,7 +284,6 @@ func (l *Launcher) RunComponent(ctx context.Context, cmd string, args ...string)
 		}
 		args[i] = arg
 	}
-
 	// Record Execution in MLMD.
 	// TODO(neuromage): Refactor launcher.go and split these functions up into
 	// testable units.
@@ -486,6 +502,8 @@ func localPathForURI(uri string) (string, error) {
 	}
 	return "", fmt.Errorf("found URI with unsupported storage scheme: %s", uri)
 }
+
+
 
 func (l *Launcher) prepareInputs(ctx context.Context, executorInput *pipeline_spec.ExecutorInput) error {
 	executorInputJSON, err := protojson.Marshal(executorInput)
