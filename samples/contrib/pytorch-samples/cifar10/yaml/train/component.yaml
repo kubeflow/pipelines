@@ -17,7 +17,7 @@ description: |
 
 inputs:
   - {name: input_data, description: 'Input dataset path'}
-  - {name: bert_script_args, description: 'Arguments to the bert script'}
+  - {name: cifar_script_args, description: 'Arguments to the cifar script'}
   - {name: ptl_arguments, description: 'Arguments to pytorch lightning Trainer'}
 
 outputs:
@@ -45,6 +45,6 @@ implementation:
     - --mlpipeline_metrics
     - { outputPath: MLPipeline Metrics}
     - --script_args
-    - { inputValue: bert_script_args }
+    - { inputValue: cifar_script_args }
     - --ptl_args
     - { inputValue: ptl_arguments }
