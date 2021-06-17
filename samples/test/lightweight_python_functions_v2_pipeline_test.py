@@ -87,7 +87,7 @@ def verify(
                     'message': 'message',
                     'num_steps': 5,
                     'message_with_default':
-                        None,  # TODO: fix this, should be "hello world"
+                        "hello world",  # TODO: fix this, should be "hello world"
                 }
             },
             'name': 'train',
