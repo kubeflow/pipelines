@@ -69,7 +69,7 @@ if __name__ == "__main__":
         name="pytorch-kfp-components",
         version=version,
         description="PyTorch Kubeflow Pipeline",
-        url="https://github.com/kubeflow/pipelines/tree/master/components",
+        url="https://github.com/kubeflow/pipelines/tree/master/components/PyTorch/pytorch-kfp-components/",
         author="The PyTorch Kubeflow Pipeline Components authors",
         author_email="pytorch-kfp-components@fb.com",
         license="Apache License 2.0",
@@ -79,7 +79,8 @@ if __name__ == "__main__":
         install_requires=make_required_install_packages(),
         dependency_links=make_dependency_links(),
         keywords=[
-            "Kubeflow",
+            "Kubeflow Pipelines",
+            "KFP",
             "ML workflow",
             "PyTorch",
         ],
