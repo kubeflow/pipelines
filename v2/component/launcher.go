@@ -249,7 +249,7 @@ func (l *Launcher) RunComponent(ctx context.Context, cmdArgs []string) error {
 	if err != nil {
 		return fmt.Errorf("failure while generating ExecutorInput: %w", err)
 	}
-	outputParametersTypeMap:= make(map[string]string)
+	outputParametersTypeMap := make(map[string]string)
 	for outputParameterName, outputParameter := range l.runtimeInfo.OutputParameters {
 		outputParametersTypeMap[outputParameterName] = outputParameter.Type
 
@@ -503,8 +503,6 @@ func localPathForURI(uri string) (string, error) {
 	return "", fmt.Errorf("found URI with unsupported storage scheme: %s", uri)
 }
 
-
-
 func (l *Launcher) prepareInputs(ctx context.Context, executorInput *pipeline_spec.ExecutorInput) error {
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
@@ -666,7 +664,7 @@ func uploadFile(ctx context.Context, bucket *blob.Bucket, localFilePath, blobFil
 	return nil
 }
 
-func downloadFile(ctx context.Context, bucket *blob.Bucket, blobFilePath, localFilePath string) error {
+func downloadFile(ctx context.Context, bucket *blob.Bucket, blobFilePath, localFilePath string) (err error) {
 	errorF := func(err error) error {
 		return fmt.Errorf("downloadFile(): unable to complete copying %q to local storage %q: %w", blobFilePath, localFilePath, err)
 	}
@@ -686,7 +684,13 @@ func downloadFile(ctx context.Context, bucket *blob.Bucket, blobFilePath, localF
 	if err != nil {
 		return errorF(fmt.Errorf("unable to open local file %q for writing: %w", localFilePath, err))
 	}
-	defer w.Close()
+	defer func() {
+		errClose := w.Close()
+		if err == nil && errClose != nil {
+			// override named return value "err" when there's a close error
+			err = errorF(errClose)
+		}
+	}()
 
 	if _, err = io.Copy(w, r); err != nil {
 		return errorF(fmt.Errorf("unable to complete copying: %w", err))
@@ -714,15 +718,18 @@ func uploadBlob(ctx context.Context, bucket *blob.Bucket, localPath, blobPath st
 
 	for _, f := range files {
 		if f.IsDir() {
-			// TODO
-			continue
+			err = uploadBlob(ctx, bucket, filepath.Join(localPath, f.Name()), blobPath+"/"+f.Name())
+			if err != nil {
+				return err
+			}
+		} else {
+			blobFilePath := filepath.Join(blobPath, filepath.Base(f.Name()))
+			localFilePath := filepath.Join(localPath, f.Name())
+			if err := uploadFile(ctx, bucket, localFilePath, blobFilePath); err != nil {
+				return err
+			}
 		}
 
-		blobFilePath := filepath.Join(blobPath, filepath.Base(f.Name()))
-		localFilePath := filepath.Join(localPath, f.Name())
-		if err := uploadFile(ctx, bucket, localFilePath, blobFilePath); err != nil {
-			return err
-		}
 	}
 
 	return nil
@@ -730,7 +737,6 @@ func uploadBlob(ctx context.Context, bucket *blob.Bucket, localPath, blobPath st
 
 func downloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir string) error {
 	iter := bucket.List(&blob.ListOptions{Prefix: blobDir})
-
 	for {
 		obj, err := iter.Next(ctx)
 		if err != nil {
@@ -739,24 +745,22 @@ func downloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir st
 			}
 			return fmt.Errorf("failed to list objects in remote storage %q: %w", blobDir, err)
 		}
-
 		if obj.IsDir {
-			continue
-		}
+			// TODO: is this branch possible?
 
-		var localFilePath string
-		if obj.Key == blobDir {
-			// Artifact URI is a file on Remote Storage.
-			localFilePath = localDir
+			// Object stores list all files with the same prefix,
+			// there is no need to recursively list each folder.
+			continue
 		} else {
-			// Artifact URI is a directory on Remote Storage.
-			localFilePath = filepath.Join(localDir, path.Base(obj.Key))
-		}
-		if err := downloadFile(ctx, bucket, obj.Key, localFilePath); err != nil {
-			return err
+			relativePath, err := filepath.Rel(blobDir, obj.Key)
+			if err != nil {
+				return fmt.Errorf("unexpected object key %q when listing %q: %w", obj.Key, blobDir, err)
+			}
+			if err := downloadFile(ctx, bucket, obj.Key, filepath.Join(localDir, relativePath)); err != nil {
+				return err
+			}
 		}
 	}
-
 	return nil
 }
 

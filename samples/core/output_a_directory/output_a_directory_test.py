@@ -13,22 +13,20 @@
 # limitations under the License.
 
 import kfp
-from .output_a_directory import dir_pipeline
+from .output_a_directory import dir_pipeline, dir_pipeline_v2
 from ...test.util import run_pipeline_func, TestCase
 
 run_pipeline_func([
     TestCase(
-        pipeline_func=dir_pipeline,
-        mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
+        pipeline_func=dir_pipeline_v2,
+        mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
     ),
-
-    # TODO(v2-compatible): error when the pipeline does not have a @pipeline.
-    # Failed to create component launcher: %vMust specify PipelineName
-    #
-    # We should document that @pipeline decorator and pipeline name is required
-    # for v2 compatible pipelines.
     TestCase(
         pipeline_func=dir_pipeline,
         mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
+    ),
+    TestCase(
+        pipeline_func=dir_pipeline,
+        mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY,
     ),
 ])
