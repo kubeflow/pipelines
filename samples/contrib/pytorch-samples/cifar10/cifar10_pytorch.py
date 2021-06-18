@@ -164,8 +164,6 @@ if trainer.ptl_trainer.global_rank == 0:
             os.path.join(cifar_dir, "classifier.py")),
         "REQUIREMENTS_FILE":
             os.path.join(cifar_dir, "requirements.txt")
-                
-            
     }
 
     MarGeneration(mar_config=mar_config, mar_save_path=args["checkpoint_dir"])
