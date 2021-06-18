@@ -11,7 +11,7 @@ Edit inferenceservice-config configmap
 Update the following keys under `predictors->pytorch->v2` block
 
 ```
-"image": "public.ecr.aws/y1x1p2u5/torchserve-kfs",
+"image": "pytorch/torchserve-kfs",
 "defaultImageVersion": "0.4.0",
 "defaultGpuImageVersion": "0.4.0-gpu",
 ```
@@ -36,7 +36,7 @@ Save and exit the edit.
 
 Apply below secret and sa for KFServing to access minio server
 
-mino-secret.yaml
+minio-secret.yaml
 
 ```
 apiVersion: v1
@@ -72,23 +72,3 @@ Kubectl apply -f minio-secret.yaml -n kubeflow-user-example-com
 Run the following command to disable sidecar injection
 
 ```kubectl label namespace kubeflow-user-example-com istio-injection=disabled --overwrite```
-
-
-### Creating custom notebook server
-
-For installing packages via Jupyter Notebook , root permissions are needed.
-
-Custom jupyter docker image can be created using the docker file mentioned below
-
-https://github.com/kubeflow/kubeflow/blob/master/components/example-notebook-servers/jupyter/Dockerfile
-
-In the kubeflow dashboard, create a new jupyter notebook server using following custom image
-
-    a. Open kubeflow dashboard
-    b. Select Notebooks and Click on New servers 
-    c. Add new notebook server by choosing custom image
-    d. Use the below custom image
-
-```public.ecr.aws/y1x1p2u5/jupyter:latest-cpu```
-
-Click launch on completion

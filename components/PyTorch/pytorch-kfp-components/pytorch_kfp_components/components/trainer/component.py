@@ -19,7 +19,7 @@ from pytorch_kfp_components.components.base.base_component import BaseComponent
 from pytorch_kfp_components.types import standard_component_specs
 
 
-class Trainer(BaseComponent):
+class Trainer(BaseComponent):  #pylint: disable=too-few-public-methods
     """Initializes the Trainer class."""
 
     def __init__(  # pylint: disable=R0913

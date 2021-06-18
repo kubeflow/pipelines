@@ -87,6 +87,8 @@ def train(
     input_list: List[str],
     # An input parameter of type int with a default value.
     num_steps: int = 100,
+    # An input parameter of type string with default value.
+    message_with_default: str = 'hello world',
 ):
   """Dummy Training step"""
   with open(dataset_one_path, 'r') as input_file:
@@ -101,6 +103,8 @@ def train(
           f'input_bool: {input_bool}, type {type(input_bool)} || '
           f'input_dict: {input_dict}, type {type(input_dict)} || '
           f'input_list: {input_list}, type {type(input_list)} \n')
+  
+  print(f'message_with_default="{message_with_default}"')
 
   with open(model.path, 'w') as output_file:
     for i in range(num_steps):
