@@ -1,3 +1,8 @@
+licenses:
+  types:
+    overrides:
+    - spdxId: blessing
+      type: unencumbered
 module:
   go:
     module: github.com/kubeflow/pipelines
