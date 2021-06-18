@@ -57,10 +57,9 @@ func main() {
 	}
 }
 
+// Use WARNING default logging level to facilitate troubleshooting.
 func init() {
-	// Change default logging level to facilitate debugging
 	flag.Set("logtostderr", "true")
+	// Change the WARNING to INFO level for debugging.
 	flag.Set("stderrthreshold", "WARNING")
-	// Uncomment the following to enable INFO level logging.
-	// flag.Set("stderrthreshold", "INFO")
 }

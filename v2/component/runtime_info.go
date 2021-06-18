@@ -324,7 +324,7 @@ func (r *runtimeInfo) generateExecutorInput(genOutputURI generateOutputURI, outp
 			return nil, fmt.Errorf("missing input artifact metadata file for input %q", name)
 		}
 		if !filepath.IsAbs(ia.MetadataPath) {
-			return nil, fmt.Errorf("unexpected input artifact metadata file %q for input %q", ia.MetadataPath, name)
+			return nil, fmt.Errorf("unexpected input artifact metadata file %q for input %q: must be absolute local path", ia.MetadataPath, name)
 		}
 
 		artifact, err := readArtifact(ia.MetadataPath)

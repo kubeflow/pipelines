@@ -398,7 +398,7 @@ func (l *Launcher) RunComponent(ctx context.Context, cmdArgs []string) error {
 			if err := uploadBlob(ctx, bucket, localDir, blobKey); err != nil {
 				//  We allow components to not produce output files
 				if errors.Is(err, os.ErrNotExist) {
-					glog.Warningf("local filepath %q does not exist", localDir)
+					glog.Warningf("Local filepath %q does not exist", localDir)
 				} else {
 					return fmt.Errorf("failed to upload output artifact %q to remote storage URI %q: %w", name, outputArtifact.Uri, err)
 				}
