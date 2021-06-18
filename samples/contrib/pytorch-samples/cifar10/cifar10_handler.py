@@ -15,27 +15,24 @@
 
 
 """ Cifar10 Custom Handler."""
-import torch
 from abc import ABC
-import io
 import os
-import base64
 import torch
 import json
 import numpy as np
-from PIL import Image
 from captum.attr import IntegratedGradients, Occlusion, LayerGradCam
 from ts.torch_handler.image_classifier import ImageClassifier
 from classifier import CIFAR10CLASSIFIER
 import logging
-from torchvision import transforms
-import torch
+
 logger = logging.getLogger(__name__)
+
 
 class CIFAR10Classification(ImageClassifier, ABC):
     """
     Base class for all vision handlers
     """
+
     def initialize(self, ctx):
         """In this initialize function, the Titanic trained model is loaded and
         the Integrated Gradients Algorithm for Captum Explanations
@@ -51,7 +48,9 @@ class CIFAR10Classification(ImageClassifier, ABC):
         serialized_file = self.manifest["model"]["serializedFile"]
         model_pt_path = os.path.join(model_dir, serialized_file)
         self.device = torch.device(
-            "cuda:" + str(properties.get("gpu_id")) if torch.cuda.is_available() else "cpu"
+            "cuda:" + str(properties.get("gpu_id"))
+            if torch.cuda.is_available()
+            else "cpu"
         )
 
         self.model = CIFAR10CLASSIFIER()
@@ -71,43 +70,49 @@ class CIFAR10Classification(ImageClassifier, ABC):
             print("Mapping file missing")
             logger.warning("Missing the class_mapping.json file.")
 
-
         self.ig = IntegratedGradients(self.model)
-        self.layer_gradcam = LayerGradCam(self.model, self.model.model_conv.layer4[2].conv3)
+        self.layer_gradcam = LayerGradCam(
+            self.model, self.model.model_conv.layer4[2].conv3
+        )
         self.occlusion = Occlusion(self.model)
         self.initialized = True
-        image_processing = transforms.Compose([
-        transforms.Resize(224),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                             std=[0.229, 0.224, 0.225])])
 
-
-    def attribute_image_features(self,algorithm, data, **kwargs):
+    def attribute_image_features(self, algorithm, data, **kwargs):
         self.model.zero_grad()
-        tensor_attributions = algorithm.attribute(data,
-                                              target=0,
-                                              **kwargs
-                                             )
+        tensor_attributions = algorithm.attribute(data, target=0, **kwargs)
         return tensor_attributions
 
     def get_insights(self, tensor_data, _, target=0):
         explanation_ig = {}
         explanation_lgc = {}
-        explanation_occ= {}
-        attr_ig, _= self.attribute_image_features(self.ig, tensor_data, baselines=tensor_data * 0, return_convergence_delta=True, n_steps=15)
-        attr_ig = np.transpose(attr_ig.squeeze().cpu().detach().numpy(), (1, 2, 0))
-        explanation_ig["attributions_ig"]=attr_ig.tolist()
+        explanation_occ = {}
+        attr_ig, _ = self.attribute_image_features(
+            self.ig,
+            tensor_data,
+            baselines=tensor_data * 0,
+            return_convergence_delta=True,
+            n_steps=15,
+        )
+        attr_ig = np.transpose(
+            attr_ig.squeeze().cpu().detach().numpy(), (1, 2, 0)
+        )
+        explanation_ig["attributions_ig"] = attr_ig.tolist()
 
-        attributions_lgc = self.attribute_image_features(self.layer_gradcam,tensor_data)
-        explanation_lgc["attributions_lgc"] =attributions_lgc.tolist()
-        attributions_occ= self.attribute_image_features(self.occlusion,tensor_data,strides=(3, 8, 8),
-                                       sliding_window_shapes=(3,15, 15),
-                                       baselines=tensor_data * 0)
-        attributions_occ =np.transpose(attributions_occ.squeeze().cpu().detach().numpy(), (1,2,0))
+        attributions_lgc = self.attribute_image_features(
+            self.layer_gradcam, tensor_data
+        )
+        explanation_lgc["attributions_lgc"] = attributions_lgc.tolist()
+        attributions_occ = self.attribute_image_features(
+            self.occlusion,
+            tensor_data,
+            strides=(3, 8, 8),
+            sliding_window_shapes=(3, 15, 15),
+            baselines=tensor_data * 0,
+        )
+        attributions_occ = np.transpose(
+            attributions_occ.squeeze().cpu().detach().numpy(), (1, 2, 0)
+        )
 
+        explanation_occ["attributions_occ"] = attributions_occ.tolist()
 
-        explanation_occ["attributions_occ"]=attributions_occ.tolist()
-
-        return [explanation_ig,explanation_lgc,explanation_occ]
+        return [explanation_ig, explanation_lgc, explanation_occ]
