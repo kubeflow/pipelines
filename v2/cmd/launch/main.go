@@ -16,7 +16,6 @@ package main
 import (
 	"context"
 	"flag"
-
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/v2/component"
 )
@@ -52,7 +51,7 @@ func main() {
 		glog.Exitf("Failed to create component launcher: %v", err)
 	}
 
-	if err := launcher.RunComponent(ctx, flag.Args()[0], flag.Args()[1:]...); err != nil {
+	if err := launcher.RunComponent(ctx, flag.Args()); err != nil {
 		glog.Exitf("Failed to execute component: %v", err)
 	}
 }

@@ -13,10 +13,10 @@
 # limitations under the License.
 """Minio Executor Module."""
 import os
-from pytorch_kfp_components.components.base.base_executor import BaseExecutor
-from pytorch_kfp_components.types import standard_component_specs
 import urllib3
 from minio import Minio  #pylint: disable=no-name-in-module
+from pytorch_kfp_components.components.base.base_executor import BaseExecutor
+from pytorch_kfp_components.types import standard_component_specs
 
 
 class Executor(BaseExecutor):

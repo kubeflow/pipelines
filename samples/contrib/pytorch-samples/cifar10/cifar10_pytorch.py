@@ -163,8 +163,6 @@ if trainer.ptl_trainer.global_rank == 0:
             "{}".format(os.path.join(cifar_dir, "class_mapping.json")),
         "REQUIREMENTS_FILE":
             os.path.join(cifar_dir, "requirements.txt")
-                
-            
     }
 
     MarGeneration(mar_config=mar_config, mar_save_path=args["checkpoint_dir"])
