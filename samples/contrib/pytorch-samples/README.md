@@ -97,7 +97,7 @@ kubectl port-forward svc/istio-ingressgateway -n istio-system 8080:80
 To view the captum insights UI in the local environment, run the following port forwarding command
 
 ```
-kubectl port-forward pod/root-0 -n kubeflow-user-example-com <port>:6080
+kubectl port-forward <notebook-server-pod-name> -n kubeflow-user-example-com <port>:6080
 ```
 
 For example:

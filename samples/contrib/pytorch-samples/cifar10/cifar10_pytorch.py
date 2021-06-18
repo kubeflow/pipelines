@@ -158,9 +158,9 @@ if trainer.ptl_trainer.global_rank == 0:
         "CONFIG_PROPERTIES": os.path.join(cifar_dir, "config.properties"),
         "EXTRA_FILES": "{},{}".format(
             os.path.join(cifar_dir, "class_mapping.json"),
-            os.path.join(cifar_dir, "classifier.py"),
+            os.path.join(cifar_dir, "classifier.py")
         ),
-        "REQUIREMENTS_FILE": os.path.join(cifar_dir, "requirements.txt"),
+        "REQUIREMENTS_FILE": os.path.join(cifar_dir, "requirements.txt")
     }
 
     MarGeneration(mar_config=mar_config, mar_save_path=args["checkpoint_dir"])
