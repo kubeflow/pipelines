@@ -15,7 +15,7 @@
 """Functions for diagnostic data collection from development development."""
 
 import enum
-from . import utility
+from kfp.cli.diagnose_me import utility
 
 
 class Commands(enum.Enum):

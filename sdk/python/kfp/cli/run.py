@@ -20,7 +20,7 @@ import json
 import click
 import shutil
 
-from .output import print_output, OutputFormat
+from kfp.cli.output import print_output, OutputFormat
 
 
 @click.group()
