@@ -16,31 +16,35 @@
 
 """ Cifar10 Custom Handler."""
 
-from torchvision import transforms
 from abc import ABC
 import io
 import os
 import base64
-import torch
 import json
 import numpy as np
 from PIL import Image
 from matplotlib.colors import LinearSegmentedColormap
 from captum.attr import visualization as viz
-from captum.attr import IntegratedGradients, Occlusion, LayerGradCam,LayerAttribution
+from captum.attr import (
+    IntegratedGradients,
+    Occlusion
+)
 from ts.torch_handler.image_classifier import ImageClassifier
-from cifar10_train import CIFAR10Classifier
+from classifier import CIFAR10CLASSIFIER
 import logging
 from torchvision import transforms
 import torch
 from io import BytesIO
-from base64 import b64decode, b64encode
+from base64 import b64encode
+
 logger = logging.getLogger(__name__)
+
 
 class CIFAR10Classification(ImageClassifier, ABC):
     """
     Base class for all vision handlers
     """
+
     def initialize(self, ctx):
         """In this initialize function, the Titanic trained model is loaded and
         the Integrated Gradients Algorithm for Captum Explanations
@@ -56,10 +60,12 @@ class CIFAR10Classification(ImageClassifier, ABC):
         serialized_file = self.manifest["model"]["serializedFile"]
         model_pt_path = os.path.join(model_dir, serialized_file)
         self.device = torch.device(
-            "cuda:" + str(properties.get("gpu_id")) if torch.cuda.is_available() else "cpu"
+            "cuda:" + str(properties.get("gpu_id"))
+            if torch.cuda.is_available()
+            else "cpu"
         )
 
-        self.model = CIFAR10Classifier()
+        self.model = CIFAR10CLASSIFIER()
         self.model.load_state_dict(torch.load(model_pt_path))
         self.model.to(self.device)
         self.model.eval()
@@ -76,17 +82,22 @@ class CIFAR10Classification(ImageClassifier, ABC):
             print("Mapping file missing")
             logger.warning("Missing the class_mapping.json file.")
 
-
         self.ig = IntegratedGradients(self.model)
-        self.layer_gradcam = LayerGradCam(self.model, self.model.model_conv.layer4[2].conv3)
+        # self.layer_gradcam = LayerGradCam(
+        #     self.model, self.model.model_conv.layer4[2].conv3
+        # )
         self.occlusion = Occlusion(self.model)
         self.initialized = True
-        image_processing = transforms.Compose([
-        transforms.Resize(224),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                             std=[0.229, 0.224, 0.225])])
+        self.image_processing = transforms.Compose(
+            [
+                transforms.Resize(224),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                ),
+            ]
+        )
 
     def _get_img(self, row):
         """Compat layer: normally the envelope should just return the data
@@ -100,7 +111,7 @@ class CIFAR10Classification(ImageClassifier, ABC):
             image = row
 
         if isinstance(image, str):
-            # if the image is a string of bytesarray. 
+            # if the image is a string of bytesarray.
             image = base64.b64decode(image)
 
         return image
@@ -124,64 +135,85 @@ class CIFAR10Classification(ImageClassifier, ABC):
             else:
                 # if the image is a list
                 image = torch.FloatTensor(image)
-            
+
             images.append(image)
 
         return torch.stack(images).to(self.device)
 
-    def attribute_image_features(self,algorithm, data, **kwargs):
+    def attribute_image_features(self, algorithm, data, **kwargs):
         self.model.zero_grad()
-        tensor_attributions = algorithm.attribute(data,
-                                              target=0,
-                                              **kwargs
-                                             )
+        tensor_attributions = algorithm.attribute(data, target=0, **kwargs)
         return tensor_attributions
-    
 
-    def output_bytes(self,fig):
+    def output_bytes(self, fig):
         fout = BytesIO()
-        fig.savefig(fout)   
+        fig.savefig(fout)
         return fout.getvalue()
 
-
-
     def get_insights(self, tensor_data, _, target=0):
-        default_cmap = LinearSegmentedColormap.from_list('custom blue', 
-                                                 [(0, '#ffffff'),
-                                                  (0.25, '#0000ff'),
-                                                  (1, '#0000ff')], N=256)
+        default_cmap = LinearSegmentedColormap.from_list(
+            "custom blue",
+            [(0, "#ffffff"), (0.25, "#0000ff"), (1, "#0000ff")],
+            N=256,
+        )
 
-        attributions_ig, _= self.attribute_image_features(self.ig, tensor_data, baselines=tensor_data * 0, return_convergence_delta=True, n_steps=15)
-        
-        attributions_occ= self.attribute_image_features(self.occlusion,tensor_data,strides=(3, 8, 8),
-                                       sliding_window_shapes=(3,15, 15),
-                                       baselines=tensor_data * 0)
+        attributions_ig, _ = self.attribute_image_features(
+            self.ig,
+            tensor_data,
+            baselines=tensor_data * 0,
+            return_convergence_delta=True,
+            n_steps=15,
+        )
 
+        attributions_occ = self.attribute_image_features(
+            self.occlusion,
+            tensor_data,
+            strides=(3, 8, 8),
+            sliding_window_shapes=(3, 15, 15),
+            baselines=tensor_data * 0,
+        )
 
-        
-        matplot_viz_ig, _ = viz.visualize_image_attr_multiple(np.transpose(attributions_ig.squeeze().cpu().detach().numpy(), (1, 2,0)),
-            np.transpose(tensor_data.squeeze().cpu().detach().numpy(), (1,2,0)), 
-            use_pyplot=False,methods=['original_image','heat_map'],
+        matplot_viz_ig, _ = viz.visualize_image_attr_multiple(
+            np.transpose(
+                attributions_ig.squeeze().cpu().detach().numpy(), (1, 2, 0)
+            ),
+            np.transpose(
+                tensor_data.squeeze().cpu().detach().numpy(), (1, 2, 0)
+            ),
+            use_pyplot=False,
+            methods=["original_image", "heat_map"],
             cmap=default_cmap,
             show_colorbar=True,
-            signs=['all','positive'],
-            titles=['Original','Integrated Gradients'])
+            signs=["all", "positive"],
+            titles=["Original", "Integrated Gradients"],
+        )
 
-        
-        matplot_viz_occ, _ = viz.visualize_image_attr_multiple(np.transpose(attributions_occ.squeeze().cpu().detach().numpy(), (1,2,0)),
-                                  np.transpose(tensor_data.squeeze().cpu().detach().numpy(), (1,2,0)),
-                                  ["original_image", "heat_map", "heat_map", "masked_image"],
-                                  ["all", "positive", "negative", "positive"],
-                                  show_colorbar=True,
-                                  titles=["Original", "Positive Attribution", "Negative Attribution", "Masked"],
-                                  fig_size=(18, 6),
-                                  use_pyplot=False
-                                 )
+        matplot_viz_occ, _ = viz.visualize_image_attr_multiple(
+            np.transpose(
+                attributions_occ.squeeze().cpu().detach().numpy(), (1, 2, 0)
+            ),
+            np.transpose(
+                tensor_data.squeeze().cpu().detach().numpy(), (1, 2, 0)
+            ),
+            ["original_image", "heat_map", "heat_map", "masked_image"],
+            ["all", "positive", "negative", "positive"],
+            show_colorbar=True,
+            titles=[
+                "Original",
+                "Positive Attribution",
+                "Negative Attribution",
+                "Masked",
+            ],
+            fig_size=(18, 6),
+            use_pyplot=False,
+        )
         occ_bytes = self.output_bytes(matplot_viz_occ)
         ig_bytes = self.output_bytes(matplot_viz_ig)
-    
+
         output = [
-            {'b64': b64encode(row).decode('utf8') } if isinstance(row, (bytes, bytearray)) else row 
-            for row in [occ_bytes,ig_bytes] 
+            {"b64": b64encode(row).decode("utf8")}
+            if isinstance(row, (bytes, bytearray))
+            else row
+            for row in [occ_bytes, ig_bytes]
         ]
         return output
