@@ -102,7 +102,7 @@ def test_unreachable_endpoint(minio_inputs):
     """Testing unreachable minio endpoint with invalid minio creds."""
     os.environ["MINIO_ACCESS_KEY"] = "dummy"
     os.environ["MINIO_SECRET_KEY"] = "dummy"
-    with pytest.raises(Exception, match="Max retries exceeded with url*"):
+    with pytest.raises(Exception, match="Max retries exceeded with url: "):
         upload_to_minio(minio_inputs)
 
 

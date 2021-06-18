@@ -15,11 +15,10 @@
 """Pipeline Base component class."""
 
 import abc
-from six import with_metaclass
 from pytorch_kfp_components.types import standard_component_specs
 
 
-class BaseComponent(with_metaclass(abc.ABCMeta, object)):  # pylint: disable=R0903
+class BaseComponent(metaclass=abc.ABCMeta):  # pylint: disable=R0903
     """Pipeline Base component class."""
 
     def __init__(self):

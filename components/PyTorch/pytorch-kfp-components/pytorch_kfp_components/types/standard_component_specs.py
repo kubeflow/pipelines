@@ -12,10 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Module for defining standard specifications and validation of parameter
 type."""
-
+#pylint: disable=duplicate-code
 TRAINER_MODULE_FILE = "module_file"
 TRAINER_DATA_MODULE_FILE = "data_module_file"
 TRAINER_DATA_MODULE_ARGS = "data_module_args"
@@ -112,7 +111,7 @@ class MarGenerationSpec:  # pylint: disable=R0903
     }
 
 
-class VisualizationSpec:
+class VisualizationSpec:  #pylint: disable=too-few-public-methods
     """Visualization Specification class.
     For validating the parameter 'type'
     """
@@ -142,7 +141,7 @@ class VisualizationSpec:
     }
 
 
-class MinIoSpec:
+class MinIoSpec:  #pylint: disable=too-few-public-methods
     """MinIO Specification class.
     For validating the parameter 'type'
     """
