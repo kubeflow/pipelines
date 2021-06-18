@@ -26,7 +26,7 @@ import numpy as np
 from PIL import Image
 from captum.attr import IntegratedGradients, Occlusion, LayerGradCam
 from ts.torch_handler.image_classifier import ImageClassifier
-from cifar10_train import CIFAR10Classifier
+from classifier import CIFAR10CLASSIFIER
 import logging
 from torchvision import transforms
 import torch
@@ -54,7 +54,7 @@ class CIFAR10Classification(ImageClassifier, ABC):
             "cuda:" + str(properties.get("gpu_id")) if torch.cuda.is_available() else "cpu"
         )
 
-        self.model = CIFAR10Classifier()
+        self.model = CIFAR10CLASSIFIER()
         self.model.load_state_dict(torch.load(model_pt_path))
         self.model.to(self.device)
         self.model.eval()

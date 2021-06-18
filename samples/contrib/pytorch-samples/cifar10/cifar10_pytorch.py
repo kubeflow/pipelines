@@ -160,7 +160,8 @@ if trainer.ptl_trainer.global_rank == 0:
         "CONFIG_PROPERTIES":
             os.path.join(cifar_dir, "config.properties"),
         "EXTRA_FILES":
-            "{}".format(os.path.join(cifar_dir, "class_mapping.json")),
+            "{},{}".format(os.path.join(cifar_dir, "class_mapping.json"),
+            os.path.join(cifar_dir, "classifier.py")),
         "REQUIREMENTS_FILE":
             os.path.join(cifar_dir, "requirements.txt")
                 
