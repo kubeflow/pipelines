@@ -134,7 +134,8 @@ def pytorch_bert( # pylint: disable=too-many-arguments
     script_args = f"model_name=bert.pth," \
                   f"num_samples={num_samples}," \
                   f"confusion_matrix_url={confusion_matrix_url}"
-    ptl_args = f"max_epochs={max_epochs}"
+    # For gpus, set number of gpus and accelerator type
+    ptl_args = f"max_epochs={max_epochs},profiler=pytorch,gpus=0,accelerator=None"
     train_task = (
         train_op(
             input_data=prep_task.outputs["output_data"],

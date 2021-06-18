@@ -140,8 +140,8 @@ def pytorch_cifar10( # pylint: disable=too-many-arguments
     confusion_matrix_url = f"minio://{log_bucket}/{confusion_matrix_log_dir}"
     script_args = f"model_name=resnet.pth," \
                   f"confusion_matrix_url={confusion_matrix_url}"
-    ptl_args = f"max_epochs=1," \
-               f"profiler=pytorch"
+    # For gpus, set number of gpus and accelerator type
+    ptl_args = f"max_epochs=1, gpus=0, accelerator=None, profiler=pytorch"
     train_task = (
         train_op(
             input_data=prep_task.outputs["output_data"],
