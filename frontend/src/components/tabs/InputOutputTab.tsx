@@ -14,73 +14,38 @@
  * limitations under the License.
  */
 
-import {
-  Artifact,
-  ArtifactCustomProperties,
-  ArtifactProperties,
-  Execution,
-  getMetadataValue,
-  getResourceProperty,
-} from '@kubeflow/frontend';
+import { Execution, getMetadataValue } from '@kubeflow/frontend';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import React from 'react';
 import { useQuery } from 'react-query';
 import { ErrorBoundary } from 'src/atoms/ErrorBoundary';
-import { color, commonCss, padding, spacing } from 'src/Css';
-import { getInputArtifactsInExecution, getOutputArtifactsInExecution } from 'src/lib/MlmdUtils';
+import { commonCss, padding } from 'src/Css';
+import {
+  filterEventWithInputArtifact,
+  filterEventWithOutputArtifact,
+  getLinkedArtifactsByExecution,
+  LinkedArtifact,
+} from 'src/lib/MlmdUtils';
 import { KeyValue } from 'src/lib/StaticGraphParser';
-import { stylesheet } from 'typestyle';
-import { ArtifactLink } from '../ArtifactLink';
+import ArtifactPreview from '../ArtifactPreview';
 import Banner from '../Banner';
-import DetailsTable, { ValueComponentProps } from '../DetailsTable';
+import DetailsTable from '../DetailsTable';
 import { ExecutionTitle } from './ExecutionTitle';
-
-const css = stylesheet({
-  key: {
-    color: color.strong,
-    flex: '0 0 50%',
-    fontWeight: 'bold',
-    maxWidth: 300,
-  },
-  row: {
-    borderBottom: `1px solid ${color.divider}`,
-    display: 'flex',
-    padding: `${spacing.units(-5)}px ${spacing.units(-6)}px`,
-  },
-  valueText: {
-    flexGrow: 1,
-    overflow: 'hidden',
-    overflowWrap: 'break-word',
-  },
-});
 
 type ParamList = Array<KeyValue<string>>;
 
 export interface IOTabProps {
   execution: Execution;
+  namespace: string | undefined;
 }
 
-export function InputOutputTab({ execution }: IOTabProps) {
+export function InputOutputTab({ execution, namespace }: IOTabProps) {
   const executionId = execution.getId();
 
   // Retrieves input and output artifacts from Metadata store.
-  const {
-    isSuccess: isOutputArtifactSuccess,
-    error: outputArtifactError,
-    data: outputArtifactData,
-  } = useQuery<Artifact[], Error>(
-    ['execution_output_artifact', { id: executionId }],
-    () => getOutputArtifactsInExecution(execution),
-    { staleTime: Infinity },
-  );
-
-  const {
-    isSuccess: isInputArtifactSuccess,
-    error: inputArtifactError,
-    data: inputArtifactData,
-  } = useQuery<Artifact[], Error>(
-    ['execution_input_artifact', { id: executionId }],
-    () => getInputArtifactsInExecution(execution),
+  const { isSuccess, error, data } = useQuery<LinkedArtifact[], Error>(
+    ['execution_artifact', { id: executionId, state: execution.getLastKnownState() }],
+    () => getLinkedArtifactsByExecution(execution),
     { staleTime: Infinity },
   );
 
@@ -88,12 +53,10 @@ export function InputOutputTab({ execution }: IOTabProps) {
   const inputParams = extractInputFromExecution(execution);
   const outputParams = extractOutputFromExecution(execution);
   let inputArtifacts: ParamList = [];
-  if (isInputArtifactSuccess && inputArtifactData) {
-    inputArtifacts = getArtifactParamList(inputArtifactData);
-  }
   let outputArtifacts: ParamList = [];
-  if (isOutputArtifactSuccess && outputArtifactData) {
-    outputArtifacts = getArtifactParamList(outputArtifactData);
+  if (isSuccess && data) {
+    inputArtifacts = getArtifactParamList(filterEventWithInputArtifact(data));
+    outputArtifacts = getArtifactParamList(filterEventWithOutputArtifact(data));
   }
 
   return (
@@ -102,18 +65,11 @@ export function InputOutputTab({ execution }: IOTabProps) {
         <div className={padding(20)}>
           <ExecutionTitle execution={execution} />
 
-          {outputArtifactError && (
+          {error && (
             <Banner
-              message='Error in retrieving output Artifacts.'
+              message='Error in retrieving Artifacts.'
               mode='error'
-              additionalInfo={outputArtifactError.message}
-            />
-          )}
-          {!outputArtifactError && inputArtifactError && (
-            <Banner
-              message='Error in retrieving input Artifacts.'
-              mode='error'
-              additionalInfo={inputArtifactError.message}
+              additionalInfo={error.message}
             />
           )}
 
@@ -124,10 +80,14 @@ export function InputOutputTab({ execution }: IOTabProps) {
             fields={inputParams}
           />
 
-          <ArtifactPreview
+          <DetailsTable<string>
             key={`input-artifacts-${executionId}`}
             title='Artifacts'
             fields={inputArtifacts}
+            valueComponent={ArtifactPreview}
+            valueComponentProps={{
+              namespace: namespace,
+            }}
           />
 
           <div className={padding(20, 'tb')} />
@@ -140,10 +100,14 @@ export function InputOutputTab({ execution }: IOTabProps) {
             fields={outputParams}
           />
 
-          <ArtifactPreview
+          <DetailsTable<string>
             key={`output-artifacts-${executionId}`}
             title='Artifacts'
             fields={outputArtifacts}
+            valueComponent={ArtifactPreview}
+            valueComponentProps={{
+              namespace: namespace,
+            }}
           />
         </div>
       </div>
@@ -194,41 +158,12 @@ function prettyPrintValue(value: string | number | Struct | undefined): string {
   return JSON.stringify(jsObject?.struct || jsObject?.list || jsObject, null, 2);
 }
 
-function getArtifactParamList(inputArtifactData: Artifact[]): ParamList {
-  return inputArtifactData.map(artifact => [
-    (getResourceProperty(artifact, ArtifactProperties.NAME) ||
-      getResourceProperty(artifact, ArtifactCustomProperties.NAME, true) ||
-      '') as string,
-    artifact.getUri(),
+function getArtifactParamList(inputArtifacts: LinkedArtifact[]): ParamList {
+  return inputArtifacts.map(linkedArtifact => [
+    linkedArtifact.event
+      .getPath()
+      ?.getStepsList()[0]
+      .getKey(),
+    linkedArtifact.artifact.getUri(),
   ]);
-}
-
-interface ArtifactPreviewProps extends ValueComponentProps<string> {
-  fields: Array<KeyValue<string>>;
-  title?: string;
-}
-
-function ArtifactPreview(props: ArtifactPreviewProps) {
-  const { fields, title } = props;
-  return (
-    <>
-      {!!title && <div className={commonCss.header2}>{title}</div>}
-      <div>
-        {fields.map((f, i) => {
-          const [key, value] = f;
-          if (typeof value === 'string') {
-            return (
-              <div key={i} className={css.row}>
-                <span className={css.key}>{key}</span>
-                <span className={css.valueText}>
-                  <span>{value ? <ArtifactLink artifactUri={value} /> : `${value || ''}`}</span>
-                </span>
-              </div>
-            );
-          }
-          return null;
-        })}
-      </div>
-    </>
-  );
 }

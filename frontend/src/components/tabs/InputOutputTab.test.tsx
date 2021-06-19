@@ -14,34 +14,61 @@
  * limitations under the License.
  */
 
-import { Artifact, Execution, Value } from '@kubeflow/frontend';
+import {
+  Api,
+  Artifact,
+  Execution,
+  Value,
+  Event,
+  GetArtifactsByIDResponse,
+  GetEventsByExecutionIDsResponse,
+} from '@kubeflow/frontend';
 import { render, waitFor, screen } from '@testing-library/react';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import React from 'react';
+import { Apis } from 'src/lib/Apis';
 import * as mlmdUtils from 'src/lib/MlmdUtils';
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import InputOutputTab from './InputOutputTab';
 
 const executionName = 'fake-execution';
-const artifactName = 'artifactName';
-const artifactUri = 'gs://test';
+const artifactId = 100;
+const artifactUri = 'gs://bucket/test';
+const artifactUriView = 'gcs://bucket/test';
+const inputArtifactName = 'input_artifact';
+const outputArtifactName = 'output_artifact';
+const namespace = 'namespace';
 
 testBestPractices();
 describe('InoutOutputTab', () => {
   it('shows execution title', () => {
+    jest
+      .spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs')
+      .mockResolvedValue(new GetEventsByExecutionIDsResponse());
+    jest
+      .spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByID')
+      .mockReturnValue(new GetArtifactsByIDResponse());
+
     render(
       <CommonTestWrapper>
-        <InputOutputTab execution={buildBasicExecution()}></InputOutputTab>
+        <InputOutputTab execution={buildBasicExecution()} namespace={namespace}></InputOutputTab>
       </CommonTestWrapper>,
     );
     screen.getByText(executionName, { selector: 'a', exact: false });
   });
 
   it('shows Input/Output artifacts and parameters title', () => {
+    jest
+      .spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs')
+      .mockResolvedValue(new GetEventsByExecutionIDsResponse());
+    jest
+      .spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByID')
+      .mockReturnValue(new GetArtifactsByIDResponse());
+
     render(
       <CommonTestWrapper>
-        <InputOutputTab execution={buildBasicExecution()}></InputOutputTab>
+        <InputOutputTab execution={buildBasicExecution()} namespace={namespace}></InputOutputTab>
       </CommonTestWrapper>,
     );
     screen.getByText('Input');
@@ -51,8 +78,12 @@ describe('InoutOutputTab', () => {
   });
 
   it('shows Input parameters with various types', async () => {
-    jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockResolvedValueOnce([]);
-    jest.spyOn(mlmdUtils, 'getInputArtifactsInExecution').mockResolvedValueOnce([]);
+    jest
+      .spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs')
+      .mockResolvedValue(new GetEventsByExecutionIDsResponse());
+    jest
+      .spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByID')
+      .mockReturnValue(new GetArtifactsByIDResponse());
 
     const execution = buildBasicExecution();
     execution
@@ -77,7 +108,7 @@ describe('InoutOutputTab', () => {
       );
     render(
       <CommonTestWrapper>
-        <InputOutputTab execution={execution}></InputOutputTab>
+        <InputOutputTab execution={execution} namespace={namespace}></InputOutputTab>
       </CommonTestWrapper>,
     );
 
@@ -93,8 +124,12 @@ describe('InoutOutputTab', () => {
   });
 
   it('shows Output parameters with various types', async () => {
-    jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockResolvedValueOnce([]);
-    jest.spyOn(mlmdUtils, 'getInputArtifactsInExecution').mockResolvedValueOnce([]);
+    jest
+      .spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs')
+      .mockResolvedValue(new GetEventsByExecutionIDsResponse());
+    jest
+      .spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByID')
+      .mockReturnValue(new GetArtifactsByIDResponse());
 
     const execution = buildBasicExecution();
     execution
@@ -119,7 +154,7 @@ describe('InoutOutputTab', () => {
       );
     render(
       <CommonTestWrapper>
-        <InputOutputTab execution={execution}></InputOutputTab>
+        <InputOutputTab execution={execution} namespace={namespace}></InputOutputTab>
       </CommonTestWrapper>,
     );
 
@@ -135,31 +170,49 @@ describe('InoutOutputTab', () => {
   });
 
   it('shows Input artifacts', async () => {
-    const artifact = buildArtifact();
-    jest.spyOn(mlmdUtils, 'getInputArtifactsInExecution').mockResolvedValueOnce([artifact]);
-    jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockResolvedValueOnce([]);
+    jest.spyOn(Apis, 'readFile').mockResolvedValue('artifact preview');
+    const getEventResponse = new GetEventsByExecutionIDsResponse();
+    getEventResponse.getEventsList().push(buildInputEvent());
+    jest
+      .spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs')
+      .mockResolvedValueOnce(getEventResponse);
+    const getArtifactsResponse = new GetArtifactsByIDResponse();
+    getArtifactsResponse.getArtifactsList().push(buildArtifact());
+    jest
+      .spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByID')
+      .mockReturnValueOnce(getArtifactsResponse);
+
     render(
       <CommonTestWrapper>
-        <InputOutputTab execution={buildBasicExecution()}></InputOutputTab>
+        <InputOutputTab execution={buildBasicExecution()} namespace={namespace}></InputOutputTab>
       </CommonTestWrapper>,
     );
 
-    await waitFor(() => screen.getByText(artifactName));
-    await waitFor(() => screen.getByText(artifactUri));
+    await waitFor(() => screen.getByText(artifactUriView));
+    await waitFor(() => screen.getByText(inputArtifactName));
   });
 
   it('shows Output artifacts', async () => {
-    const artifact = buildArtifact();
-    jest.spyOn(mlmdUtils, 'getInputArtifactsInExecution').mockResolvedValueOnce([]);
-    jest.spyOn(mlmdUtils, 'getOutputArtifactsInExecution').mockResolvedValueOnce([artifact]);
+    jest.spyOn(Apis, 'readFile').mockResolvedValue('artifact preview');
+    const getEventResponse = new GetEventsByExecutionIDsResponse();
+    getEventResponse.getEventsList().push(buildOutputEvent());
+    jest
+      .spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs')
+      .mockResolvedValueOnce(getEventResponse);
+    const getArtifactsResponse = new GetArtifactsByIDResponse();
+    getArtifactsResponse.getArtifactsList().push(buildArtifact());
+    jest
+      .spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByID')
+      .mockReturnValueOnce(getArtifactsResponse);
+
     render(
       <CommonTestWrapper>
-        <InputOutputTab execution={buildBasicExecution()}></InputOutputTab>
+        <InputOutputTab execution={buildBasicExecution()} namespace={namespace}></InputOutputTab>
       </CommonTestWrapper>,
     );
 
-    await waitFor(() => screen.getByText(artifactName));
-    await waitFor(() => screen.getByText(artifactUri));
+    await waitFor(() => screen.getByText(artifactUriView));
+    await waitFor(() => screen.getByText(outputArtifactName));
   });
 });
 
@@ -175,7 +228,30 @@ function buildBasicExecution() {
 
 function buildArtifact() {
   const artifact = new Artifact();
-  artifact.getCustomPropertiesMap().set('name', new Value().setStringValue(artifactName));
+  artifact.getCustomPropertiesMap();
   artifact.setUri(artifactUri);
+  artifact.setId(artifactId);
   return artifact;
+}
+
+function buildInputEvent() {
+  const event = new Event();
+  const path = new Event.Path();
+  path.getStepsList().push(new Event.Path.Step().setKey(inputArtifactName));
+  event
+    .setType(Event.Type.INPUT)
+    .setArtifactId(artifactId)
+    .setPath(path);
+  return event;
+}
+
+function buildOutputEvent() {
+  const event = new Event();
+  const path = new Event.Path();
+  path.getStepsList().push(new Event.Path.Step().setKey(outputArtifactName));
+  event
+    .setType(Event.Type.OUTPUT)
+    .setArtifactId(artifactId)
+    .setPath(path);
+  return event;
 }

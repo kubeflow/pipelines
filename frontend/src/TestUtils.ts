@@ -163,7 +163,13 @@ export function expectWarnings() {
   };
 }
 
-export const queryClientTest = new QueryClient();
+export const queryClientTest = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+  },
+});
 export function testBestPractices() {
   beforeEach(async () => {
     queryClientTest.clear();

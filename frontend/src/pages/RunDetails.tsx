@@ -149,6 +149,7 @@ interface RunDetailsState {
   mlmdRunContext?: Context;
   mlmdExecutions?: Execution[];
   showReducedGraph?: boolean;
+  namespace?: string;
 }
 
 export const css = stylesheet({
@@ -427,7 +428,10 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                 {sidepanelSelectedTab === SidePaneTab.INPUT_OUTPUT &&
                                   isV2Pipeline(workflow) &&
                                   selectedExecution && (
-                                    <InputOutputTab execution={selectedExecution} />
+                                    <InputOutputTab
+                                      execution={selectedExecution}
+                                      namespace={namespace}
+                                    />
                                   )}
 
                                 {sidepanelSelectedTab === SidePaneTab.TASK_DETAILS && (
@@ -697,8 +701,10 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
 
       const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(runDetail.run);
       let experiment: ApiExperiment | undefined;
+      let namespace: string | undefined;
       if (relatedExperimentId) {
         experiment = await Apis.experimentServiceApi.getExperiment(relatedExperimentId);
+        namespace = RunUtils.getNamespaceReferenceName(experiment);
       }
 
       const runMetadata = runDetail.run!;
@@ -832,6 +838,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         workflow,
         mlmdRunContext,
         mlmdExecutions,
+        namespace,
       });
     } catch (err) {
       await this.showPageError(`Error: failed to retrieve run: ${runId}.`, err);
