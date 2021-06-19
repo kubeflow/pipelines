@@ -2,6 +2,7 @@ package storage
 
 import (
 	"database/sql"
+	"fmt"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -17,9 +18,9 @@ var (
 		"UUID",
 		"Namespace",
 		"PipelineName",
+		"RunUUID",
 		"MLMDExecutionID",
 		"CreatedTimestamp",
-		"StorageState",
 		"FinishedTimestamp",
 		"Fingerprint",
 	}
@@ -65,7 +66,7 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 			"RunUUID":          newTask.RunUUID,
 			"MLMDExecutionID":  newTask.MLMDExecutionID,
 			"CreatedTimestamp": newTask.CreatedTimestamp,
-			"FinishedTimestamp":   newTask.FinishedTimestamp,
+			"FinishedTimestamp":newTask.FinishedTimestamp,
 			"Fingerprint":      newTask.Fingerprint,
 		}).
 		ToSql()
@@ -85,9 +86,10 @@ func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
 	var tasks []*model.Task
 	for rows.Next() {
 		var uuid, namespace, pipelineName, runUUID, mlmdExecutionID, fingerprint string
-		var createdTimestamp, endedTimestamp int64
-		err := rows.Scan(&uuid, &namespace, &pipelineName, &runUUID, &namespace, &mlmdExecutionID, createdTimestamp, endedTimestamp, fingerprint)
+		var createdTimestamp, finishedTimestamp int64
+		err := rows.Scan(&uuid, &namespace, &pipelineName, &runUUID, &mlmdExecutionID, &createdTimestamp, &finishedTimestamp, &fingerprint)
 		if err != nil {
+			fmt.Printf("scan error is %v", err)
 			return tasks, err
 		}
 		task := &model.Task{
@@ -97,7 +99,7 @@ func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
 			RunUUID:           runUUID,
 			MLMDExecutionID:   mlmdExecutionID,
 			CreatedTimestamp:  createdTimestamp,
-			FinishedTimestamp: endedTimestamp,
+			FinishedTimestamp: finishedTimestamp,
 			Fingerprint:       fingerprint,
 		}
 		tasks = append(tasks, task)
@@ -180,3 +182,27 @@ func (s *TaskStore) ListTasks(filterContext *common.FilterContext, opts *list.Op
 	return exps[:opts.PageSize], total_size, npt, err
 }
 
+func (s *TaskStore) GetTask(id string) (*model.Task, error) {
+	sql, args, err := sq.
+		Select(taskColumns...).
+		From("tasks").
+		Where(sq.Eq{"tasks.uuid": id}).
+		Limit(1).ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create query to get pipeline: %v", err.Error())
+	}
+	r, err := s.db.Query(sql, args...)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to get pipeline: %v", err.Error())
+	}
+	defer r.Close()
+	tasks, err := s.scanRows(r)
+
+	if err != nil || len(tasks) > 1 {
+		return nil, util.NewInternalServerError(err, "Failed to get pipeline: %v", err.Error())
+	}
+	if len(tasks) == 0 {
+		return nil, util.NewResourceNotFoundError("task", fmt.Sprint(id))
+	}
+	return tasks[0], nil
+}

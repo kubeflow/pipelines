@@ -458,7 +458,7 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = defaultPipelineRunnerServiceAccount
-	expectedRunDetail := &model.RunDetail{
+	expectedRunDetail := f&model.RunDetail{
 		Run: model.Run{
 			UUID:           "123e4567-e89b-12d3-a456-426655440000",
 			ExperimentUUID: expectedExperimentUUID,

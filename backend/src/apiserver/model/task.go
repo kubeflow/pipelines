@@ -12,7 +12,7 @@ type Task struct {
 }
 
 func (t Task) PrimaryKeyColumnName() string {
-	return t.UUID
+	return "UUID"
 }
 
 func (t Task) DefaultSortField() string {
@@ -20,7 +20,7 @@ func (t Task) DefaultSortField() string {
 }
 
 func (t Task) APIToModelFieldMap() map[string]string {
-	panic("implement me")
+	return taskAPIToModelFieldMap
 }
 
 func (t Task) GetModelName() string {
