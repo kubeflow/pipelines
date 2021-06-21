@@ -158,7 +158,9 @@ if trainer.ptl_trainer.global_rank == 0:
         "EXPORT_PATH":
             args["checkpoint_dir"],
         "CONFIG_PROPERTIES":
-            "https://kubeflow-dataset.s3.us-east-2.amazonaws.com/config.properties",
+            os.path.join(cifar_dir, "config.properties"),
+        "REQUIREMENTS_FILE":
+            os.path.join(cifar_dir, "requirements.txt")
     }
 
     MarGeneration(mar_config=mar_config, mar_save_path=args["checkpoint_dir"])

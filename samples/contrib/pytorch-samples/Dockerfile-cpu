@@ -52,7 +52,7 @@ RUN conda install pytorch -c pytorch \
 
 WORKDIR /home/user/
 
-COPY . .
+COPY --chown=user:user . .
 
 RUN pip install --no-cache-dir -r /home/user/requirements.txt
 
