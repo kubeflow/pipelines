@@ -27,7 +27,10 @@ from matplotlib.colors import LinearSegmentedColormap
 from captum.attr import visualization as viz
 from captum.attr import (
     IntegratedGradients,
-    Occlusion
+    Occlusion,
+    LayerGradCam, 
+    LayerAttribution
+
 )
 from ts.torch_handler.image_classifier import ImageClassifier
 from classifier import CIFAR10CLASSIFIER
@@ -36,6 +39,7 @@ from torchvision import transforms
 import torch
 from io import BytesIO
 from base64 import b64encode
+from matplotlib import pyplot as plt
 
 logger = logging.getLogger(__name__)
 
@@ -83,9 +87,9 @@ class CIFAR10Classification(ImageClassifier, ABC):
             logger.warning("Missing the class_mapping.json file.")
 
         self.ig = IntegratedGradients(self.model)
-        # self.layer_gradcam = LayerGradCam(
-        #     self.model, self.model.model_conv.layer4[2].conv3
-        # )
+        self.layer_gradcam = LayerGradCam(
+            self.model, self.model.model_conv.layer4[2].conv3
+        )
         self.occlusion = Occlusion(self.model)
         self.initialized = True
         self.image_processing = transforms.Compose(
@@ -147,7 +151,8 @@ class CIFAR10Classification(ImageClassifier, ABC):
 
     def output_bytes(self, fig):
         fout = BytesIO()
-        fig.savefig(fout)
+        fig.savefig(fout,format='png')
+        fout.seek(0)
         return fout.getvalue()
 
     def get_insights(self, tensor_data, _, target=0):
@@ -173,6 +178,13 @@ class CIFAR10Classification(ImageClassifier, ABC):
             baselines=tensor_data * 0,
         )
 
+        attributions_lgc = self.attribute_image_features(
+            self.layer_gradcam, tensor_data
+        )
+        
+        upsamp_attr_lgc = LayerAttribution.interpolate(attributions_lgc, tensor_data.shape[2:])
+
+
         matplot_viz_ig, _ = viz.visualize_image_attr_multiple(
             np.transpose(
                 attributions_ig.squeeze().cpu().detach().numpy(), (1, 2, 0)
@@ -187,7 +199,7 @@ class CIFAR10Classification(ImageClassifier, ABC):
             signs=["all", "positive"],
             titles=["Original", "Integrated Gradients"],
         )
-
+    
         matplot_viz_occ, _ = viz.visualize_image_attr_multiple(
             np.transpose(
                 attributions_occ.squeeze().cpu().detach().numpy(), (1, 2, 0)
@@ -195,25 +207,38 @@ class CIFAR10Classification(ImageClassifier, ABC):
             np.transpose(
                 tensor_data.squeeze().cpu().detach().numpy(), (1, 2, 0)
             ),
-            ["original_image", "heat_map", "heat_map", "masked_image"],
-            ["all", "positive", "negative", "positive"],
+            ["original_image", "heat_map", "heat_map",],
+            ["all", "positive", "negative"],
             show_colorbar=True,
             titles=[
                 "Original",
                 "Positive Attribution",
                 "Negative Attribution",
-                "Masked",
             ],
             fig_size=(18, 6),
             use_pyplot=False,
+
         )
+
+        matplot_viz_lgc, _ = viz.visualize_image_attr_multiple(upsamp_attr_lgc[0].cpu().permute(1,2,0).detach().numpy(),
+                                      tensor_data.squeeze().permute(1,2,0).numpy(),
+                                      use_pyplot=False,
+                                      methods= ["original_image","blended_heat_map","blended_heat_map"],
+                                      signs=["all","positive","negative"],
+                                      show_colorbar=True,
+                                      titles=["Original", 
+                                      "Positive Attribution", 
+                                      "Negative Attribution",],
+                                      fig_size=(18, 6))
+
         occ_bytes = self.output_bytes(matplot_viz_occ)
         ig_bytes = self.output_bytes(matplot_viz_ig)
+        lgc_bytes=self.output_bytes(matplot_viz_lgc)
 
         output = [
             {"b64": b64encode(row).decode("utf8")}
             if isinstance(row, (bytes, bytearray))
             else row
-            for row in [occ_bytes, ig_bytes]
+            for row in [ig_bytes,occ_bytes,lgc_bytes]
         ]
         return output
