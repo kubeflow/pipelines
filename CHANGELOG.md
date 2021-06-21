@@ -1,5 +1,19 @@
 # Changelog
 
+### [1.5.1](https://github.com/kubeflow/pipelines/compare/1.5.0...1.5.1) (2021-06-21)
+
+
+### Bug Fixes
+
+* **backend:** Fixed workflow cannot be retried with node xxx in Omitted ([\#5738](https://github.com/kubeflow/pipelines/issues/5738)) ([ab0bffa](https://github.com/kubeflow/pipelines/commit/ab0bffa59b828e45db952fd6ed6813379a6f9179))
+* **frontend:** Remove alphabetical sorting of the metrics column. Fixes [\#5215](https://github.com/kubeflow/pipelines/issues/5215) ([\#5701](https://github.com/kubeflow/pipelines/issues/5701)) ([3a1da31](https://github.com/kubeflow/pipelines/commit/3a1da312ab4818922382885e1d99455d461fddbb))
+* **frontend:** Truncate large Markdown file to prevent UI crashing.  Fix [\#5513](https://github.com/kubeflow/pipelines/issues/5513) ([\#5585](https://github.com/kubeflow/pipelines/issues/5585)) ([0510fb2](https://github.com/kubeflow/pipelines/commit/0510fb2975ec1d516c1723c43359eec396f28def))
+
+
+### Other Pull Requests
+
+* Add configurable connection max lifetime for MySQL ([\#5583](https://github.com/kubeflow/pipelines/issues/5583)) ([8ccf91b](https://github.com/kubeflow/pipelines/commit/8ccf91b90748dab52dacb0ef73fad12e395a1a42))
+
 ## [1.5.0](https://github.com/kubeflow/pipelines/compare/1.4.0...1.5.0) (2021-04-20)
 
 

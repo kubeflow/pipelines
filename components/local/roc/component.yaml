@@ -11,7 +11,7 @@ outputs:
   - {name: MLPipeline Metrics,     type: Metrics}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:1.5.0
+    image: gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:1.5.1
     command: [python2, /ml/roc.py]
     args: [
       --predictions,        {inputValue: Predictions dir},

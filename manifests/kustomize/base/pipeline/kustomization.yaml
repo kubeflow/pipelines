@@ -36,14 +36,14 @@ resources:
   - viewer-sa.yaml
 images:
   - name: gcr.io/ml-pipeline/api-server
-    newTag: 1.5.0
+    newTag: 1.5.1
   - name: gcr.io/ml-pipeline/persistenceagent
-    newTag: 1.5.0
+    newTag: 1.5.1
   - name: gcr.io/ml-pipeline/scheduledworkflow
-    newTag: 1.5.0
+    newTag: 1.5.1
   - name: gcr.io/ml-pipeline/frontend
-    newTag: 1.5.0
+    newTag: 1.5.1
   - name: gcr.io/ml-pipeline/viewer-crd-controller
-    newTag: 1.5.0
+    newTag: 1.5.1
   - name: gcr.io/ml-pipeline/visualization-server
-    newTag: 1.5.0
+    newTag: 1.5.1

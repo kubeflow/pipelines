@@ -63,7 +63,7 @@ Follow these steps to use the component in a pipeline:
 import kfp.components as comp
 
 dataflow_template_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/1.5.0/components/gcp/dataflow/launch_template/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/1.5.1/components/gcp/dataflow/launch_template/component.yaml')
 help(dataflow_template_op)
 ```
 
