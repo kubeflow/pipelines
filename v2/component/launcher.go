@@ -249,7 +249,8 @@ func (l *Launcher) RunComponent(ctx context.Context, cmdArgs []string) error {
 	if err != nil {
 		return fmt.Errorf("failure while generating ExecutorInput: %w", err)
 	}
-	outputParametersTypeMap:= make(map[string]string)
+	glog.Infof("ExecutorInput:\n%s\n=====", executorInput.String())
+	outputParametersTypeMap := make(map[string]string)
 	for outputParameterName, outputParameter := range l.runtimeInfo.OutputParameters {
 		outputParametersTypeMap[outputParameterName] = outputParameter.Type
 
@@ -389,16 +390,18 @@ func (l *Launcher) RunComponent(ctx context.Context, cmdArgs []string) error {
 		localDir, err := localPathForURI(outputArtifact.Uri)
 		if err != nil {
 			glog.Warningf("Output Artifact %q does not have a recognized storage URI %q. Skipping uploading to remote storage.", name, outputArtifact.Uri)
-			continue
-		}
-
-		blobKey, err := l.bucketConfig.keyFromURI(outputArtifact.Uri)
-		if err := uploadBlob(ctx, bucket, localDir, blobKey); err != nil {
-			//  We allow components to not produce output files
-			if errors.Is(err, os.ErrNotExist) {
-				glog.Warningf("local filepath %q does not exist", localDir)
-			} else {
-				return fmt.Errorf("failed to upload output artifact %q to remote storage URI %q: %w", name, outputArtifact.Uri, err)
+		} else {
+			blobKey, err := l.bucketConfig.keyFromURI(outputArtifact.Uri)
+			if err != nil {
+				return fmt.Errorf("failed to upload output artifact %q: %w", name, err)
+			}
+			if err := uploadBlob(ctx, bucket, localDir, blobKey); err != nil {
+				//  We allow components to not produce output files
+				if errors.Is(err, os.ErrNotExist) {
+					glog.Warningf("Local filepath %q does not exist", localDir)
+				} else {
+					return fmt.Errorf("failed to upload output artifact %q to remote storage URI %q: %w", name, outputArtifact.Uri, err)
+				}
 			}
 		}
 
@@ -427,6 +430,9 @@ func (l *Launcher) RunComponent(ctx context.Context, cmdArgs []string) error {
 		})
 
 		rtoa, ok := l.runtimeInfo.OutputArtifacts[name]
+		if !filepath.IsAbs(rtoa.MetadataPath) {
+			return metadataErr(fmt.Errorf("unexpected output artifact metadata file %q: must be absolute local path", rtoa.MetadataPath))
+		}
 		if !ok {
 			return metadataErr(errors.New("unable to find output artifact in RuntimeInfo"))
 		}
@@ -502,8 +508,6 @@ func localPathForURI(uri string) (string, error) {
 	}
 	return "", fmt.Errorf("found URI with unsupported storage scheme: %s", uri)
 }
-
-
 
 func (l *Launcher) prepareInputs(ctx context.Context, executorInput *pipeline_spec.ExecutorInput) error {
 	executorInputJSON, err := protojson.Marshal(executorInput)
