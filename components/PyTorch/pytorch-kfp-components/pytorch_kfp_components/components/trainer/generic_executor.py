@@ -24,11 +24,11 @@ class GenericExecutor(BaseExecutor):
     """Generic Executor Class that does nothing."""
 
     def Do(self, input_dict: dict, output_dict: dict, exec_properties: dict):
-        # TODO: Code to train pretrained model
+        #TODO: Code to train pretrained model  #pylint: disable=fixme
         pass
 
-    def _GetFnArgs(
-        self, input_dict: dict, output_dict: dict, execution_properties: dict
+    def _get_fn_args(  #pylint: disable=no-self-use
+        self, input_dict: dict, output_dict: dict, execution_properties: dict  #pylint: disable=unused-argument
     ):
         """Gets the input/output/execution properties from the dictionary.
 
@@ -68,7 +68,7 @@ class GenericExecutor(BaseExecutor):
             data_module_args,
         )
 
-    def derive_model_and_data_module_class(
+    def derive_model_and_data_module_class(  #pylint: disable=no-self-use
         self, module_file: str, data_module_file: str
     ):
         """Derives the model file and data modul file.

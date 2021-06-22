@@ -161,7 +161,7 @@ class Executor(BaseExecutor):
 
         print("Running Archiver cmd: ", archiver_cmd)
 
-        proc = subprocess.Popen(
+        proc = subprocess.Popen(  #pylint: disable=consider-using-with
             archiver_cmd,
             shell=True,
             stdout=subprocess.PIPE,

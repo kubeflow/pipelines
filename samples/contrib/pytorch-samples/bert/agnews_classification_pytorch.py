@@ -26,6 +26,8 @@ from pytorch_kfp_components.components.trainer.component import Trainer
 from pytorch_kfp_components.components.mar.component import MarGeneration
 from pytorch_kfp_components.components.utils.argument_parsing import parse_input_args
 # Argument parser for user defined paths
+import pytorch_lightning
+print("Using Pytorch Lighting: {}".format(pytorch_lightning.__version__))
 parser = ArgumentParser()
 
 parser.add_argument(
@@ -140,6 +142,11 @@ trainer = Trainer(
     trainer_args=trainer_args,
 )
 
+print("Generated tensorboard files")
+for root, dirs, files in os.walk(args["tensorboard_root"]):  # pylint: disable=unused-variable
+    for file in files:
+        print(file)
+
 model = trainer.ptl_trainer.get_model()
 
 if trainer.ptl_trainer.global_rank == 0:
@@ -161,13 +168,15 @@ if trainer.ptl_trainer.global_rank == 0:
         "EXPORT_PATH":
             CHECKPOINT_DIR,
         "CONFIG_PROPERTIES":
-            "https://kubeflow-dataset.s3.us-east-2.amazonaws.com/bert/config.properties",  # pylint: disable=line-too-long
+            os.path.join(bert_dir, "config.properties"),
         "EXTRA_FILES":
             "{},{},{}".format(
                 os.path.join(bert_dir, "bert-base-uncased-vocab.txt"),
                 os.path.join(bert_dir, "index_to_name.json"),
                 os.path.join(bert_dir, "wrapper.py")
-            )
+            ),
+        "REQUIREMENTS_FILE":
+            os.path.join(bert_dir, "requirements.txt")
     }
 
     MarGeneration(mar_config=mar_config, mar_save_path=CHECKPOINT_DIR)
@@ -223,3 +232,4 @@ if trainer.ptl_trainer.global_rank == 0:
         mlpipeline_metrics=args["mlpipeline_metrics"],
         markdown=markdown_dict,
     )
+

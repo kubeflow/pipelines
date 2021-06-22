@@ -95,6 +95,12 @@ existing [sample tests](../../samples/test) for how to implement the interface.
 
 Refer to [an existing test](../../samples/test/two_step_test.py).
 
+## FAQs
+
+1. Q: I'm getting error `main.go:56] Failed to execute component: unable to get pipeline with PipelineName "pipeline-with-lightweight-io" PipelineRunID "pipeline-with-lightweight-io-pmxzr": Failed PutParentContexts(parent_contexts:{child_id:174  parent_id:173}): rpc error: code = Unimplemented desc =`.
+
+   A: You need to upgrade metadata-grpc-service deployment to 1.0.0+. KFP manifest master branch includes the upgrade, but it hasn't been released yet. Therefore, you need to install KFP standalone from master: `kubectl apply -k manifests/kustomize/env/dev`.
+
 ## Implementation Details
 
 When kubeflow-pipelines-samples-v2 test is called from presubmit, it goes through
