@@ -30,17 +30,20 @@
               "inputs": {
                 "parameters": {
                   "message": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "Hello World!"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--message"
                   }
                 }
               },
               "taskInfo": {
                 "name": "print-op-2"
               }
+            }
+          }
+        },
+        "inputDefinitions": {
+          "parameters": {
+            "pipelineparam--message": {
+              "type": "STRING"
             }
           }
         }
@@ -147,6 +150,13 @@
             "componentRef": {
               "name": "comp-exit-handler-1"
             },
+            "inputs": {
+              "parameters": {
+                "pipelineparam--message": {
+                  "componentInputParameter": "message"
+                }
+              }
+            },
             "taskInfo": {
               "name": "exit-handler-1"
             }
@@ -177,12 +187,24 @@
             }
           }
         }
+      },
+      "inputDefinitions": {
+        "parameters": {
+          "message": {
+            "type": "STRING"
+          }
+        }
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.6.2"
+    "sdkVersion": "kfp-1.6.3"
   },
   "runtimeConfig": {
-    "gcsOutputDirectory": "dummy_root"
+    "gcsOutputDirectory": "dummy_root",
+    "parameters": {
+      "message": {
+        "stringValue": "Hello World!"
+      }
+    }
   }
 }

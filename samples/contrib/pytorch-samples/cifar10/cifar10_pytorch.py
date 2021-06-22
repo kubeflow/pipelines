@@ -21,7 +21,9 @@ from pytorch_lightning.callbacks import (
     LearningRateMonitor,
     ModelCheckpoint,
 )
-from pytorch_kfp_components.components.visualization.component import Visualization
+from pytorch_kfp_components.components.visualization.component import (
+    Visualization,
+)
 from pytorch_kfp_components.components.trainer.component import Trainer
 from pytorch_kfp_components.components.mar.component import MarGeneration
 from pytorch_kfp_components.components.utils.argument_parsing import parse_input_args
@@ -165,7 +167,7 @@ if trainer.ptl_trainer.global_rank == 0:
         "MODEL_FILE":
             os.path.join(cifar_dir, "cifar10_train.py"),
         "HANDLER":
-            "image_classifier",
+            os.path.join(cifar_dir, "cifar10_handler.py"),
         "SERIALIZED_FILE":
             os.path.join(CHECKPOINT_DIR, script_dict["model_name"]),
         "VERSION":
@@ -174,8 +176,13 @@ if trainer.ptl_trainer.global_rank == 0:
             CHECKPOINT_DIR,
         "CONFIG_PROPERTIES":
             os.path.join(cifar_dir, "config.properties"),
+        "EXTRA_FILES":
+            "{},{}".format(
+                os.path.join(cifar_dir, "class_mapping.json"),
+                os.path.join(cifar_dir, "classifier.py"),
+            ),
         "REQUIREMENTS_FILE":
-            os.path.join(cifar_dir, "requirements.txt")
+            os.path.join(cifar_dir, "requirements.txt"),
     }
 
     MarGeneration(mar_config=mar_config, mar_save_path=CHECKPOINT_DIR)
