@@ -1206,7 +1206,7 @@ const VisualizationsTabContent: React.FC<{
     // nodeStatus object instance will keep changing after new requests to get
     // workflow status.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodeId, execution?.getId(), nodeCompleted, onError, namespace]);
+  }, [nodeId, execution, nodeCompleted, onError, namespace]);
 
   return (
     <div className={commonCss.page}>

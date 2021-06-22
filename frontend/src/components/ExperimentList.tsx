@@ -187,12 +187,12 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
 
   private _getExpandedExperimentComponent(experimentIndex: number): JSX.Element {
     const experiment = this.state.displayExperiments[experimentIndex];
+    const parentProps = { ...this.props, onError: () => null };
     return (
       <RunList
         hideExperimentColumn={true}
         experimentIdMask={experiment.id}
-        onError={() => null}
-        {...this.props}
+        {...parentProps}
         disablePaging={false}
         noFilterBox={true}
         storageState={
