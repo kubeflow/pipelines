@@ -14,7 +14,7 @@
 
 import re
 
-from .. import dsl
+from kfp import dsl
 
 
 def sanitize_k8s_name(name, allow_capital_underscore=False):
@@ -67,11 +67,11 @@ def convert_k8s_obj_to_json(k8s_obj):
                    for sub_obj in k8s_obj)
     elif isinstance(k8s_obj, (datetime, date)):
       return k8s_obj.isoformat()
-    elif isinstance(k8s_obj, dsl.PipelineParam): 
+    elif isinstance(k8s_obj, dsl.PipelineParam):
       if isinstance(k8s_obj.value, str):
         return k8s_obj.value
       return '{{inputs.parameters.%s}}' % k8s_obj.full_name
-    
+
     if isinstance(k8s_obj, dict):
       obj_dict = k8s_obj
     else:

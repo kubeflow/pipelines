@@ -17,8 +17,8 @@
 from typing import Text
 import unittest
 from unittest import mock
-from . import gcp
-from . import utility
+from kfp.cli.diagnose_me import gcp
+from kfp.cli.diagnose_me import utility
 
 
 class GoogleCloudTest(unittest.TestCase):

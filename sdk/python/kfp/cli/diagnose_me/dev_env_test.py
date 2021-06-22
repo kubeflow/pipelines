@@ -17,8 +17,8 @@
 from typing import Text
 import unittest
 from unittest import mock
-from . import dev_env
-from . import utility
+from kfp.cli.diagnose_me import dev_env
+from kfp.cli.diagnose_me import utility
 
 
 class DevEnvTest(unittest.TestCase):
