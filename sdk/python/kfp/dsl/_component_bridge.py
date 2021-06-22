@@ -202,6 +202,19 @@ def _create_container_op_from_component_and_arguments(
   Returns:
     A ContainerOp instance.
   """
+
+  # Add component inputs with default value to the arguments dict if they are not
+  # in the arguments dict already.
+  arguments = arguments.copy()
+  for input_spec in component_spec.inputs or []:
+    if input_spec.name not in arguments and input_spec.default is not None:
+      default_value = input_spec.default
+      if input_spec.type == 'Integer':
+        default_value = int(default_value)
+      elif input_spec.type == 'Float':
+        default_value = float(default_value)
+      arguments[input_spec.name] = default_value
+
   # Check types of the reference arguments and serialize PipelineParams
   original_arguments = arguments
   arguments = arguments.copy()
@@ -458,18 +471,6 @@ def _attach_v2_specs(
       param for param in arguments.values()
       if isinstance(param, _pipeline_param.PipelineParam)
   ])
-
-  # Add component inputs with default value to the arguments dict if they are not
-  # in the arguments dict already.
-  for input_spec in component_spec.inputs or []:
-    if input_spec.name not in arguments and input_spec.default is not None:
-      default_value = input_spec.default
-      if input_spec.type == 'Integer':
-        default_value = int(default_value)
-      elif input_spec.type == 'Float':
-        default_value = float(default_value)
-      arguments[input_spec.name] = default_value
-
 
   for input_name, argument_value in arguments.items():
     input_type = component_spec._inputs_dict[input_name].type
