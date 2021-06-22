@@ -222,7 +222,7 @@
                 "num_steps": {
                   "runtimeValue": {
                     "constantValue": {
-                      "intValue": "5"
+                      "intValue": "100"
                     }
                   }
                 }
@@ -243,7 +243,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.6.0-rc.0"
+    "sdkVersion": "kfp-1.6.3"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"

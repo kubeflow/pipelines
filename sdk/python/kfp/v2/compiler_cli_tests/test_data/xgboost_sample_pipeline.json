@@ -185,8 +185,20 @@
             }
           },
           "parameters": {
+            "booster": {
+              "type": "STRING"
+            },
             "label_column": {
               "type": "INT"
+            },
+            "learning_rate": {
+              "type": "DOUBLE"
+            },
+            "max_depth": {
+              "type": "INT"
+            },
+            "min_split_loss": {
+              "type": "DOUBLE"
             },
             "num_iterations": {
               "type": "INT"
@@ -222,8 +234,20 @@
             }
           },
           "parameters": {
+            "booster": {
+              "type": "STRING"
+            },
             "label_column_name": {
               "type": "STRING"
+            },
+            "learning_rate": {
+              "type": "DOUBLE"
+            },
+            "max_depth": {
+              "type": "INT"
+            },
+            "min_split_loss": {
+              "type": "DOUBLE"
             },
             "num_iterations": {
               "type": "INT"
@@ -393,6 +417,14 @@
               "{{$.inputs.parameters['num_iterations']}}",
               "--objective",
               "{{$.inputs.parameters['objective']}}",
+              "--booster",
+              "{{$.inputs.parameters['booster']}}",
+              "--learning-rate",
+              "{{$.inputs.parameters['learning_rate']}}",
+              "--min-split-loss",
+              "{{$.inputs.parameters['min_split_loss']}}",
+              "--max-depth",
+              "{{$.inputs.parameters['max_depth']}}",
               "--model",
               "{{$.outputs.artifacts['model'].path}}",
               "--model-config",
@@ -421,6 +453,14 @@
               "{{$.inputs.parameters['num_iterations']}}",
               "--objective",
               "{{$.inputs.parameters['objective']}}",
+              "--booster",
+              "{{$.inputs.parameters['booster']}}",
+              "--learning-rate",
+              "{{$.inputs.parameters['learning_rate']}}",
+              "--min-split-loss",
+              "{{$.inputs.parameters['min_split_loss']}}",
+              "--max-depth",
+              "{{$.inputs.parameters['max_depth']}}",
               "--model",
               "{{$.outputs.artifacts['model'].path}}",
               "--model-config",
@@ -672,10 +712,38 @@
                 }
               },
               "parameters": {
+                "booster": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "gbtree"
+                    }
+                  }
+                },
                 "label_column": {
                   "runtimeValue": {
                     "constantValue": {
                       "intValue": "0"
+                    }
+                  }
+                },
+                "learning_rate": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "doubleValue": 0.3
+                    }
+                  }
+                },
+                "max_depth": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "intValue": "6"
+                    }
+                  }
+                },
+                "min_split_loss": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "doubleValue": 0.0
                     }
                   }
                 },
@@ -716,10 +784,38 @@
                 }
               },
               "parameters": {
+                "booster": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "gbtree"
+                    }
+                  }
+                },
                 "label_column_name": {
                   "runtimeValue": {
                     "constantValue": {
                       "stringValue": "tips"
+                    }
+                  }
+                },
+                "learning_rate": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "doubleValue": 0.3
+                    }
+                  }
+                },
+                "max_depth": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "intValue": "6"
+                    }
+                  }
+                },
+                "min_split_loss": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "doubleValue": 0.0
                     }
                   }
                 },
@@ -747,7 +843,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.6.0-rc.0"
+    "sdkVersion": "kfp-1.6.3"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"

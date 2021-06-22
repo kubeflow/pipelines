@@ -451,7 +451,6 @@ def _attach_v2_specs(
   pipeline_task_spec = pipeline_spec_pb2.PipelineTaskSpec()
 
   # Check types of the reference arguments and serialize PipelineParams
-  original_arguments = arguments
   arguments = arguments.copy()
 
   # Preserve input params for ContainerOp.inputs
@@ -459,6 +458,18 @@ def _attach_v2_specs(
       param for param in arguments.values()
       if isinstance(param, _pipeline_param.PipelineParam)
   ])
+
+  # Add component inputs with default value to the arguments dict if they are not
+  # in the arguments dict already.
+  for input_spec in component_spec.inputs or []:
+    if input_spec.name not in arguments and input_spec.default is not None:
+      default_value = input_spec.default
+      if input_spec.type == 'Integer':
+        default_value = int(default_value)
+      elif input_spec.type == 'Float':
+        default_value = float(default_value)
+      arguments[input_spec.name] = default_value
+
 
   for input_name, argument_value in arguments.items():
     input_type = component_spec._inputs_dict[input_name].type
@@ -594,7 +605,7 @@ def _attach_v2_specs(
   pipeline_task_spec.task_info.name = (dsl_utils.sanitize_task_name(task.name))
 
   resolved_cmd = _resolve_commands_and_args_v2(
-      component_spec=component_spec, arguments=original_arguments)
+      component_spec=component_spec, arguments=arguments)
 
   task.container_spec = (
       pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec(
