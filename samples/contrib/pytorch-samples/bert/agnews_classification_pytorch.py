@@ -161,7 +161,7 @@ if trainer.ptl_trainer.global_rank == 0:
         "EXPORT_PATH":
             CHECKPOINT_DIR,
         "CONFIG_PROPERTIES":
-            "https://kubeflow-dataset.s3.us-east-2.amazonaws.com/bert/config.properties",
+            "https://kubeflow-dataset.s3.us-east-2.amazonaws.com/bert/config.properties",  # pylint: disable=line-too-long
         "EXTRA_FILES":
             "{},{},{}".format(
                 os.path.join(bert_dir, "bert-base-uncased-vocab.txt"),

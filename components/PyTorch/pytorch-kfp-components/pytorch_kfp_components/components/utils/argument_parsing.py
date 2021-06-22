@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-def parse_input_args(input_str:str):
+
+def parse_input_args(input_str: str):
+    """Utility to parse input string arguments. Returns a dictionary"""
     output_dict = {}
     if not input_str:
         raise ValueError("Empty input string: {}".format(input_str))
@@ -27,8 +29,11 @@ def parse_input_args(input_str:str):
     for each_key in key_pairs:
         try:
             key, value = each_key.split("=")
-        except ValueError:
-            raise ValueError("Expected input format 'key1=value1, key2=value2' but received {}".format(input_str))
+        except ValueError as value_error:
+            raise ValueError("Expected input format "
+                             "'key1=value1, key2=value2' "
+                             "but received {}".format(input_str)) \
+                from value_error
         if value.isdigit():
             value = int(value)
         output_dict[key] = value
