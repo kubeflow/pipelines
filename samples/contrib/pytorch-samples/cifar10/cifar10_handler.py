@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # pylint: disable=no-self-use,too-many-arguments,unused-argument,not-callable
-
-
 """ Cifar10 Custom Handler."""
 from abc import ABC
 import os
@@ -48,9 +46,8 @@ class CIFAR10Classification(ImageClassifier, ABC):
         serialized_file = self.manifest["model"]["serializedFile"]
         model_pt_path = os.path.join(model_dir, serialized_file)
         self.device = torch.device(
-            "cuda:" + str(properties.get("gpu_id"))
-            if torch.cuda.is_available()
-            else "cpu"
+            "cuda:" + str(properties.get("gpu_id")) if torch.cuda.is_available(
+            ) else "cpu"
         )
 
         self.model = CIFAR10CLASSIFIER()
