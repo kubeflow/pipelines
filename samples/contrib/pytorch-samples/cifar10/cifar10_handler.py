@@ -50,9 +50,9 @@ class CIFAR10Classification(ImageClassifier, ABC):
     """
 
     def initialize(self, ctx):
-        """In this initialize function, the Titanic trained model is loaded and
-        the Integrated Gradients Algorithm for Captum Explanations
-        is initialized here.
+        """In this initialize function, the CIFAR10 trained model is loaded and
+        the Integrated Gradients,occlusion and layer_gradcam Algorithm for 
+        Captum Explanations is initialized here.
         Args:
             ctx (context): It is a JSON Object containing information
             pertaining to the model artifacts parameters.
@@ -121,7 +121,7 @@ class CIFAR10Classification(ImageClassifier, ABC):
         return image
 
     def preprocess(self, data):
-        """The preprocess function of MNIST program converts the input data to a float tensor
+        """The preprocess function of cifar10 program converts the input data to a float tensor
         Args:
             data (List): Input data from the request is in the form of a Tensor
         Returns:
