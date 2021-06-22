@@ -13,17 +13,20 @@
 # limitations under the License.
 # pylint: disable=no-self-use,too-many-arguments,unused-argument,not-callable
 """ Cifar10 Custom Handler."""
-from abc import ABC
-import os
-import torch
 import json
-import numpy as np
-from captum.attr import IntegratedGradients, Occlusion, LayerGradCam
-from ts.torch_handler.image_classifier import ImageClassifier
-from classifier import CIFAR10CLASSIFIER
 import logging
+import os
+from abc import ABC
+
+import numpy as np
+import torch
+from captum.attr import IntegratedGradients, Occlusion, LayerGradCam
+from classifier import CIFAR10CLASSIFIER
+from ts.torch_handler.image_classifier import ImageClassifier
 
 logger = logging.getLogger(__name__)
+
+#pylint: disable=attribute-defined-outside-init
 
 
 class CIFAR10Classification(ImageClassifier, ABC):
@@ -31,7 +34,7 @@ class CIFAR10Classification(ImageClassifier, ABC):
     Base class for all vision handlers
     """
 
-    def initialize(self, ctx):
+    def initialize(self, ctx):  #pylint: disable=arguments-differ
         """In this initialize function, the Titanic trained model is loaded and
         the Integrated Gradients Algorithm for Captum Explanations
         is initialized here.
@@ -45,7 +48,7 @@ class CIFAR10Classification(ImageClassifier, ABC):
         print("Model dir is {}".format(model_dir))
         serialized_file = self.manifest["model"]["serializedFile"]
         model_pt_path = os.path.join(model_dir, serialized_file)
-        self.device = torch.device(
+        self.device = torch.device(  #pylint: disable=no-member
             "cuda:" + str(properties.get("gpu_id")) if torch.cuda.is_available(
             ) else "cpu"
         )
@@ -61,8 +64,8 @@ class CIFAR10Classification(ImageClassifier, ABC):
         mapping_file_path = os.path.join(model_dir, "class_mapping.json")
         if os.path.isfile(mapping_file_path):
             print("Mapping file present")
-            with open(mapping_file_path) as f:
-                self.mapping = json.load(f)
+            with open(mapping_file_path) as file_pointer:
+                self.mapping = json.load(file_pointer)
         else:
             print("Mapping file missing")
             logger.warning("Missing the class_mapping.json file.")
@@ -75,6 +78,8 @@ class CIFAR10Classification(ImageClassifier, ABC):
         self.initialized = True
 
     def attribute_image_features(self, algorithm, data, **kwargs):
+        """Custom method to calculate attribute based on algorithm
+        """
         self.model.zero_grad()
         tensor_attributions = algorithm.attribute(data, target=0, **kwargs)
         return tensor_attributions
