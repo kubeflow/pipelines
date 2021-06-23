@@ -16,7 +16,12 @@
 
 set -ex
 
-wget https://github.com/Bobgy/go-licenses/releases/download/v0.0.0-2021-06-23/go-licenses-linux.tar.gz
+DOWNLOAD_URL="https://github.com/Bobgy/go-licenses/releases/download/v0.0.0-2021-06-23/go-licenses-linux.tar.gz"
+if which wget; then
+	wget "${DOWNLOAD_URL}"
+else
+	curl -LO "${DOWNLOAD_URL}"
+fi
 tar xvf go-licenses-linux.tar.gz
 mv go-licenses /usr/local/bin
 mv licenses /usr/local/bin

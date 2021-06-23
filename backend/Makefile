@@ -1,46 +1,39 @@
-BUILD=backend/build
+BUILD=build
+MOD_ROOT=..
+CSV_PATH=backend/third_party_licenses
 
 # Whenever build command for any of the binaries change, we should update them both here and in backend/Dockerfiles.
 
 .PHONY: all
-all: license_apiserver license_persistence_agent license_cache_server
+all: license_apiserver license_persistence_agent license_cache_server license_swf license_viewer
 
 $(BUILD)/apiserver:
 	GO111MODULE=on go build -o $(BUILD)/apiserver github.com/kubeflow/pipelines/backend/src/apiserver
+$(BUILD)/persistence_agent:
+	GO111MODULE=on go build -o $(BUILD)/persistence_agent github.com/kubeflow/pipelines/backend/src/agent/persistence
+$(BUILD)/cache_server:
+	GO111MODULE=on go build -o $(BUILD)/cache_server github.com/kubeflow/pipelines/backend/src/cache
+$(BUILD)/swf:
+	GO111MODULE=on go build -o $(BUILD)/swf github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow
+$(BUILD)/viewer:
+	GO111MODULE=on go build -o $(BUILD)/viewer github.com/kubeflow/pipelines/backend/src/crd/controller/viewer
 
 .PHONY: license_apiserver
 license_apiserver: $(BUILD)/apiserver
-	go-licenses csv $(BUILD)/apiserver | tee third_party/license_info.csv
-
-$(BUILD)/persistence_agent:
-	GO111MODULE=on go build -o $(BUILD)/persistence_agent github.com/kubeflow/pipelines/backend/src/agent/persistence
-
+	cd $(MOD_ROOT) && go-licenses csv backend/$(BUILD)/apiserver | tee $(CSV_PATH)/apiserver.csv
 .PHONY: license_persistence_agent
 license_persistence_agent: $(BUILD)/persistence_agent
-	go-licenses csv $(BUILD)/persistence_agent | tee third_party/persistence_agent/license_info.csv
-
-$(BUILD)/cache_server:
-	GO111MODULE=on go build -o $(BUILD)/cache_server github.com/kubeflow/pipelines/backend/src/cache
-
+	cd $(MOD_ROOT) && go-licenses csv backend/$(BUILD)/persistence_agent | tee $(CSV_PATH)/persistence_agent.csv
 .PHONY: license_cache_server
 license_cache_server: $(BUILD)/cache_server
-	go-licenses csv $(BUILD)/cache_server | tee third_party/cache_server/license_info.csv
-
-.PHONY: image_cache_server
-image_cache_server:
-	docker build -t cache-server -f backend/Dockerfile.cacheserver .
-
-$(BUILD)/swf:
-	GO111MODULE=on go build -o $(BUILD)/swf github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow
-
+	cd $(MOD_ROOT) && go-licenses csv backend/$(BUILD)/cache_server | tee $(CSV_PATH)/cache_server.csv
 .PHONY: license_swf
 license_swf: $(BUILD)/swf
-	go-licenses csv $(BUILD)/swf | tee third_party/swf/license_info.csv
-
-$(BUILD)/viewer:
-	go build -o $(BUILD)/viewer github.com/kubeflow/pipelines/backend/src/crd/controller/viewer
-
+	cd $(MOD_ROOT) && go-licenses csv backend/$(BUILD)/swf | tee $(CSV_PATH)/swf.csv
 .PHONY: license_viewer
 license_viewer: $(BUILD)/viewer
-	go-licenses csv $(BUILD)/viewer | tee third_party/viewer/license_info.csv
+	cd $(MOD_ROOT) && go-licenses csv backend/$(BUILD)/viewer | tee $(CSV_PATH)/viewer.csv
 
+.PHONY: image_cache
+image_cache:
+	docker build -t cache-server -f backend/Dockerfile.cacheserver .
