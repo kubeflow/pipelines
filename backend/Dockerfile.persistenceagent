@@ -23,7 +23,7 @@ RUN apk update && apk upgrade && \
 
 RUN GO111MODULE=on go build -o /bin/persistence_agent backend/src/agent/persistence/*.go
 # Check licenses and comply with license terms.
-RUN bash hack/install-go-licenses.sh
+RUN ./hack/install-go-licenses.sh
 RUN go-licenses csv /bin/persistence_agent > /tmp/licenses.csv && \
     diff /tmp/licenses.csv backend/third_party_licenses/persistence_agent.csv && \
     go-licenses save /tmp/licenses.csv --save_path /tmp/NOTICES

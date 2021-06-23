@@ -24,7 +24,7 @@ COPY . .
 RUN GO111MODULE=on go build -o /bin/cache_server backend/src/cache/*.go
 
 # Check licenses and comply with license terms.
-RUN bash hack/install-go-licenses.sh
+RUN ./hack/install-go-licenses.sh
 RUN go-licenses csv /bin/cache_server > /tmp/licenses.csv && \
     diff /tmp/licenses.csv backend/third_party_licenses/cache_server.csv && \
     go-licenses save /tmp/licenses.csv --save_path /tmp/NOTICES
