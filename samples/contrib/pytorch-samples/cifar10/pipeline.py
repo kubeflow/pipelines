@@ -29,7 +29,7 @@ EXPERIMENT = "Default"
 
 MINIO_ENDPOINT = "http://minio-service.kubeflow:9000"
 LOG_BUCKET = "mlpipeline"
-TENSORBOARD_IMAGE = "public.ecr.aws/y1x1p2u5/tboard:latest"
+TENSORBOARD_IMAGE = "public.ecr.aws/pytorch-samples/tboard:latest"
 
 DEPLOY_NAME = "torchserve"
 MODEL_NAME = "cifar10"
