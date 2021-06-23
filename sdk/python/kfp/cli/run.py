@@ -58,10 +58,11 @@ def list(ctx, experiment_id, max_size):
 @click.option('-w', '--watch', is_flag=True, default=False,
               help='Watch the run status until it finishes.')
 @click.option('-v', '--version', help='ID of the pipeline version.')
+@click.option('-t', '--timeout', default=0, help='Wait for a run to complete until timeout in seconds.', type=int)
 @click.argument('args', nargs=-1)
 @click.pass_context
 def submit(ctx, experiment_name, run_name, package_file, pipeline_id, pipeline_name, watch,
-           version, args):
+           timeout, version, args):
     """submit a KFP run"""
     client = ctx.obj['client']
     namespace = ctx.obj['namespace']
@@ -81,7 +82,10 @@ def submit(ctx, experiment_name, run_name, package_file, pipeline_id, pipeline_n
     experiment = client.create_experiment(experiment_name)
     run = client.run_pipeline(experiment.id, run_name, package_file, arg_dict, pipeline_id,
                               version_id=version)
-    _display_run(client, namespace, run.id, watch, output_format)
+    if timeout > 0:
+        _wait_for_run_completion(client, run.id, timeout, output_format)
+    else:
+        _display_run(client, namespace, run.id, watch, output_format)
 
 
 @run.command()
@@ -125,6 +129,11 @@ def _display_run(client, namespace, run_id, watch, output_format):
     if argo_workflow_name:
         subprocess.run([argo_path, 'watch', argo_workflow_name, '-n', namespace])
         _print_runs([run], output_format)
+
+
+def _wait_for_run_completion(client, run_id, timeout, output_format):
+    run_detail = client.wait_for_run_completion(run_id, timeout)
+    _print_runs([run_detail.run], output_format)
 
 
 def _print_runs(runs, output_format):
