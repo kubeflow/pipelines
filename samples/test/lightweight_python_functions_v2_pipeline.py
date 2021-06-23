@@ -87,8 +87,6 @@ def train(
     input_list: List[str],
     # An input parameter of type int with a default value.
     num_steps: int = 100,
-    # An input parameter of type string with default value.
-    message_with_default: str = 'hello world',
 ):
   """Dummy Training step"""
   with open(dataset_one_path, 'r') as input_file:
@@ -104,8 +102,6 @@ def train(
           f'input_dict: {input_dict}, type {type(input_dict)} || '
           f'input_list: {input_list}, type {type(input_list)} \n')
   
-  print(f'message_with_default="{message_with_default}"')
-
   with open(model.path, 'w') as output_file:
     for i in range(num_steps):
       output_file.write('Step {}\n{}\n=====\n'.format(i, line))
@@ -125,7 +121,7 @@ def pipeline(message: str = 'message'):
       input_bool=preprocess_task.outputs['output_bool_parameter'],
       input_dict=preprocess_task.outputs['output_dict_parameter'],
       input_list=preprocess_task.outputs['output_list_parameter'],
-      num_steps=5)
+  )
 
 
 if __name__ == '__main__':
