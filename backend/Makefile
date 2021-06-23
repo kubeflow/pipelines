@@ -34,6 +34,21 @@ license_swf: $(BUILD)/swf
 license_viewer: $(BUILD)/viewer
 	cd $(MOD_ROOT) && go-licenses csv backend/$(BUILD)/viewer | tee $(CSV_PATH)/viewer.csv
 
+.PHONY: image_all
+image_all: image_apiserver image_persistence_agent image_cache image_swf image_viewer
+
+.PHONY: image_apiserver
+image_apiserver:
+	cd $(MOD_ROOT) && docker build -t apiserver -f backend/Dockerfile .
+.PHONY: image_persistence_agent
+image_persistence_agent:
+	cd $(MOD_ROOT) && docker build -t persistence-agent -f backend/Dockerfile.persistenceagent .
 .PHONY: image_cache
 image_cache:
 	cd $(MOD_ROOT) && docker build -t cache-server -f backend/Dockerfile.cacheserver .
+.PHONY: image_swf
+image_swf:
+	cd $(MOD_ROOT) && docker build -t scheduledworkflow -f backend/Dockerfile.scheduledworkflow .
+.PHONY: image_viewer
+image_viewer:
+	cd $(MOD_ROOT) && docker build -t viewercontroller -f backend/Dockerfile.viewercontroller .
