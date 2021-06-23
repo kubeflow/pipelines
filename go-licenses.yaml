@@ -6,8 +6,6 @@ licenses:
 module:
   go:
     version: master
-  notices:
-    path: third_party/persistence/agent/NOTICES
   overrides:
   - name: github.com/kubeflow/pipelines
     excludePaths:
