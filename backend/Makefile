@@ -36,4 +36,4 @@ license_viewer: $(BUILD)/viewer
 
 .PHONY: image_cache
 image_cache:
-	docker build -t cache-server -f backend/Dockerfile.cacheserver .
+	cd $(MOD_ROOT) && docker build -t cache-server -f backend/Dockerfile.cacheserver .
