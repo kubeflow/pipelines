@@ -121,7 +121,7 @@ def pipeline(message: str):
       input_bool=preprocess_task.outputs['output_bool_parameter'],
       input_dict=preprocess_task.outputs['output_dict_parameter'],
       input_list=preprocess_task.outputs['output_list_parameter'],
-      num_steps=5)
+  )
 
 
 if __name__ == '__main__':
