@@ -28,9 +28,6 @@ RUN go-licenses csv /bin/controller > /tmp/licenses.csv && \
     go-licenses save /tmp/licenses.csv --save_path /tmp/NOTICES
 
 FROM alpine
-WORKDIR /src
-COPY --from=builder /src/github.com/kubeflow/pipelines/vendor vendor
-
 WORKDIR /bin
 
 COPY --from=builder /bin/controller /bin/controller

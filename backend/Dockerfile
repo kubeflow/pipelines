@@ -68,10 +68,9 @@ ENV TAG_NAME=${TAG_NAME}
 
 WORKDIR /bin
 
-COPY third_party/NOTICES /third_party/NOTICES
 COPY backend/src/apiserver/config/ /config
-
 COPY --from=builder /bin/apiserver /bin/apiserver
+
 # Copy licenses and notices.
 COPY --from=builder /tmp/licenses.csv /third_party/licenses.csv
 COPY --from=builder /tmp/NOTICES /third_party/NOTICES
