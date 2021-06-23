@@ -8,13 +8,18 @@ WORKDIR /go/src/github.com/kubeflow/pipelines
 COPY . .
 
 RUN GO111MODULE=on go build -o /bin/cache_server backend/src/cache/*.go
+
+# Check licenses and comply with license terms.
 RUN bash hack/install-go-licenses.sh
-RUN go-licenses save third_party/cache_server/license_info.csv --save_path NOTICES
+RUN go-licenses csv /bin/cache_server > /tmp/licenses.csv && \
+    diff /tmp/licenses.csv third_party/licenses/cache_server.csv && \
+    go-licenses save /tmp/licenses.csv --save_path /tmp/NOTICES
 
 FROM alpine:3.8
 WORKDIR /bin
 
 COPY --from=builder /bin/cache_server /bin/cache_server
-COPY --from=builder /go/src/github.com/kubeflow/pipelines/NOTICES /third_party/NOTICES
+COPY --from=builder /tmp/licenses.csv /third_party/licenses.csv
+COPY --from=builder /tmp/NOTICES /third_party/NOTICES
 
 ENTRYPOINT [ "/bin/cache_server" ]
