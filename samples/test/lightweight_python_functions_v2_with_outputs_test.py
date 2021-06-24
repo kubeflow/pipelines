@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from pprint import pprint
-from unicodedata import name
 import unittest
 import kfp
 import kfp_server_api
