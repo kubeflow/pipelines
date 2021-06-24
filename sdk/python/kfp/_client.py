@@ -23,6 +23,7 @@ import warnings
 import yaml
 import zipfile
 import datetime
+import copy
 from typing import Mapping, Callable, Optional
 
 import kfp_server_api
@@ -219,7 +220,8 @@ class Client(object):
       token = get_gcp_access_token()
       self._is_refresh_token = False
     elif credentials:
-      token = credentials.get_token()
+      config.api_key['authorization'] = 'placeholder'
+      config.api_key_prefix['authorization'] = 'Bearer'
       config.refresh_api_key_hook = credentials.refresh_api_key_hook
 
     if token:
@@ -316,10 +318,13 @@ class Client(object):
     # See https://github.com/kubeflow/pipelines/pull/5287#issuecomment-805654121
     from kfp import auth
     credentials = auth.ServiceAccountTokenVolumeCredentials()
+    config_copy = copy.deepcopy(config)
 
-    if not credentials.get_token():
-        logging.warning("Failed to retrieve a token using default credentials."
-                        " Proceeding without credentials...")
+    try:
+        credentials.refresh_api_key_hook(config_copy)
+    except Exception:
+        logging.warning("Failed to set up default credentials. Proceeding"
+                        " without credentials...")
         return config
 
     config.refresh_api_key_hook = credentials.refresh_api_key_hook

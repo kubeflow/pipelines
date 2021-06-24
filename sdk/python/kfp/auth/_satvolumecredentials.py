@@ -15,6 +15,8 @@
 import os
 import logging
 
+from kubernetes.client import configuration
+
 from kfp import auth
 
 
@@ -41,11 +43,27 @@ class ServiceAccountTokenVolumeCredentials(auth.TokenCredentialsBase):
                             or os.getenv(auth.KF_PIPELINES_SA_TOKEN_ENV)
                             or auth.KF_PIPELINES_SA_TOKEN_PATH)
 
-    def get_token(self):
+    def _get_token(self):
         token = None
         try:
             token = auth.read_token_from_file(self._token_path)
         except OSError as e:
             logging.error("Failed to read a token from file '%s' (%s).",
                           self._token_path, str(e))
+            raise
         return token
+
+    def refresh_api_key_hook(self, config: configuration.Configuration):
+        """Refresh the api key.
+
+        This is a helper function for registering token refresh with swagger
+        generated clients.
+
+        Args:
+            config (kubernetes.client.configuration.Configuration):
+                The configuration object that the client uses.
+
+                The Configuration object of the kubernetes client's is the same
+                with kfp_server_api.configuration.Configuration.
+        """
+        config.api_key["authorization"] = self._get_token()
