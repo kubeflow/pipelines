@@ -5,7 +5,11 @@
     "outDir": "build/dist",
     "module": "esnext",
     "target": "es5",
-    "lib": ["es6", "dom", "es2020"],
+    "lib": [
+      "es6",
+      "dom",
+      "es2020"
+    ],
     "sourceMap": true,
     "allowJs": true,
     "resolveJsonModule": true,
@@ -22,8 +26,9 @@
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
     "noEmit": true,
-    "strictPropertyInitialization": false, // temporary workaround blocked by @kubeflow/frontend
-    "strict": true
+    "strictPropertyInitialization": false,
+    "strict": true,
+    "noFallthroughCasesInSwitch": true
   },
   "exclude": [
     "__mocks__",
@@ -42,5 +47,7 @@
     "src/setupTests.ts",
     "webpack"
   ],
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }

@@ -14,32 +14,35 @@
  * limitations under the License.
  */
 
-import { Apis } from '../lib/Apis';
 import { ConfusionMatrixConfig } from '../components/viewers/ConfusionMatrix';
 import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
 import { MarkdownViewerConfig } from '../components/viewers/MarkdownViewer';
-import { OutputArtifactLoader, TEST_ONLY } from './OutputArtifactLoader';
 import { PagedTableConfig } from '../components/viewers/PagedTable';
-import { PlotType } from '../components/viewers/Viewer';
 import { ROCCurveConfig } from '../components/viewers/ROCCurve';
-import { StoragePath, StorageService } from './WorkflowParser';
 import { TensorboardViewerConfig } from '../components/viewers/Tensorboard';
+import { PlotType } from '../components/viewers/Viewer';
+import { Apis } from '../lib/Apis';
+import { OutputArtifactLoader, TEST_ONLY } from './OutputArtifactLoader';
+import { StoragePath, StorageService } from './WorkflowParser';
 
-beforeEach(() => {
-  jest.clearAllMocks();
+beforeEach(async () => {
+  jest.resetAllMocks();
 });
 
 describe('OutputArtifactLoader', () => {
   const storagePath: StoragePath = { bucket: 'b', key: 'k', source: StorageService.GCS };
-  const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => null);
+  const consoleSpy = jest.spyOn(console, 'error');
   let fileToRead: string;
-  const readFileSpy = jest
-    .spyOn(Apis, 'readFile')
-    .mockImplementation(() => Promise.resolve(fileToRead));
-  // Mocked in tests, because we test namespace separately.
-  const getSourceContent = jest.fn(async (source, storage) =>
-    TEST_ONLY.readSourceContent(source, storage, /* namespace */ undefined),
-  );
+  const readFileSpy = jest.spyOn(Apis, 'readFile');
+  let getSourceContent: jest.Mock;
+  beforeEach(() => {
+    consoleSpy.mockImplementation(() => null);
+    readFileSpy.mockImplementation(() => Promise.resolve(fileToRead));
+    // Mocked in tests, because we test namespace separately.
+    getSourceContent = jest.fn(async (source, storage) =>
+      TEST_ONLY.readSourceContent(source, storage, /* namespace */ undefined),
+    );
+  });
 
   describe('loadOutputArtifacts', () => {
     it('handles bad API call', async () => {

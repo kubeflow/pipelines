@@ -21,18 +21,25 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestGetParameters(t *testing.T) {
-	template := v1alpha1.Workflow{
-		TypeMeta: v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-		Spec: v1alpha1.WorkflowSpec{Arguments: v1alpha1.Arguments{
-			Parameters: []v1alpha1.Parameter{{Name: "name1", Value: v1alpha1.AnyStringPtr("value1")}}}}}
-	templateBytes, _ := yaml.Marshal(template)
-	paramString, err := GetParameters(templateBytes)
+	wf := unmarshalWf(template)
+	wf.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "dup", Value: v1alpha1.AnyStringPtr("value1")}}
+	templateBytes, _ := yaml.Marshal(wf)
+	paramString, err := GetParameters([]byte(templateBytes))
 	assert.Nil(t, err)
-	assert.Equal(t, `[{"name":"name1","value":"value1"}]`, paramString)
+	assert.Equal(t, `[{"name":"dup","value":"value1"}]`, paramString)
+}
+
+func TestFailValidation(t *testing.T) {
+	wf := unmarshalWf(emptyName)
+	wf.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "dup", Value: v1alpha1.AnyStringPtr("value1")}}
+	templateBytes, _ := yaml.Marshal(wf)
+	_, err := GetParameters([]byte(templateBytes))
+	if assert.NotNil(t, err) {
+		assert.Contains(t, err.Error(), "name is required")
+	}
 }
 
 func TestGetParameters_ParametersTooLong(t *testing.T) {
@@ -47,3 +54,44 @@ func TestGetParameters_ParametersTooLong(t *testing.T) {
 	_, err := GetParameters(templateBytes)
 	assert.Equal(t, codes.InvalidArgument, err.(*UserError).ExternalStatusCode())
 }
+
+func unmarshalWf(yamlStr string) *v1alpha1.Workflow {
+	var wf v1alpha1.Workflow
+	err := yaml.Unmarshal([]byte(yamlStr), &wf)
+	if err != nil {
+		panic(err)
+	}
+	return &wf
+}
+
+var template = `
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: hello-world-
+spec:
+  entrypoint: whalesay
+  templates:
+  - name: whalesay
+    inputs:
+      parameters:
+      - name: dup
+        value: "value1"
+    container:
+      image: docker/whalesay:latest`
+
+var emptyName = `
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: hello-world-
+spec:
+  entrypoint: whalesay
+  templates:
+  - name: whalesay
+    inputs:
+      parameters:
+      - name: ""
+        value: "value1"
+    container:
+      image: docker/whalesay:latest`

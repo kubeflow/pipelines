@@ -396,8 +396,8 @@ class LocalClient:
                         run_name, pipeline, op, stack
                     )
                 process = subprocess.Popen(
-                    subprocess.list2cmdline(cmd) if "sh" != cmd[0] else cmd,
-                    shell="sh" != cmd[0],
+                    cmd,
+                    shell=False,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     universal_newlines=True,

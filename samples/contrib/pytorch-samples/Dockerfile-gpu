@@ -53,7 +53,7 @@ RUN conda install pytorch cudatoolkit=10.2 -c pytorch \
 
 WORKDIR /home/user/
 
-COPY . .
+COPY --chown=user:user . .
 
 RUN pip install --no-cache-dir -r /home/user/requirements.txt
 

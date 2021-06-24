@@ -53,7 +53,7 @@ def add_measurement_for_trial_in_gcp_ai_platform_optimizer(
         client = storage.Client(project_id)
         bucket = client.get_bucket(_OPTIMIZER_API_DOCUMENT_BUCKET)
         blob = bucket.get_blob(_OPTIMIZER_API_DOCUMENT_FILE)
-        discovery_document = blob.download_as_string()
+        discovery_document = blob.download_as_bytes()
         return discovery.build_from_document(service=discovery_document)
 
     # Workaround for the Optimizer bug: Optimizer returns resource names that use project number, but only supports resource names with project IDs when making requests
@@ -84,7 +84,7 @@ def add_measurement_for_trial_in_gcp_ai_platform_optimizer(
         name=fix_resource_name(trial_name),
         body=measurement,
     ).execute()
-    
+
     if complete_trial:
         should_stop_trial = True
         complete_response = trials_api.complete(

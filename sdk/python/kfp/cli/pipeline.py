@@ -15,7 +15,7 @@
 import click
 import json
 
-from .output import print_output, OutputFormat
+from kfp.cli.output import print_output, OutputFormat
 
 
 @click.group()
