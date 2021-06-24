@@ -215,13 +215,13 @@ async function getLinkedArtifactsByEvents(events: Event[]): Promise<LinkedArtifa
     throw artifactsErr;
   }
 
-  const artifactMap = artifactsRes.getArtifactsList().reduce((map, artifact) => {
-    map[artifact.getId()] = artifact;
-    return map;
-  }, {});
+  const artifactMap = new Map();
+  for (const [, artifactEntry] of Object.entries(artifactsRes.getArtifactsList())) {
+    artifactMap.set(artifactEntry.getId(), artifactEntry);
+  }
 
   return events.map(event => {
-    const artifact = artifactMap[event.getArtifactId()];
+    const artifact = artifactMap.get(event.getArtifactId());
     return { event: event, artifact: artifact };
   });
 }

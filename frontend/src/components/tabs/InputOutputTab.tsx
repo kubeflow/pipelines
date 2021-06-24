@@ -18,6 +18,7 @@ import { Execution, getMetadataValue } from '@kubeflow/frontend';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import React from 'react';
 import { useQuery } from 'react-query';
+import { Link } from 'react-router-dom';
 import { ErrorBoundary } from 'src/atoms/ErrorBoundary';
 import { commonCss, padding } from 'src/Css';
 import {
@@ -30,6 +31,7 @@ import { KeyValue } from 'src/lib/StaticGraphParser';
 import ArtifactPreview from '../ArtifactPreview';
 import Banner from '../Banner';
 import DetailsTable from '../DetailsTable';
+import { RoutePageFactory } from '../Router';
 import { ExecutionTitle } from './ExecutionTitle';
 
 type ParamList = Array<KeyValue<string>>;
@@ -59,6 +61,16 @@ export function InputOutputTab({ execution, namespace }: IOTabProps) {
     outputArtifacts = getArtifactParamList(filterEventWithOutputArtifact(data));
   }
 
+  let isIoEmpty = false;
+  if (
+    inputParams.length === 0 &&
+    outputParams.length === 0 &&
+    inputArtifacts.length === 0 &&
+    outputArtifacts.length === 0
+  ) {
+    isIoEmpty = true;
+  }
+
   return (
     <ErrorBoundary>
       <div className={commonCss.page}>
@@ -73,42 +85,57 @@ export function InputOutputTab({ execution, namespace }: IOTabProps) {
             />
           )}
 
-          <div className={commonCss.header}>{'Input'}</div>
-          <DetailsTable
-            key={`input-parameters-${executionId}`}
-            title='Parameters'
-            fields={inputParams}
-          />
+          {isSuccess && isIoEmpty && (
+            <Banner message='There is no input/output parameter or artifact.' mode='info' />
+          )}
 
-          <DetailsTable<string>
-            key={`input-artifacts-${executionId}`}
-            title='Artifacts'
-            fields={inputArtifacts}
-            valueComponent={ArtifactPreview}
-            valueComponentProps={{
-              namespace: namespace,
-            }}
-          />
+          {inputParams.length > 0 && (
+            <div>
+              <DetailsTable
+                key={`input-parameters-${executionId}`}
+                title='Input Parameters'
+                fields={inputParams}
+              />
+            </div>
+          )}
 
-          <div className={padding(20, 'tb')} />
-          <hr />
+          {inputArtifacts.length > 0 && (
+            <div>
+              <DetailsTable<string>
+                key={`input-artifacts-${executionId}`}
+                title='Input Artifacts'
+                fields={inputArtifacts}
+                valueComponent={ArtifactPreview}
+                valueComponentProps={{
+                  namespace: namespace,
+                }}
+              />
+            </div>
+          )}
 
-          <div className={commonCss.header}>{'Output'}</div>
-          <DetailsTable
-            key={`output-parameters-${executionId}`}
-            title='Parameters'
-            fields={outputParams}
-          />
+          {outputParams.length > 0 && (
+            <div>
+              <DetailsTable
+                key={`output-parameters-${executionId}`}
+                title='Output Parameters'
+                fields={outputParams}
+              />
+            </div>
+          )}
 
-          <DetailsTable<string>
-            key={`output-artifacts-${executionId}`}
-            title='Artifacts'
-            fields={outputArtifacts}
-            valueComponent={ArtifactPreview}
-            valueComponentProps={{
-              namespace: namespace,
-            }}
-          />
+          {outputArtifacts.length > 0 && (
+            <div>
+              <DetailsTable<string>
+                key={`output-artifacts-${executionId}`}
+                title='Output Artifacts'
+                fields={outputArtifacts}
+                valueComponent={ArtifactPreview}
+                valueComponentProps={{
+                  namespace: namespace,
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
     </ErrorBoundary>
@@ -159,11 +186,19 @@ function prettyPrintValue(value: string | number | Struct | undefined): string {
 }
 
 function getArtifactParamList(inputArtifacts: LinkedArtifact[]): ParamList {
-  return inputArtifacts.map(linkedArtifact => [
-    linkedArtifact.event
+  return inputArtifacts.map(linkedArtifact => {
+    const key = linkedArtifact.event
       .getPath()
       ?.getStepsList()[0]
-      .getKey(),
-    linkedArtifact.artifact.getUri(),
-  ]);
+      .getKey();
+    const artifactId = linkedArtifact.artifact.getId();
+    const artifactElement = RoutePageFactory.artifactDetails(artifactId) ? (
+      <Link className={commonCss.link} to={RoutePageFactory.artifactDetails(artifactId)}>
+        {key}
+      </Link>
+    ) : (
+      key
+    );
+    return [artifactElement, linkedArtifact.artifact.getUri()];
+  });
 }

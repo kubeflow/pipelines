@@ -58,7 +58,7 @@ describe('InoutOutputTab', () => {
     screen.getByText(executionName, { selector: 'a', exact: false });
   });
 
-  it('shows Input/Output artifacts and parameters title', () => {
+  it("doesn't show Input/Output artifacts and parameters if no exists", async () => {
     jest
       .spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs')
       .mockResolvedValue(new GetEventsByExecutionIDsResponse());
@@ -71,10 +71,11 @@ describe('InoutOutputTab', () => {
         <InputOutputTab execution={buildBasicExecution()} namespace={namespace}></InputOutputTab>
       </CommonTestWrapper>,
     );
-    screen.getByText('Input');
-    screen.getByText('Output');
-    expect(screen.getAllByText('Parameters').length).toEqual(2);
-    expect(screen.getAllByText('Artifacts').length).toEqual(2);
+    await waitFor(() => screen.queryAllByText('Input Parameters').length == 0);
+    await waitFor(() => screen.queryAllByText('Input Artifacts').length == 0);
+    await waitFor(() => screen.queryAllByText('Output Parameters').length == 0);
+    await waitFor(() => screen.queryAllByText('Output Artifacts').length == 0);
+    await waitFor(() => screen.getByText('There is no input/output parameter or artifact.'));
   });
 
   it('shows Input parameters with various types', async () => {

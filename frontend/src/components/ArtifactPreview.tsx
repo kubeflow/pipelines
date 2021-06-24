@@ -68,7 +68,7 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
   }
 
   const { isSuccess, isError, data, error } = useQuery<string, Error>(
-    ['artifact_preview', value],
+    ['artifact_preview', { value, namespace, maxbytes, maxlines }],
     () => getPreview(storage, namespace, maxbytes, maxlines),
     { staleTime: Infinity },
   );
