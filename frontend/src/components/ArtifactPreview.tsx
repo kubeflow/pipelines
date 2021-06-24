@@ -90,7 +90,7 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
   return (
     <div className={css.root}>
       <div className={css.topDiv}>
-        <ExternalLink href={artifactDownloadUrl} title={linkText}>
+        <ExternalLink download href={artifactDownloadUrl} title={linkText}>
           {linkText}
         </ExternalLink>
         <span className={css.separater} />
