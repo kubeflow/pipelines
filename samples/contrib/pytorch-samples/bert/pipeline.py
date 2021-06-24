@@ -76,6 +76,7 @@ def pytorch_bert( # pylint: disable=too-many-arguments
     namespace=NAMESPACE,
     confusion_matrix_log_dir=f"confusion_matrix/{dsl.RUN_ID_PLACEHOLDER}/",
     num_samples=1000,
+    max_epochs=1
 ):
     """Thid method defines the pipeline tasks and operations"""
     prepare_tb_task = prepare_tensorboard_op(
@@ -129,16 +130,20 @@ def pytorch_bert( # pylint: disable=too-many-arguments
         prep_op().after(prepare_tb_task
                        ).set_display_name("Preprocess & Transform")
     )
+    confusion_matrix_url = f"minio://{log_bucket}/{confusion_matrix_log_dir}"
+    script_args = f"model_name=bert.pth," \
+                  f"num_samples={num_samples}," \
+                  f"confusion_matrix_url={confusion_matrix_url}"
+    # For gpus, set number of gpus and accelerator type
+    ptl_args = f"max_epochs={max_epochs}," \
+               "profiler=pytorch," \
+               "gpus=0," \
+               "accelerator=None"
     train_task = (
         train_op(
             input_data=prep_task.outputs["output_data"],
-            profiler="pytorch",
-            confusion_matrix_url=f"minio://{log_bucket}/"
-            f"{confusion_matrix_log_dir}",
-            num_samples=num_samples,
-            # For GPU set gpu count and accelerator type
-            gpus=0,
-            accelerator="None",
+            bert_script_args=script_args,
+            ptl_arguments=ptl_args
         ).after(prep_task).set_display_name("Training")
     )
     # For GPU uncomment below line and set GPU limit and node selector

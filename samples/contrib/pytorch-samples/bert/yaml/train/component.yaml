@@ -16,11 +16,8 @@ description: |
   Pytorch training
 inputs:
   - {name: input_data, description: 'Input dataset path'}
-  - {name: profiler, description: 'Pytorch profiler type'}
-  - {name: confusion_matrix_url, description: 'Minio url to upload confusion matrix'}
-  - {name: num_samples, default: 1000, description: 'Number of samples to train'}
-  - {name: gpus, type: Integer, default: 0, description: 'Number of gpus to use for training'}
-  - {name: accelerator, type: String, default: 'None', description: 'PTL accelerator type'}
+  - {name: bert_script_args, description: 'Arguments to the bert script'}
+  - {name: ptl_arguments, description: 'Arguments to pytorch lightning Trainer'}
 
 outputs:
   - {name: tensorboard_root, description: "Tensorboard output path"}
@@ -36,21 +33,15 @@ implementation:
     args:
       - --dataset_path
       - {inputPath: input_data}
+      - --script_args
+      - { inputValue: bert_script_args }
+      - --ptl_args
+      - { inputValue: ptl_arguments }
       - --tensorboard_root
       - {outputPath: tensorboard_root}
       - --checkpoint_dir
       - {outputPath: checkpoint_dir}
-      - --profiler
-      - {inputValue: profiler}
       - --mlpipeline_ui_metadata
       - {outputPath: MLPipeline UI Metadata}
       - --mlpipeline_metrics
       - {outputPath: MLPipeline Metrics}
-      - --confusion_matrix_url
-      - { inputValue: confusion_matrix_url}
-      - --num_samples
-      - { inputValue: num_samples}
-      - --gpus
-      - { inputValue: gpus}
-      - --accelerator
-      - { inputValue: accelerator}
