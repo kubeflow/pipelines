@@ -137,15 +137,16 @@ def pytorch_cifar10( # pylint: disable=too-many-arguments
         prep_op().after(prepare_tb_task
                        ).set_display_name("Preprocess & Transform")
     )
+    confusion_matrix_url = f"minio://{log_bucket}/{confusion_matrix_log_dir}"
+    script_args = f"model_name=resnet.pth," \
+                  f"confusion_matrix_url={confusion_matrix_url}"
+    # For gpus, set number of gpus and accelerator type
+    ptl_args = "max_epochs=1, gpus=0, accelerator=None, profiler=pytorch"
     train_task = (
         train_op(
             input_data=prep_task.outputs["output_data"],
-            profiler="pytorch",
-            confusion_matrix_url=f"minio://{log_bucket}/"
-            f"{confusion_matrix_log_dir}",
-            # For GPU set gpu count and accelerator type
-            gpus=0,
-            accelerator="None",
+            cifar_script_args=script_args,
+            ptl_arguments=ptl_args
         ).after(prep_task).set_display_name("Training")
     )
     # For GPU uncomment below line and set GPU limit and node selector
