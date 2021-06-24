@@ -265,13 +265,14 @@ spec:
             valueFrom:
               secretKeyRef:
                 name: mysql-credential
-                key: password        
+                key: password
+          
           - name: CACHE_IMAGE
             valueFrom:
               configMapKeyRef:
                 name: cache-configmap
                 key: cache_image
-          - name: REMOVE_NODE_RESTRICTIONS
+          - name: CACHE_NODE_RESTRICTIONS
             valueFrom:
               configMapKeyRef:
                 name: cache-configmap
@@ -334,6 +335,93 @@ spec:
   ports:
     - port: 443
       targetPort: webhook-api
+
+---
+# Source: kubeflow-pipelines/templates/mysql.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mysql
+  labels:
+    app.kubernetes.io/name: my-release
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  labels:
+    app.kubernetes.io/name: my-release
+spec:
+  ports:
+    - port: 3306
+  selector:
+    
+    app: cloudsqlproxy
+    
+    app.kubernetes.io/name: my-release
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudsqlproxy
+  labels:
+    app: cloudsqlproxy
+    app.kubernetes.io/name: my-release
+spec:
+  selector:
+    matchLabels:
+      app: cloudsqlproxy
+      app.kubernetes.io/name: my-release
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: cloudsqlproxy
+        app.kubernetes.io/name: my-release
+    spec:
+      serviceAccountName: mysql
+      containers:
+        - image: gcr.io/ml-pipeline/google/pipelines/cloudsqlproxy:dummy
+          name: cloudsqlproxy
+          env:
+          command: ["/cloud_sql_proxy",
+                    "-dir=/cloudsql",
+            # Replace with your own CloudSQL instance ID
+                    "-instances=myproject:us-central1:myinstance=tcp:0.0.0.0:3306",
+            # System workload uses GCE default service account or Workload Identity's service account
+            #       "-credential_file=/credentials/application_default_credentials.json",
+                    "term_timeout=10s"]
+          # set term_timeout if require graceful handling of shutdown
+          # NOTE: proxy will stop accepting new connections; only wait on existing connections
+          lifecycle:
+            preStop:
+              exec:
+                # (optional) add a preStop hook so that termination is delayed
+                # this is required if your server still require new connections (e.g., connection pools)
+                command: ['sleep', '10']
+          ports:
+            - name: mysql
+              containerPort: 3306
+          volumeMounts:
+            - mountPath: /cloudsql
+              name: cloudsql
+      volumes:
+        - name: cloudsql
+          emptyDir:
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-credential
+  labels:
+    app: mysql-credential
+    app.kubernetes.io/name: my-release
+type: Opaque
+data:
+  username: "cm9vdA=="
+  password: "MTIzNA=="
+
 
 ---
 # Source: kubeflow-pipelines/templates/proxy.yaml
@@ -663,14 +751,25 @@ data:
   # pns executor is a more portable default, see https://github.com/kubeflow/pipelines/issues/1654.
   containerRuntimeExecutor: pns
 
-  # Note, some-string-without-template-interpretation is a way to avoid some brackets interpreted as template.
+  # Note, some-string-{{without}}-template-interpretation is a way to avoid some brackets interpreted as template.
   # Reference: https://github.com/helm/helm/issues/2798#issuecomment-467319526
   artifactRepository: |
     archiveLogs: true
     s3:
-      endpoint: 'minio-service.kubeflow:9000',
-      bucket: 'mybucket',
-      keyFormat: "artifacts/{{workflow.name}}/{{pod.name}}"
+      endpoint: 'minio-service.kubeflow:9000'
+      bucket: 'mybucket'
+      # keyFormat is a format pattern to define how artifacts will be organized in a bucket.
+      # It can reference workflow metadata variables such as workflow.namespace, workflow.name,
+      # pod.name. Can also use strftime formating of workflow.creationTimestamp so that workflow
+      # artifacts can be organized by date. If omitted, will use workflow.name/pod.name,
+      # which has potential for have collisions, because names do not guarantee they are unique
+      # over the lifetime of the cluster.
+      # Refer to https://kubernetes.io/docs/concepts/overview/working-with-objects/names/.
+      #
+      # The following format looks like:
+      # artifacts/my-workflow-abc123/2018/08/23/my-workflow-abc123-1234567890
+      # Adding date into the path greatly reduces the chance of pod.name collision.
+      keyFormat: "artifacts/{{workflow.name}}/{{workflow.creationTimestamp.Y}}/{{workflow.creationTimestamp.m}}/{{workflow.creationTimestamp.d}}/{{pod.name}}"
       # insecure will disable TLS. Primarily used for minio installs not configured with TLS
       insecure: true
       accessKeySecret:
@@ -1864,85 +1963,6 @@ spec:
 
 
 ---
-# Source: kubeflow-pipelines/templates/mysql.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: mysql
-  labels:
-    app.kubernetes.io/name: my-release
-spec:
-  ports:
-    - port: 3306
-  selector:
-    
-    app: cloudsqlproxy
-    
-    app.kubernetes.io/name: my-release
----
-
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: cloudsqlproxy
-  labels:
-    app: cloudsqlproxy
-    app.kubernetes.io/name: my-release
-spec:
-  selector:
-    matchLabels:
-      app: cloudsqlproxy
-      app.kubernetes.io/name: my-release
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        app: cloudsqlproxy
-        app.kubernetes.io/name: my-release
-    spec:
-      containers:
-        - image: gcr.io/ml-pipeline/google/pipelines/cloudsqlproxy:dummy
-          name: cloudsqlproxy
-          env:
-          command: ["/cloud_sql_proxy",
-                    "-dir=/cloudsql",
-            # Replace with your own CloudSQL instance ID
-                    "-instances=myproject:us-central1:myinstance=tcp:0.0.0.0:3306",
-            # System workload uses GCE default service account or Workload Identity's service account
-            #       "-credential_file=/credentials/application_default_credentials.json",
-                    "term_timeout=10s"]
-          # set term_timeout if require graceful handling of shutdown
-          # NOTE: proxy will stop accepting new connections; only wait on existing connections
-          lifecycle:
-            preStop:
-              exec:
-                # (optional) add a preStop hook so that termination is delayed
-                # this is required if your server still require new connections (e.g., connection pools)
-                command: ['sleep', '10']
-          ports:
-            - name: mysql
-              containerPort: 3306
-          volumeMounts:
-            - mountPath: /cloudsql
-              name: cloudsql
-      volumes:
-        - name: cloudsql
-          emptyDir:
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: mysql-credential
-  labels:
-    app: mysql-credential
-    app.kubernetes.io/name: my-release
-type: Opaque
-data:
-  username: "cm9vdA=="
-  password: "MTIzNA=="
-
-
----
 # Source: kubeflow-pipelines/templates/application.yaml
 apiVersion: app.k8s.io/v1beta1
 kind: Application
@@ -1958,7 +1978,7 @@ metadata:
 spec:
   descriptor:
     type: Kubeflow Pipelines
-    version: 1.4.1
+    version: 1.6.0
     description: |-
       Reusable end-to-end ML workflow
     maintainers:
