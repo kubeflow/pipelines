@@ -667,6 +667,7 @@ func uploadFile(ctx context.Context, bucket *blob.Bucket, localFilePath, blobFil
 		return errorF(fmt.Errorf("failed to close Writer for bucket: %w", err))
 	}
 
+	glog.Infof("uploadFile(localFilePath=%q, blobFilePath=%q)", localFilePath, blobFilePath)
 	return nil
 }
 
@@ -815,7 +816,14 @@ func (l *Launcher) openBucket() (*blob.Bucket, error) {
 		if err != nil {
 			return nil, fmt.Errorf("Failed to create session to access minio: %v", err)
 		}
-		return s3blob.OpenBucket(context.Background(), sess, l.bucketConfig.bucketName, nil)
+		minioBucket, err := s3blob.OpenBucket(context.Background(), sess, l.bucketConfig.bucketName, nil)
+		if err != nil {
+			return nil, err
+		}
+		// Directly calling s3blob.OpenBucket does not allow overriding prefix via l.bucketConfig.bucketURL().
+		// Therefore, we need to explicitly configure the prefixed bucket.
+		return blob.PrefixedBucket(minioBucket, l.bucketConfig.prefix), nil
+
 	}
 	return blob.OpenBucket(context.Background(), l.bucketConfig.bucketURL())
 }
