@@ -22,7 +22,7 @@ NAME = 'kfp'
 REQUIRES = [
     'PyYAML',
     'google-cloud-storage>=1.13.0',
-    'kubernetes>=8.0.0, <12.0.0',
+    'kubernetes>=8.0.0, <13.0.0',
     'google-auth>=1.6.1',
     'requests_toolbelt>=0.8.0',
     'cloudpickle',
