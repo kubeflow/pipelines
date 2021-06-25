@@ -1,0 +1,17 @@
+name: Copy items
+description: Recursively copy directory contents.
+inputs:
+- {name: Source Directory}
+- {name: Destination Directory}
+implementation:
+  container:
+    image: alpine
+    command:
+    - sh
+    - -ex
+    - -c
+    - |
+      mkdir -p "$1"
+      cp -rf "$0/." "$1/"
+    - inputPath: Source Directory
+    - inputValue: Destination Directory
