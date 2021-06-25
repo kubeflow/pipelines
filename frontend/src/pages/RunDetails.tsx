@@ -21,6 +21,7 @@ import { flatten } from 'lodash';
 import * as React from 'react';
 import { Link, Redirect } from 'react-router-dom';
 import { ExternalLink } from 'src/atoms/ExternalLink';
+import InputOutputTab from 'src/components/tabs/InputOutputTab';
 import { MetricsTab } from 'src/components/tabs/MetricsTab';
 import { GkeMetadata, GkeMetadataContext } from 'src/lib/GkeMetadata';
 import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
@@ -148,6 +149,7 @@ interface RunDetailsState {
   mlmdRunContext?: Context;
   mlmdExecutions?: Execution[];
   showReducedGraph?: boolean;
+  namespace?: string;
 }
 
 export const css = stylesheet({
@@ -387,41 +389,50 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                   isV2Pipeline(workflow) &&
                                   selectedExecution && <MetricsTab execution={selectedExecution} />}
 
-                                {sidepanelSelectedTab === SidePaneTab.INPUT_OUTPUT && (
-                                  <div className={padding(20)}>
-                                    <DetailsTable
-                                      key={`input-parameters-${selectedNodeId}`}
-                                      title='Input parameters'
-                                      fields={inputParams}
-                                    />
+                                {sidepanelSelectedTab === SidePaneTab.INPUT_OUTPUT &&
+                                  !isV2Pipeline(workflow) && (
+                                    <div className={padding(20)}>
+                                      <DetailsTable
+                                        key={`input-parameters-${selectedNodeId}`}
+                                        title='Input parameters'
+                                        fields={inputParams}
+                                      />
 
-                                    <DetailsTable
-                                      key={`input-artifacts-${selectedNodeId}`}
-                                      title='Input artifacts'
-                                      fields={inputArtifacts}
-                                      valueComponent={MinioArtifactPreview}
-                                      valueComponentProps={{
-                                        namespace: this.state.workflow?.metadata?.namespace,
-                                      }}
-                                    />
+                                      <DetailsTable
+                                        key={`input-artifacts-${selectedNodeId}`}
+                                        title='Input artifacts'
+                                        fields={inputArtifacts}
+                                        valueComponent={MinioArtifactPreview}
+                                        valueComponentProps={{
+                                          namespace: this.state.workflow?.metadata?.namespace,
+                                        }}
+                                      />
 
-                                    <DetailsTable
-                                      key={`output-parameters-${selectedNodeId}`}
-                                      title='Output parameters'
-                                      fields={outputParams}
-                                    />
+                                      <DetailsTable
+                                        key={`output-parameters-${selectedNodeId}`}
+                                        title='Output parameters'
+                                        fields={outputParams}
+                                      />
 
-                                    <DetailsTable
-                                      key={`output-artifacts-${selectedNodeId}`}
-                                      title='Output artifacts'
-                                      fields={outputArtifacts}
-                                      valueComponent={MinioArtifactPreview}
-                                      valueComponentProps={{
-                                        namespace: this.state.workflow?.metadata?.namespace,
-                                      }}
+                                      <DetailsTable
+                                        key={`output-artifacts-${selectedNodeId}`}
+                                        title='Output artifacts'
+                                        fields={outputArtifacts}
+                                        valueComponent={MinioArtifactPreview}
+                                        valueComponentProps={{
+                                          namespace: this.state.workflow?.metadata?.namespace,
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+                                {sidepanelSelectedTab === SidePaneTab.INPUT_OUTPUT &&
+                                  isV2Pipeline(workflow) &&
+                                  selectedExecution && (
+                                    <InputOutputTab
+                                      execution={selectedExecution}
+                                      namespace={namespace}
                                     />
-                                  </div>
-                                )}
+                                  )}
 
                                 {sidepanelSelectedTab === SidePaneTab.TASK_DETAILS && (
                                   <div className={padding(20)}>
@@ -690,8 +701,10 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
 
       const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(runDetail.run);
       let experiment: ApiExperiment | undefined;
+      let namespace: string | undefined;
       if (relatedExperimentId) {
         experiment = await Apis.experimentServiceApi.getExperiment(relatedExperimentId);
+        namespace = RunUtils.getNamespaceReferenceName(experiment);
       }
 
       const runMetadata = runDetail.run!;
@@ -825,6 +838,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         workflow,
         mlmdRunContext,
         mlmdExecutions,
+        namespace,
       });
     } catch (err) {
       await this.showPageError(`Error: failed to retrieve run: ${runId}.`, err);
