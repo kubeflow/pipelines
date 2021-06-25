@@ -1,11 +1,29 @@
+# Copyright 2021 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # 1. Build api server application
 # Use golang:1.13.1-stretch to keep GLIBC at 2.24 https://github.com/gotify/server/issues/225
 FROM golang:1.13.1-stretch as builder
 RUN apt-get update && apt-get install -y cmake clang musl-dev openssl
 WORKDIR /go/src/github.com/kubeflow/pipelines
 COPY . .
-RUN go mod vendor
 RUN GO111MODULE=on go build -o /bin/apiserver backend/src/apiserver/*.go
+# Check licenses and comply with license terms.
+RUN ./hack/install-go-licenses.sh
+RUN go-licenses csv /bin/apiserver > /tmp/licenses.csv && \
+    diff /tmp/licenses.csv backend/third_party_licenses/apiserver.csv && \
+    go-licenses save /tmp/licenses.csv --save_path /tmp/NOTICES
 
 # 2. Compile preloaded pipeline samples
 FROM python:3.7 as compiler
@@ -50,10 +68,12 @@ ENV TAG_NAME=${TAG_NAME}
 
 WORKDIR /bin
 
-COPY third_party/NOTICES /third_party/NOTICES
 COPY backend/src/apiserver/config/ /config
-
 COPY --from=builder /bin/apiserver /bin/apiserver
+
+# Copy licenses and notices.
+COPY --from=builder /tmp/licenses.csv /third_party/licenses.csv
+COPY --from=builder /tmp/NOTICES /third_party/NOTICES
 COPY --from=compiler /samples/ /samples/
 RUN chmod +x /bin/apiserver
 

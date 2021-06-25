@@ -1,4 +1,6 @@
-# Copyright 2019-2021 The Kubeflow Authors
+#!/bin/sh
+#
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,8 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG TAG
-FROM argoproj/workflow-controller:${TAG}
+set -ex
 
-# Copy notices, licenses and source code.
-COPY NOTICES/workflow-controller/NOTICES /NOTICES
+DOWNLOAD_URL="https://github.com/Bobgy/go-licenses/releases/download/v0.0.0-2021-06-25/go-licenses-linux.tar.gz"
+if which wget; then
+	wget "${DOWNLOAD_URL}"
+else
+	curl -LO "${DOWNLOAD_URL}"
+fi
+tar xvf go-licenses-linux.tar.gz
+mv go-licenses /usr/local/bin
+mv licenses /usr/local/bin

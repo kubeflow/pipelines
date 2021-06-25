@@ -5,15 +5,7 @@ licenses:
       type: unencumbered
 module:
   go:
-    module: github.com/kubeflow/pipelines
     version: master
-    path: .
-    binary:
-      path: backend/build/apiserver
-  csv:
-    path: third_party/license_info.csv
-  notices:
-    path: third_party/NOTICES
   overrides:
   - name: github.com/kubeflow/pipelines
     excludePaths:
@@ -22,9 +14,12 @@ module:
     - frontend
     - samples
     - backend/api/python_http_client
+    - third_party/argo
     - third_party/minio
     - third_party/metadata_envoy
-    - third_party/license.txt # collected third party licenses
+    # collected third party licenses
+    - third_party/license.txt
+    - third_party/NOTICES
     - backend/build # ignore built binaries
     - v2 # v2 is a separate sub-module
   - name: github.com/beorn7/perks
@@ -104,7 +99,7 @@ module:
     # We do not use UI code here.
     - third_party/swagger-ui/lib
   - name: cloud.google.com/go
-    version: v0.72.0
+    version: v0.55.0
     license:
       path: LICENSE
       spdxId: Apache-2.0
@@ -115,10 +110,6 @@ module:
         spdxId: BSD-2-Clause
         lineStart: 1
         lineEnd: 43
-    - path: third_party/pkgsite
-      license:
-        path: LICENSE
-        spdxId: BSD-3-Clause
   - name: cloud.google.com/go/storage
     version: v1.12.0
     license:
@@ -177,8 +168,3 @@ module:
       path: LICENSE
       url: https://github.com/census-instrumentation/opencensus-go/blob/v0.22.5/LICENSE
       spdxId: Apache-2.0
-  - name: sigs.k8s.io/yaml
-    version: v1.2.0
-    license:
-      path: LICENSE
-      spdxId: MIT / BSD-3-Clause
