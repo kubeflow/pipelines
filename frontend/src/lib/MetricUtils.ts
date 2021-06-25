@@ -28,6 +28,8 @@ function getMetricDisplayString(metric?: ApiRunMetric, decimalPlaces = 3): strin
   return metric.number_value.toFixed(decimalPlaces);
 }
 
-export default {
+const MetricUtils = {
   getMetricDisplayString,
 };
+
+export default MetricUtils;
