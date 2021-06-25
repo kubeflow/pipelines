@@ -14,6 +14,7 @@ NOTE: the following steps will push argo images to gcr.io/ml-pipeline.
 Prerequisites:
 
 * Be an admin to gcr.io/ml-pipeline.
+* Install go-licenses/v2 from [Bobgy's current release](https://github.com/Bobgy/go-licenses/releases/tag/v0.0.0-2021-06-23). Make sure the tool is available in PATH.
 
 Instructions:
 
@@ -32,7 +33,10 @@ Instructions:
 
     ```bash
     echo "${ARGO_TAG}" > VERSION
-    # Ensure there are no errors. If there are any issues, update license_dict.csv and retry.
+    # Ensure there are no errors. If there are any issues, update go-licenses.yaml and retry.
+    # Also, we need to check NOTICES/argoexec/licenses.csv and NOTICES/workflow-controller/licenses.csv
+    # manually. Verify all the entries look sane and examine specific modules for license if sth
+    # is weird.
     ./imp-1-update-notices.sh
     # gcloud auth login first, so that you can use docker push to push to gcr.io/ml-pipeline.
     ./imp-2-build-push-images.sh
@@ -40,7 +44,7 @@ Instructions:
 
     The `release.sh` script does a few things:
     
-    * Use [github.com/Bobgy/go-mod-licenses](github.com/Bobgy/go-mod-licenses) to update NOTICES folder for argo images.
+    * Use [github.com/Bobgy/go-licenses/v2](https://github.com/Bobgy/go-licenses/tree/main/v2) to prepare NOTICES folder for argo images.
     * Build license compliant argo images.
     * Push them to `gcr.io/ml-pipeline/argoexec:${ARGO_TAG}-license-compliance` and
     `gcr.io/ml-pipeline/workflow-controller:${ARGO_TAG}-license-compliance`.
@@ -55,7 +59,6 @@ Instructions:
 
 Ideas to improve this process:
 
-* Add a presubmit test that verifies `NOTICES` folder is updated when argo image version is updated.
 * Write a script that auto updates all occurrences of old argo image
 tag to the new one.
 * Reduce occurrences of argo image tag version, and let them use `./VERSION` programmatically when possible.
