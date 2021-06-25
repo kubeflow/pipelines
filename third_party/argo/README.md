@@ -34,6 +34,9 @@ Instructions:
     ```bash
     echo "${ARGO_TAG}" > VERSION
     # Ensure there are no errors. If there are any issues, update go-licenses.yaml and retry.
+    # Also, we need to check NOTICES/argoexec/licenses.csv and NOTICES/workflow-controller/licenses.csv
+    # manually. Verify all the entries look sane and examine specific modules for license if sth
+    # is weird.
     ./imp-1-update-notices.sh
     # gcloud auth login first, so that you can use docker push to push to gcr.io/ml-pipeline.
     ./imp-2-build-push-images.sh

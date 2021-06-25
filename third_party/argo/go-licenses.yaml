@@ -15,13 +15,6 @@ module:
   - name: github.com/docker/spdystream
     excludePaths:
     - LICENSE.docs # documentations use this license, does not affect us
-  - name: github.com/emirpasic/gods
-    version: v1.12.0
-    license:
-      path: LICENSE
-      # AVL tree is ISC license, others are BSD-2-Clause
-      # https://github.com/emirpasic/gods/blob/v1.12.0/LICENSE
-      spdxId: BSD-2-Clause / ISC
   - name: github.com/gogo/protobuf
     version: v1.3.1
     license:
@@ -40,11 +33,6 @@ module:
   - name: github.com/gorilla/websocket
     excludePaths:
     - examples
-  - name: github.com/kevinburke/ssh_config
-    version: v0.0.0-20190725054713-01f96b0aa0cd
-    license:
-      path: LICENSE
-      spdxId: MIT
   - name: github.com/aliyun/aliyun-oss-go-sdk
     version: v2.0.6
     license:
