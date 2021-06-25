@@ -1,0 +1,27 @@
+name: Kubeflow - Launch PyTorchJob
+description: Kubeflow PyTorchJob launcher
+inputs:
+- {name: Name,                        type: String,                         description: 'PyTorchJob name.'}
+- {name: Namespace,                   type: String,     default: kubeflow,  description: 'PyTorchJob namespace.'}
+- {name: Version,                     type: String,     default: v1,        description: 'PyTorchJob version.'}
+- {name: ttl Seconds After Finished,  type: Integer,    default: -1,        description: 'Defines the TTL for cleaning up finished PyTorchJobs.'}
+- {name: CleanPodPolicy,              type: String,     default: Running,   description: 'Defines the policy for cleaning up pods after the PyTorchJob completes.'}
+- {name: Master Spec,                 type: JsonObject, default: '{}',      description: 'PyTorchJob ps replicaSpecs.'}
+- {name: Worker Spec,                 type: JsonObject, default: '{}',      description: 'PyTorchJob worker replicaSpecs.'}
+- {name: Pytorchjob Timeout Minutes,  type: Integer,    default: 1440,      description: 'Time in minutes to wait for the TFJob to complete.'}
+- {name: Delete Finished Pytorchjob,  type: Bool,       default: 'False' ,   description: 'Whether to delete the tfjob after it is finished.'}
+implementation:
+  container:
+    image: jagadeeshj/pytorch_job:testt
+    command: [python, /ml/launch_pytorchjob.py]
+    args: [
+      --name,                     {inputValue: Name},
+      --namespace,                {inputValue: Namespace},
+      --version,                  {inputValue: Version},
+      --cleanPodPolicy,           {inputValue: CleanPodPolicy},
+      --ttlSecondsAfterFinished,  {inputValue: ttl Seconds After Finished},
+      --masterSpec,               {inputValue: Master Spec},
+      --workerSpec,               {inputValue: Worker Spec},
+      --pytorchjobTimeoutMinutes, {inputValue: Pytorchjob Timeout Minutes},
+      --deleteAfterDone,          {inputValue: Delete Finished Pytorchjob},
+    ]

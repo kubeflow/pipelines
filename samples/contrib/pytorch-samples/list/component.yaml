@@ -1,0 +1,14 @@
+name: List items
+description: Recursively list directory contents.
+inputs:
+- {name: Directory}
+implementation:
+  container:
+    image: alpine
+    command:
+    - sh
+    - -ex
+    - -c
+    - |
+      ls -lR "$0"
+    - inputValue: Directory
