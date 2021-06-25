@@ -18,6 +18,8 @@ $(BUILD)/swf:
 $(BUILD)/viewer:
 	GO111MODULE=on go build -o $(BUILD)/viewer github.com/kubeflow/pipelines/backend/src/crd/controller/viewer
 
+# Update licenses info after dependencies changed.
+# See README.md#updating-licenses-info section for more details.
 .PHONY: license_apiserver
 license_apiserver: $(BUILD)/apiserver
 	cd $(MOD_ROOT) && go-licenses csv backend/$(BUILD)/apiserver | tee $(CSV_PATH)/apiserver.csv
