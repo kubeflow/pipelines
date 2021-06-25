@@ -29,14 +29,14 @@ TAG=${TAG_ARGO}-license-compliance
 IMAGE_ARGOEXEC="gcr.io/${PROJECT}/argoexec:${TAG}"
 IMAGE_WORKFLOW_CONTROLLER="gcr.io/${PROJECT}/workflow-controller:${TAG}"
 
-# make sure we don't override existing remote images
-docker pull "${IMAGE_ARGOEXEC}" && (echo "Error: ${IMAGE_ARGOEXEC} already exists remotely" && exit 1)
-docker pull "${IMAGE_WORKFLOW_CONTROLLER}" && (echo "Error: ${IMAGE_WORKFLOW_CONTROLLER} already exists remotely" && exit 1)
+# # make sure we don't override existing remote images
+# docker pull "${IMAGE_ARGOEXEC}" && (echo "Error: ${IMAGE_ARGOEXEC} already exists remotely" && exit 1)
+# docker pull "${IMAGE_WORKFLOW_CONTROLLER}" && (echo "Error: ${IMAGE_WORKFLOW_CONTROLLER} already exists remotely" && exit 1)
 
 # build images locally
 docker build -t "${IMAGE_ARGOEXEC}" -f Dockerfile.argoexec "${DIR}" --build-arg TAG=${TAG_ARGO}
 docker build -t "${IMAGE_WORKFLOW_CONTROLLER}" -f Dockerfile.workflow-controller "${DIR}" --build-arg TAG=${TAG_ARGO}
 
-# push them to remote
-docker push "${IMAGE_ARGOEXEC}"
-docker push "${IMAGE_WORKFLOW_CONTROLLER}"
+# # push them to remote
+# docker push "${IMAGE_ARGOEXEC}"
+# docker push "${IMAGE_WORKFLOW_CONTROLLER}"

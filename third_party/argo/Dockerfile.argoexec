@@ -16,4 +16,4 @@ ARG TAG
 FROM argoproj/argoexec:${TAG}
 
 # Copy notices, licenses and source code.
-COPY NOTICES /NOTICES
+COPY NOTICES/argoexec/NOTICES /NOTICES
