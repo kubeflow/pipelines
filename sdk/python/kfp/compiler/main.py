@@ -14,7 +14,7 @@
 
 
 import argparse
-import kfp.dsl as dsl
+from kfp import dsl
 import kfp.compiler
 import os
 import shutil
@@ -77,7 +77,7 @@ class PipelineCollectorContext():
     self.old_handler = dsl._pipeline._pipeline_decorator_handler
     dsl._pipeline._pipeline_decorator_handler = add_pipeline
     return pipeline_funcs
-  
+
   def __exit__(self, *args):
     dsl._pipeline._pipeline_decorator_handler = self.old_handler
 

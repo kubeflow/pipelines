@@ -28,7 +28,7 @@ from captum.attr import visualization as viz
 from captum.attr import (
     IntegratedGradients,
     Occlusion,
-    LayerGradCam, 
+    LayerGradCam,
     LayerAttribution
 
 )
@@ -51,7 +51,7 @@ class CIFAR10Classification(ImageClassifier, ABC):
 
     def initialize(self, ctx):
         """In this initialize function, the CIFAR10 trained model is loaded and
-        the Integrated Gradients,occlusion and layer_gradcam Algorithm for 
+        the Integrated Gradients,occlusion and layer_gradcam Algorithm for
         Captum Explanations is initialized here.
         Args:
             ctx (context): It is a JSON Object containing information
@@ -151,7 +151,7 @@ class CIFAR10Classification(ImageClassifier, ABC):
 
     def output_bytes(self, fig):
         fout = BytesIO()
-        fig.savefig(fout,format='png')
+        fig.savefig(fout, format='png')
         fout.seek(0)
         return fout.getvalue()
 
@@ -181,9 +181,8 @@ class CIFAR10Classification(ImageClassifier, ABC):
         attributions_lgc = self.attribute_image_features(
             self.layer_gradcam, tensor_data
         )
-        
-        upsamp_attr_lgc = LayerAttribution.interpolate(attributions_lgc, tensor_data.shape[2:])
 
+        upsamp_attr_lgc = LayerAttribution.interpolate(attributions_lgc, tensor_data.shape[2:])
 
         matplot_viz_ig, _ = viz.visualize_image_attr_multiple(
             np.transpose(
@@ -199,7 +198,7 @@ class CIFAR10Classification(ImageClassifier, ABC):
             signs=["all", "positive"],
             titles=["Original", "Integrated Gradients"],
         )
-    
+
         matplot_viz_occ, _ = viz.visualize_image_attr_multiple(
             np.transpose(
                 attributions_occ.squeeze().cpu().detach().numpy(), (1, 2, 0)
@@ -207,7 +206,7 @@ class CIFAR10Classification(ImageClassifier, ABC):
             np.transpose(
                 tensor_data.squeeze().cpu().detach().numpy(), (1, 2, 0)
             ),
-            ["original_image", "heat_map", "heat_map",],
+            ["original_image", "heat_map", "heat_map", ],
             ["all", "positive", "negative"],
             show_colorbar=True,
             titles=[
@@ -220,25 +219,26 @@ class CIFAR10Classification(ImageClassifier, ABC):
 
         )
 
-        matplot_viz_lgc, _ = viz.visualize_image_attr_multiple(upsamp_attr_lgc[0].cpu().permute(1,2,0).detach().numpy(),
-                                      tensor_data.squeeze().permute(1,2,0).numpy(),
-                                      use_pyplot=False,
-                                      methods= ["original_image","blended_heat_map","blended_heat_map"],
-                                      signs=["all","positive","negative"],
-                                      show_colorbar=True,
-                                      titles=["Original", 
-                                      "Positive Attribution", 
-                                      "Negative Attribution",],
-                                      fig_size=(18, 6))
+        matplot_viz_lgc, _ = viz.visualize_image_attr_multiple(
+            upsamp_attr_lgc[0].cpu().permute(1, 2, 0).detach().numpy(),
+            tensor_data.squeeze().permute(1, 2, 0).numpy(),
+            use_pyplot=False,
+            methods=["original_image", "blended_heat_map", "blended_heat_map"],
+            signs=["all", "positive", "negative"],
+            show_colorbar=True,
+            titles=["Original",
+                    "Positive Attribution",
+                    "Negative Attribution", ],
+            fig_size=(18, 6))
 
         occ_bytes = self.output_bytes(matplot_viz_occ)
         ig_bytes = self.output_bytes(matplot_viz_ig)
-        lgc_bytes=self.output_bytes(matplot_viz_lgc)
+        lgc_bytes = self.output_bytes(matplot_viz_lgc)
 
         output = [
             {"b64": b64encode(row).decode("utf8")}
             if isinstance(row, (bytes, bytearray))
             else row
-            for row in [ig_bytes,occ_bytes,lgc_bytes]
+            for row in [ig_bytes, occ_bytes, lgc_bytes]
         ]
         return output

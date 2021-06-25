@@ -790,6 +790,21 @@ class Compiler(object):
             pipeline_spec_pb2.PipelineTaskSpec.TriggerPolicy(
                 condition=condition_string))
 
+      if isinstance(subgroup, dsl.OpsGroup) and subgroup.type == 'exit_handler':
+
+        # "punch the hole", adding inputs needed by its subgroup or tasks.
+        dsl_component_spec.build_component_inputs_spec(
+            component_spec=subgroup_component_spec,
+            pipeline_params=subgroup_params,
+            is_root_component=False,
+        )
+        dsl_component_spec.build_task_inputs_spec(
+            subgroup_task_spec,
+            subgroup_params,
+            tasks_in_current_dag,
+            is_parent_component_root,
+        )
+
       # Generate dependencies section for this task.
       if dependencies.get(subgroup.name, None):
         group_dependencies = list(dependencies[subgroup.name])

@@ -19,9 +19,9 @@ import yaml
 from collections import OrderedDict
 from typing import Union, List, Any, Callable, TypeVar, Dict
 
-from ._k8s_helper import convert_k8s_obj_to_json
-from .. import dsl
-from ..dsl._container_op import BaseOp
+from kfp.compiler._k8s_helper import convert_k8s_obj_to_json
+from kfp import dsl
+from kfp.dsl._container_op import BaseOp
 
 
 # generics
@@ -305,7 +305,7 @@ def _op_to_template(op: BaseOp):
                         del template['container']['resources'][setting]
         if podSpecPatch:
             template['podSpecPatch'] = json.dumps(podSpecPatch)
-            
+
     if isinstance(op, dsl.ContainerOp) and op._metadata and not op.is_v2:
         template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/component_spec'] = json.dumps(op._metadata.to_dict(), sort_keys=True)
 

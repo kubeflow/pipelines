@@ -249,7 +249,8 @@ func (l *Launcher) RunComponent(ctx context.Context, cmdArgs []string) error {
 	if err != nil {
 		return fmt.Errorf("failure while generating ExecutorInput: %w", err)
 	}
-	outputParametersTypeMap:= make(map[string]string)
+	glog.Infof("ExecutorInput:\n%s\n=====", executorInput.String())
+	outputParametersTypeMap := make(map[string]string)
 	for outputParameterName, outputParameter := range l.runtimeInfo.OutputParameters {
 		outputParametersTypeMap[outputParameterName] = outputParameter.Type
 
@@ -389,16 +390,18 @@ func (l *Launcher) RunComponent(ctx context.Context, cmdArgs []string) error {
 		localDir, err := localPathForURI(outputArtifact.Uri)
 		if err != nil {
 			glog.Warningf("Output Artifact %q does not have a recognized storage URI %q. Skipping uploading to remote storage.", name, outputArtifact.Uri)
-			continue
-		}
-
-		blobKey, err := l.bucketConfig.keyFromURI(outputArtifact.Uri)
-		if err := uploadBlob(ctx, bucket, localDir, blobKey); err != nil {
-			//  We allow components to not produce output files
-			if errors.Is(err, os.ErrNotExist) {
-				glog.Warningf("local filepath %q does not exist", localDir)
-			} else {
-				return fmt.Errorf("failed to upload output artifact %q to remote storage URI %q: %w", name, outputArtifact.Uri, err)
+		} else {
+			blobKey, err := l.bucketConfig.keyFromURI(outputArtifact.Uri)
+			if err != nil {
+				return fmt.Errorf("failed to upload output artifact %q: %w", name, err)
+			}
+			if err := uploadBlob(ctx, bucket, localDir, blobKey); err != nil {
+				//  We allow components to not produce output files
+				if errors.Is(err, os.ErrNotExist) {
+					glog.Warningf("Local filepath %q does not exist", localDir)
+				} else {
+					return fmt.Errorf("failed to upload output artifact %q to remote storage URI %q: %w", name, outputArtifact.Uri, err)
+				}
 			}
 		}
 
@@ -427,6 +430,9 @@ func (l *Launcher) RunComponent(ctx context.Context, cmdArgs []string) error {
 		})
 
 		rtoa, ok := l.runtimeInfo.OutputArtifacts[name]
+		if !filepath.IsAbs(rtoa.MetadataPath) {
+			return metadataErr(fmt.Errorf("unexpected output artifact metadata file %q: must be absolute local path", rtoa.MetadataPath))
+		}
 		if !ok {
 			return metadataErr(errors.New("unable to find output artifact in RuntimeInfo"))
 		}
@@ -502,8 +508,6 @@ func localPathForURI(uri string) (string, error) {
 	}
 	return "", fmt.Errorf("found URI with unsupported storage scheme: %s", uri)
 }
-
-
 
 func (l *Launcher) prepareInputs(ctx context.Context, executorInput *pipeline_spec.ExecutorInput) error {
 	executorInputJSON, err := protojson.Marshal(executorInput)
@@ -663,10 +667,11 @@ func uploadFile(ctx context.Context, bucket *blob.Bucket, localFilePath, blobFil
 		return errorF(fmt.Errorf("failed to close Writer for bucket: %w", err))
 	}
 
+	glog.Infof("uploadFile(localFilePath=%q, blobFilePath=%q)", localFilePath, blobFilePath)
 	return nil
 }
 
-func downloadFile(ctx context.Context, bucket *blob.Bucket, blobFilePath, localFilePath string) error {
+func downloadFile(ctx context.Context, bucket *blob.Bucket, blobFilePath, localFilePath string) (err error) {
 	errorF := func(err error) error {
 		return fmt.Errorf("downloadFile(): unable to complete copying %q to local storage %q: %w", blobFilePath, localFilePath, err)
 	}
@@ -686,7 +691,13 @@ func downloadFile(ctx context.Context, bucket *blob.Bucket, blobFilePath, localF
 	if err != nil {
 		return errorF(fmt.Errorf("unable to open local file %q for writing: %w", localFilePath, err))
 	}
-	defer w.Close()
+	defer func() {
+		errClose := w.Close()
+		if err == nil && errClose != nil {
+			// override named return value "err" when there's a close error
+			err = errorF(errClose)
+		}
+	}()
 
 	if _, err = io.Copy(w, r); err != nil {
 		return errorF(fmt.Errorf("unable to complete copying: %w", err))
@@ -714,15 +725,18 @@ func uploadBlob(ctx context.Context, bucket *blob.Bucket, localPath, blobPath st
 
 	for _, f := range files {
 		if f.IsDir() {
-			// TODO
-			continue
+			err = uploadBlob(ctx, bucket, filepath.Join(localPath, f.Name()), blobPath+"/"+f.Name())
+			if err != nil {
+				return err
+			}
+		} else {
+			blobFilePath := filepath.Join(blobPath, filepath.Base(f.Name()))
+			localFilePath := filepath.Join(localPath, f.Name())
+			if err := uploadFile(ctx, bucket, localFilePath, blobFilePath); err != nil {
+				return err
+			}
 		}
 
-		blobFilePath := filepath.Join(blobPath, filepath.Base(f.Name()))
-		localFilePath := filepath.Join(localPath, f.Name())
-		if err := uploadFile(ctx, bucket, localFilePath, blobFilePath); err != nil {
-			return err
-		}
 	}
 
 	return nil
@@ -730,7 +744,6 @@ func uploadBlob(ctx context.Context, bucket *blob.Bucket, localPath, blobPath st
 
 func downloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir string) error {
 	iter := bucket.List(&blob.ListOptions{Prefix: blobDir})
-
 	for {
 		obj, err := iter.Next(ctx)
 		if err != nil {
@@ -739,24 +752,22 @@ func downloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir st
 			}
 			return fmt.Errorf("failed to list objects in remote storage %q: %w", blobDir, err)
 		}
-
 		if obj.IsDir {
-			continue
-		}
+			// TODO: is this branch possible?
 
-		var localFilePath string
-		if obj.Key == blobDir {
-			// Artifact URI is a file on Remote Storage.
-			localFilePath = localDir
+			// Object stores list all files with the same prefix,
+			// there is no need to recursively list each folder.
+			continue
 		} else {
-			// Artifact URI is a directory on Remote Storage.
-			localFilePath = filepath.Join(localDir, path.Base(obj.Key))
-		}
-		if err := downloadFile(ctx, bucket, obj.Key, localFilePath); err != nil {
-			return err
+			relativePath, err := filepath.Rel(blobDir, obj.Key)
+			if err != nil {
+				return fmt.Errorf("unexpected object key %q when listing %q: %w", obj.Key, blobDir, err)
+			}
+			if err := downloadFile(ctx, bucket, obj.Key, filepath.Join(localDir, relativePath)); err != nil {
+				return err
+			}
 		}
 	}
-
 	return nil
 }
 
@@ -805,7 +816,14 @@ func (l *Launcher) openBucket() (*blob.Bucket, error) {
 		if err != nil {
 			return nil, fmt.Errorf("Failed to create session to access minio: %v", err)
 		}
-		return s3blob.OpenBucket(context.Background(), sess, l.bucketConfig.bucketName, nil)
+		minioBucket, err := s3blob.OpenBucket(context.Background(), sess, l.bucketConfig.bucketName, nil)
+		if err != nil {
+			return nil, err
+		}
+		// Directly calling s3blob.OpenBucket does not allow overriding prefix via l.bucketConfig.bucketURL().
+		// Therefore, we need to explicitly configure the prefixed bucket.
+		return blob.PrefixedBucket(minioBucket, l.bucketConfig.prefix), nil
+
 	}
 	return blob.OpenBucket(context.Background(), l.bucketConfig.bucketURL())
 }

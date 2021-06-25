@@ -19,17 +19,16 @@ from torchvision import models
 import pytorch_lightning as pl
 
 
-class CIFAR10CLASSIFIER(pl.LightningModule):
+class CIFAR10CLASSIFIER(pl.LightningModule):  # pylint: disable=too-many-ancestors
     """
     model wrapper for cifar10 classification
     """
 
     def __init__(self, **kwargs):
-
         """
         Initializes the network, optimizer and scheduler
         """
-        super(CIFAR10CLASSIFIER, self).__init__()
+        super().__init__()
         self.model_conv = models.resnet50(pretrained=True)
         for param in self.model_conv.parameters():
             param.requires_grad = False
@@ -37,6 +36,7 @@ class CIFAR10CLASSIFIER(pl.LightningModule):
         num_classes = 10
         self.model_conv.fc = nn.Linear(num_ftrs, num_classes)
 
-    def forward(self, x):
+
+    def forward(self, x):  # pylint: disable=arguments-differ
         out = self.model_conv(x)
         return out

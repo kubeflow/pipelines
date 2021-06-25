@@ -50,7 +50,7 @@ ENV TAG_NAME=${TAG_NAME}
 
 WORKDIR /bin
 
-COPY third_party/license.txt /bin/license.txt
+COPY third_party/NOTICES /third_party/NOTICES
 COPY backend/src/apiserver/config/ /config
 
 COPY --from=builder /bin/apiserver /bin/apiserver
