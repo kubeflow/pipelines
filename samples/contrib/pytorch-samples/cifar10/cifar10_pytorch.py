@@ -74,12 +74,6 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--confusion_matrix_url",
-    type=str,
-    default=None,
-    help="Minio url to generate confusion matrix",
-)
-parser.add_argument(
     "--script_args",
     type=str,
     help="Arguments for bert agnews classification script",
@@ -213,7 +207,7 @@ if trainer.ptl_trainer.global_rank == 0:
         "actuals": model.target,
         "preds": model.preds,
         "classes": class_list,
-        "url": args["confusion_matrix_url"],
+        "url": script_dict["confusion_matrix_url"],
     }
 
     test_accuracy = round(float(model.test_acc.compute()), 2)
