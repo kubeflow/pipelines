@@ -18,6 +18,9 @@ inputs:
 outputs:
 - {name: model, type: Model}
 - {name: model_run, type: ModelRun}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: tensorflow/tfx:0.29.0

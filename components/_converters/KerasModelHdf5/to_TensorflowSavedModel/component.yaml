@@ -4,6 +4,9 @@ inputs:
 - {name: model, type: KerasModelHdf5, description: Keras model in HDF5 format.}
 outputs:
 - {name: converted_model, type: TensorflowSavedModel, description: Keras model in Tensorflow SavedModel format.}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: tensorflow/tensorflow:2.3.0

@@ -13,6 +13,9 @@ inputs:
 - {name: value_5, type: JsonObject, optional: true}
 outputs:
 - {name: Output, type: JsonObject}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: python:3.8

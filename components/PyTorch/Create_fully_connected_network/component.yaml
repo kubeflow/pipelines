@@ -1,7 +1,8 @@
 name: Create fully connected pytorch network
 description: Creates fully-connected network in PyTorch ScriptModule format
 metadata:
-  annotations: {author: Alexey Volkov <alexey.volkov@ark-kun.com>}
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 inputs:
 - {name: layer_sizes, type: JsonArray}
 - {name: activation_name, type: String, default: relu, optional: true}

@@ -27,6 +27,9 @@ outputs:
   type: String
 - name: bigquery_output_dataset
   type: String
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: python:3.7
