@@ -3,6 +3,8 @@ description: Recursively copy directory contents.
 inputs:
 - {name: Source Directory}
 - {name: Destination Directory}
+outputs:
+- {name: Destination Directory}
 implementation:
   container:
     image: alpine
@@ -11,7 +13,14 @@ implementation:
     - -ex
     - -c
     - |
-      mkdir -p "$1"
-      cp -rf "$0/." "$1/"
+      mkdir -p "$2"
+      if [ -z "$1" ]
+      then
+        cp -rf "$0/." "$2/"
+      else
+        mkdir -p "$1"
+        cp -rf "$0/." "$1/"
+      fi
     - inputPath: Source Directory
     - inputValue: Destination Directory
+    - outputPath: Destination Directory
