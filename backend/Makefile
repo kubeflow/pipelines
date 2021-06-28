@@ -7,6 +7,10 @@ CSV_PATH=backend/third_party_licenses
 .PHONY: all
 all: license_apiserver license_persistence_agent license_cache_server license_swf license_viewer
 
+.PHONY: clean
+clean:
+	rm -rf $(BUILD)
+
 $(BUILD)/apiserver:
 	GO111MODULE=on go build -o $(BUILD)/apiserver github.com/kubeflow/pipelines/backend/src/apiserver
 $(BUILD)/persistence_agent:
@@ -22,19 +26,19 @@ $(BUILD)/viewer:
 # See README.md#updating-licenses-info section for more details.
 .PHONY: license_apiserver
 license_apiserver: $(BUILD)/apiserver
-	cd $(MOD_ROOT) && go-licenses csv backend/$(BUILD)/apiserver | tee $(CSV_PATH)/apiserver.csv
+	cd $(MOD_ROOT) && go-licenses csv backend/$(BUILD)/apiserver > $(CSV_PATH)/apiserver.csv
 .PHONY: license_persistence_agent
 license_persistence_agent: $(BUILD)/persistence_agent
-	cd $(MOD_ROOT) && go-licenses csv backend/$(BUILD)/persistence_agent | tee $(CSV_PATH)/persistence_agent.csv
+	cd $(MOD_ROOT) && go-licenses csv backend/$(BUILD)/persistence_agent > $(CSV_PATH)/persistence_agent.csv
 .PHONY: license_cache_server
 license_cache_server: $(BUILD)/cache_server
-	cd $(MOD_ROOT) && go-licenses csv backend/$(BUILD)/cache_server | tee $(CSV_PATH)/cache_server.csv
+	cd $(MOD_ROOT) && go-licenses csv backend/$(BUILD)/cache_server > $(CSV_PATH)/cache_server.csv
 .PHONY: license_swf
 license_swf: $(BUILD)/swf
-	cd $(MOD_ROOT) && go-licenses csv backend/$(BUILD)/swf | tee $(CSV_PATH)/swf.csv
+	cd $(MOD_ROOT) && go-licenses csv backend/$(BUILD)/swf > $(CSV_PATH)/swf.csv
 .PHONY: license_viewer
 license_viewer: $(BUILD)/viewer
-	cd $(MOD_ROOT) && go-licenses csv backend/$(BUILD)/viewer | tee $(CSV_PATH)/viewer.csv
+	cd $(MOD_ROOT) && go-licenses csv backend/$(BUILD)/viewer > $(CSV_PATH)/viewer.csv
 
 .PHONY: image_all
 image_all: image_apiserver image_persistence_agent image_cache image_swf image_viewer

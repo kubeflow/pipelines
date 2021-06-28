@@ -13,7 +13,7 @@
 # limitations under the License.
 
 ARG TAG
-FROM argoproj/argoexec:${TAG}
+FROM docker.io/argoproj/argoexec:${TAG}
 
 # Copy notices, licenses and source code.
-COPY NOTICES/argoexec/NOTICES /NOTICES
+COPY NOTICES/argoexec /NOTICES
