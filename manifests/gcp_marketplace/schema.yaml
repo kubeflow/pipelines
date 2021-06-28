@@ -121,6 +121,10 @@ x-google-marketplace:
           - apiGroups: ['']
             resources: ['configmaps', 'events', 'pods/log', 'persistentvolumes', 'persistentvolumeclaims', 'pods', 'pods/exec']
             verbs: ['*']
+          # Needed by argo v3.1.0+
+          - apiGroups: ['coordination.k8s.io']
+            resources: ['leases']
+            verbs: ['create', 'get', 'update']
           - apiGroups: ['batch']
             resources: ['jobs']
             verbs: ['*']

@@ -21,7 +21,7 @@ Instructions:
 1. Set version of argo you want to upgrade to, for example:
 
     ```bash
-    ARGO_TAG=v2.12.9
+    ARGO_TAG=v3.1.0
     ```
 
 1. ```bash
@@ -34,7 +34,7 @@ Instructions:
     ```bash
     echo "${ARGO_TAG}" > VERSION
     # Ensure there are no errors. If there are any issues, update go-licenses.yaml and retry.
-    # Also, we need to check NOTICES/argoexec/licenses.csv and NOTICES/workflow-controller/licenses.csv
+    # Also, we need to check licenses-argoexec.csv and licenses-workflow-controller.csv
     # manually. Verify all the entries look sane and examine specific modules for license if sth
     # is weird.
     ./imp-1-update-notices.sh

@@ -10,6 +10,7 @@ module:
   - name: github.com/kubeflow/pipelines
     excludePaths:
     # the following are not used to build binaries
+    - manifests
     - components 
     - frontend
     - samples
@@ -83,7 +84,7 @@ module:
     excludePaths:
     - testenv
   - name: gopkg.in/yaml.v3
-    version: v3.0.0-20200615113413-eeeca48fe776
+    version: v3.0.0-20210107192922-496545a6307b
     # There are other files with license headers,
     # but they are all included in the root LICENSE.
     license:
@@ -145,7 +146,7 @@ module:
     excludePaths:
     - html/testdata
   - name: github.com/gogo/protobuf
-    version: v1.3.1
+    version: v1.3.2
     license:
       # All files have either BSD-3-Clause or BSD-2-Clause licenses with manual
       # inspection.

@@ -1,6 +1,6 @@
 module:
   go:
-    version: v2.12.9
+    version: v3.1.0
   overrides:
   - name: github.com/davecgh/go-spew
     version: v1.1.1
@@ -11,7 +11,7 @@ module:
     excludePaths:
     - LICENSE.docs # documentations use this license, does not affect us
   - name: github.com/gogo/protobuf
-    version: v1.3.1
+    version: v1.3.2
     license:
       # All files have either BSD-3-Clause or BSD-2-Clause licenses with manual
       # inspection.
@@ -28,13 +28,6 @@ module:
   - name: github.com/gorilla/websocket
     excludePaths:
     - examples
-  - name: github.com/aliyun/aliyun-oss-go-sdk
-    version: v2.0.6
-    license:
-      # the module added an explicit license file in later versions, initially
-      # it's only mentioned it's MIT in README.md
-      url: https://github.com/aliyun/aliyun-oss-go-sdk/blob/master/LICENSE
-      spdxId: MIT
   - name: github.com/jmespath/go-jmespath
     version: v0.3.0
     license: # non-standard license file
@@ -61,9 +54,10 @@ module:
     excludePaths:
     - html/testdata
   - name: google.golang.org/protobuf
-    version: v1.23.1-0.20200526195155-81db48ad09cc
+    version: v1.25.0
     license:
       path: LICENSE
+      # Many files contain license headers, but they are all BSD-3-Clause
       spdxId: BSD-3-Clause
   - name: gopkg.in/jcmturner/gokrb5.v5
     excludePaths:
@@ -77,32 +71,40 @@ module:
   # good support for modules not at the root of the repo.
   # Refer to https://github.com/google/go-licenses/issues/73.
   - name: github.com/Azure/go-autorest/autorest
-    version: v0.9.0
+    version: v0.11.1
     license:
-      url: https://github.com/Azure/go-autorest/blob/autorest/v0.9.0/LICENSE
+      url: https://github.com/Azure/go-autorest/blob/autorest/v0.11.1/LICENSE
       spdxId: Apache-2.0
   - name: github.com/Azure/go-autorest/autorest/adal
-    version: v0.5.0
+    version: v0.9.5
     license:
-      url: https://github.com/Azure/go-autorest/blob/autorest/adal/v0.5.0/LICENSE
+      url: https://github.com/Azure/go-autorest/blob/autorest/adal/v0.9.5/LICENSE
       spdxId: Apache-2.0
   - name: github.com/Azure/go-autorest/autorest/date
-    version: v0.1.0
+    version: v0.3.0
     license:
-      url: https://github.com/Azure/go-autorest/blob/autorest/date/v0.1.0/LICENSE
+      url: https://github.com/Azure/go-autorest/blob/autorest/date/v0.3.0/LICENSE
       spdxId: Apache-2.0
   - name: github.com/Azure/go-autorest/logger
-    version: v0.1.0
+    version: v0.2.0
     license:
-      url: https://github.com/Azure/go-autorest/blob/logger/v0.1.0/LICENSE
+      url: https://github.com/Azure/go-autorest/blob/logger/v0.2.0/LICENSE
       spdxId: Apache-2.0
   - name: github.com/Azure/go-autorest/tracing
-    version: v0.5.0
+    version: v0.6.0
     license:
-      url: https://github.com/Azure/go-autorest/blob/tracing/v0.5.0/LICENSE
+      url: https://github.com/Azure/go-autorest/blob/tracing/v0.6.0/LICENSE
       spdxId: Apache-2.0
   - name: cloud.google.com/go/storage
     version: v1.6.0
     license:
       url: https://github.com/googleapis/google-cloud-go/blob/storage/v1.6.0/LICENSE
       spdxId: Apache-2.0
+  - name: gopkg.in/yaml.v3
+    version: v3.0.0-20210107192922-496545a6307b
+    license:
+      path: LICENSE
+      spdxId: MIT / Apache-2.0 # Refer to https://github.com/go-yaml/yaml/blob/496545a6307b/LICENSE
+  - name: github.com/sergi/go-diff
+    excludePaths:
+    - README.md # README.md contains duplicate info about licenses
