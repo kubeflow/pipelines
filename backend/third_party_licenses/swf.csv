@@ -3,9 +3,13 @@ github.com/kubeflow/pipelines, https://github.com/kubeflow/pipelines/blob/master
 github.com/kubeflow/pipelines, https://github.com/kubeflow/pipelines/blob/master/backend/src/apiserver/archive/log.go, Apache-2.0
 cloud.google.com/go, https://github.com/googleapis/google-cloud-go/blob/v0.55.0/LICENSE, Apache-2.0
 cloud.google.com/go/cmd/go-cloud-debug-agent/internal/debug/elf, https://github.com/googleapis/google-cloud-go/blob/v0.55.0/cmd/go-cloud-debug-agent/internal/debug/elf/elf.go#L1-L43, BSD-2-Clause
+github.com/Masterminds/goutils, https://github.com/Masterminds/goutils/blob/v1.1.0/LICENSE.txt, Apache-2.0
+github.com/Masterminds/semver, https://github.com/Masterminds/semver/blob/v1.5.0/LICENSE.txt, MIT
+github.com/Masterminds/sprig, https://github.com/Masterminds/sprig/blob/v2.22.0/LICENSE.txt, MIT
 github.com/PuerkitoBio/purell, https://github.com/PuerkitoBio/purell/blob/v1.1.1/LICENSE, BSD-3-Clause
 github.com/PuerkitoBio/urlesc, https://github.com/PuerkitoBio/urlesc/blob/de5bf2ad4578/LICENSE, BSD-3-Clause
-github.com/argoproj/argo-workflows/v3, https://github.com/argoproj/argo-workflows/blob/v3.0.4/LICENSE, Apache-2.0
+github.com/antonmedv/expr, https://github.com/antonmedv/expr/blob/v1.8.8/LICENSE, MIT
+github.com/argoproj/argo-workflows/v3, https://github.com/argoproj/argo-workflows/blob/v3.1.0/LICENSE, Apache-2.0
 github.com/argoproj/pkg, https://github.com/argoproj/pkg/blob/v0.8.1/LICENSE, Apache-2.0
 github.com/asaskevich/govalidator, https://github.com/asaskevich/govalidator/blob/7a23bdc65eef/LICENSE, MIT
 github.com/beorn7/perks, https://github.com/beorn7/perks/blob/v1.0.1/LICENSE, MIT
@@ -14,6 +18,7 @@ github.com/cespare/xxhash/v2, https://github.com/cespare/xxhash/blob/v2.1.1/LICE
 github.com/colinmarc/hdfs, https://github.com/colinmarc/hdfs/blob/9746310a4d31/LICENSE.txt, MIT
 github.com/davecgh/go-spew, https://github.com/davecgh/go-spew/blob/v1.1.1/LICENSE, ISC
 github.com/docker/spdystream, https://github.com/docker/spdystream/blob/6480d4af844c/LICENSE, Apache-2.0
+github.com/doublerebel/bellows, https://github.com/doublerebel/bellows/blob/f177d92a03d3/LICENSE, MIT
 github.com/emicklei/go-restful, https://github.com/emicklei/go-restful/blob/v2.15.0/LICENSE, MIT
 github.com/fsnotify/fsnotify, https://github.com/fsnotify/fsnotify/blob/v1.4.9/LICENSE, BSD-3-Clause
 github.com/ghodss/yaml, https://github.com/ghodss/yaml/blob/25d852aebe32/LICENSE, MIT / BSD-3-Clause
@@ -27,7 +32,7 @@ github.com/go-openapi/spec, https://github.com/go-openapi/spec/blob/v0.20.0/LICE
 github.com/go-openapi/strfmt, https://github.com/go-openapi/strfmt/blob/v0.19.11/LICENSE, Apache-2.0
 github.com/go-openapi/swag, https://github.com/go-openapi/swag/blob/v0.19.12/LICENSE, Apache-2.0
 github.com/go-stack/stack, https://github.com/go-stack/stack/blob/v1.8.0/LICENSE.md, MIT
-github.com/gogo/protobuf, https://github.com/gogo/protobuf/blob/v1.3.1/LICENSE, BSD-3-Clause / BSD-2-Clause
+github.com/gogo/protobuf, https://github.com/gogo/protobuf/blob/v1.3.2/LICENSE, BSD-3-Clause / BSD-2-Clause
 github.com/golang/glog, https://github.com/golang/glog/blob/23def4e6c14b/LICENSE, Apache-2.0
 github.com/golang/groupcache, https://github.com/golang/groupcache/blob/8c9f03a8e57e/LICENSE, Apache-2.0
 github.com/golang/protobuf, https://github.com/golang/protobuf/blob/v1.4.3/LICENSE, BSD-3-Clause
@@ -43,6 +48,7 @@ github.com/grpc-ecosystem/grpc-gateway, https://github.com/grpc-ecosystem/grpc-g
 github.com/hashicorp/go-uuid, https://github.com/hashicorp/go-uuid/blob/v1.0.2/LICENSE, MPL-2.0
 github.com/hashicorp/golang-lru, https://github.com/hashicorp/golang-lru/blob/v0.5.4/LICENSE, MPL-2.0
 github.com/hashicorp/hcl, https://github.com/hashicorp/hcl/blob/v1.0.0/LICENSE, MPL-2.0
+github.com/huandu/xstrings, https://github.com/huandu/xstrings/blob/v1.3.0/LICENSE, MIT
 github.com/imdario/mergo, https://github.com/imdario/mergo/blob/v0.3.10/LICENSE, BSD-3-Clause
 github.com/jcmturner/gofork, https://github.com/jcmturner/gofork/blob/v1.0.0/LICENSE, BSD-3-Clause
 github.com/josharian/intern, https://github.com/josharian/intern/blob/v1.0.0/license.md, MIT
@@ -52,9 +58,12 @@ github.com/magiconair/properties, https://github.com/magiconair/properties/blob/
 github.com/mailru/easyjson, https://github.com/mailru/easyjson/blob/v0.7.6/LICENSE, MIT
 github.com/mailru/easyjson, https://github.com/mailru/easyjson/blob/v0.7.6/parser/modulepath.go, BSD-3-Clause
 github.com/matttproud/golang_protobuf_extensions, https://github.com/matttproud/golang_protobuf_extensions/blob/c182affec369/LICENSE, Apache-2.0
+github.com/mitchellh/copystructure, https://github.com/mitchellh/copystructure/blob/v1.0.0/LICENSE, MIT
 github.com/mitchellh/mapstructure, https://github.com/mitchellh/mapstructure/blob/v1.4.0/LICENSE, MIT
+github.com/mitchellh/reflectwalk, https://github.com/mitchellh/reflectwalk/blob/v1.0.1/LICENSE, MIT
 github.com/modern-go/concurrent, https://github.com/modern-go/concurrent/blob/bacd9c7ef1dd/LICENSE, Apache-2.0
 github.com/modern-go/reflect2, https://github.com/modern-go/reflect2/blob/v1.0.1/LICENSE, Apache-2.0
+github.com/oliveagle/jsonpath, https://github.com/oliveagle/jsonpath/blob/2e52cf6e6852/LICENSE, MIT
 github.com/pelletier/go-toml, https://github.com/pelletier/go-toml/blob/v1.8.0/LICENSE, MIT
 github.com/pkg/errors, https://github.com/pkg/errors/blob/v0.9.1/LICENSE, BSD-2-Clause
 github.com/prometheus/client_golang, https://github.com/prometheus/client_golang/blob/v1.7.1/LICENSE, Apache-2.0
@@ -77,11 +86,12 @@ github.com/valyala/fasttemplate, https://github.com/valyala/fasttemplate/blob/v1
 go.mongodb.org/mongo-driver, https://github.com/mongodb/mongo-go-driver/blob/v1.4.4/LICENSE, Apache-2.0
 go.mongodb.org/mongo-driver/., https://github.com/mongodb/mongo-go-driver/blob/v1.4.4/THIRD-PARTY-NOTICES#L1-L29, BSD-2-Clause
 go.mongodb.org/mongo-driver/., https://github.com/mongodb/mongo-go-driver/blob/v1.4.4/THIRD-PARTY-NOTICES#L31-L61, BSD-3-Clause
-golang.org/x/crypto, https://github.com/golang/crypto/blob/7f63de1d35b0/LICENSE, BSD-3-Clause
-golang.org/x/net, https://github.com/golang/net/blob/986b41b23924/LICENSE, BSD-3-Clause
+golang.org/x/crypto, https://github.com/golang/crypto/blob/5ea612d1eb83/LICENSE, BSD-3-Clause
+golang.org/x/net, https://github.com/golang/net/blob/e18ecbb05110/LICENSE, BSD-3-Clause
 golang.org/x/oauth2, https://github.com/golang/oauth2/blob/bf48bf16ab8d/LICENSE, BSD-3-Clause
-golang.org/x/sys, https://github.com/golang/sys/blob/f84b799fce68/LICENSE, BSD-3-Clause
-golang.org/x/text, https://github.com/golang/text/blob/v0.3.4/LICENSE, BSD-3-Clause
+golang.org/x/sys, https://github.com/golang/sys/blob/a50acf3fe073/LICENSE, BSD-3-Clause
+golang.org/x/term, https://github.com/golang/term/blob/7de9c90e9dd1/LICENSE, BSD-3-Clause
+golang.org/x/text, https://github.com/golang/text/blob/v0.3.5/LICENSE, BSD-3-Clause
 golang.org/x/time, https://github.com/golang/time/blob/3af7569d3a1e/LICENSE, BSD-3-Clause
 google.golang.org/genproto, https://github.com/googleapis/go-genproto/blob/86f49bd18e98/LICENSE, Apache-2.0
 google.golang.org/grpc, https://github.com/grpc/grpc-go/blob/v1.34.0/LICENSE, Apache-2.0
@@ -93,7 +103,7 @@ gopkg.in/jcmturner/dnsutils.v1, https://github.com/jcmturner/dnsutils/blob/v1.0.
 gopkg.in/jcmturner/gokrb5.v5, https://github.com/jcmturner/gokrb5/blob/v5.3.0/LICENSE, Apache-2.0
 gopkg.in/jcmturner/rpc.v0, https://github.com/jcmturner/rpc/blob/v0.0.2/LICENSE, Apache-2.0
 gopkg.in/yaml.v2, https://github.com/go-yaml/yaml/blob/v2.4.0/LICENSE, Apache-2.0 / MIT
-gopkg.in/yaml.v3, https://github.com/go-yaml/yaml/blob/eeeca48fe776/LICENSE, MIT
+gopkg.in/yaml.v3, https://github.com/go-yaml/yaml/blob/496545a6307b/LICENSE, MIT
 k8s.io/api, https://github.com/kubernetes/api/blob/v0.19.6/LICENSE, Apache-2.0
 k8s.io/apimachinery, https://github.com/kubernetes/apimachinery/blob/v0.19.6/LICENSE, Apache-2.0
 k8s.io/client-go, https://github.com/kubernetes/client-go/blob/v0.19.6/LICENSE, Apache-2.0

@@ -16,7 +16,7 @@
 
 set -ex
 
-DOWNLOAD_URL="https://github.com/Bobgy/go-licenses/releases/download/v0.0.0-2021-06-25/go-licenses-linux.tar.gz"
+DOWNLOAD_URL="https://github.com/Bobgy/go-licenses/releases/download/v0.0.0-2021-06-27/go-licenses-linux.tar.gz"
 if which wget; then
 	wget "${DOWNLOAD_URL}"
 else

@@ -24,7 +24,7 @@ COPY ./samples /python/src/github.com/kubeflow/pipelines/samples
 RUN cd /python/src/github.com/kubeflow/pipelines
 
 # Downloading Argo CLI so that the samples are validated
-ENV ARGO_VERSION v2.12.9
+ENV ARGO_VERSION v3.1.0
 RUN curl -sLO https://github.com/argoproj/argo/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz && \
   gunzip argo-linux-amd64.gz && \
   chmod +x argo-linux-amd64 && \

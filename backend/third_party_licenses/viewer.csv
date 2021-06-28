@@ -9,7 +9,7 @@ github.com/davecgh/go-spew, https://github.com/davecgh/go-spew/blob/v1.1.1/LICEN
 github.com/evanphx/json-patch, https://github.com/evanphx/json-patch/blob/v4.9.0/LICENSE, BSD-3-Clause
 github.com/fsnotify/fsnotify, https://github.com/fsnotify/fsnotify/blob/v1.4.9/LICENSE, BSD-3-Clause
 github.com/go-logr/logr, https://github.com/go-logr/logr/blob/v0.4.0/LICENSE, Apache-2.0
-github.com/gogo/protobuf, https://github.com/gogo/protobuf/blob/v1.3.1/LICENSE, BSD-3-Clause / BSD-2-Clause
+github.com/gogo/protobuf, https://github.com/gogo/protobuf/blob/v1.3.2/LICENSE, BSD-3-Clause / BSD-2-Clause
 github.com/golang/glog, https://github.com/golang/glog/blob/23def4e6c14b/LICENSE, Apache-2.0
 github.com/golang/groupcache, https://github.com/golang/groupcache/blob/8c9f03a8e57e/LICENSE, Apache-2.0
 github.com/golang/protobuf, https://github.com/golang/protobuf/blob/v1.4.3/LICENSE, BSD-3-Clause
@@ -30,17 +30,18 @@ github.com/prometheus/common, https://github.com/prometheus/common/blob/v0.10.0/
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg, https://github.com/prometheus/common/blob/v0.10.0/internal/bitbucket.org/ww/goautoneg/README.txt, BSD-3-Clause
 github.com/prometheus/procfs, https://github.com/prometheus/procfs/blob/v0.1.3/LICENSE, Apache-2.0
 github.com/spf13/pflag, https://github.com/spf13/pflag/blob/v1.0.5/LICENSE, BSD-3-Clause
-golang.org/x/crypto, https://github.com/golang/crypto/blob/7f63de1d35b0/LICENSE, BSD-3-Clause
-golang.org/x/net, https://github.com/golang/net/blob/986b41b23924/LICENSE, BSD-3-Clause
+golang.org/x/crypto, https://github.com/golang/crypto/blob/5ea612d1eb83/LICENSE, BSD-3-Clause
+golang.org/x/net, https://github.com/golang/net/blob/e18ecbb05110/LICENSE, BSD-3-Clause
 golang.org/x/oauth2, https://github.com/golang/oauth2/blob/bf48bf16ab8d/LICENSE, BSD-3-Clause
-golang.org/x/sys, https://github.com/golang/sys/blob/f84b799fce68/LICENSE, BSD-3-Clause
-golang.org/x/text, https://github.com/golang/text/blob/v0.3.4/LICENSE, BSD-3-Clause
+golang.org/x/sys, https://github.com/golang/sys/blob/a50acf3fe073/LICENSE, BSD-3-Clause
+golang.org/x/term, https://github.com/golang/term/blob/7de9c90e9dd1/LICENSE, BSD-3-Clause
+golang.org/x/text, https://github.com/golang/text/blob/v0.3.5/LICENSE, BSD-3-Clause
 golang.org/x/time, https://github.com/golang/time/blob/3af7569d3a1e/LICENSE, BSD-3-Clause
 gomodules.xyz/jsonpatch/v2, https://github.com/gomodules/jsonpatch/blob/v2.1.0/LICENSE, Apache-2.0
 google.golang.org/protobuf, https://github.com/protocolbuffers/protobuf-go/blob/v1.25.0/LICENSE, BSD-3-Clause
 gopkg.in/inf.v0, https://github.com/go-inf/inf/blob/v0.9.1/LICENSE, BSD-3-Clause
 gopkg.in/yaml.v2, https://github.com/go-yaml/yaml/blob/v2.4.0/LICENSE, Apache-2.0 / MIT
-gopkg.in/yaml.v3, https://github.com/go-yaml/yaml/blob/eeeca48fe776/LICENSE, MIT
+gopkg.in/yaml.v3, https://github.com/go-yaml/yaml/blob/496545a6307b/LICENSE, MIT
 k8s.io/api, https://github.com/kubernetes/api/blob/v0.19.6/LICENSE, Apache-2.0
 k8s.io/apiextensions-apiserver, https://github.com/kubernetes/apiextensions-apiserver/blob/v0.19.2/LICENSE, Apache-2.0
 k8s.io/apimachinery, https://github.com/kubernetes/apimachinery/blob/v0.19.6/LICENSE, Apache-2.0
