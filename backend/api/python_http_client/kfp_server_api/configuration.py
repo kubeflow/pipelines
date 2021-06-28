@@ -351,8 +351,8 @@ conf = kfp_server_api.Configuration(
         return "Python SDK Debug Report:\n"\
                "OS: {env}\n"\
                "Python Version: {pyversion}\n"\
-               "Version of the API: 1.6.0\n"\
-               "SDK Package Version: 1.6.0".\
+               "Version of the API: 1.7.0-alpha.1\n"\
+               "SDK Package Version: 1.7.0-alpha.1".\
                format(env=sys.platform, pyversion=sys.version)
 
     def get_host_settings(self):
