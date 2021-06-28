@@ -147,7 +147,7 @@ for root, dirs, files in os.walk(args["tensorboard_root"]):  # pylint: disable=u
     for file in files:
         print(file)
 
-model = trainer.ptl_trainer.get_model()
+model = trainer.ptl_trainer.lightning_module
 
 if trainer.ptl_trainer.global_rank == 0:
     # Mar file generation
