@@ -28,7 +28,7 @@ def make_required_install_packages():
       "torch>=1.7.1",
       "torchserve>=0.3.0",
       "torch-model-archiver",
-      "pytorch-lightning==1.3.2",
+      "pytorch-lightning==1.3.7",
     ]
 
 
