@@ -40,6 +40,7 @@ def create_custom_job(
   import os
   import time
   from os import path
+  from google.api_core import gapic_v1
   from google.cloud import aiplatform
   from google.protobuf import json_format
   from google.cloud.aiplatform.compat.types import job_state as gca_job_state
@@ -60,9 +61,13 @@ def create_custom_job(
       gca_job_state.JobState.JOB_STATE_PAUSED,
   )
 
-  client_options = {"api_endpoint": gcp_region+'-aiplatform.googleapis.com'}
+  client_options = {"api_endpoint": gcp_region+'-aiplatform.googleapis.com'}  
+  client_info = gapic_v1.client_info.ClientInfo(
+      user_agent="google-cloud-pipeline-components",
+  )
+
   # Initialize client that will be used to create and send requests.
-  job_client = aiplatform.gapic.JobServiceClient(client_options=client_options)
+  job_client = aiplatform.gapic.JobServiceClient(client_options=client_options, client_info=client_info)
 
   # Check if the Custom job already exists
   if path.exists(gcp_resources) and os.stat(gcp_resources).st_size != 0:
