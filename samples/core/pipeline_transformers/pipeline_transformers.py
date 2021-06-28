@@ -20,24 +20,24 @@ import kfp.components as comp
 
 
 @comp.create_component_from_func
-def print_op(msg):
-    """Print a message."""
-    print(msg)
+def print_op(msg: str):
+  """Print a message."""
+  print(msg)
 
 
 def add_annotation(op):
-    op.add_pod_annotation(name='hobby', value='football')
-    return op
+  op.add_pod_annotation(name='hobby', value='football')
+  return op
 
 
 @dsl.pipeline(
-    name='pipeline-transformer',
-    description='The pipeline shows how to apply functions to all ops in the pipeline by pipeline transformers'
+  name='pipeline-transformer',
+  description='The pipeline shows how to apply functions to all ops in the pipeline by pipeline transformers'
 )
 def transform_pipeline():
-    op1 = print_op('hey, what are you up to?')
-    op2 = print_op('train my model.')
-    dsl.get_pipeline_conf().add_op_transformer(add_annotation)
+  op1 = print_op('hey, what are you up to?')
+  op2 = print_op('train my model.')
+  dsl.get_pipeline_conf().add_op_transformer(add_annotation)
 
 if __name__ == '__main__':
   kfp.compiler.Compiler().compile(transform_pipeline, __file__ + '.yaml')
