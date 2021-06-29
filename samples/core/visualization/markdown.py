@@ -29,7 +29,11 @@ def markdown_visualization() -> NamedTuple('VisualizationOutput', [('mlpipeline_
             {
                 # Markdown that is hardcoded inline
                 'storage': 'inline',
-                'source': '# Inline Markdown\n[A link](https://www.kubeflow.org/)',
+                'source': '''
+                    # Inline Markdown
+
+                    * [Kubeflow official doc](https://www.kubeflow.org/),
+                    ''',
                 'type': 'markdown',
             },
             {
@@ -52,8 +56,8 @@ markdown_visualization_op = comp.func_to_container_op(
 
 
 @dsl.pipeline(
-    name='calculation-pipeline',
-    description='A toy pipeline that performs arithmetic calculations.'
+    name='markdown-pipeline',
+    description='A sample pipeline to generate markdown for UI visualization.'
 )
 def markdown_pipeline():
     # Passing a task output reference as operation arguments
