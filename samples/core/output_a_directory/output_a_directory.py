@@ -20,6 +20,8 @@
 
 import kfp
 from kfp.components import create_component_from_func, load_component_from_text, InputPath, OutputPath
+import kfp.v2 as v2
+from kfp.v2.dsl import Input, Output, Artifact
 
 # Outputting directories from Python-based components:
 
@@ -95,8 +97,48 @@ def dir_pipeline():
     list_dir_files_general_op(input_dir=produce_dir_general_task.output)
 
 
+@v2.dsl.component
+def list_dir_files_v2_python_op(
+    input_dir: Input[Artifact], subdir: str = 'texts'
+):
+    import os
+    dir_items = os.listdir(os.path.join(input_dir.path, subdir))
+    for dir_item in dir_items:
+        print(dir_item)
+
+
+@v2.dsl.component
+def produce_dir_with_files_v2_python_op(
+    output_dir: Output[Artifact], num_files: int = 10, subdir: str = 'texts'
+):
+    import os
+    subdir_path = os.path.join(output_dir.path, subdir)
+    os.makedirs(subdir_path, exist_ok=True)
+    for i in range(num_files):
+        file_path = os.path.join(subdir_path, str(i) + '.txt')
+        with open(file_path, 'w') as f:
+            f.write(str(i))
+
+
+@kfp.dsl.pipeline(name='dir-pipeline-v2')
+def dir_pipeline_v2(subdir: str = 'texts'):
+    produce_dir_python_v2_task = produce_dir_with_files_v2_python_op(
+        num_files=15,
+        subdir=subdir,
+    )
+    list_dir_files_v2_python_op(
+        input_dir=produce_dir_python_v2_task.output,
+        subdir=subdir,
+    )
+
+
 if __name__ == '__main__':
     kfp_endpoint = None
     kfp.Client(host=kfp_endpoint).create_run_from_pipeline_func(
         dir_pipeline, arguments={}
+    )
+    kfp.Client(host=kfp_endpoint).create_run_from_pipeline_func(
+        dir_pipeline,
+        arguments={},
+        mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE
     )

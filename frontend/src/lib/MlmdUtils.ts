@@ -177,32 +177,36 @@ function getStringValue(value?: string | number | Struct | null): string | undef
   return value;
 }
 
-/**
- * @throws error when network error or invalid data
- */
-export async function getOutputArtifactsInExecution(execution: Execution): Promise<Artifact[]> {
+async function getEventByExecution(execution: Execution): Promise<Event[]> {
   const executionId = execution.getId();
   if (!executionId) {
     throw new Error('Execution must have an ID');
   }
 
-  const request = new GetEventsByExecutionIDsRequest();
-  request.addExecutionIds(executionId);
-  let res: GetEventsByExecutionIDsResponse;
+  const request = new GetEventsByExecutionIDsRequest().addExecutionIds(executionId);
+  let response: GetEventsByExecutionIDsResponse;
   try {
-    res = await Api.getInstance().metadataStoreService.getEventsByExecutionIDs(request);
+    response = await Api.getInstance().metadataStoreService.getEventsByExecutionIDs(request);
   } catch (err) {
     err.message = 'Failed to getExecutionsByExecutionIDs: ' + err.message;
     throw err;
   }
+  return response.getEventsList();
+}
 
-  const outputArtifactIds = res
-    .getEventsList()
-    .filter(event => event.getType() === Event.Type.OUTPUT && event.getArtifactId())
+// An artifact which has associated event.
+// You can retrieve artifact name from event.path.steps[0].key
+export interface LinkedArtifact {
+  event: Event;
+  artifact: Artifact;
+}
+
+async function getLinkedArtifactsByEvents(events: Event[]): Promise<LinkedArtifact[]> {
+  const artifactIds = events
+    .filter(event => event.getArtifactId())
     .map(event => event.getArtifactId());
 
-  const artifactsRequest = new GetArtifactsByIDRequest();
-  artifactsRequest.setArtifactIdsList(outputArtifactIds);
+  const artifactsRequest = new GetArtifactsByIDRequest().setArtifactIdsList(artifactIds);
   let artifactsRes: GetArtifactsByIDResponse;
   try {
     artifactsRes = await Api.getInstance().metadataStoreService.getArtifactsByID(artifactsRequest);
@@ -211,7 +215,40 @@ export async function getOutputArtifactsInExecution(execution: Execution): Promi
     throw artifactsErr;
   }
 
-  return artifactsRes.getArtifactsList();
+  const artifactMap = new Map();
+  for (const [, artifactEntry] of Object.entries(artifactsRes.getArtifactsList())) {
+    artifactMap.set(artifactEntry.getId(), artifactEntry);
+  }
+
+  return events.map(event => {
+    const artifact = artifactMap.get(event.getArtifactId());
+    return { event: event, artifact: artifact };
+  });
+}
+
+export async function getLinkedArtifactsByExecution(
+  execution: Execution,
+): Promise<LinkedArtifact[]> {
+  const event = await getEventByExecution(execution);
+  return getLinkedArtifactsByEvents(event);
+}
+
+export function filterEventWithInputArtifact(linkedArtifact: LinkedArtifact[]) {
+  return linkedArtifact.filter(obj => obj.event.getType() === Event.Type.INPUT);
+}
+
+export function filterEventWithOutputArtifact(linkedArtifact: LinkedArtifact[]) {
+  return linkedArtifact.filter(obj => obj.event.getType() === Event.Type.OUTPUT);
+}
+
+/**
+ * @throws error when network error or invalid data
+ */
+export async function getOutputArtifactsInExecution(execution: Execution): Promise<Artifact[]> {
+  const linkedArtifacts = await getLinkedArtifactsByExecution(execution);
+  return filterEventWithOutputArtifact(linkedArtifacts).map(
+    linkedArtifact => linkedArtifact.artifact,
+  );
 }
 
 export async function getArtifactTypes(): Promise<ArtifactType[]> {

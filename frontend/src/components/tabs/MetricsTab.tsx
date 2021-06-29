@@ -17,17 +17,12 @@
 import { Artifact, ArtifactType, Execution } from '@kubeflow/frontend';
 import * as React from 'react';
 import { useQuery } from 'react-query';
-import { Link } from 'react-router-dom';
 import { ErrorBoundary } from 'src/atoms/ErrorBoundary';
 import { commonCss, padding } from 'src/Css';
-import {
-  ExecutionHelpers,
-  getArtifactTypes,
-  getOutputArtifactsInExecution,
-} from 'src/lib/MlmdUtils';
+import { getArtifactTypes, getOutputArtifactsInExecution } from 'src/lib/MlmdUtils';
 import Banner from '../Banner';
-import { RoutePageFactory } from '../Router';
 import { MetricsVisualizations } from '../viewers/MetricsVisualizations';
+import { ExecutionTitle } from './ExecutionTitle';
 
 type MetricsTabProps = {
   execution: Execution;
@@ -88,15 +83,7 @@ export function MetricsTab({ execution }: MetricsTabProps) {
     <ErrorBoundary>
       <div className={commonCss.page}>
         <div className={padding(20)}>
-          <div>
-            This step corresponds to execution{' '}
-            <Link
-              className={commonCss.link}
-              to={RoutePageFactory.executionDetails(execution.getId())}
-            >
-              "{ExecutionHelpers.getName(execution)}".
-            </Link>
-          </div>
+          <ExecutionTitle execution={execution} />
           {executionStateUnknown && <Banner message='Task is in unknown state.' mode='info' />}
           {!executionStateUnknown && !executionCompleted && (
             <Banner message='Task has not completed.' mode='info' />

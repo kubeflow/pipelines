@@ -85,7 +85,7 @@ def verify(
                     'input_dict': '{"A": 1, "B": 2}',
                     'input_list': '["a", "b", "c"]',
                     'message': 'message',
-                    'num_steps': 5
+                    'num_steps': 100,
                 }
             },
             'name': 'train',

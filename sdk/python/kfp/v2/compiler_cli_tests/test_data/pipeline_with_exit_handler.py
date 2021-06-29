@@ -33,12 +33,12 @@ def fail_op(message: str):
 
 
 @dsl.pipeline(name='pipeline-with-exit-handler', pipeline_root='dummy_root')
-def my_pipeline():
+def my_pipeline(message: str = 'Hello World!'):
 
   exit_task = print_op('Exit handler has worked!')
 
   with dsl.ExitHandler(exit_task):
-    print_op('Hello World!')
+    print_op(message)
     fail_op('Task failed.')
 
 

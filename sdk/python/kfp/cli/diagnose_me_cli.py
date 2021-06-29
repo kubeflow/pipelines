@@ -5,10 +5,10 @@ import json as json_library
 import sys
 from typing import Dict, Text
 import click
-from .diagnose_me import dev_env
-from .diagnose_me import gcp
-from .diagnose_me import kubernetes_cluster as k8
-from .diagnose_me import utility
+from kfp.cli.diagnose_me import dev_env
+from kfp.cli.diagnose_me import gcp
+from kfp.cli.diagnose_me import kubernetes_cluster as k8
+from kfp.cli.diagnose_me import utility
 
 
 @click.group()

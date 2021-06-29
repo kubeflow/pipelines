@@ -101,7 +101,7 @@ def train(
           f'input_bool: {input_bool}, type {type(input_bool)} || '
           f'input_dict: {input_dict}, type {type(input_dict)} || '
           f'input_list: {input_list}, type {type(input_list)} \n')
-
+  
   with open(model.path, 'w') as output_file:
     for i in range(num_steps):
       output_file.write('Step {}\n{}\n=====\n'.format(i, line))
@@ -121,7 +121,7 @@ def pipeline(message: str = 'message'):
       input_bool=preprocess_task.outputs['output_bool_parameter'],
       input_dict=preprocess_task.outputs['output_dict_parameter'],
       input_list=preprocess_task.outputs['output_list_parameter'],
-      num_steps=5)
+  )
 
 
 if __name__ == '__main__':

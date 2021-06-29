@@ -10,16 +10,14 @@ data:
     2. After updating the configmap, some deployments may need to be restarted
     until the changes take effect. A quick way to restart all deployments in a
     namespace: `kubectl rollout restart deployment -n <your-namespace>`.
-
   appName: pipeline
-  appVersion: 1.6.0
+  appVersion: 1.7.0-alpha.1
   dbHost: mysql
   dbPort: "3306"
   mlmdDb: metadb
   cacheDb: cachedb
   pipelineDb: mlpipeline
   bucketName: mlpipeline
-
   ## defaultPipelineRoot: Optional. Default pipeline root in v2 compatible mode.
   ## https://www.kubeflow.org/docs/components/pipelines/sdk/v2/v2-compatibility/
   ##
@@ -48,7 +46,6 @@ data:
   ## V2 Compatible Mode Feature stage:
   ## [Beta](https://github.com/kubeflow/pipelines/blob/master/docs/release/feature-stages.md#beta)
   defaultPipelineRoot: ""
-
   ## autoUpdatePipelineDefaultVersion: States if the pipeline version
   ## should be updated by defult for a versioned pipeline or not when a new
   ## version is uploaded. This sets the deployment wide definition.

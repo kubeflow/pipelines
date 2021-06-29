@@ -52,7 +52,14 @@ func main() {
 		glog.Exitf("Failed to create component launcher: %v", err)
 	}
 
-	if err := launcher.RunComponent(ctx, flag.Args()[0], flag.Args()[1:]...); err != nil {
+	if err := launcher.RunComponent(ctx, flag.Args()); err != nil {
 		glog.Exitf("Failed to execute component: %v", err)
 	}
+}
+
+// Use WARNING default logging level to facilitate troubleshooting.
+func init() {
+	flag.Set("logtostderr", "true")
+	// Change the WARNING to INFO level for debugging.
+	flag.Set("stderrthreshold", "WARNING")
 }
