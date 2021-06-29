@@ -195,7 +195,7 @@ function getRecurringRunName(run?: ApiRun): string {
 }
 
 // TODO: This file needs tests
-export default {
+const RunUtils = {
   extractMetricMetadata,
   getAllExperimentReferences,
   getFirstExperimentReference,
@@ -213,3 +213,4 @@ export default {
   getWorkflowManifest,
   runsToMetricMetadataMap,
 };
+export default RunUtils;
