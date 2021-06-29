@@ -293,7 +293,7 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		glog.Fatalf("Failed to create a foreign key for PipelineId in pipeline_versions table. Error: %s", response.Error)
 	}
 	response = db.Model(&model.Task{}).
-		AddForeignKey("RunUUID", "", "run_details(UUID)" /* onDelete */, "CASCADE" /* update */)
+		AddForeignKey("RunUUID", "run_details(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
 	if response.Error != nil {
 		glog.Fatalf("Failed to create a foreign key for RunUUID in task table. Error: %s", response.Error)
 	}
