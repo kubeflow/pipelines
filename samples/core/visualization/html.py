@@ -13,12 +13,13 @@
 # limitations under the License.
 
 import kfp.dsl as dsl
-import kfp.components as comp
+from kfp.components import create_component_from_func
 
 # Advanced function
 # Demonstrates imports, helper functions and multiple outputs
 from typing import NamedTuple
 
+@create_component_from_func
 def html_visualization(gcsPath: str) -> NamedTuple('VisualizationOutput', [('mlpipeline_ui_metadata', 'UI_metadata')]):
     import json
 
@@ -31,7 +32,7 @@ def html_visualization(gcsPath: str) -> NamedTuple('VisualizationOutput', [('mlp
     }
 
     # Temporarily hack for empty string scenario: https://github.com/kubeflow/pipelines/issues/5830
-    if gcsPath and gcsPath != "" and gcsPath != "BEGIN-KFP-PARAM[]END-KFP-PARAM":
+    if gcsPath and gcsPath != 'BEGIN-KFP-PARAM[]END-KFP-PARAM':
         metadata.get('outputs').append({
             'type': 'web-app',
             'storage': 'gcs',
@@ -43,15 +44,12 @@ def html_visualization(gcsPath: str) -> NamedTuple('VisualizationOutput', [('mlp
         'mlpipeline_ui_metadata'])
     return visualization_output(json.dumps(metadata))
 
-html_visualization_op = comp.func_to_container_op(
-    html_visualization, base_image='tensorflow/tensorflow:1.11.0-py3')
-
 @dsl.pipeline(
     name='html-pipeline',
     description='A sample pipeline to generate HTML for UI visualization.'
 )
 def html_pipeline():
-    html_visualization_task = html_visualization_op("")
+    html_visualization_task = html_visualization("")
     # html_visualization_task = html_visualization_op("gs://jamxl-kfp-bucket/v2-compatible/html/hello-world.html")
     # Replace the parameter gcsPath with actual google cloud storage path with html file.
     # For example: Upload hello-world.html in the same folder to gs://bucket-name/hello-world.html.
