@@ -29,11 +29,10 @@ def markdown_visualization() -> NamedTuple('VisualizationOutput', [('mlpipeline_
             {
                 # Markdown that is hardcoded inline
                 'storage': 'inline',
-                'source': '''
-                    # Inline Markdown
+                'source': '''# Inline Markdown
 
-                    * [Kubeflow official doc](https://www.kubeflow.org/),
-                    ''',
+* [Kubeflow official doc](https://www.kubeflow.org/).
+''',
                 'type': 'markdown',
             },
             {
