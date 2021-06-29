@@ -19,7 +19,7 @@ import kfp.components as comp
 # Demonstrates imports, helper functions and multiple outputs
 from typing import NamedTuple
 
-
+@comp.create_component_from_func
 def markdown_visualization() -> NamedTuple('VisualizationOutput', [('mlpipeline_ui_metadata', 'UI_metadata')]):
     import json
 
@@ -50,10 +50,6 @@ def markdown_visualization() -> NamedTuple('VisualizationOutput', [('mlpipeline_
     return divmod_output(json.dumps(metadata))
 
 
-markdown_visualization_op = comp.func_to_container_op(
-    markdown_visualization, base_image='tensorflow/tensorflow:1.11.0-py3')
-
-
 @dsl.pipeline(
     name='markdown-pipeline',
     description='A sample pipeline to generate markdown for UI visualization.'
@@ -61,4 +57,4 @@ markdown_visualization_op = comp.func_to_container_op(
 def markdown_pipeline():
     # Passing a task output reference as operation arguments
     # For an operation with a single return value, the output reference can be accessed using `task.output` or `task.outputs['output_name']` syntax
-    markdown_visualization_task = markdown_visualization_op()
+    markdown_visualization_task = markdown_visualization()
