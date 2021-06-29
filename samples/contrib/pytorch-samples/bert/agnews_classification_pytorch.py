@@ -133,6 +133,10 @@ data_module_args = {
 Path(TENSOBOARD_ROOT).mkdir(parents=True, exist_ok=True)
 Path(CHECKPOINT_DIR).mkdir(parents=True, exist_ok=True)
 
+# Updating all the input parameter to PTL dict
+
+trainer_args.update(ptl_dict)
+
 # Initiating the training process
 trainer = Trainer(
     module_file="bert_train.py",

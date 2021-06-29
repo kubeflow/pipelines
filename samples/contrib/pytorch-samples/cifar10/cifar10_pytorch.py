@@ -145,6 +145,10 @@ data_module_args = {"train_glob": DATASET_PATH}
 Path(TENSORBOARD_ROOT).mkdir(parents=True, exist_ok=True)
 Path(CHECKPOINT_DIR).mkdir(parents=True, exist_ok=True)
 
+# Updating all the input parameter to PTL dict
+
+trainer_args.update(ptl_dict)
+
 # Initiating the training process
 trainer = Trainer(
     module_file="cifar10_train.py",
