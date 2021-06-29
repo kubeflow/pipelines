@@ -152,7 +152,7 @@ trainer = Trainer(
     trainer_args=trainer_args,
 )
 
-model = trainer.ptl_trainer.get_model()
+model = trainer.ptl_trainer.lightning_module
 
 if trainer.ptl_trainer.global_rank == 0:
     # Mar file generation
