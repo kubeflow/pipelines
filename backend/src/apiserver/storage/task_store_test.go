@@ -212,7 +212,7 @@ func initializeTaskStore() (*DB, *TaskStore) {
 	return db, taskStore
 }
 
-func TestListTasks_Pagination(t *testing.T) {
+func TestListTasks(t *testing.T) {
 	db, taskStore := initializeTaskStore()
 	defer db.Close()
 

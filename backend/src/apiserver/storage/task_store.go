@@ -31,6 +31,8 @@ type TaskStoreInterface interface {
 	CreateTask(task *model.Task) (*model.Task, error)
 
 	ListTasks(filterContext *common.FilterContext, opts *list.Options) ([]*model.Task, int, string, error)
+
+	GetTask(id string) (*model.Task, error)
 }
 
 type TaskStore struct {
