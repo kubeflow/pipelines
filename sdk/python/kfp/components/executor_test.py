@@ -90,6 +90,8 @@ class ExecutorTest(unittest.TestCase):
     self.maxDiff = None
     self._test_dir = tempfile.mkdtemp()
     io_types._GCS_LOCAL_MOUNT_PREFIX = self._test_dir + '/'
+    io_types._MINIO_LOCAL_MOUNT_PREFIX = self._test_dir + '/minio/'
+    io_types._S3_LOCAL_MOUNT_PREFIX = self._test_dir + '/s3/'
     return super().setUp()
 
   def _get_executor(self,

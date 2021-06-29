@@ -37,13 +37,13 @@ Ex: `pipelines/samples/contrib/pytorch-samples/iris`
 
 ### Build and push the docker image
 ```
-docker build -t image_name:tag -f Dockerfile-cpu .
+docker build -t image_name:tag .
 ```
 
 to run the example in gpu, run the following commands for building docker image
 
 ```
-docker build -t image_name:tag -f Dockerfile-gpu .
+docker build --build-arg BASE_IMAGE=pytorch/pytorch:1.8.1-cuda10.2-cudnn7-runtime -t image_name:tag .
 ```
 
 push the docker image
@@ -97,7 +97,7 @@ kubectl port-forward svc/istio-ingressgateway -n istio-system 8080:80
 To view the captum insights UI in the local environment, run the following port forwarding command
 
 ```
-kubectl port-forward pod/root-0 -n kubeflow-user-example-com <port>:6080
+kubectl port-forward <notebook-server-pod-name> -n kubeflow-user-example-com <port>:6080
 ```
 
 For example:

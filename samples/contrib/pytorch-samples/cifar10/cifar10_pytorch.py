@@ -15,16 +15,18 @@
 import os
 from pathlib import Path
 from argparse import ArgumentParser
-import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import (
     EarlyStopping,
     LearningRateMonitor,
     ModelCheckpoint,
 )
-from pytorch_kfp_components.components.visualization.component import Visualization
+from pytorch_kfp_components.components.visualization.component import (
+    Visualization,
+)
 from pytorch_kfp_components.components.trainer.component import Trainer
 from pytorch_kfp_components.components.mar.component import MarGeneration
+from pytorch_kfp_components.components.utils.argument_parsing import parse_input_args
 
 # Argument parser for user defined paths
 parser = ArgumentParser()
@@ -72,32 +74,39 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--confusion_matrix_url",
+    "--script_args",
     type=str,
-    default=None,
-    help="Minio url to generate confusion matrix",
+    help="Arguments for bert agnews classification script",
 )
 
 parser.add_argument(
-    "--pod_template_spec",
+    "--ptl_args",
     type=str,
-    default=None,
-    help="Pod template spec",
+    help="Arguments specific to PTL trainer",
 )
-
-parser = pl.Trainer.add_argparse_args(parent_parser=parser)
-
+# parser = pl.Trainer.add_argparse_args(parent_parser=parser)
 args = vars(parser.parse_args())
+script_args = args["script_args"]
+ptl_args = args["ptl_args"]
+
+TENSORBOARD_ROOT = args["tensorboard_root"]
+CHECKPOINT_DIR = args["checkpoint_dir"]
+DATASET_PATH = args["dataset_path"]
+
+script_dict: dict = parse_input_args(input_str=script_args)
+script_dict["checkpoint_dir"] = CHECKPOINT_DIR
+
+ptl_dict: dict = parse_input_args(input_str=ptl_args)
 
 # Enabling Tensorboard Logger, ModelCheckpoint, Earlystopping
 
 lr_logger = LearningRateMonitor()
-tboard = TensorBoardLogger(args["tensorboard_root"])
+tboard = TensorBoardLogger(TENSORBOARD_ROOT)
 early_stopping = EarlyStopping(
     monitor="val_loss", mode="min", patience=5, verbose=True
 )
 checkpoint_callback = ModelCheckpoint(
-    dirpath=args["checkpoint_dir"],
+    dirpath=CHECKPOINT_DIR,
     filename="cifar10_{epoch:02d}",
     save_top_k=1,
     verbose=True,
@@ -105,11 +114,8 @@ checkpoint_callback = ModelCheckpoint(
     mode="min",
 )
 
-if not args["max_epochs"]:
-    args["max_epochs"] = 1
-
-if args["accelerator"] and args["accelerator"] == "None":
-    args["accelerator"] = None
+if "accelerator" in ptl_dict and ptl_dict["accelerator"] == "None":
+    ptl_dict["accelerator"] = None
 
 # Setting the trainer specific arguments
 trainer_args = {
@@ -118,15 +124,20 @@ trainer_args = {
     "callbacks": [lr_logger, early_stopping, checkpoint_callback],
 }
 
-if "profiler" in args and args["profiler"] != "":
-    trainer_args["profiler"] = args["profiler"]
+if not ptl_dict["max_epochs"]:
+    trainer_args["max_epochs"] = 1
+else:
+    trainer_args["max_epochs"] = ptl_dict["max_epochs"]
+
+if "profiler" in ptl_dict and ptl_dict["profiler"] != "":
+    trainer_args["profiler"] = ptl_dict["profiler"]
 
 # Setting the datamodule specific arguments
-data_module_args = {"train_glob": args["dataset_path"]}
+data_module_args = {"train_glob": DATASET_PATH}
 
 # Creating parent directories
-Path(args["tensorboard_root"]).mkdir(parents=True, exist_ok=True)
-Path(args["checkpoint_dir"]).mkdir(parents=True, exist_ok=True)
+Path(TENSORBOARD_ROOT).mkdir(parents=True, exist_ok=True)
+Path(CHECKPOINT_DIR).mkdir(parents=True, exist_ok=True)
 
 # Initiating the training process
 trainer = Trainer(
@@ -150,18 +161,25 @@ if trainer.ptl_trainer.global_rank == 0:
         "MODEL_FILE":
             os.path.join(cifar_dir, "cifar10_train.py"),
         "HANDLER":
-            "image_classifier",
+            os.path.join(cifar_dir, "cifar10_handler.py"),
         "SERIALIZED_FILE":
-            os.path.join(args["checkpoint_dir"], args["model_name"]),
+            os.path.join(CHECKPOINT_DIR, script_dict["model_name"]),
         "VERSION":
             "1",
         "EXPORT_PATH":
-            args["checkpoint_dir"],
+            CHECKPOINT_DIR,
         "CONFIG_PROPERTIES":
-            "https://kubeflow-dataset.s3.us-east-2.amazonaws.com/config.properties",
+            os.path.join(cifar_dir, "config.properties"),
+        "EXTRA_FILES":
+            "{},{}".format(
+                os.path.join(cifar_dir, "class_mapping.json"),
+                os.path.join(cifar_dir, "classifier.py"),
+            ),
+        "REQUIREMENTS_FILE":
+            os.path.join(cifar_dir, "requirements.txt"),
     }
 
-    MarGeneration(mar_config=mar_config, mar_save_path=args["checkpoint_dir"])
+    MarGeneration(mar_config=mar_config, mar_save_path=CHECKPOINT_DIR)
 
     classes = [
         "airplane",
@@ -189,7 +207,7 @@ if trainer.ptl_trainer.global_rank == 0:
         "actuals": model.target,
         "preds": model.preds,
         "classes": class_list,
-        "url": args["confusion_matrix_url"],
+        "url": script_dict["confusion_matrix_url"],
     }
 
     test_accuracy = round(float(model.test_acc.compute()), 2)
@@ -198,11 +216,11 @@ if trainer.ptl_trainer.global_rank == 0:
 
     visualization_arguments = {
         "input": {
-            "tensorboard_root": args["tensorboard_root"],
-            "checkpoint_dir": args["checkpoint_dir"],
-            "dataset_path": args["dataset_path"],
-            "model_name": args["model_name"],
-            "confusion_matrix_url": args["confusion_matrix_url"],
+            "tensorboard_root": TENSORBOARD_ROOT,
+            "checkpoint_dir": CHECKPOINT_DIR,
+            "dataset_path": DATASET_PATH,
+            "model_name": script_dict["model_name"],
+            "confusion_matrix_url": script_dict["confusion_matrix_url"],
         },
         "output": {
             "mlpipeline_ui_metadata": args["mlpipeline_ui_metadata"],
@@ -222,5 +240,5 @@ if trainer.ptl_trainer.global_rank == 0:
         markdown=markdown_dict,
     )
 
-    checpoint_dir_contents = os.listdir(args["checkpoint_dir"])
+    checpoint_dir_contents = os.listdir(CHECKPOINT_DIR)
     print(f"Checkpoint Directory Contents: {checpoint_dir_contents}")

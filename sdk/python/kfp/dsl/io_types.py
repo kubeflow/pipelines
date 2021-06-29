@@ -21,6 +21,8 @@ from typing import Dict, Generic, List, Optional, Type, TypeVar, Union
 
 
 _GCS_LOCAL_MOUNT_PREFIX = '/gcs/'
+_MINIO_LOCAL_MOUNT_PREFIX = '/minio/'
+_S3_LOCAL_MOUNT_PREFIX = '/s3/'
 
 
 class Artifact(object):
@@ -53,13 +55,22 @@ class Artifact(object):
   def path(self, path):
     self._set_path(path)
 
-  def _get_path(self) -> str:
+  def _get_path(self) -> Optional[str]:
     if self.uri.startswith('gs://'):
       return _GCS_LOCAL_MOUNT_PREFIX + self.uri[len('gs://'):]
+    elif self.uri.startswith('minio://'):
+      return _MINIO_LOCAL_MOUNT_PREFIX + self.uri[len('minio://'):]
+    elif self.uri.startswith('s3://'):
+      return _S3_LOCAL_MOUNT_PREFIX + self.uri[len('s3://'):]
+    return None
 
   def _set_path(self, path):
     if path.startswith(_GCS_LOCAL_MOUNT_PREFIX):
       path = 'gs://' + path[len(_GCS_LOCAL_MOUNT_PREFIX):]
+    elif path.startswith(_MINIO_LOCAL_MOUNT_PREFIX):
+      path = 'minio://' + path[len(_MINIO_LOCAL_MOUNT_PREFIX):]
+    elif path.startswith(_S3_LOCAL_MOUNT_PREFIX):
+      path = 's3://' + path[len(_S3_LOCAL_MOUNT_PREFIX):]
     self.uri = path
 
 

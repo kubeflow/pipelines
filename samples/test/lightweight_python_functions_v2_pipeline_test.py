@@ -73,11 +73,11 @@ def verify(
             'inputs': {
                 'artifacts': [{
                     'metadata': {},
-                    'name': 'output_dataset_one',
+                    'name': 'dataset_one',
                     'type': 'system.Dataset'
                 }, {
                     'metadata': {},
-                    'name': 'output_dataset_two',
+                    'name': 'dataset_two',
                     'type': 'system.Dataset'
                 }],
                 'parameters': {
@@ -85,14 +85,16 @@ def verify(
                     'input_dict': '{"A": 1, "B": 2}',
                     'input_list': '["a", "b", "c"]',
                     'message': 'message',
-                    'num_steps': 5
+                    'num_steps': 100,
                 }
             },
             'name': 'train',
             'outputs': {
                 'artifacts': [{
                     'metadata': {
-                        'accuracy': 0.9
+                        'accuracy': {
+                            'doubleValue': 0.9
+                        }
                     },
                     'name': 'model',
                     'type': 'system.Model'

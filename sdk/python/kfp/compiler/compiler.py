@@ -27,16 +27,16 @@ import kfp
 from kfp.dsl import _for_loop
 from kfp.compiler import _data_passing_rewriter, v2_compat
 
-from .. import dsl
-from ._k8s_helper import convert_k8s_obj_to_json, sanitize_k8s_name
-from ._op_to_template import _op_to_template, _process_obj
-from ._default_transformers import add_pod_env, add_pod_labels
+from kfp import dsl
+from kfp.compiler._k8s_helper import convert_k8s_obj_to_json, sanitize_k8s_name
+from kfp.compiler._op_to_template import _op_to_template, _process_obj
+from kfp.compiler._default_transformers import add_pod_env, add_pod_labels
 
-from ..components.structures import InputSpec
-from ..components._yaml_utils import dump_yaml
-from ..dsl._metadata import _extract_pipeline_metadata
-from ..dsl._ops_group import OpsGroup
-from ..dsl._pipeline_param import extract_pipelineparams_from_any, PipelineParam
+from kfp.components.structures import InputSpec
+from kfp.components._yaml_utils import dump_yaml
+from kfp.dsl._metadata import _extract_pipeline_metadata
+from kfp.dsl._ops_group import OpsGroup
+from kfp.dsl._pipeline_param import extract_pipelineparams_from_any, PipelineParam
 
 _SDK_VERSION_LABEL = 'pipelines.kubeflow.org/kfp_sdk_version'
 _SDK_ENV_LABEL = 'pipelines.kubeflow.org/pipeline-sdk-type'

@@ -39,9 +39,9 @@ def verify(
         'task names'
     )
 
-    wine_classification: KfpTask = tasks.get('wine-classification')
-    iris_sgdclassifier: KfpTask = tasks.get('iris-sgdclassifier')
-    digit_classification: KfpTask = tasks.get('digit-classification')
+    wine_classification = tasks['wine-classification']
+    iris_sgdclassifier = tasks['iris-sgdclassifier']
+    digit_classification = tasks['digit-classification']
 
     pprint('======= wine classification task =======')
     pprint(wine_classification.get_dict())
@@ -50,72 +50,74 @@ def verify(
     pprint('======= digit classification task =======')
     pprint(digit_classification.get_dict())
 
+    t.assertEqual({
+        'inputs': {
+            'artifacts': [],
+            'parameters': {}
+        },
+        'name': 'wine-classification',
+        'outputs': {
+            'artifacts': [{
+                'metadata': {
+                    'confidenceMetrics': {
+                        'structValue': {
+                            'list': [{
+                                'confidenceThreshold': 2.0,
+                                'falsePositiveRate': 0.0,
+                                'recall': 0.0
+                            }, {
+                                'confidenceThreshold': 1.0,
+                                'falsePositiveRate': 0.0,
+                                'recall': 0.33962264150943394
+                            }, {
+                                'confidenceThreshold': 0.9,
+                                'falsePositiveRate': 0.0,
+                                'recall': 0.6037735849056604
+                            }, {
+                                'confidenceThreshold': 0.8,
+                                'falsePositiveRate': 0.0,
+                                'recall': 0.8490566037735849
+                            }, {
+                                'confidenceThreshold': 0.6,
+                                'falsePositiveRate': 0.0,
+                                'recall': 0.8867924528301887
+                            }, {
+                                'confidenceThreshold': 0.5,
+                                'falsePositiveRate': 0.0125,
+                                'recall': 0.9245283018867925
+                            }, {
+                                'confidenceThreshold': 0.4,
+                                'falsePositiveRate': 0.075,
+                                'recall': 0.9622641509433962
+                            }, {
+                                'confidenceThreshold': 0.3,
+                                'falsePositiveRate': 0.0875,
+                                'recall': 1.0
+                            }, {
+                                'confidenceThreshold': 0.2,
+                                'falsePositiveRate': 0.2375,
+                                'recall': 1.0
+                            }, {
+                                'confidenceThreshold': 0.1,
+                                'falsePositiveRate': 0.475,
+                                'recall': 1.0
+                            }, {
+                                'confidenceThreshold': 0.0,
+                                'falsePositiveRate': 1.0,
+                                'recall': 1.0
+                            }]
+                        }
+                    }
+                },
+                'name': 'metrics',
+                'type': 'system.ClassificationMetrics'
+            }],
+            'parameters': {}
+        },
+        'type': 'kfp.ContainerExecution'
+    }, wine_classification.get_dict())
     t.assertEqual(
-        wine_classification.get_dict(), {
-            'inputs': {
-                'artifacts': [],
-                'parameters': {}
-            },
-            'name': 'wine-classification',
-            'outputs': {
-                'artifacts': [{
-                    'metadata': {
-                        'confidenceMetrics': [{
-                            'confidenceThreshold': 2.0,
-                            'falsePositiveRate': 0.0,
-                            'recall': 0.0
-                        }, {
-                            'confidenceThreshold': 1.0,
-                            'falsePositiveRate': 0.0,
-                            'recall': 0.33962264150943394
-                        }, {
-                            'confidenceThreshold': 0.9,
-                            'falsePositiveRate': 0.0,
-                            'recall': 0.6037735849056604
-                        }, {
-                            'confidenceThreshold': 0.8,
-                            'falsePositiveRate': 0.0,
-                            'recall': 0.8490566037735849
-                        }, {
-                            'confidenceThreshold': 0.6,
-                            'falsePositiveRate': 0.0,
-                            'recall': 0.8867924528301887
-                        }, {
-                            'confidenceThreshold': 0.5,
-                            'falsePositiveRate': 0.0125,
-                            'recall': 0.9245283018867925
-                        }, {
-                            'confidenceThreshold': 0.4,
-                            'falsePositiveRate': 0.075,
-                            'recall': 0.9622641509433962
-                        }, {
-                            'confidenceThreshold': 0.3,
-                            'falsePositiveRate': 0.0875,
-                            'recall': 1.0
-                        }, {
-                            'confidenceThreshold': 0.2,
-                            'falsePositiveRate': 0.2375,
-                            'recall': 1.0
-                        }, {
-                            'confidenceThreshold': 0.1,
-                            'falsePositiveRate': 0.475,
-                            'recall': 1.0
-                        }, {
-                            'confidenceThreshold': 0.0,
-                            'falsePositiveRate': 1.0,
-                            'recall': 1.0
-                        }]
-                    },
-                    'name': 'metrics',
-                    'type': 'system.ClassificationMetrics'
-                }],
-                'parameters': {}
-            },
-            'type': 'kfp.ContainerExecution'
-        }
-    )
-    t.assertEqual(
-        iris_sgdclassifier.get_dict(), {
+        {
             'inputs': {
                 'artifacts': [],
                 'parameters': {
@@ -126,7 +128,7 @@ def verify(
             'outputs': {
                 'artifacts': [{
                     'metadata': {
-                        'confusionMatrix': {
+                        'confusionMatrix': {'structValue': {'struct': {
                             'annotationSpecs': [{
                                 'displayName': 'Setosa'
                             }, {
@@ -141,7 +143,7 @@ def verify(
                             }, {
                                 'row': [mock.ANY, mock.ANY, mock.ANY]
                             }]
-                        }
+                        }}}
                     },
                     'name': 'metrics',
                     'type': 'system.ClassificationMetrics'
@@ -149,10 +151,10 @@ def verify(
                 'parameters': {}
             },
             'type': 'kfp.ContainerExecution'
-        }
+        }, iris_sgdclassifier.get_dict()
     )
-    rows = iris_sgdclassifier.get_dict(
-    )['outputs']['artifacts'][0]['metadata']['confusionMatrix']['rows']
+    rows = iris_sgdclassifier.get_dict()['outputs']['artifacts'][0]['metadata'][
+        'confusionMatrix']['structValue']['struct']['rows']
     for i, row in enumerate(rows):
         for j, item in enumerate(row['row']):
             t.assertIsInstance(
@@ -160,26 +162,26 @@ def verify(
                 f'value of confusion matrix row {i}, col {j} is not a number'
             )
 
-    t.assertEqual(
-        digit_classification.get_dict(), {
-            'inputs': {
-                'artifacts': [],
-                'parameters': {}
-            },
-            'name': 'digit-classification',
-            'outputs': {
-                'artifacts': [{
-                    'metadata': {
-                        'accuracy': 92.0
+    t.assertEqual({
+        'inputs': {
+            'artifacts': [],
+            'parameters': {}
+        },
+        'name': 'digit-classification',
+        'outputs': {
+            'artifacts': [{
+                'metadata': {
+                    'accuracy': {
+                        'doubleValue': 92.0
                     },
-                    'name': 'metrics',
-                    'type': 'system.Metrics'
-                }],
-                'parameters': {}
-            },
-            'type': 'kfp.ContainerExecution'
-        }
-    )
+                },
+                'name': 'metrics',
+                'type': 'system.Metrics'
+            }],
+            'parameters': {}
+        },
+        'type': 'kfp.ContainerExecution'
+    }, digit_classification.get_dict())
 
 
 run_pipeline_func([

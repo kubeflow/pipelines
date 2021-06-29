@@ -4,12 +4,12 @@ TODO: Add design documents here.
 
 ## Develop kfp launcher in your own project
 
-1. Configure your own container registry for LAUNCHER_DEV_IMAGE:
+1. Configure your own container registry for LAUNCHER_IMAGE_DEV:
 
     ```bash
     export PROJECT=<my-project>
     # .env is a Makefile local config (ignored by git)
-    echo "LAUNCHER_DEV_IMAGE=gcr.io/${PROJECT}/dev/kfp-launcher" > .env
+    echo "LAUNCHER_IMAGE_DEV=gcr.io/${PROJECT}/dev/kfp-launcher" > .env
     ```
 
 1. Configure sample tests to use your dev image:

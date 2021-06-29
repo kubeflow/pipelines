@@ -1,6 +1,11 @@
-# Current Version 0.1.2.dev (Still in Development)
+# Current Version 0.1.3.dev (Still in Development)
 
 *   Add notes for next release here.
+
+# Release 0.1.2
+
+*   Add components for AutoMLForecasting.
+*   Update API documentation. 
 
 # Release 0.1.1
 

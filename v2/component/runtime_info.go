@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -192,10 +193,15 @@ func toMLMDArtifact(runtimeArtifact *pipeline_spec.RuntimeArtifact) (*pb.Artifac
 		artifact.CustomProperties[k] = value
 	}
 
-	artifact.CustomProperties["name"] = stringToMLMDValue(runtimeArtifact.Name)
-	artifact.CustomProperties["metadata"] = &pb.Value{Value: &pb.Value_StructValue{
-		StructValue: runtimeArtifact.Metadata,
-	}}
+	if runtimeArtifact.Metadata != nil {
+		for k, v := range runtimeArtifact.Metadata.Fields {
+			value, err := structValueToMLMDValue(v)
+			if err != nil {
+				return nil, errorF(err)
+			}
+			artifact.CustomProperties[k] = value
+		}
+	}
 
 	return artifact, nil
 }
@@ -316,6 +322,9 @@ func (r *runtimeInfo) generateExecutorInput(genOutputURI generateOutputURI, outp
 	for name, ia := range r.InputArtifacts {
 		if len(ia.MetadataPath) == 0 {
 			return nil, fmt.Errorf("missing input artifact metadata file for input %q", name)
+		}
+		if !filepath.IsAbs(ia.MetadataPath) {
+			return nil, fmt.Errorf("unexpected input artifact metadata file %q for input %q: must be absolute local path", ia.MetadataPath, name)
 		}
 
 		artifact, err := readArtifact(ia.MetadataPath)

@@ -81,7 +81,7 @@ To use the component, the following requirements must be met:
 import kfp.components as comp
 
 dataflow_template_op = comp.load_component_from_url(
-  'https://raw.githubusercontent.com/kubeflow/pipelines/1.5.0-rc.0/components/gcp/dataflow/launch_flex_template/component.yaml')
+  'https://raw.githubusercontent.com/kubeflow/pipelines/1.7.0-alpha.1/components/gcp/dataflow/launch_flex_template/component.yaml')
 help(dataflow_template_op)
 ```
 
