@@ -14,6 +14,7 @@
 
 
 import argparse
+from typing import Optional
 from kfp import dsl
 import kfp.compiler
 import os
@@ -46,13 +47,13 @@ def parse_arguments():
                       help='disable the type check, default is enabled.')
   parser.add_argument('--mode',
                       type=str,
-                      help='compiler mode, default is V1_LEGACY, can also be V2_COMPATIBLE.')
+                      help='compiler mode, defaults to V1_LEGACY, can also be V2_COMPATIBLE. You can override the default using env var KF_PIPELINES_COMPILER_MODE.')
 
   args = parser.parse_args()
   return args
 
 
-def _compile_pipeline_function(pipeline_funcs, function_name, output_path, type_check, mode: dsl.PipelineExecutionMode):
+def _compile_pipeline_function(pipeline_funcs, function_name, output_path, type_check, mode: Optional[dsl.PipelineExecutionMode]):
   if len(pipeline_funcs) == 0:
     raise ValueError('A function with @dsl.pipeline decorator is required in the py file.')
 
@@ -85,7 +86,7 @@ class PipelineCollectorContext():
     dsl._pipeline._pipeline_decorator_handler = self.old_handler
 
 
-def compile_pyfile(pyfile, function_name, output_path, type_check, mode: dsl.PipelineExecutionMode):
+def compile_pyfile(pyfile, function_name, output_path, type_check, mode: Optional[dsl.PipelineExecutionMode]):
   sys.path.insert(0, os.path.dirname(pyfile))
   try:
     filename = os.path.basename(pyfile)
@@ -100,12 +101,13 @@ def main():
   args = parse_arguments()
   if args.py is None:
     raise ValueError('The --py option must be specified.')
-  mode = dsl.PipelineExecutionMode.V1_LEGACY
+  mode = None
+  # when args.mode is not provided, pass mode=None to let compiler handle the default value
   if args.mode:
     if args.mode == 'V2_COMPATIBLE':
       mode = dsl.PipelineExecutionMode.V2_COMPATIBLE
     elif args.mode == 'V1_LEGACY' or args.mode == 'V1':
-      pass # default mode is already V1_LEGACY
+      mode = dsl.PipelineExecutionMode.V1_LEGACY
     else:
       raise ValueError('The --mode option must be V1_LEGACY or V2_COMPATIBLE')
   compile_pyfile(
