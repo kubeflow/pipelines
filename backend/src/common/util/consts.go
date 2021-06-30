@@ -46,10 +46,8 @@ const (
 	// LabelKeyWorkflowEpoch is a Workflow annotation key.
 	// It captures the the name of the Run.
 	AnnotationKeyRunName = "pipelines.kubeflow.org/run_name"
-	AnnotationKeyPipelineNamespaceName = "pipelines.kubeflow.org/pipeline_namespace_name"
 
 	AnnotationKeyIstioSidecarInject           = "sidecar.istio.io/inject"
-
 	AnnotationValueIstioSidecarInjectEnabled  = "true"
 	AnnotationValueIstioSidecarInjectDisabled = "false"
 

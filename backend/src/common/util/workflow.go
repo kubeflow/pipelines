@@ -202,17 +202,6 @@ func (w *Workflow) OverrideName(name string) {
 	w.Name = name
 }
 
-// OverrideName sets the podMetadata of a Workflow Spec.
-func (w *Workflow) AddSpecPodMetadata(namespace string) {
-	if namespace == "" {
-		return
-	}
-	if w.Spec.PodMetadata.Annotations == nil {
-		w.Spec.PodMetadata.Annotations = make(map[string]string)
-	}
-	w.Spec.PodMetadata.Annotations[AnnotationKeyPipelineNamespaceName] = namespace
-}
-
 // SetAnnotations sets annotations on all templates in a Workflow
 func (w *Workflow) SetAnnotationsToAllTemplates(key string, value string) {
 	if len(w.Spec.Templates) == 0 {
