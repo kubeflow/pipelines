@@ -12,16 +12,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .confusion_matrix import confusion_matrix_pipeline
-from ...test.util import run_pipeline_func, TestCase
+import kfp_server_api
+import unittest
+from pprint import pprint
+from .confusion_matrix import confusion_matrix_pipeline, confusion_visualization
+from ...test.util import KfpMlmdClient, run_pipeline_func, TestCase
 
 import kfp
 
+
+def verify(
+    run: kfp_server_api.ApiRun, mlmd_connection_config, argo_workflow_name: str,
+    **kwargs
+):
+    t = unittest.TestCase()
+    t.maxDiff = None  # we always want to see full diff
+    t.assertEqual(run.status, 'Succeeded')
+    client = KfpMlmdClient(mlmd_connection_config=mlmd_connection_config)
+    tasks = client.get_tasks(argo_workflow_name=argo_workflow_name)
+    pprint(tasks)
+
+    confusion_visualization = tasks['confusion-visualization']
+    output = [
+        a for a in confusion_visualization.outputs.artifacts if a.name == 'mlpipeline_ui_metadata'
+    ][0]
+    pprint(output)
+
+    t.assertEqual(confusion_visualization.get_dict()['outputs']['artifacts'][0]['name'],
+                  'mlpipeline_ui_metadata')
+
+
 run_pipeline_func([TestCase(pipeline_func=confusion_matrix_pipeline,
+                            verify_func=verify,
                             mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
                             arguments={
-                                kfp.dsl.ROOT_PARAMETER_NAME:
-                                'minio://mlpipeline/override/artifacts'
                             }),
                    TestCase(pipeline_func=confusion_matrix_pipeline,
                             mode=kfp.dsl.PipelineExecutionMode.V1_LEGACY
