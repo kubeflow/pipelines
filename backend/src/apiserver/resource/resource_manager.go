@@ -69,6 +69,7 @@ type ClientManagerInterface interface {
 	PipelineStore() storage.PipelineStoreInterface
 	JobStore() storage.JobStoreInterface
 	RunStore() storage.RunStoreInterface
+	TaskStore() storage.TaskStoreInterface
 	ResourceReferenceStore() storage.ResourceReferenceStoreInterface
 	DBStatusStore() storage.DBStatusStoreInterface
 	DefaultExperimentStore() storage.DefaultExperimentStoreInterface
@@ -89,6 +90,7 @@ type ResourceManager struct {
 	pipelineStore             storage.PipelineStoreInterface
 	jobStore                  storage.JobStoreInterface
 	runStore                  storage.RunStoreInterface
+	taskStore                 storage.TaskStoreInterface
 	resourceReferenceStore    storage.ResourceReferenceStoreInterface
 	dBStatusStore             storage.DBStatusStoreInterface
 	defaultExperimentStore    storage.DefaultExperimentStoreInterface
@@ -110,6 +112,7 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		pipelineStore:             clientManager.PipelineStore(),
 		jobStore:                  clientManager.JobStore(),
 		runStore:                  clientManager.RunStore(),
+		taskStore:                 clientManager.TaskStore(),
 		resourceReferenceStore:    clientManager.ResourceReferenceStore(),
 		dBStatusStore:             clientManager.DBStatusStore(),
 		defaultExperimentStore:    clientManager.DefaultExperimentStore(),
@@ -480,6 +483,31 @@ func (r *ResourceManager) DeleteRun(ctx context.Context, runID string) error {
 	}
 	return nil
 }
+
+func (r *ResourceManager) CreateTask(ctx context.Context, apiTask *api.Task) (*model.Task, error) {
+	uuid, err := r.uuid.NewRandom()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to generate task ID.")
+	}
+	id := uuid.String()
+	task := model.Task{
+		UUID:              id,
+		Namespace:         apiTask.Namespace,
+		PipelineName:      apiTask.PipelineName,
+		RunUUID:           apiTask.RunId,
+		MLMDExecutionID:   apiTask.MlmdExecutionID,
+		CreatedTimestamp:  apiTask.CreatedAt.AsTime().Unix(),
+		FinishedTimestamp: apiTask.FinishedAt.AsTime().Unix(),
+		Fingerprint:       apiTask.Fingerprint,
+	}
+	return r.taskStore.CreateTask(&task)
+}
+
+func (r *ResourceManager) ListTasks(filterContext *common.FilterContext,
+	opts *list.Options) (tasks []*model.Task, total_size int, nextPageToken string, err error) {
+	return r.taskStore.ListTasks(filterContext, opts)
+}
+
 
 func (r *ResourceManager) ListJobs(filterContext *common.FilterContext,
 	opts *list.Options) (jobs []*model.Job, total_size int, nextPageToken string, err error) {
