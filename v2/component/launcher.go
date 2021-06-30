@@ -35,12 +35,14 @@ import (
 	"github.com/kubeflow/pipelines/v2/metadata"
 	"github.com/kubeflow/pipelines/v2/objectstore"
 	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
+	api "github.com/kubeflow/pipelines/v2/third_party/backend_api_goclient"
 	"google.golang.org/protobuf/encoding/protojson"
 	v1 "k8s.io/api/core/v1"
 	k8errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"google.golang.org/grpc"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -50,6 +52,11 @@ import (
 	"gocloud.dev/blob/s3blob"
 )
 
+const (
+	// MaxGRPCMessageSize contains max grpc message size supported by the client
+	MaxClientGRPCMessageSize = 100 * 1024 * 1024
+)
+
 // Launcher is used to launch KFP components. It handles the recording of the
 // appropriate metadata for lineage.
 type Launcher struct {
@@ -57,6 +64,7 @@ type Launcher struct {
 	runtimeInfo             *runtimeInfo
 	placeholderReplacements map[string]string
 	metadataClient          *metadata.Client
+	taskServiceClient       *api.TaskServiceClient
 	bucketConfig            *bucketConfig
 	k8sClient               *kubernetes.Clientset
 	namespace               string
@@ -228,11 +236,18 @@ func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error
 		return nil, err
 	}
 
+	conn, err := grpc.Dial(opts.URL, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxClientGRPCMessageSize)), grpc.WithInsecure())
+	if err != nil {
+		return nil, err
+	}
+	taskServiceClient := api.NewTaskServiceClient(conn)
+
 	return &Launcher{
 		options:                 options,
 		placeholderReplacements: pr,
 		runtimeInfo:             rt,
 		metadataClient:          metadataClient,
+		taskServiceClient:       &taskServiceClient,
 		bucketConfig:            bc,
 		k8sClient:               k8sClient,
 		namespace:               namespace,
@@ -259,9 +274,17 @@ func (l *Launcher) RunComponent(ctx context.Context, cmdArgs []string) error {
 	if err != nil {
 		return fmt.Errorf("failure while generating CacheKey: %w", err)
 	}
-	_, err = cacheutils.GenerateFingerPrint(*cacheKey)
+	fingerPrint, err = cacheutils.GenerateFingerPrint(*cacheKey)
 	if err != nil {
 		return fmt.Errorf("failure while generating FingerPrint: %w", err)
+	}
+
+	api.ListTasksRequest{
+		PageToken:            "",
+		PageSize:             0,
+		SortBy:               "",
+		ResourceReferenceKey: nil,
+		Filter:               "",
 	}
 
 	if err := l.prepareInputs(ctx, executorInput); err != nil {
