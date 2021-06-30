@@ -10,6 +10,7 @@ require (
 	github.com/google/uuid v1.1.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	gocloud.dev v0.22.0
+	google.golang.org/genproto v0.0.0-20201203001206-6486ece9c497
 	google.golang.org/grpc v1.36.0
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/yaml.v2 v2.4.0
