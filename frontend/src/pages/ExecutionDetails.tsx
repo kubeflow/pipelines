@@ -16,40 +16,36 @@
 
 import {
   Api,
-  ArtifactCustomProperties,
-  ArtifactProperties,
   ArtifactType,
   Event,
   Execution,
   ExecutionCustomProperties,
   ExecutionProperties,
-  GetArtifactsByIDRequest,
-  GetExecutionsByIDRequest,
+  ExecutionType,
+  getArtifactTypes,
   GetEventsByExecutionIDsRequest,
   GetEventsByExecutionIDsResponse,
-  getArtifactTypes,
+  GetExecutionsByIDRequest,
   getResourceProperty,
   logger,
-  ExecutionType,
 } from '@kubeflow/frontend';
+import { GetExecutionTypesByIDRequest } from '@kubeflow/frontend/src/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
 import { CircularProgress } from '@material-ui/core';
 import React, { Component } from 'react';
 import { Link } from 'react-router-dom';
+import { getArtifactName, getLinkedArtifactsByEvents } from 'src/lib/MlmdUtils';
 import { classes, stylesheet } from 'typestyle';
-import { Page, PageErrorHandler } from './Page';
-import { ToolbarProps } from '../components/Toolbar';
-import { RoutePage, RouteParams, RoutePageFactory } from '../components/Router';
-import { commonCss, padding } from '../Css';
 import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
+import { RoutePage, RoutePageFactory, RouteParams } from '../components/Router';
+import { ToolbarProps } from '../components/Toolbar';
+import { commonCss, padding } from '../Css';
 import { serviceErrorToString } from '../lib/Utils';
-import { GetExecutionTypesByIDRequest } from '@kubeflow/frontend/src/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
-
-type ArtifactIdList = number[];
+import { Page, PageErrorHandler } from './Page';
 
 interface ExecutionDetailsState {
   execution?: Execution;
   executionType?: ExecutionType;
-  events?: Record<Event.Type, ArtifactIdList>;
+  events?: Record<Event.Type, Event[]>;
   artifactTypeMap?: Map<number, ArtifactType>;
 }
 
@@ -125,22 +121,22 @@ export class ExecutionDetailsContent extends Component<
         }
         <SectionIO
           title={'Declared Inputs'}
-          artifactIds={this.state.events[Event.Type.DECLARED_INPUT]}
+          events={this.state.events[Event.Type.DECLARED_INPUT]}
           artifactTypeMap={this.state.artifactTypeMap}
         />
         <SectionIO
           title={'Inputs'}
-          artifactIds={this.state.events[Event.Type.INPUT]}
+          events={this.state.events[Event.Type.INPUT]}
           artifactTypeMap={this.state.artifactTypeMap}
         />
         <SectionIO
           title={'Declared Outputs'}
-          artifactIds={this.state.events[Event.Type.DECLARED_OUTPUT]}
+          events={this.state.events[Event.Type.DECLARED_OUTPUT]}
           artifactTypeMap={this.state.artifactTypeMap}
         />
         <SectionIO
           title={'Outputs'}
-          artifactIds={this.state.events[Event.Type.OUTPUT]}
+          events={this.state.events[Event.Type.OUTPUT]}
           artifactTypeMap={this.state.artifactTypeMap}
         />
       </div>
@@ -257,8 +253,8 @@ export class ExecutionDetailsContent extends Component<
 
 function parseEventsByType(
   response: GetEventsByExecutionIDsResponse | null,
-): Record<Event.Type, ArtifactIdList> {
-  const events: Record<Event.Type, ArtifactIdList> = {
+): Record<Event.Type, Event[]> {
+  const events: Record<Event.Type, Event[]> = {
     [Event.Type.UNKNOWN]: [],
     [Event.Type.DECLARED_INPUT]: [],
     [Event.Type.INPUT]: [],
@@ -276,7 +272,7 @@ function parseEventsByType(
     const type = event.getType();
     const id = event.getArtifactId();
     if (type != null && id != null) {
-      events[type].push(id);
+      events[type].push(event);
     }
   });
 
@@ -292,7 +288,7 @@ interface ArtifactInfo {
 
 interface SectionIOProps {
   title: string;
-  artifactIds: number[];
+  events: Event[];
   artifactTypeMap?: Map<number, ArtifactType>;
 }
 class SectionIO extends Component<
@@ -308,27 +304,21 @@ class SectionIO extends Component<
   }
 
   public async componentDidMount(): Promise<void> {
-    // loads extra metadata about artifacts
-    const request = new GetArtifactsByIDRequest();
-    request.setArtifactIdsList(this.props.artifactIds);
-
     try {
-      const response = await Api.getInstance().metadataStoreService.getArtifactsByID(request);
+      const linkedArtifacts = await getLinkedArtifactsByEvents(this.props.events);
 
       const artifactDataMap = {};
-      response.getArtifactsList().forEach(artifact => {
-        const id = artifact.getId();
+      linkedArtifacts.forEach(linkedArtifact => {
+        const id = linkedArtifact.event.getArtifactId();
         if (!id) {
-          logger.error('Artifact has empty id', artifact.toObject());
+          logger.error('Artifact has empty id', linkedArtifact.artifact.toObject());
           return;
         }
         artifactDataMap[id] = {
           id,
-          name: (getResourceProperty(artifact, ArtifactProperties.NAME) ||
-            getResourceProperty(artifact, ArtifactCustomProperties.NAME, true) ||
-            '') as string, // TODO: assert name is string
-          typeId: artifact.getTypeId(),
-          uri: artifact.getUri() || '',
+          name: getArtifactName(linkedArtifact),
+          typeId: linkedArtifact.artifact.getTypeId(),
+          uri: linkedArtifact.artifact.getUri() || '',
         };
       });
       this.setState({
@@ -340,8 +330,8 @@ class SectionIO extends Component<
   }
 
   public render(): JSX.Element | null {
-    const { title, artifactIds } = this.props;
-    if (artifactIds.length === 0) {
+    const { title, events } = this.props;
+    if (events.length === 0) {
       return null;
     }
 
@@ -358,7 +348,8 @@ class SectionIO extends Component<
             </tr>
           </thead>
           <tbody>
-            {artifactIds.map(id => {
+            {events.map(event => {
+              const id = event.getArtifactId();
               const data = this.state.artifactDataMap[id] || {};
               const type =
                 this.props.artifactTypeMap && data.typeId
