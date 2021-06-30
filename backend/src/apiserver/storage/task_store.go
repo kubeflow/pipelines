@@ -142,7 +142,7 @@ func (s *TaskStore) ListTasks(filterContext *common.FilterContext, opts *list.Op
 	// Use a transaction to make sure we're returning the total_size of the same rows queried
 	tx, err := s.db.Begin()
 	if err != nil {
-		glog.Errorf("Failed to start transaction to list jobs")
+		glog.Errorf("Failed to start transaction to list tasks")
 		return errorF(err)
 	}
 
@@ -191,11 +191,11 @@ func (s *TaskStore) GetTask(id string) (*model.Task, error) {
 		Where(sq.Eq{"tasks.uuid": id}).
 		Limit(1).ToSql()
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create query to get pipeline: %v", err.Error())
+		return nil, util.NewInternalServerError(err, "Failed to create query to get task: %v", err.Error())
 	}
 	r, err := s.db.Query(sql, args...)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to get pipeline: %v", err.Error())
+		return nil, util.NewInternalServerError(err, "Failed to get task: %v", err.Error())
 	}
 	defer r.Close()
 	tasks, err := s.scanRows(r)

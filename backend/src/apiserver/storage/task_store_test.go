@@ -40,29 +40,6 @@ func initializeTaskStore() (*DB, *TaskStore) {
 	expStore.CreateExperiment(&model.Experiment{Name: "e1", Namespace: "ns1"})
 	expStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil)
 	expStore.CreateExperiment(&model.Experiment{Name: "e2", Namespace: "ns2"})
-
-	//pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineId, nil))
-	//p1, _:= pipelineStore.CreatePipeline(&model.Pipeline{
-	//	Name:       "pipeline1",
-	//	Parameters: `[{"Name": "param1"}]`,
-	//	Status:     model.PipelineReady,
-	//	Namespace: "ns1",
-	//	DefaultVersion: &model.PipelineVersion{
-	//		Name:       "pipeline1",
-	//		Parameters: `[{"Name": "param1"}]`,
-	//		Status:     model.PipelineVersionReady,
-	//	}})
-	//pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakePipelineIdTwo, nil)
-	//p2, _:= pipelineStore.CreatePipeline(&model.Pipeline{
-	//	Name:       "pipeline2",
-	//	Parameters: `[{"Name": "param1"}]`,
-	//	Status:     model.PipelineReady,
-	//	Namespace: "ns2",
-	//	DefaultVersion: &model.PipelineVersion{
-	//		Name:       "pipeline2",
-	//		Parameters: `[{"Name": "param1"}]`,
-	//		Status:     model.PipelineVersionReady,
-	//	}})
 	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
 
 	run1 := &model.RunDetail{
