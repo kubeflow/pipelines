@@ -2780,6 +2780,5 @@ func TestCreateTask(t *testing.T) {
 	// Verify the T in DB is in status PipelineVersionCreating.
 	storedTask, err := manager.taskStore.GetTask(DefaultFakeUUID)
 	assert.Nil(t, err)
-	assert.Nil(t, err)
 	assert.Equal(t, expectedTask, storedTask, "The StoredTask return has unexpected value.")
 }
