@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/kubeflow/pipelines/v2/kfp"
 	"io"
 	"io/ioutil"
 	"os"
@@ -30,31 +31,23 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/v2/cacheutils"
 	"github.com/kubeflow/pipelines/v2/metadata"
 	"github.com/kubeflow/pipelines/v2/objectstore"
 	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
-	api "github.com/kubeflow/pipelines/v2/third_party/backend_api_goclient"
+	"gocloud.dev/blob"
+	_ "gocloud.dev/blob/gcsblob"
+	"gocloud.dev/blob/s3blob"
 	"google.golang.org/protobuf/encoding/protojson"
 	v1 "k8s.io/api/core/v1"
 	k8errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"google.golang.org/grpc"
-
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"gocloud.dev/blob"
-	_ "gocloud.dev/blob/gcsblob"
-	"gocloud.dev/blob/s3blob"
-)
-
-const (
-	// MaxGRPCMessageSize contains max grpc message size supported by the client
-	MaxClientGRPCMessageSize = 100 * 1024 * 1024
 )
 
 // Launcher is used to launch KFP components. It handles the recording of the
@@ -64,7 +57,7 @@ type Launcher struct {
 	runtimeInfo             *runtimeInfo
 	placeholderReplacements map[string]string
 	metadataClient          *metadata.Client
-	taskServiceClient       *api.TaskServiceClient
+	kfpClient               *kfp.Client
 	bucketConfig            *bucketConfig
 	k8sClient               *kubernetes.Clientset
 	namespace               string
@@ -80,6 +73,8 @@ type LauncherOptions struct {
 	ContainerImage    string
 	MLMDServerAddress string
 	MLMDServerPort    string
+	KFPServerAddress  string
+	KFPServerPort     string
 }
 
 type bucketConfig struct {
@@ -236,18 +231,17 @@ func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error
 		return nil, err
 	}
 
-	conn, err := grpc.Dial(opts.URL, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxClientGRPCMessageSize)), grpc.WithInsecure())
+	kfpClient, err := kfp.NewClient()
 	if err != nil {
 		return nil, err
 	}
-	taskServiceClient := api.NewTaskServiceClient(conn)
 
 	return &Launcher{
 		options:                 options,
 		placeholderReplacements: pr,
 		runtimeInfo:             rt,
 		metadataClient:          metadataClient,
-		taskServiceClient:       &taskServiceClient,
+		kfpClient:               kfpClient,
 		bucketConfig:            bc,
 		k8sClient:               k8sClient,
 		namespace:               namespace,
@@ -274,18 +268,11 @@ func (l *Launcher) RunComponent(ctx context.Context, cmdArgs []string) error {
 	if err != nil {
 		return fmt.Errorf("failure while generating CacheKey: %w", err)
 	}
-	fingerPrint, err = cacheutils.GenerateFingerPrint(*cacheKey)
+	_, err = cacheutils.GenerateFingerPrint(*cacheKey)
 	if err != nil {
 		return fmt.Errorf("failure while generating FingerPrint: %w", err)
 	}
 
-	api.ListTasksRequest{
-		PageToken:            "",
-		PageSize:             0,
-		SortBy:               "",
-		ResourceReferenceKey: nil,
-		Filter:               "",
-	}
 
 	if err := l.prepareInputs(ctx, executorInput); err != nil {
 		return err

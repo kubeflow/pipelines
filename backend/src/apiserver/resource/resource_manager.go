@@ -371,18 +371,10 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 	formattedParams := formatter.FormatWorkflowParameters(workflow.GetWorkflowParametersAsMap())
 	workflow.OverrideParameters(formattedParams)
 
-	namespace, err := r.getNamespaceFromExperiment(apiRun.GetResourceReferences())
-	if err != nil {
-		return nil, err
-	}
-
-	workflow.AddSpecPodMetadata(namespace)
-
 	r.setDefaultServiceAccount(&workflow, apiRun.GetServiceAccount())
 
 	// Disable istio sidecar injection
 	workflow.SetAnnotationsToAllTemplates(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
-	// Add a KFP specific annotation to pass the namespace of pipeline run to launcher
 	// Add a KFP specific label for cache service filtering. The cache_enabled flag here is a global control for whether cache server will
 	// receive targeting pods. Since cache server only receives pods in step level, the resource manager here will set this global label flag
 	// on every single step/pod so the cache server can understand.
@@ -421,6 +413,11 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 	}
 	if ref != nil {
 		apiRun.ResourceReferences = append(apiRun.GetResourceReferences(), ref)
+	}
+
+	namespace, err := r.getNamespaceFromExperiment(apiRun.GetResourceReferences())
+	if err != nil {
+		return nil, err
 	}
 
 	_, err = validate.ValidateWorkflow(nil, nil, workflow.Workflow, validate.ValidateOpts{
