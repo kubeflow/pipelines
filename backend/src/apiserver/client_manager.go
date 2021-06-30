@@ -68,6 +68,7 @@ type ClientManager struct {
 	pipelineStore             storage.PipelineStoreInterface
 	jobStore                  storage.JobStoreInterface
 	runStore                  storage.RunStoreInterface
+	taskStore                 storage.TaskStoreInterface
 	resourceReferenceStore    storage.ResourceReferenceStoreInterface
 	dBStatusStore             storage.DBStatusStoreInterface
 	defaultExperimentStore    storage.DefaultExperimentStoreInterface
@@ -81,6 +82,10 @@ type ClientManager struct {
 	time                      util.TimeInterface
 	uuid                      util.UUIDGeneratorInterface
 	authenticators            []auth.Authenticator
+}
+
+func (c *ClientManager) TaskStore() storage.TaskStoreInterface {
+	return c.taskStore
 }
 
 func (c *ClientManager) ExperimentStore() storage.ExperimentStoreInterface {
@@ -239,6 +244,7 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		&model.ResourceReference{},
 		&model.RunDetail{},
 		&model.RunMetric{},
+		&model.Task{},
 		&model.DBStatus{},
 		&model.DefaultExperiment{})
 
@@ -285,6 +291,11 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		AddForeignKey("PipelineId", "pipelines(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
 	if response.Error != nil {
 		glog.Fatalf("Failed to create a foreign key for PipelineId in pipeline_versions table. Error: %s", response.Error)
+	}
+	response = db.Model(&model.Task{}).
+		AddForeignKey("RunUUID", "run_details(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
+	if response.Error != nil {
+		glog.Fatalf("Failed to create a foreign key for RunUUID in task table. Error: %s", response.Error)
 	}
 
 	// Data backfill for pipeline_versions if this is the first time for
