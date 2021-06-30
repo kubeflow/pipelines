@@ -20,7 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/kubeflow/pipelines/v2/kfp"
 	"io"
 	"io/ioutil"
 	"os"
@@ -57,7 +56,7 @@ type Launcher struct {
 	runtimeInfo             *runtimeInfo
 	placeholderReplacements map[string]string
 	metadataClient          *metadata.Client
-	kfpClient               *kfp.Client
+	cacheClient             *cacheutils.Client
 	bucketConfig            *bucketConfig
 	k8sClient               *kubernetes.Clientset
 	namespace               string
@@ -231,7 +230,7 @@ func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error
 		return nil, err
 	}
 
-	kfpClient, err := kfp.NewClient()
+	cacheClient, err := cacheutils.NewClient()
 	if err != nil {
 		return nil, err
 	}
@@ -241,7 +240,7 @@ func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error
 		placeholderReplacements: pr,
 		runtimeInfo:             rt,
 		metadataClient:          metadataClient,
-		kfpClient:               kfpClient,
+		cacheClient:             cacheClient,
 		bucketConfig:            bc,
 		k8sClient:               k8sClient,
 		namespace:               namespace,
@@ -268,11 +267,11 @@ func (l *Launcher) RunComponent(ctx context.Context, cmdArgs []string) error {
 	if err != nil {
 		return fmt.Errorf("failure while generating CacheKey: %w", err)
 	}
-	_, err = cacheutils.GenerateFingerPrint(*cacheKey)
+	fingerPrint, err := cacheutils.GenerateFingerPrint(*cacheKey)
+	_, err = l.cacheClient.GetExecutionCache(fingerPrint, l.options.PipelineName)
 	if err != nil {
-		return fmt.Errorf("failure while generating FingerPrint: %w", err)
+		return fmt.Errorf("failure while getting executionCache,: %w", err)
 	}
-
 
 	if err := l.prepareInputs(ctx, executorInput); err != nil {
 		return err
@@ -498,7 +497,6 @@ func (l *Launcher) RunComponent(ctx context.Context, cmdArgs []string) error {
 		return fmt.Errorf("unable to publish execution: %w", err)
 	}
 	return nil
-
 }
 
 func (l *Launcher) generateOutputURI(name string) string {

@@ -31,7 +31,7 @@ message Task {
   // Required input field. The PipelineName to which this pipeline task belongs.
   // Namespace will be encoded in the PipelineName.
   // "namespace/${namespace}/pipeline/${pipelineName}" for namespaced pipelines
-  // "pipeline/${pipelineName}" for shared pipelines
+  // "pipeline/${pipelineName}pipeline/${pipelineName}" for shared pipelines
   string pipelineName = 3;
 
   // Required input field.The ID of the PipelineRun that the PipelineTask belongs to.

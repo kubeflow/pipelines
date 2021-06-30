@@ -1,13 +1,27 @@
 package cacheutils
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/golang/glog"
+	api "github.com/kubeflow/pipelines/v2/third_party/kfp_api"
+	"google.golang.org/grpc"
+	"os"
 
 	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
 )
+const (
+	// MaxGRPCMessageSize contains max grpc message size supported by the client
+	MaxClientGRPCMessageSize = 100 * 1024 * 1024
+	// The endpoint uses Kubernetes service DNS name with namespace:
+	//https://kubernetes.io/docs/concepts/services-networking/service/#dns
+	defaultCacheEndpoint = "ml-pipeline.kubeflow:8888"
+)
+
+
 
 type CacheKey struct {
 	inputArtifactNames   map[string]artifactNameList
@@ -97,4 +111,65 @@ func GenerateCacheKey(
 
 	return &cacheKey, nil
 
+}
+
+
+// Client is an MLMD service client.
+type Client struct {
+	svc api.TaskServiceClient
+}
+
+// NewClient creates a Client.
+func NewClient() (*Client, error) {
+	conn, err := grpc.Dial(cacheDefaultEndpoint(), grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxClientGRPCMessageSize)), grpc.WithInsecure())
+	if err != nil {
+		return nil, fmt.Errorf("metadata.NewClient() failed: %w", err)
+	}
+
+	return &Client{
+		svc: api.NewTaskServiceClient(conn),
+	}, nil
+}
+
+func cacheDefaultEndpoint() string {
+	// Discover ml-pipeline in the same namespace by env var.
+	// https://kubernetes.io/docs/concepts/services-networking/service/#environment-variables
+	cacheHost := os.Getenv("ML_PIPELINE_SERVICE_HOST")
+	cachePort := os.Getenv("ML_PIPELINE_SERVICE_PORT")
+	if cacheHost != "" && cachePort != "" {
+		// If there is a ml-pipeline Kubernetes service in the same namespace,
+		// ML_PIPELINE_SERVICE_HOST and ML_PIPELINE_SERVICE_PORT env vars should
+		// exist by default, so we use it as default.
+		return cacheHost + ":" + cachePort
+	}
+	// If the env vars do not exist, use default ml-pipeline endpoint `ml-pipeline.kubeflow:8888`.
+	glog.Infof("Cannot detect ml-pipeline in the same namespace, default to %s as KFP endpoint.", defaultCacheEndpoint)
+	return defaultCacheEndpoint
+}
+
+func (c *Client) GetExecutionCache(fingerPrint, pipelineName string) (string, error) {
+	fingerPrintPredicate := &api.Predicate{
+		Op:    api.Predicate_EQUALS,
+		Key:   "fingerprint",
+		Value: &api.Predicate_StringValue{StringValue: fingerPrint},
+	}
+	pipelineNamePredicate := &api.Predicate{
+		Op:    api.Predicate_EQUALS,
+		Key:   "pipelineName",
+		Value: &api.Predicate_StringValue{StringValue: fmt.Sprintf("pipeline/%s", pipelineName)},
+	}
+	filter := api.Filter{Predicates: []*api.Predicate{fingerPrintPredicate, pipelineNamePredicate}}
+
+	taskFilterJson, err := json.Marshal(filter)
+	if err != nil {
+		return "", fmt.Errorf("failed to convert filter into JSON: %w", err)
+	}
+	listTasksReuqest := &api.ListTasksRequest{Filter: string(taskFilterJson), SortBy: "createdAt desc"}
+	listTasksResponse, err := c.svc.ListTasks(context.Background(), listTasksReuqest)
+	tasks := listTasksResponse.Tasks
+	if len(tasks) == 0 {
+		return "", nil
+	} else {
+		return tasks[0].GetMlmdExecutionID(), nil
+	}
 }
