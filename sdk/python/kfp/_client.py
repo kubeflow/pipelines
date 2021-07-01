@@ -707,7 +707,7 @@ class Client(object):
       pipeline_json_string = json.dumps(pipeline_obj)
     api_params = [kfp_server_api.ApiParameter(
         name=sanitize_k8s_name(name=k, allow_capital_underscore=True),
-        value=str(v)) for k,v in params.items()]
+        value=str(v) if type(v) not in (list, dict) else json.dumps(v)) for k,v in params.items()]
     resource_references = []
     key = kfp_server_api.models.ApiResourceKey(id=experiment_id,
                                         type=kfp_server_api.models.ApiResourceType.EXPERIMENT)
