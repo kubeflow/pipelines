@@ -14,14 +14,12 @@
 
 import kfp
 from kfp import dsl
+import kfp.components as comp
 
+
+@comp.create_component_from_func
 def echo_op():
-    return dsl.ContainerOp(
-        name='echo',
-        image='library/bash:4.4.23',
-        command=['sh', '-c'],
-        arguments=['echo "hello world"']
-    )
+    print("Hello world")
 
 @dsl.pipeline(
     name='my-first-pipeline',
