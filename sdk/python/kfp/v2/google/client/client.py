@@ -348,7 +348,7 @@ class AIPlatformClient(object):
       self,
       job_spec_path: str,
       schedule: str,
-      scheduler_region: str = 'us-central1',
+      scheduler_region: str = None,
       time_zone: str = 'US/Pacific',
       pipeline_root: Optional[str] = None,
       parameter_values: Optional[Mapping[str, Any]] = None) -> dict:
@@ -370,7 +370,7 @@ class AIPlatformClient(object):
     Args:
       job_spec_path: Path of the compiled pipeline file.
       schedule: Schedule in cron format. Example: "45 * * * *"
-      scheduler_region: Google Cloud scheduler region. Default is 'us-central1'
+      scheduler_region: Google Cloud scheduler region.
       time_zone: Schedule time zone. Default is 'US/Pacific'
       parameter_values: Arguments for the pipeline parameters
       pipeline_root: Optionally the user can override the pipeline root
@@ -384,7 +384,7 @@ class AIPlatformClient(object):
         schedule=schedule,
         project_id=self._project_id,
         pipelines_region=self._region,
-        scheduler_region=scheduler_region,
+        scheduler_region=scheduler_region or self._region,
         time_zone=time_zone,
         parameter_values=parameter_values,
         pipeline_root=pipeline_root)
