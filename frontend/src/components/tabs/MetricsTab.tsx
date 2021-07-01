@@ -14,18 +14,23 @@
  * limitations under the License.
  */
 
-import { Artifact, ArtifactType, Execution } from '@kubeflow/frontend';
+import { ArtifactType, Execution } from '@kubeflow/frontend';
 import * as React from 'react';
 import { useQuery } from 'react-query';
 import { ErrorBoundary } from 'src/atoms/ErrorBoundary';
 import { commonCss, padding } from 'src/Css';
-import { getArtifactTypes, getOutputArtifactsInExecution } from 'src/lib/MlmdUtils';
+import {
+  getArtifactTypes,
+  getOutputLinkedArtifactsInExecution,
+  LinkedArtifact,
+} from 'src/lib/MlmdUtils';
 import Banner from '../Banner';
 import { MetricsVisualizations } from '../viewers/MetricsVisualizations';
 import { ExecutionTitle } from './ExecutionTitle';
 
 type MetricsTabProps = {
   execution: Execution;
+  namespace: string | undefined;
 };
 
 /**
@@ -34,7 +39,7 @@ type MetricsTabProps = {
  * Detail can be found in https://github.com/kubeflow/pipelines/blob/master/sdk/python/kfp/dsl/io_types.py
  * Note that these metrics are only available on KFP v2 mode.
  */
-export function MetricsTab({ execution }: MetricsTabProps) {
+export function MetricsTab({ execution, namespace }: MetricsTabProps) {
   let executionCompleted = false;
   const executionState = execution.getLastKnownState();
   if (
@@ -54,9 +59,9 @@ export function MetricsTab({ execution }: MetricsTabProps) {
     isSuccess: isSuccessArtifacts,
     error: errorArtifacts,
     data: artifacts,
-  } = useQuery<Artifact[], Error>(
+  } = useQuery<LinkedArtifact[], Error>(
     ['execution_output_artifact', { id: execution.getId() }],
-    () => getOutputArtifactsInExecution(execution),
+    () => getOutputLinkedArtifactsInExecution(execution),
     { enabled: executionCompleted, staleTime: Infinity },
   );
 
@@ -107,8 +112,10 @@ export function MetricsTab({ execution }: MetricsTabProps) {
           )}
           {isSuccessArtifacts && isSuccessArtifactTypes && artifacts && artifactTypes && (
             <MetricsVisualizations
-              artifacts={artifacts}
+              linkedArtifacts={artifacts}
               artifactTypes={artifactTypes}
+              execution={execution}
+              namespace={namespace}
             ></MetricsVisualizations>
           )}
         </div>
