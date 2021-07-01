@@ -131,7 +131,7 @@ class Client(object):
   LOCAL_KFP_CONTEXT = os.path.expanduser('~/.config/kfp/context.json')
 
   # TODO: Wrap the configurations for different authentication methods.
-  def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None, existing_token=None, cookies=None, proxy=None, ssl_ca_cert=None, kube_context=None, credentials=None, proxy_username=None, proxy_password=None, proxy_headers=None):
+  def __init__(self, host=None, client_id=None, namespace='kubeflow', other_client_id=None, other_client_secret=None, existing_token=None, cookies=None, proxy=None, ssl_ca_cert=None, kube_context=None, credentials=None, proxy_headers=None):
     """Create a new instance of kfp client.
     """
     host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
@@ -139,7 +139,7 @@ class Client(object):
     client_id = client_id or os.environ.get(KF_PIPELINES_IAP_OAUTH2_CLIENT_ID_ENV)
     other_client_id = other_client_id or os.environ.get(KF_PIPELINES_APP_OAUTH2_CLIENT_ID_ENV)
     other_client_secret = other_client_secret or os.environ.get(KF_PIPELINES_APP_OAUTH2_CLIENT_SECRET_ENV)
-    config = self._load_config(host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy, ssl_ca_cert, kube_context, credentials, proxy_username=proxy_username, proxy_password=proxy_password, proxy_headers=proxy_headers)
+    config = self._load_config(host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy, ssl_ca_cert, kube_context, credentials, proxy_headers=proxy_headers)
     # Save the loaded API client configuration, as a reference if update is
     # needed.
     self._load_context_setting_or_default()
@@ -164,18 +164,14 @@ class Client(object):
       except FileNotFoundError:
         logging.info('Failed to automatically set namespace.', exc_info=True)
 
-  def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy, ssl_ca_cert, kube_context, credentials, proxy_username=None, proxy_password=None, proxy_headers=None):
+  def _load_config(self, host, client_id, namespace, other_client_id, other_client_secret, existing_token, proxy, ssl_ca_cert, kube_context, credentials, proxy_headers=None):
     config = kfp_server_api.configuration.Configuration()
 
     if proxy:
       # https://github.com/kubeflow/pipelines/blob/c6ac5e0b1fd991e19e96419f0f508ec0a4217c29/backend/api/python_http_client/kfp_server_api/rest.py#L100
       config.proxy = proxy
 
-    # for use with a reverse proxy with basic auth.
-    if proxy_username and proxy_password:
-      config.proxy_headers = make_headers(basic_auth=f"{proxy_username}:{proxy_password}")
-
-    # for use with kerberos
+    # for use with kerberos or basic auth reverse proxies
     if proxy_headers:
       config.proxy_headers = proxy_headers
 
