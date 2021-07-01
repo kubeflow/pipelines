@@ -41,7 +41,8 @@ def create_from_pipeline_file(
     pipeline_path: str,
     schedule: str,
     project_id: str,
-    region: str = 'us-central1',
+    pipelines_region: str = 'us-central1',
+    scheduler_region: str = 'us-central1',
     time_zone: str = 'US/Pacific',
     parameter_values: Optional[Mapping[str, Any]] = None,
     pipeline_root: Optional[str] = None,
@@ -65,7 +66,8 @@ def create_from_pipeline_file(
     pipeline_path: Path of the compiled pipeline file.
     schedule: Schedule in cron format. Example: "45 * * * *"
     project_id: Google Cloud project ID
-    region: Google Cloud compute region. Default is 'us-central1'
+    pipelines_region: Google Cloud compute region. Default is 'us-central1'
+    scheduler_region: Google Cloud scheduler region. Default is 'us-central1'
     time_zone: Schedule time zone. Default is 'US/Pacific'
     parameter_values: Arguments for the pipeline parameters
     pipeline_root: Optionally the user can override the pipeline root
@@ -81,7 +83,7 @@ def create_from_pipeline_file(
 
   proxy_function_url = _get_proxy_cloud_function_endpoint(
       project_id=project_id,
-      region=region,
+      region=pipelines_region,
   )
 
   pipeline_dict = json.loads(pipeline_text)
@@ -94,7 +96,7 @@ def create_from_pipeline_file(
     pipeline_dict['runtimeConfig'] = updated_runtime_config
 
   # Creating job creation request to get the final request URL
-  pipeline_jobs_api_url = f'https://{_CAIPP_DEFAULT_ENDPOINT}/{_CAIPP_API_VERSION}/projects/{project_id}/locations/{region}/pipelineJobs'
+  pipeline_jobs_api_url = f'https://{_CAIPP_DEFAULT_ENDPOINT}/{_CAIPP_API_VERSION}/projects/{project_id}/locations/{pipelines_region}/pipelineJobs'
 
   # Preparing the request body for the Cloud Function processing
   full_pipeline_name = pipeline_dict.get('name')
@@ -119,7 +121,7 @@ def create_from_pipeline_file(
       display_name=pipeline_display_name,
   )
 
-  project_location_path = 'projects/{}/locations/{}'.format(project_id, region)
+  project_location_path = 'projects/{}/locations/{}'.format(project_id, scheduler_region)
   scheduled_job_full_name = project_location_path + '/jobs/' + schedule_name
   service_account_email = project_id + '@appspot.gserviceaccount.com'
 
