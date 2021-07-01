@@ -16,19 +16,28 @@ import kfp
 from kfp import dsl, components
 from typing import NamedTuple
 
-@components.create_component_from_func
-def training_op(n: int) -> int:
-    # quickly allocate a lot of memory to verify memory is enough
-    a = [i for i in range(n)]
-    return len(a)
+
+def training_job():
+    import torch
+    use_cuda = torch.cuda.is_available()
+    print(f"The gpus status is: {use_cuda}")
+    if not use_cuda:
+        raise ValueError("GPU not available")
+
+
+training_comp = components.create_component_from_func(
+        training_job,
+        base_image='pytorch/pytorch:1.7.1-cuda11.0-cudnn8-runtime',
+        packages_to_install=[]
+    )
 
 @components.create_component_from_func
-def generate_resource_request() -> NamedTuple('output', [('memory', str), ('cpu', str)]):
-    '''Returns the memory and cpu request'''
+def generate_resource_request() -> NamedTuple('output', [('nbr_gpus', str), ('gpu_vendor', str), ('constrain_type', str), ('constrain_value', str)]):
+    '''Returns the gpu resource settings'''
     from collections import namedtuple
-    
-    resource_output = namedtuple('output', ['memory', 'cpu'])
-    return resource_output('500Mi', '200m')
+    resource_output = namedtuple('output', ['nbr_gpu', 'gpu_vendor', 'constrain_type', 'constrain_value'])
+
+    return resource_output( 'nvidia', '1', 'cloud.google.com/gke-accelerator', 'nvidia-tesla-p4')
 
 @dsl.pipeline(
     name='Runtime resource request pipeline',
@@ -36,11 +45,9 @@ def generate_resource_request() -> NamedTuple('output', [('memory', str), ('cpu'
 )
 def resource_request_pipeline(n: int = 11234567):
     resource_task = generate_resource_request()
-    traning_task = training_op(n)\
-        .set_memory_limit(resource_task.outputs['memory'])\
-        .set_cpu_limit(resource_task.outputs['cpu'])\
-        .set_cpu_request('200m')
 
+    traning_task = training_comp().set_gpu_limit(resource_task.outputs['nbr_gpus'], resource_task.outputs['gpu_vendor'])\
+        .add_node_selector_constraint(resource_task.outputs['constrain_type'], resource_task.outputs['constrain_value'])
     # Disable cache for KFP v1 mode.
     traning_task.execution_options.caching_strategy.max_cache_staleness = 'P0D'
 
