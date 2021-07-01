@@ -60,14 +60,12 @@ class Compiler(object):
 
   def __init__(
       self,
-      mode: Optional[dsl.PipelineExecutionMode] = kfp.dsl.PipelineExecutionMode.V1_LEGACY,
+      mode: dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode.V1_LEGACY,
       launcher_image: Optional[str] = None):
     """Creates a KFP compiler for compiling pipeline functions for execution.
 
     Args:
-      mode: The pipeline execution mode to use, defaults to V1.
-        KF_PIPELINES_COMPILER_MODE env var can override the default. For example,
-        KF_PIPELINES_COMPILER_MODE=V2_COMPATIBLE.
+      mode: The pipeline execution mode to use, defaults to kfp.dsl.PipelineExecutionMode.V1_LEGACY.
       launcher_image: Configurable image for KFP launcher to use. Only applies
         when `mode == dsl.PipelineExecutionMode.V2_COMPATIBLE`. Should only be
         needed for tests or custom deployments right now.
