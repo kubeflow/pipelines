@@ -34,7 +34,7 @@ type Task struct {
 	// Required input field. The PipelineName to which this pipeline task belongs.
 	// Namespace will be encoded in the PipelineName.
 	// "namespace/${namespace}/pipeline/${pipelineName}" for namespaced pipelines
-	// "pipeline/${pipelineName}pipeline/${pipelineName}" for shared pipelines
+	// "pipeline/${pipelineName}" for shared pipelines
 	PipelineName string `protobuf:"bytes,3,opt,name=pipelineName,proto3" json:"pipelineName,omitempty"`
 	// Required input field.The ID of the PipelineRun that the PipelineTask belongs to.
 	RunId string `protobuf:"bytes,4,opt,name=runId,proto3" json:"runId,omitempty"`

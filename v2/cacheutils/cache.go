@@ -18,7 +18,7 @@ const (
 	MaxClientGRPCMessageSize = 100 * 1024 * 1024
 	// The endpoint uses Kubernetes service DNS name with namespace:
 	//https://kubernetes.io/docs/concepts/services-networking/service/#dns
-	defaultCacheEndpoint = "ml-pipeline.kubeflow:8888"
+	defaultKfpApiEndpoint = "ml-pipeline.kubeflow:8888"
 )
 
 
@@ -143,8 +143,8 @@ func cacheDefaultEndpoint() string {
 		return cacheHost + ":" + cachePort
 	}
 	// If the env vars do not exist, use default ml-pipeline endpoint `ml-pipeline.kubeflow:8888`.
-	glog.Infof("Cannot detect ml-pipeline in the same namespace, default to %s as KFP endpoint.", defaultCacheEndpoint)
-	return defaultCacheEndpoint
+	glog.Infof("Cannot detect ml-pipeline in the same namespace, default to %s as KFP endpoint.", defaultKfpApiEndpoint)
+	return defaultKfpApiEndpoint
 }
 
 func (c *Client) GetExecutionCache(fingerPrint, pipelineName string) (string, error) {
@@ -164,8 +164,11 @@ func (c *Client) GetExecutionCache(fingerPrint, pipelineName string) (string, er
 	if err != nil {
 		return "", fmt.Errorf("failed to convert filter into JSON: %w", err)
 	}
-	listTasksReuqest := &api.ListTasksRequest{Filter: string(taskFilterJson), SortBy: "createdAt desc"}
+	listTasksReuqest := &api.ListTasksRequest{Filter: string(taskFilterJson), SortBy: "createdAt desc", PageSize: 1}
 	listTasksResponse, err := c.svc.ListTasks(context.Background(), listTasksReuqest)
+	if err != nil {
+		return "", fmt.Errorf("failed to list tasks: %w", err)
+	}
 	tasks := listTasksResponse.Tasks
 	if len(tasks) == 0 {
 		return "", nil

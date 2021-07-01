@@ -270,7 +270,7 @@ func (l *Launcher) RunComponent(ctx context.Context, cmdArgs []string) error {
 	fingerPrint, err := cacheutils.GenerateFingerPrint(*cacheKey)
 	_, err = l.cacheClient.GetExecutionCache(fingerPrint, l.options.PipelineName)
 	if err != nil {
-		return fmt.Errorf("failure while getting executionCache,: %w", err)
+		return fmt.Errorf("failure while getting executionCache: %w", err)
 	}
 
 	if err := l.prepareInputs(ctx, executorInput); err != nil {
