@@ -47,7 +47,7 @@ def parse_arguments():
                       help='disable the type check, default is enabled.')
   parser.add_argument('--mode',
                       type=str,
-                      help='compiler mode, defaults to V1_LEGACY, can also be V2_COMPATIBLE. You can override the default using env var KF_PIPELINES_COMPILER_MODE.')
+                      help='compiler mode, defaults to V1, can also be V2_COMPATIBLE. You can override the default using env var KF_PIPELINES_COMPILER_MODE.')
 
   args = parser.parse_args()
   return args
@@ -109,7 +109,7 @@ def main():
     elif args.mode == 'V1_LEGACY' or args.mode == 'V1':
       mode = dsl.PipelineExecutionMode.V1_LEGACY
     else:
-      raise ValueError('The --mode option must be V1_LEGACY or V2_COMPATIBLE')
+      raise ValueError('The --mode option must be V1 or V2_COMPATIBLE')
   compile_pyfile(
       args.py,
       args.function,

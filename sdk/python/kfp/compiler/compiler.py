@@ -66,7 +66,7 @@ class Compiler(object):
     """Creates a KFP compiler for compiling pipeline functions for execution.
 
     Args:
-      mode: The pipeline execution mode to use, defaults to V1_LEGACY.
+      mode: The pipeline execution mode to use, defaults to V1.
         KF_PIPELINES_COMPILER_MODE env var can override the default. For example,
         KF_PIPELINES_COMPILER_MODE=V2_COMPATIBLE.
       launcher_image: Configurable image for KFP launcher to use. Only applies
@@ -74,15 +74,15 @@ class Compiler(object):
         needed for tests or custom deployments right now.
     """
     if mode is None:
-      mode_str = os.environ.get(KF_PIPELINES_COMPILER_MODE_ENV, 'V1_LEGACY')
-      if mode_str == 'V1_LEGACY':
+      mode_str = os.environ.get(KF_PIPELINES_COMPILER_MODE_ENV, 'V1')
+      if mode_str == 'V1_LEGACY' or mode_str == 'V1':
         mode = kfp.dsl.PipelineExecutionMode.V1_LEGACY
       elif mode_str == 'V2_COMPATIBLE':
         mode = kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE
       elif mode_str == 'V2_ENGINE':
         mode = kfp.dsl.PipelineExecutionMode.V2_ENGINE
       else:
-        raise ValueError(f'Unexpected compiler mode "{mode_str}", must be one of V1_LEGACY, V2_COMPATIBLE and V2_ENGINE')
+        raise ValueError(f'Unexpected compiler mode "{mode_str}", must be one of V1, V2_COMPATIBLE or V2_ENGINE')
 
     if mode == dsl.PipelineExecutionMode.V2_ENGINE:
       raise ValueError('V2_ENGINE execution mode is not supported yet.')
