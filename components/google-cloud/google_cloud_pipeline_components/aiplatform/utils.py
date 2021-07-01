@@ -31,7 +31,7 @@ METHOD_KEY = 'method'
 
 # Container image that is used for component containers
 # TODO tie the container version to sdk release version instead of latest
-DEFAULT_CONTAINER_IMAGE = 'gcr.io/ml-pipeline/google-cloud-pipeline-components:latest'
+DEFAULT_CONTAINER_IMAGE = 'gcr.io/sashaproject-1/google-cloud-pipeline-components:latest'
 
 # map of MB SDK type to Metadata type
 RESOURCE_TO_METADATA_TYPE = {
@@ -69,6 +69,9 @@ def get_forward_reference(
         pass
 
 
+# This is the Union of all typed datasets
+dataset_annotation = inspect.signature(aiplatform.CustomTrainingJob.run).parameters['dataset'].annotation
+
 def resolve_annotation(annotation: Any) -> Any:
     """Resolves annotation type against a MB SDK type.
 
@@ -86,6 +89,11 @@ def resolve_annotation(annotation: Any) -> Any:
     if inspect.isclass(annotation):
         if issubclass(annotation, aiplatform.base.VertexAiResourceNoun):
             return annotation
+
+    # if this is a union of all typed datasets annotation
+    if annotation is dataset_annotation:
+        # return the catch all Dataset class
+        return aiplatform.datasets.dataset._Dataset
 
     # handle forward references
     resolved_annotation = get_forward_reference(annotation)
