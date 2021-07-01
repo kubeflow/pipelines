@@ -18,13 +18,10 @@ from typing import Optional
 from kfp import dsl
 import kfp.compiler
 import os
-import shutil
-import subprocess
 import sys
-import tempfile
 from deprecated.sphinx import deprecated
 
-
+KF_PIPELINES_COMPILER_MODE_ENV = 'KF_PIPELINES_COMPILER_MODE'
 def parse_arguments():
   """Parse command line arguments."""
 
@@ -96,20 +93,22 @@ def compile_pyfile(pyfile, function_name, output_path, type_check, mode: Optiona
   finally:
     del sys.path[0]
 
-
 def main():
   args = parse_arguments()
   if args.py is None:
     raise ValueError('The --py option must be specified.')
+  mode_str = args.mode
+  if not mode_str:
+    mode_str = os.environ.get(KF_PIPELINES_COMPILER_MODE_ENV, 'V1')
   mode = None
-  # when args.mode is not provided, pass mode=None to let compiler handle the default value
-  if args.mode:
-    if args.mode == 'V2_COMPATIBLE':
-      mode = dsl.PipelineExecutionMode.V2_COMPATIBLE
-    elif args.mode == 'V1_LEGACY' or args.mode == 'V1':
-      mode = dsl.PipelineExecutionMode.V1_LEGACY
-    else:
-      raise ValueError('The --mode option must be V1 or V2_COMPATIBLE')
+  if mode_str == 'V1_LEGACY' or mode_str == 'V1':
+    mode = kfp.dsl.PipelineExecutionMode.V1_LEGACY
+  elif mode_str == 'V2_COMPATIBLE':
+    mode = kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE
+  elif mode_str == 'V2_ENGINE':
+    mode = kfp.dsl.PipelineExecutionMode.V2_ENGINE
+  else:
+    raise ValueError(f'Got unexpected --mode option "{mode_str}", it must be one of V1, V2_COMPATIBLE or V2_ENGINE')
   compile_pyfile(
       args.py,
       args.function,

@@ -42,7 +42,6 @@ from kfp.dsl._pipeline_param import extract_pipelineparams_from_any, PipelinePar
 _SDK_VERSION_LABEL = 'pipelines.kubeflow.org/kfp_sdk_version'
 _SDK_ENV_LABEL = 'pipelines.kubeflow.org/pipeline-sdk-type'
 _SDK_ENV_DEFAULT = 'kfp'
-KF_PIPELINES_COMPILER_MODE_ENV = 'KF_PIPELINES_COMPILER_MODE'
 class Compiler(object):
   """DSL Compiler that compiles pipeline functions into workflow yaml.
 
@@ -61,7 +60,7 @@ class Compiler(object):
 
   def __init__(
       self,
-      mode: Optional[dsl.PipelineExecutionMode] = None,
+      mode: Optional[dsl.PipelineExecutionMode] = kfp.dsl.PipelineExecutionMode.V1_LEGACY,
       launcher_image: Optional[str] = None):
     """Creates a KFP compiler for compiling pipeline functions for execution.
 
@@ -73,17 +72,6 @@ class Compiler(object):
         when `mode == dsl.PipelineExecutionMode.V2_COMPATIBLE`. Should only be
         needed for tests or custom deployments right now.
     """
-    if mode is None:
-      mode_str = os.environ.get(KF_PIPELINES_COMPILER_MODE_ENV, 'V1')
-      if mode_str == 'V1_LEGACY' or mode_str == 'V1':
-        mode = kfp.dsl.PipelineExecutionMode.V1_LEGACY
-      elif mode_str == 'V2_COMPATIBLE':
-        mode = kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE
-      elif mode_str == 'V2_ENGINE':
-        mode = kfp.dsl.PipelineExecutionMode.V2_ENGINE
-      else:
-        raise ValueError(f'Unexpected compiler mode "{mode_str}", must be one of V1, V2_COMPATIBLE or V2_ENGINE')
-
     if mode == dsl.PipelineExecutionMode.V2_ENGINE:
       raise ValueError('V2_ENGINE execution mode is not supported yet.')
 
