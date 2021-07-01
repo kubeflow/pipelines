@@ -49,8 +49,7 @@ def roc_visualization(roc_csv_uri: str='https://raw.githubusercontent.com/kubefl
     description='A sample pipeline to generate ROC Curve for UI visualization.'
 )
 def roc_curve_pipeline():
-    # roc_visualization_task = roc_visualization()
+    roc_visualization_task = roc_visualization()
     # You can also upload samples/core/visualization/roc.csv to Google Cloud Storage.
     # And call the component function with gcs path parameter like below:
     # roc_visualization_task2 = roc_visualization('gs://<bucket-name>/<path>/roc.csv')
-    roc_visualization_task2 = roc_visualization('gs://jamxl-kfp-bucket/v2-compatible/roc/roc.csv')
