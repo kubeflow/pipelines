@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -116,6 +117,48 @@ func initWithExperimentAndPipeline(t *testing.T) (*FakeClientManager, *ResourceM
 	pipeline, err := manager.CreatePipeline("p1", "", "", []byte(testWorkflow.ToStringForStore()))
 	assert.Nil(t, err)
 	return store, manager, experiment, pipeline
+}
+
+func initWithExperimentAndPipelineAndRun(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Experiment, *model.Pipeline, *model.RunDetail) {
+	store, manager, exp, pipeline := initWithExperimentAndPipeline(t)
+	// Create a new pipeline version with UUID being FakeUUID.
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	assert.True(t, ok)
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	_, err := manager.CreatePipelineVersion(&api.PipelineVersion{
+		Name: "version_for_run",
+		ResourceReferences: []*api.ResourceReference{
+			&api.ResourceReference{
+				Key: &api.ResourceKey{
+					Id:   pipeline.UUID,
+					Type: api.ResourceType_PIPELINE,
+				},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+	}, []byte(testWorkflow.ToStringForStore()), true)
+	assert.Nil(t, err)
+
+	// The pipeline specified via pipeline id will be converted to this
+	// pipeline's default version, which will be used to create run.
+	apiRun := &api.Run{
+		Name: "run1",
+		PipelineSpec: &api.PipelineSpec{
+			PipelineId: pipeline.UUID,
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: exp.UUID},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+	}
+	runDetail, err := manager.CreateRun(context.Background(), apiRun)
+	assert.Nil(t, err)
+	return store, manager, exp, pipeline, runDetail
 }
 
 // Util function to create an initial state with pipeline uploaded
@@ -2706,4 +2749,36 @@ func TestCreateDefaultExperiment_MultiUser(t *testing.T) {
 		StorageState:   "STORAGESTATE_AVAILABLE",
 	}
 	assert.Equal(t, expectedExperiment, experiment)
+}
+
+func TestCreateTask(t *testing.T) {
+	_, manager, _, _, runDetail := initWithExperimentAndPipelineAndRun(t)
+	task := &api.Task{
+		Namespace:       "",
+		PipelineName:    "pipeline/my-pipeline",
+		RunId:           runDetail.UUID,
+		MlmdExecutionID: "1",
+		CreatedAt:       &timestamp.Timestamp{Seconds: 1462875553},
+		FinishedAt:      &timestamp.Timestamp{Seconds: 1462875663},
+		Fingerprint:     "123",
+	}
+
+	expectedTask := &model.Task{
+		UUID:              DefaultFakeUUID,
+		Namespace:         "",
+		PipelineName:      "pipeline/my-pipeline",
+		RunUUID:           runDetail.UUID,
+		MLMDExecutionID:   "1",
+		CreatedTimestamp:  1462875553,
+		FinishedTimestamp: 1462875663,
+		Fingerprint:       "123",
+	}
+	createdTask, err := manager.CreateTask(context.Background(), task)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedTask, createdTask, "The CreateTask return has unexpected value.")
+
+	// Verify the T in DB is in status PipelineVersionCreating.
+	storedTask, err := manager.taskStore.GetTask(DefaultFakeUUID)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedTask, storedTask, "The StoredTask return has unexpected value.")
 }

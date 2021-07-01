@@ -201,7 +201,7 @@ export interface LinkedArtifact {
   artifact: Artifact;
 }
 
-async function getLinkedArtifactsByEvents(events: Event[]): Promise<LinkedArtifact[]> {
+export async function getLinkedArtifactsByEvents(events: Event[]): Promise<LinkedArtifact[]> {
   const artifactIds = events
     .filter(event => event.getArtifactId())
     .map(event => event.getArtifactId());
@@ -291,7 +291,7 @@ export function filterLinkedArtifactsByType(
   return artifacts.filter(x => artifactTypeIds.includes(x.artifact.getTypeId()));
 }
 
-export function getArtifactName(linkedArtifact: LinkedArtifact) {
+export function getArtifactName(linkedArtifact: LinkedArtifact): string | undefined {
   return linkedArtifact.event
     .getPath()
     ?.getStepsList()[0]

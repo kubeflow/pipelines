@@ -29,6 +29,7 @@ kpt version
 
 # These kustomization.yaml folders expect using kubectl kustomize (kustomize v2).
 kustomization_yamls=(
+  "cluster-scoped-resources"
   "base/installs/generic"
   "env/dev"
   "env/gcp"
