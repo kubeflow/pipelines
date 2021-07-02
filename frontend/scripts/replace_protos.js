@@ -22,8 +22,8 @@ const default_mlmd_version = "0.25.1";
 const mlmd_version = process.argv.slice(2)[0] || default_mlmd_version;
 
 // Step#1 delete two original files
-const metadata_store_file_path = "./proto/ml_metadata/proto/metadata_store.proto";
-const metadata_store_service_file_path = "./proto/ml_metadata/proto/metadata_store_service.proto";
+const metadata_store_file_path = "../third_party/ml-metadata/ml_metadata/proto/metadata_store.proto";
+const metadata_store_service_file_path = "../third_party/ml-metadata/ml_metadata/proto/metadata_store_service.proto";
 
 try {
   if (fs.existsSync(metadata_store_file_path)) {
