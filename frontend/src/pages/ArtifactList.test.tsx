@@ -27,7 +27,7 @@ import {
   GetArtifactsResponse,
   GetArtifactTypesResponse,
   Value,
-} from '@kubeflow/frontend';
+} from '../mlmd/library';
 import { MemoryRouter } from 'react-router-dom';
 
 const pipelineName = 'pipeline1';

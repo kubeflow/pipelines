@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Artifact, ArtifactType, Execution } from '@kubeflow/frontend';
+import { Artifact, ArtifactType, Execution } from '../mlmd/library';
 import { csvParseRows } from 'd3-dsv';
 import { ApiVisualization, ApiVisualizationType } from '../apis/visualization';
 import { ConfusionMatrixConfig } from '../components/viewers/ConfusionMatrix';

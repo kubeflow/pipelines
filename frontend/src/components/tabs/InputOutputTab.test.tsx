@@ -22,7 +22,7 @@ import {
   Event,
   GetArtifactsByIDResponse,
   GetEventsByExecutionIDsResponse,
-} from '@kubeflow/frontend';
+} from '../../mlmd/library';
 import { render, waitFor, screen } from '@testing-library/react';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import React from 'react';

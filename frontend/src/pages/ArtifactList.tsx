@@ -19,13 +19,12 @@ import {
   Artifact,
   ArtifactProperties,
   ArtifactCustomProperties,
-  ListRequest,
   ArtifactType,
   getArtifactCreationTime,
   getArtifactTypes,
   getResourcePropertyViaFallBack,
   GetArtifactsRequest,
-} from '@kubeflow/frontend';
+} from '../mlmd/library';
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { classes } from 'typestyle';
@@ -48,6 +47,7 @@ import {
 } from '../lib/Utils';
 import { RoutePageFactory } from '../components/Router';
 import { ArtifactLink } from '../components/ArtifactLink';
+import { ListRequest } from 'src/lib/Apis';
 
 interface ArtifactListState {
   artifacts: Artifact[];

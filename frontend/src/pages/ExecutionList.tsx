@@ -20,8 +20,7 @@ import {
   ExecutionType,
   GetExecutionsRequest,
   GetExecutionTypesRequest,
-  ListRequest,
-} from '@kubeflow/frontend';
+} from '../mlmd/library';
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { classes } from 'typestyle';
@@ -44,6 +43,7 @@ import {
 } from '../lib/Utils';
 import { RoutePageFactory } from '../components/Router';
 import { ExecutionHelpers } from 'src/lib/MlmdUtils';
+import { ListRequest } from 'src/lib/Apis';
 
 interface ExecutionListState {
   executions: Execution[];

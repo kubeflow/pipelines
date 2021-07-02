@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Execution, getMetadataValue } from '@kubeflow/frontend';
+import { Execution, getMetadataValue } from '../../mlmd/library';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import React from 'react';
 import { useQuery } from 'react-query';

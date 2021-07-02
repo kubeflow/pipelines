@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Execution } from '@kubeflow/frontend';
+import { Execution } from '../../mlmd/library';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { commonCss } from 'src/Css';

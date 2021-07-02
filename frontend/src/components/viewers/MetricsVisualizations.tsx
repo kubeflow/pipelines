@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Artifact, ArtifactType, getMetadataValue } from '@kubeflow/frontend';
+import { Artifact, ArtifactType, getMetadataValue } from '../../mlmd/library';
 import HelpIcon from '@material-ui/icons/Help';
 import React from 'react';
 import { Array as ArrayRunType, Number, Failure, Record, String, ValidationError } from 'runtypes';

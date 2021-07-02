@@ -19,7 +19,7 @@ import {
   Context,
   GetContextByTypeAndNameRequest,
   GetContextByTypeAndNameResponse,
-} from '@kubeflow/frontend';
+} from '../mlmd/library';
 import { expectWarnings, testBestPractices } from 'src/TestUtils';
 import { Workflow, WorkflowSpec, WorkflowStatus } from 'third_party/argo-ui/argo_template';
 import { getRunContext } from './MlmdUtils';

@@ -33,7 +33,7 @@ import {
   GetExecutionsByContextRequest,
   getResourceProperty,
   getResourcePropertyViaFallBack,
-} from '@kubeflow/frontend';
+} from '../mlmd/library';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import { Workflow } from 'third_party/argo-ui/argo_template';
 import { logger } from './Utils';

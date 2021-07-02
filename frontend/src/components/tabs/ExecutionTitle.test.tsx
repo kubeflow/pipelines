@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Execution, Value } from '@kubeflow/frontend';
+import { Execution, Value } from '../../mlmd/library';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { testBestPractices } from 'src/TestUtils';

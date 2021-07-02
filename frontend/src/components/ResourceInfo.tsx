@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Artifact, Execution, getMetadataValue } from '@kubeflow/frontend';
+import { Artifact, Execution, getMetadataValue } from '../mlmd/library';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import * as React from 'react';
 import { stylesheet } from 'typestyle';

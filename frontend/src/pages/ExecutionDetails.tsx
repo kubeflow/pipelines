@@ -27,9 +27,8 @@ import {
   GetEventsByExecutionIDsResponse,
   GetExecutionsByIDRequest,
   getResourceProperty,
-  logger,
-} from '@kubeflow/frontend';
-import { GetExecutionTypesByIDRequest } from '@kubeflow/frontend/src/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
+} from '../mlmd/library';
+import { GetExecutionTypesByIDRequest } from '../mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
 import { CircularProgress } from '@material-ui/core';
 import React, { Component } from 'react';
 import { Link } from 'react-router-dom';
@@ -39,7 +38,7 @@ import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
 import { RoutePage, RoutePageFactory, RouteParams } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { commonCss, padding } from '../Css';
-import { serviceErrorToString } from '../lib/Utils';
+import { logger, serviceErrorToString } from '../lib/Utils';
 import { Page, PageErrorHandler } from './Page';
 
 interface ExecutionDetailsState {

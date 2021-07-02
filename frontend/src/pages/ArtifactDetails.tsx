@@ -23,9 +23,8 @@ import {
   getResourceProperty,
   LineageResource,
   LineageView,
-  titleCase,
   ArtifactType,
-} from '@kubeflow/frontend';
+} from '../mlmd/library';
 import { CircularProgress } from '@material-ui/core';
 import * as React from 'react';
 import { Route, Switch } from 'react-router-dom';
@@ -35,9 +34,9 @@ import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
 import { RoutePage, RoutePageFactory, RouteParams } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { commonCss, padding } from '../Css';
-import { logger, serviceErrorToString } from '../lib/Utils';
+import { logger, serviceErrorToString, titleCase } from '../lib/Utils';
 import { Page, PageProps } from './Page';
-import { GetArtifactTypesByIDRequest } from '@kubeflow/frontend/src/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
+import { GetArtifactTypesByIDRequest } from '../mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
 
 export enum ArtifactDetailsTab {
   OVERVIEW = 0,

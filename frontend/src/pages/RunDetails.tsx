@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Context, Execution } from '@kubeflow/frontend';
+import { Context, Execution } from '../mlmd/library';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import InfoIcon from '@material-ui/icons/InfoOutlined';
 import { flatten } from 'lodash';
