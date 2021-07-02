@@ -70,7 +70,7 @@ def get_forward_reference(
 
 
 # This is the Union of all typed datasets.
-# Relying on the annotation defined in the SDK 
+# Relying on the annotation defined in the SDK
 # as additional typed Datasets may be added in the future.
 dataset_annotation = inspect.signature(aiplatform.CustomTrainingJob.run).parameters['dataset'].annotation
 
