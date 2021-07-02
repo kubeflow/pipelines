@@ -18,7 +18,7 @@ import * as React from 'react';
 import { mount, ReactWrapper, shallow, ShallowWrapper } from 'enzyme';
 import { LineageActionBar, LineageActionBarProps, LineageActionBarState } from './LineageActionBar';
 import { buildTestModel, testModel } from './TestUtils';
-import { Artifact } from './library';
+import { Artifact } from 'src/third_party/mlmd';
 
 describe('LineageActionBar', () => {
   let tree: ShallowWrapper;

@@ -14,15 +14,21 @@
  * limitations under the License.
  */
 
+import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import {
   Api,
+  ExecutionCustomProperties,
+  ExecutionProperties,
+  getResourceProperty,
+  getResourcePropertyViaFallBack,
+} from 'src/mlmd/library';
+import { Workflow } from 'third_party/argo-ui/argo_template';
+import {
   Artifact,
   ArtifactType,
   Context,
   Event,
   Execution,
-  ExecutionCustomProperties,
-  ExecutionProperties,
   GetArtifactsByIDRequest,
   GetArtifactsByIDResponse,
   GetArtifactTypesRequest,
@@ -31,11 +37,7 @@ import {
   GetEventsByExecutionIDsRequest,
   GetEventsByExecutionIDsResponse,
   GetExecutionsByContextRequest,
-  getResourceProperty,
-  getResourcePropertyViaFallBack,
-} from '../mlmd/library';
-import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
-import { Workflow } from 'third_party/argo-ui/argo_template';
+} from 'src/third_party/mlmd';
 import { logger } from './Utils';
 import { isV2Pipeline } from './v2/WorkflowUtils';
 

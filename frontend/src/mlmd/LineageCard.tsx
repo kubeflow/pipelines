@@ -27,7 +27,7 @@ import {
   CARD_TITLE_BORDER_BOTTOM_HEIGHT,
   px,
 } from './LineageCss';
-import { Artifact } from './library';
+import { Artifact } from 'src/third_party/mlmd';
 
 const cardTitleBase: CSSProperties = {
   borderTopLeftRadius: '4px',

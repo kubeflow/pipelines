@@ -31,7 +31,7 @@
  */
 
 import { doubleValue, intValue, stringValue } from './TestUtils';
-import { Artifact, Value } from './library';
+import { Artifact, Value } from 'src/third_party/mlmd';
 import { getMetadataValue, getResourceProperty } from './Utils';
 
 describe('Utils', () => {

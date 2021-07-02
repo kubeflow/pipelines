@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { Execution, getMetadataValue } from '../../mlmd/library';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import React from 'react';
 import { useQuery } from 'react-query';
@@ -28,6 +27,8 @@ import {
   LinkedArtifact,
 } from 'src/lib/MlmdUtils';
 import { KeyValue } from 'src/lib/StaticGraphParser';
+import { getMetadataValue } from 'src/mlmd/library';
+import { Execution } from 'src/third_party/mlmd';
 import ArtifactPreview from '../ArtifactPreview';
 import Banner from '../Banner';
 import DetailsTable from '../DetailsTable';

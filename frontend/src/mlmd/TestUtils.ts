@@ -30,7 +30,7 @@
  * limitations under the License.
  */
 
-import { Artifact, Value } from './library';
+import { Artifact, Value } from 'src/third_party/mlmd';
 import { ArtifactCustomProperties, ArtifactProperties } from './Api';
 
 export const doubleValue = (number: number) => {

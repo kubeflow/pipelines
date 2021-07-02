@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import { Artifact, ArtifactType, Execution } from '../mlmd/library';
 import { csvParseRows } from 'd3-dsv';
+import { Artifact, ArtifactType, Execution } from 'src/third_party/mlmd';
 import { ApiVisualization, ApiVisualizationType } from '../apis/visualization';
 import { ConfusionMatrixConfig } from '../components/viewers/ConfusionMatrix';
 import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';

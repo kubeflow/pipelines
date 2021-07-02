@@ -15,7 +15,7 @@
  */
 
 import { Api } from './Api';
-import { MetadataStoreServicePromiseClient } from './library';
+import { MetadataStoreServicePromiseClient } from 'src/third_party/mlmd';
 
 describe('Api', () => {
   it('Returns a singleton instance', () => {

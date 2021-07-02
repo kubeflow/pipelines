@@ -17,7 +17,7 @@
 /**
  * This file provides common types used by the Lineage Explorer components
  */
-import { Artifact, Execution } from './library';
+import { Artifact, Execution } from 'src/third_party/mlmd';
 
 export type LineageCardType = 'artifact' | 'execution';
 export interface LineageRow {

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Execution } from '../../mlmd/library';
+import { Execution } from 'src/third_party/mlmd';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { commonCss } from 'src/Css';

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Api, GetArtifactTypesResponse } from '../mlmd/library';
+import { Api, GetArtifactTypesResponse } from 'src/mlmd/library';
 import { render } from '@testing-library/react';
 import * as dagre from 'dagre';
 import { mount, ReactWrapper, shallow, ShallowWrapper } from 'enzyme';

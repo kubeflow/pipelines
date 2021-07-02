@@ -17,7 +17,7 @@
 import * as React from 'react';
 import { ResourceInfo, ResourceType } from './ResourceInfo';
 import { getByTestId, render, screen } from '@testing-library/react';
-import { Artifact, Value } from '../mlmd/library';
+import { Artifact, Value } from 'src/mlmd/library';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 
 describe('ResourceInfo', () => {

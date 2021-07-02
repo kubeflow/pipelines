@@ -19,45 +19,6 @@ import { LineageResource as LineageResourceType } from './LineageTypes';
 export type LineageResource = LineageResourceType;
 
 export {
-  Artifact,
-  ArtifactType,
-  Context,
-  ContextType,
-  Event,
-  Execution,
-  ExecutionType,
-  Value,
-} from './generated/ml_metadata/proto/metadata_store_pb';
-export { MetadataStoreServicePromiseClient } from './generated/ml_metadata/proto/metadata_store_service_grpc_web_pb';
-export {
-  GetArtifactTypesRequest,
-  GetArtifactTypesResponse,
-  GetArtifactsByIDRequest,
-  GetArtifactsByIDResponse,
-  GetArtifactsRequest,
-  GetArtifactsResponse,
-  GetContextByTypeAndNameRequest,
-  GetContextByTypeAndNameResponse,
-  GetContextTypeRequest,
-  GetContextTypeResponse,
-  GetContextsByTypeRequest,
-  GetContextsByTypeResponse,
-  GetContextsRequest,
-  GetContextsResponse,
-  GetEventsByArtifactIDsRequest,
-  GetEventsByArtifactIDsResponse,
-  GetEventsByExecutionIDsRequest,
-  GetEventsByExecutionIDsResponse,
-  GetExecutionTypesRequest,
-  GetExecutionTypesResponse,
-  GetExecutionsByContextRequest,
-  GetExecutionsByContextResponse,
-  GetExecutionsByIDRequest,
-  GetExecutionsByIDResponse,
-  GetExecutionsRequest,
-  GetExecutionsResponse,
-} from './generated/ml_metadata/proto/metadata_store_service_pb';
-export {
   Api,
   ArtifactCustomProperties,
   ArtifactProperties,

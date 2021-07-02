@@ -23,7 +23,7 @@ import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, fonts, padding } from './Css';
 import { CSSProperties } from 'typestyle/lib/types';
 import { getArtifactName, getResourcePropertyViaFallBack } from './Utils';
-import { Artifact } from './library';
+import { Artifact } from 'src/third_party/mlmd';
 import { ArtifactProperties, ArtifactCustomProperties } from './Api';
 
 const baseLinkButton: CSSProperties = {

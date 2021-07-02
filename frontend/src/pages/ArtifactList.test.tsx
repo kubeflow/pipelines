@@ -27,7 +27,7 @@ import {
   GetArtifactsResponse,
   GetArtifactTypesResponse,
   Value,
-} from '../mlmd/library';
+} from 'src/mlmd/library';
 import { MemoryRouter } from 'react-router-dom';
 
 const pipelineName = 'pipeline1';

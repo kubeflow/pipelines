@@ -37,7 +37,7 @@ import {
   ExecutionProperties,
 } from './Api';
 import { ArtifactTypeMap } from './LineageApi';
-import { Artifact, Execution, Value } from './library';
+import { Artifact, Execution, Value } from 'src/third_party/mlmd';
 import { LineageTypedResource } from './LineageTypes';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 

@@ -21,8 +21,9 @@ import {
   ExecutionType,
   GetEventsByArtifactIDsRequest,
   GetExecutionTypesRequest,
-} from './library';
-import { GetArtifactTypesRequest, MetadataStoreServicePromiseClient } from './library';
+  GetArtifactTypesRequest,
+  MetadataStoreServicePromiseClient,
+} from 'src/third_party/mlmd';
 
 const EventType = Event.Type;
 

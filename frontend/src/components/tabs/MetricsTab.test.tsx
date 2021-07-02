@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Artifact, ArtifactType, Execution, Value } from '../../mlmd/library';
+import { Artifact, ArtifactType, Execution, Value } from '../src/mlmd/library';
 import { render, waitFor } from '@testing-library/react';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import React from 'react';

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { MetadataStoreServicePromiseClient } from './library';
+import { MetadataStoreServicePromiseClient } from 'src/third_party/mlmd';
 
 /** Known Artifact properties */
 export enum ArtifactProperties {

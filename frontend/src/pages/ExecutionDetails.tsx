@@ -14,25 +14,27 @@
  * limitations under the License.
  */
 
-import {
-  Api,
-  ArtifactType,
-  Event,
-  Execution,
-  ExecutionCustomProperties,
-  ExecutionProperties,
-  ExecutionType,
-  getArtifactTypes,
-  GetEventsByExecutionIDsRequest,
-  GetEventsByExecutionIDsResponse,
-  GetExecutionsByIDRequest,
-  getResourceProperty,
-} from '../mlmd/library';
-import { GetExecutionTypesByIDRequest } from '../mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
 import { CircularProgress } from '@material-ui/core';
 import React, { Component } from 'react';
 import { Link } from 'react-router-dom';
 import { getArtifactName, getLinkedArtifactsByEvents } from 'src/lib/MlmdUtils';
+import {
+  Api,
+  ExecutionCustomProperties,
+  ExecutionProperties,
+  getArtifactTypes,
+  getResourceProperty,
+} from 'src/mlmd/library';
+import {
+  ArtifactType,
+  Event,
+  Execution,
+  ExecutionType,
+  GetEventsByExecutionIDsRequest,
+  GetEventsByExecutionIDsResponse,
+  GetExecutionsByIDRequest,
+  GetExecutionTypesByIDRequest,
+} from 'src/third_party/mlmd';
 import { classes, stylesheet } from 'typestyle';
 import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
 import { RoutePage, RoutePageFactory, RouteParams } from '../components/Router';
