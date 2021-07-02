@@ -21,7 +21,9 @@ import os
 import sys
 from deprecated.sphinx import deprecated
 
-KF_PIPELINES_COMPILER_MODE_ENV = 'KF_PIPELINES_COMPILER_MODE'
+_KF_PIPELINES_COMPILER_MODE_ENV = 'KF_PIPELINES_COMPILER_MODE'
+
+
 def parse_arguments():
   """Parse command line arguments."""
 
@@ -99,7 +101,7 @@ def main():
     raise ValueError('The --py option must be specified.')
   mode_str = args.mode
   if not mode_str:
-    mode_str = os.environ.get(KF_PIPELINES_COMPILER_MODE_ENV, 'V1')
+    mode_str = os.environ.get(_KF_PIPELINES_COMPILER_MODE_ENV, 'V1')
   mode = None
   if mode_str == 'V1_LEGACY' or mode_str == 'V1':
     mode = kfp.dsl.PipelineExecutionMode.V1_LEGACY
