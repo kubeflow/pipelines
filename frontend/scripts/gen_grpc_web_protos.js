@@ -1,3 +1,7 @@
+// NOTE: This script is expected to run from root directory.
+// But the frontend/package.json has handled the path navigation for you.
+// Make sure you are under path <parent_directory>/pipelines/frontend.
+// npm command: npm run build:protos
 const fs = require('fs');
 const path = require('path');
 const {spawn} = require('child_process');
@@ -16,12 +20,13 @@ console.log(`Generating PROTOS in: ${OUT_DIR}`);
 // From npm/google-protobuf:
 // The compiler is not currently available via npm, but you can download a
 // pre-built binary on GitHub (look for the protoc-*.zip files under Downloads).
+// proto_path and target is relative to <parent_directory>/pipelines.
 const protocProcess = spawn(
     'protoc', [
       `--js_out="import_style=commonjs,binary:${OUT_DIR}"`,
       `--grpc-web_out="import_style=commonjs+dts,mode=grpcweb:${OUT_DIR}"`,
-      `--proto_path="./proto"`,
-      'proto/ml_metadata/**/*.proto'
+      `--proto_path="./third_party/ml-metadata"`,
+      'third_party/ml-metadata/ml_metadata/**/*.proto'
     ], {
       // Allow wildcards in glob to be interpreted
       shell: true

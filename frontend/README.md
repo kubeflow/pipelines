@@ -179,8 +179,8 @@ If a file in `proto/` is modified or you need to manually re-generate the protos
 The script run by `npm run build:replace` can be found at `scripts/replace_protos.js`.
 The script run by `npm run build:protos` can be found at `scripts/gen_grpc_web_protos.js`.
 
-The current TypeScript proto library was generated with `protoc-gen-grpc-web` version 1.0.7 with
-`protoc` version 3.10.1.
+The current TypeScript proto library was generated with `protoc-gen-grpc-web` version 1.2.1 with
+`protoc` version 3.17.3.
 
 The Protocol Buffers in `proto/ml_metadata` are taken from the target version(v0.25.1 by default) of the `ml_metadata` proto
 package from
