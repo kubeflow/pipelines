@@ -14,4 +14,4 @@
  * limitations under the License.
  */
 
-declare module 'react-svg-line-chart'
+declare module 'react-svg-line-chart';
