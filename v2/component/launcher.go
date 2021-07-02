@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"gocloud.dev/blob"
 	"io"
 	"io/ioutil"
 	"os"
@@ -38,7 +39,6 @@ import (
 	"github.com/kubeflow/pipelines/v2/metadata"
 	"github.com/kubeflow/pipelines/v2/objectstore"
 	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
-	"gocloud.dev/blob"
 	_ "gocloud.dev/blob/gcsblob"
 	"gocloud.dev/blob/s3blob"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -259,8 +259,8 @@ func (l *Launcher) RunComponent(ctx context.Context, cmdArgs []string) error {
 	}
 	glog.Infof("ExecutorInput:\n%s\n=====", executorInput.String())
 	outputParametersTypeMap := make(map[string]string)
-	for outputParameterName, outputParameter := range l.runtimeInfo.OutputParameters {
-		outputParametersTypeMap[outputParameterName] = outputParameter.Type
+	for outputParamName, outputParam := range l.runtimeInfo.OutputParameters {
+		outputParametersTypeMap[outputParamName] = outputParam.Type
 
 	}
 	cacheKey, err := cacheutils.GenerateCacheKey(executorInput.GetInputs(), executorInput.GetOutputs(), outputParametersTypeMap, cmdArgs, l.options.ContainerImage)
@@ -268,16 +268,81 @@ func (l *Launcher) RunComponent(ctx context.Context, cmdArgs []string) error {
 		return fmt.Errorf("failure while generating CacheKey: %w", err)
 	}
 	fingerPrint, err := cacheutils.GenerateFingerPrint(*cacheKey)
-	_, err = l.cacheClient.GetExecutionCache(fingerPrint, l.options.PipelineName)
+	cachedMLMDExecutionID, err := l.cacheClient.GetExecutionCache(fingerPrint, l.options.PipelineName)
 	if err != nil {
 		return fmt.Errorf("failure while getting executionCache: %w", err)
 	}
+	if cachedMLMDExecutionID == "" {
+		return l.execute(ctx, executorInput, cmd, args)
+	} else {
+		if err := l.prepareOutputs(ctx, executorInput, false); err != nil {
+			return err
+		}
+		cachedMLMDExecutionIDInt64, err := strconv.ParseInt(cachedMLMDExecutionID, 10, 64)
+		if err != nil {
+			return fmt.Errorf("failure while transfering cachedMLMDExecutionID %s from string to int64: %w", cachedMLMDExecutionID, err)
+		}
+		executions, err := l.metadataClient.GetExecutions(ctx, []int64{cachedMLMDExecutionIDInt64})
+		if err != nil {
+			return fmt.Errorf("failure while getting execution of cachedMLMDExecutionID %v: %w", cachedMLMDExecutionIDInt64, err)
+		}
+		if len(executions) == 0 {
+			return fmt.Errorf("the execution with id %s does not exist in MLMD", cachedMLMDExecutionID)
+		}
+		if len(executions) > 1 {
+			return fmt.Errorf("got multiple executions with id %s in MLMD", cachedMLMDExecutionID)
+		}
+		cachedExecution := executions[0]
+		mlmdOutputParameters, err := cacheutils.GetOutputParamsFromCachedExecution(cachedExecution)
+		if err != nil {
+			return err
+		}
 
+		for name, param := range l.runtimeInfo.OutputParameters {
+			filename := param.Path
+			outputParamValue, ok := mlmdOutputParameters[name]
+			if !ok {
+				return fmt.Errorf("can't find parameter %v in mlmdOutputParameters", name)
+			}
+			if err := ioutil.WriteFile(filename, []byte(outputParamValue), 0644); err != nil {
+				return fmt.Errorf("failed to write output parameter %q to file %q: %w", name, filename, err)
+			}
+		}
+
+		for name, artifact := range l.runtimeInfo.OutputArtifacts {
+			if !filepath.IsAbs(artifact.MetadataPath) {
+				return fmt.Errorf("unexpected output artifact metadata file %q: must be absolute local path", artifact.MetadataPath)
+			}
+			if !ok {
+				return metadataErr(errors.New("unable to find output artifact in RuntimeInfo"))
+			}
+			if err := os.MkdirAll(path.Dir(artifact.MetadataPath), 0644); err != nil {
+				return fmt.Errorf("unable to make local directory %v for outputArtifact %v: %w", artifact.MetadataPath, name, err)
+			}
+
+			b, err := protojson.Marshal(mlmdArtifact)
+			if err != nil {
+				return err
+			}
+
+			if err := ioutil.WriteFile(artifact.MetadataPath, b, 0644); err != nil {
+				return err
+			}
+		}
+
+
+		return nil
+
+	}
+
+}
+
+func (l *Launcher) execute(ctx context.Context, executorInput *pipeline_spec.ExecutorInput, cmd string, args []string) error {
 	if err := l.prepareInputs(ctx, executorInput); err != nil {
 		return err
 	}
 
-	if err := l.prepareOutputs(ctx, executorInput); err != nil {
+	if err := l.prepareOutputs(ctx, executorInput, true); err != nil {
 		return err
 	}
 
@@ -585,10 +650,12 @@ func (l *Launcher) prepareInputs(ctx context.Context, executorInput *pipeline_sp
 	return nil
 }
 
-func (l *Launcher) prepareOutputs(ctx context.Context, executorInput *pipeline_spec.ExecutorInput) error {
+func (l *Launcher) prepareOutputs(ctx context.Context, executorInput *pipeline_spec.ExecutorInput, placeholderReplacement bool) error {
 	for name, parameter := range executorInput.Outputs.Parameters {
-		key := fmt.Sprintf(`{{$.outputs.parameters['%s'].output_file}}`, name)
-		l.placeholderReplacements[key] = parameter.OutputFile
+		if placeholderReplacement {
+			key := fmt.Sprintf(`{{$.outputs.parameters['%s'].output_file}}`, name)
+			l.placeholderReplacements[key] = parameter.OutputFile
+		}
 
 		dir := filepath.Dir(parameter.OutputFile)
 		if err := os.MkdirAll(dir, 0644); err != nil {
@@ -602,8 +669,10 @@ func (l *Launcher) prepareOutputs(ctx context.Context, executorInput *pipeline_s
 		}
 		outputArtifact := artifactList.Artifacts[0]
 
-		key := fmt.Sprintf(`{{$.outputs.artifacts['%s'].uri}}`, name)
-		l.placeholderReplacements[key] = outputArtifact.Uri
+		if placeholderReplacement {
+			key := fmt.Sprintf(`{{$.outputs.artifacts['%s'].uri}}`, name)
+			l.placeholderReplacements[key] = outputArtifact.Uri
+		}
 
 		localPath, err := localPathForURI(outputArtifact.Uri)
 		if err != nil {
@@ -614,8 +683,10 @@ func (l *Launcher) prepareOutputs(ctx context.Context, executorInput *pipeline_s
 			return fmt.Errorf("unable to create directory %q for output artifact %q: %w", filepath.Dir(localPath), name, err)
 		}
 
-		key = fmt.Sprintf(`{{$.outputs.artifacts['%s'].path}}`, name)
-		l.placeholderReplacements[key] = localPath
+		if placeholderReplacement {
+			key := fmt.Sprintf(`{{$.outputs.artifacts['%s'].path}}`, name)
+			l.placeholderReplacements[key] = localPath
+		}
 	}
 
 	return nil

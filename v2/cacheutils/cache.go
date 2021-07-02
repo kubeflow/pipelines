@@ -6,13 +6,17 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/golang/glog"
-	api "github.com/kubeflow/pipelines/v2/third_party/kfp_api"
 	"google.golang.org/grpc"
 	"os"
+	"strconv"
+	"strings"
 
+	"github.com/golang/glog"
+	api "github.com/kubeflow/pipelines/v2/third_party/kfp_api"
+	"github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
 	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
 )
+
 const (
 	// MaxGRPCMessageSize contains max grpc message size supported by the client
 	MaxClientGRPCMessageSize = 100 * 1024 * 1024
@@ -20,8 +24,6 @@ const (
 	//https://kubernetes.io/docs/concepts/services-networking/service/#dns
 	defaultKfpApiEndpoint = "ml-pipeline.kubeflow:8888"
 )
-
-
 
 type CacheKey struct {
 	inputArtifactNames   map[string]artifactNameList
@@ -113,7 +115,6 @@ func GenerateCacheKey(
 
 }
 
-
 // Client is an MLMD service client.
 type Client struct {
 	svc api.TaskServiceClient
@@ -175,4 +176,30 @@ func (c *Client) GetExecutionCache(fingerPrint, pipelineName string) (string, er
 	} else {
 		return tasks[0].GetMlmdExecutionID(), nil
 	}
+}
+
+func GetOutputParamsFromCachedExecution(cachedExecution *ml_metadata.Execution) (map[string]string, error) {
+	mlmdOutputParameters := make(map[string]string)
+	for customPropName, customPropValue := range cachedExecution.CustomProperties {
+		if strings.HasPrefix(customPropName, "output:") {
+			slice := strings.Split(customPropName, ":")
+			if len(slice) != 2 {
+				return nil, fmt.Errorf("failed to parse output parameter from MLMD execution custom property %v", customPropName)
+			}
+			outputParamName := slice[1]
+			var outputParamValue string
+			switch t := customPropValue.Value.(type) {
+			case *ml_metadata.Value_StringValue:
+				outputParamValue = customPropValue.GetStringValue()
+			case *ml_metadata.Value_DoubleValue:
+				outputParamValue = strconv.FormatFloat(customPropValue.GetDoubleValue(), 'f', -1, 64)
+			case *ml_metadata.Value_IntValue:
+				outputParamValue = strconv.FormatInt(customPropValue.GetIntValue(), 10)
+			default:
+				return nil, fmt.Errorf("unknown PipelineSpec Value type %T", t)
+			}
+			mlmdOutputParameters[outputParamName] = outputParamValue
+		}
+	}
+	return mlmdOutputParameters, nil
 }

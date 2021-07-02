@@ -313,6 +313,17 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, taskNa
 	}, nil
 }
 
+// GetExecutions ...
+func (c *Client) GetExecutions(ctx context.Context, ids []int64) ([]*pb.Execution, error) {
+	req := &pb.GetExecutionsByIDRequest{ExecutionIds: ids}
+	c.svc.GetExecutions()
+	res, err := c.svc.GetExecutionsByID(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return res.Executions, nil
+}
+
 // GetArtifacts ...
 func (c *Client) GetArtifacts(ctx context.Context, ids []int64) ([]*pb.Artifact, error) {
 	req := &pb.GetArtifactsByIDRequest{ArtifactIds: ids}
