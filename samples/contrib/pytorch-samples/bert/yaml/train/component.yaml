@@ -28,7 +28,7 @@ implementation:
   container:
     # For GPU use
     # image: public.ecr.aws/pytorch-samples/kfp_samples:latest-gpu
-    image: public.ecr.aws/pytorch-samples/kfp_samples:latest
+    image: jagadeeshj/pytorch_samples:v2.e-gpu
     command: ["python3", "bert/agnews_classification_pytorch.py"]
     args:
       - --dataset_path

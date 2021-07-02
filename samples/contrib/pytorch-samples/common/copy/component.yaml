@@ -1,10 +1,12 @@
 name: Copy items
-description: Recursively copy directory contents.
+description: Recursively copy directory contents. Set Artifact To Volume to true for copying contents from upstream component output -> volume and false to copying from volume to artifact (can be accessed as copy.outputs["destination_path"]).
 inputs:
-- {name: Source Directory}
-- {name: Destination Directory}
+- {name: Artifact To Volume}
+- {name: Source Path}
+- {name: Destination Value}
+- {name: Source Value}
 outputs:
-- {name: Destination Directory}
+- {name: Destination Path}
 implementation:
   container:
     image: alpine
@@ -13,14 +15,16 @@ implementation:
     - -ex
     - -c
     - |
-      mkdir -p "$2"
-      if [ -z "$1" ]
+      mkdir -p "$4"
+      if [ "$0" = "true" ];
       then
-        cp -rf "$0/." "$2/"
+        mkdir -p "$2"
+        cp -rf "$1/." "$2/"
       else
-        mkdir -p "$1"
-        cp -rf "$0/." "$1/"
+        cp -rf "$3/." "$4/"        
       fi
-    - inputPath: Source Directory
-    - inputValue: Destination Directory
-    - outputPath: Destination Directory
+    - inputValue: Artifact To Volume
+    - inputPath: Source Path
+    - inputValue: Destination Value
+    - inputValue: Source Value
+    - outputPath: Destination Path
