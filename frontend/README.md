@@ -142,7 +142,7 @@ swagger-codegen-cli.jar, then run `npm run apis`.
 ## MLMD components
 
 * `src/mlmd` - components for visualizing data from an `ml-metadata` store. For more information see the
- [kubeflow/metadata](https://github.com/kubeflow/metadata) repository.
+ [google/ml-metadata](https://github.com/google/ml-metadata) repository.
 
 This module previously lived in [kubeflow/frontend](https://github.com/kubeflow/frontend) repository. It contains tsx files and `/generated/ml_metadata` for MLMD protos.
 
