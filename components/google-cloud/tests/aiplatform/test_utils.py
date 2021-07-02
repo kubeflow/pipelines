@@ -262,4 +262,3 @@ class UtilsTests(unittest.TestCase):
         dataset_annotation = signature(aiplatform.CustomPythonPackageTrainingJob.run).parameters['dataset'].annotation
 
         assert utils.resolve_annotation(dataset_annotation) is aiplatform.datasets.dataset._Dataset
-
