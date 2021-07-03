@@ -71,7 +71,14 @@ export function MetricsVisualizations({
     error: v1ViewerConfigError,
     data: v1ViewerConfigs,
   } = useQuery<ViewerConfig[], Error>(
-    ['viewconfig', v1VisualizationArtifact, execution.getLastKnownState()],
+    [
+      'viewconfig',
+      {
+        artifact: v1VisualizationArtifact?.artifact.getId(),
+        state: execution.getLastKnownState(),
+        namespace: namespace,
+      },
+    ],
     () => getViewConfig(v1VisualizationArtifact, namespace),
     { staleTime: Infinity },
   );
@@ -106,7 +113,7 @@ export function MetricsVisualizations({
       ))}
       {isV1ViewerConfigsSuccess &&
         v1ViewerConfigs &&
-        [...v1ViewerConfigs].map((config, i) => {
+        v1ViewerConfigs.map((config, i) => {
           const title = componentMap[config.type].prototype.getDisplayName();
           return (
             <div key={i} className={padding(20, 'lrt')}>
@@ -196,7 +203,7 @@ function getV1VisualizationArtifacts(
     }
     const artifactName = getArtifactName(x);
     // This is a hack to find mlpipeline-ui-metadata artifact for visualization.
-    const updatedName = artifactName?.replace(/_/g, '-').toLowerCase();
+    const updatedName = artifactName?.replace(/[\W_]/g, '-').toLowerCase();
     return updatedName === 'mlpipeline-ui-metadata';
   });
 
@@ -437,6 +444,5 @@ async function getViewConfig(
       namespace,
     );
   }
-  let v1ViewerConfigs: ViewerConfig[] = [];
-  return Promise.resolve(v1ViewerConfigs);
+  return [];
 }

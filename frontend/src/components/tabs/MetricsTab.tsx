@@ -52,6 +52,7 @@ export function MetricsTab({ execution, namespace }: MetricsTabProps) {
     executionCompleted = true;
   }
 
+  const executionId = execution.getId();
   // Retrieving a list of artifacts associated with this execution,
   // so we can find the artifact for system metrics from there.
   const {
@@ -60,7 +61,7 @@ export function MetricsTab({ execution, namespace }: MetricsTabProps) {
     error: errorArtifacts,
     data: artifacts,
   } = useQuery<LinkedArtifact[], Error>(
-    ['execution_output_artifact', { id: execution.getId() }],
+    ['execution_output_artifact', { id: executionId, state: executionState }],
     () => getOutputLinkedArtifactsInExecution(execution),
     { enabled: executionCompleted, staleTime: Infinity },
   );
@@ -73,7 +74,7 @@ export function MetricsTab({ execution, namespace }: MetricsTabProps) {
     error: errorArtifactTypes,
     data: artifactTypes,
   } = useQuery<ArtifactType[], Error>(
-    ['artifact_types', execution.getId()],
+    ['artifact_types', { id: executionId, state: executionState }],
     () => getArtifactTypes(),
     {
       enabled: executionCompleted,
