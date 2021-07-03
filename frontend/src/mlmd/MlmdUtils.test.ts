@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
+import { Api } from 'src/mlmd/library';
 import {
-  Api,
   Context,
   GetContextByTypeAndNameRequest,
   GetContextByTypeAndNameResponse,
-} from '@kubeflow/frontend';
+} from 'src/third_party/mlmd';
 import { expectWarnings, testBestPractices } from 'src/TestUtils';
 import { Workflow, WorkflowSpec, WorkflowStatus } from 'third_party/argo-ui/argo_template';
-import { getRunContext } from './MlmdUtils';
+import { getRunContext } from 'src/mlmd/MlmdUtils';
 
 testBestPractices();
 
