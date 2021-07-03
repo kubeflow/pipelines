@@ -5,7 +5,7 @@ metadata:
 upstream:
   type: git
   git:
-    commit: caeb46d443b6491fdd9716c6815ab29525eac632
+    commit: a245fe67db56d2808fb78c6079d08404cbee91aa
     repo: https://github.com/argoproj/argo-workflows
     directory: /manifests
-    ref: v3.1.0
+    ref: v3.1.1
