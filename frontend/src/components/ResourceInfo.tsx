@@ -71,7 +71,16 @@ export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
     const customPropertyMap = resource.getCustomPropertiesMap();
     return (
       <section>
-        <h1 className={commonCss.header}>Type: {this.props.typeName}</h1>
+        <h1 className={commonCss.header}>
+          {this.props.typeName}
+          {(() => {
+            const stateText = getResourceStateText(this.props);
+            if (stateText) {
+              return ` (${stateText})`;
+            }
+            return '';
+          })()}
+        </h1>
         {(() => {
           if (this.props.resourceType === ResourceType.ARTIFACT) {
             return (
@@ -148,5 +157,48 @@ function prettyPrintJsonValue(value: string): JSX.Element | string {
   } catch {
     // not JSON, return directly
     return value;
+  }
+}
+
+// Get text representation of resource state.
+// Works for both artifact and execution.
+function getResourceStateText(props: ResourceInfoProps): string | undefined {
+  if (props.resourceType === ResourceType.ARTIFACT) {
+    const state = props.resource.getState();
+    switch (state) {
+      case Artifact.State.UNKNOWN:
+        return undefined; // when state is not set, it defaults to UNKNOWN
+      case Artifact.State.PENDING:
+        return 'Pending';
+      case Artifact.State.LIVE:
+        return 'Live';
+      case Artifact.State.MARKED_FOR_DELETION:
+        return 'Marked for deletion';
+      case Artifact.State.DELETED:
+        return 'Deleted';
+      default:
+        throw new Error(`Impossible artifact state value: ${state}`);
+    }
+  } else {
+    // type == EXECUTION
+    const state = props.resource.getLastKnownState();
+    switch (state) {
+      case Execution.State.UNKNOWN:
+        return undefined;
+      case Execution.State.NEW:
+        return 'New';
+      case Execution.State.RUNNING:
+        return 'Running';
+      case Execution.State.COMPLETE:
+        return 'Complete';
+      case Execution.State.CANCELED:
+        return 'Canceled';
+      case Execution.State.FAILED:
+        return 'Failed';
+      case Execution.State.CACHED:
+        return 'Cached';
+      default:
+        throw new Error(`Impossible execution state value: ${state}`);
+    }
   }
 }
