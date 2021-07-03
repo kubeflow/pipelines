@@ -188,9 +188,6 @@ function getV1VisualizationArtifacts(
   linkedArtifacts: LinkedArtifact[],
   artifactTypes: ArtifactType[],
 ): LinkedArtifact | undefined {
-  if (!linkedArtifacts || !artifactTypes) {
-    return undefined;
-  }
   const systemArtifacts = filterLinkedArtifactsByType(
     'system.Artifact',
     artifactTypes,
