@@ -99,7 +99,7 @@ def query(query, project_id, dataset_id=None, table_id=None,
                     job_config = ExtractJobConfig(destination_format=output_destination_format)
                     extract_job = client.extract_table(table_ref, output_gcs_path, job_config=job_config)
                 extract_job.result()  # Wait for export to finish
-            # TODO: Replace '-' with empty string when most users upgrade to Argo version which has the fix: https://github.com/argoproj/argo/pull/1653
+            # TODO: Replace '-' with empty string when most users upgrade to Argo version which has the fix: https://github.com/argoproj/argo-workflows/pull/1653
             gcp_common.dump_file(output_gcs_path_output_path, output_gcs_path or '-')
 
         gcp_common.dump_file(job_object_output_path, json.dumps(query_job.to_api_repr()))
@@ -145,7 +145,7 @@ def _dump_outputs(job, output_path, table_ref):
     gcp_common.dump_file(KFP_OUTPUT_PATH + 'bigquery/query-job.json', 
         json.dumps(job.to_api_repr()))
     if not output_path:
-        output_path = '-'  # Replace with empty string when we upgrade to Argo version which has the fix: https://github.com/argoproj/argo/pull/1653
+        output_path = '-'  # Replace with empty string when we upgrade to Argo version which has the fix: https://github.com/argoproj/argo-workflows/pull/1653
     gcp_common.dump_file(KFP_OUTPUT_PATH + 'bigquery/query-output-path.txt', 
         output_path)
     (dataset_id, table_id) = (table_ref.dataset_id, table_ref.table_id) if table_ref else ('-', '-')

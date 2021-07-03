@@ -147,7 +147,7 @@ class Container(V1Container):
   See:
   *
   https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_container.py
-  * https://github.com/argoproj/argo/blob/master/api/openapi-spec/swagger.json
+  * https://github.com/argoproj/argo-workflows/blob/master/api/openapi-spec/swagger.json
 
   Example::
 
@@ -627,7 +627,7 @@ class UserContainer(Container):
   attribute (`mirrorVolumeMounts` property).
 
   See
-  https://github.com/argoproj/argo/blob/master/api/openapi-spec/swagger.json
+  https://github.com/argoproj/argo-workflows/blob/master/api/openapi-spec/swagger.json
 
   Args:
     name: unique name for the user container
