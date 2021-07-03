@@ -19,7 +19,7 @@ import React from 'react';
 import { Array as ArrayRunType, Failure, Number, Record, String, ValidationError } from 'runtypes';
 import IconWithTooltip from 'src/atoms/IconWithTooltip';
 import { color, padding } from 'src/Css';
-import { filterArtifactsByType } from 'src/lib/MlmdUtils';
+import { filterArtifactsByType } from 'src/mlmd/MlmdUtils';
 import { getMetadataValue } from 'src/mlmd/library';
 import { Artifact, ArtifactType } from 'src/third_party/mlmd';
 import Banner from '../Banner';

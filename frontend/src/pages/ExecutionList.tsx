@@ -17,7 +17,7 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { ListRequest } from 'src/lib/Apis';
-import { ExecutionHelpers } from 'src/lib/MlmdUtils';
+import { ExecutionHelpers } from 'src/mlmd/MlmdUtils';
 import { Api } from 'src/mlmd/library';
 import {
   Execution,

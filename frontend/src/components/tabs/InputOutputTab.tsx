@@ -25,7 +25,7 @@ import {
   filterEventWithOutputArtifact,
   getLinkedArtifactsByExecution,
   LinkedArtifact,
-} from 'src/lib/MlmdUtils';
+} from 'src/mlmd/MlmdUtils';
 import { KeyValue } from 'src/lib/StaticGraphParser';
 import { getMetadataValue } from 'src/mlmd/library';
 import { Execution } from 'src/third_party/mlmd';

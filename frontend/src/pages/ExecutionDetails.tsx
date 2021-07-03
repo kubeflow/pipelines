@@ -17,7 +17,7 @@
 import { CircularProgress } from '@material-ui/core';
 import React, { Component } from 'react';
 import { Link } from 'react-router-dom';
-import { getArtifactName, getLinkedArtifactsByEvents } from 'src/lib/MlmdUtils';
+import { getArtifactName, getLinkedArtifactsByEvents } from 'src/mlmd/MlmdUtils';
 import {
   Api,
   ExecutionCustomProperties,

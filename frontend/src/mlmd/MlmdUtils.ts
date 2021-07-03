@@ -15,6 +15,8 @@
  */
 
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
+import { logger } from 'src/lib/Utils';
+import { isV2Pipeline } from 'src/lib/v2/WorkflowUtils';
 import {
   Api,
   ExecutionCustomProperties,
@@ -22,7 +24,6 @@ import {
   getResourceProperty,
   getResourcePropertyViaFallBack,
 } from 'src/mlmd/library';
-import { Workflow } from 'third_party/argo-ui/argo_template';
 import {
   Artifact,
   ArtifactType,
@@ -38,8 +39,7 @@ import {
   GetEventsByExecutionIDsResponse,
   GetExecutionsByContextRequest,
 } from 'src/third_party/mlmd';
-import { logger } from './Utils';
-import { isV2Pipeline } from './v2/WorkflowUtils';
+import { Workflow } from 'third_party/argo-ui/argo_template';
 
 async function getContext({ type, name }: { type: string; name: string }): Promise<Context> {
   if (type === '') {

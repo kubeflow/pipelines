@@ -29,7 +29,7 @@ import {
   filterArtifactsByType,
   getArtifactTypes,
   getOutputArtifactsInExecution,
-} from './MlmdUtils';
+} from 'src/mlmd/MlmdUtils';
 import { errorToMessage, logger } from './Utils';
 import WorkflowParser, { StoragePath } from './WorkflowParser';
 export interface PlotMetadata {

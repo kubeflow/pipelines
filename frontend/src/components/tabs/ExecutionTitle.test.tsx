@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Execution, Value } from '../src/mlmd/library';
+import { Execution, Value } from 'src/third_party/mlmd';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { testBestPractices } from 'src/TestUtils';
