@@ -316,7 +316,6 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, taskNa
 // GetExecutions ...
 func (c *Client) GetExecutions(ctx context.Context, ids []int64) ([]*pb.Execution, error) {
 	req := &pb.GetExecutionsByIDRequest{ExecutionIds: ids}
-	c.svc.GetExecutions()
 	res, err := c.svc.GetExecutionsByID(ctx, req)
 	if err != nil {
 		return nil, err
@@ -332,6 +331,26 @@ func (c *Client) GetArtifacts(ctx context.Context, ids []int64) ([]*pb.Artifact,
 		return nil, err
 	}
 	return res.Artifacts, nil
+}
+
+// GetOutputArtifactsByExecutionId ...
+func (c *Client) GetOutputArtifactsByExecutionId(ctx context.Context, executionId int64) ([]*pb.Artifact, error) {
+	getEventsByExecutionIDsReq := &pb.GetEventsByExecutionIDsRequest{ExecutionIds: []int64{executionId}}
+	getEventsByExecutionIDsRes, err := c.svc.GetEventsByExecutionIDs(ctx, getEventsByExecutionIDsReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get events with execution id %v: %w", executionId, err)
+	}
+	var outputArtifactsIDs []int64
+	for _, event := range getEventsByExecutionIDsRes.Events {
+		if *event.Type == pb.Event_OUTPUT {
+			outputArtifactsIDs = append(outputArtifactsIDs, *event.ArtifactId)
+		}
+	}
+	outputArtifacts, err := c.GetArtifacts(ctx, outputArtifactsIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get output artifacts: %w", err)
+	}
+	return outputArtifacts, nil
 }
 
 // Only supports schema titles for now.
@@ -385,6 +404,10 @@ func (c *Client) RecordArtifact(ctx context.Context, schema string, artifact *pb
 		return nil, errors.New("Failed to retrieve exactly one artifact")
 	}
 	return getRes.Artifacts[0], nil
+}
+
+func GetIDFromExecution(execution Execution) *int64 {
+	return execution.execution.Id
 }
 
 func getOrInsertContext(ctx context.Context, svc pb.MetadataStoreServiceClient, name string, contextType *pb.ContextType) (*pb.Context, error) {

@@ -20,6 +20,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/golang/protobuf/ptypes/timestamp"
+	api "github.com/kubeflow/pipelines/v2/third_party/kfp_api"
+	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
 	"gocloud.dev/blob"
 	"io"
 	"io/ioutil"
@@ -30,6 +33,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -273,71 +277,108 @@ func (l *Launcher) RunComponent(ctx context.Context, cmdArgs []string) error {
 		return fmt.Errorf("failure while getting executionCache: %w", err)
 	}
 	if cachedMLMDExecutionID == "" {
-		return l.execute(ctx, executorInput, cmd, args)
-	} else {
-		if err := l.prepareOutputs(ctx, executorInput, false); err != nil {
-			return err
-		}
-		cachedMLMDExecutionIDInt64, err := strconv.ParseInt(cachedMLMDExecutionID, 10, 64)
-		if err != nil {
-			return fmt.Errorf("failure while transfering cachedMLMDExecutionID %s from string to int64: %w", cachedMLMDExecutionID, err)
-		}
-		executions, err := l.metadataClient.GetExecutions(ctx, []int64{cachedMLMDExecutionIDInt64})
-		if err != nil {
-			return fmt.Errorf("failure while getting execution of cachedMLMDExecutionID %v: %w", cachedMLMDExecutionIDInt64, err)
-		}
-		if len(executions) == 0 {
-			return fmt.Errorf("the execution with id %s does not exist in MLMD", cachedMLMDExecutionID)
-		}
-		if len(executions) > 1 {
-			return fmt.Errorf("got multiple executions with id %s in MLMD", cachedMLMDExecutionID)
-		}
-		cachedExecution := executions[0]
-		mlmdOutputParameters, err := cacheutils.GetOutputParamsFromCachedExecution(cachedExecution)
-		if err != nil {
-			return err
-		}
-
-		for name, param := range l.runtimeInfo.OutputParameters {
-			filename := param.Path
-			outputParamValue, ok := mlmdOutputParameters[name]
-			if !ok {
-				return fmt.Errorf("can't find parameter %v in mlmdOutputParameters", name)
-			}
-			if err := ioutil.WriteFile(filename, []byte(outputParamValue), 0644); err != nil {
-				return fmt.Errorf("failed to write output parameter %q to file %q: %w", name, filename, err)
-			}
-		}
-
-		for name, artifact := range l.runtimeInfo.OutputArtifacts {
-			if !filepath.IsAbs(artifact.MetadataPath) {
-				return fmt.Errorf("unexpected output artifact metadata file %q: must be absolute local path", artifact.MetadataPath)
-			}
-			if !ok {
-				return metadataErr(errors.New("unable to find output artifact in RuntimeInfo"))
-			}
-			if err := os.MkdirAll(path.Dir(artifact.MetadataPath), 0644); err != nil {
-				return fmt.Errorf("unable to make local directory %v for outputArtifact %v: %w", artifact.MetadataPath, name, err)
-			}
-
-			b, err := protojson.Marshal(mlmdArtifact)
-			if err != nil {
-				return err
-			}
-
-			if err := ioutil.WriteFile(artifact.MetadataPath, b, 0644); err != nil {
-				return err
-			}
-		}
-
-
-		return nil
-
+		return l.execute(ctx, executorInput, cmd, fingerPrint, args)
 	}
+
+	//To do, do we need to store pipeline task for such cached task
+	//To do, do we need to store MLMD artifacts, event types for such cached execution(I guess no)
+	return l.executeWithCache(ctx, executorInput, cachedMLMDExecutionID)
 
 }
 
-func (l *Launcher) execute(ctx context.Context, executorInput *pipeline_spec.ExecutorInput, cmd string, args []string) error {
+func (l *Launcher) executeWithCache(ctx context.Context, executorInput *pipeline_spec.ExecutorInput, cachedMLMDExecutionID string) error {
+	if err := l.prepareOutputs(ctx, executorInput, false); err != nil {
+		return err
+	}
+	cachedMLMDExecutionIDInt64, err := strconv.ParseInt(cachedMLMDExecutionID, 10, 64)
+	if err != nil {
+		return fmt.Errorf("failure while transfering cachedMLMDExecutionID %s from string to int64: %w", cachedMLMDExecutionID, err)
+	}
+	executions, err := l.metadataClient.GetExecutions(ctx, []int64{cachedMLMDExecutionIDInt64})
+	if err != nil {
+		return fmt.Errorf("failure while getting execution of cachedMLMDExecutionID %v: %w", cachedMLMDExecutionIDInt64, err)
+	}
+	if len(executions) == 0 {
+		return fmt.Errorf("the execution with id %s does not exist in MLMD", cachedMLMDExecutionID)
+	}
+	if len(executions) > 1 {
+		return fmt.Errorf("got multiple executions with id %s in MLMD", cachedMLMDExecutionID)
+	}
+	cachedExecution := executions[0]
+	err = l.storeOutputParameterValueFromCache(cachedExecution)
+	if err != nil {
+		return fmt.Errorf("failed to store output parameter value from cache: %w", err)
+	}
+
+	err = l.storeOutputArtifactMetadataFromCache(ctx, executorInput.Outputs, cachedMLMDExecutionIDInt64)
+	if err != nil {
+		return fmt.Errorf("failed to store output artifact metadata from cache: %w", err)
+	}
+	return nil
+}
+
+func (l *Launcher) storeOutputParameterValueFromCache(cachedExecution *pb.Execution) error {
+	mlmdOutputParameters, err := cacheutils.GetOutputParamsFromCachedExecution(cachedExecution)
+	if err != nil {
+		return err
+	}
+
+	for name, param := range l.runtimeInfo.OutputParameters {
+		filename := param.Path
+		outputParamValue, ok := mlmdOutputParameters[name]
+		if !ok {
+			return fmt.Errorf("can't find parameter %v in mlmdOutputParameters", name)
+		}
+		if err := ioutil.WriteFile(filename, []byte(outputParamValue), 0644); err != nil {
+			return fmt.Errorf("failed to write output parameter %q to file %q: %w", name, filename, err)
+		}
+	}
+	return nil
+}
+
+func (l *Launcher) storeOutputArtifactMetadataFromCache(ctx context.Context, executorInputOutputs *pipeline_spec.ExecutorInput_Outputs, cachedMLMDExecutionID int64) error {
+	outputArtifacts, err := l.metadataClient.GetOutputArtifactsByExecutionId(ctx, cachedMLMDExecutionID)
+	if err != nil {
+		return fmt.Errorf("failed to get outputArtifacts by executionId %v: %w", cachedMLMDExecutionID, err)
+	}
+	outputArtifactsByURI := make(map[string]*pb.Artifact)
+	for _, artifact := range outputArtifacts {
+		outputArtifactsByURI[*artifact.Uri] = artifact
+	}
+	for name, artifact := range l.runtimeInfo.OutputArtifacts {
+		if !filepath.IsAbs(artifact.MetadataPath) {
+			return fmt.Errorf("unexpected output artifact metadata file %q: must be absolute local path", artifact.MetadataPath)
+		}
+		runTimeArtifactList, ok := executorInputOutputs.Artifacts[name]
+		if !ok {
+			return fmt.Errorf("unable to find output artifact  %v in ExecutorInput.Outputs", name)
+		}
+		if len(runTimeArtifactList.Artifacts) == 0 {
+			continue
+		}
+		uri := runTimeArtifactList.Artifacts[0].Uri
+		mlmdArtifact, ok := outputArtifactsByURI[uri]
+		if !ok {
+			return fmt.Errorf("unable to find artifact with uri %v in mlmd output artifacts", uri)
+		}
+		if err := os.MkdirAll(path.Dir(artifact.MetadataPath), 0644); err != nil {
+			return fmt.Errorf("unable to make local directory %v for outputArtifact %v: %w", artifact.MetadataPath, name, err)
+		}
+
+		b, err := protojson.Marshal(mlmdArtifact)
+		if err != nil {
+			return err
+		}
+
+		if err := ioutil.WriteFile(artifact.MetadataPath, b, 0644); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (l *Launcher) execute(ctx context.Context, executorInput *pipeline_spec.ExecutorInput, cmd, fingerPrint string, args []string) error {
+	executedStartedTime := time.Now().Unix()
 	if err := l.prepareInputs(ctx, executorInput); err != nil {
 		return err
 	}
@@ -560,6 +601,22 @@ func (l *Launcher) execute(ctx context.Context, executorInput *pipeline_spec.Exe
 	}
 	if err := l.metadataClient.PublishExecution(ctx, execution, outputParameters, outputArtifacts); err != nil {
 		return fmt.Errorf("unable to publish execution: %w", err)
+	}
+	id := metadata.GetIDFromExecution(*execution)
+	if id == nil {
+		return fmt.Errorf("failed to get id from execution")
+	}
+	task := &api.Task{
+		PipelineName:    fmt.Sprintf("pipelineName/%s", l.options.PipelineName),
+		RunId:           l.options.PipelineRunID,
+		MlmdExecutionID: strconv.FormatInt(*id, 10),
+		CreatedAt:       &timestamp.Timestamp{Seconds: executedStartedTime},
+		FinishedAt:      &timestamp.Timestamp{Seconds: time.Now().Unix()},
+		Fingerprint:     fingerPrint,
+	}
+	err = l.cacheClient.CreateExecutionCache(ctx, task)
+	if err != nil {
+		return fmt.Errorf("failed to create cache entry: %w", err)
 	}
 	return nil
 }

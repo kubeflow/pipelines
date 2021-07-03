@@ -178,6 +178,17 @@ func (c *Client) GetExecutionCache(fingerPrint, pipelineName string) (string, er
 	}
 }
 
+func (c *Client) CreateExecutionCache(ctx context.Context, task *api.Task) error {
+	req := &api.CreateTaskRequest{
+		Task: task,
+	}
+	_, err := c.svc.CreateTask(ctx, req)
+	if err != nil {
+		return fmt.Errorf("failed to create task: %w", err)
+	}
+	return nil
+}
+
 func GetOutputParamsFromCachedExecution(cachedExecution *ml_metadata.Execution) (map[string]string, error) {
 	mlmdOutputParameters := make(map[string]string)
 	for customPropName, customPropValue := range cachedExecution.CustomProperties {
