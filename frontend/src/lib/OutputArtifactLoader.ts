@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import { Artifact, ArtifactType, Execution } from '@kubeflow/frontend';
 import { csvParseRows } from 'd3-dsv';
+import { Artifact, ArtifactType, Execution } from 'src/third_party/mlmd';
 import { ApiVisualization, ApiVisualizationType } from '../apis/visualization';
 import { ConfusionMatrixConfig } from '../components/viewers/ConfusionMatrix';
 import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
@@ -29,7 +29,7 @@ import {
   filterArtifactsByType,
   getArtifactTypes,
   getOutputArtifactsInExecution,
-} from './MlmdUtils';
+} from 'src/mlmd/MlmdUtils';
 import { errorToMessage, logger } from './Utils';
 import WorkflowParser, { StoragePath } from './WorkflowParser';
 export interface PlotMetadata {

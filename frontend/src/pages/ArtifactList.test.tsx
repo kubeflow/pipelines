@@ -14,21 +14,21 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-import { ArtifactList } from './ArtifactList';
-import { PageProps } from './Page';
-import { RoutePage } from '../components/Router';
-import TestUtils from '../TestUtils';
 import { render, screen } from '@testing-library/react';
+import * as React from 'react';
+import { MemoryRouter } from 'react-router-dom';
+import { Api } from 'src/mlmd/library';
 import {
-  Api,
   Artifact,
   ArtifactType,
   GetArtifactsResponse,
   GetArtifactTypesResponse,
   Value,
-} from '@kubeflow/frontend';
-import { MemoryRouter } from 'react-router-dom';
+} from 'src/third_party/mlmd';
+import { RoutePage } from '../components/Router';
+import TestUtils from '../TestUtils';
+import { ArtifactList } from './ArtifactList';
+import { PageProps } from './Page';
 
 const pipelineName = 'pipeline1';
 const artifactName = 'artifact1';

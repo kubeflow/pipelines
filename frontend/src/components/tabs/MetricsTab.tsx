@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-import { Artifact, ArtifactType, Execution } from '@kubeflow/frontend';
 import * as React from 'react';
 import { useQuery } from 'react-query';
 import { ErrorBoundary } from 'src/atoms/ErrorBoundary';
 import { commonCss, padding } from 'src/Css';
-import { getArtifactTypes, getOutputArtifactsInExecution } from 'src/lib/MlmdUtils';
+import { getArtifactTypes, getOutputArtifactsInExecution } from 'src/mlmd/MlmdUtils';
+import { Artifact, ArtifactType, Execution } from 'src/third_party/mlmd';
 import Banner from '../Banner';
 import { MetricsVisualizations } from '../viewers/MetricsVisualizations';
 import { ExecutionTitle } from './ExecutionTitle';
