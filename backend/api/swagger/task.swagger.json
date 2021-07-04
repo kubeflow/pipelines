@@ -1,0 +1,202 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "backend/api/task.proto",
+    "version": "version not set"
+  },
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/apis/v1alpha1/tasks": {
+      "get": {
+        "summary": "Finds all tasks. Supports pagination, and sorting on certain fields.",
+        "operationId": "ListTasks",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiListTasksResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page_token",
+            "description": "A page token to request the next page of results. The token is acquried\nfrom the nextPageToken field of the response from the previous\nListExperiment call or can be omitted when fetching the first page.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "page_size",
+            "description": "The number of experiments to be listed per page. If there are more\nexperiments than this number, the response message will contain a\nnextPageToken field you can use to fetch the next page.",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "sort_by",
+            "description": "Can be format of \"field_name\", \"field_name asc\" or \"field_name desc\"\nAscending by default.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "resource_reference_key.type",
+            "description": "The type of the resource that referred to.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "UNKNOWN_RESOURCE_TYPE",
+              "EXPERIMENT",
+              "JOB",
+              "PIPELINE",
+              "PIPELINE_VERSION",
+              "NAMESPACE"
+            ],
+            "default": "UNKNOWN_RESOURCE_TYPE"
+          },
+          {
+            "name": "resource_reference_key.id",
+            "description": "The ID of the resource that referred to.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filter",
+            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/\nblob/master/backend/api/filter.proto)).",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "TaskService"
+        ]
+      },
+      "post": {
+        "summary": "Creates a new task.",
+        "operationId": "CreateTask",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiTask"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiTask"
+            }
+          }
+        ],
+        "tags": [
+          "TaskService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "apiListTasksResponse": {
+      "type": "object",
+      "properties": {
+        "tasks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiTask"
+          },
+          "description": "A list of tasks returned."
+        },
+        "next_page_token": {
+          "type": "string",
+          "description": "The token to list the next page of experiments."
+        },
+        "total_size": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The total number of experiments for the given query."
+        }
+      }
+    },
+    "apiResourceKey": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/definitions/apiResourceType",
+          "description": "The type of the resource that referred to."
+        },
+        "id": {
+          "type": "string",
+          "description": "The ID of the resource that referred to."
+        }
+      }
+    },
+    "apiResourceType": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN_RESOURCE_TYPE",
+        "EXPERIMENT",
+        "JOB",
+        "PIPELINE",
+        "PIPELINE_VERSION",
+        "NAMESPACE"
+      ],
+      "default": "UNKNOWN_RESOURCE_TYPE"
+    },
+    "apiTask": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Output. Unique task ID. Generated by API server."
+        },
+        "namespace": {
+          "type": "string",
+          "description": "Required input field. The Namespace to which this pipeline task belongs."
+        },
+        "pipelineName": {
+          "type": "string",
+          "title": "Required input field. The PipelineName to which this pipeline task belongs.\nNamespace will be encoded in the PipelineName.\n\"namespace/${namespace}/pipeline/${pipelineName}\" for namespaced pipelines\n\"pipeline/${pipelineName}\" for shared pipelines"
+        },
+        "runId": {
+          "type": "string",
+          "description": "Required input field.The ID of the PipelineRun that the PipelineTask belongs to."
+        },
+        "mlmdExecutionID": {
+          "type": "string",
+          "description": "Required input field. The ID of the MLMD execution associated with the PipelineTask."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Required input field. The time this task is created."
+        },
+        "finished_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Optional input field. The time this task is finished."
+        },
+        "fingerprint": {
+          "type": "string",
+          "description": "Required input field."
+        }
+      }
+    }
+  }
+}

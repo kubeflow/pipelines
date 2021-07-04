@@ -14,21 +14,22 @@
  * limitations under the License.
  */
 
-import { Artifact, ArtifactType, Execution, getMetadataValue } from '@kubeflow/frontend';
 import HelpIcon from '@material-ui/icons/Help';
 import React from 'react';
 import { useQuery } from 'react-query';
 import { Array as ArrayRunType, Failure, Number, Record, String, ValidationError } from 'runtypes';
 import IconWithTooltip from 'src/atoms/IconWithTooltip';
 import { color, padding } from 'src/Css';
+import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
+import WorkflowParser from 'src/lib/WorkflowParser';
+import { getMetadataValue } from 'src/mlmd/library';
 import {
   filterArtifactsByType,
   filterLinkedArtifactsByType,
   getArtifactName,
   LinkedArtifact,
-} from 'src/lib/MlmdUtils';
-import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
-import WorkflowParser from 'src/lib/WorkflowParser';
+} from 'src/mlmd/MlmdUtils';
+import { Artifact, ArtifactType, Execution } from 'src/third_party/mlmd';
 import Banner from '../Banner';
 import PlotCard from '../PlotCard';
 import ConfusionMatrix, { ConfusionMatrixConfig } from './ConfusionMatrix';

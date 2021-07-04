@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { ArtifactType, Execution } from '@kubeflow/frontend';
 import * as React from 'react';
 import { useQuery } from 'react-query';
 import { ErrorBoundary } from 'src/atoms/ErrorBoundary';
@@ -23,7 +22,8 @@ import {
   getArtifactTypes,
   getOutputLinkedArtifactsInExecution,
   LinkedArtifact,
-} from 'src/lib/MlmdUtils';
+} from 'src/mlmd/MlmdUtils';
+import { ArtifactType, Execution } from 'src/third_party/mlmd';
 import Banner from '../Banner';
 import { MetricsVisualizations } from '../viewers/MetricsVisualizations';
 import { ExecutionTitle } from './ExecutionTitle';

@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
+import { Api } from 'src/mlmd/library';
+import { filterLinkedArtifactsByType, getArtifactName, getRunContext } from 'src/mlmd/MlmdUtils';
+import { expectWarnings, testBestPractices } from 'src/TestUtils';
 import {
-  Api,
+  Artifact,
+  ArtifactType,
   Context,
   Event,
   GetContextByTypeAndNameRequest,
   GetContextByTypeAndNameResponse,
-  Artifact,
-  ArtifactType,
-} from '@kubeflow/frontend';
-import { expectWarnings, testBestPractices } from 'src/TestUtils';
+} from 'src/third_party/mlmd';
 import { Workflow, WorkflowSpec, WorkflowStatus } from 'third_party/argo-ui/argo_template';
-import { filterLinkedArtifactsByType, getArtifactName, getRunContext } from './MlmdUtils';
 
 testBestPractices();
 

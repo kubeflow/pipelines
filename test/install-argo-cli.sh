@@ -24,7 +24,7 @@ OS=${OS:-"linux-amd64"}
 # if argo is not installed
 if ! which argo; then
   echo "install argo"
-  curl -sLO "https://github.com/argoproj/argo/releases/download/${ARGO_VERSION}/argo-${OS}.gz"
+  curl -sLO "https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-${OS}.gz"
   gunzip "argo-${OS}.gz"
   chmod +x "argo-${OS}"
   mv "argo-${OS}" /usr/local/bin/argo

@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-import { Artifact, ArtifactType, Event, Execution, Value } from '@kubeflow/frontend';
 import { render, waitFor } from '@testing-library/react';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import React from 'react';
-import * as mlmdUtils from 'src/lib/MlmdUtils';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
+import * as mlmdUtils from 'src/mlmd/MlmdUtils';
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
+import { Artifact, ArtifactType, Event, Execution, Value } from 'src/third_party/mlmd';
 import { ConfusionMatrixConfig } from '../viewers/ConfusionMatrix';
 import { HTMLViewerConfig } from '../viewers/HTMLViewer';
 import { MarkdownViewerConfig } from '../viewers/MarkdownViewer';

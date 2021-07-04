@@ -1,5 +1,30 @@
 # Changelog
 
+## [1.7.0-alpha.2](https://github.com/kubeflow/pipelines/compare/1.7.0-alpha.1...1.7.0-alpha.2) (2021-07-03)
+
+
+### Features
+
+* upgrade argo to v3.1.1. Part of [\#5718](https://github.com/kubeflow/pipelines/issues/5718) ([\#5971](https://github.com/kubeflow/pipelines/issues/5971)) ([4451c7d](https://github.com/kubeflow/pipelines/commit/4451c7d453a9e7878613ab81200a5d19ccf0e3e9))
+* **frontend:** Support new artifact name retrival and hide MLMD tab in v2 pipeline. Fix [\#5675](https://github.com/kubeflow/pipelines/issues/5675) ([\#5956](https://github.com/kubeflow/pipelines/issues/5956)) ([f524266](https://github.com/kubeflow/pipelines/commit/f5242666f6cdd5b9d9507699f9426d23625b529b))
+* **sample:** Add HTML sample for v1/v2 visualization ([\#5938](https://github.com/kubeflow/pipelines/issues/5938)) ([036ef49](https://github.com/kubeflow/pipelines/commit/036ef4967163bab3dfb503ac3281f81c1406bb40))
+* **sample:** Add markdown visualization example for v1 and v2 compatible ([\#5936](https://github.com/kubeflow/pipelines/issues/5936)) ([565d03e](https://github.com/kubeflow/pipelines/commit/565d03e5082ba099164f3fec2b04bcd74b44ccf5))
+* **sample:** ROC curve sample for v1 and v2 visualization ([\#5959](https://github.com/kubeflow/pipelines/issues/5959)) ([db03151](https://github.com/kubeflow/pipelines/commit/db03151508f32a8eb69b2ce8204649e6b7312313))
+* **samples:** Confusion Matrix sample for v1/v2 visualization ([\#5947](https://github.com/kubeflow/pipelines/issues/5947)) ([5eef38b](https://github.com/kubeflow/pipelines/commit/5eef38b2aae1462faf6a268f730631eebf2846c3))
+* **samples:** updated execution order, hello world, transformers and retry to not use Container.Op. Part of [\#5687](https://github.com/kubeflow/pipelines/issues/5687) ([\#5852](https://github.com/kubeflow/pipelines/issues/5852)) ([c397bd6](https://github.com/kubeflow/pipelines/commit/c397bd681caab8e4a9dcde9348bc9c4d7515e412))
+* **sdk:** json serialization of dict/list items in run args, fixes [\#5896](https://github.com/kubeflow/pipelines/issues/5896) ([\#5927](https://github.com/kubeflow/pipelines/issues/5927)) ([cbb83a5](https://github.com/kubeflow/pipelines/commit/cbb83a5628d71c2e26cb84ae0dc26285eb28d776))
+* **sdk/dsl/compiler:** dsl-compile --mode flag to turn on V2_COMPATIBLE, defaults to KF_PIPELINES_COMPILER_MODE env var. Fixes [\#5840](https://github.com/kubeflow/pipelines/issues/5840) ([\#5952](https://github.com/kubeflow/pipelines/issues/5952)) ([8a256db](https://github.com/kubeflow/pipelines/commit/8a256db1bfcd8ed7b5c349080aaaee1ebcd528dd))
+
+
+### Bug Fixes
+
+* **components/google-cloud:** Use correct dataset type when passing dataset to Custom*Training. Fixes [\#5885](https://github.com/kubeflow/pipelines/issues/5885) ([\#5964](https://github.com/kubeflow/pipelines/issues/5964)) ([6c4a74f](https://github.com/kubeflow/pipelines/commit/6c4a74f591e51b5ab9febcf5703e9629c5f64a77))
+
+
+### Other Pull Requests
+
+* chore(samples/pytorch) - Build script fix - Updating Dockerfile name ([\#5928](https://github.com/kubeflow/pipelines/issues/5928)) ([5b78b01](https://github.com/kubeflow/pipelines/commit/5b78b014108481f3c404eb8692893887491d54d4))
+
 ## [1.7.0-alpha.1](https://github.com/kubeflow/pipelines/compare/1.6.0...1.7.0-alpha.1) (2021-06-28)
 
 
