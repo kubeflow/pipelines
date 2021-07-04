@@ -19,6 +19,7 @@ package component
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -60,6 +61,7 @@ type Launcher struct {
 	bucketConfig            *bucketConfig
 	k8sClient               *kubernetes.Clientset
 	namespace               string
+	cmdArgs                 []string
 }
 
 // LauncherOptions are options used when creating Launcher.
@@ -219,6 +221,10 @@ func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error
 	if err != nil {
 		return nil, err
 	}
+	cmdArgs, err := parseArgs(flag.Args(), rt)
+	if err != nil {
+		return nil, err
+	}
 
 	// Placeholder replacements.
 	pr := make(map[string]string)
@@ -236,15 +242,16 @@ func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error
 		bucketConfig:            bc,
 		k8sClient:               k8sClient,
 		namespace:               namespace,
+		cmdArgs:                 cmdArgs,
 	}, nil
 }
 
 // RunComponent runs the current KFP component using the specified command and
 // arguments.
-func (l *Launcher) RunComponent(ctx context.Context, cmdArgs []string) error {
-	cmd := cmdArgs[0]
-	args := make([]string, len(cmdArgs)-1)
-	_ = copy(args, cmdArgs[1:])
+func (l *Launcher) RunComponent(ctx context.Context) error {
+	cmd := l.cmdArgs[0]
+	args := make([]string, len(l.cmdArgs)-1)
+	_ = copy(args, l.cmdArgs[1:])
 	executorInput, err := l.runtimeInfo.generateExecutorInput(l.generateOutputURI, outputMetadataFilepath)
 	if err != nil {
 		return fmt.Errorf("failure while generating ExecutorInput: %w", err)
@@ -255,7 +262,7 @@ func (l *Launcher) RunComponent(ctx context.Context, cmdArgs []string) error {
 		outputParametersTypeMap[outputParameterName] = outputParameter.Type
 
 	}
-	cacheKey, err := cacheutils.GenerateCacheKey(executorInput.GetInputs(), executorInput.GetOutputs(), outputParametersTypeMap, cmdArgs, l.options.ContainerImage)
+	cacheKey, err := cacheutils.GenerateCacheKey(executorInput.GetInputs(), executorInput.GetOutputs(), outputParametersTypeMap, l.cmdArgs, l.options.ContainerImage)
 	if err != nil {
 		return fmt.Errorf("failure while generating CacheKey: %w", err)
 	}

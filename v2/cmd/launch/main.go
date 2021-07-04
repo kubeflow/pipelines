@@ -52,7 +52,7 @@ func main() {
 		glog.Exitf("Failed to create component launcher: %v", err)
 	}
 
-	if err := launcher.RunComponent(ctx, flag.Args()); err != nil {
+	if err := launcher.RunComponent(ctx); err != nil {
 		glog.Exitf("Failed to execute component: %v", err)
 	}
 }
