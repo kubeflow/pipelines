@@ -55,6 +55,8 @@
   path: samples.test.after_test
 - name: parameter_with_format
   path: samples.test.parameter_with_format_test
+- name: parameter_values
+  path: samples.test.parameter_values_test
 - name: reused_component
   path: samples.test.reused_component_test
 - name: legacy_exit_handler
