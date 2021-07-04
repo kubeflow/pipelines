@@ -23,22 +23,22 @@ def training_op(n: int) -> int:
     return len(a)
 
 @components.create_component_from_func
-def generate_resource_request() -> NamedTuple('output', [('memory', str), ('cpu', str)]):
+def generate_resouce_request() -> NamedTuple('output', [('memory', str), ('cpu', str)]):
     '''Returns the memory and cpu request'''
     from collections import namedtuple
     
-    resource_output = namedtuple('output', ['memory', 'cpu'])
-    return resource_output('500Mi', '200m')
+    resouce_output = namedtuple('output', ['memory', 'cpu'])
+    return resouce_output('500Mi', '200m')
 
 @dsl.pipeline(
     name='Runtime resource request pipeline',
     description='An example on how to make resource requests at runtime.'
 )
 def resource_request_pipeline(n: int = 11234567):
-    resource_task = generate_resource_request()
+    resouce_task = generate_resouce_request()
     traning_task = training_op(n)\
-        .set_memory_limit(resource_task.outputs['memory'])\
-        .set_cpu_limit(resource_task.outputs['cpu'])\
+        .set_memory_limit(resouce_task.outputs['memory'])\
+        .set_cpu_limit(resouce_task.outputs['cpu'])\
         .set_cpu_request('200m')
 
     # Disable cache for KFP v1 mode.
