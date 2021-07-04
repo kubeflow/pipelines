@@ -54,7 +54,6 @@ require (
 )
 
 replace (
-	//github.com/go-openapi/validate => github.com/go-openapi/validate v0.17.2
 	k8s.io/kubernetes => k8s.io/kubernetes v1.11.1
 	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.2.9
 )
