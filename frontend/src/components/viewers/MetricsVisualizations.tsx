@@ -16,47 +16,91 @@
 
 import HelpIcon from '@material-ui/icons/Help';
 import React from 'react';
+import { useQuery } from 'react-query';
 import { Array as ArrayRunType, Failure, Number, Record, String, ValidationError } from 'runtypes';
 import IconWithTooltip from 'src/atoms/IconWithTooltip';
 import { color, padding } from 'src/Css';
-import { filterArtifactsByType } from 'src/mlmd/MlmdUtils';
+import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
+import WorkflowParser from 'src/lib/WorkflowParser';
 import { getMetadataValue } from 'src/mlmd/library';
-import { Artifact, ArtifactType } from 'src/third_party/mlmd';
+import {
+  filterArtifactsByType,
+  filterLinkedArtifactsByType,
+  getArtifactName,
+  LinkedArtifact,
+} from 'src/mlmd/MlmdUtils';
+import { Artifact, ArtifactType, Execution } from 'src/third_party/mlmd';
 import Banner from '../Banner';
+import PlotCard from '../PlotCard';
 import ConfusionMatrix, { ConfusionMatrixConfig } from './ConfusionMatrix';
 import PagedTable from './PagedTable';
 import ROCCurve, { ROCCurveConfig } from './ROCCurve';
-import { PlotType } from './Viewer';
+import { PlotType, ViewerConfig } from './Viewer';
+import { componentMap } from './ViewerContainer';
 
 interface MetricsVisualizationsProps {
-  artifacts: Artifact[];
+  linkedArtifacts: LinkedArtifact[];
   artifactTypes: ArtifactType[];
+  execution: Execution;
+  namespace: string | undefined;
 }
 
 /**
  * Visualize system metrics based on artifact input. There can be multiple artifacts
  * and multiple visualizations associated with one artifact.
  */
-export function MetricsVisualizations({ artifacts, artifactTypes }: MetricsVisualizationsProps) {
+export function MetricsVisualizations({
+  linkedArtifacts,
+  artifactTypes,
+  execution,
+  namespace,
+}: MetricsVisualizationsProps) {
   // There can be multiple system.ClassificationMetrics or system.Metrics artifacts per execution.
   // Get scalar metrics, confidenceMetrics and confusionMatrix from artifact.
   // If there is no available metrics, show banner to notify users.
   // Otherwise, Visualize all available metrics per artifact.
+  const artifacts = linkedArtifacts.map(x => x.artifact);
   const verifiedClassificationMetricsArtifacts = getVerifiedClassificationMetricsArtifacts(
     artifacts,
     artifactTypes,
   );
   const verifiedMetricsArtifacts = getVerifiedMetricsArtifacts(artifacts, artifactTypes);
+  const v1VisualizationArtifact = getV1VisualizationArtifacts(linkedArtifacts, artifactTypes);
+
+  const {
+    isSuccess: isV1ViewerConfigsSuccess,
+    error: v1ViewerConfigError,
+    data: v1ViewerConfigs,
+  } = useQuery<ViewerConfig[], Error>(
+    [
+      'viewconfig',
+      {
+        artifact: v1VisualizationArtifact?.artifact.getId(),
+        state: execution.getLastKnownState(),
+        namespace: namespace,
+      },
+    ],
+    () => getViewConfig(v1VisualizationArtifact, namespace),
+    { staleTime: Infinity },
+  );
 
   if (
     verifiedClassificationMetricsArtifacts.length === 0 &&
-    verifiedMetricsArtifacts.length === 0
+    verifiedMetricsArtifacts.length === 0 &&
+    !v1VisualizationArtifact
   ) {
     return <Banner message='There is no metrics artifact available in this step.' mode='info' />;
   }
 
   return (
     <>
+      {v1ViewerConfigError && (
+        <Banner
+          message='Error in retrieving v1 metrics information.'
+          mode='error'
+          additionalInfo={v1ViewerConfigError.message}
+        />
+      )}
       {verifiedClassificationMetricsArtifacts.map(artifact => {
         return (
           <React.Fragment key={artifact.getId()}>
@@ -68,6 +112,16 @@ export function MetricsVisualizations({ artifacts, artifactTypes }: MetricsVisua
       {verifiedMetricsArtifacts.map(artifact => (
         <ScalarMetricsSection artifact={artifact} key={artifact.getId()} />
       ))}
+      {isV1ViewerConfigsSuccess &&
+        v1ViewerConfigs &&
+        v1ViewerConfigs.map((config, i) => {
+          const title = componentMap[config.type].prototype.getDisplayName();
+          return (
+            <div key={i} className={padding(20, 'lrt')}>
+              <PlotCard configs={[config]} title={title} />
+            </div>
+          );
+        })}
     </>
   );
 }
@@ -129,6 +183,35 @@ function getVerifiedMetricsArtifacts(
       .get('name')
       ?.getStringValue(),
   );
+}
+
+function getV1VisualizationArtifacts(
+  linkedArtifacts: LinkedArtifact[],
+  artifactTypes: ArtifactType[],
+): LinkedArtifact | undefined {
+  const systemArtifacts = filterLinkedArtifactsByType(
+    'system.Artifact',
+    artifactTypes,
+    linkedArtifacts,
+  );
+
+  const v1VisualizationArtifacts = systemArtifacts.filter(x => {
+    if (!x) {
+      return false;
+    }
+    const artifactName = getArtifactName(x);
+    // This is a hack to find mlpipeline-ui-metadata artifact for visualization.
+    const updatedName = artifactName?.replace(/[\W_]/g, '-').toLowerCase();
+    return updatedName === 'mlpipeline-ui-metadata';
+  });
+
+  if (v1VisualizationArtifacts.length > 1) {
+    throw new Error(
+      'There are more than 1 mlpipeline-ui-metadata artifact: ' +
+        JSON.stringify(v1VisualizationArtifacts),
+    );
+  }
+  return v1VisualizationArtifacts.length === 0 ? undefined : v1VisualizationArtifacts[0];
 }
 
 const ROC_CURVE_DEFINITION =
@@ -348,4 +431,16 @@ function ScalarMetricsSection({ artifact }: ScalarMetricsSectionProps) {
       />
     </div>
   );
+}
+async function getViewConfig(
+  v1VisualizationArtifact: LinkedArtifact | undefined,
+  namespace: string | undefined,
+): Promise<ViewerConfig[]> {
+  if (v1VisualizationArtifact) {
+    return OutputArtifactLoader.load(
+      WorkflowParser.parseStoragePath(v1VisualizationArtifact.artifact.getUri()),
+      namespace,
+    );
+  }
+  return [];
 }

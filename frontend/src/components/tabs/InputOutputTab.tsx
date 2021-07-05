@@ -23,6 +23,7 @@ import { commonCss, padding } from 'src/Css';
 import {
   filterEventWithInputArtifact,
   filterEventWithOutputArtifact,
+  getArtifactName,
   getLinkedArtifactsByExecution,
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
@@ -188,10 +189,7 @@ function prettyPrintValue(value: string | number | Struct | undefined): string {
 
 function getArtifactParamList(inputArtifacts: LinkedArtifact[]): ParamList {
   return inputArtifacts.map(linkedArtifact => {
-    const key = linkedArtifact.event
-      .getPath()
-      ?.getStepsList()[0]
-      .getKey();
+    const key = getArtifactName(linkedArtifact);
     const artifactId = linkedArtifact.artifact.getId();
     const artifactElement = RoutePageFactory.artifactDetails(artifactId) ? (
       <Link className={commonCss.link} to={RoutePageFactory.artifactDetails(artifactId)}>
