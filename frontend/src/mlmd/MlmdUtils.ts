@@ -190,7 +190,7 @@ async function getEventByExecution(execution: Execution): Promise<Event[]> {
   try {
     response = await Api.getInstance().metadataStoreService.getEventsByExecutionIDs(request);
   } catch (err) {
-    err.message = 'Failed to getExecutionsByExecutionIDs: ' + err.message;
+    err.message = 'Failed to getEventsByExecutionIDs: ' + err.message;
     throw err;
   }
   return response.getEventsList();
@@ -252,6 +252,12 @@ export async function getOutputArtifactsInExecution(execution: Execution): Promi
     linkedArtifact => linkedArtifact.artifact,
   );
 }
+export async function getOutputLinkedArtifactsInExecution(
+  execution: Execution,
+): Promise<LinkedArtifact[]> {
+  const linkedArtifacts = await getLinkedArtifactsByExecution(execution);
+  return filterEventWithOutputArtifact(linkedArtifacts);
+}
 
 export async function getArtifactTypes(): Promise<ArtifactType[]> {
   const request = new GetArtifactTypesRequest();
@@ -274,6 +280,17 @@ export function filterArtifactsByType(
     .filter(artifactType => artifactType.getName() === artifactTypeName)
     .map(artifactType => artifactType.getId());
   return artifacts.filter(artifact => artifactTypeIds.includes(artifact.getTypeId()));
+}
+
+export function filterLinkedArtifactsByType(
+  artifactTypeName: string,
+  artifactTypes: ArtifactType[],
+  artifacts: LinkedArtifact[],
+): LinkedArtifact[] {
+  const artifactTypeIds = artifactTypes
+    .filter(artifactType => artifactType.getName() === artifactTypeName)
+    .map(artifactType => artifactType.getId());
+  return artifacts.filter(x => artifactTypeIds.includes(x.artifact.getTypeId()));
 }
 
 export function getArtifactName(linkedArtifact: LinkedArtifact): string | undefined {

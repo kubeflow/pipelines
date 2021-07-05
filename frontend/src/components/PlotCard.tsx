@@ -62,7 +62,7 @@ const css = stylesheet({
     margin: 20,
     minWidth: 250,
     padding: 20,
-    width: 'min-content',
+    width: 'auto',
   },
   plotHeader: {
     display: 'flex',
@@ -83,7 +83,7 @@ const css = stylesheet({
 export interface PlotCardProps {
   title: string;
   configs: ViewerConfig[];
-  maxDimension: number;
+  maxDimension?: number;
 }
 
 interface PlotCardState {
