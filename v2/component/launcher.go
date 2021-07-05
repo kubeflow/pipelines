@@ -276,17 +276,28 @@ func (l *Launcher) RunComponent(ctx context.Context, cmdArgs []string) error {
 	if err != nil {
 		return fmt.Errorf("failure while getting executionCache: %w", err)
 	}
-	if cachedMLMDExecutionID == "" {
-		return l.execute(ctx, executorInput, cmd, fingerPrint, args)
+
+	pipeline, err := l.metadataClient.GetPipeline(ctx, l.options.PipelineName, l.options.PipelineRunID)
+	if err != nil {
+		return fmt.Errorf("unable to get pipeline with PipelineName %q PipelineRunID %q: %w", l.options.PipelineName, l.options.PipelineRunID, err)
 	}
 
-	//To do, do we need to store pipeline task for such cached task
-	//To do, do we need to store MLMD artifacts, event types for such cached execution(I guess no)
-	return l.executeWithCache(ctx, executorInput, cachedMLMDExecutionID)
-
+	ecfg, err := metadata.GenerateExecutionConfig(executorInput)
+	if err != nil {
+		return fmt.Errorf("failed to generate execution config: %w", err)
+	}
+	execution, err := l.metadataClient.CreateExecution(ctx, pipeline, l.options.TaskName, l.options.PipelineTaskID, l.options.ContainerImage, ecfg)
+	if err != nil {
+		return fmt.Errorf("unable to create execution: %w", err)
+	}
+	if cachedMLMDExecutionID == "" {
+		return l.execute(ctx, executorInput, execution, cmd, fingerPrint, args)
+	} else {
+		return l.executeWithCache(ctx, executorInput, execution, cachedMLMDExecutionID)
+	}
 }
 
-func (l *Launcher) executeWithCache(ctx context.Context, executorInput *pipeline_spec.ExecutorInput, cachedMLMDExecutionID string) error {
+func (l *Launcher) executeWithCache(ctx context.Context, executorInput *pipeline_spec.ExecutorInput, createdExecution *metadata.Execution, cachedMLMDExecutionID string) error {
 	if err := l.prepareOutputs(ctx, executorInput, false); err != nil {
 		return err
 	}
@@ -305,79 +316,120 @@ func (l *Launcher) executeWithCache(ctx context.Context, executorInput *pipeline
 		return fmt.Errorf("got multiple executions with id %s in MLMD", cachedMLMDExecutionID)
 	}
 	cachedExecution := executions[0]
-	err = l.storeOutputParameterValueFromCache(cachedExecution)
+
+	outputParameters, err := l.storeOutputParameterValueFromCache(cachedExecution)
 	if err != nil {
 		return fmt.Errorf("failed to store output parameter value from cache: %w", err)
 	}
-
-	err = l.storeOutputArtifactMetadataFromCache(ctx, executorInput.Outputs, cachedMLMDExecutionIDInt64)
+	outputArtifacts, err := l.storeOutputArtifactMetadataFromCache(ctx, executorInput.Outputs, cachedMLMDExecutionIDInt64)
 	if err != nil {
 		return fmt.Errorf("failed to store output artifact metadata from cache: %w", err)
+	}
+
+	if err := l.metadataClient.PublishExecution(ctx, createdExecution, outputParameters, outputArtifacts, pb.Execution_CACHED); err != nil {
+		return fmt.Errorf("unable to publish execution: %w", err)
 	}
 	return nil
 }
 
-func (l *Launcher) storeOutputParameterValueFromCache(cachedExecution *pb.Execution) error {
+func (l *Launcher) storeOutputParameterValueFromCache(cachedExecution *pb.Execution) (*metadata.Parameters, error) {
 	mlmdOutputParameters, err := cacheutils.GetOutputParamsFromCachedExecution(cachedExecution)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	// Read output parameters.
+	outputParameters := &metadata.Parameters{
+		IntParameters:    make(map[string]int64),
+		StringParameters: make(map[string]string),
+		DoubleParameters: make(map[string]float64),
 	}
 
 	for name, param := range l.runtimeInfo.OutputParameters {
 		filename := param.Path
 		outputParamValue, ok := mlmdOutputParameters[name]
 		if !ok {
-			return fmt.Errorf("can't find parameter %v in mlmdOutputParameters", name)
+			return nil, fmt.Errorf("can't find parameter %v in mlmdOutputParameters", name)
 		}
 		if err := ioutil.WriteFile(filename, []byte(outputParamValue), 0644); err != nil {
-			return fmt.Errorf("failed to write output parameter %q to file %q: %w", name, filename, err)
+			return nil, fmt.Errorf("failed to write output parameter %q to file %q: %w", name, filename, err)
+		}
+		switch param.Type {
+		case "STRING":
+			outputParameters.StringParameters[name] = outputParamValue
+		case "INT":
+			i, err := strconv.ParseInt(strings.TrimSpace(outputParamValue), 10, 0)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse parameter name=%q value =%v to int: %w", name, outputParamValue, err)
+			}
+			outputParameters.IntParameters[name] = i
+		case "DOUBLE":
+			f, err := strconv.ParseFloat(strings.TrimSpace(outputParamValue), 0)
+			return nil, fmt.Errorf("failed to parse parameter name=%q value =%v to double: %w", name, outputParamValue, err)
+			outputParameters.DoubleParameters[name] = f
+		default:
+			return nil, fmt.Errorf("unknown type. Expected STRING, INT or DOUBLE")
 		}
 	}
-	return nil
+	return outputParameters, nil
 }
 
-func (l *Launcher) storeOutputArtifactMetadataFromCache(ctx context.Context, executorInputOutputs *pipeline_spec.ExecutorInput_Outputs, cachedMLMDExecutionID int64) error {
-	outputArtifacts, err := l.metadataClient.GetOutputArtifactsByExecutionId(ctx, cachedMLMDExecutionID)
+func (l *Launcher) storeOutputArtifactMetadataFromCache(ctx context.Context, executorInputOutputs *pipeline_spec.ExecutorInput_Outputs, cachedMLMDExecutionID int64) ([]*metadata.OutputArtifact, error) {
+	MLMDOutputArtifacts, err := l.metadataClient.GetOutputArtifactsByExecutionId(ctx, cachedMLMDExecutionID)
 	if err != nil {
-		return fmt.Errorf("failed to get outputArtifacts by executionId %v: %w", cachedMLMDExecutionID, err)
+		return nil, fmt.Errorf("failed to get MLMDOutputArtifacts by executionId %v: %w", cachedMLMDExecutionID, err)
 	}
-	outputArtifactsByURI := make(map[string]*pb.Artifact)
-	for _, artifact := range outputArtifacts {
-		outputArtifactsByURI[*artifact.Uri] = artifact
+	MLMDOutputArtifactByName := make(map[string]*pb.Artifact)
+	for _, artifact := range MLMDOutputArtifacts {
+		name := extractNameFromURI(*artifact.Uri)
+		MLMDOutputArtifactByName[name] = artifact
 	}
+
+	// Register artifacts with MLMD.
+	registeredMLMDArtifacts := make([]*metadata.OutputArtifact, 0, len(l.runtimeInfo.OutputArtifacts))
 	for name, artifact := range l.runtimeInfo.OutputArtifacts {
 		if !filepath.IsAbs(artifact.MetadataPath) {
-			return fmt.Errorf("unexpected output artifact metadata file %q: must be absolute local path", artifact.MetadataPath)
+			return nil, fmt.Errorf("unexpected output artifact metadata file %q: must be absolute local path", artifact.MetadataPath)
 		}
 		runTimeArtifactList, ok := executorInputOutputs.Artifacts[name]
 		if !ok {
-			return fmt.Errorf("unable to find output artifact  %v in ExecutorInput.Outputs", name)
+			return nil, fmt.Errorf("unable to find output artifact  %v in ExecutorInput.Outputs", name)
 		}
 		if len(runTimeArtifactList.Artifacts) == 0 {
 			continue
 		}
-		uri := runTimeArtifactList.Artifacts[0].Uri
-		mlmdArtifact, ok := outputArtifactsByURI[uri]
+		runtimeArtifact := runTimeArtifactList.Artifacts[0]
+		artifactName := extractNameFromURI(runtimeArtifact.Uri)
+		mlmdArtifact, ok := MLMDOutputArtifactByName[artifactName]
 		if !ok {
-			return fmt.Errorf("unable to find artifact with uri %v in mlmd output artifacts", uri)
+			return nil, fmt.Errorf("unable to find artifact with name %v in mlmd output artifacts", artifactName)
 		}
 		if err := os.MkdirAll(path.Dir(artifact.MetadataPath), 0644); err != nil {
-			return fmt.Errorf("unable to make local directory %v for outputArtifact %v: %w", artifact.MetadataPath, name, err)
+			return nil, fmt.Errorf("unable to make local directory %v for outputArtifact %v: %w", artifact.MetadataPath, name, err)
 		}
 
 		b, err := protojson.Marshal(mlmdArtifact)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		if err := ioutil.WriteFile(artifact.MetadataPath, b, 0644); err != nil {
-			return err
+			return nil, err
 		}
+		registeredMLMDArtifacts = append(registeredMLMDArtifacts, &metadata.OutputArtifact{
+			Name:     name,
+			Artifact: mlmdArtifact,
+			Schema:   runtimeArtifact.Type.GetInstanceSchema(),
+		})
 	}
-	return nil
+	return registeredMLMDArtifacts, nil
 }
 
-func (l *Launcher) execute(ctx context.Context, executorInput *pipeline_spec.ExecutorInput, cmd, fingerPrint string, args []string) error {
+func extractNameFromURI(uri string) string {
+	slice := strings.Split(uri, "/")
+	return slice[len(slice)-1]
+}
+
+func (l *Launcher) execute(ctx context.Context, executorInput *pipeline_spec.ExecutorInput, createdExecution *metadata.Execution, cmd, fingerPrint string, args []string) error {
 	executedStartedTime := time.Now().Unix()
 	if err := l.prepareInputs(ctx, executorInput); err != nil {
 		return err
@@ -399,50 +451,6 @@ func (l *Launcher) execute(ctx context.Context, executorInput *pipeline_spec.Exe
 			arg = strings.ReplaceAll(arg, placeholder, replacement)
 		}
 		args[i] = arg
-	}
-	// Record Execution in MLMD.
-	// TODO(neuromage): Refactor launcher.go and split these functions up into
-	// testable units.
-	pipeline, err := l.metadataClient.GetPipeline(ctx, l.options.PipelineName, l.options.PipelineRunID)
-	if err != nil {
-		return fmt.Errorf("unable to get pipeline with PipelineName %q PipelineRunID %q: %w", l.options.PipelineName, l.options.PipelineRunID, err)
-	}
-
-	ecfg := &metadata.ExecutionConfig{
-		InputParameters: &metadata.Parameters{
-			IntParameters:    make(map[string]int64),
-			StringParameters: make(map[string]string),
-			DoubleParameters: make(map[string]float64),
-		},
-		InputArtifactIDs: make(map[string][]int64),
-	}
-
-	for name, artifactList := range executorInput.Inputs.Artifacts {
-		for _, artifact := range artifactList.Artifacts {
-			id, err := strconv.ParseInt(artifact.Name, 10, 64)
-			if err != nil {
-				return fmt.Errorf("unable to parse input artifact id from %q: %w", id, err)
-			}
-			ecfg.InputArtifactIDs[name] = append(ecfg.InputArtifactIDs[name], id)
-		}
-	}
-
-	for name, parameter := range executorInput.Inputs.Parameters {
-		switch t := parameter.Value.(type) {
-		case *pipeline_spec.Value_StringValue:
-			ecfg.InputParameters.StringParameters[name] = parameter.GetStringValue()
-		case *pipeline_spec.Value_IntValue:
-			ecfg.InputParameters.IntParameters[name] = parameter.GetIntValue()
-		case *pipeline_spec.Value_DoubleValue:
-			ecfg.InputParameters.DoubleParameters[name] = parameter.GetDoubleValue()
-		default:
-			return fmt.Errorf("unknown parameter type: %T", t)
-		}
-	}
-
-	execution, err := l.metadataClient.CreateExecution(ctx, pipeline, l.options.TaskName, l.options.PipelineTaskID, l.options.ContainerImage, ecfg)
-	if err != nil {
-		return fmt.Errorf("unable to create execution: %w", err)
 	}
 
 	executor := exec.Command(cmd, args...)
@@ -599,12 +607,12 @@ func (l *Launcher) execute(ctx context.Context, executorInput *pipeline_spec.Exe
 			return msg(fmt.Errorf("unknown type. Expected STRING, INT or DOUBLE"))
 		}
 	}
-	if err := l.metadataClient.PublishExecution(ctx, execution, outputParameters, outputArtifacts); err != nil {
-		return fmt.Errorf("unable to publish execution: %w", err)
+	if err := l.metadataClient.PublishExecution(ctx, createdExecution, outputParameters, outputArtifacts, pb.Execution_COMPLETE); err != nil {
+		return fmt.Errorf("unable to publish createdExecution: %w", err)
 	}
-	id := metadata.GetIDFromExecution(*execution)
+	id := metadata.GetIDFromExecution(*createdExecution)
 	if id == nil {
-		return fmt.Errorf("failed to get id from execution")
+		return fmt.Errorf("failed to get id from createdExecution")
 	}
 	task := &api.Task{
 		PipelineName:    fmt.Sprintf("pipelineName/%s", l.options.PipelineName),
