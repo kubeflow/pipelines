@@ -20,9 +20,9 @@ TAG=$1
 BRANCH=$2
 REPO=kubeflow/pipelines
 
-if  [[ $TAG != v.* ]] ;
+if  [[ $TAG != v* ]] ;
 then
-    echo "release tag needs to start with 'v.' "
+    echo "release tag needs to start with 'v' "
     exit 1
 fi
 

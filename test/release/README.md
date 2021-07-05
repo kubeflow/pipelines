@@ -4,7 +4,7 @@ For full release documentation, please read [RELEASE.md](../../RELEASE.md).
 
 To do a release:
 
-TAG=`<TAG>` BRANCH=`<BRANCH>` make release, the release needs to start with `v.` to support [golang version handling](https://golang.org/ref/mod#versions)
+TAG=`<TAG>` BRANCH=`<BRANCH>` make release, the release needs to start with `v` to support [golang version handling](https://golang.org/ref/mod#versions)
 
 Example, release in release branch:
 
