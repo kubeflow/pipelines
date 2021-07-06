@@ -109,8 +109,8 @@ github.com/apache/pulsar-client-go v0.1.1/go.mod h1:mlxC65KL1BLhGO2bnT9zWMttVzR2
 github.com/ardielle/ardielle-go v1.5.2/go.mod h1:I4hy1n795cUhaVt/ojz83SNVCYIGsAFAONtv2Dr7HUI=
 github.com/ardielle/ardielle-tools v1.5.4/go.mod h1:oZN+JRMnqGiIhrzkRN9l26Cej9dEx4jeNG6A+AdkShk=
 github.com/argoproj/argo-events v1.2.0/go.mod h1:eY+egQNBLXAz/AF4mqgHsMMa4Aur7frHjUfBg+RpX04=
-github.com/argoproj/argo-workflows/v3 v3.1.0 h1:YrTppFW7VYZsFnDB7/9A0nI3V+VVqozvq2ZE5UMbHa4=
-github.com/argoproj/argo-workflows/v3 v3.1.0/go.mod h1:Z8Wc7uDOGw8TRdhqqREHLFE5SAgS0ENqqwaLakv56MU=
+github.com/argoproj/argo-workflows/v3 v3.1.1 h1:UsatBRhHk0EL2glTnVhailCkjW7BaS9iI8k2R1+4QuQ=
+github.com/argoproj/argo-workflows/v3 v3.1.1/go.mod h1:Z8Wc7uDOGw8TRdhqqREHLFE5SAgS0ENqqwaLakv56MU=
 github.com/argoproj/pkg v0.8.1 h1:9h/sqAjUNyk0LaHkXR+2h94KNcSchvFX5aELNjXSOoc=
 github.com/argoproj/pkg v0.8.1/go.mod h1:ra+bQPmbVAoEL+gYSKesuigt4m49i3Qa3mE/xQcjCiA=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=

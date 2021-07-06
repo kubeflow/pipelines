@@ -818,9 +818,9 @@ subjects:
 apiVersion: v1
 data:
   # References:
-  # * https://github.com/argoproj/argo-workflows/blob/v3.1.0/config/config.go
-  # * https://github.com/argoproj/argo-workflows/blob/v3.1.0/docs/workflow-controller-configmap.md
-  # * https://github.com/argoproj/argo-workflows/blob/v3.1.0/docs/workflow-controller-configmap.yaml
+  # * https://github.com/argoproj/argo-workflows/blob/v3.1.1/config/config.go
+  # * https://github.com/argoproj/argo-workflows/blob/v3.1.1/docs/workflow-controller-configmap.md
+  # * https://github.com/argoproj/argo-workflows/blob/v3.1.1/docs/workflow-controller-configmap.yaml
 
   containerRuntimeExecutor: docker
 
@@ -2053,7 +2053,7 @@ metadata:
 spec:
   descriptor:
     type: Kubeflow Pipelines
-    version: 1.6.0
+    version: 1.7.0-alpha.1
     description: |-
       Reusable end-to-end ML workflow
     maintainers:
