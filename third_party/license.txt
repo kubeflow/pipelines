@@ -2541,7 +2541,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 --------------------------------------------------------------------------------
-vendor github.com argoproj argo LICENSE (vendor/github.com/argoproj/argo-workflows/LICENSE)
+vendor github.com argoproj argo LICENSE (vendor/github.com/argoproj/argo/LICENSE)
 --------------------------------------------------------------------------------
 
                                  Apache License
@@ -11629,3 +11629,4 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 --------------------------------------------------------------------------------
+
