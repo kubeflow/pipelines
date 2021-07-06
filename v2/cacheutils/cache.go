@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/encoding/protojson"
 	"os"
 	"strconv"
 	"strings"
@@ -163,11 +164,11 @@ func (c *Client) GetExecutionCache(fingerPrint, pipelineName string) (string, er
 	}
 	filter := api.Filter{Predicates: []*api.Predicate{fingerPrintPredicate, pipelineNamePredicate}}
 
-	taskFilterJson, err := json.Marshal(filter)
+	taskFilterJson, err := protojson.Marshal(&filter)
 	if err != nil {
 		return "", fmt.Errorf("failed to convert filter into JSON: %w", err)
 	}
-	listTasksReuqest := &api.ListTasksRequest{Filter: string(taskFilterJson), SortBy: "createdAt desc", PageSize: 1}
+	listTasksReuqest := &api.ListTasksRequest{Filter: string(taskFilterJson), SortBy: "created_at desc", PageSize: 1}
 	listTasksResponse, err := c.svc.ListTasks(context.Background(), listTasksReuqest)
 	if err != nil {
 		return "", fmt.Errorf("failed to list tasks: %w", err)

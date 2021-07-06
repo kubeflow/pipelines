@@ -169,8 +169,8 @@ func TestGenerateCacheKey(t *testing.T) {
 //	}
 //	fmt.Printf("id is %v", id)
 //}
-//
-//
+
+
 //func NewTestKFPClient() (*Client, error) {
 //	conn, err := grpc.Dial(fmt.Sprintf("%s:%s", testMlmdServerAddress, testMlmdServerPort),
 //		grpc.WithInsecure(),

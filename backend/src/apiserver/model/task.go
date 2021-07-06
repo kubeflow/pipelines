@@ -43,7 +43,7 @@ var taskAPIToModelFieldMap = map[string]string{
 	"mlmdExecutionID": "MLMDExecutionID",
 	"created_at":      "CreatedTimestamp",
 	"finished_at":     "FinishedTimestamp",
-	"fingerPrint":     "Fingerprint",
+	"fingerprint":     "Fingerprint",
 }
 
 func (t Task) GetField(name string) (string, bool) {

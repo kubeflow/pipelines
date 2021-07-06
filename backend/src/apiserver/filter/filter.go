@@ -140,6 +140,7 @@ func NewWithKeyMap(filterProto *api.Filter, keyMap map[string]string, modelName 
 		modelNamePrefix = modelName + "."
 	}
 
+	fmt.Printf("key map is %v", keyMap)
 	for _, pred := range filterProto.Predicates {
 		k, ok := keyMap[pred.Key]
 		if !ok {

@@ -1,10 +1,10 @@
 # Generate client code (go & json) from API protocol buffers
-FROM golang:1.13.1-stretch as generator
+FROM golang:1.15.10 as generator
 ENV GRPC_GATEWAY_VERSION v1.9.0
 ENV GO_SWAGGER_VERSION v0.18.0
-ENV GOLANG_PROTOBUF_VERSION v1.3.2
+ENV GOLANG_PROTOBUF_VERSION v1.5.1
 ENV GRPC_VERSION v1.23.0
-ENV PROTOC_VERSION 3.13.0
+ENV PROTOC_VERSION 3.17.3
 ENV GOBIN=/go/bin
 
 # Install protoc.
