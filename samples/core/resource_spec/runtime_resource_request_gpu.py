@@ -32,10 +32,10 @@ training_comp = components.create_component_from_func(
     )
 
 @components.create_component_from_func
-def generate_resource_request() -> NamedTuple('output', [('nbr_gpus', str), ('gpu_vendor', str), ('constrain_type', str), ('constrain_value', str)]):
+def generate_resource_request() -> NamedTuple('output', [('gpu_vendor', str), ('nbr_gpus', str), ('constrain_type', str), ('constrain_value', str)]):
     '''Returns the gpu resource settings'''
     from collections import namedtuple
-    resource_output = namedtuple('output', ['nbr_gpu', 'gpu_vendor', 'constrain_type', 'constrain_value'])
+    resource_output = namedtuple('output', ['gpu_vendor', 'nbr_gpu', 'constrain_type', 'constrain_value'])
 
     return resource_output( 'nvidia', '1', 'cloud.google.com/gke-accelerator', 'nvidia-tesla-p4')
 
@@ -43,7 +43,7 @@ def generate_resource_request() -> NamedTuple('output', [('nbr_gpus', str), ('gp
     name='Runtime resource request pipeline',
     description='An example on how to make resource requests at runtime.'
 )
-def resource_request_pipeline(n: int = 11234567):
+def resource_request_pipeline():
     resource_task = generate_resource_request()
 
     traning_task = training_comp().set_gpu_limit(resource_task.outputs['nbr_gpus'], resource_task.outputs['gpu_vendor'])\
