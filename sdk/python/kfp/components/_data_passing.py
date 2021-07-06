@@ -111,8 +111,8 @@ _converters = [
     Converter([int], ['Integer', 'int'], _serialize_int, 'int', None),
     Converter([float], ['Float', 'float'], _serialize_float, 'float', None),
     Converter([bool], ['Boolean', 'Bool', 'bool'], _serialize_bool, _bool_deserializer_code, _bool_deserializer_definitions),
-    Converter([list], ['JsonArray', 'List', 'list'], _serialize_json, 'json.loads', 'import json'), # ! JSON map keys are always strings. Python converts all keys to strings without warnings
-    Converter([dict], ['JsonObject', 'Dictionary', 'Dict', 'dict'], _serialize_json, 'json.loads', 'import json'), # ! JSON map keys are always strings. Python converts all keys to strings without warnings
+    Converter([list], ['JsonArray', 'typing.List', 'List', 'list'], _serialize_json, 'json.loads', 'import json'), # ! JSON map keys are always strings. Python converts all keys to strings without warnings
+    Converter([dict], ['JsonObject', 'Dictionary', 'typing.Dict', 'Dict', 'dict'], _serialize_json, 'json.loads', 'import json'), # ! JSON map keys are always strings. Python converts all keys to strings without warnings
     Converter([], ['Json'], _serialize_json, 'json.loads', 'import json'),
     Converter([], ['Base64Pickle'], _serialize_base64_pickle, _deserialize_base64_pickle_code, _deserialize_base64_pickle_definitions),
 ]
