@@ -22,7 +22,7 @@ const (
 	MaxClientGRPCMessageSize = 100 * 1024 * 1024
 	// The endpoint uses Kubernetes service DNS name with namespace:
 	//https://kubernetes.io/docs/concepts/services-networking/service/#dns
-	defaultKfpApiEndpoint = "ml-pipeline.kubeflow:8888"
+	defaultKfpApiEndpoint = "ml-pipeline.kubeflow:8887"
 )
 
 type CacheKey struct {
@@ -115,7 +115,7 @@ func GenerateCacheKey(
 
 }
 
-// Client is an MLMD service client.
+// Client is an KFP service client.
 type Client struct {
 	svc api.TaskServiceClient
 }
@@ -136,14 +136,16 @@ func cacheDefaultEndpoint() string {
 	// Discover ml-pipeline in the same namespace by env var.
 	// https://kubernetes.io/docs/concepts/services-networking/service/#environment-variables
 	cacheHost := os.Getenv("ML_PIPELINE_SERVICE_HOST")
-	cachePort := os.Getenv("ML_PIPELINE_SERVICE_PORT")
+	cachePort := os.Getenv("ML_PIPELINE_SERVICE_PORT_GRPC")
+	fmt.Printf("cacheHost is %v", cacheHost)
+	fmt.Printf("cachePort is %v", cachePort)
 	if cacheHost != "" && cachePort != "" {
 		// If there is a ml-pipeline Kubernetes service in the same namespace,
 		// ML_PIPELINE_SERVICE_HOST and ML_PIPELINE_SERVICE_PORT env vars should
 		// exist by default, so we use it as default.
 		return cacheHost + ":" + cachePort
 	}
-	// If the env vars do not exist, use default ml-pipeline endpoint `ml-pipeline.kubeflow:8888`.
+	// If the env vars do not exist, use default ml-pipeline grpc endpoint `ml-pipeline.kubeflow:8887`.
 	glog.Infof("Cannot detect ml-pipeline in the same namespace, default to %s as KFP endpoint.", defaultKfpApiEndpoint)
 	return defaultKfpApiEndpoint
 }

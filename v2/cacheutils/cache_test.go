@@ -12,6 +12,12 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+// This test depends on a MLMD grpc server running at localhost:8080.
+const (
+	testMlmdServerAddress = "localhost"
+	testMlmdServerPort    = "8887"
+)
+
 func TestGenerateCacheKey(t *testing.T) {
 
 	tests := []struct {
@@ -149,3 +155,31 @@ func TestGenerateCacheKey(t *testing.T) {
 		})
 	}
 }
+
+//func Test_GetPipeline(t *testing.T) {
+//	kfpClient, err := NewTestKFPClient()
+//	if err != nil {
+//		fmt.Printf("error when creating kfp client")
+//		t.Fatal(err)
+//	}
+//	id, err := kfpClient.GetExecutionCache("d2f483672c0239f6d7dd3c9ecee6deacbcd59185855625902a8b1c1a3bd67440", "twostep")
+//	if err != nil {
+//		fmt.Printf("error when getting execution cache")
+//		t.Fatal(err)
+//	}
+//	fmt.Printf("id is %v", id)
+//}
+//
+//
+//func NewTestKFPClient() (*Client, error) {
+//	conn, err := grpc.Dial(fmt.Sprintf("%s:%s", testMlmdServerAddress, testMlmdServerPort),
+//		grpc.WithInsecure(),
+//	)
+//	if err != nil {
+//		return nil, fmt.Errorf("NewTestKFPClient() failed: %w", err)
+//	}
+//	return &Client{
+//		svc: api.NewTaskServiceClient(conn),
+//	}, nil
+//}
+
