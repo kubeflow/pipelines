@@ -43,7 +43,7 @@ cd "$clone_dir"
 git checkout "$BRANCH"
 
 echo "Preparing local git tags used by changelog generation."
-# tags with "-" are pre-releases, e.g. v.1.0.0-rc.1
+# tags with "-" are pre-releases, e.g. v1.0.0-rc.1
 if [[ "$TAG" =~ "-" ]]; then
   echo "Releasing a pre-release $TAG."
 else
