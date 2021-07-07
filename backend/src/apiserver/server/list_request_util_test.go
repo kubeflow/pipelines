@@ -17,6 +17,8 @@ package server
 import (
 	"encoding/base64"
 	"encoding/json"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"google.golang.org/protobuf/testing/protocmp"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -211,7 +213,7 @@ func TestParseAPIFilter_DecodesEncodedString(t *testing.T) {
 	}
 
 	got, err := parseAPIFilter(in)
-	if !cmp.Equal(got, want) || err != nil {
+	if !cmp.Equal(got, want, cmpopts.EquateEmpty(), protocmp.Transform(),) || err != nil {
 		t.Errorf("parseAPIString(%q) =\nGot %+v, %v\n Want %+v, <nil>\nDiff: %s",
 			in, got, err, want, cmp.Diff(want, got))
 	}
