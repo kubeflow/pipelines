@@ -414,11 +414,11 @@ def _parse_parameters(execution: metadata_store_pb2.Execution) -> dict:
     for item in custom_properties.items():
         (name, value) = item
         raw_value = None
-        if value.string_value:
+        if value.HasField('string_value'):
             raw_value = value.string_value
-        if value.int_value:
+        if value.HasField('int_value'):
             raw_value = value.int_value
-        if value.double_value:
+        if value.HasField('double_value'):
             raw_value = value.double_value
         if name.startswith('input:'):
             parameters['inputs'][name[len('input:'):]] = raw_value
