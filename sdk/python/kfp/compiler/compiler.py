@@ -672,12 +672,18 @@ class Compiler(object):
       template = self._group_to_dag_template(opsgroups[opsgroup], inputs, outputs, dependencies)
       templates.append(template)
 
+
     for op in pipeline.ops.values():
       if self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
         v2_compat.update_op(op,
                             pipeline_name=self._pipeline_name_param,
                             pipeline_root=self._pipeline_root_param,
                             launcher_image=self._launcher_image)
+
+      if "Executor executes v2-based Python function components." in op.command[3] and\
+        not self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
+        raise Exception('@component is not allowed in V1 mode')
+ 
       templates.extend(op_to_templates_handler(op))
 
       if hasattr(op, 'custom_job_spec'):
@@ -686,7 +692,7 @@ class Compiler(object):
       if hasattr(op, 'importer_spec'):
         raise NotImplementedError(
             'dsl.importer is not supported yet when running on KFP.')
-
+    
     return templates
 
   def _create_pipeline_workflow(self,
@@ -923,6 +929,7 @@ class Compiler(object):
 
     op_transformers = [add_pod_env]
     pod_labels = {_SDK_VERSION_LABEL: kfp.__version__, _SDK_ENV_LABEL:_SDK_ENV_DEFAULT}
+
     op_transformers.append(add_pod_labels(pod_labels))
     op_transformers.extend(pipeline_conf.op_transformers)
 
