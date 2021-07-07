@@ -679,7 +679,8 @@ class Compiler(object):
                             pipeline_root=self._pipeline_root_param,
                             launcher_image=self._launcher_image)
 
-      if "Executor executes v2-based Python function components." in op.command[3] and\
+      if len(op.command) > 3 and \
+        "Executor executes v2-based Python function components." in op.command[3] and\
         not self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
         raise Exception('@component is not allowed in V1 mode')
  
