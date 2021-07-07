@@ -60,7 +60,7 @@ def automl_prediction_service_batch_predict(
     print('Operation finished:')
     print(metadata)
     output_info = metadata.batch_predict_details.output_info
-    # Workaround for Argo issue - it fails when output is empty: https://github.com/argoproj/argo/pull/1277/files#r326028422
+    # Workaround for Argo issue - it fails when output is empty: https://github.com/argoproj/argo-workflows/pull/1277/files#r326028422
     return (output_info.gcs_output_directory or '-', output_info.bigquery_output_dataset or '-')
 
 
