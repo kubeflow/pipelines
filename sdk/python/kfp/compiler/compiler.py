@@ -672,7 +672,6 @@ class Compiler(object):
       template = self._group_to_dag_template(opsgroups[opsgroup], inputs, outputs, dependencies)
       templates.append(template)
 
-
     for op in pipeline.ops.values():
       if self._mode == dsl.PipelineExecutionMode.V2_COMPATIBLE:
         v2_compat.update_op(op,
@@ -692,7 +691,7 @@ class Compiler(object):
       if hasattr(op, 'importer_spec'):
         raise NotImplementedError(
             'dsl.importer is not supported yet when running on KFP.')
-    
+
     return templates
 
   def _create_pipeline_workflow(self,
@@ -929,7 +928,6 @@ class Compiler(object):
 
     op_transformers = [add_pod_env]
     pod_labels = {_SDK_VERSION_LABEL: kfp.__version__, _SDK_ENV_LABEL:_SDK_ENV_DEFAULT}
-
     op_transformers.append(add_pod_labels(pod_labels))
     op_transformers.extend(pipeline_conf.op_transformers)
 
