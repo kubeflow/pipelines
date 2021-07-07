@@ -111,7 +111,10 @@ def train(
   model.metadata['accuracy'] = 0.9
 
 
-@dsl.pipeline(pipeline_root='dummy_root', name='my-test-pipeline-beta')
+@dsl.pipeline(
+  name='my-test-pipeline-beta',
+  # pipeline_root='gs://my-bucket/my/path',
+)
 def pipeline(message: str = 'message'):
   preprocess_task = preprocess(message=message)
   train_task = train(

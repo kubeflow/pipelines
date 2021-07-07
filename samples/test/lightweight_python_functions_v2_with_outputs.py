@@ -62,7 +62,7 @@ def output_named_tuple(artifact: Input[Dataset]) -> NamedTuple(
     return output(scalar, metrics, model)
 
 
-@dsl.pipeline(pipeline_root='dummy_root', name='functions-with-outputs')
+@dsl.pipeline(name='functions-with-outputs')
 def pipeline(
     first_message: str = 'first',
     second_message: str = 'second',

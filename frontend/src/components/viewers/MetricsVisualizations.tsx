@@ -55,6 +55,7 @@ export function MetricsVisualizations({
   execution,
   namespace,
 }: MetricsVisualizationsProps) {
+  console.log(linkedArtifacts);
   // There can be multiple system.ClassificationMetrics or system.Metrics artifacts per execution.
   // Get scalar metrics, confidenceMetrics and confusionMatrix from artifact.
   // If there is no available metrics, show banner to notify users.
@@ -64,6 +65,7 @@ export function MetricsVisualizations({
     artifacts,
     artifactTypes,
   );
+  console.log(verifiedClassificationMetricsArtifacts);
   const verifiedMetricsArtifacts = getVerifiedMetricsArtifacts(artifacts, artifactTypes);
   const v1VisualizationArtifact = getV1VisualizationArtifacts(linkedArtifacts, artifactTypes);
 
@@ -143,14 +145,9 @@ function getVerifiedClassificationMetricsArtifacts(
 
   return classificationMetricsArtifacts
     .map(artifact => ({
-      name: artifact
-        .getCustomPropertiesMap()
-        .get('name')
-        ?.getStringValue(),
       customProperties: artifact.getCustomPropertiesMap(),
       artifact: artifact,
     }))
-    .filter(x => !!x.name)
     .filter(x => {
       const confidenceMetrics = x.customProperties
         .get('confidenceMetrics')
