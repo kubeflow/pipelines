@@ -37,7 +37,7 @@ def generate_resource_request() -> NamedTuple('output', [('gpu_vendor', str), ('
     from collections import namedtuple
     resource_output = namedtuple('output', ['gpu_vendor', 'nbr_gpu', 'constrain_type', 'constrain_value'])
 
-    return resource_output( 'nvidia', '1', 'cloud.google.com/gke-accelerator', 'nvidia-tesla-p4')
+    return resource_output( 'nvidia.com/gpu', '1', 'cloud.google.com/gke-accelerator', 'nvidia-tesla-p4')
 
 @dsl.pipeline(
     name='Runtime resource request pipeline',
