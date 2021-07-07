@@ -40,6 +40,7 @@
     "jest",
     "mock-backend",
     "node_modules",
+    "proto",
     "scripts",
     "server",
     "src/apis",
