@@ -53,4 +53,4 @@ The meeting is happening every other Wed 10-11AM (PST)
 * [Kubeflow Pipelines meets Tekton](https://developer.ibm.com/blogs/kubeflow-pipelines-with-tekton-and-watson/) (By Animesh Singh)
 ## Acknowledgments
 
-Kubeflow pipelines uses [Argo](https://github.com/argoproj/argo) by default under the hood to orchestrate Kubernetes resources. The Argo community has been very supportive and we are very grateful. Additionally there is Tekton backend available as well. To access it, please refer to [Kubeflow Pipelines with Tekton repository](https://github.com/kubeflow/kfp-tekton).
+Kubeflow pipelines uses [Argo](https://github.com/argoproj/argo-workflows) by default under the hood to orchestrate Kubernetes resources. The Argo community has been very supportive and we are very grateful. Additionally there is Tekton backend available as well. To access it, please refer to [Kubeflow Pipelines with Tekton repository](https://github.com/kubeflow/kfp-tekton).
