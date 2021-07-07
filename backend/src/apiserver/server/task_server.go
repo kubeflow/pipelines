@@ -82,3 +82,7 @@ func (s *TaskServer) ListTasks(ctx context.Context, request *api.ListTasksReques
 			NextPageToken: nextPageToken},
 		nil
 }
+
+func NewTaskServer(resourceManager *resource.ResourceManager) *TaskServer {
+	return &TaskServer{resourceManager: resourceManager}
+}
