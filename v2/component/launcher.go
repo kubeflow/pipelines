@@ -35,6 +35,7 @@ import (
 	"github.com/kubeflow/pipelines/v2/cacheutils"
 	"github.com/kubeflow/pipelines/v2/metadata"
 	"github.com/kubeflow/pipelines/v2/objectstore"
+	"github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
 	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
 	"google.golang.org/protobuf/encoding/protojson"
 	v1 "k8s.io/api/core/v1"
@@ -426,7 +427,7 @@ func (l *Launcher) RunComponent(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("failed to determine schema for output %q: %w", name, err)
 		}
-		mlmdArtifact, err = l.metadataClient.RecordArtifact(ctx, schema, mlmdArtifact)
+		mlmdArtifact, err = l.metadataClient.RecordArtifact(ctx, schema, mlmdArtifact, ml_metadata.Artifact_LIVE)
 		if err != nil {
 			return metadataErr(err)
 		}

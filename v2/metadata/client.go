@@ -343,7 +343,7 @@ func SchemaToArtifactType(schema string) (*pb.ArtifactType, error) {
 }
 
 // RecordArtifact ...
-func (c *Client) RecordArtifact(ctx context.Context, schema string, artifact *pb.Artifact) (*pb.Artifact, error) {
+func (c *Client) RecordArtifact(ctx context.Context, schema string, artifact *pb.Artifact, state pb.Artifact_State) (*pb.Artifact, error) {
 	at, err := SchemaToArtifactType(schema)
 	if err != nil {
 		return nil, err
@@ -355,6 +355,7 @@ func (c *Client) RecordArtifact(ctx context.Context, schema string, artifact *pb
 	at.Id = putTypeRes.TypeId
 
 	artifact.TypeId = at.Id
+	artifact.State = &state
 
 	res, err := c.svc.PutArtifacts(ctx, &pb.PutArtifactsRequest{
 		Artifacts: []*pb.Artifact{artifact},
