@@ -45,6 +45,7 @@ def create_from_pipeline_file(
     time_zone: str = 'US/Pacific',
     parameter_values: Optional[Mapping[str, Any]] = None,
     pipeline_root: Optional[str] = None,
+    service_account: Optional[str] = None,
 ):
   """Creates schedule for compiled pipeline file.
 
@@ -70,6 +71,7 @@ def create_from_pipeline_file(
     parameter_values: Arguments for the pipeline parameters
     pipeline_root: Optionally the user can override the pipeline root
       specified during the compile time.
+    service_account: The service account that the pipeline workload runs as.
 
   Returns:
     Created Google Cloud Scheduler Job object dictionary.
@@ -107,6 +109,9 @@ def create_from_pipeline_file(
 
   pipeline_dict['_url'] = pipeline_jobs_api_url
   pipeline_dict['_method'] = 'POST'
+
+  if service_account is not None:
+    pipeline_dict['serviceAccount'] = service_account
 
   pipeline_text = json.dumps(pipeline_dict)
   pipeline_data = pipeline_text.encode('utf-8')
