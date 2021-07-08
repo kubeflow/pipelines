@@ -49,5 +49,12 @@ def automl_export_data_to_gcs(
     return (gcs_output_uri_prefix, )
 
 if __name__ == '__main__':
-    import kfp
-    kfp.components.func_to_container_op(automl_export_data_to_gcs, output_component_file='component.yaml', base_image='python:3.7')
+    from kfp.components import create_component_from_func
+
+    automl_export_data_to_gcs_op = create_component_from_func(
+        automl_export_data_to_gcs,
+        output_component_file='component.yaml',base_image='python:3.7',
+        annotations={
+            "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
+        },
+    )

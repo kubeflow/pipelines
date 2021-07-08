@@ -7,6 +7,9 @@ inputs:
 - {name: gcp_region, type: String, default: us-central1, optional: true}
 outputs:
 - {name: suggested_trials, type: JsonArray}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: python:3.8

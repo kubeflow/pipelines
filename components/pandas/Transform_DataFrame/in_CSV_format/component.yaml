@@ -21,6 +21,9 @@ inputs:
 - {name: transform_code, type: PythonCode}
 outputs:
 - {name: transformed_table, type: CSV}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: python:3.7
