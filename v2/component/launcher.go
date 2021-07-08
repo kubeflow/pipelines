@@ -327,6 +327,7 @@ func (l *Launcher) executeWithCache(ctx context.Context, executorInput *pipeline
 	if err := l.metadataClient.PublishExecution(ctx, createdExecution, outputParameters, outputArtifacts, pb.Execution_CACHED); err != nil {
 		return fmt.Errorf("unable to publish execution: %w", err)
 	}
+	glog.Infof("Cached")
 	return nil
 }
 
