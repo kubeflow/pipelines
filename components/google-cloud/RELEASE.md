@@ -1,7 +1,7 @@
-# Release Version 0.1.3
+# Release 0.1.3
 
 *   Use correct dataset type when passing dataset to CustomTraining.
-*   Bump google-cloud-aiplatform to 1.1.1
+*   Bump google-cloud-aiplatform to 1.1.1.
 
 # Release 0.1.2
 
