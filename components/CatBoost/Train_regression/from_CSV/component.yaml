@@ -39,6 +39,9 @@ inputs:
 - {name: additional_training_options, type: JsonObject, default: '{}', optional: true}
 outputs:
 - {name: model, type: CatBoostModel}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: python:3.7

@@ -19,6 +19,9 @@ outputs:
 - {name: transform_graph_uri, type: TransformGraphUri}
 - {name: transformed_examples_uri, type: ExamplesUri}
 - {name: updated_analyzer_cache_uri, type: TransformCacheUri}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: tensorflow/tfx:0.29.0

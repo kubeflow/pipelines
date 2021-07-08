@@ -17,6 +17,9 @@ outputs:
 - {name: mean_squared_error, type: Float}
 - {name: root_mean_squared_error, type: Float}
 - {name: metrics, type: JsonObject}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: python:3.7

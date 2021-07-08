@@ -48,5 +48,8 @@ if __name__ == '__main__':
         base_image='python:3.8',
         packages_to_install=[
             'google-cloud-automl==2.0.0',
-        ]
+        ],
+        annotations={
+            "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
+        },
     )
