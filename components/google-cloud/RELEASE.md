@@ -1,6 +1,7 @@
-# Current Version 0.1.3.dev (Still in Development)
+# Release Version 0.1.3
 
-*   Add notes for next release here.
+*   Use correct dataset type when passing dataset to CustomTraining.
+*   Bump google-cloud-aiplatform to 1.1.1
 
 # Release 0.1.2
 
