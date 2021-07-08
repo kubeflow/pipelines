@@ -1,21 +1,18 @@
 package cacheutils
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"google.golang.org/protobuf/testing/protocmp"
-	"testing"
-
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	api "github.com/kubeflow/pipelines/v2/third_party/kfp_api"
 	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
+	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc"
+	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/structpb"
-)
-
-// This test depends on a MLMD grpc server running at localhost:8080.
-const (
-	testMlmdServerAddress = "localhost"
-	testMlmdServerPort    = "8887"
+	"testing"
 )
 
 func TestGenerateCacheKey(t *testing.T) {
@@ -27,7 +24,7 @@ func TestGenerateCacheKey(t *testing.T) {
 		outputParametersTypeMap map[string]string
 		cmdArgs                 []string
 		image                   string
-		want                    *CacheKey
+		want                    *pipeline_spec.CacheKey
 		wantErr                 bool
 	}{
 		{
@@ -97,16 +94,16 @@ func TestGenerateCacheKey(t *testing.T) {
 			},
 			cmdArgs: []string{"sh", "ec", "test"},
 			image:   "python:3.9",
-			want: &CacheKey{
-				inputArtifactNames: map[string]artifactNameList{
-					"dataset_one": {artifactNames: []string{"1"}},
-					"dataset_two": {artifactNames: []string{"2"}},
+			want: &pipeline_spec.CacheKey{
+				InputArtifactNames: map[string]*pipeline_spec.ArtifactNameList{
+					"dataset_one": {ArtifactNames: []string{"1"}},
+					"dataset_two": {ArtifactNames: []string{"2"}},
 				},
-				inputParameters: map[string]pipeline_spec.Value{
+				InputParameters: map[string]*pipeline_spec.Value{
 					"message":   {Value: &pipeline_spec.Value_StringValue{StringValue: "Some string value"}},
 					"num_steps": {Value: &pipeline_spec.Value_IntValue{IntValue: 5}},
 				},
-				outputArtifactsSpec: map[string]pipeline_spec.RuntimeArtifact{
+				OutputArtifactsSpec: map[string]*pipeline_spec.RuntimeArtifact{
 					"model": {
 						Name: "model",
 						Type: &pipeline_spec.ArtifactTypeSchema{
@@ -124,13 +121,13 @@ func TestGenerateCacheKey(t *testing.T) {
 							Fields: map[string]*structpb.Value{"name": {Kind: &structpb.Value_StringValue{StringValue: "metrics"}}},
 						}},
 				},
-				outputParametersSpec: map[string]string{
+				OutputParametersSpec: map[string]string{
 					"output_parameter_one": "STRING",
 					"output_parameter_two": "INT",
 				},
-				containerSpec: containerSpec{
-					cmdArgs: []string{"sh", "ec", "test"},
-					image:   "python:3.9",
+				ContainerSpec: &pipeline_spec.ContainerSpec{
+					CmdArgs: []string{"sh", "ec", "test"},
+					Image:   "python:3.9",
 				},
 			},
 
@@ -146,7 +143,7 @@ func TestGenerateCacheKey(t *testing.T) {
 				return
 			}
 
-			if diff := cmp.Diff(test.want, got, cmpopts.EquateEmpty(), protocmp.Transform(), cmp.AllowUnexported(CacheKey{}, artifactNameList{}, containerSpec{})); diff != "" {
+			if diff := cmp.Diff(test.want, got, cmpopts.EquateEmpty(), protocmp.Transform()); diff != "" {
 				t.Errorf("GenerateCacheKey() = %+v, want %+v\nDiff (-want, +got)\n%s", got, test.want, diff)
 				s, _ := json.MarshalIndent(test.want, "", "  ")
 				fmt.Printf("Want\n%s", s)
@@ -156,30 +153,164 @@ func TestGenerateCacheKey(t *testing.T) {
 	}
 }
 
-//func Test_GetPipeline(t *testing.T) {
-//	kfpClient, err := NewTestKFPClient()
-//	if err != nil {
-//		fmt.Printf("error when creating kfp client")
-//		t.Fatal(err)
-//	}
-//	id, err := kfpClient.GetExecutionCache("d2f483672c0239f6d7dd3c9ecee6deacbcd59185855625902a8b1c1a3bd67440", "twostep")
-//	if err != nil {
-//		fmt.Printf("error when getting execution cache")
-//		t.Fatal(err)
-//	}
-//	fmt.Printf("id is %v", id)
-//}
+func Test_GetPipeline(t *testing.T) {
+	kfpClient, err := NewTestKFPClient()
+	if err != nil {
+		fmt.Printf("error when creating kfp client")
+		t.Fatal(err)
+	}
+	id, err := kfpClient.GetExecutionCache("44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a", "pipeline/two-step-pipeline")
+	if err != nil {
+		fmt.Printf("error when getting execution cache")
+		t.Fatal(err)
+	}
+	fmt.Printf("id is %v", id)
+	in := &api.ListTasksRequest{
+	}
+	ids, err := kfpClient.svc.ListTasks(context.Background(), in)
+	if err != nil {
+		fmt.Printf("error when list tasks")
+	}
+	fmt.Printf("ids is %v", ids.Tasks)
+}
 
+func NewTestKFPClient() (*Client, error) {
+	conn, err := grpc.Dial(fmt.Sprintf("%s:%s", "localhost", "8887"),
+		grpc.WithInsecure(),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("NewTestKFPClient() failed: %w", err)
+	}
+	return &Client{
+		svc: api.NewTaskServiceClient(conn),
+	}, nil
+}
 
-//func NewTestKFPClient() (*Client, error) {
+//func Test_GetPipelineRun(t *testing.T) {
 //	conn, err := grpc.Dial(fmt.Sprintf("%s:%s", testMlmdServerAddress, testMlmdServerPort),
 //		grpc.WithInsecure(),
 //	)
 //	if err != nil {
-//		return nil, fmt.Errorf("NewTestKFPClient() failed: %w", err)
+//		t.Fatal(err)
 //	}
-//	return &Client{
-//		svc: api.NewTaskServiceClient(conn),
-//	}, nil
+//	runClient := api.NewRunServiceClient(conn)
+//	in := &api.GetRunRequest{RunId: "b2f514a5-70bd-4c56-b132-a0d8a269e1f4"}
+//	run, err := runClient.GetRun(context.Background(), in)
+//	if err != nil {
+//		fmt.Printf("error when getting execution cache")
+//		t.Fatal(err)
+//	}
+//	fmt.Printf(run.String())
 //}
-
+//
+func TestGenerateFingerPrint(t *testing.T) {
+	cacheKey := &pipeline_spec.CacheKey{
+		InputArtifactNames: map[string]*pipeline_spec.ArtifactNameList{
+			"dataset_one": {ArtifactNames: []string{"1"}},
+			"dataset_two": {ArtifactNames: []string{"2"}},
+		},
+		InputParameters: map[string]*pipeline_spec.Value{
+			"message":   {Value: &pipeline_spec.Value_StringValue{StringValue: "Some string value"}},
+			"num_steps": {Value: &pipeline_spec.Value_IntValue{IntValue: 5}},
+		},
+		OutputArtifactsSpec: map[string]*pipeline_spec.RuntimeArtifact{
+			"model": {
+				Name: "model",
+				Type: &pipeline_spec.ArtifactTypeSchema{
+					Kind: &pipeline_spec.ArtifactTypeSchema_InstanceSchema{InstanceSchema: "title: kfp.Model\ntype: object\nproperties:\n  framework:\n    type: string\n  framework_version:\n    type: string\n"},
+				},
+				Metadata: &structpb.Struct{
+					Fields: map[string]*structpb.Value{"name": {Kind: &structpb.Value_StringValue{StringValue: "model"}}},
+				}},
+			"metrics": {
+				Name: "metrics",
+				Type: &pipeline_spec.ArtifactTypeSchema{
+					Kind: &pipeline_spec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "kfp.Metrics"},
+				},
+				Metadata: &structpb.Struct{
+					Fields: map[string]*structpb.Value{"name": {Kind: &structpb.Value_StringValue{StringValue: "metrics"}}},
+				}},
+		},
+		OutputParametersSpec: map[string]string{
+			"output_parameter_one": "STRING",
+			"output_parameter_two": "INT",
+		},
+		ContainerSpec: &pipeline_spec.ContainerSpec{
+			CmdArgs: []string{"sh", "ec", "test"},
+			Image:   "python:3.9",
+		},
+	}
+	tests := []struct {
+		name      string
+		cacheKey  *pipeline_spec.CacheKey
+		wantEqual bool
+	}{
+		{
+			name: "Generated Same FingerPrint",
+			cacheKey: &pipeline_spec.CacheKey{
+				InputArtifactNames: map[string]*pipeline_spec.ArtifactNameList{
+					"dataset_one": {ArtifactNames: []string{"1"}},
+					"dataset_two": {ArtifactNames: []string{"2"}},
+				},
+				InputParameters: map[string]*pipeline_spec.Value{
+					"message":   {Value: &pipeline_spec.Value_StringValue{StringValue: "Some string value"}},
+					"num_steps": {Value: &pipeline_spec.Value_IntValue{IntValue: 5}},
+				},
+				OutputArtifactsSpec: map[string]*pipeline_spec.RuntimeArtifact{
+					"model": {
+						Name: "model",
+						Type: &pipeline_spec.ArtifactTypeSchema{
+							Kind: &pipeline_spec.ArtifactTypeSchema_InstanceSchema{InstanceSchema: "title: kfp.Model\ntype: object\nproperties:\n  framework:\n    type: string\n  framework_version:\n    type: string\n"},
+						},
+						Metadata: &structpb.Struct{
+							Fields: map[string]*structpb.Value{"name": {Kind: &structpb.Value_StringValue{StringValue: "model"}}},
+						}},
+					"metrics": {
+						Name: "metrics",
+						Type: &pipeline_spec.ArtifactTypeSchema{
+							Kind: &pipeline_spec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "kfp.Metrics"},
+						},
+						Metadata: &structpb.Struct{
+							Fields: map[string]*structpb.Value{"name": {Kind: &structpb.Value_StringValue{StringValue: "metrics"}}},
+						}},
+				},
+				OutputParametersSpec: map[string]string{
+					"output_parameter_one": "STRING",
+					"output_parameter_two": "INT",
+				},
+				ContainerSpec: &pipeline_spec.ContainerSpec{
+					CmdArgs: []string{"sh", "ec", "test"},
+					Image:   "python:3.9",
+				},
+			},
+			wantEqual: true,
+		}, {
+			name: "Generated Different FingerPrint",
+			cacheKey: &pipeline_spec.CacheKey{
+				InputArtifactNames: map[string]*pipeline_spec.ArtifactNameList{
+					"dataset": {ArtifactNames: []string{"10"}},
+				},
+				OutputParametersSpec: map[string]string{
+					"output_parameter": "DOUBLE",
+				},
+				ContainerSpec: &pipeline_spec.ContainerSpec{
+					CmdArgs: []string{"sh", "ec", "run"},
+					Image:   "python:3.9",
+				},
+			},
+			wantEqual: false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			fingerPrint, err := GenerateFingerPrint(cacheKey)
+			assert.Nil(t, err)
+			testFingerPrint, err := GenerateFingerPrint(test.cacheKey)
+			assert.Nil(t, err)
+			fmt.Println(test.name)
+			fmt.Println(fingerPrint)
+			fmt.Println(testFingerPrint)
+			assert.Equal(t, fingerPrint == testFingerPrint, test.wantEqual)
+		})
+	}
+}

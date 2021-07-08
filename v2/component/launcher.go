@@ -76,8 +76,6 @@ type LauncherOptions struct {
 	ContainerImage    string
 	MLMDServerAddress string
 	MLMDServerPort    string
-	KFPServerAddress  string
-	KFPServerPort     string
 }
 
 type bucketConfig struct {
@@ -271,7 +269,7 @@ func (l *Launcher) RunComponent(ctx context.Context, cmdArgs []string) error {
 	if err != nil {
 		return fmt.Errorf("failure while generating CacheKey: %w", err)
 	}
-	fingerPrint, err := cacheutils.GenerateFingerPrint(*cacheKey)
+	fingerPrint, err := cacheutils.GenerateFingerPrint(cacheKey)
 	cachedMLMDExecutionID, err := l.cacheClient.GetExecutionCache(fingerPrint, l.options.PipelineName)
 	if err != nil {
 		return fmt.Errorf("failure while getting executionCache: %w", err)
@@ -614,9 +612,15 @@ func (l *Launcher) execute(ctx context.Context, executorInput *pipeline_spec.Exe
 	if id == nil {
 		return fmt.Errorf("failed to get id from createdExecution")
 	}
+	pod, err:= l.k8sClient.CoreV1().Pods(l.namespace).Get(ctx, l.options.PipelineTaskID, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get pod %v from namespace %v: %w", l.options.PipelineTaskID,l.namespace, err)
+	}
+	pipelineRunUUID := pod.GetObjectMeta().GetLabels()["pipeline/runid"]
+	fmt.Printf("pipelineRunUUID is %v", pipelineRunUUID)
 	task := &api.Task{
-		PipelineName:    fmt.Sprintf("pipelineName/%s", l.options.PipelineName),
-		RunId:           l.options.PipelineRunID,
+		PipelineName:    fmt.Sprintf("pipeline/%s", l.options.PipelineName),
+		RunId:           pipelineRunUUID,
 		MlmdExecutionID: strconv.FormatInt(*id, 10),
 		CreatedAt:       &timestamp.Timestamp{Seconds: executedStartedTime},
 		FinishedAt:      &timestamp.Timestamp{Seconds: time.Now().Unix()},
