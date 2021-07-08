@@ -58,6 +58,34 @@ def update_op(op: dsl.ContainerOp,
   # 3. parameters in format "key1=value1", "key2=value2", ...
   # 4. a separator "--" as end of arguments passed to launcher
   # 5. (start of op.args) arguments of the original user program command + args
+  #
+  # example:
+  # - command:
+  # - /kfp-launcher/launch
+  # - '--mlmd_server_address'
+  # - $(METADATA_GRPC_SERVICE_HOST)
+  # - '--mlmd_server_port'
+  # - $(METADATA_GRPC_SERVICE_PORT)
+  # - ... # more launcher params
+  # - '--pipeline_task_id'
+  # - $(KFP_POD_NAME)
+  # - '--pipeline_root'
+  # - ''
+  # - '--' # start of parameter values
+  # - first=first
+  # - second=second
+  # - '--' # start of user command and args
+  # args:
+  # - sh
+  # - '-ec'
+  # - |
+  #     program_path=$(mktemp)
+  #     printf "%s" "$0" > "$program_path"
+  #     python3 -u "$program_path" "$@"
+  # - >
+  #     import json
+  #     import xxx
+  #     ...
   op.command = [
       "/kfp-launcher/launch",
       "--mlmd_server_address",
