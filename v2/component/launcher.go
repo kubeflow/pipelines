@@ -242,6 +242,7 @@ func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error
 // RunComponent runs the current KFP component using the specified command and
 // arguments.
 func (l *Launcher) RunComponent(ctx context.Context, cmdArgs []string) error {
+	glog.Infof("debug")
 	cmd := cmdArgs[0]
 	args := make([]string, len(cmdArgs)-1)
 	_ = copy(args, cmdArgs[1:])
