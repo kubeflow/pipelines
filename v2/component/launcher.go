@@ -76,6 +76,7 @@ type LauncherOptions struct {
 	ContainerImage    string
 	MLMDServerAddress string
 	MLMDServerPort    string
+	EnableCaching     bool
 }
 
 type bucketConfig struct {
@@ -252,18 +253,45 @@ func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error
 // RunComponent runs the current KFP component using the specified command and
 // arguments.
 func (l *Launcher) RunComponent(ctx context.Context, cmdArgs []string) error {
-	cmd := cmdArgs[0]
-	args := make([]string, len(cmdArgs)-1)
-	_ = copy(args, cmdArgs[1:])
 	executorInput, err := l.runtimeInfo.generateExecutorInput(l.generateOutputURI, outputMetadataFilepath)
 	if err != nil {
 		return fmt.Errorf("failure while generating ExecutorInput: %w", err)
 	}
-	glog.Infof("ExecutorInput:\n%s\n=====", executorInput.String())
+	if l.options.EnableCaching {
+		return l.executeWithCacheEnabled(ctx, cmdArgs, executorInput)
+	} else {
+		return l.executeWithoutCacheEnabled(ctx, cmdArgs, executorInput)
+	}
+}
+
+func (l *Launcher) executeWithoutCacheEnabled(ctx context.Context, cmdArgs []string, executorInput *pipeline_spec.ExecutorInput) error {
+	cmd := cmdArgs[0]
+	args := make([]string, len(cmdArgs)-1)
+	_ = copy(args, cmdArgs[1:])
+	pipeline, err := l.metadataClient.GetPipeline(ctx, l.options.PipelineName, l.options.PipelineRunID)
+	if err != nil {
+		return fmt.Errorf("unable to get pipeline with PipelineName %q PipelineRunID %q: %w", l.options.PipelineName, l.options.PipelineRunID, err)
+	}
+
+	ecfg, err := metadata.GenerateExecutionConfig(executorInput)
+	if err != nil {
+		return fmt.Errorf("failed to generate execution config: %w", err)
+	}
+	execution, err := l.metadataClient.CreateExecution(ctx, pipeline, l.options.TaskName, l.options.PipelineTaskID, l.options.ContainerImage, ecfg)
+	if err != nil {
+		return fmt.Errorf("unable to create execution: %w", err)
+	}
+	return l.execute(ctx, executorInput, execution, cmd, args)
+
+}
+
+func (l *Launcher) executeWithCacheEnabled(ctx context.Context, cmdArgs []string, executorInput *pipeline_spec.ExecutorInput) error {
+	cmd := cmdArgs[0]
+	args := make([]string, len(cmdArgs)-1)
+	_ = copy(args, cmdArgs[1:])
 	outputParametersTypeMap := make(map[string]string)
 	for outputParamName, outputParam := range l.runtimeInfo.OutputParameters {
 		outputParametersTypeMap[outputParamName] = outputParam.Type
-
 	}
 	cacheKey, err := cacheutils.GenerateCacheKey(executorInput.GetInputs(), executorInput.GetOutputs(), outputParametersTypeMap, cmdArgs, l.options.ContainerImage)
 	if err != nil {
@@ -289,13 +317,13 @@ func (l *Launcher) RunComponent(ctx context.Context, cmdArgs []string) error {
 		return fmt.Errorf("unable to create execution: %w", err)
 	}
 	if cachedMLMDExecutionID == "" {
-		return l.execute(ctx, executorInput, execution, cmd, fingerPrint, args)
+		return l.executeWithoutCacheHit(ctx, executorInput, execution, cmd, fingerPrint, args)
 	} else {
-		return l.executeWithCache(ctx, executorInput, execution, cachedMLMDExecutionID)
+		return l.executeWithCacheHit(ctx, executorInput, execution, cachedMLMDExecutionID)
 	}
 }
 
-func (l *Launcher) executeWithCache(ctx context.Context, executorInput *pipeline_spec.ExecutorInput, createdExecution *metadata.Execution, cachedMLMDExecutionID string) error {
+func (l *Launcher) executeWithCacheHit(ctx context.Context, executorInput *pipeline_spec.ExecutorInput, createdExecution *metadata.Execution, cachedMLMDExecutionID string) error {
 	if err := l.prepareOutputs(ctx, executorInput, false); err != nil {
 		return err
 	}
@@ -428,8 +456,36 @@ func extractNameFromURI(uri string) string {
 	return slice[len(slice)-1]
 }
 
-func (l *Launcher) execute(ctx context.Context, executorInput *pipeline_spec.ExecutorInput, createdExecution *metadata.Execution, cmd, fingerPrint string, args []string) error {
+func (l *Launcher) executeWithoutCacheHit(ctx context.Context, executorInput *pipeline_spec.ExecutorInput, createdExecution *metadata.Execution, cmd, fingerPrint string, args []string) error {
 	executedStartedTime := time.Now().Unix()
+	if err := l.execute(ctx, executorInput, createdExecution, cmd, args); err != nil {
+		return err
+	}
+	id := metadata.GetIDFromExecution(*createdExecution)
+	if id == nil {
+		return fmt.Errorf("failed to get id from createdExecution")
+	}
+	pod, err := l.k8sClient.CoreV1().Pods(l.namespace).Get(ctx, l.options.PipelineTaskID, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get pod %v from namespace %v: %w", l.options.PipelineTaskID, l.namespace, err)
+	}
+	pipelineRunUUID := pod.GetObjectMeta().GetLabels()["pipeline/runid"]
+	task := &api.Task{
+		PipelineName:    fmt.Sprintf("pipeline/%s", l.options.PipelineName),
+		RunId:           pipelineRunUUID,
+		MlmdExecutionID: strconv.FormatInt(*id, 10),
+		CreatedAt:       &timestamp.Timestamp{Seconds: executedStartedTime},
+		FinishedAt:      &timestamp.Timestamp{Seconds: time.Now().Unix()},
+		Fingerprint:     fingerPrint,
+	}
+	err = l.cacheClient.CreateExecutionCache(ctx, task)
+	if err != nil {
+		return fmt.Errorf("failed to create cache entry: %w", err)
+	}
+	return nil
+}
+
+func (l *Launcher) execute(ctx context.Context, executorInput *pipeline_spec.ExecutorInput, createdExecution *metadata.Execution, cmd string, args []string) error {
 	if err := l.prepareInputs(ctx, executorInput); err != nil {
 		return err
 	}
@@ -608,28 +664,6 @@ func (l *Launcher) execute(ctx context.Context, executorInput *pipeline_spec.Exe
 	}
 	if err := l.metadataClient.PublishExecution(ctx, createdExecution, outputParameters, outputArtifacts, pb.Execution_COMPLETE); err != nil {
 		return fmt.Errorf("unable to publish createdExecution: %w", err)
-	}
-	id := metadata.GetIDFromExecution(*createdExecution)
-	if id == nil {
-		return fmt.Errorf("failed to get id from createdExecution")
-	}
-	pod, err:= l.k8sClient.CoreV1().Pods(l.namespace).Get(ctx, l.options.PipelineTaskID, metav1.GetOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to get pod %v from namespace %v: %w", l.options.PipelineTaskID,l.namespace, err)
-	}
-	pipelineRunUUID := pod.GetObjectMeta().GetLabels()["pipeline/runid"]
-	fmt.Printf("pipelineRunUUID is %v", pipelineRunUUID)
-	task := &api.Task{
-		PipelineName:    fmt.Sprintf("pipeline/%s", l.options.PipelineName),
-		RunId:           pipelineRunUUID,
-		MlmdExecutionID: strconv.FormatInt(*id, 10),
-		CreatedAt:       &timestamp.Timestamp{Seconds: executedStartedTime},
-		FinishedAt:      &timestamp.Timestamp{Seconds: time.Now().Unix()},
-		Fingerprint:     fingerPrint,
-	}
-	err = l.cacheClient.CreateExecutionCache(ctx, task)
-	if err != nil {
-		return fmt.Errorf("failed to create cache entry: %w", err)
 	}
 	return nil
 }
