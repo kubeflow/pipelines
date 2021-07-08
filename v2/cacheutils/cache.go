@@ -104,7 +104,9 @@ type Client struct {
 
 // NewClient creates a Client.
 func NewClient() (*Client, error) {
-	conn, err := grpc.Dial(cacheDefaultEndpoint(), grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxClientGRPCMessageSize)), grpc.WithInsecure())
+	cacheEndPoint := cacheDefaultEndpoint()
+	glog.Infof("Connecting to cache endpoint %s", cacheEndPoint)
+	conn, err := grpc.Dial(cacheEndPoint, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxClientGRPCMessageSize)), grpc.WithInsecure())
 	if err != nil {
 		return nil, fmt.Errorf("metadata.NewClient() failed: %w", err)
 	}
@@ -119,8 +121,6 @@ func cacheDefaultEndpoint() string {
 	// https://kubernetes.io/docs/concepts/services-networking/service/#environment-variables
 	cacheHost := os.Getenv("ML_PIPELINE_SERVICE_HOST")
 	cachePort := os.Getenv("ML_PIPELINE_SERVICE_PORT_GRPC")
-	fmt.Printf("cacheHost is %v", cacheHost)
-	fmt.Printf("cachePort is %v", cachePort)
 	if cacheHost != "" && cachePort != "" {
 		// If there is a ml-pipeline Kubernetes service in the same namespace,
 		// ML_PIPELINE_SERVICE_HOST and ML_PIPELINE_SERVICE_PORT env vars should

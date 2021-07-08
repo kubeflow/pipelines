@@ -3,13 +3,14 @@ package cacheutils
 import (
 	"encoding/json"
 	"fmt"
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/structpb"
-	"testing"
 )
 
 func TestGenerateCacheKey(t *testing.T) {
@@ -150,56 +151,6 @@ func TestGenerateCacheKey(t *testing.T) {
 	}
 }
 
-//func Test_GetPipeline(t *testing.T) {
-//	kfpClient, err := NewTestKFPClient()
-//	if err != nil {
-//		fmt.Printf("error when creating kfp client")
-//		t.Fatal(err)
-//	}
-//	id, err := kfpClient.GetExecutionCache("44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a", "pipeline/two-step-pipeline")
-//	if err != nil {
-//		fmt.Printf("error when getting execution cache")
-//		t.Fatal(err)
-//	}
-//	fmt.Printf("id is %v", id)
-//	in := &api.ListTasksRequest{
-//	}
-//	ids, err := kfpClient.svc.ListTasks(context.Background(), in)
-//	if err != nil {
-//		fmt.Printf("error when list tasks")
-//	}
-//	fmt.Printf("ids is %v", ids.Tasks)
-//}
-//
-//func NewTestKFPClient() (*Client, error) {
-//	conn, err := grpc.Dial(fmt.Sprintf("%s:%s", "localhost", "8887"),
-//		grpc.WithInsecure(),
-//	)
-//	if err != nil {
-//		return nil, fmt.Errorf("NewTestKFPClient() failed: %w", err)
-//	}
-//	return &Client{
-//		svc: api.NewTaskServiceClient(conn),
-//	}, nil
-//}
-
-//func Test_GetPipelineRun(t *testing.T) {
-//	conn, err := grpc.Dial(fmt.Sprintf("%s:%s", testMlmdServerAddress, testMlmdServerPort),
-//		grpc.WithInsecure(),
-//	)
-//	if err != nil {
-//		t.Fatal(err)
-//	}
-//	runClient := api.NewRunServiceClient(conn)
-//	in := &api.GetRunRequest{RunId: "b2f514a5-70bd-4c56-b132-a0d8a269e1f4"}
-//	run, err := runClient.GetRun(context.Background(), in)
-//	if err != nil {
-//		fmt.Printf("error when getting execution cache")
-//		t.Fatal(err)
-//	}
-//	fmt.Printf(run.String())
-//}
-//
 func TestGenerateFingerPrint(t *testing.T) {
 	cacheKey := &pipeline_spec.CacheKey{
 		InputArtifactNames: map[string]*pipeline_spec.ArtifactNameList{
