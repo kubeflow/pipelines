@@ -33,11 +33,11 @@ training_comp = components.create_component_from_func(
 
 @components.create_component_from_func
 def generate_resource_request() -> NamedTuple('output', [('gpu_vendor', str), ('nbr_gpus', str), ('constrain_type', str), ('constrain_value', str)]):
-    '''Returns the gpu resource settings'''
+    """Returns the gpu resource settings"""
     from collections import namedtuple
-    resource_output = namedtuple('output', ['gpu_vendor', 'nbr_gpu', 'constrain_type', 'constrain_value'])
+    output = namedtuple('output', ['gpu_vendor', 'nbr_gpu', 'constrain_type', 'constrain_value'])
 
-    return resource_output( 'nvidia.com/gpu', '1', 'cloud.google.com/gke-accelerator', 'nvidia-tesla-p4')
+    return output( 'nvidia.com/gpu', '1', 'cloud.google.com/gke-accelerator', 'nvidia-tesla-p4')
 
 @dsl.pipeline(
     name='Runtime resource request pipeline',
