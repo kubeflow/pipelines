@@ -270,11 +270,18 @@ export class OutputArtifactLoader {
       artifacts,
     );
     exampleStatisticsArtifactUris.forEach(uri => {
-      const evalUri = uri + '/eval/stats_tfrecord';
-      const trainUri = uri + '/train/stats_tfrecord';
+      // TFX Statistics has changed to different paths since TFX 1.0.0.
+      // https://github.com/tensorflow/tfx/issues/3933
+      const evalUri = uri + '/Split-eval';
+      const trainUri = uri + '/Split-train';
       viewers = viewers.concat(
         [evalUri, trainUri].map(async specificUri => {
-          return buildArtifactViewerTfdvStatistics(specificUri, namespace);
+          const script = [
+            'import tensorflow_data_validation as tfdv',
+            `stats = tfdv.load_stats_binary('${specificUri}')`,
+            'tfdv.visualize_statistics(stats)',
+          ];
+          return buildArtifactViewer({ script, namespace });
         }),
       );
     });
@@ -313,7 +320,11 @@ export class OutputArtifactLoader {
           return splitNames.map(name => {
             const script = [
               'import tensorflow_data_validation as tfdv',
-              `anomalies = tfdv.load_anomalies_text('${artifact.getUri()}/${name}')`,
+              'from tfx.utils import io_utils',
+              'from tensorflow_metadata.proto.v0 import anomalies_pb2',
+              'anomalies = anomalies_pb2.Anomalies()',
+              `anomalies_bytes = io_utils.read_file_to_string('${artifact.getUri()}/Split-${name}', True)`,
+              'anomalies.ParseFromString(anomalies_bytes)',
               'tfdv.display_anomalies(anomalies)',
             ];
             return buildArtifactViewer({ script, namespace });
