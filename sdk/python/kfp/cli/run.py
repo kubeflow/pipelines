@@ -111,7 +111,7 @@ def _display_run(client, namespace, run_id, watch, output_format):
         raise RuntimeError("argo isn't found in $PATH. It's necessary for watch. "
                            "Please make sure it's installed and available. "
                            "Installation instructions be found here - "
-                           "https://github.com/argoproj/argo/releases")
+                           "https://github.com/argoproj/argo-workflows/releases")
 
     argo_workflow_name = None
     while True:

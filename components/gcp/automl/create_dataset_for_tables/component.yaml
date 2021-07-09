@@ -15,6 +15,9 @@ outputs:
 - {name: create_time, type: String}
 - {name: dataset_id, type: String}
 - {name: dataset_url, type: URI}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: python:3.7

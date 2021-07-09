@@ -39,6 +39,8 @@ def preprocess(
     output_dict_parameter_path: OutputPath(Dict[str, int]),
     # A locally accessible filepath for an output parameter of type list.
     output_list_parameter_path: OutputPath(List[str]),
+    # An input message that defaults to empty.
+    empty_message: str = "",
 ):
   """Dummy preprocessing step"""
 

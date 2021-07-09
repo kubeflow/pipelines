@@ -19,11 +19,8 @@ package component
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
-	"github.com/golang/protobuf/ptypes/timestamp"
-	api "github.com/kubeflow/pipelines/v2/third_party/kfp_api"
-	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
-	"gocloud.dev/blob"
 	"io"
 	"io/ioutil"
 	"os"
@@ -39,10 +36,14 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/golang/glog"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/kubeflow/pipelines/v2/cacheutils"
 	"github.com/kubeflow/pipelines/v2/metadata"
 	"github.com/kubeflow/pipelines/v2/objectstore"
+	api "github.com/kubeflow/pipelines/v2/third_party/kfp_api"
+	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
 	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
+	"gocloud.dev/blob"
 	_ "gocloud.dev/blob/gcsblob"
 	"gocloud.dev/blob/s3blob"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -64,6 +65,7 @@ type Launcher struct {
 	bucketConfig            *bucketConfig
 	k8sClient               *kubernetes.Clientset
 	namespace               string
+	cmdArgs                 []string
 }
 
 // LauncherOptions are options used when creating Launcher.
@@ -224,6 +226,10 @@ func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error
 	if err != nil {
 		return nil, err
 	}
+	cmdArgs, err := parseArgs(flag.Args(), rt)
+	if err != nil {
+		return nil, err
+	}
 
 	// Placeholder replacements.
 	pr := make(map[string]string)
@@ -247,27 +253,28 @@ func NewLauncher(runtimeInfo string, options *LauncherOptions) (*Launcher, error
 		bucketConfig:            bc,
 		k8sClient:               k8sClient,
 		namespace:               namespace,
+		cmdArgs:                 cmdArgs,
 	}, nil
 }
 
 // RunComponent runs the current KFP component using the specified command and
 // arguments.
-func (l *Launcher) RunComponent(ctx context.Context, cmdArgs []string) error {
+func (l *Launcher) RunComponent(ctx context.Context) error {
 	executorInput, err := l.runtimeInfo.generateExecutorInput(l.generateOutputURI, outputMetadataFilepath)
 	if err != nil {
 		return fmt.Errorf("failure while generating ExecutorInput: %w", err)
 	}
 	if l.options.EnableCaching {
-		return l.executeWithCacheEnabled(ctx, cmdArgs, executorInput)
+		return l.executeWithCacheEnabled(ctx, executorInput)
 	} else {
-		return l.executeWithoutCacheEnabled(ctx, cmdArgs, executorInput)
+		return l.executeWithoutCacheEnabled(ctx, executorInput)
 	}
 }
 
-func (l *Launcher) executeWithoutCacheEnabled(ctx context.Context, cmdArgs []string, executorInput *pipeline_spec.ExecutorInput) error {
-	cmd := cmdArgs[0]
-	args := make([]string, len(cmdArgs)-1)
-	_ = copy(args, cmdArgs[1:])
+func (l *Launcher) executeWithoutCacheEnabled(ctx context.Context, executorInput *pipeline_spec.ExecutorInput) error {
+	cmd := l.cmdArgs[0]
+	args := make([]string, len(l.cmdArgs)-1)
+	_ = copy(args, l.cmdArgs[1:])
 	pipeline, err := l.metadataClient.GetPipeline(ctx, l.options.PipelineName, l.options.PipelineRunID)
 	if err != nil {
 		return fmt.Errorf("unable to get pipeline with PipelineName %q PipelineRunID %q: %w", l.options.PipelineName, l.options.PipelineRunID, err)
@@ -285,15 +292,15 @@ func (l *Launcher) executeWithoutCacheEnabled(ctx context.Context, cmdArgs []str
 
 }
 
-func (l *Launcher) executeWithCacheEnabled(ctx context.Context, cmdArgs []string, executorInput *pipeline_spec.ExecutorInput) error {
-	cmd := cmdArgs[0]
-	args := make([]string, len(cmdArgs)-1)
-	_ = copy(args, cmdArgs[1:])
+func (l *Launcher) executeWithCacheEnabled(ctx context.Context, executorInput *pipeline_spec.ExecutorInput) error {
+	cmd := l.cmdArgs[0]
+	args := make([]string, len(l.cmdArgs)-1)
+	_ = copy(args, l.cmdArgs[1:])
 	outputParametersTypeMap := make(map[string]string)
 	for outputParamName, outputParam := range l.runtimeInfo.OutputParameters {
 		outputParametersTypeMap[outputParamName] = outputParam.Type
 	}
-	cacheKey, err := cacheutils.GenerateCacheKey(executorInput.GetInputs(), executorInput.GetOutputs(), outputParametersTypeMap, cmdArgs, l.options.ContainerImage)
+	cacheKey, err := cacheutils.GenerateCacheKey(executorInput.GetInputs(), executorInput.GetOutputs(), outputParametersTypeMap, l.cmdArgs, l.options.ContainerImage)
 	if err != nil {
 		return fmt.Errorf("failure while generating CacheKey: %w", err)
 	}

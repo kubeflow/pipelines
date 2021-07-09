@@ -21,6 +21,9 @@ inputs:
 outputs:
 - {name: model_uri, type: ModelUri}
 - {name: model_run_uri, type: ModelRunUri}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: tensorflow/tfx:0.29.0

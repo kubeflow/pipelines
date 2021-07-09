@@ -118,7 +118,7 @@ def optimizer_pipeline():
         # Evaluate each suggested set of parameters.
         # Loop over the suggested trials.
         # We need to collect the created tasks in the `trial_measurement_tasks` list so that the next round of suggestions can depend on their completion.
-        # Cannot use dsl.ParallelFor here due to a bug in Argo https://github.com/argoproj/argo/issues/2660
+        # Cannot use dsl.ParallelFor here due to a bug in Argo https://github.com/argoproj/argo-workflows/issues/2660
         # Without ParallelFor we have to use python loop
         # and explicitly get individual suggections using the get_element_by_index_op component
         # then extract the trial name and parameter sets using get_element_by_key_op and query_json_op components.

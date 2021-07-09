@@ -31,7 +31,7 @@ var (
 	pipelineRunID     = flag.String("pipeline_run_id", "", "The current pipeline run ID.")
 	pipelineTaskID    = flag.String("pipeline_task_id", "", "The current pipeline task ID.")
 	pipelineRoot      = flag.String("pipeline_root", "", "The root output directory in which to store output artifacts.")
-	enableCaching     = flag.Bool(   "enable_caching", false, "Enable caching or not")
+	enableCaching     = flag.Bool(   "enable_caching", true, "Enable caching or not")
 )
 
 func main() {
@@ -54,7 +54,7 @@ func main() {
 		glog.Exitf("Failed to create component launcher: %v", err)
 	}
 
-	if err := launcher.RunComponent(ctx, flag.Args()); err != nil {
+	if err := launcher.RunComponent(ctx); err != nil {
 		glog.Exitf("Failed to execute component: %v", err)
 	}
 }

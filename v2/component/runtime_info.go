@@ -20,7 +20,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -73,31 +72,6 @@ type runtimeInfo struct {
 	OutputArtifacts  map[string]*outputArtifact
 }
 
-// paramDelimiterRE is used to find all instances of parameter string that need
-// to be escaped. We use .+? to do a non-greedy match here.
-var paramDelimiterRE = regexp.MustCompile(`"BEGIN-KFP-PARAM[[].+?[]]END-KFP-PARAM"`)
-
-func escapeParameters(unescaped string) (string, error) {
-	var jsonEncodeErr error
-	escapeFunc := func(value string) string {
-		value = strings.TrimPrefix(value, `"BEGIN-KFP-PARAM[`)
-		value = strings.TrimSuffix(value, `]END-KFP-PARAM"`)
-		b, err := json.Marshal(value)
-		if err != nil {
-			jsonEncodeErr = err
-		}
-		return string(b)
-	}
-
-	escaped := paramDelimiterRE.ReplaceAllStringFunc(unescaped, escapeFunc)
-
-	if jsonEncodeErr != nil {
-		return "", fmt.Errorf("failed to JSON-encode parameter %q: %w", unescaped, jsonEncodeErr)
-	}
-
-	return escaped, nil
-}
-
 func parseRuntimeInfo(jsonEncoded string) (*runtimeInfo, error) {
 	r := &runtimeInfo{
 		InputParameters:  make(map[string]*inputParameter),
@@ -106,17 +80,49 @@ func parseRuntimeInfo(jsonEncoded string) (*runtimeInfo, error) {
 		OutputArtifacts:  make(map[string]*outputArtifact),
 	}
 
-	escaped, err := escapeParameters(jsonEncoded)
-	if err != nil {
-		return nil, fmt.Errorf("failed to escape parameters from RuntimeInfo: %w", err)
-	}
-
-	if err := json.Unmarshal([]byte(escaped), r); err != nil {
+	if err := json.Unmarshal([]byte(jsonEncoded), r); err != nil {
 		// Do not quote jsonEncoded, because JSON format is hard to read if quoted.
-		return nil, fmt.Errorf("Invalid runtime info: %w.\n===RuntimeInfo===\n%s\n======", err, escaped)
+		return nil, fmt.Errorf("Invalid runtime info: %w.\n===RuntimeInfo===\n%s\n======", err, jsonEncoded)
 	}
 
 	return r, nil
+}
+
+// Parse launcher arguments with the following sections:
+// 1. parameters in format "key1=value1", "key2=value2", ...
+// 2. a separator "--" as end of parameters passed to launcher
+// 3. arguments of the original user program command + args
+//
+// Returns:
+// * parameters will be recorded in runtimeInfo
+// * (command + args) is the return value
+func parseArgs(args []string, rt *runtimeInfo) ([]string, error) {
+	argsError := func(err error) error {
+		return fmt.Errorf("error parsing input parameters from args %v: %w", args, err)
+	}
+	separator := -1
+	for i, arg := range args {
+		if arg == "--" {
+			separator = i
+			break
+		}
+		// parse input parameter argument like key=value
+		segs := strings.SplitN(arg, "=", 2)
+		if len(segs) != 2 {
+			return nil, argsError(fmt.Errorf("invalid arg, expecting format like key=value, got %q", arg))
+		}
+		name := segs[0]
+		value := segs[1]
+		param, ok := rt.InputParameters[name]
+		if !ok {
+			return nil, argsError(fmt.Errorf("unexpected input parameter %q, not found in spec %+v", name, rt.InputParameters))
+		}
+		param.Value = value
+	}
+	if separator == -1 {
+		return nil, argsError(fmt.Errorf("cannot find separator \"--\""))
+	}
+	return args[separator+1:], nil
 }
 
 func pipelineSpecValueToMLMDValue(v *pipeline_spec.Value) (*pb.Value, error) {
