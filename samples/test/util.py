@@ -148,7 +148,7 @@ def _run_test(callback):
             output_directory = os.getenv('KFP_OUTPUT_DIRECTORY')
         if metadata_service_host is None:
             metadata_service_host = os.getenv(
-                'METADATA_GRPC_SERVICE_HOST', 'metadata-grpc-service'
+                'METADATA_GRPC_SERVICE_HOST', 'localhost'
             )
         if launcher_image is None:
             launcher_image = os.getenv('KFP_LAUNCHER_IMAGE')
@@ -263,6 +263,7 @@ class KfpTask:
     '''A KFP runtime task'''
     name: str
     type: str
+    state: int
     inputs: TaskInputs
     outputs: TaskOutputs
 
@@ -323,6 +324,7 @@ class KfpTask:
         return cls(
             name=execution.custom_properties.get('task_name').string_value,
             type=execution_type.name,
+            state=execution.last_known_state,
             inputs=TaskInputs(
                 parameters=params['inputs'], artifacts=input_artifacts
             ),

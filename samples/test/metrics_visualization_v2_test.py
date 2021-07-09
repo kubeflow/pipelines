@@ -20,6 +20,7 @@ import kfp_server_api
 
 from .metrics_visualization_v2 import metrics_visualization_pipeline
 from .util import run_pipeline_func, TestCase, KfpMlmdClient
+from ml_metadata.proto import Execution
 
 
 def verify(
@@ -114,7 +115,8 @@ def verify(
             }],
             'parameters': {}
         },
-        'type': 'kfp.ContainerExecution'
+        'type': 'kfp.ContainerExecution',
+        'state': Execution.State.COMPLETE,
     }, wine_classification.get_dict())
     t.assertEqual(
         {
@@ -180,7 +182,8 @@ def verify(
             }],
             'parameters': {}
         },
-        'type': 'kfp.ContainerExecution'
+        'type': 'kfp.ContainerExecution',
+        'state': Execution.State.COMPLETE,
     }, digit_classification.get_dict())
 
 
