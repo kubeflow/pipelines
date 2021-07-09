@@ -46,6 +46,11 @@ func TestCreateRun(t *testing.T) {
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "pipeline-runner"
 	template := expectedRuntimeWorkflow.Spec.Templates[0]
 	expectedRuntimeWorkflow.Spec.Templates[0] = template
+	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
+		Labels: map[string]string{
+			util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000",
+		},
+	}
 
 	expectedRunDetail := api.RunDetail{
 		Run: &api.Run{
@@ -103,6 +108,11 @@ func TestCreateRunPatch(t *testing.T) {
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "pipeline-runner"
 	template := expectedRuntimeWorkflow.Spec.Templates[0]
 	expectedRuntimeWorkflow.Spec.Templates[0] = template
+	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
+		Labels: map[string]string{
+			util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000",
+		},
+	}
 
 	expectedRunDetail := api.RunDetail{
 		Run: &api.Run{
@@ -202,6 +212,11 @@ func TestCreateRun_Multiuser(t *testing.T) {
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "default-editor" // In multi-user mode, we use default service account.
 	template := expectedRuntimeWorkflow.Spec.Templates[0]
 	expectedRuntimeWorkflow.Spec.Templates[0] = template
+	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
+		Labels: map[string]string{
+			util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000",
+		},
+	}
 
 	expectedRunDetail := api.RunDetail{
 		Run: &api.Run{
