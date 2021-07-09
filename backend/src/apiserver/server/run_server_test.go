@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"google.golang.org/protobuf/testing/protocmp"
 	"strings"
 	"testing"
 
@@ -45,6 +46,11 @@ func TestCreateRun(t *testing.T) {
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "pipeline-runner"
 	template := expectedRuntimeWorkflow.Spec.Templates[0]
 	expectedRuntimeWorkflow.Spec.Templates[0] = template
+	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
+		Labels: map[string]string{
+			util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000",
+		},
+	}
 
 	expectedRunDetail := api.RunDetail{
 		Run: &api.Run{
@@ -102,6 +108,11 @@ func TestCreateRunPatch(t *testing.T) {
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "pipeline-runner"
 	template := expectedRuntimeWorkflow.Spec.Templates[0]
 	expectedRuntimeWorkflow.Spec.Templates[0] = template
+	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
+		Labels: map[string]string{
+			util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000",
+		},
+	}
 
 	expectedRunDetail := api.RunDetail{
 		Run: &api.Run{
@@ -201,6 +212,11 @@ func TestCreateRun_Multiuser(t *testing.T) {
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "default-editor" // In multi-user mode, we use default service account.
 	template := expectedRuntimeWorkflow.Spec.Templates[0]
 	expectedRuntimeWorkflow.Spec.Templates[0] = template
+	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
+		Labels: map[string]string{
+			util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000",
+		},
+	}
 
 	expectedRunDetail := api.RunDetail{
 		Run: &api.Run{
@@ -424,7 +440,7 @@ func TestListRuns_Multiuser(t *testing.T) {
 		} else {
 			if err != nil {
 				t.Errorf("TestListRuns_Multiuser(%v) expect no error but got %v", tc.name, err)
-			} else if !cmp.Equal(tc.expectedRuns, response.Runs, cmpopts.IgnoreFields(api.Run{}, "ScheduledAt", "FinishedAt", "CreatedAt")) {
+			} else if !cmp.Equal(tc.expectedRuns, response.Runs, cmpopts.EquateEmpty(), protocmp.Transform(),cmpopts.IgnoreFields(api.Run{}, "ScheduledAt", "FinishedAt", "CreatedAt")) {
 				t.Errorf("TestListRuns_Multiuser(%v) expect (%+v) but got (%+v)", tc.name, tc.expectedRuns, response.Runs)
 			}
 		}

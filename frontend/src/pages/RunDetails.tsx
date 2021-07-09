@@ -369,7 +369,12 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                   this.state.selectedNodeDetails &&
                                   this.state.workflow &&
                                   isV2Pipeline(workflow) &&
-                                  selectedExecution && <MetricsTab execution={selectedExecution} />}
+                                  selectedExecution && (
+                                    <MetricsTab
+                                      execution={selectedExecution}
+                                      namespace={this.state.workflow?.metadata?.namespace}
+                                    />
+                                  )}
 
                                 {sidepanelSelectedTab === SidePanelTab.INPUT_OUTPUT &&
                                   !isV2Pipeline(workflow) && (

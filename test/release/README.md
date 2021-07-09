@@ -4,18 +4,18 @@ For full release documentation, please read [RELEASE.md](../../RELEASE.md).
 
 To do a release:
 
-TAG=`<TAG>` BRANCH=`<BRANCH>` make release
+TAG=`<TAG>` BRANCH=`<BRANCH>` make release, the release needs to start with `v` to support [golang version handling](https://golang.org/ref/mod#versions)
 
 Example, release in release branch:
 
 ```bash
-    TAG=1.4.0 BRANCH=release-1.4 make release
+    TAG=v1.4.0 BRANCH=release-1.4 make release
 ```
 
 Example, release an RC (release candidate) in master branch:
 
 ```bash
-    TAG=2.0.0-rc.1 BRANCH=master make release
+    TAG=v2.0.0-rc.1 BRANCH=master make release
 ```
 
 ## Dev guide

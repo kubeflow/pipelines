@@ -2,6 +2,7 @@ name: Git clone
 description: Creates a shallow clone of the specified repo branch
 metadata:
   annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
     volatile_component: "true"
 inputs:
 - {name: Repo URI, type: URI}

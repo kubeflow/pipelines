@@ -8,6 +8,9 @@ inputs:
 - {name: list_5, type: JsonArray, optional: true}
 outputs:
 - {name: Output, type: JsonArray}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: python:3.8

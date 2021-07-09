@@ -5,6 +5,9 @@ inputs:
 - {name: Subpath, type: String}
 outputs:
 - {name: File}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: alpine

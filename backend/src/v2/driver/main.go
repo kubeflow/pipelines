@@ -27,9 +27,9 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/golang/protobuf/jsonpb"
-	pb "github.com/kubeflow/pipelines/api/v2alpha1/go"
 	"github.com/kubeflow/pipelines/backend/src/v2/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/common/mlmd"
+	pb "github.com/kubeflow/pipelines/backend/src/v2/third_party/pipeline_spec"
 	mlmdPb "github.com/kubeflow/pipelines/third_party/ml-metadata/go_client/ml_metadata/proto"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"

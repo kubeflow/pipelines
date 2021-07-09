@@ -17,6 +17,9 @@ inputs:
 outputs:
 - name: gcs_output_uri_prefix
   type: String
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: python:3.7

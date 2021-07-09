@@ -5,6 +5,9 @@ inputs:
 - {name: exclude_splits, type: String, optional: true}
 outputs:
 - {name: anomalies, type: ExampleAnomalies}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: tensorflow/tfx:0.29.0

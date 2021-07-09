@@ -15,14 +15,17 @@
  */
 
 import { Api } from 'src/mlmd/library';
+import { filterLinkedArtifactsByType, getArtifactName, getRunContext } from 'src/mlmd/MlmdUtils';
+import { expectWarnings, testBestPractices } from 'src/TestUtils';
 import {
+  Artifact,
+  ArtifactType,
   Context,
+  Event,
   GetContextByTypeAndNameRequest,
   GetContextByTypeAndNameResponse,
 } from 'src/third_party/mlmd';
-import { expectWarnings, testBestPractices } from 'src/TestUtils';
 import { Workflow, WorkflowSpec, WorkflowStatus } from 'third_party/argo-ui/argo_template';
-import { getRunContext } from 'src/mlmd/MlmdUtils';
 
 testBestPractices();
 
@@ -81,6 +84,48 @@ describe('MlmdUtils', () => {
       mockGetContextByTypeAndName([]);
       await expect(getRunContext(WORKFLOW_EMPTY)).rejects.toThrow();
       verify();
+    });
+  });
+
+  describe('getArtifactName', () => {
+    it('get the first key of steps list', () => {
+      const path = new Event.Path();
+      path.getStepsList().push(new Event.Path.Step().setKey('key1'));
+      path.getStepsList().push(new Event.Path.Step().setKey('key2'));
+      const event = new Event();
+      event.setPath(path);
+      const linkedArtifact = { event: event, artifact: new Artifact() };
+      expect(getArtifactName(linkedArtifact)).toEqual('key1');
+    });
+  });
+
+  describe('filterLinkedArtifactsByType', () => {
+    it('filter input artifacts', () => {
+      const artifactTypeName = 'INPUT';
+      const artifactTypes = [
+        new ArtifactType().setId(1).setName('INPUT'),
+        new ArtifactType().setId(2).setName('OUTPUT'),
+      ];
+      const inputArtifact = { artifact: new Artifact().setTypeId(1), event: new Event() };
+      const outputArtifact = { artifact: new Artifact().setTypeId(2), event: new Event() };
+      const artifacts = [inputArtifact, outputArtifact];
+      expect(filterLinkedArtifactsByType(artifactTypeName, artifactTypes, artifacts)).toEqual([
+        inputArtifact,
+      ]);
+    });
+
+    it('filter output artifacts', () => {
+      const artifactTypeName = 'OUTPUT';
+      const artifactTypes = [
+        new ArtifactType().setId(1).setName('INPUT'),
+        new ArtifactType().setId(2).setName('OUTPUT'),
+      ];
+      const inputArtifact = { artifact: new Artifact().setTypeId(1), event: new Event() };
+      const outputArtifact = { artifact: new Artifact().setTypeId(2), event: new Event() };
+      const artifacts = [inputArtifact, outputArtifact];
+      expect(filterLinkedArtifactsByType(artifactTypeName, artifactTypes, artifacts)).toEqual([
+        outputArtifact,
+      ]);
     });
   });
 });

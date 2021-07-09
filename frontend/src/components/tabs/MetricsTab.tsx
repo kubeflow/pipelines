@@ -18,14 +18,19 @@ import * as React from 'react';
 import { useQuery } from 'react-query';
 import { ErrorBoundary } from 'src/atoms/ErrorBoundary';
 import { commonCss, padding } from 'src/Css';
-import { getArtifactTypes, getOutputArtifactsInExecution } from 'src/mlmd/MlmdUtils';
-import { Artifact, ArtifactType, Execution } from 'src/third_party/mlmd';
+import {
+  getArtifactTypes,
+  getOutputLinkedArtifactsInExecution,
+  LinkedArtifact,
+} from 'src/mlmd/MlmdUtils';
+import { ArtifactType, Execution } from 'src/third_party/mlmd';
 import Banner from '../Banner';
 import { MetricsVisualizations } from '../viewers/MetricsVisualizations';
 import { ExecutionTitle } from './ExecutionTitle';
 
 type MetricsTabProps = {
   execution: Execution;
+  namespace: string | undefined;
 };
 
 /**
@@ -34,7 +39,7 @@ type MetricsTabProps = {
  * Detail can be found in https://github.com/kubeflow/pipelines/blob/master/sdk/python/kfp/dsl/io_types.py
  * Note that these metrics are only available on KFP v2 mode.
  */
-export function MetricsTab({ execution }: MetricsTabProps) {
+export function MetricsTab({ execution, namespace }: MetricsTabProps) {
   let executionCompleted = false;
   const executionState = execution.getLastKnownState();
   if (
@@ -47,6 +52,7 @@ export function MetricsTab({ execution }: MetricsTabProps) {
     executionCompleted = true;
   }
 
+  const executionId = execution.getId();
   // Retrieving a list of artifacts associated with this execution,
   // so we can find the artifact for system metrics from there.
   const {
@@ -54,9 +60,9 @@ export function MetricsTab({ execution }: MetricsTabProps) {
     isSuccess: isSuccessArtifacts,
     error: errorArtifacts,
     data: artifacts,
-  } = useQuery<Artifact[], Error>(
-    ['execution_output_artifact', { id: execution.getId() }],
-    () => getOutputArtifactsInExecution(execution),
+  } = useQuery<LinkedArtifact[], Error>(
+    ['execution_output_artifact', { id: executionId, state: executionState }],
+    () => getOutputLinkedArtifactsInExecution(execution),
     { enabled: executionCompleted, staleTime: Infinity },
   );
 
@@ -68,7 +74,7 @@ export function MetricsTab({ execution }: MetricsTabProps) {
     error: errorArtifactTypes,
     data: artifactTypes,
   } = useQuery<ArtifactType[], Error>(
-    ['artifact_types', execution.getId()],
+    ['artifact_types', { id: executionId, state: executionState }],
     () => getArtifactTypes(),
     {
       enabled: executionCompleted,
@@ -107,8 +113,10 @@ export function MetricsTab({ execution }: MetricsTabProps) {
           )}
           {isSuccessArtifacts && isSuccessArtifactTypes && artifacts && artifactTypes && (
             <MetricsVisualizations
-              artifacts={artifacts}
+              linkedArtifacts={artifacts}
               artifactTypes={artifactTypes}
+              execution={execution}
+              namespace={namespace}
             ></MetricsVisualizations>
           )}
         </div>

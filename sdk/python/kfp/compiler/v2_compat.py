@@ -52,6 +52,40 @@ def update_op(op: dsl.ContainerOp,
   op.add_volume_mount(
       k8s_client.V1VolumeMount(name='kfp-launcher', mount_path='/kfp-launcher'))
 
+  # op.command + op.args will have the following sections:
+  # 1. args passed to kfp-launcher
+  # 2. a separator "--"
+  # 3. parameters in format "key1=value1", "key2=value2", ...
+  # 4. a separator "--" as end of arguments passed to launcher
+  # 5. (start of op.args) arguments of the original user program command + args
+  #
+  # example:
+  # - command:
+  # - /kfp-launcher/launch
+  # - '--mlmd_server_address'
+  # - $(METADATA_GRPC_SERVICE_HOST)
+  # - '--mlmd_server_port'
+  # - $(METADATA_GRPC_SERVICE_PORT)
+  # - ... # more launcher params
+  # - '--pipeline_task_id'
+  # - $(KFP_POD_NAME)
+  # - '--pipeline_root'
+  # - ''
+  # - '--' # start of parameter values
+  # - first=first
+  # - second=second
+  # - '--' # start of user command and args
+  # args:
+  # - sh
+  # - '-ec'
+  # - |
+  #     program_path=$(mktemp)
+  #     printf "%s" "$0" > "$program_path"
+  #     python3 -u "$program_path" "$@"
+  # - >
+  #     import json
+  #     import xxx
+  #     ...
   op.command = [
       "/kfp-launcher/launch",
       "--mlmd_server_address",
@@ -93,17 +127,17 @@ def update_op(op: dsl.ContainerOp,
       "outputArtifacts": collections.OrderedDict(),
   }
 
+  op.command += ["--"]
   component_spec = op.component_spec
   for parameter, spec in sorted(
       component_spec.input_definitions.parameters.items()):
     parameter_info = {
         "type":
             pipeline_spec_pb2.PrimitiveType.PrimitiveTypeEnum.Name(spec.type),
-        "value":
-            "BEGIN-KFP-PARAM[{}]END-KFP-PARAM".format(
-                op._parameter_arguments[parameter])
     }
+    op.command += [f"{parameter}={op._parameter_arguments[parameter]}"]
     runtime_info["inputParameters"][parameter] = parameter_info
+  op.command += ["--"]
 
   for artifact_name, spec in sorted(
       component_spec.input_definitions.artifacts.items()):
