@@ -367,7 +367,7 @@ func (l *Launcher) executeWithCacheHit(ctx context.Context, executorInput *pipel
 }
 
 func (l *Launcher) storeOutputParameterValueFromCache(cachedExecution *pb.Execution) (*metadata.Parameters, error) {
-	mlmdOutputParameters, err := cacheutils.GetOutputParamsFromCachedExecution(cachedExecution)
+	mlmdOutputParameters, err := cacheutils.GetMLMDOutputParams(cachedExecution)
 	if err != nil {
 		return nil, err
 	}
@@ -468,7 +468,7 @@ func (l *Launcher) executeWithoutCacheHit(ctx context.Context, executorInput *pi
 	if err := l.execute(ctx, executorInput, createdExecution, cmd, args); err != nil {
 		return err
 	}
-	id := metadata.GetIDFromExecution(*createdExecution)
+	id := createdExecution.GetID()
 	if id == nil {
 		return fmt.Errorf("failed to get id from createdExecution")
 	}

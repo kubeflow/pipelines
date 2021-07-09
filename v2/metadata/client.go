@@ -409,8 +409,8 @@ func (c *Client) RecordArtifact(ctx context.Context, schema string, artifact *pb
 	return getRes.Artifacts[0], nil
 }
 
-func GetIDFromExecution(execution Execution) *int64 {
-	return execution.execution.Id
+func (e *Execution) GetID() *int64 {
+	return e.execution.Id
 }
 
 func getOrInsertContext(ctx context.Context, svc pb.MetadataStoreServiceClient, name string, contextType *pb.ContextType) (*pb.Context, error) {

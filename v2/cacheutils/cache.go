@@ -173,7 +173,7 @@ func (c *Client) CreateExecutionCache(ctx context.Context, task *api.Task) error
 	return nil
 }
 
-func GetOutputParamsFromCachedExecution(cachedExecution *ml_metadata.Execution) (map[string]string, error) {
+func GetMLMDOutputParams(cachedExecution *ml_metadata.Execution) (map[string]string, error) {
 	mlmdOutputParameters := make(map[string]string)
 	for customPropName, customPropValue := range cachedExecution.CustomProperties {
 		if strings.HasPrefix(customPropName, "output:") {
