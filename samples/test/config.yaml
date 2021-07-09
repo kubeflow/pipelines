@@ -76,7 +76,6 @@
   path: samples.test.placeholder_concat_test
 - name: metrics_visualization_v2
   path: samples.test.metrics_visualization_v2_test
-
 # TODO(Bobgy): enable this test when https://github.com/kubeflow/pipelines/pull/5424
 # is deployed to test infra.
 # - name: fail_parameter_value_missing

@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { Context, Execution } from '@kubeflow/frontend';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import InfoIcon from '@material-ui/icons/InfoOutlined';
 import { flatten } from 'lodash';
@@ -25,8 +24,9 @@ import InputOutputTab from 'src/components/tabs/InputOutputTab';
 import { MetricsTab } from 'src/components/tabs/MetricsTab';
 import { GkeMetadata, GkeMetadataContext } from 'src/lib/GkeMetadata';
 import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
-import { ExecutionHelpers, getExecutionsFromContext, getRunContext } from 'src/lib/MlmdUtils';
+import { ExecutionHelpers, getExecutionsFromContext, getRunContext } from 'src/mlmd/MlmdUtils';
 import { isV2Pipeline } from 'src/lib/v2/WorkflowUtils';
+import { Context, Execution } from 'src/third_party/mlmd';
 import { classes, stylesheet } from 'typestyle';
 import {
   NodePhase as ArgoNodePhase,
@@ -369,7 +369,12 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                   this.state.selectedNodeDetails &&
                                   this.state.workflow &&
                                   isV2Pipeline(workflow) &&
-                                  selectedExecution && <MetricsTab execution={selectedExecution} />}
+                                  selectedExecution && (
+                                    <MetricsTab
+                                      execution={selectedExecution}
+                                      namespace={this.state.workflow?.metadata?.namespace}
+                                    />
+                                  )}
 
                                 {sidepanelSelectedTab === SidePanelTab.INPUT_OUTPUT &&
                                   !isV2Pipeline(workflow) && (

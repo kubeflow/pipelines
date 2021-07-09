@@ -20,7 +20,7 @@ RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.18.0/b
  && mv ./kubectl /usr/local/bin/kubectl
 
 # Install Argo CLI
-RUN curl -sSL -o /usr/local/bin/argo https://github.com/argoproj/argo/releases/download/v2.8.0/argo-linux-amd64 \
+RUN curl -sSL -o /usr/local/bin/argo https://github.com/argoproj/argo-workflows/releases/download/v2.8.0/argo-linux-amd64 \
  && chmod +x /usr/local/bin/argo
 
 # Copy conda environment early to avoid cache busting

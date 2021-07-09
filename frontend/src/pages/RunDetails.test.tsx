@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Api, GetArtifactTypesResponse } from '@kubeflow/frontend';
+import { Api, GetArtifactTypesResponse } from 'src/mlmd/library';
 import { render } from '@testing-library/react';
 import * as dagre from 'dagre';
 import { mount, ReactWrapper, shallow, ShallowWrapper } from 'enzyme';
@@ -27,7 +27,7 @@ import { QUERY_PARAMS, RoutePage, RouteParams } from '../components/Router';
 import { PlotType } from '../components/viewers/Viewer';
 import { Apis, JSONObject } from '../lib/Apis';
 import { ButtonKeys } from '../lib/Buttons';
-import * as MlmdUtils from '../lib/MlmdUtils';
+import * as MlmdUtils from 'src/mlmd/MlmdUtils';
 import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
 import { NodePhase } from '../lib/StatusUtils';
 import * as Utils from '../lib/Utils';

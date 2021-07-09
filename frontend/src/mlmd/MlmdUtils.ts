@@ -14,15 +14,22 @@
  * limitations under the License.
  */
 
+import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
+import { logger } from 'src/lib/Utils';
+import { isV2Pipeline } from 'src/lib/v2/WorkflowUtils';
 import {
   Api,
+  ExecutionCustomProperties,
+  ExecutionProperties,
+  getResourceProperty,
+  getResourcePropertyViaFallBack,
+} from 'src/mlmd/library';
+import {
   Artifact,
   ArtifactType,
   Context,
   Event,
   Execution,
-  ExecutionCustomProperties,
-  ExecutionProperties,
   GetArtifactsByIDRequest,
   GetArtifactsByIDResponse,
   GetArtifactTypesRequest,
@@ -31,13 +38,8 @@ import {
   GetEventsByExecutionIDsRequest,
   GetEventsByExecutionIDsResponse,
   GetExecutionsByContextRequest,
-  getResourceProperty,
-  getResourcePropertyViaFallBack,
-} from '@kubeflow/frontend';
-import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
+} from 'src/third_party/mlmd';
 import { Workflow } from 'third_party/argo-ui/argo_template';
-import { logger } from './Utils';
-import { isV2Pipeline } from './v2/WorkflowUtils';
 
 async function getContext({ type, name }: { type: string; name: string }): Promise<Context> {
   if (type === '') {
@@ -188,7 +190,7 @@ async function getEventByExecution(execution: Execution): Promise<Event[]> {
   try {
     response = await Api.getInstance().metadataStoreService.getEventsByExecutionIDs(request);
   } catch (err) {
-    err.message = 'Failed to getExecutionsByExecutionIDs: ' + err.message;
+    err.message = 'Failed to getEventsByExecutionIDs: ' + err.message;
     throw err;
   }
   return response.getEventsList();
@@ -250,6 +252,12 @@ export async function getOutputArtifactsInExecution(execution: Execution): Promi
     linkedArtifact => linkedArtifact.artifact,
   );
 }
+export async function getOutputLinkedArtifactsInExecution(
+  execution: Execution,
+): Promise<LinkedArtifact[]> {
+  const linkedArtifacts = await getLinkedArtifactsByExecution(execution);
+  return filterEventWithOutputArtifact(linkedArtifacts);
+}
 
 export async function getArtifactTypes(): Promise<ArtifactType[]> {
   const request = new GetArtifactTypesRequest();
@@ -272,6 +280,17 @@ export function filterArtifactsByType(
     .filter(artifactType => artifactType.getName() === artifactTypeName)
     .map(artifactType => artifactType.getId());
   return artifacts.filter(artifact => artifactTypeIds.includes(artifact.getTypeId()));
+}
+
+export function filterLinkedArtifactsByType(
+  artifactTypeName: string,
+  artifactTypes: ArtifactType[],
+  artifacts: LinkedArtifact[],
+): LinkedArtifact[] {
+  const artifactTypeIds = artifactTypes
+    .filter(artifactType => artifactType.getName() === artifactTypeName)
+    .map(artifactType => artifactType.getId());
+  return artifacts.filter(x => artifactTypeIds.includes(x.artifact.getTypeId()));
 }
 
 export function getArtifactName(linkedArtifact: LinkedArtifact): string | undefined {

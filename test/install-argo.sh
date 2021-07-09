@@ -29,7 +29,7 @@ kubectl create clusterrolebinding DEFAULT_BINDING --clusterrole=cluster-admin --
 
 # No need to install here, it comes with kfp lite deployment
 # kubectl create ns argo --dry-run -o yaml | kubectl apply -f -
-# kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo/$ARGO_VERSION/manifests/install.yaml
+# kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo-workflows/$ARGO_VERSION/manifests/install.yaml
 
 ARGO_KSA="test-runner"
 

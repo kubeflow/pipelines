@@ -17,9 +17,9 @@ package main
 import (
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	pb "github.com/kubeflow/pipelines/api/v2alpha1/go"
 	"github.com/kubeflow/pipelines/backend/src/v2/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler/templates"
+	pb "github.com/kubeflow/pipelines/backend/src/v2/third_party/pipeline_spec"
 	"github.com/pkg/errors"
 )
 

@@ -83,4 +83,7 @@ if __name__ == '__main__':
         base_image='python:3.7',
         packages_to_install=['scikit-learn==0.23.1', 'pandas==1.0.5'],
         output_component_file='component.yaml',
+        annotations={
+            "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
+        },
     )

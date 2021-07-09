@@ -13,6 +13,9 @@ inputs:
 - {name: gcp_region, type: String, default: us-central1, optional: true}
 outputs:
 - {name: study_name, type: String}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: python:3.8

@@ -17,7 +17,7 @@
 import * as React from 'react';
 import { ResourceInfo, ResourceType } from './ResourceInfo';
 import { getByTestId, render, screen } from '@testing-library/react';
-import { Artifact, Value } from '@kubeflow/frontend';
+import { Artifact, Value } from 'src/third_party/mlmd';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 
 describe('ResourceInfo', () => {

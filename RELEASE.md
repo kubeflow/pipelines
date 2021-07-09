@@ -23,15 +23,15 @@ additionally.
 
 ## Release Tags and Branches
 
-Releases are tagged with tags like `X.Y.Z`, e.g. `1.0.2`. A special format like
-`1.0.0-rc.2` is a pre-release. It is the second release candidate before
-releasing the final `1.0.0`.
+Releases are tagged with tags like `vX.Y.Z`, e.g. `v1.0.2`. A special format like
+`v1.0.0-rc.2` is a pre-release. It is the second release candidate before
+releasing the final `v1.0.0`.
 
 A release branch has the name structure `release-X.Y` where `X.Y` stands for the
-minor version. Releases like `X.Y.Z` will all be released from the branch
+minor version. Releases like `vX.Y.Z` will all be released from the branch
 `release-X.Y`.
 
-For example, `1.0.2` release should be on `release-1.0` branch.
+For example, `v1.0.2` release should be on `release-1.0` branch.
 
 ## Contributor Instructions
 
@@ -171,11 +171,11 @@ If not, contact the KFP team to determine if the failure(s) would block the rele
 Note, when releasing from master, all the below mentions of "release branch" means master branch.
 
 1. Choose the release's complete `$VERSION` following semantic versioning, e.g.
-    - `1.0.0-rc.1`
-    - `1.0.0-rc.2`
-    - `1.0.0`
-    - `1.0.1`
-    - `1.1.0`
+    - `v1.0.0-rc.1`
+    - `v1.0.0-rc.2`
+    - `v1.0.0`
+    - `v1.0.1`
+    - `v1.1.0`
     - ...
     Contact @Bobgy if you are not sure what next version should be.
 
@@ -248,7 +248,7 @@ fill in the description. Detailed steps:
 
    1. [Draft a new release](https://github.com/kubeflow/pipelines/releases/new).
    1. Typing in version tag field to search and select the "$VERSION" tag published in release instructions above.
-   Its format is like `X.Y.Z` or `X.Y.Z-rc.N`.
+   Its format is like `vX.Y.Z` or `vX.Y.Z-rc.N`.
 
    1. Use this template for public releases and replace the `$VERSION` with real values.
 

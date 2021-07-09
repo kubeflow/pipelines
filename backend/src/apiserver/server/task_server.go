@@ -37,9 +37,6 @@ func (s *TaskServer) validateCreateTaskRequest(request *api.CreateTaskRequest) e
 	if task.GetId() != "" {
 		return util.NewInvalidInputError("Invalid task: Id should not be set")
 	}
-	if task.GetNamespace() == "" {
-		return errMustSpecify("Namespace")
-	}
 	if task.GetPipelineName() == "" {
 		return errMustSpecify("PipelineName")
 	}
@@ -81,4 +78,8 @@ func (s *TaskServer) ListTasks(ctx context.Context, request *api.ListTasksReques
 			TotalSize:     int32(total_size),
 			NextPageToken: nextPageToken},
 		nil
+}
+
+func NewTaskServer(resourceManager *resource.ResourceManager) *TaskServer {
+	return &TaskServer{resourceManager: resourceManager}
 }
