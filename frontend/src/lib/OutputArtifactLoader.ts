@@ -462,23 +462,24 @@ async function buildArtifactViewer({
   };
 }
 
-async function buildArtifactViewerTfdvStatistics(
-  url: string,
-  namespace: string,
-): Promise<HTMLViewerConfig> {
-  const visualizationData: ApiVisualization = {
-    source: url,
-    type: ApiVisualizationType.TFDV,
-  };
-  const visualization = await Apis.buildPythonVisualizationConfig(visualizationData, namespace);
-  if (!visualization.htmlContent) {
-    throw new Error('Failed to build artifact viewer, no value in visualization.htmlContent');
-  }
-  return {
-    htmlContent: visualization.htmlContent,
-    type: PlotType.WEB_APP,
-  };
-}
+// Deprecated approach because we switched to buildArtifactViewer for statistics.
+// async function buildArtifactViewerTfdvStatistics(
+//   url: string,
+//   namespace: string,
+// ): Promise<HTMLViewerConfig> {
+//   const visualizationData: ApiVisualization = {
+//     source: url,
+//     type: ApiVisualizationType.TFDV,
+//   };
+//   const visualization = await Apis.buildPythonVisualizationConfig(visualizationData, namespace);
+//   if (!visualization.htmlContent) {
+//     throw new Error('Failed to build artifact viewer, no value in visualization.htmlContent');
+//   }
+//   return {
+//     htmlContent: visualization.htmlContent,
+//     type: PlotType.WEB_APP,
+//   };
+// }
 
 async function readSourceContent(
   source: PlotMetadata['source'],
