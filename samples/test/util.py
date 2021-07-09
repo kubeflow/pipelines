@@ -148,7 +148,7 @@ def _run_test(callback):
             output_directory = os.getenv('KFP_OUTPUT_DIRECTORY')
         if metadata_service_host is None:
             metadata_service_host = os.getenv(
-                'METADATA_GRPC_SERVICE_HOST', 'localhost'
+                'METADATA_GRPC_SERVICE_HOST', 'metadata-grpc-service'
             )
         if launcher_image is None:
             launcher_image = os.getenv('KFP_LAUNCHER_IMAGE')
