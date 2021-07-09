@@ -20,6 +20,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
+	"strconv"
 	"time"
 
 	"github.com/golang/glog"
@@ -205,10 +207,10 @@ func eventPath(artifactName string) *pb.Event_Path {
 }
 
 // PublishExecution publishes the specified execution with the given output
-// parameters and artifacts.
-func (c *Client) PublishExecution(ctx context.Context, execution *Execution, outputParameters *Parameters, outputArtifacts []*OutputArtifact) error {
+// parameters, artifacts and state.
+func (c *Client) PublishExecution(ctx context.Context, execution *Execution, outputParameters *Parameters, outputArtifacts []*OutputArtifact, state pb.Execution_State) error {
 	e := execution.execution
-	e.LastKnownState = pb.Execution_COMPLETE.Enum()
+	e.LastKnownState = state.Enum()
 
 	// Record output parameters.
 	for n, p := range outputParameters.IntParameters {
@@ -313,6 +315,16 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, taskNa
 	}, nil
 }
 
+// GetExecutions ...
+func (c *Client) GetExecutions(ctx context.Context, ids []int64) ([]*pb.Execution, error) {
+	req := &pb.GetExecutionsByIDRequest{ExecutionIds: ids}
+	res, err := c.svc.GetExecutionsByID(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return res.Executions, nil
+}
+
 // GetArtifacts ...
 func (c *Client) GetArtifacts(ctx context.Context, ids []int64) ([]*pb.Artifact, error) {
 	req := &pb.GetArtifactsByIDRequest{ArtifactIds: ids}
@@ -321,6 +333,26 @@ func (c *Client) GetArtifacts(ctx context.Context, ids []int64) ([]*pb.Artifact,
 		return nil, err
 	}
 	return res.Artifacts, nil
+}
+
+// GetOutputArtifactsByExecutionId ...
+func (c *Client) GetOutputArtifactsByExecutionId(ctx context.Context, executionId int64) ([]*pb.Artifact, error) {
+	getEventsByExecutionIDsReq := &pb.GetEventsByExecutionIDsRequest{ExecutionIds: []int64{executionId}}
+	getEventsByExecutionIDsRes, err := c.svc.GetEventsByExecutionIDs(ctx, getEventsByExecutionIDsReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get events with execution id %v: %w", executionId, err)
+	}
+	var outputArtifactsIDs []int64
+	for _, event := range getEventsByExecutionIDsRes.Events {
+		if *event.Type == pb.Event_OUTPUT {
+			outputArtifactsIDs = append(outputArtifactsIDs, *event.ArtifactId)
+		}
+	}
+	outputArtifacts, err := c.GetArtifacts(ctx, outputArtifactsIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get output artifacts: %w", err)
+	}
+	return outputArtifacts, nil
 }
 
 // Only supports schema titles for now.
@@ -374,6 +406,10 @@ func (c *Client) RecordArtifact(ctx context.Context, schema string, artifact *pb
 		return nil, errors.New("Failed to retrieve exactly one artifact")
 	}
 	return getRes.Artifacts[0], nil
+}
+
+func GetIDFromExecution(execution Execution) *int64 {
+	return execution.execution.Id
 }
 
 func getOrInsertContext(ctx context.Context, svc pb.MetadataStoreServiceClient, name string, contextType *pb.ContextType) (*pb.Context, error) {
@@ -430,4 +466,39 @@ func getOrInsertContext(ctx context.Context, svc pb.MetadataStoreServiceClient, 
 		return nil, fmt.Errorf("Failed GetContext(name=%q, type=%q): %w", name, contextType.GetName(), err)
 	}
 	return getCtxRes.GetContext(), nil
+}
+
+func GenerateExecutionConfig(executorInput *pipeline_spec.ExecutorInput) (*ExecutionConfig, error) {
+	ecfg := &ExecutionConfig{
+		InputParameters: &Parameters{
+			IntParameters:    make(map[string]int64),
+			StringParameters: make(map[string]string),
+			DoubleParameters: make(map[string]float64),
+		},
+		InputArtifactIDs: make(map[string][]int64),
+	}
+
+	for name, artifactList := range executorInput.Inputs.Artifacts {
+		for _, artifact := range artifactList.Artifacts {
+			id, err := strconv.ParseInt(artifact.Name, 10, 64)
+			if err != nil {
+				return nil, fmt.Errorf("unable to parse input artifact id from %q: %w", id, err)
+			}
+			ecfg.InputArtifactIDs[name] = append(ecfg.InputArtifactIDs[name], id)
+		}
+	}
+
+	for name, parameter := range executorInput.Inputs.Parameters {
+		switch t := parameter.Value.(type) {
+		case *pipeline_spec.Value_StringValue:
+			ecfg.InputParameters.StringParameters[name] = parameter.GetStringValue()
+		case *pipeline_spec.Value_IntValue:
+			ecfg.InputParameters.IntParameters[name] = parameter.GetIntValue()
+		case *pipeline_spec.Value_DoubleValue:
+			ecfg.InputParameters.DoubleParameters[name] = parameter.GetDoubleValue()
+		default:
+			return nil, fmt.Errorf("unknown parameter type: %T", t)
+		}
+	}
+	return ecfg, nil
 }

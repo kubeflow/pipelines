@@ -21,13 +21,13 @@ TEST_CLUSTER="${TEST_CLUSTER:-kfp-standalone-1}"
 REGION="${REGION:-us-central1}"
 PROJECT="${PROJECT:-kfp-ci}"
 # The current directory is /home/prow/go/src/github.com/kubeflow/pipelines
-# 1. install go in /home/prow/go1.13.3
+# 1. install go in /home/prow/go1.15.10
 cd /home/prow
-mkdir go1.13.3
-cd go1.13.3
-curl -LO https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz
-tar -xf go1.13.3.linux-amd64.tar.gz
-GO_CMD=/home/prow/go1.13.3/go/bin/go
+mkdir go1.15.10
+cd go1.15.10
+curl -LO https://dl.google.com/go/go1.15.10.linux-amd64.tar.gz
+tar -xf go1.15.10.linux-amd64.tar.gz
+GO_CMD=/home/prow/go1.15.10/go/bin/go
 cd /home/prow/go/src/github.com/kubeflow/pipelines/v2
 # 2. Check go modules are tidy
 # Reference: https://github.com/golang/go/issues/27005#issuecomment-564892876

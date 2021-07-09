@@ -37,9 +37,6 @@ func (s *TaskServer) validateCreateTaskRequest(request *api.CreateTaskRequest) e
 	if task.GetId() != "" {
 		return util.NewInvalidInputError("Invalid task: Id should not be set")
 	}
-	if task.GetNamespace() == "" {
-		return errMustSpecify("Namespace")
-	}
 	if task.GetPipelineName() == "" {
 		return errMustSpecify("PipelineName")
 	}

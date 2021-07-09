@@ -31,6 +31,7 @@ var (
 	pipelineRunID     = flag.String("pipeline_run_id", "", "The current pipeline run ID.")
 	pipelineTaskID    = flag.String("pipeline_task_id", "", "The current pipeline task ID.")
 	pipelineRoot      = flag.String("pipeline_root", "", "The root output directory in which to store output artifacts.")
+	enableCaching     = flag.Bool(   "enable_caching", false, "Enable caching or not")
 )
 
 func main() {
@@ -46,6 +47,7 @@ func main() {
 		ContainerImage:    *containerImage,
 		MLMDServerAddress: *mlmdServerAddress,
 		MLMDServerPort:    *mlmdServerPort,
+		EnableCaching:     *enableCaching,
 	}
 	launcher, err := component.NewLauncher(*runtimeInfoJSON, opts)
 	if err != nil {
