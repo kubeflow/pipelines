@@ -69,18 +69,15 @@ export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
     const { resource } = this.props;
     const propertyMap = resource.getPropertiesMap();
     const customPropertyMap = resource.getCustomPropertiesMap();
+    let resourceTitle = this.props.typeName;
+    const stateText = getResourceStateText(this.props);
+    if (stateText) {
+      resourceTitle = `${resourceTitle} (${stateText})`;
+    }
+
     return (
       <section>
-        <h1 className={commonCss.header}>
-          {this.props.typeName}
-          {(() => {
-            const stateText = getResourceStateText(this.props);
-            if (stateText) {
-              return ` (${stateText})`;
-            }
-            return '';
-          })()}
-        </h1>
+        <h1 className={commonCss.header}>{resourceTitle}</h1>
         {(() => {
           if (this.props.resourceType === ResourceType.ARTIFACT) {
             return (
