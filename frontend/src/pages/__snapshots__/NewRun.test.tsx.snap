@@ -388,7 +388,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
             Note, the service account needs
              
             <ExternalLink
-              href="https://github.com/argoproj/argo-workflows/blob/v2.3.0/docs/workflow-rbac.md"
+              href="https://argoproj.github.io/argo-workflows/workflow-rbac/"
             >
               minimum permissions required by argo workflows
             </ExternalLink>
@@ -909,7 +909,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
             Note, the service account needs
              
             <ExternalLink
-              href="https://github.com/argoproj/argo-workflows/blob/v2.3.0/docs/workflow-rbac.md"
+              href="https://argoproj.github.io/argo-workflows/workflow-rbac/"
             >
               minimum permissions required by argo workflows
             </ExternalLink>
@@ -1430,7 +1430,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
             Note, the service account needs
              
             <ExternalLink
-              href="https://github.com/argoproj/argo-workflows/blob/v2.3.0/docs/workflow-rbac.md"
+              href="https://argoproj.github.io/argo-workflows/workflow-rbac/"
             >
               minimum permissions required by argo workflows
             </ExternalLink>
@@ -1969,7 +1969,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
             Note, the service account needs
              
             <ExternalLink
-              href="https://github.com/argoproj/argo-workflows/blob/v2.3.0/docs/workflow-rbac.md"
+              href="https://argoproj.github.io/argo-workflows/workflow-rbac/"
             >
               minimum permissions required by argo workflows
             </ExternalLink>
@@ -2490,7 +2490,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
             Note, the service account needs
              
             <ExternalLink
-              href="https://github.com/argoproj/argo-workflows/blob/v2.3.0/docs/workflow-rbac.md"
+              href="https://argoproj.github.io/argo-workflows/workflow-rbac/"
             >
               minimum permissions required by argo workflows
             </ExternalLink>
@@ -3009,7 +3009,7 @@ exports[`NewRun renders the new run page 1`] = `
             Note, the service account needs
              
             <ExternalLink
-              href="https://github.com/argoproj/argo-workflows/blob/v2.3.0/docs/workflow-rbac.md"
+              href="https://argoproj.github.io/argo-workflows/workflow-rbac/"
             >
               minimum permissions required by argo workflows
             </ExternalLink>
@@ -3530,7 +3530,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
             Note, the service account needs
              
             <ExternalLink
-              href="https://github.com/argoproj/argo-workflows/blob/v2.3.0/docs/workflow-rbac.md"
+              href="https://argoproj.github.io/argo-workflows/workflow-rbac/"
             >
               minimum permissions required by argo workflows
             </ExternalLink>
@@ -4069,7 +4069,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
             Note, the service account needs
              
             <ExternalLink
-              href="https://github.com/argoproj/argo-workflows/blob/v2.3.0/docs/workflow-rbac.md"
+              href="https://argoproj.github.io/argo-workflows/workflow-rbac/"
             >
               minimum permissions required by argo workflows
             </ExternalLink>
@@ -4590,7 +4590,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
             Note, the service account needs
              
             <ExternalLink
-              href="https://github.com/argoproj/argo-workflows/blob/v2.3.0/docs/workflow-rbac.md"
+              href="https://argoproj.github.io/argo-workflows/workflow-rbac/"
             >
               minimum permissions required by argo workflows
             </ExternalLink>
@@ -5122,7 +5122,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
             Note, the service account needs
              
             <ExternalLink
-              href="https://github.com/argoproj/argo-workflows/blob/v2.3.0/docs/workflow-rbac.md"
+              href="https://argoproj.github.io/argo-workflows/workflow-rbac/"
             >
               minimum permissions required by argo workflows
             </ExternalLink>
@@ -5643,7 +5643,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
             Note, the service account needs
              
             <ExternalLink
-              href="https://github.com/argoproj/argo-workflows/blob/v2.3.0/docs/workflow-rbac.md"
+              href="https://argoproj.github.io/argo-workflows/workflow-rbac/"
             >
               minimum permissions required by argo workflows
             </ExternalLink>
