@@ -323,7 +323,7 @@ export class OutputArtifactLoader {
               'from tfx.utils import io_utils',
               'from tensorflow_metadata.proto.v0 import anomalies_pb2',
               'anomalies = anomalies_pb2.Anomalies()',
-              `anomalies_bytes = io_utils.read_file_to_string('${artifact.getUri()}/Split-${name}', True)`,
+              `anomalies_bytes = io_utils.read_bytes_file('${artifact.getUri()}/Split-${name}')`,
               'anomalies.ParseFromString(anomalies_bytes)',
               'tfdv.display_anomalies(anomalies)',
             ];
