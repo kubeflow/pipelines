@@ -206,6 +206,10 @@ func eventPath(artifactName string) *pb.Event_Path {
 	}
 }
 
+func getArtifactName(eventPath *pb.Event_Path) string {
+	return eventPath.Steps[0].GetKey()
+}
+
 // PublishExecution publishes the specified execution with the given output
 // parameters, artifacts and state.
 func (c *Client) PublishExecution(ctx context.Context, execution *Execution, outputParameters *Parameters, outputArtifacts []*OutputArtifact, state pb.Execution_State) error {
@@ -323,6 +327,29 @@ func (c *Client) GetExecutions(ctx context.Context, ids []int64) ([]*pb.Executio
 		return nil, err
 	}
 	return res.Executions, nil
+}
+
+// GetEventsByArtifactIDs ...
+func (c *Client) GetEventsByArtifactIDs (ctx context.Context, artifactIds []int64) ([]*pb.Event, error) {
+	req := &pb.GetEventsByArtifactIDsRequest{ArtifactIds: artifactIds}
+	res, err := c.svc.GetEventsByArtifactIDs(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return res.Events, nil
+}
+
+func (c* Client) GetArtifactName(ctx context.Context, artifactId int64)(string, error) {
+	mlmdEvents, err := c.GetEventsByArtifactIDs(ctx, []int64{artifactId})
+	if err != nil {
+		return "", fmt.Errorf("faild when getting events with artifact id %v: %w", artifactId, err)
+	}
+	if len(mlmdEvents) == 0 {
+		glog.Infof("can't find any events with artifact id %v", artifactId)
+		return "", nil
+	}
+	event := mlmdEvents[0]
+	return getArtifactName(event.Path), nil
 }
 
 // GetArtifacts ...
