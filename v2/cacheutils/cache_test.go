@@ -255,9 +255,6 @@ func TestGenerateFingerPrint(t *testing.T) {
 			assert.Nil(t, err)
 			testFingerPrint, err := GenerateFingerPrint(test.cacheKey)
 			assert.Nil(t, err)
-			fmt.Println(test.name)
-			fmt.Println(fingerPrint)
-			fmt.Println(testFingerPrint)
 			assert.Equal(t, fingerPrint == testFingerPrint, test.wantEqual)
 		})
 	}

@@ -5,8 +5,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"github.com/protocolbuffers/txtpbfmt/parser"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/encoding/prototext"
 	"os"
 	"strconv"
 	"strings"
@@ -26,16 +28,19 @@ const (
 )
 
 func GenerateFingerPrint(cacheKey *pipeline_spec.CacheKey) (string, error) {
-	b, err := protojson.Marshal(cacheKey)
+	cacheKeyBytes, err := prototext.Marshal(cacheKey)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal cache key: %w", err)
 	}
+	formattedCacheKeyBytes, err := parser.Format(cacheKeyBytes)
+	if err != nil {
+		return "", fmt.Errorf("failed to format marshalled cache key bytes: %w", err)
+	}
 	hash := sha256.New()
-	hash.Write(b)
+	hash.Write(formattedCacheKeyBytes)
 	md := hash.Sum(nil)
 	executionHashKey := hex.EncodeToString(md)
 	return executionHashKey, nil
-
 }
 
 func GenerateCacheKey(
