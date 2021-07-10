@@ -414,9 +414,12 @@ func (l *Launcher) storeOutputArtifactMetadataFromCache(ctx context.Context, exe
 	}
 	MLMDOutputArtifactByName := make(map[string]*pb.Artifact)
 	for _, artifact := range MLMDOutputArtifacts {
-		name, err := l.metadataClient.GetArtifactName(ctx, *artifact.Id)
+		name, err := l.metadataClient.GetArtifactName(ctx, artifact.GetId())
 		if err != nil {
-			return nil, fmt.Errorf("failed to get artifact name with artifact id: %v: %w", *artifact.Id, err)
+			return nil, fmt.Errorf("failed to get artifact name with artifact id: %v: %w", artifact.GetId(), err)
+		}
+		if name == "" {
+			return nil, fmt.Errorf("got empty string when getting artifact name with artifact id: %v", artifact.GetId())
 		}
 		MLMDOutputArtifactByName[name] = artifact
 	}
