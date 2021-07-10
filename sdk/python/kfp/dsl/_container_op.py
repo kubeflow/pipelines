@@ -297,7 +297,7 @@ class Container(V1Container):
         "E", "P", "T", "G", "M", "K".
     """
 
-    if not isinstance(memory,_pipeline_param.PipelineParam):  
+    if not isinstance(memory,_pipeline_param.PipelineParam):
       self._validate_size_string(memory)
     return self.add_resource_request('memory', memory)
 
@@ -313,6 +313,9 @@ class Container(V1Container):
       if self._container_spec:
         self._container_spec.resources.memory_limit = _get_resource_number(memory)
     return self.add_resource_limit('memory', memory)
+
+  def set_caching_options(self, enable_caching):
+    self.enable_caching = enable_caching
 
   def set_ephemeral_storage_request(self, size) -> 'Container':
     """Set ephemeral-storage request (minimum) for this operator.
@@ -341,7 +344,7 @@ class Container(V1Container):
       cpu(Union[str, PipelineParam]): A string which can be a number or a number followed by "m", which
         means 1/1000.
     """
-    if not isinstance(cpu,_pipeline_param.PipelineParam):  
+    if not isinstance(cpu,_pipeline_param.PipelineParam):
       self._validate_cpu_string(cpu)
     return self.add_resource_request('cpu', cpu)
 
@@ -353,7 +356,7 @@ class Container(V1Container):
         means 1/1000.
     """
 
-    if not isinstance(cpu,_pipeline_param.PipelineParam):  
+    if not isinstance(cpu,_pipeline_param.PipelineParam):
       self._validate_cpu_string(cpu)
       if self._container_spec:
         self._container_spec.resources.cpu_limit = _get_cpu_number(cpu)

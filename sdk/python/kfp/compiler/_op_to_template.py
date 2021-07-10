@@ -180,6 +180,9 @@ def _op_to_template(op: BaseOp):
     if op.display_name:
         op.add_pod_annotation('pipelines.kubeflow.org/task_display_name', op.display_name)
 
+    # Caching options, default to True
+    op.add_pod_annotation('pipelines.kubeflow.org/enable_caching', op.enable_caching or True)
+
     # NOTE in-place update to BaseOp
     # replace all PipelineParams with template var strings
     processed_op = _process_base_ops(op)
