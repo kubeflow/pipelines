@@ -66,7 +66,8 @@ def verify_tasks(t: unittest.TestCase, tasks: dict[str, KfpTask]):
                 'output_parameter_one': 1234
             }
         },
-        'type': 'kfp.ContainerExecution'
+        'type': 'kfp.ContainerExecution',
+        'state': Execution.State.COMPLETE,
     }, preprocess.get_dict())
     t.assertEqual({
         'name': 'train-op',

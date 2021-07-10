@@ -152,7 +152,8 @@ def verify(
                 }],
                 'parameters': {}
             },
-            'type': 'kfp.ContainerExecution'
+            'type': 'kfp.ContainerExecution',
+            'state': Execution.State.COMPLETE,
         }, iris_sgdclassifier.get_dict()
     )
     rows = iris_sgdclassifier.get_dict()['outputs']['artifacts'][0]['metadata'][
