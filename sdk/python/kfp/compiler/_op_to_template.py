@@ -254,8 +254,8 @@ def _op_to_template(op: BaseOp):
             template['metadata']['labels'] = processed_op.pod_labels
 
     # priority_class
-    if processed_op.priority_class_name:
-        template['priorityClassName'] = processed_op.priority_class_name
+    if processed_op.pod_priority_class_name:
+        template['priorityClassName'] = processed_op.pod_priority_class_name
 
     # retries
     if processed_op.num_retries or processed_op.retry_policy:
