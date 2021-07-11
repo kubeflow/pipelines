@@ -12,6 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM busybox:stable
-COPY build/launcher /bin/launch
-COPY launcher_container/mount_launcher.sh /bin/mount_launcher.sh
+FROM scratch
+COPY build/driver /bin/kfp/driver

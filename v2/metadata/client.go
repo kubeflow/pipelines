@@ -40,6 +40,8 @@ const (
 	pipelineContextTypeName    = "system.Pipeline"
 	pipelineRunContextTypeName = "system.PipelineRun"
 	containerExecutionTypeName = "system.ContainerExecution"
+	dagExecutionTypeName       = "system.DAGExecution"
+	containerExecutionTypeName = "system.ContainerExecution"
 	mlmdClientSideMaxRetries   = 3
 )
 
@@ -51,6 +53,10 @@ var (
 
 	pipelineRunContextType = &pb.ContextType{
 		Name: proto.String(pipelineRunContextTypeName),
+	}
+
+	dagExecutionType = &pb.ExecutionType{
+		Name: proto.String(dagExecutionTypeName),
 	}
 
 	containerExecutionType = &pb.ExecutionType{
@@ -126,10 +132,24 @@ type Pipeline struct {
 	pipelineRunCtx *pb.Context
 }
 
+func (p *Pipeline) GetRunCtxID() int64 {
+	if p == nil {
+		return 0
+	}
+	return p.pipelineRunCtx.GetId()
+}
+
 // Execution is a handle for the current execution.
 type Execution struct {
 	execution *pb.Execution
 	pipeline  *Pipeline
+}
+
+func (e *Execution) GetID() int64 {
+	if e == nil {
+		return 0
+	}
+	return e.execution.GetId()
 }
 
 // GetPipeline returns the current pipeline represented by the specified
@@ -288,14 +308,16 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 		e.CustomProperties["cached_execution_id"] = stringValue(config.CachedMLMDExecutionID)
 	}
 
-	for k, v := range config.InputParameters.StringParameters {
-		e.CustomProperties["input:"+k] = stringValue(v)
-	}
-	for k, v := range config.InputParameters.IntParameters {
-		e.CustomProperties["input:"+k] = intValue(v)
-	}
-	for k, v := range config.InputParameters.DoubleParameters {
-		e.CustomProperties["input:"+k] = doubleValue(v)
+	if config.InputParameters != nil {
+		for k, v := range config.InputParameters.StringParameters {
+			e.CustomProperties["input:"+k] = stringValue(v)
+		}
+		for k, v := range config.InputParameters.IntParameters {
+			e.CustomProperties["input:"+k] = intValue(v)
+		}
+		for k, v := range config.InputParameters.DoubleParameters {
+			e.CustomProperties["input:"+k] = doubleValue(v)
+		}
 	}
 
 	req := &pb.PutExecutionRequest{

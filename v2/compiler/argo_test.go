@@ -16,49 +16,99 @@ func Test_argo_compiler(t *testing.T) {
 		t.Error(err)
 	}
 	expectedText := `
-apiVersion: argoproj.io/v1alpha1
-kind: Workflow
-metadata:
-  generateName: hello-world-
-spec:
-  serviceAccountName: pipeline-runner
-  entrypoint: root
-  templates:
-  - container:
-      args:
-      - --text
-      - '{{$.inputs.parameters[''text'']}}'
-      command:
-      - sh
-      - -ec
-      - |
-        program_path=$(mktemp)
-        printf "%s" "$0" > "$program_path"
-        python3 -u "$program_path" "$@"
-      - |
-        def hello_world(text):
-            print(text)
-            return text
+  apiVersion: argoproj.io/v1alpha1
+  kind: Workflow
+  metadata:
+    generateName: hello-world-
+  spec:
+    entrypoint: root
+    serviceAccountName: pipeline-runner
+    templates:
+    - container:
+        args:
+        - --text
+        - '{{$.inputs.parameters[''text'']}}'
+        command:
+        - sh
+        - -ec
+        - |
+          program_path=$(mktemp)
+          printf "%s" "$0" > "$program_path"
+          python3 -u "$program_path" "$@"
+        - |
+          def hello_world(text):
+              print(text)
+              return text
 
-        import argparse
-        _parser = argparse.ArgumentParser(prog='Hello world', description='')
-        _parser.add_argument("--text", dest="text", type=str, required=True, default=argparse.SUPPRESS)
-        _parsed_args = vars(_parser.parse_args())
+          import argparse
+          _parser = argparse.ArgumentParser(prog='Hello world', description='')
+          _parser.add_argument("--text", dest="text", type=str, required=True, default=argparse.SUPPRESS)
+          _parsed_args = vars(_parser.parse_args())
 
-        _outputs = hello_world(**_parsed_args)
-      image: python:3.7
-    name: comp-hello-world
-  - dag:
-      tasks:
-      - name: hello-world
-        template: comp-hello-world
-    name: root`
+          _outputs = hello_world(**_parsed_args)
+        image: python:3.7
+      name: comp-hello-world
+    - dag:
+        tasks:
+        - name: hello-world
+          template: comp-hello-world
+      name: root-dag
+    - container:
+        args:
+        - --pipeline_name
+        - hello-world
+        - --run_id
+        - '{{workflow.uid}}'
+        - --component
+        - '{{inputs.parameters.component}}'
+        - --task
+        - '{{inputs.parameters.task}}'
+        - --execution_id_path
+        - '{{outputs.parameters.execution-id.path}}'
+        - --context_id_path
+        - '{{outputs.parameters.context-id.path}}'
+        command:
+        - /bin/kfp/driver
+        image: gcr.io/gongyuan-dev/dev/kfp-driver:latest
+      inputs:
+        parameters:
+        - name: component
+        - name: task
+      name: system-dag-driver
+      outputs:
+        parameters:
+        - name: execution-id
+          valueFrom:
+            path: /tmp/outputs/execution-id
+        - name: context-id
+          valueFrom:
+            path: /tmp/outputs/context-id
+    - dag:
+        tasks:
+        - arguments:
+            parameters:
+            - name: component
+              value: '{"inputDefinitions":{"parameters":{"text":{"type":"STRING"}}},"dag":{"tasks":{"hello-world":{"taskInfo":{"name":"hello-world"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-hello-world"}}}}}'
+            - name: task
+              value: '{}'
+          name: driver
+          template: system-dag-driver
+        - dependencies:
+          - driver
+          name: dag
+          template: root-dag
+      name: root
+    `
 	var expected wfapi.Workflow
 	err = yaml.Unmarshal([]byte(expectedText), &expected)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !cmp.Equal(wf, &expected) {
-		t.Errorf("Incorrect compiled workflow, diff:%s", cmp.Diff(&expected, wf))
+		got, err := yaml.Marshal(wf)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Errorf("compiler.Compile(%s)!=expected, diff: %s\n got:\n%s\n", jobPath, cmp.Diff(&expected, wf), string(got))
 	}
 }

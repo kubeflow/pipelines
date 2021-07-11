@@ -20,14 +20,16 @@ REPO_ROOT=..
 # override this via env to increase verbosity of go-licenses, example:
 # GO_LICENSES_FLAGS=-v4 make license-launcher
 GO_LICENSES_FLAGS?=
-
-build-launcher:
-	@docker build -t ${LAUNCHER_IMAGE} -f launcher_container/Dockerfile $(REPO_ROOT)
-
-push-launcher: build-launcher
-	@docker push ${LAUNCHER_IMAGE}
+GO_FLAGS=GO111MODULE=on CGO_ENABLED=0 GOOS=linux GOARCH=amd64
+GO_BUILD_FLAGS=-tags netgo -ldflags '-extldflags "-static"'
+IMAGE_DEV?=gcr.io/ml-pipeline-test/dev
 
 all: push-launcher
+
+image-launcher:
+	@docker build -t ${LAUNCHER_IMAGE} -f container/launcher/Dockerfile .
+push-launcher: build-launcher
+	@docker push ${LAUNCHER_IMAGE}
 
 license-launcher: third_party/licenses/launcher.csv
 third_party/licenses/launcher.csv: build/launcher go-licenses.yaml
@@ -42,31 +44,39 @@ start-mlmd:
 		gcr.io/tfx-oss-public/ml_metadata_store_server:1.0.0 \
 		-exc 'echo "$${MLMD_CONFIG}" > config && /bin/metadata_store_server -metadata_store_server_config_file config'
 
-# The following are dev rules:
-
-dev-build-launcher: build/launcher launcher_container/Dockerfile.dev launcher_container/mount_launcher.sh
-	@docker build -t ${LAUNCHER_IMAGE_DEV} -f launcher_container/Dockerfile.dev ./
-
-dev-push-launcher: dev-build-launcher
-	@docker push ${LAUNCHER_IMAGE_DEV}
+.PHONY: build push-dev
+build: build/launcher build/compiler build/driver
+push-dev: push-launcher-dev push-driver-dev
 
 # always rebuild, it's hard to set up exact dependencies
-build/launcher: FORCE
-	GO111MODULE=on \
-	CGO_ENABLED=0 \
-	GOOS=linux \
-	GOARCH=amd64 \
-	go build -tags netgo -ldflags '-extldflags "-static"' -o build/launcher github.com/kubeflow/pipelines/v2/cmd/launch
-
-build/compiler: FORCE
-	GO111MODULE=on \
-	CGO_ENABLED=0 \
-	GOOS=linux \
-	GOARCH=amd64 \
-	go build -tags netgo -ldflags '-extldflags "-static"' -o build/compiler github.com/kubeflow/pipelines/v2/cmd/compiler
+# For build/launcher, $@ will be build/launcher, $* will be launcher.
+build/%: FORCE
+	$(GO_FLAGS) go build $(GO_BUILD_FLAGS) -o $@ github.com/kubeflow/pipelines/v2/cmd/$*
+image-%-dev: FORCE
+	@docker build -t $(IMAGE_DEV)/$* -f container/$*/Dockerfile.dev ./
+push-%-dev: FORCE
+	@docker push ${IMAGE_DEV}/$*
+# spell out all possibilities so that shell autocomplete works
+build/launcher:
+build/compiler:
+build/driver:
+image-launcher-dev:
+image-driver-dev:
+push-launcher-dev:
+push-driver-dev:
 
 .PHONY: install-compiler
 install-compiler: build/compiler
 	cp build/compiler ~/bin/kfp-compiler
 
+.PHONY: start-mlmd
+start-mlmd:
+# Run a temporary MLMD server, useful for development / testing.
+	docker run -p 8080:8080 \
+		--env MLMD_CONFIG=connection_config{sqlite{filename_uri:\"file:///mlmd.db\"}} \
+		--entrypoint /bin/bash \
+		gcr.io/tfx-oss-public/ml_metadata_store_server:1.0.0 \
+		-exc 'echo "$${MLMD_CONFIG}" > config && /bin/metadata_store_server -metadata_store_server_config_file config'
+
+# Add the FORCE as a dependency if a target should be run each time.
 FORCE:

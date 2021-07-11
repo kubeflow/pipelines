@@ -53,7 +53,7 @@ def v2_sample_test(
     build_kfp_launcher_op = kaniko(
         context_artifact=download_src_op.outputs['folder'],
         destination=launcher_destination,
-        dockerfile='v2/launcher_container/Dockerfile',
+        dockerfile='v2/container/launcher/Dockerfile',
     )
     build_kfp_launcher_op.set_display_name('build_kfp_launcher')
     build_samples_image_op = kaniko(

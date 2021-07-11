@@ -1,0 +1,16 @@
+apiVersion: skaffold/v2beta17
+kind: Config
+metadata:
+  name: kfp-v2
+build:
+  tagPolicy:
+    sha256: {}
+  artifacts:
+  - image: gcr.io/gongyuan-dev/dev/kfp-launcher
+    context: .
+    docker:
+      dockerfile: container/launcher/Dockerfile.dev
+  - image: gcr.io/gongyuan-dev/dev/kfp-driver
+    context: .
+    docker:
+      dockerfile: container/driver/Dockerfile.dev
