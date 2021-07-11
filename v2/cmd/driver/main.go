@@ -32,6 +32,7 @@ const (
 	runIDArg             = "run_id"
 	componentArg         = "component"
 	taskArg              = "task"
+	runtimeConfigArg     = "runtime_config"
 	mlmdServerAddressArg = "mlmd_server_address"
 	mlmdServerPortArg    = "mlmd_server_port"
 	executionIDPathArg   = "execution_id_path"
@@ -42,8 +43,9 @@ var (
 	// inputs
 	pipelineName      = flag.String(pipelineNameArg, "", "pipeline context name")
 	runID             = flag.String(runIDArg, "", "pipeline run uid")
-	componentSpecJson = flag.String(componentArg, "", "component spec")
-	taskSpecJson      = flag.String(taskArg, "", "task spec")
+	componentSpecJson = flag.String(componentArg, "{}", "component spec")
+	taskSpecJson      = flag.String(taskArg, "{}", "task spec")
+	runtimeConfigJson = flag.String(runtimeConfigArg, "{}", "jobruntime config")
 	// config
 	mlmdServerAddress = flag.String(mlmdServerAddressArg, "", "MLMD server address")
 	mlmdServerPort    = flag.String(mlmdServerPortArg, "", "MLMD server port")
@@ -56,7 +58,7 @@ var (
 
 func main() {
 	flag.Parse()
-	err := validate()
+	err := validateRootDAG()
 	if err != nil {
 		glog.Exitf("%v", err)
 	}
@@ -71,6 +73,14 @@ func init() {
 	flag.Set("logtostderr", "true")
 	// Change the WARNING to INFO level for debugging.
 	flag.Set("stderrthreshold", "WARNING")
+}
+
+func validateRootDAG() error {
+	err := validate()
+	if err != nil {
+		return err
+	}
+	return notEmpty(runtimeConfigArg, runtimeConfigJson)
 }
 
 func validate() error {
@@ -105,11 +115,15 @@ func drive() error {
 	if err := jsonpb.UnmarshalString(*taskSpecJson, taskSpec); err != nil {
 		return fmt.Errorf("Failed to unmarshal task spec, error: %w, task: %v", err, taskSpecJson)
 	}
+	runtimeConfig := &pipelinespec.PipelineJob_RuntimeConfig{}
+	if err := jsonpb.UnmarshalString(*runtimeConfigJson, runtimeConfig); err != nil {
+		return fmt.Errorf("Failed to unmarshal runtime config, error: %w, runtimeConfig: %v", err, runtimeConfigJson)
+	}
 	client, err := newMlmdClient()
 	if err != nil {
 		return err
 	}
-	execution, err := driver.RootDAG(*pipelineName, *runID, componentSpec, taskSpec, client)
+	execution, err := driver.RootDAG(*pipelineName, *runID, componentSpec, runtimeConfig, client)
 	if err != nil {
 		return err
 	}

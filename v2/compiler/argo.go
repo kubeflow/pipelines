@@ -28,8 +28,16 @@ func Compile(job *pipelinespec.PipelineJob) (*wfapi.Workflow, error) {
 		},
 		ObjectMeta: k8smeta.ObjectMeta{
 			GenerateName: spec.GetPipelineInfo().GetName() + "-",
+			Annotations: map[string]string{
+				"pipelines.kubeflow.org/v2_pipeline": "true",
+			},
 		},
 		Spec: wfapi.WorkflowSpec{
+			PodMetadata: &wfapi.Metadata{
+				Annotations: map[string]string{
+					"pipelines.kubeflow.org/v2_component": "true",
+				},
+			},
 			ServiceAccountName: "pipeline-runner",
 			Entrypoint:         rootComponentName,
 		},
@@ -90,7 +98,12 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 	dagName, err := c.addTemplate(dag, name+"-dag")
 	wrapper := &wfapi.Template{}
 	task := &pipelinespec.PipelineTaskSpec{}
-	driverTask, err := c.dagDriverTask(componentSpec, task)
+	var runtimeConfig *pipelinespec.PipelineJob_RuntimeConfig
+	if name == "root" {
+		// runtime config is input to the entire pipeline (root DAG)
+		runtimeConfig = c.job.GetRuntimeConfig()
+	}
+	driverTask, err := c.dagDriverTask(componentSpec, task, runtimeConfig)
 	if err != nil {
 		return err
 	}
@@ -119,24 +132,35 @@ func (c *workflowCompiler) addTemplate(t *wfapi.Template, name string) (string, 
 }
 
 const (
-	paramComponent   = "component" // component spec
-	paramTask        = "task"      // task spec
-	paramExecutionID = "execution-id"
-	paramContextID   = "context-id"
+	paramComponent     = "component"      // component spec
+	paramTask          = "task"           // task spec
+	paramRuntimeConfig = "runtime-config" // job runtime config, pipeline level inputs
+	paramExecutionID   = "execution-id"
+	paramContextID     = "context-id"
 )
 
-func (c *workflowCompiler) dagDriverTask(component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec) (*wfapi.DAGTask, error) {
-	if component == nil || task == nil {
-		return nil, fmt.Errorf("dagDriverTask: component and task must be non-nil")
+func (c *workflowCompiler) dagDriverTask(component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec, runtimeConfig *pipelinespec.PipelineJob_RuntimeConfig) (*wfapi.DAGTask, error) {
+	if component == nil {
+		return nil, fmt.Errorf("dagDriverTask: component must be non-nil")
 	}
 	marshaler := jsonpb.Marshaler{}
 	componentJson, err := marshaler.MarshalToString(component)
 	if err != nil {
 		return nil, fmt.Errorf("dagDriverTask: marlshaling component spec to proto JSON failed: %w", err)
 	}
-	taskJson, err := marshaler.MarshalToString(task)
-	if err != nil {
-		return nil, fmt.Errorf("dagDriverTask: marshaling task spec to proto JSON failed: %w", err)
+	taskJson := "{}"
+	if task != nil {
+		taskJson, err = marshaler.MarshalToString(task)
+		if err != nil {
+			return nil, fmt.Errorf("dagDriverTask: marshaling task spec to proto JSON failed: %w", err)
+		}
+	}
+	runtimeConfigJson := "{}"
+	if runtimeConfig != nil {
+		runtimeConfigJson, err = marshaler.MarshalToString(runtimeConfig)
+		if err != nil {
+			return nil, fmt.Errorf("dagDriverTask: marshaling runtime config to proto JSON failed: %w", err)
+		}
 	}
 	templateName := c.addDAGDriverTemplate()
 	t := &wfapi.DAGTask{
@@ -150,6 +174,10 @@ func (c *workflowCompiler) dagDriverTask(component *pipelinespec.ComponentSpec, 
 				{
 					Name:  paramTask,
 					Value: wfapi.AnyStringPtr(taskJson),
+				},
+				{
+					Name:  paramRuntimeConfig,
+					Value: wfapi.AnyStringPtr(runtimeConfigJson),
 				},
 			},
 		},
@@ -169,6 +197,7 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 			Parameters: []wfapi.Parameter{
 				{Name: paramComponent},
 				{Name: paramTask},
+				{Name: paramRuntimeConfig},
 			},
 		},
 		Outputs: wfapi.Outputs{
@@ -185,6 +214,7 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 				"--run_id", runID(),
 				"--component", inputValue(paramComponent),
 				"--task", inputValue(paramTask),
+				"--runtime_config", inputValue(paramRuntimeConfig),
 				"--execution_id_path", outputPath(paramExecutionID),
 				"--context_id_path", outputPath(paramContextID),
 			},

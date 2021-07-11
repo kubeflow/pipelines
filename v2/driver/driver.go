@@ -13,15 +13,21 @@ type Execution struct {
 	ExecutorInput pipelinespec.ExecutorInput
 }
 
-func RootDAG(pipelineName string, runID string, component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (*Execution, error) {
+func RootDAG(pipelineName string, runID string, component *pipelinespec.ComponentSpec, runtimeConfig *pipelinespec.PipelineJob_RuntimeConfig, mlmd *metadata.Client) (*Execution, error) {
 	ctx := context.Background()
 	pipeline, err := mlmd.GetPipeline(ctx, pipelineName, runID)
 	if err != nil {
 		return nil, err
 	}
-	// TODO(Bobgy): resolve pipeline level inputs as ExecutorInput
-	// ecfg := metadata.GenerateExecutionConfig(executorInput)
-	ecfg := &metadata.ExecutionConfig{}
+	executorInput := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			Parameters: runtimeConfig.Parameters,
+		},
+	}
+	ecfg, err := metadata.GenerateExecutionConfig(executorInput)
+	if err != nil {
+		return nil, err
+	}
 	execution, err := mlmd.CreateExecution(ctx, pipeline, "root", "", "", ecfg)
 	if err != nil {
 		return nil, err

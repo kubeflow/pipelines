@@ -19,9 +19,14 @@ func Test_argo_compiler(t *testing.T) {
   apiVersion: argoproj.io/v1alpha1
   kind: Workflow
   metadata:
+    annotations:
+      pipelines.kubeflow.org/v2_pipeline: "true"
     generateName: hello-world-
   spec:
     entrypoint: root
+    podMetadata:
+      annotations:
+        pipelines.kubeflow.org/v2_component: "true"
     serviceAccountName: pipeline-runner
     templates:
     - container:
@@ -63,6 +68,8 @@ func Test_argo_compiler(t *testing.T) {
         - '{{inputs.parameters.component}}'
         - --task
         - '{{inputs.parameters.task}}'
+        - --runtime_config
+        - '{{inputs.parameters.runtime-config}}'
         - --execution_id_path
         - '{{outputs.parameters.execution-id.path}}'
         - --context_id_path
@@ -74,6 +81,7 @@ func Test_argo_compiler(t *testing.T) {
         parameters:
         - name: component
         - name: task
+        - name: runtime-config
       name: system-dag-driver
       outputs:
         parameters:
@@ -83,7 +91,8 @@ func Test_argo_compiler(t *testing.T) {
         - name: context-id
           valueFrom:
             path: /tmp/outputs/context-id
-    - dag:
+    - name: root
+      dag:
         tasks:
         - arguments:
             parameters:
@@ -91,13 +100,14 @@ func Test_argo_compiler(t *testing.T) {
               value: '{"inputDefinitions":{"parameters":{"text":{"type":"STRING"}}},"dag":{"tasks":{"hello-world":{"taskInfo":{"name":"hello-world"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-hello-world"}}}}}'
             - name: task
               value: '{}'
+            - name: runtime-config
+              value: '{"parameters":{"text":{"stringValue":"hi there"}}}'
           name: driver
           template: system-dag-driver
         - dependencies:
           - driver
           name: dag
           template: root-dag
-      name: root
     `
 	var expected wfapi.Workflow
 	err = yaml.Unmarshal([]byte(expectedText), &expected)
