@@ -74,6 +74,7 @@ def v2_sample_test(
         )
         run_sample_op.container.image = build_samples_image_op.outputs['digest']
         run_sample_op.set_display_name(f'sample_{sample.name}')
+        run_sample_op.set_retry(3)
 
 
 def main(
