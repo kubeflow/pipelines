@@ -105,7 +105,7 @@ def verify(
 if __name__ == '__main__':
     letters = string.ascii_lowercase
     random_uri = 'http://' + ''.join(random.choice(letters) for i in range(5))
-    random_int = random.randint(0, 100)
+    random_int = random.randint(0, 10000)
     run_pipeline_func([
         TestCase(
             pipeline_func=random_two_step_pipeline,

@@ -14,7 +14,8 @@
 """Random Two step v2-compatible pipeline."""
 
 from kfp import components, dsl
-from kfp.components import InputPath, OutputPath
+from kfp.components import OutputPath
+from two_step import train_op
 
 
 def preprocess(
@@ -30,24 +31,6 @@ def preprocess(
 preprocess_op = components.create_component_from_func(
     preprocess, base_image='python:3.9'
 )
-
-
-@components.create_component_from_func
-def train_op(
-        dataset: InputPath('Dataset'),
-        model: OutputPath('Model'),
-        num_steps: int = 100
-):
-    '''Dummy Training Step.'''
-
-    with open(dataset, 'r') as input_file:
-        input_string = input_file.read()
-        with open(model, 'w') as output_file:
-            for i in range(num_steps):
-                output_file.write(
-                    "Step {}\n{}\n=====\n".format(i, input_string)
-                )
-
 
 @dsl.pipeline(name='random_two_step_pipeline')
 def random_two_step_pipeline(uri: str, some_int: int):
