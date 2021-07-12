@@ -9,7 +9,7 @@ outputs:
   - {name: MLPipeline Metrics,     type: Metrics}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:1.7.0-alpha.2
+    image: gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:v1.7.0-alpha.3
     command: [python2, /ml/confusion_matrix.py]
     args: [
       --predictions, {inputValue: Predictions},
