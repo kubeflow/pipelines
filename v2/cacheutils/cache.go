@@ -6,16 +6,18 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"google.golang.org/grpc"
-	"google.golang.org/protobuf/encoding/protojson"
 	"os"
 	"strconv"
 	"strings"
 
+	"google.golang.org/grpc"
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/cachekey"
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	api "github.com/kubeflow/pipelines/v2/kfp-api"
 	"github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
-	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
 )
 
 const (
@@ -26,7 +28,7 @@ const (
 	defaultKfpApiEndpoint = "ml-pipeline.kubeflow:8887"
 )
 
-func GenerateFingerPrint(cacheKey *pipeline_spec.CacheKey) (string, error) {
+func GenerateFingerPrint(cacheKey *cachekey.CacheKey) (string, error) {
 	cacheKeyJsonBytes, err := protojson.Marshal(cacheKey)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal cache key with protojson: %w", err)
@@ -49,20 +51,20 @@ func GenerateFingerPrint(cacheKey *pipeline_spec.CacheKey) (string, error) {
 }
 
 func GenerateCacheKey(
-	inputs *pipeline_spec.ExecutorInput_Inputs,
-	outputs *pipeline_spec.ExecutorInput_Outputs,
+	inputs *pipelinespec.ExecutorInput_Inputs,
+	outputs *pipelinespec.ExecutorInput_Outputs,
 	outputParametersTypeMap map[string]string,
-	cmdArgs []string, image string) (*pipeline_spec.CacheKey, error) {
+	cmdArgs []string, image string) (*cachekey.CacheKey, error) {
 
-	cacheKey := pipeline_spec.CacheKey{
-		InputArtifactNames:   make(map[string]*pipeline_spec.ArtifactNameList),
-		InputParameters:      make(map[string]*pipeline_spec.Value),
-		OutputArtifactsSpec:  make(map[string]*pipeline_spec.RuntimeArtifact),
+	cacheKey := cachekey.CacheKey{
+		InputArtifactNames:   make(map[string]*cachekey.ArtifactNameList),
+		InputParameters:      make(map[string]*pipelinespec.Value),
+		OutputArtifactsSpec:  make(map[string]*pipelinespec.RuntimeArtifact),
 		OutputParametersSpec: make(map[string]string),
 	}
 
 	for inputArtifactName, inputArtifactList := range inputs.GetArtifacts() {
-		inputArtifactNameList := pipeline_spec.ArtifactNameList{ArtifactNames: make([]string, 0)}
+		inputArtifactNameList := cachekey.ArtifactNameList{ArtifactNames: make([]string, 0)}
 		for _, artifact := range inputArtifactList.Artifacts {
 			inputArtifactNameList.ArtifactNames = append(inputArtifactNameList.ArtifactNames, artifact.GetName())
 		}
@@ -70,7 +72,7 @@ func GenerateCacheKey(
 	}
 
 	for inputParameterName, inputParameterValue := range inputs.GetParameters() {
-		cacheKey.InputParameters[inputParameterName] = &pipeline_spec.Value{
+		cacheKey.InputParameters[inputParameterName] = &pipelinespec.Value{
 			Value: inputParameterValue.Value,
 		}
 	}
@@ -81,7 +83,7 @@ func GenerateCacheKey(
 		}
 		// TODO: Support multiple artifacts someday, probably through the v2 engine.
 		outputArtifact := outputArtifactList.Artifacts[0]
-		outputArtifactWithUriWiped := pipeline_spec.RuntimeArtifact{
+		outputArtifactWithUriWiped := pipelinespec.RuntimeArtifact{
 			Name:     outputArtifact.GetName(),
 			Type:     outputArtifact.GetType(),
 			Metadata: outputArtifact.GetMetadata(),
@@ -98,7 +100,7 @@ func GenerateCacheKey(
 		cacheKey.OutputParametersSpec[outputParameterName] = outputParameterType
 	}
 
-	cacheKey.ContainerSpec = &pipeline_spec.ContainerSpec{
+	cacheKey.ContainerSpec = &cachekey.ContainerSpec{
 		Image:   image,
 		CmdArgs: cmdArgs,
 	}
