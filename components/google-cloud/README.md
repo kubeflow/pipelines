@@ -1,7 +1,7 @@
 # Google Cloud Pipeline Components
 
 Google Cloud Pipeline Components provides an SDK and a set of components that lets
-you interact with Google Cloud services such as AI Platform (Unified). You can use 
+you interact with Google Cloud services such as Vertex AI. You can use 
 the predefined components in this repository to build your pipeline using the
 Kubeflow Pipelines SDK.
 
@@ -10,7 +10,7 @@ Kubeflow Pipelines SDK.
 ### Requirements
 
 -   Python >= 3.6
--   [A Google Cloud project with the AI Platform (Unified) API enabled.](https://cloud.google.com/ai-platform-unified/docs/start/cloud-environment)
+-   [A Google Cloud project with the Vertex API enabled.](https://cloud.google.com/vertex-ai/docs/start/cloud-environment)
 -   An
     [authenticated GCP account](https://cloud.google.com/ai-platform/docs/getting-started-keras#authenticate_your_gcp_account)
 
@@ -84,7 +84,7 @@ In this example, the pipeline does the following.
 1.  Imports a dataset, such as a CSV, from the URI specified in a
     pipeline parameter.
 1.  Uses the dataset to train a regression model using tabular data.
-1.  Deploys the model to AI Platform (Unified) for predictions.
+1.  Deploys the model to Vertex AI for predictions.
 
 ## Components 
 Following is the list of currently supported components. 

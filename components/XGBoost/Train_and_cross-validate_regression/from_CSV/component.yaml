@@ -14,6 +14,9 @@ outputs:
 - {name: cv_mean_squared_error, type: Float}
 - {name: cv_root_mean_squared_error, type: Float}
 - {name: cv_metrics, type: JsonObject}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   graph:
     tasks:

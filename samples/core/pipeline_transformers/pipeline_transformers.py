@@ -16,22 +16,23 @@
 
 import kfp
 from kfp import dsl
+import kfp.components as comp
 
-def print_op(msg):
+
+@comp.create_component_from_func
+def print_op(msg: str):
   """Print a message."""
-  return dsl.ContainerOp(
-      name='Print',
-      image='alpine:3.6',
-      command=['echo', msg],
-  )
+  print(msg)
+
 
 def add_annotation(op):
   op.add_pod_annotation(name='hobby', value='football')
   return op
 
+
 @dsl.pipeline(
-    name='pipeline-transformer',
-    description='The pipeline shows how to apply functions to all ops in the pipeline by pipeline transformers'
+  name='pipeline-transformer',
+  description='The pipeline shows how to apply functions to all ops in the pipeline by pipeline transformers'
 )
 def transform_pipeline():
   op1 = print_op('hey, what are you up to?')

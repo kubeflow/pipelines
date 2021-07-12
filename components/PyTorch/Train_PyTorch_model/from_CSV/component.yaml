@@ -1,7 +1,8 @@
 name: Train pytorch model from csv
 description: Trains PyTorch model
 metadata:
-  annotations: {author: Alexey Volkov <alexey.volkov@ark-kun.com>}
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 inputs:
 - {name: model, type: PyTorchScriptModule}
 - {name: training_data, type: CSV}

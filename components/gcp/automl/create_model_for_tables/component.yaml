@@ -12,6 +12,9 @@ outputs:
 - {name: model_path, type: String}
 - {name: model_id, type: String}
 - {name: model_page_url, type: URI}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: python:3.7

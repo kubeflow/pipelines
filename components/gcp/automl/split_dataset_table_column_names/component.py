@@ -46,5 +46,13 @@ def automl_split_dataset_table_column_names(
 
 
 if __name__ == '__main__':
-    import kfp
-    kfp.components.func_to_container_op(automl_split_dataset_table_column_names, output_component_file='component.yaml', base_image='python:3.7')
+    from kfp.components import create_component_from_func
+
+    automl_split_dataset_table_column_names_op = create_component_from_func(
+        automl_split_dataset_table_column_names,
+        output_component_file='component.yaml',
+        base_image='python:3.7',
+        annotations={
+            "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
+        },
+    )

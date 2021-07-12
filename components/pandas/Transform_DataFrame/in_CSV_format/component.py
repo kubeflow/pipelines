@@ -44,4 +44,7 @@ if __name__ == '__main__':
         packages_to_install=[
             'pandas==1.0.4',
         ],
+        annotations={
+            "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
+        },
     )

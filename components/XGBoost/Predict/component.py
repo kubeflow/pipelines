@@ -50,5 +50,8 @@ if __name__ == '__main__':
         packages_to_install=[
             'xgboost==1.1.1',
             'pandas==1.0.5',
-        ]
+        ],
+        annotations={
+            "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
+        },
     )

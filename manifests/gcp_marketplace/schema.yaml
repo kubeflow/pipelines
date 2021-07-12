@@ -1,9 +1,9 @@
 x-google-marketplace:
   schemaVersion: v2
   applicationApiVersion: v1beta1
-  publishedVersion: 1.6.0
+  publishedVersion: 1.7.0-alpha.2
   publishedVersionMetadata:
-    releaseNote: Based on 1.6.0 version.
+    releaseNote: Based on 1.7.0-alpha.2 version.
     releaseTypes:
       - Feature
     recommended: false
@@ -121,6 +121,10 @@ x-google-marketplace:
           - apiGroups: ['']
             resources: ['configmaps', 'events', 'pods/log', 'persistentvolumes', 'persistentvolumeclaims', 'pods', 'pods/exec']
             verbs: ['*']
+          # Needed by argo v3.1.0+
+          - apiGroups: ['coordination.k8s.io']
+            resources: ['leases']
+            verbs: ['create', 'get', 'update']
           - apiGroups: ['batch']
             resources: ['jobs']
             verbs: ['*']
