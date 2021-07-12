@@ -40,7 +40,4 @@ if __name__ == '__main__':
             'pandas==1.0.4',
             'pyarrow==0.14.1',
         ],
-        annotations={
-            "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
-        },
     )

@@ -14,38 +14,40 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-import { Link } from 'react-router-dom';
-import { ListRequest } from 'src/lib/Apis';
 import {
   Api,
-  ArtifactCustomProperties,
+  Artifact,
   ArtifactProperties,
+  ArtifactCustomProperties,
+  ListRequest,
+  ArtifactType,
   getArtifactCreationTime,
   getArtifactTypes,
   getResourcePropertyViaFallBack,
-} from 'src/mlmd/library';
-import { Artifact, ArtifactType, GetArtifactsRequest } from 'src/third_party/mlmd';
+  GetArtifactsRequest,
+} from '@kubeflow/frontend';
+import * as React from 'react';
+import { Link } from 'react-router-dom';
 import { classes } from 'typestyle';
-import { ArtifactLink } from '../components/ArtifactLink';
 import CustomTable, {
   Column,
-  CustomRendererProps,
-  ExpandState,
   Row,
+  ExpandState,
+  CustomRendererProps,
 } from '../components/CustomTable';
-import { RoutePageFactory } from '../components/Router';
+import { Page } from './Page';
 import { ToolbarProps } from '../components/Toolbar';
 import { commonCss, padding } from '../Css';
 import {
-  CollapsedAndExpandedRows,
-  getExpandedRow,
-  groupRows,
   rowCompareFn,
   rowFilterFn,
+  groupRows,
+  getExpandedRow,
   serviceErrorToString,
+  CollapsedAndExpandedRows,
 } from '../lib/Utils';
-import { Page } from './Page';
+import { RoutePageFactory } from '../components/Router';
+import { ArtifactLink } from '../components/ArtifactLink';
 
 interface ArtifactListState {
   artifacts: Artifact[];

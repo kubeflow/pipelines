@@ -28,6 +28,7 @@ def make_required_install_packages():
       "torch>=1.7.1",
       "torchserve>=0.3.0",
       "torch-model-archiver",
+      "pytorch-lightning==1.3.7",
     ]
 
 
@@ -44,7 +45,7 @@ def make_required_test_packages():
 
 
 def make_dependency_links():
-    return ["https://github.com/PyTorchLightning/pytorch-lightning.git"]
+    return []
 
 
 def detect_version(base_path):
@@ -72,7 +73,7 @@ if __name__ == "__main__":
         author="The PyTorch Kubeflow Pipeline Components authors",
         author_email="pytorch-kfp-components@fb.com",
         license="Apache License 2.0",
-        extra_requires={"tests": make_required_test_packages()},
+        extras_require={"tests": make_required_test_packages()},
         include_package_data=True,
         python_requires=">=3.6",
         install_requires=make_required_install_packages(),

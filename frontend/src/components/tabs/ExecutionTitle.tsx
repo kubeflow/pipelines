@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-import { Execution } from 'src/third_party/mlmd';
+import { Execution } from '@kubeflow/frontend';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { commonCss } from 'src/Css';
-import { ExecutionHelpers } from 'src/mlmd/MlmdUtils';
+import { ExecutionHelpers } from 'src/lib/MlmdUtils';
 import { RoutePageFactory } from '../Router';
 
 interface ExecutionTitleProps {

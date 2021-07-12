@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Api, GetArtifactTypesResponse } from 'src/mlmd/library';
+import { Api, GetArtifactTypesResponse } from '@kubeflow/frontend';
 import { render } from '@testing-library/react';
 import * as dagre from 'dagre';
 import { mount, ReactWrapper, shallow, ShallowWrapper } from 'enzyme';
@@ -27,14 +27,14 @@ import { QUERY_PARAMS, RoutePage, RouteParams } from '../components/Router';
 import { PlotType } from '../components/viewers/Viewer';
 import { Apis, JSONObject } from '../lib/Apis';
 import { ButtonKeys } from '../lib/Buttons';
-import * as MlmdUtils from 'src/mlmd/MlmdUtils';
+import * as MlmdUtils from '../lib/MlmdUtils';
 import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
 import { NodePhase } from '../lib/StatusUtils';
 import * as Utils from '../lib/Utils';
 import WorkflowParser from '../lib/WorkflowParser';
 import TestUtils from '../TestUtils';
 import { PageProps } from './Page';
-import EnhancedRunDetails, { RunDetailsInternalProps, SidePanelTab, TEST_ONLY } from './RunDetails';
+import EnhancedRunDetails, { RunDetailsInternalProps, TEST_ONLY } from './RunDetails';
 
 const RunDetails = TEST_ONLY.RunDetails;
 
@@ -56,15 +56,15 @@ jest.mock('../components/Graph', () => {
 });
 
 const STEP_TABS = {
-  INPUT_OUTPUT: SidePanelTab.INPUT_OUTPUT,
-  VISUALIZATIONS: SidePanelTab.VISUALIZATIONS,
-  TASK_DETAILS: SidePanelTab.TASK_DETAILS,
-  VOLUMES: SidePanelTab.VOLUMES,
-  LOGS: SidePanelTab.LOGS,
-  POD: SidePanelTab.POD,
-  EVENTS: SidePanelTab.EVENTS,
-  ML_METADATA: SidePanelTab.ML_METADATA,
-  MANIFEST: SidePanelTab.MANIFEST,
+  INPUT_OUTPUT: 0,
+  VISUALIZATIONS: 1,
+  ML_METADATA: 2,
+  TASK_DETAILS: 3,
+  VOLUMES: 4,
+  LOGS: 5,
+  POD: 6,
+  EVENTS: 7,
+  MANIFEST: 8,
 };
 
 const WORKFLOW_TEMPLATE = {

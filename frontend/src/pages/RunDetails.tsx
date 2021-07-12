@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { Context, Execution } from '@kubeflow/frontend';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import InfoIcon from '@material-ui/icons/InfoOutlined';
 import { flatten } from 'lodash';
@@ -24,9 +25,8 @@ import InputOutputTab from 'src/components/tabs/InputOutputTab';
 import { MetricsTab } from 'src/components/tabs/MetricsTab';
 import { GkeMetadata, GkeMetadataContext } from 'src/lib/GkeMetadata';
 import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
-import { ExecutionHelpers, getExecutionsFromContext, getRunContext } from 'src/mlmd/MlmdUtils';
+import { ExecutionHelpers, getExecutionsFromContext, getRunContext } from 'src/lib/MlmdUtils';
 import { isV2Pipeline } from 'src/lib/v2/WorkflowUtils';
-import { Context, Execution } from 'src/third_party/mlmd';
 import { classes, stylesheet } from 'typestyle';
 import {
   NodePhase as ArgoNodePhase,
@@ -79,17 +79,28 @@ import { ExecutionDetailsContent } from './ExecutionDetails';
 import { Page, PageProps } from './Page';
 import { statusToIcon } from './Status';
 
-export enum SidePanelTab {
+enum SidePaneTab {
   INPUT_OUTPUT,
   VISUALIZATIONS,
+  ML_METADATA,
   TASK_DETAILS,
   VOLUMES,
   LOGS,
   POD,
   EVENTS,
-  ML_METADATA,
   MANIFEST,
 }
+
+const tabsNames = [
+  'Input/Output',
+  'Visualizations',
+  'ML Metadata',
+  'Details',
+  'Volumes',
+  'Logs',
+  'Pod',
+  'Events',
+];
 
 interface SelectedNodeDetails {
   id: string;
@@ -133,7 +144,7 @@ interface RunDetailsState {
   selectedNodeDetails: SelectedNodeDetails | null;
   sidepanelBannerMode: Mode;
   sidepanelBusy: boolean;
-  sidepanelSelectedTab: SidePanelTab;
+  sidepanelSelectedTab: SidePaneTab;
   workflow?: Workflow;
   mlmdRunContext?: Context;
   mlmdExecutions?: Execution[];
@@ -185,7 +196,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     selectedTab: 0,
     sidepanelBannerMode: 'warning',
     sidepanelBusy: false,
-    sidepanelSelectedTab: SidePanelTab.INPUT_OUTPUT,
+    sidepanelSelectedTab: SidePaneTab.INPUT_OUTPUT,
     mlmdRunContext: undefined,
     mlmdExecutions: undefined,
     showReducedGraph: false,
@@ -333,7 +344,14 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                             )}
                             <div className={commonCss.page}>
                               <MD2Tabs
-                                tabs={this.getTabNames(workflow, selectedNodeId)}
+                                tabs={[
+                                  ...tabsNames,
+                                  // NOTE: it's only possible to conditionally add a tab at the end
+                                  ...(WorkflowParser.getNodeManifest(workflow, selectedNodeId)
+                                    .length > 0
+                                    ? ['Manifest']
+                                    : []),
+                                ]}
                                 selectedTab={sidepanelSelectedTab}
                                 onSwitch={this._loadSidePaneTab.bind(this)}
                               />
@@ -342,7 +360,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                 data-testid='run-details-node-details'
                                 className={commonCss.page}
                               >
-                                {sidepanelSelectedTab === SidePanelTab.VISUALIZATIONS &&
+                                {sidepanelSelectedTab === SidePaneTab.VISUALIZATIONS &&
                                   this.state.selectedNodeDetails &&
                                   this.state.workflow &&
                                   !isV2Pipeline(workflow) && (
@@ -365,18 +383,13 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                       onError={this.handleError}
                                     />
                                   )}
-                                {sidepanelSelectedTab === SidePanelTab.VISUALIZATIONS &&
+                                {sidepanelSelectedTab === SidePaneTab.VISUALIZATIONS &&
                                   this.state.selectedNodeDetails &&
                                   this.state.workflow &&
                                   isV2Pipeline(workflow) &&
-                                  selectedExecution && (
-                                    <MetricsTab
-                                      execution={selectedExecution}
-                                      namespace={this.state.workflow?.metadata?.namespace}
-                                    />
-                                  )}
+                                  selectedExecution && <MetricsTab execution={selectedExecution} />}
 
-                                {sidepanelSelectedTab === SidePanelTab.INPUT_OUTPUT &&
+                                {sidepanelSelectedTab === SidePaneTab.INPUT_OUTPUT &&
                                   !isV2Pipeline(workflow) && (
                                     <div className={padding(20)}>
                                       <DetailsTable
@@ -412,7 +425,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                       />
                                     </div>
                                   )}
-                                {sidepanelSelectedTab === SidePanelTab.INPUT_OUTPUT &&
+                                {sidepanelSelectedTab === SidePaneTab.INPUT_OUTPUT &&
                                   isV2Pipeline(workflow) &&
                                   selectedExecution && (
                                     <InputOutputTab
@@ -421,7 +434,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                     />
                                   )}
 
-                                {sidepanelSelectedTab === SidePanelTab.TASK_DETAILS && (
+                                {sidepanelSelectedTab === SidePaneTab.TASK_DETAILS && (
                                   <div className={padding(20)}>
                                     <DetailsTable
                                       title='Task Details'
@@ -430,43 +443,42 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                   </div>
                                 )}
 
-                                {sidepanelSelectedTab === SidePanelTab.ML_METADATA &&
-                                  !isV2Pipeline(workflow) && (
-                                    <div className={padding(20)}>
-                                      {selectedExecution && (
-                                        <>
-                                          <div>
-                                            This step corresponds to execution{' '}
-                                            <Link
-                                              className={commonCss.link}
-                                              to={RoutePageFactory.executionDetails(
-                                                selectedExecution.getId(),
-                                              )}
-                                            >
-                                              "{ExecutionHelpers.getName(selectedExecution)}".
-                                            </Link>
-                                          </div>
-                                          <ExecutionDetailsContent
-                                            key={selectedExecution.getId()}
-                                            id={selectedExecution.getId()}
-                                            onError={
-                                              ((msg: string, ...args: any[]) => {
-                                                // TODO: show a proper error banner and retry button
-                                                console.warn(msg);
-                                              }) as any
-                                            }
-                                            // No title here
-                                            onTitleUpdate={() => null}
-                                          />
-                                        </>
-                                      )}
-                                      {!selectedExecution && (
-                                        <div>Corresponding ML Metadata not found.</div>
-                                      )}
-                                    </div>
-                                  )}
+                                {sidepanelSelectedTab === SidePaneTab.ML_METADATA && (
+                                  <div className={padding(20)}>
+                                    {selectedExecution && (
+                                      <>
+                                        <div>
+                                          This step corresponds to execution{' '}
+                                          <Link
+                                            className={commonCss.link}
+                                            to={RoutePageFactory.executionDetails(
+                                              selectedExecution.getId(),
+                                            )}
+                                          >
+                                            "{ExecutionHelpers.getName(selectedExecution)}".
+                                          </Link>
+                                        </div>
+                                        <ExecutionDetailsContent
+                                          key={selectedExecution.getId()}
+                                          id={selectedExecution.getId()}
+                                          onError={
+                                            ((msg: string, ...args: any[]) => {
+                                              // TODO: show a proper error banner and retry button
+                                              console.warn(msg);
+                                            }) as any
+                                          }
+                                          // No title here
+                                          onTitleUpdate={() => null}
+                                        />
+                                      </>
+                                    )}
+                                    {!selectedExecution && (
+                                      <div>Corresponding ML Metadata not found.</div>
+                                    )}
+                                  </div>
+                                )}
 
-                                {sidepanelSelectedTab === SidePanelTab.VOLUMES && (
+                                {sidepanelSelectedTab === SidePaneTab.VOLUMES && (
                                   <div className={padding(20)}>
                                     <DetailsTable
                                       title='Volume Mounts'
@@ -478,7 +490,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                   </div>
                                 )}
 
-                                {sidepanelSelectedTab === SidePanelTab.MANIFEST && (
+                                {sidepanelSelectedTab === SidePaneTab.MANIFEST && (
                                   <div className={padding(20)}>
                                     <DetailsTable
                                       title='Resource Manifest'
@@ -490,7 +502,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                   </div>
                                 )}
 
-                                {sidepanelSelectedTab === SidePanelTab.POD &&
+                                {sidepanelSelectedTab === SidePaneTab.POD &&
                                   selectedNodeDetails.phase !== NodePhase.SKIPPED && (
                                     <div className={commonCss.page}>
                                       {selectedNodeId && namespace && (
@@ -499,7 +511,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                     </div>
                                   )}
 
-                                {sidepanelSelectedTab === SidePanelTab.EVENTS &&
+                                {sidepanelSelectedTab === SidePaneTab.EVENTS &&
                                   selectedNodeDetails.phase !== NodePhase.SKIPPED && (
                                     <div className={commonCss.page}>
                                       {selectedNodeId && namespace && (
@@ -508,7 +520,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                     </div>
                                   )}
 
-                                {sidepanelSelectedTab === SidePanelTab.LOGS &&
+                                {sidepanelSelectedTab === SidePaneTab.LOGS &&
                                   selectedNodeDetails.phase !== NodePhase.SKIPPED && (
                                     <div className={commonCss.page}>
                                       {this.state.logsBannerMessage && (
@@ -637,62 +649,6 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         )}
       </div>
     );
-  }
-  getTabNames(workflow: Workflow, selectedNodeId: string): string[] {
-    // NOTE: it's only possible to conditionally add a tab at the end
-    const tabNameList = [];
-    for (let tab in SidePanelTab) {
-      // plus symbol changes enum to number.
-      switch (+tab) {
-        case SidePanelTab.INPUT_OUTPUT: {
-          tabNameList.push('Input/Output');
-          break;
-        }
-        case SidePanelTab.VISUALIZATIONS: {
-          tabNameList.push('Visualizations');
-          break;
-        }
-        case SidePanelTab.ML_METADATA: {
-          if (isV2Pipeline(workflow)) {
-            break;
-          }
-          tabNameList.push('ML Metadata');
-          break;
-        }
-        case SidePanelTab.TASK_DETAILS: {
-          tabNameList.push('Details');
-          break;
-        }
-        case SidePanelTab.VOLUMES: {
-          tabNameList.push('Volumes');
-          break;
-        }
-        case SidePanelTab.LOGS: {
-          tabNameList.push('Logs');
-          break;
-        }
-        case SidePanelTab.POD: {
-          tabNameList.push('Pod');
-          break;
-        }
-        case SidePanelTab.EVENTS: {
-          tabNameList.push('Events');
-          break;
-        }
-        case SidePanelTab.MANIFEST: {
-          if (WorkflowParser.getNodeManifest(workflow, selectedNodeId).length === 0) {
-            break;
-          }
-          tabNameList.push('Manifest');
-          break;
-        }
-        default: {
-          console.error(`Unable to find corresponding tab name for ${tab}`);
-          break;
-        }
-      }
-    }
-    return tabNameList;
   }
 
   public async componentDidMount(): Promise<void> {
@@ -984,7 +940,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     );
   }
 
-  private async _loadSidePaneTab(tab: SidePanelTab): Promise<void> {
+  private async _loadSidePaneTab(tab: SidePaneTab): Promise<void> {
     const workflow = this.state.workflow;
     const selectedNodeDetails = this.state.selectedNodeDetails;
 
@@ -1014,7 +970,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       this.setStateSafe({ selectedNodeDetails, sidepanelSelectedTab: tab, sidepanelBannerMode });
 
       switch (tab) {
-        case SidePanelTab.LOGS:
+        case SidePaneTab.LOGS:
           if (node.phase !== NodePhase.PENDING && node.phase !== NodePhase.SKIPPED) {
             await this._loadSelectedNodeLogs();
           } else {

@@ -17,13 +17,12 @@
 import * as React from 'react';
 import { ResourceInfo, ResourceType } from './ResourceInfo';
 import { getByTestId, render, screen } from '@testing-library/react';
-import { Artifact, Value } from 'src/third_party/mlmd';
+import { Artifact, Value } from '@kubeflow/frontend';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 
 describe('ResourceInfo', () => {
   it('renders metrics artifact', async () => {
     const metrics = new Artifact();
-    metrics.setState(Artifact.State.LIVE);
     metrics.getCustomPropertiesMap().set('name', new Value().setStringValue('metrics'));
     metrics.getCustomPropertiesMap().set(
       'confidenceMetrics',
@@ -57,7 +56,7 @@ describe('ResourceInfo', () => {
       />,
     );
     expect(screen.getByRole('heading', { level: 1 }).textContent).toEqual(
-      'System.ClassificationMetrics (Live)',
+      'Type: System.ClassificationMetrics',
     );
     expect(screen.getAllByRole('heading', { level: 2 }).map(h => h.textContent))
       .toMatchInlineSnapshot(`

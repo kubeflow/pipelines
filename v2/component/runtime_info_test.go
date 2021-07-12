@@ -40,14 +40,16 @@ func Test_parseRuntimeInfo(t *testing.T) {
 			jsonEncoded: `{
 				"inputParameters": {
 					"my_param": {
-						"type": "INT"
+						"type": "INT",
+						"value": "BEGIN-KFP-PARAM[123]END-KFP-PARAM"
 					}
 				}
 			}`,
 			want: &runtimeInfo{
 				InputParameters: map[string]*inputParameter{
 					"my_param": {
-						Type: "INT",
+						Type:  "INT",
+						Value: "123",
 					},
 				},
 			},
@@ -58,14 +60,16 @@ func Test_parseRuntimeInfo(t *testing.T) {
 			jsonEncoded: `{
 				"inputParameters": {
 					"my_param": {
-						"type": "STRING"
+						"type": "STRING",
+						"value": "BEGIN-KFP-PARAM[some random "value" 'with' "quotes"]END-KFP-PARAM"
 					}
 				}
 			}`,
 			want: &runtimeInfo{
 				InputParameters: map[string]*inputParameter{
 					"my_param": {
-						Type: "STRING",
+						Type:  "STRING",
+						Value: "some random \"value\" 'with' \"quotes\"",
 					},
 				},
 			},
@@ -76,14 +80,16 @@ func Test_parseRuntimeInfo(t *testing.T) {
 			jsonEncoded: `{
 				"inputParameters": {
 					"my_param": {
-						"type": "STRING"
+						"type": "STRING",
+						"value": "BEGIN-KFP-PARAM[{"A": "a-value", "B": 123}]END-KFP-PARAM"
 					}
 				}
 			}`,
 			want: &runtimeInfo{
 				InputParameters: map[string]*inputParameter{
 					"my_param": {
-						Type: "STRING",
+						Type:  "STRING",
+						Value: "{\"A\": \"a-value\", \"B\": 123}",
 					},
 				},
 			},
@@ -174,27 +180,20 @@ func TestExecutorInputGeneration(t *testing.T) {
 	tests := []struct {
 		name        string
 		jsonEncoded string
-		args        []string
 		want        *pipeline_spec.ExecutorInput
 		wantErr     bool
 	}{
 		{
 			name: "Parses InputParameters Correctly",
-			args: []string{
-				"message=Some string value with { \"special\": \"chars\" }",
-				"num_steps=5",
-				"--",
-				"sh",
-				"-c",
-				"user cmd args",
-			},
 			jsonEncoded: fmt.Sprintf(`{
 				"inputParameters": {
 					"message": {
-						"type": "STRING"
+						"type": "STRING",
+						"value": "Some string value"
 					},
 					"num_steps": {
-						"type": "INT"
+						"type": "INT",
+						"value": "5"
 					}
 				},
 				"inputArtifacts": {
@@ -235,7 +234,7 @@ func TestExecutorInputGeneration(t *testing.T) {
 			want: &pipeline_spec.ExecutorInput{
 				Inputs: &pipeline_spec.ExecutorInput_Inputs{
 					Parameters: map[string]*pipeline_spec.Value{
-						"message":   {Value: &pipeline_spec.Value_StringValue{StringValue: "Some string value with { \"special\": \"chars\" }"}},
+						"message":   {Value: &pipeline_spec.Value_StringValue{StringValue: "Some string value"}},
 						"num_steps": {Value: &pipeline_spec.Value_IntValue{IntValue: 5}},
 					},
 					Artifacts: map[string]*pipeline_spec.ArtifactList{
@@ -299,10 +298,6 @@ func TestExecutorInputGeneration(t *testing.T) {
 			if (err != nil) != test.wantErr {
 				t.Errorf("parseRuntimeInfo() error = %v", err)
 				return
-			}
-			_, err = parseArgs(test.args, rti)
-			if (err != nil) != test.wantErr {
-				t.Errorf("parseArgs() error = %v", err)
 			}
 
 			got, err := rti.generateExecutorInput(generateOutputUri, outputMetadataFilepath)

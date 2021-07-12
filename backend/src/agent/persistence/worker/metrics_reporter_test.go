@@ -15,11 +15,6 @@
 package worker
 
 import (
-	"encoding/json"
-	"fmt"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
-	"google.golang.org/protobuf/testing/protocmp"
 	"testing"
 
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
@@ -194,12 +189,7 @@ func TestReportMetrics_Succeed(t *testing.T) {
 			},
 		},
 	}
-	got := pipelineFake.GetReportedMetricsRequest()
-	if diff := cmp.Diff(expectedMetricsRequest, got, cmpopts.EquateEmpty(), protocmp.Transform()); diff != "" {
-		t.Errorf("parseRuntimeInfo() = %+v, want %+v\nDiff (-want, +got)\n%s", got, expectedMetricsRequest, diff)
-		s, _ := json.MarshalIndent(expectedMetricsRequest ,"", "  ")
-		fmt.Printf("Want %s", s)
-	}
+	assert.Equal(t, expectedMetricsRequest, pipelineFake.GetReportedMetricsRequest())
 }
 
 func TestReportMetrics_EmptyArchive_Fail(t *testing.T) {
@@ -401,12 +391,7 @@ func TestReportMetrics_InvalidMetricsJSON_PartialFail(t *testing.T) {
 			},
 		},
 	}
-	got := pipelineFake.GetReportedMetricsRequest()
-	if diff := cmp.Diff(expectedMetricsRequest, got, cmpopts.EquateEmpty(), protocmp.Transform()); diff != "" {
-		t.Errorf("parseRuntimeInfo() = %+v, want %+v\nDiff (-want, +got)\n%s", got, expectedMetricsRequest, diff)
-		s, _ := json.MarshalIndent(expectedMetricsRequest ,"", "  ")
-		fmt.Printf("Want %s", s)
-	}
+	assert.Equal(t, expectedMetricsRequest, pipelineFake.GetReportedMetricsRequest())
 }
 
 func TestReportMetrics_CorruptedArchiveFile_Fail(t *testing.T) {

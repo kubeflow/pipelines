@@ -21,8 +21,8 @@ __version__ = '1.6.4'
 from . import components
 from . import containers
 from . import dsl
-from . import auth
 from ._client import Client
 from ._config import *
 from ._local_client import LocalClient
 from ._runners import *
+from ._credentials import *

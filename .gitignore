@@ -74,6 +74,3 @@ docs/_build
 
 # python sdk package
 *.tar.gz
-
-# Copy from kubeflow/frontend
-coverage/

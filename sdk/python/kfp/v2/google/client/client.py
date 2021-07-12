@@ -350,9 +350,7 @@ class AIPlatformClient(object):
       schedule: str,
       time_zone: str = 'US/Pacific',
       pipeline_root: Optional[str] = None,
-      parameter_values: Optional[Mapping[str, Any]] = None,
-      service_account: Optional[str] = None,
-    ) -> dict:
+      parameter_values: Optional[Mapping[str, Any]] = None) -> dict:
     """Creates schedule for compiled pipeline file.
 
     This function creates scheduled job which will run the provided pipeline on
@@ -375,7 +373,6 @@ class AIPlatformClient(object):
       parameter_values: Arguments for the pipeline parameters
       pipeline_root: Optionally the user can override the pipeline root
         specified during the compile time.
-      service_account: The service account that the pipeline workload runs as.
 
     Returns:
       Created Google Cloud Scheduler Job object dictionary.
@@ -387,5 +384,4 @@ class AIPlatformClient(object):
         region=self._region,
         time_zone=time_zone,
         parameter_values=parameter_values,
-        pipeline_root=pipeline_root,
-        service_account=service_account)
+        pipeline_root=pipeline_root)

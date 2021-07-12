@@ -23,7 +23,6 @@ import warnings
 import yaml
 import zipfile
 import datetime
-import copy
 from typing import Mapping, Callable, Optional
 
 import kfp_server_api
@@ -220,8 +219,7 @@ class Client(object):
       token = get_gcp_access_token()
       self._is_refresh_token = False
     elif credentials:
-      config.api_key['authorization'] = 'placeholder'
-      config.api_key_prefix['authorization'] = 'Bearer'
+      token = credentials.get_token()
       config.refresh_api_key_hook = credentials.refresh_api_key_hook
 
     if token:
@@ -243,7 +241,6 @@ class Client(object):
 
     if in_cluster:
       config.host = Client.IN_CLUSTER_DNS_NAME.format(namespace)
-      config = self._get_config_with_default_credentials(config)
       return config
 
     try:
@@ -304,33 +301,6 @@ class Client(object):
 
     new_token = get_gcp_access_token()
     self._existing_config.api_key['authorization'] = new_token
-
-  def _get_config_with_default_credentials(self, config):
-    """Apply default credentials to the configuration object.
-
-    This method accepts a Configuration object and extends it with some default
-    credentials interface.
-    """
-    # XXX: The default credentials are audience-based service account tokens
-    # projected by the kubelet (ServiceAccountTokenVolumeCredentials). As we
-    # implement more and more credentials, we can have some heuristic and
-    # choose from a number of options.
-    # See https://github.com/kubeflow/pipelines/pull/5287#issuecomment-805654121
-    from kfp import auth
-    credentials = auth.ServiceAccountTokenVolumeCredentials()
-    config_copy = copy.deepcopy(config)
-
-    try:
-        credentials.refresh_api_key_hook(config_copy)
-    except Exception:
-        logging.warning("Failed to set up default credentials. Proceeding"
-                        " without credentials...")
-        return config
-
-    config.refresh_api_key_hook = credentials.refresh_api_key_hook
-    config.api_key_prefix['authorization'] = 'Bearer'
-    config.refresh_api_key_hook(config)
-    return config
 
   def set_user_namespace(self, namespace):
     """Set user namespace into local context setting file.
@@ -737,7 +707,7 @@ class Client(object):
       pipeline_json_string = json.dumps(pipeline_obj)
     api_params = [kfp_server_api.ApiParameter(
         name=sanitize_k8s_name(name=k, allow_capital_underscore=True),
-        value=str(v) if type(v) not in (list, dict) else json.dumps(v)) for k,v in params.items()]
+        value=str(v)) for k,v in params.items()]
     resource_references = []
     key = kfp_server_api.models.ApiResourceKey(id=experiment_id,
                                         type=kfp_server_api.models.ApiResourceType.EXPERIMENT)

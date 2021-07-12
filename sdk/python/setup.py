@@ -87,7 +87,6 @@ setup(
     tests_require=TESTS_REQUIRE,
     packages=[
         'kfp',
-        'kfp.auth',
         'kfp.cli',
         'kfp.cli.diagnose_me',
         'kfp.compiler',

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { Execution, getMetadataValue } from '@kubeflow/frontend';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import React from 'react';
 import { useQuery } from 'react-query';
@@ -23,13 +24,10 @@ import { commonCss, padding } from 'src/Css';
 import {
   filterEventWithInputArtifact,
   filterEventWithOutputArtifact,
-  getArtifactName,
   getLinkedArtifactsByExecution,
   LinkedArtifact,
-} from 'src/mlmd/MlmdUtils';
+} from 'src/lib/MlmdUtils';
 import { KeyValue } from 'src/lib/StaticGraphParser';
-import { getMetadataValue } from 'src/mlmd/library';
-import { Execution } from 'src/third_party/mlmd';
 import ArtifactPreview from '../ArtifactPreview';
 import Banner from '../Banner';
 import DetailsTable from '../DetailsTable';
@@ -189,7 +187,10 @@ function prettyPrintValue(value: string | number | Struct | undefined): string {
 
 function getArtifactParamList(inputArtifacts: LinkedArtifact[]): ParamList {
   return inputArtifacts.map(linkedArtifact => {
-    const key = getArtifactName(linkedArtifact);
+    const key = linkedArtifact.event
+      .getPath()
+      ?.getStepsList()[0]
+      .getKey();
     const artifactId = linkedArtifact.artifact.getId();
     const artifactElement = RoutePageFactory.artifactDetails(artifactId) ? (
       <Link className={commonCss.link} to={RoutePageFactory.artifactDetails(artifactId)}>

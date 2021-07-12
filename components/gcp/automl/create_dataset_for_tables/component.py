@@ -55,14 +55,10 @@ def automl_create_dataset_for_tables(
 
 
 if __name__ == '__main__':
-    from kfp.components import create_component_from_func
-
-    automl_create_dataset_for_tables_op = create_component_from_func(
+    import kfp
+    kfp.components.func_to_container_op(
         automl_create_dataset_for_tables,
         output_component_file='component.yaml',
         base_image='python:3.7',
-        packages_to_install=['google-cloud-automl==0.4.0'],
-        annotations={
-            "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
-        },
+        packages_to_install=['google-cloud-automl==0.4.0']
     )
