@@ -277,8 +277,10 @@ export class OutputArtifactLoader {
       viewers = viewers.concat(
         [evalUri, trainUri].map(async specificUri => {
           const script = [
+            'from tfx.utils import io_utils',
             'import tensorflow_data_validation as tfdv',
-            `stats = tfdv.load_stats_binary('${specificUri}')`,
+            `stats_path = io_utils.get_only_uri_in_dir('${specificUri}')`,
+            'stats = tfdv.load_stats_binary(stats_path)',
             'tfdv.visualize_statistics(stats)',
           ];
           return buildArtifactViewer({ script, namespace });
