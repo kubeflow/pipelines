@@ -14,7 +14,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	api "github.com/kubeflow/pipelines/v2/third_party/kfp_api"
+	api "github.com/kubeflow/pipelines/v2/kfp_api"
 	"github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
 	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
 )
