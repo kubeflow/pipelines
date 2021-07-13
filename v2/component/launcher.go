@@ -38,9 +38,9 @@ import (
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/kubeflow/pipelines/v2/cacheutils"
+	api "github.com/kubeflow/pipelines/v2/kfp-api"
 	"github.com/kubeflow/pipelines/v2/metadata"
 	"github.com/kubeflow/pipelines/v2/objectstore"
-	api "github.com/kubeflow/pipelines/v2/third_party/kfp_api"
 	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
 	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
 	"gocloud.dev/blob"
@@ -367,7 +367,7 @@ func (l *Launcher) executeWithCacheHit(ctx context.Context, executorInput *pipel
 }
 
 func (l *Launcher) storeOutputParameterValueFromCache(cachedExecution *pb.Execution) (*metadata.Parameters, error) {
-	mlmdOutputParameters, err := cacheutils.GetOutputParamsFromCachedExecution(cachedExecution)
+	mlmdOutputParameters, err := cacheutils.GetMLMDOutputParams(cachedExecution)
 	if err != nil {
 		return nil, err
 	}
@@ -414,7 +414,13 @@ func (l *Launcher) storeOutputArtifactMetadataFromCache(ctx context.Context, exe
 	}
 	MLMDOutputArtifactByName := make(map[string]*pb.Artifact)
 	for _, artifact := range MLMDOutputArtifacts {
-		name := extractNameFromURI(*artifact.Uri)
+		name, err := l.metadataClient.GetArtifactName(ctx, artifact.GetId())
+		if err != nil {
+			return nil, fmt.Errorf("failed to get artifact name with artifact id: %v: %w", artifact.GetId(), err)
+		}
+		if name == "" {
+			return nil, fmt.Errorf("got empty string when getting artifact name with artifact id: %v", artifact.GetId())
+		}
 		MLMDOutputArtifactByName[name] = artifact
 	}
 
@@ -468,7 +474,7 @@ func (l *Launcher) executeWithoutCacheHit(ctx context.Context, executorInput *pi
 	if err := l.execute(ctx, executorInput, createdExecution, cmd, args); err != nil {
 		return err
 	}
-	id := metadata.GetIDFromExecution(*createdExecution)
+	id := createdExecution.GetID()
 	if id == nil {
 		return fmt.Errorf("failed to get id from createdExecution")
 	}
