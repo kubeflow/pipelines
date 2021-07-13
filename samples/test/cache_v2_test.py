@@ -113,7 +113,7 @@ if __name__ == '__main__':
             verify_func=functools.partial(verify, uri=random_uri, some_int=random_int, state = Execution.State.COMPLETE,),
             mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
         ),
-    ])
+    ]),
     run_pipeline_func([
         TestCase(
             pipeline_func=two_step_pipeline,
