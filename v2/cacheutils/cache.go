@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -12,7 +13,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	api "github.com/kubeflow/pipelines/v2/third_party/kfp_api"
+	api "github.com/kubeflow/pipelines/v2/kfp-api"
 	"github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
 	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
 )
@@ -26,16 +27,25 @@ const (
 )
 
 func GenerateFingerPrint(cacheKey *pipeline_spec.CacheKey) (string, error) {
-	b, err := protojson.Marshal(cacheKey)
+	cacheKeyJsonBytes, err := protojson.Marshal(cacheKey)
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal cache key: %w", err)
+		return "", fmt.Errorf("failed to marshal cache key with protojson: %w", err)
+	}
+	// This json unmarshal and marshal is to use encoding/json formatter to format the bytes[] returned by protojson
+	// Do the json formatter because of https://developers.google.com/protocol-buffers/docs/reference/go/faq#unstable-json
+	var v interface{}
+	if err := json.Unmarshal(cacheKeyJsonBytes, &v); err != nil {
+		return "", fmt.Errorf("failed to unmarshall cache key json bytes array: %w", err)
+	}
+	formattedCacheKeyBytes, err := json.Marshal(v)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshall cache key with golang encoding/json : %w", err)
 	}
 	hash := sha256.New()
-	hash.Write(b)
+	hash.Write(formattedCacheKeyBytes)
 	md := hash.Sum(nil)
 	executionHashKey := hex.EncodeToString(md)
 	return executionHashKey, nil
-
 }
 
 func GenerateCacheKey(
@@ -173,7 +183,7 @@ func (c *Client) CreateExecutionCache(ctx context.Context, task *api.Task) error
 	return nil
 }
 
-func GetOutputParamsFromCachedExecution(cachedExecution *ml_metadata.Execution) (map[string]string, error) {
+func GetMLMDOutputParams(cachedExecution *ml_metadata.Execution) (map[string]string, error) {
 	mlmdOutputParameters := make(map[string]string)
 	for customPropName, customPropValue := range cachedExecution.CustomProperties {
 		if strings.HasPrefix(customPropName, "output:") {

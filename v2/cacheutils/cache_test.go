@@ -192,6 +192,7 @@ func TestGenerateFingerPrint(t *testing.T) {
 		name      string
 		cacheKey  *pipeline_spec.CacheKey
 		wantEqual bool
+		fingerPrint string
 	}{
 		{
 			name: "Generated Same FingerPrint",
@@ -232,6 +233,7 @@ func TestGenerateFingerPrint(t *testing.T) {
 				},
 			},
 			wantEqual: true,
+			fingerPrint: "c5e35810df04b64f63342644ab1041f4dcfec76528dcb98483a40be10d705015",
 		}, {
 			name: "Generated Different FingerPrint",
 			cacheKey: &pipeline_spec.CacheKey{
@@ -247,6 +249,7 @@ func TestGenerateFingerPrint(t *testing.T) {
 				},
 			},
 			wantEqual: false,
+			fingerPrint: "0a4cc1f15cdfad5170e1358518f7128c5278500a670db1b9a3f3d83b93db396e",
 		},
 	}
 	for _, test := range tests {
@@ -255,10 +258,9 @@ func TestGenerateFingerPrint(t *testing.T) {
 			assert.Nil(t, err)
 			testFingerPrint, err := GenerateFingerPrint(test.cacheKey)
 			assert.Nil(t, err)
-			fmt.Println(test.name)
-			fmt.Println(fingerPrint)
-			fmt.Println(testFingerPrint)
 			assert.Equal(t, fingerPrint == testFingerPrint, test.wantEqual)
+			assert.Equal(t, testFingerPrint, test.fingerPrint)
 		})
 	}
 }
+

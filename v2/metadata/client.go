@@ -206,6 +206,13 @@ func eventPath(artifactName string) *pb.Event_Path {
 	}
 }
 
+func getArtifactName(eventPath *pb.Event_Path) (string, error) {
+	if eventPath == nil || len(eventPath.Steps) == 0 {
+		return "", fmt.Errorf("failed to get artifact name from eventPath")
+	}
+	return eventPath.Steps[0].GetKey(), nil
+}
+
 // PublishExecution publishes the specified execution with the given output
 // parameters, artifacts and state.
 func (c *Client) PublishExecution(ctx context.Context, execution *Execution, outputParameters *Parameters, outputArtifacts []*OutputArtifact, state pb.Execution_State) error {
@@ -325,6 +332,29 @@ func (c *Client) GetExecutions(ctx context.Context, ids []int64) ([]*pb.Executio
 	return res.Executions, nil
 }
 
+// GetEventsByArtifactIDs ...
+func (c *Client) GetEventsByArtifactIDs (ctx context.Context, artifactIds []int64) ([]*pb.Event, error) {
+	req := &pb.GetEventsByArtifactIDsRequest{ArtifactIds: artifactIds}
+	res, err := c.svc.GetEventsByArtifactIDs(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return res.Events, nil
+}
+
+func (c* Client) GetArtifactName(ctx context.Context, artifactId int64)(string, error) {
+	mlmdEvents, err := c.GetEventsByArtifactIDs(ctx, []int64{artifactId})
+	if err != nil {
+		return "", fmt.Errorf("faild when getting events with artifact id %v: %w", artifactId, err)
+	}
+	if len(mlmdEvents) == 0 {
+		glog.Infof("can't find any events with artifact id %v", artifactId)
+		return "", nil
+	}
+	event := mlmdEvents[0]
+	return getArtifactName(event.Path)
+}
+
 // GetArtifacts ...
 func (c *Client) GetArtifacts(ctx context.Context, ids []int64) ([]*pb.Artifact, error) {
 	req := &pb.GetArtifactsByIDRequest{ArtifactIds: ids}
@@ -409,8 +439,8 @@ func (c *Client) RecordArtifact(ctx context.Context, schema string, artifact *pb
 	return getRes.Artifacts[0], nil
 }
 
-func GetIDFromExecution(execution Execution) *int64 {
-	return execution.execution.Id
+func (e *Execution) GetID() *int64 {
+	return e.execution.Id
 }
 
 func getOrInsertContext(ctx context.Context, svc pb.MetadataStoreServiceClient, name string, contextType *pb.ContextType) (*pb.Context, error) {
