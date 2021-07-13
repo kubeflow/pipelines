@@ -116,6 +116,9 @@
       "dag": {
         "tasks": {
           "training-op": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-training-op"
             },
@@ -135,6 +138,9 @@
             }
           },
           "training-op-2": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-training-op-2"
             },

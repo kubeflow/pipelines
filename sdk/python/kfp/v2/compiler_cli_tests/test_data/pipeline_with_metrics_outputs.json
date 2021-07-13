@@ -17,6 +17,9 @@
           },
           "tasks": {
             "output-metrics-2": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-output-metrics-2"
               },
@@ -151,6 +154,9 @@
             }
           },
           "output-metrics": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-output-metrics"
             },

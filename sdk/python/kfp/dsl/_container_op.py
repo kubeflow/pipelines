@@ -314,9 +314,6 @@ class Container(V1Container):
         self._container_spec.resources.memory_limit = _get_resource_number(memory)
     return self.add_resource_limit('memory', memory)
 
-  def set_caching_options(self, enable_caching):
-    self.enable_caching = enable_caching
-
   def set_ephemeral_storage_request(self, size) -> 'Container':
     """Set ephemeral-storage request (minimum) for this operator.
 
@@ -813,6 +810,9 @@ class BaseOp(object):
     self._inputs = []
     self.dependent_names = []
 
+    # Caching option, default to True
+    self.enable_caching = True
+
   @property
   def inputs(self):
     """List of PipelineParams that will be converted into input parameters
@@ -1004,6 +1004,18 @@ class BaseOp(object):
 
   def set_display_name(self, name: str):
     self.display_name = name
+    return self
+
+  def set_caching_options(self, enable_caching: bool) -> 'BaseOp':
+    """Sets caching options for the Op.
+
+    Args:
+      enable_caching: Whether or not to enable caching for this task.
+
+    Returns:
+      Self return to allow chained setting calls.
+    """
+    self.enable_caching = enable_caching
     return self
 
   def __repr__(self):

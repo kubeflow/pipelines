@@ -43,6 +43,9 @@
         "dag": {
           "tasks": {
             "print-op": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-print-op"
               },
