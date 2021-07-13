@@ -38,7 +38,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/kubeflow/pipelines/v2/cacheutils"
-	api "github.com/kubeflow/pipelines/v2/kfp_api"
+	api "github.com/kubeflow/pipelines/v2/kfp-api"
 	"github.com/kubeflow/pipelines/v2/metadata"
 	"github.com/kubeflow/pipelines/v2/objectstore"
 	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"

@@ -206,8 +206,11 @@ func eventPath(artifactName string) *pb.Event_Path {
 	}
 }
 
-func getArtifactName(eventPath *pb.Event_Path) string {
-	return eventPath.Steps[0].GetKey()
+func getArtifactName(eventPath *pb.Event_Path) (string, error) {
+	if eventPath == nil || len(eventPath.Steps) == 0 {
+		return "", fmt.Errorf("failed to get artifact name from eventPath")
+	}
+	return eventPath.Steps[0].GetKey(), nil
 }
 
 // PublishExecution publishes the specified execution with the given output
@@ -349,7 +352,7 @@ func (c* Client) GetArtifactName(ctx context.Context, artifactId int64)(string, 
 		return "", nil
 	}
 	event := mlmdEvents[0]
-	return getArtifactName(event.Path), nil
+	return getArtifactName(event.Path)
 }
 
 // GetArtifacts ...
