@@ -52,9 +52,8 @@ def v2_sample_test(
     download_src_op.execution_options.caching_strategy.max_cache_staleness = "P0D"
     build_kfp_launcher_op = kaniko(
         context_artifact=download_src_op.outputs['folder'],
-        context_sub_path='v2',
         destination=launcher_destination,
-        dockerfile='launcher_container/Dockerfile',
+        dockerfile='v2/launcher_container/Dockerfile',
     )
     build_kfp_launcher_op.set_display_name('build_kfp_launcher')
     build_samples_image_op = kaniko(

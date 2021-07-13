@@ -20,9 +20,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
 	"strconv"
 	"time"
+
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 
 	"github.com/golang/glog"
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
@@ -499,7 +500,7 @@ func getOrInsertContext(ctx context.Context, svc pb.MetadataStoreServiceClient, 
 	return getCtxRes.GetContext(), nil
 }
 
-func GenerateExecutionConfig(executorInput *pipeline_spec.ExecutorInput) (*ExecutionConfig, error) {
+func GenerateExecutionConfig(executorInput *pipelinespec.ExecutorInput) (*ExecutionConfig, error) {
 	ecfg := &ExecutionConfig{
 		InputParameters: &Parameters{
 			IntParameters:    make(map[string]int64),
@@ -521,11 +522,11 @@ func GenerateExecutionConfig(executorInput *pipeline_spec.ExecutorInput) (*Execu
 
 	for name, parameter := range executorInput.Inputs.Parameters {
 		switch t := parameter.Value.(type) {
-		case *pipeline_spec.Value_StringValue:
+		case *pipelinespec.Value_StringValue:
 			ecfg.InputParameters.StringParameters[name] = parameter.GetStringValue()
-		case *pipeline_spec.Value_IntValue:
+		case *pipelinespec.Value_IntValue:
 			ecfg.InputParameters.IntParameters[name] = parameter.GetIntValue()
-		case *pipeline_spec.Value_DoubleValue:
+		case *pipelinespec.Value_DoubleValue:
 			ecfg.InputParameters.DoubleParameters[name] = parameter.GetDoubleValue()
 		default:
 			return nil, fmt.Errorf("unknown parameter type: %T", t)
