@@ -41,7 +41,7 @@ license_viewer: $(BUILD)/viewer
 	cd $(MOD_ROOT) && go-licenses csv backend/$(BUILD)/viewer > $(CSV_PATH)/viewer.csv
 
 .PHONY: image_all
-image_all: image_apiserver image_persistence_agent image_cache image_swf image_viewer
+image_all: image_apiserver image_persistence_agent image_cache image_swf image_viewer image_visualization
 
 .PHONY: image_apiserver
 image_apiserver:
@@ -58,3 +58,6 @@ image_swf:
 .PHONY: image_viewer
 image_viewer:
 	cd $(MOD_ROOT) && docker build -t viewercontroller -f backend/Dockerfile.viewercontroller .
+.PHONY: image_visualization
+image_visualization:
+	cd $(MOD_ROOT) && docker build -t visualization -f backend/Dockerfile.visualization .
