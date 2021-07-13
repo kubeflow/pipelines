@@ -59,7 +59,7 @@ def verify_tasks(t: unittest.TestCase, tasks: dict[str, KfpTask]):
         'outputs': {
             'artifacts': [{
                 'metadata': {},
-                'name': 'uri-to-import',
+                'name': 'output_dataset_one',
                 'type': 'system.Dataset'
             }],
             'parameters': {
