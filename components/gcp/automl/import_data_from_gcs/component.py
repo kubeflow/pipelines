@@ -49,5 +49,13 @@ def automl_import_data_from_gcs(
 
 
 if __name__ == '__main__':
-    import kfp
-    kfp.components.func_to_container_op(automl_import_data_from_gcs, output_component_file='component.yaml', base_image='python:3.7')
+    from kfp.components import create_component_from_func
+
+    automl_import_data_from_gcs_op = create_component_from_func(
+        automl_import_data_from_gcs,
+        output_component_file='component.yaml',
+        base_image='python:3.7',
+        annotations={
+            "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
+        },
+    )

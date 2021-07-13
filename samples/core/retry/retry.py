@@ -16,16 +16,18 @@
 
 import kfp
 from kfp import dsl
+import kfp.components as comp
 
 
+@comp.create_component_from_func
 def random_failure_op(exit_codes):
     """A component that fails randomly."""
-    return dsl.ContainerOp(
-        name='random_failure',
-        image='python:alpine3.6',
-        command=['python', '-c'],
-        arguments=['import random; import sys; exit_code = int(random.choice(sys.argv[1].split(","))); print(exit_code); sys.exit(exit_code)', exit_codes]
-    )
+    import random
+    import sys
+
+    exit_code = int(random.choice(exit_codes.split(",")))
+    print(exit_code)
+    sys.exit(exit_code)
 
 
 @dsl.pipeline(

@@ -8,6 +8,9 @@ inputs:
     JsonObject: {data_type: 'proto:tfx.components.example_gen.Output'}
 outputs:
 - {name: examples, type: Examples}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: tensorflow/tfx:0.29.0

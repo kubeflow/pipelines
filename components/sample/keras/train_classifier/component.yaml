@@ -10,6 +10,9 @@ inputs:
   - {name: batch_size, type: Integer, default: '32', description: 'Number of samples per gradient update.'}
 outputs:
   - {name: output_model_uri, type: {GcsPath: {data_type: Keras model}}, description: 'GCS path where the trained model has been saved. The model (topology + weights + optimizer state) is saved in HDF5 format and can be loaded back by calling keras.models.load_model'} #Remove GcsUri and make it a proper output once artifact passing support is checked in.
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: gcr.io/ml-pipeline/sample/keras/train_classifier

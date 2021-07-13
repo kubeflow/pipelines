@@ -25,7 +25,7 @@ export full_image_name=$full_image_name
 ## build and push docker - to fetch the latest changes and install dependencies
 # cd pytorch_kfp_components
 
-docker build --no-cache -t $full_image_name -f Dockerfile-cpu .
+docker build --no-cache -t $full_image_name .
 docker push $full_image_name
 
 # cd ..

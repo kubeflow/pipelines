@@ -248,3 +248,17 @@ class UtilsTests(unittest.TestCase):
             "        input_param\n"
         )
         self.assertEqual(results, expected_results)
+
+    def test_custom_training_typed_dataset_annotation_defaults_to_using_base_dataset(self):
+
+        dataset_annotation = signature(aiplatform.CustomTrainingJob.run).parameters['dataset'].annotation
+
+        assert utils.resolve_annotation(dataset_annotation) is aiplatform.datasets.dataset._Dataset
+
+        dataset_annotation = signature(aiplatform.CustomContainerTrainingJob.run).parameters['dataset'].annotation
+
+        assert utils.resolve_annotation(dataset_annotation) is aiplatform.datasets.dataset._Dataset
+
+        dataset_annotation = signature(aiplatform.CustomPythonPackageTrainingJob.run).parameters['dataset'].annotation
+
+        assert utils.resolve_annotation(dataset_annotation) is aiplatform.datasets.dataset._Dataset

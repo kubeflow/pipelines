@@ -1,7 +1,8 @@
 name: Convert to onnx from pytorch script module
 description: Creates fully-connected network in PyTorch ScriptModule format
 metadata:
-  annotations: {author: Alexey Volkov <alexey.volkov@ark-kun.com>}
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 inputs:
 - {name: model, type: PyTorchScriptModule}
 - {name: list_of_input_shapes, type: JsonArray}

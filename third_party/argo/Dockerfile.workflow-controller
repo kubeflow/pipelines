@@ -13,7 +13,7 @@
 # limitations under the License.
 
 ARG TAG
-FROM argoproj/workflow-controller:${TAG}
+FROM docker.io/argoproj/workflow-controller:${TAG}
 
 # Copy notices, licenses and source code.
-COPY NOTICES/workflow-controller/NOTICES /NOTICES
+COPY NOTICES/workflow-controller /NOTICES

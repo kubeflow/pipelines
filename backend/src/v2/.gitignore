@@ -1,8 +1,0 @@
-# temporary local data folder for simulating pipeline run
-tmp
-# compiled binary
-main
-# local env file to configure dev image repository
-.env
-# local token to identify whether image has been built up-to-date
-.build

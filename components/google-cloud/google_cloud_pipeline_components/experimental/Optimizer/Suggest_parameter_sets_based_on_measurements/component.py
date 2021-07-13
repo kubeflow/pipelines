@@ -181,4 +181,7 @@ if __name__ == '__main__':
         base_image='python:3.8',
         packages_to_install=['google-api-python-client==1.12.3', 'google-cloud-storage==1.31.2', 'google-auth==1.21.3'],
         output_component_file='component.yaml',
+        annotations={
+            "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
+        },
     )

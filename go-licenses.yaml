@@ -10,6 +10,7 @@ module:
   - name: github.com/kubeflow/pipelines
     excludePaths:
     # the following are not used to build binaries
+    - manifests
     - components 
     - frontend
     - samples
@@ -22,6 +23,8 @@ module:
     - third_party/NOTICES
     - backend/build # ignore built binaries
     - v2 # v2 is a separate sub-module
+  - name: github.com/kubeflow/pipelines/api
+    skip: true # this is a local module in the same project
   - name: github.com/beorn7/perks
     excludePaths:
     # README.md contains duplicate license info as LICENSE
@@ -83,7 +86,7 @@ module:
     excludePaths:
     - testenv
   - name: gopkg.in/yaml.v3
-    version: v3.0.0-20200615113413-eeeca48fe776
+    version: v3.0.0-20210107192922-496545a6307b
     # There are other files with license headers,
     # but they are all included in the root LICENSE.
     license:
@@ -145,14 +148,14 @@ module:
     excludePaths:
     - html/testdata
   - name: github.com/gogo/protobuf
-    version: v1.3.1
+    version: v1.3.2
     license:
       # All files have either BSD-3-Clause or BSD-2-Clause licenses with manual
       # inspection.
       path: LICENSE
       spdxId: BSD-3-Clause / BSD-2-Clause
   - name: google.golang.org/protobuf
-    version: v1.25.0
+    version: v1.27.1
     license:
       path: LICENSE
       spdxId: BSD-3-Clause

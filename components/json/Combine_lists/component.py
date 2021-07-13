@@ -25,4 +25,7 @@ if __name__ == '__main__':
         combine_lists,
         base_image='python:3.8',
         output_component_file='component.yaml',
+        annotations={
+            "author": "Alexey Volkov <alexey.volkov@ark-kun.com>",
+        },
     )

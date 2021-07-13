@@ -23,7 +23,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -40,16 +40,14 @@ func Test_parseRuntimeInfo(t *testing.T) {
 			jsonEncoded: `{
 				"inputParameters": {
 					"my_param": {
-						"type": "INT",
-						"value": "BEGIN-KFP-PARAM[123]END-KFP-PARAM"
+						"type": "INT"
 					}
 				}
 			}`,
 			want: &runtimeInfo{
 				InputParameters: map[string]*inputParameter{
 					"my_param": {
-						Type:  "INT",
-						Value: "123",
+						Type: "INT",
 					},
 				},
 			},
@@ -60,16 +58,14 @@ func Test_parseRuntimeInfo(t *testing.T) {
 			jsonEncoded: `{
 				"inputParameters": {
 					"my_param": {
-						"type": "STRING",
-						"value": "BEGIN-KFP-PARAM[some random "value" 'with' "quotes"]END-KFP-PARAM"
+						"type": "STRING"
 					}
 				}
 			}`,
 			want: &runtimeInfo{
 				InputParameters: map[string]*inputParameter{
 					"my_param": {
-						Type:  "STRING",
-						Value: "some random \"value\" 'with' \"quotes\"",
+						Type: "STRING",
 					},
 				},
 			},
@@ -80,16 +76,14 @@ func Test_parseRuntimeInfo(t *testing.T) {
 			jsonEncoded: `{
 				"inputParameters": {
 					"my_param": {
-						"type": "STRING",
-						"value": "BEGIN-KFP-PARAM[{"A": "a-value", "B": 123}]END-KFP-PARAM"
+						"type": "STRING"
 					}
 				}
 			}`,
 			want: &runtimeInfo{
 				InputParameters: map[string]*inputParameter{
 					"my_param": {
-						Type:  "STRING",
-						Value: "{\"A\": \"a-value\", \"B\": 123}",
+						Type: "STRING",
 					},
 				},
 			},
@@ -180,20 +174,27 @@ func TestExecutorInputGeneration(t *testing.T) {
 	tests := []struct {
 		name        string
 		jsonEncoded string
-		want        *pipeline_spec.ExecutorInput
+		args        []string
+		want        *pipelinespec.ExecutorInput
 		wantErr     bool
 	}{
 		{
 			name: "Parses InputParameters Correctly",
+			args: []string{
+				"message=Some string value with { \"special\": \"chars\" }",
+				"num_steps=5",
+				"--",
+				"sh",
+				"-c",
+				"user cmd args",
+			},
 			jsonEncoded: fmt.Sprintf(`{
 				"inputParameters": {
 					"message": {
-						"type": "STRING",
-						"value": "Some string value"
+						"type": "STRING"
 					},
 					"num_steps": {
-						"type": "INT",
-						"value": "5"
+						"type": "INT"
 					}
 				},
 				"inputArtifacts": {
@@ -231,56 +232,56 @@ func TestExecutorInputGeneration(t *testing.T) {
 					}
 				}
 			}`, dataset_one_path, dataset_two_path),
-			want: &pipeline_spec.ExecutorInput{
-				Inputs: &pipeline_spec.ExecutorInput_Inputs{
-					Parameters: map[string]*pipeline_spec.Value{
-						"message":   {Value: &pipeline_spec.Value_StringValue{StringValue: "Some string value"}},
-						"num_steps": {Value: &pipeline_spec.Value_IntValue{IntValue: 5}},
+			want: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					Parameters: map[string]*pipelinespec.Value{
+						"message":   {Value: &pipelinespec.Value_StringValue{StringValue: "Some string value with { \"special\": \"chars\" }"}},
+						"num_steps": {Value: &pipelinespec.Value_IntValue{IntValue: 5}},
 					},
-					Artifacts: map[string]*pipeline_spec.ArtifactList{
+					Artifacts: map[string]*pipelinespec.ArtifactList{
 						"dataset_one": {
-							Artifacts: []*pipeline_spec.RuntimeArtifact{
+							Artifacts: []*pipelinespec.RuntimeArtifact{
 								{
 									Name: "1",
-									Type: &pipeline_spec.ArtifactTypeSchema{
-										Kind: &pipeline_spec.ArtifactTypeSchema_InstanceSchema{InstanceSchema: "title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string\n"},
+									Type: &pipelinespec.ArtifactTypeSchema{
+										Kind: &pipelinespec.ArtifactTypeSchema_InstanceSchema{InstanceSchema: "title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string\n"},
 									},
 									Uri:      "gs://some-bucket/dataset-one",
 									Metadata: &structpb.Struct{},
 								}}},
 						"dataset_two": {
-							Artifacts: []*pipeline_spec.RuntimeArtifact{
+							Artifacts: []*pipelinespec.RuntimeArtifact{
 								{
 									Name: "2",
-									Type: &pipeline_spec.ArtifactTypeSchema{
-										Kind: &pipeline_spec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "kfp.Model"},
+									Type: &pipelinespec.ArtifactTypeSchema{
+										Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "kfp.Model"},
 									},
 									Uri:      "gs://some-bucket/dataset-two",
 									Metadata: &structpb.Struct{},
 								}}},
 					},
 				},
-				Outputs: &pipeline_spec.ExecutorInput_Outputs{
-					Parameters: map[string]*pipeline_spec.ExecutorInput_OutputParameter{
+				Outputs: &pipelinespec.ExecutorInput_Outputs{
+					Parameters: map[string]*pipelinespec.ExecutorInput_OutputParameter{
 						"output_parameter_one": {OutputFile: "/tmp/outputs/output_parameter_one/data"},
 						"output_parameter_two": {OutputFile: "/tmp/outputs/output_parameter_two/data"},
 					},
-					Artifacts: map[string]*pipeline_spec.ArtifactList{
+					Artifacts: map[string]*pipelinespec.ArtifactList{
 						"model": {
-							Artifacts: []*pipeline_spec.RuntimeArtifact{
+							Artifacts: []*pipelinespec.RuntimeArtifact{
 								{
 									Name: "model",
-									Type: &pipeline_spec.ArtifactTypeSchema{
-										Kind: &pipeline_spec.ArtifactTypeSchema_InstanceSchema{InstanceSchema: "title: kfp.Model\ntype: object\nproperties:\n  framework:\n    type: string\n  framework_version:\n    type: string\n"},
+									Type: &pipelinespec.ArtifactTypeSchema{
+										Kind: &pipelinespec.ArtifactTypeSchema_InstanceSchema{InstanceSchema: "title: kfp.Model\ntype: object\nproperties:\n  framework:\n    type: string\n  framework_version:\n    type: string\n"},
 									},
 									Uri:      "gs://my-bucket/some-prefix/pipeline/task/model",
 									Metadata: &structpb.Struct{}}}},
 						"metrics": {
-							Artifacts: []*pipeline_spec.RuntimeArtifact{
+							Artifacts: []*pipelinespec.RuntimeArtifact{
 								{
 									Name: "metrics",
-									Type: &pipeline_spec.ArtifactTypeSchema{
-										Kind: &pipeline_spec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "kfp.Metrics"},
+									Type: &pipelinespec.ArtifactTypeSchema{
+										Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "kfp.Metrics"},
 									},
 									Uri:      "gs://my-bucket/some-prefix/pipeline/task/metrics",
 									Metadata: &structpb.Struct{}}}},
@@ -298,6 +299,10 @@ func TestExecutorInputGeneration(t *testing.T) {
 			if (err != nil) != test.wantErr {
 				t.Errorf("parseRuntimeInfo() error = %v", err)
 				return
+			}
+			_, err = parseArgs(test.args, rti)
+			if (err != nil) != test.wantErr {
+				t.Errorf("parseArgs() error = %v", err)
 			}
 
 			got, err := rti.generateExecutorInput(generateOutputUri, outputMetadataFilepath)
