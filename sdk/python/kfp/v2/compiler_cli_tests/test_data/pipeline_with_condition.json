@@ -5,9 +5,7 @@
         "dag": {
           "tasks": {
             "flip-coin-2": {
-              "cachingOptions": {
-                "enableCache": true
-              },
+              "cachingOptions": {},
               "componentRef": {
                 "name": "comp-flip-coin-2"
               },
@@ -234,9 +232,7 @@
             }
           },
           "flip-coin": {
-            "cachingOptions": {
-              "enableCache": true
-            },
+            "cachingOptions": {},
             "componentRef": {
               "name": "comp-flip-coin"
             },
