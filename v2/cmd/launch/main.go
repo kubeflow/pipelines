@@ -16,6 +16,7 @@ package main
 import (
 	"context"
 	"flag"
+	"strconv"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/v2/component"
@@ -31,12 +32,17 @@ var (
 	pipelineRunID     = flag.String("pipeline_run_id", "", "The current pipeline run ID.")
 	pipelineTaskID    = flag.String("pipeline_task_id", "", "The current pipeline task ID.")
 	pipelineRoot      = flag.String("pipeline_root", "", "The root output directory in which to store output artifacts.")
-	enableCaching     = flag.Bool(   "enable_caching", false, "Enable caching or not")
+	enableCaching     = flag.String(   "enable_caching", "false", "Enable caching or not")
 )
 
 func main() {
 	flag.Parse()
 	ctx := context.Background()
+
+	enableCachingBool, err := strconv.ParseBool(*enableCaching)
+	if err != nil {
+		glog.Exitf("Failed to parse enableCaching %v: %w", enableCaching, err)
+	}
 
 	opts := &component.LauncherOptions{
 		PipelineName:      *pipelineName,
@@ -47,7 +53,7 @@ func main() {
 		ContainerImage:    *containerImage,
 		MLMDServerAddress: *mlmdServerAddress,
 		MLMDServerPort:    *mlmdServerPort,
-		EnableCaching:     *enableCaching,
+		EnableCaching:     enableCachingBool,
 	}
 	launcher, err := component.NewLauncher(*runtimeInfoJSON, opts)
 	if err != nil {
