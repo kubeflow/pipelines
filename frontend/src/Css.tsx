@@ -259,7 +259,7 @@ export const commonCss = stylesheet({
         textDecoration: 'underline',
       },
     },
-    color: color.strong,
+    color: color.theme,
     cursor: 'pointer',
     textDecoration: 'none',
   },
