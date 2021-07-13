@@ -46,6 +46,7 @@ export const color = {
   infoBg: '#f3f4ff',
   infoText: '#1a73e8',
   weak: '#9aa0a6',
+  link: '#00458b',
 };
 
 export const dimension = {
@@ -259,7 +260,7 @@ export const commonCss = stylesheet({
         textDecoration: 'underline',
       },
     },
-    color: color.theme,
+    color: color.link,
     cursor: 'pointer',
     textDecoration: 'none',
   },
