@@ -23,7 +23,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -175,7 +175,7 @@ func TestExecutorInputGeneration(t *testing.T) {
 		name        string
 		jsonEncoded string
 		args        []string
-		want        *pipeline_spec.ExecutorInput
+		want        *pipelinespec.ExecutorInput
 		wantErr     bool
 	}{
 		{
@@ -232,56 +232,56 @@ func TestExecutorInputGeneration(t *testing.T) {
 					}
 				}
 			}`, dataset_one_path, dataset_two_path),
-			want: &pipeline_spec.ExecutorInput{
-				Inputs: &pipeline_spec.ExecutorInput_Inputs{
-					Parameters: map[string]*pipeline_spec.Value{
-						"message":   {Value: &pipeline_spec.Value_StringValue{StringValue: "Some string value with { \"special\": \"chars\" }"}},
-						"num_steps": {Value: &pipeline_spec.Value_IntValue{IntValue: 5}},
+			want: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					Parameters: map[string]*pipelinespec.Value{
+						"message":   {Value: &pipelinespec.Value_StringValue{StringValue: "Some string value with { \"special\": \"chars\" }"}},
+						"num_steps": {Value: &pipelinespec.Value_IntValue{IntValue: 5}},
 					},
-					Artifacts: map[string]*pipeline_spec.ArtifactList{
+					Artifacts: map[string]*pipelinespec.ArtifactList{
 						"dataset_one": {
-							Artifacts: []*pipeline_spec.RuntimeArtifact{
+							Artifacts: []*pipelinespec.RuntimeArtifact{
 								{
 									Name: "1",
-									Type: &pipeline_spec.ArtifactTypeSchema{
-										Kind: &pipeline_spec.ArtifactTypeSchema_InstanceSchema{InstanceSchema: "title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string\n"},
+									Type: &pipelinespec.ArtifactTypeSchema{
+										Kind: &pipelinespec.ArtifactTypeSchema_InstanceSchema{InstanceSchema: "title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string\n"},
 									},
 									Uri:      "gs://some-bucket/dataset-one",
 									Metadata: &structpb.Struct{},
 								}}},
 						"dataset_two": {
-							Artifacts: []*pipeline_spec.RuntimeArtifact{
+							Artifacts: []*pipelinespec.RuntimeArtifact{
 								{
 									Name: "2",
-									Type: &pipeline_spec.ArtifactTypeSchema{
-										Kind: &pipeline_spec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "kfp.Model"},
+									Type: &pipelinespec.ArtifactTypeSchema{
+										Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "kfp.Model"},
 									},
 									Uri:      "gs://some-bucket/dataset-two",
 									Metadata: &structpb.Struct{},
 								}}},
 					},
 				},
-				Outputs: &pipeline_spec.ExecutorInput_Outputs{
-					Parameters: map[string]*pipeline_spec.ExecutorInput_OutputParameter{
+				Outputs: &pipelinespec.ExecutorInput_Outputs{
+					Parameters: map[string]*pipelinespec.ExecutorInput_OutputParameter{
 						"output_parameter_one": {OutputFile: "/tmp/outputs/output_parameter_one/data"},
 						"output_parameter_two": {OutputFile: "/tmp/outputs/output_parameter_two/data"},
 					},
-					Artifacts: map[string]*pipeline_spec.ArtifactList{
+					Artifacts: map[string]*pipelinespec.ArtifactList{
 						"model": {
-							Artifacts: []*pipeline_spec.RuntimeArtifact{
+							Artifacts: []*pipelinespec.RuntimeArtifact{
 								{
 									Name: "model",
-									Type: &pipeline_spec.ArtifactTypeSchema{
-										Kind: &pipeline_spec.ArtifactTypeSchema_InstanceSchema{InstanceSchema: "title: kfp.Model\ntype: object\nproperties:\n  framework:\n    type: string\n  framework_version:\n    type: string\n"},
+									Type: &pipelinespec.ArtifactTypeSchema{
+										Kind: &pipelinespec.ArtifactTypeSchema_InstanceSchema{InstanceSchema: "title: kfp.Model\ntype: object\nproperties:\n  framework:\n    type: string\n  framework_version:\n    type: string\n"},
 									},
 									Uri:      "gs://my-bucket/some-prefix/pipeline/task/model",
 									Metadata: &structpb.Struct{}}}},
 						"metrics": {
-							Artifacts: []*pipeline_spec.RuntimeArtifact{
+							Artifacts: []*pipelinespec.RuntimeArtifact{
 								{
 									Name: "metrics",
-									Type: &pipeline_spec.ArtifactTypeSchema{
-										Kind: &pipeline_spec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "kfp.Metrics"},
+									Type: &pipelinespec.ArtifactTypeSchema{
+										Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "kfp.Metrics"},
 									},
 									Uri:      "gs://my-bucket/some-prefix/pipeline/task/metrics",
 									Metadata: &structpb.Struct{}}}},

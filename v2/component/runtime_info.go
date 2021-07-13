@@ -23,8 +23,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	pb "github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
-	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -125,13 +125,13 @@ func parseArgs(args []string, rt *runtimeInfo) ([]string, error) {
 	return args[separator+1:], nil
 }
 
-func pipelineSpecValueToMLMDValue(v *pipeline_spec.Value) (*pb.Value, error) {
+func pipelineSpecValueToMLMDValue(v *pipelinespec.Value) (*pb.Value, error) {
 	switch t := v.Value.(type) {
-	case *pipeline_spec.Value_StringValue:
+	case *pipelinespec.Value_StringValue:
 		return stringToMLMDValue(v.GetStringValue()), nil
-	case *pipeline_spec.Value_DoubleValue:
+	case *pipelinespec.Value_DoubleValue:
 		return &pb.Value{Value: &pb.Value_DoubleValue{DoubleValue: v.GetDoubleValue()}}, nil
-	case *pipeline_spec.Value_IntValue:
+	case *pipelinespec.Value_IntValue:
 		return &pb.Value{Value: &pb.Value_IntValue{IntValue: v.GetIntValue()}}, nil
 	default:
 		return nil, fmt.Errorf("unknown value type %T", t)
@@ -173,7 +173,7 @@ func structValueToMLMDValue(v *structpb.Value) (*pb.Value, error) {
 	}
 }
 
-func toMLMDArtifact(runtimeArtifact *pipeline_spec.RuntimeArtifact) (*pb.Artifact, error) {
+func toMLMDArtifact(runtimeArtifact *pipelinespec.RuntimeArtifact) (*pb.Artifact, error) {
 	errorF := func(err error) error {
 		return fmt.Errorf("failed to convert RuntimeArtifact to MLMD artifact: %w", err)
 	}
@@ -212,28 +212,28 @@ func toMLMDArtifact(runtimeArtifact *pipeline_spec.RuntimeArtifact) (*pb.Artifac
 	return artifact, nil
 }
 
-func setRuntimeArtifactType(rta *pipeline_spec.RuntimeArtifact, instanceSchema, schemaTitle string) error {
+func setRuntimeArtifactType(rta *pipelinespec.RuntimeArtifact, instanceSchema, schemaTitle string) error {
 	if len(instanceSchema) != 0 && len(schemaTitle) != 0 {
 		return fmt.Errorf("only one of instanceSchema or schemaTitle should be specified. Got schemaTitle = %q, instanceSchema = %q", schemaTitle, instanceSchema)
 	}
 
-	rta.Type = &pipeline_spec.ArtifactTypeSchema{}
+	rta.Type = &pipelinespec.ArtifactTypeSchema{}
 
 	if len(instanceSchema) != 0 {
-		rta.Type.Kind = &pipeline_spec.ArtifactTypeSchema_InstanceSchema{InstanceSchema: instanceSchema}
+		rta.Type.Kind = &pipelinespec.ArtifactTypeSchema_InstanceSchema{InstanceSchema: instanceSchema}
 	}
 	if len(schemaTitle) != 0 {
-		rta.Type.Kind = &pipeline_spec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: schemaTitle}
+		rta.Type.Kind = &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: schemaTitle}
 	}
 	return nil
 }
 
-func toRuntimeArtifact(artifact *pb.Artifact, instanceSchema, schemaTitle string) (*pipeline_spec.RuntimeArtifact, error) {
-	errorF := func(err error) (*pipeline_spec.RuntimeArtifact, error) {
+func toRuntimeArtifact(artifact *pb.Artifact, instanceSchema, schemaTitle string) (*pipelinespec.RuntimeArtifact, error) {
+	errorF := func(err error) (*pipelinespec.RuntimeArtifact, error) {
 		return nil, fmt.Errorf("failed to convert MLMD artifact to RuntimeArtifact: %w", err)
 	}
 
-	rta := &pipeline_spec.RuntimeArtifact{
+	rta := &pipelinespec.RuntimeArtifact{
 		Name: strconv.FormatInt(artifact.GetId(), 10),
 		Uri:  artifact.GetUri(),
 		Metadata: &structpb.Struct{
@@ -289,36 +289,36 @@ func readArtifact(filePath string) (*pb.Artifact, error) {
 
 type generateOutputURI func(outputName string) string
 
-func (r *runtimeInfo) generateExecutorInput(genOutputURI generateOutputURI, outputMetadataFilepath string) (*pipeline_spec.ExecutorInput, error) {
+func (r *runtimeInfo) generateExecutorInput(genOutputURI generateOutputURI, outputMetadataFilepath string) (*pipelinespec.ExecutorInput, error) {
 
-	inputs := &pipeline_spec.ExecutorInput_Inputs{
-		Parameters: make(map[string]*pipeline_spec.Value),
-		Artifacts:  make(map[string]*pipeline_spec.ArtifactList),
+	inputs := &pipelinespec.ExecutorInput_Inputs{
+		Parameters: make(map[string]*pipelinespec.Value),
+		Artifacts:  make(map[string]*pipelinespec.ArtifactList),
 	}
 
-	outputs := &pipeline_spec.ExecutorInput_Outputs{
-		Parameters: make(map[string]*pipeline_spec.ExecutorInput_OutputParameter),
-		Artifacts:  make(map[string]*pipeline_spec.ArtifactList),
+	outputs := &pipelinespec.ExecutorInput_Outputs{
+		Parameters: make(map[string]*pipelinespec.ExecutorInput_OutputParameter),
+		Artifacts:  make(map[string]*pipelinespec.ArtifactList),
 		OutputFile: outputMetadataFilepath,
 	}
 
 	for name, ip := range r.InputParameters {
-		value := &pipeline_spec.Value{}
+		value := &pipelinespec.Value{}
 		switch ip.Type {
 		case "STRING":
-			value.Value = &pipeline_spec.Value_StringValue{StringValue: ip.Value}
+			value.Value = &pipelinespec.Value_StringValue{StringValue: ip.Value}
 		case "INT":
 			i, err := strconv.ParseInt(ip.Value, 10, 0)
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse int parameter %q from '%v': %w", name, i, err)
 			}
-			value.Value = &pipeline_spec.Value_IntValue{IntValue: i}
+			value.Value = &pipelinespec.Value_IntValue{IntValue: i}
 		case "DOUBLE":
 			f, err := strconv.ParseFloat(ip.Value, 0)
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse double parameter %q from '%v': %w", name, f, err)
 			}
-			value.Value = &pipeline_spec.Value_DoubleValue{DoubleValue: f}
+			value.Value = &pipelinespec.Value_DoubleValue{DoubleValue: f}
 		default:
 			return nil, fmt.Errorf("unknown ParameterType for parameter %q: %q", name, ip.Type)
 		}
@@ -342,13 +342,13 @@ func (r *runtimeInfo) generateExecutorInput(genOutputURI generateOutputURI, outp
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert artifact %q to RuntimeArtifact: %w", name, err)
 		}
-		inputs.Artifacts[name] = &pipeline_spec.ArtifactList{
-			Artifacts: []*pipeline_spec.RuntimeArtifact{rta},
+		inputs.Artifacts[name] = &pipelinespec.ArtifactList{
+			Artifacts: []*pipelinespec.RuntimeArtifact{rta},
 		}
 	}
 
 	for name, op := range r.OutputParameters {
-		outputParameter := &pipeline_spec.ExecutorInput_OutputParameter{
+		outputParameter := &pipelinespec.ExecutorInput_OutputParameter{
 			OutputFile: op.Path,
 		}
 		outputs.Parameters[name] = outputParameter
@@ -356,7 +356,7 @@ func (r *runtimeInfo) generateExecutorInput(genOutputURI generateOutputURI, outp
 
 	for name, oa := range r.OutputArtifacts {
 		uri := genOutputURI(name)
-		rta := &pipeline_spec.RuntimeArtifact{
+		rta := &pipelinespec.RuntimeArtifact{
 			Name: name,
 			Uri:  uri,
 			Metadata: &structpb.Struct{
@@ -370,12 +370,12 @@ func (r *runtimeInfo) generateExecutorInput(genOutputURI generateOutputURI, outp
 		if err := setRuntimeArtifactType(rta, oa.InstanceSchema, oa.SchemaTitle); err != nil {
 			return nil, fmt.Errorf("failed to generate output RuntimeArtifact: %w", err)
 		}
-		outputs.Artifacts[name] = &pipeline_spec.ArtifactList{
-			Artifacts: []*pipeline_spec.RuntimeArtifact{rta},
+		outputs.Artifacts[name] = &pipelinespec.ArtifactList{
+			Artifacts: []*pipelinespec.RuntimeArtifact{rta},
 		}
 	}
 
-	return &pipeline_spec.ExecutorInput{
+	return &pipelinespec.ExecutorInput{
 		Inputs:  inputs,
 		Outputs: outputs,
 	}, nil
