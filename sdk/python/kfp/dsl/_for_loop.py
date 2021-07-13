@@ -102,12 +102,21 @@ class LoopArguments(dsl.PipelineParam):
         value=param.value,
     )
 
-  def __getattr__(self, item):
-    # this is being overridden so that we can access subvariables of the
-    # LoopArguments (i.e.: item.a) without knowing the subvariable names ahead
-    # of time
-    self.referenced_subvar_names.append(item)
-    return LoopArgumentVariable(self.name, item, loop_args_op_name=self.op_name)
+  def __getattribute__(self, item: str) -> 'LoopArgumentVariable':
+    """When constructing pipeline, gets a sub-variable of the loop item."""
+    global _loop_arguments_decomposing
+
+    # if no decomposing is expected - behave like a normal class
+    if not _loop_arguments_decomposing:
+      return super().__getattribute__(item)
+
+    # otherwise - behave like a dictionary accessed with dots
+    referenced_subvar_names = super().__getattribute__('referenced_subvar_names')
+    name = super().__getattribute__('name')
+    op_name = super().__getattribute__('op_name')
+
+    referenced_subvar_names.append(item)
+    return LoopArgumentVariable(name, item, loop_args_op_name=op_name)
 
   def to_list_for_task_yaml(self):
     if isinstance(self.items_or_pipeline_param, (list, tuple)):
