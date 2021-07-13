@@ -52,14 +52,14 @@ def verify_tasks(t: unittest.TestCase, tasks: dict[str, KfpTask]):
         'inputs': {
             'artifacts': [],
             'parameters': {
-                'some_int': 12,
+                'some_int': 1234,
                 'uri': 'uri-to-import'
             }
         },
         'outputs': {
             'artifacts': [{
                 'metadata': {},
-                'name': 'output_dataset_one',
+                'name': 'uri-to-import',
                 'type': 'system.Dataset'
             }],
             'parameters': {
