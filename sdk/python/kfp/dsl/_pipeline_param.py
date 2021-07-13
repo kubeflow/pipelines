@@ -208,8 +208,11 @@ class PipelineParam(object):
     #if self.value:
     #  return str(self.value)
 
-    op_name = self.op_name if self.op_name else ''
-    return '{{pipelineparam:op=%s;name=%s}}' % (op_name, self.name)
+    op_name = object.__getattribute__(self, 'op_name')
+    name = object.__getattribute__(self, 'name')
+
+    op_name = op_name if op_name else ''
+    return '{{pipelineparam:op=%s;name=%s}}' % (op_name, name)
 
   def __repr__(self):
     # return str({self.__class__.__name__: self.__dict__})
@@ -243,7 +246,9 @@ class PipelineParam(object):
     return ConditionOperator('>=', self, other)
 
   def __hash__(self):
-    return hash((self.op_name, self.name))
+    op_name = object.__getattribute__(self, 'op_name')
+    name = object.__getattribute__(self, 'name')
+    return hash((op_name, name))
 
   def ignore_type(self):
     """ignore_type ignores the type information such that type checking would also pass"""
