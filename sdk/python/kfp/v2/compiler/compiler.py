@@ -28,6 +28,7 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Set, Tuple, Uni
 import kfp
 from kfp.compiler._k8s_helper import sanitize_k8s_name
 from kfp.components import _python_op
+from kfp.components.structures import ComponentSpec
 from kfp import dsl
 from kfp.dsl import _for_loop
 from kfp.dsl import _pipeline_param
@@ -1068,6 +1069,21 @@ class Compiler(object):
 
     with dsl.Pipeline(pipeline_name) as dsl_pipeline:
       pipeline_func(*args_list)
+
+    return self._create_pipeline_v2_from_spec(
+      dsl_pipeline,
+      pipeline_meta,
+      pipeline_root,
+      pipeline_parameters_override,
+    )
+
+  def _create_pipeline_v2_from_spec(
+        self,
+        dsl_pipeline: dsl.Pipeline,
+        pipeline_meta: ComponentSpec,
+        pipeline_root: str,
+        pipeline_parameters_override: Optional[Mapping[str, Any]] = None,
+  ) -> pipeline_spec_pb2.PipelineJob:
 
     self._validate_exit_handler(dsl_pipeline)
     self._sanitize_and_inject_artifact(dsl_pipeline)

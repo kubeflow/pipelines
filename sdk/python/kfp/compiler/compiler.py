@@ -32,11 +32,12 @@ from kfp.compiler._k8s_helper import convert_k8s_obj_to_json, sanitize_k8s_name
 from kfp.compiler._op_to_template import _op_to_template, _process_obj
 from kfp.compiler._default_transformers import add_pod_env, add_pod_labels
 
-from kfp.components.structures import InputSpec
+from kfp.components.structures import InputSpec, ComponentSpec
 from kfp.components._yaml_utils import dump_yaml
 from kfp.dsl._metadata import _extract_pipeline_metadata
 from kfp.dsl._ops_group import OpsGroup
 from kfp.dsl._pipeline_param import extract_pipelineparams_from_any, PipelineParam
+
 
 _SDK_VERSION_LABEL = 'pipelines.kubeflow.org/kfp_sdk_version'
 _SDK_ENV_LABEL = 'pipelines.kubeflow.org/pipeline-sdk-type'
@@ -895,6 +896,21 @@ class Compiler(object):
     with dsl.Pipeline(pipeline_name) as dsl_pipeline:
       pipeline_func(*args_list, **kwargs_dict)
 
+    return self._create_workflow_from_spec(
+      dsl_pipeline,
+      pipeline_meta,
+      params_list, default_param_values,
+      pipeline_conf,
+    )
+
+  def _create_workflow_from_spec(
+      self,
+      dsl_pipeline: dsl.Pipeline,
+      pipeline_meta: ComponentSpec,
+      params_list: List[dsl.PipelineParam],
+      default_param_values: Dict[str, Any],
+      pipeline_conf: Optional[dsl.PipelineConf] = None,
+  ) -> Dict[Text, Any]:
     pipeline_conf = pipeline_conf or dsl_pipeline.conf # Configuration passed to the compiler is overriding. Unfortunately, it's not trivial to detect whether the dsl_pipeline.conf was ever modified.
 
     self._validate_exit_handler(dsl_pipeline)
