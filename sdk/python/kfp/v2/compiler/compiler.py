@@ -1077,6 +1077,7 @@ class Compiler(object):
       pipeline_parameters_override,
     )
 
+  @_for_loop.with_loop_arguments_decomposing_deactivated
   def _create_pipeline_v2_from_spec(
         self,
         dsl_pipeline: dsl.Pipeline,

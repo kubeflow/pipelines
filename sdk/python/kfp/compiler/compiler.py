@@ -903,6 +903,7 @@ class Compiler(object):
       pipeline_conf,
     )
 
+  @_for_loop.with_loop_arguments_decomposing_deactivated
   def _create_workflow_from_spec(
       self,
       dsl_pipeline: dsl.Pipeline,

@@ -1,10 +1,34 @@
 import re
-from typing import List, Union, Dict, Text, Any, Tuple, Optional
+from contextlib import contextmanager
+from functools import wraps
+from typing import List, Union, Dict, Text, Any, Tuple, Optional, Callable, \
+  TypeVar
 
 from kfp import dsl
 
 ItemList = List[Union[int, float, str, Dict[Text, Any]]]
 
+
+_loop_arguments_decomposing = True
+
+@contextmanager
+def loop_arguments_decomposing_deactivated():
+  """Deactivates decomposing in LoopArguments. Any field access works as in PipelineParam."""
+  global _loop_arguments_decomposing
+  old_loop_arguments_decomposing = _loop_arguments_decomposing
+  _loop_arguments_decomposing = False
+  try:
+    yield
+  finally:
+    _loop_arguments_decomposing = old_loop_arguments_decomposing
+
+_C = TypeVar('_C', bound=Callable)
+def with_loop_arguments_decomposing_deactivated(f: _C) -> _C:
+  @wraps(f)
+  def inner(*args, **kwargs):
+    with loop_arguments_decomposing_deactivated():
+      return f(*args, **kwargs)
+  return inner
 
 class LoopArguments(dsl.PipelineParam):
   """Class representing the arguments that are looped over in a ParallelFor loop in the KFP DSL.
@@ -24,6 +48,7 @@ class LoopArguments(dsl.PipelineParam):
     return re.match(cls.LEGAL_SUBVAR_NAME_REGEX,
                     proposed_variable_name) is not None
 
+  @with_loop_arguments_decomposing_deactivated
   def __init__(self,
                items: Union[ItemList, dsl.PipelineParam],
                code: Text,
