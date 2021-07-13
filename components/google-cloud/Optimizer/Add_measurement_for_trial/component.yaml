@@ -17,6 +17,9 @@ outputs:
 - {name: trial_name, type: JsonArray}
 - {name: trial, type: JsonObject}
 - {name: stop_trial, type: Boolean}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: python:3.8

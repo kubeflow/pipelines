@@ -61,13 +61,20 @@ export class OutputArtifactLoader {
       const metadataFile = await Apis.readFile(outputPath, namespace);
       if (metadataFile) {
         try {
-          plotMetadataList = (JSON.parse(metadataFile) as OutputMetadata).outputs;
-          if (plotMetadataList === undefined) {
-            throw new Error('"outputs" field required by not found on metadata file');
-          }
+          plotMetadataList = OutputArtifactLoader.parseOutputMetadataInJson(
+            metadataFile,
+            outputPath.key,
+          );
         } catch (e) {
-          logger.error(`Could not parse metadata file at: ${outputPath.key}. Error: ${e}`);
-          return [];
+          // This is a hack which only works on scenario for html/tensorboard, but not markdown.
+          // Because podTemplateSpec is escaped twice before writing to file. There are '\' before
+          // each `"` in podTemplateSpec.
+          // https://github.com/kubeflow/pipelines/issues/5830
+          const editMetadataFile = metadataFile.replace(/(\r\n|\n|\r|\\)/gm, '');
+          plotMetadataList = OutputArtifactLoader.parseOutputMetadataInJson(
+            editMetadataFile,
+            outputPath.key,
+          );
         }
       }
     } catch (err) {
@@ -102,6 +109,20 @@ export class OutputArtifactLoader {
     );
 
     return configs.filter(c => !!c) as ViewerConfig[];
+  }
+
+  private static parseOutputMetadataInJson(fileContent: string, key: string): PlotMetadata[] {
+    let plotMetadataList: PlotMetadata[] = [];
+    try {
+      plotMetadataList = (JSON.parse(fileContent) as OutputMetadata).outputs;
+      if (plotMetadataList === undefined) {
+        throw new Error('"outputs" field required by not found on metadata file');
+      }
+    } catch (e) {
+      logger.error(`Could not parse metadata file at: ${key}. Error: ${e}`);
+      throw new Error(`Could not parse metadata file at: ${key}. Error: ${e}`);
+    }
+    return plotMetadataList;
   }
 
   public static async buildConfusionMatrixConfig(

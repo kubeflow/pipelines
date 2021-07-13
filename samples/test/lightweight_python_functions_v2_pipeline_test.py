@@ -43,7 +43,8 @@ def verify(
             'inputs': {
                 'artifacts': [],
                 'parameters': {
-                    'message': 'message'
+                    'message': 'message',
+                    'empty_message': '',
                 }
             },
             'name': 'preprocess',

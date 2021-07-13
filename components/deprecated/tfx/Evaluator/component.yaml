@@ -19,6 +19,9 @@ inputs:
 outputs:
 - {name: evaluation, type: ModelEvaluation}
 - {name: blessing, type: ModelBlessing}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: tensorflow/tfx:0.29.0

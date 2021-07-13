@@ -35,8 +35,8 @@ github.com/go-stack/stack, https://github.com/go-stack/stack/blob/v1.8.0/LICENSE
 github.com/gogo/protobuf, https://github.com/gogo/protobuf/blob/v1.3.2/LICENSE, BSD-3-Clause / BSD-2-Clause
 github.com/golang/glog, https://github.com/golang/glog/blob/23def4e6c14b/LICENSE, Apache-2.0
 github.com/golang/groupcache, https://github.com/golang/groupcache/blob/8c9f03a8e57e/LICENSE, Apache-2.0
-github.com/golang/protobuf, https://github.com/golang/protobuf/blob/v1.4.3/LICENSE, BSD-3-Clause
-github.com/google/go-cmp, https://github.com/google/go-cmp/blob/v0.5.2/LICENSE, BSD-3-Clause
+github.com/golang/protobuf, https://github.com/golang/protobuf/blob/v1.5.0/LICENSE, BSD-3-Clause
+github.com/google/go-cmp, https://github.com/google/go-cmp/blob/v0.5.5/LICENSE, BSD-3-Clause
 github.com/google/gofuzz, https://github.com/google/gofuzz/blob/v1.1.0/LICENSE, Apache-2.0
 github.com/google/uuid, https://github.com/google/uuid/blob/v1.1.2/LICENSE, BSD-3-Clause
 github.com/googleapis/gnostic, https://github.com/googleapis/gnostic/blob/v0.5.1/LICENSE, Apache-2.0
@@ -95,7 +95,7 @@ golang.org/x/text, https://github.com/golang/text/blob/v0.3.5/LICENSE, BSD-3-Cla
 golang.org/x/time, https://github.com/golang/time/blob/3af7569d3a1e/LICENSE, BSD-3-Clause
 google.golang.org/genproto, https://github.com/googleapis/go-genproto/blob/86f49bd18e98/LICENSE, Apache-2.0
 google.golang.org/grpc, https://github.com/grpc/grpc-go/blob/v1.34.0/LICENSE, Apache-2.0
-google.golang.org/protobuf, https://github.com/protocolbuffers/protobuf-go/blob/v1.25.0/LICENSE, BSD-3-Clause
+google.golang.org/protobuf, https://github.com/protocolbuffers/protobuf-go/blob/v1.27.1/LICENSE, BSD-3-Clause
 gopkg.in/inf.v0, https://github.com/go-inf/inf/blob/v0.9.1/LICENSE, BSD-3-Clause
 gopkg.in/ini.v1, https://github.com/go-ini/ini/blob/v1.57.0/LICENSE, Apache-2.0
 gopkg.in/jcmturner/aescts.v1, https://github.com/jcmturner/aescts/blob/v1.0.1/LICENSE, Apache-2.0

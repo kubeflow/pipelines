@@ -3,15 +3,15 @@ kind: Workflow
 metadata:
   generateName: my-test-pipeline-
   annotations:
-    pipelines.kubeflow.org/kfp_sdk_version: 1.5.0
-    pipelines.kubeflow.org/pipeline_compilation_time: '2021-05-06T08:23:15.759065'
+    pipelines.kubeflow.org/kfp_sdk_version: 1.6.4
+    pipelines.kubeflow.org/pipeline_compilation_time: '2021-07-05T13:06:29.779267'
     pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "gs://output-directory/v2-artifacts",
       "name": "pipeline-output-directory"}, {"default": "my-test-pipeline", "name":
       "pipeline-name"}], "name": "my-test-pipeline"}'
     pipelines.kubeflow.org/v2_pipeline: "true"
   labels:
     pipelines.kubeflow.org/v2_pipeline: "true"
-    pipelines.kubeflow.org/kfp_sdk_version: 1.5.0
+    pipelines.kubeflow.org/kfp_sdk_version: 1.6.4
 spec:
   entrypoint: my-test-pipeline
   templates:
@@ -82,7 +82,8 @@ spec:
         --mlmd_server_port, $(METADATA_GRPC_SERVICE_PORT), --runtime_info_json, $(KFP_V2_RUNTIME_INFO),
         --container_image, $(KFP_V2_IMAGE), --task_name, preprocess, --pipeline_name,
         '{{inputs.parameters.pipeline-name}}', --pipeline_run_id, $(WORKFLOW_ID),
-        --pipeline_task_id, $(KFP_POD_NAME), --pipeline_root, '{{inputs.parameters.pipeline-output-directory}}']
+        --pipeline_task_id, $(KFP_POD_NAME), --pipeline_root, '{{inputs.parameters.pipeline-output-directory}}',
+        --, some_int=12, uri=uri-to-import, --]
       env:
       - name: KFP_POD_NAME
         valueFrom:
@@ -95,12 +96,10 @@ spec:
           fieldRef: {fieldPath: 'metadata.labels[''workflows.argoproj.io/workflow'']'}
       - {name: KFP_V2_IMAGE, value: 'python:3.9'}
       - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {"some_int": {"type":
-          "INT", "value": "BEGIN-KFP-PARAM[12]END-KFP-PARAM"}, "uri": {"type": "STRING",
-          "value": "BEGIN-KFP-PARAM[uri-to-import]END-KFP-PARAM"}}, "inputArtifacts":
-          {}, "outputParameters": {"output_parameter_one": {"type": "INT", "path":
-          "/tmp/outputs/output_parameter_one/data"}}, "outputArtifacts": {"output_dataset_one":
-          {"schemaTitle": "system.Dataset", "instanceSchema": "", "metadataPath":
-          "/tmp/outputs/output_dataset_one/data"}}}'}
+          "INT"}, "uri": {"type": "STRING"}}, "inputArtifacts": {}, "outputParameters":
+          {"output_parameter_one": {"type": "INT", "path": "/tmp/outputs/output_parameter_one/data"}},
+          "outputArtifacts": {"output_dataset_one": {"schemaTitle": "system.Dataset",
+          "instanceSchema": "", "metadataPath": "/tmp/outputs/output_dataset_one/data"}}}'}
       envFrom:
       - configMapRef: {name: metadata-grpc-configmap, optional: true}
       image: python:3.9
@@ -123,12 +122,12 @@ spec:
         pipelines.kubeflow.org/component_ref: '{}'
         pipelines.kubeflow.org/arguments.parameters: '{"some_int": "12", "uri": "uri-to-import"}'
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.5.0
+        pipelines.kubeflow.org/kfp_sdk_version: 1.6.4
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/v2_component: "true"
     initContainers:
     - command: [/bin/mount_launcher.sh]
-      image: gcr.io/ml-pipeline/kfp-launcher:dummy
+      image: gcr.io/ml-pipeline/kfp-launcher:1.6.4
       name: kfp-launcher
       mirrorVolumeMounts: true
     volumes:
@@ -177,7 +176,8 @@ spec:
         --mlmd_server_port, $(METADATA_GRPC_SERVICE_PORT), --runtime_info_json, $(KFP_V2_RUNTIME_INFO),
         --container_image, $(KFP_V2_IMAGE), --task_name, train, --pipeline_name, '{{inputs.parameters.pipeline-name}}',
         --pipeline_run_id, $(WORKFLOW_ID), --pipeline_task_id, $(KFP_POD_NAME), --pipeline_root,
-        '{{inputs.parameters.pipeline-output-directory}}']
+        '{{inputs.parameters.pipeline-output-directory}}', --, 'num_steps={{inputs.parameters.preprocess-output_parameter_one}}',
+        --]
       env:
       - name: KFP_POD_NAME
         valueFrom:
@@ -190,8 +190,7 @@ spec:
           fieldRef: {fieldPath: 'metadata.labels[''workflows.argoproj.io/workflow'']'}
       - {name: KFP_V2_IMAGE, value: 'python:3.7'}
       - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {"num_steps": {"type":
-          "INT", "value": "BEGIN-KFP-PARAM[{{inputs.parameters.preprocess-output_parameter_one}}]END-KFP-PARAM"}},
-          "inputArtifacts": {"dataset": {"metadataPath": "/tmp/inputs/dataset/data",
+          "INT"}}, "inputArtifacts": {"dataset": {"metadataPath": "/tmp/inputs/dataset/data",
           "schemaTitle": "system.Dataset", "instanceSchema": ""}}, "outputParameters":
           {}, "outputArtifacts": {"model": {"schemaTitle": "system.Model", "instanceSchema":
           "", "metadataPath": "/tmp/outputs/model/data"}}}'}
@@ -216,12 +215,12 @@ spec:
         pipelines.kubeflow.org/component_ref: '{}'
         pipelines.kubeflow.org/arguments.parameters: '{"num_steps": "{{inputs.parameters.preprocess-output_parameter_one}}"}'
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.5.0
+        pipelines.kubeflow.org/kfp_sdk_version: 1.6.4
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/v2_component: "true"
     initContainers:
     - command: [/bin/mount_launcher.sh]
-      image: gcr.io/ml-pipeline/kfp-launcher:dummy
+      image: gcr.io/ml-pipeline/kfp-launcher:1.6.4
       name: kfp-launcher
       mirrorVolumeMounts: true
     volumes:

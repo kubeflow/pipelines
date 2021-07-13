@@ -5,6 +5,9 @@ inputs:
 - {name: GCS path prefix, type: String}
 outputs:
 - {name: GCS path, type: String}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
     container:
         image: google/cloud-sdk

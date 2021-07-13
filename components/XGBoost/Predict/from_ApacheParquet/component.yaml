@@ -16,6 +16,9 @@ inputs:
 - {name: label_column_name, type: String, optional: true}
 outputs:
 - {name: predictions, type: Predictions}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: python:3.7

@@ -1076,8 +1076,8 @@ export interface DAGTask {
    */
   dependencies: string[];
 
-  // TODO: This exists in https://github.com/argoproj/argo/blob/master/api/openapi-spec/swagger.json
-  // but not in https://github.com/argoproj/argo-ui/blob/master/src/models/workflows.ts
+  // TODO: This exists in https://github.com/argoproj/argo-workflows/blob/master/api/openapi-spec/swagger.json
+  // but not in https://github.com/argoproj/argo-workflows/blob/master/ui/src/models/workflows.ts
   // Perhaps we should generate this definition file from the swagger?
   /**
    * When is an expression in which the task should conditionally execute

@@ -11,6 +11,9 @@ inputs:
 - {name: model_path, type: String}
 outputs:
 - {name: model_path, type: String}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
 implementation:
   container:
     image: python:3.8
