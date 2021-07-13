@@ -27,8 +27,6 @@ RUN pip install --no-cache-dir git+https://github.com/PyTorchLightning/pytorch-l
 
 RUN pip install torchmetrics==0.4.1
 
-RUN pip install --no-cache-dir git+https://github.com/PyTorchLightning/pytorch-lightning@master
-
 ENV PYTHONPATH /workspace
 
 ENTRYPOINT /bin/bash
