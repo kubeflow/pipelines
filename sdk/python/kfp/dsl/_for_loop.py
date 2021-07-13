@@ -64,17 +64,6 @@ class LoopArguments(dsl.PipelineParam):
               'If you input a list of dicts then all dicts should have the same keys. '
               'Got: {}.'.format(items))
 
-      # then this block creates loop_args.variable_a and loop_args.variable_b
-      for subvar_name in subvar_names:
-        if not self._subvar_name_is_legal(subvar_name):
-          raise ValueError(
-              "Tried to create subvariable named {} but that's not a legal Python variable "
-              'name.'.format(subvar_name))
-        setattr(
-            self, subvar_name,
-            LoopArgumentVariable(
-                self.name, subvar_name, loop_args_op_name=self.op_name))
-
     self.items_or_pipeline_param = items
     self.referenced_subvar_names = []
 
