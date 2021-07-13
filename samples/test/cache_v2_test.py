@@ -25,7 +25,7 @@ import functools
 import kfp
 import kfp_server_api
 
-from .cache_v2 import random_two_step_pipeline
+from .two_step import two_step_pipeline
 from .util import run_pipeline_func, TestCase, KfpMlmdClient, KfpTask
 from ml_metadata.proto import Execution
 
@@ -108,7 +108,7 @@ if __name__ == '__main__':
     random_int = random.randint(0, 10000)
     run_pipeline_func([
         TestCase(
-            pipeline_func=random_two_step_pipeline,
+            pipeline_func=two_step_pipeline,
             arguments={'uri': f'{random_uri}', 'some_int': f'{random_int}'},
             verify_func=functools.partial(verify, uri=random_uri, some_int=random_int, state = Execution.State.COMPLETE,),
             mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
@@ -116,7 +116,7 @@ if __name__ == '__main__':
     ])
     run_pipeline_func([
         TestCase(
-            pipeline_func=random_two_step_pipeline,
+            pipeline_func=two_step_pipeline,
             arguments={'uri': f'{random_uri}', 'some_int': f'{random_int}'},
             verify_func=functools.partial(verify, uri=random_uri, some_int=random_int, state = Execution.State.CACHED),
             mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,

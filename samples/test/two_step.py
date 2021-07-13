@@ -23,9 +23,9 @@ def preprocess(
 ):
     '''Dummy Preprocess Step.'''
     with open(output_dataset_one, 'w') as f:
-        f.write('Output dataset')
+        f.write(uri)
     with open(output_parameter_one, 'w') as f:
-        f.write("{}".format(1234))
+        f.write("{}".format(some_int))
 
 
 preprocess_op = components.create_component_from_func(
@@ -35,9 +35,9 @@ preprocess_op = components.create_component_from_func(
 
 @components.create_component_from_func
 def train_op(
-    dataset: InputPath('Dataset'),
-    model: OutputPath('Model'),
-    num_steps: int = 100
+        dataset: InputPath('Dataset'),
+        model: OutputPath('Model'),
+        num_steps: int = 100
 ):
     '''Dummy Training Step.'''
 
@@ -52,7 +52,7 @@ def train_op(
 
 @dsl.pipeline(name='two_step_pipeline')
 def two_step_pipeline():
-    preprocess_task = preprocess_op(uri='uri-to-import', some_int=12)
+    preprocess_task = preprocess_op(uri='uri-to-import', some_int=1234)
     train_task = train_op(
         num_steps=preprocess_task.outputs['output_parameter_one'],
         dataset=preprocess_task.outputs['output_dataset_one']
