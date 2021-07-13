@@ -4,11 +4,10 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
-	"github.com/protocolbuffers/txtpbfmt/parser"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/encoding/prototext"
 	"os"
 	"strconv"
 	"strings"
@@ -28,13 +27,19 @@ const (
 )
 
 func GenerateFingerPrint(cacheKey *pipeline_spec.CacheKey) (string, error) {
-	cacheKeyBytes, err := prototext.Marshal(cacheKey)
+	cacheKeyJsonBytes, err := protojson.Marshal(cacheKey)
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal cache key: %w", err)
+		return "", fmt.Errorf("failed to marshal cache key with protojson: %w", err)
 	}
-	formattedCacheKeyBytes, err := parser.Format(cacheKeyBytes)
+	// This json unmarshal and marshal is to use encoding/json formatter to format the bytes[] returned by protojson
+	// Do the json formatter because of https://developers.google.com/protocol-buffers/docs/reference/go/faq#unstable-json
+	var v interface{}
+	if err := json.Unmarshal(cacheKeyJsonBytes, &v); err != nil {
+		return "", fmt.Errorf("failed to unmarshall cache key json bytes array: %w", err)
+	}
+	formattedCacheKeyBytes, err := json.Marshal(v)
 	if err != nil {
-		return "", fmt.Errorf("failed to format marshalled cache key bytes: %w", err)
+		return "", fmt.Errorf("failed to marshall cache key with golang encoding/json : %w", err)
 	}
 	hash := sha256.New()
 	hash.Write(formattedCacheKeyBytes)
