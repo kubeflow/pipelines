@@ -22,8 +22,8 @@ steps:
     - -ceux
     - |
       # Parse major minor version and save to a file for reusing in other steps.
-      # e.g. 1.0.0-rc.1 and 1.0.1 are parsed as 1.0
-      echo $TAG_NAME | sed -e "s#\([0-9]\+[.][0-9]\+\)[.].*#\1#" > /workspace/mm.ver
+      # e.g. v1.0.0-rc.1 and v1.0.1 are parsed as 1.0
+      echo $TAG_NAME | sed -e "s#v\([0-9]\+[.][0-9]\+\)[.].*#\1#" > /workspace/mm.ver
 
 # Pull and retag images for pipeline components
 - id: 'retagComponentImages'
