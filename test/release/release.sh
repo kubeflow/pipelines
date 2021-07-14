@@ -20,12 +20,6 @@ TAG=$1
 BRANCH=$2
 REPO=kubeflow/pipelines
 
-if  [[ $TAG != v* ]] ;
-then
-    echo "release tag needs to start with 'v' "
-    exit 1
-fi
-
 if [[ -z "$BRANCH" || -z "$TAG" ]]; then
   echo "Usage: ./test/release/release.sh <release-tag> <release-branch>" >&2
   exit 1
@@ -43,7 +37,7 @@ cd "$clone_dir"
 git checkout "$BRANCH"
 
 echo "Preparing local git tags used by changelog generation."
-# tags with "-" are pre-releases, e.g. v1.0.0-rc.1
+# tags with "-" are pre-releases, e.g. 1.0.0-rc.1
 if [[ "$TAG" =~ "-" ]]; then
   echo "Releasing a pre-release $TAG."
 else
