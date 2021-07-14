@@ -53,18 +53,14 @@ OUTPUT_METADATA_JSON = '/tmp/outputs/executor_output.json'
 # Executor input placeholder.
 _EXECUTOR_INPUT_PLACEHOLDER = '{{$}}'
 
-
+# TODO(chensun): block URI placeholder usage in v1.
 def _generate_output_uri_placeholder(port_name: str) -> str:
   """Generates the URI placeholder for an output."""
-  if not kfp.COMPILING_FOR_V2:
-    raise ValueError('outputUri placeholder is not supported in V1 mode.')
   return "{{{{$.outputs.artifacts['{}'].uri}}}}".format(port_name)
 
 
 def _generate_input_uri_placeholder(port_name: str) -> str:
   """Generates the URI placeholder for an input."""
-  if not kfp.COMPILING_FOR_V2:
-    raise ValueError('inputUri placeholder is not supported in V1 mode.')
   return "{{{{$.inputs.artifacts['{}'].uri}}}}".format(port_name)
 
 
