@@ -41,7 +41,7 @@ func main() {
 
 	enableCachingBool, err := strconv.ParseBool(*enableCaching)
 	if err != nil {
-		glog.Exitf("Failed to parse enableCaching %s: %v", enableCaching, err)
+		glog.Exitf("Failed to parse enableCaching %t: %v", enableCachingBool, err)
 	}
 
 	opts := &component.LauncherOptions{
