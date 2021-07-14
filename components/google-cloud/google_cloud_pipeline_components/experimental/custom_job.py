@@ -116,19 +116,62 @@ def run_as_custom_job (
         job_spec['workerPoolSpecs'] = worker_pool_specs
 
     else:
+        def _is_output_parameter(output_key: str) -> bool:
+            for output in preprocess.component_spec.outputs:
+                if output.name == output_key: 
+                    return True
+            return False
+        def _resolve_cmd_lines(cmds: Optional[List[dsl_utils._CommandlineArgumentType]],
+                       is_output_parameter: Callable[[str], bool]) -> None:
+              """Resolves a list of commands/args."""
+              def _resolve_cmd(cmd: Optional[dsl_utils._CommandlineArgumentType]) -> Optional[str]:
+                """Resolves a single command line cmd/arg."""
+                if cmd is None:
+                  return None
+                elif isinstance(cmd, (str, float, int)):
+                  return str(cmd)
+                elif isinstance(cmd, dsl_utils._structures.InputValuePlaceholder):
+                  return dsl_utils._input_parameter_placeholder(cmd.input_name)
+                elif isinstance(cmd, dsl_utils._structures.InputPathPlaceholder):
+                  return dsl_utils._input_artifact_path_placeholder(cmd.input_name)
+                elif isinstance(cmd, dsl_utils._structures.InputUriPlaceholder):
+                  return dsl_utils._input_artifact_uri_placeholder(cmd.input_name)
+                elif isinstance(cmd, dsl_utils._structures.OutputPathPlaceholder):
+                  if is_output_parameter(cmd.output_name):
+                    return dsl_utils._output_parameter_path_placeholder(cmd.output_name)
+                  else:
+                    return dsl_utils._output_artifact_path_placeholder(cmd.output_name)
+                elif isinstance(cmd, dsl_utils._structures.OutputUriPlaceholder):
+                  return dsl_utils._output_artifact_uri_placeholder(cmd.output_name)
+
+                # TODO, add to utils and remove this method
+                elif isinstance(cmd, dsl_utils._structures.ExecutorInputPlaceholder):
+                    return "{{{{$}}}}"
+                else:
+                  raise TypeError('Got unexpected placeholder type for %s' % cmd)
+
+              if not cmds:
+                return
+              for idx, cmd in enumerate(cmds):
+                cmds[idx] = _resolve_cmd(cmd)
+            
+            
         worker_pool_spec = {
             'machineSpec': {
                 'machineType': machine_type or _DEFAULT_CUSTOM_JOB_MACHINE_TYPE
             },
             'replicaCount': '1',
             'containerSpec': {
-                'imageUri': component_op.container.image,
+                'imageUri': component_op.component_spec.implementation.container.image,
             }
         }
-        if component_op.container.command:
-            worker_pool_spec['containerSpec']['command'] = component_op.container.command
-        if component_op.container.args:
-            worker_pool_spec['containerSpec']['args'] = component_op.container.args
+        if component_op.component_spec.implementation.container.command:
+            _resolve_cmd_lines(component_op.component_spec.implementation.container.command, _is_output_parameter)
+            worker_pool_spec['containerSpec']['command'] = component_op.component_spec.implementation.container.command
+
+        if component_op.component_spec.implementation.container.args:
+            _resolve_cmd_lines(component_op.component_spec.implementation.container.args, _is_output_parameter)
+            worker_pool_spec['containerSpec']['args'] = component_op.component_spec.implementation.container.args
         if accelerator_type is not None:
             worker_pool_spec['machineSpec']['acceleratorType'
                                            ] = accelerator_type
@@ -165,7 +208,7 @@ def run_as_custom_job (
         job_spec['network'] = network
 
     custom_job_payload = {
-        'displayName': display_name or component_op.name,
+        'displayName': display_name or component_op.component_spec.name,
         'jobSpec': job_spec
     }
 
