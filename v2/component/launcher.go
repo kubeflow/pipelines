@@ -408,20 +408,9 @@ func (l *Launcher) storeOutputParameterValueFromCache(cachedExecution *pb.Execut
 }
 
 func (l *Launcher) storeOutputArtifactMetadataFromCache(ctx context.Context, executorInputOutputs *pipelinespec.ExecutorInput_Outputs, cachedMLMDExecutionID int64) ([]*metadata.OutputArtifact, error) {
-	MLMDOutputArtifacts, err := l.metadataClient.GetOutputArtifactsByExecutionId(ctx, cachedMLMDExecutionID)
+	mlmdOutputArtifactsByName, err := l.metadataClient.GetOutputArtifactsByExecutionId(ctx, cachedMLMDExecutionID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get MLMDOutputArtifacts by executionId %v: %w", cachedMLMDExecutionID, err)
-	}
-	MLMDOutputArtifactByName := make(map[string]*pb.Artifact)
-	for _, artifact := range MLMDOutputArtifacts {
-		name, err := l.metadataClient.GetArtifactName(ctx, artifact.GetId())
-		if err != nil {
-			return nil, fmt.Errorf("failed to get artifact name with artifact id: %v: %w", artifact.GetId(), err)
-		}
-		if name == "" {
-			return nil, fmt.Errorf("got empty string when getting artifact name with artifact id: %v", artifact.GetId())
-		}
-		MLMDOutputArtifactByName[name] = artifact
+		return nil, fmt.Errorf("failed to get MLMDOutputArtifactsByName by executionId %v: %w", cachedMLMDExecutionID, err)
 	}
 
 	// Register artifacts with MLMD.
@@ -438,11 +427,12 @@ func (l *Launcher) storeOutputArtifactMetadataFromCache(ctx context.Context, exe
 			continue
 		}
 		runtimeArtifact := runTimeArtifactList.Artifacts[0]
-		artifactName := extractNameFromURI(runtimeArtifact.Uri)
-		mlmdArtifact, ok := MLMDOutputArtifactByName[artifactName]
-		if !ok {
-			return nil, fmt.Errorf("unable to find artifact with name %v in mlmd output artifacts", artifactName)
+		mlmdArtifacts, ok := mlmdOutputArtifactsByName[runtimeArtifact.GetName()]
+		if !ok || len(mlmdArtifacts) == 0 {
+			return nil, fmt.Errorf("unable to find artifact with name %v in mlmd output artifacts", runtimeArtifact.GetName())
 		}
+		// TODO: Support multiple artifacts someday, probably through the v2 engine.
+		mlmdArtifact := mlmdArtifacts[0]
 		if err := os.MkdirAll(path.Dir(artifact.MetadataPath), 0644); err != nil {
 			return nil, fmt.Errorf("unable to make local directory %v for outputArtifact %v: %w", artifact.MetadataPath, name, err)
 		}
@@ -462,11 +452,6 @@ func (l *Launcher) storeOutputArtifactMetadataFromCache(ctx context.Context, exe
 		})
 	}
 	return registeredMLMDArtifacts, nil
-}
-
-func extractNameFromURI(uri string) string {
-	slice := strings.Split(uri, "/")
-	return slice[len(slice)-1]
 }
 
 func (l *Launcher) executeWithoutCacheHit(ctx context.Context, executorInput *pipelinespec.ExecutorInput, createdExecution *metadata.Execution, cmd, fingerPrint string, args []string) error {
