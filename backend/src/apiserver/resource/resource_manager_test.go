@@ -298,23 +298,25 @@ func TestCreatePipeline_V2PipelineName(t *testing.T) {
 		{"abcd", "user", "namespace/user/pipeline/abcd"},
 	}
 	for _, test := range tests {
-		store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-		defer store.Close()
-		manager := NewResourceManager(store)
+		t.Run(fmt.Sprintf("%+v", test), func(t *testing.T) {
+			store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+			defer store.Close()
+			manager := NewResourceManager(store)
 
-		createdPipeline, err := manager.CreatePipeline(test.name, "", test.namespace, []byte(strings.TrimSpace(
-			v2compatPipeline)))
-		require.Nil(t, err)
-		params, err := util.UnmarshalParameters(createdPipeline.Parameters)
-		require.Nil(t, err)
-		var nameParam *v1alpha1.Parameter
-		for _, param := range params {
-			if param.Name == "pipeline-name" {
-				nameParam = &param
+			createdPipeline, err := manager.CreatePipeline(test.name, "", test.namespace, []byte(strings.TrimSpace(
+				v2compatPipeline)))
+			require.Nil(t, err)
+			params, err := util.UnmarshalParameters(createdPipeline.Parameters)
+			require.Nil(t, err)
+			var nameParam *v1alpha1.Parameter
+			for _, param := range params {
+				if param.Name == "pipeline-name" {
+					nameParam = &param
+				}
 			}
-		}
-		require.NotNil(t, nameParam)
-		require.Equal(t, test.pipelineName, nameParam.Value.String())
+			require.NotNil(t, nameParam)
+			require.Equal(t, test.pipelineName, nameParam.Value.String())
+		})
 	}
 }
 
@@ -2821,6 +2823,56 @@ func TestCreatePipelineVersion_ComplexPipelineVersion(t *testing.T) {
 
 	_, err = manager.GetPipelineVersion(version.UUID)
 	assert.Nil(t, err)
+}
+
+func TestCreatePipelineVersion_V2PipelineName(t *testing.T) {
+	tests := []struct {
+		name         string
+		namespace    string
+		pipelineName string
+	}{
+		{"v2-compat", "", "pipeline/v2-compat"},
+		{"pipe3", "", "pipeline/pipe3"},
+		{"pipeline2", "kubeflow", "namespace/kubeflow/pipeline/pipeline2"},
+		{"abcd", "user", "namespace/user/pipeline/abcd"},
+	}
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%+v", test), func(t *testing.T) {
+			store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+			defer store.Close()
+			manager := NewResourceManager(store)
+
+			createdPipeline, err := manager.CreatePipeline(test.name, "", test.namespace, []byte(strings.TrimSpace(
+				v2compatPipeline)))
+			require.Nil(t, err)
+			pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+			require.True(t, ok)
+			pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+			version, err := manager.CreatePipelineVersion(
+				&api.PipelineVersion{
+					Name: "pipeline_version",
+					ResourceReferences: []*api.ResourceReference{{
+						Key: &api.ResourceKey{
+							Id:   createdPipeline.UUID,
+							Type: api.ResourceType_PIPELINE,
+						},
+						Relationship: api.Relationship_OWNER,
+					}},
+				},
+				[]byte(strings.TrimSpace(v2compatPipeline)), true)
+			require.Nil(t, err)
+			params, err := util.UnmarshalParameters(version.Parameters)
+			require.Nil(t, err)
+			var nameParam *v1alpha1.Parameter
+			for _, param := range params {
+				if param.Name == "pipeline-name" {
+					nameParam = &param
+				}
+			}
+			require.NotNil(t, nameParam)
+			require.Equal(t, test.pipelineName, nameParam.Value.String())
+		})
+	}
 }
 
 func TestCreatePipelineVersion_CreatePipelineVersionFileError(t *testing.T) {
