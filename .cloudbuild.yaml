@@ -192,10 +192,10 @@ steps:
   args: ['pull', 'gcr.io/cloudsql-docker/gce-proxy:1.14']
   id:   'pullCloudsqlProxy'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['pull', 'gcr.io/ml-pipeline/argoexec:v3.1.1-license-compliance']
+  args: ['pull', 'gcr.io/ml-pipeline/argoexec:v3.1.1-patch-license-compliance']
   id:   'pullArgoExecutor'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['pull', 'gcr.io/ml-pipeline/workflow-controller:v3.1.1-license-compliance']
+  args: ['pull', 'gcr.io/ml-pipeline/workflow-controller:v3.1.1-patch-license-compliance']
   id:   'pullArgoWorkflowController'
 
 # Tag for Hosted - SemVersion to Major.Minor parsing
