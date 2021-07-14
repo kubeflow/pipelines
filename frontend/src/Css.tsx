@@ -48,6 +48,7 @@ export const color = {
   weak: '#9aa0a6',
   link: '#0d47a1',
   linkLight: '#5472d3',
+  whiteSmoke: '#f3f3f3',
 };
 
 export const dimension = {
@@ -261,7 +262,7 @@ export const commonCss = stylesheet({
         textDecoration: 'underline',
       },
     },
-    color: color.link,
+    color: color.strong,
     cursor: 'pointer',
     textDecoration: 'none',
   },

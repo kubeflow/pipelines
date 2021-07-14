@@ -51,6 +51,9 @@ export const css = stylesheet({
       '&:hover': {
         backgroundColor: '#f3f3f3',
       },
+      '&:hover a': {
+        color: color.linkLight,
+      },
     },
     borderBottom: '1px solid #ddd',
     display: 'flex',
