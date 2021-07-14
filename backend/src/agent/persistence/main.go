@@ -65,6 +65,7 @@ const (
 
 func main() {
 	flag.Parse()
+	log.Printf("debug")
 
 	// set up signals so we handle the first shutdown signal gracefully
 	stopCh := signals.SetupSignalHandler()
