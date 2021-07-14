@@ -13,6 +13,7 @@
 # limitations under the License.
 """Cifar10 training script."""
 import os
+import json
 from pathlib import Path
 from argparse import ArgumentParser
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -26,7 +27,9 @@ from pytorch_kfp_components.components.visualization.component import (
 )
 from pytorch_kfp_components.components.trainer.component import Trainer
 from pytorch_kfp_components.components.mar.component import MarGeneration
-from pytorch_kfp_components.components.utils.argument_parsing import parse_input_args
+from pytorch_kfp_components.components.utils.argument_parsing import (
+    parse_input_args,
+)
 
 # Argument parser for user defined paths
 parser = ArgumentParser()
@@ -80,14 +83,24 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--ptl_args",
-    type=str,
-    help="Arguments specific to PTL trainer",
+    "--ptl_args", type=str, help="Arguments specific to PTL trainer"
 )
+
+parser.add_argument("--trial_id", default=0, type=int, help="Trial id")
+
+parser.add_argument(
+    "--model_params", type=str, help="Model parameters for trainer"
+)
+
+parser.add_argument(
+    "--results", default="results.json", type=str, help="Training results"
+)
+
 # parser = pl.Trainer.add_argparse_args(parent_parser=parser)
 args = vars(parser.parse_args())
 script_args = args["script_args"]
 ptl_args = args["ptl_args"]
+trial_id = args["trial_id"]
 
 TENSORBOARD_ROOT = args["tensorboard_root"]
 CHECKPOINT_DIR = args["checkpoint_dir"]
@@ -142,6 +155,9 @@ Path(CHECKPOINT_DIR).mkdir(parents=True, exist_ok=True)
 # Updating all the input parameter to PTL dict
 
 trainer_args.update(ptl_dict)
+model_params = args.pop("model_params")
+
+args.update(json.loads(model_params))
 
 # Initiating the training process
 trainer = Trainer(
@@ -160,27 +176,20 @@ if trainer.ptl_trainer.global_rank == 0:
     cifar_dir, _ = os.path.split(os.path.abspath(__file__))
 
     mar_config = {
-        "MODEL_NAME":
-            "cifar10_test",
-        "MODEL_FILE":
-            os.path.join(cifar_dir, "cifar10_train.py"),
-        "HANDLER":
-            os.path.join(cifar_dir, "cifar10_handler.py"),
-        "SERIALIZED_FILE":
-            os.path.join(CHECKPOINT_DIR, script_dict["model_name"]),
-        "VERSION":
-            "1",
-        "EXPORT_PATH":
-            CHECKPOINT_DIR,
-        "CONFIG_PROPERTIES":
-            os.path.join(cifar_dir, "config.properties"),
-        "EXTRA_FILES":
-            "{},{}".format(
-                os.path.join(cifar_dir, "class_mapping.json"),
-                os.path.join(cifar_dir, "classifier.py"),
-            ),
-        "REQUIREMENTS_FILE":
-            os.path.join(cifar_dir, "requirements.txt"),
+        "MODEL_NAME": "cifar10_test",
+        "MODEL_FILE": os.path.join(cifar_dir, "cifar10_train.py"),
+        "HANDLER": os.path.join(cifar_dir, "cifar10_handler.py"),
+        "SERIALIZED_FILE": os.path.join(
+            CHECKPOINT_DIR, script_dict["model_name"]
+        ),
+        "VERSION": "1",
+        "EXPORT_PATH": CHECKPOINT_DIR,
+        "CONFIG_PROPERTIES": os.path.join(cifar_dir, "config.properties"),
+        "EXTRA_FILES": "{},{}".format(
+            os.path.join(cifar_dir, "class_mapping.json"),
+            os.path.join(cifar_dir, "classifier.py"),
+        ),
+        "REQUIREMENTS_FILE": os.path.join(cifar_dir, "requirements.txt"),
     }
 
     MarGeneration(mar_config=mar_config, mar_save_path=CHECKPOINT_DIR)
@@ -217,6 +226,19 @@ if trainer.ptl_trainer.global_rank == 0:
     test_accuracy = round(float(model.test_acc.compute()), 2)
 
     print("Model test accuracy: ", test_accuracy)
+    data = {}
+    data[trial_id] = test_accuracy
+
+    Path(os.path.dirname(args["results"])).mkdir(parents=True, exist_ok=True)
+
+    results_file = Path(args["results"])
+    if results_file.is_file():
+        with open(results_file, "r") as fp:
+            old_data = json.loads(fp.read())
+        data.update(old_data)
+
+    with open(results_file, "w") as fp:
+        fp.write(json.dumps(data))
 
     visualization_arguments = {
         "input": {
