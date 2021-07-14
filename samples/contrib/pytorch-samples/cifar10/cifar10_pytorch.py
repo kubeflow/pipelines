@@ -155,9 +155,10 @@ Path(CHECKPOINT_DIR).mkdir(parents=True, exist_ok=True)
 # Updating all the input parameter to PTL dict
 
 trainer_args.update(ptl_dict)
-model_params = args.pop("model_params")
 
-args.update(json.loads(model_params))
+if args["model_params"]:
+    model_params = args.pop("model_params")
+    args.update(json.loads(model_params))
 
 # Initiating the training process
 trainer = Trainer(
