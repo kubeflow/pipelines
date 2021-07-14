@@ -4,17 +4,20 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
-	"google.golang.org/grpc"
-	"google.golang.org/protobuf/encoding/protojson"
 	"os"
 	"strconv"
 	"strings"
 
+	"google.golang.org/grpc"
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/golang/glog"
-	api "github.com/kubeflow/pipelines/v2/third_party/kfp_api"
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/cachekey"
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	api "github.com/kubeflow/pipelines/v2/kfp-api"
 	"github.com/kubeflow/pipelines/v2/third_party/ml_metadata"
-	"github.com/kubeflow/pipelines/v2/third_party/pipeline_spec"
 )
 
 const (
@@ -25,34 +28,43 @@ const (
 	defaultKfpApiEndpoint = "ml-pipeline.kubeflow:8887"
 )
 
-func GenerateFingerPrint(cacheKey *pipeline_spec.CacheKey) (string, error) {
-	b, err := protojson.Marshal(cacheKey)
+func GenerateFingerPrint(cacheKey *cachekey.CacheKey) (string, error) {
+	cacheKeyJsonBytes, err := protojson.Marshal(cacheKey)
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal cache key: %w", err)
+		return "", fmt.Errorf("failed to marshal cache key with protojson: %w", err)
+	}
+	// This json unmarshal and marshal is to use encoding/json formatter to format the bytes[] returned by protojson
+	// Do the json formatter because of https://developers.google.com/protocol-buffers/docs/reference/go/faq#unstable-json
+	var v interface{}
+	if err := json.Unmarshal(cacheKeyJsonBytes, &v); err != nil {
+		return "", fmt.Errorf("failed to unmarshall cache key json bytes array: %w", err)
+	}
+	formattedCacheKeyBytes, err := json.Marshal(v)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshall cache key with golang encoding/json : %w", err)
 	}
 	hash := sha256.New()
-	hash.Write(b)
+	hash.Write(formattedCacheKeyBytes)
 	md := hash.Sum(nil)
 	executionHashKey := hex.EncodeToString(md)
 	return executionHashKey, nil
-
 }
 
 func GenerateCacheKey(
-	inputs *pipeline_spec.ExecutorInput_Inputs,
-	outputs *pipeline_spec.ExecutorInput_Outputs,
+	inputs *pipelinespec.ExecutorInput_Inputs,
+	outputs *pipelinespec.ExecutorInput_Outputs,
 	outputParametersTypeMap map[string]string,
-	cmdArgs []string, image string) (*pipeline_spec.CacheKey, error) {
+	cmdArgs []string, image string) (*cachekey.CacheKey, error) {
 
-	cacheKey := pipeline_spec.CacheKey{
-		InputArtifactNames:   make(map[string]*pipeline_spec.ArtifactNameList),
-		InputParameters:      make(map[string]*pipeline_spec.Value),
-		OutputArtifactsSpec:  make(map[string]*pipeline_spec.RuntimeArtifact),
+	cacheKey := cachekey.CacheKey{
+		InputArtifactNames:   make(map[string]*cachekey.ArtifactNameList),
+		InputParameters:      make(map[string]*pipelinespec.Value),
+		OutputArtifactsSpec:  make(map[string]*pipelinespec.RuntimeArtifact),
 		OutputParametersSpec: make(map[string]string),
 	}
 
 	for inputArtifactName, inputArtifactList := range inputs.GetArtifacts() {
-		inputArtifactNameList := pipeline_spec.ArtifactNameList{ArtifactNames: make([]string, 0)}
+		inputArtifactNameList := cachekey.ArtifactNameList{ArtifactNames: make([]string, 0)}
 		for _, artifact := range inputArtifactList.Artifacts {
 			inputArtifactNameList.ArtifactNames = append(inputArtifactNameList.ArtifactNames, artifact.GetName())
 		}
@@ -60,7 +72,7 @@ func GenerateCacheKey(
 	}
 
 	for inputParameterName, inputParameterValue := range inputs.GetParameters() {
-		cacheKey.InputParameters[inputParameterName] = &pipeline_spec.Value{
+		cacheKey.InputParameters[inputParameterName] = &pipelinespec.Value{
 			Value: inputParameterValue.Value,
 		}
 	}
@@ -71,7 +83,7 @@ func GenerateCacheKey(
 		}
 		// TODO: Support multiple artifacts someday, probably through the v2 engine.
 		outputArtifact := outputArtifactList.Artifacts[0]
-		outputArtifactWithUriWiped := pipeline_spec.RuntimeArtifact{
+		outputArtifactWithUriWiped := pipelinespec.RuntimeArtifact{
 			Name:     outputArtifact.GetName(),
 			Type:     outputArtifact.GetType(),
 			Metadata: outputArtifact.GetMetadata(),
@@ -88,7 +100,7 @@ func GenerateCacheKey(
 		cacheKey.OutputParametersSpec[outputParameterName] = outputParameterType
 	}
 
-	cacheKey.ContainerSpec = &pipeline_spec.ContainerSpec{
+	cacheKey.ContainerSpec = &cachekey.ContainerSpec{
 		Image:   image,
 		CmdArgs: cmdArgs,
 	}
@@ -173,7 +185,7 @@ func (c *Client) CreateExecutionCache(ctx context.Context, task *api.Task) error
 	return nil
 }
 
-func GetOutputParamsFromCachedExecution(cachedExecution *ml_metadata.Execution) (map[string]string, error) {
+func GetMLMDOutputParams(cachedExecution *ml_metadata.Execution) (map[string]string, error) {
 	mlmdOutputParameters := make(map[string]string)
 	for customPropName, customPropValue := range cachedExecution.CustomProperties {
 		if strings.HasPrefix(customPropName, "output:") {

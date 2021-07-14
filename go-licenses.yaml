@@ -23,6 +23,8 @@ module:
     - third_party/NOTICES
     - backend/build # ignore built binaries
     - v2 # v2 is a separate sub-module
+  - name: github.com/kubeflow/pipelines/api
+    skip: true # this is a local module in the same project
   - name: github.com/beorn7/perks
     excludePaths:
     # README.md contains duplicate license info as LICENSE
@@ -153,7 +155,7 @@ module:
       path: LICENSE
       spdxId: BSD-3-Clause / BSD-2-Clause
   - name: google.golang.org/protobuf
-    version: v1.25.0
+    version: v1.27.1
     license:
       path: LICENSE
       spdxId: BSD-3-Clause
