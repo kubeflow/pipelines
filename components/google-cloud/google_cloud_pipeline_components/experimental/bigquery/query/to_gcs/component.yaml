@@ -41,7 +41,7 @@ inputs:
   - name: output_gcs_path
     description: 'The path to the Cloud Storage bucket to store the query output.'
     default: ''
-    type: GCSPath
+    type: String
   - name: output_destination_format
     description: 'The name of the output destination format. Default is CSV, and you can also choose NEWLINE_DELIMITED_JSON and AVRO.'
     default: 'CSV'
@@ -64,7 +64,7 @@ inputs:
 outputs:
   - name: output_gcs_path
     description: 'The path to the Cloud Storage bucket containing the query output in CSV format.'
-    type: GCSPath
+    type: String
   - name: MLPipeline UI metadata
     type: UI metadata
 implementation:

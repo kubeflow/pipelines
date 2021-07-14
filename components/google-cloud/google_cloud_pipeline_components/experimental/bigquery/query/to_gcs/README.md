@@ -45,7 +45,7 @@ The input data is a BigQuery job containing a query that pulls data from various
 
 Name | Description | Type
 :--- | :---------- | :---
-output_gcs_path | The path to the Cloud Storage bucket containing the query output in CSV format. | GCSPath
+output_gcs_path | The path to the Cloud Storage bucket containing the query output in CSV format. | String
 
 
 ## Cautions & requirements
