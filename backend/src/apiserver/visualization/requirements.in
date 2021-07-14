@@ -8,6 +8,6 @@ jupyter_client==5.3.*
 nbconvert==5.5.0
 nbformat==4.4.0
 scikit_learn==0.21.2
-tensorflow-metadata==0.26.*
-tensorflow-model-analysis==0.26.*
-tensorflow-data-validation==0.26.*
+tensorflow-metadata==0.30.*
+tensorflow-model-analysis==0.30.*
+tensorflow-data-validation==0.30.*

@@ -16,9 +16,10 @@
 -include .env
 LAUNCHER_IMAGE=gcr.io/ml-pipeline/kfp-launcher
 LAUNCHER_IMAGE_DEV?=gcr.io/ml-pipeline-test/dev/kfp-launcher
+REPO_ROOT=..
 
 build-launcher:
-	@docker build -t ${LAUNCHER_IMAGE} -f launcher_container/Dockerfile .
+	@docker build -t ${LAUNCHER_IMAGE} -f launcher_container/Dockerfile $(REPO_ROOT)
 
 push-launcher: build-launcher
 	@docker push ${LAUNCHER_IMAGE}

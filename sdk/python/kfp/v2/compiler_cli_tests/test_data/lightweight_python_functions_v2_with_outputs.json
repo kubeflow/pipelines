@@ -212,6 +212,9 @@
         },
         "tasks": {
           "add-numbers": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-add-numbers"
             },
@@ -230,6 +233,9 @@
             }
           },
           "concat-message": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-concat-message"
             },
@@ -248,6 +254,9 @@
             }
           },
           "output-artifact": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-output-artifact"
             },
@@ -276,6 +285,9 @@
             }
           },
           "output-named-tuple": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-output-named-tuple"
             },
@@ -325,7 +337,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.6.3"
+    "sdkVersion": "kfp-1.6.4"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"

@@ -202,5 +202,11 @@ Array [
     undefined,
     "%7B%22predicates%22%3A%5B%7B%22key%22%3A%22name%22%2C%22op%22%3A%22EQUALS%22%2C%22string_value%22%3A%22%5BTutorial%5D%20DSL%20-%20Control%20structures%22%7D%5D%7D",
   ],
+  Array [
+    undefined,
+    10,
+    undefined,
+    "%7B%22predicates%22%3A%5B%7B%22key%22%3A%22name%22%2C%22op%22%3A%22EQUALS%22%2C%22string_value%22%3A%22%5BTutorial%5D%20V2%20lightweight%20Python%20components%22%7D%5D%7D",
+  ],
 ]
 `;
