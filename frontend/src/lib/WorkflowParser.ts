@@ -224,21 +224,34 @@ export default class WorkflowParser {
       !workflow ||
       !workflow.status ||
       !workflow.status.nodes ||
-      !workflow.status.nodes[nodeId]
+      !workflow.status.nodes[nodeId] ||
+      !workflow.status.artifactRepositoryRef ||
+      !workflow.status.artifactRepositoryRef.artifactRepository ||
+      !workflow.status.artifactRepositoryRef.artifactRepository.s3
     ) {
       return { inputArtifacts, outputArtifacts };
     }
 
+    const s3Bucket = workflow.status.artifactRepositoryRef.artifactRepository.s3;
     const { inputs, outputs, templateName } = workflow.status.nodes[nodeId];
     const namePrefixToStrip = templateName + '-';
     if (!!inputs && !!inputs.artifacts) {
-      inputArtifacts = inputs.artifacts.map(({ name, s3 }) => [name, s3]);
+      inputArtifacts = inputs.artifacts.map(({ name, s3 }) => {
+        if (!s3) {
+          return [name, undefined];
+        }
+        s3.s3Bucket = s3Bucket;
+        return [name, s3];
+      });
     }
     if (!!outputs && !!outputs.artifacts) {
-      outputArtifacts = outputs.artifacts.map(({ name, s3 }) => [
-        WorkflowParser.trimPrefix(name, namePrefixToStrip),
-        s3,
-      ]);
+      outputArtifacts = outputs.artifacts.map(({ name, s3 }) => {
+        if (!s3) {
+          return [WorkflowParser.trimPrefix(name, namePrefixToStrip), undefined];
+        }
+        s3.s3Bucket = s3Bucket;
+        return [WorkflowParser.trimPrefix(name, namePrefixToStrip), s3];
+      });
     }
     return { inputArtifacts, outputArtifacts };
   }
@@ -298,9 +311,11 @@ export default class WorkflowParser {
         .filter(a => a.name === 'mlpipeline-ui-metadata' && !!a.s3)
         .forEach(a =>
           outputPaths.push({
-            bucket: a.s3!.bucket,
+            bucket: a.s3!.s3Bucket!.bucket,
             key: a.s3!.key,
-            source: isS3Endpoint(a.s3!.endpoint) ? StorageService.S3 : StorageService.MINIO,
+            source: isS3Endpoint(a.s3!.s3Bucket!.endpoint)
+              ? StorageService.S3
+              : StorageService.MINIO,
           }),
         );
     }
