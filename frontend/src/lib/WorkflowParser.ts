@@ -308,7 +308,7 @@ export default class WorkflowParser {
     const outputPaths: StoragePath[] = [];
     if (selectedWorkflowNode && selectedWorkflowNode.outputs) {
       (selectedWorkflowNode.outputs.artifacts || [])
-        .filter(a => a.name === 'mlpipeline-ui-metadata' && !!a.s3)
+        .filter(a => a.name === 'mlpipeline-ui-metadata' && !!a.s3 && !!a.s3.s3Bucket)
         .forEach(a =>
           outputPaths.push({
             bucket: a.s3!.s3Bucket!.bucket,
