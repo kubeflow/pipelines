@@ -567,7 +567,7 @@ class Client(object):
       if 'metadata' in template \
          and 'labels' in template['metadata'] \
          and 'pipelines.kubeflow.org/enable_caching' in template['metadata']['labels']:
-        template['metadata']['labels']['pipelines.kubeflow.org/enable_caching'] = enable_caching
+        template['metadata']['labels']['pipelines.kubeflow.org/enable_caching'] = str(enable_caching).lower()
 
   def list_pipelines(self, page_token='', page_size=10, sort_by=''):
     """List pipelines.
