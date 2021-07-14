@@ -332,13 +332,13 @@ func TestCreatePipeline_ComplexPipeline(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestCreatePipeline_GetParametersError(t *testing.T) {
+func TestCreatePipeline_ParseWorkflowError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
 	_, err := manager.CreatePipeline("pipeline1", "", "", []byte("I am invalid yaml"))
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Failed to parse the parameter")
+	assert.Contains(t, err.Error(), "Failed to parse the workflow template")
 }
 
 func TestCreatePipeline_StorePipelineMetadataError(t *testing.T) {
@@ -2914,7 +2914,7 @@ func TestCreatePipelineVersion_CreatePipelineVersionFileError(t *testing.T) {
 	assert.NotNil(t, version)
 }
 
-func TestCreatePipelineVersion_GetParametersError(t *testing.T) {
+func TestCreatePipelineVersion_ParseWorkflowError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
@@ -2942,7 +2942,7 @@ func TestCreatePipelineVersion_GetParametersError(t *testing.T) {
 		},
 		[]byte("I am invalid yaml"), true)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Failed to parse the parameter")
+	assert.Contains(t, err.Error(), "Failed to parse the workflow")
 }
 
 func TestCreatePipelineVersion_StorePipelineVersionMetadataError(t *testing.T) {

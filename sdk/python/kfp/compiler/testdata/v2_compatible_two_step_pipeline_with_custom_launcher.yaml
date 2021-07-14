@@ -4,7 +4,7 @@ metadata:
   generateName: my-test-pipeline-with-custom-launcher-
   annotations:
     pipelines.kubeflow.org/kfp_sdk_version: 1.6.4
-    pipelines.kubeflow.org/pipeline_compilation_time: '2021-07-14T10:07:48.596530'
+    pipelines.kubeflow.org/pipeline_compilation_time: '2021-07-14T10:49:23.033713'
     pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "gs://output-directory/v2-artifacts",
       "name": "pipeline-output-directory"}, {"default": "pipeline/my-test-pipeline-with-custom-launcher",
       "name": "pipeline-name"}], "name": "my-test-pipeline-with-custom-launcher"}'
@@ -53,15 +53,13 @@ spec:
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
             return file_path
 
-        def preprocess(
-            uri, some_int, output_parameter_one,
-            output_dataset_one
-        ):
-            '''Dummy Preprocess Step.'''
-            with open(output_dataset_one, 'w') as f:
-                f.write('Output dataset')
-            with open(output_parameter_one, 'w') as f:
-                f.write("{}".format(1234))
+        def preprocess(uri, some_int, output_parameter_one,
+                       output_dataset_one):
+          '''Dummy Preprocess Step.'''
+          with open(output_dataset_one, 'w') as f:
+            f.write('Output dataset')
+          with open(output_parameter_one, 'w') as f:
+            f.write("{}".format(1234))
 
         import argparse
         _parser = argparse.ArgumentParser(prog='Preprocess', description='Dummy Preprocess Step.')
@@ -153,20 +151,16 @@ spec:
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
             return file_path
 
-        def train(
-            dataset,
-            model,
-            num_steps = 100
-        ):
-            '''Dummy Training Step.'''
+        def train(dataset,
+                  model,
+                  num_steps = 100):
+          '''Dummy Training Step.'''
 
-            with open(dataset, 'r') as input_file:
-                input_string = input_file.read()
-                with open(model, 'w') as output_file:
-                    for i in range(num_steps):
-                        output_file.write(
-                            "Step {}\n{}\n=====\n".format(i, input_string)
-                        )
+          with open(dataset, 'r') as input_file:
+            input_string = input_file.read()
+            with open(model, 'w') as output_file:
+              for i in range(num_steps):
+                output_file.write("Step {}\n{}\n=====\n".format(i, input_string))
 
         import argparse
         _parser = argparse.ArgumentParser(prog='Train', description='Dummy Training Step.')

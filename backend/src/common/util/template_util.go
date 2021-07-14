@@ -43,6 +43,9 @@ func UnmarshalParameters(paramsString string) ([]v1alpha1.Parameter, error) {
 // Marshal parameters to JSON encoded string.
 // This also checks result is not longer than a limit.
 func MarshalParameters(params []v1alpha1.Parameter) (string, error) {
+	if params == nil {
+		return "[]", nil
+	}
 	paramBytes, err := json.Marshal(params)
 	if err != nil {
 		return "", NewInvalidInputErrorWithDetails(err, "Failed to marshal the parameter.")
