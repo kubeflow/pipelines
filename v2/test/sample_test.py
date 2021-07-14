@@ -97,7 +97,6 @@ def main(
             'kfp_host': host,
         },
         experiment_name=experiment,
-        enable_caching=False,
     )
     print("Run details page URL:")
     print(f"{host}/#/runs/details/{run_result.run_id}")
