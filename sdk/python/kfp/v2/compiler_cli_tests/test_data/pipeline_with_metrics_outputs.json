@@ -17,6 +17,9 @@
           },
           "tasks": {
             "output-metrics-2": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-output-metrics-2"
               },
@@ -151,6 +154,9 @@
             }
           },
           "output-metrics": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-output-metrics"
             },
@@ -176,7 +182,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.6.3"
+    "sdkVersion": "kfp-1.6.4"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"

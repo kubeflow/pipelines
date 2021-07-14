@@ -9,7 +9,7 @@ github.com/Masterminds/sprig, https://github.com/Masterminds/sprig/blob/v2.22.0/
 github.com/PuerkitoBio/purell, https://github.com/PuerkitoBio/purell/blob/v1.1.1/LICENSE, BSD-3-Clause
 github.com/PuerkitoBio/urlesc, https://github.com/PuerkitoBio/urlesc/blob/de5bf2ad4578/LICENSE, BSD-3-Clause
 github.com/antonmedv/expr, https://github.com/antonmedv/expr/blob/v1.8.8/LICENSE, MIT
-github.com/argoproj/argo-workflows/v3, https://github.com/argoproj/argo-workflows/blob/v3.1.1/LICENSE, Apache-2.0
+github.com/Bobgy/argo-workflows/v3, https://github.com/Bobgy/argo-workflows/blob/v3.1.1-patch/LICENSE, Apache-2.0
 github.com/argoproj/pkg, https://github.com/argoproj/pkg/blob/v0.8.1/LICENSE, Apache-2.0
 github.com/asaskevich/govalidator, https://github.com/asaskevich/govalidator/blob/7a23bdc65eef/LICENSE, MIT
 github.com/beorn7/perks, https://github.com/beorn7/perks/blob/v1.0.1/LICENSE, MIT
