@@ -48,7 +48,7 @@ def run_as_custom_job(
     Args:
       component_op: The task (ContainerOp) object to run as aiplatform custom job.
       display_name: Optional. The name of the custom job. If not provided the
-        component_op.name will be used instead. 
+        component_op.name will be used instead.
       replica_count: Optional. The number of replicas to be split between master
         workerPoolSpec and worker workerPoolSpec. (master always has 1 replica).
       machine_type: Optional. The type of the machine to run the custom job. The
@@ -110,7 +110,7 @@ def run_as_custom_job(
             else:
                 raise ValueError(
                     'Expect either "containerSpec" or "pythonPackageSpec" in each '
-                    'workerPoolSpec. Got: {}'.format(custom_job_spec)
+                    'workerPoolSpec. Got: {}'.format(worker_pool_spec)
                 )
 
         job_spec['workerPoolSpecs'] = worker_pool_specs
@@ -118,68 +118,10 @@ def run_as_custom_job(
     else:
 
         def _is_output_parameter(output_key: str) -> bool:
-            for output in preprocess.component_spec.outputs:
+            for output in component_op.component_spec.outputs:
                 if output.name == output_key:
                     return True
             return False
-
-        def _resolve_cmd_lines(
-            cmds: Optional[List[dsl_utils._CommandlineArgumentType]],
-            is_output_parameter: Callable[[str], bool]
-        ) -> None:
-            """Resolves a list of commands/args."""
-
-            def _resolve_cmd(
-                cmd: Optional[dsl_utils._CommandlineArgumentType]
-            ) -> Optional[str]:
-                """Resolves a single command line cmd/arg."""
-                if cmd is None:
-                    return None
-                elif isinstance(cmd, (str, float, int)):
-                    return str(cmd)
-                elif isinstance(cmd,
-                                dsl_utils._structures.InputValuePlaceholder):
-                    return dsl_utils._input_parameter_placeholder(
-                        cmd.input_name
-                    )
-                elif isinstance(cmd,
-                                dsl_utils._structures.InputPathPlaceholder):
-                    return dsl_utils._input_artifact_path_placeholder(
-                        cmd.input_name
-                    )
-                elif isinstance(cmd, dsl_utils._structures.InputUriPlaceholder):
-                    return dsl_utils._input_artifact_uri_placeholder(
-                        cmd.input_name
-                    )
-                elif isinstance(cmd,
-                                dsl_utils._structures.OutputPathPlaceholder):
-                    if is_output_parameter(cmd.output_name):
-                        return dsl_utils._output_parameter_path_placeholder(
-                            cmd.output_name
-                        )
-                    else:
-                        return dsl_utils._output_artifact_path_placeholder(
-                            cmd.output_name
-                        )
-                elif isinstance(cmd,
-                                dsl_utils._structures.OutputUriPlaceholder):
-                    return dsl_utils._output_artifact_uri_placeholder(
-                        cmd.output_name
-                    )
-
-                # TODO, add to utils and remove this method
-                elif isinstance(cmd,
-                                dsl_utils._structures.ExecutorInputPlaceholder):
-                    return "{{{{$}}}}"
-                else:
-                    raise TypeError(
-                        'Got unexpected placeholder type for %s' % cmd
-                    )
-
-            if not cmds:
-                return
-            for idx, cmd in enumerate(cmds):
-                cmds[idx] = _resolve_cmd(cmd)
 
         worker_pool_spec = {
             'machineSpec': {
@@ -192,7 +134,7 @@ def run_as_custom_job(
             }
         }
         if component_op.component_spec.implementation.container.command:
-            _resolve_cmd_lines(
+            dsl_utils.resolve_cmd_lines(
                 component_op.component_spec.implementation.container.command,
                 _is_output_parameter
             )
@@ -201,7 +143,7 @@ def run_as_custom_job(
             ] = component_op.component_spec.implementation.container.command
 
         if component_op.component_spec.implementation.container.args:
-            _resolve_cmd_lines(
+            dsl_utils.resolve_cmd_lines(
                 component_op.component_spec.implementation.container.args,
                 _is_output_parameter
             )
@@ -254,8 +196,8 @@ def run_as_custom_job(
             InputSpec(name='gcp_project', type='String'),
             InputSpec(name='gcp_region', type='String')
         ],
-        outputs=component_op.component_spec.outputs +
-        [OutputSpec(name='gcp_resources', type='gcp_resources')],
+        outputs=component_op.component_spec.outputs +[OutputSpec(
+            name='gcp_resources', type='gcp_resources')],
         implementation=ContainerImplementation(
             container=ContainerSpec(
                 image='gcr.io/managed-pipeline-test/gcp-launcher:v7',
