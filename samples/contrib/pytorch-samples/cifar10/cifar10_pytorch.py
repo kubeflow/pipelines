@@ -89,7 +89,10 @@ parser.add_argument(
 parser.add_argument("--trial_id", default=0, type=int, help="Trial id")
 
 parser.add_argument(
-    "--model_params", type=str, help="Model parameters for trainer"
+    "--model_params",
+    default=None,
+    type=str,
+    help="Model parameters for trainer"
 )
 
 parser.add_argument(
@@ -156,7 +159,7 @@ Path(CHECKPOINT_DIR).mkdir(parents=True, exist_ok=True)
 
 trainer_args.update(ptl_dict)
 
-if args["model_params"]:
+if "model_params" in args:
     model_params = args.pop("model_params")
     args.update(json.loads(model_params))
 
@@ -177,20 +180,27 @@ if trainer.ptl_trainer.global_rank == 0:
     cifar_dir, _ = os.path.split(os.path.abspath(__file__))
 
     mar_config = {
-        "MODEL_NAME": "cifar10_test",
-        "MODEL_FILE": os.path.join(cifar_dir, "cifar10_train.py"),
-        "HANDLER": os.path.join(cifar_dir, "cifar10_handler.py"),
-        "SERIALIZED_FILE": os.path.join(
-            CHECKPOINT_DIR, script_dict["model_name"]
-        ),
-        "VERSION": "1",
-        "EXPORT_PATH": CHECKPOINT_DIR,
-        "CONFIG_PROPERTIES": os.path.join(cifar_dir, "config.properties"),
-        "EXTRA_FILES": "{},{}".format(
-            os.path.join(cifar_dir, "class_mapping.json"),
-            os.path.join(cifar_dir, "classifier.py"),
-        ),
-        "REQUIREMENTS_FILE": os.path.join(cifar_dir, "requirements.txt"),
+        "MODEL_NAME":
+            "cifar10_test",
+        "MODEL_FILE":
+            os.path.join(cifar_dir, "cifar10_train.py"),
+        "HANDLER":
+            os.path.join(cifar_dir, "cifar10_handler.py"),
+        "SERIALIZED_FILE":
+            os.path.join(CHECKPOINT_DIR, script_dict["model_name"]),
+        "VERSION":
+            "1",
+        "EXPORT_PATH":
+            CHECKPOINT_DIR,
+        "CONFIG_PROPERTIES":
+            os.path.join(cifar_dir, "config.properties"),
+        "EXTRA_FILES":
+            "{},{}".format(
+                os.path.join(cifar_dir, "class_mapping.json"),
+                os.path.join(cifar_dir, "classifier.py"),
+            ),
+        "REQUIREMENTS_FILE":
+            os.path.join(cifar_dir, "requirements.txt"),
     }
 
     MarGeneration(mar_config=mar_config, mar_save_path=CHECKPOINT_DIR)
@@ -227,19 +237,23 @@ if trainer.ptl_trainer.global_rank == 0:
     test_accuracy = round(float(model.test_acc.compute()), 2)
 
     print("Model test accuracy: ", test_accuracy)
-    data = {}
-    data[trial_id] = test_accuracy
 
-    Path(os.path.dirname(args["results"])).mkdir(parents=True, exist_ok=True)
+    if "model_params" in args:
+        data = {}
+        data[trial_id] = test_accuracy
 
-    results_file = Path(args["results"])
-    if results_file.is_file():
-        with open(results_file, "r") as fp:
-            old_data = json.loads(fp.read())
-        data.update(old_data)
+        Path(os.path.dirname(args["results"])).mkdir(
+            parents=True, exist_ok=True
+        )
 
-    with open(results_file, "w") as fp:
-        fp.write(json.dumps(data))
+        results_file = Path(args["results"])
+        if results_file.is_file():
+            with open(results_file, "r") as fp:
+                old_data = json.loads(fp.read())
+            data.update(old_data)
+
+        with open(results_file, "w") as fp:
+            fp.write(json.dumps(data))
 
     visualization_arguments = {
         "input": {
