@@ -32,6 +32,8 @@ var (
 	pipelineRunID     = flag.String("pipeline_run_id", "", "The current pipeline run ID.")
 	pipelineTaskID    = flag.String("pipeline_task_id", "", "The current pipeline task ID.")
 	pipelineRoot      = flag.String("pipeline_root", "", "The root output directory in which to store output artifacts.")
+	// Use flag.String instead of flag.Bool here to avoid breaking the logic of parser(parseArgs(flag.Args(), rt) in launcher component
+	// With flag.Bool, the value of enable_caching will be included in flag.Args() which will break the parser logic
 	enableCaching     = flag.String(   "enable_caching", "false", "Enable caching or not")
 )
 
