@@ -5,6 +5,7 @@
         "dag": {
           "tasks": {
             "flip-coin-2": {
+              "cachingOptions": {},
               "componentRef": {
                 "name": "comp-flip-coin-2"
               },
@@ -13,6 +14,9 @@
               }
             },
             "print-msg-2": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-print-msg-2"
               },
@@ -34,6 +38,9 @@
               }
             },
             "print-msg-3": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-print-msg-3"
               },
@@ -225,6 +232,7 @@
             }
           },
           "flip-coin": {
+            "cachingOptions": {},
             "componentRef": {
               "name": "comp-flip-coin"
             },
@@ -233,6 +241,9 @@
             }
           },
           "print-msg": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-print-msg"
             },
@@ -264,7 +275,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.6.0-rc.0"
+    "sdkVersion": "kfp-1.6.4"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root",

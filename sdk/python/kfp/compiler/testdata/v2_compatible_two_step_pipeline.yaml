@@ -4,7 +4,7 @@ metadata:
   generateName: my-test-pipeline-
   annotations:
     pipelines.kubeflow.org/kfp_sdk_version: 1.6.4
-    pipelines.kubeflow.org/pipeline_compilation_time: '2021-07-05T13:06:29.779267'
+    pipelines.kubeflow.org/pipeline_compilation_time: '2021-07-13T00:27:44.352978'
     pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "gs://output-directory/v2-artifacts",
       "name": "pipeline-output-directory"}, {"default": "my-test-pipeline", "name":
       "pipeline-name"}], "name": "my-test-pipeline"}'
@@ -94,6 +94,9 @@ spec:
       - name: WORKFLOW_ID
         valueFrom:
           fieldRef: {fieldPath: 'metadata.labels[''workflows.argoproj.io/workflow'']'}
+      - name: ENABLE_CACHING
+        valueFrom:
+          fieldRef: {fieldPath: 'metadata.labels[''pipelines.kubeflow.org/enable_caching'']'}
       - {name: KFP_V2_IMAGE, value: 'python:3.9'}
       - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {"some_int": {"type":
           "INT"}, "uri": {"type": "STRING"}}, "inputArtifacts": {}, "outputParameters":
@@ -125,6 +128,7 @@ spec:
         pipelines.kubeflow.org/kfp_sdk_version: 1.6.4
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/v2_component: "true"
+        pipelines.kubeflow.org/enable_caching: "true"
     initContainers:
     - command: [/bin/mount_launcher.sh]
       image: gcr.io/ml-pipeline/kfp-launcher:1.6.4
@@ -188,6 +192,9 @@ spec:
       - name: WORKFLOW_ID
         valueFrom:
           fieldRef: {fieldPath: 'metadata.labels[''workflows.argoproj.io/workflow'']'}
+      - name: ENABLE_CACHING
+        valueFrom:
+          fieldRef: {fieldPath: 'metadata.labels[''pipelines.kubeflow.org/enable_caching'']'}
       - {name: KFP_V2_IMAGE, value: 'python:3.7'}
       - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {"num_steps": {"type":
           "INT"}}, "inputArtifacts": {"dataset": {"metadataPath": "/tmp/inputs/dataset/data",
@@ -218,6 +225,7 @@ spec:
         pipelines.kubeflow.org/kfp_sdk_version: 1.6.4
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/v2_component: "true"
+        pipelines.kubeflow.org/enable_caching: "true"
     initContainers:
     - command: [/bin/mount_launcher.sh]
       image: gcr.io/ml-pipeline/kfp-launcher:1.6.4

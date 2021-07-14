@@ -29,6 +29,10 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.labels['workflows.argoproj.io/workflow']
+      - name: ENABLE_CACHING
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.labels['pipelines.kubeflow.org/enable_caching']
       image: library/bash
     metadata:
       labels:

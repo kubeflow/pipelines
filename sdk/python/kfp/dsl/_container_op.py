@@ -297,7 +297,7 @@ class Container(V1Container):
         "E", "P", "T", "G", "M", "K".
     """
 
-    if not isinstance(memory,_pipeline_param.PipelineParam):  
+    if not isinstance(memory,_pipeline_param.PipelineParam):
       self._validate_size_string(memory)
     return self.add_resource_request('memory', memory)
 
@@ -341,7 +341,7 @@ class Container(V1Container):
       cpu(Union[str, PipelineParam]): A string which can be a number or a number followed by "m", which
         means 1/1000.
     """
-    if not isinstance(cpu,_pipeline_param.PipelineParam):  
+    if not isinstance(cpu,_pipeline_param.PipelineParam):
       self._validate_cpu_string(cpu)
     return self.add_resource_request('cpu', cpu)
 
@@ -353,7 +353,7 @@ class Container(V1Container):
         means 1/1000.
     """
 
-    if not isinstance(cpu,_pipeline_param.PipelineParam):  
+    if not isinstance(cpu,_pipeline_param.PipelineParam):
       self._validate_cpu_string(cpu)
       if self._container_spec:
         self._container_spec.resources.cpu_limit = _get_cpu_number(cpu)
@@ -810,6 +810,9 @@ class BaseOp(object):
     self._inputs = []
     self.dependent_names = []
 
+    # Caching option, default to True
+    self.enable_caching = True
+
   @property
   def inputs(self):
     """List of PipelineParams that will be converted into input parameters
@@ -1001,6 +1004,18 @@ class BaseOp(object):
 
   def set_display_name(self, name: str):
     self.display_name = name
+    return self
+
+  def set_caching_options(self, enable_caching: bool) -> 'BaseOp':
+    """Sets caching options for the Op.
+
+    Args:
+      enable_caching: Whether or not to enable caching for this task.
+
+    Returns:
+      Self return to allow chained setting calls.
+    """
+    self.enable_caching = enable_caching
     return self
 
   def __repr__(self):

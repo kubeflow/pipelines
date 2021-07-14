@@ -116,6 +116,9 @@
       "dag": {
         "tasks": {
           "training-op": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-training-op"
             },
@@ -135,6 +138,9 @@
             }
           },
           "training-op-2": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-training-op-2"
             },
@@ -157,7 +163,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.6.3"
+    "sdkVersion": "kfp-1.6.4"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"
