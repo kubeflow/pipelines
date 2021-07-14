@@ -487,6 +487,9 @@
       "dag": {
         "tasks": {
           "chicago-taxi-trips-dataset": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-chicago-taxi-trips-dataset"
             },
@@ -527,6 +530,9 @@
             }
           },
           "convert-csv-to-apache-parquet": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-convert-csv-to-apache-parquet"
             },
@@ -548,6 +554,9 @@
             }
           },
           "xgboost-predict": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-xgboost-predict"
             },
@@ -585,6 +594,9 @@
             }
           },
           "xgboost-predict-2": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-xgboost-predict-2"
             },
@@ -622,6 +634,9 @@
             }
           },
           "xgboost-predict-3": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-xgboost-predict-3"
             },
@@ -659,6 +674,9 @@
             }
           },
           "xgboost-predict-4": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-xgboost-predict-4"
             },
@@ -696,6 +714,9 @@
             }
           },
           "xgboost-train": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-xgboost-train"
             },
@@ -768,6 +789,9 @@
             }
           },
           "xgboost-train-2": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-xgboost-train-2"
             },
@@ -843,7 +867,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.6.3"
+    "sdkVersion": "kfp-1.6.4"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"

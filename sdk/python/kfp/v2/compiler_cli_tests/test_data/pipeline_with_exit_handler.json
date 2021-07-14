@@ -5,6 +5,9 @@
         "dag": {
           "tasks": {
             "fail-op": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-fail-op"
               },
@@ -24,6 +27,9 @@
               }
             },
             "print-op-2": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-print-op-2"
               },
@@ -197,7 +203,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.6.3"
+    "sdkVersion": "kfp-1.6.4"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root",
