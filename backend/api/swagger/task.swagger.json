@@ -168,7 +168,7 @@
         },
         "namespace": {
           "type": "string",
-          "description": "Required input field. The Namespace to which this pipeline task belongs."
+          "description": "Optional input field. The Namespace to which this pipeline task belongs."
         },
         "pipelineName": {
           "type": "string",
