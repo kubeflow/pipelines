@@ -367,23 +367,39 @@ func (c *Client) GetArtifacts(ctx context.Context, ids []int64) ([]*pb.Artifact,
 }
 
 // GetOutputArtifactsByExecutionId ...
-func (c *Client) GetOutputArtifactsByExecutionId(ctx context.Context, executionId int64) ([]*pb.Artifact, error) {
+func (c *Client) GetOutputArtifactsByExecutionId(ctx context.Context, executionId int64) (map[string][]*pb.Artifact, error) {
 	getEventsByExecutionIDsReq := &pb.GetEventsByExecutionIDsRequest{ExecutionIds: []int64{executionId}}
 	getEventsByExecutionIDsRes, err := c.svc.GetEventsByExecutionIDs(ctx, getEventsByExecutionIDsReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get events with execution id %v: %w", executionId, err)
 	}
 	var outputArtifactsIDs []int64
+	outputArtifactNamesById := make(map[int64]string)
 	for _, event := range getEventsByExecutionIDsRes.Events {
 		if *event.Type == pb.Event_OUTPUT {
-			outputArtifactsIDs = append(outputArtifactsIDs, *event.ArtifactId)
+			outputArtifactsIDs = append(outputArtifactsIDs, event.GetArtifactId())
+			artifactName, err := getArtifactName(event.Path)
+			if err != nil {
+				return nil, err
+			}
+			outputArtifactNamesById[event.GetArtifactId()] = artifactName
 		}
 	}
 	outputArtifacts, err := c.GetArtifacts(ctx, outputArtifactsIDs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get output artifacts: %w", err)
 	}
-	return outputArtifacts, nil
+	outputArtifactsByName := make(map[string][]*pb.Artifact)
+	for _, outputArtifact := range outputArtifacts {
+		name, ok := outputArtifactNamesById[outputArtifact.GetId()]
+		if !ok {
+			return nil, fmt.Errorf("failed to get name of artifact with id %v", outputArtifact.GetId())
+		}
+		outputArtifactsByName[name] = append(outputArtifactsByName[name], outputArtifact)
+
+	}
+
+	return outputArtifactsByName, nil
 }
 
 // Only supports schema titles for now.
