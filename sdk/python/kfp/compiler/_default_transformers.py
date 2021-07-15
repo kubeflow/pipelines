@@ -42,13 +42,24 @@ def add_kfp_pod_env(op: BaseOp) -> BaseOp:
                               field_ref=k8s_client.V1ObjectFieldSelector(
                                   field_path='metadata.name')))
   ).add_env_variable(
+      k8s_client.V1EnvVar(name='KFP_POD_UID',
+                          value_from=k8s_client.V1EnvVarSource(
+                              field_ref=k8s_client.V1ObjectFieldSelector(
+                                  field_path='metadata.uid')))
+  ).add_env_variable(
       k8s_client.V1EnvVar(name='KFP_NAMESPACE',
                           value_from=k8s_client.V1EnvVarSource(
                               field_ref=k8s_client.V1ObjectFieldSelector(
                                   field_path='metadata.namespace')))
   ).add_env_variable(
       k8s_client.V1EnvVar(
-          name='WORKFLOW_ID',
+          name='KFP_RUN_ID',
+          value_from=k8s_client.
+          V1EnvVarSource(field_ref=k8s_client.V1ObjectFieldSelector(
+              field_path="metadata.labels['pipeline/runid']")))
+  ).add_env_variable(
+      k8s_client.V1EnvVar(
+          name='WORKFLOW_NAME',
           value_from=k8s_client.
           V1EnvVarSource(field_ref=k8s_client.V1ObjectFieldSelector(
               field_path="metadata.labels['workflows.argoproj.io/workflow']")))
