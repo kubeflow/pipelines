@@ -49,8 +49,8 @@ def NEEDS_A_FIX(run_id, run, **kwargs):
 class TestCase:
     '''Test case for running a KFP sample'''
     pipeline_func: Callable
-    mode: kfp.dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE,
-    enable_caching: bool = False,
+    mode: kfp.dsl.PipelineExecutionMode = kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE
+    enable_caching: bool = False
     arguments: Optional[Dict[str, str]] = None
     verify_func: Callable[[
         int, kfp_server_api.ApiRun, kfp_server_api.
