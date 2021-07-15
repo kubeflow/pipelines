@@ -106,7 +106,7 @@ describe('Compare', () => {
               artifacts: [
                 {
                   name: 'mlpipeline-ui-metadata',
-                  s3: { bucket: 'test bucket', key: 'test key' },
+                  s3: { s3Bucket: { bucket: 'test bucket' }, key: 'test key' },
                 },
               ],
             },
@@ -372,7 +372,7 @@ describe('Compare', () => {
               artifacts: [
                 {
                   name: 'mlpipeline-ui-metadata',
-                  s3: { bucket: 'test bucket', key: 'test key' },
+                  s3: { s3Bucket: { bucket: 'test bucket' }, key: 'test key' },
                 },
               ],
             },
@@ -563,7 +563,7 @@ describe('Compare', () => {
               artifacts: [
                 {
                   name: 'mlpipeline-ui-metadata',
-                  s3: { bucket: 'test bucket', key: 'test key' },
+                  s3: { s3Bucket: { bucket: 'test bucket' }, key: 'test key' },
                 },
               ],
             },
