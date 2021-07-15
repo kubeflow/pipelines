@@ -83,7 +83,7 @@ spec:
         --container_image, $(KFP_V2_IMAGE), --task_name, preprocess, --pipeline_name,
         '{{inputs.parameters.pipeline-name}}', --pipeline_run_id, $(WORKFLOW_ID),
         --pipeline_task_id, $(KFP_POD_NAME), --pipeline_root, '{{inputs.parameters.pipeline-output-directory}}',
-        --, some_int=12, uri=uri-to-import, --]
+        --enable_caching, $(ENABLE_CACHING), --, some_int=12, uri=uri-to-import, --]
       env:
       - name: KFP_POD_NAME
         valueFrom:
@@ -180,8 +180,8 @@ spec:
         --mlmd_server_port, $(METADATA_GRPC_SERVICE_PORT), --runtime_info_json, $(KFP_V2_RUNTIME_INFO),
         --container_image, $(KFP_V2_IMAGE), --task_name, train, --pipeline_name, '{{inputs.parameters.pipeline-name}}',
         --pipeline_run_id, $(WORKFLOW_ID), --pipeline_task_id, $(KFP_POD_NAME), --pipeline_root,
-        '{{inputs.parameters.pipeline-output-directory}}', --, 'num_steps={{inputs.parameters.preprocess-output_parameter_one}}',
-        --]
+        '{{inputs.parameters.pipeline-output-directory}}', --enable_caching, $(ENABLE_CACHING),
+        --, 'num_steps={{inputs.parameters.preprocess-output_parameter_one}}', --]
       env:
       - name: KFP_POD_NAME
         valueFrom:
