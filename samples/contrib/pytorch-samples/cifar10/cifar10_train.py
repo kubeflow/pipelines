@@ -129,7 +129,10 @@ class CIFAR10Classifier(pl.LightningModule):  #pylint: disable=too-many-ancestor
              output - Initialized optimizer and scheduler
         """
         self.optimizer = torch.optim.Adam(
-            self.parameters(), lr=self.args.get("lr", 0.001)
+            self.parameters(),
+            lr=self.args.get("lr", 0.001),
+            weight_decay=self.args.get("weight_decay", 0),
+            eps=self.args.get("eps", 1e-8)
         )
         self.scheduler = {
             "scheduler":

@@ -159,9 +159,8 @@ Path(CHECKPOINT_DIR).mkdir(parents=True, exist_ok=True)
 
 trainer_args.update(ptl_dict)
 
-if "model_params" in args:
-    model_params = args.pop("model_params")
-    args.update(json.loads(model_params))
+if "model_params" in args and args["model_params"] is not None:
+    args.update(json.loads(args["model_params"]))
 
 # Initiating the training process
 trainer = Trainer(
@@ -238,7 +237,7 @@ if trainer.ptl_trainer.global_rank == 0:
 
     print("Model test accuracy: ", test_accuracy)
 
-    if "model_params" in args:
+    if "model_params" in args and args["model_params"] is not None:
         data = {}
         data[trial_id] = test_accuracy
 
