@@ -113,7 +113,7 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
         <Input
           InputProps={
             Object {
-              "endAdornment": <WithStyles(InputAdornment)
+              "endAdornment": <WithStyles(WithFormControlContext(InputAdornment))
                 position="end"
               >
                 <WithStyles(Button)
@@ -130,7 +130,7 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
                 >
                   Choose file
                 </WithStyles(Button)>
-              </WithStyles(InputAdornment)>,
+              </WithStyles(WithFormControlContext(InputAdornment))>,
               "readOnly": true,
               "style": Object {
                 "maxWidth": 2000,
