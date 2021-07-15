@@ -51,9 +51,8 @@
   path: samples.test.fail_test
 - name: two_step
   path: samples.test.two_step_test
-#  enable this cache_v2_test when enable_caching flag is added in KFP SDK and new API Server image is used in test cluster.
-#- name: cache_v2
-#  path: samples.test.cache_v2_test
+- name: cache_v2
+  path: samples.test.cache_v2_test
 - name: after
   path: samples.test.after_test
 - name: data_passing
