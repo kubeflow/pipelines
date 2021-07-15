@@ -36,9 +36,9 @@ import (
 )
 
 const (
-	pipelineContextTypeName    = "kfp.Pipeline"
-	pipelineRunContextTypeName = "kfp.PipelineRun"
-	containerExecutionTypeName = "kfp.ContainerExecution"
+	pipelineContextTypeName    = "system.Pipeline"
+	pipelineRunContextTypeName = "system.PipelineRun"
+	containerExecutionTypeName = "system.ContainerExecution"
 	mlmdClientSideMaxRetries   = 3
 )
 
