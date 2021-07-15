@@ -63,8 +63,10 @@ export interface MinioArtifactPreviewProps extends ValueComponentProps<Partial<S
 
 function getStoragePath(value?: string | Partial<S3Artifact>) {
   if (!value || typeof value === 'string') return;
-  const { key, bucket, endpoint } = value;
-  if (!bucket || !key) return;
+  const { key, s3Bucket } = value;
+  if (!s3Bucket || !key) return;
+  const { bucket, endpoint } = s3Bucket;
+  if (!bucket) return;
   const source = isS3Endpoint(endpoint) ? StorageService.S3 : StorageService.MINIO;
   return { source, bucket, key };
 }
