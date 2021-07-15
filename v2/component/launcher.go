@@ -306,7 +306,6 @@ func (l *Launcher) executeWithCacheEnabled(ctx context.Context, executorInput *p
 		return fmt.Errorf("failure while generating CacheKey: %w", err)
 	}
 	fingerPrint, err := cacheutils.GenerateFingerPrint(cacheKey)
-	glog.Infof("fingerPrint is %v", fingerPrint)
 	cachedMLMDExecutionID, err := l.cacheClient.GetExecutionCache(fingerPrint, l.options.PipelineName)
 	if err != nil {
 		return fmt.Errorf("failure while getting executionCache: %w", err)
