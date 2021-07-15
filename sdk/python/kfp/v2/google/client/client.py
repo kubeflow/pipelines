@@ -261,7 +261,7 @@ class AIPlatformClient(object):
       job_id: Optional[str] = None,
       pipeline_root: Optional[str] = None,
       parameter_values: Optional[Mapping[str, Any]] = None,
-      enable_caching: bool = True,
+      enable_caching: Optional[bool] = None,
       cmek: Optional[str] = None,
       service_account: Optional[str] = None,
       network: Optional[str] = None,
@@ -276,7 +276,12 @@ class AIPlatformClient(object):
       pipeline_root: Optionally the user can override the pipeline root
         specified during the compile time.
       parameter_values: The mapping from runtime parameter names to its values.
-      enable_caching: Whether to turn on caching for the run. Defaults to True.
+      enable_caching: Whether or not to enable caching for the run.
+        If not set, defaults to the compile time settings, which are True for all
+        tasks by default, while users may specify different caching options for
+        individual tasks.
+        If set, the setting applies to all tasks in the pipeline -- overrides
+        the compile time settings.
       cmek: The customer-managed encryption key for a pipelineJob. If set, the
         pipeline job and all of its sub-resources will be secured by this key.
       service_account: The service account that the pipeline workload runs as.
@@ -317,7 +322,8 @@ class AIPlatformClient(object):
     runtime_config = builder.build()
     job_spec['runtimeConfig'] = runtime_config
 
-    _set_enable_caching_value(job_spec['pipelineSpec'], enable_caching)
+    if enable_caching is not None:
+      _set_enable_caching_value(job_spec['pipelineSpec'], enable_caching)
 
     if cmek is not None:
       job_spec['encryptionSpec'] = {'kmsKeyName': cmek}
