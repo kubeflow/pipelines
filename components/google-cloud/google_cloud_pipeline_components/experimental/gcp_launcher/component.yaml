@@ -22,7 +22,7 @@ outputs:
 - {name: gcp_resources, type: String}
 implementation:
   container:
-    image: gcr.io/managed-pipeline-test/gcp-launcher:v7
+    image: gcr.io/managed-pipeline-test/launcher:v8
     command: [python, /launcher.py]
     args: [
       --type, {inputValue: type},
