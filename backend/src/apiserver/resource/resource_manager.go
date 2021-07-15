@@ -1195,7 +1195,7 @@ func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion,
 		return nil, util.NewInvalidInputError("Create pipeline version failed due to missing pipeline id")
 	}
 
-	// Extract the parameters from the pipeline
+	// Extract the parameters from the pipeline & override pipeline name parameter.
 	wf, err := util.ValidateWorkflow(pipelineFile)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline version failed")

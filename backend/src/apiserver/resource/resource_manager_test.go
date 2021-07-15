@@ -292,10 +292,10 @@ func TestCreatePipeline_V2PipelineName(t *testing.T) {
 		namespace    string
 		pipelineName string
 	}{
-		{"v2-compat", "", "pipeline/v2-compat"},
-		{"pipe3", "", "pipeline/pipe3"},
-		{"pipeline2", "kubeflow", "namespace/kubeflow/pipeline/pipeline2"},
-		{"abcd", "user", "namespace/user/pipeline/abcd"},
+		{name: "v2-compat", namespace: "", pipelineName: "pipeline/v2-compat"},
+		{name: "pipe3", namespace: "", pipelineName: "pipeline/pipe3"},
+		{name: "pipeline2", namespace: "kubeflow", pipelineName: "namespace/kubeflow/pipeline/pipeline2"},
+		{name: "abcd", namespace: "user", pipelineName: "namespace/user/pipeline/abcd"},
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%+v", test), func(t *testing.T) {
@@ -2831,10 +2831,10 @@ func TestCreatePipelineVersion_V2PipelineName(t *testing.T) {
 		namespace    string
 		pipelineName string
 	}{
-		{"v2-compat", "", "pipeline/v2-compat"},
-		{"pipe3", "", "pipeline/pipe3"},
-		{"pipeline2", "kubeflow", "namespace/kubeflow/pipeline/pipeline2"},
-		{"abcd", "user", "namespace/user/pipeline/abcd"},
+		{name: "v2-compat", namespace: "", pipelineName: "pipeline/v2-compat"},
+		{name: "pipe3", namespace: "", pipelineName: "pipeline/pipe3"},
+		{name: "pipeline2", namespace: "kubeflow", pipelineName: "namespace/kubeflow/pipeline/pipeline2"},
+		{name: "abcd", namespace: "user", pipelineName: "namespace/user/pipeline/abcd"},
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%+v", test), func(t *testing.T) {
