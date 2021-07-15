@@ -1,5 +1,7 @@
 # Changelog
 
+## [1.7.0-rc.1](https://github.com/kubeflow/pipelines/compare/1.7.0-rc.0...1.7.0-rc.1) (2021-07-15)
+
 ## [1.7.0-rc.0](https://github.com/kubeflow/pipelines/compare/v1.7.0-alpha.3...v1.7.0-rc.0) (2021-07-15)
 
 
