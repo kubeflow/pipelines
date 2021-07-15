@@ -3,6 +3,7 @@ description: Creates fully-connected network in PyTorch ScriptModule format
 metadata:
   annotations:
     author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    canonical_location: 'https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/PyTorch/Convert_to_OnnxModel_from_PyTorchScriptModule/component.yaml'
 inputs:
 - {name: model, type: PyTorchScriptModule}
 - {name: list_of_input_shapes, type: JsonArray}
