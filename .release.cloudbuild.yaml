@@ -648,6 +648,6 @@ images:
 - 'gcr.io/ml-pipeline/google/pipelines-test/cachedeployer:$TAG_NAME'
 - 'gcr.io/ml-pipeline/google/pipelines-test/deployer:$TAG_NAME'
 - 'gcr.io/ml-pipeline/google/pipelines-test:$TAG_NAME'
-timeout: '1200s'
+timeout: '2000s'
 tags:
 - release-on-tag
