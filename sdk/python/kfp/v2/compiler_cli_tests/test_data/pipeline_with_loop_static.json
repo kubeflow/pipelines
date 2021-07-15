@@ -5,6 +5,9 @@
         "dag": {
           "tasks": {
             "print-op": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-print-op"
               },
@@ -20,6 +23,9 @@
               }
             },
             "print-op-2": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-print-op-2"
               },
@@ -36,6 +42,9 @@
               }
             },
             "print-op-3": {
+              "cachingOptions": {
+                "enableCache": true
+              },
               "componentRef": {
                 "name": "comp-print-op-3"
               },
@@ -165,7 +174,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.6.0-rc.0"
+    "sdkVersion": "kfp-1.6.4"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root"

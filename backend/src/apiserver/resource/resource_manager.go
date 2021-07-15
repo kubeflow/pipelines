@@ -261,7 +261,14 @@ func (r *ResourceManager) UpdatePipelineDefaultVersion(pipelineId string, versio
 
 func (r *ResourceManager) CreatePipeline(name string, description string, namespace string, pipelineFile []byte) (*model.Pipeline, error) {
 	// Extract the parameter from the pipeline
-	params, err := util.GetParameters(pipelineFile)
+	wf, err := util.ValidateWorkflow(pipelineFile)
+	if err != nil {
+		return nil, util.Wrap(err, "Create pipeline failed")
+	}
+	if wf.IsV2() {
+		overrideV2PipelineName(wf, name, namespace)
+	}
+	paramsJson, err := util.MarshalParameters(wf.Spec.Arguments.Parameters)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
 	}
@@ -270,12 +277,12 @@ func (r *ResourceManager) CreatePipeline(name string, description string, namesp
 	pipeline := &model.Pipeline{
 		Name:        name,
 		Description: description,
-		Parameters:  params,
+		Parameters:  paramsJson,
 		Status:      model.PipelineCreating,
 		Namespace:   namespace,
 		DefaultVersion: &model.PipelineVersion{
 			Name:       name,
-			Parameters: params,
+			Parameters: paramsJson,
 			Status:     model.PipelineVersionCreating}}
 	newPipeline, err := r.pipelineStore.CreatePipeline(pipeline)
 	if err != nil {
@@ -508,7 +515,6 @@ func (r *ResourceManager) ListTasks(filterContext *common.FilterContext,
 	opts *list.Options) (tasks []*model.Task, total_size int, nextPageToken string, err error) {
 	return r.taskStore.ListTasks(filterContext, opts)
 }
-
 
 func (r *ResourceManager) ListJobs(filterContext *common.FilterContext,
 	opts *list.Options) (jobs []*model.Job, total_size int, nextPageToken string, err error) {
@@ -1178,12 +1184,6 @@ func (r *ResourceManager) getDefaultSA() string {
 }
 
 func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion, pipelineFile []byte, updateDefaultVersion bool) (*model.PipelineVersion, error) {
-	// Extract the parameters from the pipeline
-	params, err := util.GetParameters(pipelineFile)
-	if err != nil {
-		return nil, util.Wrap(err, "Create pipeline version failed")
-	}
-
 	// Extract pipeline id
 	var pipelineId = ""
 	for _, resourceReference := range apiVersion.ResourceReferences {
@@ -1192,7 +1192,24 @@ func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion,
 		}
 	}
 	if len(pipelineId) == 0 {
-		return nil, util.Wrap(err, "Create pipeline version failed due to missing pipeline id")
+		return nil, util.NewInvalidInputError("Create pipeline version failed due to missing pipeline id")
+	}
+
+	// Extract the parameters from the pipeline & override pipeline name parameter.
+	wf, err := util.ValidateWorkflow(pipelineFile)
+	if err != nil {
+		return nil, util.Wrap(err, "Create pipeline version failed")
+	}
+	if wf.IsV2() {
+		pipeline, err := r.GetPipeline(pipelineId)
+		if err != nil {
+			return nil, util.Wrap(err, "Create pipeline version failed")
+		}
+		overrideV2PipelineName(wf, pipeline.Name, pipeline.Namespace)
+	}
+	paramsJson, err := util.MarshalParameters(wf.Spec.Arguments.Parameters)
+	if err != nil {
+		return nil, util.Wrap(err, "Create pipeline version failed")
 	}
 
 	// Construct model.PipelineVersion
@@ -1200,7 +1217,7 @@ func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion,
 		Name:          apiVersion.Name,
 		PipelineId:    pipelineId,
 		Status:        model.PipelineVersionCreating,
-		Parameters:    params,
+		Parameters:    paramsJson,
 		CodeSourceUrl: apiVersion.CodeSourceUrl,
 	}
 	version, err = r.pipelineStore.CreatePipelineVersion(version, updateDefaultVersion)

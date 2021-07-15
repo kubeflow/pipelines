@@ -1,4 +1,0 @@
-FROM scratch
-WORKDIR /bin
-COPY main /bin/kfp-publisher
-ENTRYPOINT ["/bin/kfp-publisher"]

@@ -515,7 +515,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
               helpText={
                 <div>
                   Note, the service account needs{' '}
-                  <ExternalLink href='https://github.com/argoproj/argo-workflows/blob/v2.3.0/docs/workflow-rbac.md'>
+                  <ExternalLink href='https://argoproj.github.io/argo-workflows/workflow-rbac/'>
                     minimum permissions required by argo workflows
                   </ExternalLink>{' '}
                   and extra permissions the specific task requires.

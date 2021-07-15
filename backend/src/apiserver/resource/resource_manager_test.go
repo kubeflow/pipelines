@@ -286,6 +286,40 @@ func TestCreatePipeline(t *testing.T) {
 	assert.Equal(t, pipelineExpected, pipeline)
 }
 
+func TestCreatePipeline_V2PipelineName(t *testing.T) {
+	tests := []struct {
+		name         string
+		namespace    string
+		pipelineName string
+	}{
+		{name: "v2-compat", namespace: "", pipelineName: "pipeline/v2-compat"},
+		{name: "pipe3", namespace: "", pipelineName: "pipeline/pipe3"},
+		{name: "pipeline2", namespace: "kubeflow", pipelineName: "namespace/kubeflow/pipeline/pipeline2"},
+		{name: "abcd", namespace: "user", pipelineName: "namespace/user/pipeline/abcd"},
+	}
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%+v", test), func(t *testing.T) {
+			store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+			defer store.Close()
+			manager := NewResourceManager(store)
+
+			createdPipeline, err := manager.CreatePipeline(test.name, "", test.namespace, []byte(strings.TrimSpace(
+				v2compatPipeline)))
+			require.Nil(t, err)
+			params, err := util.UnmarshalParameters(createdPipeline.Parameters)
+			require.Nil(t, err)
+			var nameParam *v1alpha1.Parameter
+			for _, param := range params {
+				if param.Name == "pipeline-name" {
+					nameParam = &param
+				}
+			}
+			require.NotNil(t, nameParam)
+			require.Equal(t, test.pipelineName, nameParam.Value.String())
+		})
+	}
+}
+
 func TestCreatePipeline_ComplexPipeline(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
@@ -298,13 +332,13 @@ func TestCreatePipeline_ComplexPipeline(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestCreatePipeline_GetParametersError(t *testing.T) {
+func TestCreatePipeline_ParseWorkflowError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
 	_, err := manager.CreatePipeline("pipeline1", "", "", []byte("I am invalid yaml"))
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Failed to parse the parameter")
+	assert.Contains(t, err.Error(), "Failed to parse the workflow template")
 }
 
 func TestCreatePipeline_StorePipelineMetadataError(t *testing.T) {
@@ -2111,6 +2145,255 @@ func TestReadArtifact_NoRun_NotFound(t *testing.T) {
 }
 
 const (
+	v2compatPipeline = `
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: two-step-pipeline-
+  annotations:
+    pipelines.kubeflow.org/kfp_sdk_version: 1.6.4
+    pipelines.kubeflow.org/pipeline_compilation_time: '2021-07-14T06:59:20.208189'
+    pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "", "name": "pipeline-output-directory"},
+      {"default": "pipeline/two_step_pipeline", "name": "pipeline-name"}], "name":
+      "two_step_pipeline"}'
+    pipelines.kubeflow.org/v2_pipeline: "true"
+  labels:
+    pipelines.kubeflow.org/v2_pipeline: "true"
+    pipelines.kubeflow.org/kfp_sdk_version: 1.6.4
+spec:
+  entrypoint: two-step-pipeline
+  templates:
+  - name: preprocess
+    container:
+      args:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def _make_parent_dirs_and_return_path(file_path: str):
+            import os
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            return file_path
+
+        def preprocess(
+            uri, some_int, output_parameter_one,
+            output_dataset_one
+        ):
+            '''Dummy Preprocess Step.'''
+            with open(output_dataset_one, 'w') as f:
+                f.write('Output dataset')
+            with open(output_parameter_one, 'w') as f:
+                f.write("{}".format(1234))
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Preprocess', description='Dummy Preprocess Step.')
+        _parser.add_argument("--uri", dest="uri", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--some-int", dest="some_int", type=int, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--output-parameter-one", dest="output_parameter_one", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--output-dataset-one", dest="output_dataset_one", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = preprocess(**_parsed_args)
+      - --uri
+      - '{{$.inputs.parameters[''uri'']}}'
+      - --some-int
+      - '{{$.inputs.parameters[''some_int'']}}'
+      - --output-parameter-one
+      - '{{$.outputs.parameters[''output_parameter_one''].output_file}}'
+      - --output-dataset-one
+      - '{{$.outputs.artifacts[''output_dataset_one''].path}}'
+      command: [/kfp-launcher/launch, --mlmd_server_address, $(METADATA_GRPC_SERVICE_HOST),
+        --mlmd_server_port, $(METADATA_GRPC_SERVICE_PORT), --runtime_info_json, $(KFP_V2_RUNTIME_INFO),
+        --container_image, $(KFP_V2_IMAGE), --task_name, preprocess, --pipeline_name,
+        '{{inputs.parameters.pipeline-name}}', --pipeline_run_id, $(WORKFLOW_ID),
+        --pipeline_task_id, $(KFP_POD_NAME), --pipeline_root, '{{inputs.parameters.pipeline-output-directory}}',
+        --, some_int=12, uri=uri-to-import, --]
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef: {fieldPath: metadata.name}
+      - name: KFP_NAMESPACE
+        valueFrom:
+          fieldRef: {fieldPath: metadata.namespace}
+      - name: WORKFLOW_ID
+        valueFrom:
+          fieldRef: {fieldPath: 'metadata.labels[''workflows.argoproj.io/workflow'']'}
+      - name: ENABLE_CACHING
+        valueFrom:
+          fieldRef: {fieldPath: 'metadata.labels[''pipelines.kubeflow.org/enable_caching'']'}
+      - {name: KFP_V2_IMAGE, value: 'python:3.9'}
+      - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {"some_int": {"type":
+          "INT"}, "uri": {"type": "STRING"}}, "inputArtifacts": {}, "outputParameters":
+          {"output_parameter_one": {"type": "INT", "path": "/tmp/outputs/output_parameter_one/data"}},
+          "outputArtifacts": {"output_dataset_one": {"schemaTitle": "system.Dataset",
+          "instanceSchema": "", "metadataPath": "/tmp/outputs/output_dataset_one/data"}}}'}
+      envFrom:
+      - configMapRef: {name: metadata-grpc-configmap, optional: true}
+      image: python:3.9
+      volumeMounts:
+      - {mountPath: /kfp-launcher, name: kfp-launcher}
+    inputs:
+      parameters:
+      - {name: pipeline-name}
+      - {name: pipeline-output-directory}
+    outputs:
+      parameters:
+      - name: preprocess-output_parameter_one
+        valueFrom: {path: /tmp/outputs/output_parameter_one/data}
+      artifacts:
+      - {name: preprocess-output_dataset_one, path: /tmp/outputs/output_dataset_one/data}
+      - {name: preprocess-output_parameter_one, path: /tmp/outputs/output_parameter_one/data}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/v2_component: "true"
+        pipelines.kubeflow.org/component_ref: '{}'
+        pipelines.kubeflow.org/arguments.parameters: '{"some_int": "12", "uri": "uri-to-import"}'
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.6.4
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/v2_component: "true"
+        pipelines.kubeflow.org/enable_caching: "true"
+    initContainers:
+    - command: [/bin/mount_launcher.sh]
+      image: gcr.io/ml-pipeline/kfp-launcher:1.6.4
+      name: kfp-launcher
+      mirrorVolumeMounts: true
+    volumes:
+    - {name: kfp-launcher}
+  - name: train-op
+    container:
+      args:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def _make_parent_dirs_and_return_path(file_path: str):
+            import os
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            return file_path
+
+        def train_op(
+            dataset,
+            model,
+            num_steps = 100
+        ):
+            '''Dummy Training Step.'''
+
+            with open(dataset, 'r') as input_file:
+                input_string = input_file.read()
+                with open(model, 'w') as output_file:
+                    for i in range(num_steps):
+                        output_file.write(
+                            "Step {}\n{}\n=====\n".format(i, input_string)
+                        )
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Train op', description='Dummy Training Step.')
+        _parser.add_argument("--dataset", dest="dataset", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--num-steps", dest="num_steps", type=int, required=False, default=argparse.SUPPRESS)
+        _parser.add_argument("--model", dest="model", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = train_op(**_parsed_args)
+      - --dataset
+      - '{{$.inputs.artifacts[''dataset''].path}}'
+      - --num-steps
+      - '{{$.inputs.parameters[''num_steps'']}}'
+      - --model
+      - '{{$.outputs.artifacts[''model''].path}}'
+      command: [/kfp-launcher/launch, --mlmd_server_address, $(METADATA_GRPC_SERVICE_HOST),
+        --mlmd_server_port, $(METADATA_GRPC_SERVICE_PORT), --runtime_info_json, $(KFP_V2_RUNTIME_INFO),
+        --container_image, $(KFP_V2_IMAGE), --task_name, train-op, --pipeline_name,
+        '{{inputs.parameters.pipeline-name}}', --pipeline_run_id, $(WORKFLOW_ID),
+        --pipeline_task_id, $(KFP_POD_NAME), --pipeline_root, '{{inputs.parameters.pipeline-output-directory}}',
+        --, 'num_steps={{inputs.parameters.preprocess-output_parameter_one}}', --]
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef: {fieldPath: metadata.name}
+      - name: KFP_NAMESPACE
+        valueFrom:
+          fieldRef: {fieldPath: metadata.namespace}
+      - name: WORKFLOW_ID
+        valueFrom:
+          fieldRef: {fieldPath: 'metadata.labels[''workflows.argoproj.io/workflow'']'}
+      - name: ENABLE_CACHING
+        valueFrom:
+          fieldRef: {fieldPath: 'metadata.labels[''pipelines.kubeflow.org/enable_caching'']'}
+      - {name: KFP_V2_IMAGE, value: 'python:3.7'}
+      - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {"num_steps": {"type":
+          "INT"}}, "inputArtifacts": {"dataset": {"metadataPath": "/tmp/inputs/dataset/data",
+          "schemaTitle": "system.Dataset", "instanceSchema": ""}}, "outputParameters":
+          {}, "outputArtifacts": {"model": {"schemaTitle": "system.Model", "instanceSchema":
+          "", "metadataPath": "/tmp/outputs/model/data"}}}'}
+      envFrom:
+      - configMapRef: {name: metadata-grpc-configmap, optional: true}
+      image: python:3.7
+      volumeMounts:
+      - {mountPath: /kfp-launcher, name: kfp-launcher}
+    inputs:
+      parameters:
+      - {name: pipeline-name}
+      - {name: pipeline-output-directory}
+      - {name: preprocess-output_parameter_one}
+      artifacts:
+      - {name: preprocess-output_dataset_one, path: /tmp/inputs/dataset/data}
+    outputs:
+      artifacts:
+      - {name: train-op-model, path: /tmp/outputs/model/data}
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/v2_component: "true"
+        pipelines.kubeflow.org/component_ref: '{}'
+        pipelines.kubeflow.org/arguments.parameters: '{"num_steps": "{{inputs.parameters.preprocess-output_parameter_one}}"}'
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.6.4
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/v2_component: "true"
+        pipelines.kubeflow.org/enable_caching: "true"
+    initContainers:
+    - command: [/bin/mount_launcher.sh]
+      image: gcr.io/ml-pipeline/kfp-launcher:1.6.4
+      name: kfp-launcher
+      mirrorVolumeMounts: true
+    volumes:
+    - {name: kfp-launcher}
+  - name: two-step-pipeline
+    inputs:
+      parameters:
+      - {name: pipeline-name}
+      - {name: pipeline-output-directory}
+    dag:
+      tasks:
+      - name: preprocess
+        template: preprocess
+        arguments:
+          parameters:
+          - {name: pipeline-name, value: '{{inputs.parameters.pipeline-name}}'}
+          - {name: pipeline-output-directory, value: '{{inputs.parameters.pipeline-output-directory}}'}
+      - name: train-op
+        template: train-op
+        dependencies: [preprocess]
+        arguments:
+          parameters:
+          - {name: pipeline-name, value: '{{inputs.parameters.pipeline-name}}'}
+          - {name: pipeline-output-directory, value: '{{inputs.parameters.pipeline-output-directory}}'}
+          - {name: preprocess-output_parameter_one, value: '{{tasks.preprocess.outputs.parameters.preprocess-output_parameter_one}}'}
+          artifacts:
+          - {name: preprocess-output_dataset_one, from: '{{tasks.preprocess.outputs.artifacts.preprocess-output_dataset_one}}'}
+  arguments:
+    parameters:
+    - {name: pipeline-output-directory, value: ''}
+    - {name: pipeline-name, value: pipeline/two_step_pipeline}
+  serviceAccountName: pipeline-runner
+`
+
 	complexPipeline = `
 # Copyright 2018 The Kubeflow Authors
 #
@@ -2542,6 +2825,56 @@ func TestCreatePipelineVersion_ComplexPipelineVersion(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestCreatePipelineVersion_V2PipelineName(t *testing.T) {
+	tests := []struct {
+		name         string
+		namespace    string
+		pipelineName string
+	}{
+		{name: "v2-compat", namespace: "", pipelineName: "pipeline/v2-compat"},
+		{name: "pipe3", namespace: "", pipelineName: "pipeline/pipe3"},
+		{name: "pipeline2", namespace: "kubeflow", pipelineName: "namespace/kubeflow/pipeline/pipeline2"},
+		{name: "abcd", namespace: "user", pipelineName: "namespace/user/pipeline/abcd"},
+	}
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%+v", test), func(t *testing.T) {
+			store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+			defer store.Close()
+			manager := NewResourceManager(store)
+
+			createdPipeline, err := manager.CreatePipeline(test.name, "", test.namespace, []byte(strings.TrimSpace(
+				v2compatPipeline)))
+			require.Nil(t, err)
+			pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+			require.True(t, ok)
+			pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+			version, err := manager.CreatePipelineVersion(
+				&api.PipelineVersion{
+					Name: "pipeline_version",
+					ResourceReferences: []*api.ResourceReference{{
+						Key: &api.ResourceKey{
+							Id:   createdPipeline.UUID,
+							Type: api.ResourceType_PIPELINE,
+						},
+						Relationship: api.Relationship_OWNER,
+					}},
+				},
+				[]byte(strings.TrimSpace(v2compatPipeline)), true)
+			require.Nil(t, err)
+			params, err := util.UnmarshalParameters(version.Parameters)
+			require.Nil(t, err)
+			var nameParam *v1alpha1.Parameter
+			for _, param := range params {
+				if param.Name == "pipeline-name" {
+					nameParam = &param
+				}
+			}
+			require.NotNil(t, nameParam)
+			require.Equal(t, test.pipelineName, nameParam.Value.String())
+		})
+	}
+}
+
 func TestCreatePipelineVersion_CreatePipelineVersionFileError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
@@ -2581,7 +2914,7 @@ func TestCreatePipelineVersion_CreatePipelineVersionFileError(t *testing.T) {
 	assert.NotNil(t, version)
 }
 
-func TestCreatePipelineVersion_GetParametersError(t *testing.T) {
+func TestCreatePipelineVersion_ParseWorkflowError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
@@ -2609,7 +2942,7 @@ func TestCreatePipelineVersion_GetParametersError(t *testing.T) {
 		},
 		[]byte("I am invalid yaml"), true)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Failed to parse the parameter")
+	assert.Contains(t, err.Error(), "Failed to parse the workflow")
 }
 
 func TestCreatePipelineVersion_StorePipelineVersionMetadataError(t *testing.T) {

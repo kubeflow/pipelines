@@ -106,6 +106,8 @@ def update_op(op: dsl.ContainerOp,
       "$(KFP_POD_NAME)",
       "--pipeline_root",
       pipeline_root,
+      "--enable_caching",
+      "$(ENABLE_CACHING)",
   ]
 
   # Mount necessary environment variables.

@@ -57,5 +57,5 @@ python3 $source_root/tfx/tfx/orchestration/kubeflow/v2/step_builder_test.py
 python3 $source_root/tfx/tfx/orchestration/kubeflow/v2/container/kubeflow_v2_entrypoint_utils_test.py
 python3 $source_root/tfx/tfx/orchestration/kubeflow/v2/container/kubeflow_v2_run_executor_test.py
 python3 $source_root/tfx/tfx/orchestration/kubeflow/v2/file_based_example_gen/driver_test.py
-python3 $source_root/tfx/tfx/examples/chicago_taxi_pipeline/taxi_pipeline_kubeflow_local_test.py
-python3 $source_root/tfx/tfx/examples/penguin/penguin_pipeline_kubeflow_gcp_test.py
+# TODO(chensun): uncomment the following once the file is available in TFX repo
+# python3 $source_root/tfx/tfx/examples/penguin/penguin_pipeline_kubeflow_test.py

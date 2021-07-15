@@ -36,11 +36,11 @@ print_op = components.create_component_from_func(print_msg)
 
 @dsl.pipeline(name='single-condition-pipeline', pipeline_root='dummy_root')
 def my_pipeline(text: str = 'condition test'):
-  flip1 = flip_coin_op()
+  flip1 = flip_coin_op().set_caching_options(False)
   print_op(flip1.output)
 
   with dsl.Condition(flip1.output == 'heads'):
-    flip2 = flip_coin_op()
+    flip2 = flip_coin_op().set_caching_options(False)
     print_op(flip2.output)
     print_op(text)
 

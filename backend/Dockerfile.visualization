@@ -18,7 +18,7 @@
 # and exporter.py files in the directory specified above.
 
 # This image should be in sync with image in backend/src/apiserver/visualization/update_requirements.sh.
-FROM tensorflow/tensorflow:2.4.0
+FROM tensorflow/tfx:0.30.1
 
 RUN apt-get update \
   && apt-get install -y wget curl tar openssl

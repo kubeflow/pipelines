@@ -67,6 +67,9 @@
       "dag": {
         "tasks": {
           "read-from-gcs": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-read-from-gcs"
             },
@@ -88,6 +91,9 @@
             }
           },
           "write-to-gcs": {
+            "cachingOptions": {
+              "enableCache": true
+            },
             "componentRef": {
               "name": "comp-write-to-gcs"
             },
@@ -113,7 +119,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.6.0-rc.0"
+    "sdkVersion": "kfp-1.6.4"
   },
   "runtimeConfig": {
     "gcsOutputDirectory": "dummy_root",
